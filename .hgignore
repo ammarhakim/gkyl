@@ -2,3 +2,4 @@ syntax: glob
 *~
 build/*
 .waf*
+install-deps/luajit-2.0
