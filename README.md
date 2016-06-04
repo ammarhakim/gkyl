@@ -17,9 +17,13 @@ research, is prohibited.
 # Dependencies
 
 You must build and install the dependencies yourself, or use existing
-builds for your system. Most supercomputer centers have pre-built
-libraries and these should be used. Build instructions for these
-packages on Mac and Linux are provided in the build sections below.
+builds for your system. Most supercomputer centers have optimized,
+pre-built libraries. On these systems, you will only need to install
+LuaJIT yourself, and perhaps Eigen. All other dependencies should
+already exist.
+
+Build instructions for dependencies are provided in the build sections
+below.
 
 - A C/C++ compiler supporting C++11 extensions.
 - LuaJIT
@@ -35,12 +39,18 @@ Optionally, you will need
 
 ## Building dependencies
 
-Something here
+Building dependencies can be complicated. Some example scripts are
+provided in the install-deps directory. You can use these as-is or
+modify them as needed to suit your system. If you build your own
+dependencies and want Waf to find them automatically, install them in
+the $HOME/gkyldeps directory.
 
 ## Building Gkyl
 
-Gkyl uses the Waf build system. You do NOT need to install waf as it
-is included in the repo. To build the gkyl executable do:
+Once you have all dependencies installed, you can build Gkyl
+itself. Gkyl uses the Waf build system. You do NOT need to install waf
+as it is included with the distribution. To build the gkyl executable
+do:
 
 ./waf configure build
 
@@ -48,6 +58,6 @@ If you need to clean up build files do:
 
 ./waf distclean
 
-The builds are created in a 'build' directory. The executable is in
-build/gkyl and is called 'gkyl'. It takes a single parameter, the name
-of the LuaJIT script to run.
+The builds are created in a 'build' directory. The executable is
+build/gkyl. It takes a single parameter, the name of the LuaJIT script
+to run.
