@@ -1,5 +1,4 @@
 ## -*- python -*-
-
 # Top-level build-script for Gkyl
 
 import os
@@ -36,24 +35,8 @@ def configure(conf):
 
 def build(bld):
     # recurse down directories
-
-    # build executable
-    buildExec(bld)
+    bld.recurse('xgkyl') 
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
     ctx.excl = " **/.waf-1* **/*~ **/*.pyc **/*.swp **/.lock-w* **/.hg **/.hgignore build install-deps/luajit-2.0"
-    
-def buildExec(bld):
-    r"""Build top-level executable"""
-    uname = os.uname()
-    if uname[0] == 'Darwin' and uname[4] == 'x86_64':
-        # we need to append special flags to get stuff to work on a Mac
-        EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
-
-    # build idjit executable
-    bld.program(
-        source='gkyl.cxx', target='gkyl',
-        use='LUAJIT M DL',
-        linkflags = EXTRA_LINK_FLAGS
-    )    
