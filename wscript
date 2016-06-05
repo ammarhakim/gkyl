@@ -35,7 +35,7 @@ def configure(conf):
 
 def build(bld):
     # recurse down directories
-    bld.recurse('xgkyl') 
+    bld.recurse('gkyl') 
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
