@@ -18,8 +18,11 @@ def options(opt):
 
 def configure(conf):
     r"""Configure Gkyl build"""
-    
+
+    # load tools
     conf.load('compiler_c compiler_cxx')
+
+    # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/software')
     
     # load options for LuaJIT
@@ -31,6 +34,16 @@ def configure(conf):
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
 
+def build(bld):
+    # recurse down directories
+
+    # build executable
+    buildExec(bld)
+
+def dist(ctx):
+    ctx.algo = "zip" # use ZIP instead of tar.bz2
+    ctx.excl = " **/.waf-1* **/*~ **/*.pyc **/*.swp **/.lock-w* **/.hg **/.hgignore build install-deps/luajit-2.0"
+    
 def buildExec(bld):
     r"""Build top-level executable"""
     uname = os.uname()
@@ -43,11 +56,4 @@ def buildExec(bld):
         source='gkyl.cxx', target='gkyl',
         use='LUAJIT M DL',
         linkflags = EXTRA_LINK_FLAGS
-    )
-
-def build(bld):
-    # recurse down directories
-
-    # build executable
-    buildExec(bld)
-    
+    )    
