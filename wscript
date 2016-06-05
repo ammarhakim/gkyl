@@ -48,7 +48,7 @@ def buildExec(bld):
 
     # build idjit executable
     bld.program(
-        source='gkyl.cxx', target='xgkyl',
+        source='gkyl.cxx', target='gkyl',
         use='LUAJIT M DL',
         linkflags = EXTRA_LINK_FLAGS
     )
