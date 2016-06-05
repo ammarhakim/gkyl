@@ -1,6 +1,0 @@
-#!/bin/bash
-LJ_EXEC="$(pwd)"
-LJ_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-LJ_LUA_PATH="$LJ_ROOT""/?.lua;""$LJ_ROOT""/?/init.lua;""?/init.lua;""?.lua;"
-# run executable
-LUA_PATH=$LJ_LUA_PATH $LJ_ROOT/xgkyl $@
