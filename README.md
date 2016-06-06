@@ -54,12 +54,11 @@ executable do:
   ./waf --prefix=$HOME/gkylsoft configure build install
 
 The builds are created in a 'build' directory. The executable is
-build/xgkyl. It takes a single parameter, the name of the LuaJIT
-script to run. Note that, in general, you **can not** run the
-executable from the build directory. (The reason for this is that
-besides the executable a bunch of LuaJIT files are also needed to run
-most simulations). Hence, the code **must** be installed as shown
-above.
+build/gkyl. It takes a single parameter, the name of the LuaJIT script
+to run. Note that, in general, you **can not** run the executable from
+the build directory. (The reason for this is that besides the
+executable a bunch of LuaJIT files are also needed to run most
+simulations). Hence, the code **must** be installed as shown above.
 
 If you need to clean up a build do:
 
