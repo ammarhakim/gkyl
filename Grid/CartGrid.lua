@@ -12,7 +12,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- define C interfaces
 ffi.cdef [[
       typedef struct { 
-        uint8_t _NDIM; 
+        uint8_t _ndim; 
         double _lower[6], _upper[6]; 
         int32_t _numCells[6]; 
       } UniformCartGrid_t;
@@ -23,7 +23,7 @@ local function new_UniformCartGrid_ct()
    local uc_type = typeof("UniformCartGrid_t")
    local uni_cart_mf = {
       ndim = function (self, i)
-	 return self._NDIM
+	 return self._ndim
       end,
       lower = function (self, i)
 	 return self._lower[i]
@@ -40,7 +40,15 @@ local function new_UniformCartGrid_ct()
    }
    local uni_cart_mt = {
       __new = function (self, tbl)
+	 local lo, up, cells = tbl["lower"], tbl["upper"], tbl["cells"]
 	 local g = new(uc_type)
+	 g._ndim = #lo
+	 for d = 1, #lo do
+	    g._lower[d-1] = lo[d]
+	    g._upper[d-1] = up[d]
+	    g._numCells[d-1] = cells[d]
+	 end
+	 return g
       end,
       __index = uni_cart_mf,
    }
