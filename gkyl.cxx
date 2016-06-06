@@ -1,4 +1,6 @@
 /** Top-level entry point into Gkyl */
+//    _______     ___
+// + 6 @ |||| # P ||| +
 
 // luajit includes
 #include <lua.hpp>

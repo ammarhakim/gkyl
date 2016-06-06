@@ -1,5 +1,7 @@
 ## -*- python -*-
 # Top-level build-script for Gkyl
+##    _______     ___
+## + 6 @ |||| # P ||| +
 
 import os
 
