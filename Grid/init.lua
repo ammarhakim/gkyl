@@ -2,7 +2,7 @@
 -- Dispatch into the Grid modules
 --------------------------------------------------------------------------------
 
-local nonUniformCartGrid = require "Grid.NonUniformCartGrid"
+local nonUniformCartGrid = require "Grid.CartGrid"
   
 
 
