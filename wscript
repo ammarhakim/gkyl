@@ -36,6 +36,14 @@ def configure(conf):
 def build(bld):
     # recurse down directories
 
+    # intall Lua scripts
+
+    Grid_dir = bld.path.find_dir('Grid')
+    bld.install_files(
+        "${PREFIX}/bin/Grid",
+        Grid_dir.ant_glob('**/*.lua'),
+        cwd=Grid_dir, relative_trick=True)
+
     # build executable
     buildExec(bld)
 
