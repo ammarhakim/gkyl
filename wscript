@@ -36,7 +36,13 @@ def configure(conf):
 def build(bld):
     # recurse down directories
 
-    # intall Lua scripts
+    # install LuaJIT code
+
+    xsys_dir = bld.path.find_dir('xsys')
+    bld.install_files(
+        "${PREFIX}/bin/xsys",
+        xsys_dir.ant_glob('**/*.lua'),
+        cwd=xsys_dir, relative_trick=True)
 
     Grid_dir = bld.path.find_dir('Grid')
     bld.install_files(
