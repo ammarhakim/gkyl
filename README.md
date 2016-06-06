@@ -51,7 +51,9 @@ itself. Gkyl uses the Waf build system. You do NOT need to install waf
 as it is included with the distribution. To build and install the gkyl
 executable do:
 
-  ./waf --prefix=$HOME/gkylsoft configure build install
+~~~~~~~
+./waf --prefix=$HOME/gkylsoft configure build install
+~~~~~~~
 
 The builds are created in a 'build' directory. The executable is
 build/gkyl. It takes a single parameter, the name of the LuaJIT script
@@ -62,9 +64,12 @@ simulations). Hence, the code **must** be installed as shown above.
 
 If you need to clean up a build do:
 
-  ./waf distclean
+~~~~~~~
+./waf distclean
+~~~~~~~
 
 If you need to uninstall do:
 
-  ./waf uninstall
-
+~~~~~~~
+./waf uninstall
+~~~~~~~
