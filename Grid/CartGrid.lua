@@ -20,8 +20,8 @@ typedef struct {
     int32_t _numCells[6]; 
 } UniformCartGrid_t;      
 
-/* Node coordinate field for use in non-uniform cartesian grid */
-typedef struct { uint32_t n; double _x[?]; } NodeCoord_t;
+/* Node coordinates for use in non-uniform cartesian grid */
+typedef struct { uint32_t _n; double _x[?]; } NodeCoord_t;
 ]]
 
 -- Uniform cartesian mesh meta-object creator
@@ -73,5 +73,5 @@ end
 
 return {
    CartGrid = new_UniformCartGrid_ct(),
-   NonUniformCartGrid = new_NonUniformCartGrid_ct(),   
+   NonUniformCartGrid = new_NonUniformCartGrid_ct(),
 }
