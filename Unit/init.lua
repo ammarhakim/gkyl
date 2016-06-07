@@ -1,15 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
---
--- Dispatch into the Grid modules
+-- 
+-- Dispatch into the unit testing code
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local CartGrid = require "Grid.CartGrid"
-
-return {
-   CartGrid = CartGrid.CartGrid
-}
-  
-
-
+return require "Unit.unit"

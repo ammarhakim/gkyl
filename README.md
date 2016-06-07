@@ -73,3 +73,14 @@ If you need to uninstall do:
 ~~~~~~~
 ./waf uninstall
 ~~~~~~~
+
+If you want to zip up the code for copying to another machine, do:
+
+~~~~~~~
+./waf dist
+~~~~~~~
+
+This will create a zip file with the code. The repo hidden files and
+generated files will not be zipped up.
+
+
