@@ -46,6 +46,12 @@ def build(bld):
         xsys_dir.ant_glob('**/*.lua'),
         cwd=xsys_dir, relative_trick=True)
 
+    unit_dir = bld.path.find_dir('Unit')
+    bld.install_files(
+        "${PREFIX}/bin/Unit",
+        ["unit.lua", "init.lua"],
+        cwd=unit_dir, relative_trick=True)
+
     Grid_dir = bld.path.find_dir('Grid')
     bld.install_files(
         "${PREFIX}/bin/Grid",

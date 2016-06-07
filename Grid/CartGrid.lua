@@ -1,4 +1,5 @@
---------------------------------------------------------------------------------
+-- Gkyl ------------------------------------------------------------------------
+--
 -- Cartesian grids, uniform and non-uniform
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -11,11 +12,16 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- define C interfaces
 ffi.cdef [[
-      typedef struct { 
-        uint8_t _ndim; 
-        double _lower[6], _upper[6]; 
-        int32_t _numCells[6]; 
-      } UniformCartGrid_t;
+
+/* Uniform cartesian grid */
+typedef struct {
+    uint8_t _ndim; 
+    double _lower[6], _upper[6]; 
+    int32_t _numCells[6]; 
+} UniformCartGrid_t;      
+
+/* Node coordinate field for use in non-uniform cartesian grid */
+typedef struct { uint32_t n; double _x[?]; } NodeCoord_t;
 ]]
 
 -- Uniform cartesian mesh meta-object creator
@@ -40,10 +46,12 @@ local function new_UniformCartGrid_ct()
    }
    local uni_cart_mt = {
       __new = function (self, tbl)
-	 local lo, up, cells = tbl["lower"], tbl["upper"], tbl["cells"]
+	 local lo = tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+	 local up = tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
+	 local cells = tbl.cells
 	 local g = new(uc_type)
-	 g._ndim = #lo
-	 for d = 1, #lo do
+	 g._ndim = #cells
+	 for d = 1, #cells do
 	    g._lower[d-1] = lo[d]
 	    g._upper[d-1] = up[d]
 	    g._numCells[d-1] = cells[d]
@@ -55,6 +63,15 @@ local function new_UniformCartGrid_ct()
    return metatype(uc_type, uni_cart_mt)
 end
 
+-- Non-uniform cartesian mesh meta-object creator: this is basically
+-- an object which stores the nodal coordinates of each node in 1D
+-- arrays. The methods are similar to the uniform cartesian grid
+-- object to allow transparent use of uniform meshes in updaters which
+-- work for general non-uniform meshes.
+local function new_NonUniformCartGrid_ct()
+end
+
 return {
    CartGrid = new_UniformCartGrid_ct(),
+   NonUniformCartGrid = new_NonUniformCartGrid_ct(),   
 }
