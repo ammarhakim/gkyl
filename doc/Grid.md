@@ -23,29 +23,28 @@ grid = Grid.CartGrid {
 ~~~~~~~
 
 The grid dimension is determined from the number of entries in the
-constructor fields. The following methods are provided:
+constructor fields. The grid constructor takes the following
+parameters:
 
-~~~~~~~ {.lua}
-grid:ndim()
-~~~~~~~
+`lower`
+: Table with coordinates of the lower-left corner of grid.
 
-The dimensions of the grid.
+`upper`
+: Table with coordinates of the upper-right corner of grid.
 
-~~~~~~~ {.lua}
-grid:lower(dir)
-grid:upper(dir)
-~~~~~~~
+`cells`
+: Number of cells in each direction
 
-The lower/upper bounds in direction `dir`.
+The following methods are provided:
 
-~~~~~~~ {.lua}
-grid:numCells(dir)
-~~~~~~~
+`grid:ndim()`
+: The dimensions of the grid.
 
-The number of cells in direction `dir`.
+`grid:lower(dir)`, `grid:upper(dir)`
+: The lower/upper bounds in direction `dir`.
 
-~~~~~~~ {.lua}
-grid:dx(dir)
-~~~~~~~
+`grid:numCells(dir)`
+: The number of cells in direction `dir`.
 
-Cell spacing in direction `dir`
+`grid:dx(dir)`
+: Cell spacing in direction `dir`
