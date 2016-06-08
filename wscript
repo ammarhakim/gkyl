@@ -36,22 +36,32 @@ def configure(conf):
     conf.env.LIB_DL = ['dl']
 
 def build(bld):
-    # recurse down directories
+    ### recurse down directories
 
-    # install LuaJIT code
+    ### install LuaJIT code
 
+    # - xsys
     xsys_dir = bld.path.find_dir('xsys')
     bld.install_files(
         "${PREFIX}/bin/xsys",
         xsys_dir.ant_glob('**/*.lua'),
         cwd=xsys_dir, relative_trick=True)
 
+    # - Unit    
     unit_dir = bld.path.find_dir('Unit')
     bld.install_files(
         "${PREFIX}/bin/Unit",
         ["unit.lua", "init.lua"],
         cwd=unit_dir, relative_trick=True)
 
+    # - Lin
+    Lin_dir = bld.path.find_dir('Linalg')
+    bld.install_files(
+        "${PREFIX}/bin/Linalg",
+        Lin_dir.ant_glob('**/*.lua'),
+        cwd=Lin_dir, relative_trick=True)
+
+    # - Grid
     Grid_dir = bld.path.find_dir('Grid')
     bld.install_files(
         "${PREFIX}/bin/Grid",
