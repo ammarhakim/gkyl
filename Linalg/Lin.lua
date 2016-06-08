@@ -12,8 +12,8 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Vector ----------------------------------------------------------------------
 --
--- A simple chunk of memory with length stored. Can create vector of
--- structures (structs can not be VLS or VLA)
+-- A chunk of memory with length stored. One can also create vector of
+-- structures (can not be VLS or VLA)
 --------------------------------------------------------------------------------
 
 -- Allocate vector with type "ct" and size "n"
