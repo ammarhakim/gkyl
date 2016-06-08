@@ -7,7 +7,7 @@
 
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local Lin = require "Linalg"
+local Lin = require "Linalg.Lin"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
