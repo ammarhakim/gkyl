@@ -10,8 +10,11 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
--- Vector: this is a simple slice of memory with length stored. Can
--- create vector of structures (structs can not be VLS or VLA)
+-- Vector ----------------------------------------------------------------------
+--
+-- A simple chunk of memory with length stored. Can create vector of
+-- structures (structs can not be VLS or VLA)
+--------------------------------------------------------------------------------
 
 -- Allocate vector with type "ct" and size "n"
 local function vec_alloc(ct, n)
@@ -25,7 +28,7 @@ local function vec_memcpy(y, x)
   copy(y._p, x._p, sizeof(y:elemType())*y._n)
 end
 
--- Vector meta-object
+-- Vector meta-object creator
 local function new_vec_ct(elct)
    local vec_mf = {
       elemType = function(self)	 
