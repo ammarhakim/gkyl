@@ -82,14 +82,14 @@ local function new_UniformCartGrid_ct()
    }
    return metatype(uc_type, uni_cart_mt)
 end
--- create object factor for uniform cartesian grids
+-- create object factory for uniform cartesian grids
 local CartGrid = new_UniformCartGrid_ct()
 
 -- NonUniformCartGrid ----------------------------------------------------------------------
 --
--- Stores the nodal coordinates of each node in 1D arrays. The methods
--- names are the same as the uniform cartesian grid object to allow
--- transparent use of uniform meshes in updaters which work for
+-- Stores the nodal coordinates of each node in 1D vectors. The
+-- methods names are the same as the uniform cartesian grid object to
+-- allow transparent use of uniform meshes in updaters which work for
 -- general non-uniform meshes.
 --------------------------------------------------------------------------------
 
@@ -170,7 +170,7 @@ local function new_NonUniformCartGrid_ct()
 
    return nonUni_type
 end
--- create object factor for non-uniform cartesian grids
+-- create object factory for non-uniform cartesian grids
 local NonUniformCartGrid = new_NonUniformCartGrid_ct()
 
 return {

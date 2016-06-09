@@ -35,7 +35,8 @@ parameters:
 `cells`
 : Number of cells in each direction
 
-The following methods are provided:
+The following methods are provided. Note: __we indicate X-direction
+with 0, Y-direction with 1, etc.__
 
 `grid:ndim()`
 : The dimensions of the grid.
@@ -51,3 +52,10 @@ The following methods are provided:
 
 `grid:cellVolume()`
 : Volume of a grid cell. For uniform grid, this is the same for all cells.
+
+## `NonUniformCartGrid`: Non-uniform, cartesian grid
+
+A non-uniform cartesian grid can be constructed using the
+`NonUniformCartGrid` constructor object. A non-uniform grid is
+described by the 1D arrays which specify the nodal coordinates in each
+direction.
