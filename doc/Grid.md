@@ -85,3 +85,53 @@ The grid constructor takes the following parameters:
   a single parameter, `zeta`. The `d`-th function in the list must
   return the physical space coordinate corresponding to the
   computational space coordinate `zeta`.
+
+For example, consider a 1D grid $x\in [0,1]$ with the mapping $x =
+\zeta^2$. This gives a grid which is packed near $x=0$, with cell size
+getting larger towards $x=1$. To make such a grid one would do:
+
+~~~~~~~ {.lua}
+grid = Grid.NonUniformCartGrid {   
+   cells = {16},
+   mappings = {
+      function (zeta)
+        return zeta*zeta
+      end,
+   }
+}
+~~~~~~~  
+
+Note that as the `lower` and `upper` fields are missing, the
+computational domain is assumed to be $[0,1]$.
+
+The following methods are provided. (Note: __we indicate X-direction
+with 0, Y-direction with 1, etc__).
+
+`grid:ndim()`
+: The dimensions of the grid.
+
+`grid:lower(dir)`, `grid:upper(dir)`
+: The lower/upper bounds in direction `dir`.
+
+`grid:numCells(dir)`
+: The number of cells in direction `dir`.
+
+`grid:nodeCoords(dir)`
+: Return a 1D vector object (see documentation of 1D vectors for API)
+  with the nodal coordinates in direction `dir`. This can be modified
+  to manually set the indices if needed.
+
+`grid:setIndex(idx)`
+: Set index into grid to point to cell `idx`. This method must be
+  called before querying the grid for cell size or volume. The index
+  can be any object which supports the [] indexing operator. However,
+  __please remember that indices start at 1__. This is specially
+  important to keep in mind if using a raw ffi object as an index.
+
+`grid:dx(dir)`
+: Cell spacing in direction `dir`.
+
+`grid:cellVolume()`
+: Volume of a grid cell.
+
+
