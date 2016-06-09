@@ -94,10 +94,18 @@ local CartGrid = new_UniformCartGrid_ct()
 --------------------------------------------------------------------------------
 
 -- Fill array ncoords such that cell spacing is uniform
-local function fillWithUniformNodeCoords(lower, upper, ncell, ncoords)
+local function fillWithUniformNodeCoords(lower, upper, ncell, vcoords)
    local dx = (upper-lower)/ncell
    for n = 1, ncell+1 do
-      ncoords[n] = lower+dx*(n-1)
+      vcoords[n] = lower+dx*(n-1)
+   end
+end
+
+-- Compute nodal coordinates using mapping function
+local function fillWithMappedNodeCoords(lower, upper, ncell, mapFunc, vcoords)
+   local dx = (upper-lower)/ncell
+   for n = 1, ncell+1 do
+      vcoords[n] = mapFunc(lower+dx*(n-1))
    end
 end
 
@@ -109,10 +117,10 @@ local function new_NonUniformCartGrid_ct()
 	 return self._compGrid._ndim
       end,
       lower = function (self, dir)
-	 return self._compGrid:lower(dir)
+	 return self._nodeCoords[dir+1][1]
       end,
       upper = function (self, dir)
-	 return self._compGrid:upper(dir)
+	 return self._nodeCoords[dir+1][self:numCells(dir)+1]
       end,
       numCells = function (self, dir)
 	 return self._compGrid:numCells(dir)
@@ -144,20 +152,33 @@ local function new_NonUniformCartGrid_ct()
       local self = setmetatable({}, nonUni_type)
       self._compGrid = CartGrid(tbl) -- computational space grid
 
-      self._nodeCoords = {} -- nodal coordinates in each direction
       local ndim = self._compGrid._ndim
+      -- set grid index to first cell in domain
       for d = 0, ndim-1 do
-	 -- allocate space for node coordinates (one node extra than cells)
+	 self._compGrid._currIdx[d] = 1;
+      end
+
+      self._nodeCoords = {} -- nodal coordinates in each direction      
+      -- initialize nodes to be uniform (will be over-written if mappings are provided)
+      for d = 0, ndim-1 do
+	 -- allocate space: one node extra than cells
 	 local v =  Lin.vec(self._compGrid:numCells(d)+1)
-	 -- make grid uniform by default
 	 fillWithUniformNodeCoords(
-	    self._compGrid:lower(d), self._compGrid:upper(d), self._compGrid:numCells(d), v)
+	    self._compGrid._lower[d], self._compGrid._upper[d], self._compGrid:numCells(d), v)
 	 self._nodeCoords[d+1] = v
-	 -- set grid index to first cell in domain
-	 for d = 0, ndim-1 do
-	    self._compGrid._currIdx[d] = 1;
+      end
+
+      -- compute nodal coordinates
+      if tbl.mappings then
+	 -- loop over mapping functions, using them to set the nodal coordinates
+	 for i, mapFunc in next, tbl.mappings, nil do
+	    local d = i-1 -- directions start from 0
+	    fillWithMappedNodeCoords(
+	       self._compGrid._lower[d], self._compGrid._upper[d], self._compGrid:numCells(d),
+	       mapFunc, self._nodeCoords[i])
 	 end
       end
+      
       return self
    end
 
