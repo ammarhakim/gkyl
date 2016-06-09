@@ -52,13 +52,13 @@ local function new_vec_ct(elct)
     end,
     __index = function(self, k)
        if type(k) == "number" then
-	  return self._p[k]
+	  return self._p[k-1]
        else
 	  return vec_mf[k]
        end
     end,
-    __newindex = function(self, i, v)
-      self._p[i] = v 
+    __newindex = function(self, k, v)
+      self._p[k-1] = v
     end,
   }
   local ct = typeof("struct { int32_t _n; $* _p; $ _a[?]; }", elct, elct)

@@ -47,4 +47,7 @@ The following methods are provided:
 : The number of cells in direction `dir`.
 
 `grid:dx(dir)`
-: Cell spacing in direction `dir`
+: Cell spacing in direction `dir`.
+
+`grid:cellVolume()`
+: Volume of a grid cell. For uniform grid, this is the same for all cells.
