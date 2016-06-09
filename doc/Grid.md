@@ -11,8 +11,10 @@ The following objects are provided by this module.
 ## `CartGrid`: Uniform, cartesian grid
 
 A uniform, cartesian grid can be constructed using the `CartGrid`
-constructor object. Grid from one to six dimensions can be made. For
-example, the following example creates a 2D grid:
+constructor object. Grid from one to six dimensions can be made. We
+refer to the grid dimension as `NDIM`.
+
+For example, the following example creates a 2D grid:
 
 ~~~~~~~ {.lua}
 grid = Grid.CartGrid {
@@ -23,8 +25,8 @@ grid = Grid.CartGrid {
 ~~~~~~~
 
 The grid dimension is determined from the number of entries in the
-constructor fields. The grid constructor takes the following
-parameters:
+constructor fields (i.e, `NDIM = #cells`). The grid constructor takes
+the following parameters:
 
 `lower`
 : Table with coordinates of the lower-left corner of grid.
@@ -59,3 +61,27 @@ A non-uniform cartesian grid can be constructed using the
 `NonUniformCartGrid` constructor object. A non-uniform grid is
 described by the 1D arrays which specify the nodal coordinates in each
 direction.
+
+A non-uniform grid can be created in two ways: first, by specifying
+functions which map computational space coordinates to physical space
+coordinates and second, by directly setting the nodal coordinates
+manually. One would use the first method if an analytical mapping
+function is known, and the second, if the nodal coordinates are
+pre-computed by other means (like reading from a file).
+
+The grid constructor takes the following parameters:
+
+`lower` (Optional. Defaults to  `{0.0, ...}`)
+: Table with coordinates of the lower-left corner of grid.
+
+`upper` (Optional. Defaults to `{1.0, ...}`)
+: Table with coordinates of the upper-right corner of grid.
+
+`cells`
+: Number of cells in each direction
+
+`mappings` (Optional. If missing, nodal spacing is uniform)
+: This is a table with `NDIM` number of functions, each of which takes
+  a single parameter, `zeta`. The `d`-th function in the list must
+  return the physical space coordinate corresponding to the
+  computational space coordinate `zeta`.
