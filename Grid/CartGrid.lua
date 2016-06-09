@@ -14,7 +14,6 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
 
-
 -- define C interfaces
 ffi.cdef [[
 
@@ -130,7 +129,7 @@ local function new_NonUniformCartGrid_ct()
       end,      
       setIndex = function(self, idx)
 	 for d = 1, self:ndim() do
-	    self._currIdx[d-1] = idx[d]
+	    self._compGrid._currIdx[d-1] = idx[d]
 	 end
       end,
       dx = function (self, dir)
@@ -170,8 +169,9 @@ local function new_NonUniformCartGrid_ct()
 
       -- compute nodal coordinates
       if tbl.mappings then
-	 -- loop over mapping functions, using them to set the nodal coordinates
+	 -- loop over mapping functions, using them to set nodal coordinates
 	 for i, mapFunc in next, tbl.mappings, nil do
+	    if i > ndim then break end -- break out if too many functions provided
 	    local d = i-1 -- directions start from 0
 	    fillWithMappedNodeCoords(
 	       self._compGrid._lower[d], self._compGrid._upper[d], self._compGrid:numCells(d),
