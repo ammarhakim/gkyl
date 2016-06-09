@@ -89,11 +89,36 @@ function test_4()
    assert_equal(0.1*0.1, grid:cellVolume(), "Checking volume")   
 end
 
+function test_5()
+   local grid = Grid.NonUniformCartGrid {   
+      lower = {0.0, 1.0, 2.0},
+      upper = {2.0, 5.0, 10.0},
+      cells = {10, 20, 40}
+   }
+
+   assert_equal(3, grid:ndim(), "Checking NDIM")
+
+   assert_equal(0.0, grid:lower(0), "Checking lower")
+   assert_equal(1.0, grid:lower(1), "Checking lower")
+   assert_equal(2.0, grid:lower(2), "Checking lower")   
+
+   assert_equal(2.0, grid:upper(0), "Checking upper")
+   assert_equal(5.0, grid:upper(1), "Checking upper")
+   assert_equal(10.0, grid:upper(2), "Checking upper")   
+
+   assert_equal(0.2, grid:dx(0), "Checking dx")
+   assert_equal(0.2, grid:dx(1), "Checking dx")
+   assert_equal(0.2, grid:dx(2), "Checking dx")
+
+   assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
