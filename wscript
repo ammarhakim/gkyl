@@ -54,12 +54,12 @@ def build(bld):
         ["unit.lua", "init.lua"],
         cwd=unit_dir, relative_trick=True)
 
-    # - Lin
-    Lin_dir = bld.path.find_dir('Linalg')
+    # - Lib
+    Lib_dir = bld.path.find_dir('Lib')
     bld.install_files(
-        "${PREFIX}/bin/Linalg",
-        Lin_dir.ant_glob('**/*.lua'),
-        cwd=Lin_dir, relative_trick=True)
+        "${PREFIX}/bin/Lib",
+        Lib_dir.ant_glob('**/*.lua'),
+        cwd=Lib_dir, relative_trick=True)
 
     # - Grid
     Grid_dir = bld.path.find_dir('Grid')

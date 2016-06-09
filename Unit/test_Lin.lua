@@ -7,7 +7,7 @@
 
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local Lin = require "Linalg.Lin"
+local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -16,17 +16,17 @@ function test_1()
    local v = Lin.vec(3)
    assert_equal(3, #v, "Checking length of vector")
    -- set values
-   for i=0,#v-1 do
+   for i= 1, #v do
       v[i] = (i+0.5)*0.1
    end
    -- test them
-   for i=0,#v-1 do
+   for i= 1, #v do
       assert_equal((i+0.5)*0.1, v[i], "Checking vector content")
    end
 
    local vcopy = v:copy()
    -- test copy
-   for i=0,#vcopy-1 do
+   for i = 1, #vcopy do
       assert_equal((i+0.5)*0.1, vcopy[i], "Checking vector copy")
    end
 end
@@ -36,13 +36,13 @@ function test_2()
    local v = eulerVec(4)
    assert_equal(4, #v, "Checking length of vector")
    -- set values
-   for i=0,#v-1 do
+   for i = 1, #v do
       v[i].rho = i+0.0
       v[i].rhou = i+1.0
       v[i].E = i+2.0 
    end
    -- test them
-   for i=0,#v-1 do
+   for i = 1, #v do
       assert_equal(i+0.0, v[i].rho, "Checking vector of struct contents")
       assert_equal(i+1.0, v[i].rhou, "Checking vector of struct contents")
       assert_equal(i+2.0, v[i].E, "Checking vector of struct contents")
@@ -50,7 +50,7 @@ function test_2()
 
    local vcopy = v:copy()
    -- test copy
-   for i=0,#vcopy-1 do
+   for i = 1, #vcopy do
       assert_equal(i+0.0, vcopy[i].rho, "Checking vector of struct contents copy")
       assert_equal(i+1.0, vcopy[i].rhou, "Checking vector of struct contents copy")
       assert_equal(i+2.0, vcopy[i].E, "Checking vector of struct contents copy")
