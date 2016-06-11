@@ -192,9 +192,9 @@ local function new_NonUniformRectCartGrid_ct()
    return nonUni_type
 end
 -- create object factory for non-uniform cartesian grids
-local NonUniformRectCartGrid = new_NonUniformRectCartGrid_ct()
+local NonUniformRectCart = new_NonUniformRectCartGrid_ct()
 
 return {
    RectCart = RectCart,
-   NonUniformRectCartGrid = NonUniformRectCartGrid,
+   NonUniformRectCart = NonUniformRectCart,
 }

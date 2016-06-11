@@ -9,7 +9,7 @@ local CartGrid = require "Grid.CartGrid"
 
 return {
    RectCart = CartGrid.RectCart,
-   NonUniformRectCart = CartGrid.NonUniformRectCartGrid,
+   NonUniformRectCart = CartGrid.NonUniformRectCart,
 }
   
 
