@@ -8,16 +8,16 @@ Grid = require "Grid"
 
 The following objects are provided by this module.
 
-## `CartGrid`: Uniform, cartesian grid
+## `RectCart`: Uniform, cartesian grid
 
-A uniform, cartesian grid can be constructed using the `CartGrid`
+A uniform, cartesian grid can be constructed using the `RectCart`
 constructor object. Grid from one to six dimensions can be made. We
 refer to the grid dimension as `NDIM`.
 
 For example, the following example creates a 2D grid:
 
 ~~~~~~~ {.lua}
-grid = Grid.CartGrid {
+grid = Grid.RectCart {
    lower = {0.0, 0.0},
    upper = {2.0, 3.0},
    cells = {10, 20}
@@ -55,10 +55,10 @@ with 0, Y-direction with 1, etc.__
 `grid:cellVolume()`
 : Volume of a grid cell. For uniform grid, this is the same for all cells.
 
-## `NonUniformCartGrid`: Non-uniform, cartesian grid
+## `NonUniformRectCart`: Non-uniform, cartesian grid
 
 A non-uniform cartesian grid can be constructed using the
-`NonUniformCartGrid` constructor object. A non-uniform grid is
+`NonUniformRectCart` constructor object. A non-uniform grid is
 described by the 1D arrays which specify the nodal coordinates in each
 direction.
 
@@ -91,7 +91,7 @@ For example, consider a 1D grid $x\in [0,1]$ with the mapping $x =
 getting larger towards $x=1$. To make such a grid one would do:
 
 ~~~~~~~ {.lua}
-grid = Grid.NonUniformCartGrid {   
+grid = Grid.NonUniformRectCart {
    cells = {16},
    mappings = {
       function (zeta)
