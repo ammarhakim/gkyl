@@ -13,11 +13,11 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local grid = Grid.CartGrid {
+   local grid = Grid.RectCart {
       cells = {10, 20}
    }
 
-   -- (just make sure setIndex() method works. For CartGrid object
+   -- (just make sure setIndex() method works. For RectCart object
    -- setting index is not needed)
    idx = Lin.intVec(grid:ndim())
    idx[1], idx[2] = 1, 1
@@ -39,7 +39,7 @@ function test_1()
 end
 
 function test_2()
-   local grid = Grid.CartGrid {
+   local grid = Grid.RectCart {
       lower = {0.0, 1.0},
       upper = {2.0, 5.0},
       cells = {10, 20}
@@ -63,7 +63,7 @@ function test_2()
 end
 
 function test_3()
-   local grid = Grid.CartGrid {
+   local grid = Grid.RectCart {
       lower = {0.0, 1.0, 2.0},
       upper = {2.0, 5.0, 10.0},
       cells = {10, 20, 40}
@@ -91,7 +91,7 @@ function test_3()
 end
 
 function test_4()
-   local grid = Grid.NonUniformCartGrid {
+   local grid = Grid.NonUniformRectCart {
       cells = {10, 10}
    }
 
@@ -113,7 +113,7 @@ function test_4()
 end
 
 function test_5()
-   local grid = Grid.NonUniformCartGrid {   
+   local grid = Grid.NonUniformRectCart {   
       lower = {0.0, 1.0, 2.0},
       upper = {2.0, 5.0, 10.0},
       cells = {10, 20, 40},
@@ -141,7 +141,7 @@ function test_5()
 end
 
 function test_5()
-   local grid = Grid.NonUniformCartGrid {   
+   local grid = Grid.NonUniformRectCart {   
       lower = {0.0, 1.0, 2.0},
       upper = {2.0, 5.0, 10.0},
       cells = {10, 20, 40},
@@ -181,7 +181,7 @@ function test_5()
 end
 
 function test_6()
-   local grid = Grid.NonUniformCartGrid {   
+   local grid = Grid.NonUniformRectCart {   
       cells = {10, 20, 40},
       -- functions mapping computational space to physical space
       mappings = {
@@ -219,7 +219,7 @@ function test_6()
 end
 
 function test_7()
-   local grid = Grid.NonUniformCartGrid {   
+   local grid = Grid.NonUniformRectCart {   
       cells = {3},
       -- functions mapping computational space to physical space
       mappings = {
@@ -255,7 +255,7 @@ function test_7()
 end
 
 function test_8()
-   local grid = Grid.NonUniformCartGrid { cells = {3} }
+   local grid = Grid.NonUniformRectCart { cells = {3} }
    local xn = grid:nodeCoords(0)
    -- set nodes manually (this is the mapping zeta^2)
    xn[1] = 0.0

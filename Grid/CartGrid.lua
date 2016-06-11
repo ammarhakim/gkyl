@@ -23,17 +23,17 @@ typedef struct {
     double _lower[6], _upper[6]; 
     int32_t _numCells[6];
     int32_t _currIdx[6];
-} UniformCartGrid_t;  
+} RectCartGrid_t;  
 
 ]]
 
--- CartGrid ----------------------------------------------------------------------
+-- RectCart ----------------------------------------------------------------------
 --
 -- A uniform Cartesian grid
 --------------------------------------------------------------------------------
 
-local function new_UniformCartGrid_ct()
-   local uc_type = typeof("UniformCartGrid_t")
+local function new_RectCartGrid_ct()
+   local uc_type = typeof("RectCartGrid_t")
    local uni_cart_mf = {
       ndim = function (self)
 	 return self._ndim
@@ -82,9 +82,9 @@ local function new_UniformCartGrid_ct()
    return metatype(uc_type, uni_cart_mt)
 end
 -- create object factory for uniform cartesian grids
-local CartGrid = new_UniformCartGrid_ct()
+local RectCart = new_RectCartGrid_ct()
 
--- NonUniformCartGrid ----------------------------------------------------------------------
+-- NonUniformRectCartGrid ----------------------------------------------------------------------
 --
 -- Stores the nodal coordinates of each node in 1D vectors. The
 -- methods names are the same as the uniform cartesian grid object to
@@ -108,7 +108,7 @@ local function fillWithMappedNodeCoords(lower, upper, ncell, mapFunc, vcoords)
    end
 end
 
-local function new_NonUniformCartGrid_ct()
+local function new_NonUniformRectCartGrid_ct()
    local nonUni_type = {}
    -- methods 
    local nonUni_mf = {
@@ -149,7 +149,7 @@ local function new_NonUniformCartGrid_ct()
    -- constructor to make a new non-uniform grid
    function nonUni_type:new(tbl)
       local self = setmetatable({}, nonUni_type)
-      self._compGrid = CartGrid(tbl) -- computational space grid
+      self._compGrid = RectCart(tbl) -- computational space grid
 
       local ndim = self._compGrid._ndim
       -- set grid index to first cell in domain
@@ -192,9 +192,9 @@ local function new_NonUniformCartGrid_ct()
    return nonUni_type
 end
 -- create object factory for non-uniform cartesian grids
-local NonUniformCartGrid = new_NonUniformCartGrid_ct()
+local NonUniformRectCartGrid = new_NonUniformRectCartGrid_ct()
 
 return {
-   CartGrid = CartGrid,
-   NonUniformCartGrid = NonUniformCartGrid,
+   RectCart = RectCart,
+   NonUniformRectCartGrid = NonUniformRectCartGrid,
 }
