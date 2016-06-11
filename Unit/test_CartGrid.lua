@@ -25,17 +25,17 @@ function test_1()
    
    assert_equal(2, grid:ndim(), "Checking NDIM")
 
-   assert_equal(10, grid:numCells(0), "Checking numCells")
-   assert_equal(20, grid:numCells(1), "Checking numCells")
+   assert_equal(10, grid:numCells(1), "Checking numCells")
+   assert_equal(20, grid:numCells(2), "Checking numCells")
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
    assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(0.0, grid:lower(2), "Checking lower")
 
-   assert_equal(1.0, grid:upper(0), "Checking upper")
    assert_equal(1.0, grid:upper(1), "Checking upper")
+   assert_equal(1.0, grid:upper(2), "Checking upper")
 
-   assert_equal(0.1, grid:dx(0), "Checking dx")
-   assert_equal(0.05, grid:dx(1), "Checking dx")
+   assert_equal(0.1, grid:dx(1), "Checking dx")
+   assert_equal(0.05, grid:dx(2), "Checking dx")
 end
 
 function test_2()
@@ -47,17 +47,17 @@ function test_2()
 
    assert_equal(2, grid:ndim(), "Checking NDIM")
 
-   assert_equal(10, grid:numCells(0), "Checking numCells")
-   assert_equal(20, grid:numCells(1), "Checking numCells")   
+   assert_equal(10, grid:numCells(1), "Checking numCells")
+   assert_equal(20, grid:numCells(2), "Checking numCells")   
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
-   assert_equal(1.0, grid:lower(1), "Checking lower")
+   assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(1.0, grid:lower(2), "Checking lower")
 
-   assert_equal(2.0, grid:upper(0), "Checking upper")
-   assert_equal(5.0, grid:upper(1), "Checking upper")
+   assert_equal(2.0, grid:upper(1), "Checking upper")
+   assert_equal(5.0, grid:upper(2), "Checking upper")
 
-   assert_equal(0.2, grid:dx(0), "Checking dx")
    assert_equal(0.2, grid:dx(1), "Checking dx")
+   assert_equal(0.2, grid:dx(2), "Checking dx")
 
    assert_equal(0.2*0.2, grid:cellVolume(), "Checking volume")
 end
@@ -71,21 +71,21 @@ function test_3()
 
    assert_equal(3, grid:ndim(), "Checking NDIM")
 
-   assert_equal(10, grid:numCells(0), "Checking numCells")
-   assert_equal(20, grid:numCells(1), "Checking numCells")
-   assert_equal(40, grid:numCells(2), "Checking numCells")
+   assert_equal(10, grid:numCells(1), "Checking numCells")
+   assert_equal(20, grid:numCells(2), "Checking numCells")
+   assert_equal(40, grid:numCells(3), "Checking numCells")
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
-   assert_equal(1.0, grid:lower(1), "Checking lower")
-   assert_equal(2.0, grid:lower(2), "Checking lower")   
+   assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(1.0, grid:lower(2), "Checking lower")
+   assert_equal(2.0, grid:lower(3), "Checking lower")   
 
-   assert_equal(2.0, grid:upper(0), "Checking upper")
-   assert_equal(5.0, grid:upper(1), "Checking upper")
-   assert_equal(10.0, grid:upper(2), "Checking upper")   
+   assert_equal(2.0, grid:upper(1), "Checking upper")
+   assert_equal(5.0, grid:upper(2), "Checking upper")
+   assert_equal(10.0, grid:upper(3), "Checking upper")   
 
-   assert_equal(0.2, grid:dx(0), "Checking dx")
    assert_equal(0.2, grid:dx(1), "Checking dx")
    assert_equal(0.2, grid:dx(2), "Checking dx")
+   assert_equal(0.2, grid:dx(3), "Checking dx")
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 end
@@ -97,17 +97,17 @@ function test_4()
 
    assert_equal(2, grid:ndim(), "Checking NDIM")
 
-   assert_equal(10, grid:numCells(0), "Checking numCells")
    assert_equal(10, grid:numCells(1), "Checking numCells")
+   assert_equal(10, grid:numCells(2), "Checking numCells")
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
    assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(0.0, grid:lower(2), "Checking lower")
 
-   assert_equal(1.0, grid:upper(0), "Checking upper")
    assert_equal(1.0, grid:upper(1), "Checking upper")
+   assert_equal(1.0, grid:upper(2), "Checking upper")
 
-   assert_equal(0.1, grid:dx(0), "Checking dx")
-   assert_equal(0.1, grid:dx(1), "Checking dx")
+   assert_equal(0.1, grid:dx(1), "Checking dx 1")
+   assert_equal(0.1, grid:dx(2), "Checking dx 2")
 
    assert_equal(0.1*0.1, grid:cellVolume(), "Checking volume")   
 end
@@ -121,21 +121,21 @@ function test_5()
 
    assert_equal(3, grid:ndim(), "Checking NDIM")
 
-   assert_equal(10, grid:numCells(0), "Checking numCells")
-   assert_equal(20, grid:numCells(1), "Checking numCells")
-   assert_equal(40, grid:numCells(2), "Checking numCells")   
+   assert_equal(10, grid:numCells(1), "Checking numCells")
+   assert_equal(20, grid:numCells(2), "Checking numCells")
+   assert_equal(40, grid:numCells(3), "Checking numCells")   
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
-   assert_equal(1.0, grid:lower(1), "Checking lower")
-   assert_equal(2.0, grid:lower(2), "Checking lower")   
+   assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(1.0, grid:lower(2), "Checking lower")
+   assert_equal(2.0, grid:lower(3), "Checking lower")   
 
-   assert_equal(2.0, grid:upper(0), "Checking upper")
-   assert_equal(5.0, grid:upper(1), "Checking upper")
-   assert_equal(10.0, grid:upper(2), "Checking upper")   
+   assert_equal(2.0, grid:upper(1), "Checking upper")
+   assert_equal(5.0, grid:upper(2), "Checking upper")
+   assert_equal(10.0, grid:upper(3), "Checking upper")   
 
-   assert_equal(0.2, grid:dx(0), "Checking dx")
    assert_equal(0.2, grid:dx(1), "Checking dx")
    assert_equal(0.2, grid:dx(2), "Checking dx")
+   assert_equal(0.2, grid:dx(3), "Checking dx")
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 end
@@ -161,21 +161,21 @@ function test_5()
 
    assert_equal(3, grid:ndim(), "Checking NDIM")
 
-   assert_equal(10, grid:numCells(0), "Checking numCells")
-   assert_equal(20, grid:numCells(1), "Checking numCells")
-   assert_equal(40, grid:numCells(2), "Checking numCells")   
+   assert_equal(10, grid:numCells(1), "Checking numCells")
+   assert_equal(20, grid:numCells(2), "Checking numCells")
+   assert_equal(40, grid:numCells(3), "Checking numCells")   
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
-   assert_equal(1.0, grid:lower(1), "Checking lower")
-   assert_equal(2.0, grid:lower(2), "Checking lower")   
+   assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(1.0, grid:lower(2), "Checking lower")
+   assert_equal(2.0, grid:lower(3), "Checking lower")   
 
-   assert_equal(2.0, grid:upper(0), "Checking upper")
-   assert_equal(5.0, grid:upper(1), "Checking upper")
-   assert_equal(10.0, grid:upper(2), "Checking upper")   
+   assert_equal(2.0, grid:upper(1), "Checking upper")
+   assert_equal(5.0, grid:upper(2), "Checking upper")
+   assert_equal(10.0, grid:upper(3), "Checking upper")   
 
-   assert_equal(0.2, grid:dx(0), "Checking dx")
    assert_equal(0.2, grid:dx(1), "Checking dx")
    assert_equal(0.2, grid:dx(2), "Checking dx")
+   assert_equal(0.2, grid:dx(3), "Checking dx")
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 end
@@ -199,21 +199,21 @@ function test_6()
 
    assert_equal(3, grid:ndim(), "Checking NDIM")
 
-   assert_equal(10, grid:numCells(0), "Checking numCells")
-   assert_equal(20, grid:numCells(1), "Checking numCells")
-   assert_equal(40, grid:numCells(2), "Checking numCells")   
+   assert_equal(10, grid:numCells(1), "Checking numCells")
+   assert_equal(20, grid:numCells(2), "Checking numCells")
+   assert_equal(40, grid:numCells(3), "Checking numCells")   
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
    assert_equal(0.0, grid:lower(1), "Checking lower")
-   assert_equal(0.0, grid:lower(2), "Checking lower")   
+   assert_equal(0.0, grid:lower(2), "Checking lower")
+   assert_equal(0.0, grid:lower(3), "Checking lower")   
 
-   assert_equal(2.0, grid:upper(0), "Checking upper")
    assert_equal(2.0, grid:upper(1), "Checking upper")
-   assert_equal(2.0, grid:upper(2), "Checking upper")   
+   assert_equal(2.0, grid:upper(2), "Checking upper")
+   assert_equal(2.0, grid:upper(3), "Checking upper")   
 
-   assert_equal(0.2, grid:dx(0), "Checking dx")
-   assert_equal(0.1, grid:dx(1), "Checking dx")
-   assert_equal(0.05, grid:dx(2), "Checking dx")
+   assert_equal(0.2, grid:dx(1), "Checking dx")
+   assert_equal(0.1, grid:dx(2), "Checking dx")
+   assert_equal(0.05, grid:dx(3), "Checking dx")
 
    assert_equal(0.2*0.1*0.05, grid:cellVolume(), "Checking volume")
 end
@@ -231,32 +231,32 @@ function test_7()
 
    assert_equal(1, grid:ndim(), "Checking NDIM")
 
-   assert_equal(3, grid:numCells(0), "Checking numCells")
+   assert_equal(3, grid:numCells(1), "Checking numCells")
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
-   assert_equal(1.0, grid:upper(0), "Checking upper")
+   assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(1.0, grid:upper(1), "Checking upper")
 
    idx = Lin.intVec(1) -- for indexing grid
 
    idx[1] = 1
    grid:setIndex(idx)
-   assert_equal(1/9, grid:dx(0), "Checking dx")
+   assert_equal(1/9, grid:dx(1), "Checking dx")
    assert_equal(1/9, grid:cellVolume(), "Checking volume")
 
    idx[1] = 2
    grid:setIndex(idx)
-   assert_equal(1/3, grid:dx(0), "Checking dx")
+   assert_equal(1/3, grid:dx(1), "Checking dx")
    assert_equal(1/3, grid:cellVolume(), "Checking volume")
 
    idx[1] = 3
    grid:setIndex(idx)
-   assert_equal(5/9, grid:dx(0), "Checking dx")
+   assert_equal(5/9, grid:dx(1), "Checking dx")
    assert_equal(5/9, grid:cellVolume(), "Checking volume")
 end
 
 function test_8()
    local grid = Grid.NonUniformRectCart { cells = {3} }
-   local xn = grid:nodeCoords(0)
+   local xn = grid:nodeCoords(1)
    -- set nodes manually (this is the mapping zeta^2)
    xn[1] = 0.0
    xn[2] = 1/3*1/3
@@ -266,26 +266,26 @@ function test_8()
 
    assert_equal(1, grid:ndim(), "Checking NDIM")
 
-   assert_equal(3, grid:numCells(0), "Checking numCells")   
+   assert_equal(3, grid:numCells(1), "Checking numCells")   
 
-   assert_equal(0.0, grid:lower(0), "Checking lower")
-   assert_equal(1.0, grid:upper(0), "Checking upper")
+   assert_equal(0.0, grid:lower(1), "Checking lower")
+   assert_equal(1.0, grid:upper(1), "Checking upper")
 
    idx = Lin.intVec(1) -- for indexing grid
 
    idx[1] = 1
    grid:setIndex(idx)
-   assert_equal(1/9, grid:dx(0), "Checking dx")
+   assert_equal(1/9, grid:dx(1), "Checking dx")
    assert_equal(1/9, grid:cellVolume(), "Checking volume")
 
    idx[1] = 2
    grid:setIndex(idx)
-   assert_equal(1/3, grid:dx(0), "Checking dx")
+   assert_equal(1/3, grid:dx(1), "Checking dx")
    assert_equal(1/3, grid:cellVolume(), "Checking volume")
 
    idx[1] = 3
    grid:setIndex(idx)
-   assert_equal(5/9, grid:dx(0), "Checking dx")
+   assert_equal(5/9, grid:dx(1), "Checking dx")
    assert_equal(5/9, grid:cellVolume(), "Checking volume")   
 end
 

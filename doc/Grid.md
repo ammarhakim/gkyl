@@ -119,7 +119,7 @@ with 0, Y-direction with 1, etc__).
 `grid:nodeCoords(dir)`
 : Return a 1D vector object (see documentation of 1D vectors for API)
   with the nodal coordinates in direction `dir`. This can be modified
-  to manually set the indices if needed.
+  to manually set the nodal coordinates if needed.
 
 `grid:setIndex(idx)`
 : Set index into grid to point to cell `idx`. This method must be
