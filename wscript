@@ -36,7 +36,10 @@ def configure(conf):
     conf.env.LIB_DL = ['dl']
 
 def build(bld):
-    ### recurse down directories
+    ### recurse down directories and build C++ code
+
+    # build executable
+    buildExec(bld)    
 
     ### install LuaJIT code
 
@@ -47,12 +50,12 @@ def build(bld):
         xsys_dir.ant_glob('**/*.lua'),
         cwd=xsys_dir, relative_trick=True)
 
-    # - Unit    
-    unit_dir = bld.path.find_dir('Unit')
+    # - Unit
+    Unit_dir = bld.path.find_dir('Unit')
     bld.install_files(
         "${PREFIX}/bin/Unit",
         ["unit.lua", "init.lua"],
-        cwd=unit_dir, relative_trick=True)
+        cwd=Unit_dir, relative_trick=True)
 
     # - Lib
     Lib_dir = bld.path.find_dir('Lib')
@@ -68,8 +71,13 @@ def build(bld):
         Grid_dir.ant_glob('**/*.lua'),
         cwd=Grid_dir, relative_trick=True)
 
-    # build executable
-    buildExec(bld)
+    # - DataStruct
+    DataStruct_dir = bld.path.find_dir('DataStruct')
+    bld.install_files(
+        "${PREFIX}/bin/DataStruct",
+        DataStruct_dir.ant_glob('**/*.lua'),
+        cwd=DataStruct_dir, relative_trick=True)
+
 
 def buildExec(bld):
     r"""Build top-level executable"""
