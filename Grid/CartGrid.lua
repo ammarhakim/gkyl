@@ -39,13 +39,13 @@ local function new_RectCartGrid_ct()
 	 return self._ndim
       end,
       lower = function (self, dir)
-	 return self._lower[dir]
+	 return self._lower[dir-1]
       end,
       upper = function (self, dir)
-	 return self._upper[dir]
+	 return self._upper[dir-1]
       end,
       numCells = function (self, dir)
-	 return self._numCells[dir]
+	 return self._numCells[dir-1]
       end,
       setIndex = function(self, idx)
 	 for d = 1, self._ndim do
@@ -53,12 +53,12 @@ local function new_RectCartGrid_ct()
 	 end
       end,
       dx = function (self, dir)
-	 return (self._upper[dir]-self._lower[dir])/self._numCells[dir]
+	 return (self:upper(dir)-self:lower(dir))/self:numCells(dir)
       end,
       cellVolume = function (self)
 	 local v = 1.0
 	 for i = 1, self._ndim do
-	    v = v*self:dx(i-1)
+	    v = v*self:dx(i)
 	 end
 	 return v
       end,
@@ -116,16 +116,16 @@ local function new_NonUniformRectCartGrid_ct()
 	 return self._compGrid._ndim
       end,
       lower = function (self, dir)
-	 return self._nodeCoords[dir+1][1]
+	 return self._nodeCoords[dir][1]
       end,
       upper = function (self, dir)
-	 return self._nodeCoords[dir+1][self:numCells(dir)+1]
+	 return self._nodeCoords[dir][self:numCells(dir)+1]
       end,
       numCells = function (self, dir)
 	 return self._compGrid:numCells(dir)
       end,
       nodeCoords = function (self, dir)
-	 return self._nodeCoords[dir+1]
+	 return self._nodeCoords[dir]
       end,      
       setIndex = function(self, idx)
 	 for d = 1, self:ndim() do
@@ -134,12 +134,12 @@ local function new_NonUniformRectCartGrid_ct()
       end,
       dx = function (self, dir)
 	 local nodeCoords, idx = self:nodeCoords(dir), self._compGrid._currIdx
-	 return nodeCoords[idx[dir]+1]-nodeCoords[idx[dir]]
+	 return nodeCoords[idx[dir-1]+1]-nodeCoords[idx[dir-1]]
       end,
       cellVolume = function (self)
 	 local v = 1.0
-	 for i = 1, self:ndim() do
-	    v = v*self:dx(i-1)
+	 for d = 1, self:ndim() do
+	    v = v*self:dx(d)
 	 end
 	 return v
       end,
@@ -153,29 +153,28 @@ local function new_NonUniformRectCartGrid_ct()
 
       local ndim = self._compGrid._ndim
       -- set grid index to first cell in domain
-      for d = 0, ndim-1 do
-	 self._compGrid._currIdx[d] = 1;
+      for d = 1, ndim do
+	 self._compGrid._currIdx[d-1] = 1;
       end
 
       self._nodeCoords = {} -- nodal coordinates in each direction      
       -- initialize nodes to be uniform (will be over-written if mappings are provided)
-      for d = 0, ndim-1 do
+      for d = 1, ndim do
 	 -- allocate space: one node extra than cells
 	 local v =  Lin.vec(self._compGrid:numCells(d)+1)
 	 fillWithUniformNodeCoords(
-	    self._compGrid._lower[d], self._compGrid._upper[d], self._compGrid:numCells(d), v)
-	 self._nodeCoords[d+1] = v
+	    self._compGrid._lower[d-1], self._compGrid._upper[d-1], self._compGrid._numCells[d-1], v)
+	 self._nodeCoords[d] = v
       end
 
       -- compute nodal coordinates
       if tbl.mappings then
 	 -- loop over mapping functions, using them to set nodal coordinates
-	 for i, mapFunc in next, tbl.mappings, nil do
-	    if i > ndim then break end -- break out if too many functions provided
-	    local d = i-1 -- directions start from 0
+	 for d, mapFunc in next, tbl.mappings, nil do
+	    if d > ndim then break end -- break out if too many functions provided
 	    fillWithMappedNodeCoords(
-	       self._compGrid._lower[d], self._compGrid._upper[d], self._compGrid:numCells(d),
-	       mapFunc, self._nodeCoords[i])
+	       self._compGrid._lower[d-1], self._compGrid._upper[d-1], self._compGrid._numCells[d-1],
+	       mapFunc, self._nodeCoords[d])
 	 end
       end
       

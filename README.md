@@ -16,9 +16,8 @@ PPPL and our research partners.
 
 You must build and install the dependencies yourself, or use existing
 builds for your system. Most supercomputer centers have optimized,
-pre-built libraries. On these systems, you will only need to install
-LuaJIT yourself, and perhaps Eigen. All other dependencies should
-already exist.
+pre-built libraries for most dependencies. On these systems, you will
+only need to install LuaJIT yourself, and perhaps Eigen.
 
 Build instructions for dependencies are provided in the build sections
 below. Gkyl depends on the following tools and packages:
