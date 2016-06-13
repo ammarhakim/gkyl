@@ -67,7 +67,7 @@ end
 
 return {
    new_vec_ct = new_vec_ct,
-   vec = new_vec_ct(typeof("double")),
-   intVec = new_vec_ct(typeof("int32_t")),
-   floatVec = new_vec_ct(typeof("float")),
+   Vec = new_vec_ct(typeof("double")),
+   IntVec = new_vec_ct(typeof("int32_t")),
+   FloatVec = new_vec_ct(typeof("float")),
 }

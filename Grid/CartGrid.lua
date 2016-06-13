@@ -161,7 +161,7 @@ local function new_NonUniformRectCartGrid_ct()
       -- initialize nodes to be uniform (will be over-written if mappings are provided)
       for d = 1, ndim do
 	 -- allocate space: one node extra than cells
-	 local v =  Lin.vec(self._compGrid:numCells(d)+1)
+	 local v =  Lin.Vec(self._compGrid:numCells(d)+1)
 	 fillWithUniformNodeCoords(
 	    self._compGrid._lower[d-1], self._compGrid._upper[d-1], self._compGrid._numCells[d-1], v)
 	 self._nodeCoords[d] = v

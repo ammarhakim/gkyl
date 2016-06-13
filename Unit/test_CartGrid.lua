@@ -19,7 +19,7 @@ function test_1()
 
    -- (just make sure setIndex() method works. For RectCart object
    -- setting index is not needed)
-   idx = Lin.intVec(grid:ndim())
+   idx = Lin.IntVec(grid:ndim())
    idx[1], idx[2] = 1, 1
    grid:setIndex(idx)
    
@@ -236,7 +236,7 @@ function test_7()
    assert_equal(0.0, grid:lower(1), "Checking lower")
    assert_equal(1.0, grid:upper(1), "Checking upper")
 
-   idx = Lin.intVec(1) -- for indexing grid
+   idx = Lin.IntVec(1) -- for indexing grid
 
    idx[1] = 1
    grid:setIndex(idx)
@@ -271,7 +271,7 @@ function test_8()
    assert_equal(0.0, grid:lower(1), "Checking lower")
    assert_equal(1.0, grid:upper(1), "Checking upper")
 
-   idx = Lin.intVec(1) -- for indexing grid
+   idx = Lin.IntVec(1) -- for indexing grid
 
    idx[1] = 1
    grid:setIndex(idx)
