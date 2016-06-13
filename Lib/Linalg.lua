@@ -66,7 +66,7 @@ local function new_vec_ct(elct)
 end
 
 return {
-   new_vec_ct = new_vec_ct,   
+   new_vec_ct = new_vec_ct,
    vec = new_vec_ct(typeof("double")),
    intVec = new_vec_ct(typeof("int32_t")),
    floatVec = new_vec_ct(typeof("float")),

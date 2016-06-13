@@ -38,7 +38,7 @@ the following parameters:
 : Number of cells in each direction
 
 The following methods are provided. Note: __we indicate X-direction
-with 0, Y-direction with 1, etc.__
+with 1, Y-direction with 2, etc.__
 
 `grid:ndim()`
 : The dimensions of the grid.
@@ -105,7 +105,7 @@ Note that as the `lower` and `upper` fields are missing, the
 computational domain is assumed to be $[0,1]$.
 
 The following methods are provided. (Note: __we indicate X-direction
-with 0, Y-direction with 1, etc__).
+with 1, Y-direction with 2, etc__).
 
 `grid:ndim()`
 : The dimensions of the grid.
