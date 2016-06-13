@@ -32,9 +32,22 @@ typedef struct {
 -- A uniform Cartesian grid
 --------------------------------------------------------------------------------
 
-local function new_RectCartGrid_ct()
-   local uc_type = typeof("RectCartGrid_t")
-   local uni_cart_mf = {
+-- Uniform cartesian grid meta-type
+local uni_cart_mt = {
+   __new = function (self, tbl)
+      local lo = tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+      local up = tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
+      local cells = tbl.cells
+      local g = new(self)
+      g._ndim = #cells
+      for d = 1, #cells do
+	 g._lower[d-1] = lo[d]
+	 g._upper[d-1] = up[d]
+	 g._numCells[d-1] = cells[d]
+      end
+      return g
+   end,
+   __index =  {
       ndim = function (self)
 	 return self._ndim
       end,
@@ -63,26 +76,8 @@ local function new_RectCartGrid_ct()
 	 return v
       end,
    }
-   local uni_cart_mt = {
-      __new = function (self, tbl)
-	 local lo = tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-	 local up = tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
-	 local cells = tbl.cells
-	 local g = new(uc_type)
-	 g._ndim = #cells
-	 for d = 1, #cells do
-	    g._lower[d-1] = lo[d]
-	    g._upper[d-1] = up[d]
-	    g._numCells[d-1] = cells[d]
-	 end
-	 return g
-      end,
-      __index = uni_cart_mf,
-   }
-   return metatype(uc_type, uni_cart_mt)
-end
--- create object factory for uniform cartesian grids
-local RectCart = new_RectCartGrid_ct()
+}
+local RectCart = metatype(typeof("RectCartGrid_t"), uni_cart_mt)
 
 -- NonUniformRectCartGrid ----------------------------------------------------------------------
 --
@@ -108,90 +103,81 @@ local function fillWithMappedNodeCoords(lower, upper, ncell, mapFunc, vcoords)
    end
 end
 
-local function new_NonUniformRectCartGrid_ct()
-   local nonUni_type = {}
-   -- methods 
-   local nonUni_mf = {
-      ndim = function (self)
-	 return self._compGrid._ndim
-      end,
-      lower = function (self, dir)
-	 return self._nodeCoords[dir][1]
-      end,
-      upper = function (self, dir)
-	 return self._nodeCoords[dir][self:numCells(dir)+1]
-      end,
-      numCells = function (self, dir)
-	 return self._compGrid:numCells(dir)
-      end,
-      nodeCoords = function (self, dir)
-	 return self._nodeCoords[dir]
-      end,      
-      setIndex = function(self, idx)
-	 for d = 1, self:ndim() do
-	    self._compGrid._currIdx[d-1] = idx[d]
-	 end
-      end,
-      dx = function (self, dir)
-	 local nodeCoords, idx = self:nodeCoords(dir), self._compGrid._currIdx
-	 return nodeCoords[idx[dir-1]+1]-nodeCoords[idx[dir-1]]
-      end,
-      cellVolume = function (self)
-	 local v = 1.0
-	 for d = 1, self:ndim() do
-	    v = v*self:dx(d)
-	 end
-	 return v
-      end,
-   }
-   nonUni_type.__index = nonUni_mf
+local NonUniformRectCart = {}
+-- constructor to make a new non-uniform grid
+function NonUniformRectCart:new(tbl)
+   local self = setmetatable({}, NonUniformRectCart)
+   self._compGrid = RectCart(tbl) -- computational space grid
 
-   -- constructor to make a new non-uniform grid
-   function nonUni_type:new(tbl)
-      local self = setmetatable({}, nonUni_type)
-      self._compGrid = RectCart(tbl) -- computational space grid
-
-      local ndim = self._compGrid._ndim
-      -- set grid index to first cell in domain
-      for d = 1, ndim do
-	 self._compGrid._currIdx[d-1] = 1;
-      end
-
-      self._nodeCoords = {} -- nodal coordinates in each direction      
-      -- initialize nodes to be uniform (will be over-written if mappings are provided)
-      for d = 1, ndim do
-	 -- allocate space: one node extra than cells
-	 local v =  Lin.Vec(self._compGrid:numCells(d)+1)
-	 fillWithUniformNodeCoords(
-	    self._compGrid._lower[d-1], self._compGrid._upper[d-1], self._compGrid._numCells[d-1], v)
-	 self._nodeCoords[d] = v
-      end
-
-      -- compute nodal coordinates
-      if tbl.mappings then
-	 -- loop over mapping functions, using them to set nodal coordinates
-	 for d, mapFunc in next, tbl.mappings, nil do
-	    if d > ndim then break end -- break out if too many functions provided
-	    fillWithMappedNodeCoords(
-	       self._compGrid._lower[d-1], self._compGrid._upper[d-1], self._compGrid._numCells[d-1],
-	       mapFunc, self._nodeCoords[d])
-	 end
-      end
-      
-      return self
+   local ndim = self._compGrid._ndim
+   -- set grid index to first cell in domain
+   for d = 1, ndim do
+      self._compGrid._currIdx[d-1] = 1;
    end
 
-   -- make object callable, and redirect call to the :new method
-   setmetatable (nonUni_type, {
-		    __call = function (self, o)
-		       return self.new(self, o)
-		    end,
-   })
+   self._nodeCoords = {} -- nodal coordinates in each direction      
+   -- initialize nodes to be uniform (will be over-written if mappings are provided)
+   for d = 1, ndim do
+      -- allocate space: one node extra than cells
+      local v =  Lin.Vec(self._compGrid:numCells(d)+1)
+      fillWithUniformNodeCoords(
+	 self._compGrid._lower[d-1], self._compGrid._upper[d-1], self._compGrid._numCells[d-1], v)
+      self._nodeCoords[d] = v
+   end
 
-   return nonUni_type
+   -- compute nodal coordinates
+   if tbl.mappings then
+      -- loop over mapping functions, using them to set nodal coordinates
+      for d, mapFunc in next, tbl.mappings, nil do
+	 if d > ndim then break end -- break out if too many functions provided
+	 fillWithMappedNodeCoords(
+	    self._compGrid._lower[d-1], self._compGrid._upper[d-1], self._compGrid._numCells[d-1],
+	    mapFunc, self._nodeCoords[d])
+      end
+   end
+   return self
 end
--- create object factory for non-uniform cartesian grids
-local NonUniformRectCart = new_NonUniformRectCartGrid_ct()
+-- make object callable, and redirect call to the :new method
+setmetatable (NonUniformRectCart, {
+		 __call = function (self, o)
+		    return self.new(self, o)
+		 end,
+})
+
+-- set callable methods
+NonUniformRectCart.__index = {
+   ndim = function (self)
+      return self._compGrid._ndim
+   end,
+   lower = function (self, dir)
+      return self._nodeCoords[dir][1]
+   end,
+   upper = function (self, dir)
+      return self._nodeCoords[dir][self:numCells(dir)+1]
+   end,
+   numCells = function (self, dir)
+      return self._compGrid:numCells(dir)
+   end,
+   nodeCoords = function (self, dir)
+      return self._nodeCoords[dir]
+   end,      
+   setIndex = function(self, idx)
+      for d = 1, self:ndim() do
+	 self._compGrid._currIdx[d-1] = idx[d]
+      end
+   end,
+   dx = function (self, dir)
+      local nodeCoords, idx = self:nodeCoords(dir), self._compGrid._currIdx
+      return nodeCoords[idx[dir-1]+1]-nodeCoords[idx[dir-1]]
+   end,
+   cellVolume = function (self)
+      local v = 1.0
+      for d = 1, self:ndim() do
+	 v = v*self:dx(d)
+      end
+      return v
+   end,
+}
 
 return {
    RectCart = RectCart,
