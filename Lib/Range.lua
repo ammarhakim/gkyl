@@ -44,7 +44,7 @@ local range_mt = {
 }
 -- construct Range object, attaching meta-type to it
 local rct = typeof("struct { uint8_t _ndim; int _lower[6]; int _upper[6]; }")
-Range = metatype(rct, range_mt)
+local Range = metatype(rct, range_mt)
 
 return {
    Range = Range
