@@ -1,4 +1,5 @@
--- Gkyl ------------------------------------------------------------------------
+-- Gkyl
+-- ------------------------------------------------------------------------
 --
 -- Test for linear algebra objects
 --    _______     ___
@@ -13,7 +14,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local v = Lin.vec(3)
+   local v = Lin.Vec(3)
    assert_equal(3, #v, "Checking length of vector")
    -- set values
    for i= 1, #v do
@@ -32,8 +33,8 @@ function test_1()
 end
 
 function test_2()
-   local eulerVec = Lin.new_vec_ct(ffi.typeof("struct {double rho, rhou, E;}"))
-   local v = eulerVec(4)
+   local EulerVec = Lin.new_vec_ct(ffi.typeof("struct {double rho, rhou, E;}"))
+   local v = EulerVec(4)
    assert_equal(4, #v, "Checking length of vector")
    -- set values
    for i = 1, #v do

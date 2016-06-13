@@ -9,7 +9,7 @@ Lin = require "Linalg"
 
 The following objects are provided b this module.
 
-## `vec`: 1D vector
+## `Vec`: 1D vector
 
 The `vec` constructor can be used to create vectors of doubles of a
 specifed (but fixed) length. __Vectors are indexed starting at 1__ (as
@@ -17,27 +17,27 @@ is standard in Lua) and indexing is performed using square
 brackets. For example:
 
 ~~~~~~~ {.lua}
-v = Lin.vec(3)
+v = Lin.Vec(3)
 for i=1,#v do
   v[i] = (i-0.5)*0.1
 end
 ~~~~~~~
 
-The pre-defined constructor `intVec` creates a vector of 32-bit
-integers, and `floatVec` creates a vector of floating point numbers.
+The pre-defined constructor `IntVec` creates a vector of 32-bit
+integers, and `FloatVec` creates a vector of floating point numbers.
 
 Vectors of arbitrary types, including fixed-sized C structs, can also
 be created. To do this, first create a constructor as follows:
 
 ~~~~~~~ {.lua}
-eulerVec = Lin.new_vec_ct(ffi.typeof("struct {double rho, rhou, E;}"))
+EulerVec = Lin.new_vec_ct(ffi.typeof("struct {double rho, rhou, E;}"))
 ~~~~~~~
 
-Now, `eulerVec` is a constructor for creating vectors which store the
+Now, `EulerVec` is a constructor for creating vectors which store the
 struct with `rho`, `rhou` and `E`. For example,
 
 ~~~~~~~ {.lua}
-v = eulerVec(3)
+v = EulerVec(3)
 for i=1,#v do
   v[i].rho = 1.0
   v[i].rhou = 2.0
