@@ -18,50 +18,29 @@ local Lin = require "Lib.Linalg"
 -- A range object, representing a ndim integer index set. 
 --------------------------------------------------------------------------------
 
--- iterator function to loop over range in column-major order
-local function range_colMajorIter(iterState)
-   local idx = iterState.currIdx
-   if iterState.isFirst then
-      -- first time just return start index
-      iterState.isFirst = false
-      return idx
-   end
-   
-   local range = iterState.range
-   local ndim = range:ndim()
-
-   for dir = 1, ndim do
-      -- bump index till we can bump no more
-      idx[dir] = idx[dir]+1
-      if idx[dir] > range:upper(dir) then
-	 -- run out of indices to bump, reset
-	 idx[dir] = range:lower(dir)
-      else
+-- generic iterator function creator: only difference between row- and
+-- col-major order is the order in which the indices are incremented
+local function make_range_iter(si, ei, incr)
+   return function (iterState)
+      local idx = iterState.currIdx
+      if iterState.isFirst then
+	 -- first time just return start index
+	 iterState.isFirst = false
 	 return idx
       end
-   end
-end
+      
+      local range = iterState.range
+      local ndim = range:ndim()
 
--- iterator function to loop over range in row-major order
-local function range_rowMajorIter(iterState)
-   local idx = iterState.currIdx
-   if iterState.isFirst then
-      -- first time just return start index
-      iterState.isFirst = false
-      return idx
-   end
-   
-   local range = iterState.range
-   local ndim = range:ndim()
-
-   for dir = ndim, 1, -1 do -- bump highest direction
-      -- bump index till we can bump no more
-      idx[dir] = idx[dir]+1
-      if idx[dir] > range:upper(dir) then
-	 -- run out of indices to bump, reset
-	 idx[dir] = range:lower(dir)
-      else
-	 return idx
+      for dir = si, ei, incr do
+	 -- bump index till we can bump no more
+	 idx[dir] = idx[dir]+1
+	 if idx[dir] > range:upper(dir) then
+	    -- run out of indices to bump, reset
+	    idx[dir] = range:lower(dir)
+	 else
+	    return idx
+	 end
       end
    end
 end
@@ -101,10 +80,10 @@ local range_mt = {
 	 return iter_func, iterState
       end,
       colMajorIter = function (self)
-	 return self:_iter(range_colMajorIter)
+	 return self:_iter( make_range_iter(1, self:ndim(), 1) )
       end,
       rowMajorIter = function (self)
-	 return self:_iter(range_rowMajorIter)
+	 return self:_iter( make_range_iter(self:ndim(), 1, -1) )
       end,      
    }
 }
