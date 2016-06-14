@@ -95,12 +95,22 @@ function test_5()
    end
 end
 
+function test_6()
+   local range = Range.Range( {1, 1}, {0, 10})
+   assert_equal(0, range:volume(), "Checking volume")
+
+   for idx in range:rowMajorIter() do
+      print("Should not happen")
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

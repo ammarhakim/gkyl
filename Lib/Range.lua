@@ -22,6 +22,8 @@ local Lin = require "Lib.Linalg"
 -- col-major order is the order in which the indices are incremented
 local function make_range_iter(si, ei, incr)
    return function (iterState)
+      if iterState.isEmpty then return nil end -- nothing to do for empty range
+      
       local idx = iterState.currIdx
       if iterState.isFirst then
 	 -- first time just return start index
@@ -29,7 +31,8 @@ local function make_range_iter(si, ei, incr)
 	 return idx
       end
       
-      local range, ndim = iterState.range, range:ndim()
+      local range = iterState.range
+      local ndim = range:ndim()
 
       for dir = si, ei, incr do
 	 -- bump index till we can bump no more
@@ -54,6 +57,12 @@ local range_mt = {
 	 r._lower[d-1] = lower[d]
 	 r._upper[d-1] = upper[d]
       end
+      for d = 1, #lower do
+	 -- adjust to give zero volume range if upper is less than lower
+	 if r._upper[d-1] < r._lower[d-1] then
+	    r._upper[d-1] = r._lower[d-1]-1
+	 end
+      end
       return r
    end,
    __index = {
@@ -71,13 +80,13 @@ local range_mt = {
       end,
       volume = function (self)
 	 local v = 1
-	 for i = 1, self._ndim do
+	 for dir = 1, self._ndim do
 	    v = v*self:shape(dir)
 	 end
 	 return v
       end,
       _iter = function (self, iter_func)
-	 local iterState = { isFirst = true }
+	 local iterState = { isFirst = true, isEmpty = self:volume() == 0 and true or false }
 	 iterState.currIdx = Lin.IntVec(self:ndim())
 	 for dir = 1, self:ndim() do
 	    iterState.currIdx[dir] = self:lower(dir)
