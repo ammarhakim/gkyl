@@ -45,9 +45,60 @@ function test_2()
    assert_equal(30, range:shape(3), "Checking shape")
 end
 
+function test_3()
+   local range = Range.Range({1}, {10})
+
+   local count = range:lower(1)
+   for idx in range:colMajorIter() do
+      assert_equal(count, idx[1], "Checking col-major indexer")
+      count = count + 1
+   end
+end
+
+function test_4()
+   local range = Range.Range({1, 1}, {5, 6})
+
+   -- fill indices for testing
+   local indices = {}
+   for j = range:lower(2), range:upper(2) do   
+      for i = range:lower(1), range:upper(1) do
+	 table.insert(indices, {i,j})
+      end
+   end
+
+   local count = range:lower(1)
+   for idx in range:colMajorIter() do
+      assert_equal(indices[count][1], idx[1], "Checking col-major index 1")
+      assert_equal(indices[count][2], idx[2], "Checking col-major index 2")
+      count = count + 1
+   end
+end
+
+function test_5()
+   local range = Range.Range({1, 1}, {5, 6})
+
+   -- fill indices for testing
+   local indices = {}
+   for i = range:lower(1), range:upper(1) do   
+      for j = range:lower(2), range:upper(2) do
+	 table.insert(indices, {i,j})
+      end
+   end
+
+   local count = range:lower(1)
+   for idx in range:rowMajorIter() do
+      assert_equal(indices[count][1], idx[1], "Checking col-major index 1")
+      assert_equal(indices[count][2], idx[2], "Checking col-major index 2")
+      count = count + 1
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
+test_3()
+test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
