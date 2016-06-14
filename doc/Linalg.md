@@ -4,7 +4,7 @@ Linear algebra objects and methods can be accessed by loading the
 "Linalg" module as follows:
 
 ~~~~~~~ {.lua}
-Lin = require "Linalg"
+Lin = require "Lib.Linalg"
 ~~~~~~~
 
 The following objects are provided b this module.

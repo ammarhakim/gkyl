@@ -16,6 +16,7 @@ function test_1()
    local range = Range.Range({0, 0}, {1, 5})
 
    assert_equal(2, range:ndim(), "Checking dimension")
+   assert_equal(12, range:volume(), "Checking volume")   
 
    assert_equal(0, range:lower(1), "Checking lower")
    assert_equal(0, range:lower(2), "Checking lower")
@@ -29,6 +30,7 @@ end
 
 function test_2()
    local range = Range.Range({1, 1, 1}, {10, 20, 30})
+   assert_equal(10*20*30, range:volume(), "Checking volume")
 
    assert_equal(3, range:ndim(), "Checking dimension")
 

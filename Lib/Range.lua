@@ -29,8 +29,7 @@ local function make_range_iter(si, ei, incr)
 	 return idx
       end
       
-      local range = iterState.range
-      local ndim = range:ndim()
+      local range, ndim = iterState.range, range:ndim()
 
       for dir = si, ei, incr do
 	 -- bump index till we can bump no more
@@ -69,6 +68,13 @@ local range_mt = {
       end,
       shape = function (self, dir)
 	 return self._upper[dir-1]-self._lower[dir-1]+1
+      end,
+      volume = function (self)
+	 local v = 1
+	 for i = 1, self._ndim do
+	    v = v*self:shape(dir)
+	 end
+	 return v
       end,
       _iter = function (self, iter_func)
 	 local iterState = { isFirst = true }
