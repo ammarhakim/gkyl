@@ -104,6 +104,21 @@ function test_6()
    end
 end
 
+function test_7()
+   local range = Range.Range({1, 1, 1}, {10, 20, 30})
+   local extRange = range:extend(1, 2)
+
+   assert_equal(0, extRange:lower(1), "Checking lower extended")
+   assert_equal(0, extRange:lower(2), "Checking lower extended")
+   assert_equal(0, extRange:lower(3), "Checking lower extended")
+
+   assert_equal(12, extRange:upper(1), "Checking upper extended")
+   assert_equal(22, extRange:upper(2), "Checking upper extended")
+   assert_equal(32, extRange:upper(3), "Checking upper extended")
+
+   assert_equal(13*23*33, extRange:volume(), "Checking volume extended")
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -111,6 +126,7 @@ test_3()
 test_4()
 test_5()
 test_6()
+test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

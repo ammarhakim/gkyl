@@ -18,6 +18,8 @@ local Lin = require "Lib.Linalg"
 -- A range object, representing a ndim integer index set. 
 --------------------------------------------------------------------------------
 
+ffi.cdef [[ typedef struct { uint8_t _ndim; int _lower[6]; int _upper[6]; } Range_t; ]]
+
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
 local function make_range_iter(si, ei, incr)
@@ -85,6 +87,14 @@ local range_mt = {
 	 end
 	 return v
       end,
+      extend = function (self, lExt, uExt)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for dir = 1, self:ndim() do
+	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir)-lExt, self:upper(dir)+uExt
+	 end
+	 return r
+      end,
       _iter = function (self, iter_func)
 	 local iterState = { isFirst = true, isEmpty = self:volume() == 0 and true or false }
 	 iterState.currIdx = Lin.IntVec(self:ndim())
@@ -103,8 +113,7 @@ local range_mt = {
    }
 }
 -- construct Range object, attaching meta-type to it
-local rct = typeof("struct { uint8_t _ndim; int _lower[6]; int _upper[6]; }")
-local Range = metatype(rct, range_mt)
+local Range = metatype(typeof("Range_t"), range_mt)
 
 return {
    Range = Range

@@ -8,4 +8,7 @@
 local CartField = require "DataStruct.CartField"
 
 return {
+   new_field_ct = CartField.new_field_ct,
+   Field = CartField.Field,
+   FloatField = CartField.FloatField,
 }
