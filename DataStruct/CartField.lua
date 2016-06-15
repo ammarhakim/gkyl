@@ -77,7 +77,7 @@ local function new_field_ct(elct)
       end,
       globalExtRange = function (self)
 	 return self:globalRange():extend(self:lowerGhost(), self:upperGhost())
-      end,            
+      end,
    }
    -- field object meta-type
    local field_mt = {

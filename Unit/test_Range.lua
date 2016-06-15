@@ -119,6 +119,90 @@ function test_7()
    assert_equal(13*23*33, extRange:volume(), "Checking volume extended")
 end
 
+function test_8()
+   local range = Range.Range({1}, {10})
+   local ac = Range.makeRowMajorIndexer(range)
+   local indexer = Range.indexerFunctions[range:ndim()]
+
+   local count = 0
+   for i = range:lower(1), range:upper(1) do
+      assert_equal(count, indexer(ac, i), "Checking indexer")
+      count = count + 1
+   end
+end
+
+function test_9()
+   local range = Range.Range({1, 1}, {10, 5})
+   local ac = Range.makeRowMajorIndexer(range)
+   local indexer = Range.indexerFunctions[range:ndim()]
+
+   local count = 0
+   for i = range:lower(1), range:upper(1) do
+      for j = range:lower(2), range:upper(2) do
+	 assert_equal(count, indexer(ac, i, j), "Checking row-major indexer")
+	 count = count + 1
+      end
+   end
+end
+
+function test_10()
+   local range = Range.Range({1, 1, -1}, {10, 5, 9})
+   local ac = Range.makeRowMajorIndexer(range)
+   local indexer = Range.indexerFunctions[range:ndim()]
+
+   local count = 0
+   for i = range:lower(1), range:upper(1) do
+      for j = range:lower(2), range:upper(2) do
+	 for k = range:lower(3), range:upper(3) do
+	    assert_equal(count, indexer(ac, i, j, k), "Checking row-major indexer")
+	    count = count + 1
+	 end
+      end
+   end
+end
+
+function test_11()
+   local range = Range.Range({1}, {10})
+   local ac = Range.makeColMajorIndexer(range)
+   local indexer = Range.indexerFunctions[range:ndim()]
+
+   local count = 0
+   for i = range:lower(1), range:upper(1) do
+      assert_equal(count, indexer(ac, i), "Checking indexer")
+      count = count + 1
+   end
+end
+
+function test_12()
+   local range = Range.Range({1, 1}, {10, 5})
+   local ac = Range.makeColMajorIndexer(range)
+   local indexer = Range.indexerFunctions[range:ndim()]
+
+   local count = 0
+   for j = range:lower(2), range:upper(2) do   
+      for i = range:lower(1), range:upper(1) do
+	 assert_equal(count, indexer(ac, i, j), "Checking col-major indexer")
+	 count = count + 1
+      end
+   end
+end
+
+function test_13()
+   local range = Range.Range({1, 1, -1}, {10, 5, 9})
+   local ac = Range.makeColMajorIndexer(range)
+   local indexer = Range.indexerFunctions[range:ndim()]
+
+   local count = 0
+   for k = range:lower(3), range:upper(3) do
+      for j = range:lower(2), range:upper(2) do      
+	 for i = range:lower(1), range:upper(1) do
+	    assert_equal(count, indexer(ac, i, j, k), "Checking col-major indexer")
+	    count = count + 1
+	 end
+      end
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -127,6 +211,12 @@ test_4()
 test_5()
 test_6()
 test_7()
+test_8()
+test_9()
+test_10()
+test_11()
+test_12()
+test_13()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
