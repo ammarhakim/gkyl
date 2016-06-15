@@ -13,6 +13,8 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
 
+_M = {}
+
 -- Range ----------------------------------------------------------------------
 --
 -- A range object, representing a ndim integer index set. 
@@ -113,8 +115,67 @@ local range_mt = {
    }
 }
 -- construct Range object, attaching meta-type to it
-local Range = metatype(typeof("Range_t"), range_mt)
+_M.Range = metatype(typeof("Range_t"), range_mt)
 
-return {
-   Range = Range
-}
+-- Indexers --------------------------------------------------------------------
+--
+-- Linear indexers, mapping n-dimensional index to a linear index
+--------------------------------------------------------------------------------
+
+local function getIndex1(ac, i1)
+   return ac[0] + i1*ac[1]
+end
+local function getIndex2(ac, i1, i2)
+   return ac[0]+i1*ac[1]+i2*ac[2]
+end
+local function getIndex3(ac, i1, i2, i3)
+   return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]
+end
+local function getIndex4(ac, i1, i2, i3, i4)
+   return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]
+end
+local function getIndex5(ac, i1, i2, i3, i4, i5)
+   return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]
+end
+local function getIndex6(ac, i1, i2, i3, i4, i5, i6)
+   return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]+i6*ac[6]
+end
+local function getIndex7(ac, i1, i2, i3, i4, i5, i6, i7)
+   return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]+i6*ac[6]+i7*ac[7]
+end
+-- package these up into a table
+_M.indexerFunctions = {getIndex1, getIndex2, getIndex3, getIndex4, getIndex5, getIndex6, getIndex7}
+
+-- create a row-major indexer  given "range" object
+function _M.makeRowMajorIndexer(range)
+   local ac = new("double[7]")
+   local ndim = range:ndim()
+   ac[ndim] = 1
+   for i = ndim-1, 1, -1 do
+      ac[i] = ac[i+1]*range:shape(i+1)
+   end
+   local start = 0
+   for i = 1, ndim do
+      start = start + ac[i]*range:lower(i)
+   end
+   ac[0] = -start
+   return ac
+end
+
+-- create a column-major indexer  given "range" object
+function _M.makeColMajorIndexer(range)
+   local ac = new("double[7]")
+   local ndim = range:ndim()
+   ac[1] = 1
+   for i = 2, ndim do
+      ac[i] = ac[i-1]*range:shape(i-1)
+   end
+   local start = 0
+   for i = 1, ndim do
+      start = start + ac[i]*range:lower(i)
+   end
+   ac[0] = -start
+   return ac
+end
+
+return _M
