@@ -23,17 +23,17 @@ local Grid = require "Grid"
 
 -- Declare meta-data for field. Actual data to field is not stored in
 -- this structure.
- ffi.cdef [[
+ffi.cdef [[
 typedef struct {
     uint8_t _ndim; /* Dimension */
     uint16_t _lowerGhost, _upperGhost; /* Ghost cells in lower/upper faces */
     uint16_t _numComponents; /* Number of components */
+    uint16_t _size; /* Size of field */
     Range_t _localRange, _globalRange; /* Local/global range */
 } FieldData_t;
 ]]
 
--- Field accessor object: allows access to field values in a given
--- cell.
+-- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
    local field_comp_mt = {
       __index = function(self, k)
@@ -78,6 +78,20 @@ local function new_field_ct(elct)
       globalExtRange = function (self)
 	 return self:globalRange():extend(self:lowerGhost(), self:upperGhost())
       end,
+      size = function (self)
+	 return self._m._size
+      end,
+      indexer = function (self)
+	 local idxr = Range.indexerFunctions[self:ndim()]
+	 local ac = Range.makeColMajorIndexer(self:localExtRange())
+	 return function (...)
+	    return idxr(ac, ...)
+	 end
+      end,
+      get = function (self, k)
+	 local loc = k*self._m._numComponents
+	 return fcompct(self._m._numComponents, self._data+loc)
+      end,
    }
    -- field object meta-type
    local field_mt = {
@@ -90,12 +104,15 @@ local function new_field_ct(elct)
 	    l[dir], u[dir] = 1, grid:numCells(dir)
 	 end
 	 local globalRange = Range.Range(l, u)
-	 local sz = globalRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
-	 local f = new(self, nc)
+	 local localRange = Range.Range(l, u) -- ADJUST WHEN DOING PARALLEL
+	 local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
+	 local f = new(self, sz) -- REPLACE WITH MALLOC-ED DATA TO OVERCOME 2GB LIMIT
 	 f._m._ndim = grid:ndim()
 	 f._m._lowerGhost, f._m._upperGhost = ghost[1], ghost[2]
+	 f._m._numComponents = nc
+	 f._m._size = sz
 	 f._m._globalRange = globalRange
-	 f._m._localRange = globalRange -- ADJUST WHEN BRINGING IN PARALLEL
+	 f._m._localRange = localRange
 	 return f
       end,
       __index = field_mf,
