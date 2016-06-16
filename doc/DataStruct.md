@@ -58,6 +58,9 @@ The field constructor takes the following parameters:
 
 The following methods are provided.
 
+`field:elemType()`
+: Returns element LuaJIT FFI type stored in the field.
+
 `field:ndim()`
 : Field dimension. This is the same as the grid dimension.
 
