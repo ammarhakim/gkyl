@@ -101,6 +101,13 @@ local function new_field_ct(elct)
 	    return idxr(ac, ...)
 	 end
       end,
+      genIndexer = function (self)
+	 local idxr = Range.genIndexerFunctions[self:ndim()]
+	 local ac = indexerMakerFuncs[self._m._layout](self:localExtRange())
+	 return function (idx)
+	    return idxr(ac, idx)
+	 end
+      end,
       get = function (self, k)
 	 local loc = k*self._m._numComponents
 	 return fcompct(self._m._numComponents, self._data+loc)
