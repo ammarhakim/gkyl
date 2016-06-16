@@ -5,6 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local ffi = require "ffi"
 local Unit = require "Unit"
 local Grid = require "Grid"
 local DataStruct = require "DataStruct"
@@ -28,6 +29,8 @@ function test_1()
    assert_equal(1, field:lowerGhost(), "Checking lower ghost")
    assert_equal(1, field:upperGhost(), "Checking upper ghost")
    assert_equal((10+2)*3, field:size(), "Checking size")
+
+   assert_equal("col-major", field:layout(), "Checking layout")
 
    local localRange = field:localRange()
    assert_equal(1, localRange:lower(1), "Checking range lower")
@@ -70,6 +73,8 @@ function test_2()
    assert_equal(2, field:upperGhost(), "Checking upper ghost")
    assert_equal((10+3)*(10+3)*3, field:size(), "Checking size")
 
+   assert_equal("col-major", field:layout(), "Checking layout")
+
    local localRange = field:localRange()
    assert_equal(1, localRange:lower(1), "Checking range lower")
    assert_equal(1, localRange:lower(2), "Checking range lower")
@@ -104,8 +109,31 @@ function test_2()
    end
 end
 
+function test_3()
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+   }
+   local EulerField = DataStruct.new_field_ct(ffi.typeof("struct {double rho, rhou, E;}"))
+   local field = EulerField {
+      onGrid = grid,
+      ghost = {1, 1},
+   }
+
+   local localRange = field:localRange()
+   local indexer = field:indexer()
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      fitr[1].rho = 1
+      fitr[1].rhou = 2
+      fitr[1].E = 3
+   end   
+end
+
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

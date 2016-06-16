@@ -20,7 +20,7 @@ local function format_arg(arg)
    end
 end
 
-local function assert_equal(expected, actual, msg)
+local function assert_equal_numeric(expected, actual, msg)
    if math.abs(actual) < 1e-15 then
       if math.abs(expected-actual) > 1e-15 then
 	 print( "** Assert_equal FAILED", msg, string.format("expected %s but was %s", format_arg(expected), format_arg(actual)) )
@@ -37,6 +37,27 @@ local function assert_equal(expected, actual, msg)
       end
    end
    return actual
+end
+
+local function assert_equal_string(expected, actual, msg)
+   if expected ~= actual then
+      print( "** Assert_equal FAILED", msg, string.format("expected %s but was %s", format_arg(expected), format_arg(actual)) )
+      stats.fail = stats.fail+1
+   else
+      stats.pass = stats.pass+1
+   end
+   return actual
+end
+
+local function assert_equal(expected, actual, msg)
+   if type(expected) == "number" then
+      assert_equal_numeric(expected, actual, msg)
+   elseif  type(expected) == "string" then
+      assert_equal_string(expected, actual, msg)
+   else
+      io.write(string.format("Not performing test %s\n", msg))
+   end
+      
 end
 
 return {
