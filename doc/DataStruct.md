@@ -87,6 +87,13 @@ The following methods are provided.
 : A linear indexer object that allows converting a N-dimensional index
   into an integer. This is used to access elements in the field.
 
+`field:genIndexer()`
+
+: A linear indexer object that allows converting a N-dimensional index
+  into an integer. The indexer returned by this method takes a vector,
+  unliked the indexer returned by the `indexer()` method, which takes
+  (i,j,..) index. This is used to access elements in the field.
+
 `field:get(k)`
 : Get the field components at location `k`. The value of `k` must be
   determined by the indexer returned by the `indexer()` object.
@@ -110,3 +117,51 @@ end
 Note the use of the `indexer()` method to `get()` access to the data in
 the (i,j) cell. Once the data is fetched, the `fitr` can be indexed to
 get the components stored in that cell.
+
+We can also access the field data in a dimensionally independent
+manner. In this approach the above example can be written as:
+
+~~~~~~~ {.lua}
+local localRange = field:localRegion()
+local indexer = field:genIndexer()
+for idx in localRange:colMajorIter() do
+   local fitr = field:get(indexer(idx))
+   fitr[1] = 1
+   fitr[2] = 2
+   fitr[3] = 3
+end
+~~~~~~~
+
+Note the use of the `genIndexer()` method to get the dimensionally
+independent indexer.
+
+The field can be used to store data of arbitrary types, including
+fixed-size C structs. To this, first create a new field constructor as
+follows:
+
+~~~~~~~ {.lua}
+EulerField = DataStruct.new_field_ct(ffi.typeof("struct {double rho, rhou, E;}"))
+~~~~~~~
+
+Now, using this, a field can be created:
+
+~~~~~~~ {.lua}
+field = EulerField {
+   onGrid = grid,
+   ghost = {1, 1},
+}
+~~~~~~~
+
+To loop over the field one can do, for example, using the
+dimensionally independent technique:
+
+~~~~~~~ {.lua}
+local localRange = field:localRegion()
+local indexer = field:genIndexer()
+for idx in localRange:colMajorIter() do
+   local fitr = field:get(indexer(idx))
+   fitr[1].rho = 1
+   fitr[1].rhou = 0
+   fitr[1].E = 3
+end
+~~~~~~~
