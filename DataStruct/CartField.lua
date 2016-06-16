@@ -30,8 +30,15 @@ typedef struct {
     uint16_t _numComponents; /* Number of components */
     uint16_t _size; /* Size of field */
     Range_t _localRange, _globalRange; /* Local/global range */
+    uint8_t _layout; /* Layout: 1 row-major, 2: column-major */
 } FieldData_t;
 ]]
+
+-- Local definitions
+local rowMajLayout, colMajLayout = 1, 2 -- data layout
+local indexerMakerFuncs = {} -- list of functions that make indexers
+indexerMakerFuncs[rowMajLayout] = Range.makeRowMajorIndexer
+indexerMakerFuncs[colMajLayout] = Range.makeColMajorIndexer
 
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
@@ -60,6 +67,12 @@ local function new_field_ct(elct)
       numComponents = function (self)
 	 return self._m._numComponents
       end,
+      layout = function (self)
+	 if self._m._layout == rowMajLayout then
+	    return "row-major"
+	 end
+	 return "col-major"
+      end,
       lowerGhost = function (self)
 	 return self._m._lowerGhost
       end,
@@ -83,7 +96,7 @@ local function new_field_ct(elct)
       end,
       indexer = function (self)
 	 local idxr = Range.indexerFunctions[self:ndim()]
-	 local ac = Range.makeColMajorIndexer(self:localExtRange())
+	 local ac = indexerMakerFuncs[self._m._layout](self:localExtRange())
 	 return function (...)
 	    return idxr(ac, ...)
 	 end
@@ -113,6 +126,12 @@ local function new_field_ct(elct)
 	 f._m._size = sz
 	 f._m._globalRange = globalRange
 	 f._m._localRange = localRange
+	 f._m._layout = colMajLayout -- default layout is column-major
+	 if tbl.layout then
+	    if tbl.layout == "row-major" then
+	       f._m._layout = rowMajLayout
+	    end
+	 end
 	 return f
       end,
       __index = field_mf,

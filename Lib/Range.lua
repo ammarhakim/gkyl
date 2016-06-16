@@ -122,6 +122,8 @@ _M.Range = metatype(typeof("Range_t"), range_mt)
 -- Linear indexers, mapping n-dimensional index to a linear index
 --------------------------------------------------------------------------------
 
+-- The following set of functions takes explicit N-dimensional
+-- (i,j,...) indices and map it to an integer.
 local function getIndex1(ac, i1)
    return ac[0] + i1*ac[1]
 end
