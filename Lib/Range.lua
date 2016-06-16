@@ -142,11 +142,35 @@ end
 local function getIndex6(ac, i1, i2, i3, i4, i5, i6)
    return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]+i6*ac[6]
 end
-local function getIndex7(ac, i1, i2, i3, i4, i5, i6, i7)
-   return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]+i6*ac[6]+i7*ac[7]
+-- package these up into a table
+_M.indexerFunctions = {
+   getIndex1, getIndex2, getIndex3, getIndex4, getIndex5, getIndex6
+}
+
+-- The following set of functions take a index with N-dim entries and
+-- map it to an integer.
+local function getGenIndex1(ac, idx)
+   return ac[0] + idx[1]*ac[1]
+end
+local function getGenIndex2(ac, idx)
+   return ac[0]+idx[1]*ac[1]+idx[2]*ac[2]
+end
+local function getGenIndex3(ac, idx)
+   return ac[0]+idx[1]*ac[1]+idx[2]*ac[2]+idx[3]*ac[3]
+end
+local function getGenIndex4(ac, idx)
+   return ac[0]+idx[1]*ac[1]+idx[2]*ac[2]+idx[3]*ac[3]+idx[4]*ac[4]
+end
+local function getGenIndex5(ac, idx)
+   return ac[0]+idx[1]*ac[1]+idx[2]*ac[2]+idx[3]*ac[3]+idx[4]*ac[4]+idx[5]*ac[5]
+end
+local function getGenIndex6(ac, idx)
+   return ac[0]+idx[1]*ac[1]+idx[2]*ac[2]+idx[3]*ac[3]+idx[4]*ac[4]+idx[5]*ac[5]+idx[6]*ac[6]
 end
 -- package these up into a table
-_M.indexerFunctions = {getIndex1, getIndex2, getIndex3, getIndex4, getIndex5, getIndex6, getIndex7}
+_M.genIndexerFunctions = {
+   getGenIndex1, getGenIndex2, getGenIndex3, getGenIndex4, getGenIndex5, getGenIndex6
+}
 
 -- create a row-major indexer  given "range" object
 function _M.makeRowMajorIndexer(range)

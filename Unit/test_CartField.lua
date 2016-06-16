@@ -131,9 +131,39 @@ function test_3()
    end   
 end
 
+function test_4()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+
+   local localRange = field:localRange()
+   local indexer = field:genIndexer()
+   for idx in localRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+      fitr[2] = idx[1]+2*idx[2]+2
+      fitr[3] = idx[1]+2*idx[2]+3
+   end
+
+   for idx in localRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      assert_equal(idx[1]+2*idx[2]+1, fitr[1], "Checking field value")
+      assert_equal(idx[1]+2*idx[2]+2, fitr[2], "Checking field value")
+      assert_equal(idx[1]+2*idx[2]+3, fitr[3], "Checking field value")
+   end
+end
+
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
