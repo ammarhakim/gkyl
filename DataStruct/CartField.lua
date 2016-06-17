@@ -82,33 +82,33 @@ local function new_field_ct(elct)
       localRange = function (self)
 	 return self._m._localRange
       end,
-      localExtRange = function (self)
+      localExtRange = function (self) -- includes ghost cells
 	 return self:localRange():extend(self:lowerGhost(), self:upperGhost())
       end,      
       globalRange = function (self)
 	 return self._m._globalRange
       end,
-      globalExtRange = function (self)
+      globalExtRange = function (self) -- includes ghost cells
 	 return self:globalRange():extend(self:lowerGhost(), self:upperGhost())
       end,
       size = function (self)
 	 return self._m._size
       end,
-      indexer = function (self)
+      indexer = function (self) -- linear indexer taking (i,j,...)
 	 local idxr = Range.indexerFunctions[self:ndim()]
 	 local ac = indexerMakerFuncs[self._m._layout](self:localExtRange())
 	 return function (...)
 	    return idxr(ac, ...)
 	 end
       end,
-      genIndexer = function (self)
+      genIndexer = function (self) -- linear indexer taking indices as a vector 
 	 local idxr = Range.genIndexerFunctions[self:ndim()]
 	 local ac = indexerMakerFuncs[self._m._layout](self:localExtRange())
 	 return function (idx)
 	    return idxr(ac, idx)
 	 end
       end,
-      get = function (self, k)
+      get = function (self, k) -- k is an integer returned by a linear indexer
 	 local loc = k*self._m._numComponents
 	 return fcompct(self._m._numComponents, self._data+loc)
       end,
@@ -149,5 +149,4 @@ end
 return {
    new_field_ct = new_field_ct,
    Field = new_field_ct(typeof("double")),
-   FloatField = new_field_ct(typeof("float")),
 }
