@@ -88,15 +88,17 @@ The following methods are provided.
   into an integer. This is used to access elements in the field.
 
 `field:genIndexer()`
-
 : A linear indexer object that allows converting a N-dimensional index
   into an integer. The indexer returned by this method takes a vector,
   unliked the indexer returned by the `indexer()` method, which takes
   (i,j,..) index. This is used to access elements in the field.
 
 `field:get(k)`
-: Get the field components at location `k`. The value of `k` must be
-  determined by the indexer returned by the `indexer()` object.
+: Get a pointer to field components at location `k`. The value of `k`
+  must be determined by the indexer returned by the `indexer()`
+  object. The returned object can be indexed as a vector. The
+  `numComponents` field can be used to determine the number of
+  components in the vector.
 
 To illustrate the use of the `indexer()` and `get()` methods to access
 elements in the grid, consider the following code:
@@ -136,8 +138,8 @@ Note the use of the `genIndexer()` method to get the dimensionally
 independent indexer.
 
 The field can be used to store data of arbitrary types, including
-fixed-size C structs. To this, first create a new field constructor as
-follows:
+fixed-size C structs. To do this, first create a new field constructor
+as follows:
 
 ~~~~~~~ {.lua}
 EulerField = DataStruct.new_field_ct(ffi.typeof("struct {double rho, rhou, E;}"))
