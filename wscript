@@ -24,7 +24,7 @@ def configure(conf):
     conf.load('compiler_c compiler_cxx')
 
     # standard install location for dependencies
-    gkydepsDir = os.path.expandvars('$HOME/software')
+    gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
     
     # load options for LuaJIT
     conf.env.INCLUDES_LUAJIT = [gkydepsDir+'/luajit/include/luajit-2.1']
