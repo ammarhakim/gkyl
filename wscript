@@ -3,6 +3,8 @@
 ##    _______     ___
 ## + 6 @ |||| # P ||| +
 
+## TODO: Make a static executable
+
 import os
 
 APPNAME = 'gkyl'
@@ -16,6 +18,10 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx')
+
+    opt.add_option('--enable-mpi', help=('Enable parallel build'),
+                   dest='enable_mpi', action='store_true',
+                   default=False)
 
 def configure(conf):
     r"""Configure Gkyl build"""
