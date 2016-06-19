@@ -32,7 +32,8 @@ typedef struct {
 -- A uniform Cartesian grid
 --------------------------------------------------------------------------------
 
--- Uniform cartesian grid meta-type
+-- Meta-type of base-cartesian grid: both uniform and non-uniform
+-- grids use this object
 local uni_cart_mt = {
    __new = function (self, tbl)
       local lo = tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
@@ -77,7 +78,29 @@ local uni_cart_mt = {
       end,
    }
 }
-local RectCart = metatype(typeof("RectCartGrid_t"), uni_cart_mt)
+
+-- Base-cartesian grid: both uniform and non-uniform
+-- grids use this object
+local RectCartBase = metatype(typeof("RectCartGrid_t"), uni_cart_mt)
+
+local RectCart = {}
+-- constructor to make a new uniform grid
+function RectCart:new(tbl)
+   local self = setmetatable({}, RectCart)
+   self._grid = RectCartBase(tbl) -- computational space grid
+   return self
+end
+-- make object callable, and redirect call to the :new method
+setmetatable(RectCart, {
+		__call = function (self, o)
+		   return self.new(self, o)
+		end,
+})
+
+-- set callable methods
+RectCart.__index = function (self, k)
+   return self._grid[k]
+end
 
 -- NonUniformRectCartGrid ----------------------------------------------------------------------
 --
@@ -107,7 +130,7 @@ local NonUniformRectCart = {}
 -- constructor to make a new non-uniform grid
 function NonUniformRectCart:new(tbl)
    local self = setmetatable({}, NonUniformRectCart)
-   self._compGrid = RectCart(tbl) -- computational space grid
+   self._compGrid = RectCartBase(tbl) -- computational space grid
 
    local ndim = self._compGrid._ndim
    -- set grid index to first cell in domain
