@@ -49,23 +49,37 @@ setmetatable(CartProdDecomp, {
 
 -- set callable methods
 CartProdDecomp.__index = {
-   cut = function (self, dir)
+   ndim = function (self)
+      return #self._cellIndex
+   end,
+   cuts = function (self, dir)
       return self._cuts[dir-1]
    end,
    decompose = function (self, range) -- decompose range
       for dir = 1, range:ndim() do
 	 local cidx = self._cellIndex[dir]
-	 cidx[0] = range:lower(dir)
+	 cidx[1] = range:lower(dir)
 
-	 local shape = math.floor(range:shape(dir)/self:cut(dir))
-	 for c = 1, self:cut(dir) do
-	    cidx[c] = cidx[c-1]+shape
+	 local shapes = Lin.IntVec(self:cuts(dir))
+	 local baseShape = math.floor(range:shape(dir)/self:cuts(dir))
+	 local remCells = range:shape(dir) % self:cuts(dir)	 
+	 for c = 1, self:cuts(dir) do
+	    shapes[c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell, if any
+	    remCells = remCells-1
 	 end
-	 -- distribute remaining cells between 
+	 -- set indices
+	 for c = 1, self:cuts(dir) do
+	    cidx[c+1] = cidx[c] + shapes[c]
+	 end
       end
-
       return true
    end,
+   lower = function (self, dir, c) -- c is cut number
+      return self._cellIndex[dir][c]
+   end,
+   upper = function (self, dir, c) -- c is cut number
+      return self._cellIndex[dir][c+1]-1
+   end
 }
 
 return {

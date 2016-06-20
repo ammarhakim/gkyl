@@ -27,6 +27,22 @@ parameters.
 
 The following methods are provided.
 
+`decomp:ndim()`
+: Dimension of decomposition.
+
+`decomp:cuts(dir)`
+: Cuts in direction `dir`.
+  
 `decomp:decompose(range)`
 : Decomposes `range` into smaller regions. Returns `true` if
   decomposition was successful, `false` otherwise.
+
+After the decompose method has been called, the following methods can
+be used to access the decomposition.
+
+`decomp:lower(dir, c)`
+: Lower index in direction `dir` for cut `c`.
+
+`decomp:upper(dir, c)`
+: Upper index in direction `dir` for cut `c`.
+
