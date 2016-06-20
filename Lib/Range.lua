@@ -172,8 +172,8 @@ _M.genIndexerFunctions = {
    getGenIndex1, getGenIndex2, getGenIndex3, getGenIndex4, getGenIndex5, getGenIndex6
 }
 
--- create a row-major indexer  given "range" object
-function _M.makeRowMajorIndexer(range)
+-- create coefficients for row-major indexer  given "range" object
+local function calcRowMajorIndexerCoeff(range)
    local ac = new("double[7]")
    local ndim = range:ndim()
    ac[ndim] = 1
@@ -188,8 +188,8 @@ function _M.makeRowMajorIndexer(range)
    return ac
 end
 
--- create a column-major indexer  given "range" object
-function _M.makeColMajorIndexer(range)
+-- create coefficients for column-major indexer  given "range" object
+local function calcColMajorIndexerCoeff(range)
    local ac = new("double[7]")
    local ndim = range:ndim()
    ac[1] = 1
@@ -202,6 +202,40 @@ function _M.makeColMajorIndexer(range)
    end
    ac[0] = -start
    return ac
+end
+
+-- Dollowing functions return an indexer function given a range
+-- object. The returned function takes a (i,j,...) index.
+function _M.makeRowMajorIndexer(range)
+   local ac = calcRowMajorIndexerCoeff(range)
+   local idxr = _M.indexerFunctions[range:ndim()]
+   return function (...)
+      return idxr(ac, ...)
+   end
+end
+function _M.makeColMajorIndexer(range)
+   local ac = calcColMajorIndexerCoeff(range)
+   local idxr = _M.indexerFunctions[range:ndim()]
+   return function (...)
+      return idxr(ac, ...)
+   end
+end
+
+-- Following functions return an indexer function given a range
+-- object. The returned function takes a single idx parameter.
+function _M.makeRowMajorGenIndexer(range)
+   local ac = calcRowMajorIndexerCoeff(range)
+   local idxr = _M.genIndexerFunctions[range:ndim()]
+   return function (idx)
+      return idxr(ac, idx)
+   end
+end
+function _M.makeColMajorGenIndexer(range)
+   local ac = calcColMajorIndexerCoeff(range)
+   local idxr = _M.genIndexerFunctions[range:ndim()]
+   return function (idx)
+      return idxr(ac, idx)
+   end
 end
 
 return _M

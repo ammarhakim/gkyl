@@ -21,22 +21,19 @@ local Lin = require "Lib.Linalg"
 -- cuts in each direction
 --------------------------------------------------------------------------------
 
+-- create constructor to store vector of Range objects
+local RangeVec = Lin.new_vec_ct(ffi.typeof("Range_t"))
+
 local CartProdDecomp = {}
 -- constructor to make new cart-prod decomp
 function CartProdDecomp:new(tbl)
    local self = setmetatable({}, CartProdDecomp)
    
-   local ndim = #tbl.cuts
-   self._cuts = ffi.new("uint16_t[?]", ndim)
-   for d = 1, ndim do
-      self._cuts[d-1] = tbl.cuts[d]
-   end
+   local ones = {}
+   for d = 1, #tbl.cuts do ones[d] = 1 end
+   self._cutsRange = Range.Range(ones, tbl.cuts)
+   self._domains = RangeVec(self._cutsRange:volume())
 
-   self._cellIndex = {} -- start cell indices along each direction
-   for d = 1, ndim do
-      self._cellIndex[d] = Lin.IntVec(tbl.cuts[d]+1)
-   end
-   
    return self
 end
 
@@ -46,35 +43,31 @@ setmetatable(CartProdDecomp, { __call = function (self, o) return self.new(self,
 -- set callable methods
 CartProdDecomp.__index = {
    ndim = function (self)
-      return #self._cellIndex
+      return self._cutsRange:ndim()
    end,
    cuts = function (self, dir)
-      return self._cuts[dir-1]
+      return self._cutsRange:upper(dir)
    end,
    decompose = function (self, range) -- decompose range
+      local shapes = {} -- to store shapes in each direction
+      -- compute shape in each direction
       for dir = 1, range:ndim() do
-	 local cidx = self._cellIndex[dir]
-	 cidx[1] = range:lower(dir)
-
-	 local shapes = Lin.IntVec(self:cuts(dir))
+	 shapes[dir] = Lin.IntVec(self:cuts(dir))
 	 local baseShape = math.floor(range:shape(dir)/self:cuts(dir))
 	 local remCells = range:shape(dir) % self:cuts(dir)	 
 	 for c = 1, self:cuts(dir) do
-	    shapes[c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell, if any
+	    shapes[dir][c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell, if any
 	    remCells = remCells-1
 	 end
-	 -- set indices
-	 for c = 1, self:cuts(dir) do
-	    cidx[c+1] = cidx[c] + shapes[c]
-	 end
       end
+
       return true
    end,
    lower = function (self, dir, c) -- c is cut number
-      return self._cellIndex[dir][c]
+      return 0
    end,
    upper = function (self, dir, c) -- c is cut number
-      return self._cellIndex[dir][c+1]-1
+      return 1
    end
 }
 
