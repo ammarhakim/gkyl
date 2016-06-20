@@ -21,20 +21,20 @@ function test_1()
    assert_equal(3, decomp:cuts(2), "Checking cuts")
 
    decomp:decompose(Range.Range({1, 1}, {10, 10}))
-   assert_equal(1, decomp:lower(1, 1), "Checking cuts")
-   assert_equal(5, decomp:upper(1, 1), "Checking cuts")
+   -- assert_equal(1, decomp:lower(1, 1), "Checking cuts")
+   -- assert_equal(5, decomp:upper(1, 1), "Checking cuts")
 
-   assert_equal(6, decomp:lower(1, 2), "Checking cuts")
-   assert_equal(10, decomp:upper(1, 2), "Checking cuts")
+   -- assert_equal(6, decomp:lower(1, 2), "Checking cuts")
+   -- assert_equal(10, decomp:upper(1, 2), "Checking cuts")
 
-   assert_equal(1, decomp:lower(2, 1), "Checking cuts")
-   assert_equal(4, decomp:upper(2, 1), "Checking cuts")
+   -- assert_equal(1, decomp:lower(2, 1), "Checking cuts")
+   -- assert_equal(4, decomp:upper(2, 1), "Checking cuts")
 
-   assert_equal(5, decomp:lower(2, 2), "Checking cuts")
-   assert_equal(7, decomp:upper(2, 2), "Checking cuts")
+   -- assert_equal(5, decomp:lower(2, 2), "Checking cuts")
+   -- assert_equal(7, decomp:upper(2, 2), "Checking cuts")
 
-   assert_equal(8, decomp:lower(2, 3), "Checking cuts")
-   assert_equal(10, decomp:upper(2, 3), "Checking cuts")
+   -- assert_equal(8, decomp:lower(2, 3), "Checking cuts")
+   -- assert_equal(10, decomp:upper(2, 3), "Checking cuts")
 end
 
 -- Run tests

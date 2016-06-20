@@ -40,6 +40,10 @@ local indexerMakerFuncs = {} -- list of functions that make indexers
 indexerMakerFuncs[rowMajLayout] = Range.makeRowMajorIndexer
 indexerMakerFuncs[colMajLayout] = Range.makeColMajorIndexer
 
+local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
+genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
+genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
+
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
    local field_comp_mt = {
@@ -95,18 +99,10 @@ local function new_field_ct(elct)
 	 return self._m._size
       end,
       indexer = function (self) -- linear indexer taking (i,j,...)
-	 local idxr = Range.indexerFunctions[self:ndim()]
-	 local ac = indexerMakerFuncs[self._m._layout](self:localExtRange())
-	 return function (...)
-	    return idxr(ac, ...)
-	 end
+	 return indexerMakerFuncs[self._m._layout](self:localExtRange())
       end,
-      genIndexer = function (self) -- linear indexer taking indices as a vector 
-	 local idxr = Range.genIndexerFunctions[self:ndim()]
-	 local ac = indexerMakerFuncs[self._m._layout](self:localExtRange())
-	 return function (idx)
-	    return idxr(ac, idx)
-	 end
+      genIndexer = function (self) -- linear indexer taking indices as a vector
+	 return genIndexerMakerFuncs[self._m._layout](self:localExtRange())
       end,
       get = function (self, k) -- k is an integer returned by a linear indexer
 	 local loc = k*self._m._numComponents
