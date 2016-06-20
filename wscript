@@ -29,6 +29,10 @@ def configure(conf):
     # load tools
     conf.load('compiler_c compiler_cxx')
 
+    if conf.options.enable_mpi:
+        # add flag to tell we are building with MPI
+        conf.env.append_value("DEFINES", ["HAVE_MPI"])
+
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
     
@@ -95,7 +99,7 @@ def buildExec(bld):
     # build idjit executable
     bld.program(
         source='gkyl.cxx', target='gkyl',
-        use='LUAJIT M DL',
+        use='LUAJIT M DL MPI',
         linkflags = EXTRA_LINK_FLAGS
     )
 
