@@ -41,11 +41,7 @@ function CartProdDecomp:new(tbl)
 end
 
 -- make object callable, and redirect call to the :new method
-setmetatable(CartProdDecomp, {
-		__call = function (self, o)
-		   return self.new(self, o)
-		end,
-})
+setmetatable(CartProdDecomp, { __call = function (self, o) return self.new(self, o) end })
 
 -- set callable methods
 CartProdDecomp.__index = {

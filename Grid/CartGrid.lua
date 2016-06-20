@@ -91,11 +91,7 @@ function RectCart:new(tbl)
    return self
 end
 -- make object callable, and redirect call to the :new method
-setmetatable(RectCart, {
-		__call = function (self, o)
-		   return self.new(self, o)
-		end,
-})
+setmetatable(RectCart, { __call = function (self, o) return self.new(self, o) end })
 
 -- set callable methods
 RectCart.__index = function (self, k)
@@ -161,11 +157,7 @@ function NonUniformRectCart:new(tbl)
    return self
 end
 -- make object callable, and redirect call to the :new method
-setmetatable (NonUniformRectCart, {
-		 __call = function (self, o)
-		    return self.new(self, o)
-		 end,
-})
+setmetatable (NonUniformRectCart, { __call = function (self, o) return self.new(self, o) end })
 
 -- set callable methods
 NonUniformRectCart.__index = {
