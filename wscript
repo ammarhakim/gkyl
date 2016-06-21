@@ -6,6 +6,9 @@
 ## TODO: Make a static executable
 
 import os
+import sys
+sys.path.insert(0, './waf_tools')
+import commands
 
 APPNAME = 'gkyl'
 VERSION = '1.0'
@@ -17,21 +20,20 @@ out = 'build'
 EXTRA_LINK_FLAGS = []
 
 def options(opt):
-    opt.load('compiler_c compiler_cxx')
-
-    opt.add_option('--enable-mpi', help=('Enable parallel build'),
-                   dest='enable_mpi', action='store_true',
-                   default=False)
+    opt.load('compiler_c compiler_cxx') 
+    opt.load('mpi')
 
 def configure(conf):
     r"""Configure Gkyl build"""
 
     # load tools
     conf.load('compiler_c compiler_cxx')
+    conf.check_mpi()
 
     if conf.options.enable_mpi:
         # add flag to tell we are building with MPI
         conf.env.append_value("DEFINES", ["HAVE_MPI"])
+        conf.env.INCLUDES_MPI
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
