@@ -47,6 +47,9 @@ CartProdDecomp.__index = {
    cuts = function (self, dir)
       return self._cutsRange:upper(dir)
    end,
+   numSubDomains = function (self)
+      return self._cutsRange:volume()
+   end,
    decompose = function (self, range) -- decompose range
       local shapes, starts = {}, {} -- to store shapes, start in each direction
       -- compute shape and start index in each direction
