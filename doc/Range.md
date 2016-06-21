@@ -48,7 +48,7 @@ loop to step over all the indices.
   indexer returns a `Vec` object with the indices. The return vector
   __should not be modified__.
 
-Example usage for indexer is:
+Example usage for iterators is:
 
 ~~~~~~~ {.lua}
 for idx in range:colMajorIter() do
@@ -56,5 +56,41 @@ for idx in range:colMajorIter() do
 end
 ~~~~~~~
 
+The `Range` module also provides two sets of methods to map a
+N-dimensional index to a single number than can be used to index a
+flat array. These methods take a range and return a function which
+maps indices to a number:
 
+`Range.makeRowMajorIndexer(range)`, `Range.makeColMajorIndexer(range)`
+: Returns a function that takes a N-dimensional $(i,j,...)$ index and
+  returns a integer. The returned integer lies in the range $[1, V]$,
+  where $V$ is the volume of the supplied range.
 
+`Range.makeRowMajorGenIndexer(range)`, `Range.makeColMajorGenIndexer(range)`
+: Returns a function that takes a N-dimensional index, $I$ and returns
+  a integer. The returned integer lies in the range $[1, V]$, where
+  $V$ is the volume of the supplied range.
+
+Example usage of the first set of functions
+
+~~~~~~~ {.lua}
+local range = Range.Range({1, 1}, {10, 5})
+local indexer = Range.makeRowMajorIndexer(range)
+for i = range:lower(1), range:upper(1) do
+   for j = range:lower(2), range:upper(2) do
+      local linIndex = indexer(i, j)
+      -- do something with linIndex
+   end
+end
+~~~~~~~
+
+Example usage of the second set of functions
+
+~~~~~~~ {.lua}
+local range = Range.Range({1, 1}, {10, 5})
+local indexer = Range.makeRowMajorGenIndexer(range)
+for idx in range:rowMajorIter() do
+   local linIndex = indexer(idx)
+   -- do something with linIndex
+end
+~~~~~~~

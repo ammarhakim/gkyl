@@ -123,7 +123,7 @@ function test_8()
    local range = Range.Range({1}, {10})
    local indexer = Range.makeRowMajorIndexer(range)
 
-   local count = 0
+   local count = 1
    for i = range:lower(1), range:upper(1) do
       assert_equal(count, indexer(i), "Checking indexer")
       count = count + 1
@@ -134,7 +134,7 @@ function test_9()
    local range = Range.Range({1, 1}, {10, 5})
    local indexer = Range.makeRowMajorIndexer(range)
 
-   local count = 0
+   local count = 1
    for i = range:lower(1), range:upper(1) do
       for j = range:lower(2), range:upper(2) do
 	 assert_equal(count, indexer(i, j), "Checking row-major indexer")
@@ -147,7 +147,7 @@ function test_10()
    local range = Range.Range({1, 1, -1}, {10, 5, 9})
    local indexer = Range.makeRowMajorIndexer(range)
 
-   local count = 0
+   local count = 1
    for i = range:lower(1), range:upper(1) do
       for j = range:lower(2), range:upper(2) do
 	 for k = range:lower(3), range:upper(3) do
@@ -162,7 +162,7 @@ function test_11()
    local range = Range.Range({1}, {10})
    local indexer = Range.makeColMajorIndexer(range)
 
-   local count = 0
+   local count = 1
    for i = range:lower(1), range:upper(1) do
       assert_equal(count, indexer(i), "Checking indexer")
       count = count + 1
@@ -173,7 +173,7 @@ function test_12()
    local range = Range.Range({1, 1}, {10, 5})
    local indexer = Range.makeColMajorIndexer(range)
 
-   local count = 0
+   local count = 1
    for j = range:lower(2), range:upper(2) do   
       for i = range:lower(1), range:upper(1) do
 	 assert_equal(count, indexer(i, j), "Checking col-major indexer")
@@ -186,7 +186,7 @@ function test_13()
    local range = Range.Range({1, 1, -1}, {10, 5, 9})
    local indexer = Range.makeColMajorIndexer(range)
 
-   local count = 0
+   local count = 1
    for k = range:lower(3), range:upper(3) do
       for j = range:lower(2), range:upper(2) do      
 	 for i = range:lower(1), range:upper(1) do

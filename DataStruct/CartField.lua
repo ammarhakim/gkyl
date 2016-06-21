@@ -105,7 +105,7 @@ local function new_field_ct(elct)
 	 return genIndexerMakerFuncs[self._m._layout](self:localExtRange())
       end,
       get = function (self, k) -- k is an integer returned by a linear indexer
-	 local loc = k*self._m._numComponents
+	 local loc = (k-1)*self._m._numComponents -- (k-1) as k is 1-based index
 	 return fcompct(self._m._numComponents, self._data+loc)
       end,
    }
