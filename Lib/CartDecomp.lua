@@ -36,7 +36,6 @@ function CartProdDecomp:new(tbl)
 
    return self
 end
-
 -- make object callable, and redirect call to the :new method
 setmetatable(CartProdDecomp, { __call = function (self, o) return self.new(self, o) end })
 
@@ -49,25 +48,40 @@ CartProdDecomp.__index = {
       return self._cutsRange:upper(dir)
    end,
    decompose = function (self, range) -- decompose range
-      local shapes = {} -- to store shapes in each direction
-      -- compute shape in each direction
+      local shapes, starts = {}, {} -- to store shapes, start in each direction
+      -- compute shape and start index in each direction
       for dir = 1, range:ndim() do
 	 shapes[dir] = Lin.IntVec(self:cuts(dir))
 	 local baseShape = math.floor(range:shape(dir)/self:cuts(dir))
-	 local remCells = range:shape(dir) % self:cuts(dir)	 
+	 local remCells = range:shape(dir) % self:cuts(dir) -- extra cells left over
 	 for c = 1, self:cuts(dir) do
-	    shapes[dir][c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell, if any
+	    shapes[dir][c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell if any remain
 	    remCells = remCells-1
 	 end
+
+	 starts[dir] = Lin.IntVec(self:cuts(dir))
+	 starts[dir][1] = range:lower(dir)
+	 for c = 2, self:cuts(dir) do
+	    starts[dir][c] = starts[dir][c-1] + shapes[dir][c-1]
+	 end
+      end
+
+      local c = 1
+      -- add regions
+      for idx in self._cutsRange:colMajorIter() do
+	 local l, u = {}, {}
+	 for dir = 1, range:ndim() do
+	    l[dir] = starts[dir][idx[dir]]
+	    u[dir] = l[dir]+shapes[dir][idx[dir]]-1
+	 end
+	 self._domains[c] = Range.Range(l, u)
+	 c = c+1
       end
 
       return true
    end,
-   lower = function (self, dir, c) -- c is cut number
-      return 0
-   end,
-   upper = function (self, dir, c) -- c is cut number
-      return 1
+   subDomain = function (self, k)
+      return self._domains[k]
    end
 }
 

@@ -30,19 +30,14 @@ local function make_range_iter(si, ei, incr)
       
       local idx = iterState.currIdx
       if iterState.isFirst then
-	 -- first time just return start index
 	 iterState.isFirst = false
 	 return idx
       end
       
       local range = iterState.range
-      local ndim = range:ndim()
-
       for dir = si, ei, incr do
-	 -- bump index till we can bump no more
 	 idx[dir] = idx[dir]+1
 	 if idx[dir] > range:upper(dir) then
-	    -- run out of indices to bump, reset
 	    idx[dir] = range:lower(dir)
 	 else
 	    return idx
@@ -143,7 +138,7 @@ local function getIndex6(ac, i1, i2, i3, i4, i5, i6)
    return ac[0]+i1*ac[1]+i2*ac[2]+i3*ac[3]+i4*ac[4]+i5*ac[5]+i6*ac[6]
 end
 -- package these up into a table
-_M.indexerFunctions = {
+local indexerFunctions = {
    getIndex1, getIndex2, getIndex3, getIndex4, getIndex5, getIndex6
 }
 
@@ -168,7 +163,7 @@ local function getGenIndex6(ac, idx)
    return ac[0]+idx[1]*ac[1]+idx[2]*ac[2]+idx[3]*ac[3]+idx[4]*ac[4]+idx[5]*ac[5]+idx[6]*ac[6]
 end
 -- package these up into a table
-_M.genIndexerFunctions = {
+local genIndexerFunctions = {
    getGenIndex1, getGenIndex2, getGenIndex3, getGenIndex4, getGenIndex5, getGenIndex6
 }
 
@@ -184,7 +179,7 @@ local function calcRowMajorIndexerCoeff(range)
    for i = 1, ndim do
       start = start + ac[i]*range:lower(i)
    end
-   ac[0] = -start
+   ac[0] = 1-start
    return ac
 end
 
@@ -200,22 +195,22 @@ local function calcColMajorIndexerCoeff(range)
    for i = 1, ndim do
       start = start + ac[i]*range:lower(i)
    end
-   ac[0] = -start
+   ac[0] = 1-start
    return ac
 end
 
--- Dollowing functions return an indexer function given a range
+-- Following functions return an indexer function given a range
 -- object. The returned function takes a (i,j,...) index.
 function _M.makeRowMajorIndexer(range)
    local ac = calcRowMajorIndexerCoeff(range)
-   local idxr = _M.indexerFunctions[range:ndim()]
+   local idxr = indexerFunctions[range:ndim()]
    return function (...)
       return idxr(ac, ...)
    end
 end
 function _M.makeColMajorIndexer(range)
    local ac = calcColMajorIndexerCoeff(range)
-   local idxr = _M.indexerFunctions[range:ndim()]
+   local idxr = indexerFunctions[range:ndim()]
    return function (...)
       return idxr(ac, ...)
    end
@@ -225,14 +220,14 @@ end
 -- object. The returned function takes a single idx parameter.
 function _M.makeRowMajorGenIndexer(range)
    local ac = calcRowMajorIndexerCoeff(range)
-   local idxr = _M.genIndexerFunctions[range:ndim()]
+   local idxr = genIndexerFunctions[range:ndim()]
    return function (idx)
       return idxr(ac, idx)
    end
 end
 function _M.makeColMajorGenIndexer(range)
    local ac = calcColMajorIndexerCoeff(range)
-   local idxr = _M.genIndexerFunctions[range:ndim()]
+   local idxr = genIndexerFunctions[range:ndim()]
    return function (idx)
       return idxr(ac, idx)
    end
