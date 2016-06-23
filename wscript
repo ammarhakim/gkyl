@@ -90,6 +90,12 @@ def build(bld):
         DataStruct_dir.ant_glob('**/*.lua'),
         cwd=DataStruct_dir, relative_trick=True)
 
+    # - Eq
+    Eq_dir = bld.path.find_dir('Eq')
+    bld.install_files(
+        "${PREFIX}/bin/Eq",
+        Eq_dir.ant_glob('**/*.lua'),
+        cwd=Eq_dir, relative_trick=True)
 
 def buildExec(bld):
     r"""Build top-level executable"""
