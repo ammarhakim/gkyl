@@ -19,7 +19,7 @@ function test_1()
    assert_equal(5, euler:numEquations(), "No of equations")
    assert_equal(3, euler:numWaves(), "No of wave")
 
-   local rho, u, v, w, pr = 1.0, 1.0, 2.0, 3.0, 0.1
+   local rho, u, v, w, pr = 1.0, 2.1, 3.1, 4.1, 0.1
    local q = Lin.Vec(5)
    q[1] = rho
    q[2], q[3], q[4] = rho*u, rho*v, rho*w
