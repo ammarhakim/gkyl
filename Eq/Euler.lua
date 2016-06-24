@@ -26,6 +26,85 @@ typedef struct {
 -- helper to check if number if NaN
 local function isNan(x) return x ~= x end
 
+-- Riemann problem for Euler equations: `delta` is the vector we wish
+-- to split, `ql`/`qr` the left/right states. On output, `waves` and
+-- `s` contain the waves and speeds. waves is a mwave X meqn
+-- matrix. See LeVeque's book for explanations. Note: This code is
+-- essentially based on codes used in my thesis i.e. CLAWPACK and
+-- Miniwarpx. (A. Hakim)
+local function rp(self, delta, ql, qr, waves, s)
+   local g1 = self._gasGamma-1
+   local rhol, rhor = ql[1], qr[1]
+   local pl, pr = self:pressure(ql), self:pressure(qr)
+
+   -- Roe averages: see Roe's original paper or LeVeque book
+   local ravgl1, ravgr1 = 1/math.sqrt(rhol), 1/math.sqrt(rhor)
+   local ravg2 = 1/(ravg1+ravg2)
+   local u = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2
+   local v = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2
+   local w = (ql[4]*ravgl1 + qr[4]*ravgr1)*ravg2
+
+    -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
+    -- notation and meaning of these terms
+   local q2 = u*u+v*v+w*w
+   local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2
+   local aa2 = g1*(enth-0.5*q2)
+   local a = math.sqrt(aa2)
+   local g1a2, euv = g1/aa2, enth-q2
+
+   -- compute projections of jump
+   local a4 = g1a2*(euv*delta[1] + u*delta[2] + v*delta[3] + w*delta[4] - delta[5])
+   local a2 = delta[3] - v*delta[1]
+   local a3 = delta[4] - w*delta[1]
+   local a5 = 0.5*(delta[2] + (a-u[i])*delta[1] - a*a4)/a;
+   local a1 = delta[1] - a4 - a5
+
+   -- wave 1: eigenvalue is u-c
+   local wv = waves[1]
+   wv[1]  = a1
+   wv[2] = a1*(u-a)
+   wv[3] = a1*v
+   wv[4] = a1*w
+   wv[5] = a1*(enth-u*a)
+   s[1] = u-a
+
+   -- wave 2: eigenvalue is u, u, u three waves are lumped into one
+   wv = waves[2]
+   wv[1]  = a4
+   wv[2] = a4*u
+   wv[3] = a4*v + a2
+   wv[4] = a4*w + a3
+   wv[5] = a4*0.5*q2 + a2*v + a3*w
+   s[2] = u
+
+   -- wave 3: eigenvalue is u+c
+   wv = waves[3]
+   wv[1]  = a5
+   wv[2] = a5*(u+a)
+   wv[3] = a5*v
+   wv[4] = a5*w
+   wv[5] = a5*(enth+u*a)
+   s[3] = u+a
+end
+
+-- The function to compute fluctuations is implemented as a template
+-- to unroll the loops
+local fluctTemp = xsys.template([[
+return function (waves, s, amdq, apdq)
+   local w1, w2, w3 = waves[1], waves[2], waves[3]
+   local s1m, s2m, s3m = math.min(0, s[1]), math.min(0, s[2]), math.min(0, s[3])
+   local s1p, s2p, s3p = math.max(0, s[1]), math.max(0, s[2]), math.max(0, s[3])
+
+|for i = 1, 5 do
+   amdq[${i}] = s1m*w1[${i}] + s2m*w2[${i}] + s3m*w3[${i}]
+   apdq[${i}] = s1p*w1[${i}] + s2p*w2[${i}] + s3p*w3[${i}]
+
+|end
+end
+]])
+-- function for compute fluctuations using q-wave method
+local qFluctuations = loadstring( fluctTemp {} )()
+
 local euler_mt = {
    __new = function (self, tbl)
       local f = new(self)
@@ -42,8 +121,7 @@ local euler_mt = {
 	 return (self._gasGamma-1)*(q[5]-0.5*(q[2]*q[2]+q[3]*q[3]+q[4]*q[4])/q[1])
       end,
       flux = function (self, qIn, fOut)
-	 local rho1, pr = 1/qIn[1], self:pressure(qIn)
-	 local u = qIn[2]*rho1
+	 local pr, u = self:pressure(qIn), qIn[2]/qIn[1]
 
 	 fOut[1] = qIn[2] -- rho*u
 	 fOut[2] = qIn[2]*u + pr -- rho*u*u + p
@@ -56,6 +134,10 @@ local euler_mt = {
 	 local pr = self:pressure(q)
 	 if isNan(pr) or pr < 0.0 then return false end
 	 return true
+      end,
+      rp = rp,
+      qFluctuations = function (self, ql, qr, waves, s, amdq, apdq)
+	 return qFluctuations(waves, s, amdq, apdq)
       end,
    }
 }

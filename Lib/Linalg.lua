@@ -10,6 +10,8 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
+_M = {}
+
 -- Vector ----------------------------------------------------------------------
 --
 -- A chunk of memory with length stored. One can also create vector of
@@ -31,38 +33,106 @@ end
 -- Vector meta-object creator
 local function new_vec_ct(elct)
    local vec_mf = {
-      elemType = function(self)	 
+      elemType = function (self)	 
 	 return elct
       end,
-      data = function(self)
+      data = function (self)
 	 return self._p
       end,
-      copy = function(self)
+      copy = function (self)
 	 local v = vec_alloc(self, self._n)
 	 vec_memcpy(v, self)
 	 return v
       end,
    }
-  local vec_mt = {
-    __new = function(ct, n)
-      return vec_alloc(ct, n)
-    end,
-    __len = function(self)
-      return self._n
-    end,
-    __index = function(self, k)
-       if type(k) == "number" then
-	  return self._p[k-1]
-       else
-	  return vec_mf[k]
-       end
-    end,
-    __newindex = function(self, k, v)
-      self._p[k-1] = v
-    end,
-  }
-  local ct = typeof("struct { int32_t _n; $* _p; $ _a[?]; }", elct, elct)
-  return metatype(ct, vec_mt)
+   local vec_mt = {
+      __new = function(ct, n)
+	 return vec_alloc(ct, n)
+      end,
+      __len = function (self)
+	 return self._n
+      end,
+      __index = function (self, k)
+	 if type(k) == "number" then
+	    return self._p[k-1]
+	 else
+	    return vec_mf[k]
+	 end
+      end,
+      __newindex = function (self, k, v)
+	 self._p[k-1] = v
+      end,
+   }
+   local ct = typeof("struct { int32_t _n; $* _p; $ _a[?]; }", elct, elct)
+   return metatype(ct, vec_mt)
+end
+
+-- Matrix ----------------------------------------------------------------------
+--
+-- A two-dimensional matrix object, stored in row major order
+--------------------------------------------------------------------------------
+
+-- Allocate matrix with type "ct" and size "n,m"
+local function mat_alloc(ct, n, m)
+  local v = new(ct, n*m)
+  v._n, v._m, v._p = n, m, v._a
+  return v
+end
+
+-- copy matrix "x" into matrix "y"
+local function mat_memcpy(y, x)
+  copy(y._p, x._p, sizeof(y:elemType())*y._n*y._m)
+end
+
+-- Accessor object for values in a column
+local function new_mat_row_ct(elct)
+   local mat_row_mt = {
+      __index = function (self, k)
+	 return self._cdata[k-1]
+      end,
+      __newindex = function (self, k, v)
+	 self._cdata[k-1] = v
+      end,
+   }
+   return metatype(typeof("struct { int32_t ncols; $* _cdata; }", elct), mat_row_mt)
+end
+
+-- Matrix meta-object creator
+local function new_mat_ct(elct)
+   local rowct = new_mat_row_ct(elct)
+   local mat_mf = {
+      elemType = function (self)
+	 return elct
+      end,
+      data = function (self)
+	 return self._p
+      end,
+      copy = function (self)
+	 local m = mat_alloc(self, self._n, self._m)
+	 mat_memcpy(m, self)
+	 return m
+      end,
+      numRows = function (self)
+	 return self._n
+      end,
+      numCols = function (self)
+	 return self._m
+      end,      
+   }
+   local mat_mt = {
+      __new = function(ct, n, m)
+	 return mat_alloc(ct, n, m)
+      end,
+      __index = function (self, k)
+	 if type(k) == "number" then
+	    return rowct(self._m, self._p+(k-1)*self._m)
+	 else
+	    return mat_mf[k]
+	 end
+      end,
+   }
+   local ct = typeof("struct { int32_t _n, _m; $* _p; $ _a[?]; }", elct, elct)
+   return metatype(ct, mat_mt)
 end
 
 return {
@@ -70,4 +140,8 @@ return {
    Vec = new_vec_ct(typeof("double")),
    IntVec = new_vec_ct(typeof("int32_t")),
    FloatVec = new_vec_ct(typeof("float")),
+   new_mat_ct = new_mat_ct,
+   Mat = new_mat_ct(typeof("double")),
+   IntMat = new_mat_ct(typeof("int32_t")),
+   FloatMat = new_mat_ct(typeof("float")),
 }
