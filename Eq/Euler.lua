@@ -88,7 +88,7 @@ local function rp(self, delta, ql, qr, waves, s)
 end
 
 -- The function to compute fluctuations is implemented as a template
--- to unroll the loops
+-- to unroll loops
 local fluctTemp = xsys.template([[
 return function (waves, s, amdq, apdq)
    local w1, w2, w3 = waves[1], waves[2], waves[3]
@@ -114,15 +114,12 @@ local euler_mt = {
    __index = {
       numEquations = function (self) return 5 end,
       numWaves = function (self) return 3 end,
-      gasGamma = function (self)
-	 return self._gasGamma
-      end,
+      gasGamma = function (self) return self._gasGamma end,
       pressure = function (self, q)
 	 return (self._gasGamma-1)*(q[5]-0.5*(q[2]*q[2]+q[3]*q[3]+q[4]*q[4])/q[1])
       end,
       flux = function (self, qIn, fOut)
 	 local pr, u = self:pressure(qIn), qIn[2]/qIn[1]
-
 	 fOut[1] = qIn[2] -- rho*u
 	 fOut[2] = qIn[2]*u + pr -- rho*u*u + p
 	 fOut[3] = qIn[3]*u -- rho*v*u

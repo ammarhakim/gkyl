@@ -32,3 +32,11 @@ The following methoda are provided:
 `euler:isPositive(q)`
 : Checks if density and pressure are positive, returning `true` if
   they are, false otherwise.
+
+`euler:rp(delta, ql, qr, waves, s)`
+: Computes the `waves` and speed `s` given the jump `delta`.
+
+`euler:qFluctuations(ql, qr, waves, s, amdq, apdq)`
+: Computes the q-fluctuations, given waves and wave speeds. The
+  fluctuations in normal cases are defined by $A\Delta Q^- =
+  \sum_{s<0} s W$ and $A\Delta Q^+ = \sum_{s>0} s W$.

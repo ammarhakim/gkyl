@@ -85,10 +85,40 @@ function test_3()
    end
 end
 
+function test_4()
+   local m = Lin.Mat(3, 4)
+
+   local count, w = 1, m[1]
+   for i = 1, m:numCols() do
+      w[i] = count
+      count = count+1
+   end
+
+   w = m[2]
+   for i = 1, m:numCols() do
+      w[i] = count
+      count = count+1
+   end
+
+   w = m[3]
+   for i = 1, m:numCols() do
+      w[i] = count
+      count = count+1
+   end
+
+   -- check them
+   for i = 1, m:numRows() do
+      for j = 1, m:numCols() do
+	 assert_equal(j+(i-1)*m:numCols(), m[i][j], "Checking matrix values")
+      end
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
