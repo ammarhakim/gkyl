@@ -37,17 +37,17 @@ local function rp(self, delta, ql, qr, waves, s)
    local rhol, rhor = ql[1], qr[1]
    local pl, pr = self:pressure(ql), self:pressure(qr)
 
-   -- Roe averages: see Roe's original paper or LeVeque book
+   -- Roe averages: see Roe's original 1986 paper or LeVeque book
    local ravgl1, ravgr1 = 1/math.sqrt(rhol), 1/math.sqrt(rhor)
-   local ravg2 = 1/(ravg1+ravg2)
+   local ravg2 = 1/(math.sqrt(rhol)+math.sqrt(rhor))
    local u = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2
    local v = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2
    local w = (ql[4]*ravgl1 + qr[4]*ravgr1)*ravg2
+   local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2   
 
     -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
     -- notation and meaning of these terms
    local q2 = u*u+v*v+w*w
-   local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2
    local aa2 = g1*(enth-0.5*q2)
    local a = math.sqrt(aa2)
    local g1a2, euv = g1/aa2, enth-q2
@@ -56,7 +56,7 @@ local function rp(self, delta, ql, qr, waves, s)
    local a4 = g1a2*(euv*delta[1] + u*delta[2] + v*delta[3] + w*delta[4] - delta[5])
    local a2 = delta[3] - v*delta[1]
    local a3 = delta[4] - w*delta[1]
-   local a5 = 0.5*(delta[2] + (a-u[i])*delta[1] - a*a4)/a;
+   local a5 = 0.5*(delta[2] + (a-u)*delta[1] - a*a4)/a;
    local a1 = delta[1] - a4 - a5
 
    -- wave 1: eigenvalue is u-c
@@ -88,7 +88,7 @@ local function rp(self, delta, ql, qr, waves, s)
 end
 
 -- The function to compute fluctuations is implemented as a template
--- to unroll loops
+-- which unrolls the inner loop
 local fluctTemp = xsys.template([[
 return function (waves, s, amdq, apdq)
    local w1, w2, w3 = waves[1], waves[2], waves[3]
@@ -102,7 +102,7 @@ return function (waves, s, amdq, apdq)
 |end
 end
 ]])
--- function for compute fluctuations using q-wave method
+-- function to compute fluctuations using q-wave method
 local qFluctuations = loadstring( fluctTemp {} )()
 
 local euler_mt = {

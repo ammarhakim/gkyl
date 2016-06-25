@@ -48,6 +48,14 @@ loop to step over all the indices.
   indexer returns a `Vec` object with the indices. The return vector
   __should not be modified__.
 
+`range:shorten(dir)`
+: Reduces the range in direction `dir` such that the shape in that
+  direction is 1. This allows looping over all indices orthogonal to
+  `dir`.
+
+`range1 == range2` and `range1 ~= range2`
+: Return `true` (false) if ranges are the same, false (true) otherwise.
+
 Example usage for iterators is:
 
 ~~~~~~~ {.lua}

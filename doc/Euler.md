@@ -39,4 +39,5 @@ The following methoda are provided:
 `euler:qFluctuations(ql, qr, waves, s, amdq, apdq)`
 : Computes the q-fluctuations, given waves and wave speeds. The
   fluctuations in normal cases are defined by $A\Delta Q^- =
-  \sum_{s<0} s W$ and $A\Delta Q^+ = \sum_{s>0} s W$.
+  \sum_{s<0} s W$ and $A\Delta Q^+ = \sum_{s>0} s W$. Shape of `waves`
+  matrix is (mwave X meqn).

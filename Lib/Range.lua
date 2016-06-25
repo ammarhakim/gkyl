@@ -20,7 +20,7 @@ _M = {}
 -- A range object, representing a ndim integer index set. 
 --------------------------------------------------------------------------------
 
-ffi.cdef [[ typedef struct { uint8_t _ndim; int _lower[6]; int _upper[6]; } Range_t; ]]
+ffi.cdef [[ typedef struct { uint8_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; ]]
 
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
@@ -46,6 +46,11 @@ local function make_range_iter(si, ei, incr)
    end
 end
 
+-- compare a and b
+local function cmpInt6(a, b)
+   return a[1] == b[1] and a[2] == b[2] and a[3] == b[3] and a[4] == b[4] and a[5] == b[5] and a[6] == b[6]
+end
+
 -- Range object meta-type
 local range_mt = {
    __new = function (self, lower, upper)
@@ -63,6 +68,10 @@ local range_mt = {
 	 end
       end
       return r
+   end,
+   __eq = function (self, r)
+      if self._ndim ~= r._ndim then return false end
+      return cmpInt6(self._lower, r._lower) and cmpInt6(self._upper, r._upper)
    end,
    __index = {
       ndim = function (self)
@@ -91,6 +100,15 @@ local range_mt = {
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir)-lExt, self:upper(dir)+uExt
 	 end
 	 return r
+      end,
+      shorten = function (self, dir)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end
+	 r._upper[dir-1] = r._lower[dir-1]
+	 return r	 
       end,
       _iter = function (self, iter_func)
 	 local iterState = { isFirst = true, isEmpty = self:volume() == 0 and true or false }
