@@ -197,6 +197,37 @@ function test_13()
    end
 end
 
+function test_14()
+   local r1 = Range.Range({1, 1}, {10, 10})
+   local r2 = Range.Range({1, 1}, {12, 10})
+   local r3 = Range.Range({1}, {10})
+   local r4 = Range.Range({1, 1}, {10, 10})
+   
+   assert_equal(false, r1 == r2, "Checking for range equality")
+   assert_equal(false, r1 == r3, "Checking for range equality")
+   assert_equal(true, r1 == r4, "Checking for range equality")
+
+   assert_equal(true, r1 ~= r2, "Checking for range inequality")
+   assert_equal(true, r1 ~= r3, "Checking for range inequality")
+   assert_equal(false, r1 ~= r4, "Checking for range inequality")
+
+end
+
+function test_15()
+   local bigr = Range.Range({1, 1}, {10, 10})
+   local range = bigr:shorten(1)
+
+   assert_equal(1, range:lower(1), "Checking shorter range")
+   assert_equal(1, range:upper(1), "Checking shorter range")
+   assert_equal(1, range:shape(1), "Checking shorter range")   
+
+   assert_equal(1, range:lower(2), "Checking shorter range")
+   assert_equal(10, range:upper(2), "Checking shorter range")
+   assert_equal(10, range:shape(2), "Checking shorter range")
+
+   assert_equal(10*1, range:volume(), "Checking shorter volume")
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -211,6 +242,8 @@ test_10()
 test_11()
 test_12()
 test_13()
+test_14()
+test_15()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

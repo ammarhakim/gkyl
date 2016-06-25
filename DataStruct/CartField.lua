@@ -44,6 +44,13 @@ local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
 genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
 genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
 
+-- copy field x into field y
+local function field_memcpy(y, x)
+   assert(y:localRange() == x:localRange() and y:numComponents() == x:numComponents(), "Can't copy incompatible fields")
+   local sz = y:size()
+   copy(y._data, x._data, sizeof(y:elemType())*sz)
+end
+
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
    local field_comp_mt = {
@@ -70,6 +77,9 @@ local function new_field_ct(elct)
       end,
       numComponents = function (self)
 	 return self._m._numComponents
+      end,
+      copy = function (self, fIn)
+	 field_memcpy(self, fIn)
       end,
       layout = function (self)
 	 if self._m._layout == rowMajLayout then

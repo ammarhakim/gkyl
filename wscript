@@ -97,6 +97,13 @@ def build(bld):
         Eq_dir.ant_glob('**/*.lua'),
         cwd=Eq_dir, relative_trick=True)
 
+    # - Updater
+    Updater_dir = bld.path.find_dir('Updater')
+    bld.install_files(
+        "${PREFIX}/bin/Updater",
+        Updater_dir.ant_glob('**/*.lua'),
+        cwd=Updater_dir, relative_trick=True)
+
 def buildExec(bld):
     r"""Build top-level executable"""
     uname = os.uname()

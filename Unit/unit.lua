@@ -22,14 +22,14 @@ end
 
 local function assert_equal_numeric(expected, actual, msg)
    if math.abs(actual) < 1e-15 then
-      if math.abs(expected-actual) > 1e-15 then
+      if math.abs(expected-actual) > 5e-15 then
 	 print( "** Assert_equal FAILED", msg, string.format("expected %s but was %s", format_arg(expected), format_arg(actual)) )
 	 stats.fail = stats.fail+1
       else
 	 stats.pass = stats.pass+1
       end
    else
-      if math.abs(1-expected/actual) > 1e-15 then
+      if math.abs(1-expected/actual) > 5e-15 then
 	 print( "** Assert_equal FAILED", msg, string.format("expected %s but was %s", format_arg(expected), format_arg(actual)) )
 	 stats.fail = stats.fail+1
       else

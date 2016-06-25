@@ -93,6 +93,9 @@ The following methods are provided.
   unliked the indexer returned by the `indexer()` method, which takes
   (i,j,..) index. This is used to access elements in the field.
 
+`field:copy(fIn)`
+: Copies data from `fIn` into `field`.
+
 `field:get(k)`
 : Get a pointer to field components at location `k`. The value of `k`
   must be determined by the indexer returned by the `indexer()`

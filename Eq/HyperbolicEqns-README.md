@@ -25,7 +25,8 @@ LeVeque's book on Finite Volume methods.
   fluctuations in normal cases are defined by $A\Delta Q^- =
   \sum_{s<0} s W$ and $A\Delta Q^+ = \sum_{s>0} s W$. Usually, `qr`
   and `ql` should be ignored. They come into play only when
-  implementing Lax or other specific types of fluxes.
+  implementing Lax or other specific types of fluxes. Shape of
+  `waves` matrix is (mwave X meqn).
 
 To ensure an efficient implementation as possible, manually unroll
 small inner loops as much as possible. Templates from the
