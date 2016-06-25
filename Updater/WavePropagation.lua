@@ -12,6 +12,7 @@
 
 -- Gkyl libraries
 local Base = require "Updater.Base"
+local Lin = require "Lib.Linalg"
 
 -- system libraries
 local ffi = require "ffi"
@@ -29,6 +30,36 @@ typedef struct {
 } WavePrivateData_t ;
 ]]
 
+-- Template for function to compute jump 
+local calcDeltaTempl = xsys.template([[
+return function (ql, qr, delta)
+|for i = 1, MEQN do
+  delta[${i}] = qr[${i}] - ql[${i}]
+|end
+end
+]])
+
+-- Template for function to compute maximum CFL number
+local calcCflaTempl = xsys.template([[
+return function (cfla, dtdx, s)
+  local c = cfla
+|for i = 1, MWAVE do
+  c = math.max(c, dtdx*math.abs(s[${i}]))
+|end
+  return c
+end
+]])
+
+local calcFirstOrderGudTempl = xsys.template([[
+return function (dtdx, ql, qr, amdq, apdq)
+|for i = 1, MEQN do
+  qr[${i}] = qr[${i}] - dtdx*apdq[${i}]
+|end
+|for i = 1, MEQN do
+  ql[${i}] = ql[${i}] - dtdx*amdq[${i}]
+|end
+end
+]])
 
 -- Wave-propagation updater object
 WavePropagation = {}
@@ -53,6 +84,11 @@ function WavePropagation:new(tbl)
    for d = 1, self._privData._ndim do
       self._privData._updateDirs[d] = upDirs[d] -- update directions
    end
+
+   -- construct various functions from template representations
+   self._calcDelta = loadstring( calcDeltaTempl {MEQN = self._equation:numEquations()} )()
+   self._calcCfla = loadstring( calcCflaTempl {MWAVE = self._equation:numWaves()} )()
+   self._calcFirstOrderGud = loadstring( calcFirstOrderGudTempl {MEQN = self._equation:numEquations()} )()
    
    return self
 end
@@ -61,7 +97,6 @@ setmetatable(WavePropagation, { __call = function (self, o) return self.new(self
 
 -- advance method
 local function advance(self, tCurr, dt, inFld, outFld)
-   -- fetch grid and input/output fields
    local grid = self._onGrid
    local qIn = assert(inFld[1], "WavePropagation.advance: Must-specify an input field")
    local qOut = assert(outFld[1], "WavePropagation.advance: Must-specify an output field")
@@ -70,12 +105,50 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local meqn, mwave = equation:numEquations(), equation:numWaves()
    local localRange = qIn:localRange()
 
+   local qInIdxr, qOutIdxr = qIn:genIndexer(), qOut:genIndexer() -- indexer functions into fields
+
+   local cfl, cflm = self._privData._cfl, self._privData._cflm
+   local cfla = 0.0 -- actual CFL number used
+   
+   local delta = Lin.Vec(meqn)
+   local waves, s = Lin.Mat(mwave, meqn), Lin.Vec(mwave)
+   local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
+
+   -- update specified directions
    for d = 1, self._privData._nUpdateDirs do
       local dir = self._privData._updateDirs[d]
+      local dtdx = dt/grid:dx(dir)
       
-   end
+      -- lower and upper bounds to loop over in direction 'dir'
+      local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
+      local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
 
-   return status, 0.001
+      -- outer loop is over directions orthogonal to 'dir' and inner
+      -- loop is over 1D slice in `dir`. 
+      for idx in perpRange:colMajorIter() do
+	 local idxp, idxm = idx:copy(), idx:copy()
+
+   	 for i = dirLoIdx, dirUpIdx do	    
+	    idxm[dir], idxp[dir]  = i-1, i -- left/right of edge 'i'
+	    
+	    local qInL, qInR = qIn:get(qInIdxr(idxm)), qIn:get(qInIdxr(idxp))
+	    self._calcDelta(qInL, qInR, delta) -- jump across interface
+
+	    equation:rp(delta, qInL, qInR, waves, s) -- compute waves and speeds from jump
+	    equation:qFluctuations(qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
+
+	    local qOutL, qOutR = qOut:get(qOutIdxr(idxm)), qOut:get(qOutIdxr(idxp))
+	    -- first-order Gudonov updates
+	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq)
+
+	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
+	 end
+	 
+	 -- return if time-step was too large
+	 if cfla > cflm then return false, dt*cfl/cfla end
+      end
+   end
+   return true, dt*cfl/cfla
 end
 
 WavePropagation.__index = {
