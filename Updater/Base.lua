@@ -23,9 +23,9 @@ function _M.advanceFuncWrap(advanceFunc)
    return function(self, tCurr, dt, inFld, outFld)
       self.totalTime = self.totalTime and self.totalTime or 0.0
 
-      --local tmStart = Time.clock()
+      local tmStart = Time.clock()
       local status, dtSuggested = advanceFunc(self, tCurr, dt, inFld, outFld)
-      --self.totalTime = self.totalTime + (Time.clock()-tmStart)
+      self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
       return status, dtSuggested
    end
