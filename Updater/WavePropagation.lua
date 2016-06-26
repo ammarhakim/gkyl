@@ -85,6 +85,9 @@ function WavePropagation:new(tbl)
       self._privData._updateDirs[d] = upDirs[d] -- update directions
    end
 
+   -- allocate space for storing 1D slice data
+   
+
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = self._equation:numEquations()} )()
    self._calcCfla = loadstring( calcCflaTempl {MWAVE = self._equation:numWaves()} )()
