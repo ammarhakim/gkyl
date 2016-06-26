@@ -30,7 +30,7 @@ local function isNan(x) return x ~= x end
 -- to split, `ql`/`qr` the left/right states. On output, `waves` and
 -- `s` contain the waves and speeds. waves is a mwave X meqn
 -- matrix. See LeVeque's book for explanations. Note: This code is
--- essentially based on codes used in my thesis i.e. CLAWPACK and
+-- essentially based on code used in my thesis i.e. CLAWPACK and
 -- Miniwarpx. (A. Hakim)
 local function rp(self, delta, ql, qr, waves, s)
    local g1 = self._gasGamma-1

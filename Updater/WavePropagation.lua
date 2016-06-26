@@ -68,7 +68,7 @@ WavePropagation = {}
 function WavePropagation:new(tbl)
    local self = setmetatable({}, WavePropagation)
 
-   -- read input from input table
+   -- read data from input table
    self._onGrid = assert(tbl.onGrid, "Updater.WavePropagation: Must provide grid object using 'onGrid'")
    self._equation = assert(tbl.equation, "Updater.WavePropagation: Must provide equation object using 'equation'")
    local limiterStr = tbl.limiter and tbl.limiter or "no-limiter"
@@ -89,7 +89,7 @@ function WavePropagation:new(tbl)
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = self._equation:numEquations()} )()
    self._calcCfla = loadstring( calcCflaTempl {MWAVE = self._equation:numWaves()} )()
    self._calcFirstOrderGud = loadstring( calcFirstOrderGudTempl {MEQN = self._equation:numEquations()} )()
-   
+
    return self
 end
 -- make object callable, and redirect call to the :new method
@@ -143,7 +143,6 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
 	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
 	 end
-	 
 	 -- return if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end
       end
