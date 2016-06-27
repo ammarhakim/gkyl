@@ -73,8 +73,43 @@ return function (dtdx, ql, qr, amdq, apdq)
 end
 ]])
 
+local waveDotProdTempl = xsys.template([[
+return function (meqn, waves, waves1, mw)
+  local mw1 = mw-1
+  return
+|for i = 0, MEQN-2 do
+  waves[meqn*mw1+${i}]*waves[meqn*mw1+${i}]+
+|end
+  waves1[meqn*mw1+${MEQN-1}]*waves[meqn*mw1+${MEQN-1}]
+end
+]])
+
+function test_3()
+   local mwave, meqn = 3, 5
+   local waveDotProd = loadstring( waveDotProdTempl {MEQN=meqn} )()
+   local waves = ffi.new("double[?]", mwave*meqn)
+
+   for i = 1, mwave*meqn do waves[i-1] = i end
+
+   local dotr = {1^2+2^2+3^2+4^2+5^2,
+		 6^2+7^2+8^2+9^2+10^2,
+		 11^2+12^2+13^2+14^2+15^2}
+   for mw = 1, 3 do
+      assert_equal(dotr[mw], waveDotProd(meqn, waves, waves, mw), string.format("Testing dot product of wave %d", mw))
+   end
+end
+
+local rescaleWaveTempl = xsys.template([[
+return function (scale, wave)
+|for i = 0, MEQN-1 do
+  wave[${i}] = scale*wave[${i}]
+|end
+end
+]])
+
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
@@ -82,3 +117,5 @@ if stats.fail > 0 then
 else
    print(string.format("PASSED ALL %d tests!", stats.pass))
 end
+
+print (rescaleWaveTempl {MEQN = 5})

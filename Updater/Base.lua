@@ -16,7 +16,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 _M = {}
 
--- This function wraps an updater's advance() function and addes a
+-- This function wraps an updater's advance() function and adds a
 -- "totalTime" field to the updater, and also synchronizes the status
 -- and time-step suggestion across processors.
 function _M.advanceFuncWrap(advanceFunc)

@@ -28,6 +28,13 @@ function test_1()
    assert_equal(10, grid:numCells(1), "Checking numCells")
    assert_equal(20, grid:numCells(2), "Checking numCells")
 
+   local localRange = grid:localRange()
+   assert_equal(1, localRange:lower(1), "Checking region bounds")
+   assert_equal(10, localRange:upper(1), "Checking region bounds")
+
+   assert_equal(1, localRange:lower(2), "Checking region bounds")
+   assert_equal(20, localRange:upper(2), "Checking region bounds")
+
    assert_equal(0.0, grid:lower(1), "Checking lower")
    assert_equal(0.0, grid:lower(2), "Checking lower")
 
@@ -74,6 +81,16 @@ function test_3()
    assert_equal(10, grid:numCells(1), "Checking numCells")
    assert_equal(20, grid:numCells(2), "Checking numCells")
    assert_equal(40, grid:numCells(3), "Checking numCells")
+
+   local localRange = grid:localRange()
+   assert_equal(1, localRange:lower(1), "Checking region bounds")
+   assert_equal(10, localRange:upper(1), "Checking region bounds")
+
+   assert_equal(1, localRange:lower(2), "Checking region bounds")
+   assert_equal(20, localRange:upper(2), "Checking region bounds")
+
+   assert_equal(1, localRange:lower(3), "Checking region bounds")
+   assert_equal(40, localRange:upper(3), "Checking region bounds")
 
    assert_equal(0.0, grid:lower(1), "Checking lower")
    assert_equal(1.0, grid:lower(2), "Checking lower")

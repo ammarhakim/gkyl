@@ -114,11 +114,61 @@ function test_4()
    end
 end
 
+function test_5()
+   local _data = ffi.new("double[?]", 3*4)
+   local m = Lin.Mat(3, 4, _data)
+
+   -- set values
+   for i = 1, m:numRows() do
+      for j = 1, m:numCols() do   
+	 m[i][j] = j+(i-1)*m:numCols()
+      end
+   end
+
+   -- check them
+   for i = 1, m:numRows() do
+      for j = 1, m:numCols() do
+	 assert_equal(j+(i-1)*m:numCols(), m[i][j], "Checking matrix values")
+      end
+   end
+
+   -- check raw data
+   local count, data = 1, m:data()
+   for i = 1, m:numCols()*m:numRows() do
+      assert_equal(count, data[i-1], "Checking linear data")
+      count = count+1
+   end   
+end
+
+function test_6()
+   local nelem, stride = 10, 4
+   local data = ffi.new("double[?]", nelem*stride)
+   local chunck = ffi.new("double[4]", {1, 2, 3, 4})
+
+   local count = 0
+   for i = 1, nelem do
+      ffi.copy(data+count*stride, chunck, ffi.sizeof("double")*stride)
+      count = count+1
+   end
+
+   -- check this
+   count = 0
+   for i = 1, nelem do
+      assert_equal(1, data[count*stride+0], "Checking strided copy")
+      assert_equal(2, data[count*stride+1], "Checking strided copy")
+      assert_equal(3, data[count*stride+2], "Checking strided copy")
+      assert_equal(4, data[count*stride+3], "Checking strided copy")
+      count = count + 1
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

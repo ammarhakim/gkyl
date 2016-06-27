@@ -74,14 +74,20 @@ end
 
 -- Allocate matrix with type "ct" and size "n,m"
 local function mat_alloc(ct, n, m)
-  local v = new(ct, n*m)
-  v._n, v._m, v._p = n, m, v._a
-  return v
+   local v = new(ct, n*m)
+   v._n, v._m, v._p = n, m, v._a
+   return v
+end
+
+local function mat_alloc_from_data(ct, n, m, data)
+   local v = new(ct, 1) -- allocate a single element (this is never used)
+   v._n, v._m, v._p = n, m, data
+   return v
 end
 
 -- copy matrix "x" into matrix "y"
 local function mat_memcpy(y, x)
-  copy(y._p, x._p, sizeof(y:elemType())*y._n*y._m)
+   copy(y._p, x._p, sizeof(y:elemType())*y._n*y._m)
 end
 
 -- Accessor object for values in a column
@@ -120,8 +126,8 @@ local function new_mat_ct(elct)
       end,      
    }
    local mat_mt = {
-      __new = function(ct, n, m)
-	 return mat_alloc(ct, n, m)
+      __new = function(ct, n, m, data)
+	 return data and mat_alloc_from_data(ct, n, m, data) or mat_alloc(ct, n, m)
       end,
       __index = function (self, k)
 	 if type(k) == "number" then

@@ -52,14 +52,12 @@ local function rp(self, delta, ql, qr, waves, s)
    local a = math.sqrt(aa2)
    local g1a2, euv = g1/aa2, enth-q2
 
-   local de1, de2, de3, de4, de5 = delta[1], delta[2], delta[3], delta[4], delta[5]
-
    -- compute projections of jump
-   local a4 = g1a2*(euv*de1 + u*de2 + v*de3 + w*de4 - de5)
-   local a2 = de3 - v*de1
-   local a3 = de4 - w*de1
-   local a5 = 0.5*(de2 + (a-u)*de1 - a*a4)/a;
-   local a1 = de1 - a4 - a5
+   local a4 = g1a2*(euv*delta[1] + u*delta[2] + v*delta[3] + w*delta[4] - delta[5])
+   local a2 = delta[3] - v*delta[1]
+   local a3 = delta[4] - w*delta[1]
+   local a5 = 0.5*(delta[2] + (a-u)*delta[1] - a*a4)/a;
+   local a1 = delta[1] - a4 - a5
 
    -- wave 1: eigenvalue is u-c
    local wv = waves[1]

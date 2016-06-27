@@ -49,6 +49,9 @@ with 1, Y-direction with 2, etc.__
 `grid:numCells(dir)`
 : The number of cells in direction `dir`.
 
+`field:localRange()`, `field:globalRange()`
+: Local/global index range spanned by grid.
+
 `grid:dx(dir)`
 : Cell spacing in direction `dir`.
 
