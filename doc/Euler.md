@@ -34,7 +34,8 @@ The following methoda are provided:
   they are, false otherwise.
 
 `euler:rp(delta, ql, qr, waves, s)`
-: Computes the `waves` and speed `s` given the jump `delta`.
+: Computes the `waves` and speed `s` given the jump `delta`. Shape of
+  `waves` matrix is (mwave X meqn).
 
 `euler:qFluctuations(ql, qr, waves, s, amdq, apdq)`
 : Computes the q-fluctuations, given waves and wave speeds. The

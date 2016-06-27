@@ -13,16 +13,18 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
+local Range = require "Lib.Range"
 
 -- C interfaces
 ffi.cdef [[
 
 /* Uniform cartesian grid */
 typedef struct {
-    uint8_t _ndim; 
-    double _lower[6], _upper[6]; 
-    int32_t _numCells[6];
-    int32_t _currIdx[6];
+    uint8_t _ndim; /* Number of dimensions */
+    double _lower[6], _upper[6]; /* Lower and upper coordinates */
+    int32_t _numCells[6]; /* Number of cells */
+    Range_t _localRange, _globalRange; /* Local/global range */
+    int32_t _currIdx[6]; /* Current index */
 } RectCartGrid_t;  
 
 ]]
@@ -46,6 +48,14 @@ local uni_cart_mt = {
 	 g._upper[d-1] = up[d]
 	 g._numCells[d-1] = cells[d]
       end
+
+      local l, u = {}, {}
+      for d = 1, #cells do
+	 l[d], u[d] = 1, cells[d]
+      end
+      g._globalRange = Range.Range(l, u)
+      g._localRange = Range.Range(l, u) -- ADJUST WHEN DOING PARALLEL      
+
       return g
    end,
    __index =  {
@@ -61,6 +71,12 @@ local uni_cart_mt = {
       numCells = function (self, dir)
 	 return self._numCells[dir-1]
       end,
+      localRange = function (self)
+	 return self._localRange
+      end,
+      globalRange = function (self)
+	 return self._globalRange
+      end,      
       setIndex = function(self, idx)
 	 for d = 1, self._ndim do
 	    self._currIdx[d-1] = idx[d]
@@ -175,7 +191,13 @@ NonUniformRectCart.__index = {
    end,
    nodeCoords = function (self, dir)
       return self._nodeCoords[dir]
-   end,      
+   end,
+   localRange = function (self)
+      return self._compGrid._localRange
+   end,
+   globalRange = function (self)
+      return self._compGrid._globalRange
+   end,   
    setIndex = function(self, idx)
       for d = 1, self:ndim() do
 	 self._compGrid._currIdx[d-1] = idx[d]

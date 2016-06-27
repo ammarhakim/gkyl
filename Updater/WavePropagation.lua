@@ -50,6 +50,7 @@ return function (cfla, dtdx, s)
 end
 ]])
 
+-- Template for function to compute first-order Gudonov update
 local calcFirstOrderGudTempl = xsys.template([[
 return function (dtdx, ql, qr, amdq, apdq)
 |for i = 1, MEQN do
@@ -61,6 +62,60 @@ return function (dtdx, ql, qr, amdq, apdq)
 end
 ]])
 
+-- Template for function to compute dot product of waves
+local waveDotProdTempl = xsys.template([[
+return function (meqn, waves, waves1, mw)
+  local mw1 = mw-1
+  return
+|for i = 0, MEQN-2 do
+  waves[meqn*mw1+${i}]*waves[meqn*mw1+${i}]+
+|end
+  waves1[meqn*mw1+${MEQN-1}]*waves[meqn*mw1+${MEQN-1}]
+end
+]])
+
+-- Template for function to rescale waves
+local rescaleWaveTempl = xsys.template([[
+return function (scale, wave)
+|for i = 0, MEQN-1 do
+  wave[${i}] = scale*wave[${i}]
+|end
+end
+]])
+
+-- helper function to copy data from waves matrix to 1D slice data
+local function copyWaveData(wloc, wavesSlice, waves, sz)
+   copy(wavesSlice+wloc, waves:data(), sizeof("double")*sz)
+end
+-- helper function to copy data from speed  to 1D slice data
+local function copySpeedData(sloc, speedsSlice, s, sz)
+   copy(speedsSlice+sloc, s:data(), sizeof("double")*sz)
+end
+
+-- limiter functions
+local limiterFunctions = {}
+limiterFunctions["no-limiter"] = function (r)
+   return 1
+end
+limiterFunctions["min-mod"] = function (r)
+   return math.max(0, math.min(1, r))
+end
+limiterFunctions["superbee"] = function (r)
+   return math.max(0.0, math.min(1, 2*r), math.min(2.0, r))
+end
+limiterFunctions["van-leer"] = function (r)
+   return (r+math.abs(r))/(1+math.abs(r))
+end
+limiterFunctions["monotonized-centered"] = function (r)
+   return (1.0+r)/2
+end
+limiterFunctions["beam-warming"] = function (r)
+   return r
+end
+limiterFunctions["beam-warming"] = function (r)
+   return 0
+end
+
 -- Wave-propagation updater object
 WavePropagation = {}
 
@@ -71,13 +126,13 @@ function WavePropagation:new(tbl)
    -- read data from input table
    self._onGrid = assert(tbl.onGrid, "Updater.WavePropagation: Must provide grid object using 'onGrid'")
    self._equation = assert(tbl.equation, "Updater.WavePropagation: Must provide equation object using 'equation'")
-   local limiterStr = tbl.limiter and tbl.limiter or "no-limiter"
+   self._limiterFunc = assert(limiterFunctions[tbl.limiter], "Updater.WavePropagation: Must specify limiter to use")
 
    -- set private data
    self._privData = new(typeof("WavePrivateData_t"))
    self._privData._ndim = self._onGrid:ndim()
    self._privData._cfl = assert(tbl.cfl, "Updater.WavePropagation: Must specify CFL number using 'cfl'")
-   self._privData._cflm = 1.1*self._privData._cfl
+   self._privData._cflm = tbl.cflm and tbl.cflm or 1.1*self._privData._cfl
 
    self._privData._nUpdateDirs = tbl.updateDirections and #tbl.updateDirections or self._privData._ndim
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
@@ -85,18 +140,47 @@ function WavePropagation:new(tbl)
       self._privData._updateDirs[d] = upDirs[d] -- update directions
    end
 
-   -- allocate space for storing 1D slice data
-   
+   -- allocate space for storing 1D slice data   
+   local shapeMax = 0
+   local localRange = tbl.onGrid:localRange()
+   for d = 1, self._privData._ndim do
+      shapeMax = math.max(shapeMax, localRange:shape(d))
+   end
+   local sz = (shapeMax+4)*tbl.equation:numEquations()*tbl.equation:numWaves() -- 2 ghost cells on each side
+   self.wavesSlice = new("double[?]", sz)
+   self.speedsSlice = new("double[?]", (shapeMax+4)*tbl.equation:numWaves())
 
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = self._equation:numEquations()} )()
    self._calcCfla = loadstring( calcCflaTempl {MWAVE = self._equation:numWaves()} )()
    self._calcFirstOrderGud = loadstring( calcFirstOrderGudTempl {MEQN = self._equation:numEquations()} )()
+   self._waveDotProd = loadstring( waveDotProdTempl {MEQN = self._equation:numEquations()} )()
+   self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = self._equation:numEquations()} )()
 
    return self
 end
 -- make object callable, and redirect call to the :new method
 setmetatable(WavePropagation, { __call = function (self, o) return self.new(self, o) end })
+
+-- Limit waves: this code closely follows the example of CLAWPACK and
+-- my (AHH) thesis code Miniwarpx.
+local function limitWaves(self, limitRange, wavesSlice, speedsSlice)
+   local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
+   local wavesStride, speedsStride = meqn*mwave, mwave
+   for mw = 1, mwave do
+      local dotr = self._waveDotProd(meqn, wavesSlice, wavesSlice+wavesStride, mw)
+      for i = 1, limitRange do
+	 local dotl = dotr
+	 local wnorm2 = self._waveDotProd(meqn, wavesSlice+i*wavesStride, wavesSlice+i*wavesStride, mw)
+	 dotr = self._waveDotProd(meqn, wavesSlice+i*wavesStride, wavesSlice+(i+1)*wavesStride, mw)
+	 if wnorm2 > 0 then
+	    local r = speedsSlice[speedsStride*i+mw] > 0 and dotl/wnorm2 or dotr/wnorm2
+	    local wlimitr = self._limiterFunc(r)
+	    self._rescaleWave(wlimitr, wavesSlice+i*wavesStride)
+	 end
+      end
+   end
+end
 
 -- advance method
 local function advance(self, tCurr, dt, inFld, outFld)
@@ -116,23 +200,27 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local delta = Lin.Vec(meqn)
    local waves, s = Lin.Mat(mwave, meqn), Lin.Vec(mwave)
    local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
+   local wavesStride, speedsStride = mwave*meqn, mwave
 
    -- update specified directions
    for d = 1, self._privData._nUpdateDirs do
       local dir = self._privData._updateDirs[d]
       local dtdx = dt/grid:dx(dir)
       
-      -- lower and upper bounds to loop over in direction 'dir'
+      -- lower/upper bounds in direction 'dir': these are edge indices
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
       local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
+      -- for wave limiters
+      local limitRange = localRange:shape(dir)+1 -- there is one more edge than cells
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`. 
       for idx in perpRange:colMajorIter() do
 	 local idxp, idxm = idx:copy(), idx:copy()
 
-   	 for i = dirLoIdx, dirUpIdx do	    
-	    idxm[dir], idxp[dir]  = i-1, i -- left/right of edge 'i'
+	 local count = 0 --location into the 1D slice storage
+   	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 	    
 	    local qInL, qInR = qIn:get(qInIdxr(idxm)), qIn:get(qInIdxr(idxp))
 	    self._calcDelta(qInL, qInR, delta) -- jump across interface
@@ -141,18 +229,26 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    equation:qFluctuations(qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 
 	    local qOutL, qOutR = qOut:get(qOutIdxr(idxm)), qOut:get(qOutIdxr(idxp))
-	    -- first-order Gudonov updates
-	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq)
+	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
 
 	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
+	    -- copy waves data for use in limiters
+	    copyWaveData(count*wavesStride, self.wavesSlice, waves, meqn*mwave)
+	    copySpeedData(count*speedsStride, self.speedsSlice, s, mwave)
+	    count = count+1
 	 end
 	 -- return if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end
+
+	 -- limit waves before computing second-order updates
+	 limitWaves(self, limitRange, self.wavesSlice, self.speedsSlice)
+	 
       end
    end
    return true, dt*cfl/cfla
 end
 
+-- Methods for wave-propagation scheme methods
 WavePropagation.__index = {
    advance = Base.advanceFuncWrap(advance)
 }
