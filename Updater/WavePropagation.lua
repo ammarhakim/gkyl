@@ -83,14 +83,22 @@ return function (scale, wave)
 end
 ]])
 
--- helper function to copy data from waves matrix to 1D slice data
-local function copyWaveData(wloc, wavesSlice, waves, sz)
-   copy(wavesSlice+wloc, waves:data(), sizeof("double")*sz)
+local secondOrderFluxTempl = xsys.template([[
+return function (dtdx, s, wave, fs)
+  local sfact = 0.5*math.abs(s)*(1-math.abs(s)*dtdx)
+|for i = 0, MEQN-1 do
+  fs[${i}] = fs[${i}] + sfact*wave[${i}]
+|end
 end
--- helper function to copy data from speed  to 1D slice data
-local function copySpeedData(sloc, speedsSlice, s, sz)
-   copy(speedsSlice+sloc, s:data(), sizeof("double")*sz)
+]])
+
+local secondOrderUpdateTempl = xsys.template([[
+return function (dtdx, fs, fs1, q)
+| for i = 1, MEQN do
+  q[${i}] = q[${i}] - dtdx*(fs1[${i-1}]-fs[${i-1}])
+| end
 end
+]])
 
 -- limiter functions
 local limiterFunctions = {}
@@ -114,6 +122,24 @@ limiterFunctions["beam-warming"] = function (r)
 end
 limiterFunctions["beam-warming"] = function (r)
    return 0
+end
+
+-- Helper object for indexing 1D slice data. This is zero-indexed as
+-- the underlying data is just a raw-C array
+local slice_mt = {
+   __new = function (self, nsize, stride)
+      local v = new(self, nsize*stride)
+      v._sz, v._stride = nsize*stride, stride
+      return v
+   end,
+   __index = function (self, k)
+      return self._data+k*self._stride
+   end,
+}
+local SliceData = metatype(typeof("struct {int32_t _sz, _stride; double _data[?]; }"), slice_mt)
+-- helper function to zero out contents of SliceData
+function clearSliceData(sd)
+   fill(sd._data, sd._sz*sizeof("double"))
 end
 
 -- Wave-propagation updater object
@@ -140,22 +166,27 @@ function WavePropagation:new(tbl)
       self._privData._updateDirs[d] = upDirs[d] -- update directions
    end
 
+   local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
+
    -- allocate space for storing 1D slice data   
    local shapeMax = 0
    local localRange = tbl.onGrid:localRange()
    for d = 1, self._privData._ndim do
       shapeMax = math.max(shapeMax, localRange:shape(d))
    end
-   local sz = (shapeMax+4)*tbl.equation:numEquations()*tbl.equation:numWaves() -- 2 ghost cells on each side
-   self.wavesSlice = new("double[?]", sz)
-   self.speedsSlice = new("double[?]", (shapeMax+4)*tbl.equation:numWaves())
+   local sz = (shapeMax+4) -- 2 ghost cells on each side
+   self.wavesSlice = SliceData(sz, tbl.equation:numWaves()*tbl.equation:numEquations())
+   self.speedsSlice = SliceData(sz, tbl.equation:numWaves())
+   self.fsSlice = SliceData(sz, tbl.equation:numEquations())
 
    -- construct various functions from template representations
-   self._calcDelta = loadstring( calcDeltaTempl {MEQN = self._equation:numEquations()} )()
-   self._calcCfla = loadstring( calcCflaTempl {MWAVE = self._equation:numWaves()} )()
-   self._calcFirstOrderGud = loadstring( calcFirstOrderGudTempl {MEQN = self._equation:numEquations()} )()
-   self._waveDotProd = loadstring( waveDotProdTempl {MEQN = self._equation:numEquations()} )()
-   self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = self._equation:numEquations()} )()
+   self._calcDelta = loadstring( calcDeltaTempl {MEQN = meqn} )()
+   self._calcCfla = loadstring( calcCflaTempl {MWAVE = mwave} )()
+   self._calcFirstOrderGud = loadstring( calcFirstOrderGudTempl {MEQN = meqn} )()
+   self._waveDotProd = loadstring( waveDotProdTempl {MEQN = meqn} )()
+   self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = meqn} )()
+   self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
+   self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
 
    return self
 end
@@ -166,17 +197,16 @@ setmetatable(WavePropagation, { __call = function (self, o) return self.new(self
 -- my (AHH) thesis code Miniwarpx.
 local function limitWaves(self, limitRange, wavesSlice, speedsSlice)
    local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
-   local wavesStride, speedsStride = meqn*mwave, mwave
    for mw = 1, mwave do
-      local dotr = self._waveDotProd(meqn, wavesSlice, wavesSlice+wavesStride, mw)
+      local dotr = self._waveDotProd(meqn, wavesSlice[0], wavesSlice[1], mw)
       for i = 1, limitRange do
 	 local dotl = dotr
-	 local wnorm2 = self._waveDotProd(meqn, wavesSlice+i*wavesStride, wavesSlice+i*wavesStride, mw)
-	 dotr = self._waveDotProd(meqn, wavesSlice+i*wavesStride, wavesSlice+(i+1)*wavesStride, mw)
+	 local wnorm2 = self._waveDotProd(meqn, wavesSlice[i], wavesSlice[i], mw)
+	 dotr = self._waveDotProd(meqn, wavesSlice[i], wavesSlice[i+1], mw)
 	 if wnorm2 > 0 then
-	    local r = speedsSlice[speedsStride*i+mw] > 0 and dotl/wnorm2 or dotr/wnorm2
+	    local r = speedsSlice[i][mw-1] > 0 and dotl/wnorm2 or dotr/wnorm2
 	    local wlimitr = self._limiterFunc(r)
-	    self._rescaleWave(wlimitr, wavesSlice+i*wavesStride)
+	    self._rescaleWave(wlimitr, wavesSlice[i])
 	 end
       end
    end
@@ -232,9 +262,11 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
 
 	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
+
 	    -- copy waves data for use in limiters
-	    copyWaveData(count*wavesStride, self.wavesSlice, waves, meqn*mwave)
-	    copySpeedData(count*speedsStride, self.speedsSlice, s, mwave)
+	    copy(self.wavesSlice[count], waves:data(), sizeof("double")*meqn*mwave)
+	    copy(self.speedsSlice[count], s:data(), sizeof("double")*mwave)
+
 	    count = count+1
 	 end
 	 -- return if time-step was too large
@@ -242,7 +274,23 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
 	 -- limit waves before computing second-order updates
 	 limitWaves(self, limitRange, self.wavesSlice, self.speedsSlice)
-	 
+
+	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
+	 clearSliceData(self.fsSlice)
+	 -- compute second order correction fluxes
+	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+	    for mw = 0, mwave-1 do
+	       self._secondOrderFlux(dtdx, self.speedsSlice[i][mw], self.wavesSlice[i]+meqn*mw, self.fsSlice[i])
+	    end
+	 end
+
+	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)
+	 -- add them to solution
+	 for i = dirLoIdx, dirUpIdx do -- this loop is over cells
+	    idxm[dir] = i -- cell index
+	    local q1 = qOut:get(qOutIdxr(idxm))
+	    --self._secondOrderUpdate(dtdx, self.fsSlice[i], self.fsSlice[i+1], q1)
+	 end
       end
    end
    return true, dt*cfl/cfla

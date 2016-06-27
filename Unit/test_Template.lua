@@ -107,6 +107,23 @@ return function (scale, wave)
 end
 ]])
 
+local secondOrderTempl = xsys.template([[
+return function (dtdx, s, wave, fs)
+  local sfact = 0.5*math.abs(s)*(1-math.abs(s)*dtdx)
+|for i = 0, MEQN-1 do
+  fs[${i}] = fs[${i}] + sfact*wave[${i}]
+|end
+end
+]])
+
+local secondOrderUpdateTempl = xsys.template([[
+return function (dtdx, fs, fs1, q)
+| for i = 1, MEQN do
+  q[${i}] = q[${i}] - dtdx*(fs1[${i-1}]-fs[${i-1}])
+| end
+end
+]])
+
 test_1()
 test_2()
 test_3()
@@ -118,4 +135,4 @@ else
    print(string.format("PASSED ALL %d tests!", stats.pass))
 end
 
-print (rescaleWaveTempl {MEQN = 5})
+print (secondOrderUpdateTempl { MEQN = 5} )
