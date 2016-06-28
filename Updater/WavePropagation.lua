@@ -125,8 +125,9 @@ limiterFunctions["zero"] = function (r)
    return 0
 end
 
--- Helper object for indexing 1D slice data. This is zero-indexed as
--- the underlying data is just a raw-C array
+-- Helper object for indexing 1D slice data. The slice spans from
+-- [lower, upper] and has `stride` pieces of data stored at each
+-- location.
 local slice_mt = {
    __new = function (self, lower, upper, stride)
       local n = upper-lower+1
@@ -271,8 +272,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 limitWaves(self, localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice)
 
 	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
-	 clearSliceData(fsSlice)
 	 -- compute second order correction fluxes
+	 clearSliceData(fsSlice)
 	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    for mw = 0, mwave-1 do
 	       self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
