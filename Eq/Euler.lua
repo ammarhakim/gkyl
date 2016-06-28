@@ -89,7 +89,7 @@ end
 
 -- The function to compute fluctuations is implemented as a template
 -- which unrolls the inner loop
-local fluctTemp = xsys.template([[
+local qFluctuationsTempl = xsys.template([[
 return function (waves, s, amdq, apdq)
    local w1, w2, w3 = waves[1], waves[2], waves[3]
    local s1m, s2m, s3m = math.min(0, s[1]), math.min(0, s[2]), math.min(0, s[3])
@@ -103,7 +103,7 @@ return function (waves, s, amdq, apdq)
 end
 ]])
 -- function to compute fluctuations using q-wave method
-local qFluctuations = loadstring( fluctTemp {} )()
+local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
 local euler_mt = {
    __new = function (self, tbl)
