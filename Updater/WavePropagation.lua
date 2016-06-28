@@ -297,9 +297,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 end
 
 -- Methods for wave-propagation scheme methods
-WavePropagation.__index = {
-   advance = Base.advanceFuncWrap(advance)
-}
+WavePropagation.__index = { advance = Base.advanceFuncWrap(advance) }
 
 return {
    WavePropagation = WavePropagation
