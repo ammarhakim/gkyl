@@ -100,6 +100,14 @@ return function (dtdx, fs, fs1, q)
 end
 ]])
 
+local rotateWavesToGlobalTempl = xsys.template([[
+return function (dir, eqn, wavesLocal, waves)
+|for i = 1, MWAVE do
+  eqn:rotateToGlobalAligned(dir, wavesLocal[${i}], waves[${i}])
+|end
+end
+]])
+
 -- limiter functions
 local limiterFunctions = {}
 limiterFunctions["no-limiter"] = function (r)
@@ -165,7 +173,7 @@ function WavePropagation:new(tbl)
 
    self._privData._nUpdateDirs = tbl.updateDirections and #tbl.updateDirections or self._privData._ndim
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
-   for d = 1, self._privData._ndim do
+   for d = 1, #upDirs do
       self._privData._updateDirs[d] = upDirs[d] -- update directions
    end
 
@@ -183,6 +191,7 @@ function WavePropagation:new(tbl)
 
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = meqn} )()
+   self._rotateWavesToGlobal = loadstring( rotateWavesToGlobalTempl {MWAVE = mwave} ){}
    self._calcCfla = loadstring( calcCflaTempl {MWAVE = mwave} )()
    self._calcFirstOrderGud = loadstring( calcFirstOrderGudTempl {MEQN = meqn} )()
    self._waveDotProd = loadstring( waveDotProdTempl {MEQN = meqn} )()
@@ -230,7 +239,9 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local cfla = 0.0 -- actual CFL number used
    
    local delta = Lin.Vec(meqn)
-   local waves, s = Lin.Mat(mwave, meqn), Lin.Vec(mwave)
+   local localQl, localQr = Lin.Vec(5), Lin.Vec(5)
+   local waves, wavesLocal = Lin.Mat(mwave, meqn), Lin.Mat(mwave, meqn)
+   local s = Lin.Vec(mwave)
    local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
 
    -- update specified directions
@@ -254,9 +265,9 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    
 	    local qInL, qInR = qIn:get(qInIdxr(idxm)), qIn:get(qInIdxr(idxp))
 	    self._calcDelta(qInL, qInR, delta) -- jump across interface
-	    equation:rp(delta, qInL, qInR, waves, s) -- compute waves and speeds from jump
-	    equation:qFluctuations(qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
-
+	    equation:rp(delta, qInL, qInR, wavesLocal, s) -- compute waves (in local frame) and speeds
+	    equation:qFluctuations(qInL, qInR, wavesLocal, s, amdq, apdq) -- compute fluctuations
+	    
 	    local qOutL, qOutR = qOut:get(qOutIdxr(idxm)), qOut:get(qOutIdxr(idxp))
 	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
 	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
@@ -265,6 +276,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
 	    copy(speedsSlice[i], s:data(), sizeof("double")*mwave)
 	 end
+	 
 	 -- return if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end
 

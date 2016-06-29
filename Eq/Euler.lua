@@ -26,6 +26,32 @@ typedef struct {
 -- helper to check if number if NaN
 local function isNan(x) return x ~= x end
 
+-- functions to rotate conserved variables to local aligned
+-- coordinates
+alignedRotToLocal = {}
+alignedRotToLocal[1] = function (qin, qout)
+   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], qin[2], qin[3], qin[4], qin[5]
+end
+alignedRotToLocal[2] = function (qin, qout)
+   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], qin[3], -qin[2], qin[4], qin[5]
+end
+alignedRotToLocal[3] = function(qin, qout)
+   error("Not implemented")
+end
+
+-- functions to rotate conserved variables to global aligned
+-- coordinates
+alignedRotToGlobal = {}
+alignedRotToGlobal[1] = function (qin, qout)
+   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], qin[2], qin[3], qin[4], qin[5]
+end
+alignedRotToGlobal[2] = function (qin, qout)
+   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], -qin[3], qin[2], qin[4], qin[5]
+end
+alignedRotToGlobal[3] = function (qin, qout)
+   error("Not implemented")
+end
+
 -- Riemann problem for Euler equations: `delta` is the vector we wish
 -- to split, `ql`/`qr` the left/right states. On output, `waves` and
 -- `s` contain the waves and speeds. waves is a mwave X meqn
@@ -135,6 +161,12 @@ local euler_mt = {
       rp = rp,
       qFluctuations = function (self, ql, qr, waves, s, amdq, apdq)
 	 return qFluctuations(waves, s, amdq, apdq)
+      end,
+      rotateToLocalAligned = function (self, dir, qin, qout)
+	 alignedRotToLocal[dir](qin, qout)
+      end,
+      rotateToGlobalAligned = function (self, dir, qin, qout)
+	 alignedRotToGlobal[dir](qin, qout)
       end,
    }
 }

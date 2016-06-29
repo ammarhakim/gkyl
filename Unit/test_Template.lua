@@ -116,11 +116,13 @@ return function (dtdx, s, wave, fs)
 end
 ]])
 
-local secondOrderUpdateTempl = xsys.template([[
-return function (dtdx, fs, fs1, q)
-| for i = 1, MEQN do
-  q[${i}] = q[${i}] - dtdx*(fs1[${i-1}]-fs[${i-1}])
-| end
+local rotateWavesToGlobalTempl = xsys.template([[
+return function (dir, equation, wavesLocal, waves)
+|for i = 1, MWAVE do
+  local wIn, wOut = wavesLocal[${i}], waves[${i}]
+  equation:rotateToGlobalAligned(dir, wIn, wOut)
+
+|end
 end
 ]])
 
@@ -135,4 +137,4 @@ else
    print(string.format("PASSED ALL %d tests!", stats.pass))
 end
 
-print (secondOrderUpdateTempl { MEQN = 5} )
+print(rotateWavesToGlobalTempl {MWAVE = 3})
