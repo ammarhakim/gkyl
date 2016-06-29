@@ -28,6 +28,10 @@ LeVeque's book on Finite Volume methods.
   implementing Lax or other specific types of fluxes. Shape of
   `waves` matrix is (mwave X meqn).
 
-To ensure an efficient implementation as possible, manually unroll
-small inner loops as much as possible. Templates from the
-`xsys.template` library can be used to unfold loops automatically.
+`rotateToLocalAligned(dir, qIn, qOut)`,`rotateToLocalAligned(dir, qIn, qOut)`
+: Rotate input conserved variable vector to a local/global coordinate
+  system in direction `dir`.
+
+To ensure an efficient implementation, manually unroll small inner
+loops as much as possible. Templates from the `xsys.template` library
+can be used to unfold loops automatically.

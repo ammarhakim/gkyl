@@ -112,9 +112,38 @@ function test_3()
    end
 end
 
+function test_4()
+   local euler = HyperEquation.Euler { gasGamma = 1.4 }
+   local qIn, qOut, qOut2 = Lin.Vec(5), Lin.Vec(5), Lin.Vec(5)
+   qIn[1], qIn[2], qIn[3], qIn[4], qIn[5] = 1, 2, 3, 4, 5
+
+   euler:rotateToLocalAligned(1, qIn, qOut)
+   assert_equal(1, qOut[1], "Testing rotations")
+   assert_equal(2, qOut[2], "Testing rotations")
+   assert_equal(3, qOut[3], "Testing rotations")
+   assert_equal(4, qOut[4], "Testing rotations")
+   assert_equal(5, qOut[5], "Testing rotations")
+
+   euler:rotateToLocalAligned(2, qIn, qOut)
+   assert_equal(1, qOut[1], "Testing rotations")
+   assert_equal(3, qOut[2], "Testing rotations")
+   assert_equal(-2, qOut[3], "Testing rotations")
+   assert_equal(4, qOut[4], "Testing rotations")
+   assert_equal(5, qOut[5], "Testing rotations")
+
+   euler:rotateToGlobalAligned(2, qOut, qOut2)
+   assert_equal(qIn[1], qOut2[1], "Testing rotations")
+   assert_equal(qIn[2], qOut2[2], "Testing rotations")
+   assert_equal(qIn[3], qOut2[3], "Testing rotations")
+   assert_equal(qIn[4], qOut2[4], "Testing rotations")
+   assert_equal(qIn[5], qOut2[5], "Testing rotations")
+   
+end
+
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
