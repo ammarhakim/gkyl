@@ -20,7 +20,6 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-
 -- Define C types for storing private data for use in updater
 ffi.cdef [[
 typedef struct {
@@ -97,14 +96,6 @@ return function (dtdx, fs, fs1, q)
 | for i = 1, MEQN do
   q[${i}] = q[${i}] - dtdx*(fs1[${i-1}]-fs[${i-1}])
 | end
-end
-]])
-
-local rotateWavesToGlobalTempl = xsys.template([[
-return function (dir, eqn, wavesLocal, waves)
-|for i = 1, MWAVE do
-  eqn:rotateToGlobalAligned(dir, wavesLocal[${i}], waves[${i}])
-|end
 end
 ]])
 
@@ -191,7 +182,6 @@ function WavePropagation:new(tbl)
 
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = meqn} )()
-   self._rotateWavesToGlobal = loadstring( rotateWavesToGlobalTempl {MWAVE = mwave} ){}
    self._calcCfla = loadstring( calcCflaTempl {MWAVE = mwave} )()
    self._calcFirstOrderGud = loadstring( calcFirstOrderGudTempl {MEQN = meqn} )()
    self._waveDotProd = loadstring( waveDotProdTempl {MEQN = meqn} )()
@@ -265,12 +255,12 @@ local function advance(self, tCurr, dt, inFld, outFld)
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 	    
-	    qIn:fil(qInIdxr(idxm), qInL); qIn:fil(qInIdxr(idxp), qInR)
+	    qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
 	    self._calcDelta(qInL, qInR, delta) -- jump across interface
-	    equation:rp(delta, qInL, qInR, waves, s) -- compute waves and speeds
-	    equation:qFluctuations(qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
+	    equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
+	    equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 	    
-	    qOut:fil(qOutIdxr(idxm), qOutL); qOut:fil(qOutIdxr(idxp), qOutR)
+	    qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
 	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
 	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
 

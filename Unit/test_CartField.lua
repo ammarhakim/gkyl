@@ -214,7 +214,7 @@ function test_6()
    local fitr = field1:get(0)
    local localRange, indexer = field1:localRange(), field1:indexer()
    for i = localRange:lower(1), localRange:upper(1) do
-      field1:fil(indexer(i), fitr)
+      field1:fill(indexer(i), fitr)
       fitr[1] = i+1
       fitr[2] = i+2
       fitr[3] = i+3
