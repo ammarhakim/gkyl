@@ -118,6 +118,10 @@ local function new_field_ct(elct)
 	 local loc = (k-1)*self._m._numComponents -- (k-1) as k is 1-based index
 	 return fcompct(self._m._numComponents, self._data+loc)
       end,
+      fil = function (self, k, fc)
+	 local loc = (k-1)*self._m._numComponents -- (k-1) as k is 1-based index	 
+	 fc._cdata = self._data+loc
+      end,
    }
    -- field object meta-type
    local field_mt = {
