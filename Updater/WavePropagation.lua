@@ -1,9 +1,11 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Finite volume wave propagation updater. Algorithm based on LeVeque
--- book and Hakim et. al. papers. Original design from my (AHH) thesis
--- code, Miniwarpx and Warpx which significantly extend ideas present
--- in CLAWPACK. This implementation in LuaJIT is, perhaps, completely
+-- Finite volume wave propagation updater on rectangular, Cartesian
+-- grid. Non-uniform grids are supported and an embedded BC can also
+-- be included. Algorithm based on LeVeque book and Hakim
+-- et. al. papers. Original design from my (AHH) thesis code,
+-- Miniwarpx and Warpx which significantly extend ideas present in
+-- CLAWPACK. This implementation in LuaJIT is, perhaps, completely
 -- novel and unique.
 --
 --    _______     ___
