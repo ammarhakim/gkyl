@@ -23,34 +23,16 @@ typedef struct {
 
 ]]
 
+-- Resuffle indices for various direction Riemann problem. The first
+-- entry is just a buffer to allow 1-based indexing
+local dirShuffle = {
+   new("int32_t[4]", 0, 2, 3, 4),
+   new("int32_t[4]", 0, 3, 4, 2),
+   new("int32_t[4]", 0, 4, 2, 3)
+}
+
 -- helper to check if number if NaN
 local function isNan(x) return x ~= x end
-
--- functions to rotate conserved variables to local aligned
--- coordinates
-alignedRotToLocal = {}
-alignedRotToLocal[1] = function (qin, qout)
-   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], qin[2], qin[3], qin[4], qin[5]
-end
-alignedRotToLocal[2] = function (qin, qout)
-   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], qin[3], -qin[2], qin[4], qin[5]
-end
-alignedRotToLocal[3] = function(qin, qout)
-   error("Not implemented")
-end
-
--- functions to rotate conserved variables to global aligned
--- coordinates
-alignedRotToGlobal = {}
-alignedRotToGlobal[1] = function (qin, qout)
-   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], qin[2], qin[3], qin[4], qin[5]
-end
-alignedRotToGlobal[2] = function (qin, qout)
-   qout[1], qout[2], qout[3], qout[4], qout[5] = qin[1], -qin[3], qin[2], qin[4], qin[5]
-end
-alignedRotToGlobal[3] = function (qin, qout)
-   error("Not implemented")
-end
 
 -- Riemann problem for Euler equations: `delta` is the vector we wish
 -- to split, `ql`/`qr` the left/right states. On output, `waves` and
@@ -58,7 +40,8 @@ end
 -- matrix. See LeVeque's book for explanations. Note: This code is
 -- essentially based on code used in my thesis i.e. CLAWPACK and
 -- Miniwarpx. (A. Hakim)
-local function rp(self, delta, ql, qr, waves, s)
+local function rp(self, dir, delta, ql, qr, waves, s)
+   local d = dirShuffle[dir] -- shuffle indices for `dir`
    local g1 = self._gasGamma-1
    local rhol, rhor = ql[1], qr[1]
    local pl, pr = self:pressure(ql), self:pressure(qr)
@@ -66,9 +49,9 @@ local function rp(self, delta, ql, qr, waves, s)
    -- Roe averages: see Roe's original 1986 paper or LeVeque book
    local ravgl1, ravgr1 = 1/math.sqrt(rhol), 1/math.sqrt(rhor)
    local ravg2 = 1/(math.sqrt(rhol)+math.sqrt(rhor))
-   local u = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2
-   local v = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2
-   local w = (ql[4]*ravgl1 + qr[4]*ravgr1)*ravg2
+   local u = (ql[d[1]]*ravgl1 + qr[d[1]]*ravgr1)*ravg2
+   local v = (ql[d[2]]*ravgl1 + qr[d[2]]*ravgr1)*ravg2
+   local w = (ql[d[3]]*ravgl1 + qr[d[3]]*ravgr1)*ravg2
    local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2   
 
     -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
@@ -79,36 +62,36 @@ local function rp(self, delta, ql, qr, waves, s)
    local g1a2, euv = g1/aa2, enth-q2
 
    -- compute projections of jump
-   local a4 = g1a2*(euv*delta[1] + u*delta[2] + v*delta[3] + w*delta[4] - delta[5])
-   local a2 = delta[3] - v*delta[1]
-   local a3 = delta[4] - w*delta[1]
-   local a5 = 0.5*(delta[2] + (a-u)*delta[1] - a*a4)/a;
+   local a4 = g1a2*(euv*delta[1] + u*delta[d[1]] + v*delta[d[2]] + w*delta[d[3]] - delta[5])
+   local a2 = delta[d[2]] - v*delta[1]
+   local a3 = delta[d[3]] - w*delta[1]
+   local a5 = 0.5*(delta[d[1]] + (a-u)*delta[1] - a*a4)/a;
    local a1 = delta[1] - a4 - a5
 
    -- wave 1: eigenvalue is u-c
    local wv = waves[1]
    wv[1]  = a1
-   wv[2] = a1*(u-a)
-   wv[3] = a1*v
-   wv[4] = a1*w
+   wv[d[1]] = a1*(u-a)
+   wv[d[2]] = a1*v
+   wv[d[3]] = a1*w
    wv[5] = a1*(enth-u*a)
    s[1] = u-a
 
    -- wave 2: eigenvalue is u, u, u three waves are lumped into one
    wv = waves[2]
    wv[1]  = a4
-   wv[2] = a4*u
-   wv[3] = a4*v + a2
-   wv[4] = a4*w + a3
+   wv[d[1]] = a4*u
+   wv[d[2]] = a4*v + a2
+   wv[d[3]] = a4*w + a3
    wv[5] = a4*0.5*q2 + a2*v + a3*w
    s[2] = u
 
    -- wave 3: eigenvalue is u+c
    wv = waves[3]
    wv[1]  = a5
-   wv[2] = a5*(u+a)
-   wv[3] = a5*v
-   wv[4] = a5*w
+   wv[d[1]] = a5*(u+a)
+   wv[d[2]] = a5*v
+   wv[d[3]] = a5*w
    wv[5] = a5*(enth+u*a)
    s[3] = u+a
 end
@@ -116,7 +99,7 @@ end
 -- The function to compute fluctuations is implemented as a template
 -- which unrolls the inner loop
 local qFluctuationsTempl = xsys.template([[
-return function (waves, s, amdq, apdq)
+return function (dir, waves, s, amdq, apdq)
    local w1, w2, w3 = waves[1], waves[2], waves[3]
    local s1m, s2m, s3m = math.min(0, s[1]), math.min(0, s[2]), math.min(0, s[3])
    local s1p, s2p, s3p = math.max(0, s[1]), math.max(0, s[2]), math.max(0, s[3])
@@ -144,12 +127,13 @@ local euler_mt = {
       pressure = function (self, q)
 	 return (self._gasGamma-1)*(q[5]-0.5*(q[2]*q[2]+q[3]*q[3]+q[4]*q[4])/q[1])
       end,
-      flux = function (self, qIn, fOut)
-	 local pr, u = self:pressure(qIn), qIn[2]/qIn[1]
-	 fOut[1] = qIn[2] -- rho*u
-	 fOut[2] = qIn[2]*u + pr -- rho*u*u + p
-	 fOut[3] = qIn[3]*u -- rho*v*u
-	 fOut[4] = qIn[4]*u -- rho*w*u
+      flux = function (self, dir, qIn, fOut)
+	 local d = dirShuffle[dir] -- shuffle indices for `dir`
+	 local pr, u = self:pressure(qIn), qIn[d[1]]/qIn[1]
+	 fOut[1] = qIn[d[1]] -- rho*u
+	 fOut[d[1]] = qIn[d[1]]*u + pr -- rho*u*u + p
+	 fOut[d[2]] = qIn[d[2]]*u -- rho*v*u
+	 fOut[d[3]] = qIn[d[3]]*u -- rho*w*u
 	 fOut[5] = (qIn[5]+pr)*u -- (E+p)*u
       end,
       isPositive = function (self, q)
@@ -159,14 +143,14 @@ local euler_mt = {
 	 return true
       end,
       rp = rp,
-      qFluctuations = function (self, ql, qr, waves, s, amdq, apdq)
-	 return qFluctuations(waves, s, amdq, apdq)
+      qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
+	 return qFluctuations(dir, waves, s, amdq, apdq)
       end,
       rotateToLocalAligned = function (self, dir, qin, qout)
-	 alignedRotToLocal[dir](qin, qout)
+	 error("rotateToLocalAligned: Not implemented")
       end,
       rotateToGlobalAligned = function (self, dir, qin, qout)
-	 alignedRotToGlobal[dir](qin, qout)
+	 error("rotateToGlobalAligned: Not implemented")
       end,
    }
 }

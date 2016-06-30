@@ -29,7 +29,7 @@ function test_1()
    assert_equal(pr, prOut, "Checking pressure")
 
    local flux = Lin.Vec(5)
-   euler:flux(q, flux)
+   euler:flux(1, q, flux)
    assert_equal(flux[1], rho*u, "Checking flux")
    assert_equal(flux[2], rho*u*u+pr, "Checking flux")
    assert_equal(flux[3], rho*u*v, "Checking flux")
@@ -69,15 +69,15 @@ function test_2()
 
    local waves = Lin.Mat(euler:numWaves(), euler:numEquations())
    local s = Lin.Vec(5)
-   euler:rp(delta, ql, qr, waves, s)
+   euler:rp(1, delta, ql, qr, waves, s)
    local amdq, apdq = Lin.Vec(5), Lin.Vec(5)
-   euler:qFluctuations(ql, qr, waves, s, amdq, apdq)
+   euler:qFluctuations(1, ql, qr, waves, s, amdq, apdq)
 
    local sumFluct = Lin.Vec(5)
    for m = 1, 5 do sumFluct[m] = amdq[m]+apdq[m] end
    local fluxr, fluxl, df = Lin.Vec(5), Lin.Vec(5), Lin.Vec(5)
-   euler:flux(ql, fluxl)
-   euler:flux(qr, fluxr)
+   euler:flux(1, ql, fluxl)
+   euler:flux(1, qr, fluxr)
    for m = 1, 5 do df[m] = fluxr[m]-fluxl[m] end
 
    for m = 1, 5 do
@@ -96,15 +96,15 @@ function test_3()
 
    local waves = Lin.Mat(euler:numWaves(), euler:numEquations())
    local s = Lin.Vec(5)
-   euler:rp(delta, ql, qr, waves, s)
+   euler:rp(1, delta, ql, qr, waves, s)
    local amdq, apdq = Lin.Vec(5), Lin.Vec(5)
-   euler:qFluctuations(ql, qr, waves, s, amdq, apdq)
+   euler:qFluctuations(1, ql, qr, waves, s, amdq, apdq)
 
    local sumFluct = Lin.Vec(5)
    for m = 1, 5 do sumFluct[m] = amdq[m]+apdq[m] end
    local fluxr, fluxl, df = Lin.Vec(5), Lin.Vec(5), Lin.Vec(5)
-   euler:flux(ql, fluxl)
-   euler:flux(qr, fluxr)
+   euler:flux(1, ql, fluxl)
+   euler:flux(1, qr, fluxr)
    for m = 1, 5 do df[m] = fluxr[m]-fluxl[m] end
 
    for m = 1, 5 do
@@ -143,7 +143,7 @@ end
 test_1()
 test_2()
 test_3()
-test_4()
+-- test_4(): NYI
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -17,8 +17,9 @@ LeVeque's book on Finite Volume methods.
 : Check if the input conserved variable vector is in the invariant
   domain of the physical system. (Eg: density and pressure are positive)
 
-`rp(delta, ql, qr, waves, s)`
-: Compute the `waves` and speed `s` given the jump `delta`.
+`rp(dir, delta, ql, qr, waves, s)`
+: Compute the `waves` and speed `s` along direction `dir` given the
+  jump `delta`.
 
 `qFluctuations(ql, qr, waves, s, amdq, apdq))`
 : Compute the q-fluctuations, given waves and wave speeds. The
