@@ -124,9 +124,6 @@ local function new_mat_ct(elct)
       numCols = function (self)
 	 return self._m
       end,
-      row = function (self, k)
-	 return rowct(self._m, self._p+(k-1)*self._m)
-      end,
    }
    local mat_mt = {
       __new = function(ct, n, m, data)

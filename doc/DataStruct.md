@@ -103,6 +103,13 @@ The following methods are provided.
   `numComponents` field can be used to determine the number of
   components in the vector.
 
+`field:fil(k, ptr)`
+: Sets a pointer to field components at location `k`. The `ptr` must
+  be created by a previous `field:get(0)` call, and the value of `k`
+  must be determined by the indexer returned by the `indexer()`
+  object. This method is useful in inner loops were using `get` method
+  lead to memory fragmentation.
+
 To illustrate the use of the `indexer()` and `get()` methods to access
 elements in the grid, consider the following code:
 

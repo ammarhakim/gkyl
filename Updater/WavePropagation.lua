@@ -239,10 +239,12 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local cfla = 0.0 -- actual CFL number used
    
    local delta = Lin.Vec(meqn)
-   local localQl, localQr = Lin.Vec(5), Lin.Vec(5)
-   local waves, wavesLocal = Lin.Mat(mwave, meqn), Lin.Mat(mwave, meqn)
+   local waves = Lin.Mat(mwave, meqn)
    local s = Lin.Vec(mwave)
    local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
+
+   local qInL, qInR = qIn:get(0), qIn:get(0)
+   local qOutL, qOutR = qOut:get(0), qOut:get(0)
 
    -- update specified directions
    for d = 1, self._privData._nUpdateDirs do
@@ -263,12 +265,12 @@ local function advance(self, tCurr, dt, inFld, outFld)
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 	    
-	    local qInL, qInR = qIn:get(qInIdxr(idxm)), qIn:get(qInIdxr(idxp))
+	    qIn:fil(qInIdxr(idxm), qInL); qIn:fil(qInIdxr(idxp), qInR)
 	    self._calcDelta(qInL, qInR, delta) -- jump across interface
-	    equation:rp(delta, qInL, qInR, wavesLocal, s) -- compute waves (in local frame) and speeds
-	    equation:qFluctuations(qInL, qInR, wavesLocal, s, amdq, apdq) -- compute fluctuations
+	    equation:rp(delta, qInL, qInR, waves, s) -- compute waves and speeds
+	    equation:qFluctuations(qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 	    
-	    local qOutL, qOutR = qOut:get(qOutIdxr(idxm)), qOut:get(qOutIdxr(idxp))
+	    qOut:fil(qOutIdxr(idxm), qOutL); qOut:fil(qOutIdxr(idxp), qOutR)
 	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
 	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
 
