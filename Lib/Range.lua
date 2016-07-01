@@ -83,6 +83,16 @@ local range_mt = {
       upper = function (self, dir)
 	 return self._upper[dir-1]
       end,
+      lowerAsVec = function (self)
+	 local v = Lin.IntVec(self:ndim())
+	 for dir = 1, self:ndim() do  v[dir] = self._lower[dir-1] end
+	 return v
+      end,
+      upperAsVec = function (self)
+	 local v = Lin.IntVec(self:ndim())
+	 for dir = 1, self:ndim() do v[dir] = self._upper[dir-1] end
+	 return v
+      end,
       shape = function (self, dir)
 	 return self._upper[dir-1]-self._lower[dir-1]+1
       end,

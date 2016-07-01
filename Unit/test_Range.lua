@@ -228,6 +228,15 @@ function test_15()
    assert_equal(10*1, range:volume(), "Checking shorter volume")
 end
 
+function test_16()
+   local r = Range.Range({1, 2, 3}, {10, 11, 12})
+   local lv, uv = r:lowerAsVec(), r:upperAsVec()
+   for i = 1, 3 do
+      assert_equal(i, lv[i], "Checking lower vector")
+      assert_equal(9+i, uv[i], "Checking upper vector")
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -244,6 +253,7 @@ test_12()
 test_13()
 test_14()
 test_15()
+test_16()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
