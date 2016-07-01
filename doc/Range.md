@@ -33,6 +33,12 @@ The following methods are provided.
 `range:upper(dir)`
 : Upper index in direction `dir`. Inclusive.
 
+`range:lowerAsVec()`
+: Lower indices returned as a NDIM sized vector.
+
+`range:upperAsVec()`
+: Upper indices returned as a NDIM sized vector. Inclusive.
+
 `range.shape(dir)`
 : Number of elements in direction `dir`.
 

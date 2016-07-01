@@ -298,7 +298,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
    return true, dt*cfl/cfla
 end
 
--- Methods for wave-propagation scheme methods
+-- Methods for wave-propagation scheme
 WavePropagation.__index = { advance = Base.advanceFuncWrap(advance) }
 
 return {

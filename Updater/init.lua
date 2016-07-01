@@ -5,6 +5,11 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+-- Gkyl modules
 local WavePropagation = require "Updater.WavePropagation"
+local Bc = require "Updater.Bc"
 
-return WavePropagation
+-- system modules
+local xsys = require "xsys"
+
+return xsys.table.union(WavePropagation, Bc)
