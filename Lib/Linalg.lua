@@ -10,7 +10,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-_M = {}
+local _M = {}
 
 -- Vector ----------------------------------------------------------------------
 --
@@ -123,6 +123,12 @@ local function new_mat_ct(elct)
       end,
       numCols = function (self)
 	 return self._m
+      end,
+      g = function(self, i, j)
+	 return self._p[(i-1)*self._m + (j-1)]
+      end,
+      s = function(self, i, j, v)
+	 self._p[(i-1)*self._m + (j-1)] = v
       end,
    }
    local mat_mt = {

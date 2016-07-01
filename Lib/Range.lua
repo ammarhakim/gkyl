@@ -13,7 +13,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
 
-_M = {}
+local _M = {}
 
 -- Range ----------------------------------------------------------------------
 --

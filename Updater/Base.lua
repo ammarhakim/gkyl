@@ -14,7 +14,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-_M = {}
+local _M = {}
 
 -- This function wraps an updater's advance() function and adds a
 -- "totalTime" field to the updater, and also synchronizes the status
