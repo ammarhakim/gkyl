@@ -116,15 +116,21 @@ return function (dtdx, s, wave, fs)
 end
 ]])
 
-local rotateWavesToGlobalTempl = xsys.template([[
-return function (dir, equation, wavesLocal, waves)
-|for i = 1, MWAVE do
-  local wIn, wOut = wavesLocal[${i}], waves[${i}]
-  equation:rotateToGlobalAligned(dir, wIn, wOut)
+local qFluctuationsTempl = xsys.template([[
+return function (dir, waves, s, amdq, apdq)
+   --local w1, w2, w3 = waves[1], waves[2], waves[3]
+   local s1m, s2m, s3m = math.min(0, s[1]), math.min(0, s[2]), math.min(0, s[3])
+   local s1p, s2p, s3p = math.max(0, s[1]), math.max(0, s[2]), math.max(0, s[3])
+
+|for i = 1, 5 do
+   amdq[${i}] = s1m*waves[1][${i}] + s2m*waves[2][${i}] + s3m*waves[3][${i}]
+   apdq[${i}] = s1p*waves[1][${i}] + s2p*waves[2][${i}] + s3p*waves[3][${i}]
 
 |end
 end
 ]])
+-- function to compute fluctuations using q-wave method
+local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
 test_1()
 test_2()
@@ -137,4 +143,4 @@ else
    print(string.format("PASSED ALL %d tests!", stats.pass))
 end
 
-print(rotateWavesToGlobalTempl {MWAVE = 3})
+print(qFluctuationsTempl {})

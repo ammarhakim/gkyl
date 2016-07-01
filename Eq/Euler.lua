@@ -11,7 +11,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-_M = {}
+local _M = {}
 
 -- C interfaces
 ffi.cdef [[
@@ -54,8 +54,8 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    local w = (ql[d[3]]*ravgl1 + qr[d[3]]*ravgr1)*ravg2
    local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2   
 
-    -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
-    -- notation and meaning of these terms
+   -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
+   -- notation and meaning of these terms
    local q2 = u*u+v*v+w*w
    local aa2 = g1*(enth-0.5*q2)
    local a = math.sqrt(aa2)
