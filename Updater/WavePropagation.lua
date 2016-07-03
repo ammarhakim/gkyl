@@ -261,7 +261,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    self._calcDelta(qInL, qInR, delta) -- jump across interface
 	    equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
 	    equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
-	    
+
 	    qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
 	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
 	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
