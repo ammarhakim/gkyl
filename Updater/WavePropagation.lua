@@ -238,13 +238,13 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local qInL, qInR = qIn:get(0), qIn:get(0) -- get pointers to (re)use inside inner loop
    local qOutL, qOutR = qOut:get(0), qOut:get(0)
 
+   qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
    for d = 1, self._privData._nUpdateDirs do
       local dir = self._privData._updateDirs[d]
       local dtdx = dt/grid:dx(dir)
 
       local wavesSlice, speedsSlice, fsSlice = self.wavesSlice[dir], self.speedsSlice[dir], self.fsSlice[dir]
-
       -- lower/upper bounds in direction 'dir': these are edge indices
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
       local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
