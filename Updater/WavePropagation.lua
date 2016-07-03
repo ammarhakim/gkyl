@@ -101,7 +101,7 @@ return function (dtdx, fs, fs1, q)
 end
 ]])
 
--- limiter functions
+-- limiter functions: See LeVeque book
 local limiterFunctions = {}
 limiterFunctions["no-limiter"] = function (r)
    return 1
