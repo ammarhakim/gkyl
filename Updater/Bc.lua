@@ -31,7 +31,7 @@ function Bc:new (tbl)
       error("Updater.Bc: 'edge' must be one of 'lower' or 'upper'. Was " .. self._edge .. " instead")
    end
    self._bcList = assert(
-      tbl.boundaryConditions, "Updater.Bc: Must specify boundary conditions to aplly with 'boundaryConditions'")
+      tbl.boundaryConditions, "Updater.Bc: Must specify boundary conditions to apply with 'boundaryConditions'")
 
    return self
 end
