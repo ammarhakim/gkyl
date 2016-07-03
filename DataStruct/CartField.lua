@@ -28,7 +28,7 @@ typedef struct {
     uint8_t _ndim; /* Dimension */
     uint16_t _lowerGhost, _upperGhost; /* Ghost cells in lower/upper faces */
     uint16_t _numComponents; /* Number of components */
-    uint16_t _size; /* Size of field */
+    uint64_t _size; /* Size of field */
     Range_t _localRange, _globalRange; /* Local/global range */
     uint8_t _layout; /* Layout: 1 row-major, 2: column-major */
 } FieldData_t;
@@ -141,6 +141,7 @@ local function new_field_ct(elct)
 	 f._m._lowerGhost, f._m._upperGhost = ghost[1], ghost[2]
 	 f._m._numComponents = nc
 	 f._m._size = sz
+
 	 f._m._globalRange = globalRange
 	 f._m._localRange = localRange
 	 f._m._layout = colMajLayout -- default layout is column-major

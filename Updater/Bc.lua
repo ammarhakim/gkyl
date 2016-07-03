@@ -55,15 +55,15 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local dir, edge = self._dir, self._edge
    local global, globalExt = qOut:globalRange(), qOut:globalExtRange()
    local ghost = getGhostRange(self, global, globalExt) -- range spanning ghost cells
-   local q, qG = qOut:get(0), qOut:get(0) -- get pointers to (re)use inside inner loop
+   local qG, qS = qOut:get(0), qOut:get(0) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
    
    local indexer = qOut:genIndexer()
    for idx in ghost:colMajorIter() do -- loop, applying BCs
-      local idxg = idx:copy()
-      idxg[dir] = self._edge == "lower" and global:lower(dir)  or global:upper(dir)
-      qOut:fill(indexer(idx), q); qOut:fill(indexer(idxg), qG)
+      local idxs = idx:copy()
+      idxs[dir] = self._edge == "lower" and global:lower(dir)  or global:upper(dir)
+      qOut:fill(indexer(idx), qG); qOut:fill(indexer(idxs), qS)
       for _, bc in ipairs(self._bcList) do -- loop over each BC
-	 bc(dir, tCurr+dt, nil, qG, q) -- TODO: PASS COORDINATES
+	 bc(dir, tCurr+dt, nil, qS, qG) -- TODO: PASS COORDINATES
       end
    end
    return true, 1e37
