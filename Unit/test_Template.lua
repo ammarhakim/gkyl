@@ -142,5 +142,3 @@ if stats.fail > 0 then
 else
    print(string.format("PASSED ALL %d tests!", stats.pass))
 end
-
-print(qFluctuationsTempl {})
