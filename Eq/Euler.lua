@@ -47,8 +47,9 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    local pl, pr = self:pressure(ql), self:pressure(qr)
 
    -- Roe averages: see Roe's original 1986 paper or LeVeque book
-   local ravgl1, ravgr1 = 1/math.sqrt(rhol), 1/math.sqrt(rhor)
-   local ravg2 = 1/(math.sqrt(rhol)+math.sqrt(rhor))
+   local srrhol, srrhor = math.sqrt(rhol), math.sqrt(rhor)
+   local ravgl1, ravgr1 = 1/srrhol, 1/srrhor
+   local ravg2 = 1/(srrhol+srrhor)
    local u = (ql[d[1]]*ravgl1 + qr[d[1]]*ravgr1)*ravg2
    local v = (ql[d[2]]*ravgl1 + qr[d[2]]*ravgr1)*ravg2
    local w = (ql[d[3]]*ravgl1 + qr[d[3]]*ravgr1)*ravg2
