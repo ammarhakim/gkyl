@@ -127,8 +127,8 @@ limiterFunctions["zero"] = function (r)
 end
 
 -- Helper object for indexing 1D slice data. The slice spans from
--- [lower, upper] and has `stride` pieces of data stored at each
--- location.
+-- [lower, upper] (inclusive) and has `stride` pieces of data stored
+-- at each location.
 local slice_mt = {
    __new = function (self, lower, upper, stride)
       local n = upper-lower+1

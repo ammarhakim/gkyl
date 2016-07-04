@@ -147,12 +147,6 @@ local euler_mt = {
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
 	 return qFluctuations(dir, waves, s, amdq, apdq)
       end,
-      rotateToLocalAligned = function (self, dir, qin, qout)
-	 error("rotateToLocalAligned: Not implemented")
-      end,
-      rotateToGlobalAligned = function (self, dir, qin, qout)
-	 error("rotateToGlobalAligned: Not implemented")
-      end,
    }
 }
 _M.Euler = metatype(typeof("EulerEqn_t"), euler_mt)
