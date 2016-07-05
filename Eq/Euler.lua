@@ -145,7 +145,7 @@ local euler_mt = {
       end,
       rp = rp,
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
-	 return qFluctuations(dir, waves, s, amdq, apdq)
+	 qFluctuations(dir, waves, s, amdq, apdq)
       end,
    }
 }
