@@ -41,8 +41,50 @@ function test_2()
    end
 end
 
+function test_3()
+   local bcZeroNormal = BoundaryCondition.ZeroNormal { components = {1, 2, 3} }
+   local bcZeroTangent = BoundaryCondition.ZeroTangent { components = {4, 5, 6} }
+   local qin, qout = Lin.Vec(6), Lin.Vec(6)
+
+   for i = 1, 6 do qin[i] = i end
+   for i = 1, 6 do qout[i] = 10 end
+   bcZeroNormal(1, 0.0, {}, qin, qout)
+   bcZeroTangent(1, 0.0, {}, qin, qout)      
+
+   assert_equal(0.0, qout[1]+qin[1], "Testing zero-normal BC")
+   assert_equal(qout[2], qin[2], "Testing zero-normal BC")
+   assert_equal(qout[3], qin[3], "Testing zero-normal BC")
+
+   assert_equal(qout[4], qin[4], "Testing zero-tangent BC")
+   assert_equal(0, qout[5]+qin[5], "Testing zero-tangent BC")
+   assert_equal(0, qout[6]+qin[6], "Testing zero-tangent BC")
+
+   bcZeroNormal(2, 0.0, {}, qin, qout)
+   bcZeroTangent(2, 0.0, {}, qin, qout)
+   
+   assert_equal(0.0, qout[2]+qin[2], "Testing zero-normal BC")
+   assert_equal(qout[3], qin[3], "Testing zero-normal BC")
+   assert_equal(qout[1], qin[1], "Testing zero-normal BC")
+
+   assert_equal(qout[5], qin[5], "Testing zero-tangent BC")
+   assert_equal(0, qout[4]+qin[4], "Testing zero-tangent BC")
+   assert_equal(0, qout[6]+qin[6], "Testing zero-tangent BC")
+
+   bcZeroNormal(3, 0.0, {}, qin, qout)
+   bcZeroTangent(3, 0.0, {}, qin, qout)
+   
+   assert_equal(0.0, qout[3]+qin[3], "Testing zero-normal BC")
+   assert_equal(qout[2], qin[2], "Testing zero-normal BC")
+   assert_equal(qout[1], qin[1], "Testing zero-normal BC")
+
+   assert_equal(qout[6], qin[6], "Testing zero-tangent BC")
+   assert_equal(0, qout[4]+qin[4], "Testing zero-tangent BC")
+   assert_equal(0, qout[5]+qin[5], "Testing zero-tangent BC")
+end
+
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
