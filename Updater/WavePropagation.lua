@@ -262,37 +262,37 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
 	    equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 
-	    -- qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
-	    -- self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
-	    -- cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
+	    qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
+	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
+	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
 
-	    -- -- copy waves data for use in limiters
-	    -- copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
-	    -- copy(speedsSlice[i], s:data(), sizeof("double")*mwave)
+	    -- copy waves data for use in limiters
+	    copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
+	    copy(speedsSlice[i], s:data(), sizeof("double")*mwave)
 	 end
 	 
 	 -- return if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end
 
-	 -- -- limit waves before computing second-order updates
-	 -- limitWaves(self, localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice)
+	 -- limit waves before computing second-order updates
+	 limitWaves(self, localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice)
 
-	 -- local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
-	 -- -- compute second order correction fluxes
-	 -- clearSliceData(fsSlice)
-	 -- for i = dirLoIdx, dirUpIdx do -- this loop is over edges
-	 --    for mw = 0, mwave-1 do
-	 --       self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
-	 --    end
-	 -- end
+	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
+	 -- compute second order correction fluxes
+	 clearSliceData(fsSlice)
+	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+	    for mw = 0, mwave-1 do
+	       self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
+	    end
+	 end
 
-	 -- local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)
-	 -- -- add them to solution
-	 -- for i = dirLoIdx, dirUpIdx do -- this loop is over cells
-	 --    idxm[dir] = i -- cell index
-	 --    local q1 = qOut:get(qOutIdxr(idxm))
-	 --    self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
-	 -- end
+	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)
+	 -- add them to solution
+	 for i = dirLoIdx, dirUpIdx do -- this loop is over cells
+	    idxm[dir] = i -- cell index
+	    local q1 = qOut:get(qOutIdxr(idxm))
+	    self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
+	 end
       end
    end
    return true, 8.17232e-10 --dt*cfl/cfla
