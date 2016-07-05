@@ -58,37 +58,43 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    fill(waves:data(), 8*6*sizeof("double"))
 
    -- wave 1:
-   waves[1][d[4]] = a1
-   waves[1][8] = -a1*c
+   local w = waves[1]
+   w[d[4]] = a1
+   w[8] = -a1*c
    s[1] = -c*self._cb
 
    -- wave 2:
-   waves[2][d[4]] = a2
-   waves[2][8] = a2*c
+   local w = waves[2]
+   w[d[4]] = a2
+   w[8] = a2*c
    s[2] = c*self._cb
 
    -- wave 3:
-   waves[3][d[1]] = a3
-   waves[3][7] = -a3*c1
+   local w = waves[3]
+   w[d[1]] = a3
+   w[7] = -a3*c1
    s[3] = -c*self._ce
 
    -- wave 4:
-   waves[4][d[1]] = a4
-   waves[4][7] = a4*c1
+   local w = waves[4]
+   w[d[1]] = a4
+   w[7] = a4*c1
    s[4] = c*self._ce
 
    -- wave 5: (two waves with EV -c, -c lumped into one)
-   waves[5][d[2]] = a5
-   waves[5][d[3]] = a6
-   waves[5][d[5]] = a6*c1
-   waves[5][d[6]] = -a5*c1
+   local w = waves[5]
+   w[d[2]] = a5
+   w[d[3]] = a6
+   w[d[5]] = a6*c1
+   w[d[6]] = -a5*c1
    s[5] = -c
 
    -- wave 6: (two waves with EV c, c lumped into one)
-   waves[6][d[2]] = a7
-   waves[6][d[3]] = a8
-   waves[6][d[5]] = -a8*c1
-   waves[6][d[6]] = a7*c1
+   local w = waves[6]
+   w[d[2]] = a7
+   w[d[3]] = a8
+   w[d[5]] = -a8*c1
+   w[d[6]] = a7*c1
    s[6] = c
 end
 
