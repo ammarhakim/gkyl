@@ -118,34 +118,7 @@ return function (dir, waves, s, amdq, apdq)
 end
 ]])
 -- function to compute fluctuations using q-wave method
-print(qFluctuationsTempl {})
---local qFluctuations = loadstring( qFluctuationsTempl {} )()
-
-local qFluctuations = function (dir, waves, s, amdq, apdq)
-   local w1p, w2p, w3p = waves[2], waves[4], waves[6]
-   local s1p, s2p, s3p = s[2], s[4], s[6]
-
-   apdq[1] = s1p*w1p[1] + s2p*w2p[1] + s3p*w3p[1]
-   apdq[2] = s1p*w1p[2] + s2p*w2p[2] + s3p*w3p[2]
-   apdq[3] = s1p*w1p[3] + s2p*w2p[3] + s3p*w3p[3]
-   apdq[4] = s1p*w1p[4] + s2p*w2p[4] + s3p*w3p[4]
-   -- apdq[5] = s1p*w1p[5] + s2p*w2p[5] + s3p*w3p[5]
-   -- apdq[6] = s1p*w1p[6] + s2p*w2p[6] + s3p*w3p[6]
-   -- apdq[7] = s1p*w1p[7] + s2p*w2p[7] + s3p*w3p[7]
-   -- apdq[8] = s1p*w1p[8] + s2p*w2p[8] + s3p*w3p[8]
-
-   local w1m, w2m, w3m = waves[1], waves[3], waves[5]
-   local s1m, s2m, s3m = s[1], s[3], s[5]
-
-   -- amdq[1] = s1m*w1m[1] + s2m*w2m[1] + s3m*w3m[1]
-   -- amdq[2] = s1m*w1m[2] + s2m*w2m[2] + s3m*w3m[2]
-   -- amdq[3] = s1m*w1m[3] + s2m*w2m[3] + s3m*w3m[3]
-   -- amdq[4] = s1m*w1m[4] + s2m*w2m[4] + s3m*w3m[4]
-   -- amdq[5] = s1m*w1m[5] + s2m*w2m[5] + s3m*w3m[5]
-   -- amdq[6] = s1m*w1m[6] + s2m*w2m[6] + s3m*w3m[6]
-   -- amdq[7] = s1m*w1m[7] + s2m*w2m[7] + s3m*w3m[7]
-   -- amdq[8] = s1m*w1m[8] + s2m*w2m[8] + s3m*w3m[8]
-end
+local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
 local maxwell_mt = {
    __new = function (self, tbl)
@@ -176,7 +149,7 @@ local maxwell_mt = {
       end,
       rp = rp,
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
-	 qFluctuations(dir, waves, s, amdq, apdq)
+	 return qFluctuations(dir, waves, s, amdq, apdq)
       end,
    }
 }

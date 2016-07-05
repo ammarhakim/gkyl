@@ -295,7 +295,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 end
       end
    end
-   return true, 8.17232e-10 --dt*cfl/cfla
+   return true, dt*cfl/cfla
 end
 
 -- Methods for wave-propagation scheme
