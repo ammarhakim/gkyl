@@ -13,15 +13,19 @@ LeVeque's book on Finite Volume methods.
 `numWaves()`
 : Number of waves in system.
 
+`flux(dir, qIn, fOut)`
+: Compute flux (`fOut`) in direction `dir` give input conserved
+  variables `qIn`.
+
 `isPositive(q)`
 : Check if the input conserved variable vector is in the invariant
   domain of the physical system. (Eg: density and pressure are positive)
 
 `rp(dir, delta, ql, qr, waves, s)`
-: Compute the `waves` and speed `s` along direction `dir` given the
+: Compute the `waves` and speeds `s` along direction `dir` given the
   jump `delta`.
 
-`qFluctuations(ql, qr, waves, s, amdq, apdq))`
+`qFluctuations(dir, ql, qr, waves, s, amdq, apdq))`
 : Compute the q-fluctuations, given waves and wave speeds. The
   fluctuations in normal cases are defined by $A\Delta Q^- =
   \sum_{s<0} s W$ and $A\Delta Q^+ = \sum_{s>0} s W$. Usually, `qr`
