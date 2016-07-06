@@ -57,6 +57,7 @@ local range_mt = {
       -- lower and upper are tables of integers. Indices are inclusive
       local r = new(self)
       r._ndim = #lower
+      assert(r._ndim < 7, "Range.new: Only objects upto 6D are supported")
       for d = 1, #lower do
 	 r._lower[d-1] = lower[d]
 	 r._upper[d-1] = upper[d]

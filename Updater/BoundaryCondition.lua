@@ -17,6 +17,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 local _M = {}
+
 -- Helper function to extract list of components
 local function getComponents(tbl)
    local c = assert(tbl.components, "BoundaryCondition: Must specify components with 'components' parameter")
@@ -50,7 +51,7 @@ local dirShuffle = {
 function _M.ZeroNormal(tbl)
    local cIdx = getComponents(tbl) -- components to apply to
    local n = #cIdx -- number of components
-   assert(n == 3, "ZeroNormal BC can only be applied to vector of lenght 3")
+   assert(n == 3, "ZeroNormal BC can only be applied to vector of length 3")
    return function (dir, tm, xc, qin, qbc)
       local d = dirShuffle[dir]
       qbc[cIdx[d[1]]] = -qin[cIdx[d[1]]]
@@ -63,7 +64,7 @@ end
 function _M.ZeroTangent(tbl)
    local cIdx = getComponents(tbl) -- components to apply to
    local n = #cIdx -- number of components
-   assert(n == 3, "ZeroTangent BC can only be applied to vector of lenght 3")
+   assert(n == 3, "ZeroTangent BC can only be applied to vector of length 3")
    return function (dir, tm, xc, qin, qbc)
       local d = dirShuffle[dir]
       qbc[cIdx[d[1]]] = qin[cIdx[d[1]]]
