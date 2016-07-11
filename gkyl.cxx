@@ -7,7 +7,6 @@
 
 // std include
 #include <iostream>
-#include <unistd.h>
 
 #ifdef HAVE_MPI
 #include <mpi.h>
