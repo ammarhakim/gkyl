@@ -80,4 +80,20 @@ If you want to zip up the code for copying to another machine, do:
 This will create a zip file with the code. The repo hidden files and
 generated files will not be zipped up.
 
+## Note on building LuaJIT
 
+LuaJIT builds easily on most machines with standard GCC
+compiler. Often, you may run into problems on older gcc as they do not
+include the log2 and exp2 functions unless c99 standard is enabled. To
+get around this, modify the src/Makefile in LuaJIT. To do this, change
+the line:
+
+~~~~~~~
+CC= $(DEFAULT_CC)
+~~~~~~~
+
+to:
+
+~~~~~~~
+CC= $(DEFAULT_CC) -std=gnu99
+~~~~~~~
