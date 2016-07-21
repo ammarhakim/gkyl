@@ -17,8 +17,9 @@ jit.opt.start('callunroll=10', 'loopunroll=30')
 -- Gkyl modules
 local WavePropagation = require "Updater.WavePropagation"
 local Bc = require "Updater.Bc"
+local FiveMomentSrc = require "Updater.FiveMomentSrc"
 
 -- system modules
 local xsys = require "xsys"
 
-return xsys.table.union(WavePropagation, Bc)
+return xsys.table.union(WavePropagation, Bc, FiveMomentSrc)
