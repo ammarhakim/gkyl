@@ -23,7 +23,7 @@ fluidSlvrDir1 = Updater.WavePropagation {
 The constructor takes the following parameters:
 
 `onGrid`
-: Grid on which the field lives.
+: Grid on which the updater lives
 
 `equation`
 : Equation object

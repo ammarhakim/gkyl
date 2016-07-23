@@ -3,8 +3,6 @@
 ##    _______     ___
 ## + 6 @ |||| # P ||| +
 
-## TODO: Make a static executable
-
 import os
 import sys
 sys.path.insert(0, './waf_tools')
