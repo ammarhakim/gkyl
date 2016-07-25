@@ -33,9 +33,19 @@ typedef struct {
 } FiveMomentSrcData_t;
 ]]
 
+-- use an explicit scheme to update momentum and electric field
+local function updateSrcExplicit(self, dt, dt1, dt2, fPtr, emPtr)
+   print("Explicit update")
+end
+
+-- use an explicit scheme to update momentum and electric field
+local function updateSrcImplicit(self, dt, dt1, dt2, fPtr, emPtr)
+   print("Implicit update")
+end
+
+
 -- Five-moment source updater object
 local FiveMomentSrc = {}
-
 -- constructor
 function FiveMomentSrc:new(tbl)
    local self = setmetatable({}, FiveMomentSrc)
@@ -59,7 +69,11 @@ function FiveMomentSrc:new(tbl)
    self._gravityDir = tbl.dir and tbl.dir or 1 -- by default gravity acts in X direction
 
    -- scheme is one of "explicit" or "implicit"
-   self._scheme = self.scheme and self.scheme or "implicit"
+   local scheme = tbl.scheme and tbl.scheme or "implicit"
+   self._updateSrc = updateSrcImplicit
+   if scheme == "explicit" then
+      self._updateSrc = updateSrcExplicit
+   end
 
    self._qbym = new("double[?]", self._nFluids+1) -- first value is dummy to allow index from 1
    for i = 1, self._nFluids do
@@ -82,9 +96,28 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local dt1 = 0.5*dt
    local dt2 = 0.5*dt/self._epsilon0
 
+   -- make list of indexer functions and pointers
+   local fIdxr, fPtr = {}, {}
+   for i = 1, self._nFluids do
+      fIdxr[i] = outFld[i]:genIndexer()
+      fPtr[i] = outFld[i]:get(0)
+   end
+   local emIdxr = emFld:genIndexer()
+   local emPtr = emFld:get(0)
+
    -- loop over local range, updating source in each cell
    local localRange = emFld:localRange()
    for idx in localRange:colMajorIter() do
+
+      -- set pointers to fluids and field
+      for i = 1, self._nFluids do
+	 outFld[i]:fill(fIdxr[i](idx), fPtr[i])
+      end
+      emFld:fill(emIdxr(idx), emPtr)
+
+      -- update momentum and electric field
+      self._updateSrc(self, dt, dt1, dt2, fPtr, emPtr)
+      -- check if we have pressure and update pressure
       
    end
 end
