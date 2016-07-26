@@ -33,13 +33,24 @@ typedef struct {
 } FiveMomentSrcData_t;
 ]]
 
--- use an explicit scheme to update momentum and electric field
-local function updateSrcExplicit(self, dt, dt1, dt2, fPtr, emPtr)
-   print("Explicit update")
+-- Explicit, SSP RK3 scheme
+local function updateSrcRk3(self, dt, fPtr, emPtr)
 end
 
--- use an explicit scheme to update momentum and electric field
-local function updateSrcImplicit(self, dt, dt1, dt2, fPtr, emPtr)
+-- Use an explicit scheme to update momentum and electric field: this
+-- is an extension of the standard Boris push algorithm, in which the
+-- half time-step electric field update is replaced by an implicit
+-- step in which both the velocity and electric are updater.
+local function updateSrcModBoris(self, dt, fPtr, emPtr)
+   -- update velocity and electric field by half time-step
+
+   -- roate velocity around magnetic field by full time-step
+
+   -- update velocity and electric field by half time-step
+end
+
+-- Use an implicit scheme to update momentum and electric field
+local function updateSrcTimeCentered(self, dt, dt1, dt2, fPtr, emPtr)
    print("Implicit update")
 end
 
@@ -69,10 +80,12 @@ function FiveMomentSrc:new(tbl)
    self._gravityDir = tbl.dir and tbl.dir or 1 -- by default gravity acts in X direction
 
    -- scheme is one of "explicit" or "implicit"
-   local scheme = tbl.scheme and tbl.scheme or "implicit"
-   self._updateSrc = updateSrcImplicit
-   if scheme == "explicit" then
-      self._updateSrc = updateSrcExplicit
+   local scheme = tbl.scheme and tbl.scheme or "time-centered"
+   self._updateSrc = updateSrcTimeCentered
+   if scheme == "ssp-rk3" then
+      self._updateSrc = updateSrcRk3
+   elseif scheme == "modified-boris" then
+      self._updateSrc = updateSrcModBoris
    end
 
    self._qbym = new("double[?]", self._nFluids+1) -- first value is dummy to allow index from 1
@@ -93,9 +106,6 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	  "Must have exactly " .. self._nFluids+1 .. " output fields. Provided " .. #inFld .. " instead.")
    local emFld = outFld[#outFld] -- EM field
 
-   local dt1 = 0.5*dt
-   local dt2 = 0.5*dt/self._epsilon0
-
    -- make list of indexer functions and pointers
    local fIdxr, fPtr = {}, {}
    for i = 1, self._nFluids do
@@ -108,7 +118,6 @@ local function advance(self, tCurr, dt, inFld, outFld)
    -- loop over local range, updating source in each cell
    local localRange = emFld:localRange()
    for idx in localRange:colMajorIter() do
-
       -- set pointers to fluids and field
       for i = 1, self._nFluids do
 	 outFld[i]:fill(fIdxr[i](idx), fPtr[i])
@@ -116,7 +125,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
       emFld:fill(emIdxr(idx), emPtr)
 
       -- update momentum and electric field
-      self._updateSrc(self, dt, dt1, dt2, fPtr, emPtr)
+      self._updateSrc(self, dt, fPtr, emPtr)
       -- check if we have pressure and update pressure
       
    end
