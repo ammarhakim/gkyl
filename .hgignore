@@ -2,5 +2,6 @@ syntax: glob
 *~
 build/*
 .waf*
-install-deps/luajit-2.0
+install-deps/luajit*
+install-deps/eigen-eigen*
 */*.pyc

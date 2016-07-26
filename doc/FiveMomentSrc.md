@@ -41,7 +41,7 @@ The constructor takes the following parameters:
 : Premittivity of free space
 
 `scheme` (Optional. Defaults to "implicit")
-: Scheme to use. One of "explicit" or "implicit"
+: Scheme to use. One of "ssp-rk3", "modified-boris"  or "time-centered"
 
 `hasStaticField` (Optional. Defaults to `false`)
 : If a static electric and magnetic field should be included. The

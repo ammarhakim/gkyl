@@ -42,7 +42,7 @@ function test_1()
       charge = {-1.0, 1.0},
       mass = {1.0, 1/1836.2},
       epsilon0 = 1.0,
-      scheme = "explicit", -- one of "implicit" or "explicit"
+      scheme = "ssp-rk3", -- one of "implicit" or "explicit"
       hasStaticField = false, -- do we have static EM field?
       gravity = 0.0, -- gravitational force
       dir = 0.0, -- direction of force
