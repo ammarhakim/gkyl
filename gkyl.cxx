@@ -12,6 +12,8 @@
 #include <mpi.h>
 #endif
 
+#include <test_cfuncs.h>
+
 int
 main(int argc, char **argv)
 {
@@ -46,6 +48,9 @@ main(int argc, char **argv)
   const char* ret = lua_tostring(L, -1); // value returned by script
   std::cout << ret << std::endl;
   lua_close(L);
+
+  double x[5];
+  double s = calcSum(5, x);
 
 #ifdef HAVE_MPI
   MPI_Finalize();

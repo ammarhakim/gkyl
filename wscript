@@ -113,6 +113,7 @@ def buildExec(bld):
     # build idjit executable
     bld.program(
         source='gkyl.cxx', target='gkyl',
+        includes = 'Unit',
         use='gkunit LUAJIT M DL MPI',
         linkflags = EXTRA_LINK_FLAGS
     )

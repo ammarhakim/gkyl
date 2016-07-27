@@ -4,4 +4,4 @@
 ## + 6 @ |||| # P ||| +
 
 def build(bld):
-    bld.stlib(source = 'test_cfuncs.cpp', target = 'gkunit')
+    bld.stlib(source = 'test_cfuncs.cpp', includes = '.', target = 'gkunit')
