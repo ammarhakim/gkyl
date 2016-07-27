@@ -47,6 +47,7 @@ def configure(conf):
 
 def build(bld):
     ### recurse down directories and build C++ code
+    bld.recurse("Unit")
 
     # build executable
     buildExec(bld)    
@@ -112,7 +113,7 @@ def buildExec(bld):
     # build idjit executable
     bld.program(
         source='gkyl.cxx', target='gkyl',
-        use='LUAJIT M DL MPI',
+        use='gkunit LUAJIT M DL MPI',
         linkflags = EXTRA_LINK_FLAGS
     )
 
