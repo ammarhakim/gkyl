@@ -1,6 +1,5 @@
 #include <test_cfuncs.h>
 
-
 double calcSum(int n, double *v)
 {
   double sum = 0.0;
