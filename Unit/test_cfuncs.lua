@@ -25,6 +25,7 @@ function test_1()
       v[i-1] = i
    end
    local sum = ffi.C.calcSum(10, v)
+   assert_equal(55, sum, "Checking if external call to sum worked")
 end
 
 test_1()
