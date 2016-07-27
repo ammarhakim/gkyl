@@ -1,9 +1,5 @@
-#include <iostream>
+#include <test_cfuncs.h>
 
-extern "C"
-{
-    double calcSum(int n, double *v);
-}
 
 double calcSum(int n, double *v)
 {
