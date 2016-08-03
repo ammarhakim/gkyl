@@ -34,12 +34,12 @@ local dirShuffle = {
    new("int32_t[7]", 0, 3, 1, 2, 6, 4, 5)
 }
 
--- Riemann problem for Euler equations: `delta` is the vector we wish
--- to split, `ql`/`qr` the left/right states. On output, `waves` and
--- `s` contain the waves and speeds. waves is a mwave X meqn
--- matrix. See LeVeque's book for explanations. Note: This code is
--- essentially based on code used in my thesis i.e. CLAWPACK and
--- Miniwarpx. (A. Hakim)
+-- Riemann problem for Perfectly Hyperbolic Maxwell equations: `delta`
+-- is the vector we wish to split, `ql`/`qr` the left/right states. On
+-- output, `waves` and `s` contain the waves and speeds. waves is a
+-- mwave X meqn matrix. See LeVeque's book for explanations. Note:
+-- This code is essentially based on code used in my thesis
+-- i.e. CLAWPACK and Miniwarpx. (A. Hakim)
 local function rp(self, dir, delta, ql, qr, waves, s)
    local d = dirShuffle[dir] -- shuffle indices for `dir`
    local c, c1 = self._c, 1/self._c
