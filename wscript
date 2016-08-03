@@ -31,7 +31,7 @@ def configure(conf):
     if conf.options.enable_mpi:
         # add flag to tell we are building with MPI
         conf.env.append_value("DEFINES", ["HAVE_MPI"])
-        conf.env.INCLUDES_MPI
+        #conf.env.INCLUDES_MPI
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')

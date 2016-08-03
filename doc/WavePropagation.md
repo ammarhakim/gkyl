@@ -49,7 +49,7 @@ The constructor takes the following parameters:
 
 The object provides a single "advance" method:
 
-`advance(tCurr, dt, inFld, outFld)
+`advance(tCurr, dt, inFld, outFld)`
 : Advances the solution from `tCurr` to `tCurr+dt`. The `inFld` table
   should have a single input field, holding the solution at
   `tCurr`. The `outFld` table should have a single output field. This
