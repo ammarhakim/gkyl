@@ -42,11 +42,6 @@ end
 -- half time-step electric field update is replaced by an implicit
 -- step in which both the velocity and electric are updater.
 local function updateSrcModBoris(self, dt, fPtr, emPtr)
-   -- update velocity and electric field by half time-step
-
-   -- roate velocity around magnetic field by full time-step
-
-   -- update velocity and electric field by half time-step
 end
 
 -- Use an implicit scheme to update momentum and electric field
@@ -79,13 +74,15 @@ function FiveMomentSrc:new(tbl)
    self._gravity = tbl.gravity and tbl.gravity or 0.0
    self._gravityDir = tbl.dir and tbl.dir or 1 -- by default gravity acts in X direction
 
-   -- scheme is one of "explicit" or "implicit"
+   -- scheme is one of "ssp-rk3", "modified-boris"  or "time-centered"
    local scheme = tbl.scheme and tbl.scheme or "time-centered"
-   self._updateSrc = updateSrcTimeCentered
+   self._updateSrc = nil
    if scheme == "ssp-rk3" then
       self._updateSrc = updateSrcRk3
    elseif scheme == "modified-boris" then
       self._updateSrc = updateSrcModBoris
+   elseif scheme == "time-centered" then
+      self._updateSrc = updateSrcTimeCentered
    end
 
    self._qbym = new("double[?]", self._nFluids+1) -- first value is dummy to allow index from 1

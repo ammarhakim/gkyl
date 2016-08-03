@@ -65,7 +65,7 @@ def build(bld):
     Unit_dir = bld.path.find_dir('Unit')
     bld.install_files(
         "${PREFIX}/bin/Unit",
-        ["unit.lua", "init.lua"],
+        ["Unit/unit.lua", "Unit/init.lua"],
         cwd=Unit_dir, relative_trick=True)
 
     # - Lib
