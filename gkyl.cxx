@@ -31,11 +31,6 @@ int finish(int err)
   return err;  
 }
 
-extern "C"
-{
-    double calcSum(int n, double *v);
-}
-
 int
 main(int argc, char **argv)
 {
@@ -48,10 +43,6 @@ main(int argc, char **argv)
     logMessage("Usage: gkyl LUA-SCRIPT");
     return 1;
   }
-
-  std::vector<double> v(10);
-  double s = calcSum(10, &v[0]);
-  std::cout << "Sum is " << s << std::endl;
   
   lua_State *L = luaL_newstate();
   if (L==NULL)
