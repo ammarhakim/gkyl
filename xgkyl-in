@@ -1,0 +1,6 @@
+#!/bin/bash
+LJ_EXEC="$(pwd)"
+LJ_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+LJ_LJ_JIT="$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta2/?.lua"
+LJ_LUA_PATH="$LJ_LJ_JIT;""$LJ_ROOT""/?.lua;""$LJ_ROOT""/?/init.lua;""?.lua;""?/init.lua;"
+LUA_EXEC="$LJ_EXEC" LUA_ROOT="$LJ_ROOT" LUA_PATH="$LJ_LUA_PATH" LUA_CPATH="$LJ_LUA_CPATH" $LJ_ROOT/gkyl $@
