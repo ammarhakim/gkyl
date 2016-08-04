@@ -111,8 +111,8 @@ def buildExec(bld):
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
 
     # export all symbols
-    EXTRA_LINK_FLAGS.append('-Wl,-E')
-
+    #EXTRA_LINK_FLAGS.append('-Wl,-E')
+        
     # build idjit executable
     bld.program(
         source='gkyl.cxx', target='gkyl',
