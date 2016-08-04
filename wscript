@@ -110,6 +110,9 @@ def buildExec(bld):
         # we need to append special flags to get stuff to work on a Mac
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
 
+    # export all symbols
+    EXTRA_LINK_FLAGS.append('-Wl,-E')
+
     # build idjit executable
     bld.program(
         source='gkyl.cxx', target='gkyl',
