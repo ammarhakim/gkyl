@@ -113,7 +113,7 @@ def buildExec(bld):
     # export all symbols
     #EXTRA_LINK_FLAGS.append('-Wl,-E')
         
-    # build idjit executable
+    # build gkyl executable
     bld.program(
         source='gkyl.cxx', target='gkyl',
         includes = 'Unit',
@@ -123,4 +123,4 @@ def buildExec(bld):
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
-    ctx.excl = " **/.waf-1* **/*~ **/*.pyc **/*.swp **/.lock-w* **/.hg **/.hgignore build install-deps/luajit-2.0"
+    ctx.excl = " **/.waf-1* **/*~ **/*.pyc **/*.swp **/.lock-w* **/.hg **/.hgignore build install-deps/luajit-2.0 install-deps/eigen-eigen-*"
