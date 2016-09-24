@@ -4,4 +4,5 @@ build/*
 .waf*
 install-deps/luajit*
 install-deps/eigen-eigen*
+install-deps/adios*
 */*.pyc

@@ -103,6 +103,9 @@ def build(bld):
         Updater_dir.ant_glob('**/*.lua'),
         cwd=Updater_dir, relative_trick=True)
 
+    # Install wrapper shell script
+    bld.install_files("${PREFIX}/bin", "xgkyl", chmod=0755)
+
 def buildExec(bld):
     r"""Build top-level executable"""
     uname = os.uname()
