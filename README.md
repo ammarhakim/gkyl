@@ -25,6 +25,7 @@ below. Gkyl depends on the following tools and packages:
 - A C/C++ compiler
 - LuaJIT
 - MPI
+- ADIO IO library
 
 Optionally, you will need
 
@@ -49,7 +50,7 @@ as it is included with the distribution. To build and install the gkyl
 executable do:
 
 ~~~~~~~
-./waf --prefix=$HOME/gkylsoft configure build install
+./waf --prefix=$HOME/gkylsoft/gkyl configure build install
 ~~~~~~~
 
 The builds are created in a 'build' directory. The executable is
