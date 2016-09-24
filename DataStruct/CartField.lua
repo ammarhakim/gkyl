@@ -18,7 +18,7 @@ local Grid = require "Grid"
 
 -- CartField -------------------------------------------------------------------
 --
--- Multi-component on cartesian grids
+-- Multi-component field on cartesian grids
 --------------------------------------------------------------------------------
 
 -- Declare meta-data for field. Actual data to field is not stored in
