@@ -83,6 +83,9 @@ generated files will not be zipped up.
 
 ## Note on building LuaJIT
 
+To avoid linking to the shared LuaJIT library, please delete the
+installed LuaJIT shared libraries.
+
 LuaJIT builds easily on most machines with standard GCC
 compiler. Often, you may run into problems on older gcc as they do not
 include the log2 and exp2 functions unless c99 standard is enabled. To
