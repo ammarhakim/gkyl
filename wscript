@@ -31,7 +31,7 @@ def configure(conf):
     if conf.options.enable_mpi:
         # add flag to tell we are building with MPI
         conf.env.append_value("DEFINES", ["HAVE_MPI"])
-        #conf.env.INCLUDES_MPI
+        conf.env.HAVE_MPI = True
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -113,9 +113,6 @@ def buildExec(bld):
         # we need to append special flags to get stuff to work on a Mac
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
 
-    # export all symbols
-    #EXTRA_LINK_FLAGS.append('-Wl,-E')
-        
     # build gkyl executable
     bld.program(
         source='gkyl.cxx', target='gkyl',
