@@ -29,7 +29,7 @@ def check_mpi(conf):
     else:
         conf.fatal("Please specify MPI library directories by --mpi-lib-dir")
         
-    conf.start_msg('Checking for MPI include')
+    conf.start_msg('Checking for MPI')
     conf.check(header_name='mpi.h', features='cxx cxxprogram', use="MPI", mandatory=True)
     conf.end_msg("Found MPI")
     return 1
