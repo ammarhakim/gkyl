@@ -19,22 +19,24 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('mpi')
+    opt.load('gkyl')
+    opt.load('luajit') 
+    opt.load('mpi')   
 
 def configure(conf):
     r"""Configure Gkyl build"""
 
     # load tools
     conf.load('compiler_c compiler_cxx')
+    conf.check_gkyl()
+    conf.check_luajit()
     conf.check_mpi()
-
-    if conf.options.enable_mpi:
-        # add flag to tell we are building with MPI
-        conf.env.append_value("DEFINES", ["HAVE_MPI"])
-        conf.env.HAVE_MPI = True
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
+
+    # add current build directory to pick up config header
+    conf.env.append_value('INCLUDES', ['.'])
     
     # load options for LuaJIT
     conf.env.INCLUDES_LUAJIT = [gkydepsDir+'/luajit/include/luajit-2.1']
@@ -44,6 +46,9 @@ def configure(conf):
     # load options for math and dynamic library
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
+
+    # write out configuration info into header
+    conf.write_config_header('gkylconfig.h')
 
 def build(bld):
     ### recurse down directories and build C++ code

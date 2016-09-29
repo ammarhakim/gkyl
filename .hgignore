@@ -1,6 +1,7 @@
 syntax: glob
 *~
 build/*
+build-*/*
 .waf*
 install-deps/luajit*
 install-deps/eigen-eigen*
