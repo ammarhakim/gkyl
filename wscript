@@ -108,6 +108,11 @@ def build(bld):
         Updater_dir.ant_glob('**/*.lua'),
         cwd=Updater_dir, relative_trick=True)
 
+    # build wrapper shell script
+    sharePath = bld.env.SHARE_LUAJIT+"/?.lua"
+    bld(rule=r"""sed 's_SHAREPATH_%s_' ${SRC} > ${TGT}""" % sharePath,
+        source='xgkyl-in', target='xgkyl')
+    
     # Install wrapper shell script
     bld.install_files("${PREFIX}/bin", "xgkyl", chmod=0755)
 
