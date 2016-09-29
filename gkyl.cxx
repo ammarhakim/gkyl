@@ -2,6 +2,8 @@
 //    _______     ___
 // + 6 @ |||| # P ||| +
 
+#include <gkylconfig.h>
+
 // luajit includes
 #include <lua.hpp>
 
@@ -9,14 +11,14 @@
 #include <iostream>
 #include <vector>
 
-#ifdef HAVE_MPI
+#ifdef HAVE_MPI_H
 #include <mpi.h>
 #endif
 
 void logMessage(const char *m)
 {
   int rank = 0;
-#ifdef HAVE_MPI
+#ifdef HAVE_MPI_H
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #endif
   if (rank == 0)
@@ -25,7 +27,7 @@ void logMessage(const char *m)
 
 int finish(int err)
 {
-#ifdef HAVE_MPI
+#ifdef HAVE_MPI_H
   MPI_Finalize();
 #endif  
   return err;  
@@ -34,7 +36,7 @@ int finish(int err)
 int
 main(int argc, char **argv)
 {
-#ifdef HAVE_MPI
+#ifdef HAVE_MPI_H
   MPI_Init(&argc, &argv);
 #endif
 
