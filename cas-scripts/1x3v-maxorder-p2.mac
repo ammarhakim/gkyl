@@ -1,0 +1,8 @@
+v : [x,vx,vy,vz]$
+basisN : gsOrthoNorm(v, makeMaxOrderBasis(v,2))$
+fl : transpose(makelist(f[i],i,0,length(basisN)-1))$
+
+/* Streaming volume integral */
+GVX : calcWeightedGradStiffMatrix(x, v, vx, basisN)$
+G1 : calcWeightedGradStiffMatrix(x, v, 1, basisN)$
+StreamVol : expand(radcan( (GVX + w*G1).fl))$

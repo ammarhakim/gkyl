@@ -21,7 +21,8 @@ def options(opt):
     opt.load('compiler_c compiler_cxx') 
     opt.load('gkyl')
     opt.load('luajit') 
-    opt.load('mpi')   
+    opt.load('mpi')
+    opt.load('adios')
 
 def configure(conf):
     r"""Configure Gkyl build"""
@@ -31,6 +32,7 @@ def configure(conf):
     conf.check_gkyl()
     conf.check_luajit()
     conf.check_mpi()
+    conf.check_adios()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -38,11 +40,6 @@ def configure(conf):
     # add current build directory to pick up config header
     conf.env.append_value('INCLUDES', ['.'])
     
-    # load options for LuaJIT
-    conf.env.INCLUDES_LUAJIT = [gkydepsDir+'/luajit/include/luajit-2.1']
-    conf.env.STLIB_LUAJIT = ['luajit-5.1']
-    conf.env.STLIBPATH_LUAJIT = [gkydepsDir+'/luajit/lib']
-
     # load options for math and dynamic library
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
@@ -127,7 +124,7 @@ def buildExec(bld):
     bld.program(
         source='gkyl.cxx', target='gkyl',
         includes = 'Unit',
-        use='gkunit LUAJIT M DL MPI',
+        use='gkunit LUAJIT ADIOS MPI M DL ',
         linkflags = EXTRA_LINK_FLAGS
     )
 
