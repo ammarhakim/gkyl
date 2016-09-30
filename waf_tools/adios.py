@@ -15,8 +15,8 @@ def options(opt):
 @conf
 def check_adios(conf):
     opt = conf.options
-    conf.env['LIB_ADIOS'] = ''
     conf.env['ADIOS_FOUND'] = False
+
     if not conf.options.enable_adios:
 	return
     if conf.options.adiosIncDir:
@@ -37,6 +37,7 @@ def check_adios(conf):
     conf.start_msg('Checking for ADIOS')
     conf.check(header_name='adios.h', features='cxx cxxprogram', use="ADIOS MPI", mandatory=True)
     conf.end_msg("Found ADIOS")
+    conf.env['ADIOS_FOUND'] = True
     return 1
 
 def detect(conf):

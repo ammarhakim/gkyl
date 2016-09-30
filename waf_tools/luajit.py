@@ -13,7 +13,6 @@ def options(opt):
 @conf
 def check_luajit(conf):
     opt = conf.options
-    conf.env['LIB_LUAJIT'] = ''
     conf.env['LUAJIT_FOUND'] = False
     
     if conf.options.luaJitIncDir:
@@ -36,6 +35,8 @@ def check_luajit(conf):
     conf.start_msg('Checking for LUAJIT include')
     conf.check(header_name='lua.hpp', features='cxx cxxprogram', use="LUAJIT", mandatory=True)
     conf.end_msg("Found LuaJIT")
+    conf.env['LUAJIT_FOUND'] = True
+    
     return 1
 
 def detect(conf):

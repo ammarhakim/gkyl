@@ -4,4 +4,4 @@
 ## + 6 @ |||| # P ||| +
 
 def build(bld):
-    bld.shlib(source = 'test_cfuncs.cpp', includes = '.', target = 'gkunit')
+    pass

@@ -15,8 +15,8 @@ def options(opt):
 @conf
 def check_mpi(conf):
     opt = conf.options
-    conf.env['LIB_MPI'] = ''
     conf.env['MPI_FOUND'] = False
+    
     if not conf.options.enable_mpi:
 	return
     if conf.options.mpiIncDir:
@@ -32,6 +32,8 @@ def check_mpi(conf):
     conf.start_msg('Checking for MPI')
     conf.check(header_name='mpi.h', features='cxx cxxprogram', use="MPI", mandatory=True)
     conf.end_msg("Found MPI")
+
+    conf.env['MPI_FOUND'] = True
     return 1
 
 def detect(conf):
