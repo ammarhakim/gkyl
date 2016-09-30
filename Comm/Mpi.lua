@@ -13,10 +13,18 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 local _M = {}
 
 ffi.cdef [[
+  // Opaque types
   typedef struct MPI_Comm_type *MPI_Comm;
   typedef struct MPI_Datatype_type *MPI_Datatype;        
   typedef struct MPI_Op_type *MPI_Op;
   typedef struct MPI_Status_type *MPI_Status;
+
+  // Public part of the MPI_Status structure
+  typedef struct {
+    int MPI_SOURCE;
+    int MPI_TAG;
+    int MPI_ERROR;
+  } Pub_MPI_Status;
 
   // size of various object
   int sizeof_MPI_Status();
