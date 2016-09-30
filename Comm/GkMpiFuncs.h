@@ -11,8 +11,12 @@
 #include <GkMpiMacros.h>
 
 extern "C" {
-    // Communicators    
+    // Sizes of various objects
+    DECL_GET_MPI_SIZE(MPI_Status);
+    
+    // Pre-defined objects and constants
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
+    DECL_GET_MPI_OBJECT_PTR(Status, MPI_STATUS_IGNORE);
 
     // Datatypes
     DECL_GET_MPI_OBJECT(Datatype, MPI_CHAR);

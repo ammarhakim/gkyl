@@ -42,8 +42,33 @@ function test_1(comm)
    assert_equal(recvbuf[0], 0, "Checking allReduce min")
 end
 
+function test_2(comm)
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+      
+   local nz = 100
+   local vIn, vOut = new("double[?]", nz), new("double[?]", nz)
+
+   if rank == 0 then
+      -- send data from rank 0 to all other ranks
+      for i = 0, nz-1 do
+	 vIn[i] = i
+      end
+      for dest = 1, sz-1 do
+	 Mpi.Send(vIn, nz, Mpi.DOUBLE, dest, 22, comm)
+      end      
+   else
+      -- recv stuff from rank 0
+      local status = Mpi.Recv(vOut, nz, Mpi.DOUBLE, 0, 22, comm)
+      for i = 0, nz-1 do
+	 assert_equal(vOut[i], i, "Checking recv data")
+      end
+   end
+end
+
 -- Run tests
 test_1(Mpi.COMM_WORLD)
+test_2(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
