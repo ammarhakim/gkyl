@@ -61,7 +61,7 @@ function test_2()
       v = v + decomp:subDomain(i):volume()
    end
    assert_equal(1000, v, "Checking volume of decomp")
-
+   
    v = 0
    for i = 1, decomp:numSubDomains() do
       v = v + decomp:subDomain(i):shape(1)
