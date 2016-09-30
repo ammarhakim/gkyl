@@ -8,8 +8,12 @@
 #include <mpi.h>
 #include <GkMpiFuncs.h>
 
-// Communicators
+// Sizes of various objects
+GET_MPI_SIZE(MPI_Status);
+
+// Pre-defined objects and constants
 GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
+GET_MPI_OBJECT_PTR(Status, MPI_STATUS_IGNORE);
 
 // Datatypes
 GET_MPI_OBJECT(Datatype, MPI_CHAR);
