@@ -4,4 +4,11 @@
 ## + 6 @ |||| # P ||| +
 
 def build(bld):
-    pass
+    # only build if in parallel
+    if bld.env.MPI_FOUND:
+        bld.stlib(
+            source = 'GkMpiFuncs.cpp',
+            target = 'gkcomm',
+            includes = '.',
+            use = 'MPI'
+        )    

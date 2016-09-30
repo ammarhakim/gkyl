@@ -32,7 +32,7 @@ def check_luajit(conf):
 
     conf.env.STLIB_LUAJIT = ["luajit-5.1"]
         
-    conf.start_msg('Checking for LUAJIT include')
+    conf.start_msg('Checking for LUAJIT')
     conf.check(header_name='lua.hpp', features='cxx cxxprogram', use="LUAJIT", mandatory=True)
     conf.end_msg("Found LuaJIT")
     conf.env['LUAJIT_FOUND'] = True

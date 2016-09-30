@@ -124,8 +124,8 @@ def buildExec(bld):
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
-        includes = 'Unit',
-        use='gkunit LUAJIT ADIOS MPI M DL ',
+        includes = 'Unit Comm',
+        use='gkunit gkcomm LUAJIT ADIOS MPI M DL ',
         linkflags = EXTRA_LINK_FLAGS
     )
 
