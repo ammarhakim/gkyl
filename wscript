@@ -106,6 +106,13 @@ def build(bld):
         Updater_dir.ant_glob('**/*.lua'),
         cwd=Updater_dir, relative_trick=True)
 
+    # - Comm
+    Comm_dir = bld.path.find_dir('Comm')
+    bld.install_files(
+        "${PREFIX}/bin/Comm",
+        Comm_dir.ant_glob('**/*.lua'),
+        cwd=Comm_dir, relative_trick=True)
+
     # build wrapper shell script
     sharePath = bld.env.SHARE_LUAJIT+"/?.lua"
     bld(rule=r"""sed 's_SHAREPATH_%s_' ${SRC} > ${TGT}""" % sharePath,
