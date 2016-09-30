@@ -1,6 +1,9 @@
-/** Top-level entry point into Gkyl */
+// Gkyl ------------------------------------------------------------------------
+//
+// Top-level entry point into Gkyl
 //    _______     ___
 // + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
 
 #include <gkylconfig.h>
 
@@ -13,6 +16,7 @@
 
 #ifdef HAVE_MPI_H
 # include <mpi.h>
+# include <GkMpiFuncs.h>
 #endif
 
 #ifdef HAVE_ADIOS_H
@@ -42,16 +46,15 @@ int finish(int err) {
   return err;  
 }
 
+// These dummy calls are a hack to force the linker to pull in symbols
+// from static libraries. There is a better way to do this, I just do
+// not know it yet.
 #ifdef HAVE_ADIOS_H
-/* This is a dummy to pull in ADIOS static lib to be linked in */
-int adiosInit(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
+int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 #endif
-
-extern "C" {
-    MPI_Comm getComm();
-}
-
-MPI_Comm getComm() { return MPI_COMM_WORLD; }
+#ifdef HAVE_MPI_H
+MPI_Comm _get_MPI_COMM_WORLD() { return get_MPI_COMM_WORLD(); }
+#endif
 
 int
 main(int argc, char **argv) {
