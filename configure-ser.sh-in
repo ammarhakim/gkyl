@@ -5,7 +5,7 @@
 # Build directory
 OUT=build-ser
 # Install location
-PREFIX=$HOME/gkylsoft/gkyl
+PREFIX=$HOME/gkylsoft/gkylser
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1
