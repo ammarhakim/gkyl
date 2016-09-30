@@ -1,0 +1,3 @@
+cmd="./waf --out=build-ser --enable-adios --adios-inc-dir=$HOME/gkylsoft/adios/include --adios-lib-dir=$HOME/gkylsoft/adios/lib --prefix=$HOME/gkylsoft/gkylser configure"
+echo $cmd
+$cmd

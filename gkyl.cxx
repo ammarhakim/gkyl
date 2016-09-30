@@ -47,6 +47,12 @@ int finish(int err) {
 int adiosInit(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 #endif
 
+extern "C" {
+    MPI_Comm getComm();
+}
+
+MPI_Comm getComm() { return MPI_COMM_WORLD; }
+
 int
 main(int argc, char **argv) {
 #ifdef HAVE_MPI_H
@@ -58,14 +64,15 @@ main(int argc, char **argv) {
     logger.log("Usage: gkyl LUA-SCRIPT");
     return finish(0);
   }
-  
+
+  // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
   if (L==NULL) {
     logger.log("Unable to create a new LuaJIT interpreter state. Quitting");
     return finish(0);
   }
   lua_gc(L, LUA_GCSTOP, 0);  // stop collector during initialization
-  luaL_openlibs(L);  // open libraries
+  luaL_openlibs(L);  // open standard libraries
   lua_gc(L, LUA_GCRESTART, -1);
 
   if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
