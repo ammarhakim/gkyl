@@ -5,11 +5,13 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
+#include <iostream>
+
 #include <mpi.h>
 #include <GkMpiFuncs.h>
 
-// Sizes of various objects
-GET_MPI_SIZE(MPI_Status);
+// Allocators for various objects
+GET_MPI_OBJ_SIZE(MPI_Status);
 
 // Pre-defined objects and constants
 GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
@@ -50,3 +52,11 @@ GET_MPI_OBJECT(Op, MPI_LXOR);
 GET_MPI_OBJECT(Op, MPI_BXOR);
 GET_MPI_OBJECT(Op, MPI_MINLOC);
 GET_MPI_OBJECT(Op, MPI_MAXLOC);
+
+// utility functions
+void
+GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus) {
+  outStatus[0] = inStatus->MPI_SOURCE;
+  outStatus[1] = inStatus->MPI_TAG;
+  outStatus[2] = inStatus->MPI_ERROR;
+}

@@ -1,3 +1,3 @@
-cmd="wc -l gkyl.cxx DataStruct/*.lua Eq/*.lua Grid/*.lua Lib/*.lua Updater/*.lua"
+cmd="wc -l gkyl.cxx DataStruct/*.lua Eq/*.lua Grid/*.lua Lib/*.lua Updater/*.lua Comm/*.lua Comm/*.h Comm/*.cpp"
 echo $cmd
 $cmd

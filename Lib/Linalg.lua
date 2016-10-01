@@ -10,8 +10,6 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-local _M = {}
-
 -- Vector ----------------------------------------------------------------------
 --
 -- A chunk of memory with length stored. One can also create vector of
