@@ -40,6 +40,8 @@ function test_1(comm)
 
    Mpi.Allreduce(sendbuf, recvbuf, 1, Mpi.INT, Mpi.MIN, comm)
    assert_equal(recvbuf[0], 0, "Checking allReduce min")
+
+   Mpi.Barrier(comm)
 end
 
 function test_2(comm)
@@ -59,16 +61,47 @@ function test_2(comm)
       end      
    else
       -- recv stuff from rank 0
-      local status = Mpi.Recv(vOut, nz, Mpi.DOUBLE, 0, 22, comm)
+      Mpi.Recv(vOut, nz, Mpi.DOUBLE, 0, 22, comm, nil)
       for i = 0, nz-1 do
 	 assert_equal(vOut[i], i, "Checking recv data")
       end
    end
+   Mpi.Barrier(comm)
+end
+
+function test_3(comm)
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+   local tag = 42
+   local nz = 100
+   local vIn, vOut = new("double[?]", nz), new("double[?]", nz)
+   local status = Mpi.Status()
+
+   if rank == 0 then
+      -- send data from rank 0 to all other ranks
+      for i = 0, nz-1 do
+	 vIn[i] = i
+      end
+      for dest = 1, sz-1 do
+	 Mpi.Send(vIn, nz, Mpi.DOUBLE, dest, tag, comm)
+	 print("Sent to rank", dest)
+      end      
+   else
+      -- recv stuff from rank 0
+      Mpi.Recv(vOut, 100, Mpi.DOUBLE, 0, tag, comm, status)
+      --local count = Mpi.Get_count(status, Mpi.DOUBLE)
+      print(string.format("Got %d data from rank %d with tag %d", 0, status.SOURCE, status.TAG))
+      for i = 0, nz-1 do
+	 assert_equal(vOut[i], i, "Checking recv data")
+      end
+   end
+   Mpi.Barrier(comm)
 end
 
 -- Run tests
 test_1(Mpi.COMM_WORLD)
 test_2(Mpi.COMM_WORLD)
+test_3(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

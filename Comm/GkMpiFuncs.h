@@ -12,7 +12,7 @@
 
 extern "C" {
     // Sizes of various objects
-    DECL_GET_MPI_SIZE(MPI_Status);
+    DECL_GET_MPI_OBJ_SIZE(MPI_Status);
     
     // Pre-defined objects and constants
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
@@ -53,6 +53,11 @@ extern "C" {
     DECL_GET_MPI_OBJECT(Op, MPI_BXOR);
     DECL_GET_MPI_OBJECT(Op, MPI_MINLOC);
     DECL_GET_MPI_OBJECT(Op, MPI_MAXLOC);
+
+    // Some utility functions to allow accessing non-opaque MPI types
+
+    /* Fill the outStatus with MPI_Status public data */
+    void GkMPI_fillStatus(const MPI_Status* inStatus, int *outStatus);
 }
 
 #endif // GK_MPI_FUNCS_H
