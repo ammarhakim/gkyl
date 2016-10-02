@@ -78,10 +78,8 @@ function test_3(comm)
    local status = Mpi.Status()
 
    if rank == 0 then
-      -- send data from rank 0 to all other ranks
-      for i = 0, nz-1 do
-	 vIn[i] = i
-      end
+      for i = 0, nz-1 do vIn[i] = i end
+      -- send data from rank 0 to all other ranks      
       for dest = 1, sz-1 do
 	 Mpi.Send(vIn, nz, Mpi.DOUBLE, dest, tag, comm)
       end
@@ -89,6 +87,7 @@ function test_3(comm)
       -- recv stuff from rank 0
       Mpi.Recv(vOut, 100, Mpi.DOUBLE, 0, tag, comm, status)
       local count = Mpi.Get_count(status, Mpi.DOUBLE)
+      assert_equal(count, 100, "Checking if correct number of elements were recv-ed")
       for i = 0, nz-1 do
 	 assert_equal(vOut[i], i, "Checking recv data")
       end
