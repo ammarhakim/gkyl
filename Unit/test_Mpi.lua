@@ -25,6 +25,12 @@ function log(msg)
    end
 end
 
+function test_0(comm)
+   local grp = Mpi.Comm_group(comm)
+   
+   Mpi.Barrier(comm)   
+end
+
 function test_1(comm)
    local sz = Mpi.Comm_size(comm)
    local rank = Mpi.Comm_rank(comm)
@@ -40,6 +46,19 @@ function test_1(comm)
 
    Mpi.Allreduce(sendbuf, recvbuf, 1, Mpi.INT, Mpi.MIN, comm)
    assert_equal(recvbuf[0], 0, "Checking allReduce min")
+
+   -- test communicators
+   local myComm = Mpi.Comm_dup(comm)
+   assert_equal(true, ffi.istype(typeof("MPI_Comm*"), myComm), "Checking new comm type")   
+   local mySz = Mpi.Comm_size(myComm)
+   assert_equal(sz, mySz, "Checking if duplicated communicator has same number of elements")
+
+   -- test groups
+   local grp = Mpi.Comm_group(myComm)
+   local gSz = Mpi.Group_size(grp)
+   assert_equal(sz, gSz, "Checking size of group")
+   local gRank = Mpi.Group_rank(grp)
+   assert_equal(rank, gRank, "Checking rank of group")
 
    Mpi.Barrier(comm)
 end
@@ -96,6 +115,7 @@ function test_3(comm)
 end
 
 -- Run tests
+test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
 test_2(Mpi.COMM_WORLD)
 test_3(Mpi.COMM_WORLD)

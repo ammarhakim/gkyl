@@ -10,11 +10,15 @@
 #include <mpi.h>
 #include <GkMpiFuncs.h>
 
-// Allocators for various objects
+// Sizeof operators for various objects
 GET_MPI_OBJ_SIZE(MPI_Status);
+GET_MPI_OBJ_SIZE(MPI_Group);
+GET_MPI_OBJ_SIZE(MPI_Comm);
 
 // Pre-defined objects and constants
 GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
+GET_MPI_OBJECT(Comm, MPI_COMM_NULL);
+GET_MPI_OBJECT(Comm, MPI_COMM_SELF)
 GET_MPI_OBJECT_PTR(Status, MPI_STATUS_IGNORE);
 
 // Datatypes
