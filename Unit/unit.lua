@@ -8,7 +8,6 @@
 local math = require "math"
 local stats = { fail = 0, pass = 0 }
 
-
 local function format_arg(arg)
    local argtype = type(arg)
    if argtype == "string" then
