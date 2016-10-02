@@ -85,9 +85,6 @@ main(int argc, char **argv) {
     lua_close(L);
     return finish(0);
   }
-
-  const char* ret = lua_tostring(L, -1); // value returned by script
-  logger.log(ret);
   lua_close(L);
   return finish(0);
 }

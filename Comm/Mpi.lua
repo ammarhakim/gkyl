@@ -159,7 +159,7 @@ end
 -- MPI_Get_count
 function _M.Get_count(status, datatype)
    local r = int_1()
-   local err = ffi.C.MPI_Get_Count(status.mpiStatus, datatype, r)
+   local err = ffi.C.MPI_Get_count(status.mpiStatus, datatype, r)
    return r[0]
 end
 -- MPI_Send

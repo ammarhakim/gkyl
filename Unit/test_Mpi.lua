@@ -84,13 +84,11 @@ function test_3(comm)
       end
       for dest = 1, sz-1 do
 	 Mpi.Send(vIn, nz, Mpi.DOUBLE, dest, tag, comm)
-	 print("Sent to rank", dest)
-      end      
+      end
    else
       -- recv stuff from rank 0
       Mpi.Recv(vOut, 100, Mpi.DOUBLE, 0, tag, comm, status)
-      --local count = Mpi.Get_count(status, Mpi.DOUBLE)
-      print(string.format("Got %d data from rank %d with tag %d", 0, status.SOURCE, status.TAG))
+      local count = Mpi.Get_count(status, Mpi.DOUBLE)
       for i = 0, nz-1 do
 	 assert_equal(vOut[i], i, "Checking recv data")
       end
