@@ -41,9 +41,12 @@ class DumDumLogger {
 
 int finish(int err) {
 #ifdef HAVE_MPI_H
-  MPI_Finalize();
-#endif  
-  return err;  
+  if (err != 0)
+    MPI_Abort(MPI_COMM_WORLD, err);
+  else 
+    MPI_Finalize();
+#endif
+  return err;
 }
 
 // These dummy calls are a hack to force the linker to pull in symbols
@@ -71,8 +74,11 @@ main(int argc, char **argv) {
   // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
   if (L==NULL) {
-    logger.log("Unable to create a new LuaJIT interpreter state. Quitting");
-    return finish(0);
+    // NOTE: we need to use cerr and not 'logger' when something goes
+    // wrong in top-level executable. Otherwise error message won't
+    // appear anywhere.
+    std::cerr << "Unable to create a new LuaJIT interpreter state. Quitting" << std::endl;
+    return finish(1);
   }
   lua_gc(L, LUA_GCSTOP, 0);  // stop collector during initialization
   luaL_openlibs(L);  // open standard libraries
@@ -81,9 +87,9 @@ main(int argc, char **argv) {
   if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured
     const char* ret = lua_tostring(L, -1);
-    logger.log("*** ERROR ***"); logger.log(ret);
+    std::cerr << "*** ERROR *** " << ret << std::endl;
     lua_close(L);
-    return finish(0);
+    return finish(1);
   }
   lua_close(L);
   return finish(0);
