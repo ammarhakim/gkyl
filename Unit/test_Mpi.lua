@@ -60,6 +60,9 @@ function test_1(comm)
    local gRank = Mpi.Group_rank(grp)
    assert_equal(rank, gRank, "Checking rank of group")
 
+   local gComm = Mpi.Comm_create(myComm, grp)
+   assert_equal(sz, Mpi.Comm_size(gComm), "Checking if new communicator has correct size")
+
    Mpi.Barrier(comm)
 end
 
@@ -114,11 +117,27 @@ function test_3(comm)
    Mpi.Barrier(comm)
 end
 
+function test_4(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 4 then return end -- only run if using 4 procs
+
+   local ranks = Lin.IntVec(2)
+   ranks[1] = 0; ranks[2] = 1;
+   local newComm = Mpi.Split_comm(comm, ranks)
+
+   if rnk < 2 then
+      local newSz = Mpi.Comm_size(newComm)
+      assert_equal(2, newSz, "Testing new comminucator size")
+   end
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
-test_2(Mpi.COMM_WORLD)
-test_3(Mpi.COMM_WORLD)
+--test_2(Mpi.COMM_WORLD)
+--test_3(Mpi.COMM_WORLD)
+test_4(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

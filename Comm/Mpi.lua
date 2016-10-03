@@ -267,6 +267,17 @@ function _M.Comm_create(comm, group)
    return c
 end
 
+-- Convenience functions
+
+-- Collect 'ranks' from 'comm' and create a new communicator with just
+-- those ranks. The 'ranks' parameter must be of a Linalg.IntVec object
+function _M.Split_comm(comm, ranks)
+   local grp = _M.Comm_group(comm)
+   local newGrp = _M.Group_incl(grp, #ranks, ranks:data())
+   return _M.Comm_create(comm, newGrp)
+end
+
+
 return _M
 
 
