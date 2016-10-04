@@ -53,9 +53,18 @@ end
 
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
+   local field_comp_mf = {
+      data = function(self)
+	 return self._cdata
+      end
+   }
    local field_comp_mt = {
       __index = function(self, k)
-	 return self._cdata[k-1]
+	 if type(k) == "number" then
+	    return self._cdata[k-1]
+	 else
+	    return field_comp_mf[k]
+	 end
       end,
       __newindex = function(self, k, v)
 	 self._cdata[k-1] = v
