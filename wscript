@@ -5,7 +5,7 @@
 
 import os
 import sys
-sys.path.insert(0, './waf_tools')
+#sys.path.insert(0, './waf_tools')
 import commands
 
 APPNAME = 'gkyl'
@@ -19,10 +19,13 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl')
-    opt.load('luajit') 
-    opt.load('mpi')
-    opt.load('adios')
+    opt.load('gkyl luajit mpi adios',
+             tooldir='waf_tools')
+    
+    #opt.load('gkyl')
+    #opt.load('luajit') 
+    #opt.load('mpi')
+    #opt.load('adios')
 
 def configure(conf):
     r"""Configure Gkyl build"""

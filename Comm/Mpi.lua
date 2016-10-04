@@ -277,7 +277,4 @@ function _M.Split_comm(comm, ranks)
    return _M.Comm_create(comm, newGrp)
 end
 
-
 return _M
-
-

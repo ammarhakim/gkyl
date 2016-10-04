@@ -11,6 +11,8 @@ def options(opt):
                    default=False)
     opt.add_option('--mpi-inc-dir', type='string', help='Path to MPI includes', dest='mpiIncDir')
     opt.add_option('--mpi-lib-dir', type='string', help='Path to MPI libraries', dest='mpiLibDir')
+    opt.add_option('--mpi-link-libs', type='string', help='List of MPI libraries to link',
+                   dest='mpiLinkLibs', default='mpi,mpi_cxx')
 
 @conf
 def check_mpi(conf):
@@ -23,11 +25,14 @@ def check_mpi(conf):
 	conf.env.INCLUDES_MPI = conf.options.mpiIncDir
     else:
         conf.fatal("Please specify MPI include directories by --mpi-inc-dir")
+
     if conf.options.mpiLibDir:
 	conf.env.LIBPATH_MPI = conf.options.mpiLibDir
-        conf.env.LIB_MPI = ["mpi", "mpi_cxx"]
     else:
         conf.fatal("Please specify MPI library directories by --mpi-lib-dir")
+
+    libList = conf.options.mpiLinkLibs
+    conf.env.LIB_MPI = libList.split(',')
         
     conf.start_msg('Checking for MPI')
     conf.check(header_name='mpi.h', features='cxx cxxprogram', use="MPI", mandatory=True)
