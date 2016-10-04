@@ -117,8 +117,9 @@ def build(bld):
         cwd=Comm_dir, relative_trick=True)
 
     # build wrapper shell script
+    binPath = bld.env.PREFIX+"/bin"
     sharePath = bld.env.SHARE_LUAJIT+"/?.lua"
-    bld(rule=r"""sed 's_SHAREPATH_%s_' ${SRC} > ${TGT}""" % sharePath,
+    bld(rule=r"""sed -e 's_SHAREPATH_%s_' -e 's_BINPATH_%s_' ${SRC} > ${TGT}""" % (sharePath, binPath),
         source='xgkyl-in', target='xgkyl')
     
     # Install wrapper shell script
