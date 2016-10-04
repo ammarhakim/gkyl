@@ -21,6 +21,7 @@ typedef struct {
     double _gasGamma; /* Gas constant */
 } EulerEqn_t;
 
+void Euler_rp(EulerEqn_t *e, int dir, double *delta, double *ql, double *qr, double *waves, double *s);
 ]]
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -41,60 +42,7 @@ local function isNan(x) return x ~= x end
 -- essentially based on code used in my thesis i.e. CLAWPACK and
 -- Miniwarpx. (A. Hakim)
 local function rp(self, dir, delta, ql, qr, waves, s)
-   local d = dirShuffle[dir] -- shuffle indices for `dir`
-   local g1 = self._gasGamma-1
-   local rhol, rhor = ql[1], qr[1]
-   local pl, pr = self:pressure(ql), self:pressure(qr)
-
-   -- Roe averages: see Roe's original 1986 paper or LeVeque book
-   local srrhol, srrhor = math.sqrt(rhol), math.sqrt(rhor)
-   local ravgl1, ravgr1 = 1/srrhol, 1/srrhor
-   local ravg2 = 1/(srrhol+srrhor)
-   local u = (ql[d[1]]*ravgl1 + qr[d[1]]*ravgr1)*ravg2
-   local v = (ql[d[2]]*ravgl1 + qr[d[2]]*ravgr1)*ravg2
-   local w = (ql[d[3]]*ravgl1 + qr[d[3]]*ravgr1)*ravg2
-   local enth = ((ql[5]+pl)*ravgl1 + (qr[5]+pr)*ravgr1)*ravg2   
-
-   -- See http://ammar-hakim.org/sj/euler-eigensystem.html for
-   -- notation and meaning of these terms
-   local q2 = u*u+v*v+w*w
-   local aa2 = g1*(enth-0.5*q2)
-   local a = math.sqrt(aa2)
-   local g1a2, euv = g1/aa2, enth-q2
-
-   -- compute projections of jump
-   local a4 = g1a2*(euv*delta[1] + u*delta[d[1]] + v*delta[d[2]] + w*delta[d[3]] - delta[5])
-   local a2 = delta[d[2]] - v*delta[1]
-   local a3 = delta[d[3]] - w*delta[1]
-   local a5 = 0.5*(delta[d[1]] + (a-u)*delta[1] - a*a4)/a;
-   local a1 = delta[1] - a4 - a5
-
-   -- wave 1: eigenvalue is u-c
-   local wv = waves[1]
-   wv[1]  = a1
-   wv[d[1]] = a1*(u-a)
-   wv[d[2]] = a1*v
-   wv[d[3]] = a1*w
-   wv[5] = a1*(enth-u*a)
-   s[1] = u-a
-
-   -- wave 2: eigenvalue is u, u, u three waves are lumped into one
-   wv = waves[2]
-   wv[1]  = a4
-   wv[d[1]] = a4*u
-   wv[d[2]] = a4*v + a2
-   wv[d[3]] = a4*w + a3
-   wv[5] = a4*0.5*q2 + a2*v + a3*w
-   s[2] = u
-
-   -- wave 3: eigenvalue is u+c
-   wv = waves[3]
-   wv[1]  = a5
-   wv[d[1]] = a5*(u+a)
-   wv[d[2]] = a5*v
-   wv[d[3]] = a5*w
-   wv[5] = a5*(enth+u*a)
-   s[3] = u+a
+   ffi.C.Euler_rp(self, dir, delta:data(), ql:data(), qr:data(), waves:data(), s:data())
 end
 
 -- The function to compute fluctuations is implemented as a template

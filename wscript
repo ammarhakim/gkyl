@@ -52,7 +52,8 @@ def configure(conf):
 
 def build(bld):
     ### recurse down directories and build C++ code
-    bld.recurse("Comm")    
+    bld.recurse("Comm")
+    bld.recurse("Eq")
     #bld.recurse("Unit")
 
     # build executable
@@ -135,7 +136,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm',
-        use='gkcomm LUAJIT ADIOS MPI M DL ',
+        use='gkcomm gkeq LUAJIT ADIOS MPI M DL ',
         linkflags = EXTRA_LINK_FLAGS
     )
 
