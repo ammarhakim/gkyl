@@ -2,13 +2,13 @@
 
 This is the Gkyl code. The name is pronounced as in the book "The
 Strange Case of Dr. Jekyll and Mr. Hyde". Gkyl is written in LuaJIT,
-with time-critical parts written in C++. Gkyl is developed at
-Princeton Plasma Physics Laboratory (PPPL).
+with some wrapper and time-critical parts written in C++. Gkyl is
+developed at Princeton Plasma Physics Laboratory (PPPL).
 
 # License
 
 Gkyl can be used freely for research at universities, national
-laboratories and other non-profit institutions. Nightly zip-balls will
+laboratories and other non-profit institutions. Release zip-balls will
 be provided. Access to the source-code repository is restricted to
 PPPL and our research partners.
 
@@ -17,7 +17,7 @@ PPPL and our research partners.
 You must build and install the dependencies yourself, or use existing
 builds for your system. Most supercomputer centers have optimized,
 pre-built libraries for most dependencies. On these systems, you will
-only need to install LuaJIT yourself.
+probably only need to install LuaJIT yourself.
 
 Build instructions for dependencies are provided in the build sections
 below. Gkyl depends on the following tools and packages:

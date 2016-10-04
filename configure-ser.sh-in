@@ -3,9 +3,12 @@
 # Edit the paths and options in the following command to suit your system
 
 # Build directory
-OUT=build-ser
+OUT=build-par
 # Install location
-PREFIX=$HOME/gkylsoft/gkylser
+PREFIX=$HOME/gkylsoft/gkyl
+
+# Compile flags (set optimization/debug flags here)
+CXXFLAGS='-O2,-Wall'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1
@@ -18,6 +21,6 @@ ADIOS_INC_DIR=$HOME/gkylsoft/adios/include
 ADIOS_LIB_DIR=$HOME/gkylsoft/adios/lib
 
 # You probably do not need to modify the command itself
-cmd="./waf --out=$OUT --prefix=$PREFIX --luajit-inc-dir=$LUAJIT_INC_DIR --luajit-lib-dir=$LUAJIT_LIB_DIR --luajit-share-dir=$LUAJIT_SHARE_DIR  $ENABLE_ADIOS --adios-inc-dir=$ADIOS_INC_DIR --adios-lib-dir=$ADIOS_LIB_DIR configure"
+cmd="./waf --out=$OUT --prefix=$PREFIX --cxxflags=$CXXFLAGS --luajit-inc-dir=$LUAJIT_INC_DIR --luajit-lib-dir=$LUAJIT_LIB_DIR --luajit-share-dir=$LUAJIT_SHARE_DIR  $ENABLE_ADIOS --adios-inc-dir=$ADIOS_INC_DIR --adios-lib-dir=$ADIOS_LIB_DIR configure"
 echo $cmd
 $cmd
