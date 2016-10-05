@@ -3,9 +3,9 @@
 # Edit the paths and options in the following command to suit your system
 
 # Build directory
-OUT=build-par
+OUT=build-ser
 # Install location
-PREFIX=$HOME/gkylsoft/gkyl
+PREFIX=$HOME/gkylsoft/gkylser
 
 # Compile flags (set optimization/debug flags here)
 CXXFLAGS='-O2,-Wall'
