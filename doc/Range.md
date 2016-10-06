@@ -45,6 +45,9 @@ The following methods are provided.
 `range.volume()`
 : Total number of indices in range.
 
+`range.copy(rng)`
+: Copy range specified by `rng` into this range, i.e `range`.
+
 The range object provides row and column major iterators to loop over
 all the indices in the range object. These should be used in a `for`
 loop to step over all the indices.
