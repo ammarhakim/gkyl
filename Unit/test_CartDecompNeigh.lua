@@ -102,24 +102,22 @@ function test_2()
 end
 
 function test_3()
+   local tmStart = Time.clock()   
    -- create decomposition and decompose a region
    local decomp = DecompRegionCalc.CartProd { cuts = {20, 20, 20} }
    decomp:decompose(Range.Range({1, 1, 1}, {2000, 2000, 2000}))
    -- create neighbor calculator
    local decompNeigh = CartDecompNeigh(decomp)
-   print("Decomp done")
 
-   local tmStart = Time.clock()
    decompNeigh:calcFaceCommNeigh(1, 1)
    local tmCalc = Time.clock()-tmStart
-   print(string.format(
-	    "To calculate neighbors into %d boxes it took %g", decomp:numSubDomains(), tmCalc))
+   print(string.format("test_3() took %g secs for %d sub-domains", tmCalc, decomp:numSubDomains()))
 end
 
 -- Run tests
+test_3()
 test_1()
 test_2()
---test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

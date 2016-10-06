@@ -84,6 +84,12 @@ local range_mt = {
       upper = function (self, dir)
 	 return self._upper[dir-1]
       end,
+      copy = function (self, rng)
+	 self._ndim = rng._ndim
+	 for d = 0, rng:ndim()-1 do
+	    self._lower[d], self._upper[d] = rng._lower[d], rng._upper[d]
+	 end
+      end,
       lowerAsVec = function (self)
 	 local v = Lin.IntVec(self:ndim())
 	 for dir = 1, self:ndim() do  v[dir] = self._lower[dir-1] end

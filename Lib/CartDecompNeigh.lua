@@ -30,10 +30,6 @@ end
 -- make object callable, and redirect call to the :new method
 setmetatable(CartDecompNeigh, { __call = function (self, o) return self.new(self, o) end })
 
-local function neighTblKey(i,j)
-   return string.format("%d:5d", i, j)
-end
-
 -- set callable methods
 CartDecompNeigh.__index = {
    calcFaceCommNeigh = function (self, lowerGhost, upperGhost)
@@ -50,7 +46,7 @@ CartDecompNeigh.__index = {
 	       if ku == kme then goto continue end -- no self-intersections
 	       if not expSubDom:isIntersectionEmpty(self._decomp:subDomain(ku)) then
 		  table.insert(nlst, ku) -- insert subDomain index into list of neighbors
-	       end
+	        end
 	       ::continue::
 	    end
 	 end
