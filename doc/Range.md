@@ -48,15 +48,6 @@ The following methods are provided.
 `range.copy(rng)`
 : Copy range specified by `rng` into this range, i.e `range`.
 
-The range object provides row and column major iterators to loop over
-all the indices in the range object. These should be used in a `for`
-loop to step over all the indices.
-
-`range:colMajorIter()`, `range:rowMajorIter()`
-: Column/row major iterators to loop over all indices in range. The
-  indexer returns a `Vec` object with the indices. The return vector
-  __should not be modified__.
-
 `range:shorten(dir)`
 : Reduces the upper limit in direction `dir` such that the shape in
   that direction is 1. This allows looping over all indices orthogonal
@@ -75,8 +66,21 @@ loop to step over all the indices.
   empty, the lower/upper are such that the volume of the region is
   zero.
 
+`range:isIntersectionEmpty(rgn)`
+: Returns true if intersection of `range` and `rgn` is empty, and
+  false otherwise.
+
 `range1 == range2`
 : Return `true` if ranges are the same, false otherwise.
+
+The range object provides row and column major iterators to loop over
+all the indices in the range object. These should be used in a `for`
+loop to step over all the indices.
+
+`range:colMajorIter()`, `range:rowMajorIter()`
+: Column/row major iterators to loop over all indices in range. The
+  indexer returns a `Vec` object with the indices. The return vector
+  __should not be modified__.
 
 Example usage for iterators is:
 
