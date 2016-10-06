@@ -59,6 +59,19 @@ loop to step over all the indices.
   that direction is 1. This allows looping over all indices orthogonal
   to `dir`.
 
+`range:extend(loExt, upExt)`
+: Returns a new Range object with additional `loExt` indices added
+  to all lower edges and `upExt` added to all upper edges.
+
+`range:extend(dir, loExt, upExt)`
+: Returns a new Range object with additional `loExt` indices added to
+  lower edge and upExt` added to upper edge in direction, `dir`.
+
+`range:intersect(rgn)`
+: Returns intersection of `range` with `rgn`. If the intersection is
+  empty, the lower/upper are such that the volume of the region is
+  zero.
+
 `range1 == range2`
 : Return `true` if ranges are the same, false otherwise.
 
