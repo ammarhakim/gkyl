@@ -133,18 +133,18 @@ end
 local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
 local intersectTempl = xsys.template([[
-return function (self, rgn)
+return function (s, rgn)
 | for d = 1, NDIM do
-   lo[${d}] = math.max(self:lower(${d}), rgn:lower(${d}))
-   up[${d}] = math.min(self:upper(${d}), rgn:upper(${d}))
+	 if math.min(s:upper(${d}), rgn:upper(${d})) < math.max(s:lower(${d}), rgn:lower(${d})) then
+	    return true
+	 end
 | end
-  return _M.Range(lo, up)
+  return false
 end
 ]])
 -- instantiate it
-local intersect = intersectTempl {NDIM=2}
+local intersect = intersectTempl {NDIM=3}
 print(intersect)
-
 
 test_1()
 test_2()
