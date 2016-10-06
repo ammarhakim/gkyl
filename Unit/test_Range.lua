@@ -117,6 +117,33 @@ function test_7()
    assert_equal(32, extRange:upper(3), "Checking upper extended")
 
    assert_equal(13*23*33, extRange:volume(), "Checking volume extended")
+
+   local extRange1 = range:extendDir(1, 1, 2)
+   assert_equal(0, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(12, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDir(2, 1, 2)
+   assert_equal(1, extRange1:lower(1), "Checking lower extended")
+   assert_equal(0, extRange1:lower(2), "Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(10, extRange1:upper(1), "Checking upper extended")
+   assert_equal(22, extRange1:upper(2), "Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDir(3, 1, 2)
+   assert_equal(1, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(10, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "Checking upper extended")
 end
 
 function test_8()
@@ -237,6 +264,42 @@ function test_16()
    end
 end
 
+function test_17()
+   local r1 = Range.Range({1, 2}, {10, 11})
+
+   local r2 = Range.Range({5, 6}, {12, 13})
+   local r3 = r1:intersect(r2)
+   assert_equal(5, r3:lower(1), "Checking intersected range")
+   assert_equal(6, r3:lower(2), "Checking intersected range")
+   assert_equal(10, r3:upper(1), "Checking intersected range")
+   assert_equal(11, r3:upper(2), "Checking intersected range")
+
+   local r3 = r2:intersect(r1)
+   assert_equal(5, r3:lower(1), "Checking intersected range")
+   assert_equal(6, r3:lower(2), "Checking intersected range")
+   assert_equal(10, r3:upper(1), "Checking intersected range")
+   assert_equal(11, r3:upper(2), "Checking intersected range")
+
+   local r2 = Range.Range({5, 5}, {10, 10})
+   local r3 = r1:intersect(r2)
+   assert_equal(5, r3:lower(1), "Checking intersected range")
+   assert_equal(5, r3:lower(2), "Checking intersected range")
+   assert_equal(10, r3:upper(1), "Checking intersected range")
+   assert_equal(10, r3:upper(2), "Checking intersected range")
+
+   local r2 = Range.Range({4, 4}, {15, 8})
+   local r3 = r1:intersect(r2)
+   assert_equal(4, r3:lower(1), "Checking intersected range")
+   assert_equal(4, r3:lower(2), "Checking intersected range")
+   assert_equal(10, r3:upper(1), "Checking intersected range")
+   assert_equal(8, r3:upper(2), "Checking intersected range")
+
+   local r2 = Range.Range({20, 20}, {25, 25})
+   local r3 = r1:intersect(r2)
+   assert_equal(0, r3:volume(), "Checking volume of empty intersection")
+
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -254,6 +317,7 @@ test_13()
 test_14()
 test_15()
 test_16()
+test_17()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

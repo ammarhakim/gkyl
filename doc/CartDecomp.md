@@ -32,6 +32,9 @@ The following methods are provided.
 
 `decomp:cuts(dir)`
 : Cuts in direction `dir`.
+
+`decomp:numSubDomains()`
+: Total number of sub-domains in decomposition.
   
 `decomp:decompose(range)`
 : Decomposes `range` into smaller regions. Returns `true` if
@@ -40,9 +43,6 @@ The following methods are provided.
 After the decompose method has been called, the following methods can
 be used to access the decomposition.
 
-`decomp:lower(dir, c)`
-: Lower index in direction `dir` for cut `c`.
-
-`decomp:upper(dir, c)`
-: Upper index in direction `dir` for cut `c`.
+`decomp:subDomain(k)`
+: The k-th sub-domain in the system, indexed from 1.
 

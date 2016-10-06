@@ -95,7 +95,7 @@ local range_mt = {
 	 return v
       end,
       shape = function (self, dir)
-	 return self._upper[dir-1]-self._lower[dir-1]+1
+	 return math.max(0, self._upper[dir-1]-self._lower[dir-1]+1)
       end,
       volume = function (self)
 	 local v = 1
@@ -112,6 +112,15 @@ local range_mt = {
 	 end
 	 return r
       end,
+      extendDir = function (self, extDir, lExt, uExt)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for dir = 1, self:ndim() do
+	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir), self:upper(dir)
+	 end
+	 r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
+	 return r
+      end,      
       shorten = function (self, dir)
 	 local r = new(typeof("Range_t"))
 	 r._ndim = self:ndim()
@@ -120,6 +129,22 @@ local range_mt = {
 	 end
 	 r._upper[dir-1] = r._lower[dir-1]
 	 return r	 
+      end,
+      intersect = function (self, rgn)
+	 local lo, up = Lin.IntVec(self:ndim()), Lin.IntVec(self:ndim())
+	 for d = 1, self:ndim() do
+	    lo[d] = math.max(self:lower(d), rgn:lower(d))
+	    up[d] = math.min(self:upper(d), rgn:upper(d))
+	 end
+	 return _M.Range(lo, up)
+      end,
+      isIntersectionEmpty = function (self, rgn)
+	 for d = 1, self:ndim() do
+	    if math.min(self:upper(d), rgn:upper(d)) < math.max(self:lower(d), rgn:lower(d)) then
+	       return true
+	    end
+	 end
+	 return false
       end,
       _iter = function (self, iter_func)
 	 local iterState = { isFirst = true, isEmpty = self:volume() == 0 and true or false }
