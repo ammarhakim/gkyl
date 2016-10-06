@@ -115,7 +115,7 @@ function test_3()
 end
 
 -- Run tests
-test_3()
+--test_3()
 test_1()
 test_2()
 

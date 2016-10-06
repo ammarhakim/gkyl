@@ -5,8 +5,6 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-jit.opt.start('callunroll=10', 'loopunroll=30')
-
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
@@ -21,10 +19,8 @@ local CartDecompNeigh = {}
 -- constructor to make new neighbor object
 function CartDecompNeigh:new(decomp)
    local self = setmetatable({}, CartDecompNeigh)
-
-   self._decomp = decomp -- actual decomposition
+   self._decomp = decomp -- decomposition object
    self._neighData = {} -- neighbor data
-
    return self
 end
 -- make object callable, and redirect call to the :new method
@@ -49,6 +45,25 @@ CartDecompNeigh.__index = {
 	        end
 	       ::continue::
 	    end
+	 end
+	 self._neighData[kme] = nlst
+      end
+   end,
+   calcAllCommNeigh = function (self, lowerGhost, upperGhost)
+      self._neighData = {} -- clear out existing data
+      local ndim = self._decomp:ndim()
+      local numSubDomains = self._decomp:numSubDomains()
+      for kme = 1, numSubDomains do
+	 local nlst = {} -- List of neighbors
+	 -- expand sub-domain
+	 local expSubDom = self._decomp:subDomain(kme):extend(lowerGhost, upperGhost)
+	 -- loop over all other sub-domains and intersect
+	 for ku = 1, numSubDomains do
+	    if ku == kme then goto continue end -- no self-intersections
+	    if not expSubDom:isIntersectionEmpty(self._decomp:subDomain(ku)) then
+	       table.insert(nlst, ku) -- insert subDomain index into list of neighbors
+	    end
+	    ::continue::
 	 end
 	 self._neighData[kme] = nlst
       end
