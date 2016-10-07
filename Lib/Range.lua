@@ -48,7 +48,7 @@ end
 
 -- compare a and b
 local function cmpInt6(a, b)
-   return a[1] == b[1] and a[2] == b[2] and a[3] == b[3] and a[4] == b[4] and a[5] == b[5] and a[6] == b[6]
+   return a[0] == b[0] and a[1] == b[1] and a[2] == b[2] and a[3] == b[3] and a[4] == b[4] and a[5] == b[5]
 end
 
 -- Range object meta-type
@@ -56,6 +56,9 @@ local range_mt = {
    __new = function (self, lower, upper)
       -- lower and upper are tables of integers. Indices are inclusive
       local r = new(self)
+      for d = 0, 5 do
+	 r._lower[d], r._upper[d] = 0, 0
+      end
       r._ndim = #lower
       assert(r._ndim < 7, "Range.new: Only objects upto 6D are supported")
       for d = 1, #lower do
