@@ -57,7 +57,7 @@ local range_mt = {
       -- lower and upper are tables of integers. Indices are inclusive
       local r = new(self)
       for d = 0, 5 do
-	 r._lower[d], r._upper[d] = 0, 0
+      	 r._lower[d], r._upper[d] = 0, 0
       end
       r._ndim = #lower
       assert(r._ndim < 7, "Range.new: Only objects upto 6D are supported")
