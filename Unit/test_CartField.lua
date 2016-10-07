@@ -125,10 +125,18 @@ function test_3()
    local indexer = field:indexer()
    for i = localRange:lower(1), localRange:upper(1) do
       local fitr = field:get(indexer(i))
-      fitr[1].rho = 1
-      fitr[1].rhou = 2
-      fitr[1].E = 3
-   end   
+      fitr[i].rho = i+1
+      fitr[i].rhou = i+2
+      fitr[i].E = i+3
+   end
+
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+      assert_equal(i+1, fitr[i].rho, "Testing Field of struct")
+      assert_equal(i+2, fitr[i].rhou, "Testing Field of struct")
+      assert_equal(i+3, fitr[i].E, "Testing Field of struct")
+   end
+   
 end
 
 function test_4()
