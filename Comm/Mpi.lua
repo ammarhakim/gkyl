@@ -5,6 +5,9 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+-- don't bother is MPI is not built in
+assert(GKYL_HAVE_MPI, "Gkyl was not built with MPI!")
+
 local ffi  = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
@@ -76,6 +79,8 @@ ffi.cdef [[
   int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
   int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 		    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
+  int MPI_Bcast(void *buffer, int count, MPI_Datatype datatype, int root, 
+                  MPI_Comm comm );
   int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,
 	       MPI_Comm comm);
   int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
@@ -204,15 +209,19 @@ function _M.Comm_dup(comm)
    return c
 end
 
--- MPI_Allreduce
-function _M.Allreduce(sendbuf, recvbuf, count, datatype, op, comm)
-   local err = ffi.C.MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getObj(comm, "MPI_Comm*"))
-end
 -- MPI_Get_count
 function _M.Get_count(status, datatype)
    local r = int_1()
    local err = ffi.C.MPI_Get_count(status.mpiStatus, datatype, r)
    return r[0]
+end
+-- MPI_Allreduce
+function _M.Allreduce(sendbuf, recvbuf, count, datatype, op, comm)
+   local err = ffi.C.MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getObj(comm, "MPI_Comm*"))
+end
+-- MPI_Bcast
+function _M.Bcast(buffer, count, datatype, root, comm)
+   local err = ffi.C.MPI_Bcast(buffer, count, datatype, root, getObj(comm, "MPI_Comm*"))
 end
 -- MPI_Send
 function _M.Send(buf, count, datatype, dest, tag, comm)

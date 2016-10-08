@@ -12,6 +12,7 @@
 
 // std include
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 #ifdef HAVE_MPI_H
@@ -83,6 +84,31 @@ main(int argc, char **argv) {
   lua_gc(L, LUA_GCSTOP, 0);  // stop collector during initialization
   luaL_openlibs(L);  // open standard libraries
   lua_gc(L, LUA_GCRESTART, -1);
+
+  // load compile-time constants into Lua compiler so they become
+  // available to scripts
+  std::ostringstream varDefs;
+#ifdef HAVE_MPI_H
+  varDefs << "GKYL_HAVE_MPI = true" << std::endl;
+#else
+  varDefs << "GKYL_HAVE_MPI = false" << std::endl;
+#endif
+
+#ifdef HAVE_ADIOS_H
+  varDefs << "GKYL_HAVE_ADIOS = true" << std::endl;
+#else
+  varDefs << "GKYL_HAVE_ADIOS = false" << std::endl;
+#endif
+  // set some JIT parameters to fiddle around with optimizations
+  varDefs << "jit.opt.start('callunroll=10', 'loopunroll=30')" << std::endl;
+  
+  if (luaL_loadstring(L, varDefs.str().c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
+    // some error occured
+    const char* ret = lua_tostring(L, -1);
+    std::cerr << "*** LOAD ERROR *** " << ret << std::endl;
+    lua_close(L);
+    return finish(1);    
+  }
 
   if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured

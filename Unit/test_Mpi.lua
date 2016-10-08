@@ -6,7 +6,6 @@
 --------------------------------------------------------------------------------
 
 local Unit = require "Unit"
-local DecompRegionCalc = require "Lib.CartDecomp"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 
@@ -31,6 +30,7 @@ function test_0(comm)
    Mpi.Barrier(comm)   
 end
 
+-- Comm and Groups
 function test_1(comm)
    local sz = Mpi.Comm_size(comm)
    local rank = Mpi.Comm_rank(comm)
@@ -66,6 +66,7 @@ function test_1(comm)
    Mpi.Barrier(comm)
 end
 
+-- Send/Recv
 function test_2(comm)
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
@@ -91,6 +92,7 @@ function test_2(comm)
    Mpi.Barrier(comm)
 end
 
+-- Send/Recv
 function test_3(comm)
    local rank = Mpi.Comm_rank(comm)
    local sz = Mpi.Comm_size(comm)
@@ -117,10 +119,14 @@ function test_3(comm)
    Mpi.Barrier(comm)
 end
 
+-- Split_comm
 function test_4(comm)
    local sz = Mpi.Comm_size(comm)
    local rnk = Mpi.Comm_rank(comm)
-   if sz ~= 4 then return end -- only run if using 4 procs
+   if sz ~= 4 then
+      log("Test for Split_comm not run as number of procs not exactly 4")
+      return
+   end
 
    local ranks = Lin.IntVec(2)
    ranks[1] = 0; ranks[2] = 1;
@@ -130,14 +136,40 @@ function test_4(comm)
       local newSz = Mpi.Comm_size(newComm)
       assert_equal(2, newSz, "Testing new comminucator size")
    end
+   Mpi.Barrier(comm)
+end
+
+-- MPI_Bcast tests
+function test_5(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz < 2 then
+      log("Test for MPI_Bcast not run as number of procs not 2 or more")
+      return
+   end
+   
+   local vals = new("double [?]", 10)
+   if rnk == 1 then
+      for i = 0, 9 do
+	 vals[i] = i+0.5
+      end
+   end
+   -- send from rank 1 to all ranks
+   Mpi.Bcast(vals, 10, Mpi.DOUBLE, 1, comm)
+   -- check 
+   for i = 0, 9 do
+      assert_equal(i+0.5, vals[i], "Testing Bcast data")
+   end
+   Mpi.Barrier(comm)
 end
 
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
---test_2(Mpi.COMM_WORLD)
---test_3(Mpi.COMM_WORLD)
+test_2(Mpi.COMM_WORLD)
+test_3(Mpi.COMM_WORLD)
 test_4(Mpi.COMM_WORLD)
+test_5(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
