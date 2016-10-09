@@ -30,7 +30,6 @@ function test_1(comm)
    if nproc > 1 then
       log("Not running test_1 as number of procs > 1")
    end
-   
    local rank = Mpi.Comm_rank(comm)
 
    Adios.init_noxml(comm)
@@ -81,8 +80,58 @@ function test_1(comm)
    Adios.finalize(rank)
 end
 
+function test_2(comm)
+   local nproc = Mpi.Comm_size(comm)
+   local rank = Mpi.Comm_rank(comm)
+
+   local localSz = 100 -- 100 elements per processor
+   local globalSz = nproc*localSz
+   local myOffset = rank*localSz
+   -- allocate space for local field
+   local temperature = new("double[?]", localSz)
+
+   for i = 0, localSz-1 do
+      temperature[i] = rank*localSz + i
+   end
+
+   Adios.init_noxml(comm)
+   Adios.set_max_buffer_size(16) -- 16 MB chunks
+
+   -- create group and set I/O method
+   local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
+   Adios.select_method(grpId, "MPI", "", "")
+
+   -- define attributes
+   local cells = new("int[1]")
+   cells[0] = globalSz
+   Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, 1, cells)
+
+   local lower = new("double[1]")
+   lower[0] = 0.0;
+   Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, 1, lower)
+
+   local upper = new("double[1]")
+   upper[0] = 1.5;
+   Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, 1, upper)
+
+   -- define variables
+   Adios.define_var(
+      grpId, "temperature", "", Adios.double, tostring(localSz), tostring(globalSz), tostring(myOffset))
+
+   -- open file to write out group
+   local fd = Adios.open("CartField", "adios-test-2.bp", "w", comm)
+   local grpSize = localSz*sizeof("double")
+   local totalSize = Adios.group_size(fd, grpSize)
+   -- write data
+   Adios.write(fd, "temperature", temperature)
+   
+   Adios.close(fd)
+   Adios.finalize(rank)
+end
+
 -- Run tests
 test_1(Mpi.COMM_WORLD)
+test_2(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

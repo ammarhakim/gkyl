@@ -7,9 +7,9 @@
 
 local ffi  = require "ffi"
 
--- Cut and paste from ADIOS header file: Perhaps this is not a good
--- idea and this file could be auto-generated. Its unlikely, though,
--- that the ADIOS API will change.
+-- Cut and paste from ADIOS header file, comments unchanged: Perhaps
+-- this is not a good idea and this file could be auto-generated. Its
+-- unlikely, though, that the ADIOS API will change.
 ffi.cdef [[
 
 /* global defines needed for the type creation/setup functions */
