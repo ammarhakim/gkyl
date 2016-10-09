@@ -14,63 +14,63 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3} }
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3}, __serTesting = true }
    assert_equal(2, decomp:ndim(), "Checking ndim")
    
    assert_equal(2, decomp:cuts(1), "Checking cuts")
    assert_equal(3, decomp:cuts(2), "Checking cuts")
 
-   decomp:decompose(Range.Range({1, 1}, {10, 10}))
-   assert_equal(6, decomp:numSubDomains(), "Checking number of sub-domains")
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
+   assert_equal(6, decomposedRgn:numSubDomains(), "Checking number of sub-domains")
 
    -- fetch domains and do sanity checks
    local v = 0
-   for i = 1, decomp:numSubDomains() do
-      v = v + decomp:subDomain(i):volume()
+   for i = 1, decomposedRgn:numSubDomains() do
+      v = v + decomposedRgn:subDomain(i):volume()
    end
-   assert_equal(100, v, "Checking volume of decomp")
+   assert_equal(100, v, "Checking volume of decomposedRgn")
 
    v = 0
-   for i = 1, decomp:numSubDomains() do
-      v = v + decomp:subDomain(i):shape(1)
+   for i = 1, decomposedRgn:numSubDomains() do
+      v = v + decomposedRgn:subDomain(i):shape(1)
    end
    assert_equal(3*10, v, "Checking total number of X cells")
 
    v = 0
-   for i = 1, decomp:numSubDomains() do
-      v = v + decomp:subDomain(i):shape(2)
+   for i = 1, decomposedRgn:numSubDomains() do
+      v = v + decomposedRgn:subDomain(i):shape(2)
    end
    assert_equal(2*10, v, "Checking total number of Y cells")
    
 end
 
 function test_2()
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3, 4} }
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3, 4}, __serTesting = true }
    assert_equal(3, decomp:ndim(), "Checking ndim")
    
    assert_equal(2, decomp:cuts(1), "Checking cuts")
    assert_equal(3, decomp:cuts(2), "Checking cuts")
    assert_equal(4, decomp:cuts(3), "Checking cuts")
 
-   decomp:decompose(Range.Range({1, 2, 3}, {10, 11, 12}))
-   assert_equal(24, decomp:numSubDomains(), "Checking number of sub-domains")
+   local decomposedRgn = decomp:decompose(Range.Range({1, 2, 3}, {10, 11, 12}))
+   assert_equal(24, decomposedRgn:numSubDomains(), "Checking number of sub-domains")
 
    -- fetch domains and do sanity checks
    local v = 0
-   for i = 1, decomp:numSubDomains() do
-      v = v + decomp:subDomain(i):volume()
+   for i = 1, decomposedRgn:numSubDomains() do
+      v = v + decomposedRgn:subDomain(i):volume()
    end
-   assert_equal(1000, v, "Checking volume of decomp")
+   assert_equal(1000, v, "Checking volume of decomposedRgn")
    
    v = 0
-   for i = 1, decomp:numSubDomains() do
-      v = v + decomp:subDomain(i):shape(1)
+   for i = 1, decomposedRgn:numSubDomains() do
+      v = v + decomposedRgn:subDomain(i):shape(1)
    end
    assert_equal(12*10, v, "Checking total number of X cells")
 
    v = 0
-   for i = 1, decomp:numSubDomains() do
-      v = v + decomp:subDomain(i):shape(2)
+   for i = 1, decomposedRgn:numSubDomains() do
+      v = v + decomposedRgn:subDomain(i):shape(2)
    end
    assert_equal(8*10, v, "Checking total number of Y cells")
    

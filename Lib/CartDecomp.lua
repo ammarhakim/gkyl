@@ -14,33 +14,40 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries
 local Range = require "Lib.Range"
 local Lin = require "Lib.Linalg"
-
--- CartProdDecomp --------------------------------------------------------------
---
--- Decomposition of grid into smaller boxes, specified by number of
--- cuts in each direction
---------------------------------------------------------------------------------
+local Mpi = require "Comm.Mpi"
 
 -- create constructor to store vector of Range objects
 local RangeVec = Lin.new_vec_ct(ffi.typeof("Range_t"))
 
-local CartProdDecomp = {}
--- constructor to make new cart-prod decomp
-function CartProdDecomp:new(tbl)
-   local self = setmetatable({}, CartProdDecomp)
-   
-   local ones = {}
-   for d = 1, #tbl.cuts do ones[d] = 1 end
-   self._cutsRange = Range.Range(ones, tbl.cuts)
-   self._domains = RangeVec(self._cutsRange:volume())
+-- DecomposedRange --------------------------------------------------------------
+--
+-- The decomposition object's decompose() method creates a
+-- DecomposedRange object
+--------------------------------------------------------------------------------
 
-   return self
+local DecomposedRange = {}
+-- constructor to make new cart-prod decomp
+function DecomposedRange:new(decomp)
+   local self = setmetatable({}, DecomposedRange)
+
+   local ones, upper = {}, {}
+   for d = 1, decomp:ndim() do
+      ones[d] = 1; upper[d] = decomp:cuts(d)
+   end
+
+   self._cutsRange = Range.Range(ones, upper)
+   self._comm = decomp._comm   
+   self._domains = RangeVec(self._cutsRange:volume())
+   return self   
 end
 -- make object callable, and redirect call to the :new method
-setmetatable(CartProdDecomp, { __call = function (self, o) return self.new(self, o) end })
+setmetatable(DecomposedRange, { __call = function (self, o) return self.new(self, o) end })
 
 -- set callable methods
-CartProdDecomp.__index = {
+DecomposedRange.__index = {
+   comm = function (self)
+      return self._comm
+   end,
    ndim = function (self)
       return self._cutsRange:ndim()
    end,
@@ -50,7 +57,56 @@ CartProdDecomp.__index = {
    numSubDomains = function (self)
       return self._cutsRange:volume()
    end,
+   subDomain = function (self, k)
+      return self._domains[k]
+   end
+}
+
+-- CartProdDecomp --------------------------------------------------------------
+--
+-- Decomposition of grid into smaller boxes, specified by number of
+-- cuts in each direction
+--------------------------------------------------------------------------------
+
+local CartProdDecomp = {}
+-- constructor to make new cart-prod decomp
+function CartProdDecomp:new(tbl)
+   local self = setmetatable({}, CartProdDecomp)
+   
+   local ones = {}
+   for d = 1, #tbl.cuts do ones[d] = 1 end
+
+   self._cutsRange = Range.Range(ones, tbl.cuts)
+
+   if not tbl.__serTesting then
+      self._comm = Mpi.COMM_WORLD -- default is to use MPI_COMM_WORLD   
+      if Mpi.Comm_size(self._comm) ~= self._cutsRange:volume() then
+	 assert(false,
+		string.format(
+		   "CartProdDecomp: Number of sub-domains (%d) and processors (%d) must match",
+		   self._cutsRange:volume(), Mpi.Comm_size(self._comm)))
+	 
+      end
+   end
+   return self
+end
+-- make object callable, and redirect call to the :new method
+setmetatable(CartProdDecomp, { __call = function (self, o) return self.new(self, o) end })
+
+-- set callable methods
+CartProdDecomp.__index = {
+   comm = function (self)
+      return self._comm
+   end,
+   ndim = function (self)
+      return self._cutsRange:ndim()
+   end,
+   cuts = function (self, dir)
+      return self._cutsRange:upper(dir)
+   end,
    decompose = function (self, range) -- decompose range
+      local decompRgn = DecomposedRange(self)
+      
       local shapes, starts = {}, {} -- to store shapes, start in each direction
       -- compute shape and start index in each direction
       for dir = 1, range:ndim() do
@@ -77,15 +133,12 @@ CartProdDecomp.__index = {
 	    l[dir] = starts[dir][idx[dir]]
 	    u[dir] = l[dir]+shapes[dir][idx[dir]]-1
 	 end
-	 self._domains[c] = Range.Range(l, u)
+	 decompRgn._domains[c] = Range.Range(l, u)
 	 c = c+1
       end
 
-      return true
+      return decompRgn
    end,
-   subDomain = function (self, k)
-      return self._domains[k]
-   end
 }
 
 return {
