@@ -126,7 +126,8 @@ function test_4()
    assert_equal(0.1, grid:dx(1), "Checking dx 1")
    assert_equal(0.1, grid:dx(2), "Checking dx 2")
 
-   assert_equal(0.1*0.1, grid:cellVolume(), "Checking volume")   
+   assert_equal(0.1*0.1, grid:cellVolume(), "Checking volume")
+
 end
 
 function test_5()

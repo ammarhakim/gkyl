@@ -24,14 +24,14 @@ end
 
 function test_1()
    -- create decomposition and decompose a region
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2} }
-   decomp:decompose(Range.Range({1, 1}, {10, 10}))
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 2}, __serTesting = true }
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
    -- create neighbor calculator
-   local decompNeigh = CartDecompNeigh(decomp)
+   local decompNeigh = CartDecompNeigh(decomposedRgn)
 
    -- decomp (0,0)
    decompNeigh:calcFaceCommNeigh(0, 0)
-   for i = 1, decomp:numSubDomains() do
+   for i = 1, decomposedRgn:numSubDomains() do
       local neighData = decompNeigh:neighborData(i)
       assert_equal(0, #neighData, "Checking that there should be no neigbors")
    end
@@ -83,13 +83,13 @@ end
 
 function test_2()
    -- create decomposition and decompose a region
-   local decomp = DecompRegionCalc.CartProd { cuts = {3, 3} }
-   decomp:decompose(Range.Range({1, 1}, {30, 30}))
+   local decomp = DecompRegionCalc.CartProd { cuts = {3, 3}, __serTesting = true }
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {30, 30}))
    -- create neighbor calculator
-   local decompNeigh = CartDecompNeigh(decomp)
+   local decompNeigh = CartDecompNeigh(decomposedRgn)
 
    decompNeigh:calcFaceCommNeigh(1, 1)
-   for i = 1, decomp:numSubDomains() do
+   for i = 1, decomposedRgn:numSubDomains() do
       local nd = decompNeigh:neighborData(i)
       if i==1 or i==3 or i==9 or i==7  then
 	 assert_equal(2, #nd, string.format("Testing size of neighbors for dom=%d", i))
@@ -104,14 +104,15 @@ end
 function test_3()
    local tmStart = Time.clock()   
    -- create decomposition and decompose a region
-   local decomp = DecompRegionCalc.CartProd { cuts = {20, 20, 20} }
-   decomp:decompose(Range.Range({1, 1, 1}, {2000, 2000, 2000}))
+   local decomp = DecompRegionCalc.CartProd { cuts = {20, 20, 20}, __serTesting = true }
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1, 1}, {2000, 2000, 2000}))
    -- create neighbor calculator
-   local decompNeigh = CartDecompNeigh(decomp)
+   local decompNeigh = CartDecompNeigh(decomposedRgn)
 
    decompNeigh:calcFaceCommNeigh(1, 1)
    local tmCalc = Time.clock()-tmStart
-   print(string.format("test_3() took %g secs for %d sub-domains", tmCalc, decomp:numSubDomains()))
+   print(string.format("test_3() took %g secs for %d sub-domains", tmCalc,
+		       decomposedRgn:numSubDomains()))
 end
 
 -- Run tests
