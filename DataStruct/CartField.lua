@@ -72,8 +72,8 @@ local function Field_meta_ctor(elct)
       for dir = 1, grid:ndim() do
 	 l[dir], u[dir] = 1, grid:numCells(dir)
       end
-      local globalRange = Range.Range(l, u)
-      local localRange = Range.Range(l, u)
+      local globalRange = grid:globalRange()
+      local localRange = grid:localRange()
 
       -- allocate memory: this is not managed by the LuaJIT GC
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
