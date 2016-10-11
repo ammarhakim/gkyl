@@ -22,6 +22,8 @@ function hasVal(tbl, val)
    return false
 end
 
+-- Layout of decomp is left-to-right, bottom to top
+
 function test_1()
    -- create decomposition and decompose a region
    local decomp = DecompRegionCalc.CartProd { cuts = {2, 2}, __serTesting = true }
@@ -102,6 +104,26 @@ function test_2()
 end
 
 function test_3()
+   -- create decomposition and decompose a region
+   local decomp = DecompRegionCalc.CartProd { cuts = {3, 3}, __serTesting = true }
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {30, 30}))
+   -- create neighbor calculator
+   local decompNeigh = CartDecompNeigh(decomposedRgn)
+
+   decompNeigh:calcAllCommNeigh(1, 1)
+   for i = 1, decomposedRgn:numSubDomains() do
+      local nd = decompNeigh:neighborData(i)
+      if i==1 or i==3 or i==9 or i==7  then
+	 assert_equal(3, #nd, string.format("Testing size of neighbors for dom=%d", i))
+      elseif i==2 or i==6 or i==8 or i==4 then
+	 assert_equal(5, #nd, string.format("Testing size of neighbors for dom=%d", i))
+      else
+	 assert_equal(8, #nd, "Testing size of neighbors for dom=5")
+      end
+   end
+end
+
+function test_time_it()
    local tmStart = Time.clock()   
    -- create decomposition and decompose a region
    local decomp = DecompRegionCalc.CartProd { cuts = {20, 20, 20}, __serTesting = true }
@@ -116,9 +138,10 @@ function test_3()
 end
 
 -- Run tests
---test_3()
+--test_time_it()
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
