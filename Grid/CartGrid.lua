@@ -21,72 +21,6 @@ local Mpi = require "Comm.Mpi"
 -- A uniform Cartesian grid
 --------------------------------------------------------------------------------
 
--- Meta-type of base-cartesian grid: both uniform and non-uniform
--- grids use this object
-local uni_cart_mt = {
-   __new = function (self, tbl)
-      local lo = tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-      local up = tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
-      local cells = tbl.cells
-      local g = new(self)
-      g._ndim = #cells
-      for d = 1, #cells do
-	 g._lower[d-1] = lo[d]
-	 g._upper[d-1] = up[d]
-	 g._numCells[d-1] = cells[d]
-      end
-
-      local l, u = {}, {}
-      for d = 1, #cells do
-	 l[d], u[d] = 1, cells[d]
-      end
-      g._globalRange = Range.Range(l, u)
-      g._localRange = Range.Range(l, u)
-      if tbl.decomposition then
-	 local comm = tbl.decomposition:comm()
-	 local localRange = tbl.decomposition:subDomain(Mpi.Comm_rank(self._comm))
-	 g._localRange:copy(localRange)
-      end
-
-      return g
-   end,
-   __index =  {
-      ndim = function (self)
-	 return self._ndim
-      end,
-      lower = function (self, dir)
-	 return self._lower[dir-1]
-      end,
-      upper = function (self, dir)
-	 return self._upper[dir-1]
-      end,
-      numCells = function (self, dir)
-	 return self._numCells[dir-1]
-      end,
-      localRange = function (self)
-	 return self._localRange
-      end,
-      globalRange = function (self)
-	 return self._globalRange
-      end,      
-      setIndex = function(self, idx)
-	 for d = 1, self._ndim do
-	    self._currIdx[d-1] = idx[d]
-	 end
-      end,
-      dx = function (self, dir)
-	 return (self:upper(dir)-self:lower(dir))/self:numCells(dir)
-      end,
-      cellVolume = function (self)
-	 local v = 1.0
-	 for i = 1, self._ndim do
-	    v = v*self:dx(i)
-	 end
-	 return v
-      end,
-   }
-}
-
 -- Uniform Cartesian grid
 local RectCart = {}
 -- constructor to make a new uniform grid
@@ -114,13 +48,16 @@ function RectCart:new(tbl)
    end
    self._globalRange = Range.Range(l, u)   
    self._localRange = Range.Range(l, u)
+   self._block = 1 -- block number for use in parallel communications
 
    local decomp = tbl.decomposition and tbl.decomposition or nil  -- decomposition
    if decomp then
+      assert(decomp:ndim() == self._ndim, "Decomposition dimensions must be same as grid dimensions!")
       -- in parallel, we need to adjust local range      
       self._comm = decomp:comm()
       self._decomposedRange = decomp:decompose(self._globalRange)
       local subDomIdx = Mpi.Comm_rank(self._comm)+1 -- sub-domains are indexed from 1
+      self._block = subDomIdx
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
    end
@@ -133,6 +70,12 @@ setmetatable(RectCart, { __call = function (self, o) return self.new(self, o) en
 RectCart.__index = {
    comm = function (self)
       return self._comm
+   end,
+   subGridId = function (self)
+      return self._block
+   end,
+   decomposedRange = function (self)
+      return self._decomposedRange
    end,
    ndim = function (self)
       return self._ndim
@@ -220,12 +163,14 @@ function NonUniformRectCart:new(tbl)
    end
    self._globalRange = Range.Range(l, u)   
    self._localRange = Range.Range(l, u)
+   self._block = 1 -- block number for use in parallel communications
 
    local decomp = tbl.decomposition and tbl.decomposition or nil  -- decomposition
    if decomp then
       -- in parallel, we need to adjust local range
       self._decomposedRange = decomp:decompose(self._globalRange)
       local subDomIdx = Mpi.Comm_rank(self._comm)+1 -- sub-domains are indexed from 1
+      self._block = subDomIdx
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
    end   
@@ -265,7 +210,10 @@ setmetatable (NonUniformRectCart, { __call = function (self, o) return self.new(
 NonUniformRectCart.__index = {
    comm = function (self)
       return self._comm
-   end,   
+   end,
+   subGridId = function (self)
+      return self._block
+   end,
    ndim = function (self)
       return self._ndim
    end,

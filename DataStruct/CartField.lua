@@ -15,11 +15,8 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 local Alloc = require "Lib.Alloc"
 local Range = require "Lib.Range"
 local Grid = require "Grid"
-
--- CartField -------------------------------------------------------------------
---
--- Multi-component field on cartesian grids
---------------------------------------------------------------------------------
+local Mpi = require "Comm.Mpi"
+local CartDecompNeigh = require "Lib.CartDecompNeigh"
 
 -- Local definitions
 local rowMajLayout, colMajLayout = 1, 2 -- data layout
@@ -55,6 +52,17 @@ end
 local function Field_meta_ctor(elct)
    local fcompct = new_field_comp_ct(elct)
    local allocator = Alloc.Alloc_meta_ctor(elct)
+   local elctCommType, elcCommSize = nil, 1
+   if ffi.istype(new(elct), new("double")) then
+      elctCommType = Mpi.DOUBLE
+   elseif ffi.istype(new(elct), new("float")) then
+      elctCommType = Mpi.FLOAT
+   elseif ffi.istype(new(elct), new("int")) then
+      elctCommType = Mpi.INT
+   else
+      elctCommType = Mpi.BYTE -- by default, send stuff as byte array
+      elcCommSize = sizeof(elct)
+   end
 
    -- make constructor for Field 
    local Field = {}
@@ -65,17 +73,13 @@ local function Field_meta_ctor(elct)
       local grid = tbl.onGrid
       local nc = tbl.numComponents and tbl.numComponents or 1 -- default numComponents=1
       local ghost = tbl.ghost and tbl.ghost or {0, 0} -- No ghost cells by default
+      local syncCorners = tbl.syncCorners and tbl.syncCorners or false -- Don't sync() corners by default
 
-      -- setup object: FIX ONCE CODE IS IN PARALLEL. (Need to get
-      -- ranges from grid's decomp object)
-      local l, u = {}, {}
-      for dir = 1, grid:ndim() do
-	 l[dir], u[dir] = 1, grid:numCells(dir)
-      end
+      -- local and global ranges
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()
 
-      -- allocate memory: this is not managed by the LuaJIT GC
+      -- allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
       self._allocData = allocator(sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
@@ -94,7 +98,16 @@ local function Field_meta_ctor(elct)
 	 if tbl.layout == "row-major" then
 	    self._layout = rowMajLayout
 	 end
-      end	 
+      end
+      
+      -- compute communication neighbors
+      self._decompNeigh = CartDecompNeigh(grid:decomposedRange())
+      if syncCorners then
+	 self._decompNeigh:calcAllCommNeigh(ghost[1], ghost[2])
+      else
+	 self._decompNeigh:calcFaceCommNeigh(ghost[1], ghost[2])
+      end
+      
       return self
    end
    setmetatable(Field, { __call = function (self, o) return self.new(self, o) end })
@@ -153,10 +166,67 @@ local function Field_meta_ctor(elct)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
 	 fc._cdata = self._data+loc
       end,
+      sync = function (self)
+	 return self._field_sync(self)
+      end,
+      _copy_from_field_region = function (self, rgn, data)
+	 local indexer = self:genIndexer()	 
+	 local c = 1
+	 for idx in rgn:colMajorIter() do
+	    local fitr = self:get(indexer(idx))
+	    for k = 1, self._numComponents do
+	       data[c] = fitr[k]; c = c+1
+	    end
+	 end
+      end,
+      _copy_to_field_region = function (self, rgn, data)
+	 local indexer = self:genIndexer()
+	 local c = 1
+	 for idx in rgn:colMajorIter() do
+	    local fitr = self:get(indexer(idx))
+	    for k = 1, self._numComponents do
+	       fitr[k] = data[c]; c = c+1
+	    end
+	 end
+      end,
+      _field_sync = function (self)
+	 -- immediately return if nothing to sync
+	 if self._lowerGhost == 0 and self._upperGhost == 0 then return end
+	 
+	 local comm = self._grid:comm() -- communicator to use
+	 local decomposedRange = self._grid:decomposedRange()
+	 local myId = self._grid:subGridId() -- grid ID on this processor
+	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
+	 local tag = 11 -- Communicator tag for messages
+
+	 -- send data of our skin cells to neighbor ghost cells
+	 for _, sendId in ipairs(neigIds) do
+	    local neighRgn = decomposedRange:subDomain(sendId)
+	    local sendRgn = self._localRange:intersect(
+	       neighRgn:extend(self._lowerGhost, self._upperGhost))
+	    local sz = sendRgn:volume()*self._numComponents
+	    local data = allocator(sz)
+	    self:_copy_from_field_region(sendRgn, data)
+	    -- send data: (its to sendId-1 as MPI ranks are zero indexed)
+	    Mpi.Send(data:data(), sz*elcCommSize, elctCommType, sendId-1, tag, comm)
+	 end
+
+	 local localExtRange = self:localExtRange()
+	 -- recv data from neighbor skin cells and copy into our ghost cells
+	 for _, recvId in ipairs(neigIds) do
+	    local neighRgn = decomposedRange:subDomain(recvId)
+	    local recvRgn = localExtRange:intersect(neighRgn)
+	    local sz = recvRgn:volume()*self._numComponents
+	    local data = allocator(sz)
+	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
+	    Mpi.Recv(data:data(), sz*elcCommSize, elctCommType, recvId-1, tag, comm, nil)
+	    -- copy it into field
+	    self:_copy_to_field_region(recvRgn, data)
+	 end	 
+      end,
    }
    return Field
 end
-
 
 return {
    new_field_ct = Field_meta_ctor,

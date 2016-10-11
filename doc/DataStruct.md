@@ -54,7 +54,12 @@ The field constructor takes the following parameters:
 
 `layout` (Optional. Defaults to "col-major")
 : Layout of the data. The default is column-major order. Only other option
-  is "row-major". 
+  is "row-major".
+
+`syncCorners` (Options. Default is `false`)
+: If set to true, corner ghost cells are also synchornized on a
+ `sync()` call. For most algorithms, this flag should be set to
+ `false`, unless the stencil includes use of corner cells.
 
 The following methods are provided.
 
@@ -109,6 +114,10 @@ The following methods are provided.
   must be determined by the indexer returned by the `indexer()`
   object. This method is useful in inner loops were using `get` method
   lead to memory fragmentation.
+
+`field:sync()`
+: Synchornize values in ghost cells by copy data from neighboring
+  ranks' skin cells.
 
 To illustrate the use of the `indexer()` and `get()` methods to access
 elements in the grid, consider the following code:

@@ -14,13 +14,16 @@ A uniform, cartesian grid can be constructed using the `RectCart`
 constructor object. Grid from one to six dimensions can be made. We
 refer to the grid dimension as `NDIM`.
 
-For example, the following example creates a 2D grid:
+For example, the following example creates a 2D grid in parallel on 4
+processors:
 
 ~~~~~~~ {.lua}
+decomp = DecompRegionCalc.CartProd { cuts = {2, 2} }
 grid = Grid.RectCart {
    lower = {0.0, 0.0},
    upper = {2.0, 3.0},
-   cells = {10, 20}
+   cells = {10, 20},
+   decomposition = decomp,
 }
 ~~~~~~~
 
@@ -37,8 +40,20 @@ the following parameters:
 `cells`
 : Number of cells in each direction
 
+`decomposition`
+: The decomposition object used to decompose grid in parallel. This
+  must be specified for use in parallel.
+
 The following methods are provided. Note: __we indicate X-direction
 with 1, Y-direction with 2, etc.__
+
+`grid:comm()`
+: Communicator for use in parallel messaging.
+
+`grid:subGridId()`
+: For parallel grid, returns integer ID of grid. This numnber is
+  unique for each indpendent portion of the grid, which usually live
+  on different procssors.
 
 `grid:ndim()`
 : The dimensions of the grid.
