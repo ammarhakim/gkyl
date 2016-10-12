@@ -65,8 +65,8 @@ function RectCart:new(tbl)
       -- create a dummy decomp and use it to set the grid
       local cuts = {}
       for i = 1, self._ndim do cuts[i] = 1 end
-      local decomp = DecompRegionCalc.CartProd { cuts = cuts }
-      self._decomposedRange = decomp:decompose(self._globalRange)
+      local dec1 = DecompRegionCalc.CartProd { cuts = cuts }
+      self._decomposedRange = dec1:decompose(self._globalRange)
       self._block = 1
    end
    return self
