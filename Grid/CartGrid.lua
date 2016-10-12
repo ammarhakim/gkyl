@@ -13,6 +13,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
+local DecompRegionCalc = require "Lib.CartDecomp"
 local Range = require "Lib.Range"
 local Mpi = require "Comm.Mpi"
 
@@ -60,6 +61,13 @@ function RectCart:new(tbl)
       self._block = subDomIdx
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
+   else
+      -- create a dummy decomp and use it to set the grid
+      local cuts = {}
+      for i = 1, self._ndim do cuts[i] = 1 end
+      local decomp = DecompRegionCalc.CartProd { cuts = cuts }
+      self._decomposedRange = decomp:decompose(self._globalRange)
+      self._block = 1
    end
    return self
 end

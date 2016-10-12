@@ -14,6 +14,7 @@
 GET_MPI_OBJ_SIZE(MPI_Status);
 GET_MPI_OBJ_SIZE(MPI_Group);
 GET_MPI_OBJ_SIZE(MPI_Comm);
+GET_MPI_OBJ_SIZE(MPI_Request);
 
 // Pre-defined objects and constants
 GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);

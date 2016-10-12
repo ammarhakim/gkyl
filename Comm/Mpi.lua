@@ -22,11 +22,13 @@ ffi.cdef [[
   typedef struct MPI_Op_type *MPI_Op;
   typedef struct MPI_Status_type *MPI_Status;
   typedef struct MPI_Group_type *MPI_Group;
+  typedef struct MPI_Request_type *MPI_Request;
 
   // size of various objects
   int sizeof_MPI_Status();
   int sizeof_MPI_Group();
   int sizeof_MPI_Comm();
+  int sizeof_MPI_Request();
 
   // Pre-defined objects and constants
   MPI_Comm get_MPI_COMM_WORLD();
@@ -85,6 +87,9 @@ ffi.cdef [[
 	       MPI_Comm comm);
   int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
 	       MPI_Comm comm, MPI_Status *status);
+  int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int source,
+		int tag, MPI_Comm comm, MPI_Request *request);
+  int MPI_Wait(MPI_Request *request, MPI_Status *status);
 
   // Groups
   int MPI_Comm_group(MPI_Comm comm, MPI_Group *group);
@@ -111,6 +116,7 @@ _M.STATUS_IGNORE = ffi.C.get_MPI_STATUS_IGNORE()
 _M.SIZEOF_STATUS = ffi.C.sizeof_MPI_Status()
 _M.SIZEOF_GROUP = ffi.C.sizeof_MPI_Group()
 _M.SIZEOF_COMM = ffi.C.sizeof_MPI_Comm()
+_M.SIZEOF_REQUEST = ffi.C.sizeof_MPI_Request()
 
 -- Datatypes
 _M.CHAR = ffi.C.get_MPI_CHAR()
@@ -167,6 +173,9 @@ local function new_MPI_Comm()
 end
 local function new_MPI_Group()
    return ffi.cast("MPI_Group*", new("uint8_t[?]", _M.SIZEOF_GROUP))
+end
+local function new_MPI_Request()
+   return ffi.cast("MPI_Request*", new("uint8_t[?]", _M.SIZEOF_REQUEST))
 end
 
 -- de-reference if object is a pointer
@@ -237,6 +246,24 @@ function _M.Recv(buf, count, datatype, source, tag, comm, status)
       ffi.C.GkMPI_fillStatus(st, gks)
       status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
    end
+end
+-- MPI_Irecv
+function _M.Irecv(buf, count, datatype, source, tag, comm)
+   local req = new_MPI_Request()
+   local err = ffi.C.MPI_Irecv(
+      buf, count, datatype, source, tag, getObj(comm, "MPI_Comm*"), req)
+   return req
+end
+-- MPI_Wait
+function _M.Wait(request, status)
+   local st = status and status.mpiStatus or _M.STATUS_IGNORE
+   local err = ffi.C.MPI_Wait(request, st)
+   -- store MPI_Status
+   if status ~= nil then
+      local gks = new("int[3]")
+      ffi.C.GkMPI_fillStatus(st, gks)
+      status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
+   end   
 end
 
 -- MPI_Barrier
