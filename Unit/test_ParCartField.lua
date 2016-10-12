@@ -241,7 +241,7 @@ function test_5(comm)
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
-      cells = {4, 505},
+      cells = {500, 500},
       decomposition = decomp,
    }
    local field = DataStruct.Field {
@@ -258,7 +258,6 @@ function test_5(comm)
       fitr[1] = idx[1]+2*idx[2]+1
    end
 
-   print("Calling sync()")
    field:sync()
 
    local localExtRange = field:localExtRange():intersect(field:globalRange())
@@ -270,10 +269,10 @@ function test_5(comm)
 end
 
 comm = Mpi.COMM_WORLD
--- test_1(comm)
--- test_2(comm)
--- test_3(comm)
--- test_4(comm)
+test_1(comm)
+test_2(comm)
+test_3(comm)
+test_4(comm)
 test_5(comm)
 
 function allReduceOneInt(localv)
