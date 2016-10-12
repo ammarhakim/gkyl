@@ -14,7 +14,6 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
 local Range = require "Lib.Range"
-local Grid = require "Grid"
 local Mpi = require "Comm.Mpi"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
 

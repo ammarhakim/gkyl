@@ -142,7 +142,7 @@ local slice_mt = {
 }
 local SliceData = metatype(typeof("struct {int32_t _sz, _stride, _lower; double _data[?]; }"), slice_mt)
 -- helper function to zero out contents of SliceData
-function clearSliceData(sd)
+local function clearSliceData(sd)
    fill(sd._data, sd._sz*sizeof("double"))
 end
 
