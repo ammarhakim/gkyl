@@ -107,6 +107,31 @@ local function Field_meta_ctor(elct)
       else
 	 self._decompNeigh:calcFaceCommNeigh(ghost[1], ghost[2])
       end
+
+      -- pre-allocate memory for send/recv calls when doing ghost-cell
+      -- sync(). This prevents memory fragmentation in the C memory
+      -- system as otherwise one would need to malloc/free every time
+      -- sync() is called.
+      self._sendData, self._recvData = {}, {}      
+      local decomposedRange = self._grid:decomposedRange()
+      local myId = self._grid:subGridId() -- grid ID on this processor
+      local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
+
+      for _, sendId in ipairs(neigIds) do
+	 local neighRgn = decomposedRange:subDomain(sendId)
+	 local sendRgn = self._localRange:intersect(
+	    neighRgn:extend(self._lowerGhost, self._upperGhost))
+	 local sz = sendRgn:volume()*self._numComponents
+	 self._sendData[sendId] = allocator(sz)
+      end
+
+      local localExtRange = self:localExtRange()
+      for _, recvId in ipairs(neigIds) do
+	 local neighRgn = decomposedRange:subDomain(recvId)
+	 local recvRgn = localExtRange:intersect(neighRgn)
+	 local sz = recvRgn:volume()*self._numComponents
+	 self._recvData[recvId] = allocator(sz)
+      end
       
       return self
    end
@@ -192,38 +217,52 @@ local function Field_meta_ctor(elct)
       _field_sync = function (self)
 	 -- immediately return if nothing to sync
 	 if self._lowerGhost == 0 and self._upperGhost == 0 then return end
+
+	 -- Steps: (1) Post non-blocking recv requests. (2) Do
+	 -- blocking sends, (3) Complete recv and copy data into ghost
+	 -- cells
 	 
 	 local comm = self._grid:comm() -- communicator to use
 	 local decomposedRange = self._grid:decomposedRange()
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
 	 local tag = 42 -- Communicator tag for messages
+	 local localExtRange = self:localExtRange()	 
 
-	 -- send data of our skin cells to neighbor ghost cells
+	 local recvReq = {} -- list of recv requests
+	 -- post a non-blocking recv request
+	 for _, recvId in ipairs(neigIds) do
+	    local neighRgn = decomposedRange:subDomain(recvId)
+	    local recvRgn = localExtRange:intersect(neighRgn)
+	    local sz = recvRgn:volume()*self._numComponents
+	    local buff = self._recvData[recvId]
+	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
+	    recvReq[recvId] = Mpi.Irecv(buff:data(), sz*elcCommSize, elctCommType, recvId-1, tag, comm)
+	 end
+	 
+	 -- do a blocking send (does not really block as the recv
+	 -- requests are already posted)
 	 for _, sendId in ipairs(neigIds) do
 	    local neighRgn = decomposedRange:subDomain(sendId)
 	    local sendRgn = self._localRange:intersect(
 	       neighRgn:extend(self._lowerGhost, self._upperGhost))
 	    local sz = sendRgn:volume()*self._numComponents
 
-	    local sendData = allocator(sz)
-	    self:_copy_from_field_region(sendRgn, sendData)
+	    local buff = self._sendData[sendId]
+	    self:_copy_from_field_region(sendRgn, buff)
 	    -- send data: (its to sendId-1 as MPI ranks are zero indexed)
-	    Mpi.Send(sendData:data(), sz*elcCommSize, elctCommType, sendId-1, tag, comm)
-	 end
+	    Mpi.Send(buff:data(), sz*elcCommSize, elctCommType, sendId-1, tag, comm)
+	 end	 
 
-	 local localExtRange = self:localExtRange()
-	 -- recv data from neighbor skin cells and copy into our ghost cells
+	 -- complete recv
 	 for _, recvId in ipairs(neigIds) do
 	    local neighRgn = decomposedRange:subDomain(recvId)
 	    local recvRgn = localExtRange:intersect(neighRgn)
-	    local sz = recvRgn:volume()*self._numComponents
-	    local recvData = allocator(sz)
-	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-	    Mpi.Recv(recvData:data(), sz*elcCommSize, elctCommType, recvId-1, tag, comm, nil)
-	    -- copy it into field
-	    self:_copy_to_field_region(recvRgn, recvData)
-	 end
+	    local buff = self._recvData[recvId]
+	    Mpi.Wait(recvReq[recvId], nil)
+	    -- copy data into ghost cells
+	    self:_copy_to_field_region(recvRgn, buff)	    
+	 end	 
       end,
    }
    return Field
