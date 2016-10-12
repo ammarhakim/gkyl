@@ -8,6 +8,7 @@
 local Unit = require "Unit"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
+local Alloc = require "Lib.Alloc"
 
 local ffi  = require "ffi"
 local xsys = require "xsys"
@@ -163,6 +164,61 @@ function test_5(comm)
    Mpi.Barrier(comm)
 end
 
+-- Non-blocking recv
+function test_6(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for non-blocking calls not run as number of procs not exactly 2")
+      return
+   end
+   
+   local rank = Mpi.Comm_rank(comm)
+   local sz = Mpi.Comm_size(comm)
+      
+   local nz = 1000
+   local vIn, vOut = Alloc.Double(nz), Alloc.Double(nz)
+   for i = 1, nz do
+      vIn[i] = (rank+1)*(i+0.5)
+   end
+
+   -- Send message from rank 0 -> rank 1
+   if rank == 0 then
+      Mpi.Send(vIn:data(), nz, Mpi.DOUBLE, 1, 42, comm)
+   end   
+   if rank == 1 then
+      local request = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 0, 42, comm)
+      local status = Mpi.Status()
+      Mpi.Wait(request, status)
+      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+
+      assert_equal(42, status.TAG, "Checking tag")
+      assert_equal(nz, count, "Checking if correct number of elements were recv-ed")
+      for i = 1, nz do
+	 assert_equal(i+0.5, vOut[i], "Checking recv-ed data on rank 1")
+      end
+   end
+
+   -- Send message from rank 1 -> rank 0
+   if rank == 1 then
+      Mpi.Send(vIn:data(), nz, Mpi.DOUBLE, 0, 42, comm)
+   end      
+   if rank == 0 then
+      local request = Mpi.Irecv(vOut:data(), nz, Mpi.DOUBLE, 1, 42, comm)
+      local status = Mpi.Status()
+      Mpi.Wait(request, status)
+      local count = Mpi.Get_count(status, Mpi.DOUBLE)
+
+      assert_equal(42, status.TAG, "Checking tag")
+      assert_equal(nz, count, "Checking if correct number of elements were recv-ed")
+      for i = 1, nz do
+	 assert_equal(2*(i+0.5), vOut[i], "Checking recv-ed data on rank 0")
+      end      
+   end
+   
+   Mpi.Barrier(comm)
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -170,6 +226,7 @@ test_2(Mpi.COMM_WORLD)
 test_3(Mpi.COMM_WORLD)
 test_4(Mpi.COMM_WORLD)
 test_5(Mpi.COMM_WORLD)
+test_6(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

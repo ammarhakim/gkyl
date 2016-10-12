@@ -197,7 +197,7 @@ local function Field_meta_ctor(elct)
 	 local decomposedRange = self._grid:decomposedRange()
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
-	 local tag = 11 -- Communicator tag for messages
+	 local tag = 42 -- Communicator tag for messages
 
 	 -- send data of our skin cells to neighbor ghost cells
 	 for _, sendId in ipairs(neigIds) do
@@ -205,10 +205,11 @@ local function Field_meta_ctor(elct)
 	    local sendRgn = self._localRange:intersect(
 	       neighRgn:extend(self._lowerGhost, self._upperGhost))
 	    local sz = sendRgn:volume()*self._numComponents
-	    local data = allocator(sz)
-	    self:_copy_from_field_region(sendRgn, data)
+
+	    local sendData = allocator(sz)
+	    self:_copy_from_field_region(sendRgn, sendData)
 	    -- send data: (its to sendId-1 as MPI ranks are zero indexed)
-	    Mpi.Send(data:data(), sz*elcCommSize, elctCommType, sendId-1, tag, comm)
+	    Mpi.Send(sendData:data(), sz*elcCommSize, elctCommType, sendId-1, tag, comm)
 	 end
 
 	 local localExtRange = self:localExtRange()
@@ -217,12 +218,12 @@ local function Field_meta_ctor(elct)
 	    local neighRgn = decomposedRange:subDomain(recvId)
 	    local recvRgn = localExtRange:intersect(neighRgn)
 	    local sz = recvRgn:volume()*self._numComponents
-	    local data = allocator(sz)
+	    local recvData = allocator(sz)
 	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-	    Mpi.Recv(data:data(), sz*elcCommSize, elctCommType, recvId-1, tag, comm, nil)
+	    Mpi.Recv(recvData:data(), sz*elcCommSize, elctCommType, recvId-1, tag, comm, nil)
 	    -- copy it into field
-	    self:_copy_to_field_region(recvRgn, data)
-	 end	 
+	    self:_copy_to_field_region(recvRgn, recvData)
+	 end
       end,
    }
    return Field

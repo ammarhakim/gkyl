@@ -12,7 +12,6 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local DataStruct = require "DataStruct"
 local Mpi = require "Comm.Mpi"
 
-local ffi  = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
@@ -231,11 +230,51 @@ function test_4(comm)
    Mpi.Barrier(comm)
 end
 
+function test_5(comm)
+   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
+   if nz ~= 2 then
+      log("Not running test_5 as numProcs not exactly 2")
+      return
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 1} }
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {4, 505},
+      decomposition = decomp,
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 1},
+      syncCorners = true,
+   }
+
+   local localRange = field:localRange()
+   local indexer = field:genIndexer()
+   for idx in localRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      fitr[1] = idx[1]+2*idx[2]+1
+   end
+
+   print("Calling sync()")
+   field:sync()
+
+   local localExtRange = field:localExtRange():intersect(field:globalRange())
+   for idx in localExtRange:colMajorIter() do
+      local fitr = field:get(indexer(idx))
+      assert_equal(idx[1]+2*idx[2]+1, fitr[1], string.format("Checking field value at (%d, %d)", idx[1], idx[2]))
+   end
+   Mpi.Barrier(comm)
+end
+
 comm = Mpi.COMM_WORLD
-test_1(comm)
-test_2(comm)
-test_3(comm)
-test_4(comm)
+-- test_1(comm)
+-- test_2(comm)
+-- test_3(comm)
+-- test_4(comm)
+test_5(comm)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
