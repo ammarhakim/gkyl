@@ -22,6 +22,8 @@ local Bc = {}
 
 function Bc:new (tbl)
    local self = setmetatable({}, Bc)
+   Base.setup(self, tbl) -- setup base object
+   
    self._onGrid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
    self._dir = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
 

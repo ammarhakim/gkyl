@@ -66,6 +66,7 @@ function RectCart:new(tbl)
       local cuts = {}
       for i = 1, self._ndim do cuts[i] = 1 end
       local dec1 = DecompRegionCalc.CartProd { cuts = cuts }
+      self._comm = dec1:comm()
       self._decomposedRange = dec1:decompose(self._globalRange)
       self._block = 1
    end

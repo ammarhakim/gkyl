@@ -50,7 +50,7 @@ function test_1(comm)
 
    -- test communicators
    local myComm = Mpi.Comm_dup(comm)
-   assert_equal(true, ffi.istype(typeof("MPI_Comm*"), myComm), "Checking new comm type")   
+   assert_equal(true, ffi.istype(typeof("MPI_Comm[1]"), myComm), "Checking new comm type")
    local mySz = Mpi.Comm_size(myComm)
    assert_equal(sz, mySz, "Checking if duplicated communicator has same number of elements")
 

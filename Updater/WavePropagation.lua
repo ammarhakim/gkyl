@@ -152,6 +152,7 @@ local WavePropagation = {}
 -- constructor
 function WavePropagation:new(tbl)
    local self = setmetatable({}, WavePropagation)
+   Base.setup(self, tbl) -- setup base object
 
    -- read data from input table
    self._onGrid = assert(tbl.onGrid, "Updater.WavePropagation: Must provide grid object using 'onGrid'")
@@ -277,18 +278,18 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 -- limit waves before computing second-order updates
 	 limitWaves(self, localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice)
 
-	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
+	 local dirLoIdx2, dirUpIdx2 = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
 	 -- compute second order correction fluxes
 	 clearSliceData(fsSlice)
-	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+	 for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
 	    for mw = 0, mwave-1 do
 	       self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
 	    end
 	 end
 
-	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)
+	 local dirLoIdx3, dirUpIdx3 = localRange:lower(dir), localRange:upper(dir)
 	 -- add them to solution
-	 for i = dirLoIdx, dirUpIdx do -- this loop is over cells
+	 for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
 	    idxm[dir] = i -- cell index
 	    local q1 = qOut:get(qOutIdxr(idxm))
 	    self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)

@@ -261,7 +261,7 @@ local function Field_meta_ctor(elct)
 	    Mpi.Wait(recvReq[recvId], nil)
 	    -- copy data into ghost cells
 	    self:_copy_to_field_region(recvRgn, buff)	    
-	 end	 
+	 end
       end,
    }
    return Field
