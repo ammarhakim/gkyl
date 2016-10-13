@@ -55,6 +55,7 @@ local FiveMomentSrc = {}
 -- constructor
 function FiveMomentSrc:new(tbl)
    local self = setmetatable({}, FiveMomentSrc)
+   Base.setup(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.FiveMomentSrc: Must provide grid object using 'onGrid'")   
    -- read data from input table
