@@ -156,7 +156,11 @@ _M.MAXLOC = ffi.C.get_MPI_MAXLOC();
 -- some types for use in MPI functions
 local int_1 = typeof("int[1]")
 
--- ctors for various MPI objects
+-- ctors for various MPI objects: MPI_Status object is not a opaque
+-- pointer and so we need to allocte memory for it. Other object
+-- resources are managed by MPI itself, so we can't allocate space for
+-- them. Doing so will lead to program crash as the LJ GC will try to
+-- free memory which is managed by MPI. A very bad thing.
 local function new_MPI_Status()
    return ffi.cast("MPI_Status*", new("uint8_t[?]", _M.SIZEOF_STATUS))
 end

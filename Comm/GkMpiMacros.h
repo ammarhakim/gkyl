@@ -17,7 +17,7 @@
 #define GET_MPI_OBJECT_PTR(type, value) MPI_##type *getPtr_##value() { return value; }
 #define DECL_GET_MPI_OBJECT_PTR(type, value) MPI_##type *getPtr_##value()
 
-// Macros to declare/declare functions to get sizes of various MPI objects
+// Macros to declare/define functions to get sizes of various MPI objects
 #define GET_MPI_OBJ_SIZE(type) int sizeof_##type() { return sizeof(type); }
 #define DECL_GET_MPI_OBJ_SIZE(type) int sizeof_##type()
 

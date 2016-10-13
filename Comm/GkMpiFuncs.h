@@ -13,9 +13,6 @@
 extern "C" {
     // Sizes of various objects
     DECL_GET_MPI_OBJ_SIZE(MPI_Status);
-    DECL_GET_MPI_OBJ_SIZE(MPI_Group);
-    DECL_GET_MPI_OBJ_SIZE(MPI_Comm);
-    DECL_GET_MPI_OBJ_SIZE(MPI_Request);
     
     // Pre-defined objects and constants
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
