@@ -8,7 +8,6 @@
 
 -- Gkyl libraries
 local Base = require "Updater.Base"
-local Lin = require "Lib.Linalg"
 local Range = require "Lib.Range"
 
 -- system libraries
@@ -24,7 +23,7 @@ function Bc:new (tbl)
    local self = setmetatable({}, Bc)
    Base.setup(self, tbl) -- setup base object
    
-   self._onGrid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
+   self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
    self._dir = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
 
    self._edge = assert(
@@ -51,12 +50,15 @@ local function getGhostRange(self, global, globalExt)
 end
 
 local function advance(self, tCurr, dt, inFld, outFld)
-   local grid = self._onGrid
+   local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
    local dir, edge = self._dir, self._edge
    local global, globalExt = qOut:globalRange(), qOut:globalExtRange()
-   local ghost = getGhostRange(self, global, globalExt) -- range spanning ghost cells
+   local localExtRange = qOut:localExtRange()
+   local ghost = localExtRange:intersect(
+      getGhostRange(self, global, globalExt)) -- range spanning ghost cells
+   
    local qG, qS = qOut:get(0), qOut:get(0) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
    
    local indexer = qOut:genIndexer()
