@@ -12,8 +12,26 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Declare malloc/free functions from C library
-ffi.cdef "void* malloc(size_t size);"
-ffi.cdef "void free(void *ptr);"
+ffi.cdef [[
+  void* malloc(size_t size);
+  void free(void *ptr);
+  void *memset(void *s, int c, size_t n);
+]]
+
+-- Wrapper around core memory functions
+local function malloc(sz)
+   local d = ffi.C.malloc(sz)
+   assert(d, "malloc: Unable to allocate memory!")
+   return d
+end
+local function free(d)
+   if d then
+      ffi.C.free(d); d = nil
+   end
+end
+local function memset(s, c, n)
+   return ffi.C.memset(s, c, n)
+end
 
  -- block size in bytes
 local blockSz = 16*1024
@@ -86,4 +104,7 @@ return {
    Double = Alloc_meta_ctor(typeof("double")),
    Float = Alloc_meta_ctor(typeof("float")),
    Int = Alloc_meta_ctor(typeof("int")),
+   malloc = malloc,
+   free = free,
+   memset = memset,
 }
