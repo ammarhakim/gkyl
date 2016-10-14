@@ -18,6 +18,8 @@ local Mpi = require "Comm.Mpi"
 local Adios = require "Io.Adios"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
 
+-- Code from Lua wiki to convert table to comma-seperated-values
+-- string.
 -- Used to escape "'s by toCSV
 local function escapeCSV (s)
   if string.find(s, '[,"]') then

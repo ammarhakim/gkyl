@@ -128,7 +128,9 @@ end
 
 -- Helper object for indexing 1D slice data. The slice spans from
 -- [lower, upper] (inclusive) and has `stride` pieces of data stored
--- at each location.
+-- at each location. NOTE: At present, this object uses the LuaJIT GC
+-- to manage the data. Perhaps one should consider replacing it with
+-- malloc-ed data.
 local slice_mt = {
    __new = function (self, lower, upper, stride)
       local n = upper-lower+1
