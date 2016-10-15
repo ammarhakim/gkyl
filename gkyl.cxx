@@ -101,6 +101,13 @@ main(int argc, char **argv) {
 #endif
   // set some JIT parameters to fiddle around with optimizations
   varDefs << "jit.opt.start('callunroll=10', 'loopunroll=30')" << std::endl;
+
+  // output prefix
+  std::string snm(argv[1]), inpFile(argv[1]);
+  unsigned trunc = inpFile.find_last_of(".", snm.size());
+  if (trunc > 0)
+    snm.erase(trunc, snm.size());
+  varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
   
   if (luaL_loadstring(L, varDefs.str().c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured

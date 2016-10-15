@@ -268,9 +268,10 @@ local function Field_meta_ctor(elct)
 
 	 -- copy into output buffer
 	 self:_copy_from_field_region(self:localRange(), self._outBuff)
-	 
+
+	 local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
 	 -- open file to write out group
-	 local fd = Adios.open("CartField", outNm, "w", comm)
+	 local fd = Adios.open("CartField", fullNm, "w", comm)
 	 Adios.write(fd, "CartGridField", self._outBuff:data())
 	 Adios.close(fd)
 	 
