@@ -29,9 +29,6 @@ local function free(d)
       ffi.C.free(d); d = nil
    end
 end
-local function memset(s, c, n)
-   return ffi.C.memset(s, c, n)
-end
 
  -- block size in bytes
 local blockSz = 16*1024

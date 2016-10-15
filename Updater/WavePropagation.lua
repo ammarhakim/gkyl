@@ -15,6 +15,7 @@
 -- Gkyl libraries
 local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
+local Alloc = require "Lib.Alloc"
 
 -- system libraries
 local ffi = require "ffi"
@@ -128,21 +129,23 @@ end
 
 -- Helper object for indexing 1D slice data. The slice spans from
 -- [lower, upper] (inclusive) and has `stride` pieces of data stored
--- at each location. NOTE: At present, this object uses the LuaJIT GC
--- to manage the data. Perhaps one should consider replacing it with
--- malloc-ed data.
+-- at each location.
 local slice_mt = {
    __new = function (self, lower, upper, stride)
       local n = upper-lower+1
-      local v = new(self, n*stride)
+      local v = new(self)
+      v._data = Alloc.malloc(typeof("double")*n*stride)
       v._sz, v._stride, v._lower = n*stride, stride, lower
       return v
    end,
    __index = function (self, k)
       return self._data+(k-self._lower)*self._stride
    end,
+   __gc = function (self)
+      Alloc.free(self._data)
+   end,
 }
-local SliceData = metatype(typeof("struct {int32_t _sz, _stride, _lower; double _data[?]; }"), slice_mt)
+local SliceData = metatype(typeof("struct {int32_t _sz, _stride, _lower; double *_data; }"), slice_mt)
 -- helper function to zero out contents of SliceData
 local function clearSliceData(sd)
    fill(sd._data, sd._sz*sizeof("double"))

@@ -264,14 +264,20 @@ local function Field_meta_ctor(elct)
 
 	 -- define data to write
 	 Adios.define_var(
+	    grpId, "time", "", Adios.double, "", "", "")
+	 Adios.define_var(
 	    grpId, "CartGridField", "", elctIoType, self._adLocalSz, self._adGlobalSz, self._adOffset)
 
-	 -- copy into output buffer
+	 -- copy field into output buffer (this copy is needed as
+	 -- field also contains ghost-cell data, and, in addition,
+	 -- ADIOS expects data to be laid out in row-major order)
 	 self:_copy_from_field_region(self:localRange(), self._outBuff)
 
 	 local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
 	 -- open file to write out group
 	 local fd = Adios.open("CartField", fullNm, "w", comm)
+	 local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
+	 Adios.write(fd, "time", tmStampBuff)
 	 Adios.write(fd, "CartGridField", self._outBuff:data())
 	 Adios.close(fd)
 	 
