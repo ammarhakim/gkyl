@@ -156,7 +156,7 @@ local function Field_meta_ctor(elct)
 	 self._recvData[recvId] = allocator(sz)
       end
 
-      -- allocate space for IO
+      -- allocate space for IO (used to send data to ADIOS)
       self._outBuff = allocator(localRange:volume()*self._numComponents)
 
       -- for use in ADIOS output
@@ -169,7 +169,9 @@ local function Field_meta_ctor(elct)
       adLocalSz[self._ndim+1] = self._numComponents
       adGlobalSz[self._ndim+1] = self._numComponents
       adOffset[self._ndim+1] = 0
-	 
+
+      -- convert tables to comma-seperated-string. For some strange
+      -- reasons, this is what ADIOS expects
       self._adLocalSz = toCSV(adLocalSz)
       self._adGlobalSz = toCSV(adGlobalSz)
       self._adOffset = toCSV(adOffset)
