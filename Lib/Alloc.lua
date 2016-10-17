@@ -15,13 +15,12 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 ffi.cdef [[
   void* malloc(size_t size);
   void free(void *ptr);
-  void *memset(void *s, int c, size_t n);
 ]]
 
 -- Wrapper around core memory functions
 local function malloc(sz)
    local d = ffi.C.malloc(sz)
-   assert(d, "malloc: Unable to allocate memory!")
+   assert(d, "Alloc.malloc: Unable to allocate memory!")
    return d
 end
 local function free(d)
@@ -43,8 +42,7 @@ local function alloc(ct, elct, num)
 
    local v = new(ct)
    v._capacity = 0
-   v._data = ffi.C.malloc(adjBytes)
-   assert(v._data, "Alloc.alloc: Unable to allocate memory!")
+   v._data = malloc(adjBytes)
    v._capacity = adjNum
    return v
 end
@@ -69,7 +67,7 @@ local function Alloc_meta_ctor(elct)
 	 if self._capacity == 0 then
 	    return false
 	 else
-	    ffi.C.free(self._data); self._data = nil
+	    free(self._data)
 	    self._capacity = 0
 	 end
 	 return true
