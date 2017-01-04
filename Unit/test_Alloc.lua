@@ -5,6 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local ffi = require "ffi"
 local Unit = require "Unit"
 local Alloc = require "Lib.Alloc"
 
@@ -26,8 +27,27 @@ function test_1()
    end
 end
 
--- run test
+function test_2()
+   local len = 100
+   local eulerAlloc = Alloc.Alloc_meta_ctor(ffi.typeof("struct {double rho, rhou, E;}"))
+   local eulerFld = eulerAlloc(len)
+
+   for i = 1, len do
+      eulerFld[i].rho = (i+0.5)*0.1
+      eulerFld[i].rhou = (i+0.5)*0.2
+      eulerFld[i].E = (i+0.5)*0.3
+   end
+
+   for i = 1, len do
+      assert_equal((i+0.5)*0.1, eulerFld[i].rho, "Checking [] operator")
+      assert_equal((i+0.5)*0.2, eulerFld[i].rhou, "Checking [] operator")
+      assert_equal((i+0.5)*0.3, eulerFld[i].E, "Checking [] operator")
+   end   
+end
+
+-- run tes
 test_1()
+test_2()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

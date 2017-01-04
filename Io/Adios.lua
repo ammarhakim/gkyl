@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- don't bother is ADIOS is not built in
+-- don't bother if ADIOS is not built in
 assert(GKYL_HAVE_ADIOS, "Gkyl was not built with ADIOS!")
 
 local ffi  = require "ffi"
