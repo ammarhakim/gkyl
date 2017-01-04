@@ -52,6 +52,9 @@ local function Alloc_meta_ctor(elct)
       elemType = function (self)
 	 return elct
       end,
+      elemSize = function (self)
+	 return sizeof(elct)
+      end,
       data = function (self)
 	 return self._data
       end,

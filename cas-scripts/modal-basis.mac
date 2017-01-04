@@ -111,3 +111,15 @@ calcStiffMatrix(v, vars, basis) := block([n, stiff],
 	                  stiff),
 	        return (stiff)
 )$
+
+/* Canonical PB in 2D */
+PB(f,g) := diff(f,x)*diff(g,y) - diff(f,y)*diff(g,x);
+/* Compute mass matrix, i.e M_ij = <w phi_i phi_j> */
+calcPbMatrix(basis) := block([n, mass],
+                n : length(basis),
+		mass : (mass : zeromatrix(n,n), for i from 1 thru n
+		         do (for j from 1 thru n
+			   do (mass[i,j] : PB(basis[i], basis[j]))),
+			   mass),
+	        return (mass)
+)$

@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- don't bother is MPI is not built in
+-- don't bother is MPI if not built in
 assert(GKYL_HAVE_MPI, "Gkyl was not built with MPI!")
 
 local ffi  = require "ffi"
