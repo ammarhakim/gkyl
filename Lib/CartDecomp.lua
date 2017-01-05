@@ -44,11 +44,28 @@ function DecomposedRange:new(decomp)
    -- for periodic directions store "skeleton" sub-domains, i.e. those
    -- that touch the domain boundary
    self._periodicDomPairs = {} -- table of size 'ndim'
-
    for d = 1, decomp:ndim() do
       local sz = self._cutsRange:shorten(d):volume() -- number of skeleton cells
       self._periodicDomPairs[d] = PairsVec(sz) -- store as integer pair
    end
+
+   -- (we can do this here as skeleton sub-domain IDs only depends on
+   -- cuts and not on domain to be decomposed)
+   local cutIdxr = Range.makeColMajorGenIndexer(self._cutsRange)
+   -- loop over each direction, adding boundary sub-regions to
+   -- pair-list to allow communication in periodic directions
+   for dir = 1, decomp:ndim() do
+      -- loop over "shortened" range which are basically
+      -- sub-domains that lie on the lower domain boundary
+      local shortRange = self._cutsRange:shorten(dir)	 
+      local c = 1
+      for idx in shortRange:colMajorIter() do
+	 self._periodicDomPairs[dir][c].lower = cutIdxr(idx) -- lower sub-domain on boundary
+	 idx[dir] = idx[dir]+self:cuts(dir) 
+	 self._periodicDomPairs[dir][c].upper = cutIdxr(idx) -- upper sub-domain on boundary
+	 c = c+1
+      end
+   end   
    
    return self   
 end
@@ -71,7 +88,10 @@ DecomposedRange.__index = {
    end,
    subDomain = function (self, k)
       return self._domains[k]
-   end
+   end,
+   boundarySubDomainIds = function (self, dir)
+      return self._periodicDomPairs[dir]
+   end,
 }
 
 -- CartProdDecomp --------------------------------------------------------------
@@ -149,21 +169,6 @@ CartProdDecomp.__index = {
 	 c = c+1
       end
 
-      local cutIdxr = Range.makeColMajorGenIndexer(self._cutsRange)
-      -- loop over each direction, adding boundary sub-regions to
-      -- pair-list to allow communication in periodic directions
-      for dir = 1, range:ndim() do
-	 -- loop over "shortened" range which are basically the
-	 -- sub-domains that lie on the lower domain boundary
-	 local shortRange = self._cutsRange:shorten(dir)	 
-	 local c = 1
-	 for idx in shortRange:colMajorIter() do
-	    decompRgn._periodicDomPairs[dir][c].lower = cutIdxr(idx) -- lower sub-domain on boundary
-	    idx[dir] = idx[dir]+self:cuts(dir) 
-	    decompRgn._periodicDomPairs[dir][c].upper = cutIdxr(idx) -- upper sub-domain on boundary
-	    c = c+1
-	 end
-      end
 
       return decompRgn
    end,

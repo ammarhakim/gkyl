@@ -76,9 +76,21 @@ function test_2()
    
 end
 
+function test_3()
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3}, __serTesting = true }
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
+
+   local perIds = decomposedRgn:boundarySubDomainIds(1)
+   assert_equal(3, #perIds, "Checking number of skeleton sub-domains in direction 1")
+
+   local perIds = decomposedRgn:boundarySubDomainIds(2)
+   assert_equal(2, #perIds, "Checking number of skeleton sub-domains in direction 2")
+end
+
 -- Run tests
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
