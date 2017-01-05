@@ -81,9 +81,9 @@ main(int argc, char **argv) {
     std::cerr << "Unable to create a new LuaJIT interpreter state. Quitting" << std::endl;
     return finish(1);
   }
-  lua_gc(L, LUA_GCSTOP, 0);  // stop collector during initialization
+  lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
   luaL_openlibs(L);  // open standard libraries
-  lua_gc(L, LUA_GCRESTART, -1);
+  lua_gc(L, LUA_GCRESTART, -1); // restart GC
 
   // load compile-time constants into Lua compiler so they become
   // available to scripts
