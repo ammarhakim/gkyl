@@ -46,3 +46,10 @@ be used to access the decomposition.
 `decomp:subDomain(k)`
 : The k-th sub-domain in the system, indexed from 1.
 
+`decomp:boundarySubDomainIds(dir)`
+: Boundary sub-domain IDs along direction `dir`. The returned Ids are
+  stored as a (one-indexed) vector (Linalg.Vec) of pairs. The first
+  element in the pair is called `lower` and the second element is
+  called `upper`. This function is mostly useful to determine
+  communication neighbors in periodic directions.
+
