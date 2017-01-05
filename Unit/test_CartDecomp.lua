@@ -82,9 +82,15 @@ function test_3()
 
    local perIds = decomposedRgn:boundarySubDomainIds(1)
    assert_equal(3, #perIds, "Checking number of skeleton sub-domains in direction 1")
+   for i = 1, #perIds do
+      --print(1, '--', perIds[i].lower, perIds[i].upper)
+   end
 
    local perIds = decomposedRgn:boundarySubDomainIds(2)
    assert_equal(2, #perIds, "Checking number of skeleton sub-domains in direction 2")
+   for i = 1, #perIds do
+      --print(2, '--', perIds[i].lower, perIds[i].upper)
+   end   
 end
 
 -- Run tests
