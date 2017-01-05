@@ -51,18 +51,20 @@ function DecomposedRange:new(decomp)
 
    -- (we can do this here as skeleton sub-domain IDs only depends on
    -- cuts and not on domain to be decomposed)
-   local cutIdxr = Range.makeColMajorGenIndexer(self._cutsRange)
+   local cutsIdxr = Range.makeColMajorGenIndexer(self._cutsRange)
    -- loop over each direction, adding boundary sub-regions to
    -- pair-list to allow communication in periodic directions
    for dir = 1, decomp:ndim() do
       -- loop over "shortened" range which are basically
       -- sub-domains that lie on the lower domain boundary
-      local shortRange = self._cutsRange:shorten(dir)	 
+      local shortRange = self._cutsRange:shorten(dir)
       local c = 1
       for idx in shortRange:colMajorIter() do
-	 self._periodicDomPairs[dir][c].lower = cutIdxr(idx) -- lower sub-domain on boundary
-	 idx[dir] = idx[dir]+self:cuts(dir) 
-	 self._periodicDomPairs[dir][c].upper = cutIdxr(idx) -- upper sub-domain on boundary
+	 local idxp = idx:copy()
+	 idxp[dir] = idxp[dir]+decomp:cuts(dir)-1 -- upper index
+
+	 self._periodicDomPairs[dir][c].lower = cutsIdxr(idx) -- lower sub-domain on boundary
+	 self._periodicDomPairs[dir][c].upper = cutsIdxr(idxp) -- upper sub-domain on boundary
 	 c = c+1
       end
    end   
