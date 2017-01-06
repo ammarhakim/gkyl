@@ -300,6 +300,44 @@ function test_17()
 
 end
 
+function test_18()
+   local r1 = Range.Range({1, 2}, {10, 11})
+   local offsets = {10, 12}
+   local rshift = r1:shift(offsets)
+
+   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
+   for d = 1, r1:ndim() do
+      assert_equal(rshift:lower(d)-r1:lower(d), offsets[d], "Checking offset")
+      assert_equal(rshift:upper(d)-r1:upper(d), offsets[d], "Checking offset")
+   end
+
+   offsets = {-10, -12}
+   rshift = r1:shift(offsets)
+
+   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
+   for d = 1, r1:ndim() do
+      assert_equal(rshift:lower(d)-r1:lower(d), offsets[d], "Checking offset")
+      assert_equal(rshift:upper(d)-r1:upper(d), offsets[d], "Checking offset")
+   end
+end
+
+function test_19()
+   local r1 = Range.Range({1, 2}, {10, 11})
+   local offset = 10
+   local rshift = r1:shiftInDir(1, offset)
+
+   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
+   assert_equal(rshift:lower(1)-r1:lower(1), offset, "Checking offset")
+   assert_equal(rshift:upper(1)-r1:upper(1), offset, "Checking offset")
+
+   offset = -12
+   rshift = r1:shiftInDir(2, offset)
+
+   assert_equal(r1:volume(), rshift:volume(), "Checking shifted volumes")
+   assert_equal(rshift:lower(2)-r1:lower(2), offset, "Checking offset")
+   assert_equal(rshift:upper(2)-r1:upper(2), offset, "Checking offset")
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -318,6 +356,8 @@ test_14()
 test_15()
 test_16()
 test_17()
+test_18()
+test_19()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

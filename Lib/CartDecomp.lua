@@ -119,7 +119,6 @@ function CartProdDecomp:new(tbl)
 		string.format(
 		   "CartProdDecomp: Number of sub-domains (%d) and processors (%d) must match",
 		   self._cutsRange:volume(), Mpi.Comm_size(self._comm)))
-	 
       end
    end
    return self
@@ -170,7 +169,6 @@ CartProdDecomp.__index = {
 	 decompRgn._domains[c] = Range.Range(l, u)
 	 c = c+1
       end
-
 
       return decompRgn
    end,
