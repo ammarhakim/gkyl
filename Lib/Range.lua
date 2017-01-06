@@ -139,6 +139,23 @@ local range_mt = {
 	 r._upper[dir-1] = r._lower[dir-1]
 	 return r	 
       end,
+      shift = function (self, offsets)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d)+offsets[d], self:upper(d)+offsets[d]
+	 end
+	 return r
+      end,
+      shiftInDir = function (self, dir, offset)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end	 
+	 r._lower[dir-1], r._upper[dir-1] = self:lower(dir)+offset, self:upper(dir)+offset
+	 return r
+      end,
       intersect = function (self, rgn)
 	 local lo, up = Lin.IntVec(self:ndim()), Lin.IntVec(self:ndim())
 	 for d = 1, self:ndim() do

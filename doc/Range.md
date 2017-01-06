@@ -61,6 +61,9 @@ The following methods are provided.
 : Returns a new Range object with additional `loExt` indices added to
   lower edge and upExt` added to upper edge in direction, `dir`.
 
+`range:shift(offsets)`
+: Returns a new Range object shifted by `offset`
+
 `range:intersect(rgn)`
 : Returns intersection of `range` with `rgn`. If the intersection is
   empty, the lower/upper are such that the volume of the region is
