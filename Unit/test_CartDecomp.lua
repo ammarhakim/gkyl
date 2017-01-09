@@ -77,26 +77,54 @@ function test_2()
 end
 
 function test_3()
+   local decomp = DecompRegionCalc.CartProd { cuts = {1, 1}, __serTesting = true }
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
+
+   local perIds = decomposedRgn:boundarySubDomainIds(1)
+   assert_equal(1, #perIds, "Checking number of skeleton sub-domains in direction 1")
+   -- check individual pairs
+   assert_equal(1, perIds[1].lower, "Checking lower")
+   assert_equal(1, perIds[1].upper, "Checking upper")
+
+   perIds = decomposedRgn:boundarySubDomainIds(2)
+   assert_equal(1, #perIds, "Checking number of skeleton sub-domains in direction 2")
+   -- check individual pairs
+   assert_equal(1, perIds[1].lower, "Checking lower")
+   assert_equal(1, perIds[1].upper, "Checking upper")   
+end
+
+function test_4()
    local decomp = DecompRegionCalc.CartProd { cuts = {2, 3}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
 
    local perIds = decomposedRgn:boundarySubDomainIds(1)
    assert_equal(3, #perIds, "Checking number of skeleton sub-domains in direction 1")
-   for i = 1, #perIds do
-      --print(1, '--', perIds[i].lower, perIds[i].upper)
-   end
+   -- check individual pairs
+   assert_equal(1, perIds[1].lower, "Checking lower")
+   assert_equal(2, perIds[1].upper, "Checking upper")
+
+   assert_equal(3, perIds[2].lower, "Checking lower")
+   assert_equal(4, perIds[2].upper, "Checking upper")
+
+   assert_equal(5, perIds[3].lower, "Checking lower")
+   assert_equal(6, perIds[3].upper, "Checking upper")   
+
 
    local perIds = decomposedRgn:boundarySubDomainIds(2)
    assert_equal(2, #perIds, "Checking number of skeleton sub-domains in direction 2")
-   for i = 1, #perIds do
-      --print(2, '--', perIds[i].lower, perIds[i].upper)
-   end   
+   -- check individual pairs
+   assert_equal(1, perIds[1].lower, "Checking lower")
+   assert_equal(5, perIds[1].upper, "Checking upper")
+
+   assert_equal(2, perIds[2].lower, "Checking lower")
+   assert_equal(6, perIds[2].upper, "Checking upper")
 end
 
 -- Run tests
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
