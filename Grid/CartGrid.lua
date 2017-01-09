@@ -30,8 +30,16 @@ function RectCart:new(tbl)
    local cells = tbl.cells
    self._ndim = #cells -- dimensions
    -- default grid extents
-   local lo = tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-   local up = tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
+   local lo = tbl.lower and tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+   local up = tbl.upper and tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
+
+   -- periodic directions
+   self._periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
+   -- construct table to indicate if directions are periodic  (default no directions are periodic)
+   self._isDirPeriodic = {false, false, false, false, false, false}
+   for _, dir in ipairs(self._periodicDirs) do
+      self._isDirPeriodic[dir] = true
+   end
 
    self._lower = new("int[?]", self._ndim)
    self._upper = new("int[?]", self._ndim)
@@ -104,6 +112,9 @@ RectCart.__index = {
    globalRange = function (self)
       return self._globalRange
    end,
+   isDirPeriodic = function (self, dir)
+      return self._isDirPeriodic[dir]
+   end,
    setIndex = function(self, idx)
       for d = 1, self._ndim do
 	 self._currIdx[d-1] = idx[d]
@@ -153,9 +164,17 @@ function NonUniformRectCart:new(tbl)
    local cells = tbl.cells
    self._ndim = #cells -- dimensions
    -- default grid extents
-   local lo = tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-   local up = tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
+   local lo = tbl.lower and tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
+   local up = tbl.upper and tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
 
+   -- periodic directions
+   self._periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
+   -- construct table to indicate if directions are periodic  (default no directions are periodic)
+   self._isDirPeriodic = {false, false, false, false, false, false}
+   for _, dir in ipairs(self._periodicDirs) do
+      self._isDirPeriodic[dir] = true
+   end   
+  
    self._lower = new("int[?]", self._ndim)
    self._upper = new("int[?]", self._ndim)
    self._numCells = new("int[?]", self._ndim)
@@ -243,7 +262,10 @@ NonUniformRectCart.__index = {
    end,
    globalRange = function (self)
       return self._globalRange
-   end,   
+   end,
+   isDirPeriodic = function (self, dir)
+      return self._isDirPeriodic[dir]
+   end,
    setIndex = function(self, idx)
       for d = 1, self:ndim() do
 	 self._currIdx[d-1] = idx[d]

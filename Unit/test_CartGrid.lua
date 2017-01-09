@@ -307,6 +307,34 @@ function test_8()
    assert_equal(5/9, grid:cellVolume(), "Checking volume")   
 end
 
+function test_9()
+   local grid = Grid.RectCart {
+      lower = {0.0, 1.0, 1.0},
+      upper = {2.0, 5.0, 10.0},
+      cells = {10, 20, 30},
+      periodicDirs = {1, 3},
+   }
+
+   -- check periodicity
+   assert_equal(true, grid:isDirPeriodic(1), "Checking periodicity")
+   assert_equal(false, grid:isDirPeriodic(2), "Checking periodicity")
+   assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity")
+end
+
+function test_10()
+   local grid = Grid.NonUniformRectCart {
+      lower = {0.0, 1.0, 1.0},
+      upper = {2.0, 5.0, 10.0},
+      cells = {10, 20, 30},
+      periodicDirs = {2, 3},
+   }
+
+   -- check periodicity
+   assert_equal(false, grid:isDirPeriodic(1), "Checking periodicity (NU)")
+   assert_equal(true, grid:isDirPeriodic(2), "Checking periodicity (NU)")
+   assert_equal(true, grid:isDirPeriodic(3), "Checking periodicity (NU)")
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -316,6 +344,8 @@ test_5()
 test_6()
 test_7()
 test_8()
+test_9()
+test_10()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
