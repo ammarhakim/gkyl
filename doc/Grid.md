@@ -40,6 +40,9 @@ the following parameters:
 `cells`
 : Number of cells in each direction
 
+`periodicDirs` (Optional. Defaults to empty table)
+: Periodic directions (indexed from 1 as X, 2 as Y etc).
+
 `decomposition`
 : The decomposition object used to decompose grid in parallel. This
   must be specified for use in parallel.
@@ -51,9 +54,9 @@ with 1, Y-direction with 2, etc.__
 : Communicator for use in parallel messaging.
 
 `grid:subGridId()`
-: For parallel grid, returns integer ID of grid. This numnber is
-  unique for each indpendent portion of the grid, which usually live
-  on different procssors.
+: For parallel grid, returns integer ID of grid. This number is unique
+  for each indpendent portion of the grid, which usually live on
+  different procssors.
 
 `grid:ndim()`
 : The dimensions of the grid.
@@ -64,8 +67,11 @@ with 1, Y-direction with 2, etc.__
 `grid:numCells(dir)`
 : The number of cells in direction `dir`.
 
-`field:localRange()`, `field:globalRange()`
+`grid:localRange()`, `grid:globalRange()`
 : Local/global index range spanned by grid.
+
+`grid:isDirPeriodic(dir)`
+: Returns true if direction `dir` is periodic, false otherwise.
 
 `grid:dx(dir)`
 : Cell spacing in direction `dir`.
