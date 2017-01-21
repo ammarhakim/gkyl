@@ -61,6 +61,13 @@ The field constructor takes the following parameters:
  `sync()` call. For most algorithms, this flag should be set to
  `false`, unless the stencil includes use of corner cells.
 
+`syncPeriodicDirs` (Options. Default is `true`)
+: If set to true, periodic directions (specified in Grid object) are
+  also synchornized on a `sync()` call. In almost all cases the
+  default (`true`) is the correction option. In some rare cases one
+  may want a field that lives on a periodic domain but yet skip the
+  periodic boundary conditions for that field.
+
 The following methods are provided.
 
 `field:elemType()`
