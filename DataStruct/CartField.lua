@@ -97,7 +97,7 @@ local function Field_meta_ctor(elct)
       local nc = tbl.numComponents and tbl.numComponents or 1 -- default numComponents=1
       local ghost = tbl.ghost and tbl.ghost or {0, 0} -- No ghost cells by default
       local syncCorners = tbl.syncCorners and tbl.syncCorners or false -- Don't sync() corners by default
-
+      local syncPeriodicDirs = tbl.syncPeriodicDirs and tbl.syncPeriodicDirs or true -- sync() periodic directions by default
       -- local and global ranges
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()

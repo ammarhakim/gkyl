@@ -50,6 +50,9 @@ the following parameters:
 The following methods are provided. Note: __we indicate X-direction
 with 1, Y-direction with 2, etc.__
 
+`grid:ndim()`
+: The dimensions of the grid.
+
 `grid:comm()`
 : Communicator for use in parallel messaging.
 
@@ -58,8 +61,10 @@ with 1, Y-direction with 2, etc.__
   for each indpendent portion of the grid, which usually live on
   different procssors.
 
-`grid:ndim()`
-: The dimensions of the grid.
+`grid:decomposedRange()`
+: Returns an object of type `DecomposedRange`. This encodes the
+  information about the domain decomposition, in particular the
+  neighbor information needed in parallel communications.
 
 `grid:lower(dir)`, `grid:upper(dir)`
 : The lower/upper bounds in direction `dir`.

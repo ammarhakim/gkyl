@@ -16,7 +16,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function hasVal(tbl, val)
-   for _,v in ipairs(tbl) do
+   for _, v in ipairs(tbl) do
       if v == val then return true end
    end
    return false
