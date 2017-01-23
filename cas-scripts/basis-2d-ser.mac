@@ -1,0 +1,26 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+fpprec : 24$
+
+/* Function to write out basis functions */
+writeBasis(fname, basisIn) := block([fh, basis],
+  basis : float(expand(radcan(basisIn))),
+  fh : openw(fname),
+  for i : 1 thru length(basis) do (
+    printf(fh, "~a = ~a ~%", b[i], basis[i])
+  ),
+  close(fh)
+)$
+
+
+var : [z1, z2]$
+basis1 : gsOrthoNorm(var, makeSerendipBasis(var, 1))$
+writeBasis("~/max-out/basis2d-ser-p1.lua", float(basis1));
+
+basis2 : gsOrthoNorm(var, makeSerendipBasis(var, 2))$
+writeBasis("~/max-out/basis2d-ser-p2.lua", float(basis2));
+
+basis3 : gsOrthoNorm(var, makeSerendipBasis(var, 3))$
+writeBasis("~/max-out/basis2d-ser-p3.lua", float(basis3));
+
+basis4 : gsOrthoNorm(var, makeSerendipBasis(var, 4))$
+writeBasis("~/max-out/basis2d-ser-p4.lua", float(basis4));
