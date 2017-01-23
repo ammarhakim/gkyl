@@ -10,7 +10,7 @@ shaveCols(Abig, cols) := block([nx,ny,nc,Asmall],
 		           do (Asmall : addcol(Asmall, col(Abig, cols[i]))),
 			  Asmall),
 	        return (Asmall)
-);
+)$
 
 /* Inner product of functions f1 and f2 with weight w */
 innerProd(vars, w, f1, f2) := block([n, r],
