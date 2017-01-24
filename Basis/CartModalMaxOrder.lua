@@ -21,26 +21,28 @@ function CartModalMaxOrder:new(tbl)
    local self = setmetatable({}, CartModalMaxOrder)
 
    -- read data from input table
-   self._onGrid = assert(tbl.onGrid, "Basis.CartModalMaxOrder: Must provide grid object using 'onGrid'")
+   self._ndim = assert(tbl.ndim, "Basis.CartModalMaxOrder: Must specify dimension using 'ndim'")
    self._polyOrder = assert(tbl.polyOrder, "Basis.CartModalMaxOrder: Must specify polynonial order with 'polyOrder'")
 
    if (self._polyOrder < 0) or (self._polyOrder > 4) then
       assert(false, "Polynomial order must be between 0 and 4")
    end
 
-   self._ndim = self._onGrid:ndim() -- number of dimensions
-
    self._numBasis = 1
-   if (self._ndim == 1) then
-      self._numBasis = self._polyOrder+1
-   elseif (self._ndim == 2) then
-      self._numBasis = (self._polyOrder+2)*(self._polyOrder+1)/2
-   elseif (self._ndim == 3) then
-      self._numBasis = (self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/6
-   elseif (self._ndim == 4) then
-      self._numBasis = (self._polyOrder+4)*(self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/24
-   elseif (self._ndim == 5) then
-      self._numBasis = (self._polyOrder+5)*(self._polyOrder+4)*(self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/120
+
+   -- number of basis is = (p+d)! / p! d! 
+   if self._polyOrder > 0 then
+      if (self._ndim == 1) then
+	 self._numBasis = self._polyOrder+1
+      elseif (self._ndim == 2) then
+	 self._numBasis = (self._polyOrder+2)*(self._polyOrder+1)/2
+      elseif (self._ndim == 3) then
+	 self._numBasis = (self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/6
+      elseif (self._ndim == 4) then
+	 self._numBasis = (self._polyOrder+4)*(self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/24
+      elseif (self._ndim == 5) then
+	 self._numBasis = (self._polyOrder+5)*(self._polyOrder+4)*(self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/120
+      end
    end
 
    local _m = nil -- to store module with evaluation code
