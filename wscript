@@ -123,6 +123,13 @@ def build(bld):
         Io_dir.ant_glob('**/*.lua'),
         cwd=Io_dir, relative_trick=True)
 
+    # - Basis
+    Basis_dir = bld.path.find_dir('Basis')
+    bld.install_files(
+        "${PREFIX}/bin/Basis",
+        Basis_dir.ant_glob('**/*.lua'),
+        cwd=Basis_dir, relative_trick=True)
+
     # build wrapper shell script
     binPath = bld.env.PREFIX+"/bin"
     sharePath = bld.env.SHARE_LUAJIT+"/?.lua"
