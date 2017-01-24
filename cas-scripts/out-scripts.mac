@@ -1,0 +1,8 @@
+
+writeBasis(fh, basisIn) := block([basis],
+  print(basisIn[1]),
+  basis : float(expand(radcan(basisIn))),
+  for i : 1 thru length(basis) do (
+    printf(fh, "   ~a = ~a ~%", b[i], basis[i])
+  )
+)$
