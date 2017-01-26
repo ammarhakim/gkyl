@@ -37,7 +37,8 @@ function test_1()
 
    local muList, wList = GaussQuadRules.ordinates, GaussQuadRules.weights
 
-   -- test integrations: all of these are exact
+   -- test integrations: Gauss quadrature with N points integrates
+   -- 2*N-1 polynomial exactly
    
    local N=1   
    local r = integrate(N, muList[N], wList[N], function (x) return 1 end)
