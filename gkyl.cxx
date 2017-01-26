@@ -12,6 +12,7 @@
 
 // std include
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <vector>
 
@@ -99,6 +100,10 @@ main(int argc, char **argv) {
 #else
   varDefs << "GKYL_HAVE_ADIOS = false" << std::endl;
 #endif
+  // numeric limits
+  varDefs << "GKYL_MAX_DOUBLE = " << std::numeric_limits<double>::max() << std::endl;
+  varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
+  
   // set some JIT parameters to fiddle around with optimizations
   varDefs << "jit.opt.start('callunroll=10', 'loopunroll=30')" << std::endl;
 
