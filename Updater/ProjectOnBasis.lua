@@ -30,17 +30,30 @@ function ProjectOnBasis:new(tbl)
    Base.setup(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.ProjectOnBasis: Must provide grid object using 'onGrid'")
-   self._basis = assert(tbl.onGrid, "Updater.Provide: Must specify basis functions to use using 'basis'")
+   self._basis = assert(tbl.basis, "Updater.Provide: Must specify basis functions to use using 'basis'")
+
+   assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
    local N = self._basis:polyOrder()+1 -- number of quadrature points in each direction
    -- 1D weights and ordinates
    local ordinates, weights = GaussQuadRules.ordinates[N], GaussQuadRules.weights[N]
 
+   local ndim = self._basis:ndim()
    local l, u = {}, {}
-   for d = 0, self._basis:ndim() do l[i], u[i] = 1, N end
+   for d = 1, ndim do l[d], u[d] = 1, N end
+   local quadRange = Range.Range(l, u) -- for looping over quadrature nodes
+   
    -- construct weights and ordinates for integration in multiple dimensions
-   local nr = Range.Range(l, u)
-   for idx in nr:colMajorIter() do
+   self._ordinates, self._weights = {}, {}
+   local nodeNum = 1
+   for idx in quadRange:colMajorIter() do
+      self._weights[nodeNum] = 1.0
+      self._ordinates[nodeNum] = Lin.Vec(ndim)
+      for d = 1, ndim do
+	 self._weights[nodeNum] = self._weights[nodeNum]*weights[idx[d]]
+	 self._ordinates[nodeNum][d] = ordinates[idx[d]]
+      end
+      nodeNum = nodeNum + 1
    end
 
    return self
