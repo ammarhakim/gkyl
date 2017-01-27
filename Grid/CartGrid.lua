@@ -41,15 +41,19 @@ function RectCart:new(tbl)
       self._isDirPeriodic[dir] = true
    end
 
-   self._lower = new("int[?]", self._ndim)
-   self._upper = new("int[?]", self._ndim)
-   self._numCells = new("int[?]", self._ndim)
-   self._currIdx = new("int[?]", self._ndim)
-   
+   -- set stuff up
+   self._lower = Lin.IntVec(self._ndim)
+   self._upper = Lin.IntVec(self._ndim)
+   self._numCells = Lin.IntVec(self._ndim)
+   self._dx = Lin.Vec(self._ndim)   
+   self._currIdx = Lin.IntVec(self._ndim)
+
    for d = 1, #cells do
-      self._lower[d-1], self._upper[d-1] = lo[d], up[d]
-      self._numCells[d-1] = cells[d]
+      self._lower[d], self._upper[d] = lo[d], up[d]
+      self._numCells[d] = cells[d]
+      self._dx[d] = (up[d]-lo[d])/cells[d]
    end
+
    -- compute global range
    local l, u = {}, {}
    for d = 1, #cells do
@@ -98,13 +102,13 @@ RectCart.__index = {
       return self._ndim
    end,
    lower = function (self, dir)
-      return self._lower[dir-1]
+      return self._lower[dir]
    end,
    upper = function (self, dir)
-      return self._upper[dir-1]
+      return self._upper[dir]
    end,
    numCells = function (self, dir)
-      return self._numCells[dir-1]
+      return self._numCells[dir]
    end,
    localRange = function (self)
       return self._localRange
@@ -117,11 +121,11 @@ RectCart.__index = {
    end,
    setIndex = function(self, idx)
       for d = 1, self._ndim do
-	 self._currIdx[d-1] = idx[d]
+	 self._currIdx[d] = idx[d]
       end
    end,
    dx = function (self, dir)
-      return (self:upper(dir)-self:lower(dir))/self:numCells(dir)
+      return self._dx[dir]
    end,
    cellVolume = function (self)
       local v = 1.0
@@ -175,14 +179,14 @@ function NonUniformRectCart:new(tbl)
       self._isDirPeriodic[dir] = true
    end   
   
-   self._lower = new("int[?]", self._ndim)
-   self._upper = new("int[?]", self._ndim)
-   self._numCells = new("int[?]", self._ndim)
-   self._currIdx = new("int[?]", self._ndim)
+   self._lower = Lin.IntVec(self._ndim)
+   self._upper = Lin.IntVec(self._ndim)
+   self._numCells = Lin.IntVec(self._ndim)
+   self._currIdx = Lin.IntVec(self._ndim)
    
    for d = 1, #cells do
-      self._lower[d-1], self._upper[d-1] = lo[d], up[d]
-      self._numCells[d-1] = cells[d]
+      self._lower[d], self._upper[d] = lo[d], up[d]
+      self._numCells[d] = cells[d]
    end
    -- compute global range
    local l, u = {}, {}
@@ -206,16 +210,16 @@ function NonUniformRectCart:new(tbl)
    local ndim = self._ndim
    -- set grid index to first cell in domain
    for d = 1, ndim do
-      self._currIdx[d-1] = 1;
+      self._currIdx[d] = 1;
    end
    
    self._nodeCoords = {} -- nodal coordinates in each direction      
    -- initialize nodes to be uniform (will be over-written if mappings are provided)
    for d = 1, ndim do
       -- allocate space: one node extra than cells
-      local v =  Lin.Vec(self._numCells[d-1]+1)
+      local v =  Lin.Vec(self._numCells[d]+1)
       fillWithUniformNodeCoords(
-	 self._lower[d-1], self._upper[d-1], self._numCells[d-1], v)
+	 self._lower[d], self._upper[d], self._numCells[d], v)
       self._nodeCoords[d] = v
    end
    
@@ -225,7 +229,7 @@ function NonUniformRectCart:new(tbl)
       for d, mapFunc in next, tbl.mappings, nil do
 	 if d > ndim then break end -- break out if too many functions provided
 	 fillWithMappedNodeCoords(
-	    self._lower[d-1], self._upper[d-1], self._numCells[d-1],
+	    self._lower[d], self._upper[d], self._numCells[d],
 	    mapFunc, self._nodeCoords[d])
       end
    end
@@ -252,7 +256,7 @@ NonUniformRectCart.__index = {
       return self._nodeCoords[dir][self:numCells(dir)+1]
    end,
    numCells = function (self, dir)
-      return self._numCells[dir-1]
+      return self._numCells[dir]
    end,
    nodeCoords = function (self, dir)
       return self._nodeCoords[dir]
@@ -268,12 +272,12 @@ NonUniformRectCart.__index = {
    end,
    setIndex = function(self, idx)
       for d = 1, self:ndim() do
-	 self._currIdx[d-1] = idx[d]
+	 self._currIdx[d] = idx[d]
       end
    end,
    dx = function (self, dir)
       local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
-      return nodeCoords[idx[dir-1]+1]-nodeCoords[idx[dir-1]]
+      return nodeCoords[idx[dir]+1]-nodeCoords[idx[dir]]
    end,
    cellVolume = function (self)
       local v = 1.0

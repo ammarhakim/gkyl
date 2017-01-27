@@ -97,12 +97,18 @@ local function Alloc_meta_ctor(elct)
    return metatype(typeof("struct { uint32_t _capacity; $* _data; }", elct), alloc_mt)
 end
 
+-- convience function to create an allocator for custom type
+local function createAllocator(typeStr)
+   return Alloc_meta_ctor(ffi.typeof(typeStr))
+end
+
 return {
    Alloc_meta_ctor = Alloc_meta_ctor,
-   Double = Alloc_meta_ctor(typeof("double")),
-   Float = Alloc_meta_ctor(typeof("float")),
-   Int = Alloc_meta_ctor(typeof("int")),
+   Double = createAllocator("double"),
+   Float = createAllocator("float"),
+   Int = createAllocator("int"),
    malloc = malloc,
    free = free,
    memset = memset,
+   createAllocator = createAllocator,
 }

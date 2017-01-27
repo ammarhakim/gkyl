@@ -29,7 +29,7 @@ end
 
 function test_2()
    local len = 100
-   local eulerAlloc = Alloc.Alloc_meta_ctor(ffi.typeof("struct {double rho, rhou, E;}"))
+   local eulerAlloc = Alloc.createAllocator("struct {double rho, rhou, E;}")
    local eulerFld = eulerAlloc(len)
 
    for i = 1, len do
