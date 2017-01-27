@@ -1,9 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Updater to project function on basis functions. Uses Gaussian
--- quadrature. The projection is not exact unless the function being
--- projected is a polynomial of order less than the basis function
--- polyOrder.
+-- quadrature. The projection is exact if the function being projected
+-- is a polynomial of order less than the basis function polyOrder.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -30,7 +29,8 @@ function ProjectOnBasis:new(tbl)
    Base.setup(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.ProjectOnBasis: Must provide grid object using 'onGrid'")
-   self._basis = assert(tbl.basis, "Updater.Provide: Must specify basis functions to use using 'basis'")
+   self._basis = assert(tbl.basis, "Updater.ProjectOnBasis: Must specify basis functions to use using 'basis'")
+   self._evaluate = assert(tbl.evaluate, "Updater.ProjectOnBasis: Must specify function to project using 'evaluate'")
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
@@ -54,6 +54,14 @@ function ProjectOnBasis:new(tbl)
 	 self._ordinates[nodeNum][d] = ordinates[idx[d]]
       end
       nodeNum = nodeNum + 1
+   end
+
+   local numBasis = self._basis:numBasis()   
+   self._basisAtOrdinates = {}
+   -- pre-compute values of basis functions at quadrature nodes
+   for n, ord in ipairs(self._ordinates) do
+      self._basisAtOrdinates[n] = Lin.Vec(numBasis)
+      self._basis:evalBasis(ord, self._basisAtOrdinates[n])
    end
 
    return self

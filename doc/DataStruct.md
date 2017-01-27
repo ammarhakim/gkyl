@@ -126,6 +126,10 @@ The following methods are provided.
 : Synchornize values in ghost cells by copy data from neighboring
   ranks' skin cells.
 
+`field:write(outNm, tmStamp)`
+: Write data in field to file `outNm`. The parameter `tmStamp` is
+  simulation time at which data is written.
+
 To illustrate the use of the `indexer()` and `get()` methods to access
 elements in the grid, consider the following code:
 
