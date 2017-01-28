@@ -209,7 +209,7 @@ function test_5a()
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 
-   -- test cell-center coordinates
+   -- test cell-center coordinates (THIS WORKS AS MESH IS ACTUALLY UNIFORM)
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)
@@ -269,7 +269,7 @@ function test_5()
 
    assert_equal(0.2*0.2*0.2, grid:cellVolume(), "Checking volume")
 
-   -- test cell-center coordinates
+   -- test cell-center coordinates (THIS WORKS AS MESH IS ACTUALLY UNIFORM)
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)

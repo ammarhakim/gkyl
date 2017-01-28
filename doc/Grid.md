@@ -84,6 +84,17 @@ with 1, Y-direction with 2, etc.__
 `grid:cellVolume()`
 : Volume of a grid cell. For uniform grid, this is the same for all cells.
 
+`grid:setIndex(idx)`
+: Set index into grid to point to cell `idx`. This method must be
+  called before querying the cell center coordinate. The index can be
+  any object which supports the [] indexing operator. However,
+  __please remember that indices start at 1__. This is specially
+  important to keep in mind if using a raw ffi object as an index.
+
+`grid:cellCenter(xc)`
+: Cell center coordinate of current cell (set by `setIndex`
+  method). `xc` must be pre-allocated.
+
 ## `NonUniformRectCart`: Non-uniform, cartesian grid
 
 A non-uniform cartesian grid can be constructed using the
@@ -152,10 +163,11 @@ with 1, Y-direction with 2, etc__).
 
 `grid:setIndex(idx)`
 : Set index into grid to point to cell `idx`. This method must be
-  called before querying the grid for cell size or volume. The index
-  can be any object which supports the [] indexing operator. However,
-  __please remember that indices start at 1__. This is specially
-  important to keep in mind if using a raw ffi object as an index.
+  called before querying the grid for cell size, cell volume or cell
+  center coordinates. The index can be any object which supports the
+  [] indexing operator. However, __please remember that indices start
+  at 1__. This is specially important to keep in mind if using a raw
+  ffi object as an index.
 
 `grid:dx(dir)`
 : Cell spacing in direction `dir`.
@@ -163,4 +175,6 @@ with 1, Y-direction with 2, etc__).
 `grid:cellVolume()`
 : Volume of a grid cell.
 
-
+`grid:cellCenter(xc)`
+: Cell center coordinate of current cell (set by `setIndex`
+  method). `xc` must be pre-allocated.
