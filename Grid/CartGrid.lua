@@ -42,10 +42,10 @@ function RectCart:new(tbl)
    end
 
    -- set stuff up
-   self._lower = Lin.IntVec(self._ndim)
-   self._upper = Lin.IntVec(self._ndim)
+   self._lower = Lin.Vec(self._ndim)
+   self._upper = Lin.Vec(self._ndim)
+   self._dx = Lin.Vec(self._ndim)
    self._numCells = Lin.IntVec(self._ndim)
-   self._dx = Lin.Vec(self._ndim)   
    self._currIdx = Lin.IntVec(self._ndim)
 
    for d = 1, #cells do
@@ -126,6 +126,11 @@ RectCart.__index = {
    end,
    dx = function (self, dir)
       return self._dx[dir]
+   end,
+   cellCenter = function (self, xc)
+      for d = 1, self._ndim do
+	 xc[d] = self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
+      end
    end,
    cellVolume = function (self)
       local v = 1.0
@@ -278,6 +283,13 @@ NonUniformRectCart.__index = {
    dx = function (self, dir)
       local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
       return nodeCoords[idx[dir]+1]-nodeCoords[idx[dir]]
+   end,
+   cellCenter = function (self, xc)
+      local idx = self._currIdx
+      for d = 1, self._ndim do
+	 local nodeCoords = self:nodeCoords(d)
+	 xc[d] = 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
+      end      
    end,
    cellVolume = function (self)
       local v = 1.0
