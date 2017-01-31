@@ -289,7 +289,7 @@ NonUniformRectCart.__index = {
       for d = 1, self._ndim do
 	 local nodeCoords = self:nodeCoords(d)
 	 xc[d] = 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
-      end      
+      end
    end,
    cellVolume = function (self)
       local v = 1.0

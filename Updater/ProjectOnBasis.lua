@@ -21,6 +21,15 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
+-- Template for function to map computional space -> physics space
+local compToPhysTempl = xsys.template([[
+return function (eta, dx, xc, xOut)
+|for i = 1, NDIM do
+   xOut[${i}] = 0.5*dx[${i}]*eta[${i}] + xc[${i}]
+|end
+end
+]])
+
 -- Projection  updater object
 local ProjectOnBasis = {}
 
@@ -63,6 +72,9 @@ function ProjectOnBasis:new(tbl)
       self._basisAtOrdinates[n] = Lin.Vec(numBasis)
       self._basis:evalBasis(ord, self._basisAtOrdinates[n])
    end
+
+   -- construct various functions from template representations
+   self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
 
    return self
 end
