@@ -3,7 +3,15 @@ syntax: glob
 build/*
 build-*/*
 .waf*
+.lock-waf*
 install-deps/luajit*
+install-deps/build-luajit.sh
+install-deps/build-wget-luajit-beta2.sh
 install-deps/eigen-eigen*
+install-deps/build-eigen.sh
 install-deps/adios*
+install-deps/build-adios.sh
+install-dep
 */*.pyc
+configure-par.sh
+configure-ser.sh

@@ -151,7 +151,8 @@ def buildExec(bld):
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm',
         use='gkcomm LUAJIT ADIOS MPI M DL ',
-        linkflags = EXTRA_LINK_FLAGS
+        linkflags = EXTRA_LINK_FLAGS,
+        lib = 'pthread'
     )
 
 def dist(ctx):
