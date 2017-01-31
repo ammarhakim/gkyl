@@ -24,13 +24,13 @@ def check_adios(conf):
     else:
         conf.fatal("Please specify ADIOS include directories by --adios-inc-dir")
     if conf.options.adiosLibDir:
-	conf.env.LIBPATH_ADIOS = conf.options.adiosLibDir
+	conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir
         if conf.options.enable_mpi:
-            conf.env.LIB_ADIOS = ["adios"]
+            conf.env.STLIB_ADIOS = ["adios"]
         else:
             conf.env.append_value('CXXFLAGS', '-D_NOMPI')
             conf.env.append_value('CFLAGS', '-D_NOMPI')
-            conf.env.LIB_ADIOS = ["adios_nompi"]            
+            conf.env.STLIB_ADIOS = ["adios_nompi"]            
     else:
         conf.fatal("Please specify ADIOS library directories by --adios-lib-dir")
         
