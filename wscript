@@ -53,7 +53,7 @@ def configure(conf):
 def build(bld):
     ### recurse down directories and build C++ code
     bld.recurse("Comm")    
-    #bld.recurse("Unit")
+    bld.recurse("Unit")
 
     # build executable
     buildExec(bld)    
