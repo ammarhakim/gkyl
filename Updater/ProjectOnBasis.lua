@@ -65,8 +65,8 @@ function ProjectOnBasis:new(tbl)
       nodeNum = nodeNum + 1
    end
 
-   local numBasis = self._basis:numBasis()   
-   self._basisAtOrdinates = {}
+   local numBasis = self._basis:numBasis()
+   self._basisAtOrdinates = {} -- shape numOrdinates X numBasis
    -- pre-compute values of basis functions at quadrature nodes
    for n, ord in ipairs(self._ordinates) do
       self._basisAtOrdinates[n] = Lin.Vec(numBasis)
@@ -83,6 +83,46 @@ setmetatable(ProjectOnBasis, { __call = function (self, o) return self.new(self,
 
 -- advance method
 local function advance(self, tCurr, dt, inFld, outFld)
+   local grid = self._onGrid
+   local qOut = assert(outFld[1], "ProjectOnBasis.advance: Must specify an output field")
+
+   local ndim = grid:ndim()
+   local numOrd = #self._weights
+
+   local dx = Lin.Vec(ndim) -- to store cell shape
+   local xc = Lin.Vec(ndim) -- to store cell center
+   local fv = Lin.Vec(numOrd) -- to store function values at ordinates
+   local xmu = Lin.Vec(ndim) -- to store coordinate at ordinate
+   local localExtRange = qOut:localExtRange()
+
+   local numBasis = self._basis:numBasis()         
+
+   local fItr = qOut:get(0)
+   local indexer = qOut:genIndexer()
+   -- loop, computing projections in each cell
+   for idx in localExtRange:colMajorIter() do
+      grid:setIndex(idx)
+      -- get cell shape, cell center coordinates
+      for d = 1, ndim do dx[d] = grid:dx(d) end
+      grid:cellCenter(xc)
+
+      -- precompute value of function at each quad
+      for mu = 1, numOrd do
+	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- compute coordinate inside cell
+	 fv[mu] = self._evaluate(tCurr, xmu) -- evaluate function at ordinate
+      end
+
+      qOut:fill(indexer(idx), fItr)
+      -- update each expansion coefficient
+      for k = 1, numBasis do
+	 fItr[k] = 0.0
+	 -- loop over quadrature points, accumulate contribution to expansion coefficient
+	 for mu = 1, numOrd do
+	    fItr[k] = fItr[k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[mu]
+	 end
+      end
+   end
+   
    return true, GKYL_MAX_DOUBLE
 end
 
