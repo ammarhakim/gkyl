@@ -6,6 +6,9 @@ PHDF5_INC_DIR=$HOME/software/hdf5-par/include
 PHDF5_LIB_DIR=$HOME/software/hdf5-par/lib
 PHDF5_LIBS=hdf5
 
+# delete old checkout and builds
+rm -rf adios-1.10.0.tar.gz adios-1.10.0
+
 curl http://users.nccs.gov/~pnorbert/adios-1.10.0.tar.gz > adios-1.10.0.tar.gz
 gunzip adios-1.10.0.tar.gz
 tar -xvf adios-1.10.0.tar
