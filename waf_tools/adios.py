@@ -33,7 +33,7 @@ def check_adios(conf):
             conf.env.STLIB_ADIOS = ["adios_nompi"]            
     else:
         conf.fatal("Please specify ADIOS library directories by --adios-lib-dir")
-        
+         
     conf.start_msg('Checking for ADIOS')
     conf.check(header_name='adios.h', features='cxx cxxprogram', use="ADIOS MPI", mandatory=True)
     conf.end_msg("Found ADIOS")

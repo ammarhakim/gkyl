@@ -7,6 +7,7 @@ import os
 import sys
 #sys.path.insert(0, './waf_tools')
 import commands
+import platform
 
 APPNAME = 'gkyl'
 VERSION = '1.0'
@@ -47,11 +48,19 @@ def configure(conf):
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
 
+    # slightly modify Linux linker that thinks that he is smart and is
+    # not exporting the symbols that are only used in the Lua part
+    # BTW clang is just like ¯\_(ツ)_/¯ and exports everything
+    if platform.system() == 'Linux':
+        conf.env.LINKFLAGS_cstlib = ['-Wl,-Bstatic,-E']
+        conf.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
+        conf.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
+
     # write out configuration info into header
     conf.write_config_header('gkylconfig.h')
 
 def build(bld):
-    ### recurse down directories and build C++ code
+    # recurse down directories and build C++ code
     bld.recurse("Comm")    
     bld.recurse("Unit")
 

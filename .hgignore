@@ -5,7 +5,7 @@ build-*/*
 .waf*
 .lock-waf*
 install-deps/luajit*
-install-deps/build-luajit.sh
+install-deps/build-luajit-beta2.sh
 install-deps/build-wget-luajit-beta2.sh
 install-deps/eigen-eigen*
 install-deps/build-eigen.sh

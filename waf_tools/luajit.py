@@ -21,7 +21,7 @@ def check_luajit(conf):
         conf.env.INCLUDES_LUAJIT = [conf.options.gkylDepDir+'/luajit/include/luajit-2.1']
         
     if conf.options.luaJitLibDir:
-	conf.env.LIBPATH_LUAJIT = conf.options.luaJitLibDir
+	conf.env.STLIBPATH_LUAJIT = conf.options.luaJitLibDir
     else:
         conf.env.STLIBPATH_LUAJIT = [conf.options.gkylDepDir+'/luajit/lib']
 
