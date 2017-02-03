@@ -55,7 +55,7 @@ following parameters:
   are supported.
 
 `polyOrder`
-: Polynomial order. This is the total polynomial order of the
+: Polynomial order. This is the super-linear polynomial order of the
   monomials included in the basis set.
 
 The following methods are provided.
