@@ -33,6 +33,10 @@ function test_1d()
 	 return xn[1]
       end
    }
+
+   -- do projection
+   project:advance(0.0, 0.0, {}, {distf})
+
 end
 
 function test_2d()
@@ -54,11 +58,14 @@ function test_2d()
 	 return xn[1]
       end
    }
+
+   -- do projection
+   project:advance(0.0, 0.0, {}, {distf})
 end
 
 -- run tests
 test_1d()
-test_2d()
+--test_2d()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
