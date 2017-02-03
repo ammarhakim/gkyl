@@ -164,7 +164,7 @@ local function Field_meta_ctor(elct)
       for d = 1, self._ndim do
 	 adLocalSz[d] = localRange:shape(d)
 	 adGlobalSz[d] = globalRange:shape(d)
-	 adOffset[d] = localRange:lower(d)
+	 adOffset[d] = localRange:lower(d)-1
       end
       adLocalSz[self._ndim+1] = self._numComponents
       adGlobalSz[self._ndim+1] = self._numComponents
