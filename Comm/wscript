@@ -6,7 +6,7 @@
 def build(bld):
     # only build if in parallel
     if bld.env.MPI_FOUND:
-        bld.shlib(
+        bld.stlib(
             source = 'GkMpiFuncs.cpp',
             target = 'gkcomm',
             includes = '.',
