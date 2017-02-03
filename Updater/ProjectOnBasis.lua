@@ -21,7 +21,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
--- Template for function to map computional space -> physics space
+-- Template for function to map computional space -> physical space
 local compToPhysTempl = xsys.template([[
 return function (eta, dx, xc, xOut)
 |for i = 1, NDIM do
@@ -89,15 +89,16 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local ndim = grid:ndim()
    local numOrd = #self._weights
 
-   local dx = Lin.Vec(ndim) -- to store cell shape
-   local xc = Lin.Vec(ndim) -- to store cell center
-   local fv = Lin.Vec(numOrd) -- to store function values at ordinates
-   local xmu = Lin.Vec(ndim) -- to store coordinate at ordinate
-   local localExtRange = qOut:localExtRange()
+   local dx = Lin.Vec(ndim) -- cell shape
+   local xc = Lin.Vec(ndim) -- cell center
+   local fv = Lin.Vec(numOrd) -- function values at ordinates
+   local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
-   local numBasis = self._basis:numBasis()         
 
+   local numBasis = self._basis:numBasis()
    local fItr = qOut:get(0)
+
+   local localExtRange = qOut:localExtRange()   
    local indexer = qOut:genIndexer()
    -- loop, computing projections in each cell
    for idx in localExtRange:colMajorIter() do
@@ -106,7 +107,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
       for d = 1, ndim do dx[d] = grid:dx(d) end
       grid:cellCenter(xc)
 
-      -- precompute value of function at each quad
+      -- precompute value of function at each ordinate
       for mu = 1, numOrd do
 	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- compute coordinate inside cell
 	 fv[mu] = self._evaluate(tCurr, xmu) -- evaluate function at ordinate
