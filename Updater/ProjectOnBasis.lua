@@ -30,6 +30,16 @@ return function (eta, dx, xc, xOut)
 end
 ]])
 
+-- Template for function to copy output to field
+local templ = xsys.template([[
+return function (func, t, xc, outV)
+|for i = 1, NV-1 do
+  outV[${i}],
+|end
+  outV[${NV}] = func(t, xc)
+end
+]])
+
 -- Projection  updater object
 local ProjectOnBasis = {}
 
@@ -88,18 +98,21 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
    local ndim = grid:ndim()
    local numOrd = #self._weights
+   local numBasis = self._basis:numBasis()
+   local numVal = qOut:numComponents()/numBasis
+
+   -- sanity check: ensure number of variables, components and basis functions are consistent
+   assert(qOut:numComponents() % numBasis == 0, "ProjectOnBasis:advance: Incompatible input field")
 
    local dx = Lin.Vec(ndim) -- cell shape
    local xc = Lin.Vec(ndim) -- cell center
-   local fv = Lin.Vec(numOrd) -- function values at ordinates
+   local fv = Lin.Mat(numVal, numOrd) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
-
-   local numBasis = self._basis:numBasis()
+   local localExtRange = qOut:localExtRange()
+   local indexer = qOut:genIndexer()   
    local fItr = qOut:get(0)
 
-   local localExtRange = qOut:localExtRange()   
-   local indexer = qOut:genIndexer()
    -- loop, computing projections in each cell
    for idx in localExtRange:colMajorIter() do
       grid:setIndex(idx)
@@ -109,18 +122,24 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
       -- precompute value of function at each ordinate
       for mu = 1, numOrd do
-	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- compute coordinate inside cell
-	 fv[mu] = self._evaluate(tCurr, xmu) -- evaluate function at ordinate
+	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- compute coordinate
+	 local v = { self._evaluate(tCurr, xmu) } -- braces around function put return values in table
+	 for i = 1, numVal do fv[i][mu] = v[i] end
       end
 
+      local offset = 0
       qOut:fill(indexer(idx), fItr)
-      -- update each expansion coefficient
-      for k = 1, numBasis do
-	 fItr[k] = 0.0
-	 -- loop over quadrature points, accumulate contribution to expansion coefficient
-	 for mu = 1, numOrd do
-	    fItr[k] = fItr[k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[mu]
+      -- update each component
+      for n = 1, numVal do
+	 -- update each expansion coefficient
+	 for k = 1, numBasis do
+	    fItr[offset+k] = 0.0
+	    -- loop over quadrature points, accumulate contribution to expansion coefficient
+	    for mu = 1, numOrd do
+	       fItr[offset+k] = fItr[offset+k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[n][mu]
+	    end
 	 end
+	 offset = offset+numBasis
       end
    end
    
