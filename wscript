@@ -22,11 +22,6 @@ def options(opt):
     opt.load('compiler_c compiler_cxx') 
     opt.load('gkyl luajit mpi adios',
              tooldir='waf_tools')
-    
-    #opt.load('gkyl')
-    #opt.load('luajit') 
-    #opt.load('mpi')
-    #opt.load('adios')
 
 def configure(conf):
     r"""Configure Gkyl build"""
@@ -61,7 +56,7 @@ def configure(conf):
 
 def build(bld):
     # recurse down directories and build C++ code
-    bld.recurse("Comm")    
+    bld.recurse("Comm")
     bld.recurse("Unit")
 
     # build executable
