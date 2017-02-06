@@ -134,3 +134,7 @@ calcPbMatrix(basis) := block([n, mass],
 			   mass),
 	        return (mass)
 )$
+
+numRows(mat) := block([r,c], [r,c] : matrix_size(mat), r)$
+/* Convert column vector to list */
+colVecToList(vec) := makelist(vec[i][1], i, 1, numRows(vec))$

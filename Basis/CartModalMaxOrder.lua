@@ -67,6 +67,9 @@ end
 setmetatable(CartModalMaxOrder, { __call = function (self, o) return self.new(self, o) end })
 
 CartModalMaxOrder.__index = {
+   id = function (self)
+      return "maximal-order"
+   end,
    ndim = function (self)
       return self._ndim
    end,

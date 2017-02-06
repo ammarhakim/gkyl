@@ -6,3 +6,10 @@ writeBasis(fh, basisIn) := block([basis],
     printf(fh, "   ~a = ~a ~%", b[i], basis[i])
   )
 )$
+
+writeExprs(rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a + ~a ~%", out[i], out[i], expr[i])
+  )
+)$

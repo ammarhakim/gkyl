@@ -85,6 +85,7 @@ local function Field_meta_ctor(elct)
    else
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
       elcCommSize = sizeof(elct)
+      elctIoType = Adios.byte
    end
 
    -- make constructor for Field 
