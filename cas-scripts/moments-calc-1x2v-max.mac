@@ -1,0 +1,41 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsC : [x]$
+varsP : [x, vx, vy]$
+
+fh : openw("~/max-out/MaxOrderMom1x2v.lua");
+printf(fh, "local _M = { numDensity = {}, momentum = {} } ~% ~%");
+
+basisC : makelist(gsOrthoNorm(varsC, makeMaxOrderBasis(varsC, i)), i, 1, 4)$
+basisP : makelist(gsOrthoNorm(varsP, makeMaxOrderBasis(varsP, i)), i, 1, 4)$
+
+for i : 1 thru 4 do (
+  fl : transpose(makelist(f[i], i, 1, length(basisP[i]))),
+  M1 : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], 1),
+  mom : M1 . fl,
+  printf(fh, "_M.numDensity[~a] = function (f, out, dv, w) ~%", i),
+  writeExprs(colVecToList(mom)),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "~% ~%");
+
+for i : 1 thru 4 do (
+  fl : transpose(makelist(f[i], i, 1, length(basisP[i]))),
+  M1 : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], 1),
+  Mv1 : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vx),
+  momx : (w1*M1 +  dv1/2*Mv1). fl,
+  Mv2 : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vy),
+  momy : (w2*M1 +  dv2/2*Mv2). fl,  
+  printf(fh, "_M.momentum[~a] = function (f, out, dv, w) ~%", i),
+  printf(fh, "   local dv1, dv2 = dv[1], dv[2] ~%"),
+  printf(fh, "   local w1, w2 = w[1], w[2] ~%"),  
+  writeExprs(append(colVecToList(momx), colVecToList(momy))),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);
+

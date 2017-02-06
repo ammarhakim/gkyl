@@ -71,6 +71,9 @@ end
 setmetatable(CartModalSerendipity, { __call = function (self, o) return self.new(self, o) end })
 
 CartModalSerendipity.__index = {
+   id = function (self)
+      return "serendipity"
+   end,   
    ndim = function (self)
       return self._ndim
    end,

@@ -1,0 +1,40 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsC : [x]$
+varsP : [x, vx]$
+
+fh : openw("~/max-out/SerendipMom1x1v.lua");
+printf(fh, "local _M = { numDensity = {}, momentum = {} } ~% ~%");
+
+for i : 1 thru 4 do (
+  basisC : gsOrthoNorm(varsC, makeSerendipBasis(varsC, i)),
+  basisP : gsOrthoNorm(varsP, makeSerendipBasis(varsP, i)),
+  M1 : calcCrossMassMatrix(varsC, basisC, varsP, basisP, 1),
+  fl : transpose(makelist(f[i], i, 1, length(basisP))),
+  mom : M1 . fl,
+  printf(fh, "_M.numDensity[~a] = function (f, out, dv, w) ~%", i),
+  writeExprs(colVecToList(mom)),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "~% ~%");
+
+for i : 1 thru 4 do (
+  basisC : gsOrthoNorm(varsC, makeSerendipBasis(varsC, i)),
+  basisP : gsOrthoNorm(varsP, makeSerendipBasis(varsP, i)),
+  M1 : calcCrossMassMatrix(varsC, basisC, varsP, basisP, 1),
+  Mv1 : calcCrossMassMatrix(varsC, basisC, varsP, basisP, vx),
+  fl : transpose(makelist(f[i], i, 1, length(basisP))),
+  mom : (w1*M1 +  dv1/2*Mv1). fl,
+  printf(fh, "_M.momentum[~a] = function (f, out, dv, w) ~%", i),
+  printf(fh, "   local dv1 = dv[1] ~%"),
+  printf(fh, "   local w1 = w[1] ~%"),  
+  writeExprs(colVecToList(mom)),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);
+

@@ -161,4 +161,4 @@ def buildExec(bld):
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
-    ctx.excl = " **/.waf-1* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh configure-ser.sh **/.hg **/.hgignore build install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios-1.10.0*"
+    ctx.excl = " **/.waf-1* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh configure-ser.sh **/.hg **/.hgignore build install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios-1.11.0* install-deps/adios-1.10.0*"
