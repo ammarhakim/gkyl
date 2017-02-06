@@ -10,7 +10,6 @@
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
 local Base = require "Updater.Base"
-local GaussQuadRules = require "Lib.GaussQuadRules"
 local Lin = require "Lib.Linalg"
 local Range = require "Lib.Range"
 
@@ -19,7 +18,6 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
-
 
 -- Moments updater object
 local DistFuncMomentCalc = {}

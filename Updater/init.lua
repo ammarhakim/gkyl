@@ -11,8 +11,12 @@ local Bc = require "Updater.Bc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local RestrictTimeStep = require "Updater.RestrictTimeStep"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 
 -- system modules
 local xsys = require "xsys"
 
-return xsys.table.union(WavePropagation, Bc, FiveMomentSrc, RestrictTimeStep, ProjectOnBasis)
+return xsys.table.union(
+   WavePropagation, Bc, FiveMomentSrc, RestrictTimeStep, ProjectOnBasis,
+   DistFuncMomentCalc
+)
