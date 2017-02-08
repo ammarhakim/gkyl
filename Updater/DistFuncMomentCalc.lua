@@ -31,6 +31,17 @@ local serModNames = {
    {nil, nil, "SerendipMom3x3v"},
 }
 
+local maxPrModNames = {
+   {"MaxOrderPressureMom1x1v", "MaxOrderPressureMom1x2v", "MaxOrderPressureMom1x3v"},
+   {nil, "MaxOrderPressureMom2x2v", "MaxOrderPressureMom2x3v"},
+   {nil, nil, "MaxOrderPressureMom3x3v"},
+}
+local serPrModNames = {
+   {"SerendipPressureMom1x1v", "SerendipPressureMom1x2v", "SerendipPressureMom1x3v"},
+   {nil, "SerendipPressureMom2x2v", "SerendipPressureMom2x3v"},
+   {nil, nil, "SerendipPressureMom3x3v"},
+}
+
 -- select appropriate module
 local function selectMod(cDim, vDim, bId, polyOrder)
    local nm = nil
@@ -38,6 +49,17 @@ local function selectMod(cDim, vDim, bId, polyOrder)
       nm = serModNames[cDim][vDim]
    elseif bId == "maximal-order" then
       nm = maxModNames[cDim][vDim]
+   end
+   return require("Updater._projectOnBasisData." .. nm)
+end
+-- select appropriate module for energy and pressure-tensor (these are
+-- stored in different files)
+local function selectPrMod(cDim, vDim, bId, polyOrder)
+   local nm = nil
+   if bId == "serendipity" then
+      nm = serPrModNames[cDim][vDim]
+   elseif bId == "maximal-order" then
+      nm = maxPrModNames[cDim][vDim]
    end
    return require("Updater._projectOnBasisData." .. nm)
 end
@@ -50,6 +72,14 @@ end
 local function pickMomentumFunc(cDim, vDim, bId, polyOrder)
    local m = selectMod(cDim, vDim, bId, polyOrder)
    return m.momentum[polyOrder]
+end
+local function pickPressureFunc(cDim, vDim, bId, polyOrder)
+   local m = selectPrMod(cDim, vDim, bId, polyOrder)
+   return m.pressureTensor[polyOrder]
+end
+local function pickEnergyFunc(cDim, vDim, bId, polyOrder)
+   local m = selectPrMod(cDim, vDim, bId, polyOrder)
+   return m.energy[polyOrder]
 end
 
 -- set field values to zero
@@ -100,9 +130,9 @@ function DistFuncMomentCalc:new(tbl)
    elseif mom == "momentum" then
       self._momCalcFun = pickMomentumFunc(self._cDim, self._vDim, id, polyOrder)
    elseif mom == "energy" then
-      assert(true, "NYI!")
+      self._momCalcFun = pickEnergyFunc(self._cDim, self._vDim, id, polyOrder)
    elseif mom == "pressure-tensor" then
-      assert(true, "NYI!")
+      self._momCalcFun = pickPressureFunc(self._cDim, self._vDim, id, polyOrder)
    elseif mom == "heat-flux-tensor" then
       assert(true, "NYI!")
    elseif mom == "heat-flux-vector" then
