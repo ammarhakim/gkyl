@@ -1,0 +1,51 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsC : [x]$
+varsP : [x, vx, vy, vz]$
+
+fh : openw("~/max-out/SerendipPressureMom1x3v.lua");
+printf(fh, "local _M = { pressureTensor = {}, energy = {} } ~% ~%");
+
+basisC : makelist(gsOrthoNorm(varsC, makeSerendipBasis(varsC, i)), i, 1, 4)$
+basisP : makelist(gsOrthoNorm(varsP, makeSerendipBasis(varsP, i)), i, 1, 4)$
+
+dv : [dv1, dv2, dv3]$
+w : [w1, w2, w3]$
+
+prMom(M1,Mv,Mvv,i,j) := dv[i]*dv[j]/4*Mvv[i,j] + w[i]*dv[j]/2*Mv[j] + w[j]*dv[i]/2*Mv[i] + w[i]*w[j]*M1;
+
+for i : 1 thru 4 do (
+  fl : transpose(makelist(f[i], i, 1, length(basisP[i]))),
+  M1 : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], 1),
+  Mv[1] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vx),
+  Mv[2] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vy),
+  Mv[3] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vz),
+  Mvv[1,1] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vx*vx),
+  Mvv[1,2] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vx*vy),
+  Mvv[1,3] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vx*vz),  
+  Mvv[2,2] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vy*vy),
+  Mvv[2,3] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vy*vz),
+  Mvv[3,3] : calcCrossMassMatrix(varsC, basisC[i], varsP, basisP[i], vz*vz),
+  mom[1] : prMom(M1,Mv,Mvv,1,1) . fl,
+  mom[2] : prMom(M1,Mv,Mvv,1,2) . fl,
+  mom[3] : prMom(M1,Mv,Mvv,1,3) . fl,
+  mom[4] : prMom(M1,Mv,Mvv,2,2) . fl,
+  mom[5] : prMom(M1,Mv,Mvv,2,3) . fl,
+  mom[6] : prMom(M1,Mv,Mvv,3,3) . fl,
+  printf(fh, "_M.pressureTensor[~a] = function (f, out, dv, w) ~%", i),
+  printf(fh, "   local dv1, dv2, dv3 = dv[1], dv[2], dv[3] ~%"),
+  printf(fh, "   local w1, w2, w3 = w[1], w[2], w[3] ~%"),
+  writeExprs(flatten(makelist(colVecToList(mom[i]), i, 1, 6))),
+  printf(fh, "end ~%"),
+  erMom : 1/2*(mom[1]+mom[4]+mom[6]),
+  printf(fh, "_M.energy[~a] = function (f, out, dv, w) ~%", i),
+  printf(fh, "   local dv1, dv2, dv3 = dv[1], dv[2], dv[3] ~%"),
+  printf(fh, "   local w1, w2, w3 = w[1], w[2], w[3] ~%"),
+  writeExprs(colVecToList(erMom)),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);
