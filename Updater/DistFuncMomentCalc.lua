@@ -93,6 +93,19 @@ local function scaleField(field, scale)
    end
 end
 
+-- templates for various functions
+local calcGridQuantTempl = xsys.template([[
+return function (grid, xcp, dv, w)
+  local vol = 1.0
+|for d = 1, VDIM do
+   dv[${d}] = grid:dx(${CDIM}+${d})
+   w[${d}] = xcp[${CDIM}+${d}]
+   vol = vol*dv[${d}]
+|end
+   return vol
+end
+]])
+
 -- Moments updater object
 local DistFuncMomentCalc = {}
 
@@ -140,6 +153,9 @@ function DistFuncMomentCalc:new(tbl)
    else
       assert(false, "Did not recognize moment type " .. mom)
    end
+
+   -- construct various functions from template representations
+   self._calcGridQuant = loadstring(calcGridQuantTempl {VDIM = self._vDim, CDIM = self._cDim} )()
    
    return self
 end
@@ -177,12 +193,15 @@ local function advance(self, tCurr, dt, inFld, outFld)
    -- loop, computing moments in each cell
    for idx in localExtRange:colMajorIter() do
       -- get cell shape, center coordinates
-      grid:setIndex(idx)
-      for d = 1, vDim do dv[d] = grid:dx(cDim+d) end -- velocity space size
-      grid:cellCenter(xcp)
-      for d = 1, vDim do w[d] = xcp[cDim+d] end -- velocity space center
-      local vol = 1
-      for d = 1, vDim do vol = vol*dv[d] end -- velocity space volume
+      grid:setIndex(idx); grid:cellCenter(xcp)
+      -- compute velocity cell spacing, cell-center and volume
+      -- local vol = self._calcGridQuant(grid, xcp, dv, w)
+      local vol = 1.0
+      for d = 1, vDim do
+      	 dv[d] = grid:dx(cDim+d)
+      	 w[d] = xcp[cDim+d]
+      	 vol = vol*dv[d]
+      end
 
       -- compute moment in cell
       distf:fill(distfIndexer(idx), distfItr)
@@ -191,7 +210,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
       -- accumulate it with proper normalization factor (Vv/2^dv)
       mom:fill(momIndexer(idx), momItr)
       for k = 1, mom:numComponents() do
-	 momItr[k] = momItr[k] + vol/refVol*momCell[k]
+      	 momItr[k] = momItr[k] + vol/refVol*momCell[k]
       end
    end
    
