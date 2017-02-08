@@ -30,16 +30,6 @@ return function (eta, dx, xc, xOut)
 end
 ]])
 
--- Template for function to copy output to field
-local templ = xsys.template([[
-return function (func, t, xc, outV)
-|for i = 1, NV-1 do
-  outV[${i}],
-|end
-  outV[${NV}] = func(t, xc)
-end
-]])
-
 -- Projection  updater object
 local ProjectOnBasis = {}
 
