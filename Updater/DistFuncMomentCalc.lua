@@ -185,7 +185,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local distfIndexer = distf:genIndexer()
    local momIndexer = mom:genIndexer()
 
-   local distfItr, momItr = distf:get(0), mom:get(0)
+   local distfItr, momItr = distf:get(1), mom:get(1)
 
    scaleField(mom, 0.0) -- zero out moments
    local refVol = 2^vDim -- volume of velocity space reference cell

@@ -59,7 +59,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local ghost = localExtRange:intersect(
       getGhostRange(self, global, globalExt)) -- range spanning ghost cells
    
-   local qG, qS = qOut:get(0), qOut:get(0) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
+   local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
    
    local indexer = qOut:genIndexer()
    for idx in ghost:colMajorIter() do -- loop, applying BCs

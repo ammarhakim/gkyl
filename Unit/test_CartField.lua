@@ -219,7 +219,7 @@ function test_6()
       numComponents = 3,
    }
 
-   local fitr = field1:get(0)
+   local fitr = field1:get(1)
    local localRange, indexer = field1:localRange(), field1:indexer()
    for i = localRange:lower(1), localRange:upper(1) do
       field1:fill(indexer(i), fitr)

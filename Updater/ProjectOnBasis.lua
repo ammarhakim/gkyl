@@ -101,7 +101,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
    local localExtRange = qOut:localExtRange()
    local indexer = qOut:genIndexer()   
-   local fItr = qOut:get(0)
+   local fItr = qOut:get(1)
 
    -- loop, computing projections in each cell
    for idx in localExtRange:colMajorIter() do

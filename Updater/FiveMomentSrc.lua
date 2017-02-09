@@ -108,10 +108,10 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local fIdxr, fPtr = {}, {}
    for i = 1, self._nFluids do
       fIdxr[i] = outFld[i]:genIndexer()
-      fPtr[i] = outFld[i]:get(0)
+      fPtr[i] = outFld[i]:get(1)
    end
    local emIdxr = emFld:genIndexer()
-   local emPtr = emFld:get(0)
+   local emPtr = emFld:get(1)
 
    -- loop over local range, updating source in each cell
    local localRange = emFld:localRange()
