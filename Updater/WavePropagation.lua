@@ -241,8 +241,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local s = Lin.Vec(mwave)
    local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
 
-   local qInL, qInR = qIn:get(0), qIn:get(0) -- get pointers to (re)use inside inner loop
-   local qOutL, qOutR = qOut:get(0), qOut:get(0)
+   local qInL, qInR = qIn:get(1), qIn:get(1) -- get pointers to (re)use inside inner loop
+   local qOutL, qOutR = qOut:get(1), qOut:get(1)
 
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
