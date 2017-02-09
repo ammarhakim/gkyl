@@ -14,6 +14,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Declare malloc/free functions from C library
 ffi.cdef [[
   void* malloc(size_t size);
+  void* calloc(size_t nitems, size_t size);
   void free(void *ptr);
 ]]
 
@@ -21,6 +22,11 @@ ffi.cdef [[
 local function malloc(sz)
    local d = ffi.C.malloc(sz)
    assert(d, "Alloc.malloc: Unable to allocate memory!")
+   return d
+end
+local function calloc(nitems, sz)
+   local d = ffi.C.calloc(nitems, sz)
+   assert(d, "Alloc.calloc: Unable to allocate memory!")
    return d
 end
 local function free(d)
@@ -31,10 +37,13 @@ end
 
  -- block size in bytes
 local blockSz = 16*1024
--- Use malloc to allocate 'num' elements of memory for type
+-- Use calloc to allocate 'num' elements of memory for type
 -- 'elct'. The type 'ct' is a struct holding size and pointer to
 -- allocated memory. This allocator rounds out the memory to "blockSz"
--- bytes to prevent fragmentation of the C memory allocator
+-- bytes to prevent fragmentation of the C memory allocator.
+--
+-- NOTE: We use "calloc" and not malloc as calloc zeros out the
+-- memory. Uninitialized memory can cause random crashes in LuaJIT.
 local function alloc(ct, elct, num)
    local sz = sizeof(elct)
    local adjBytes = (math.floor(sz*num/blockSz)+1)*blockSz
@@ -42,7 +51,7 @@ local function alloc(ct, elct, num)
 
    local v = new(ct)
    v._capacity = 0
-   v._data = malloc(adjBytes)
+   v._data = calloc(adjNum, sz)
    v._capacity = adjNum
    return v
 end
@@ -108,7 +117,7 @@ return {
    Float = createAllocator("float"),
    Int = createAllocator("int"),
    malloc = malloc,
+   calloc = calloc,
    free = free,
-   memset = memset,
    createAllocator = createAllocator,
 }
