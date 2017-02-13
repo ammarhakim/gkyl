@@ -1,0 +1,37 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsC : [x, y]$
+varsP : [x, y, vx, vy, vz]$
+
+basisC : makelist(gsOrthoNorm(varsC, makeMaxOrderBasis(varsC, i)), i, 1, 4)$
+basisP : makelist(gsOrthoNorm(varsP, makeMaxOrderBasis(varsP, i)), i, 1, 4)$
+
+dv : [dv0, dv1, dv2]$
+dx : [dx0, dx1, dx2]$
+w : [w0, w1, w2]$
+
+dvdx : [dv0dx0, dv1dx1, dv2dx2]$
+wdx : [w0dx0, w1dx1, w2dx1]$
+
+SV(Gvx, Gx, i) := dvdx[i]*Gvx + 2*wdx[i]*Gx$
+
+fh : openw("~/max-out/VlasovStreamMax2x3v.c");
+
+for i : 1 thru 4 do (
+  printf(fh, "void VlasovVolStream2x3vMaxP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", i),
+  printf(fh, "  const unsigned int X=0, Y=1, VX=2, VY=3; ~%"),  
+  printf(fh, "  register double dv0dx0 = dxv[VX]/dxv[X], dv1dx1 = dxv[VY]/dxv[Y]; ~%"),
+  printf(fh, "  register double w0dx0 = w[VX]/dxv[X], w1dx1 = w[VY]/dxv[Y]; ~%"),
+  fl : transpose(makelist(f[i], i, 0, length(basisP[i])-1)),
+  Gvx : calcWeightedGradStiffMatrix(x, varsP, vx, basisP[i]),
+  Gx : calcWeightedGradStiffMatrix(x, varsP, 1, basisP[i]),
+  Gvy : calcWeightedGradStiffMatrix(y, varsP, vy, basisP[i]),
+  Gy : calcWeightedGradStiffMatrix(y, varsP, 1, basisP[i]),  
+  svx : (SV(Gvx, Gx, 1) + SV(Gvy, Gy, 2)) . fl,
+  writeCIncrExprs(colVecToList(svx)),
+  printf(fh, "} ~%")
+);
+
+close(fh);

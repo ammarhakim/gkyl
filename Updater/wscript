@@ -1,0 +1,17 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
+def build(bld):
+    bld.shlib(source = r"""
+    ./_vlasovData/VlasovStreamMax1x1v.c
+    ./_vlasovData/VlasovStreamMax1x2v.c
+    ./_vlasovData/VlasovStreamMax1x3v.c
+    ./_vlasovData/VlasovStreamMax2x2v.c
+    ./_vlasovData/VlasovStreamSer1x1v.c
+    ./_vlasovData/VlasovStreamSer1x2v.c
+    ./_vlasovData/VlasovStreamSer1x3v.c
+    ./_vlasovData/VlasovStreamSer2x2v.c
+    """,
+    includes = '.', target = 'gkupdater')
