@@ -45,7 +45,6 @@ def configure(conf):
 
     # slightly modify Linux linker that thinks that he is smart and is
     # not exporting the symbols that are only used in the Lua part
-    # BTW clang is just like ¯\_(ツ)_/¯ and exports everything
     if platform.system() == 'Linux':
         conf.env.LINKFLAGS_cstlib = ['-Wl,-Bstatic,-E']
         conf.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
@@ -58,6 +57,7 @@ def build(bld):
     # recurse down directories and build C++ code
     bld.recurse("Comm")
     bld.recurse("Unit")
+    bld.recurse("Updater")
 
     # build executable
     buildExec(bld)    
@@ -154,7 +154,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm',
-        use='gkcomm LUAJIT ADIOS MPI M DL ',
+        use='gkcomm gkupdater LUAJIT ADIOS MPI M DL ',
         linkflags = EXTRA_LINK_FLAGS,
         lib = 'pthread'
     )
