@@ -55,6 +55,13 @@ local function field_memcpy(y, x)
    copy(y._data, x._data, sizeof(y:elemType())*sz)
 end
 
+ffi.cdef [[
+/* Struct to hold info about components in field */
+  typedef struct {
+    
+  } _CartFieldComponentPtr_t;
+]]
+
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
    local field_comp_mt = {
@@ -70,8 +77,9 @@ end
 
 -- A function to create constructors for Field objects
 local function Field_meta_ctor(elct)
-   local fcompct = new_field_comp_ct(elct)
-   local allocator = Alloc.Alloc_meta_ctor(elct)
+   local fcompct = new_field_comp_ct(elct) -- Ctor for component data
+   local allocator = Alloc.Alloc_meta_ctor(elct) -- Memory allocator
+   -- MPI and ADIOS data-types
    local elctCommType, elcCommSize = nil, 1
    if ffi.istype(new(elct), new("double")) then
       elctCommType = Mpi.DOUBLE

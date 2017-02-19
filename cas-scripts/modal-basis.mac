@@ -123,18 +123,19 @@ calcCrossMassMatrix(varsC, basisC, varsP, basisP, w) := block([nC, nP, mass],
 	        return (mass)
 )$
 
-/* Canonical PB in 2D */
-PB(f,g) := diff(f,x)*diff(g,y) - diff(f,y)*diff(g,x);
-/* Compute mass matrix, i.e M_ij = <w phi_i phi_j> */
-calcPbMatrix(basis) := block([n, mass],
-                n : length(basis),
-		mass : (mass : zeromatrix(n,n), for i from 1 thru n
-		         do (for j from 1 thru n
-			   do (mass[i,j] : PB(basis[i], basis[j]))),
-			   mass),
-	        return (mass)
+/* Compute matrices needed for surface terms */
+calcSurfMassMatrix(varsSurf, w, basis, vfix, vfix1, vfix2) := block([n, basisA, basisB],
+  n : length(basis),
+  basisA : subst([vfix=vfix1], basis),
+  basisB : subst([vfix=vfix2], basis),
+  mass : (mass : zeromatrix(n,n), for i from 1 thru n
+           do (for j from 1 thru n
+             do (mass[i,j] : innerProd(varsSurf, w, basisA[i], basisB[j]))),
+	     mass),
+  return (mass)
 )$
 
 numRows(mat) := block([r,c], [r,c] : matrix_size(mat), r)$
 /* Convert column vector to list */
 colVecToList(vec) := makelist(vec[i][1], i, 1, numRows(vec))$
+

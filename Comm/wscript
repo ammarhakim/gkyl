@@ -3,10 +3,18 @@
 ##    _______     ___
 ## + 6 @ |||| # P ||| +
 
+import os
+
 def build(bld):
+    uname = os.uname()
+    if uname[0] == 'Darwin':
+        bldFunc = bld.shlib
+    else:
+        bldFunc = bld.stlib
+    
     # only build if in parallel
     if bld.env.MPI_FOUND:
-        bld.stlib(
+        bldFunc(
             source = 'GkMpiFuncs.cpp',
             target = 'gkcomm',
             includes = '.',

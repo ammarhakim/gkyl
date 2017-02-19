@@ -14,10 +14,18 @@ writeExprs(rhs) := block([expr],
   )
 )$
 
+writePlainExprs(rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a ~%", expr[i])
+  )
+)$
+
 writeCIncrExprs(rhs) := block([expr],
   expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", out[i-1], expr[i])
   )
 )$
+
 

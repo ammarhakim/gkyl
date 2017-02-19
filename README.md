@@ -2,7 +2,7 @@
 
 This is the Gkyl code. The name is pronounced as in the book "The
 Strange Case of Dr. Jekyll and Mr. Hyde". Gkyl is written in LuaJIT,
-with some wrapper and time-critical parts written in C++. Gkyl is
+with some wrapper and time-critical parts written in C/C++. Gkyl is
 developed at Princeton Plasma Physics Laboratory (PPPL).
 
 # License
@@ -10,7 +10,9 @@ developed at Princeton Plasma Physics Laboratory (PPPL).
 Gkyl can be used freely for research at universities, national
 laboratories and other non-profit institutions. Release zip-balls will
 be provided. Access to the source-code repository is restricted to
-PPPL and our research partners.
+those who need to modify the code. In practice, this means people at
+PPPL and our research partners who have jointly funded projects with
+us.
 
 # Dependencies
 

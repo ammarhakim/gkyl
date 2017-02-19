@@ -1,0 +1,30 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsC : [x]$
+varsP : [x, vx]$
+
+varSurf1 : [vx]$
+
+basisC : makelist(gsOrthoNorm(varsC, makeSerendipBasis(varsC, i)), i, 1, 4)$
+basisP : makelist(gsOrthoNorm(varsP, makeSerendipBasis(varsP, i)), i, 1, 4)$
+
+fh : openw("~/max-out/VlasovSurfStreamSer1x1v.c");
+
+for i : 1 thru 4 do (
+  basis : basisP[i],
+  Mpp : calcSurfMassMatrix(varSurf1, 1, basis, x, 1, 1),
+  Mpm : calcSurfMassMatrix(varSurf1, 1, basis, x, 1, -1),
+  Mmp : transpose(Mpm),
+  Mmm : calcSurfMassMatrix(varSurf1, 1, basis, x, -1, -1),
+  Mvpp : calcSurfMassMatrix(varSurf1, vx, basis, x, 1, 1),
+  Mvpm : calcSurfMassMatrix(varSurf1, vx, basis, x, 1, -1),
+  Mvmp : transpose(Mvpm),
+  Mvmm : calcSurfMassMatrix(varSurf1, vx, basis, x, -1, -1),
+
+  printf(fh, "void VlasovSurfStream1x1vSerP~a() ~%{ ~%", i),
+  printf(fh, "} ~%")
+);
+
+close(fh);
