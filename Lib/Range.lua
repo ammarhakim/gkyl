@@ -20,7 +20,7 @@ local _M = {}
 -- A range object, representing a ndim integer index set. 
 --------------------------------------------------------------------------------
 
-ffi.cdef [[ typedef struct { uint8_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; ]]
+ffi.cdef [[ typedef struct { int8_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; ]]
 
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
