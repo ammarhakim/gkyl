@@ -17,7 +17,7 @@ local Range = require "Lib.Range"
 local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-      "new, copy, fill, sizeof, typeof, metatype")
+     "new, copy, fill, sizeof, typeof, metatype")
 
 -- makes dispatching into appropriate module easier
 local maxModNames = {
@@ -114,12 +114,12 @@ function DistFuncMomentCalc:new(tbl)
    Base.setup(self, tbl) -- setup base object
 
    self._onGrid = assert(
-      tbl.onGrid, "Updater.ProjectOnBasis: Must provide grid object using 'onGrid'")
+      tbl.onGrid, "Updater.DistFuncMomentCalc: Must provide grid object using 'onGrid'")
 
    local phaseBasis = assert(
-      tbl.phaseBasis, "Updater.ProjectOnBasis: Must provide phase-space basis object using 'phaseBasis'")
+      tbl.phaseBasis, "Updater.DistFuncMomentCalc: Must provide phase-space basis object using 'phaseBasis'")
    local confBasis = assert(
-      tbl.confBasis, "Updater.ProjectOnBasis: Must provide configuration-space basis object using 'confBasis'")
+      tbl.confBasis, "Updater.DistFuncMomentCalc: Must provide configuration-space basis object using 'confBasis'")
 
    -- dimension of spaces
    self._pDim = phaseBasis:ndim() 
@@ -133,7 +133,7 @@ function DistFuncMomentCalc:new(tbl)
 	  "Type of phase-space and config-space basis must match")
    
    local mom = assert(
-      tbl.moment, "Updater.ProjectOnBasis: Must provide moment to compute using 'moment'.")
+      tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
    local id, polyOrder = phaseBasis:id(), phaseBasis:polyOrder()
    
@@ -147,11 +147,11 @@ function DistFuncMomentCalc:new(tbl)
    elseif mom == "pressure-tensor" then
       self._momCalcFun = pickPressureFunc(self._cDim, self._vDim, id, polyOrder)
    elseif mom == "heat-flux-tensor" then
-      assert(true, "NYI!")
+      assert(true, "Updater.DistFuncMomentCalc: 'heat-flux-tensor' NYI!")
    elseif mom == "heat-flux-vector" then
-      assert(true, "NYI!")
+      assert(true, "Updater.DistFuncMomentCalc: 'heat-flux-vector' NYI!")
    else
-      assert(false, "Did not recognize moment type " .. mom)
+      assert(false, "Updater.DistFuncMomentCalc: Did not recognize moment type " .. mom)
    end
 
    -- construct various functions from template representations

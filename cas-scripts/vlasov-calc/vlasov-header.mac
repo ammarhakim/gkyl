@@ -1,0 +1,23 @@
+fh : openw("~/max-out/Vlasov.h")$
+
+for ci : 1 thru 2 do (
+  for vi : ci thru 3 do (
+    for pi : 1 thru 4 do (
+      printf(fh, "void VlasovVolStream~ax~avMaxP~a(const double *w, const double *dxv, const double *f, double *out) ~%", ci, vi, pi)
+    ),
+    printf(fh, "~%")
+  )
+)$
+
+printf(fh, "~% ~%")$
+
+for ci : 1 thru 2 do (
+  for vi : ci thru 3 do (
+    for pi : 1 thru 4 do (
+      printf(fh, "void VlasovVolStream~ax~avSerP~a(const double *w, const double *dxv, const double *f, double *out) ~%", ci, vi, pi)
+    ),
+    printf(fh, "~%")
+  )
+)$
+
+close(fh)$
