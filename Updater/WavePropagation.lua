@@ -26,9 +26,9 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Define C types for storing private data for use in updater
 ffi.cdef [[
 typedef struct {
-    uint8_t _ndim; /* Solver dimension */
+    int8_t _ndim; /* Solver dimension */
     double _cfl, _cflm; /* CFL number and maximum-CFL number */
-    uint8_t _nUpdateDirs, _updateDirs[6]; /* Number and directions to update */
+    int8_t _nUpdateDirs, _updateDirs[6]; /* Number and directions to update */
 } WavePrivateData_t ;
 ]]
 

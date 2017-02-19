@@ -24,12 +24,12 @@ typedef struct {
 } FluidData_t;
 
 typedef struct {
-  uint8_t _nFluids; /* Number of fluids */
+  int8_t _nFluids; /* Number of fluids */
   double _epsilon0; /* Permittivity of free space */
   double _chi_e, _chi_m; /* Propagation speed factor for electric field error potential */
-  uint8_t _gravityDir; /* Direction of gravity force */
+  int8_t _gravityDir; /* Direction of gravity force */
   double _gravity; /* Gravitational acceleration */
-  uint8_t _hasStatic, _hasPressure; /* Flag to indicate if there is: static EB field, pressure */
+  int8_t _hasStatic, _hasPressure; /* Flag to indicate if there is: static EB field, pressure */
 } FiveMomentSrcData_t;
 ]]
 
