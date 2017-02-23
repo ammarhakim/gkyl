@@ -79,17 +79,21 @@ end
 local function Field_meta_ctor(elct)
    local fcompct = new_field_comp_ct(elct) -- Ctor for component data
    local allocator = Alloc.Alloc_meta_ctor(elct) -- Memory allocator
+   local isNumberType = false
    -- MPI and ADIOS data-types
    local elctCommType, elcCommSize = nil, 1
    if ffi.istype(new(elct), new("double")) then
       elctCommType = Mpi.DOUBLE
       elctIoType = Adios.double
+      isNumberType = true
    elseif ffi.istype(new(elct), new("float")) then
       elctCommType = Mpi.FLOAT
       elctIoType = Adios.real
+      isNumberType = true
    elseif ffi.istype(new(elct), new("int")) then
       elctCommType = Mpi.INT
       elctIoType = Adios.integer
+      isNumberType = true
    else
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
       elcCommSize = sizeof(elct)
@@ -115,6 +119,10 @@ local function Field_meta_ctor(elct)
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
       self._allocData = allocator(sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
+
+      -- for number types fill it with zeros (for others, the
+      -- assumption is that users will initialize themselves)
+      if isNumberType then self._allocData:fill(0) end
       
       -- setup object
       self._grid = grid
