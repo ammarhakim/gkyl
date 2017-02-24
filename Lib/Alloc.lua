@@ -15,6 +15,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 ffi.cdef [[
   void* malloc(size_t size);
   void* calloc(size_t nitems, size_t size);
+  void *realloc(void *ptr, size_t new_size);
   void free(void *ptr);
 ]]
 
@@ -29,6 +30,11 @@ local function calloc(nitems, sz)
    assert(d, "Alloc.calloc: Unable to allocate memory!")
    return d
 end
+local function realloc(dold, sz)
+   local d = ffi.C.realloc(dold, sz)
+   assert(d, "Alloc.realloc: Unable to allocate memory!")
+   return d
+end
 local function free(d)
    if d then
       ffi.C.free(d); d = nil
@@ -37,6 +43,14 @@ end
 
  -- block size in bytes
 local blockSz = 16*1024
+-- function to adjust allocation bytes to block-size: elmSz is the
+-- size of each element, num is number of such elements
+local function calcAdjustedSize(elmSz, num)
+   local adjBytes = (math.floor(elmSz*num/blockSz)+1)*blockSz
+   local adjNum = math.floor(adjBytes/elmSz)
+   return adjBytes, adjNum
+end
+
 -- Use calloc to allocate 'num' elements of memory for type
 -- 'elct'. The type 'ct' is a struct holding size and pointer to
 -- allocated memory. This allocator rounds out the memory to "blockSz"
@@ -45,14 +59,13 @@ local blockSz = 16*1024
 -- NOTE: We use "calloc" and not malloc as calloc zeros out the
 -- memory. Uninitialized memory can cause random crashes in LuaJIT.
 local function alloc(ct, elct, num)
-   local sz = sizeof(elct)
-   local adjBytes = (math.floor(sz*num/blockSz)+1)*blockSz
-   local adjNum = math.floor(adjBytes/sz)
+   local adjBytes, adjNum = calcAdjustedSize(sizeof(elct), num)
 
    local v = new(ct)
    v._capacity = 0
-   v._data = calloc(adjNum, sz)
+   v._data = calloc(adjNum, sizeof(elct))
    v._capacity = adjNum
+   v._size = num
    return v
 end
 
@@ -70,8 +83,20 @@ local function Alloc_meta_ctor(elct)
       capacity = function (self)
 	 return self._capacity
       end,
+      size = function(self)
+	 return self._size
+      end,
+      expand = function (self, nSize)
+	 -- don't do anything if requested size is less than capacity
+	 if nSize < self._capacity then return end
+
+	 -- reallocate memory, rounding to next biggest block than nSize
+	 local adjBytes, adjNum = calcAdjustedSize(self:elemSize(), nSize)
+	 self._data = realloc(self._data, adjBytes)
+	 self._capacity = adjNum
+      end,
       fill = function (self, v)
-	 for i = 0, self._capacity-1 do
+	 for i = 0, self._size-1 do
 	    self._data[i] = v
 	 end
       end,
@@ -103,7 +128,7 @@ local function Alloc_meta_ctor(elct)
 	 self:delete()
       end,
    }
-   return metatype(typeof("struct { int32_t _capacity; $* _data; }", elct), alloc_mt)
+   return metatype(typeof("struct { int32_t _size; int32_t _capacity; $* _data; }", elct), alloc_mt)
 end
 
 -- function to create an allocator for custom type
@@ -117,6 +142,7 @@ return {
    Float = createAllocator("float"),
    Int = createAllocator("int"),
    malloc = malloc,
+   realloc = realloc,
    calloc = calloc,
    free = free,
    createAllocator = createAllocator,
