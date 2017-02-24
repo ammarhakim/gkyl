@@ -41,35 +41,41 @@ local function free(d)
    end
 end
 
- -- block size in bytes
-local blockSz = 16*1024
--- function to adjust allocation bytes to block-size: elmSz is the
--- size of each element, num is number of such elements
-local function calcAdjustedSize(elmSz, num)
-   local adjBytes = (math.floor(elmSz*num/blockSz)+1)*blockSz
-   local adjNum = math.floor(adjBytes/elmSz)
-   return adjBytes, adjNum
-end
-
--- Use calloc to allocate 'num' elements of memory for type
--- 'elct'. The type 'ct' is a struct holding size and pointer to
--- allocated memory. This allocator rounds out the memory to "blockSz"
--- bytes to prevent fragmentation of the C memory allocator.
+-- Alloc ----------------------------------------------------------------------
 --
--- NOTE: We use "calloc" and not malloc as calloc zeros out the
--- memory. Uninitialized memory can cause random crashes in LuaJIT.
-local function alloc(ct, elct, num)
-   local adjBytes, adjNum = calcAdjustedSize(sizeof(elct), num)
-
-   local v = new(ct)
-   v._capacity = 0
-   v._data = calloc(adjNum, sizeof(elct))
-   v._capacity = adjNum
-   v._size = num
-   return v
-end
+-- A dynamically sizable 1D array type
+--------------------------------------------------------------------------------
 
 local function Alloc_meta_ctor(elct)
+   local elmSz = sizeof(elct) -- element size in bytes
+   -- block size in bytes
+   local blockSz = 2048*elmSz
+   -- function to adjust allocation bytes to block-size: elmSz is the
+   -- size of each element, num is number of such elements
+   local function calcAdjustedSize(num)
+      local adjBytes = (math.floor(elmSz*num/blockSz)+1)*blockSz
+      local adjNum = math.floor(adjBytes/elmSz)
+      return adjBytes, adjNum
+   end
+
+   -- Use calloc to allocate 'num' elements of memory for type
+   -- 'elct'. The type 'ct' is a struct holding size and pointer to
+   -- allocated memory. This allocator rounds out the memory to "blockSz"
+   -- bytes to prevent fragmentation of the C memory allocator.
+   --
+   -- NOTE: We use "calloc" and not malloc as calloc zeros out the
+   -- memory. Uninitialized memory can cause random crashes in LuaJIT.
+   local function alloc(ct, num)
+      local adjBytes, adjNum = calcAdjustedSize(num)
+      
+      local v = new(ct)
+      v._capacity = 0
+      v._data = calloc(adjNum, elmSz)
+      v._capacity = adjNum
+      v._size = num
+      return v
+   end
+   
    local alloc_funcs = {
       elemType = function (self)
 	 return elct
@@ -94,13 +100,13 @@ local function Alloc_meta_ctor(elct)
 	 end
 
 	 -- reallocate memory
-	 local adjBytes, adjNum = calcAdjustedSize(self:elemSize(), nSize)
+	 local adjBytes, adjNum = calcAdjustedSize(nSize)
 	 self._data = realloc(self._data, adjBytes)
 	 self._capacity = adjNum
 	 self._size = nSize
       end,
       clear = function(self)
-	 local adjBytes, adjNum = calcAdjustedSize(self:elemSize(), 0) -- single block
+	 local adjBytes, adjNum = calcAdjustedSize(0) -- single block
 	 self._data = realloc(self._data, adjBytes)
 	 self._capacity = adjNum
 	 self._size = 0
@@ -130,9 +136,9 @@ local function Alloc_meta_ctor(elct)
    local alloc_mt = {
       __new = function (ct, num)
 	 if num then
-	    return alloc(ct, elct, num)
+	    return alloc(ct, num)
 	 else
-	    return alloc(ct, elct, 0)
+	    return alloc(ct, 0)
 	 end
       end,
       __index = function (self, k)
