@@ -15,14 +15,16 @@ local stats = Unit.stats
 function test_1()
    local len = 100
    local da = Alloc.Double(len)
+   
+   assert_equal(len, da:size(), "Checking size")
    da:fill(1.0)
-   for i = 1, len do
+   for i = 1, da:size() do
       assert_equal(1.0, da[i], "Checking fill")
    end
-   for i = 1, len do
+   for i = 1, da:size() do
       da[i] = (i+0.5)*0.1
    end
-   for i = 1, len do
+   for i = 1, da:size() do
       assert_equal((i+0.5)*0.1, da[i], "Checking [] operator")
    end
 end
@@ -32,13 +34,15 @@ function test_2()
    local eulerAlloc = Alloc.createAllocator("struct {double rho, rhou, E;}")
    local eulerFld = eulerAlloc(len)
 
-   for i = 1, len do
+   assert_equal(len, eulerFld:size(), "Checking size")
+
+   for i = 1, eulerFld:size() do
       eulerFld[i].rho = (i+0.5)*0.1
       eulerFld[i].rhou = (i+0.5)*0.2
       eulerFld[i].E = (i+0.5)*0.3
    end
 
-   for i = 1, len do
+   for i = 1, eulerFld:size() do
       assert_equal((i+0.5)*0.1, eulerFld[i].rho, "Checking [] operator")
       assert_equal((i+0.5)*0.2, eulerFld[i].rhou, "Checking [] operator")
       assert_equal((i+0.5)*0.3, eulerFld[i].E, "Checking [] operator")
