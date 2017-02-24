@@ -88,17 +88,34 @@ local function Alloc_meta_ctor(elct)
       end,
       expand = function (self, nSize)
 	 -- don't do anything if requested size is less than capacity
-	 if nSize < self._capacity then return end
+	 if nSize < self._capacity then
+	    self._size = nSize
+	    return 
+	 end
 
-	 -- reallocate memory, rounding to next biggest block than nSize
+	 -- reallocate memory
 	 local adjBytes, adjNum = calcAdjustedSize(self:elemSize(), nSize)
 	 self._data = realloc(self._data, adjBytes)
 	 self._capacity = adjNum
+	 self._size = nSize
+      end,
+      clear = function(self)
+	 local adjBytes, adjNum = calcAdjustedSize(self:elemSize(), 0) -- single block
+	 self._data = realloc(self._data, adjBytes)
+	 self._capacity = adjNum
+	 self._size = 0
       end,
       fill = function (self, v)
 	 for i = 0, self._size-1 do
 	    self._data[i] = v
 	 end
+      end,
+      push = function (self, v)
+	 self:expand(self._size+1)
+	 self._data[self._size-1] = v
+      end,
+      last = function (self)
+	 return self._data[self._size-1]
       end,
       delete = function (self)
 	 if self._capacity == 0 then
@@ -112,7 +129,11 @@ local function Alloc_meta_ctor(elct)
    }
    local alloc_mt = {
       __new = function (ct, num)
-	 return alloc(ct, elct, num)
+	 if num then
+	    return alloc(ct, elct, num)
+	 else
+	    return alloc(ct, elct, 0)
+	 end
       end,
       __index = function (self, k)
 	 if type(k) == "number" then
