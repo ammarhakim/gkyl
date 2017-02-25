@@ -58,6 +58,21 @@ local function Alloc_meta_ctor(elct)
       return adjBytes, adjNum
    end
 
+   -- copy function for non-numeric types: this is used in methods
+   -- that set array values if the element type stored is not numeric
+   local isNumberType = false
+   local copyElemFunc = nil
+   if ffi.istype(new(elct), new("double")) then
+      isNumberType = true
+   elseif ffi.istype(new(elct), new("float")) then
+      isNumberType = true
+   elseif ffi.istype(new(elct), new("int")) then
+      isNumberType = true
+   else
+      isNumberType = false
+      copyElemFunc = function (dst, src) ffi.copy(dst, src, elmSz) end
+   end   
+
    -- Use calloc to allocate 'num' elements of memory for type
    -- 'elct'. The type 'ct' is a struct holding size and pointer to
    -- allocated memory. This allocator rounds out the memory to "blockSz"
@@ -111,18 +126,35 @@ local function Alloc_meta_ctor(elct)
 	 self._capacity = adjNum
 	 self._size = 0
       end,
-      fill = function (self, v)
-	 for i = 0, self._size-1 do
-	    self._data[i] = v
-	 end
-      end,
-      push = function (self, v)
-	 self:expand(self._size+1)
-	 self._data[self._size-1] = v
-      end,
-      last = function (self)
-	 return self._data[self._size-1]
-      end,
+      fill = copyElemFunc and
+	 function(self, v)
+	    for i = 0, self._size-1 do
+	       copyElemFunc(self._data[i], v)
+	    end
+	 end or
+	 function (self, v)
+	    for i = 0, self._size-1 do
+	       self._data[i] = v
+	    end
+	 end,
+      push = copyElemFunc and
+	 function (self, v)
+	    self:expand(self._size+1)
+	    copyElemFunc(self._data[self._size-1], v)
+	 end or
+	 function (self, v)
+	    self:expand(self._size+1)
+	    self._data[self._size-1] = v
+	 end,
+      last = copyElemFunc and
+	 function (self)
+	    local e = new(elct)
+	    copyElemFunc(e, self._data[self._size-1])
+	    return e
+	 end or
+	 function (self)
+	    return self._data[self._size-1]
+	 end,
       delete = function (self)
 	 if self._capacity == 0 then
 	    return false
@@ -142,15 +174,22 @@ local function Alloc_meta_ctor(elct)
 	 end
       end,
       __index = function (self, k)
+	 -- for non-numeric types, a reference will be returned: this
+	 -- is a little dangerous, but it allows for more "natural"
+	 -- style of programming when working with C-structs
 	 if type(k) == "number" then
 	    return self._data[k-1]
 	 else
 	    return alloc_funcs[k]
 	 end
       end,
-      __newindex = function (self, k, v)
-	 self._data[k-1] = v
-      end,
+      __newindex = copyElemFunc and
+	 function (self, k, v)
+	    copyElemFunc(self._data[k-1], v)
+	 end or
+	 function (self, k, v)
+	    self._data[k-1] = v
+	 end,
       __gc = function (self)
 	 self:delete()
       end,

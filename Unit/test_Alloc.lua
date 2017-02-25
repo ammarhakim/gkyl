@@ -59,6 +59,35 @@ function test_2()
    end   
 end
 
+function test_2b()
+   local len = 100
+   local eulerAlloc = Alloc.createAllocator("struct {double rho, rhou, E;}")
+   local eulerFld = eulerAlloc(len)
+
+   assert_equal(len, eulerFld:size(), "Checking size")
+
+   eFld = ffi.new(eulerFld:elemType())
+   for i = 1, eulerFld:size() do
+      eFld.rho = (i+0.5)*0.1
+      eFld.rhou = (i+0.5)*0.2
+      eFld.E = (i+0.5)*0.3
+      eulerFld[i] = eFld
+   end
+   do
+      local v = eulerFld:last()
+      local i = eulerFld:size()
+      assert_equal((i+0.5)*0.1, v.rho, "Checking [] operator")
+      assert_equal((i+0.5)*0.2, v.rhou, "Checking [] operator")
+      assert_equal((i+0.5)*0.3, v.E, "Checking [] operator")
+   end
+
+   for i = 1, eulerFld:size() do
+      assert_equal((i+0.5)*0.1, eulerFld[i].rho, "Checking [] operator")
+      assert_equal((i+0.5)*0.2, eulerFld[i].rhou, "Checking [] operator")
+      assert_equal((i+0.5)*0.3, eulerFld[i].E, "Checking [] operator")
+   end   
+end
+
 function test_3()
    local da = Alloc.Double()
    assert_equal(0, da:size(), "Testing size")
@@ -89,11 +118,35 @@ function test_4()
    assert_equal(0, da:size(), "Testing size")
 end
 
+function test_5()
+   local eulerAlloc = Alloc.createAllocator("struct {double rho, rhou, E;}")
+   local eulerFld = eulerAlloc()
+
+   assert_equal(0, eulerFld:size(), "Checking size")
+   local eFld = ffi.new(eulerFld:elemType())
+   for i = 1, 100 do
+      eFld.rho = (i+0.5)*1
+      eFld.rhou = (i+0.5)*2
+      eFld.E = (i+0.5)*3
+      eulerFld:push(eFld)
+   end
+
+   assert_equal(100, eulerFld:size(), "Checking size")
+   for i = 1, eulerFld:size() do
+      assert_equal((i+0.5)*1, eulerFld[i].rho, "Checking rho")
+      assert_equal((i+0.5)*2, eulerFld[i].rhou, "Checking rhou")
+      assert_equal((i+0.5)*3, eulerFld[i].E, "Checking E")
+   end   
+   
+end
+
 -- run tests
 test_1()
 test_2()
+test_2b()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

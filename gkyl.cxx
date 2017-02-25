@@ -14,7 +14,6 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
-#include <vector>
 
 #ifdef HAVE_MPI_H
 # include <mpi.h>
