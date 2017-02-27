@@ -136,7 +136,13 @@ function test_5()
       assert_equal((i+0.5)*1, eulerFld[i].rho, "Checking rho")
       assert_equal((i+0.5)*2, eulerFld[i].rhou, "Checking rhou")
       assert_equal((i+0.5)*3, eulerFld[i].E, "Checking E")
-   end   
+   end
+
+   eulerFld:expand(0) -- zap it, without deallocating
+   eulerFld:push(ffi.new(eulerFld:elemType(), {rho = 10.5, rhou = 11.5, E = 12.5}))
+   assert_equal(10.5, eulerFld[1].rho, "Checking rho")
+   assert_equal(11.5, eulerFld[1].rhou, "Checking rhou")
+   assert_equal(12.5, eulerFld[1].E, "Checking E")
    
 end
 
