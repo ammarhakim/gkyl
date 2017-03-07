@@ -6,9 +6,10 @@
 --------------------------------------------------------------------------------
 
 local CartField = require "DataStruct.CartField"
+local DynVector = require "DataStruct.DynVector"
 
 return {
    new_field_ct = CartField.new_field_ct,
    Field = CartField.Field,
-   FloatField = CartField.FloatField,
+   DynVector = DynVector.DynVector
 }
