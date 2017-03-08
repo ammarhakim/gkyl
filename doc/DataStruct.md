@@ -127,8 +127,8 @@ The following methods are provided.
   ranks' skin cells.
 
 `field:write(outNm, tmStamp)`
-: Write data in field to file `outNm`. The parameter `tmStamp` is
-  simulation time at which data is written.
+: Write data in field to ADIO BP file `outNm`. The parameter `tmStamp`
+  is simulation time at which data is written.
 
 To illustrate the use of the `indexer()` and `get()` methods to access
 elements in the grid, consider the following code:
@@ -197,3 +197,55 @@ for idx in localRange:colMajorIter() do
    fitr[1].E = 3
 end
 ~~~~~~~
+
+## `DynVector`: Dynamically adjustable 1D array
+
+Gkyl provides a dynamic 1D array to store small amounts of data. The
+usual application of such `DynVector` objects is to store
+time-dependent diagnostic information like energy history, field
+values in a cell, etc. As such, a `DynVector` allows storing
+diagnostic at much higher frequency than the I/O frequency of the
+simulation.
+
+A `DynVector` takes a single parameter, `numComponents` in its
+constructor:
+
+~~~~~~~ {.lua}
+
+emEnergy = DataStruct.DynVector { numComponents = 1 }
+~~~~~~~
+
+The following methods are provided.
+
+`dynVec:numComponents()`:
+: Number of components.
+
+`dynVec:appendData(tm, vals)`:
+: Append data recorded at time `tm` to the end of `dynVec`. The data
+  to append must be provided in `vals`, which is a 1-indexed array (or
+  table).
+
+`dynVec:lastTime()`:
+: Return the last time a value was inserted.
+
+`dynVec:lastData()`:
+: Returns a pair of values, the first the time and the second the
+  values last inserted into the `dynVec`.
+
+`dynVec:timeMesh()`
+: Returns the complete 1D array with times at which data was inserted
+  into the `dynVec`.
+
+`dynVec:data()`
+: Returns the complete 1D array with values inserted into the
+  `dynVec`. The returned array is 1-indexed and the [] operator
+  returns a 1-indexed array of size `numComponents`.
+
+`dynVec:clear()`
+: Clears data stored in the `dynVec`.
+
+`dynVec:write(outNm, tmStamp)`
+: Write the data to ADIO BP file `outNm`. The file is time-stamped
+  with `tmStamp`. Note that a write clears out the data in `dynVec`,
+  hence on subsequent writes only the data stored since the last write
+  is written out.

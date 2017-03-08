@@ -90,11 +90,11 @@ DynVector.__index = {
       self._copyToTempData(v, self._tmpData)
       self._data:push(self._tmpData)
    end,
-   lastTime = function (self)
+   lastTime = function(self)
       return self._timeMesh:last()
-   end,
+   end,   
    lastData = function(self)
-      return self._data:last()
+      return self._timeMesh:last(), self._data:last()
    end,
    timeMesh = function(self)
       return self._timeMesh
@@ -119,8 +119,8 @@ DynVector.__index = {
    write = function(self, outNm, tmStamp)
       local comm = self._ioComm
       local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-      if rank ~= 0 then  -- only run on rank 0
-	 self:clear()
+      if rank ~= 0 then  -- only run on rank 0 ...
+	 self:clear() -- ... but clear data on all ranks
 	 return
       end
 
