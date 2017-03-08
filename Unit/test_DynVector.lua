@@ -34,7 +34,18 @@ function test_1()
    assert_equal(lv[3], 4.5, "Checking last inserted data")
 end
 
+function test_2()
+   local dynVec = DataStruct.DynVector { numComponents = 2 }
+   assert_equal(dynVec:numComponents(), 2, "Testing number of components")
+
+   for i = 1, 10 do
+      dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
+   end
+   dynVec:write("test_2.bp", 1.5)
+end
+
 test_1()
+test_2()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
