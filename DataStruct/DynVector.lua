@@ -119,7 +119,10 @@ DynVector.__index = {
    write = function(self, outNm, tmStamp)
       local comm = self._ioComm
       local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-      if rank ~= 0 then return end -- only run on rank 0
+      if rank ~= 0 then  -- only run on rank 0
+	 self:clear()
+	 return
+      end
 
       -- setup ADIOS for IO
       Adios.init_noxml(comm[0])
@@ -157,6 +160,7 @@ DynVector.__index = {
       Adios.close(fd)
       
       Adios.finalize(rank)
+      self:clear() -- clear data for next round of IO
    end,
 }
 
