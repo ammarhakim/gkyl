@@ -12,10 +12,31 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local Range = require "Lib.Range"
-local Mpi = require "Comm.Mpi"
 local Adios = require "Io.Adios"
+local Alloc = require "Lib.Alloc"
+local Lin = require "Lib.Linalg"
+local Mpi = require "Comm.Mpi"
+local Range = require "Lib.Range"
+
+-- Code from Lua wiki to convert table to comma-seperated-values
+-- string.
+-- Used to escape "'s by toCSV
+local function escapeCSV (s)
+  if string.find(s, '[,"]') then
+    s = '"' .. string.gsub(s, '"', '""') .. '"'
+  end
+  return s
+end
+-- Convert from table to CSV string
+local function toCSV (tt)
+  local s = ""
+  -- ChM 23.02.2014: changed pairs to ipairs assumption is that
+  -- fromCSV and toCSV maintain data as ordered array
+  for _,p in ipairs(tt) do  
+    s = s .. "," .. escapeCSV(p)
+  end
+  return string.sub(s, 2)      -- remove first comma
+end
 
 -- Template to copy from table/vector
 local copyTempl = xsys.template [[
@@ -46,6 +67,14 @@ function DynVector:new(tbl)
 
    -- construct various functions from template representations
    self._copyToTempData = loadstring( copyTempl {NCOMP=self._numComponents} )()
+
+   -- write only from rank-0: create sub-communicator and use that for
+   -- writing data (perhaps one needs a user-specified write-rank)
+   local ranks = Lin.IntVec(1); ranks[1] = 0
+   self._ioComm = Mpi.Split_comm(Mpi.COMM_WORLD, ranks)
+
+   -- allocate space for IO buffer
+   self._ioBuff = Alloc.Double()
    
    return self
 end
@@ -72,6 +101,62 @@ DynVector.__index = {
    end,
    data = function(self)
       return self._data
+   end,
+   clear = function(self)
+      self._data:clear()
+      self._timeMesh:clear()
+   end,
+   _copy_from_dynvector = function(self, buff)
+      local c = 1
+      for i = 1, self._data:size() do
+	 local v = self._data[i]
+	 for n = 1, self._numComponents do
+	    buff[c] = v[n]
+	    c = c+1
+	 end
+      end
+   end,
+   write = function(self, outNm, tmStamp)
+      local comm = self._ioComm
+      local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+      if rank ~= 0 then return end -- only run on rank 0
+
+      -- setup ADIOS for IO
+      Adios.init_noxml(comm[0])
+
+      -- create group and set I/O method
+      local grpId = Adios.declare_group("DynVector", "", Adios.flag_no)
+      Adios.select_method(grpId, "MPI", "", "")
+
+      -- ADIOS expects CSV string to specify data shape
+      local localTmSz = toCSV( {self._data:size()} )
+      local localDatSz = toCSV( {self._data:size(), self._numComponents} )
+      
+      -- define data to write
+      Adios.define_var(
+	 grpId, "time", "", Adios.double, "", "", "")
+      Adios.define_var(
+	 grpId, "TimeMesh", "", Adios.double, localTmSz, "", "")
+      Adios.define_var(
+      	 grpId, "Data", "", Adios.double, localDatSz, "", "")
+
+      local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
+
+      -- open file to write out group
+      local fd = Adios.open("DynVector", fullNm, "w", comm[0])
+
+      -- write data
+      local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
+      Adios.write(fd, "time", tmStampBuff)
+      Adios.write(fd, "TimeMesh", self._timeMesh:data())
+      -- copy data to IO buffer
+      self._ioBuff:expand(self._data:size()*self._numComponents)
+      self:_copy_from_dynvector(self._ioBuff)
+      Adios.write(fd, "Data", self._ioBuff:data())
+      
+      Adios.close(fd)
+      
+      Adios.finalize(rank)
    end,
 }
 
