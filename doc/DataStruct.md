@@ -225,6 +225,10 @@ The following methods are provided.
   to append must be provided in `vals`, which is a 1-indexed array (or
   table).
 
+`dynVec:removeLast()`:
+: Remove the last time and value added to `dynVec`. The removed values
+  are returned as a time, value pair.
+
 `dynVec:lastTime()`:
 : Return the last time a value was inserted.
 

@@ -44,8 +44,25 @@ function test_2()
    dynVec:write("test_2.bp", 1.5)
 end
 
+function test_3()
+   local dynVec = DataStruct.DynVector { numComponents = 2 }
+   for i = 1, 10 do
+      dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
+   end
+   local tm, lv = dynVec:removeLast()
+   assert_equal(tm, 0.1*10, "Testing removed time")
+   assert_equal(lv[1], 2.5*10^2, "Testing removed value")
+   assert_equal(lv[2], 2.5*10^2+0.5, "Testing removed value")
+
+   local tm, lv = dynVec:lastData()
+   assert_equal(tm, 0.1*9, "Testing last time")
+   assert_equal(lv[1], 2.5*9^2, "Testing last value")
+   assert_equal(lv[2], 2.5*9^2+0.5, "Testing last value")
+end
+
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
