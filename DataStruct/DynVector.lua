@@ -90,6 +90,11 @@ DynVector.__index = {
       self._copyToTempData(v, self._tmpData)
       self._data:push(self._tmpData)
    end,
+   removeLast = function(self)
+      local tm = self._timeMesh:popLast()
+      local v = self._data:popLast()
+      return tm, v
+   end,   
    lastTime = function(self)
       return self._timeMesh:last()
    end,   

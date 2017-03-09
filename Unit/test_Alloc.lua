@@ -146,6 +146,19 @@ function test_5()
    
 end
 
+function test_6()
+   local dv = Alloc.Double()
+
+   for i = 1, 10 do
+      dv:push(i+0.5)
+   end
+   local l = dv:popLast()
+   assert_equal(10.5, l, "Checking pop-ed value")
+   local nl = dv:last()
+   assert_equal(9.5, nl, "Checking new last value")
+   assert_equal(9, dv:size(), "Checking size")
+end
+
 -- run tests
 test_1()
 test_2()
@@ -153,6 +166,7 @@ test_2b()
 test_3()
 test_4()
 test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
