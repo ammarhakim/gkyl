@@ -6,7 +6,7 @@ import os, glob, types
 from waflib.Configure import conf
 
 def options(opt):
-    opt.add_option('--enable-adios', help=('Enable parallel build'),
+    opt.add_option('--enable-adios', help=('Enable ADIOS'),
                    dest='enable_adios', action='store_true',
                    default=False)
     opt.add_option('--adios-inc-dir', type='string', help='Path to ADIOS includes', dest='adiosIncDir')
