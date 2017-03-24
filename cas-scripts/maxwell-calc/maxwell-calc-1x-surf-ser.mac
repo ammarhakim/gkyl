@@ -1,0 +1,60 @@
+load("/Users/JunoRavin/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/JunoRavin/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsSurf1 : [x]$
+
+fh : openw("/Users/JunoRavin/gkyl/cas-scripts/maxima-out/SerendipMaxwellSurf1x.lua");
+
+basisC : makelist(gsOrthoNorm(varsSurf1, makeSerendipBasis(varsSurf1, i)), i, 1, 4)$
+
+AVG(qLeft, qRight) := 1.0/2.0*(qRight + qLeft)$
+JMP(qLeft, qRight) := 1.0/2.0*(qRight - qLeft)$
+
+dx : [dx0]$
+
+for i : 1 thru 4 do (
+  exOldLeft : transpose(makelist(eml[i], i, 1, length(basisC[i]))),
+  eyOldLeft : transpose(makelist(eml[i], i, length(basisC[i])+1, 2*length(basisC[i]))),
+  ezOldLeft : transpose(makelist(eml[i], i, 2*length(basisC[i])+1, 3*length(basisC[i]))),
+  bxOldLeft : transpose(makelist(eml[i], i, 3*length(basisC[i])+1, 4*length(basisC[i]))),
+  byOldLeft : transpose(makelist(eml[i], i, 4*length(basisC[i])+1, 5*length(basisC[i]))),
+  bzOldLeft : transpose(makelist(eml[i], i, 5*length(basisC[i])+1, 6*length(basisC[i]))),
+  ephiOldLeft : transpose(makelist(eml[i], i, 6*length(basisC[i])+1, 7*length(basisC[i]))),
+  bpsiOldLeft : transpose(makelist(eml[i], i, 7*length(basisC[i])+1, 8*length(basisC[i]))),
+  exOldRight : transpose(makelist(emr[i], i, 1, length(basisC[i]))),
+  eyOldRight : transpose(makelist(emr[i], i, length(basisC[i])+1, 2*length(basisC[i]))),
+  ezOldRight : transpose(makelist(emr[i], i, 2*length(basisC[i])+1, 3*length(basisC[i]))),
+  bxOldRight : transpose(makelist(emr[i], i, 3*length(basisC[i])+1, 4*length(basisC[i]))),
+  byOldRight : transpose(makelist(emr[i], i, 4*length(basisC[i])+1, 5*length(basisC[i]))),
+  bzOldRight : transpose(makelist(emr[i], i, 5*length(basisC[i])+1, 6*length(basisC[i]))),
+  ephiOldRight : transpose(makelist(emr[i], i, 6*length(basisC[i])+1, 7*length(basisC[i]))),
+  bpsiOldRight : transpose(makelist(emr[i], i, 7*length(basisC[i])+1, 8*length(basisC[i]))),
+  Mrr : calcSurfMassMatrix(varsSurf1, 1, basisC[i], x, 1, 1),
+  Mlr : calcSurfMassMatrix(varsSurf1, 1, basisC[i], x, 1, -1),
+  Mll : calcSurfMassMatrix(varsSurf1, 1, basisC[i], x, -1, -1),
+  exLeft : chi*lightSpeed^2/2.0*((Mrr.ephiOldLeft + Mlr.ephiOldRight) - 1.0/lightSpeed*(Mlr.exOldRight - Mrr.exOldLeft)),
+  eyLeft : lightSpeed^2/2.0*((Mrr.eyOldLeft + Mlr.eyOldRight) - lightSpeed*(Mlr.bzOldRight - Mrr.bzOldLeft)),
+  ezLeft : -lightSpeed^2/2.0*((Mrr.ezOldLeft + Mlr.ezOldRight) + lightSpeed*(Mlr.byOldRight - Mrr.byOldLeft)),
+  bxLeft : gamma/2.0*((Mrr.bpsiOldLeft + Mlr.bpsiOldRight) - lightSpeed*(Mlr.bxOldRight - Mrr.bxOldLeft)),
+  byLeft : -1.0/2.0*((Mrr.byOldLeft + Mlr.byOldRight) + 1.0/lightSpeed*(Mlr.ezOldRight - Mrr.ezOldLeft)),
+  bzLeft : 1.0/2.0*((Mrr.bzOldLeft + Mlr.bzOldRight) - 1.0/lightSpeed*(Mlr.eyOldRight - Mrr.eyOldLeft)),
+  ephiLeft : chi/2.0*((Mrr.exOldLeft + Mlr.exOldRight) - lightSpeed*(Mlr.ephiOldRight - Mrr.ephiOldLeft)),
+  bpsiLeft : gamma*lightSpeed^2/2.0*((Mrr.bxOldLeft + Mlr.bxOldRight) - 1.0/lightSpeed*(Mlr.bpsiOldRight - Mrr.bpsiOldLeft)),
+  exRight : chi*lightSpeed^2/2.0*((Mlr.ephiOldLeft + Mll.ephiOldRight) - 1.0/lightSpeed*(Mlr.exOldLeft - Mll.exOldRight)),
+  eyRight : lightSpeed^2/2.0*((Mlr.eyOldLeft + Mll.eyOldRight) - lightSpeed*(Mlr.bzOldLeft - Mll.bzOldRight)),
+  ezRight : -lightSpeed^2/2.0*((Mlr.ezOldLeft + Mll.ezOldRight) + lightSpeed*(Mlr.byOldLeft - Mll.byOldRight)),
+  bxRight : gamma/2.0*((Mlr.bpsiOldLeft + Mll.bpsiOldRight) - lightSpeed*(Mlr.bxOldLeft - Mll.bxOldRight)),
+  byRight : -1.0/2.0*((Mlr.byOldLeft + Mll.byOldRight) + 1.0/lightSpeed*(Mlr.ezOldLeft - Mll.ezOldRight)),
+  bzRight : 1.0/2.0*((Mlr.bzOldLeft + Mll.bzOldRight) - 1.0/lightSpeed*(Mlr.eyOldLeft - Mll.eyOldRight)),
+  ephiRight : chi/2.0*((Mlr.exOldLeft + Mll.exOldRight) - lightSpeed*(Mlr.ephiOldLeft - Mll.ephiOldRight)),
+  bpsiRight : gamma*lightSpeed^2/2.0*((Mlr.bxOldLeft + Mll.bxOldRight) - 1.0/lightSpeed*(Mlr.bpsiOldLeft - Mll.bpsiOldRight)),
+  printf(fh, "_M.em[~a] = function (eml, emr, outl, out, dx) ~%", i),
+  printf(fh, "   local dx0 = dx[1] ~%"),
+  writeLuaDecrExprs(append(colVecToList(exLeft), colVecToList(eyLeft), colVecToList(ezLeft), colVecToList(bxLeft), colVecToList(byLeft), colVecToList(bzLeft), colVecToList(ephiLeft), colVecToList(bpsiLeft))),
+  writeLuaIncrExprs(append(colVecToList(exRight), colVecToList(eyRight), colVecToList(ezRight), colVecToList(bxRight), colVecToList(byRight), colVecToList(bzRight), colVecToList(ephiRight), colVecToList(bpsiRight))),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);

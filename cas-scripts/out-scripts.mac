@@ -28,4 +28,16 @@ writeCIncrExprs(rhs) := block([expr],
   )
 )$
 
+writeLuaIncrExprs(rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a + ~a; ~%", out[i], out[i], expr[i])
+  )
+)$
 
+writeLuaDecrExprs(rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a - ~a; ~%", outl[i], outl[i], expr[i])
+  )
+)$
