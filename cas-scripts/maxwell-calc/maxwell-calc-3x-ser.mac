@@ -1,0 +1,40 @@
+load("/Users/JunoRavin/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/JunoRavin/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsC : [x, y, z]$
+
+fh : openw("/Users/JunoRavin/gkyl/cas-scripts/maxima-out/SerendipMaxwell3x.lua");
+
+basisC : makelist(gsOrthoNorm(varsC, makeSerendipBasis(varsC, i)), i, 1, 4)$
+
+dx : [dx0, dx1, dx2]$
+
+for i : 1 thru 4 do (
+  exOld : transpose(makelist(em[i], i, 1, length(basisC[i]))),
+  eyOld : transpose(makelist(em[i], i, length(basisC[i])+1, 2*length(basisC[i]))),
+  ezOld : transpose(makelist(em[i], i, 2*length(basisC[i])+1, 3*length(basisC[i]))),
+  bxOld : transpose(makelist(em[i], i, 3*length(basisC[i])+1, 4*length(basisC[i]))),
+  byOld : transpose(makelist(em[i], i, 4*length(basisC[i])+1, 5*length(basisC[i]))),
+  bzOld : transpose(makelist(em[i], i, 5*length(basisC[i])+1, 6*length(basisC[i]))),
+  ephiOld : transpose(makelist(em[i], i, 6*length(basisC[i])+1, 7*length(basisC[i]))),
+  bpsiOld : transpose(makelist(em[i], i, 7*length(basisC[i])+1, 8*length(basisC[i]))),
+  Gx : calcWeightedGradStiffMatrix(x, varsC, 1, basisC[i]),
+  Gy : calcWeightedGradStiffMatrix(y, varsC, 1, basisC[i]),
+  Gz : calcWeightedGradStiffMatrix(z, varsC, 1, basisC[i]),
+  ex : 2.0*lightSpeed^2*(chi/dx[1]*Gx.ephiOld - 1.0/dx[2]*Gy.bzOld + 1.0/dx[3]*Gz.byOld),
+  ey : 2.0*lightSpeed^2*(1.0/dx[1]*Gx.bzOld + chi/dx[2]*Gy.ephiOld - 1.0/dx[3]*Gz.bxOld),
+  ez : 2.0*lightSpeed^2*(-1.0/dx[1]*Gx.byOld + 1.0/dx[2]*Gy.bxOld + chi/dx[3]*Gz.ephiOld),
+  bx : 2.0*(gamma/dx[1]*Gx.bpsiOld + 1.0/dx[2]*Gy.ezOld - 1.0/dx[3]*Gz.eyOld),
+  by : 2.0*(-1.0/dx[1]*Gx.ezOld + gamma/dx[2]*Gy.bpsiOld + 1.0/dx[3]*Gz.exOld),
+  bz : 2.0*(1.0/dx[1]*Gx.eyOld - 1.0/dx[2]*Gy.exOld + gamma/dx[3]*Gz.bpsiOld),
+  ephi: 2.0*chi*(1.0/dx[1]*Gx.exOld + 1.0/dx[2]*Gy.eyOld + 1.0/dx[3]*Gz.ezOld),
+  bpsi: 2.0*gamma*lightSpeed^2*(1.0/dx[1]*Gx.bxOld + 1.0/dx[2]*Gy.byOld + 1.0/dx[3]*Gz.bzOld),
+  printf(fh, "_M.em[~a] = function (em, out, dx) ~%", i),
+  printf(fh, "   local dx0, dx1, dx2 = dx[1], dx[2], dx[3] ~%"),
+  writeLuaIncrExprs(append(colVecToList(ex), colVecToList(ey), colVecToList(ez), colVecToList(bx), colVecToList(by), colVecToList(bz), colVecToList(ephi), colVecToList(bpsi))),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);
