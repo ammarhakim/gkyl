@@ -1,0 +1,101 @@
+/* Generate the 10-moment equations */
+
+load(itensor);
+
+/** Declare symmetries */
+decsym(P,2,0,[sym(all)],[]);
+decsym(Q,3,0,[sym(all)],[]);
+
+/** Number density */
+dn : p0*D(u(1)) + u(1)*D(n);
+
+/** Velocity */
+du(i) := 1/p0*D(P([1,i],[])) + u(1)*D(u(i));
+
+/** Pressure */
+dP(i,j) := P([i,j],[])*D(u(1)) + D(u(i))*P([j,1],[]) + D(u(j))*P([i,1],[]) + u(1)*D(P([i,j],[]));
+
+/** Construct list of equations and derviatives */
+eqList : map(canform, [dn, du(1), du(2), du(3), dP(1,1), dP(1,2), dP(1,3), dP(2,2), dP(2,3), dP(3,3)]);
+diffList : map(D, [n, 
+  u(1), u(2), u(3), 
+  P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])]);
+
+/** Construct coefficient matrix */
+Atmp : coefmatrix(eqList, diffList);
+
+/** Perform substitutions to clean up final matrix */
+Atm : subst(
+    [u(1)=u1, u(2)=u2, u(3)=u3,
+     P([1,1],[])=p11, P([1,2],[])=p12, P([1,3],[])=p13, 
+     P([2,2],[])=p22, P([2,3],[])=p23,
+     P([3,3],[])=p33],
+ Atmp);
+
+/** Source terms for pressure equations */
+prSrc(i,j) := sum(sum(Om(m)*levi_civita([k,m,i])*P([j,k]), m, 1, 3), k, 1, 3)
+   + sum(sum(Om(m)*levi_civita([k,m,j])*P([k,i]), m, 1, 3), k, 1, 3);
+
+srcList : map(canform, [prSrc(1,1), prSrc(1,2), prSrc(1,3), prSrc(2,2), prSrc(2,3), prSrc(3,3)]);
+srcJac : coefmatrix(srcList, [P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])]);
+
+/** Define scalar pressure */
+p : sum(P([i,i],[]), i, 1, 3)/3;
+
+/** Collisional relaxation source term */
+collSrc(i,j) := -nu*(P([i,j],[]) - kdelta([i,j],[])*p);
+
+collSrcList : map(canform, [collSrc(1,1), collSrc(1,2), collSrc(1,3), collSrc(2,2), collSrc(2,3), collSrc(3,3)]);
+collSrcJac : coefmatrix(collSrcList, [P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])  ]);
+
+/** Collect diagonal terms */
+collSrcListDiag : map(canform, [collSrc(1,1), collSrc(2,2), collSrc(3,3)]);
+collSrcJacDiag : coefmatrix(collSrcListDiag, [P([1,1],[]), P([2,2],[]), P([3,3],[])  ]);
+
+/** Anisotropic relaxation */
+n(i,j) := b(i)*b(j);
+t(i,j) := kdelta([i,j],[]) - n(i,j);
+
+p_par : canform(sum(sum(P([i,j],[])*n(i,j), i, 1, 3), j, 1, 3));
+p_per : (3*p-p_par)/2;
+
+collCGLSrc(i,j) := nu*(p_par*n(i,j) + p_per*t(i,j) - P([i,j],[]));
+collCGLSrcList : map(canform, 
+  [collCGLSrc(1,1), collCGLSrc(1,2), collCGLSrc(1,3), collCGLSrc(2,2), collCGLSrc(2,3), collCGLSrc(3,3)]);
+collCGLSrcJac : coefmatrix(collCGLSrcList, 
+  [P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])  ]);
+
+/** To gain some insight, assume magnetic field is in Z direction */
+collCGLSrcJac_bz : subst([b(1)=0,b(2)=0,b(3)=1], collCGLSrcJac);
+
+/** p_per and p_par in this frame */
+p_par_bz : subst([b(1)=0,b(2)=0,b(3)=1], p_par);
+p_per_bz : subst([b(1)=0,b(2)=0,b(3)=1], p_per);
+
+/** Compute eigensystem */
+[vals, vects] : eigenvectors(collCGLSrcJac_bz); 
+
+/** Right eigenvectors */
+Rev : (Rev : matrix([]), for i from 1 thru length (vals[1]) 
+        do (for j from 1 thru vals[2][i] 
+          do ( (Rev : addcol(Rev, transpose(matrix(vects[i][j])))))), Rev);
+/** List of eigenvalues */
+evs : (evs : [], for i from 1 thru length (vals[1]) 
+        do (for j from 1 thru vals[2][i] 
+          do (evs : endcons( vals[1][i], evs))), evs);
+
+/** Left eigenvectors */
+Lev : fullratsimp(invert(Rev));
+
+/** List of pressure tensor components */
+pList : transpose([P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])]);
+
+/** Compute modes */
+w : list_matrix_entries(Lev . pList);
+
+/** Recombine to costruct the solution */
+decsym(P0,2,0,[sym(all)],[]);
+p0List : transpose([P0([1,1],[]), P0([1,2],[]), P0([1,3],[]), P0([2,2],[]), P0([2,3],[]), P0([3,3],[])]);
+sol_temp : sum( w0[i]*col(Rev,i)*exp(evs[i]*t), i, 1, 6);
+ww : list_matrix_entries(Lev . p0List);
+sol : subst( makelist(w0[i]=ww[i], i, 1, 6), sol_temp);
