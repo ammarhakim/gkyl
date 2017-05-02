@@ -84,4 +84,4 @@ phiPrime_ij [i,j] := diff(phiVec[i], primVec[j])$
 phiprime : genmatrix(phiPrime_ij, 10, 10)$
 
 /** Now compute inverse transform */
-phiprimeInv : fullratsimp(invert(phiprime))$
+phiprimeInv : subst(n=p0, fullratsimp(invert(phiprime)))$
