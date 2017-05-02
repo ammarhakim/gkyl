@@ -9,6 +9,7 @@ Author: Ammar Hakim.
 
 /* Generate the 10-moment equations */
 
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
 load(itensor)$
 
 /** Declare symmetries */
@@ -81,7 +82,89 @@ id : fullratsimp( Levm . Revm )$
 phiVec : [n, n*u1, n*u2, n*u3, n*u1*u1+P11, n*u1*u2+P12, n*u1*u3+P13, n*u2*u2+P22, n*u2*u3+P23, n*u3*u3+P33]$
 primVec : [n, u1, u2, u3, P11, P12, P13, P22, P23, P33]$
 phiPrime_ij [i,j] := diff(phiVec[i], primVec[j])$
-phiprime : genmatrix(phiPrime_ij, 10, 10)$
-
+phiprime : subst(n=p0, genmatrix(phiPrime_ij, 10, 10))$
 /** Now compute inverse transform */
-phiprimeInv : subst(n=p0, fullratsimp(invert(phiprime)))$
+phiprimeInv : fullratsimp(invert(phiprime))$
+
+/* Write stuff out */
+writeExprs(rhs) := block([expr],
+  expr : expand(radcan(rhs)),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a ~%", out[i], expr[i])
+  )
+)$
+
+writeExprs2(lhs, rhs) := block([expr],
+  expr : expand(radcan(rhs)),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a ~%", lhs[i], expr[i])
+  )
+)$
+
+numRows(mat) := block([r,c], [r,c] : matrix_size(mat), r)$
+colVecToList(vec) := makelist(vec[i][1], i, 1, numRows(vec))$
+
+eqLst : makelist(phiVec[i]=q[i], i, 1, 10)$
+res1 : solve(eqLst, primVec)$
+res : map(rhs, res1[1])$
+
+wl : transpose(makelist(w[i], i, 1, 10))$
+mulByPhiprime : phiprime . wl$
+
+fh : openw("~/max-out/primitive.lua")$
+printf(fh, "local function primitive(q, out) ~%")$
+writeExprs(res)$
+printf(fh, "end ~%")$
+close(fh)$
+
+fh : openw("~/max-out/MulByPhiPrime.lua")$
+printf(fh, "local function mulByPhiPrime(p0, u1, u2, u3, w, out) ~%")$
+writeExprs(colVecToList(mulByPhiprime))$
+printf(fh, "end ~%")$
+close(fh)$
+
+del : transpose([delta[1], delta[d[1]], delta[d[2]], delta[d[3]], delta[dp[1]], delta[dp[2]], delta[dp[3]], delta[dp[4]], delta[dp[5]], delta[dp[6]]])$
+mulByPhiprimeInv : phiprimeInv . del$
+phiDel : transpose(makelist(phiDelta[i], i, 1, 10))$
+
+fh : openw("~/max-out/MulByPhiPrimeInv.lua")$
+printf(fh, "local function mulByPhiPrimeInv(p0, u1, u2, u3, del, out) ~%")$
+writeExprs2(colVecToList(phiDel), colVecToList(mulByPhiprimeInv))$
+printf(fh, "end ~%")$
+close(fh)$
+
+lp : transpose(makelist(leftProj[i], i, 1, 10))$
+lpPhiDelta : Levm . phiDel$
+
+fh : openw("~/max-out/ProjOnL.lua")$
+writeExprs2(colVecToList(lp), colVecToList(lpPhiDelta))$
+close(fh)$
+
+/* To compute waves */
+wvVec : transpose([wv[1], wv[d[1]], wv[d[2]], wv[d[3]], wv[dp[1]], wv[dp[2]], wv[dp[3]], wv[dp[4]], wv[dp[5]], wv[dp[6]]])$
+
+/* Compute waves: */
+w1 : leftProj[1]*col(Revm,1) + leftProj[2]*col(Revm,2)$
+w2 : leftProj[3]*col(Revm,3) + leftProj[4]*col(Revm,4)$
+w3 : leftProj[5]*col(Revm,5)$
+w4 : leftProj[6]*col(Revm,6)$
+w5 : sum(leftProj[i]*col(Revm,i), i, 7, 10)$
+
+fh : openw("~/max-out/Waves.lua")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w1))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w2))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w3))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w4))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w5))$
+printf(fh, "~% ~%")$
+
+close(fh)$

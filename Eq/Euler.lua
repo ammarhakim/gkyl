@@ -31,7 +31,7 @@ local dirShuffle = {
    new("int32_t[4]", 0, 4, 2, 3)
 }
 
--- helper to check if number if NaN
+-- helper to check if number is NaN
 local function isNan(x) return x ~= x end
 
 -- Riemann problem for Euler equations: `delta` is the vector we wish
