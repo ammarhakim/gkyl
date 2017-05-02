@@ -120,11 +120,34 @@ function test_4()
    assert_equal(6, perIds[2].upper, "Checking upper")
 end
 
+function showRange(msg, rng)
+   print(msg)
+   print(string.format("  (%d, %d) - (%d, %d). Vol = %d",
+		       rng:lower(1), rng:lower(2), rng:upper(1), rng:upper(2), rng:volume()))
+end
+
+function test_5()
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3}, __serTesting = true }
+   local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {20, 30}))
+
+   for d = 1, decomp:ndim() do
+      -- fetch skeleton in direction d
+      local perIds = decomposedRgn:boundarySubDomainIds(d)
+      for p = 1, #perIds do
+	 local rlo, rup = decomposedRgn:subDomain(perIds[p].lower), decomposedRgn:subDomain(perIds[p].upper)
+	 showRange(string.format("Dir %d. Lower-side box", d), rlo)
+	 showRange(string.format("Dir %d. Upper-side box", d), rup)
+      end
+   end
+
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

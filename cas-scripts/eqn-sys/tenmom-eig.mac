@@ -43,6 +43,11 @@ Atm : subst(
 /** Compute eigensystem. */
 [vals, vects] : eigenvectors(Atm)$
 
+/** Create list of eigenvalues, including repeated ones */
+Evs : (Evs : [], for i from 1 thru length(vals[1])
+        do (for j from 1 thru vals[2][i]
+	  do (Evs : append(Evs, [vals[1][i]]))), Evs)$
+
 /** Right eigenvectors. This nastiness is needed as the eigesystem is
 returned as a list of nested lists. These nested lists are taken apart
 based on eigenvalue multiplicity and put as columns in a matrix of
