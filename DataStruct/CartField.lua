@@ -334,8 +334,9 @@ local function Field_meta_ctor(elct)
 	 local decomposedRange = self._grid:decomposedRange()
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
-	 local tag = 42 -- Communicator tag for messages
-	 local localExtRange = self:localExtRange()	 
+	 local tag = 42 -- Communicator tag for regular (non-periodic) messages
+	 local basePerTag = 50 -- Base tag for periodic messages
+	 local localExtRange = self:localExtRange()
 
 	 local recvReq = {} -- list of recv requests
 	 -- post a non-blocking recv request
