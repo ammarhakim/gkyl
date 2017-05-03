@@ -24,6 +24,9 @@ typedef struct {
 
 ]]
 
+-- pre-defined constants to make life a little easier
+local R, U, V, W, PXX, PXY, PXZ, PYY, PYZ, PZZ = 1, 1, 2, 3, 1, 2, 3, 4, 5, 6
+
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
@@ -33,8 +36,8 @@ local dirShuffle = {
 }
 local dirShufflePr = {
    new("int32_t[7]", 0, 5, 6, 7, 8, 9, 10),
-   new("int32_t[7]", 0, 5, 6, 7, 8, 9, 10),
-   new("int32_t[7]", 0, 5, 6, 7, 8, 9, 10)
+   new("int32_t[7]", 0, 8, 9, 6, 10, 7, 5),
+   new("int32_t[7]", 0, 10, 7, 9, 5, 6, 8)
 }
 
 -- helper to check if number is NaN
@@ -238,7 +241,20 @@ local tenMoment_mt = {
       flux = function (self, dir, qIn, fOut)
 	 local d = dirShuffle[dir] -- shuffle indices for `dir`
 	 local dp = dirShufflePr[dir] -- shuffle indices for `dir` for pressure tensor
+	 local v = ffi.new("double[11]")
 	 
+	 primitive(qIn, v)
+	 
+	 fOut[1] = qIn[d[1]]
+	 fOut[d[1]] = qIn[dp[PXX]]
+	 fOut[d[2]] = qIn[dp[PXY]]
+	 fOut[d[3]] = qIn[dp[PXZ]]
+	 fOut[dp[1]] = v[R]*v[d[U]]^3 + 3*v[d[U]]*v[dp[PXX]]
+	 fOut[dp[2]] = v[R]*v[d[U]]^2*v[d[V]] + 2*v[d[U]]*v[dp[PXY]] + v[d[V]]*v[dp[PXX]]
+	 fOut[dp[3]] = v[R]*v[d[U]]^2*v[d[W]] + 2*v[d[U]]*v[dp[PXZ]] + v[d[W]]*v[dp[PXX]]
+	 fOut[dp[4]] = v[R]*v[d[U]]*v[d[V]]^2 + v[d[U]]*v[dp[PYY]] + 2*v[d[V]]*v[dp[PXY]]
+	 fOut[dp[5]] = v[R]*v[d[U]]*v[d[V]]*v[d[W]] + v[d[U]]*v[dp[PYZ]] + v[d[V]]*v[dp[PXZ]] + v[d[W]]*v[dp[PXY]]
+	 fOut[dp[6]] = v[R]*v[d[U]]*v[d[W]]^2 + v[d[U]]*v[dp[PZZ]] + 2*v[d[W]]*v[dp[PXZ]]
       end,
       isPositive = function (self, q)
 	 return true
