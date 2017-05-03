@@ -91,25 +91,28 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    primitive(qr, vr)
    primitive(ql, vl)
 
-   -- compute averages: strictly speaking we should use Roe averages
-   local p0 = 0.5*(vl[1]+vr[1])
-   local u1 = 0.5*(vl[d[1]]+vr[d[1]])
-   local u2 = 0.5*(vl[d[2]]+vr[d[2]])
-   local u3 = 0.5*(vl[d[3]]+vr[d[3]])
-   local p11 = 0.5*(vl[dp[1]]+vr[dp[1]])
-   local p12 = 0.5*(vl[dp[2]]+vr[dp[2]])
-   local p13 = 0.5*(vl[dp[3]]+vr[dp[3]])
-   local p22 = 0.5*(vl[dp[4]]+vr[dp[4]])
-   local p23 = 0.5*(vl[dp[5]]+vr[dp[5]])
-   local p33 = 0.5*(vl[dp[6]]+vr[dp[6]])
+   -- compute Roe averages
+   local sqrl, sqrr = sqrt(vl[1]), sqrt(vr[1])
+   local sqr1 = 1/(sqrl+sqrr)
+      
+   local p0 = sqrl*sqrr
+   local u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1
+   local u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1
+   local u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1
+   local p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]])
+   local p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]])
+   local p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]])
+   local p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]])
+   local p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]])
+   local p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]])
 
    -- speeds for use in computing eigenvalues
    local c1, c2 = math.sqrt(p11/p0), math.sqrt(3*p11/p0)
 
+   local phiDelta = ffi.new("double[11]")   
    -- pre-multiply jump (delta) by phiPrime inverse: we do this as
    -- jumps are in conserved variables, while left eigenvectors used
    -- below are computed from primitive variables
-   local phiDelta = ffi.new("double[11]")
    phiDelta[1] = delta[1] 
    phiDelta[2] = delta[d[1]]/p0-(delta[1]*u1)/p0 
    phiDelta[3] = delta[d[2]]/p0-(delta[1]*u2)/p0 
@@ -121,6 +124,7 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    phiDelta[9] = delta[1]*u2*u3-delta[d[2]]*u3-delta[d[3]]*u2+delta[dp[5]] 
    phiDelta[10] = delta[1]*u3^2-2*delta[d[3]]*u3+delta[dp[6]]
 
+   local leftProj = ffi.new("double[11]")
    -- project jumps on left eigenvectors (pray that LuaJIT eliminates common subexpressions)
    leftProj[1] = (phiDelta[2]*sqrt(p0)*p12)/(2*p11^(3/2))-(phiDelta[5]*p12)/(2*p11^2)-(phiDelta[3]*sqrt(p0))/(2*sqrt(p11))+phiDelta[6]/(2*p11) 
    leftProj[2] = (phiDelta[2]*sqrt(p0)*p13)/(2*p11^(3/2))-(phiDelta[5]*p13)/(2*p11^2)-(phiDelta[4]*sqrt(p0))/(2*sqrt(p11))+phiDelta[7]/(2*p11) 
