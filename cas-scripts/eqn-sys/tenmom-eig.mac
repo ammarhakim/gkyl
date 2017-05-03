@@ -95,7 +95,7 @@ writeExprs(rhs) := block([expr],
 )$
 
 writeExprs2(lhs, rhs) := block([expr],
-  expr : expand(radcan(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     printf(fh, "   ~a = ~a ~%", lhs[i], expr[i])
   )
