@@ -142,61 +142,61 @@ local function rp(self, dir, delta, ql, qr, waves, s)
 
    -- Wave 1: (ev 1 and 2 are repeated)
    s[1] = u1-c1
-   wv[1] = 0 
-   wv[d[1]] = 0 
-   wv[d[2]] = -(leftProj[1]*sqrt(p11))/sqrt(p0) 
-   wv[d[3]] = -(leftProj[2]*sqrt(p11))/sqrt(p0) 
-   wv[dp[1]] = 0 
+   wv[1] = 0.0 
+   wv[d[1]] = 0.0 
+   wv[d[2]] = -(1.0*leftProj[1]*sqrt(p11))/sqrt(p0) 
+   wv[d[3]] = -(1.0*leftProj[2]*sqrt(p11))/sqrt(p0) 
+   wv[dp[1]] = 0.0 
    wv[dp[2]] = leftProj[1]*p11 
    wv[dp[3]] = leftProj[2]*p11 
-   wv[dp[4]] = 2*leftProj[1]*p12 
+   wv[dp[4]] = 2.0*leftProj[1]*p12 
    wv[dp[5]] = leftProj[1]*p13+leftProj[2]*p12 
-   wv[dp[6]] = 2*leftProj[2]*p13    
+   wv[dp[6]] = 2.0*leftProj[2]*p13 
 
    mulByPhiPrime(p0, u1, u2, u3, wv, waves[1])
    
    -- Wave 2: (ev 3 and 4 are repeated)
    s[2] = u1+c1
-   wv[1] = 0 
-   wv[d[1]] = 0 
+   wv[1] = 0.0 
+   wv[d[1]] = 0.0 
    wv[d[2]] = (leftProj[3]*sqrt(p11))/sqrt(p0) 
    wv[d[3]] = (leftProj[4]*sqrt(p11))/sqrt(p0) 
-   wv[dp[1]] = 0 
+   wv[dp[1]] = 0.0 
    wv[dp[2]] = leftProj[3]*p11 
    wv[dp[3]] = leftProj[4]*p11 
-   wv[dp[4]] = 2*leftProj[3]*p12 
+   wv[dp[4]] = 2.0*leftProj[3]*p12 
    wv[dp[5]] = leftProj[3]*p13+leftProj[4]*p12 
-   wv[dp[6]] = 2*leftProj[4]*p13    
-
+   wv[dp[6]] = 2.0*leftProj[4]*p13
+   
    mulByPhiPrime(p0, u1, u2, u3, wv, waves[2])
 
    -- Wave 3 (ev 5)
    s[3] = u1-c2
    wv[1] = leftProj[5]*p0*p11 
-   wv[d[1]] = -(sqrt(3)*leftProj[5]*p11^(3/2))/sqrt(p0) 
-   wv[d[2]] = -(sqrt(3)*leftProj[5]*sqrt(p11)*p12)/sqrt(p0) 
-   wv[d[3]] = -(sqrt(3)*leftProj[5]*sqrt(p11)*p13)/sqrt(p0) 
-   wv[dp[1]] = 3*leftProj[5]*p11^2 
-   wv[dp[2]] = 3*leftProj[5]*p11*p12 
-   wv[dp[3]] = 3*leftProj[5]*p11*p13 
-   wv[dp[4]] = leftProj[5]*p11*p22+2*leftProj[5]*p12^2 
-   wv[dp[5]] = leftProj[5]*p11*p23+2*leftProj[5]*p12*p13 
-   wv[dp[6]] = leftProj[5]*p11*p33+2*leftProj[5]*p13^2    
-
+   wv[d[1]] = -(1.732050807568877*leftProj[5]*p11^(3/2))/sqrt(p0) 
+   wv[d[2]] = -(1.732050807568877*leftProj[5]*sqrt(p11)*p12)/sqrt(p0) 
+   wv[d[3]] = -(1.732050807568877*leftProj[5]*sqrt(p11)*p13)/sqrt(p0) 
+   wv[dp[1]] = 3.0*leftProj[5]*p11^2 
+   wv[dp[2]] = 3.0*leftProj[5]*p11*p12 
+   wv[dp[3]] = 3.0*leftProj[5]*p11*p13 
+   wv[dp[4]] = leftProj[5]*p11*p22+2.0*leftProj[5]*p12^2 
+   wv[dp[5]] = leftProj[5]*p11*p23+2.0*leftProj[5]*p12*p13 
+   wv[dp[6]] = leftProj[5]*p11*p33+2.0*leftProj[5]*p13^2
+   
    mulByPhiPrime(p0, u1, u2, u3, wv, waves[3])
  
    -- Wave 4 (ev 6)
    s[4] = u1+c2
    wv[1] = leftProj[6]*p0*p11 
-   wv[d[1]] = (sqrt(3)*leftProj[6]*p11^(3/2))/sqrt(p0) 
-   wv[d[2]] = (sqrt(3)*leftProj[6]*sqrt(p11)*p12)/sqrt(p0) 
-   wv[d[3]] = (sqrt(3)*leftProj[6]*sqrt(p11)*p13)/sqrt(p0) 
-   wv[dp[1]] = 3*leftProj[6]*p11^2 
-   wv[dp[2]] = 3*leftProj[6]*p11*p12 
-   wv[dp[3]] = 3*leftProj[6]*p11*p13 
-   wv[dp[4]] = leftProj[6]*p11*p22+2*leftProj[6]*p12^2 
-   wv[dp[5]] = leftProj[6]*p11*p23+2*leftProj[6]*p12*p13 
-   wv[dp[6]] = leftProj[6]*p11*p33+2*leftProj[6]*p13^2    
+   wv[d[1]] = (1.732050807568877*leftProj[6]*p11^(3/2))/sqrt(p0) 
+   wv[d[2]] = (1.732050807568877*leftProj[6]*sqrt(p11)*p12)/sqrt(p0) 
+   wv[d[3]] = (1.732050807568877*leftProj[6]*sqrt(p11)*p13)/sqrt(p0) 
+   wv[dp[1]] = 3.0*leftProj[6]*p11^2 
+   wv[dp[2]] = 3.0*leftProj[6]*p11*p12 
+   wv[dp[3]] = 3.0*leftProj[6]*p11*p13 
+   wv[dp[4]] = leftProj[6]*p11*p22+2.0*leftProj[6]*p12^2 
+   wv[dp[5]] = leftProj[6]*p11*p23+2.0*leftProj[6]*p12*p13 
+   wv[dp[6]] = leftProj[6]*p11*p33+2.0*leftProj[6]*p13^2 
 
    mulByPhiPrime(p0, u1, u2, u3, wv, waves[4])
 
