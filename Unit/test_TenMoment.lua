@@ -138,9 +138,40 @@ function test_3()
    end   
 end
 
+function test_4()
+   local tenMoment = HyperEquation.TenMoment { }
+
+   local ql = calcq({1.0, 0.0, 0.0, 0.0, 0.5e-4, 0.0, 0.0, 0.5e-4, 0.0, 0.0, 0.5e-4})
+   local qr = calcq({0.125, 0.0, 0.0, 0.0, 0.05e-4, 0.0, 0.0, 0.05e-4, 0.0, 0.0, 0.05e-4})
+
+   local meqn, mwaves = tenMoment:numEquations(), tenMoment:numWaves()
+   
+   local delta = Lin.Vec(meqn)
+   for m = 1, meqn do delta[m] = qr[m]-ql[m] end
+
+   local waves = Lin.Mat(mwaves, meqn)
+   local s = Lin.Vec(meqn)
+   tenMoment:rp(1, delta, ql, qr, waves, s)
+   local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
+   tenMoment:qFluctuations(1, ql, qr, waves, s, amdq, apdq)
+
+   local sumFluct = Lin.Vec(meqn)
+   for m = 1, meqn do sumFluct[m] = amdq[m]+apdq[m] end
+   local fluxr, fluxl, df = Lin.Vec(meqn), Lin.Vec(meqn), Lin.Vec(meqn)
+   tenMoment:flux(1, ql, fluxl)
+   tenMoment:flux(1, qr, fluxr)
+   for m = 1, meqn do df[m] = fluxr[m]-fluxl[m] end
+
+   for m = 1, meqn do
+      assert_equal(df[m], sumFluct[m], "Checking jump in flux is sum of fluctuations")
+   end   
+end
+
+
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
