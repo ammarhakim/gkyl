@@ -70,7 +70,7 @@ return function (meqn, waves, waves1, mw)
   local mw1 = mw-1
   return
 |for i = 0, MEQN-2 do
-  waves[meqn*mw1+${i}]*waves[meqn*mw1+${i}]+
+  waves1[meqn*mw1+${i}]*waves[meqn*mw1+${i}]+
 |end
   waves1[meqn*mw1+${MEQN-1}]*waves[meqn*mw1+${MEQN-1}]
 end

@@ -95,27 +95,27 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    local sqrl, sqrr = sqrt(vl[1]), sqrt(vr[1])
    local sqr1 = 1/(sqrl+sqrr)
       
-   -- local p0 = sqrl*sqrr
-   -- local u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1
-   -- local u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1
-   -- local u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1
-   -- local p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]])
-   -- local p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]])
-   -- local p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]])
-   -- local p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]])
-   -- local p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]])
-   -- local p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]])
+   local p0 = sqrl*sqrr
+   local u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1
+   local u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1
+   local u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1
+   local p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]])
+   local p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]])
+   local p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]])
+   local p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]])
+   local p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]])
+   local p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]])
 
-   local p0 = 0.5*(vl[1]+vr[1])
-   local u1 = 0.5*(vl[d[1]]+vr[d[1]])
-   local u2 = 0.5*(vl[d[2]]+vr[d[2]])
-   local u3 = 0.5*(vl[d[3]]+vr[d[3]])
-   local p11 = 0.5*(vl[dp[1]]+vr[dp[1]])
-   local p12 = 0.5*(vl[dp[2]]+vr[dp[2]])
-   local p13 = 0.5*(vl[dp[3]]+vr[dp[3]])
-   local p22 = 0.5*(vl[dp[4]]+vr[dp[4]])
-   local p23 = 0.5*(vl[dp[5]]+vr[dp[5]])
-   local p33 = 0.5*(vl[dp[6]]+vr[dp[6]])
+   -- local p0 = 0.5*(vl[1]+vr[1])
+   -- local u1 = 0.5*(vl[d[1]]+vr[d[1]])
+   -- local u2 = 0.5*(vl[d[2]]+vr[d[2]])
+   -- local u3 = 0.5*(vl[d[3]]+vr[d[3]])
+   -- local p11 = 0.5*(vl[dp[1]]+vr[dp[1]])
+   -- local p12 = 0.5*(vl[dp[2]]+vr[dp[2]])
+   -- local p13 = 0.5*(vl[dp[3]]+vr[dp[3]])
+   -- local p22 = 0.5*(vl[dp[4]]+vr[dp[4]])
+   -- local p23 = 0.5*(vl[dp[5]]+vr[dp[5]])
+   -- local p33 = 0.5*(vl[dp[6]]+vr[dp[6]])
 
    local phiDelta = ffi.new("double[11]")   
    -- pre-multiply jump (delta) by phiPrime inverse: we do this as

@@ -159,7 +159,19 @@ return function (dir, waves, s, amdq, apdq)
 end
 ]])
 local qFluctuations = qFluctuationsTempl {}
-print(qFluctuations)
+
+local waveDotProdTempl = xsys.template([[
+return function (meqn, waves, waves1, mw)
+  local mw1 = mw-1
+  return
+|for i = 0, MEQN-2 do
+  waves1[${MEQN}*mw1+${i}]*waves[${MEQN}*mw1+${i}]+
+|end
+  waves1[${MEQN}*mw1+${MEQN-1}]*waves[${MEQN}*mw1+${MEQN-1}]
+end
+]])
+local waveDotProd = waveDotProdTempl { MEQN=5 }
+print(waveDotProd)
 
 test_1()
 test_2()
