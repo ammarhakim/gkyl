@@ -10,6 +10,7 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
+local Time = require "Lib.Time"
 
 local _M = {}
 
@@ -19,6 +20,7 @@ ffi.cdef [[
 /* Euler equation for ideal gas */
 typedef struct {
     double _gasGamma; /* Gas constant */
+   double _rpTime; /* Time spent in RP */
 } EulerEqn_t;
 
 ]]

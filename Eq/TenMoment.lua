@@ -10,6 +10,7 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
+local Time = require "Lib.Time"
 
 local _M = {}
 
@@ -20,6 +21,7 @@ ffi.cdef [[
 typedef struct {
    int64_t numFlux; /* Type of numerical flux to use */
    int useIntermediateWave; /* Flag to indicate intermediate wave use */
+   double _rpTime; /* Time spent in RP */
 } TenMomentEqn_t;
 
 ]]
@@ -72,7 +74,7 @@ local function primitive(q, out)
    out[8] = q[8]-q[3]^2/q[1] 
    out[9] = q[9]-(q[3]*q[4])/q[1] 
    out[10] = q[10]-q[4]^2/q[1] 
-end 
+end
 
 -- Riemann problem for Ten-moment equations: `delta` is the vector we
 -- wish to split, `ql`/`qr` the left/right states. On output, `waves`
@@ -245,6 +247,7 @@ local qFluctuations = loadstring( qFluctuationsTempl {} )()
 local tenMoment_mt = {
    __new = function (self, tbl)
       local f = new(self)
+      f._rpTime = 0.0
       return f
    end,
    __index = {
