@@ -72,24 +72,6 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    ffi.C.gkylTenMomentRp(dir, delta:data(), ql:data(), qr:data(), waves:data(), s:data())
 end
 
--- The function to compute fluctuations is implemented as a template
--- which unrolls the inner loop
-local qFluctuationsTempl = xsys.template([[
-return function (dir, waves, s, amdq, apdq)
-   local w1, w2, w3, w4, w5 = waves[1], waves[2], waves[3], waves[4], waves[5]
-   local s1m, s2m, s3m, s4m, s5m = math.min(0, s[1]), math.min(0, s[2]), math.min(0, s[3]), math.min(0, s[4]), math.min(0, s[5])
-   local s1p, s2p, s3p, s4p, s5p = math.max(0, s[1]), math.max(0, s[2]), math.max(0, s[3]), math.max(0, s[4]), math.max(0, s[5])
-
-|for i = 1, 10 do
-   amdq[${i}] = s1m*w1[${i}] + s2m*w2[${i}] + s3m*w3[${i}] + s4m*w4[${i}] + s5m*w5[${i}]
-   apdq[${i}] = s1p*w1[${i}] + s2p*w2[${i}] + s3p*w3[${i}] + s4p*w4[${i}] + s5p*w5[${i}]
-
-|end
-end
-]])
--- function to compute fluctuations using q-wave method
-local qFluctuations = loadstring( qFluctuationsTempl {} )()
-
 local tenMoment_mt = {
    __new = function (self, tbl)
       local f = new(self)
