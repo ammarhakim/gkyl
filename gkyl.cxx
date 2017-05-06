@@ -104,7 +104,7 @@ main(int argc, char **argv) {
   varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
   
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=10', 'loopunroll=30')" << std::endl;
+  varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60')" << std::endl;
 
   // output prefix
   std::string snm(argv[1]), inpFile(argv[1]);

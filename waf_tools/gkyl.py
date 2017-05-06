@@ -16,7 +16,8 @@ def check_gkyl(conf):
     conf.start_msg("Setting dependency path:")
     conf.end_msg(conf.options.gkylDepDir)
 
-    conf.env.append_value('CXXFLAGS', conf.options.gkcxxflags.split(','))    
+    conf.env.append_value('CXXFLAGS', conf.options.gkcxxflags.split(','))
+    conf.env.append_value('CFLAGS', conf.options.gkcxxflags.split(','))
     conf.start_msg("Checking if CXXFLAGS work")
     conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
     conf.end_msg("Flags work (%s)" % conf.options.gkcxxflags)

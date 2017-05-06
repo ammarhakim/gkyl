@@ -58,6 +58,7 @@ def build(bld):
     bld.recurse("Comm")
     bld.recurse("Unit")
     bld.recurse("Updater")
+    bld.recurse("Eq")
 
     # build executable
     buildExec(bld)    
@@ -154,7 +155,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm',
-        use='gkcomm gkupdater LUAJIT ADIOS MPI M DL ',
+        use='gkeq gkcomm gkupdater LUAJIT ADIOS MPI M DL ',
         linkflags = EXTRA_LINK_FLAGS,
         lib = 'pthread'
     )

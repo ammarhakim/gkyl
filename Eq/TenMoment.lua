@@ -24,6 +24,10 @@ typedef struct {
    double _rpTime; /* Time spent in RP */
 } TenMomentEqn_t;
 
+/* Ten-moment RP solver */
+  void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], double *waves, double s[5]);
+/* Ten-moment q-fluctuations */
+  void gkylTenMomentQFluct(double *waves, double *s, double *amdq, double *apdq);
 ]]
 
 -- pre-defined constants to make life a little easier
@@ -45,23 +49,6 @@ local dirShufflePr = {
 -- helper to check if number is NaN
 local function isNan(x) return x ~= x end
 
--- Multiply "w" by the phiPrime matrix (see
--- http://ammar-hakim.org/sj/tenmom-eigensystem.html). This brings a
--- right-eigenvector (or linear combinations) into conserved variable
--- space.
-local function mulByPhiPrime(p0, u1, u2, u3, w, out) 
-   out[1] = w[1] 
-   out[2] = w[1]*u1+w[2]*p0 
-   out[3] = w[1]*u2+w[3]*p0 
-   out[4] = w[1]*u3+w[4]*p0 
-   out[5] = w[1]*u1^2+2*w[2]*p0*u1+w[5] 
-   out[6] = w[1]*u1*u2+w[2]*p0*u2+w[3]*p0*u1+w[6] 
-   out[7] = w[1]*u1*u3+w[2]*p0*u3+w[4]*p0*u1+w[7] 
-   out[8] = w[1]*u2^2+2*w[3]*p0*u2+w[8] 
-   out[9] = w[1]*u2*u3+w[3]*p0*u3+w[4]*p0*u2+w[9] 
-   out[10] = w[1]*u3^2+2*w[4]*p0*u3+w[10] 
-end
-
 -- function to convert conserved variables to primitive variables
 local function primitive(q, out) 
    out[1] = q[1] 
@@ -79,151 +66,10 @@ end
 -- Riemann problem for Ten-moment equations: `delta` is the vector we
 -- wish to split, `ql`/`qr` the left/right states. On output, `waves`
 -- and `s` contain the waves and speeds. waves is a mwave X meqn
--- matrix. See LeVeque's book for explanations. Note: This code is
--- essentially based on code used in my (Ammar) thesis i.e.
--- Miniwarpx. Parts of the code were generated automatically from
--- Maxima.
+-- matrix. See LeVeque's book for explanations.
 local function rp(self, dir, delta, ql, qr, waves, s)
-   local d = dirShuffle[dir] -- shuffle indices for `dir` for velocity
-   local dp = dirShufflePr[dir] -- shuffle indices for `dir` for pressure tensor
-   local sqrt = math.sqrt
-   
-   local vl, vr = ffi.new("double[11]"), ffi.new("double[11]")
-   -- compute primitive values
-   primitive(qr, vr)
-   primitive(ql, vl)
-
-   -- compute Roe averages
-   local sqrl, sqrr = sqrt(vl[1]), sqrt(vr[1])
-   local sqr1 = 1/(sqrl+sqrr)
-      
-   local p0 = sqrl*sqrr
-   local u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1
-   local u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1
-   local u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1
-   local p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]])
-   local p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]])
-   local p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]])
-   local p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]])
-   local p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]])
-   local p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p0^2*sqr1^2*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]])
-
-   -- local p0 = 0.5*(vl[1]+vr[1])
-   -- local u1 = 0.5*(vl[d[1]]+vr[d[1]])
-   -- local u2 = 0.5*(vl[d[2]]+vr[d[2]])
-   -- local u3 = 0.5*(vl[d[3]]+vr[d[3]])
-   -- local p11 = 0.5*(vl[dp[1]]+vr[dp[1]])
-   -- local p12 = 0.5*(vl[dp[2]]+vr[dp[2]])
-   -- local p13 = 0.5*(vl[dp[3]]+vr[dp[3]])
-   -- local p22 = 0.5*(vl[dp[4]]+vr[dp[4]])
-   -- local p23 = 0.5*(vl[dp[5]]+vr[dp[5]])
-   -- local p33 = 0.5*(vl[dp[6]]+vr[dp[6]])
-
-   local phiDelta = ffi.new("double[11]")   
-   -- pre-multiply jump (delta) by phiPrime inverse: we do this as
-   -- jumps are in conserved variables, while left eigenvectors used
-   -- below are computed from primitive variables
-   phiDelta[1] = delta[1] 
-   phiDelta[2] = delta[d[1]]/p0-(delta[1]*u1)/p0 
-   phiDelta[3] = delta[d[2]]/p0-(delta[1]*u2)/p0 
-   phiDelta[4] = delta[d[3]]/p0-(delta[1]*u3)/p0 
-   phiDelta[5] = delta[1]*u1^2-2*delta[d[1]]*u1+delta[dp[1]] 
-   phiDelta[6] = delta[1]*u1*u2-delta[d[1]]*u2-delta[d[2]]*u1+delta[dp[2]] 
-   phiDelta[7] = delta[1]*u1*u3-delta[d[1]]*u3-delta[d[3]]*u1+delta[dp[3]] 
-   phiDelta[8] = delta[1]*u2^2-2*delta[d[2]]*u2+delta[dp[4]] 
-   phiDelta[9] = delta[1]*u2*u3-delta[d[2]]*u3-delta[d[3]]*u2+delta[dp[5]] 
-   phiDelta[10] = delta[1]*u3^2-2*delta[d[3]]*u3+delta[dp[6]]
-
-   local leftProj = ffi.new("double[11]")
-   -- project jumps on left eigenvectors (pray that LuaJIT eliminates common subexpressions)
-   leftProj[1] = (phiDelta[2]*sqrt(p0)*p12)/(2*p11^(3/2))-(phiDelta[5]*p12)/(2*p11^2)-(phiDelta[3]*sqrt(p0))/(2*sqrt(p11))+phiDelta[6]/(2*p11) 
-   leftProj[2] = (phiDelta[2]*sqrt(p0)*p13)/(2*p11^(3/2))-(phiDelta[5]*p13)/(2*p11^2)-(phiDelta[4]*sqrt(p0))/(2*sqrt(p11))+phiDelta[7]/(2*p11) 
-   leftProj[3] = (-(phiDelta[2]*sqrt(p0)*p12)/(2*p11^(3/2)))-(phiDelta[5]*p12)/(2*p11^2)+(phiDelta[3]*sqrt(p0))/(2*sqrt(p11))+phiDelta[6]/(2*p11) 
-   leftProj[4] = (-(phiDelta[2]*sqrt(p0)*p13)/(2*p11^(3/2)))-(phiDelta[5]*p13)/(2*p11^2)+(phiDelta[4]*sqrt(p0))/(2*sqrt(p11))+phiDelta[7]/(2*p11) 
-   leftProj[5] = phiDelta[5]/(6*p11^2)-(phiDelta[2]*sqrt(p0))/(2*sqrt(3)*p11^(3/2)) 
-   leftProj[6] = (phiDelta[2]*sqrt(p0))/(2*sqrt(3)*p11^(3/2))+phiDelta[5]/(6*p11^2) 
-   leftProj[7] = phiDelta[1]-(phiDelta[5]*p0)/(3*p11) 
-   leftProj[8] = (-(phiDelta[5]*p22)/(3*p11))+(4*phiDelta[5]*p12^2)/(3*p11^2)-(2*phiDelta[6]*p12)/p11+phiDelta[8] 
-   leftProj[9] = (-(phiDelta[5]*p23)/(3*p11))+(4*phiDelta[5]*p12*p13)/(3*p11^2)-(phiDelta[6]*p13)/p11-(phiDelta[7]*p12)/p11+phiDelta[9] 
-   leftProj[10] = (-(phiDelta[5]*p33)/(3*p11))+(4*phiDelta[5]*p13^2)/(3*p11^2)-(2*phiDelta[7]*p13)/p11+phiDelta[10]
-
-   -- compute waves and speeds
-   local wv = ffi.new("double[11]")
-
-   -- Wave 1: (ev 1 and 2 are repeated)
-   s[1] = u1-math.sqrt(p11/p0)
-   wv[1] = 0.0 
-   wv[d[1]] = 0.0 
-   wv[d[2]] = -(1.0*leftProj[1]*sqrt(p11))/sqrt(p0) 
-   wv[d[3]] = -(1.0*leftProj[2]*sqrt(p11))/sqrt(p0) 
-   wv[dp[1]] = 0.0 
-   wv[dp[2]] = leftProj[1]*p11 
-   wv[dp[3]] = leftProj[2]*p11 
-   wv[dp[4]] = 2.0*leftProj[1]*p12 
-   wv[dp[5]] = leftProj[1]*p13+leftProj[2]*p12 
-   wv[dp[6]] = 2.0*leftProj[2]*p13 
-
-   mulByPhiPrime(p0, u1, u2, u3, wv, waves[1])
-   
-   -- Wave 2: (ev 3 and 4 are repeated)
-   s[2] = u1+math.sqrt(p11/p0)
-   wv[1] = 0.0 
-   wv[d[1]] = 0.0 
-   wv[d[2]] = (leftProj[3]*sqrt(p11))/sqrt(p0) 
-   wv[d[3]] = (leftProj[4]*sqrt(p11))/sqrt(p0) 
-   wv[dp[1]] = 0.0 
-   wv[dp[2]] = leftProj[3]*p11 
-   wv[dp[3]] = leftProj[4]*p11 
-   wv[dp[4]] = 2.0*leftProj[3]*p12 
-   wv[dp[5]] = leftProj[3]*p13+leftProj[4]*p12 
-   wv[dp[6]] = 2.0*leftProj[4]*p13
-   
-   mulByPhiPrime(p0, u1, u2, u3, wv, waves[2])
-
-   -- Wave 3 (ev 5)
-   s[3] = u1-math.sqrt(3*p11/p0)
-   wv[1] = leftProj[5]*p0*p11 
-   wv[d[1]] = -(1.732050807568877*leftProj[5]*p11^(3/2))/sqrt(p0) 
-   wv[d[2]] = -(1.732050807568877*leftProj[5]*sqrt(p11)*p12)/sqrt(p0) 
-   wv[d[3]] = -(1.732050807568877*leftProj[5]*sqrt(p11)*p13)/sqrt(p0) 
-   wv[dp[1]] = 3.0*leftProj[5]*p11^2 
-   wv[dp[2]] = 3.0*leftProj[5]*p11*p12 
-   wv[dp[3]] = 3.0*leftProj[5]*p11*p13 
-   wv[dp[4]] = leftProj[5]*p11*p22+2.0*leftProj[5]*p12^2 
-   wv[dp[5]] = leftProj[5]*p11*p23+2.0*leftProj[5]*p12*p13 
-   wv[dp[6]] = leftProj[5]*p11*p33+2.0*leftProj[5]*p13^2
-   
-   mulByPhiPrime(p0, u1, u2, u3, wv, waves[3])
- 
-   -- Wave 4 (ev 6)
-   s[4] = u1+math.sqrt(3*p11/p0)
-   wv[1] = leftProj[6]*p0*p11 
-   wv[d[1]] = (1.732050807568877*leftProj[6]*p11^(3/2))/sqrt(p0) 
-   wv[d[2]] = (1.732050807568877*leftProj[6]*sqrt(p11)*p12)/sqrt(p0) 
-   wv[d[3]] = (1.732050807568877*leftProj[6]*sqrt(p11)*p13)/sqrt(p0) 
-   wv[dp[1]] = 3.0*leftProj[6]*p11^2 
-   wv[dp[2]] = 3.0*leftProj[6]*p11*p12 
-   wv[dp[3]] = 3.0*leftProj[6]*p11*p13 
-   wv[dp[4]] = leftProj[6]*p11*p22+2.0*leftProj[6]*p12^2 
-   wv[dp[5]] = leftProj[6]*p11*p23+2.0*leftProj[6]*p12*p13 
-   wv[dp[6]] = leftProj[6]*p11*p33+2.0*leftProj[6]*p13^2 
-
-   mulByPhiPrime(p0, u1, u2, u3, wv, waves[4])
-
-   -- Wave 5: (ev 7, 8, 9, 10 are repeated)
-   s[5] = u1
-   wv[1] = leftProj[7] 
-   wv[d[1]] = 0 
-   wv[d[2]] = 0 
-   wv[d[3]] = 0 
-   wv[dp[1]] = 0 
-   wv[dp[2]] = 0 
-   wv[dp[3]] = 0 
-   wv[dp[4]] = leftProj[8] 
-   wv[dp[5]] = leftProj[9] 
-   wv[dp[6]] = leftProj[10]    
-
-   mulByPhiPrime(p0, u1, u2, u3, wv, waves[5])
+   -- dispatch call to C++ function implementing the RP
+   ffi.C.gkylTenMomentRp(dir, delta:data(), ql:data(), qr:data(), waves:data(), s:data())
 end
 
 -- The function to compute fluctuations is implemented as a template
