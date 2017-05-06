@@ -13,7 +13,7 @@ def build(bld):
         bldFunc = bld.stlib
     
     bldFunc(
-        source = 'TenMomentRp.cpp',
+        source = 'TenMoment.cpp',
         target = 'gkeq',
         includes = '.',
     )    
