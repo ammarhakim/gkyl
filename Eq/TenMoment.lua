@@ -122,7 +122,7 @@ local tenMoment_mt = {
       end,
       rp = rp,
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
-	 qFluctuations(dir, waves, s, amdq, apdq)
+	 ffi.C.gkylTenMomentQFluct(waves:data(), s:data(), amdq:data(), apdq:data())
       end,
    }
 }

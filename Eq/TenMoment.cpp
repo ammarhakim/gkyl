@@ -1,5 +1,12 @@
-#include <math.h>
-#include <TenMomentRp.h>
+// Gkyl ------------------------------------------------------------------------
+//
+// C++ back-end for ten-moment core functions
+//    _______     ___
+// + 6 @ |||| # P ||| +
+//------------------------------------------------------------------------------
+
+#include <cmath>
+#include <TenMoment.h>
 
 static double sq(double x) { return x*x; }
 
@@ -65,7 +72,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   primitive(qr, vr);
 
   // compute Roe averages
-  double sqrl = sqrt(vl[0]), sqrr = sqrt(vr[0]);
+  double sqrl = std::sqrt(vl[0]), sqrr = std::sqrt(vr[0]);
   double sqr1 = 1/(sqrl+sqrr);
       
   double p0 = sqrl*sqrr;
@@ -98,8 +105,8 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   phiDelta[9] = delta[0]*sq(u3)-2.0*delta[d[3]]*u3+delta[dp[6]];
 
   // predefine some constants
-  double p11sq = p11*p11, p12sq = p12*p12, p13sq = p13*p13, p11th = pow(p11, 1.5);
-  double sqp0 = sqrt(p0), sqp11 = sqrt(p11);
+  double p11sq = p11*p11, p12sq = p12*p12, p13sq = p13*p13, p11th = std::pow(p11, 1.5);
+  double sqp0 = std::sqrt(p0), sqp11 = std::sqrt(p11);
   
   double leftProj[10];
   // project jumps on left eigenvectors (pray that C++ compiler eliminates common subexpressions) [Gen from Maxima]
@@ -118,7 +125,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   double wv[10];
 
   // Wave 1: (ev 1 and 2 are repeated)
-  s[0] = u1-sqrt(p11/p0);
+  s[0] = u1-std::sqrt(p11/p0);
   wv[0] = 0.0; 
   wv[d[1]] = 0.0; 
   wv[d[2]] = -(1.0*leftProj[0]*sqp11)/sqp0; 
@@ -133,7 +140,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   mulByPhiPrime(p0, u1, u2, u3, wv, &waves[0]);
 
   // Wave 2: (ev 3 and 4 are repeated)
-  s[1] = u1+sqrt(p11/p0);
+  s[1] = u1+std::sqrt(p11/p0);
   wv[0] = 0.0; 
   wv[d[1]] = 0.0; 
   wv[d[2]] = (leftProj[2]*sqp11)/sqp0; 
@@ -148,7 +155,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   mulByPhiPrime(p0, u1, u2, u3, wv, &waves[10]);
   
   // Wave 3 (ev 5)
-  s[2] = u1-sqrt(3*p11/p0);
+  s[2] = u1-std::sqrt(3*p11/p0);
   wv[0] = leftProj[4]*p0*p11; 
   wv[d[1]] = -(1.732050807568877*leftProj[4]*p11th)/sqp0; 
   wv[d[2]] = -(1.732050807568877*leftProj[4]*sqp11*p12)/sqp0; 
@@ -163,7 +170,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   mulByPhiPrime(p0, u1, u2, u3, wv, &waves[20]);
 
   // Wave 4 (ev 6)
-  s[3] = u1+sqrt(3*p11/p0);
+  s[3] = u1+std::sqrt(3*p11/p0);
   wv[0] = leftProj[5]*p0*p11; 
   wv[d[1]] = (1.732050807568877*leftProj[5]*p11th)/sqp0; 
   wv[d[2]] = (1.732050807568877*leftProj[5]*sqp11*p12)/sqp0; 
