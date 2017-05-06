@@ -1,0 +1,19 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
+import os
+
+def build(bld):
+    uname = os.uname()
+    if uname[0] == 'Darwin':
+        bldFunc = bld.shlib
+    else:
+        bldFunc = bld.stlib
+    
+    bldFunc(
+        source = 'TenMomentRp.cpp',
+        target = 'gkeq',
+        includes = '.',
+    )    

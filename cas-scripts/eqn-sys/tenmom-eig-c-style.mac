@@ -1,0 +1,171 @@
+/**
+
+Script to compute the eigensystem of the 10-moment equation
+system. The heat-tensor is set to 0. Jacobian is generated
+automatically.
+
+Author: Ammar Hakim.
+ */
+
+/* Generate the 10-moment equations */
+
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+load(itensor)$
+
+/** Declare symmetries */
+decsym(P,2,0,[sym(all)],[])$
+
+/** Number density */
+dn : p0*D(u(1)) + u(1)*D(n)$
+
+/** Velocity */
+du(i) := 1/p0*D(P([1,i],[])) + u(1)*D(u(i))$
+
+/** Pressure */
+dP(i,j) := P([i,j],[])*D(u(1)) + D(u(i))*P([j,1],[]) + D(u(j))*P([i,1],[]) + u(1)*D(P([i,j],[]))$
+
+/** Construct list of equations and derviatives */
+eqList : map(canform, [dn, du(1), du(2), du(3), dP(1,1), dP(1,2), dP(1,3), dP(2,2), dP(2,3), dP(3,3)])$
+diffList : map(D, [n, 
+  u(1), u(2), u(3), 
+  P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])])$
+
+/** Construct coefficient matrix */
+Atmp : coefmatrix(eqList, diffList)$
+
+/** Perform substitutions to clean up final matrix */
+Atm : subst(
+    [u(1)=u1, u(2)=u2, u(3)=u3,
+     P([1,1],[])=p11, P([1,2],[])=p12, P([1,3],[])=p13, 
+     P([2,2],[])=p22, P([2,3],[])=p23,
+     P([3,3],[])=p33],
+ Atmp)$
+
+/** Compute eigensystem. */
+[vals, vects] : eigenvectors(Atm)$
+
+/** Create list of eigenvalues, including repeated ones */
+Evs : (Evs : [], for i from 1 thru length(vals[1])
+        do (for j from 1 thru vals[2][i]
+	  do (Evs : append(Evs, [vals[1][i]]))), Evs)$
+
+/** Right eigenvectors. This nastiness is needed as the eigesystem is
+returned as a list of nested lists. These nested lists are taken apart
+based on eigenvalue multiplicity and put as columns in a matrix of
+right-eigenvectors */
+
+Rev : (Rev : matrix([]), for i from 1 thru length (vals[1]) 
+        do (for j from 1 thru vals[2][i] 
+          do ( (Rev : addcol(Rev, transpose(matrix(vects[i][j])))))), Rev)$ 
+
+/** Massage right-eigenvectors */
+Revm : matrix([])$
+Revm : addcol( Revm, -sqrt(p11)/sqrt(p0)*col(Rev,1) )$
+Revm : addcol( Revm, -sqrt(p11)/sqrt(p0)*col(Rev,2) )$
+Revm : addcol( Revm, sqrt(p11)/sqrt(p0)*col(Rev,3) )$
+Revm : addcol( Revm, sqrt(p11)/sqrt(p0)*col(Rev,4) )$
+
+Revm : addcol( Revm, p0*p11*col(Rev,5) )$
+Revm : addcol( Revm, p0*p11*col(Rev,6) )$
+
+Revm : addcol( Revm, col(Rev,7) )$
+Revm : addcol( Revm, col(Rev,8) )$
+Revm : addcol( Revm, col(Rev,9) )$
+Revm : addcol( Revm, col(Rev,10) )$
+
+/** Compute left-eigenvectors */
+Levm : fullratsimp( invert(Revm) )$
+/** Compute check: this should be an identiy matrix */
+id : fullratsimp( Levm . Revm )$
+
+/** Now create the Jacobian of the transformation */
+phiVec : [n, n*u1, n*u2, n*u3, n*u1*u1+P11, n*u1*u2+P12, n*u1*u3+P13, n*u2*u2+P22, n*u2*u3+P23, n*u3*u3+P33]$
+primVec : [n, u1, u2, u3, P11, P12, P13, P22, P23, P33]$
+phiPrime_ij [i,j] := diff(phiVec[i], primVec[j])$
+phiprime : subst(n=p0, genmatrix(phiPrime_ij, 10, 10))$
+/** Now compute inverse transform */
+phiprimeInv : fullratsimp(invert(phiprime))$
+
+/* Write stuff out */
+writeExprs(rhs) := block([expr],
+  expr : expand(radcan(rhs)),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a; ~%", out[i-1], expr[i])
+  )
+)$
+
+writeExprs2(lhs, rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a; ~%", lhs[i], expr[i])
+  )
+)$
+
+numRows(mat) := block([r,c], [r,c] : matrix_size(mat), r)$
+colVecToList(vec) := makelist(vec[i][1], i, 1, numRows(vec))$
+
+eqLst : makelist(phiVec[i]=q[i-1], i, 1, 10)$
+res1 : solve(eqLst, primVec)$
+res : subst( [ q[1]^2=sq(q[1]), q[2]^2=sq(q[2]), q[3]^2=sq(q[3])] , map(rhs, res1[1]))$
+
+
+fh : openw("~/max-out/primitive.c")$
+printf(fh, "void primitive(const double q[10], double out[10]) ~%")$
+printf(fh, "{ ~%")$
+writeExprs(res)$
+printf(fh, "} ~%")$
+close(fh)$
+
+wl : transpose(makelist(w[i], i, 0, 9))$
+mulByPhiprime : subst([u1^2=sq(u1), u2^2=sq(u2), u3^2=sq(u3)], phiprime . wl)$
+
+fh : openw("~/max-out/MulByPhiPrime.c")$
+printf(fh, "void mulByPhiPrime(double p0, double u1, double u2, double u3, const double w[10], double out[10]) ~%")$
+printf(fh, "{ ~%")$
+writeExprs(colVecToList(mulByPhiprime))$
+printf(fh, "} ~%")$
+close(fh)$
+
+del : transpose([delta[0], delta[d[1]], delta[d[2]], delta[d[3]], delta[dp[1]], delta[dp[2]], delta[dp[3]], delta[dp[4]], delta[dp[5]], delta[dp[6]]])$
+mulByPhiprimeInv : subst([u1^2=sq(u1), u2^2=sq(u2), u3^2=sq(u3)], phiprimeInv . del)$
+phiDel : transpose(makelist(phiDelta[i], i, 0, 9))$
+
+fh : openw("~/max-out/MulByPhiPrimeInv.c")$
+writeExprs2(colVecToList(phiDel), colVecToList(mulByPhiprimeInv))$
+close(fh)$
+
+lp : transpose(makelist(leftProj[i], i, 0, 9))$
+lpPhiDelta : subst([p11^2 = p11sq, p12^2 = p12sq, p13^2 = p13sq, p11^(3/2) = p11th], Levm . phiDel)$
+
+fh : openw("~/max-out/ProjOnL.c")$
+writeExprs2(colVecToList(lp), colVecToList(lpPhiDelta))$
+close(fh)$
+
+/* To compute waves */
+wvVec : transpose([wv[0], wv[d[1]], wv[d[2]], wv[d[3]], wv[dp[1]], wv[dp[2]], wv[dp[3]], wv[dp[4]], wv[dp[5]], wv[dp[6]]])$
+
+/* Compute waves: */
+w1 : leftProj[0]*col(Revm,1) + leftProj[1]*col(Revm,2)$
+w2 : leftProj[2]*col(Revm,3) + leftProj[3]*col(Revm,4)$
+w3 : leftProj[4]*col(Revm,5)$
+w4 : leftProj[5]*col(Revm,6)$
+w5 : sum(leftProj[i-1]*col(Revm,i), i, 7, 10)$
+
+fh : openw("~/max-out/Waves.c")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w1))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w2))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w3))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w4))$
+printf(fh, "~% ~%")$
+
+writeExprs2(colVecToList(wvVec), colVecToList(w5))$
+printf(fh, "~% ~%")$
+
+close(fh)$
