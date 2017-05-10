@@ -13,6 +13,7 @@ def build(bld):
         bldFunc = bld.stlib
     
     bldFunc(source = r"""
+    FiveMomentSrc.cpp
     ./_vlasovData/VlasovStreamMax1x1v.c
     ./_vlasovData/VlasovStreamMax1x2v.c
     ./_vlasovData/VlasovStreamMax1x3v.c
