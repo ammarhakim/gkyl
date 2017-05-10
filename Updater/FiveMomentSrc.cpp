@@ -8,6 +8,7 @@
 #include <FiveMomentSrc.h>
 #include <iostream>
 #include <vector>
+#include <string>
 
 // Makes indexing cleaner
 static const unsigned MX = 1;
@@ -95,5 +96,5 @@ gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double
   em[EX] = one3*em[EX] + two3*(em1[EX] - curr[EX]);
   em[EY] = one3*em[EY] + two3*(em1[EY] - curr[EY]);
   em[EZ] = one3*em[EZ] + two3*(em1[EZ] - curr[EZ]);
-
+  
 }
