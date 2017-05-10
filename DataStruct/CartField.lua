@@ -257,6 +257,10 @@ local function Field_meta_ctor(elct)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
 	 return fcompct(self._numComponents, self._data+loc)
       end,
+      getDataPtrAt = function (self, k) -- k is an integer returned by a linear indexer
+	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
+	 return self._data+loc
+      end,      
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
 	 fc._cdata = self._data+loc

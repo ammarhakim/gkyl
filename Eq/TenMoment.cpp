@@ -49,7 +49,10 @@ static void mulByPhiPrime(double p0, double u1, double u2, double u3, const doub
 // Maxima.
 void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], double *waves, double s[5])
 {
-  // build permutation arrays depending on RP direction
+  // build permutation arrays depending on RP direction. Pressure
+  // tensor permutation is built by permuting (i,j) indices in the
+  // same way as the i and j velocities. These are 1-indexed as I am
+  // already horribly confused with 0- and 1-based indexing.
   int d[4], dp[7];
   if (dir == 1)
   {
@@ -57,14 +60,14 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
     dp[1] = 4; dp[2] = 5; dp[3] = 6; dp[4] = 7; dp[5] = 8; dp[6] = 9;
   }
   else if (dir == 2)
-  { // ?
+  {
     d[1] = 2; d[2] = 3; d[3] = 1;
-    dp[1] = 4; dp[2] = 5; dp[3] = 6; dp[4] = 7; dp[5] = 8; dp[6] = 9;
+    dp[1] = 7; dp[2] = 8; dp[3] = 5; dp[4] = 9; dp[5] = 6; dp[6] = 4;
   }
   else if (dir == 3)
-  { // ?
-    d[1] = 2; d[2] = 3; d[3] = 1;
-    dp[1] = 4; dp[2] = 5; dp[3] = 6; dp[4] = 7; dp[5] = 8; dp[6] = 9;   
+  {
+    d[1] = 3; d[2] = 1; d[3] = 2;
+    dp[1] = 9; dp[2] = 6; dp[3] = 8; dp[4] = 4; dp[5] = 5; dp[6] = 7;
   }
 
   double vl[10], vr[10];
@@ -105,7 +108,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   phiDelta[9] = delta[0]*sq(u3)-2.0*delta[d[3]]*u3+delta[dp[6]];
 
   // predefine some constants
-  double p11sq = p11*p11, p12sq = p12*p12, p13sq = p13*p13, p11th = std::pow(p11, 1.5);
+  double p11sq = sq(p11), p12sq = sq(p12), p13sq = sq(p13), p11th = std::pow(p11, 1.5);
   double sqp0 = std::sqrt(p0), sqp11 = std::sqrt(p11);
   
   double leftProj[10];
@@ -114,12 +117,12 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   leftProj[1] = (0.5*phiDelta[1]*sqp0*p13)/p11th-(0.5*phiDelta[4]*p13)/p11sq-(0.5*phiDelta[3]*sqp0)/sqp11+(0.5*phiDelta[6])/p11; 
   leftProj[2] = (-(0.5*phiDelta[1]*sqp0*sqp11*p12)/p11sq)-(0.5*phiDelta[4]*p12)/p11sq+(0.5*phiDelta[2]*sqp0)/sqp11+(0.5*phiDelta[5])/p11; 
   leftProj[3] = (-(0.5*phiDelta[1]*sqp0*p13)/p11th)-(0.5*phiDelta[4]*p13)/p11sq+(0.5*phiDelta[3]*sqp0)/sqp11+(0.5*phiDelta[6])/p11; 
-  leftProj[4] = (0.1666666666666667*phiDelta[4])/p11sq-(0.2886751345948129*phiDelta[1]*sqp0)/p11th; 
-  leftProj[5] = (0.2886751345948129*phiDelta[1]*sqp0)/p11th+(0.1666666666666667*phiDelta[4])/p11sq; 
-  leftProj[6] = phiDelta[0]-(0.3333333333333333*phiDelta[4]*p0)/p11; 
-  leftProj[7] = (-(0.3333333333333333*phiDelta[4]*p11*p22)/p11sq)+(1.333333333333333*phiDelta[4]*p12sq)/p11sq-(2.0*phiDelta[5]*p12)/p11+phiDelta[7]; 
-  leftProj[8] = (-(0.3333333333333333*phiDelta[4]*p11*p23)/p11sq)+(1.333333333333333*phiDelta[4]*p12*p13)/p11sq-(1.0*phiDelta[5]*p13)/p11-(1.0*phiDelta[6]*p12)/p11+phiDelta[8]; 
-  leftProj[9] = (-(0.3333333333333333*phiDelta[4]*p11*p33)/p11sq)+(1.333333333333333*phiDelta[4]*p13sq)/p11sq-(2.0*phiDelta[6]*p13)/p11+phiDelta[9]; 
+  leftProj[4] = (0.16666666666666666667*phiDelta[4])/p11sq-(0.2886751345948129*phiDelta[1]*sqp0)/p11th; 
+  leftProj[5] = (0.2886751345948129*phiDelta[1]*sqp0)/p11th+(0.16666666666666666667*phiDelta[4])/p11sq; 
+  leftProj[6] = phiDelta[0]-(0.3333333333333333333*phiDelta[4]*p0)/p11; 
+  leftProj[7] = (-(0.3333333333333333333*phiDelta[4]*p11*p22)/p11sq)+(1.333333333333333333*phiDelta[4]*p12sq)/p11sq-(2.0*phiDelta[5]*p12)/p11+phiDelta[7]; 
+  leftProj[8] = (-(0.3333333333333333333*phiDelta[4]*p11*p23)/p11sq)+(1.333333333333333333*phiDelta[4]*p12*p13)/p11sq-(1.0*phiDelta[5]*p13)/p11-(1.0*phiDelta[6]*p12)/p11+phiDelta[8]; 
+  leftProj[9] = (-(0.3333333333333333333*phiDelta[4]*p11*p33)/p11sq)+(1.333333333333333333*phiDelta[4]*p13sq)/p11sq-(2.0*phiDelta[6]*p13)/p11+phiDelta[9]; 
 
   // compute waves and speeds
   double wv[10];

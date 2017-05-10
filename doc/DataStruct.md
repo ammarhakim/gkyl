@@ -115,6 +115,14 @@ The following methods are provided.
   `numComponents` field can be used to determine the number of
   components in the vector.
 
+`field:getDataPtrAt(k)`
+: Get a raw pointer to field components at location `k`. The value of
+  `k` must be determined by the indexer returned by the `indexer()`
+  object. Note this returns a pointer to the underlying raw memory
+  location and hence must by indexed starting with 0. In general, this
+  is not a safe method to use, but is provide to make interacting with
+  C easier.
+
 `field:fill(k, ptr)`
 : Sets a pointer to field components at location `k`. The `ptr` must
   be created by a previous `field:get(0)` call, and the value of `k`
