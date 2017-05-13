@@ -21,7 +21,7 @@ extern "C" {
         double chi_e, chi_m; /* Propagation speed factor for electric field error potential */
         int8_t gravityDir; /* Direction of gravity force */
         double gravity; /* Gravitational acceleration */
-        int8_t hasStatic, _hasPressure; /* Flag to indicate if there is: static EB field, pressure */
+        bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
     } FiveMomentSrcData_t;
 
     /* Method to update fluids and flield using explicit RK3 method */

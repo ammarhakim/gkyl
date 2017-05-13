@@ -63,19 +63,12 @@ function test_1()
       charge = {-1.0, 1.0},
       mass = {1.0, 1.0},
       epsilon0 = 1.0,
-      scheme = "ssp-rk3", -- one of "ssp-rk3", "modified-boris"  or "time-centered"
-      hasStaticField = false, -- do we have static EM field?
-      gravity = 0.0, -- gravitational force
-      dir = 0.0, -- direction of force
+      scheme = "ssp-rk3",
    }
-
    srcUpdater:advance(0.0, 1.0, {}, {elcFluid, ionFluid, em})
 
    for i = localRange:lower(1), localRange:upper(1) do
       local elcItr, ionItr, emItr = elcFluid:get(elcIdxr(i)), ionFluid:get(ionIdxr(i)), em:get(emIdxr(i))
-
-      print("elc", elcItr[2], elcItr[3], elcItr[4])
-      print("ion", ionItr[2], ionItr[3], ionItr[4])
    end
 end
 
