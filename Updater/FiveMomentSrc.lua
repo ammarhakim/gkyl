@@ -29,7 +29,7 @@ typedef struct {
   double chi_e, chi_m; /* Propagation speed factor for electric field error potential */
   int8_t gravityDir; /* Direction of gravity force */
   double gravity; /* Gravitational acceleration */
-  int8_t hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
+  bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
 } FiveMomentSrcData_t;
 
   void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
@@ -76,8 +76,8 @@ function FiveMomentSrc:new(tbl)
    self._sd.gravity = tbl.gravity and tbl.gravity or 0.0
    self._sd.gravityDir = tbl.dir and tbl.dir or 1 -- by default gravity acts in X direction
    
-   self._sd.hasStatic = tbl.hasStaticField and tbl.hasStaticField or false
-   self._sd.hasPressure = tbl.hasPressure and tbl.hasPressure or false
+   self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
+   self._sd.hasPressure = tbl.hasPressure ~= nil and tbl.hasPressure or true
 
    self._fd = ffi.new("FluidData_t[?]", self._sd.nFluids)
    -- store charge and mass for each fluid
@@ -132,9 +132,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
       end
       emDp = emFld:getDataPtrAt(emIdxr(idx))
 
-      -- update momentum and electric field
+      -- update sources
       self._updateSrc(self, dt, fDp, emDp)
-      --- check if we have pressure and update pressure
    end
 
    return true, GKYL_MAX_DOUBLE

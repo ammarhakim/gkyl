@@ -19,7 +19,7 @@ srcUpdater = Updater.FiveMomentSrc {
    scheme = "implicit", -- one of "implicit" or "explicit"
    hasStaticField = false, -- do we have static EM field?
    gravity = 0.0, -- gravitational force
-   dir = 0.0, -- direction of force
+   dir = 1, -- direction of force
 }
 ~~~~~~~
 

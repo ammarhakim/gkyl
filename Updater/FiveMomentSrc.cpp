@@ -11,9 +11,11 @@
 #include <string>
 
 // Makes indexing cleaner
+static const unsigned RHO = 0;
 static const unsigned MX = 1;
 static const unsigned MY = 2;
 static const unsigned MZ = 3;
+static const unsigned ER = 4;
 
 static const unsigned EX = 0;
 static const unsigned EY = 1;
@@ -22,12 +24,22 @@ static const unsigned BX = 3;
 static const unsigned BY = 4;
 static const unsigned BZ = 5;
 
+static double sq(double x) { return x*x; }
+
 void
 gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em)
 {
   unsigned nFluids = sd->nFluids;
   std::vector<double> f1(5), em1(8), curr(3);
   std::vector<double> f2(5), em2(8);
+
+  // if fluid equations have pressure, then compute initial KE
+  double keOld = 0.0;
+  if (sd->hasPressure)
+  {
+    for (unsigned n=0; n<nFluids; ++n)
+      keOld = 0.5*(sq(ff[n][MX]) + sq(ff[n][MY]) + sq(ff[n][MZ]))/ff[n][RHO];
+  }
 
   // B fields don't change
   em1[BX] = em[BX]; em1[BY] = em[BY]; em1[BZ] = em[BZ];
@@ -75,8 +87,8 @@ gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double
   em2[EY] = 0.75*em[EY] + 0.25*(em1[EY] - curr[EY]);
   em2[EZ] = 0.75*em[EZ] + 0.25*(em1[EZ] - curr[EZ]);
 
-  double one3 = 1.0/3.0, two3 = 2.0/3.0;
   //------------> RK Stage 3
+  double one3 = 1.0/3.0, two3 = 2.0/3.0;
   curr[0] = curr[1] = curr[2] = 0.0;
   for (unsigned n=0; n<nFluids; ++n)
   { // update fluids
@@ -96,5 +108,14 @@ gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double
   em[EX] = one3*em[EX] + two3*(em1[EX] - curr[EX]);
   em[EY] = one3*em[EY] + two3*(em1[EY] - curr[EY]);
   em[EZ] = one3*em[EZ] + two3*(em1[EZ] - curr[EZ]);
-  
+
+  // if fluid equations have pressure, update energy
+  if (sd->hasPressure)
+  {
+    for (unsigned n=0; n<nFluids; ++n)
+    {
+      double keNew = 0.5*(sq(ff[n][MX]) + sq(ff[n][MY]) + sq(ff[n][MZ]))/ff[n][RHO];
+      ff[n][ER] += keNew-keOld;
+    }
+  }  
 }
