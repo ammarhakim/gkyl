@@ -1,0 +1,42 @@
+/** Perfectly-Hyperbolic Maxwell equations. Eigensystem and other stuff */
+
+assume(c>0);
+assume(chi>0);
+assume(gamma>0);
+
+V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
+flux : [chi*c^2*phi, c^2*Bz, -c^2*By, gamma*psi, -Ez, Ey, chi*Ex, gamma*c^2*Bx]$
+
+/* Compute Jacobian */
+Aij[i,j] := diff(flux[i], V[j])$
+A : genmatrix(Aij, 8, 8)$
+
+/** Compute eigensystem */
+[vals, vects] : eigenvectors(A)$
+
+/** Create right and left eigenvector martrices */
+Rev : (Rev : matrix([]), for i from 1 thru length(vals[1])
+        do (for j from 1 thru vals[2][i]
+	  do (Rev : addcol(Rev, transpose(matrix(vects[i][j]))))), Rev)$
+Lev : invert (Rev)$
+
+/** Create list of eigenvalues, including repeated ones */
+Evs : (Evs : [], for i from 1 thru length(vals[1])
+        do (for j from 1 thru vals[2][i]
+	  do (Evs : append(Evs, [vals[1][i]]))), Evs)$
+
+/* Compute numerical flux */
+VL : [ExL, EyL, EzL, BxL, ByL, BzL, phiL, psiL]$
+VR : [ExR, EyR, EzR, BxR, ByR, BzR, phiR, psiR]$
+
+vlSub : makelist(V[i]=VL[i], i, 1, 8)$
+vrSub : makelist(V[i]=VR[i], i, 1, 8)$
+
+/* Reimann variables */
+W : Lev . V$
+
+/* Upwinded Reimann variables */
+Wup : transpose(makelist(if Evs[i] > 0 then subst(vlSub, W[i][1]) else subst(vrSub, W[i][1]), i, 1, 8))$
+
+/* Now bring back to physical space */
+Vup : fullratsimp(Rev . Wup)$
