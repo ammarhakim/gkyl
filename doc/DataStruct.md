@@ -108,6 +108,9 @@ The following methods are provided.
 `field:copy(fIn)`
 : Copies data from `fIn` into `field`.
 
+`field:clear(v)`
+: Sets every element in the field, including ghost cell, to `v`.
+
 `field:get(k)`
 : Get a pointer to field components at location `k`. The value of `k`
   must be determined by the indexer returned by the `indexer()`

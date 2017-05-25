@@ -31,7 +31,7 @@ The grid dimension is determined from the number of entries in the
 constructor fields (i.e, `NDIM = #cells`). The grid constructor takes
 the following parameters:
 
-`lower`
+`lower` 
 : Table with coordinates of the lower-left corner of grid.
 
 `upper`
