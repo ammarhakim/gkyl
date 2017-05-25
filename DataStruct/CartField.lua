@@ -220,6 +220,9 @@ local function Field_meta_ctor(elct)
       copy = function (self, fIn)
 	 field_memcpy(self, fIn)
       end,
+      clear = function (self, val)
+	 self._allocData:fill(val)
+      end,
       layout = function (self)
 	 if self._layout == rowMajLayout then
 	    return "row-major"

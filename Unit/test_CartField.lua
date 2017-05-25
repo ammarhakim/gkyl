@@ -239,12 +239,55 @@ function test_6()
    end
 end
 
+function test_7()
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+   }
+
+   local localRange, indexer = field:localExtRange(), field:indexer()
+
+   -- clear it
+   field:clear(1.5)
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+
+      assert_equal(1.5, fitr[1], "Checking if clear worked")
+      assert_equal(1.5, fitr[2], "Checking if clear worked")
+      assert_equal(1.5, fitr[3], "Checking if clear worked")
+   end
+
+   field:clear(2.5)
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+
+      assert_equal(2.5, fitr[1], "Checking if clear worked")
+      assert_equal(2.5, fitr[2], "Checking if clear worked")
+      assert_equal(2.5, fitr[3], "Checking if clear worked")
+   end
+
+   field:clear(0.0)
+   for i = localRange:lower(1), localRange:upper(1) do
+      local fitr = field:get(indexer(i))
+
+      assert_equal(0.0, fitr[1], "Checking if clear worked")
+      assert_equal(0.0, fitr[2], "Checking if clear worked")
+      assert_equal(0.0, fitr[3], "Checking if clear worked")
+   end
+end
+
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
 test_6()
+test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
