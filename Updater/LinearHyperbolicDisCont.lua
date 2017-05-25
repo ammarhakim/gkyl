@@ -32,6 +32,8 @@ function LinearHyperbolicDisCont:new(tbl)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
+   self._ndim = self._onGrid:ndim()
+
    -- linear equation to solve
    self._equation = assert(tbl.equation, "Updater.LinearHyperbolicDisCont: Must provide equation object using 'equation'")
 
@@ -63,37 +65,74 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local numBasis = self._basis:numBasis()
    local meqn = qOut:numComponents()/numBasis
 
+   local fluxCoeff = Lin.Vec(qOut:numComponents()) -- flux expansion coefficients
+
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
 
    local localRange = qOut:localRange()
-   local indexer = qOut:genIndexer()
+   local qInIdxr, qOutIdxr = qIn:genIndexer(), qOut:genIndexer() -- indexer functions into fields
 
    -- to store grid info
    local dx = Lin.Vec(ndim) -- cell shape
-   local xc = Lin.Vec(ndim) -- cell center   
+   local xc = Lin.Vec(ndim) -- cell center
+
+   qOut:clear(0.0) -- compute increments initally
 
    -- pointers for (re)use in update
    local qInPtr, qOutPtr = qIn:get(1), qOut:get(1)
-   local qInL, qInR = qIn:get(1), qIn:get(1)
-   local qOutL, qOutR = qOut:get(1), qOut:get(1)
    
-   -- Accumulate contributions from volume integrals
+   -- accumulate contributions from volume integrals
    for idx in localRange:colMajorIter() do
       grid:setIndex(idx)
-      -- get cell shape, cell center coordinates
+      -- get cell shape, cell volume
       for d = 1, ndim do dx[d] = grid:dx(d) end
+      local volFact = grid:cellVolume()/2^ndim
 
       -- set pointers
-      q
+      qIn:fill(qInIdxr(idx), qInPtr)
+      qOut:fill(qOutIdxr(idx), qOutPtr)
       
       -- update only specified directions
       for d = 1, self._nUpdateDirs do
 	 local dir = self._updateDirs[d]
 
-	 
+	 -- Compute flux in specified direction
+	 self._equation:fluxCoeff(dir, basis, qInPtr, fluxCoeff)
+	 -- update volume contribution
+	 --self._volumeUpdate[dir](volFact*2/dx[dir], qInPtr, qOutPtr)
       end
-      
+   end
+
+   local qInL, qInR = qIn:get(1), qIn:get(1)
+   local qOutL, qOutR = qOut:get(1), qOut:get(1)   
+   -- accumulate contributions from surface integrals
+   for d = 1, self._nUpdateDirs do
+      local dir = self._updateDirs[d]
+
+      -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
+      local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
+      local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
+
+      -- outer loop is over directions orthogonal to 'dir' and inner
+      -- loop is over 1D slice in `dir`.
+      for idx in perpRange:colMajorIter() do
+	 local idxp, idxm = idx:copy(), idx:copy()
+
+   	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+
+	    -- attach pointers to left/right cells
+	    qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
+	    -- compute numerical flux at the common face
+	    --local maxs = self._equation:numericalFluxCoeff(dir, basis, qInL, qInR, fluxCoeff)
+
+	    -- update two cells connected to face
+
+	    -- compute actual CFL number used
+
+	 end
+      end
    end
    
    return true, GKYL_MAX_DOUBLE
