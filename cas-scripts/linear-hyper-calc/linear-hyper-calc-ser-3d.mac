@@ -1,0 +1,60 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+vars : [x, y, z]$
+
+basis : makelist(gsOrthoNorm(vars, makeSerendipBasis(vars, i)), i, 1, 4)$
+
+fh : openw("~/max-out/LinearHyperSer3dVolTerms.cpp")$
+
+dir : 1$
+
+for i : 1 thru length(basis) do (
+  printf(fh, "void LinearHyperSer3DP~a_Vol1(int meqn, double vfact, const double *fIn, double *volOut) ~%{ ~%", i),
+  printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
+  printf(fh, "  {~%"),
+  printf(fh, "  const double *f = &fIn[meqn*m]; ~%"),
+  printf(fh, "  double *out = &volOut[meqn*m]; ~%"),
+  G : calcGradStiffMatrix(vars[dir], vars, basis[i]),
+  fl : transpose(makelist(f[j], j, 0, length(basis[i])-1)),
+  svx : vfact*G . fl,
+  writeCIncrExprs(colVecToList(svx)),
+  printf(fh, "  }~%"),
+  printf(fh, "} ~%")
+)$
+
+dir : 2$
+
+for i : 1 thru length(basis) do (
+  printf(fh, "void LinearHyperSer3DP~a_Vol2(int meqn, double vfact, const double *fIn, double *volOut) ~%{ ~%", i),
+  printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
+  printf(fh, "  {~%"),
+  printf(fh, "  const double *f = &fIn[meqn*m]; ~%"),
+  printf(fh, "  double *out = &volOut[meqn*m]; ~%"),
+  G : calcGradStiffMatrix(vars[dir], vars, basis[i]),
+  fl : transpose(makelist(f[j], j, 0, length(basis[i])-1)),
+  svx : vfact*G . fl,
+  writeCIncrExprs(colVecToList(svx)),
+  printf(fh, "  }~%"),
+  printf(fh, "} ~%")
+)$
+
+dir : 3$
+
+for i : 1 thru length(basis) do (
+  printf(fh, "void LinearHyperSer3DP~a_Vol3(int meqn, double vfact, const double *fIn, double *volOut) ~%{ ~%", i),
+  printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
+  printf(fh, "  {~%"),
+  printf(fh, "  const double *f = &fIn[meqn*m]; ~%"),
+  printf(fh, "  double *out = &volOut[meqn*m]; ~%"),
+  G : calcGradStiffMatrix(vars[dir], vars, basis[i]),
+  fl : transpose(makelist(f[j], j, 0, length(basis[i])-1)),
+  svx : vfact*G . fl,
+  writeCIncrExprs(colVecToList(svx)),
+  printf(fh, "  }~%"),
+  printf(fh, "} ~%")
+)$
+
+close(fh)$
+
