@@ -15,6 +15,7 @@ shaveCols(Abig, cols) := block([nx,ny,nc,Asmall],
 /* Inner product of functions f1 and f2 with weight w */
 innerProd(vars, w, f1, f2) := block([n, r],
     n : length(vars),
+    if n = 0 then return (f1*f2),
     r : integrate(w*f1*f2, vars[1], -1, 1),
     for i: 2 thru n do r : integrate(r, vars[i], -1, 1),
     return (r)
@@ -139,3 +140,11 @@ numRows(mat) := block([r,c], [r,c] : matrix_size(mat), r)$
 /* Convert column vector to list */
 colVecToList(vec) := makelist(vec[i][1], i, 1, numRows(vec))$
 
+/* Compute surface expansion given volume expansions */
+calcSurfExpansionMatrix(varsSurf, vPerp, valPerp, basisSurf, basisVol) := block([nVol, nSurf, fvol, surfCoeff],
+  nVol : length(basisVol),
+  nSurf : length(basisSurf),
+  fVol : sum(f[i]*subst(vPerp=valPerp, basisVol[i]), i, 1, nVol),
+  surfCoeff : fullratsimp(makelist(innerProd(varsSurf, 1, basisSurf[i], fVol), i, 1, nSurf)),
+  return (coefmatrix(surfCoeff, makelist(f[i], i, nVol)))
+)$
