@@ -6,7 +6,7 @@
 import os
 import sys
 #sys.path.insert(0, './waf_tools')
-import commands
+#import commands
 import platform
 
 APPNAME = 'gkyl'
