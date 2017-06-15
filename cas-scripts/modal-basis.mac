@@ -148,3 +148,5 @@ calcSurfExpansionMatrix(varsSurf, vPerp, valPerp, basisSurf, basisVol) := block(
   surfCoeff : fullratsimp(makelist(innerProd(varsSurf, 1, basisSurf[i], fVol), i, 1, nSurf)),
   return (coefmatrix(surfCoeff, makelist(f[i], i, nVol)))
 )$
+
+doExpand(f, basis) := sum(f[i]*basis[i], i, 1, length(basis))$

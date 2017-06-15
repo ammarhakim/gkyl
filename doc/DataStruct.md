@@ -102,7 +102,7 @@ The following methods are provided.
 `field:genIndexer()`
 : A linear indexer object that allows converting a N-dimensional index
   into an integer. The indexer returned by this method takes a vector,
-  unliked the indexer returned by the `indexer()` method, which takes
+  unlike the indexer returned by the `indexer()` method, which takes
   (i,j,..) index. This is used to access elements in the field.
 
 `field:copy(fIn)`
