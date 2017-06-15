@@ -22,6 +22,7 @@ function test_2d_m_p1()
    assert_equal(1, basis:ndim(), "Checking NDIM")
    assert_equal(2, basis:polyOrder(), "Checking polynomial order")
    assert_equal(3, basis:numBasis(), "Checking number of basis functions")
+   assert_equal(1, basis:numSurfBasis(), "Checking number of surface basis functions")
 
    -- coordinates and values
    local z, bvalues = Lin.Vec(basis:ndim()), Lin.Vec(basis:numBasis())
@@ -54,6 +55,7 @@ function test_2d_m_p2()
    assert_equal(2, basis:ndim(), "Checking NDIM")
    assert_equal(2, basis:polyOrder(), "Checking polynomial order")
    assert_equal(6, basis:numBasis(), "Checking number of basis functions")
+   assert_equal(3, basis:numSurfBasis(), "Checking number of surface basis functions")
 
    -- coordinates and values
    local z, bvalues = Lin.Vec(basis:ndim()), Lin.Vec(basis:numBasis())
@@ -97,6 +99,7 @@ function test_2d_s_p1()
    assert_equal(1, basis:ndim(), "Checking NDIM")
    assert_equal(2, basis:polyOrder(), "Checking polynomial order")
    assert_equal(3, basis:numBasis(), "Checking number of basis functions")
+   assert_equal(1, basis:numSurfBasis(), "Checking number of surface basis functions")
 
    -- coordinates and values
    local z, bvalues = Lin.Vec(basis:ndim()), Lin.Vec(basis:numBasis())
@@ -129,6 +132,7 @@ function test_2d_s_p2()
    assert_equal(2, basis:ndim(), "Checking NDIM")
    assert_equal(2, basis:polyOrder(), "Checking polynomial order")
    assert_equal(8, basis:numBasis(), "Checking number of basis functions")
+   assert_equal(3, basis:numSurfBasis(), "Checking number of surface basis functions")
 
    -- coordinates and values
    local z, bvalues = Lin.Vec(basis:ndim()), Lin.Vec(basis:numBasis())

@@ -55,13 +55,6 @@ local function field_memcpy(y, x)
    copy(y._data, x._data, sizeof(y:elemType())*sz)
 end
 
-ffi.cdef [[
-/* Struct to hold info about components in field */
-  typedef struct {
-    
-  } _CartFieldComponentPtr_t;
-]]
-
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
    local field_comp_mf = {
@@ -219,6 +212,9 @@ local function Field_meta_ctor(elct)
       end,
       copy = function (self, fIn)
 	 field_memcpy(self, fIn)
+      end,
+      clear = function (self, val)
+	 self._allocData:fill(val)
       end,
       layout = function (self)
 	 if self._layout == rowMajLayout then

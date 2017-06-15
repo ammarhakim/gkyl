@@ -1,0 +1,6 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+vars : [x]$
+

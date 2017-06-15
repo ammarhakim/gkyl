@@ -157,7 +157,7 @@ _M.MAXLOC = ffi.C.get_MPI_MAXLOC();
 local int_1 = typeof("int[1]")
 
 -- ctors for various MPI objects: MPI_Status object is not a opaque
--- pointer and so we need to allocte memory for it. Other object
+-- pointer and so we need to allocate memory for it. Other object
 -- resources are managed by MPI itself, so we can't allocate space for
 -- them. Doing so will lead to program crash as the LJ GC will try to
 -- free memory which is managed by MPI. A very bad thing.

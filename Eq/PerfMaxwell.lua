@@ -144,6 +144,8 @@ local maxwell_mt = {
 	 fOut[7] = self._ce*qIn[d[1]]
 	 fOut[8] = self._cb*c2*qIn[d[4]]
       end,
+      fluxCoeff = function (self, dir, basis, qIn, fOut)
+      end,
       isPositive = function (self, q)
 	 return true
       end,

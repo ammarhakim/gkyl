@@ -102,11 +102,14 @@ The following methods are provided.
 `field:genIndexer()`
 : A linear indexer object that allows converting a N-dimensional index
   into an integer. The indexer returned by this method takes a vector,
-  unliked the indexer returned by the `indexer()` method, which takes
+  unlike the indexer returned by the `indexer()` method, which takes
   (i,j,..) index. This is used to access elements in the field.
 
 `field:copy(fIn)`
 : Copies data from `fIn` into `field`.
+
+`field:clear(v)`
+: Sets every element in the field, including ghost cell, to `v`.
 
 `field:get(k)`
 : Get a pointer to field components at location `k`. The value of `k`
