@@ -38,7 +38,11 @@ function test_2()
    local dynVec = DataStruct.DynVector { numComponents = 2 }
    assert_equal(dynVec:numComponents(), 2, "Testing number of components")
 
-   for i = 1, 10 do
+   for i = 1, 5 do
+      dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
+   end
+   dynVec:write("test_1.bp", 1.5)
+   for i = 6, 10 do
       dynVec:appendData(0.1*i, {2.5*i^2, 2.5*i^2+0.5})
    end
    dynVec:write("test_2.bp", 1.5)
