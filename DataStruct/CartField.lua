@@ -55,13 +55,6 @@ local function field_memcpy(y, x)
    copy(y._data, x._data, sizeof(y:elemType())*sz)
 end
 
-ffi.cdef [[
-/* Struct to hold info about components in field */
-  typedef struct {
-    
-  } _CartFieldComponentPtr_t;
-]]
-
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
    local field_comp_mf = {
