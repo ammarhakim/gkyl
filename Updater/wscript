@@ -22,5 +22,11 @@ def build(bld):
     ./_vlasovData/VlasovStreamSer1x2v.c
     ./_vlasovData/VlasovStreamSer1x3v.c
     ./_vlasovData/VlasovStreamSer2x2v.c
+    ./_linearHyperbolicData/LinearHyperMax1dVolTerms.cpp
+    ./_linearHyperbolicData/LinearHyperMax2dVolTerms.cpp
+    ./_linearHyperbolicData/LinearHyperMax3dVolTerms.cpp
+    ./_linearHyperbolicData/LinearHyperSer1dVolTerms.cpp
+    ./_linearHyperbolicData/LinearHyperSer2dVolTerms.cpp
+    ./_linearHyperbolicData/LinearHyperSer3dVolTerms.cpp
     """,
     includes = '.', target = 'gkupdater')

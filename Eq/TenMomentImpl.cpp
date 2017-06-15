@@ -6,7 +6,7 @@
 //------------------------------------------------------------------------------
 
 #include <cmath>
-#include <TenMoment.h>
+#include <TenMomentImpl.h>
 
 static double sq(double x) { return x*x; }
 
