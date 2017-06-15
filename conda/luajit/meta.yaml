@@ -1,0 +1,12 @@
+package:
+  name: luajit
+  version: "2.1.0"
+
+source:
+  path: ./
+
+build:
+  number: 0
+
+about:
+  home: https://bitbucket.org/ammarhakim/gkyl
