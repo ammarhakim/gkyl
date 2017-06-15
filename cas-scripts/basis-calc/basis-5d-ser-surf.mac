@@ -17,7 +17,7 @@ writeExprs2(fh, lhs, rhs) := block([expr],
 
 var : [z1, z2, z3, z4, z5]$
 
-fh : openw("~/max-out/ModalSerendipBasisSurf4d.lua");
+fh : openw("~/max-out/ModalSerendipBasisSurf5d.lua");
 printf(fh, "local _M = {} ~%")$
 
 for i : 1 thru 4 do (
