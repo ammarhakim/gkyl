@@ -16,6 +16,26 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- Modal maximal-order basis set
 --------------------------------------------------------------------------------
 
+-- Number of basis function in ndim dimensions with specfied polyOrder
+local function numBasis(ndim, polyOrder)
+   local nbasis = 1
+   -- number of basis is = (p+d)! / p! d! 
+   if (ndim == 0) then
+      nbasis = 1
+   elseif (ndim == 1) then
+      nbasis = polyOrder+1
+   elseif (ndim == 2) then
+      nbasis = (polyOrder+2)*(polyOrder+1)/2
+   elseif (ndim == 3) then
+      nbasis = (polyOrder+3)*(polyOrder+2)*(polyOrder+1)/6
+   elseif (ndim == 4) then
+      nbasis = (polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/24
+   elseif (ndim == 5) then
+      nbasis = (polyOrder+5)*(polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/120
+   end
+   return nbasis
+end
+
 local CartModalMaxOrder = {}
 function CartModalMaxOrder:new(tbl)
    local self = setmetatable({}, CartModalMaxOrder)
@@ -28,22 +48,8 @@ function CartModalMaxOrder:new(tbl)
       assert(false, "Polynomial order must be between 0 and 4")
    end
 
-   self._numBasis = 1
-
-   -- number of basis is = (p+d)! / p! d! 
-   if self._polyOrder > 0 then
-      if (self._ndim == 1) then
-	 self._numBasis = self._polyOrder+1
-      elseif (self._ndim == 2) then
-	 self._numBasis = (self._polyOrder+2)*(self._polyOrder+1)/2
-      elseif (self._ndim == 3) then
-	 self._numBasis = (self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/6
-      elseif (self._ndim == 4) then
-	 self._numBasis = (self._polyOrder+4)*(self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/24
-      elseif (self._ndim == 5) then
-	 self._numBasis = (self._polyOrder+5)*(self._polyOrder+4)*(self._polyOrder+3)*(self._polyOrder+2)*(self._polyOrder+1)/120
-      end
-   end
+   self._numBasis = numBasis(self._ndim, self._polyOrder)
+   self._numSurfBasis = numBasis(self._ndim-1, self._polyOrder)
 
    local _m = nil -- to store module with evaluation code
    -- get handle to function to compute basis functions at specified coordinates   
@@ -78,6 +84,9 @@ CartModalMaxOrder.__index = {
    end,
    numBasis = function (self)
       return self._numBasis
+   end,
+   numSurfBasis = function (self)
+      return self._numSurfBasis
    end,
    evalBasis = function (self, z, b)
       return self._evalBasisFunc(z, b)
