@@ -1,0 +1,20 @@
+package:
+  name: gkyl
+  version: "1.0.0"
+
+source:
+  path: ../../
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - luajit
+    - adios
+  run:
+    - luajit
+    - adios
+
+about:
+  home: https://bitbucket.org/ammarhakim/gkyl
