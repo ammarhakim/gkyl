@@ -10,9 +10,9 @@ build:
 
 requirements:
   build:
-    - mpich2
+    - mpich
   run:
-    - mpich2
+    - mpich
 
 about:
   home: https://bitbucket.org/ammarhakim/gkyl
