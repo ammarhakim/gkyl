@@ -18,7 +18,7 @@ LUAJIT_SHARE_DIR=$PREFIX/share/luajit-2.1.0-beta3
 ENABLE_MPI="--enable-mpi"
 MPI_INC_DIR=$PREFIX/include
 MPI_LIB_DIR=$PREFIX/lib
-MPI_LINK_LIBS="mpich,mpichcxx"
+MPI_LINK_LIBS="mpi"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
