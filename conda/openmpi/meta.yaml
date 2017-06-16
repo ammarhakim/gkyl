@@ -1,0 +1,12 @@
+package:
+  name: openmpi
+  version: "2.1.1"
+
+source:
+  path: ./
+
+build:
+  number: 0
+
+about:
+  home: https://www.open-mpi.org

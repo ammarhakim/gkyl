@@ -10,9 +10,9 @@ build:
 
 requirements:
   build:
-    - openmpi 2.0.2
+    - openmpi
   run:
-    - openmpi 2.0.2
+    - openmpi
 
 about:
-  home: https://bitbucket.org/ammarhakim/gkylcd 
+  home: https://www.olcf.ornl.gov/center-projects/adios/
