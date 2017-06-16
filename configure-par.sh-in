@@ -13,7 +13,7 @@ CXXFLAGS='-O2,-Wall'
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1
 LUAJIT_LIB_DIR=$HOME/gkylsoft/luajit/lib
-LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta2
+LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 
 ## MPI options
 ENABLE_MPI="--enable-mpi"

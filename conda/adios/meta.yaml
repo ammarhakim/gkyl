@@ -1,0 +1,18 @@
+package:
+  name: adios
+  version: "1.11.0"
+
+source:
+  path: ./
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - mpich2
+  run:
+    - mpich2
+
+about:
+  home: https://bitbucket.org/ammarhakim/gkyl
