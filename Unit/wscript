@@ -3,5 +3,14 @@
 ##    _______     ___
 ## + 6 @ |||| # P ||| +
 
+import os
+
 def build(bld):
-    bld.stlib(source = 'test_cfuncs.cpp', includes = '.', target = 'gkunit')
+    uname = os.uname()
+    if uname[0] == 'Darwin':
+        bldFunc = bld.shlib
+    else:
+        bldFunc = bld.stlib
+    
+    bldFunc(source = 'test_cfuncs.cpp', includes = '.', target = 'gkunit',
+            vnum="1.0.0")

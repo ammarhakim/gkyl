@@ -18,5 +18,5 @@ def build(bld):
             source = 'GkMpiFuncs.cpp',
             target = 'gkcomm',
             includes = '.',
-            use = 'MPI'
+            use = 'MPI', vnum="1.0.0"
         )    
