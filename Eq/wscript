@@ -15,5 +15,5 @@ def build(bld):
     bldFunc(
         source = 'TenMomentImpl.cpp',
         target = 'gkeq',
-        includes = '.',
+        includes = '.', vnum="1.0.0"
     )    

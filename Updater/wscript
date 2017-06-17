@@ -29,4 +29,4 @@ def build(bld):
     ./_linearHyperbolicData/LinearHyperSer2dVolTerms.cpp
     ./_linearHyperbolicData/LinearHyperSer3dVolTerms.cpp
     """,
-    includes = '.', target = 'gkupdater')
+    includes = '.', target = 'gkupdater', vnum="1.0")
