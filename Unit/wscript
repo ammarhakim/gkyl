@@ -13,4 +13,4 @@ def build(bld):
         bldFunc = bld.stlib
     
     bldFunc(source = 'test_cfuncs.cpp', includes = '.', target = 'gkunit',
-            vnum="1.0.0")
+            vnum="1.0")
