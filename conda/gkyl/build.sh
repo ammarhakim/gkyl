@@ -1,11 +1,6 @@
 # Build directory
 OUT=build-par
 
-export PATH=$PREFIX/bin:$PATH
-export LD_LIBRARY_PATH=$PREFIX/lib:$LD_LIBRARY_PATH
-export CC=mpicc
-export CXX=mpic++
-
 # Compile flags (set optimization/debug flags here)
 CXXFLAGS='-O2,-Wall'
 
