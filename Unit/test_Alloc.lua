@@ -8,6 +8,9 @@
 local ffi = require "ffi"
 local Unit = require "Unit"
 local Alloc = require "Lib.Alloc"
+local xsys = require "xsys"
+local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, copy, fill, sizeof, typeof, metatype")
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -159,6 +162,17 @@ function test_6()
    assert_equal(9, dv:size(), "Checking size")
 end
 
+function test_7()
+   local allocator = Alloc.createAllocator("struct {int i ,j; double val; }")
+   local tmpData = ffi.new("struct {int i ,j; double val; }")
+   tmpData.i = 1
+   tmpData.j = 2
+   tmpData.val = 100.5
+
+   print(tmpData.i, tmpData.j, tmpData.val)
+   local data = allocator()
+end
+
 -- run tests
 test_1()
 test_2()
@@ -167,6 +181,7 @@ test_3()
 test_4()
 test_5()
 test_6()
+test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
