@@ -2,7 +2,7 @@
 OUT=build-par
 
 # Compile flags (set optimization/debug flags here)
-CXXFLAGS='-O2,-Wall'
+CXXFLAGS='-O3,-Wall'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$PREFIX/include/luajit-2.1

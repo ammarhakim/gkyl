@@ -12,6 +12,6 @@ git checkout v2.1
 make PREFIX=$PREFIX 
 make XCFLAGS=-DLUAJIT_ENABLE_GC64 install PREFIX=$PREFIX 
 # delete dynamic libraries
-cmd="rm -rf $PREFIX/lib/*.dylib $PREFIX/gkylsoft/luajit/lib/*.so*"
+cmd="rm -rf $PREFIX/lib/*lua*.dylib $PREFIX/gkylsoft/luajit/lib/*lua*.so*"
 echo $cmd
 $cmd
