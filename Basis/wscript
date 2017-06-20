@@ -1,0 +1,21 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
+import os
+
+def build(bld):
+    uname = os.uname()
+    if uname[0] == 'Darwin':
+        bldFunc = bld.shlib
+    else:
+        bldFunc = bld.stlib
+    
+    bldFunc(source = r"""
+    _data/ModalMaxOrderBasisSurfToVol2d.cpp
+    _data/ModalMaxOrderBasisSurfToVol3d.cpp
+    _data/ModalSerendipBasisSurfToVol2d.cpp
+    _data/ModalSerendipBasisSurfToVol3d.cpp
+    """,
+    includes = '.', target = 'gkbasis', vnum="1.0")

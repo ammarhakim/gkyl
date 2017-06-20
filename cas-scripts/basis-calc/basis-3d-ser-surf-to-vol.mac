@@ -2,9 +2,9 @@ load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac")$
 load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac")$
 fpprec : 24$
 
-var : [z1, z2]$
+var : [z1, z2, z3]$
 
-fh : openw("~/max-out/ModalSerendipBasisSurfToVol2d.cpp");
+fh : openw("~/max-out/ModalSerendipBasisSurfToVol3d.cpp");
 
 for i : 1 thru 4 do (
   basis : gsOrthoNorm(var, makeSerendipBasis(var, i)),
@@ -14,7 +14,7 @@ for i : 1 thru 4 do (
     basisSurf : gsOrthoNorm(varSurf, makeSerendipBasis(varSurf, i)),
     in : transpose( makelist(f[i], i, 0, length(basisSurf)-1) ),
     cmm : calcCrossMassMatrix(varSurf, subst(var[d]=1, basis), varSurf, basisSurf, 1),
-    printf(fh, "void ModalSer2DP~d_SurfToVol~d_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
+    printf(fh, "void ModalSer3DP~d_SurfToVol~d_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
     printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
     printf(fh, "  {~%"),
     printf(fh, "  const double *f = &surfIn[msurf*m]; ~%"),
@@ -23,7 +23,7 @@ for i : 1 thru 4 do (
     printf(fh, "  }~%"),
     printf(fh, "}~%"),
     cmm : calcCrossMassMatrix(varSurf, subst(var[d]=-1, basis), varSurf, basisSurf, 1),
-    printf(fh, "void ModalSer2DP~d_SurfToVol~d_Right(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
+    printf(fh, "void ModalSer3DP~d_SurfToVol~d_Right(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
     printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
     printf(fh, "  {~%"),
     printf(fh, "  const double *f = &surfIn[msurf*m]; ~%"),

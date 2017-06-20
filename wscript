@@ -59,6 +59,7 @@ def build(bld):
     # recurse down directories and build C++ code
     bld.recurse("Comm")
     bld.recurse("Unit")
+    bld.recurse("Basis")
     bld.recurse("Updater")
     bld.recurse("Eq")
 
@@ -157,7 +158,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm',
-        use='gkeq gkcomm gkupdater LUAJIT ADIOS MPI M DL ',
+        use='gkeq gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL ',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'
