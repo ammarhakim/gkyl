@@ -1,0 +1,36 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+fpprec : 24$
+
+writeExprs(fh, rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a ~%", out[i], expr[i])
+  )
+)$
+
+writeExprs2(fh, lhs, rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a ~%", lhs[i], expr[i])
+  )  
+)$
+
+var : [z1, z2]$
+
+fh : openw("~/max-out/ModalSerendipBasisSurfToVol2d.cpp");
+
+for i : 1 thru 4 do (
+  basis : gsOrthoNorm(var, makeSerendipBasis(var, i)),
+  for d : 1 thru length(var) do (
+    varSurf : delete(var[d], var),
+    basisSurf : gsOrthoNorm(varSurf, makeSerendipBasis(varSurf, i)),
+    in : transpose( makelist(surfIn[i], i, 0, length(basisSurf)-1) ),
+    out : makelist( volOut[i], i, 0, length(basis)-1),
+    cmm : calcCrossMassMatrix(varSurf, subst(var[d]=1, basis), varSurf, basisSurf, 1),
+    writeExprs2(fh, out, colVecToList(cmm . in)),
+    cmm : calcCrossMassMatrix(varSurf, subst(var[d]=-1, basis), varSurf, basisSurf, 1),
+    writeExprs2(fh, out, colVecToList(cmm . in)),
+  ),
+)$
+
+close(fh)$

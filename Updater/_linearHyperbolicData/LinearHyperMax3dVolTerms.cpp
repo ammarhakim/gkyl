@@ -1,30 +1,30 @@
-void LinearHyperMax3DP1_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP1_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   }
 } 
-void LinearHyperMax3DP2_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP2_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[2]*vfact; 
   out[5] += 1.732050807568877*f[3]*vfact; 
   out[7] += 3.872983346207417*f[1]*vfact; 
   }
 } 
-void LinearHyperMax3DP3_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP3_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[2]*vfact; 
   out[5] += 1.732050807568877*f[3]*vfact; 
@@ -37,12 +37,12 @@ void LinearHyperMax3DP3_Vol1(int meqn, double vfact, const double *fIn, double *
   out[17] += 5.916079783099617*f[7]*vfact+2.645751311064591*f[0]*vfact; 
   }
 } 
-void LinearHyperMax3DP4_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP4_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[2]*vfact; 
   out[5] += 1.732050807568877*f[3]*vfact; 
@@ -65,33 +65,33 @@ void LinearHyperMax3DP4_Vol1(int meqn, double vfact, const double *fIn, double *
   out[32] += 7.937253933193772*f[17]*vfact+5.196152422706631*f[1]*vfact; 
   }
 } 
-void LinearHyperMax3DP1_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP1_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   }
 } 
-void LinearHyperMax3DP2_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP2_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[3]*vfact; 
   out[8] += 3.872983346207417*f[2]*vfact; 
   }
 } 
-void LinearHyperMax3DP3_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP3_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[3]*vfact; 
@@ -104,12 +104,12 @@ void LinearHyperMax3DP3_Vol2(int meqn, double vfact, const double *fIn, double *
   out[18] += 5.916079783099617*f[8]*vfact+2.645751311064591*f[0]*vfact; 
   }
 } 
-void LinearHyperMax3DP4_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP4_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[3]*vfact; 
@@ -132,33 +132,33 @@ void LinearHyperMax3DP4_Vol2(int meqn, double vfact, const double *fIn, double *
   out[33] += 7.937253933193772*f[18]*vfact+5.196152422706631*f[2]*vfact; 
   }
 } 
-void LinearHyperMax3DP1_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP1_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   }
 } 
-void LinearHyperMax3DP2_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP2_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   out[5] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[2]*vfact; 
   out[9] += 3.872983346207417*f[3]*vfact; 
   }
 } 
-void LinearHyperMax3DP3_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP3_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   out[5] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[2]*vfact; 
@@ -171,12 +171,12 @@ void LinearHyperMax3DP3_Vol3(int meqn, double vfact, const double *fIn, double *
   out[19] += 5.916079783099617*f[9]*vfact+2.645751311064591*f[0]*vfact; 
   }
 } 
-void LinearHyperMax3DP4_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperMax3DP4_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   out[5] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[2]*vfact; 

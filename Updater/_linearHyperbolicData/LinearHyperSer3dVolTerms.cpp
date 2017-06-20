@@ -1,21 +1,21 @@
-void LinearHyperSer3DP1_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP1_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[2]*vfact; 
   out[5] += 1.732050807568877*f[3]*vfact; 
   out[7] += 1.732050807568877*f[6]*vfact; 
   }
 } 
-void LinearHyperSer3DP2_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP2_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[2]*vfact; 
   out[5] += 1.732050807568877*f[3]*vfact; 
@@ -30,12 +30,12 @@ void LinearHyperSer3DP2_Vol1(int meqn, double vfact, const double *fIn, double *
   out[19] += 1.732050807568877*f[16]*vfact; 
   }
 } 
-void LinearHyperSer3DP3_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP3_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[2]*vfact; 
   out[5] += 1.732050807568877*f[3]*vfact; 
@@ -58,12 +58,12 @@ void LinearHyperSer3DP3_Vol1(int meqn, double vfact, const double *fIn, double *
   out[31] += 1.732050807568877*f[28]*vfact; 
   }
 } 
-void LinearHyperSer3DP4_Vol1(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP4_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[1] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[2]*vfact; 
   out[5] += 1.732050807568877*f[3]*vfact; 
@@ -99,24 +99,24 @@ void LinearHyperSer3DP4_Vol1(int meqn, double vfact, const double *fIn, double *
   out[49] += 1.732050807568877*f[46]*vfact; 
   }
 } 
-void LinearHyperSer3DP1_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP1_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[3]*vfact; 
   out[7] += 1.732050807568877*f[5]*vfact; 
   }
 } 
-void LinearHyperSer3DP2_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP2_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[3]*vfact; 
@@ -131,12 +131,12 @@ void LinearHyperSer3DP2_Vol2(int meqn, double vfact, const double *fIn, double *
   out[19] += 1.732050807568877*f[15]*vfact; 
   }
 } 
-void LinearHyperSer3DP3_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP3_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[3]*vfact; 
@@ -159,12 +159,12 @@ void LinearHyperSer3DP3_Vol2(int meqn, double vfact, const double *fIn, double *
   out[31] += 1.732050807568877*f[27]*vfact; 
   }
 } 
-void LinearHyperSer3DP4_Vol2(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP4_Vol2(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[2] += 1.732050807568877*f[0]*vfact; 
   out[4] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[3]*vfact; 
@@ -200,24 +200,24 @@ void LinearHyperSer3DP4_Vol2(int meqn, double vfact, const double *fIn, double *
   out[49] += 1.732050807568877*f[45]*vfact; 
   }
 } 
-void LinearHyperSer3DP1_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP1_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   out[5] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[2]*vfact; 
   out[7] += 1.732050807568877*f[4]*vfact; 
   }
 } 
-void LinearHyperSer3DP2_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP2_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   out[5] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[2]*vfact; 
@@ -232,12 +232,12 @@ void LinearHyperSer3DP2_Vol3(int meqn, double vfact, const double *fIn, double *
   out[19] += 3.872983346207417*f[10]*vfact; 
   }
 } 
-void LinearHyperSer3DP3_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP3_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   out[5] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[2]*vfact; 
@@ -260,12 +260,12 @@ void LinearHyperSer3DP3_Vol3(int meqn, double vfact, const double *fIn, double *
   out[31] += 5.916079783099617*f[22]*vfact+2.645751311064591*f[4]*vfact; 
   }
 } 
-void LinearHyperSer3DP4_Vol3(int meqn, double vfact, const double *fIn, double *volOut) 
+void LinearHyperSer3DP4_Vol3(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
   {
-  const double *f = &fIn[meqn*m]; 
-  double *out = &volOut[meqn*m]; 
+  const double *f = &fIn[mbasis*m]; 
+  double *out = &volOut[mbasis*m]; 
   out[3] += 1.732050807568877*f[0]*vfact; 
   out[5] += 1.732050807568877*f[1]*vfact; 
   out[6] += 1.732050807568877*f[2]*vfact; 
