@@ -33,7 +33,7 @@ function test_1()
    t = st:g(2)
    assert_equal(1, t.i, "Testing triple")
    assert_equal(2, t.j, "Testing triple")
-   assert_equal(44.5, t.val, "Testing triple")   
+   assert_equal(44.5, t.val, "Testing triple")
 end
 
 -- run tests
