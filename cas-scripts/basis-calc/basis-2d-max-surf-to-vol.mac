@@ -4,17 +4,17 @@ fpprec : 24$
 
 var : [z1, z2]$
 
-fh : openw("~/max-out/ModalSerendipBasisSurfToVol2d.cpp");
+fh : openw("~/max-out/ModalMaxOrderBasisSurfToVol2d.cpp");
 
 for i : 1 thru 4 do (
-  basis : gsOrthoNorm(var, makeSerendipBasis(var, i)),
+  basis : gsOrthoNorm(var, makeMaxOrderBasis(var, i)),
   printf(fh, "/* Polyorder ~d */ ~%", i),
   for d : 1 thru length(var) do (
     varSurf : delete(var[d], var),
-    basisSurf : gsOrthoNorm(varSurf, makeSerendipBasis(varSurf, i)),
+    basisSurf : gsOrthoNorm(varSurf, makeMaxOrderBasis(varSurf, i)),
     in : transpose( makelist(f[i], i, 0, length(basisSurf)-1) ),
     cmm : calcCrossMassMatrix(varSurf, subst(var[d]=1, basis), varSurf, basisSurf, 1),
-    printf(fh, "void ModalSer2DP~d_SurfToVol~d_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
+    printf(fh, "void ModalMax2DP~d_SurfToVol~d_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
     printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
     printf(fh, "  {~%"),
     printf(fh, "  const double *f = &surfIn[msurf*m]; ~%"),
@@ -23,7 +23,7 @@ for i : 1 thru 4 do (
     printf(fh, "  }~%"),
     printf(fh, "}~%"),
     cmm : calcCrossMassMatrix(varSurf, subst(var[d]=-1, basis), varSurf, basisSurf, 1),
-    printf(fh, "void ModalSer2DP~d_SurfToVol~d_Right(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
+    printf(fh, "void ModalMax2DP~d_SurfToVol~d_Right(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) ~%{ ~%", i, d),
     printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
     printf(fh, "  {~%"),
     printf(fh, "  const double *f = &surfIn[msurf*m]; ~%"),
