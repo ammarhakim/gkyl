@@ -32,6 +32,8 @@ local function numBasis(ndim, polyOrder)
       nbasis = (polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/24
    elseif (ndim == 5) then
       nbasis = (polyOrder+5)*(polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/120
+   elseif (ndim == 6) then
+      nbasis = (polyOrder+6)*(polyOrder+5)*(polyOrder+4)*(polyOrder+3)*(polyOrder+2)*(polyOrder+1)/720
    end
    return nbasis
 end
@@ -63,6 +65,9 @@ function CartModalMaxOrder:new(tbl)
       _m = require "Basis._data.ModalMaxOrderBasis4d"
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalMaxOrderBasis5d"
+   elseif (self._ndim == 6) then
+      assert(self._polyOrder <= 2, "For 6D polynomial order must be either 1 or 2")
+      _m = require "Basis._data.ModalMaxOrderBasis6d"
    end
 
    self._evalBasisFunc = _m[self._polyOrder] -- function to evaluate basis functions
@@ -78,6 +83,8 @@ function CartModalMaxOrder:new(tbl)
       _m = require "Basis._data.ModalMaxOrderBasisSurf4d"
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalMaxOrderBasisSurf5d"
+   elseif (self._ndim == 6) then
+      --assert(false, "NDIM 6 NYI!!")
    end
 
    self._projectVolToSurfLower = {} -- functions to project volume expansion of lower surface
