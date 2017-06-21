@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Modal Maxium-Order elements on Cartesian meshes.
+-- Modal Maximum-Order elements on Cartesian meshes.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
