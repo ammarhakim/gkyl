@@ -1,0 +1,55 @@
+fh : openw("~/max-out/LinearHyperModDecl.lua")$
+
+printf(fh, "local ffi = require \"ffi\" ~%")$
+printf(fh, "ffi.cdef [[ ~%")$
+
+dim : 1$
+for p : 1 thru 4 do (
+  for dir : 1 thru dim do (
+    printf(fh, "void LinearHyperMax~dDP~d_Vol~d(int meqn, int mbasis, double vfact, const double *fIn, double *volOut);~%", dim, p, dir)
+  )
+)$
+printf(fh, "~%")$
+
+dim : 2$
+for p : 1 thru 4 do (
+  for dir : 1 thru dim do (
+    printf(fh, "void LinearHyperMax~dDP~d_Vol~d(int meqn, int mbasis, double vfact, const double *fIn, double *volOut);~%", dim, p, dir)
+  )
+)$
+printf(fh, "~%")$
+
+dim : 3$
+for p : 1 thru 4 do (
+  for dir : 1 thru dim do (
+    printf(fh, "void LinearHyperMax~dDP~d_Vol~d(int meqn, int mbasis, double vfact, const double *fIn, double *volOut);~%", dim, p, dir)
+  )
+)$
+printf(fh, "~%")$
+
+dim : 1$
+for p : 1 thru 4 do (
+  for dir : 1 thru dim do (
+    printf(fh, "void LinearHyperSer~dDP~d_Vol~d(int meqn, int mbasis, double vfact, const double *fIn, double *volOut);~%", dim, p, dir)
+  )
+)$
+printf(fh, "~%")$
+
+dim : 2$
+for p : 1 thru 4 do (
+  for dir : 1 thru dim do (
+    printf(fh, "void LinearHyperSer~dDP~d_Vol~d(int meqn, int mbasis, double vfact, const double *fIn, double *volOut);~%", dim, p, dir)
+  )
+)$
+printf(fh, "~%")$
+
+dim : 3$
+for p : 1 thru 4 do (
+  for dir : 1 thru dim do (
+    printf(fh, "void LinearHyperSer~dDP~d_Vol~d(int meqn, int mbasis, double vfact, const double *fIn, double *volOut);~%", dim, p, dir)
+  )
+)$
+printf(fh, "~%")$
+
+printf(fh, "]] ~%")$
+close(fh)$

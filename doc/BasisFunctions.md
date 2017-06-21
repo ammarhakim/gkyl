@@ -37,10 +37,23 @@ The following methods are provided.
 `basis:numBasis()`
 : Total number of basis functions in the element.
 
+`basis:numSurfBasis()`
+: Total number of basis functions on each surface of element
+
 `basis:evalBasis(z, bvalues)`
 : The value of the basis functions at reference coordinate `z`. The
   values are returned in the 1-indexed and pre-allocated vector
   `bvalues`.
+
+`basis:volumeToLowerSurfExpansion(dir, volIn, surfOut)`
+: Given expansion coefficients in element, compute expansion
+  coefficients for basis on surface on lower edge in specified
+  direction
+
+`basis:volumeToUpperSurfExpansion(dir, volIn, surfOut)`
+: Given expansion coefficients in element, compute expansion
+  coefficients for basis on surface on upper edge in specified
+  direction
 
 ## `CartModalSerendipity`: Modal, serendipity basis functions
 
@@ -58,19 +71,5 @@ following parameters:
 : Polynomial order. This is the super-linear polynomial order of the
   monomials included in the basis set.
 
-The following methods are provided.
-
-`basis:ndim()`
-: Number of dimensions of reference element.
-
-`basis:polyOrder()`
-: Polynomial order.
-
-`basis:numBasis()`
-: Total number of basis functions in the element.
-
-`basis:evalBasis(z, bvalues)`
-: The value of the basis functions at reference coordinate `z`. The
-  values are returned in the 1-indexed and pre-allocated vector
-  `bvalues`.
-
+The basis object has exactly the same methods as the Maximal-order
+basis described above.

@@ -44,6 +44,16 @@ function test_2d_m_p1()
    assert_equal(1/math.sqrt(2), bvalues[1], "Checking values 1")
    assert_equal(math.sqrt(3/2), bvalues[2], "Checking values 2")
    assert_equal(math.sqrt(5/2), bvalues[3], "Checking values 3")
+
+   -- surface expansions
+   local vol = {1.0, 0.5, 0.25}
+   local surf = {0.0} -- to store surface expansion
+
+   basis:volumeToLowerSurfExpansion(1, vol, surf)
+   assert_equal(0.4900190530118004, surf[1], "Checking left expansion")
+
+   basis:volumeToUpperSurfExpansion(1, vol, surf)
+   assert_equal(1.714763924403389, surf[1], "Checking right expansion")
 end
 
 function test_2d_m_p2()
@@ -88,7 +98,21 @@ function test_2d_m_p2()
    assert_equal(math.sqrt(3)/2, bvalues[3], "Checking values 3")
    assert_equal(3.0/2.0, bvalues[4], "Checking values 4")
    assert_equal(math.sqrt(5)/2, bvalues[5], "Checking values 5")
-   assert_equal(math.sqrt(5)/2, bvalues[6], "Checking values 6")   
+   assert_equal(math.sqrt(5)/2, bvalues[6], "Checking values 6")
+
+   -- surface expansions
+   local vol = {1.0, 0.5, 0.25, 0.1, 0.1, 0.1}
+   local surf = {0.0, 0.0, 0.0} -- to store surface expansion
+
+   basis:volumeToLowerSurfExpansion(1, vol, surf)
+   assert_equal(0.2528482284991718, surf[1], "Testing left expansion")
+   assert_equal(0.054302208157478, surf[2], "Testing left expansion")
+   assert_equal(0.07071067811865464, surf[3], "Testing left expansion")
+
+   basis:volumeToUpperSurfExpansion(1, vol, surf)
+   assert_equal(1.477593099890761, surf[1], "Testing right expansion")
+   assert_equal(0.2992511824357955, surf[2], "Testing right expansion")
+   assert_equal(0.07071067811865464, surf[3], "Testing right expansion")
 end
 
 function test_2d_s_p1()
@@ -172,6 +196,20 @@ function test_2d_s_p2()
    assert_equal(math.sqrt(5)/2, bvalues[6], "Checking values 6")
    assert_equal(math.sqrt(15)/2, bvalues[7], "Checking values 7")
    assert_equal(math.sqrt(15)/2, bvalues[8], "Checking values 8")
+
+   -- surface expansions
+   local vol = {1.0, 0.5, 0.25, 0.1, 0.1, 0.1, 0.0, 0.0}
+   local surf = {0.0, 0.0, 0.0} -- to store surface expansion
+
+   basis:volumeToLowerSurfExpansion(1, vol, surf)
+   assert_equal(0.2528482284991718, surf[1], "Testing left expansion")
+   assert_equal(0.054302208157478, surf[2], "Testing left expansion")
+   assert_equal(0.07071067811865464, surf[3], "Testing left expansion")
+
+   basis:volumeToUpperSurfExpansion(1, vol, surf)
+   assert_equal(1.477593099890761, surf[1], "Testing right expansion")
+   assert_equal(0.2992511824357955, surf[2], "Testing right expansion")
+   assert_equal(0.07071067811865464, surf[3], "Testing right expansion")   
 end
 
 test_2d_m_p1()
