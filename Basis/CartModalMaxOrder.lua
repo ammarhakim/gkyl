@@ -84,7 +84,7 @@ function CartModalMaxOrder:new(tbl)
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalMaxOrderBasisSurf5d"
    elseif (self._ndim == 6) then
-      --assert(false, "NDIM 6 NYI!!")
+      _m = require "Basis._data.ModalMaxOrderBasisSurf6d"
    end
 
    self._projectVolToSurfLower = {} -- functions to project volume expansion of lower surface
@@ -92,7 +92,7 @@ function CartModalMaxOrder:new(tbl)
    for d = 1, self._ndim do
       self._projectVolToSurfLower[d] = _m[self._polyOrder][d].lower
       self._projectVolToSurfUpper[d] = _m[self._polyOrder][d].upper
-   end   
+   end
    
    return self
 end
