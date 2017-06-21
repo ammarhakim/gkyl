@@ -20,4 +20,4 @@ def build(bld):
     _data/ModalSerendipBasisSurfToVol2d.cpp
     _data/ModalSerendipBasisSurfToVol3d.cpp
     """,
-    includes = '.', target = 'gkbasis', vnum="1.0")
+    includes = '. ./_data', target = 'gkbasis', vnum="1.0")

@@ -1,0 +1,29 @@
+fh : openw("~/max-out/BasisSurfToVolModDecl.lua")$
+
+printf(fh, "local ffi = require \"ffi\" ~%")$
+printf(fh, "ffi.cdef [[ ~%")$
+
+for dim : 1 thru 3 do (
+ for p : 1 thru 4 do (
+   for dir : 1 thru dim do (
+     printf(fh, "void ModalSer~dDP~d_SurfToVol~d_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut); ~%", dim, p, dir),
+     printf(fh, "void ModalSer~dDP~d_SurfToVol~d_Right(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut); ~%", dim, p, dir)
+   )
+ ),
+ printf(fh, "~%")
+)$
+
+printf(fh, "~% ~%")
+
+for dim : 1 thru 3 do (
+ for p : 1 thru 4 do (
+   for dir : 1 thru dim do (
+     printf(fh, "void ModalMax~dDP~d_SurfToVol~d_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut); ~%", dim, p, dir),
+     printf(fh, "void ModalMax~dDP~d_SurfToVol~d_Right(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut); ~%", dim, p, dir)
+   )
+ ),
+ printf(fh, "~%")
+)$
+
+printf(fh, "]] ~%")$
+close(fh)$
