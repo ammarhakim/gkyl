@@ -1,4 +1,6 @@
-/* Polyorder 1 */ 
+#include <BasisSurfToVolModDecl.h>
+
+/* Polyorder 1 */
 void ModalSer1DP1_SurfToVol1_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 

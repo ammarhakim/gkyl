@@ -1,3 +1,5 @@
+#include <BasisSurfToVolModDecl.h>
+
 /* Polyorder 1 */ 
 void ModalMax1DP1_SurfToVol1_Left(int meqn, int mbasis, int msurf, double sfact, const double *surfIn, double *volOut) 
 { 
