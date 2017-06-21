@@ -79,9 +79,11 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
    local ndim = grid:ndim()
    local numBasis = self._basis:numBasis()
+   local numSurfBasis = self._basis:numSurfBasis()
    local meqn = qOut:numComponents()/numBasis
 
-   local fluxCoeff = Lin.Vec(qOut:numComponents()) -- flux expansion coefficients
+   local flux = Lin.Vec(qOut:numComponents()) -- flux 
+   local numericalFlux = Lin.Vec(numSurfBasis*meqn) -- numerical flux on face 
 
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
@@ -111,8 +113,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
       
       for d = 1, self._nUpdateDirs do -- update only specified directions
 	 local dir = self._updateDirs[d]
-	 self._equation:fluxCoeff(dir, basis, qInPtr, fluxCoeff) -- compute flux
-	 self._volumeUpdate[dir](meqn, numBasis, volFact*2/dx[dir], qInPtr:data(), qOutPtr:data())
+	 self._equation:fluxCoeff(dir, basis, qInPtr, flux) -- compute flux
+	 self._volumeUpdate[dir](meqn, numBasis, volFact*2/dx[dir], flux:data(), qOutPtr:data())
       end
    end
 
@@ -134,6 +136,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
 	    qIn:fill(qInIdxr(idxm), qInL)
 	    qIn:fill(qInIdxr(idxp), qInR)
+
+	    -- compute left/right expansions on faces
 
 	    -- compute numerical flux at the common face
 	    

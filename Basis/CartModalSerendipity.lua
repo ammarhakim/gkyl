@@ -67,6 +67,8 @@ function CartModalSerendipity:new(tbl)
       _m = require "Basis._data.ModalSerendipBasis4d"
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalSerendipBasis5d"
+   elseif (self._data == 6) then
+      assert(false, "CartModalSerendipity: 6D Serendipity basis not implemented!")
    end
 
    self._evalBasisFunc = _m[self._polyOrder] -- function to evaluate basis functions
