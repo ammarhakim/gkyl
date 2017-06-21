@@ -1,0 +1,55 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac")$
+fpprec : 24$
+
+writeExprs(fh, rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a; ~%", out[i], expr[i])
+  )
+)$
+
+writeExprs2(fh, lhs, rhs) := block([expr],
+  expr : float(expand(radcan(rhs))),
+  for i : 1 thru length(expr) do (
+    printf(fh, "   ~a = ~a; ~%", lhs[i], expr[i])
+  )  
+)$
+
+var : [z1, z2]$
+
+fh : openw("~/max-out/ModalSerendipBasisSurf2d.cpp")$
+printf(fh, "#include <BasisVolToSurfModDecl.h> ~%")$
+
+for i : 1 thru 4 do (
+  basis : gsOrthoNorm(var, makeSerendipBasis(var, i)),
+  in : transpose( makelist(_in[i], i, 0, length(basis)-1) ),
+  printf(fh, "// polyOrder ~d ~%", i),
+  for d : 1 thru length(var) do (
+    printf(fh, "//    dir ~d ~%", d),
+    varSurf : delete(var[d], var),
+    basisSurf : gsOrthoNorm(varSurf, makeSerendipBasis(varSurf, i)),
+    out : makelist(_out[i], i, 0, length(basisSurf)-1),
+    surfProjMat : calcSurfExpansionMatrix(varSurf, var[d], 1, basisSurf, basis),
+    printf(fh, "void ModalSerendipBasisSurf2DP~d_Upper~d(int meqn, int mbasis, int msurf, const double *volIn, double *surfOut) ~%{ ~%", i, d),
+    printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
+    printf(fh, "  { ~%"),
+    printf(fh, "  double *_out = &surfOut[msurf*m]; ~%"),
+    printf(fh, "  const double *_in = &volIn[mbasis*m]; ~%"), 
+    writeExprs2(fh, out, colVecToList(surfProjMat . in)),
+    printf(fh, "  } ~%"),    
+    printf(fh, "} ~%"),
+    surfProjMat : calcSurfExpansionMatrix(varSurf, var[d], -1, basisSurf, basis),
+    printf(fh, "void ModalSerendipBasisSurf2DP~d_Lower~d(int meqn, int mbasis, int msurf, const double *volIn, double *surfOut) ~%{ ~%", i, d),
+    printf(fh, "  for (unsigned m=0; m<meqn; ++m) ~%"),
+    printf(fh, "  { ~%"),
+    printf(fh, "  double *_out = &surfOut[msurf*m]; ~%"),
+    printf(fh, "  const double *_in = &volIn[mbasis*m]; ~%"), 
+    writeExprs2(fh, out, colVecToList(surfProjMat . in)),
+    printf(fh, "  } ~%"),    
+    printf(fh, "} ~%"),    
+    printf(fh, "~%")
+  ),
+  printf(fh, "~%")
+)$
+
+close(fh)$

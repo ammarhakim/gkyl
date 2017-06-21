@@ -13,11 +13,5 @@ def build(bld):
         bldFunc = bld.stlib
     
     bldFunc(source = r"""
-    _data/ModalMaxOrderBasisSurfToVol1d.cpp
-    _data/ModalMaxOrderBasisSurfToVol2d.cpp
-    _data/ModalMaxOrderBasisSurfToVol3d.cpp
-    _data/ModalSerendipBasisSurfToVol1d.cpp
-    _data/ModalSerendipBasisSurfToVol2d.cpp
-    _data/ModalSerendipBasisSurfToVol3d.cpp
     """,
     includes = '. ./_data', target = 'gkbasis', vnum="1.0")

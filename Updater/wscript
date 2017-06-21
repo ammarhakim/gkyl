@@ -14,19 +14,31 @@ def build(bld):
     
     bldFunc(source = r"""
     FiveMomentSrcImpl.cpp
-    ./_vlasovData/VlasovStreamMax1x1v.c
-    ./_vlasovData/VlasovStreamMax1x2v.c
-    ./_vlasovData/VlasovStreamMax1x3v.c
-    ./_vlasovData/VlasovStreamMax2x2v.c
-    ./_vlasovData/VlasovStreamSer1x1v.c
-    ./_vlasovData/VlasovStreamSer1x2v.c
-    ./_vlasovData/VlasovStreamSer1x3v.c
-    ./_vlasovData/VlasovStreamSer2x2v.c
-    ./_linearHyperbolicData/LinearHyperMax1dVolTerms.cpp
-    ./_linearHyperbolicData/LinearHyperMax2dVolTerms.cpp
-    ./_linearHyperbolicData/LinearHyperMax3dVolTerms.cpp
-    ./_linearHyperbolicData/LinearHyperSer1dVolTerms.cpp
-    ./_linearHyperbolicData/LinearHyperSer2dVolTerms.cpp
-    ./_linearHyperbolicData/LinearHyperSer3dVolTerms.cpp
+    _vlasovData/VlasovStreamMax1x1v.c
+    _vlasovData/VlasovStreamMax1x2v.c
+    _vlasovData/VlasovStreamMax1x3v.c
+    _vlasovData/VlasovStreamMax2x2v.c
+    _vlasovData/VlasovStreamSer1x1v.c
+    _vlasovData/VlasovStreamSer1x2v.c
+    _vlasovData/VlasovStreamSer1x3v.c
+    _vlasovData/VlasovStreamSer2x2v.c
+    _linearHyperbolicData/LinearHyperMax1dVolTerms.cpp
+    _linearHyperbolicData/LinearHyperMax2dVolTerms.cpp
+    _linearHyperbolicData/LinearHyperMax3dVolTerms.cpp
+    _linearHyperbolicData/LinearHyperSer1dVolTerms.cpp
+    _linearHyperbolicData/LinearHyperSer2dVolTerms.cpp
+    _linearHyperbolicData/LinearHyperSer3dVolTerms.cpp
+    _linearHyperbolicData/ModalMaxOrderBasisSurfToVol1d.cpp
+    _linearHyperbolicData/ModalMaxOrderBasisSurfToVol2d.cpp
+    _linearHyperbolicData/ModalMaxOrderBasisSurfToVol3d.cpp
+    _linearHyperbolicData/ModalSerendipBasisSurfToVol1d.cpp
+    _linearHyperbolicData/ModalSerendipBasisSurfToVol2d.cpp
+    _linearHyperbolicData/ModalSerendipBasisSurfToVol3d.cpp
+    _linearHyperbolicData/ModalSerendipBasisSurf1d.cpp
+    _linearHyperbolicData/ModalSerendipBasisSurf2d.cpp
+    _linearHyperbolicData/ModalSerendipBasisSurf3d.cpp
+    _linearHyperbolicData/ModalMaxOrderBasisSurf1d.cpp
+    _linearHyperbolicData/ModalMaxOrderBasisSurf2d.cpp
+    _linearHyperbolicData/ModalMaxOrderBasisSurf3d.cpp
     """,
-    includes = '. ./_linearHyperbolicData', target = 'gkupdater', vnum="1.0")
+    includes = '. _linearHyperbolicData', target = 'gkupdater', vnum="1.0")
