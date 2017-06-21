@@ -12,12 +12,22 @@ local Alloc = require "Lib.Alloc"
 local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Range = require "Lib.Range"
+local _ = require "Updater._linearHyperbolicData.LinearHyperModDecl"
 
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
+
+-- pick proper function for volume integrals
+local function selectVolFunc(bId, polyOrder, ndim, dir)
+   if bId == "serendipity" then
+      return ffi.C[string.format("LinearHyperSer%dDP%d_Vol%d", ndim, polyOrder, dir)]
+   elseif bId == "maximal-order" then
+      return ffi.C[string.format("LinearHyperMax%dDP%d_Vol%d", ndim, polyOrder, dir)]
+   end
+end
 
 -- Linear hyperbolic DG solver updater object
 local LinearHyperbolicDisCont = {}
@@ -48,6 +58,12 @@ function LinearHyperbolicDisCont:new(tbl)
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.LinearHyperbolicDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
+
+   -- functions to perform volume updates
+   self._volumeUpdate = {}
+   for d = 1, self._ndim do
+      self._volumeUpdate[d] = selectVolFunc(self._basis:id(), self._basis:polyOrder(), self._ndim, d)
+   end
    
    return self
 end
@@ -81,31 +97,25 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
    -- pointers for (re)use in update
    local qInPtr, qOutPtr = qIn:get(1), qOut:get(1)
+   local qInL, qInR = qIn:get(1), qIn:get(1)
+   local qOutL, qOutR = qOut:get(1), qOut:get(1)   
    
    -- accumulate contributions from volume integrals
    for idx in localRange:colMajorIter() do
       grid:setIndex(idx)
-      -- get cell shape, cell volume
       for d = 1, ndim do dx[d] = grid:dx(d) end
       local volFact = grid:cellVolume()/2^ndim
 
-      -- set pointers
       qIn:fill(qInIdxr(idx), qInPtr)
       qOut:fill(qOutIdxr(idx), qOutPtr)
       
-      -- update only specified directions
-      for d = 1, self._nUpdateDirs do
+      for d = 1, self._nUpdateDirs do -- update only specified directions
 	 local dir = self._updateDirs[d]
-
-	 -- Compute flux in specified direction
-	 self._equation:fluxCoeff(dir, basis, qInPtr, fluxCoeff)
-	 -- update volume contribution
-	 --self._volumeUpdate[dir](volFact*2/dx[dir], qInPtr, qOutPtr)
+	 self._equation:fluxCoeff(dir, basis, qInPtr, fluxCoeff) -- compute flux
+	 self._volumeUpdate[dir](meqn, numBasis, volFact*2/dx[dir], qInPtr:data(), qOutPtr:data())
       end
    end
 
-   local qInL, qInR = qIn:get(1), qIn:get(1)
-   local qOutL, qOutR = qOut:get(1), qOut:get(1)   
    -- accumulate contributions from surface integrals
    for d = 1, self._nUpdateDirs do
       local dir = self._updateDirs[d]
@@ -122,11 +132,11 @@ local function advance(self, tCurr, dt, inFld, outFld)
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
-	    -- attach pointers to left/right cells
-	    qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
-	    -- compute numerical flux at the common face
-	    --local maxs = self._equation:numericalFluxCoeff(dir, basis, qInL, qInR, fluxCoeff)
+	    qIn:fill(qInIdxr(idxm), qInL)
+	    qIn:fill(qInIdxr(idxp), qInR)
 
+	    -- compute numerical flux at the common face
+	    
 	    -- update two cells connected to face
 
 	    -- compute actual CFL number used

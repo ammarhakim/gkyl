@@ -1,3 +1,5 @@
+#include <LinearHyperModDecl.h>
+
 void LinearHyperMax1DP1_Vol1(int meqn, int mbasis, double vfact, const double *fIn, double *volOut) 
 { 
   for (unsigned m=0; m<meqn; ++m) 
