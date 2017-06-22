@@ -157,7 +157,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm',
-        use='gkeq gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL ',
+        use='gkeq gkunit gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL ',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'
