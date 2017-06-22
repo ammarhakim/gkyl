@@ -6,7 +6,7 @@
 import os
 
 def build(bld):
-    bldFunc = bld.stlib
+    bldFunc = bld.shlib
     
     bldFunc(source = r"""
     FiveMomentSrcImpl.cpp
