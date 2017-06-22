@@ -43,8 +43,6 @@ def configure(conf):
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
 
-    conf.env.append_value("RPATH", conf.env.PREFIX+"/lib")
-
     # slightly modify Linux linker that thinks that he is smart and is
     # not exporting the symbols that are only used in the Lua part
     if platform.system() == 'Linux':
