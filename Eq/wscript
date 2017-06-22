@@ -6,11 +6,7 @@
 import os
 
 def build(bld):
-    uname = os.uname()
-    if uname[0] == 'Darwin':
-        bldFunc = bld.shlib
-    else:
-        bldFunc = bld.stlib
+    bldFunc = bld.shlib
     
     bldFunc(
         source = 'TenMomentImpl.cpp',
