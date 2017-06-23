@@ -9,5 +9,6 @@ local xsys = require "xsys"
 local Euler = require "Eq.Euler"
 local PhMaxwell = require "Eq.PerfMaxwell"
 local TenMoment = require "Eq.TenMoment"
+local Advection = require "Eq.Advection"
 
-return xsys.table.union(Euler, PhMaxwell, TenMoment)
+return xsys.table.union(Euler, PhMaxwell, TenMoment, Advection)
