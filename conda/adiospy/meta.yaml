@@ -1,18 +1,23 @@
 package:
-  name: adios
+  name: adiospy
   version: "1.11.0"
 
 source:
   path: ./
 
-build:
-  number: 2
-
 requirements:
   build:
-    - openmpi
+    - python
+    - numpy
+    - adios
   run:
-    - openmpi
+    - python
+    - numpy
+    - adios
+
+test:
+  imports:
+    - adios
 
 about:
   home: https://www.olcf.ornl.gov/center-projects/adios/
