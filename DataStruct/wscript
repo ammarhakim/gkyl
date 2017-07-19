@@ -1,0 +1,10 @@
+import os
+
+def build(bld):
+    bldFunc = bld.shlib
+    
+    bldFunc(
+        source = 'CartFieldImpl.cpp',
+        target = 'gkdatastruct',
+        includes = '.', vnum="1.0.0"
+    )
