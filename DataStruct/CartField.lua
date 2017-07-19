@@ -48,9 +48,14 @@ local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
 genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
 genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
 
+-- helper to check if two field are compatible
+local function field_compatible(y, x)
+   return y:localRange() == x:localRange() and y:numComponents() == x:numComponents()
+end
+
 -- copy field x into field y
 local function field_memcpy(y, x)
-   assert(y:localRange() == x:localRange() and y:numComponents() == x:numComponents(), "Can't copy incompatible fields")
+   assert(field_compatible(y,x), "Can't copy incompatible fields")
    local sz = y:size()
    copy(y._data, x._data, sizeof(y:elemType())*sz)
 end
@@ -216,6 +221,48 @@ local function Field_meta_ctor(elct)
       clear = function (self, val)
 	 self._allocData:fill(val)
       end,
+      fill = function (self, k, fc)
+	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
+	 fc._cdata = self._data+loc
+      end,
+      _assign = function(self, fact, fld)
+	 assert(field_compatible(self, fld), "combine: Can only accumulate compatible fields")
+	 -- CHECK ALSO IF FACT IS A NUMBER!!
+	 local indexer = self:genIndexer()
+	 for idx in self:localExtRangeIter() do
+	    local inp, out = fld:get(indexer(idx)), self:get(indexer(idx))
+	    for k = 1, self:numComponents() do
+	       out[k] = fact*inp[k]
+	    end
+	 end
+      end,      
+      _accumulateOneFld = function(self, fact, fld)
+	 assert(field_compatible(self, fld), "accumulate/combine: Can only accumulate/combine compatible fields")
+	 -- CHECK ALSO IF FACT IS A NUMBER!!
+	 local indexer = self:genIndexer()
+	 for idx in self:localExtRangeIter() do
+	    local inp, out = fld:get(indexer(idx)), self:get(indexer(idx))
+	    for k = 1, self:numComponents() do
+	       out[k] = out[k] + fact*inp[k]
+	    end
+	 end
+      end,
+      accumulate = function (self, c1, fld1, ...)
+	 local args = {...} -- package up rest of args as table
+	 local nFlds = #args/2
+	 self:_accumulateOneFld(c1, fld1) -- accumulate first field
+	 for i = 1, nFlds do -- accumulate rest of the fields
+	    self:_accumulateOneFld(args[2*i-1], args[2*i])
+	 end
+      end,
+      combine = function (self, c1, fld1, ...)
+	 local args = {...} -- package up rest of args as table
+	 local nFlds = #args/2
+	 self:_assign(c1, fld1) -- assign first field
+	 for i = 1, nFlds do -- accumulate rest of the fields
+	    self:_accumulateOneFld(args[2*i-1], args[2*i])
+	 end	 
+      end,      
       layout = function (self)
 	 if self._layout == rowMajLayout then
 	    return "row-major"
@@ -240,6 +287,32 @@ local function Field_meta_ctor(elct)
       globalExtRange = function (self) -- includes ghost cells
 	 return self:globalRange():extend(self:lowerGhost(), self:upperGhost())
       end,
+      localRangeIter = function (self)
+	 if self._layout == rowMajLayout then
+	    return self._localRange:rowMajorIter()
+	 end
+	 return self._localRange:colMajorIter()
+      end,
+      localExtRangeIter = function (self) -- includes ghost cells
+	 local lext = self:localRange():extend(self:lowerGhost(), self:upperGhost())
+	 if self._layout == rowMajLayout then
+	    return lext:rowMajorIter()
+	 end
+	 return lext:colMajorIter()
+      end,      
+      globalRangeIter = function (self)
+	 if self._layout == rowMajLayout then
+	    return self._globalRange:rowMajorIter()
+	 end
+	 return self._globalRange:colMajorIter()
+      end,
+      globalExtRangeIter = function (self) -- includes ghost cells
+	 local lext = self:globalRange():extend(self:lowerGhost(), self:upperGhost())
+	 if self._layout == rowMajLayout then
+	    return lext:rowMajorIter()
+	 end
+	 return lext:colMajorIter()	 
+      end,      
       size = function (self)
 	 return self._size
       end,
@@ -257,10 +330,6 @@ local function Field_meta_ctor(elct)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
 	 return self._data+loc
       end,      
-      fill = function (self, k, fc)
-	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
-	 fc._cdata = self._data+loc
-      end,
       sync = function (self)
 	 return self._field_sync(self)
       end,
