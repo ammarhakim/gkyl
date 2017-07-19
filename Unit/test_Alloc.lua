@@ -169,8 +169,15 @@ function test_7()
    tmpData.j = 2
    tmpData.val = 100.5
 
-   print(tmpData.i, tmpData.j, tmpData.val)
-   local data = allocator()
+   local data = allocator(10)
+   data:fill(tmpData)
+
+   for i = 1, data:size() do
+      local v = data[i]
+      assert_equal(tmpData.i, v.i, "i")
+      assert_equal(tmpData.j, v.j, "j")
+      assert_equal(tmpData.val, v.val, "val") 
+   end
 end
 
 -- run tests
