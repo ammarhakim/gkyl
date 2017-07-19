@@ -15,7 +15,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 ffi.cdef [[
   void* malloc(size_t size);
   void* calloc(size_t nitems, size_t size);
-  void *realloc(void *ptr, size_t new_size);
+  void* realloc(void *ptr, size_t new_size);
   void free(void *ptr);
 ]]
 

@@ -11,6 +11,7 @@
 #include <lua.hpp>
 
 // std include
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <sstream>
@@ -106,13 +107,24 @@ main(int argc, char **argv) {
   // set some JIT parameters to fiddle around with optimizations
   varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60')" << std::endl;
 
+  // check if file exists  
+  std::string inpFile(argv[1]);
+  std::ifstream _f(inpFile.c_str());
+  if (!_f.good()) {
+    std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
+    std::cerr << "Usage: gkyl LUA-SCRIPT" << std::endl;
+    return finish(1);
+  }
+  _f.close();
+
   // output prefix
-  std::string snm(argv[1]), inpFile(argv[1]);
+  std::string snm(argv[1]);
   unsigned trunc = inpFile.find_last_of(".", snm.size());
   if (trunc > 0)
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
-  
+
+  // load variable definitions etc
   if (luaL_loadstring(L, varDefs.str().c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured
     const char* ret = lua_tostring(L, -1);
@@ -121,6 +133,7 @@ main(int argc, char **argv) {
     return finish(1);    
   }
 
+  // load and run input file
   if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured
     const char* ret = lua_tostring(L, -1);
