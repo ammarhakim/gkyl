@@ -329,7 +329,7 @@ function test_9()
    }
 
    local indexer = field1:genIndexer()
-   for idx in field1:localRangeIter() do
+   for idx in field1:localExtRangeIter() do
       local fitr = field1:get(indexer(idx))
       fitr[1] = idx[1]+2*idx[2]+1
       fitr[2] = idx[1]+2*idx[2]+2
@@ -339,7 +339,7 @@ function test_9()
    -- accumulate stuff
    field:accumulate(1.0, field1, 2.0, field1)
 
-   for idx in field:localRangeIter() do
+   for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
       assert_equal(10+3*(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
       assert_equal(10+3*(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")
@@ -349,7 +349,7 @@ function test_9()
    -- combine stuff
    field:combine(1.0, field1, 2.0, field1)
 
-   for idx in field:localRangeIter() do
+   for idx in field:localExtRangeIter() do
       local fitr = field:get(indexer(idx))
       assert_equal(3*(idx[1]+2*idx[2]+1), fitr[1], "Checking field value")
       assert_equal(3*(idx[1]+2*idx[2]+2), fitr[2], "Checking field value")

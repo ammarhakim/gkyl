@@ -18,6 +18,12 @@ local Mpi = require "Comm.Mpi"
 local Adios = require "Io.Adios"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
 
+-- C interfaces
+ffi.cdef [[
+  void gkylCartFieldAccumulate(unsigned nv, double fact, const double *inp, double *out);
+  void gkylCartFieldAssign(unsigned nv, double fact, const double *inp, double *out);
+]]
+
 -- Code from Lua wiki to convert table to comma-seperated-values
 -- string.
 -- Used to escape "'s by toCSV
@@ -226,43 +232,39 @@ local function Field_meta_ctor(elct)
 	 fc._cdata = self._data+loc
       end,
       _assign = function(self, fact, fld)
-	 assert(field_compatible(self, fld), "combine: Can only accumulate compatible fields")
-	 -- CHECK ALSO IF FACT IS A NUMBER!!
-	 local indexer = self:genIndexer()
-	 for idx in self:localExtRangeIter() do
-	    local inp, out = fld:get(indexer(idx)), self:get(indexer(idx))
-	    for k = 1, self:numComponents() do
-	       out[k] = fact*inp[k]
-	    end
-	 end
+	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
+	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
+	 ffi.C.gkylCartFieldAssign(self:size(), fact, fld._data, self._data)
       end,      
       _accumulateOneFld = function(self, fact, fld)
-	 assert(field_compatible(self, fld), "accumulate/combine: Can only accumulate/combine compatible fields")
-	 -- CHECK ALSO IF FACT IS A NUMBER!!
-	 local indexer = self:genIndexer()
-	 for idx in self:localExtRangeIter() do
-	    local inp, out = fld:get(indexer(idx)), self:get(indexer(idx))
-	    for k = 1, self:numComponents() do
-	       out[k] = out[k] + fact*inp[k]
+	 assert(field_compatible(self, fld), "CartField:accumulate/combine: Can only accumulate/combine compatible fields")
+	 assert(type(fact) == "number", "CartField:accumulate/combine: Factor not a number")
+	 ffi.C.gkylCartFieldAccumulate(self:size(), fact, fld._data, self._data)
+      end,
+      accumulate = isNumberType and
+	 function (self, c1, fld1, ...)
+	    local args = {...} -- package up rest of args as table
+	    local nFlds = #args/2
+	    self:_accumulateOneFld(c1, fld1) -- accumulate first field
+	    for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_accumulateOneFld(args[2*i-1], args[2*i])
 	    end
-	 end
-      end,
-      accumulate = function (self, c1, fld1, ...)
-	 local args = {...} -- package up rest of args as table
-	 local nFlds = #args/2
-	 self:_accumulateOneFld(c1, fld1) -- accumulate first field
-	 for i = 1, nFlds do -- accumulate rest of the fields
-	    self:_accumulateOneFld(args[2*i-1], args[2*i])
-	 end
-      end,
-      combine = function (self, c1, fld1, ...)
-	 local args = {...} -- package up rest of args as table
-	 local nFlds = #args/2
-	 self:_assign(c1, fld1) -- assign first field
-	 for i = 1, nFlds do -- accumulate rest of the fields
-	    self:_accumulateOneFld(args[2*i-1], args[2*i])
-	 end	 
-      end,      
+	 end or
+	 function (self, c1, fld1, ...)
+	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	 end,
+      combine = isNumberType and
+	 function (self, c1, fld1, ...)
+	    local args = {...} -- package up rest of args as table
+	    local nFlds = #args/2
+	    self:_assign(c1, fld1) -- assign first field
+	    for i = 1, nFlds do -- accumulate rest of the fields
+	       self:_accumulateOneFld(args[2*i-1], args[2*i])
+	    end	 
+	 end or
+	 function (self, c1, fld1, ...)
+	    assert(false, "CartField:combine: Combine only works on numeric fields")
+	 end,	 
       layout = function (self)
 	 if self._layout == rowMajLayout then
 	    return "row-major"
