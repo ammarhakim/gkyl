@@ -36,6 +36,9 @@ setmetatable(Advection, { __call = function (self, o) return self.new(self, o) e
 Advection.__index = {
    numEquations = function (self) return 1 end,
    numWaves = function (self) return 1 end,
+   velocity = function (self, dir)
+      return self._vel[dir]
+   end,
    flux = function (self, dir, qIn, fOut)
       fOut[1] = self._vel[dir]*qIn[1]
    end,
@@ -52,6 +55,22 @@ Advection.__index = {
 	 amdq[1] = s[1]*waves[1][1]
       else
 	 apdq[1] = s[1]*waves[1][1]
+      end
+   end,
+   fluxCoeff = function (self, dir, basis, qIn, flux)
+      for i = 1, basis:numBasis() do
+	 flux[i] = self._vel[dir]*qIn[i]
+      end
+   end,
+   numericalFluxCoeff = function (self, dir, basis, qSurfL, qSurfR, flux)
+      if self._vel[dir] > 0 then
+	 for i = 1, basis:numSurfBasis() do
+	    flux[i] = self._vel[dir]*qSurfL[i]
+	 end
+      else
+	 for i = 1, basis:numSurfBasis() do
+	    flux[i] = self._vel[dir]*qSurfR[i]
+	 end
       end
    end,
 }
