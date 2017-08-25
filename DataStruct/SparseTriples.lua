@@ -39,8 +39,8 @@ function SparseTriples:new(tbl)
 end
 setmetatable(SparseTriples, { __call = function (self, o) return self.new(self, o) end })
 
--- set callable methods
-SparseTriples.__index = {
+-- callable methods
+local sparseTriple_funcs = {
    numRows = function(self)
       return self._nRows
    end,
@@ -54,10 +54,16 @@ SparseTriples.__index = {
       self._tmpTriple.i, self._tmpTriple.j, self._tmpTriple.val = i, j, val
       self._triples:push(self._tmpTriple)
    end,
-   g = function (self, n)
-      return self._triples[n]
-   end,
 }
+
+-- dispatch object calls
+SparseTriples.__index = function (self, k)
+   if type(k) == "number" then
+      return self._triples[k]
+   else
+      return sparseTriple_funcs[k]
+   end
+end
 
 return {SparseTriples = SparseTriples}
 

@@ -19,7 +19,7 @@ us.
 You must build and install the dependencies yourself, or use existing
 builds for your system. Most supercomputer centers have optimized,
 pre-built libraries for most dependencies. On these systems, you will
-probably only need to install LuaJIT yourself.
+probably only need to install LuaJIT.
 
 Build instructions for dependencies are provided in the build sections
 below. Gkyl depends on the following tools and packages:
@@ -48,15 +48,26 @@ built only once.
 
 Once you have all dependencies installed, you can build Gkyl
 itself. Gkyl uses the Waf build system. You do NOT need to install waf
-as it is included with the distribution. To build and install the gkyl
-executable do:
+as it is included with the distribution. To configure gkyl for
+building do
+
+- Copy the configure-par.sh-in script to configure-par.sh
+
+- Modify this script to reflect the locations of various libraries on
+  your machine. In particular, if you are using pre-built libraries
+  you will likely need to change the information about MPI and ADIOS.
+
+- Run the configure-par.sh script
+
+Once the configuration is complete, run the following command to build
+and install:
 
 ~~~~~~~
-./waf --prefix=$HOME/gkylsoft/gkyl configure build install
+./waf build install
 ~~~~~~~
 
-The builds are created in a 'build' directory. The executable is
-build/gkyl. It takes a single parameter, the name of the LuaJIT script
+The builds are created in a 'build-par' directory. The executable is
+build-par/gkyl. It takes a single parameter, the name of the LuaJIT script
 to run. Note that, in general, you **can not** run the executable from
 the build directory. (The reason for this is that besides the
 executable a bunch of LuaJIT files are also needed to run most

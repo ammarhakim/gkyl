@@ -25,12 +25,12 @@ function test_1()
 
    assert_equal(2, st:size(), "Testing size")
 
-   local t = st:g(1)
+   local t = st[1]
    assert_equal(1, t.i, "Testing triple")
    assert_equal(1, t.j, "Testing triple")
    assert_equal(34.5, t.val, "Testing triple")
 
-   t = st:g(2)
+   t = st[2]
    assert_equal(1, t.i, "Testing triple")
    assert_equal(2, t.j, "Testing triple")
    assert_equal(44.5, t.val, "Testing triple")
