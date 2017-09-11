@@ -103,6 +103,7 @@ main(int argc, char **argv) {
   // numeric limits
   varDefs << "GKYL_MAX_DOUBLE = " << std::numeric_limits<double>::max() << std::endl;
   varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
+  varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   
   // set some JIT parameters to fiddle around with optimizations
   varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60')" << std::endl;
