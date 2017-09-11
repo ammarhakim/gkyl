@@ -340,7 +340,7 @@ local function Field_meta_ctor(elct)
 	 local rank = Mpi.Comm_rank(comm)
 	 -- setup ADIOS for IO
 	 Adios.init_noxml(comm)
-	 --Adios.set_max_buffer_size(16) -- 16 MB chunks
+	 --Adios.set_max_buffer_size(16) -- 16 MB chunks	 
 
 	 local ndim = self:ndim()
 	 local localRange, globalRange = self:localRange(), self:globalRange()
