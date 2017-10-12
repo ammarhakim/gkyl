@@ -43,7 +43,8 @@ function ProjectOnBasis:new(tbl)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
-   local N = self._basis:polyOrder()+1 -- number of quadrature points in each direction
+   local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- number of quadrature points in each direction
+
    -- 1D weights and ordinates
    local ordinates, weights = GaussQuadRules.ordinates[N], GaussQuadRules.weights[N]
 
