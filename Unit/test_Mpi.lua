@@ -219,6 +219,19 @@ function test_6(comm)
    Mpi.Barrier(comm)
 end
 
+-- SHM
+function test_7(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 4 then
+      log("Test for SHM calls not run as number of procs not exactly 4")
+      return
+   end
+
+   local shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
+   assert_equal(4, Mpi.Comm_size(shmComm), "Checking number of ranks")
+end   
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -227,6 +240,7 @@ test_3(Mpi.COMM_WORLD)
 test_4(Mpi.COMM_WORLD)
 test_5(Mpi.COMM_WORLD)
 test_6(Mpi.COMM_WORLD)
+test_7(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

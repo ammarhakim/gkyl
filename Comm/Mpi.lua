@@ -23,6 +23,7 @@ ffi.cdef [[
   typedef struct MPI_Status_type *MPI_Status;
   typedef struct MPI_Group_type *MPI_Group;
   typedef struct MPI_Request_type *MPI_Request;
+  typedef struct MPI_Info_type *MPI_Info;
 
   // size of various objects
   int sizeof_MPI_Status();
@@ -36,6 +37,10 @@ ffi.cdef [[
   MPI_Comm get_MPI_COMM_SELF();
   MPI_Request get_MPI_REQUEST_NULL();
   MPI_Status *getPtr_MPI_STATUS_IGNORE();
+
+  // SHM methods
+  MPI_Info get_MPI_INFO_NULL();
+  int get_MPI_COMM_TYPE_SHARED();
 
   // Datatypes
   MPI_Datatype get_MPI_CHAR();
@@ -78,6 +83,9 @@ ffi.cdef [[
   int MPI_Comm_size(MPI_Comm comm, int *size);
   int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);  
 
+  // SHM calls
+  int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
+
   // point-to-point communication
   int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
   int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
@@ -113,6 +121,9 @@ _M.COMM_NULL = ffi.C.get_MPI_COMM_NULL()
 _M.COMM_SELF = ffi.C.get_MPI_COMM_SELF()
 _M.REQUEST_NULL = ffi.C.get_MPI_REQUEST_NULL()
 _M.STATUS_IGNORE = ffi.C.getPtr_MPI_STATUS_IGNORE()
+
+_M.INFO_NULL = ffi.C.get_MPI_INFO_NULL()
+_M.COMM_TYPE_SHARED = ffi.C.get_MPI_COMM_TYPE_SHARED()
 
 -- Object sizes
 _M.SIZEOF_STATUS = ffi.C.sizeof_MPI_Status()
@@ -211,6 +222,13 @@ end
 function _M.Comm_dup(comm)
    local c = new_MPI_Comm()
    local err = ffi.C.MPI_Comm_dup(getObj(comm, "MPI_Comm[1]"), c)
+   return c
+end
+
+-- MPI_Comm_split_type
+function _M.Comm_split_type(comm, split_type, key, info)
+   local c = new_MPI_Comm()
+   local err = ffi.C.MPI_Comm_split_type(getObj(comm, "MPI_Comm[1]"), split_type, key, info, c)
    return c
 end
 
