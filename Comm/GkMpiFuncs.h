@@ -18,6 +18,8 @@ extern "C" {
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_WORLD);
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_NULL);
     DECL_GET_MPI_OBJECT(Comm, MPI_COMM_SELF);
+    DECL_GET_MPI_OBJECT(Info, MPI_INFO_NULL);
+    
     DECL_GET_MPI_OBJECT(Request, MPI_REQUEST_NULL);
     DECL_GET_MPI_OBJECT_PTR(Status, MPI_STATUS_IGNORE);
 
@@ -56,6 +58,9 @@ extern "C" {
     DECL_GET_MPI_OBJECT(Op, MPI_BXOR);
     DECL_GET_MPI_OBJECT(Op, MPI_MINLOC);
     DECL_GET_MPI_OBJECT(Op, MPI_MAXLOC);
+
+    // Constants
+    DECL_INT_OBJECT(MPI_COMM_TYPE_SHARED);
 
     // Some utility functions to allow accessing non-opaque MPI types
 
