@@ -33,6 +33,8 @@ end
 
 -- Comm and Groups
 function test_1(comm)
+   assert_equal(true, Mpi.Is_comm_valid(comm))
+   
    local sz = Mpi.Comm_size(comm)
    local rank = Mpi.Comm_rank(comm)
    local sendbuf = new("int[1]")
