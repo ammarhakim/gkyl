@@ -24,6 +24,7 @@ ffi.cdef [[
   typedef struct MPI_Group_type *MPI_Group;
   typedef struct MPI_Request_type *MPI_Request;
   typedef struct MPI_Info_type *MPI_Info;
+  typedef struct MPI_Win_type *MPI_Win;
 
   // size of various objects
   int sizeof_MPI_Status();
@@ -85,6 +86,7 @@ ffi.cdef [[
 
   // SHM calls
   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
+  int MPI_Win_allocate_shared (int size, int disp_unit, MPI_Info info, MPI_Comm comm, void *baseptr, MPI_Win *win);
 
   // point-to-point communication
   int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
@@ -166,6 +168,7 @@ _M.MAXLOC = ffi.C.get_MPI_MAXLOC();
 
 -- some types for use in MPI functions
 local int_1 = typeof("int[1]")
+local voidp = typeof("void*")
 
 -- ctors for various MPI objects: MPI_Status object is not a opaque
 -- pointer and so we need to allocate memory for it. Other object
@@ -183,6 +186,9 @@ local function new_MPI_Group()
 end
 local function new_MPI_Request()
    return new("MPI_Request[1]")
+end
+local function new_MPI_Win()
+   return new("MPI_Win[1]")
 end
 
 -- de-reference if object is a pointer
@@ -230,6 +236,14 @@ function _M.Comm_split_type(comm, split_type, key, info)
    local c = new_MPI_Comm()
    local err = ffi.C.MPI_Comm_split_type(getObj(comm, "MPI_Comm[1]"), split_type, key, info, c)
    return c
+end
+
+-- MPI_Win_allocate_shared
+function _M.Win_allocate_shared(sz, disp_unit, info, comm)
+   local w = new_MPI_Win()
+   local baseptr = int_1() -- assuming
+   local err = ffi.C.MPI_Win_allocate_shared(sz, disp_unit, info, getObj(comm, "MPI_Comm[1]"), baseptr, w)
+   return baseptr, w
 end
 
 -- MPI_Get_count
@@ -325,6 +339,11 @@ function _M.Split_comm(comm, ranks)
    local grp = _M.Comm_group(comm)
    local newGrp = _M.Group_incl(grp, #ranks, ranks:data())
    return _M.Comm_create(comm, newGrp)
+end
+
+-- Check if the communicator is NULL
+function _M.Is_comm_valid(comm)
+   return getObj(comm, "MPI_Comm[1]") ~=  _M.COMM_NULL
 end
 
 return _M

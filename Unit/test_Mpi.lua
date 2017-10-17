@@ -136,6 +136,9 @@ function test_4(comm)
    if rnk < 2 then
       local newSz = Mpi.Comm_size(newComm)
       assert_equal(2, newSz, "Testing new comminucator size")
+      assert_equal(true, Mpi.Is_comm_valid(newComm), "Checking if comm is valid")
+   else
+      assert_equal(false, Mpi.Is_comm_valid(newComm), "Checking if comm is valid")
    end
    Mpi.Barrier(comm)
 end
