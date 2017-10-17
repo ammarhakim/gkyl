@@ -38,8 +38,6 @@ ffi.cdef [[
   MPI_Comm get_MPI_COMM_SELF();
   MPI_Request get_MPI_REQUEST_NULL();
   MPI_Status *getPtr_MPI_STATUS_IGNORE();
-
-  // SHM methods
   MPI_Info get_MPI_INFO_NULL();
   int get_MPI_COMM_TYPE_SHARED();
 
@@ -84,7 +82,7 @@ ffi.cdef [[
   int MPI_Comm_size(MPI_Comm comm, int *size);
   int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);  
 
-  // SHM calls
+  // Win & SHM calls
   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
   int MPI_Win_allocate_shared (int size, int disp_unit, MPI_Info info, MPI_Comm comm, void *baseptr, MPI_Win *win);
 
@@ -331,7 +329,8 @@ function _M.Comm_create(comm, group)
    return c
 end
 
--- Convenience functions
+-- Convenience functions (these are not wrappers over MPI but make
+-- some things a little cleaner)
 
 -- Collect 'ranks' from 'comm' and create a new communicator with just
 -- those ranks. The 'ranks' parameter must be of a Linalg.IntVec object
