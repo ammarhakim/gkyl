@@ -72,6 +72,24 @@ local function AllocShared_meta_ctor(elct)
       local v = new(ct)
       v._size = num
       v._data, v._win = sharedAlloc(comm, elmSz*num)
+
+      local rnk = Mpi.Comm_rank(comm)
+      local nr = Mpi.Comm_size(comm)
+      -- calculate local range of owned indices
+      local baseShape = math.floor(num/nr)
+      local remCells = num % nr -- extra cells left over
+
+      local shape, start = {}, {}
+      for c = 1, nr do
+      	 shape[c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell if any remain
+      	 remCells = remCells-1
+      end
+      start[1] = 1
+      for c = 2, nr do
+      	 start[c] = start[c-1]+shape[c-1]
+      end
+      v._s, v._e = start[rnk+1], start[rnk+1]+shape[rnk+1]-1
+      
       return v
    end
 
@@ -87,10 +105,18 @@ local function AllocShared_meta_ctor(elct)
       end,      
       size = function(self)
 	 return self._size
+      end,
+      lower = function (self)
+	 return self._s
+      end,
+      upper = function (self)
+	 return self._e
       end,      
       delete = function (self)
 	 sharedFree(self._win, self._data)
-      end
+      end,
+      parIter = function (self)
+      end,
    }
    local alloc_mt = {
       __new = function (ct, comm, num)
@@ -114,7 +140,7 @@ local function AllocShared_meta_ctor(elct)
 	 self:delete()
       end,
    }
-   return metatype(typeof("struct { int32_t _size; MPI_Win *_win; $* _data; }", elct), alloc_mt)
+   return metatype(typeof("struct { int32_t _size; int32_t _s, _e; MPI_Win *_win; $* _data; }", elct), alloc_mt)
 end
 
 -- function to create an allocator for custom type
