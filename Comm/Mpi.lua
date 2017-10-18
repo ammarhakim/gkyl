@@ -89,6 +89,7 @@ ffi.cdef [[
   int MPI_Win_shared_query(MPI_Win win, int rank, MPI_Aint *size, int *disp_unit, void *baseptr);
   int MPI_Win_lock_all(int assert, MPI_Win win);
   int MPI_Win_unlock_all(MPI_Win win);
+  int MPI_Win_free(MPI_Win *win);
 
   // point-to-point communication
   int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
@@ -261,6 +262,10 @@ end
 -- MPI_Win_unlock_all
 function _M.Win_unlock_all(win)
    local err = ffi.C.MPI_Win_unlock_all(getObj(win, "MPI_Win[1]"))
+end
+-- MPI_Win_free
+function _M.Win_free(win)
+   local err = ffi.C.MPI_Win_free(win)
 end
 
 -- MPI_Get_count
