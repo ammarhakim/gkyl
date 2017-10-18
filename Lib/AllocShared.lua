@@ -106,6 +106,9 @@ local function AllocShared_meta_ctor(elct)
       size = function(self)
 	 return self._size
       end,
+      localSize = function (self)
+	 return self._e-self._s+1
+      end,
       lower = function (self)
 	 return self._s
       end,
@@ -114,8 +117,6 @@ local function AllocShared_meta_ctor(elct)
       end,      
       delete = function (self)
 	 sharedFree(self._win, self._data)
-      end,
-      parIter = function (self)
       end,
    }
    local alloc_mt = {
