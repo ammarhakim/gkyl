@@ -25,6 +25,7 @@ ffi.cdef [[
   typedef struct MPI_Request_type *MPI_Request;
   typedef struct MPI_Info_type *MPI_Info;
   typedef struct MPI_Win_type *MPI_Win;
+  typedef unsigned MPI_Aint; /* Not sure if this is correct, but it seems to work */
 
   // size of various objects
   int sizeof_MPI_Status();
@@ -84,7 +85,10 @@ ffi.cdef [[
 
   // Win & SHM calls
   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
-  int MPI_Win_allocate_shared (int size, int disp_unit, MPI_Info info, MPI_Comm comm, void *baseptr, MPI_Win *win);
+  int MPI_Win_allocate_shared (MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm, void *baseptr, MPI_Win *win);
+  int MPI_Win_shared_query(MPI_Win win, int rank, MPI_Aint *size, int *disp_unit, void *baseptr);
+  int MPI_Win_lock_all(int assert, MPI_Win win);
+  int MPI_Win_unlock_all(MPI_Win win);
 
   // point-to-point communication
   int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
@@ -166,7 +170,8 @@ _M.MAXLOC = ffi.C.get_MPI_MAXLOC();
 
 -- some types for use in MPI functions
 local int_1 = typeof("int[1]")
-local voidp = typeof("void*")
+local uint_1 = typeof("unsigned[1]")
+local voidp = typeof("void *[1]")
 
 -- ctors for various MPI objects: MPI_Status object is not a opaque
 -- pointer and so we need to allocate memory for it. Other object
@@ -235,13 +240,27 @@ function _M.Comm_split_type(comm, split_type, key, info)
    local err = ffi.C.MPI_Comm_split_type(getObj(comm, "MPI_Comm[1]"), split_type, key, info, c)
    return c
 end
-
 -- MPI_Win_allocate_shared
 function _M.Win_allocate_shared(sz, disp_unit, info, comm)
    local w = new_MPI_Win()
-   local baseptr = int_1() -- assuming
+   local baseptr = voidp()
    local err = ffi.C.MPI_Win_allocate_shared(sz, disp_unit, info, getObj(comm, "MPI_Comm[1]"), baseptr, w)
-   return baseptr, w
+   return baseptr[0], w
+end
+-- MPI_Win_shared_query
+function _M.Win_shared_query(win, rank)
+   local sz, du = uint_1(), int_1()
+   local baseptr = voidp()
+   local err = ffi.C.MPI_Win_shared_query(getObj(win, "MPI_Win[1]"), rank, sz, du, baseptr)
+   return sz[0], du[0], baseptr[0]
+end
+-- MPI_Win_lock_all
+function _M.Win_lock_all(assert, win)
+   local err = ffi.C.MPI_Win_lock_all(assert, getObj(win, "MPI_Win[1]"))
+end
+-- MPI_Win_unlock_all
+function _M.Win_unlock_all(win)
+   local err = ffi.C.MPI_Win_unlock_all(getObj(win, "MPI_Win[1]"))
 end
 
 -- MPI_Get_count
