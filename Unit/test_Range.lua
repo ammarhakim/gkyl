@@ -8,6 +8,7 @@
 local ffi  = require "ffi"
 local Unit = require "Unit"
 local Range = require "Lib.Range"
+local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -353,6 +354,43 @@ function test_20()
    assert_equal(r:volume(), count, "Checking if iterator bumped over full range")   
 end
 
+function test_21()
+   local r = Range.Range({1, 1}, {10, 10})
+   local sidx = Lin.IntVec(r:ndim())
+
+   -- defaults
+   for d = 1, r:ndim() do
+      sidx[d] = r:lower(d)
+   end
+
+   local count = 0
+   for idx in r:colMajorIter(sidx, r:volume()) do
+      count = count+1
+   end
+   assert_equal(r:volume(), count, "Checking if iterator bumped over full range")
+
+   -- starting at (5,5) over remaining domain
+   sidx[1] = 5; sidx[2] = 5
+   count = 0
+   for idx in r:rowMajorIter(sidx) do
+      count = count+1
+   end
+   assert_equal(56, count, "Checking if iterator bumped over full range")
+
+   count = 0
+   for idx in r:colMajorIter(sidx) do
+      count = count+1
+   end
+   assert_equal(56, count, "Checking if iterator bumped over full range")
+
+   -- starting at (5,5) over 10 cells
+   count = 0
+   for idx in r:rowMajorIter(sidx, 10) do
+      count = count+1
+   end
+   assert_equal(10, count, "Checking if iterator bumped over full range")      
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -374,6 +412,7 @@ test_17()
 test_18()
 test_19()
 test_20()
+test_21()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
