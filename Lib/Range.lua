@@ -27,6 +27,12 @@ ffi.cdef [[ typedef struct { int8_t _ndim; int32_t _lower[6]; int32_t _upper[6];
 local function make_range_iter(si, ei, incr)
    return function (iterState)
       if iterState.isEmpty then return nil end -- nothing to do for empty range
+
+      if iterState.numBumps >= iterState.maxBumps then
+	 return nil -- if bumped enough times aborting
+      else
+	 iterState.numBumps = iterState.numBumps+1
+      end
       
       local idx = iterState.currIdx
       if iterState.isFirst then
@@ -172,20 +178,37 @@ local range_mt = {
 	 end
 	 return false
       end,
-      _iter = function (self, iter_func)
-	 local iterState = { isFirst = true, isEmpty = self:volume() == 0 and true or false }
-	 iterState.currIdx = Lin.IntVec(self:ndim())
-	 for dir = 1, self:ndim() do
-	    iterState.currIdx[dir] = self:lower(dir)
-	 end
-	 iterState.range = self
+      _iter = function (self, iter_func, idxStart, maxBumps)
+	  -- package up iterator state into table
+	 local iterState = {
+	    isFirst = true, numBumps = 0,
+	    isEmpty = self:volume() == 0 and true or false,
+	    currIdx = idxStart,
+	    maxBumps = maxBumps,
+	    range = self
+	 }
+
 	 return iter_func, iterState
       end,
       colMajorIter = function (self)
-	 return self:_iter( make_range_iter(1, self:ndim(), 1) )
+	 idxStart = Lin.IntVec(self:ndim())
+	 for dir = 1, self:ndim() do
+	    idxStart[dir] = self:lower(dir)
+	 end	 
+	 return self:_iter( make_range_iter(1, self:ndim(), 1), idxStart, self:volume() )
       end,
       rowMajorIter = function (self)
-	 return self:_iter( make_range_iter(self:ndim(), 1, -1) )
+	 idxStart = Lin.IntVec(self:ndim())
+	 for dir = 1, self:ndim() do
+	    idxStart[dir] = self:lower(dir)
+	 end	 
+	 return self:_iter( make_range_iter(self:ndim(), 1, -1), idxStart, self:volume() )
+      end,
+      colMajorSubIter = function (self, idxStart, maxBump)
+	 return self:_iter( make_range_iter(1, self:ndim(), 1), idxStart, maxBump )
+      end,
+      rowMajorSubIter = function (self, idxStart, maxBump)
+	 return self:_iter( make_range_iter(self:ndim(), 1, -1), idxStart, maxBump )
       end,      
    }
 }

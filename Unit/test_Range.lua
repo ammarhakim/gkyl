@@ -338,6 +338,21 @@ function test_19()
    assert_equal(rshift:upper(2)-r1:upper(2), offset, "Checking offset")
 end
 
+function test_20()
+   local r = Range.Range({1, 1}, {10, 10})
+   local count = 0
+   for idx in r:colMajorIter() do
+      count = count+1
+   end
+   assert_equal(r:volume(), count, "Checking if iterator bumped over full range")
+
+   count = 0
+   for idx in r:rowMajorIter() do
+      count = count+1
+   end
+   assert_equal(r:volume(), count, "Checking if iterator bumped over full range")   
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -358,6 +373,7 @@ test_16()
 test_17()
 test_18()
 test_19()
+test_20()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

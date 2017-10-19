@@ -23,8 +23,7 @@ local function sharedAlloc(comm, sz)
    -- allocated memory. The communicate 'comm' must be of type
    -- MPI_COMM_TYPE_SHARED
 
-   local data, win = nil, nil
-   local ssz, du
+   local data, win, ssz, du
    if Mpi.Comm_rank(comm) == 0 then
       -- allocate all memory on rank 0
       data, win = Mpi.Win_allocate_shared(sz, 1, Mpi.INFO_NULL, comm)
@@ -78,7 +77,6 @@ local function AllocShared_meta_ctor(elct)
       -- calculate local range of owned indices
       local baseShape = math.floor(num/nr)
       local remCells = num % nr -- extra cells left over
-
       local shape, start = {}, {}
       for c = 1, nr do
       	 shape[c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell if any remain
