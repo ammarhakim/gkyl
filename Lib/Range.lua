@@ -183,33 +183,36 @@ local range_mt = {
 	 local iterState = {
 	    isFirst = true, numBumps = 0,
 	    isEmpty = self:volume() == 0 and true or false,
-	    currIdx = idxStart,
 	    maxBumps = maxBumps,
 	    range = self
 	 }
+	 iterState.currIdx = Lin.IntVec(self:ndim())
+	 for dir = 1, self:ndim() do
+	    iterState.currIdx[dir] = idxStart[dir]
+	 end
 
 	 return iter_func, iterState
       end,
-      colMajorIter = function (self)
-	 idxStart = Lin.IntVec(self:ndim())
-	 for dir = 1, self:ndim() do
-	    idxStart[dir] = self:lower(dir)
+      colMajorIter = function (self, idxStart, maxBump)
+	 local idxStart = idxStart
+	 if idxStart == nil then
+	    idxStart = Lin.IntVec(self:ndim())
+	    for dir = 1, self:ndim() do
+	       idxStart[dir] = self:lower(dir)
+	    end
+	 end
+	 return self:_iter( make_range_iter(1, self:ndim(), 1), idxStart, maxBump and maxBump or self:volume() )
+      end,
+      rowMajorIter = function (self, idxStart, maxBump)
+	 local idxStart = idxStart
+	 if idxStart == nil then
+	    idxStart = Lin.IntVec(self:ndim())
+	    for dir = 1, self:ndim() do
+	       idxStart[dir] = self:lower(dir)
+	    end
 	 end	 
-	 return self:_iter( make_range_iter(1, self:ndim(), 1), idxStart, self:volume() )
+	 return self:_iter( make_range_iter(self:ndim(), 1, -1), idxStart, maxBump and maxBump or self:volume() )
       end,
-      rowMajorIter = function (self)
-	 idxStart = Lin.IntVec(self:ndim())
-	 for dir = 1, self:ndim() do
-	    idxStart[dir] = self:lower(dir)
-	 end	 
-	 return self:_iter( make_range_iter(self:ndim(), 1, -1), idxStart, self:volume() )
-      end,
-      colMajorSubIter = function (self, idxStart, maxBump)
-	 return self:_iter( make_range_iter(1, self:ndim(), 1), idxStart, maxBump )
-      end,
-      rowMajorSubIter = function (self, idxStart, maxBump)
-	 return self:_iter( make_range_iter(self:ndim(), 1, -1), idxStart, maxBump )
-      end,      
    }
 }
 -- construct Range object, attaching meta-type to it
