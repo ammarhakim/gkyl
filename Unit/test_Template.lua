@@ -190,7 +190,20 @@ end
 ]])
 -- function to compute fluctuations using q-wave method
 local qFluctuations = qFluctuationsTempl {}
-print(qFluctuations)
+
+
+local getRowMajorInvIndexerTempl = xsys.template([[
+return function (ac, range, loc, idx)
+   local n = loc
+|   for i = 1, NDIM do
+      local q, r = div(n, ac[${i}])
+      idx[${i}] = q+range:lower(${i})-1
+      n = r
+|   end
+end
+]])
+local getRowMajorInvIndexer  = getRowMajorInvIndexerTempl { NDIM=2 }
+print(getRowMajorInvIndexer)
 
 test_1()
 test_2()

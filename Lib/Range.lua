@@ -223,6 +223,16 @@ _M.Range = metatype(typeof("Range_t"), range_mt)
 -- Linear indexers, mapping n-dimensional index to a linear index
 --------------------------------------------------------------------------------
 
+ffi.cdef [[ 
+  typedef struct { int quot, rem; } div_t;
+  div_t div(int n, int d); 
+]]
+-- function to compute quotient and remainder from integer division
+local function div(n, d)
+   local r = ffi.C.div(n, d) -- call std C library
+   return r.quot, r.rem
+end
+
 -- The following set of functions takes explicit N-dimensional
 -- (i,j,...) indices and map it to an integer.
 local function getIndex1(ac, i1)
@@ -336,6 +346,49 @@ function _M.makeColMajorGenIndexer(range)
    local idxr = genIndexerFunctions[range:ndim()]
    return function (idx)
       return idxr(ac, idx)
+   end
+end
+
+-- inverse function is implemented as a template to unroll inner loop
+local getRowMajorInvIndexerTempl = xsys.template([[
+return function (ac, range, loc, idx, div)
+   local n = loc-1
+|   for i = 1, NDIM do
+      local q, r = div(n, ac[${i}])
+      idx[${i}] = q+range:lower(${i})
+      n = r
+|   end
+end
+]])
+
+-- package up into a table
+local invRowIndexerFunctions = {
+   loadstring(getRowMajorInvIndexerTempl { NDIM = 1 })(),
+   loadstring(getRowMajorInvIndexerTempl { NDIM = 2 })(),
+   loadstring(getRowMajorInvIndexerTempl { NDIM = 3 })(),
+   loadstring(getRowMajorInvIndexerTempl { NDIM = 4 })(),
+   loadstring(getRowMajorInvIndexerTempl { NDIM = 5 })(),
+   loadstring(getRowMajorInvIndexerTempl { NDIM = 6 })()
+}
+
+-- compute index given linear location in range (NOT USED BUT PROVIDED
+-- FOR REFERENCE)
+local function getRowMajorInvIndexer(ac, range, loc, idx)
+   local n = loc-1
+   for i = 1, range:ndim() do
+      local q, r = div(n, ac[i])
+      idx[i] = q+range:lower(i)
+      n = r
+   end
+end
+
+-- Following functions return inverse indexers: i.e. give a scalar (1
+-- based) location, they set an (NDIM) index into the range
+function _M.makeRowMajorInvIndexer(range)
+   local ac = calcRowMajorIndexerCoeff(range)
+   local invFunc = invRowIndexerFunctions[range:ndim()]
+   return function (loc, idx)
+      invFunc(ac, range, loc, idx, div)
    end
 end
 
