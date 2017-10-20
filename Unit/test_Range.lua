@@ -391,6 +391,46 @@ function test_21()
    assert_equal(10, count, "Checking if iterator bumped over full range")      
 end
 
+function test_22()
+   local r = Range.Range({-1}, {10})
+   local invIndexer = Range.makeRowMajorInvIndexer(r)
+   local idx = Lin.IntVec(r:ndim())
+
+   local ix = r:lower(1)
+   for loc = 1, r:volume() do
+      invIndexer(loc, idx)
+      assert_equal(ix, idx[1], "Checking inverse indexer")
+      ix = ix+1
+   end
+end
+
+function test_23()
+   local r = Range.Range({-1, -5}, {1, 10})
+   local indexer = Range.makeRowMajorGenIndexer(r)
+   local invIndexer = Range.makeRowMajorInvIndexer(r)
+
+   local invIdx = Lin.IntVec(r:ndim())
+   for idx in r:rowMajorIter() do
+      invIndexer(indexer(idx), invIdx)
+      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
+   end
+end
+
+function test_24()
+   local r = Range.Range({-1, -5, 0}, {1, 10, 4})
+   local indexer = Range.makeRowMajorGenIndexer(r)
+   local invIndexer = Range.makeRowMajorInvIndexer(r)
+
+   local invIdx = Lin.IntVec(r:ndim())
+   for idx in r:rowMajorIter() do
+      invIndexer(indexer(idx), invIdx)
+      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
+      assert_equal(idx[3], invIdx[3], "Checking inv indexer")
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -413,6 +453,9 @@ test_18()
 test_19()
 test_20()
 test_21()
+test_22()
+test_23()
+test_24()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
