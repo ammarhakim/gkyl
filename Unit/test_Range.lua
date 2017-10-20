@@ -431,6 +431,46 @@ function test_24()
    end
 end
 
+function test_25()
+   local r = Range.Range({-1}, {10})
+   local invIndexer = Range.makeColMajorInvIndexer(r)
+   local idx = Lin.IntVec(r:ndim())
+
+   local ix = r:lower(1)
+   for loc = 1, r:volume() do
+      invIndexer(loc, idx)
+      assert_equal(ix, idx[1], "Checking inverse indexer")
+      ix = ix+1
+   end
+end
+
+function test_26()
+   local r = Range.Range({-1, -5}, {1, 10})
+   local indexer = Range.makeColMajorGenIndexer(r)
+   local invIndexer = Range.makeColMajorInvIndexer(r)
+
+   local invIdx = Lin.IntVec(r:ndim())
+   for idx in r:colMajorIter() do
+      invIndexer(indexer(idx), invIdx)
+      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
+   end
+end
+
+function test_27()
+   local r = Range.Range({-1, -5, 0}, {1, 10, 4})
+   local indexer = Range.makeColMajorGenIndexer(r)
+   local invIndexer = Range.makeColMajorInvIndexer(r)
+
+   local invIdx = Lin.IntVec(r:ndim())
+   for idx in r:colMajorIter() do
+      invIndexer(indexer(idx), invIdx)
+      assert_equal(idx[1], invIdx[1], "Checking inv indexer")
+      assert_equal(idx[2], invIdx[2], "Checking inv indexer")
+      assert_equal(idx[3], invIdx[3], "Checking inv indexer")
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -456,6 +496,10 @@ test_21()
 test_22()
 test_23()
 test_24()
+test_25()
+test_26()
+test_27()
+
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
