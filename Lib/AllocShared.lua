@@ -15,6 +15,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries
 local Mpi = require "Comm.Mpi"
+local LinearDecomp = require "Lib.LinearDecomp"
 
 -- Wrapper around MPI memory functions
 local function sharedAlloc(comm, sz)
@@ -72,21 +73,11 @@ local function AllocShared_meta_ctor(elct)
       v._size = num
       v._data, v._win = sharedAlloc(comm, elmSz*num)
 
-      local rnk = Mpi.Comm_rank(comm)
-      local nr = Mpi.Comm_size(comm)
-      -- calculate local range of owned indices
-      local baseShape = math.floor(num/nr)
-      local remCells = num % nr -- extra cells left over
-      local shape, start = {}, {}
-      for c = 1, nr do
-      	 shape[c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell if any remain
-      	 remCells = remCells-1
-      end
-      start[1] = 1
-      for c = 2, nr do
-      	 start[c] = start[c-1]+shape[c-1]
-      end
-      v._s, v._e = start[rnk+1], start[rnk+1]+shape[rnk+1]-1
+      local rnk, nr = Mpi.Comm_rank(comm), Mpi.Comm_size(comm)
+
+      -- calculate local range of owned indices      
+      local linDecomp = LinearDecomp.LinearDecomp { domSize = num, numSplit = nr }
+      v._s, v._e = linDecomp:lower(rnk+1), linDecomp:shape(rnk+1)
       
       return v
    end
