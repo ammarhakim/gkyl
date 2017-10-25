@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Decompose N elements equitably amongst a given number of pieces
+-- Decompose N elements equitably amongst a given number of "threads"
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -11,11 +11,9 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-local _M = {}
-
--- LinearDecomp ---------------------------------------------------------------
+-- LinearDecomp ----------------------------------------------------------------
 --
---  Decompose N elements equitably amongst a given number of pieces
+--  Decompose N elements equitably amongst a given number of "threads"
 --------------------------------------------------------------------------------
 
 local LinearDecomp = {}
@@ -26,7 +24,7 @@ function LinearDecomp:new(tbl)
    local domSize, numSplit = tbl.domSize, tbl.numSplit
    self._domSize, self._numSplit  = tbl.domSize, tbl.numSplit
 
-   -- calculate local starting index and shape
+   -- calculate starting index and shape for each thread
    local baseShape = math.floor(domSize/numSplit)
    local remCells = domSize % numSplit -- extra cells left over   
    self._shape, self._start = {}, {}
