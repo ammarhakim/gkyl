@@ -428,14 +428,14 @@ function _M.makeRowMajorInvIndexer(range)
    local ac = calcRowMajorIndexerCoeff(range)
    local invFunc = invRowIndexerFunctions[range:ndim()]
    return function (loc, idx)
-      invFunc(ac, range, loc, idx, div)
+      return invFunc(ac, range, loc, idx, div)
    end
 end
 function _M.makeColMajorInvIndexer(range)
    local ac = calcColMajorIndexerCoeff(range)
    local invFunc = invColIndexerFunctions[range:ndim()]
    return function (loc, idx)
-      invFunc(ac, range, loc, idx, div)
+      return invFunc(ac, range, loc, idx, div)
    end
 end
 
