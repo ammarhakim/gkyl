@@ -82,9 +82,25 @@ function test_3()
    assert_equal(0, qout[5]+qin[5], "Testing zero-tangent BC")
 end
 
+function test_4()
+   local bcConst = BoundaryCondition.Const { components = {2, 3}, values = {-1, -1} }
+   local qin, qout = Lin.Vec(5), Lin.Vec(5)
+
+   for i = 1, 5 do qin[i] = i end
+   for i = 1, 5 do qout[i] = 10 end
+   bcConst(1, 0.0, {}, qin, qout)
+
+   assert_equal(10, qout[1],  "Checking Const bc")
+   assert_equal(-1, qout[2], "Checking Const bc")
+   assert_equal(-1, qout[3], "Checking Const bc")
+   assert_equal(10, qout[4],  "Checking Const bc")
+   assert_equal(10, qout[5],  "Checking Const bc")
+end
+
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

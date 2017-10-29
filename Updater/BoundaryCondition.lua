@@ -39,6 +39,19 @@ function _M.Copy(tbl)
    end
 end
 
+-- constant BCs
+function _M.Const(tbl)
+   local cIdx = getComponents(tbl) -- components to apply to
+   local n = #cIdx -- number of components
+   local vals = tbl.values
+   assert(#vals == #cIdx, "Size of 'values' and 'components' fields must match ")
+   return function (dir, tm, xc, qin, qbc)
+      for i = 1, n do
+	 qbc[cIdx[i]] = vals[i]
+      end
+   end
+end
+
 -- Resuffle indices for various direction normal vectors. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {

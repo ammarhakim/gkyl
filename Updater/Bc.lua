@@ -70,7 +70,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 bc(dir, tCurr+dt, nil, qS, qG) -- TODO: PASS COORDINATES
       end
    end
-   return true, 1e37
+   return true, GKYL_MAX_DOUBLE
 end
 
 -- Methods for BC object
