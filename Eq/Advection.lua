@@ -11,7 +11,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
--- Constant velocity advection equation in 
+-- Constant velocity advection equation in upto NDIM=6
 local Advection = {}
 
 -- constructor
