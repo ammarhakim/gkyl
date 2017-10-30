@@ -13,6 +13,8 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
+local Lin = require "Lib.Linalg"
+
 local _M = {}
 
 ffi.cdef [[
@@ -41,6 +43,7 @@ ffi.cdef [[
   MPI_Status *getPtr_MPI_STATUS_IGNORE();
   MPI_Info get_MPI_INFO_NULL();
   int get_MPI_COMM_TYPE_SHARED();
+  int get_MPI_UNDEFINED();
 
   // Datatypes
   MPI_Datatype get_MPI_CHAR();
@@ -111,6 +114,7 @@ ffi.cdef [[
   int MPI_Group_size(MPI_Group group, int *size);
   int MPI_Group_incl(MPI_Group group, int n, const int ranks[], MPI_Group *newgroup);
   int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *newcomm);
+  int MPI_Group_translate_ranks(MPI_Group group1, int n, const int ranks1[], MPI_Group group2, int ranks2[]);
   
   // Global operators
   int MPI_Barrier(MPI_Comm comm);
@@ -129,6 +133,7 @@ _M.STATUS_IGNORE = ffi.C.getPtr_MPI_STATUS_IGNORE()
 
 _M.INFO_NULL = ffi.C.get_MPI_INFO_NULL()
 _M.COMM_TYPE_SHARED = ffi.C.get_MPI_COMM_TYPE_SHARED()
+_M.UNDEFINED = ffi.C.get_MPI_UNDEFINED()
 
 -- Object sizes
 _M.SIZEOF_STATUS = ffi.C.sizeof_MPI_Status()
@@ -351,6 +356,13 @@ function _M.Comm_create(comm, group)
    local err = ffi.C.MPI_Comm_create(
       getObj(comm, "MPI_Comm[1]"), getObj(group, "MPI_Group[1]"), c)
    return c
+end
+function _M.Group_translate_ranks(group1, ranks1, group2)
+   local n = #ranks1 -- ranks1
+   local ranks2 = Lin.IntVec(n) -- allocate memory for output
+   local err = ffi.C.MPI_Group_translate_ranks(
+      getObj(group1, "MPI_Group[1]"), n, ranks1:data(), getObj(group2, "MPI_Group[1]"), ranks2:data())
+   return ranks2
 end
 
 -- Convenience functions (these are not wrappers over MPI but make

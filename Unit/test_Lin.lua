@@ -194,6 +194,16 @@ function test_7()
    end   
 end
 
+function test_8()
+   local v = Lin.IntVec(10)
+   local dv = v:data()
+   for i = 0, #v-1 do dv[i] = i end
+
+   for i = 1, #v do
+      assert_equal(i-1, v[i], "Testing if setting data directly worked")
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -202,6 +212,7 @@ test_4()
 test_5()
 test_6()
 test_7()
+test_8()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

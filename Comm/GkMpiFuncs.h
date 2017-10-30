@@ -61,6 +61,7 @@ extern "C" {
 
     // Constants
     DECL_INT_OBJECT(MPI_COMM_TYPE_SHARED);
+    DECL_INT_OBJECT(MPI_UNDEFINED);
 
     // Some utility functions to allow accessing non-opaque MPI types
 
