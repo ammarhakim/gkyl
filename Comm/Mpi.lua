@@ -358,8 +358,8 @@ function _M.Comm_create(comm, group)
    return c
 end
 function _M.Group_translate_ranks(group1, ranks1, group2)
-   local n = #ranks1 -- ranks1
-   local ranks2 = Lin.IntVec(n) -- allocate memory for output
+   local n = #ranks1
+   local ranks2 = Lin.IntVec(n)
    local err = ffi.C.MPI_Group_translate_ranks(
       getObj(group1, "MPI_Group[1]"), n, ranks1:data(), getObj(group2, "MPI_Group[1]"), ranks2:data())
    return ranks2
