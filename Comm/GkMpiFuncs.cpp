@@ -59,6 +59,7 @@ GET_MPI_OBJECT(Op, MPI_MAXLOC);
 
 // Constants
 GET_INT_OBJECT(MPI_COMM_TYPE_SHARED);
+GET_INT_OBJECT(MPI_UNDEFINED);
 
 // utility functions
 void

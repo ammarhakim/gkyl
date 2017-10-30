@@ -235,7 +235,34 @@ function test_7(comm)
 
    local shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
    assert_equal(4, Mpi.Comm_size(shmComm), "Checking number of ranks")
-end   
+
+   Mpi.Barrier(comm)
+end
+
+-- Group_translate_ranks
+function test_8(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 4 then
+      log("Test for Group_translate_ranks not run as number of procs not exactly 4")
+      return
+   end
+
+   local shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
+
+   local worldGrp = Mpi.Comm_group(comm)
+   local shmGrp = Mpi.Comm_group(shmComm)
+
+   local worldRanks = Lin.IntVec(sz)
+   for d = 1, sz do worldRanks[d] = d-1 end -- ranks are indexed from 0
+   local shmRanks = Mpi.Group_translate_ranks(worldGrp, worldRanks, shmGrp)
+
+   for d = 1, #shmRanks do
+      assert_equal(worldRanks[d], shmRanks[d], "Checking rank mapping")
+   end
+
+   Mpi.Barrier(comm)
+end
 
 -- Run tests
 test_0(Mpi.COMM_WORLD)
@@ -246,6 +273,7 @@ test_4(Mpi.COMM_WORLD)
 test_5(Mpi.COMM_WORLD)
 test_6(Mpi.COMM_WORLD)
 test_7(Mpi.COMM_WORLD)
+test_8(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
