@@ -1,0 +1,14 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+
+PB(f,g) := diff(f,z1)*diff(g,z2) - diff(g,z1)*diff(f,z2)$
+doExpand(f,basis) := sum(f[i]*basis[i], i, 1, length(basis))$
+
+vars : [z1, z2]$
+basis : gsOrthoNorm(vars, makeSerendipBasis(vars, 1))$
+
+He : doExpand(H,basis)$
+fe : doExpand(f,basis)$
+
+volTerm(i) := innerProd(vars, 1, PB(basis[i],He)*fe, 1)$
+volTerms : makelist(fullratsimp(volTerm(i)), i, 1, length(basis))$
