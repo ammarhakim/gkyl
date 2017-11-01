@@ -135,8 +135,8 @@ function test_5()
       local perIds = decomposedRgn:boundarySubDomainIds(d)
       for p = 1, #perIds do
 	 local rlo, rup = decomposedRgn:subDomain(perIds[p].lower), decomposedRgn:subDomain(perIds[p].upper)
-	 showRange(string.format("Dir %d. Lower-side box", d), rlo)
-	 showRange(string.format("Dir %d. Upper-side box", d), rup)
+	 --showRange(string.format("Dir %d. Lower-side box", d), rlo)
+	 --showRange(string.format("Dir %d. Upper-side box", d), rup)
       end
    end
 
