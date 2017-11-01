@@ -38,7 +38,7 @@ function DecomposedRange:new(decomp)
    end
 
    self._cutsRange = Range.Range(ones, upper)
-   self._comm = decomp._comm   
+   self._commSet = decomp:commSet() -- set of communicators
    self._domains = RangeVec(self._cutsRange:volume())
 
    -- for periodic directions store "skeleton" sub-domains, i.e. those
@@ -76,8 +76,8 @@ setmetatable(DecomposedRange, { __call = function (self, o) return self.new(self
 
 -- set callable methods
 DecomposedRange.__index = {
-   comm = function (self)
-      return self._comm
+   commSet = function (self)
+      return self._commSet
    end,
    ndim = function (self)
       return self._cutsRange:ndim()
@@ -113,49 +113,62 @@ function CartProdDecomp:new(tbl)
    self._cutsRange = Range.Range(ones, tbl.cuts)
    self._useShared = tbl.useShared and tbl.useShared or false
 
-   self._comm = Mpi.COMM_WORLD
+   local comm, shmComm = Mpi.COMM_WORLD, nil
    -- create various communicators
    if self._useShared then
-      self._shmComm = Mpi.Comm_split_type(self._comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
+      shmComm = Mpi.Comm_split_type(comm, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
    else
       -- when not using MPI-SHM, make each processor its own "SHM"
       -- communicator (i.e each SHM comm has 1 proc)
       local ranks = Lin.IntVec(1)
-      ranks[1] = Mpi.Comm_rank(self._comm) -- only local rank is "shared"
-      self._shmComm = Mpi.Split_comm(self._comm, ranks)
+      ranks[1] = Mpi.Comm_rank(comm) -- only local rank is "shared"
+      shmComm = Mpi.Split_comm(comm, ranks)
    end
 
-   local worldSz = Mpi.Comm_size(self._comm)
-   local shmSz = Mpi.Comm_size(self._shmComm)
+   local worldSz = Mpi.Comm_size(comm)
+   local shmSz = Mpi.Comm_size(shmComm)
    
-   -- get mapping from global -> shared communicator ranks
-   local worldGrp = Mpi.Comm_group(self._comm)
-   local shmGrp = Mpi.Comm_group(self._shmComm)
-   local worldRanks = Lin.IntVec(worldSz)
-   for d = 1, worldSz do worldRanks[d] = d-1 end -- ranks are indexed from 0
-   local shmRanks = Mpi.Group_translate_ranks(worldGrp, worldRanks, shmGrp)
+   -- get mapping from shared -> global communicator ranks
+   local worldGrp = Mpi.Comm_group(comm)
+   local shmGrp = Mpi.Comm_group(shmComm)
+   local shmRanks = Lin.IntVec(shmSz)
+   for d = 1, shmSz do shmRanks[d] = d-1 end -- ranks are indexed from 0
+   local worldRanks = Mpi.Group_translate_ranks(shmGrp, shmRanks, worldGrp)
 
-   local zeroRanks = Lin.IntVec(worldSz/shmSz) -- len is number of nodes
-   local count = 1
-   -- collect all rank 0s from SHM comm and make a new communicator
-   for d = 1, #shmRanks do
-      if shmRanks[d] == 0 then
-	 zeroRanks[count] = worldRanks[d]
-	 count = count+1
-      end
+   -- store world rank corresponding to rank zero of shmComm
+   local nodeSz = worldSz/shmSz
+   local localZeroRanks = Lin.IntVec(nodeSz)
+   for d = 1, #localZeroRanks do localZeroRanks[d] = 0 end
+
+   -- collect global ranks corresponding to rank 0 of shmComm
+   local worldRank = Mpi.Comm_rank(comm) -- global rank of process
+   if worldRank % shmSz == 0 then
+      localZeroRanks[worldRank/shmSz+1] = worldRanks[1]
    end
-   self._nodeComm = Mpi.Split_comm(self._comm, zeroRanks)
+   local zeroRanks = Lin.IntVec(nodeSz)
+   Mpi.Allreduce(localZeroRanks:data(), zeroRanks:data(), nodeSz, Mpi.INT, Mpi.SUM, comm)
 
+   -- now create nodeComm from the collected rank zeros
+   local nodeComm = Mpi.Split_comm(comm, zeroRanks)
+
+   -- check if total number of domains specified by 'cuts' matches
+   -- number of MPI ranks in nodeComm
    if not tbl.__serTesting then -- skip check if just testing
-      if Mpi.Is_comm_valid(self._nodeComm) then
-	 if Mpi.Comm_size(self._nodeComm) ~= self._cutsRange:volume() then
+      if Mpi.Is_comm_valid(nodeComm) then
+	 if Mpi.Comm_size(nodeComm) ~= self._cutsRange:volume() then
 	    assert(false,
 		   string.format(
 		      "CartProdDecomp: Number of sub-domains (%d) and processors (%d) must match",
-		      self._cutsRange:volume(), Mpi.Comm_size(self._comm)))
+		      self._cutsRange:volume(), Mpi.Comm_size(nodeComm)))
 	 end
       end
    end
+
+   -- store various communicators in a table
+   self._commSet = {
+      comm = comm, sharedComm = shmComm, nodeComm = nodeComm
+   }
+   
    return self
 end
 -- make object callable, and redirect call to the :new method
@@ -163,14 +176,8 @@ setmetatable(CartProdDecomp, { __call = function (self, o) return self.new(self,
 
 -- set callable methods
 CartProdDecomp.__index = {
-   comm = function (self) -- global comm
-      return self._comm
-   end,
-   sharedComm = function (self) -- share comm
-      return self._shmComm
-   end,
-   nodeComm = function (self) -- node comm
-      return self._nodeComm
+   commSet = function (self)
+      return self._commSet
    end,
    ndim = function (self)
       return self._cutsRange:ndim()
