@@ -354,7 +354,9 @@ local function div(n, d)
    return r.quot, r.rem
 end
 
--- inverse function is implemented as a template to unroll inner loop
+-- inverse function is implemented as a template to unroll inner
+-- loop. (We need to pass the 'div' function as the generated code
+-- does not have access to the enclosing scope)
 local getRowMajorInvIndexerTempl = xsys.template([[
 return function (ac, range, loc, idx, div)
    local n = loc-1
@@ -389,7 +391,9 @@ end
 
 -----------
 
--- inverse function is implemented as a template to unroll inner loop
+-- inverse function is implemented as a template to unroll inner loop.
+-- (We need to pass the 'div' function as the generated code does not
+-- have access to the enclosing scope)
 local getColMajorInvIndexerTempl = xsys.template([[
 return function (ac, range, loc, idx, div)
    local n = loc-1
