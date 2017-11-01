@@ -17,16 +17,24 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local Range = require "Lib.Range"
 local Mpi = require "Comm.Mpi"
 
--- RectCart --------------------------------------------------------------------
---
--- A uniform Cartesian grid
---------------------------------------------------------------------------------
+-- Determine local domain index. This is complicated by the fact that
+-- when using MPI-SHM the processes that live in shmComm all have the
+-- same domain index. Hence, we need to use rank from nodeComm and
+-- broadcast it to everyone in shmComm.
+local function getSubDomIndex(nodeComm, shmComm)
+   local idx = new("int[1]")
+   if Mpi.Is_comm_valid(nodeComm) then
+      idx[0] = Mpi.Comm_rank(nodeComm)+1 -- sub-domains are indexed from 1
+   end
+   -- send from rank 0 of shmComm to everyone else: this works as rank
+   -- 0 of shmComm is contained in nodeComm
+   Mpi.Bcast(idx, 1, Mpi.INT, 0, shmComm)
+   return idx[0]
+end
 
--- Uniform Cartesian grid
-local RectCart = {}
--- constructor to make a new uniform grid
-function RectCart:new(tbl)
-   local self = setmetatable({}, RectCart)
+-- Method to initialize basic elements in a cartesian grid. Used by
+-- uniform and non-uniform grid objects
+local function initCartGrid(self, tbl)
    local cells = tbl.cells
    self._ndim = #cells -- dimensions
    -- default grid extents
@@ -67,9 +75,9 @@ function RectCart:new(tbl)
    if decomp then
       assert(decomp:ndim() == self._ndim, "Decomposition dimensions must be same as grid dimensions!")
       -- in parallel, we need to adjust local range      
-      self._comm = decomp:comm()
+      self._commSet = decomp:commSet()
       self._decomposedRange = decomp:decompose(self._globalRange)
-      local subDomIdx = Mpi.Comm_rank(self._comm)+1 -- sub-domains are indexed from 1
+      local subDomIdx = getSubDomIndex(self._commSet.nodeComm, self._commSet.sharedComm)
       self._block = subDomIdx
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
@@ -77,11 +85,24 @@ function RectCart:new(tbl)
       -- create a dummy decomp and use it to set the grid
       local cuts = {}
       for i = 1, self._ndim do cuts[i] = 1 end
-      local dec1 = DecompRegionCalc.CartProd { cuts = cuts }
-      self._comm = dec1:comm()
+      local dec1 = DecompRegionCalc.CartProd { cuts = cuts, useShared = true }
+      self._commSet = dec1:commSet()
       self._decomposedRange = dec1:decompose(self._globalRange)
       self._block = 1
    end
+end
+
+-- RectCart --------------------------------------------------------------------
+--
+-- A uniform Cartesian grid
+--------------------------------------------------------------------------------
+
+-- Uniform Cartesian grid
+local RectCart = {}
+-- constructor to make a new uniform grid
+function RectCart:new(tbl)
+   local self = setmetatable({}, RectCart)
+   initCartGrid(self, tbl)
    return self
 end
 -- make object callable, and redirect call to the :new method
@@ -89,8 +110,8 @@ setmetatable(RectCart, { __call = function (self, o) return self.new(self, o) en
 
 -- set callable methods
 RectCart.__index = {
-   comm = function (self)
-      return self._comm
+   commSet = function (self)
+      return self._commSet
    end,
    subGridId = function (self)
       return self._block
@@ -170,47 +191,7 @@ local NonUniformRectCart = {}
 function NonUniformRectCart:new(tbl)
    local self = setmetatable({}, NonUniformRectCart)
 
-   local cells = tbl.cells
-   self._ndim = #cells -- dimensions
-   -- default grid extents
-   local lo = tbl.lower and tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
-   local up = tbl.upper and tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
-
-   -- periodic directions
-   self._periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
-   -- construct table to indicate if directions are periodic  (default no directions are periodic)
-   self._isDirPeriodic = {false, false, false, false, false, false}
-   for _, dir in ipairs(self._periodicDirs) do
-      self._isDirPeriodic[dir] = true
-   end   
-  
-   self._lower = Lin.IntVec(self._ndim)
-   self._upper = Lin.IntVec(self._ndim)
-   self._numCells = Lin.IntVec(self._ndim)
-   self._currIdx = Lin.IntVec(self._ndim)
-   
-   for d = 1, #cells do
-      self._lower[d], self._upper[d] = lo[d], up[d]
-      self._numCells[d] = cells[d]
-   end
-   -- compute global range
-   local l, u = {}, {}
-   for d = 1, #cells do
-      l[d], u[d] = 1, cells[d]
-   end
-   self._globalRange = Range.Range(l, u)   
-   self._localRange = Range.Range(l, u)
-   self._block = 1 -- block number for use in parallel communications
-
-   local decomp = tbl.decomposition and tbl.decomposition or nil  -- decomposition
-   if decomp then
-      -- in parallel, we need to adjust local range
-      self._decomposedRange = decomp:decompose(self._globalRange)
-      local subDomIdx = Mpi.Comm_rank(self._comm)+1 -- sub-domains are indexed from 1
-      self._block = subDomIdx
-      local localRange = self._decomposedRange:subDomain(subDomIdx)
-      self._localRange:copy(localRange)
-   end   
+   initCartGrid(self, tbl) -- initialize basic stuff
 
    local ndim = self._ndim
    -- set grid index to first cell in domain
@@ -245,8 +226,8 @@ setmetatable (NonUniformRectCart, { __call = function (self, o) return self.new(
 
 -- set callable methods
 NonUniformRectCart.__index = {
-   comm = function (self)
-      return self._comm
+   commSet = function (self)
+      return self._commSet
    end,
    subGridId = function (self)
       return self._block

@@ -37,15 +37,20 @@ function test_1(comm)
    local decomp = DecompRegionCalc.CartProd { cuts = {2, 2} }
    assert_equal(false, decomp:isShared(), "Checking if decomp is shared")
 
-   local worldComm = decomp:comm()
-   local shmComm = decomp:sharedComm()
-   local nodeComm = decomp:nodeComm()
+   local commSet = decomp:commSet()
+   local worldComm = commSet.comm
+   local shmComm = commSet.sharedComm
+   local nodeComm = commSet.nodeComm
 
    assert_equal(4, Mpi.Comm_size(worldComm), "Checking size for global comm")
    assert_equal(1, Mpi.Comm_size(shmComm), "Checking size for share comm")
    if Mpi.Is_comm_valid(nodeComm) then
       assert_equal(4, Mpi.Comm_size(nodeComm), "Checking size of node comm")
    end
+
+   assert_equal(Mpi.Comm_rank(comm), Mpi.Comm_rank(worldComm), "Checking comm ranks")
+   assert_equal(Mpi.Comm_rank(comm), Mpi.Comm_rank(nodeComm), "Checking nodeComm ranks")
+   assert_equal(0, Mpi.Comm_rank(shmComm), "Checking shmComm ranks")
 
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
    assert_equal(4, decomposedRgn:numSubDomains(), "Checking number of sub-domains")
@@ -69,15 +74,22 @@ function test_2(comm)
    local decomp = DecompRegionCalc.CartProd { cuts = {1, 1}, useShared = true }
    assert_equal(true, decomp:isShared(), "Checking if decomp is shared")
 
-   local worldComm = decomp:comm()
-   local shmComm = decomp:sharedComm()
-   local nodeComm = decomp:nodeComm()
+   local commSet = decomp:commSet()
+   local worldComm = commSet.comm
+   local shmComm = commSet.sharedComm
+   local nodeComm = commSet.nodeComm
 
    assert_equal(4, Mpi.Comm_size(worldComm), "Checking size for global comm")
    assert_equal(4, Mpi.Comm_size(shmComm), "Checking size for share comm")
    if Mpi.Is_comm_valid(nodeComm) then
       assert_equal(1, Mpi.Comm_size(nodeComm), "Checking size of node comm")
    end
+
+   assert_equal(Mpi.Comm_rank(comm), Mpi.Comm_rank(worldComm), "Checking comm ranks")
+   if Mpi.Is_comm_valid(nodeComm) then
+      assert_equal(0, Mpi.Comm_rank(nodeComm), "Checking nodeComm ranks")
+   end
+   assert_equal(Mpi.Comm_rank(comm), Mpi.Comm_rank(shmComm), "Checking shmComm ranks")
 
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
    assert_equal(1, decomposedRgn:numSubDomains(), "Checking number of sub-domains")

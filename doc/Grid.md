@@ -53,8 +53,10 @@ with 1, Y-direction with 2, etc.__
 `grid:ndim()`
 : The dimensions of the grid.
 
-`grid:comm()`
-: Communicator for use in parallel messaging.
+`grid:commSet()`
+: Set of MPI communicators. This is a table with entries comm (for
+  global communicator), sharedComm (for communicator for processes on
+  shared nodes) and nodeComm (collecting rank-0s of shareComm).
 
 `grid:subGridId()`
 : For parallel grid, returns integer ID of grid. This number is unique

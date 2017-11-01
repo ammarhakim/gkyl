@@ -22,10 +22,25 @@ decomp = DecompRegionCalc.CartProd { cuts = {4, 8} }
 ~~~~~~~
 
 Note that the dimension of the region to decompose is determined from
-the size of the `cuts` parameter. The constructor takes no other
-parameters.
+the size of the `cuts` parameter.
+
+The constructor takes the following parameters:
+
+`cuts`
+: Number of domains to use in each direction. Note that when using
+  shared resources on a node, the product of cuts should equal to the
+  number of nodes in the simulation, and NOT the total number of MPI
+  processes.
+
+`useShared` (Optional. Defaults to false)
+: If set to true, will use MPI-SHM on nodes.
 
 The following methods are provided.
+
+`decomp:commSet()`
+: Set of MPI communicators. This is a table with entries comm (for
+  global communicator), sharedComm (for communicator for processes on
+  shared nodes) and nodeComm (collecting rank-0s of shareComm).
 
 `decomp:ndim()`
 : Dimension of decomposition.
