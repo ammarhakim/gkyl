@@ -56,6 +56,26 @@ function test_1(comm)
    end
 end
 
+function test_2(comm)
+   local vec = AllocShared.Double(comm, 22)
+
+   assert_equal(true, vec:elemType() == typeof("double"), "Testing elem type")
+   assert_equal(sizeof("double"), vec:elemSize(), "Testing elem size")
+   assert_equal(22, vec:size(), "Checking total size")
+
+   local glbSize = allReduceOneInt(comm, vec:localSize())
+   assert_equal(vec:size(), glbSize, "Checking sum of local sizes")
+
+   vec:fill(10.5)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if rnk == 0 then
+      for i = 1, vec:size() do
+	 assert_equal(10.5, vec[i], "Testing if parallel for worked")
+      end
+   end
+end
+
 -- run tests
 worldSz = Mpi.Comm_size(Mpi.COMM_WORLD)
 shmComm = Mpi.Comm_split_type(Mpi.COMM_WORLD, Mpi.COMM_TYPE_SHARED, 0, Mpi.INFO_NULL)
@@ -63,6 +83,7 @@ shmSz = Mpi.Comm_size(shmComm)
 log(string.format("Total number of procs %d; per-node procs %d", worldSz, shmSz))
 
 test_1(shmComm)
+test_2(shmComm)
 
 totalFail = allReduceOneInt(Mpi.COMM_WORLD, stats.fail)
 totalPass = allReduceOneInt(Mpi.COMM_WORLD, stats.pass)

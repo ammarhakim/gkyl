@@ -37,7 +37,7 @@ local function sharedAlloc(comm, sz)
    return data, win
 end
 local function sharedFree(win, d)
-   Mpi.Win_free(win) -- DOES THIS REALLY FREE THE MEMORY ALSO?!
+   --Mpi.Win_free(win) -- DOES THIS REALLY FREE THE MEMORY ALSO?!
 end
 
 
