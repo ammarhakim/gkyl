@@ -19,8 +19,9 @@ local _M = {}
 
 function _M.setup(self, tbl)
    assert(tbl.onGrid, "Updater.Base: Must provide grid object using 'onGrid'")
-   self._comm = tbl.onGrid:comm()
-   self._rank = Mpi.Comm_rank(self._comm)
+   self._comm = tbl.onGrid:commSet().comm
+   self._sharedComm = tbl.onGrid:commSet().sharedComm
+   self._nodeComm = tbl.onGrid:commSet().nodeComm
 end
 
 -- This function wraps an updater's advance() function and adds a
@@ -40,8 +41,8 @@ function _M.advanceFuncWrap(advanceFunc)
       local status, dtSuggested = new("int[1]"), new("double[1]")      
       myStatus[0] = _status and 1 or 0; myDtSuggested[0] = _dtSuggested
 
-      Mpi.Allreduce(myStatus, status, 1, Mpi.INT, Mpi.MIN, self._comm)
-      Mpi.Allreduce(myDtSuggested, dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
+      Mpi.Allreduce(myStatus, status, 1, Mpi.INT, Mpi.MIN, self._nodeComm)
+      Mpi.Allreduce(myDtSuggested, dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._nodeComm)
 
       return status[0] == 1 and true or false, dtSuggested[0]
    end

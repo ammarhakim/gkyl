@@ -203,7 +203,6 @@ return function (ac, range, loc, idx)
 end
 ]])
 local getRowMajorInvIndexer  = getRowMajorInvIndexerTempl { NDIM=2 }
-print(getRowMajorInvIndexer)
 
 test_1()
 test_2()
