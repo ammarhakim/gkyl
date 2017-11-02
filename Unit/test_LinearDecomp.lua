@@ -73,6 +73,15 @@ function test_4()
       end
    end
    assert_equal(r:volume(), count, "Checking volume")
+
+   local count = 0
+   for d = 1, linDecomp:numSplit() do
+      local startIdx, sz = linDecomp:rowStartIndex(d), linDecomp:shape(d)
+      for idx in r:rowMajorIter(startIdx, sz) do
+	 count = count+1
+      end
+   end
+   assert_equal(r:volume(), count, "Checking volume")
 end
 
 -- Run tests
