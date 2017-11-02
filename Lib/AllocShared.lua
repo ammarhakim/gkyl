@@ -61,7 +61,6 @@ local function AllocShared_meta_ctor(elct)
       isNumberType = true
    else
       -- AT PRESENT NOT SUPPORTING NON-NUMERIC TYPES
-      assert(false, "AllocShared_meta_ctor: Non-numeric type not supported yet!")
       isNumberType = false
       copyElemFunc = function (dst, src) ffi.copy(dst, src, elmSz) end      
    end
@@ -74,11 +73,10 @@ local function AllocShared_meta_ctor(elct)
       v._data, v._win = sharedAlloc(comm, elmSz*num)
 
       local rnk, nr = Mpi.Comm_rank(comm), Mpi.Comm_size(comm)
-
       -- calculate local range of owned indices      
       local linDecomp = LinearDecomp.LinearDecomp { domSize = num, numSplit = nr }
-      v._s, v._e = linDecomp:lower(rnk+1), linDecomp:shape(rnk+1)
-      
+      v._s, v._e = linDecomp:lower(rnk+1), linDecomp:upper(rnk+1)
+
       return v
    end
 
@@ -103,7 +101,18 @@ local function AllocShared_meta_ctor(elct)
       end,
       upper = function (self)
 	 return self._e
-      end,      
+      end,
+      fill = copyElemFunc and
+	 function(self, v)
+	    for i = self:lower(), self:upper() do
+	       copyElemFunc(self._data[i-1], v)
+	    end
+	 end or
+	 function (self, v)
+	    for i = self:lower(), self:upper() do
+	       self._data[i-1] = v
+	    end
+	 end,
       delete = function (self)
 	 sharedFree(self._win, self._data)
       end,
@@ -123,7 +132,11 @@ local function AllocShared_meta_ctor(elct)
 	    return alloc_funcs[k]
 	 end
       end,
-      __newindex = function (self, k, v)
+      __newindex = copyElemFunc and
+	 function (self, k, v)
+	    copyElemFunc(self._data[k-1], v)
+	 end or
+	 function (self, k, v)
 	    self._data[k-1] = v
 	 end,
       __gc = function (self)

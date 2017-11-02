@@ -70,10 +70,13 @@ local function initCartGrid(self, tbl)
    self._globalRange = Range.Range(l, u)   
    self._localRange = Range.Range(l, u)
    self._block = 1 -- block number for use in parallel communications
-
+   self._isShared = false -- is grid shared
+   
    local decomp = tbl.decomposition and tbl.decomposition or nil  -- decomposition
    if decomp then
       assert(decomp:ndim() == self._ndim, "Decomposition dimensions must be same as grid dimensions!")
+
+      self._isShared = decomp:isShared()
       -- in parallel, we need to adjust local range      
       self._commSet = decomp:commSet()
       self._decomposedRange = decomp:decompose(self._globalRange)
@@ -112,6 +115,9 @@ setmetatable(RectCart, { __call = function (self, o) return self.new(self, o) en
 RectCart.__index = {
    commSet = function (self)
       return self._commSet
+   end,
+   isShared = function (self)
+      return self._isShared
    end,
    subGridId = function (self)
       return self._block
@@ -229,6 +235,9 @@ NonUniformRectCart.__index = {
    commSet = function (self)
       return self._commSet
    end,
+   isShared = function (self)
+      return self._isShared
+   end,   
    subGridId = function (self)
       return self._block
    end,
