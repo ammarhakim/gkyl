@@ -122,6 +122,9 @@ RectCart.__index = {
    subGridId = function (self)
       return self._block
    end,
+   numSharedProcs = function (self)
+      return Mpi.Comm_size(self._commSet.sharedComm)
+   end,
    decomposedRange = function (self)
       return self._decomposedRange
    end,
@@ -240,6 +243,12 @@ NonUniformRectCart.__index = {
    end,   
    subGridId = function (self)
       return self._block
+   end,
+   numSharedProcs = function (self)
+      return Mpi.Comm_size(self._commSet.sharedComm)
+   end,
+   decomposedRange = function (self)
+      return self._decomposedRange
    end,
    ndim = function (self)
       return self._ndim

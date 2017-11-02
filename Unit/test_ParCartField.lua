@@ -315,13 +315,42 @@ function test_6(comm)
    end   
 end
 
+function test_7(comm)
+   local nz = Mpi.Comm_size(Mpi.COMM_WORLD)
+   log(string.format("Running shared CartField tests on %d procs", nz))
+
+   local decomp = DecompRegionCalc.CartProd {
+      cuts = {1, 1}, useShared = true
+   }
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+      decomposition = decomp,
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   local field1 = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }   
+
+   field:clear(10.0)
+   field1:clear(20.0)
+end
+
 comm = Mpi.COMM_WORLD
-test_1(comm)
-test_2(comm)
-test_3(comm)
-test_4(comm)
-test_5(comm)
-test_6(comm)
+--test_1(comm)
+--test_2(comm)
+--test_3(comm)
+--test_4(comm)
+--test_5(comm)
+--test_6(comm)
+test_7(comm)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
