@@ -336,7 +336,17 @@ local function Field_meta_ctor(elct)
 	 return self._field_sync(self)
       end,
       write = function (self, outNm, tmStamp)
-	 local comm = self._grid:comm() -- communicator to use
+	 local comm = Mpi.getComm(self._grid:commSet().nodeComm)
+	 -- (the extra getComm() is needed as Lua has no concept of
+	 -- pointers and hence we don't know before hand if nodeComm
+	 -- is a pointer or an object)
+	 
+	 if not Mpi.Is_comm_valid(comm) then
+	    return -- no need to do anything if communicator is not valid
+	 end
+
+	 if not tmStamp then tmStamp = 0.0 end -- default time-stamp 
+	 
 	 local rank = Mpi.Comm_rank(comm)
 	 -- setup ADIOS for IO
 	 Adios.init_noxml(comm)
@@ -403,14 +413,18 @@ local function Field_meta_ctor(elct)
 	 end
       end,
       _field_sync = function (self)
+	 local comm = self._grid:commSet().nodeComm -- communicator to use
+	 if not Mpi.Is_comm_valid(comm) then
+	    return -- no need to do anything if communicator is not valid
+	 end
+	 
 	 -- immediately return if nothing to sync
 	 if self._lowerGhost == 0 and self._upperGhost == 0 then return end
 
 	 -- Steps: (1) Post non-blocking recv requests. (2) Do
 	 -- blocking sends, (3) Complete recv and copy data into ghost
 	 -- cells
-	 
-	 local comm = self._grid:comm() -- communicator to use
+
 	 local decomposedRange = self._grid:decomposedRange()
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
