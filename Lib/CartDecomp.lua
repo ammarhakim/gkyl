@@ -147,6 +147,10 @@ function CartProdDecomp:new(tbl)
    end
    local zeroRanks = Lin.IntVec(nodeSz)
    Mpi.Allreduce(localZeroRanks:data(), zeroRanks:data(), nodeSz, Mpi.INT, Mpi.SUM, comm)
+   -- (the above Allreduce ensures that the zeroRanks vector is
+   -- identical on processes in comm. It works as the localZeroRanks
+   -- only has a single non-zero element that at a unique index
+   -- location).
 
    -- now create nodeComm from the collected rank zeros
    local nodeComm = Mpi.Split_comm(comm, zeroRanks)

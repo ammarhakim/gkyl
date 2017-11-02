@@ -205,6 +205,11 @@ local function getObj(obj, ptyp)
    return ffi.istype(typeof(ptyp), obj) and obj[0] or obj
 end
 
+-- Extract object from (potentially) a pointer
+function _M.getComm(obj)
+   return getObj(obj, "MPI_Comm[1]")
+end
+
 -- MPI_Status object
 _M.Status = {}
 function _M.Status:new()

@@ -21,7 +21,7 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local function sharedAlloc(comm, sz)
    -- Allocate memory on rank 0 only, attaching handles to this on all
    -- other ranks. Hence, all ranks have direct access to all the
-   -- allocated memory. The communicate 'comm' must be of type
+   -- allocated memory. The communicator 'comm' must be of type
    -- MPI_COMM_TYPE_SHARED
 
    local data, win, ssz, du
