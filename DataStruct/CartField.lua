@@ -13,6 +13,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
+local AllocShared = require "Lib.AllocShared"
 local Range = require "Lib.Range"
 local Mpi = require "Comm.Mpi"
 local Adios = require "Io.Adios"
@@ -92,6 +93,8 @@ end
 local function Field_meta_ctor(elct)
    local fcompct = new_field_comp_ct(elct) -- Ctor for component data
    local allocator = Alloc.Alloc_meta_ctor(elct) -- Memory allocator
+   local sharedAllocator = AllocShared.AllocShared_meta_ctor(elct) -- in case we are using MPI-SHM
+
    local isNumberType = false
    -- MPI and ADIOS data-types
    local elctCommType, elcCommSize = nil, 1
@@ -128,9 +131,15 @@ local function Field_meta_ctor(elct)
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()
 
+      local shmComm = grid:commSet().sharedComm -- shared communictor for use in shared allocator
+      
       -- allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
-      self._allocData = allocator(sz) -- store this so it does not vanish under us
+      if grid:isShared() then
+	 self._allocData = sharedAllocator(shmComm, sz) -- store this so it does not vanish under us
+      else
+	 self._allocData = allocator(sz) -- store this so it does not vanish under us
+      end
       self._data = self._allocData:data() -- pointer to data
 
       -- for number types fill it with zeros (for others, the

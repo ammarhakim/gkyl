@@ -45,7 +45,7 @@ function test_1(comm)
    local localRange = grid:localRange()
    assert_equal(50*100, localRange:volume(), "Checking volume of local ranges")
    assert_equal(rnk+1, grid:subGridId(), "Checking sub-grid ID is correct")
-   
+   assert_equal(false, grid:isShared(), "Checking if grid is shared")
 end
 
 function test_2(comm)
@@ -66,8 +66,8 @@ function test_2(comm)
 
    local localRange = grid:localRange()
    assert_equal(100*200, localRange:volume(), "Checking volume of local ranges")
-
    assert_equal(1, grid:subGridId(), "Checking sub-grid ID is correct")
+   assert_equal(true, grid:isShared(), "Checking if grid is shared")   
 end
 
 -- Run tests
