@@ -344,12 +344,12 @@ function test_7(comm)
 end
 
 comm = Mpi.COMM_WORLD
---test_1(comm)
---test_2(comm)
---test_3(comm)
---test_4(comm)
---test_5(comm)
---test_6(comm)
+test_1(comm)
+test_2(comm)
+test_3(comm)
+test_4(comm)
+test_5(comm)
+test_6(comm)
 test_7(comm)
 
 function allReduceOneInt(localv)

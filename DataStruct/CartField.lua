@@ -69,6 +69,14 @@ local function field_memcpy(y, x)
    copy(y._data, x._data, sizeof(y:elemType())*sz)
 end
 
+-- return local start and num times to bump
+local function getStartAndBump(self, decomp)
+   if self._layout == colMajLayout then
+      return decomp:colStartIndex(self._shmIndex), decomp:shape(self._shmIndex)
+   end
+   return decomp:rowStartIndex(self._shmIndex), decomp:shape(self._shmIndex)
+end
+
 -- Field accessor object: allows access to field values in cell
 local function new_field_comp_ct(elct)
    local field_comp_mf = {
@@ -177,7 +185,11 @@ local function Field_meta_ctor(elct)
 	 range = localRange:extend(self._lowerGhost, self._upperGhost),
 	 numSplit = Mpi.Comm_size(shmComm)
       }
-      
+
+      -- store start index and size handled by local SHM-rank for local and extended range
+      self._localStartIdx, self._localNumBump = getStartAndBump(self, self._localRangeDecomp)
+      self._localExtStartIdx, self._localExtNumBump = getStartAndBump(self, self._localExtRangeDecomp)
+
       -- compute communication neighbors
       self._decompNeigh = CartDecompNeigh(grid:decomposedRange())
       if syncCorners then
@@ -324,16 +336,16 @@ local function Field_meta_ctor(elct)
       end,
       localRangeIter = function (self)
 	 if self._layout == rowMajLayout then
-	    return self._localRange:rowMajorIter()
+	    return self._localRange:rowMajorIter(self._localStartIdx, self._localNumBump)
 	 end
-	 return self._localRange:colMajorIter()
+	 return self._localRange:colMajorIter(self._localStartIdx, self._localNumBump)
       end,
       localExtRangeIter = function (self) -- includes ghost cells
 	 local lext = self:localRange():extend(self:lowerGhost(), self:upperGhost())
 	 if self._layout == rowMajLayout then
-	    return lext:rowMajorIter()
+	    return lext:rowMajorIter(self._localExtStartIdx, self._localExtNumBump)
 	 end
-	 return lext:colMajorIter()
+	 return lext:colMajorIter(self._localExtStartIdx, self._localExtNumBump)
       end,      
       size = function (self)
 	 return self._size
