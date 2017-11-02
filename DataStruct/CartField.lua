@@ -166,18 +166,16 @@ local function Field_meta_ctor(elct)
 	 end
       end
 
-      local worldSz, shmSz, nodeSz = Mpi.Comm_size(comm), Mpi.Comm_size(shmComm), Mpi.Comm_size(nodeComm)
-
       self._shmIndex = Mpi.Comm_rank(shmComm)+1 -- our local index on SHM comm (one more than rank)
-      
+
       -- construct linear decomposition of various ranges
       self._localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange,
-	 numSplit = shmSz
+	 numSplit = Mpi.Comm_size(shmComm)
       }
       self._localExtRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange:extend(self._lowerGhost, self._upperGhost),
-	 numSplit = shmSz
+	 numSplit = Mpi.Comm_size(shmComm)
       }
       
       -- compute communication neighbors
