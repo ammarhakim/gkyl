@@ -130,8 +130,8 @@ local function Field_meta_ctor(elct)
       -- local and global ranges
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()
-
-      local shmComm = grid:commSet().sharedComm -- shared communictor for use in shared allocator
+       -- shared communicator for use in shared allocator
+      local shmComm = grid:commSet().sharedComm
       
       -- allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
