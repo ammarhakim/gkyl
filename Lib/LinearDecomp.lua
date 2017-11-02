@@ -56,11 +56,11 @@ LinearDecomp.__index = {
    lower = function (self, n)
       return self._start[n]
    end,
-   shape = function (self, n)
-      return self._shape[n]
-   end,
    upper = function (self, n)
       return self._start[n]+self._shape[n]-1
+   end,
+   shape = function (self, n)
+      return self._shape[n]
    end,
 }
 
@@ -110,6 +110,12 @@ LinearDecompRange.__index = {
    numSplit = function (self)
       return self._linearDecomp:numSplit()
    end,
+   lower = function (self, n)
+      return self._linearDecomp:lower(n)
+   end,
+   upper = function (self, n)
+      return self._linearDecomp:upper(n)
+   end,   
    shape = function (self, n)
       return self._linearDecomp:shape(n)
    end,

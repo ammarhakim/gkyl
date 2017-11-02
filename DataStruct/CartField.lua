@@ -12,17 +12,19 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries
+local Adios = require "Io.Adios"
 local Alloc = require "Lib.Alloc"
 local AllocShared = require "Lib.AllocShared"
-local Range = require "Lib.Range"
-local Mpi = require "Comm.Mpi"
-local Adios = require "Io.Adios"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Mpi = require "Comm.Mpi"
+local Range = require "Lib.Range"
 
 -- C interfaces
 ffi.cdef [[
-  void gkylCartFieldAccumulate(unsigned nv, double fact, const double *inp, double *out);
-  void gkylCartFieldAssign(unsigned nv, double fact, const double *inp, double *out);
+    // s: start index. sv: number of values to copy
+    void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
 ]]
 
 -- Code from Lua wiki to convert table to comma-seperated-values
@@ -130,8 +132,10 @@ local function Field_meta_ctor(elct)
       -- local and global ranges
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()
-       -- shared communicator for use in shared allocator
+      -- various communicators for use in shared allocator
+      local comm = grid:commSet().comm     
       local shmComm = grid:commSet().sharedComm
+      local nodeComm = grid:commSet().nodeComm
       
       -- allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
@@ -161,6 +165,20 @@ local function Field_meta_ctor(elct)
 	    self._layout = rowMajLayout
 	 end
       end
+
+      local worldSz, shmSz, nodeSz = Mpi.Comm_size(comm), Mpi.Comm_size(shmComm), Mpi.Comm_size(nodeComm)
+
+      self._shmIndex = Mpi.Comm_rank(shmComm)+1 -- our local index on SHM comm (one more than rank)
+      
+      -- construct linear decomposition of various ranges
+      self._localRangeDecomp = LinearDecomp.LinearDecompRange {
+	 range = localRange,
+	 numSplit = shmSz
+      }
+      self._localExtRangeDecomp = LinearDecomp.LinearDecompRange {
+	 range = localRange:extend(self._lowerGhost, self._upperGhost),
+	 numSplit = shmSz
+      }
       
       -- compute communication neighbors
       self._decompNeigh = CartDecompNeigh(grid:decomposedRange())
@@ -240,15 +258,23 @@ local function Field_meta_ctor(elct)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
 	 fc._cdata = self._data+loc
       end,
+      _localLower = function (self)
+	 return (self._localExtRangeDecomp:lower(self._shmIndex)-1)*self:numComponents()
+      end,
+      _localShape = function (self)
+	 return self._localExtRangeDecomp:shape(self._shmIndex)*self:numComponents()
+      end,
       _assign = function(self, fact, fld)
 	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
-	 ffi.C.gkylCartFieldAssign(self:size(), fact, fld._data, self._data)
+
+	 ffi.C.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,      
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld), "CartField:accumulate/combine: Can only accumulate/combine compatible fields")
 	 assert(type(fact) == "number", "CartField:accumulate/combine: Factor not a number")
-	 ffi.C.gkylCartFieldAccumulate(self:size(), fact, fld._data, self._data)
+
+	 ffi.C.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
       accumulate = isNumberType and
 	 function (self, c1, fld1, ...)
@@ -310,19 +336,6 @@ local function Field_meta_ctor(elct)
 	    return lext:rowMajorIter()
 	 end
 	 return lext:colMajorIter()
-      end,      
-      globalRangeIter = function (self)
-	 if self._layout == rowMajLayout then
-	    return self._globalRange:rowMajorIter()
-	 end
-	 return self._globalRange:colMajorIter()
-      end,
-      globalExtRangeIter = function (self) -- includes ghost cells
-	 local lext = self:globalRange():extend(self:lowerGhost(), self:upperGhost())
-	 if self._layout == rowMajLayout then
-	    return lext:rowMajorIter()
-	 end
-	 return lext:colMajorIter()	 
       end,      
       size = function (self)
 	 return self._size

@@ -9,8 +9,9 @@
 #define GK_CART_FIELD_H
 
 extern "C" {
-    void gkylCartFieldAccumulate(unsigned nv, double fact, const double *inp, double *out);
-    void gkylCartFieldAssign(unsigned nv, double fact, const double *inp, double *out);
+    // s: start index. sv: number of values to copy
+    void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
 }
 
 #endif // GK_CART_FIELD_H

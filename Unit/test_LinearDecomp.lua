@@ -13,6 +13,25 @@ local Range = require "Lib.Range"
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
+function test_0()
+   local linDecomp = LinearDecomp.LinearDecomp { domSize = 100, numSplit = 1 }
+
+   assert_equal(100, linDecomp:domSize(), "Checking dom size")
+   assert_equal(1, linDecomp:numSplit(), "Checking num splits")
+
+   local count = 0
+   for d = 1, linDecomp:numSplit() do
+      count = count+linDecomp:shape(d)
+   end
+   assert_equal(linDecomp:domSize(), count, "Checking if total shape is correct")
+
+   for d = 1, linDecomp:numSplit() do
+      assert_equal(100, linDecomp:shape(d), "Checking local shape")
+      assert_equal(100*(d-1)+1, linDecomp:lower(d), "Checking local start")
+      assert_equal(100*d, linDecomp:upper(d), "Checking local end")
+   end   
+end
+
 function test_1()
    local linDecomp = LinearDecomp.LinearDecomp { domSize = 100, numSplit = 10 }
 
@@ -51,6 +70,9 @@ function test_3()
 
    for d = 1, linDecomp:numSplit() do
       assert_equal(10, linDecomp:shape(d), "Checking size")
+      assert_equal((d-1)*10+1, linDecomp:lower(d), "Checking lower")
+      assert_equal((d-1)*10+10, linDecomp:upper(d), "Checking upper")
+      
       local idx = linDecomp:rowStartIndex(d)
       assert_equal((d-1)*10+1, idx[1], "Checking index")
    end
@@ -85,6 +107,7 @@ function test_4()
 end
 
 -- Run tests
+test_0()
 test_1()
 test_2()
 test_3()
