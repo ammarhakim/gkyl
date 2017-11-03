@@ -106,12 +106,24 @@ function test_4()
    assert_equal(r:volume(), count, "Checking volume")
 end
 
+function test_5()
+   local linDecomp = LinearDecomp.LinearDecomp { domSize = 16, numSplit = 32 }
+
+   for d = 1, linDecomp:domSize() do
+      assert_equal(1, linDecomp:shape(d), "Checking splitting 16 into 32")
+   end
+   for d = linDecomp:domSize()+1, linDecomp:numSplit() do
+      assert_equal(0, linDecomp:shape(d), "Checking splitting 16 into 32")
+   end   
+end
+
 -- Run tests
 test_0()
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

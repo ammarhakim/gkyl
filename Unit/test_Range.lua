@@ -388,7 +388,14 @@ function test_21()
    for idx in r:rowMajorIter(sidx, 10) do
       count = count+1
    end
-   assert_equal(10, count, "Checking if iterator bumped over full range")      
+   assert_equal(10, count, "Checking if iterator bumped over full range")
+
+   -- starting at (5,5) over 0 cells
+   count = 0
+   for idx in r:rowMajorIter(sidx, 0) do
+      count = count+1
+   end
+   assert_equal(0, count, "Checking if iterator bumped over full range")
 end
 
 function test_22()

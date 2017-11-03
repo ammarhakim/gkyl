@@ -26,6 +26,13 @@ function log(msg)
    end
 end
 
+function allReduceOneInt(localv)
+   local sendbuf, recvbuf = new("int[1]"), new("int[1]")
+   sendbuf[0] = localv
+   Mpi.Allreduce(sendbuf, recvbuf, 1, Mpi.INT, Mpi.SUM, Mpi.COMM_WORLD)
+   return recvbuf[0]
+end
+
 function test_1(comm)
    local nz = Mpi.Comm_size(comm)
    if nz ~= 2 then
@@ -341,6 +348,14 @@ function test_7(comm)
 
    field:clear(10.0)
    field1:clear(20.0)
+
+   -- check if loop covers full grid
+   local localCount = 0
+   for idx in field:localRangeIter() do
+      localCount = localCount+1
+   end
+   local totalCount = allReduceOneInt(localCount)
+   assert_equal(grid:localRange():volume(), totalCount, "Checking if total count is correct")
 end
 
 comm = Mpi.COMM_WORLD
@@ -351,13 +366,6 @@ test_4(comm)
 test_5(comm)
 test_6(comm)
 test_7(comm)
-
-function allReduceOneInt(localv)
-   local sendbuf, recvbuf = new("int[1]"), new("int[1]")
-   sendbuf[0] = localv
-   Mpi.Allreduce(sendbuf, recvbuf, 1, Mpi.INT, Mpi.SUM, Mpi.COMM_WORLD)
-   return recvbuf[0]
-end
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
