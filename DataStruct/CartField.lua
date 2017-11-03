@@ -433,7 +433,7 @@ local function Field_meta_ctor(elct)
 	 Adios.finalize(rank)
       end,
       _copy_from_field_region = function (self, rgn, data)
-	 local indexer = self:genIndexer()	 
+	 local indexer = self:genIndexer()
 	 local c = 1
 	 for idx in rgn:rowMajorIter() do
 	    local fitr = self:get(indexer(idx))
