@@ -102,8 +102,6 @@ end
 -- A function to create constructors for Field objects
 local function Field_meta_ctor(elct)
    local fcompct = new_field_comp_ct(elct) -- Ctor for component data
-   local allocator = Alloc.Alloc_meta_ctor(elct) -- Memory allocator
-   local sharedAllocator = AllocShared.AllocShared_meta_ctor(elct) -- in case we are using MPI-SHM
 
    local isNumberType = false
    -- MPI and ADIOS data-types
@@ -126,6 +124,17 @@ local function Field_meta_ctor(elct)
       elctIoType = Adios.byte
    end
 
+   -- allocator for use in non-shared applications
+   local function allocatorFunc(comm, numElem)
+      local alloc = Alloc.Alloc_meta_ctor(elct)
+      return alloc(numElem)
+   end
+   -- allocator for use in shared applications
+   local function sharedAllocatorFunc(comm, numElem)
+      local alloc = AllocShared.AllocShared_meta_ctor(elct)
+      return alloc(comm, numElem)
+   end   
+
    -- make constructor for Field 
    local Field = {}
    function Field:new(tbl)
@@ -144,14 +153,13 @@ local function Field_meta_ctor(elct)
       local comm = grid:commSet().comm     
       local shmComm = grid:commSet().sharedComm
       local nodeComm = grid:commSet().nodeComm
-      
+
+      -- allocator function
+      local allocator = grid:isShared() and sharedAllocatorFunc or allocatorFunc
+   
       -- allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
-      if grid:isShared() then
-	 self._allocData = sharedAllocator(shmComm, sz) -- store this so it does not vanish under us
-      else
-	 self._allocData = allocator(sz) -- store this so it does not vanish under us
-      end
+      self._allocData = allocator(shmComm, sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
 
       -- for number types fill it with zeros (for others, the
@@ -212,7 +220,7 @@ local function Field_meta_ctor(elct)
 	 local sendRgn = self._localRange:intersect(
 	    neighRgn:extend(self._lowerGhost, self._upperGhost))
 	 local sz = sendRgn:volume()*self._numComponents
-	 self._sendData[sendId] = allocator(sz)
+	 self._sendData[sendId] = allocator(shmComm, sz)
       end
 
       local localExtRange = self:localExtRange()
@@ -220,11 +228,11 @@ local function Field_meta_ctor(elct)
 	 local neighRgn = decomposedRange:subDomain(recvId)
 	 local recvRgn = localExtRange:intersect(neighRgn)
 	 local sz = recvRgn:volume()*self._numComponents
-	 self._recvData[recvId] = allocator(sz)
+	 self._recvData[recvId] = allocator(shmComm, sz)
       end
 
       -- allocate space for IO (used to send data to ADIOS)
-      self._outBuff = allocator(localRange:volume()*self._numComponents)
+      self._outBuff = allocator(shmComm, localRange:volume()*self._numComponents)
 
       -- for use in ADIOS output
       local adLocalSz, adGlobalSz, adOffset = {}, {}, {}
