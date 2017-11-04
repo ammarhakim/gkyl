@@ -31,6 +31,8 @@ local rowMajLayout, colMajLayout = 1, 2 -- data layout
 local indexerMakerFuncs = {} -- list of functions that make indexers
 indexerMakerFuncs[rowMajLayout] = Range.makeRowMajorIndexer
 indexerMakerFuncs[colMajLayout] = Range.makeColMajorIndexer
+-- Default layout
+local defaultLayout = colMajLayout
 
 local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
 genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
@@ -150,11 +152,13 @@ local function Field_meta_ctor(elct)
 
       self._globalRange = globalRange
       self._localRange = localRange
-      self._layout = colMajLayout -- default layout is column-major
+      self._layout = defaultLayout -- default layout is column-major
       if tbl.layout then
-	 if tbl.layout == "row-major" then
-	    self._layout = rowMajLayout
-	 end
+      	 if tbl.layout == "row-major" then
+      	    self._layout = rowMajLayout
+	 else
+	    self._layout = colMajLayout
+      	 end
       end
 
       self._shmIndex = Mpi.Comm_rank(shmComm)+1 -- our local index on SHM comm (one more than rank)
@@ -275,7 +279,13 @@ local function Field_meta_ctor(elct)
 	 end or
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:combine: Combine only works on numeric fields")
-	 end,	 
+	 end,
+      defaultLayout = function (self)
+	 if defaultLayout == rowMajLayout then
+	    return "row-major"
+	 end
+	 return "col-major"
+      end,
       layout = function (self)
 	 if self._layout == rowMajLayout then
 	    return "row-major"
