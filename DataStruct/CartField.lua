@@ -12,7 +12,6 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries
-local Adios = require "Io.Adios"
 local Alloc = require "Lib.Alloc"
 local AllocShared = require "Lib.AllocShared"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
@@ -26,26 +25,6 @@ ffi.cdef [[
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
 ]]
-
--- Code from Lua wiki to convert table to comma-seperated-values
--- string.
--- Used to escape "'s by toCSV
-local function escapeCSV (s)
-  if string.find(s, '[,"]') then
-    s = '"' .. string.gsub(s, '"', '""') .. '"'
-  end
-  return s
-end
--- Convert from table to CSV string
-local function toCSV (tt)
-  local s = ""
-  -- ChM 23.02.2014: changed pairs to ipairs assumption is that
-  -- fromCSV and toCSV maintain data as ordered array
-  for _,p in ipairs(tt) do  
-    s = s .. "," .. escapeCSV(p)
-  end
-  return string.sub(s, 2)      -- remove first comma
-end
 
 -- Local definitions
 local rowMajLayout, colMajLayout = 1, 2 -- data layout
@@ -104,24 +83,20 @@ local function Field_meta_ctor(elct)
    local fcompct = new_field_comp_ct(elct) -- Ctor for component data
 
    local isNumberType = false
-   -- MPI and ADIOS data-types
+   -- MPI data-types
    local elctCommType, elcCommSize = nil, 1
    if ffi.istype(new(elct), new("double")) then
       elctCommType = Mpi.DOUBLE
-      elctIoType = Adios.double
       isNumberType = true
    elseif ffi.istype(new(elct), new("float")) then
       elctCommType = Mpi.FLOAT
-      elctIoType = Adios.real
       isNumberType = true
    elseif ffi.istype(new(elct), new("int")) then
       elctCommType = Mpi.INT
-      elctIoType = Adios.integer
       isNumberType = true
    else
       elctCommType = Mpi.BYTE -- by default, send stuff as byte array
       elcCommSize = sizeof(elct)
-      elctIoType = Adios.byte
    end
 
    -- allocator for use in non-shared applications
@@ -231,26 +206,6 @@ local function Field_meta_ctor(elct)
 	 self._recvData[recvId] = allocator(shmComm, sz)
       end
 
-      -- allocate space for IO (used to send data to ADIOS)
-      self._outBuff = allocator(shmComm, localRange:volume()*self._numComponents)
-
-      -- for use in ADIOS output
-      local adLocalSz, adGlobalSz, adOffset = {}, {}, {}
-      for d = 1, self._ndim do
-	 adLocalSz[d] = localRange:shape(d)
-	 adGlobalSz[d] = globalRange:shape(d)
-	 adOffset[d] = localRange:lower(d)-1
-      end
-      adLocalSz[self._ndim+1] = self._numComponents
-      adGlobalSz[self._ndim+1] = self._numComponents
-      adOffset[self._ndim+1] = 0
-
-      -- convert tables to comma-seperated-string. For some strange
-      -- reasons, this is what ADIOS expects
-      self._adLocalSz = toCSV(adLocalSz)
-      self._adGlobalSz = toCSV(adGlobalSz)
-      self._adOffset = toCSV(adOffset)
-      
       return self
    end
    setmetatable(Field, { __call = function (self, o) return self.new(self, o) end })
@@ -377,63 +332,6 @@ local function Field_meta_ctor(elct)
       end,      
       sync = function (self)
 	 return self._field_sync(self)
-      end,
-      write = function (self, outNm, tmStamp)
-	 local comm = Mpi.getComm(self._grid:commSet().nodeComm)
-	 -- (the extra getComm() is needed as Lua has no concept of
-	 -- pointers and hence we don't know before hand if nodeComm
-	 -- is a pointer or an object)
-	 
-	 if not Mpi.Is_comm_valid(comm) then
-	    return -- no need to do anything if communicator is not valid
-	 end
-
-	 if not tmStamp then tmStamp = 0.0 end -- default time-stamp 
-	 
-	 local rank = Mpi.Comm_rank(comm)
-	 -- setup ADIOS for IO
-	 Adios.init_noxml(comm)
-	 --Adios.set_max_buffer_size(16) -- 16 MB chunks	 
-
-	 local ndim = self:ndim()
-	 local localRange, globalRange = self:localRange(), self:globalRange()
-	 -- setup group and set I/O method
-	 local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
-	 Adios.select_method(grpId, "MPI", "", "")
-
-	 -- field attributes
-	 local cells = new("int[?]", ndim)
-	 for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
-	 Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)
-
-	 local lower = new("double[?]", ndim)
-	 for d = 1, ndim do lower[d-1] = self._grid:lower(d) end
-	 Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
-
-	 local upper = new("double[?]", ndim)
-	 for d = 1, ndim do upper[d-1] = self._grid:upper(d) end
-	 Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
-
-	 -- define data to write
-	 Adios.define_var(
-	    grpId, "time", "", Adios.double, "", "", "")
-	 Adios.define_var(
-	    grpId, "CartGridField", "", elctIoType, self._adLocalSz, self._adGlobalSz, self._adOffset)
-
-	 -- copy field into output buffer (this copy is needed as
-	 -- field also contains ghost-cell data, and, in addition,
-	 -- ADIOS expects data to be laid out in row-major order)
-	 self:_copy_from_field_region(self:localRange(), self._outBuff)
-
-	 local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
-	 -- open file to write out group
-	 local fd = Adios.open("CartField", fullNm, "w", comm)
-	 local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
-	 Adios.write(fd, "time", tmStampBuff)
-	 Adios.write(fd, "CartGridField", self._outBuff:data())
-	 Adios.close(fd)
-	 
-	 Adios.finalize(rank)
       end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
