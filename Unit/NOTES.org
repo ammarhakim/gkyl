@@ -1,3 +1,8 @@
+* Automatically running tests
+  
+  Perhaps hook in tests into waf so one can run all test in a shot or
+  run a specified test.
+
 * TODO Arbitrary structs in CartFeld
   
   I/O and sync() or CartFields holding arbitray C-structs has not been
