@@ -59,7 +59,7 @@ function test_1(comm)
    assert_equal(1, field:upperGhost(), "Checking upper ghost")
    assert_equal(field:localExtRange():volume()*3, field:size(), "Checking size")
 
-   assert_equal("col-major", field:layout(), "Checking layout")
+   assert_equal(field:defaultLayout(), field:layout(), "Checking layout")
 
    local localRange = field:localRange()
    if rank == 0 then
@@ -122,7 +122,7 @@ function test_2(comm)
    assert_equal(2, field:upperGhost(), "Checking upper ghost")
    assert_equal(field:localExtRange():volume()*3, field:size(), "Checking size")
 
-   assert_equal("col-major", field:layout(), "Checking layout")
+   assert_equal(field:defaultLayout(), field:layout(), "Checking layout")
 
    local localRange = field:localRange()
    local globalRange = field:globalRange()

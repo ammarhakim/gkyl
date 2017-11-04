@@ -30,7 +30,7 @@ function test_1()
    assert_equal(1, field:upperGhost(), "Checking upper ghost")
    assert_equal((10+2)*3, field:size(), "Checking size")
 
-   assert_equal("col-major", field:layout(), "Checking layout")
+   assert_equal(field:defaultLayout(), field:layout(), "Checking layout")
 
    local localRange = field:localRange()
    assert_equal(1, localRange:lower(1), "Checking range lower")
@@ -73,7 +73,7 @@ function test_2()
    assert_equal(2, field:upperGhost(), "Checking upper ghost")
    assert_equal((10+3)*(10+3)*3, field:size(), "Checking size")
 
-   assert_equal("col-major", field:layout(), "Checking layout")
+   assert_equal(field:defaultLayout(), field:layout(), "Checking layout")
 
    local localRange = field:localRange()
    assert_equal(1, localRange:lower(1), "Checking range lower")

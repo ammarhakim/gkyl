@@ -1,9 +1,11 @@
 # About
 
 This is the Gkyl code. The name is pronounced as in the book "The
-Strange Case of Dr. Jekyll and Mr. Hyde". Gkyl is written in LuaJIT,
-with some wrapper and time-critical parts written in C/C++. Gkyl is
-developed at Princeton Plasma Physics Laboratory (PPPL).
+Strange Case of Dr. Jekyll and Mr. Hyde". Gkyl is written in a
+combination of C++ and LuaJIT. The goal is to use C++ for
+time-critical parts while writing the higher-level parts in
+LuaJIT. Gkyl is developed at Princeton Plasma Physics Laboratory
+(PPPL).
 
 # License
 

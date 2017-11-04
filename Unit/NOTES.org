@@ -1,0 +1,9 @@
+* TODO Arbitrary structs in CartFeld
+  
+  I/O and sync() or CartFields holding arbitray C-structs has not been
+  tests.
+
+* TODO Parallel Adios
+
+  For some reason the adios test in parallel take forever. Not sure
+  what is going on, perhaps I am not using Adios correctly.
