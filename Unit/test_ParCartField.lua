@@ -57,7 +57,7 @@ function test_1(comm)
    assert_equal(1, field:ndim(), "Checking dimensions")
    assert_equal(1, field:lowerGhost(), "Checking lower ghost")
    assert_equal(1, field:upperGhost(), "Checking upper ghost")
-   --assert_equal((10+2)*3, field:size(), "Checking size")
+   assert_equal((10+2)*3, field:size(), "Checking size")
 
    assert_equal("col-major", field:layout(), "Checking layout")
 
@@ -120,7 +120,7 @@ function test_2(comm)
    assert_equal(2, field:ndim(), "Checking dimensions")
    assert_equal(1, field:lowerGhost(), "Checking lower ghost")
    assert_equal(2, field:upperGhost(), "Checking upper ghost")
-   --assert_equal((10+3)*(10+3)*3, field:size(), "Checking size")
+   assert_equal((10+3)*(10+3)*3, field:size(), "Checking size")
 
    assert_equal("col-major", field:layout(), "Checking layout")
 

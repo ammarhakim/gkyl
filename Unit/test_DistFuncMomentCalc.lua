@@ -51,7 +51,6 @@ function test_ser_1x1v()
       end
    }
    project:advance(0.0, 0.0, {}, {distf})
-   distf:write("distf.bp", 0.0)
 
    -- moment updater
    local calcNumDensity = Updater.DistFuncMomentCalc {

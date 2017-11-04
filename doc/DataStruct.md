@@ -93,7 +93,8 @@ The following methods are provided.
   the indices of the ghost cells.
 
 `field:size()`
-: The total number of elements stored in field, including ghost cells.
+: The total number of local (to MPI process) elements stored in field,
+  including ghost cells.
 
 `field:indexer()`
 : A linear indexer object that allows converting a N-dimensional index
@@ -136,10 +137,6 @@ The following methods are provided.
 `field:sync()`
 : Synchornize values in ghost cells by copy data from neighboring
   ranks' skin cells.
-
-`field:write(outNm, tmStamp)`
-: Write data in field to ADIO BP file `outNm`. The parameter `tmStamp`
-  is simulation time at which data is written.
 
 To illustrate the use of the `indexer()` and `get()` methods to access
 elements in the grid, consider the following code:
