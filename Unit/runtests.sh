@@ -6,6 +6,11 @@ cmd="$GKYL test_Adios.lua"
 echo $cmd
 $cmd
 
+# AdiosCartFieldIo
+cmd="$GKYL test_AdiosCartFieldIo.lua"
+echo $cmd
+$cmd
+
 # Advection
 cmd="$GKYL test_Advection.lua"
 echo $cmd

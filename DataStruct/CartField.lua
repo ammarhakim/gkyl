@@ -257,11 +257,14 @@ local function Field_meta_ctor(elct)
 
    -- set callable methods
    Field.__index = {
-      elemType = function(self)
+      elemType = function (self)
 	 return elct
       end,
       ndim = function (self)
 	 return self._ndim
+      end,
+      grid = function (self)
+	 return self._grid
       end,
       numComponents = function (self)
 	 return self._numComponents
