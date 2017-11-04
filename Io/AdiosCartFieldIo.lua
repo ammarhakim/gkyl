@@ -137,7 +137,7 @@ AdiosCartFieldIo.__index = {
       Adios.define_var(
 	 grpId, "time", "", Adios.double, "", "", "")
       Adios.define_var(
-	 grpId, "CartGridField", "", elctIoType, adLocalSz, adGlobalSz, adOffset)
+	 grpId, "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
 
       -- copy field into output buffer (this copy is needed as
       -- field also contains ghost-cell data, and, in addition,
@@ -156,6 +156,4 @@ AdiosCartFieldIo.__index = {
    end,
 }
 
-return {
-   CartFieldIo = AdiosCartFieldIo
-}
+return AdiosCartFieldIo

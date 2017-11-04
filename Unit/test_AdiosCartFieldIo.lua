@@ -41,9 +41,7 @@ function test_1(comm)
    field:clear(10.5)
 
    -- I/O object
-   local adiosIo = AdiosCartFieldIo.CartFieldIo {
-      elemType = field:elemType()
-   }
+   local adiosIo = AdiosCartFieldIo { elemType = field:elemType() }
 
    adiosIo:write(field, "field.bp", 0.0)
 
