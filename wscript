@@ -117,6 +117,13 @@ def build(bld):
         Updater_dir.ant_glob('**/*.lua'),
         cwd=Updater_dir, relative_trick=True)
 
+    # - Sim
+    Sim_dir = bld.path.find_dir('Sim')
+    bld.install_files(
+        "${PREFIX}/bin/Sim",
+        Sim_dir.ant_glob('**/*.lua'),
+        cwd=Sim_dir, relative_trick=True)
+
     # - Comm
     Comm_dir = bld.path.find_dir('Comm')
     bld.install_files(

@@ -21,8 +21,7 @@ end
 
 -- create logger
 local function makeLogger(tbl)
-   -- set write rank
-   local writeRank = 0
+   local writeRank = 0 -- default write rank is 0
    if tbl.writeRank then writeRank = tbl.writeRank end
    
    -- get hold of communicator if specified or use MPI_COMM_WORLD
