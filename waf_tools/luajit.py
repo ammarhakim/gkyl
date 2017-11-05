@@ -18,17 +18,17 @@ def check_luajit(conf):
     if conf.options.luaJitIncDir:
 	conf.env.INCLUDES_LUAJIT = conf.options.luaJitIncDir
     else:
-        conf.env.INCLUDES_LUAJIT = [conf.options.gkylDepDir+'/luajit/include/luajit-2.1']
+        conf.env.INCLUDES_LUAJIT = [conf.options.gkylDepsDir+'/luajit/include/luajit-2.1']
         
     if conf.options.luaJitLibDir:
 	conf.env.STLIBPATH_LUAJIT = conf.options.luaJitLibDir
     else:
-        conf.env.STLIBPATH_LUAJIT = [conf.options.gkylDepDir+'/luajit/lib']
+        conf.env.STLIBPATH_LUAJIT = [conf.options.gkylDepsDir+'/luajit/lib']
 
     if conf.options.luaJitShrDir:
 	conf.env.SHARE_LUAJIT = conf.options.luaJitShrDir
     else:
-        conf.env.SHARE_LUAJIT = conf.options.gkylDepDir+'/luajit/share/luajit-2.1.0-beta3'
+        conf.env.SHARE_LUAJIT = conf.options.gkylDepsDir+'/luajit/share/luajit-2.1.0-beta3'
 
     conf.env.STLIB_LUAJIT = ["luajit-5.1"]
         
