@@ -17,14 +17,41 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 
+-- For returning module table
+local M = {}
+
+-- Boundary condition objects
+M.bcCopy = 1
+M.bcWall = 2
+
 -- top-level method to build simulation "run" method
 local function buildSimulation(self, tbl)
-   local log = Logger { }  -- logger
+   -- create logger
+   local log = Logger {
+      logToFile = tbl.logToFile and tbl.logToFile or false
+   }
+
+   -- function to warn user about default values
+   local function warnDefault(varVal, varNm, default)
+      if varVal then return varVal end
+      log(string.format(" ** WARNING: %s not specified, assuming %s", varNm, tostring(default)))
+      return default
+   end
+
+   log("Initializing EulerOnCartGrid simulation ...")
+   local tmStart = Time.clock()
 
    -- basic parameters and checks
    local ndim = #tbl.lower -- simulation dimension
    assert(ndim == #tbl.upper, "upper should have exactly " .. ndim .. " entries")
    assert(ndim == #tbl.cells, "cells should have exactly " .. ndim .. " entries")
+
+   -- Gas adiabatic constant   
+   local gasGamma = warnDefault(tbl.gasGamma, "gasGamma", 1.4)
+   -- CFL number
+   local cfl = warnDefault(tbl.cfl, "cfl", 0.9)
+   -- limiter
+   local limiter = warnDefault(tbl.limiter, "limiter", "monotonized-centered")
 
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
@@ -37,6 +64,17 @@ local function buildSimulation(self, tbl)
    end
    local useShared = tbl.useShared and tbl.useShared or false
 
+   -- extract periodic directions
+   local periodicDirs = {}
+   if tbl.periodicDirs then
+      for i, d in ipairs(tbl.periodicDirs) do
+	 if d<1 and d>3 then
+	    assert(false, "Directions in periodicDirs table should be 1 (for X), 2 (for Y) or 3 (for Z)")
+	 end
+	 periodicDirs[i] = d
+      end
+   end
+
    -- create decomposition and grid
    local decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
@@ -47,18 +85,128 @@ local function buildSimulation(self, tbl)
       lower = tbl.lower,
       upper = tbl.upper,
       cells = tbl.cells,
+      periodicDirs = periodicDirs,
       decomposition = decomp,
    }
 
-   -- solution
-   fluid = DataStruct.Field {
+   -- allocate space for fields after dimensional sweeps
+   local field = {}
+   for d = 1, 2 do -- we only need two fields independent of dimensions
+      field[d] = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = 5,
+	 ghost = {2, 2},
+      }
+   end
+   -- pointer to out solution field
+   local fieldNew = nil
+   -- in case we need to take time-step again
+   local fieldDup = DataStruct.Field {
       onGrid = grid,
       numComponents = 5,
       ghost = {2, 2},
-   }
+   }   
 
-   -- create ADIO object for field I/O
-   local fieldIo = AdiosCartFieldIo { fluid:elemType() }
+   -- equation object: provides Reimann solver
+   local eulerEqn = HyperEquation.Euler {
+      gasGamma = gasGamma
+   }
+   -- create solvers for updates in each direction
+   local fluidSlvr = {}
+   for d = 1, ndim do
+      fluidSlvr[d] = Updater.WavePropagation {
+	 onGrid = grid,
+	 equation = eulerEqn,
+	 limiter = "monotonized-centered",
+	 cfl = cfl,
+	 updateDirections = {d}
+      }
+   end
+
+   -- set flags to indicate which directions are periodic
+   local isDirPeriodic = {false, false, false}
+   for _, d in ipairs(periodicDirs) do
+      isDirPeriodic[d] = true
+   end
+
+   -- available types of BCs
+   bcCopyAll = BoundaryCondition.Copy { components = {1, 2, 3, 4, 5} }
+   bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
+   bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
+
+   -- function to construct a BC updater
+   local function makeBcUpdater(dir, edge, bcList)
+      return Updater.Bc {
+	 onGrid = grid,
+	 boundaryConditions = bcList,
+	 dir = dir,
+	 edge = edge,
+      }
+   end
+   
+   -- list of Bcs to apply
+   local boundaryConditions = { }
+   -- function to determine what BC to apply and insert into list
+   local function appendBoundaryConditions(dir, edge, bcType)
+      if bcType == M.bcCopy then
+	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcCopy}))
+      elseif bcType == M.bcWall then
+	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcWallCopy, bcWallZeroNormal}))
+      end
+   end
+
+   -- determine BCs 
+   if not isDirPeriodic[1] then -- X
+      appendBoundaryConditions(1, "lower", tbl.bcx[1])
+      appendBoundaryConditions(1, "upper", tbl.bcx[2])
+   end
+   if ndim > 1 then -- Y
+      if not isDirPeriodic[2] then
+	 appendBoundaryConditions(2, "lower", tbl.bcy[1])
+	 appendBoundaryConditions(2, "upper", tbl.bcy[2])
+      end
+   end
+   if ndim > 2 then -- Z
+      if not isDirPeriodic[3] then
+	 appendBoundaryConditions(3, "lower", tbl.bcz[1])
+	 appendBoundaryConditions(3, "upper", tbl.bcz[2])
+      end
+   end   
+
+   -- function to apply boundary conditions
+   local function applyBc(field, tCurr, t)
+      for _, bc in ipairs(boundaryConditions) do
+	 bc:advance(tCurr, t-tCurr, {}, {field})
+      end
+   end
+
+   -- function to update fluids
+   local function updateFluid(tCurr, t)
+      local status, useLaxSolver = true, false
+      local suggestedDt = GKYL_MAX_DOUBLE
+
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
+      local inpField, outField
+      -- update solution in each direction using dimensional splitting
+      for d = 1, ndim do
+	 inpField, outField = field[fIdx[d][1]], field[fIdx[d][2]]
+	 local myStatus, mySdt = fluidSlvr[d]:advance(tCurr, t-tCurr, {inpField}, {outField})
+	 
+	 status = myStatus and status
+	 suggestedDt = math.min(suggestedDt, mySdt)
+	 if status == false then
+	    return status, suggestedDt, useLaxSolver
+	 end
+
+	 applyBc(outField, tCurr, t)
+      end
+      fieldNew = outField -- set this so we can get this from run() method
+
+      return status, suggestedDt, useLaxSolver
+   end
+
+   -- create Adios object for field I/O
+   local fieldIo = AdiosCartFieldIo { field[1]:elemType() }
 
    -- function to apply initial conditions
    local function init(field)
@@ -77,17 +225,90 @@ local function buildSimulation(self, tbl)
       end
    end
    -- initialize field
-   init(fluid)
+   init(field[1])
    -- write out ICs (allows user to debug sim without running it)
-   fieldIo:write(fluid, "fluid_0.bp", 0.0)   
+   fieldIo:write(field[1], "fluid_0.bp", 0.0)
 
+   local tmEnd = Time.clock()
+   log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
+
+   -- return function that runs the main simulation loop
    return function (self)
+      log("Starting main loop of EulerOnCartGrid simulation ...")
+      local tmStart = Time.clock()
 
+      local tStart, tEnd, nFrames = 0, tbl.tEnd, tbl.nFrame
+      local initDt = tEnd-tStart -- initial time-step
+      local frame = 1
+      local tFrame = (tEnd-tStart)/nFrames
+      local nextIOt = tFrame
+      local step = 1
+      local tCurr = tStart
+      local myDt = initDt
+      local status, dtSuggested
+      local useLaxSolver = false
+
+      -- the grand loop 
+      while true do
+	 -- copy fields in case we need to take this step again
+	 fieldDup:copy(field[1])
+
+	 -- if needed adjust dt to hit tEnd exactly
+	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
+
+	 -- advance fluids and fields
+	 if useLaxSolver then
+	    -- call Lax solver if positivity violated
+	    log (string.format(" Taking step %5d at time %6g with dt %g (using Lax solvers)", step, tCurr, myDt))
+	    status, dtSuggested = updateFluidLax(tCurr, tCurr+myDt)
+	    useLaxSolver = false
+	 else
+	    log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
+	    status, dtSuggested, useLaxSolver = updateFluid(tCurr, tCurr+myDt)
+	 end
+
+	 if status == false then
+	    -- time-step too large
+	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
+	    myDt = dtSuggested
+	    field[1]:copy(fieldDup)
+	 elseif (useLaxSolver == true) then
+	    -- negative density/pressure occured
+	    log (string.format(" ** Negative pressure or density at %8g! Will retake step with Lax fluxes", tCurr+myDt))
+	    field[1]:copy(fieldDup)
+	 else
+	    -- check if a nan occured ????? FIX THIS FIX THIS!!!!!!
+	    if false then -- fluidNew:hasNan()
+	       log (string.format(" ** NaN occured at %g! Stopping simulation", tCurr))
+	       break
+	    end
+	    -- copy updated solution back
+	    field[1]:copy(fieldNew)
+	    
+	    -- write out data
+	    if (tCurr+myDt > nextIOt or tCurr+myDt >= tEnd) then
+	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
+	       fieldIo:write(field[1], string.format("fluid_%d.bp", frame), tCurr+myDt)
+	       frame = frame + 1
+	       nextIOt = nextIOt + tFrame
+	       step = 0
+	    end
+	    
+	    tCurr = tCurr + myDt
+	    myDt = dtSuggested
+	    step = step + 1
+
+	    -- check if done
+	    if (tCurr >= tEnd) then
+	       break
+	    end
+	 end 
+      end -- end of time-step loop
+
+      local tmEnd = Time.clock()
+      log(string.format("Main loop completed in %g sec\n", tmEnd-tmStart))
    end
 end
-
--- create default logger
-log = Logger { }
 
 -- Euler simulation object
 local Sim = {}
@@ -107,6 +328,7 @@ Sim.__index = {
    end
 }
 
-return {
-   Sim = Sim,
-}
+-- add to table
+M.Sim = Sim
+
+return M
