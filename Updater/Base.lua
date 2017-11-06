@@ -22,6 +22,7 @@ function _M.setup(self, tbl)
    self._comm = tbl.onGrid:commSet().comm
    self._sharedComm = tbl.onGrid:commSet().sharedComm
    self._nodeComm = tbl.onGrid:commSet().nodeComm
+   self.totalTime = 0.0 
 end
 
 -- This function wraps an updater's advance() function and adds a
@@ -29,7 +30,6 @@ end
 -- and time-step suggestion across processors.
 function _M.advanceFuncWrap(advanceFunc)
    return function(self, tCurr, dt, inFld, outFld)
-      self.totalTime = self.totalTime and self.totalTime or 0.0
       local tmStart = Time.clock()
       -- >>> Take the time-step
       local _status, _dtSuggested = advanceFunc(self, tCurr, dt, inFld, outFld)
