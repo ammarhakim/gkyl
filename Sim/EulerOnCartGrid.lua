@@ -306,6 +306,11 @@ local function buildSimulation(self, tbl)
       end -- end of time-step loop
 
       local tmEnd = Time.clock()
+      local tmFluidSlvr = 0 -- total time in fluid solver
+      for d = 1, ndim do
+	 tmFluidSlvr = tmFluidSlvr+fluidSlvr[d].totalTime
+      end
+      log(string.format("Fluid solvers took %g sec", tmFluidSlvr))
       log(string.format("Main loop completed in %g sec\n", tmEnd-tmStart))
    end
 end
