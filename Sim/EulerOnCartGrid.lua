@@ -90,8 +90,8 @@ local function buildSimulation(self, tbl)
    }
 
    -- allocate space for fields after dimensional sweeps
-   local field = {}
-   for d = 1, ndim+1 do
+   local field = {} 
+   for d = 1, 2 do -- we only two fields for dimensional split algorithm
       field[d] = DataStruct.Field {
 	 onGrid = grid,
 	 numComponents = 5,
@@ -179,18 +179,23 @@ local function buildSimulation(self, tbl)
    local function updateFluid(tCurr, t)
       local status, useLaxSolver = true, false
       local suggestedDt = GKYL_MAX_DOUBLE
-      local inpField, outField
-
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
+      
       -- update solution in each direction using dimensional splitting
       for d = 1, ndim do
-	 local myStatus, mySuggestedDt = fluidSlvr[d]:advance(tCurr, t-tCurr, {field[d]}, {field[d+1]})
+	 local inpField, outField = field[fIdx[d][1]], field[fIdx[d][2]]
+	 local myStatus, mySuggestedDt = fluidSlvr[d]:advance(tCurr, t-tCurr, {inpField}, {outField})
 	 
 	 status =  status and myStatus
 	 suggestedDt = math.min(suggestedDt, mySuggestedDt)
 	 if not status then
 	    return status, suggestedDt, useLaxSolver
 	 end
-	 applyBc(field[d+1], tCurr, t)
+	 applyBc(outField, tCurr, t)
+      end
+       -- if solution is not already in field[1], copy for use in next time-step
+      if fIdx[ndim][2] == 2 then
+	 field[1]:copy(field[2])
       end
 
       return status, suggestedDt, useLaxSolver
@@ -258,10 +263,7 @@ local function buildSimulation(self, tbl)
 	    myDt = dtSuggested
 	    field[1]:copy(fieldDup)
 	 else
-	    -- copy updated solution to prep for next time-step
-	    field[1]:copy(field[ndim+1])
-	    
-	    -- write out data
+	    -- write out data if needed
 	    if (tCurr+myDt > nextIOt or tCurr+myDt >= tEnd) then
 	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
 	       fieldIo:write(field[1], string.format("fluid_%d.bp", frame), tCurr+myDt)
