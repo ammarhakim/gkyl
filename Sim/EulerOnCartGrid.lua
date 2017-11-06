@@ -91,15 +91,13 @@ local function buildSimulation(self, tbl)
 
    -- allocate space for fields after dimensional sweeps
    local field = {}
-   for d = 1, 2 do -- we only need two fields independent of dimensions
+   for d = 1, ndim+1 do
       field[d] = DataStruct.Field {
 	 onGrid = grid,
 	 numComponents = 5,
 	 ghost = {2, 2},
       }
    end
-   -- pointer to out solution field
-   local fieldNew = nil
    -- in case we need to take time-step again
    local fieldDup = DataStruct.Field {
       onGrid = grid,
@@ -125,9 +123,7 @@ local function buildSimulation(self, tbl)
 
    -- set flags to indicate which directions are periodic
    local isDirPeriodic = {false, false, false}
-   for _, d in ipairs(periodicDirs) do
-      isDirPeriodic[d] = true
-   end
+   for _, d in ipairs(periodicDirs) do isDirPeriodic[d] = true end
 
    -- available types of BCs
    bcCopyAll = BoundaryCondition.Copy { components = {1, 2, 3, 4, 5} }
@@ -144,12 +140,11 @@ local function buildSimulation(self, tbl)
       }
    end
    
-   -- list of Bcs to apply
-   local boundaryConditions = { }
+   local boundaryConditions = { } -- list of Bcs to apply
    -- function to determine what BC to apply and insert into list
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == M.bcCopy then
-	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcCopy}))
+	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcCopyAll}))
       elseif bcType == M.bcWall then
 	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcWallCopy, bcWallZeroNormal}))
       end
@@ -171,7 +166,7 @@ local function buildSimulation(self, tbl)
 	 appendBoundaryConditions(3, "lower", tbl.bcz[1])
 	 appendBoundaryConditions(3, "upper", tbl.bcz[2])
       end
-   end   
+   end
 
    -- function to apply boundary conditions
    local function applyBc(field, tCurr, t)
@@ -184,23 +179,19 @@ local function buildSimulation(self, tbl)
    local function updateFluid(tCurr, t)
       local status, useLaxSolver = true, false
       local suggestedDt = GKYL_MAX_DOUBLE
-
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
       local inpField, outField
+
       -- update solution in each direction using dimensional splitting
       for d = 1, ndim do
-	 inpField, outField = field[fIdx[d][1]], field[fIdx[d][2]]
-	 local myStatus, mySdt = fluidSlvr[d]:advance(tCurr, t-tCurr, {inpField}, {outField})
+	 local myStatus, mySuggestedDt = fluidSlvr[d]:advance(tCurr, t-tCurr, {field[d]}, {field[d+1]})
 	 
-	 status = myStatus and status
-	 suggestedDt = math.min(suggestedDt, mySdt)
-	 if status == false then
+	 status =  status and myStatus
+	 suggestedDt = math.min(suggestedDt, mySuggestedDt)
+	 if not status then
 	    return status, suggestedDt, useLaxSolver
 	 end
-
-	 applyBc(outField, tCurr, t)
+	 applyBc(field[d+1], tCurr, t)
       end
-      fieldNew = outField -- set this so we can get this from run() method
 
       return status, suggestedDt, useLaxSolver
    end
@@ -224,31 +215,32 @@ local function buildSimulation(self, tbl)
 	 fItr[1], fItr[2], fItr[3], fItr[4], fItr[5] = rho, rhou, rhov, rhow, E
       end
    end
-   -- initialize field
-   init(field[1])
-   -- write out ICs (allows user to debug sim without running it)
+
+   init(field[1]) -- initialize field
+   applyBc(field[1], 0.0, 0.0) -- apply Bc to initial conditions
+
+   -- write out ICs
    fieldIo:write(field[1], "fluid_0.bp", 0.0)
 
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
 
-   -- return function that runs the main simulation loop
+   -- return function that the main simulation loop
    return function (self)
       log("Starting main loop of EulerOnCartGrid simulation ...")
-      local tmStart = Time.clock()
+      local tmSimStart = Time.clock()
 
-      local tStart, tEnd, nFrames = 0, tbl.tEnd, tbl.nFrame
-      local initDt = tEnd-tStart -- initial time-step
+
+      local tStart, tEnd, nFrame = 0, tbl.tEnd, tbl.nFrame
+      local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
-      local tFrame = (tEnd-tStart)/nFrames
+      local tFrame = (tEnd-tStart)/nFrame
       local nextIOt = tFrame
       local step = 1
       local tCurr = tStart
       local myDt = initDt
-      local status, dtSuggested
-      local useLaxSolver = false
 
-      -- the grand loop 
+      -- main simulation loop
       while true do
 	 -- copy fields in case we need to take this step again
 	 fieldDup:copy(field[1])
@@ -256,34 +248,18 @@ local function buildSimulation(self, tbl)
 	 -- if needed adjust dt to hit tEnd exactly
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
 
-	 -- advance fluids and fields
-	 if useLaxSolver then
-	    -- call Lax solver if positivity violated
-	    log (string.format(" Taking step %5d at time %6g with dt %g (using Lax solvers)", step, tCurr, myDt))
-	    status, dtSuggested = updateFluidLax(tCurr, tCurr+myDt)
-	    useLaxSolver = false
-	 else
-	    log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
-	    status, dtSuggested, useLaxSolver = updateFluid(tCurr, tCurr+myDt)
-	 end
+	 -- Take a time-step
+	 log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
+	 local status, dtSuggested, useLaxSolver = updateFluid(tCurr, tCurr+myDt)
 
 	 if status == false then
-	    -- time-step too large
+	    -- updater failed, time-step too large
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
 	    myDt = dtSuggested
 	    field[1]:copy(fieldDup)
-	 elseif (useLaxSolver == true) then
-	    -- negative density/pressure occured
-	    log (string.format(" ** Negative pressure or density at %8g! Will retake step with Lax fluxes", tCurr+myDt))
-	    field[1]:copy(fieldDup)
 	 else
-	    -- check if a nan occured ????? FIX THIS FIX THIS!!!!!!
-	    if false then -- fluidNew:hasNan()
-	       log (string.format(" ** NaN occured at %g! Stopping simulation", tCurr))
-	       break
-	    end
-	    -- copy updated solution back
-	    field[1]:copy(fieldNew)
+	    -- copy updated solution to prep for next time-step
+	    field[1]:copy(field[ndim+1])
 	    
 	    -- write out data
 	    if (tCurr+myDt > nextIOt or tCurr+myDt >= tEnd) then
@@ -305,13 +281,14 @@ local function buildSimulation(self, tbl)
 	 end 
       end -- end of time-step loop
 
-      local tmEnd = Time.clock()
+      local tmSimEnd = Time.clock()
       local tmFluidSlvr = 0 -- total time in fluid solver
       for d = 1, ndim do
 	 tmFluidSlvr = tmFluidSlvr+fluidSlvr[d].totalTime
       end
+      --log(string.format("Fluid solvers took %g sec", tmFluidSlvr))
       log(string.format("Fluid solvers took %g sec", tmFluidSlvr))
-      log(string.format("Main loop completed in %g sec\n", tmEnd-tmStart))
+      log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
    end
 end
 
