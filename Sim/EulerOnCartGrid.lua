@@ -12,7 +12,6 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
 local HyperEquation = require "Eq"
 local Logger = require "Lib.Logger"
-local Mpi = require "Comm.Mpi"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
@@ -46,7 +45,7 @@ local function buildSimulation(self, tbl)
    assert(ndim == #tbl.upper, "upper should have exactly " .. ndim .. " entries")
    assert(ndim == #tbl.cells, "cells should have exactly " .. ndim .. " entries")
 
-   -- Gas adiabatic constant   
+   -- Gas adiabatic constant
    local gasGamma = warnDefault(tbl.gasGamma, "gasGamma", 1.4)
    -- CFL number
    local cfl = warnDefault(tbl.cfl, "cfl", 0.9)
@@ -90,7 +89,7 @@ local function buildSimulation(self, tbl)
    }
 
    -- allocate space for fields after dimensional sweeps
-   local field = {} 
+   local field = {}
    for d = 1, 2 do -- we only two fields for dimensional split algorithm
       field[d] = DataStruct.Field {
 	 onGrid = grid,
@@ -103,7 +102,7 @@ local function buildSimulation(self, tbl)
       onGrid = grid,
       numComponents = 5,
       ghost = {2, 2},
-   }   
+   }
 
    -- equation object: provides Reimann solver
    local eulerEqn = HyperEquation.Euler {
@@ -115,7 +114,7 @@ local function buildSimulation(self, tbl)
       fluidSlvr[d] = Updater.WavePropagation {
 	 onGrid = grid,
 	 equation = eulerEqn,
-	 limiter = "monotonized-centered",
+	 limiter = limiter,
 	 cfl = cfl,
 	 updateDirections = {d}
       }
@@ -126,9 +125,9 @@ local function buildSimulation(self, tbl)
    for _, d in ipairs(periodicDirs) do isDirPeriodic[d] = true end
 
    -- available types of BCs
-   bcCopyAll = BoundaryCondition.Copy { components = {1, 2, 3, 4, 5} }
-   bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
-   bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
+   local bcCopyAll = BoundaryCondition.Copy { components = {1, 2, 3, 4, 5} }
+   local bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
+   local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
 
    -- function to construct a BC updater
    local function makeBcUpdater(dir, edge, bcList)
@@ -139,7 +138,7 @@ local function buildSimulation(self, tbl)
 	 edge = edge,
       }
    end
-   
+
    local boundaryConditions = { } -- list of Bcs to apply
    -- function to determine what BC to apply and insert into list
    local function appendBoundaryConditions(dir, edge, bcType)
@@ -150,7 +149,7 @@ local function buildSimulation(self, tbl)
       end
    end
 
-   -- determine BCs 
+   -- determine BCs
    if not isDirPeriodic[1] then -- X
       appendBoundaryConditions(1, "lower", tbl.bcx[1])
       appendBoundaryConditions(1, "upper", tbl.bcx[2])
@@ -169,9 +168,9 @@ local function buildSimulation(self, tbl)
    end
 
    -- function to apply boundary conditions
-   local function applyBc(field, tCurr, t)
+   local function applyBc(fld, tCurr, t)
       for _, bc in ipairs(boundaryConditions) do
-	 bc:advance(tCurr, t-tCurr, {}, {field})
+	 bc:advance(tCurr, t-tCurr, {}, {fld})
       end
    end
 
@@ -205,10 +204,10 @@ local function buildSimulation(self, tbl)
    local fieldIo = AdiosCartFieldIo { field[1]:elemType() }
 
    -- function to apply initial conditions
-   local function init(field)
+   local function init(fld)
       local xn = Lin.Vec(ndim)
-      local indexer = field:genIndexer()
-      for idx in field:localRangeIter() do
+      local indexer = fld:genIndexer()
+      for idx in fld:localRangeIter() do
 	 -- get cell-center coordinates
 	 grid:setIndex(idx)
 	 grid:cellCenter(xn)
@@ -216,7 +215,7 @@ local function buildSimulation(self, tbl)
 	 local rho, rhou, rhov, rhow, E = tbl.init(0.0, xn)
 
 	 -- set values in cell
-	 local fItr = field:get(indexer(idx)) -- pointer to data in cell
+	 local fItr = fld:get(indexer(idx)) -- pointer to data in cell
 	 fItr[1], fItr[2], fItr[3], fItr[4], fItr[5] = rho, rhou, rhov, rhow, E
       end
    end
@@ -308,7 +307,7 @@ setmetatable(Sim, { __call = function (self, o) return self.new(self, o) end })
 -- set callable methods
 Sim.__index = {
    run = function (self)
-      return self._runSimulation(self)
+      return self:_runSimulation()
    end
 }
 
