@@ -1,4 +1,5 @@
 #include <test_cfuncs.h>
+#include <classwrap.h>
 #include <stdlib.h>
 
 double calcSum(int n, double *v)

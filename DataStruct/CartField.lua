@@ -21,7 +21,7 @@ local Range = require "Lib.Range"
 
 -- C interfaces
 ffi.cdef [[
-    // s: start index. sv: number of values to copy
+    // s: start index. nv: number of values to copy
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
 ]]

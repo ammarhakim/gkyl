@@ -196,7 +196,6 @@ local function buildSimulation(self, tbl)
       if fIdx[ndim][2] == 2 then
 	 field[1]:copy(field[2])
       end
-
       return status, suggestedDt, useLaxSolver
    end
 
@@ -256,7 +255,7 @@ local function buildSimulation(self, tbl)
 	 log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
 	 local status, dtSuggested, useLaxSolver = updateFluid(tCurr, tCurr+myDt)
 
-	 if status == false then
+	 if not status then
 	    -- updater failed, time-step too large
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
 	    myDt = dtSuggested
@@ -287,7 +286,6 @@ local function buildSimulation(self, tbl)
       for d = 1, ndim do
 	 tmFluidSlvr = tmFluidSlvr+fluidSlvr[d].totalTime
       end
-      --log(string.format("Fluid solvers took %g sec", tmFluidSlvr))
       log(string.format("Fluid solvers took %g sec", tmFluidSlvr))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
    end
