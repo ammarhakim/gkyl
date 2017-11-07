@@ -24,6 +24,11 @@ ffi.cdef [[
   void setValues(int n, int ix, double *v);
 ]]
 
+ffi.cdef [[
+  typedef struct Particle_type *Particle;
+  typedef struct { Particle *p; } ptcl_t;
+]]
+
 function test_1()
    local v = ffi.new(typeof("double[?]"), 10)
    for i = 1, 10 do
