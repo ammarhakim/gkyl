@@ -11,6 +11,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 local Time = require "Lib.Time"
+local Lin = require "Lib.Linalg"
 
 local _M = {}
 
@@ -19,8 +20,10 @@ ffi.cdef [[
 
 /* Euler equation for ideal gas */
 typedef struct {
-    double _gasGamma; /* Gas constant */
+   double _gasGamma; /* Gas constant */
    double _rpTime; /* Time spent in RP */
+   int _numWaves; /* Number of waves in system */
+   int _rpType; /* Type of RP to use */
 } EulerEqn_t;
 
 ]]
@@ -42,7 +45,7 @@ local function isNan(x) return x ~= x end
 -- matrix. See LeVeque's book for explanations. Note: This code is
 -- essentially based on code used in my thesis i.e. CLAWPACK and
 -- Miniwarpx. (A. Hakim)
-local function rp(self, dir, delta, ql, qr, waves, s)
+local function rpRoe(self, dir, delta, ql, qr, waves, s)
    local d = dirShuffle[dir] -- shuffle indices for `dir`
    local g1 = self._gasGamma-1
    local rhol, rhor = ql[1], qr[1]
@@ -100,7 +103,7 @@ local function rp(self, dir, delta, ql, qr, waves, s)
 end
 
 -- The function to compute fluctuations is implemented as a template
--- which unrolls the inner loop
+-- that unrolls inner loop
 local qFluctuationsTempl = xsys.template([[
 return function (dir, waves, s, amdq, apdq)
    local w1, w2, w3 = waves[1], waves[2], waves[3]
@@ -117,15 +120,49 @@ end
 -- function to compute fluctuations using q-wave method
 local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
+-- Riemann problem (Lax) for Euler equations: `delta` is the vector we
+-- wish to split, `ql`/`qr` the left/right states. On output, `waves`
+-- and `s` contain the waves and speeds. waves is a mwave X meqn
+-- matrix. 
+local function rpLax(self, dir, delta, ql, qr, waves, s)
+   local wv = waves[1] -- single wave
+   wv[1] = qr[1]-ql[1]
+   wv[2] = qr[2]-ql[2]
+   wv[3] = qr[3]-ql[3]
+   wv[4] = qr[4]-ql[4]
+   wv[5] = qr[5]-ql[5]
+
+   local sl, sr = Lib.Vec(2), Lib.Vec(2)
+   self.speeds(dir, ql, sl)
+   self.speeds(dir, qr, sr)
+   s[1] = 0.5*(sl[2]+sr[2]);
+end
+
+-- for determining type of RP solver to use
+local RP_TYPE_ROE, RP_TYPE_ROE  = 1, 2
+
 local euler_mt = {
    __new = function (self, tbl)
       local f = new(self)
       f._gasGamma = assert(tbl.gasGamma, "Eq.Euler: Must specify gas adiabatic constant (gasGamma)")
+      -- determine numerical flux to use
+      f._rpType = RP_TYPE_ROE
+      if tbl.numericalFlux then
+	 if tbl.numericalFlux == "roe" then
+	    f._rpType = RP_TYPE_ROW
+	 elseif tbl.numericalFlux == "lax" then
+	    f._rpType = RP_TYPE_LAX
+	 else
+	    assert(false, "Euler: 'numericalFlux' must be one of 'roe' or 'lax'")
+	 end
+      end
+      f._numWaves = f._rpType == RP_TYPE_ROE and 3 or 1 -- number of waves
+      f._rpTime = 0.0 -- initialize time
       return f
    end,
    __index = {
       numEquations = function (self) return 5 end,
-      numWaves = function (self) return 3 end,
+      numWaves = function (self) return self._numWaves end,
       gasGamma = function (self) return self._gasGamma end,
       pressure = function (self, q)
 	 return (self._gasGamma-1)*(q[5]-0.5*(q[2]*q[2]+q[3]*q[3]+q[4]*q[4])/q[1])
@@ -139,13 +176,25 @@ local euler_mt = {
 	 fOut[d[3]] = qIn[d[3]]*u -- rho*w*u
 	 fOut[5] = (qIn[5]+pr)*u -- (E+p)*u
       end,
+      speeds = function (self, dir, qIn, sOut)
+	 local d = dirShuffle[dir] -- shuffle indices for `dir`
+	 local pr, u = self:pressure(qIn), qIn[d[1]]/qIn[1]
+	 local cs = math.sqrt(self._gasGamma*pr/qIn[1])
+	 sOut[1], sOut[2] = u-cs, u+cs
+      end,
       isPositive = function (self, q)
 	 if isNan(q[1]) or q[1] < 0.0 then return false end
 	 local pr = self:pressure(q)
 	 if isNan(pr) or pr < 0.0 then return false end
 	 return true
       end,
-      rp = rp,
+      rp = function (self, dir, delta, ql, qr, waves, s)
+	 if self._rpType == RP_TYPE_ROE then
+	    return rpRoe(self, dir, delta, ql, qr, waves, s)
+	 else
+	    return rpLax(self, dir, delta, ql, qr, waves, s)
+	 end
+      end,
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
 	 qFluctuations(dir, waves, s, amdq, apdq)
       end,

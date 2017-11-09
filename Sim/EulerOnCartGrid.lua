@@ -10,7 +10,7 @@ local BoundaryCondition = require "Updater.BoundaryCondition"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
-local HyperEquation = require "Eq"
+local Eq = require "Eq"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
@@ -88,7 +88,7 @@ local function buildSimulation(self, tbl)
       decomposition = decomp,
    }
 
-   -- allocate space for fields after dimensional sweeps
+   -- allocate space for use in dimensional sweeps
    local field = {}
    for d = 1, 2 do -- we only two fields for dimensional split algorithm
       field[d] = DataStruct.Field {
@@ -105,7 +105,7 @@ local function buildSimulation(self, tbl)
    }
 
    -- equation object: provides Reimann solver
-   local eulerEqn = HyperEquation.Euler {
+   local eulerEqn = Eq.Euler {
       gasGamma = gasGamma
    }
    -- create solvers for updates in each direction
@@ -124,7 +124,7 @@ local function buildSimulation(self, tbl)
    local isDirPeriodic = {false, false, false}
    for _, d in ipairs(periodicDirs) do isDirPeriodic[d] = true end
 
-   -- available types of BCs
+   -- objects to apply BCs
    local bcCopyAll = BoundaryCondition.Copy { components = {1, 2, 3, 4, 5} }
    local bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
    local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
