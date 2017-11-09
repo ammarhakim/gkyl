@@ -8,7 +8,7 @@ from waflib.Configure import conf
 def options(opt):
     opt.add_option('--enable-adios', help=('Enable ADIOS'),
                    dest='enable_adios', action='store_true',
-                   default=False)
+                   default=True)
     opt.add_option('--adios-inc-dir', type='string', help='Path to ADIOS includes', dest='adiosIncDir')
     opt.add_option('--adios-lib-dir', type='string', help='Path to ADIOS libraries', dest='adiosLibDir')
 
@@ -19,20 +19,23 @@ def check_adios(conf):
 
     if not conf.options.enable_adios:
 	return
+    
     if conf.options.adiosIncDir:
 	conf.env.INCLUDES_ADIOS = conf.options.adiosIncDir
     else:
-        conf.fatal("Please specify ADIOS include directories by --adios-inc-dir")
+        conf.env.INCLUDES_ADIOS = conf.options.gkylDepsDir+'/adios/include'
+
     if conf.options.adiosLibDir:
 	conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir
-        if conf.options.enable_mpi:
-            conf.env.STLIB_ADIOS = ["adios"]
-        else:
-            conf.env.append_value('CXXFLAGS', '-D_NOMPI')
-            conf.env.append_value('CFLAGS', '-D_NOMPI')
-            conf.env.STLIB_ADIOS = ["adios_nompi"]            
     else:
-        conf.fatal("Please specify ADIOS library directories by --adios-lib-dir")
+        conf.env.STLIBPATH_ADIOS = conf.options.gkylDepsDir+'/adios/lib'
+
+    if conf.options.enable_mpi:
+        conf.env.STLIB_ADIOS = ["adios"]
+    else:
+        conf.env.append_value('CXXFLAGS', '-D_NOMPI')
+        conf.env.append_value('CFLAGS', '-D_NOMPI')
+        conf.env.STLIB_ADIOS = ["adios_nompi"]
          
     conf.start_msg('Checking for ADIOS')
     conf.check(header_name='adios.h', features='cxx cxxprogram', use="ADIOS MPI", mandatory=True)
