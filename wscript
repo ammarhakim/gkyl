@@ -149,10 +149,10 @@ def build(bld):
     binPath = bld.env.PREFIX+"/bin"
     sharePath = bld.env.SHARE_LUAJIT+"/?.lua"
     bld(rule=r"""sed -e 's#SHAREPATH#%s#' -e 's#BINPATH#%s#' ${SRC} > ${TGT}""" % (sharePath, binPath),
-        source='xgkyl-in', target='xgkyl')    
+        source='gkyl-in', target='gkyl')    
     
     # Install wrapper shell script
-    bld.install_files("${PREFIX}/bin", "xgkyl", chmod=0755)
+    bld.install_files("${PREFIX}/bin", "gkyl", chmod=0755)
 
 def buildExec(bld):
     r"""Build top-level executable"""
@@ -163,7 +163,7 @@ def buildExec(bld):
 
     # build gkyl executable
     bld.program(
-        source ='gkyl.cxx', target='gkyl',
+        source ='gkylx.cxx', target='gkylx',
         includes = 'Unit Comm',
         use='gkdatastruct gkeq gkunit gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
