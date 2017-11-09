@@ -164,7 +164,7 @@ def buildExec(bld):
     # build gkyl executable
     bld.program(
         source ='gkylx.cxx', target='gkylx',
-        includes = 'Unit Comm',
+        includes = 'Unit Comm sol',
         use='gkdatastruct gkeq gkunit gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
