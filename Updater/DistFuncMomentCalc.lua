@@ -50,7 +50,7 @@ local function selectMod(cDim, vDim, bId, polyOrder)
    elseif bId == "maximal-order" then
       nm = maxModNames[cDim][vDim]
    end
-   return require("Updater._momentCalcData." .. nm)
+   return require("Updater.momentCalcData." .. nm)
 end
 -- select appropriate module for energy and pressure-tensor (these are
 -- stored in different files)
@@ -61,7 +61,7 @@ local function selectPrMod(cDim, vDim, bId, polyOrder)
    elseif bId == "maximal-order" then
       nm = maxPrModNames[cDim][vDim]
    end
-   return require("Updater._momentCalcData." .. nm)
+   return require("Updater.momentCalcData." .. nm)
 end
 
 -- pick function to compute various moments
