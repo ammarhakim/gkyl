@@ -1,4 +1,4 @@
-GKYL=$HOME/gkylsoft/gkyl/bin/xgkyl
+GKYL=$HOME/gkylsoft/gkyl/bin/gkyl
 MPIEXEC=$HOME/gkylsoft/openmpi-3.0.0/bin/mpiexec
 
 ctext=`tput setaf 5`
