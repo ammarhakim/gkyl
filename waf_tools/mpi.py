@@ -8,11 +8,11 @@ from waflib.Configure import conf
 def options(opt):
     opt.add_option('--enable-mpi', help=('Enable parallel build'),
                    dest='enable_mpi', action='store_true',
-                   default=False)
+                   default=True)
     opt.add_option('--mpi-inc-dir', type='string', help='Path to MPI includes', dest='mpiIncDir')
     opt.add_option('--mpi-lib-dir', type='string', help='Path to MPI libraries', dest='mpiLibDir')
     opt.add_option('--mpi-link-libs', type='string', help='List of MPI libraries to link',
-                   dest='mpiLinkLibs', default='mpi,mpi_cxx')
+                   dest='mpiLinkLibs', default='mpi')
 
 @conf
 def check_mpi(conf):
@@ -24,12 +24,12 @@ def check_mpi(conf):
     if conf.options.mpiIncDir:
 	conf.env.INCLUDES_MPI = conf.options.mpiIncDir
     else:
-        conf.fatal("Please specify MPI include directories by --mpi-inc-dir")
+        conf.env.INCLUDES_MPI = conf.options.gkylDepsDir+"/openmpi-3.0.0/include"
 
     if conf.options.mpiLibDir:
 	conf.env.LIBPATH_MPI = conf.options.mpiLibDir
     else:
-        conf.fatal("Please specify MPI library directories by --mpi-lib-dir")
+        conf.env.LIBPATH_MPI = conf.options.gkylDepsDir+"/openmpi-3.0.0/lib"
 
     libList = conf.options.mpiLinkLibs
     conf.env.LIB_MPI = libList.split(',')
