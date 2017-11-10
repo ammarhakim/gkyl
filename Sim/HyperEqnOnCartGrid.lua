@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Euler solver on a Cartesian grid. Works in 1D, 2D and 3D.
+-- Hyperbolic solver on a Cartesian grid. Works in 1D, 2D and 3D.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -10,7 +10,6 @@ local BoundaryCondition = require "Updater.BoundaryCondition"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
-local Eq = require "Eq"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
@@ -21,12 +20,11 @@ local M = {}
 
 -- Boundary condition objects
 M.bcCopy = { id = 1 }
-M.bcWall = { id = 2 }
 M.bcConst = function (tbl)
    local bc = { id = 3 }
    bc.components = tbl.components
    bc.values = tbl.values
-   assert(#bc.components == #bc.values, "In Euler.bcConst 'components' and 'values' must have same size")
+   assert(#bc.components == #bc.values, "In HyperEqn.bcConst 'components' and 'values' must have same size")
    return bc
 end
 			   
@@ -44,7 +42,7 @@ local function buildSimulation(self, tbl)
       return default
    end
 
-   log("Initializing EulerOnCartGrid simulation ...")
+   log("Initializing HyperEqnOnCartGrid simulation ...")
    local tmStart = Time.clock()
 
    -- basic parameters and checks
@@ -52,8 +50,6 @@ local function buildSimulation(self, tbl)
    assert(ndim == #tbl.upper, "upper should have exactly " .. ndim .. " entries")
    assert(ndim == #tbl.cells, "cells should have exactly " .. ndim .. " entries")
 
-   -- Gas adiabatic constant
-   local gasGamma = warnDefault(tbl.gasGamma, "gasGamma", 1.4)
    -- CFL number
    local cfl = warnDefault(tbl.cfl, "cfl", 0.9)
    -- limiter
@@ -111,16 +107,20 @@ local function buildSimulation(self, tbl)
       ghost = {2, 2},
    }
 
+   local hyperEqn   
    -- equation object: provides Reimann solver
-   local eulerEqn = Eq.Euler {
-      gasGamma = gasGamma
-   }
+   if tbl.equation then
+      hyperEqn = tbl.equation and tbl.equation
+   else
+      assert("HyperEqn: Must specify equation to solve using 'equation'!")
+   end
+
    -- create solvers for updates in each direction
-   local fluidSlvr = {}
+   local hyperSlvr = {}
    for d = 1, ndim do
-      fluidSlvr[d] = Updater.WavePropagation {
+      hyperSlvr[d] = Updater.WavePropagation {
 	 onGrid = grid,
-	 equation = eulerEqn,
+	 equation = hyperEqn,
 	 limiter = limiter,
 	 cfl = cfl,
 	 updateDirections = {d}
@@ -131,10 +131,13 @@ local function buildSimulation(self, tbl)
    local isDirPeriodic = {false, false, false}
    for _, d in ipairs(periodicDirs) do isDirPeriodic[d] = true end
 
+   local meqn = hyperEqn.numEquations()   
+   -- initialize component list
+   local cList = {}
+   for m = 1, meqn do cList[m] = m end
+
    -- objects to apply BCs
-   local bcCopyAll = BoundaryCondition.Copy { components = {1, 2, 3, 4, 5} }
-   local bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
-   local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
+   local bcCopyAll = BoundaryCondition.Copy { components = cList }
 
    -- function to construct a BC updater
    local function makeBcUpdater(dir, edge, bcList)
@@ -151,8 +154,6 @@ local function buildSimulation(self, tbl)
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == M.bcCopy.id then
 	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcCopyAll}))
-      elseif bcType == M.bcWall.id then
-	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcWallCopy, bcWallZeroNormal}))
       elseif bcType == M.bcConst.id then
 	 local bc = BoundaryCondition.Const { components = bcType.components, values = bcType.values  }
 	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, { bc })
@@ -184,21 +185,21 @@ local function buildSimulation(self, tbl)
       end
    end
 
-   -- function to update fluids
-   local function updateFluid(tCurr, t)
-      local status, useLaxSolver = true, false
+   -- function to update hypers
+   local function updateHyper(tCurr, t)
+      local status = true
       local suggestedDt = GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
       
       -- update solution in each direction using dimensional splitting
       for d = 1, ndim do
 	 local inpField, outField = field[fIdx[d][1]], field[fIdx[d][2]]
-	 local myStatus, mySuggestedDt = fluidSlvr[d]:advance(tCurr, t-tCurr, {inpField}, {outField})
+	 local myStatus, mySuggestedDt = hyperSlvr[d]:advance(tCurr, t-tCurr, {inpField}, {outField})
 	 
 	 status =  status and myStatus
 	 suggestedDt = math.min(suggestedDt, mySuggestedDt)
 	 if not status then
-	    return status, suggestedDt, useLaxSolver
+	    return status, suggestedDt
 	 end
 	 applyBc(outField, tCurr, t)
       end
@@ -206,7 +207,7 @@ local function buildSimulation(self, tbl)
       if fIdx[ndim][2] == 2 then
 	 field[1]:copy(field[2])
       end
-      return status, suggestedDt, useLaxSolver
+      return status, suggestedDt
    end
 
    -- create Adios object for field I/O
@@ -220,10 +221,10 @@ local function buildSimulation(self, tbl)
 	 grid:setIndex(idx)
 	 grid:cellCenter(xn)
 	 -- evaluate supplied IC function
-	 local rho, rhou, rhov, rhow, E = tbl.init(0.0, xn)
+	 local v = { tbl.init(0.0, xn) } -- braces around function put return values in table
 	 -- set values in cell
 	 local fItr = fld:get(indexer(idx)) -- pointer to data in cell
-	 fItr[1], fItr[2], fItr[3], fItr[4], fItr[5] = rho, rhou, rhov, rhow, E
+	 for c = 1, meqn do fItr[c] = v[c] end
       end
    end
 
@@ -231,14 +232,14 @@ local function buildSimulation(self, tbl)
    applyBc(field[1], 0.0, 0.0) -- apply Bc to initial conditions
 
    -- write out ICs
-   fieldIo:write(field[1], "fluid_0.bp", 0.0)
+   fieldIo:write(field[1], "hyper_0.bp", 0.0)
 
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
 
    -- return function that runs main simulation loop
    return function (self)
-      log("Starting main loop of EulerOnCartGrid simulation ...")
+      log("Starting main loop of HyperEqnOnCartGrid simulation ...")
       local tmSimStart = Time.clock()
       local tStart, tEnd, nFrame = 0, tbl.tEnd, tbl.nFrame
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
@@ -259,7 +260,7 @@ local function buildSimulation(self, tbl)
 
 	 -- Take a time-step
 	 log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
-	 local status, dtSuggested, useLaxSolver = updateFluid(tCurr, tCurr+myDt)
+	 local status, dtSuggested = updateHyper(tCurr, tCurr+myDt)
 
 	 if not status then
 	    -- updater failed, time-step too large
@@ -270,7 +271,7 @@ local function buildSimulation(self, tbl)
 	    -- write out data if needed
 	    if tCurr+myDt > nextIOt or tCurr+myDt >= tEnd then
 	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
-	       fieldIo:write(field[1], string.format("fluid_%d.bp", frame), tCurr+myDt)
+	       fieldIo:write(field[1], string.format("hyper_%d.bp", frame), tCurr+myDt)
 	       frame = frame + 1
 	       nextIOt = nextIOt + tFrame
 	       step = 0
@@ -288,16 +289,16 @@ local function buildSimulation(self, tbl)
       end -- end of time-step loop
 
       local tmSimEnd = Time.clock()
-      local tmFluidSlvr = 0 -- total time in fluid solver
+      local tmHyperSlvr = 0 -- total time in hyper solver
       for d = 1, ndim do
-	 tmFluidSlvr = tmFluidSlvr+fluidSlvr[d].totalTime
+	 tmHyperSlvr = tmHyperSlvr+hyperSlvr[d].totalTime
       end
-      log(string.format("Fluid solvers took %g sec", tmFluidSlvr))
+      log(string.format("Hyper solvers took %g sec", tmHyperSlvr))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
    end
 end
 
--- Euler simulation object
+-- HyperEqn simulation object
 local Sim = {}
 -- constructor
 function Sim:new(tbl)
