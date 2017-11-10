@@ -12,8 +12,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 local Time = require "Lib.Time"
 local Lin = require "Lib.Linalg"
-
-local _M = {}
+local BoundaryCondition = require "Updater.BoundaryCondition"
 
 -- C interfaces
 ffi.cdef [[
@@ -132,14 +131,14 @@ local function rpLax(self, dir, delta, ql, qr, waves, s)
    wv[4] = qr[4]-ql[4]
    wv[5] = qr[5]-ql[5]
 
-   local sl, sr = Lib.Vec(2), Lib.Vec(2)
+   local sl, sr = Lin.Vec(2), Lin.Vec(2)
    self.speeds(dir, ql, sl)
    self.speeds(dir, qr, sr)
    s[1] = 0.5*(sl[2]+sr[2]);
 end
 
 -- for determining type of RP solver to use
-local RP_TYPE_ROE, RP_TYPE_ROE  = 1, 2
+local RP_TYPE_ROE, RP_TYPE_LAX  = 1, 2
 
 local euler_mt = {
    __new = function (self, tbl)
@@ -149,7 +148,7 @@ local euler_mt = {
       f._rpType = RP_TYPE_ROE
       if tbl.numericalFlux then
 	 if tbl.numericalFlux == "roe" then
-	    f._rpType = RP_TYPE_ROW
+	    f._rpType = RP_TYPE_ROE
 	 elseif tbl.numericalFlux == "lax" then
 	    f._rpType = RP_TYPE_LAX
 	 else
@@ -200,6 +199,20 @@ local euler_mt = {
       end,
    }
 }
-_M.Euler = metatype(typeof("EulerEqn_t"), euler_mt)
 
-return _M
+-- create a wrapper on Euler eqn object and provide BCs specific to
+-- Euler equations
+local Euler = {}
+function Euler:new(tbl)
+   local self = setmetatable({}, Euler)
+   return metatype(typeof("EulerEqn_t"), euler_mt)
+end
+-- make object callable, and redirect call to the :new method
+setmetatable(Euler, { __call = function (self, o) return self.new(self, o) end })
+
+local bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
+local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
+-- add wall BC specific to Euler equations
+Euler.bcWall = { bcWallCopy, bcWallZeroNormal }
+
+return { Euler }
