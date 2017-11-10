@@ -21,10 +21,14 @@ local M = {}
 -- Boundary condition objects
 M.bcCopy = { id = 1 }
 M.bcConst = function (tbl)
-   local bc = { id = 3 }
+   local bc = { id = 2 }
    bc.components = tbl.components
    bc.values = tbl.values
    assert(#bc.components == #bc.values, "In HyperEqn.bcConst 'components' and 'values' must have same size")
+   return bc
+end
+M.bcCustom = function(tbl)
+   local bc = { id = 3, bcList = tbl }
    return bc
 end
 			   
@@ -135,8 +139,7 @@ local function buildSimulation(self, tbl)
    -- initialize component list
    local cList = {}
    for m = 1, meqn do cList[m] = m end
-
-   -- objects to apply BCs
+   -- for copy BC
    local bcCopyAll = BoundaryCondition.Copy { components = cList }
 
    -- function to construct a BC updater
@@ -152,11 +155,14 @@ local function buildSimulation(self, tbl)
    local boundaryConditions = { } -- list of Bcs to apply
    -- function to determine what BC to apply and insert into list
    local function appendBoundaryConditions(dir, edge, bcType)
-      if bcType == M.bcCopy.id then
+      if bcType.id == M.bcCopy.id then
 	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcCopyAll}))
-      elseif bcType == M.bcConst.id then
+      elseif bcType.id == M.bcConst.id then
 	 local bc = BoundaryCondition.Const { components = bcType.components, values = bcType.values  }
-	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, { bc })
+	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, { bc }))
+      elseif bcType.id == M.bcCustom.id then
+	 -- equation specific BCs
+	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, bcType.bcList))
       end
    end
 
