@@ -12,7 +12,7 @@ local Alloc = require "Lib.Alloc"
 local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Range = require "Lib.Range"
-local _ = require "Updater._linearHyperbolicData.LinearHyperModDecl"
+local _ = require "Updater.linearHyperbolicData.LinearHyperModDecl"
 
 -- system libraries
 local ffi = require "ffi"

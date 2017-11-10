@@ -10,11 +10,17 @@ def options(opt):
                    default=os.path.expandvars('$HOME/gkylsoft'))
     opt.add_option('--cxxflags', type='string', help='Compiler flags', dest='gkcxxflags',
                    default='-O3,-Wall,-std=c++14')
+    opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
+                   default=os.path.expandvars('$HOME/gkylsoft/gkyl'))
 
 @conf
 def check_gkyl(conf):
     conf.start_msg("Setting dependency path:")
     conf.end_msg(conf.options.gkylDepsDir)
+
+    conf.start_msg("Setting prefix:")
+    conf.end_msg(conf.options.prefix)
+    conf.env.PREFIX = conf.options.prefix
 
     conf.env.append_value('CXXFLAGS', conf.options.gkcxxflags.split(','))
     conf.env.append_value('CFLAGS', conf.options.gkcxxflags.split(','))

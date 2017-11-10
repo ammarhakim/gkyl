@@ -7,14 +7,14 @@
 
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local HyperEquation = require "Eq"
+local Euler = require "Eq.Euler"
 local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local euler = HyperEquation.Euler { gasGamma = 1.4 }
+   local euler = Euler { gasGamma = 1.4 }
 
    assert_equal(5, euler:numEquations(), "No of equations")
    assert_equal(3, euler:numWaves(), "No of wave")
@@ -59,7 +59,7 @@ local function calcq(gg, v)
 end
 
 function test_2()
-   local euler = HyperEquation.Euler { gasGamma = 1.4 }
+   local euler = Euler { gasGamma = 1.4 }
 
    local ql = calcq(euler:gasGamma(), {1.0, 1.0, 0.0, 0.0, 1.0})
    local qr = calcq(euler:gasGamma(), {0.1, 1.0, 0.0, 0.0, 1.0})
@@ -86,7 +86,7 @@ function test_2()
 end
 
 function test_3()
-   local euler = HyperEquation.Euler { gasGamma = 1.4 }
+   local euler = Euler { gasGamma = 1.4 }
 
    local ql = calcq(euler:gasGamma(), {0.1, 2.0, 3.0, 4.0, 0.1})
    local qr = calcq(euler:gasGamma(), {1.0, 1.0, 2.0, 3.0, 1.0})

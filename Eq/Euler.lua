@@ -199,13 +199,14 @@ local euler_mt = {
       end,
    }
 }
+local EulerObj = metatype(typeof("EulerEqn_t"), euler_mt)
 
 -- create a wrapper on Euler eqn object and provide BCs specific to
 -- Euler equations
 local Euler = {}
 function Euler:new(tbl)
    local self = setmetatable({}, Euler)
-   return metatype(typeof("EulerEqn_t"), euler_mt)
+   return EulerObj(tbl)
 end
 -- make object callable, and redirect call to the :new method
 setmetatable(Euler, { __call = function (self, o) return self.new(self, o) end })
@@ -215,4 +216,4 @@ local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
 -- add wall BC specific to Euler equations
 Euler.bcWall = { bcWallCopy, bcWallZeroNormal }
 
-return { Euler }
+return Euler
