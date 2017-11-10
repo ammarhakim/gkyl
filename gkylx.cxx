@@ -25,7 +25,7 @@
 # include <adios.h>
 #endif
 
-/* A simple logger for parallel simulations */
+// A simple logger for parallel simulations
 class Logger {
   public:
     Logger() : rank(0) {
@@ -41,7 +41,7 @@ class Logger {
     int rank;
 };
 
-/* Finish simulation */
+// Finish simulation
 int finish(int err) {
 #ifdef HAVE_MPI_H
   if (err != 0)
@@ -52,7 +52,7 @@ int finish(int err) {
   return err;
 }
 
-/* Create top-level variable definition */
+// Create top-level variable definitions
 std::string
 createTopLevelDefs(int argc, char **argv) {
   // load compile-time constants into Lua compiler so they become
@@ -79,9 +79,7 @@ createTopLevelDefs(int argc, char **argv) {
   // set some JIT parameters to fiddle around with optimizations
   varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60')" << std::endl;
 
-  // check if file exists  
   std::string inpFile(argv[1]);
-  // output prefix
   std::string snm(argv[1]);
   unsigned trunc = inpFile.find_last_of(".", snm.size());
   if (trunc > 0)
@@ -106,23 +104,20 @@ main(int argc, char **argv) {
 #ifdef HAVE_MPI_H
   MPI_Init(&argc, &argv);
 #endif
-  Logger logger; // create logger
+  Logger logger;
 
   if (argc != 2) {
     logger.log("Usage: gkyl LUA-SCRIPT");
     return finish(0);
   }
 
-  // create state and load libraries
   sol::state state;
   state.open_libraries();
-  // load top-level definitions
   std::string topDefs = createTopLevelDefs(argc, argv);
   state.script(topDefs);
 
-  // run input file, catching errors if any
   try {
-    state.script_file(argv[1]);
+    state.script_file(argv[1]); //run input file
   }
   catch (const sol::error& err) {
     std::cerr << "** ERROR: " << err.what() << std::endl;
