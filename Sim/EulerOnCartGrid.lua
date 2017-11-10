@@ -206,13 +206,12 @@ local function buildSimulation(self, tbl)
    local function init(fld)
       local xn = Lin.Vec(ndim)
       local indexer = fld:genIndexer()
-      for idx in fld:localRangeIter() do
+      for idx in fld:localExtRangeIter() do
 	 -- get cell-center coordinates
 	 grid:setIndex(idx)
 	 grid:cellCenter(xn)
 	 -- evaluate supplied IC function
 	 local rho, rhou, rhov, rhow, E = tbl.init(0.0, xn)
-
 	 -- set values in cell
 	 local fItr = fld:get(indexer(idx)) -- pointer to data in cell
 	 fItr[1], fItr[2], fItr[3], fItr[4], fItr[5] = rho, rhou, rhov, rhow, E
@@ -228,12 +227,10 @@ local function buildSimulation(self, tbl)
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
 
-   -- return function that the main simulation loop
+   -- return function that runs main simulation loop
    return function (self)
       log("Starting main loop of EulerOnCartGrid simulation ...")
       local tmSimStart = Time.clock()
-
-
       local tStart, tEnd, nFrame = 0, tbl.tEnd, tbl.nFrame
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
