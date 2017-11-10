@@ -207,7 +207,6 @@ local function buildSimulation(self, tbl)
       local xn = Lin.Vec(ndim)
       local indexer = fld:genIndexer()
       for idx in fld:localExtRangeIter() do
-	 -- get cell-center coordinates
 	 grid:setIndex(idx)
 	 grid:cellCenter(xn)
 	 -- evaluate supplied IC function
@@ -259,7 +258,7 @@ local function buildSimulation(self, tbl)
 	    field[1]:copy(fieldDup)
 	 else
 	    -- write out data if needed
-	    if (tCurr+myDt > nextIOt or tCurr+myDt >= tEnd) then
+	    if tCurr+myDt > nextIOt or tCurr+myDt >= tEnd then
 	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
 	       fieldIo:write(field[1], string.format("fluid_%d.bp", frame), tCurr+myDt)
 	       frame = frame + 1
