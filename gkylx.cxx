@@ -8,7 +8,7 @@
 #include <gkylconfig.h>
 
 // library includes
-#include <sol.hpp>
+#include <lua.hpp>
 
 // std include
 #include <fstream>
@@ -111,23 +111,50 @@ main(int argc, char **argv) {
     return finish(0);
   }
 
-  sol::state state;
-  state.open_libraries();
-  std::string topDefs = createTopLevelDefs(argc, argv);
-  state.script(topDefs);
+// initialize LuaJIT and load libraries
+  lua_State *L = luaL_newstate();
+  if (L==NULL) {
+    // NOTE: we need to use cerr and not 'logger' when something goes
+    // wrong in top-level executable. Otherwise error message won't
+    // appear anywhere.
+    std::cerr << "Unable to create a new LuaJIT interpreter state. Quitting" << std::endl;
+    return finish(1);
+  }
+  lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
+  luaL_openlibs(L);  // open standard libraries
+  lua_gc(L, LUA_GCRESTART, -1); // restart GC
 
-  try {
-    state.script_file(argv[1]); //run input file
-  }
-  catch (const sol::error& err) {
-    std::cerr << "** ERROR: " << err.what() << std::endl;
-  }
-  catch (const std::exception& err) {
-    std::cerr << "** ERROR: " << err.what() << std::endl;
-  }
-  catch (...) {
-    std::cerr << "** ERROR: UKNOWN!" << std::endl;
-  }
   
+  std::string topDefs = createTopLevelDefs(argc, argv);
+
+  // load variable definitions etc
+  if (luaL_loadstring(L, topDefs.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
+    // some error occured
+    const char* ret = lua_tostring(L, -1);
+    std::cerr << "*** LOAD ERROR *** " << ret << std::endl;
+    lua_close(L);
+    return finish(1);    
+  }
+
+  // check if file exists  
+  std::string inpFile(argv[1]);
+  std::ifstream f(inpFile.c_str());
+  if (!f.good()) {
+    std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
+    std::cerr << "Usage: gkyl LUA-SCRIPT" << std::endl;
+    return finish(1);
+  }
+  f.close();
+
+  // load and run input file
+  if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
+    // some error occured
+    const char* ret = lua_tostring(L, -1);
+    std::cerr << "*** ERROR *** " << ret << std::endl;
+    lua_close(L);
+    return finish(1);
+  }
+  lua_close(L);  
+
   return finish(0);
 }
