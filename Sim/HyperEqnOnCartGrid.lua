@@ -18,17 +18,22 @@ local Lin = require "Lib.Linalg"
 -- For returning module table
 local M = {}
 
+-- Boundary condition types
+bcCopyId = 1
+bcConstId = 2
+bcCustomId = 3
+
 -- Boundary condition objects
-M.bcCopy = { id = 1 }
+M.bcCopy = { id = bcCopyId }
 M.bcConst = function (tbl)
-   local bc = { id = 2 }
+   local bc = { id = bcConstId }
    bc.components = tbl.components
    bc.values = tbl.values
    assert(#bc.components == #bc.values, "In HyperEqn.bcConst 'components' and 'values' must have same size")
    return bc
 end
 M.bcCustom = function(tbl)
-   local bc = { id = 3, bcList = tbl }
+   local bc = { id = bcCustomId, bcList = tbl }
    return bc
 end
 			   
@@ -155,12 +160,12 @@ local function buildSimulation(self, tbl)
    local boundaryConditions = { } -- list of Bcs to apply
    -- function to determine what BC to apply and insert into list
    local function appendBoundaryConditions(dir, edge, bcType)
-      if bcType.id == M.bcCopy.id then
+      if bcType.id == bcCopyId then
 	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, {bcCopyAll}))
-      elseif bcType.id == M.bcConst.id then
+      elseif bcType.id == bcConstId then
 	 local bc = BoundaryCondition.Const { components = bcType.components, values = bcType.values  }
 	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, { bc }))
-      elseif bcType.id == M.bcCustom.id then
+      elseif bcType.id == bcCustomId then
 	 -- equation specific BCs
 	 table.insert(boundaryConditions, makeBcUpdater(dir, edge, bcType.bcList))
       end
