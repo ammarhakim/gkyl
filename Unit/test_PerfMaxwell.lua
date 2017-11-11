@@ -7,14 +7,14 @@
 
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local HyperEquation = require "Eq"
+local PerfMaxwell = require "Eq.PerfMaxwell"
 local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local maxwell = HyperEquation.PhMaxwell {
+   local maxwell = PerfMaxwell {
       lightSpeed = 5.0,
       elcErrorSpeedFactor = 1.0,
       mgnErrorSpeedFactor = 3.0,
@@ -45,7 +45,7 @@ function test_1()
 end
 
 function test_2()
-   local maxwell = HyperEquation.PhMaxwell {
+   local maxwell = PerfMaxwell {
       lightSpeed = 5.0,
       elcErrorSpeedFactor = 1.0,
       mgnErrorSpeedFactor = 3.0,
@@ -76,7 +76,7 @@ function test_2()
 end
 
 function test_3()
-   local maxwell = HyperEquation.PhMaxwell {
+   local maxwell = PerfMaxwell {
       lightSpeed = 5.0,
       elcErrorSpeedFactor = 1.0,
       mgnErrorSpeedFactor = 3.0,
@@ -107,7 +107,7 @@ function test_3()
 end
 
 function test_4()
-   local maxwell = HyperEquation.PhMaxwell {
+   local maxwell = PerfMaxwell {
       lightSpeed = 5.0,
       elcErrorSpeedFactor = 1.0,
       mgnErrorSpeedFactor = 3.0,
