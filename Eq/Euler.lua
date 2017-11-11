@@ -11,7 +11,6 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 local Time = require "Lib.Time"
-local Lin = require "Lib.Linalg"
 local BoundaryCondition = require "Updater.BoundaryCondition"
 
 -- C interfaces
@@ -23,6 +22,7 @@ typedef struct {
    double _rpTime; /* Time spent in RP */
    int _numWaves; /* Number of waves in system */
    int _rpType; /* Type of RP to use */
+   double _fl[6], _fr[6]; /* Storage for left/right fluxes ([6] as we want to index from 1) */
 } EulerEqn_t;
 
 ]]
@@ -124,6 +124,8 @@ local qFluctuations = loadstring( qFluctuationsTempl {} )()
 -- and `s` contain the waves and speeds. waves is a mwave X meqn
 -- matrix. 
 local function rpLax(self, dir, delta, ql, qr, waves, s)
+   local d = dirShuffle[dir] -- shuffle indices for `dir`
+   
    local wv = waves[1] -- single wave
    wv[1] = qr[1]-ql[1]
    wv[2] = qr[2]-ql[2]
@@ -131,10 +133,15 @@ local function rpLax(self, dir, delta, ql, qr, waves, s)
    wv[4] = qr[4]-ql[4]
    wv[5] = qr[5]-ql[5]
 
-   local sl, sr = Lin.Vec(2), Lin.Vec(2)
-   self:speeds(dir, ql, sl)
-   self:speeds(dir, qr, sr)
-   s[1] = 0.5*(sl[2]+sr[2]);
+   local pr, u = self:pressure(ql), ql[d[1]]/ql[1]
+   local cs = math.sqrt(self._gasGamma*pr/ql[1])
+   local sl = u+cs
+
+   pr, u = self:pressure(qr), qr[d[1]]/qr[1]
+   cs = math.sqrt(self._gasGamma*pr/qr[1])
+   local sr = u+cs   
+
+   s[1] = 0.5*(sl+sr);
 end
 
 -- Computing fluctuations when using Lax fluxes
@@ -142,18 +149,36 @@ local qFluctuationsLax = function(self, dir, ql, qr, waves, s, amdq, apdq)
    local d = dirShuffle[dir] -- shuffle indices for `dir`
 
    -- arrange fluctuations to sum to jump in physical flux
-   local fl, fr = Lin.Vec(5), Lin.Vec(5)
-   self:flux(dir, ql, fl)
-   self:flux(dir, qr, fr)
+   local fl, fr = self._fl, self._fr
 
-   local absMaxs = math.max(self:maxAbsSpeed(dir, ql), self:maxAbsSpeed(dir, qr))
+   -- left fluxes
+   local pr, u = self:pressure(ql), ql[d[1]]/ql[1]
+   fl[1] = ql[d[1]] -- rho*u
+   fl[d[1]] = ql[d[1]]*u + pr -- rho*u*u + p
+   fl[d[2]] = ql[d[2]]*u -- rho*v*u
+   fl[d[3]] = ql[d[3]]*u -- rho*w*u
+   fl[5] = (ql[5]+pr)*u -- (E+p)*u
+   local absMaxsl = math.abs(u)+math.sqrt(self._gasGamma*pr/ql[1])
 
+   -- right fluxes
+   pr, u = self:pressure(qr), qr[d[1]]/qr[1]
+   fr[1] = qr[d[1]] -- rho*u
+   fr[d[1]] = qr[d[1]]*u + pr -- rho*u*u + p
+   fr[d[2]] = qr[d[2]]*u -- rho*v*u
+   fr[d[3]] = qr[d[3]]*u -- rho*w*u
+   fr[5] = (qr[5]+pr)*u -- (E+p)*u
+   local absMaxsr = math.abs(u)+math.sqrt(self._gasGamma*pr/qr[1])
+
+   local absMaxs = math.max(absMaxsl, absMaxsr)
+
+   -- left going fluctuations
    amdq[1]  = 0.5*(fr[1]-fl[1] - absMaxs*(qr[1]-ql[1]))
    amdq[d[1]] = 0.5*(fr[d[1]]-fl[d[1]] - absMaxs*(qr[d[1]]-ql[d[1]]))
    amdq[d[2]] = 0.5*(fr[d[2]]-fl[d[2]] - absMaxs*(qr[d[2]]-ql[d[2]]))
    amdq[d[3]] = 0.5*(fr[d[3]]-fl[d[3]] - absMaxs*(qr[d[3]]-ql[d[3]]))
    amdq[5] = 0.5*(fr[5]-fl[5] - absMaxs*(qr[5]-ql[5]))
 
+   -- right going fluctuations
    apdq[1]  = 0.5*(fr[1]-fl[1] + absMaxs*(qr[1]-ql[1]))
    apdq[d[1]] = 0.5*(fr[d[1]]-fl[d[1]] + absMaxs*(qr[d[1]]-ql[d[1]]))
    apdq[d[2]] = 0.5*(fr[d[2]]-fl[d[2]] + absMaxs*(qr[d[2]]-ql[d[2]]))
