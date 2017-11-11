@@ -112,9 +112,43 @@ function test_3()
    end
 end
 
+function test_4()
+   local euler = Euler {
+      gasGamma = 1.4,
+      numericalFlux = "lax",
+   }
+
+   assert_equal(5, euler:numEquations(), "No of equations")
+   assert_equal(1, euler:numWaves(), "No of wave")
+
+   local ql = calcq(euler:gasGamma(), {0.1, 2.0, 3.0, 4.0, 0.1})
+   local qr = calcq(euler:gasGamma(), {1.0, 1.0, 2.0, 3.0, 1.0})
+
+   local delta = Lin.Vec(5)
+   for m = 1, 5 do delta[m] = qr[m]-ql[m] end
+
+   local waves = Lin.Mat(euler:numWaves(), euler:numEquations())
+   local s = Lin.Vec(5)
+   euler:rp(1, delta, ql, qr, waves, s)
+   local amdq, apdq = Lin.Vec(5), Lin.Vec(5)
+   euler:qFluctuations(1, ql, qr, waves, s, amdq, apdq)
+
+   local sumFluct = Lin.Vec(5)
+   for m = 1, 5 do sumFluct[m] = amdq[m]+apdq[m] end
+   local fluxr, fluxl, df = Lin.Vec(5), Lin.Vec(5), Lin.Vec(5)
+   euler:flux(1, ql, fluxl)
+   euler:flux(1, qr, fluxr)
+   for m = 1, 5 do df[m] = fluxr[m]-fluxl[m] end
+
+   for m = 1, 5 do
+      assert_equal(df[m], sumFluct[m], "Checking jump in flux is sum of fluctuations")
+   end
+end
+
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
