@@ -8,7 +8,6 @@
 local ffi  = require "ffi"
 local xsys = require "xsys"
 local Unit = require "Unit"
-local HyperEquation = require "Eq"
 local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal

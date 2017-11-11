@@ -108,6 +108,6 @@ local tenMoment_mt = {
       end,
    }
 }
-_M.TenMoment = metatype(typeof("TenMomentEqn_t"), tenMoment_mt)
+local TenMomentObj = metatype(typeof("TenMomentEqn_t"), tenMoment_mt)
 
-return _M
+return TenMomentObj

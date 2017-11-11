@@ -7,7 +7,7 @@
 
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local HyperEquation = require "Eq"
+local Burgers = require "Eq.Burgers"
 local Basis = require "Basis"
 local Lin = require "Lib.Linalg"
 
@@ -15,7 +15,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local burgers = HyperEquation.Burgers {}
+   local burgers = Burgers {}
 
    assert_equal(1, burgers:numEquations(), "Testing number of equations")
    assert_equal(1, burgers:numWaves(), "Testing number of waves")

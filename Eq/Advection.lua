@@ -75,8 +75,6 @@ Advection.__index = {
    end,
 }
 
-return {
-   Advection = Advection,
-}
+return Advection
 
 

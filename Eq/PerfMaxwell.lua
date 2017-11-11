@@ -155,6 +155,6 @@ local maxwell_mt = {
       end,
    }
 }
-_M.PhMaxwell = metatype(typeof("PerfMaxwellEqn_t"), maxwell_mt)
+local PhMaxwellObj = metatype(typeof("PerfMaxwellEqn_t"), maxwell_mt)
 
-return _M
+return PhMaxwellObj

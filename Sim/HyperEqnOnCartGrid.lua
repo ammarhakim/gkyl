@@ -100,22 +100,6 @@ local function buildSimulation(self, tbl)
       decomposition = decomp,
    }
 
-   -- allocate space for use in dimensional sweeps
-   local field = {}
-   for d = 1, 2 do -- we only two fields for dimensional split algorithm
-      field[d] = DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = 5,
-	 ghost = {2, 2},
-      }
-   end
-   -- in case we need to take time-step again
-   local fieldDup = DataStruct.Field {
-      onGrid = grid,
-      numComponents = 5,
-      ghost = {2, 2},
-   }
-
    local hyperEqn   
    -- equation object: provides Reimann solver
    if tbl.equation then
@@ -123,6 +107,24 @@ local function buildSimulation(self, tbl)
    else
       assert("HyperEqn: Must specify equation to solve using 'equation'!")
    end
+   local meqn = hyperEqn.numEquations()
+
+   -- allocate space for use in dimensional sweeps
+   local field = {}
+   for d = 1, 2 do -- we only two fields for dimensional split algorithm
+      field[d] = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = meqn,
+	 ghost = {2, 2},
+      }
+   end
+   -- in case we need to take time-step again
+   local fieldDup = DataStruct.Field {
+      onGrid = grid,
+      numComponents = meqn,
+      ghost = {2, 2},
+   }
+
 
    -- create solvers for updates in each direction
    local hyperSlvr = {}
@@ -140,7 +142,6 @@ local function buildSimulation(self, tbl)
    local isDirPeriodic = {false, false, false}
    for _, d in ipairs(periodicDirs) do isDirPeriodic[d] = true end
 
-   local meqn = hyperEqn.numEquations()   
    -- initialize component list
    local cList = {}
    for m = 1, meqn do cList[m] = m end

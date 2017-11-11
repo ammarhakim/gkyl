@@ -7,7 +7,7 @@
 
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local HyperEquation = require "Eq"
+local TenMoment = require "Eq.TenMoment"
 local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
@@ -28,7 +28,7 @@ local function calcq(v)
 end
 
 function test_1()
-   local tenMoment = HyperEquation.TenMoment { }
+   local tenMoment = TenMoment { }
 
    assert_equal(10, tenMoment:numEquations(), "No of equations")
    assert_equal(5, tenMoment:numWaves(), "No of waves")
@@ -81,7 +81,7 @@ function test_1()
 end
 
 function test_2()
-   local tenMoment = HyperEquation.TenMoment { }
+   local tenMoment = TenMoment { }
 
    local ql = calcq({1.0, 0.2, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0})
    local qr = calcq({1.0, 0.1, 0.1, 0.1, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0})
@@ -110,7 +110,7 @@ function test_2()
 end
 
 function test_3()
-   local tenMoment = HyperEquation.TenMoment { }
+   local tenMoment = TenMoment { }
 
    local ql = calcq({1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0})
    local qr = calcq({2.0, 2.0, 0.1, 2.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0})
@@ -139,7 +139,7 @@ function test_3()
 end
 
 function test_4()
-   local tenMoment = HyperEquation.TenMoment { }
+   local tenMoment = TenMoment { }
 
    local ql = calcq({1.0, 0.0, 0.0, 0.0, 0.5e-4, 0.0, 0.0, 0.5e-4, 0.0, 0.0, 0.5e-4})
    local qr = calcq({0.125, 0.0, 0.0, 0.0, 0.05e-4, 0.0, 0.0, 0.05e-4, 0.0, 0.0, 0.05e-4})

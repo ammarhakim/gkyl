@@ -46,8 +46,6 @@ Burgers.__index = {
    end,
 }
 
-return {
-   Burgers = Burgers,
-}
+return Burgers
 
 

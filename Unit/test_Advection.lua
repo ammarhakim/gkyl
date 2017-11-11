@@ -7,7 +7,7 @@
 
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local HyperEquation = require "Eq"
+local Advection = require "Eq.Advection"
 local Basis = require "Basis"
 local Lin = require "Lib.Linalg"
 
@@ -15,7 +15,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local advection = HyperEquation.Advection { ndim = 2, velocity = {1.0, 2.0} }
+   local advection = Advection { ndim = 2, velocity = {1.0, 2.0} }
 
    assert_equal(1, advection:numEquations(), "Testing number of equations")
    assert_equal(1, advection:numWaves(), "Testing number of waves")
@@ -47,7 +47,7 @@ function test_1()
 end
 
 function test_2()
-   local advection = HyperEquation.Advection { ndim = 2, velocity = {-1.0, -2.0} }
+   local advection = Advection { ndim = 2, velocity = {-1.0, -2.0} }
 
    -- dir 1
    local ql, qr = {1.0}, {2.5}
@@ -76,7 +76,7 @@ function test_2()
 end
 
 function test_3()
-   local advection = HyperEquation.Advection { ndim = 2, velocity = {1.0, 2.0} }
+   local advection = Advection { ndim = 2, velocity = {1.0, 2.0} }
    local basis = Basis.CartModalSerendipity {
       ndim = 2, polyOrder = 2,
    }
