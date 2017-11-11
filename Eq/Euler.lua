@@ -132,9 +132,33 @@ local function rpLax(self, dir, delta, ql, qr, waves, s)
    wv[5] = qr[5]-ql[5]
 
    local sl, sr = Lin.Vec(2), Lin.Vec(2)
-   self.speeds(dir, ql, sl)
-   self.speeds(dir, qr, sr)
+   self:speeds(dir, ql, sl)
+   self:speeds(dir, qr, sr)
    s[1] = 0.5*(sl[2]+sr[2]);
+end
+
+-- Computing fluctuations when using Lax fluxes
+local qFluctuationsLax = function(self, dir, ql, qr, waves, s, amdq, apdq)
+   local d = dirShuffle[dir] -- shuffle indices for `dir`
+
+   -- arrange fluctuations to sum to jump in physical flux
+   local fl, fr = Lin.Vec(5), Lin.Vec(5)
+   self:flux(dir, ql, fl)
+   self:flux(dir, qr, fr)
+
+   local absMaxs = math.max(self:maxAbsSpeed(dir, ql), self:maxAbsSpeed(dir, qr))
+
+   amdq[1]  = 0.5*(fr[1]-fl[1] - absMaxs*(qr[1]-ql[1]))
+   amdq[d[1]] = 0.5*(fr[d[1]]-fl[d[1]] - absMaxs*(qr[d[1]]-ql[d[1]]))
+   amdq[d[2]] = 0.5*(fr[d[2]]-fl[d[2]] - absMaxs*(qr[d[2]]-ql[d[2]]))
+   amdq[d[3]] = 0.5*(fr[d[3]]-fl[d[3]] - absMaxs*(qr[d[3]]-ql[d[3]]))
+   amdq[5] = 0.5*(fr[5]-fl[5] - absMaxs*(qr[5]-ql[5]))
+
+   apdq[1]  = 0.5*(fr[1]-fl[1] + absMaxs*(qr[1]-ql[1]))
+   apdq[d[1]] = 0.5*(fr[d[1]]-fl[d[1]] + absMaxs*(qr[d[1]]-ql[d[1]]))
+   apdq[d[2]] = 0.5*(fr[d[2]]-fl[d[2]] + absMaxs*(qr[d[2]]-ql[d[2]]))
+   apdq[d[3]] = 0.5*(fr[d[3]]-fl[d[3]] + absMaxs*(qr[d[3]]-ql[d[3]]))
+   apdq[5] = 0.5*(fr[5]-fl[5] + absMaxs*(qr[5]-ql[5]))
 end
 
 -- for determining type of RP solver to use
@@ -181,6 +205,12 @@ local euler_mt = {
 	 local cs = math.sqrt(self._gasGamma*pr/qIn[1])
 	 sOut[1], sOut[2] = u-cs, u+cs
       end,
+      maxAbsSpeed = function (self, dir, qIn)
+	 local d = dirShuffle[dir] -- shuffle indices for `dir`
+	 local pr, u = self:pressure(qIn), qIn[d[1]]/qIn[1]
+	 local cs = math.sqrt(self._gasGamma*pr/qIn[1])
+	 return math.abs(u)+cs
+      end,
       isPositive = function (self, q)
 	 if isNan(q[1]) or q[1] < 0.0 then return false end
 	 local pr = self:pressure(q)
@@ -195,7 +225,11 @@ local euler_mt = {
 	 end
       end,
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
-	 qFluctuations(dir, waves, s, amdq, apdq)
+	 if self._rpType == RP_TYPE_ROE then
+	    qFluctuations(dir, waves, s, amdq, apdq)
+	 else
+	    return qFluctuationsLax(self, dir, ql, qr, waves, s, amdq, apdq)
+	 end
       end,
    }
 }
