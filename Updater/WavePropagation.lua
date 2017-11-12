@@ -251,8 +251,6 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local qInL, qInR = qIn:get(1), qIn:get(1) -- get pointers to (re)use inside inner loop
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
 
-   local ndim = self._privData._ndim
-
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
    for d = 1, self._privData._nUpdateDirs do
