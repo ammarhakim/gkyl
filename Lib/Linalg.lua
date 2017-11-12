@@ -42,6 +42,9 @@ local function new_vec_ct(elct)
 	 vec_memcpy(v, self)
 	 return v
       end,
+      copyInto = function (self, vecOut)
+	 vec_memcpy(vecOut, self)
+      end,      
    }
    local vec_mt = {
       __new = function(ct, n)

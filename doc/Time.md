@@ -16,5 +16,5 @@ This module provides the following functions:
   microsecond precision.
 
 `Time.clock()`
-: High precision timer even more accurate than `time.time()`. It has a
+: High precision timer even more accurate than `Time.time()`. It has a
   precision of about 1 microsecond.
