@@ -16,6 +16,7 @@
 local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Alloc = require "Lib.Alloc"
+local Time = require "Lib.Time"
 
 -- system libraries
 local ffi = require "ffi"
@@ -197,6 +198,12 @@ function WavePropagation:new(tbl)
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
 
+   -- timers for various stages in algorithm
+   self._tmFirstOrderUpdates = 0.0
+   self._tmLimiters = 0.0
+   self._tmSecondOrderUpdates = 0.0
+   self._tmRp = 0.0
+
    return self
 end
 -- make object callable, and redirect call to the :new method
@@ -244,6 +251,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local qInL, qInR = qIn:get(1), qIn:get(1) -- get pointers to (re)use inside inner loop
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
 
+   local ndim = self._privData._ndim
+
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
    for d = 1, self._privData._nUpdateDirs do
@@ -265,6 +274,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    
 	    qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
 	    self._calcDelta(qInL, qInR, delta) -- jump across interface
+
 	    equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
 	    equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 
@@ -305,7 +315,13 @@ local function advance(self, tCurr, dt, inFld, outFld)
 end
 
 -- Methods for wave-propagation scheme
-WavePropagation.__index = { advance = Base.advanceFuncWrap(advance) }
+WavePropagation.__index = {
+   advance = Base.advanceFuncWrap(advance),
+   firstOrderTm = function (self) return self._tmFirstOrderUpdates end,
+   secondOrderTm = function (self) return self._tmSecondOrderUpdates end,
+   limiterTm = function (self) return self._tmLimiters end,
+   rpTm = function (self) return self._tmRp end,
+}
 
 return {
    WavePropagation = WavePropagation

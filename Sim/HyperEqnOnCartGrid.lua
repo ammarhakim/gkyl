@@ -19,9 +19,9 @@ local Lin = require "Lib.Linalg"
 local M = {}
 
 -- Boundary condition types
-bcCopyId = 1
-bcConstId = 2
-bcCustomId = 3
+local bcCopyId = 1
+local bcConstId = 2
+local bcCustomId = 3
 
 -- Boundary condition objects
 M.bcCopy = { id = bcCopyId }
@@ -301,10 +301,21 @@ local function buildSimulation(self, tbl)
       end -- end of time-step loop
 
       local tmSimEnd = Time.clock()
+
+      -- compute timings for various stages of algorithms
+      local tmFirstOrder, tmSecondOrder, tmLimiter, tmRp = 0.0, 0.0, 0.0, 0.0
+      for d = 1, ndim do
+	 tmFirstOrder = tmFirstOrder+hyperSlvr[d]:firstOrderTm()
+	 tmSecondOrder = tmSecondOrder+hyperSlvr[d]:secondOrderTm()
+	 tmLimiter = tmLimiter+hyperSlvr[d]:limiterTm()
+	 tmRp = tmRp+hyperSlvr[d]:rpTm()
+      end
+
       local tmHyperSlvr = 0 -- total time in hyper solver
       for d = 1, ndim do
 	 tmHyperSlvr = tmHyperSlvr+hyperSlvr[d].totalTime
       end
+
       log(string.format("Hyper solvers took %g sec", tmHyperSlvr))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
    end
