@@ -189,3 +189,8 @@ $cmd
 cmd="$GKYL test_cfuncs.lua"
 echo "${ctext}${cmd}${reset}"
 $cmd
+
+# CalcDiagnostic
+cmd="$GKYL test_CalcDiagnostic.lua"
+echo "${ctext}${cmd}${reset}"
+$cmd

@@ -125,7 +125,6 @@ local function buildSimulation(self, tbl)
       ghost = {2, 2},
    }
 
-
    -- create solvers for updates in each direction
    local hyperSlvr = {}
    for d = 1, ndim do
@@ -197,7 +196,47 @@ local function buildSimulation(self, tbl)
       end
    end
 
-   -- function to update hypers
+   -- function to create new diagnostic updaters
+   local function makeDiagnosticUpdater(diagFunc)
+      return Updater.CalcDiagnostic {
+	 onGrid = grid,
+	 operator = "sum",
+	 diagnostic = diagFunc
+      }
+   end
+
+   -- function to create DynVector for use in diagnostics
+   local function makeDynVector()
+      return DataStruct.DynVector { numComponents = 1 }
+   end
+
+   -- list of diagnostics to compute
+   local diagnostics = { }
+   if tbl.diagnostics then
+      for _, d in ipairs(tbl.diagnostics) do
+	 table.insert(diagnostics, {
+			 name = d.name,
+			 updater = makeDiagnosticUpdater(d.diagnostic),
+			 dynVec = makeDynVector(),
+	 })
+      end
+   end
+
+   -- function to compute diagnostics
+   local function calcDiagnostics(fld, tCurr, t)
+      for _, d in ipairs(diagnostics) do
+	 d.updater:advance(tCurr, t-tCurr, {fld}, {d.dynVec})
+      end
+   end
+
+   -- function to write diagnostics
+   local function writeDiagnostics(frame, t)
+      for _, d in ipairs(diagnostics) do
+	 d.dynVec:write(string.format("%s_%d.bp", d.name, frame), t)
+      end
+   end
+   
+   -- function to update hyperbolic equations
    local function updateHyper(tCurr, t)
       local status = true
       local suggestedDt = GKYL_MAX_DOUBLE
@@ -246,6 +285,10 @@ local function buildSimulation(self, tbl)
    -- write out ICs
    fieldIo:write(field[1], "hyper_0.bp", 0.0)
 
+   -- compute diagnostics from ICs and write them out
+   calcDiagnostics(field[1], 0.0, 0.0)
+   writeDiagnostics(0, 0.0)
+
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
 
@@ -280,10 +323,18 @@ local function buildSimulation(self, tbl)
 	    myDt = dtSuggested
 	    field[1]:copy(fieldDup)
 	 else
+	    -- compute diagnostics
+	    calcDiagnostics(field[1], tCurr, tCurr+myDt)
+	    
 	    -- write out data if needed
 	    if tCurr+myDt > nextIOt or tCurr+myDt >= tEnd then
 	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
+
+	       -- write field
 	       fieldIo:write(field[1], string.format("hyper_%d.bp", frame), tCurr+myDt)
+	       -- write diagnostics
+	       writeDiagnostics(frame, tCurr+myDt)
+	       
 	       frame = frame + 1
 	       nextIOt = nextIOt + tFrame
 	       step = 0
@@ -311,12 +362,18 @@ local function buildSimulation(self, tbl)
 	 tmRp = tmRp+hyperSlvr[d]:rpTm()
       end
 
-      local tmHyperSlvr = 0 -- total time in hyper solver
+      local tmHyperSlvr = 0.0 -- total time in hyper solver
       for d = 1, ndim do
 	 tmHyperSlvr = tmHyperSlvr+hyperSlvr[d].totalTime
       end
 
+      local tmDiag = 0.0
+      for _, d in ipairs(diagnostics) do
+	 tmDiag = tmDiag+d.updater.totalTime
+      end
+
       log(string.format("Hyper solvers took %g sec", tmHyperSlvr))
+      log(string.format("Diagnostics took %g sec", tmDiag))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
    end
 end

@@ -56,7 +56,7 @@ end
 -- make object callable, and redirect call to the :new method
 setmetatable(CalcDiagnostic, { __call = function (self, o) return self.new(self, o) end })
 
--- advance method computes diagniostic across MPI ranks
+-- advance method computes diagnostic across MPI ranks
 local function advance(self, tCurr, dt, inFld, outFld)
    local qIn = assert(inFld[1], "CalcDiagnostic.advance: Must specify an output field")
    local dynOut = assert(outFld[1], "CalcDiagnostic.advance: Must specify an output field")
@@ -70,13 +70,13 @@ local function advance(self, tCurr, dt, inFld, outFld)
       v = self._opFunc(v, self._diagnostic(tCurr+dt, qItr))
    end
 
-   if Mpi.Is_comm_valid(self._nodeComm) then
-      -- all-reduce across nodes
-      local valLocal, val = ffi.new("double[1]"), ffi.new("double[1]")
-      valLocal[0] = v
-      Mpi.Allreduce(valLocal, val, 1, Mpi.DOUBLE, self._op, self._nodeComm)
-      dynOut:appendData(tCurr+dt, { val[0] })
-   end
+   -- all-reduce across global communicator. NOTE: If DynVector
+   -- storage changes to use shared memory on shared nodes, the below
+   -- code will need modification
+   local valLocal, val = ffi.new("double[1]"), ffi.new("double[1]")
+   valLocal[0] = v
+   Mpi.Allreduce(valLocal, val, 1, Mpi.DOUBLE, self._op, self._comm)
+   dynOut:appendData(tCurr+dt, { val[0] })
 
    return true, GKYL_MAX_DOUBLE
 end
