@@ -12,31 +12,6 @@ local Base = require "Updater.Base"
 local Mpi = require "Comm.Mpi"
 local ffi = require "ffi"
 
--- operators 
-local function op_sum(a, b) return a+b end
-local function op_max(a, b) return math.max(a, b) end
-local function op_min(a, b) return math.min(a, b) end
-
--- initial value based on operator
-local function initVal(op)
-   if op == Mpi.MAX then
-      return -GKYL_MAX_DOUBLE
-   elseif op == Mpi.MIN then
-      return GKYL_MAX_DOUBLE
-   end
-   return 0.0
-end
-
--- select operator-type and function
-local function selectOp(opStr)
-   if opStr == "max" then
-      return Mpi.MAX, op_max
-   elseif opStr == "min" then
-      return Mpi.MIN, op_min
-   end
-   return Mpi.SUM, op_sum
-end
-
 -- Updater to computer diagnostic
 local CalcDiagnostic = {}
 
@@ -45,9 +20,7 @@ function CalcDiagnostic:new(tbl)
    local self = setmetatable({}, CalcDiagnostic)
    Base.setup(self, tbl) -- setup base object
 
-   -- read operator and operator function
-   self._op, self._opFunc = selectOp(tbl.operator)
-
+   self._onGrid = assert(tbl.onGrid, "Updater.CalcDiagnostic: Must provide grid object using 'onGrid'")
    -- diagnostic function
    self._diagnostic = assert(tbl.diagnostic, "Updater.CalcDiagnostic: Must specify diagnostic using 'diagnostic'")
 
@@ -58,16 +31,19 @@ setmetatable(CalcDiagnostic, { __call = function (self, o) return self.new(self,
 
 -- advance method computes diagnostic across MPI ranks
 local function advance(self, tCurr, dt, inFld, outFld)
+   local grid = self._onGrid
    local qIn = assert(inFld[1], "CalcDiagnostic.advance: Must specify an output field")
    local dynOut = assert(outFld[1], "CalcDiagnostic.advance: Must specify an output field")
 
-   local v = initVal(self._op) -- initial value
-   
+   local qItr = qIn:get(1)
+   local v = 0.0
    local indexer = qIn:genIndexer()
    -- loop, computing diagnostics in each cell
    for idx in qIn:localRangeIter() do
-      local qItr = qIn:get(indexer(idx))
-      v = self._opFunc(v, self._diagnostic(tCurr+dt, qItr))
+      grid:setIndex(idx)
+      local vol = grid:cellVolume()
+      qIn:fill(indexer(idx), qItr)
+      v = v + vol*self._diagnostic(tCurr+dt, qItr)
    end
 
    -- all-reduce across global communicator. NOTE: If DynVector
@@ -75,7 +51,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
    -- code will need modification
    local valLocal, val = ffi.new("double[1]"), ffi.new("double[1]")
    valLocal[0] = v
-   Mpi.Allreduce(valLocal, val, 1, Mpi.DOUBLE, self._op, self._comm)
+   Mpi.Allreduce(valLocal, val, 1, Mpi.DOUBLE, Mpi.SUM, self._comm)
    dynOut:appendData(tCurr+dt, { val[0] })
 
    return true, GKYL_MAX_DOUBLE

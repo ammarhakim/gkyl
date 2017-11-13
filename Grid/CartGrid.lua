@@ -56,10 +56,12 @@ local function initCartGrid(self, tbl)
    self._numCells = Lin.IntVec(self._ndim)
    self._currIdx = Lin.IntVec(self._ndim)
 
+   self._vol = 1.0
    for d = 1, #cells do
       self._lower[d], self._upper[d] = lo[d], up[d]
       self._numCells[d] = cells[d]
       self._dx[d] = (up[d]-lo[d])/cells[d]
+      self._vol = self._vol*self._dx[d]
    end
 
    -- compute global range
@@ -151,7 +153,7 @@ RectCart.__index = {
    end,
    setIndex = function(self, idx)
       for d = 1, self._ndim do
-	 self._currIdx[d] = idx[d]
+      	 self._currIdx[d] = idx[d]
       end
    end,
    dx = function (self, dir)
@@ -163,11 +165,7 @@ RectCart.__index = {
       end
    end,
    cellVolume = function (self)
-      local v = 1.0
-      for i = 1, self._ndim do
-	 v = v*self:dx(i)
-      end
-      return v
+      return self._vol
    end,
 }
 

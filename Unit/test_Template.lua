@@ -203,6 +203,15 @@ end
 ]])
 local getRowMajorInvIndexer  = getRowMajorInvIndexerTempl { NDIM=2 }
 
+local calcDiagnosticsLoopTempl = xsys.template([[
+   return function (vol, t, fItr, diagnostics, dv)
+   |for i = 1, ND do
+      dv[${i}] = dv[${i}] + vol*diagnostics[${i}].dynFunc(t, fItr)
+   |end
+   end
+]])
+local calcDiagnosticsLoop  = calcDiagnosticsLoopTempl { ND=4 }
+
 test_1()
 test_2()
 test_3()
