@@ -76,6 +76,4 @@ end
 -- Methods for BC object
 Bc.__index = { advance = Base.advanceFuncWrap(advance) }
 
-return {
-   Bc = Bc
-}
+return Bc

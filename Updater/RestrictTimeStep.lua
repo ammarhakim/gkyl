@@ -10,8 +10,6 @@
 
 -- Gkyl libraries
 local Base = require "Updater.Base"
-local Lin = require "Lib.Linalg"
-local Alloc = require "Lib.Alloc"
 
 -- system libraries
 local ffi = require "ffi"
@@ -48,6 +46,4 @@ end
 -- Methods in updater
 RestrictTimeStep.__index = { advance = Base.advanceFuncWrap(advance) }
 
-return {
-   RestrictTimeStep = RestrictTimeStep
-}
+return RestrictTimeStep 

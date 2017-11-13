@@ -321,6 +321,4 @@ WavePropagation.__index = {
    rpTm = function (self) return self._tmRp end,
 }
 
-return {
-   WavePropagation = WavePropagation
-}
+return WavePropagation

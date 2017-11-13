@@ -220,6 +220,4 @@ end
 -- Methods in updater
 DistFuncMomentCalc.__index = { advance = Base.advanceFuncWrap(advance) }
 
-return {
-   DistFuncMomentCalc = DistFuncMomentCalc
-}
+return DistFuncMomentCalc
