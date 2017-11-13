@@ -14,6 +14,8 @@ local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
+local Mpi = require "Comm.Mpi"
+local xsys = require "xsys"
 
 -- For returning module table
 local M = {}
@@ -196,37 +198,48 @@ local function buildSimulation(self, tbl)
       end
    end
 
-   -- function to create new diagnostic updaters
-   local function makeDiagnosticUpdater(diagFunc)
-      return Updater.CalcDiagnostic {
-	 onGrid = grid,
-	 operator = "sum",
-	 diagnostic = diagFunc
-      }
-   end
-
-   -- function to create DynVector for use in diagnostics
-   local function makeDynVector()
-      return DataStruct.DynVector { numComponents = 1 }
-   end
-
-   -- list of diagnostics to compute
+   -- construct list of diagnostics to compute
    local diagnostics = { }
    if tbl.diagnostics then
       for _, d in ipairs(tbl.diagnostics) do
-	 table.insert(diagnostics, {
-			 name = d.name,
-			 updater = makeDiagnosticUpdater(d.diagnostic),
-			 dynVec = makeDynVector(),
+      	 table.insert(diagnostics, {
+			 name = d.name, dynFunc = d.diagnostic,
+			 dynVec = DataStruct.DynVector { numComponents = 1 }
 	 })
       end
    end
 
+   local tmDiag = 0.0
    -- function to compute diagnostics
    local function calcDiagnostics(fld, tCurr, t)
-      for _, d in ipairs(diagnostics) do
-	 d.updater:advance(tCurr, t-tCurr, {fld}, {d.dynVec})
+      if #diagnostics == 0 then return end -- no diagnostics to compute
+      
+      local tms = Time.clock()
+      local dv = Lin.Vec(#diagnostics) -- store all diagnostics values in a vector
+      for i = 1, #dv do dv[i] = 0.0 end
+      
+      local indexer = fld:genIndexer()
+      for idx in fld:localRangeIter() do
+	 grid:setIndex(idx)
+	 local vol = grid:cellVolume()
+	 local fItr = fld:get(indexer(idx)) -- pointer to data in cell
+
+	 for i = 1, #dv do
+	    dv[i] = dv[i] + vol*diagnostics[i].dynFunc(t, fItr)
+	 end
       end
+
+      local dvGlobal = Lin.Vec(#diagnostics)
+      -- all-reduce across global communicator. NOTE: If DynVector
+      -- storage changes to use shared memory on shared nodes, code
+      -- below will need modification
+      Mpi.Allreduce(dv:data(), dvGlobal:data(), #dv, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
+
+      for i = 1, #dvGlobal do
+	 diagnostics[i].dynVec:appendData(t, { dvGlobal[i] })
+      end
+
+      tmDiag = tmDiag+(Time.clock()-tms)
    end
 
    -- function to write diagnostics
@@ -283,7 +296,7 @@ local function buildSimulation(self, tbl)
    applyBc(field[1], 0.0, 0.0) -- apply Bc to initial conditions
 
    -- write out ICs
-   fieldIo:write(field[1], "hyper_0.bp", 0.0)
+   fieldIo:write(field[1], "field_0.bp", 0.0)
 
    -- compute diagnostics from ICs and write them out
    calcDiagnostics(field[1], 0.0, 0.0)
@@ -331,7 +344,7 @@ local function buildSimulation(self, tbl)
 	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
 
 	       -- write field
-	       fieldIo:write(field[1], string.format("hyper_%d.bp", frame), tCurr+myDt)
+	       fieldIo:write(field[1], string.format("field_%d.bp", frame), tCurr+myDt)
 	       -- write diagnostics
 	       writeDiagnostics(frame, tCurr+myDt)
 	       
@@ -350,30 +363,21 @@ local function buildSimulation(self, tbl)
 	    end
 	 end 
       end -- end of time-step loop
-
       local tmSimEnd = Time.clock()
-
-      -- compute timings for various stages of algorithms
-      local tmFirstOrder, tmSecondOrder, tmLimiter, tmRp = 0.0, 0.0, 0.0, 0.0
-      for d = 1, ndim do
-	 tmFirstOrder = tmFirstOrder+hyperSlvr[d]:firstOrderTm()
-	 tmSecondOrder = tmSecondOrder+hyperSlvr[d]:secondOrderTm()
-	 tmLimiter = tmLimiter+hyperSlvr[d]:limiterTm()
-	 tmRp = tmRp+hyperSlvr[d]:rpTm()
-      end
 
       local tmHyperSlvr = 0.0 -- total time in hyper solver
       for d = 1, ndim do
 	 tmHyperSlvr = tmHyperSlvr+hyperSlvr[d].totalTime
       end
 
-      local tmDiag = 0.0
-      for _, d in ipairs(diagnostics) do
-	 tmDiag = tmDiag+d.updater.totalTime
+      local tmBC = 0.0 -- total time in BCs
+      for _, bc in ipairs(boundaryConditions) do
+	 tmBC = tmBC+bc.totalTime
       end
 
       log(string.format("Hyper solvers took %g sec", tmHyperSlvr))
       log(string.format("Diagnostics took %g sec", tmDiag))
+      log(string.format("Boundary conditions took %g sec", tmBC))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
    end
 end
