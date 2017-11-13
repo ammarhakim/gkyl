@@ -27,7 +27,17 @@ local function initVal(op)
    return 0.0
 end
 
--- Time-step restriction updater object
+-- select operator-type and function
+local function selectOp(opStr)
+   if opStr == "max" then
+      return Mpi.MAX, op_max
+   elseif opStr == "min" then
+      return Mpi.MIN, op_min
+   end
+   return Mpi.SUM, op_sum
+end
+
+-- Updater to computer diagnostic
 local CalcDiagnostic = {}
 
 -- Constructor: read data from tbl
@@ -36,14 +46,7 @@ function CalcDiagnostic:new(tbl)
    Base.setup(self, tbl) -- setup base object
 
    -- read operator and operator function
-   self._op, self._opFunc = Mpi.SUM, op_sum
-   if tbl.operator then
-      if tbl.operator == "MAX" then
-	 self._op, self._opFunc = Mpi.MAX, op_max
-      elseif tbl.op_max == "MIN" then
-	 self._op, self._opFunc = Mpi.MIN, op_min
-      end
-   end
+   self._op, self._opFunc = selectOp(tbl.operator)
 
    -- diagnostic function
    self._diagnostic = assert(tbl.diagnostic, "Updater.CalcDiagnostic: Must specify diagnostic using 'diagnostic'")
