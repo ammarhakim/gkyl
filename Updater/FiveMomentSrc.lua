@@ -142,6 +142,4 @@ end
 -- Methods for wave-propagation scheme
 FiveMomentSrc.__index = { advance = Base.advanceFuncWrap(advance) }
 
-return {
-   FiveMomentSrc = FiveMomentSrc
-}
+return FiveMomentSrc

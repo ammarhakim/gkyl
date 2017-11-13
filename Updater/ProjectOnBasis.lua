@@ -140,6 +140,4 @@ end
 -- Methods in updater
 ProjectOnBasis.__index = { advance = Base.advanceFuncWrap(advance) }
 
-return {
-   ProjectOnBasis = ProjectOnBasis
-}
+return ProjectOnBasis

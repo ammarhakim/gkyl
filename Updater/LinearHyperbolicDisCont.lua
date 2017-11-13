@@ -155,6 +155,4 @@ end
 -- Methods in updater
 LinearHyperbolicDisCont.__index = { advance = Base.advanceFuncWrap(advance) }
 
-return {
-   LinearHyperbolicDisCont = LinearHyperbolicDisCont
-}
+return LinearHyperbolicDisCont

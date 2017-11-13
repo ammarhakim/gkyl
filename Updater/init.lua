@@ -6,18 +6,23 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl modules
-local WavePropagation = require "Updater.WavePropagation"
 local Bc = require "Updater.Bc"
-local FiveMomentSrc = require "Updater.FiveMomentSrc"
-local RestrictTimeStep = require "Updater.RestrictTimeStep"
-local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
+local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local LinearHyperbolicDisCont = require "Updater.LinearHyperbolicDisCont"
+local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local WavePropagation = require "Updater.WavePropagation"
 
 -- system modules
 local xsys = require "xsys"
 
-return xsys.table.union(
-   WavePropagation, Bc, FiveMomentSrc, RestrictTimeStep, ProjectOnBasis,
-   DistFuncMomentCalc, LinearHyperbolicDisCont
-)
+return {
+   Bc = Bc,
+   CalcDiagnostic = CalcDiagnostic,
+   DistFuncMomentCalc = DistFuncMomentCalc,
+   FiveMomentSrc = FiveMomentSrc,
+   LinearHyperbolicDisCont = LinearHyperbolicDisCont,
+   ProjectOnBasis = ProjectOnBasis,
+   WavePropagation = WavePropagation,
+}
