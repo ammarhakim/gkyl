@@ -1,6 +1,6 @@
 package:
   name: gkyl
-  version: "1.0.0"
+  version: "1.0.1"
 
 source:
   path: ../../
@@ -12,9 +12,11 @@ requirements:
   build:
     - luajit
     - adios
+    - openmpi
   run:
     - luajit
     - adios
+    - openmpi
 
 about:
   home: https://bitbucket.org/ammarhakim/gkyl
