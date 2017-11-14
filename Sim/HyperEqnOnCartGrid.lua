@@ -15,6 +15,7 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
+local ffi = require "ffi"
 local xsys = require "xsys"
 
 -- For returning module table
@@ -214,17 +215,19 @@ local function buildSimulation(self, tbl)
    local function calcDiagnostics(fld, tCurr, t)
       if #diagnostics == 0 then return end -- no diagnostics to compute
       
+      local ndv = #diagnostics
+      local dv, dvGlobal = Lin.Vec(ndv), Lin.Vec(ndv)
       local tms = Time.clock()
-      local dv = Lin.Vec(#diagnostics) -- store all diagnostics values in a vector
-      for i = 1, #dv do dv[i] = 0.0 end
-      
+      for i = 1, ndv do dv[i] = 0.0 end
+
+      local fItr = fld:get(1)
       local indexer = fld:genIndexer()
       for idx in fld:localRangeIter() do
 	 grid:setIndex(idx)
 	 local vol = grid:cellVolume()
-	 local fItr = fld:get(indexer(idx)) -- pointer to data in cell
+	 fld:fill(indexer(idx), fItr) -- pointer to data in cell
 
-	 for i = 1, #dv do
+	 for i = 1, ndv do
 	    dv[i] = dv[i] + vol*diagnostics[i].dynFunc(t, fItr)
 	 end
       end
@@ -233,9 +236,9 @@ local function buildSimulation(self, tbl)
       -- all-reduce across global communicator. NOTE: If DynVector
       -- storage changes to use shared memory on shared nodes, code
       -- below will need modification
-      Mpi.Allreduce(dv:data(), dvGlobal:data(), #dv, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
+      Mpi.Allreduce(dv:data(), dvGlobal:data(), ndv, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
 
-      for i = 1, #dvGlobal do
+      for i = 1, ndv do
 	 diagnostics[i].dynVec:appendData(t, { dvGlobal[i] })
       end
 
