@@ -12,11 +12,11 @@ requirements:
   build:
     - luajit
     - adios
-    - openmpi
+    - openmpi >=3.0.0
   run:
     - luajit
     - adios
-    - openmpi
+    - openmpi >=3.0.0
 
 about:
   home: https://bitbucket.org/ammarhakim/gkyl
