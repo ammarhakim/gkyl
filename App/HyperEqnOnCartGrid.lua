@@ -38,8 +38,8 @@ M.bcCustom = function(tbl)
    return bc
 end
 
--- top-level method to build simulation "run" method
-local function buildSimulation(self, tbl)
+-- top-level method to build application "run" method
+local function buildApplication(self, tbl)
    -- create logger
    local log = Logger {
       logToFile = tbl.logToFile and tbl.logToFile or false
@@ -382,25 +382,25 @@ local function buildSimulation(self, tbl)
    end
 end
 
--- HyperEqn simulation object
-local Sim = {}
+-- HyperEqn application object
+local App = {}
 -- constructor
-function Sim:new(tbl)
-   local self = setmetatable({}, Sim)
-   self._runSimulation = buildSimulation(self, tbl)
+function App:new(tbl)
+   local self = setmetatable({}, App)
+   self._runApplication = buildApplication(self, tbl)
    return self
 end
 -- make object callable, and redirect call to the :new method
-setmetatable(Sim, { __call = function (self, o) return self.new(self, o) end })
+setmetatable(App, { __call = function (self, o) return self.new(self, o) end })
 
 -- set callable methods
-Sim.__index = {
+App.__index = {
    run = function (self)
-      return self:_runSimulation()
+      return self:_runApplication()
    end
 }
 
 -- add to table
-M.Sim = Sim
+M.App = App
 
 return M
