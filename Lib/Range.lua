@@ -193,8 +193,8 @@ local range_mt = {
 
 	 return iter_func, iterState
       end,
-      colMajorIter = function (self, idxStart, maxBump)
-	 local idxStart = idxStart
+      colMajorIter = function (self, idxStartIn, maxBump)
+	 local idxStart = idxStartIn
 	 if idxStart == nil then
 	    idxStart = Lin.IntVec(self:ndim())
 	    for dir = 1, self:ndim() do
@@ -203,8 +203,8 @@ local range_mt = {
 	 end
 	 return self:_iter( make_range_iter(1, self:ndim(), 1), idxStart, maxBump and maxBump or self:volume() )
       end,
-      rowMajorIter = function (self, idxStart, maxBump)
-	 local idxStart = idxStart
+      rowMajorIter = function (self, idxStartIn, maxBump)
+	 local idxStart = idxStartIn
 	 if idxStart == nil then
 	    idxStart = Lin.IntVec(self:ndim())
 	    for dir = 1, self:ndim() do

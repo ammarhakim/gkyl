@@ -15,8 +15,6 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
-local ffi = require "ffi"
-local xsys = require "xsys"
 
 -- For returning module table
 local M = {}
@@ -39,7 +37,7 @@ M.bcCustom = function(tbl)
    local bc = { id = bcCustomId, bcList = tbl }
    return bc
 end
-			   
+
 -- top-level method to build simulation "run" method
 local function buildSimulation(self, tbl)
    -- create logger
@@ -103,7 +101,7 @@ local function buildSimulation(self, tbl)
       decomposition = decomp,
    }
 
-   local hyperEqn   
+   local hyperEqn
    -- equation object: provides Reimann solver
    if tbl.equation then
       hyperEqn = tbl.equation and tbl.equation
@@ -203,7 +201,7 @@ local function buildSimulation(self, tbl)
    local diagnostics = { }
    if tbl.diagnostics then
       for _, d in ipairs(tbl.diagnostics) do
-      	 table.insert(diagnostics, {
+	 table.insert(diagnostics, {
 			 name = d.name, dynFunc = d.diagnostic,
 			 dynVec = DataStruct.DynVector { numComponents = 1 }
 	 })
@@ -214,19 +212,19 @@ local function buildSimulation(self, tbl)
    -- function to compute diagnostics
    local function calcDiagnostics(fld, tCurr, t)
       if #diagnostics == 0 then return end -- no diagnostics to compute
-      
+
       local ndv = #diagnostics
-      local dv, dvGlobal = Lin.Vec(ndv), Lin.Vec(ndv)
+      local dv = Lin.Vec(ndv)
       local tms = Time.clock()
       for i = 1, ndv do dv[i] = 0.0 end
 
       local fItr = fld:get(1)
       local indexer = fld:genIndexer()
+      -- loop over field, updating diagnostic
       for idx in fld:localRangeIter() do
 	 grid:setIndex(idx)
 	 local vol = grid:cellVolume()
 	 fld:fill(indexer(idx), fItr) -- pointer to data in cell
-
 	 for i = 1, ndv do
 	    dv[i] = dv[i] + vol*diagnostics[i].dynFunc(t, fItr)
 	 end
@@ -237,11 +235,9 @@ local function buildSimulation(self, tbl)
       -- storage changes to use shared memory on shared nodes, code
       -- below will need modification
       Mpi.Allreduce(dv:data(), dvGlobal:data(), ndv, Mpi.DOUBLE, Mpi.SUM, grid:commSet().comm)
-
       for i = 1, ndv do
 	 diagnostics[i].dynVec:appendData(t, { dvGlobal[i] })
       end
-
       tmDiag = tmDiag+(Time.clock()-tms)
    end
 
@@ -251,18 +247,18 @@ local function buildSimulation(self, tbl)
 	 d.dynVec:write(string.format("%s_%d.bp", d.name, frame), t)
       end
    end
-   
+
    -- function to update hyperbolic equations
    local function updateHyper(tCurr, t)
       local status = true
       local suggestedDt = GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
-      
+
       -- update solution in each direction using dimensional splitting
       for d = 1, ndim do
 	 local inpField, outField = field[fIdx[d][1]], field[fIdx[d][2]]
 	 local myStatus, mySuggestedDt = hyperSlvr[d]:advance(tCurr, t-tCurr, {inpField}, {outField})
-	 
+
 	 status =  status and myStatus
 	 suggestedDt = math.min(suggestedDt, mySuggestedDt)
 	 if not status then
@@ -283,6 +279,7 @@ local function buildSimulation(self, tbl)
    -- function to apply initial conditions
    local function init(fld)
       local xn = Lin.Vec(ndim)
+      local fItr = fld:get(1)      
       local indexer = fld:genIndexer()
       for idx in fld:localExtRangeIter() do
 	 grid:setIndex(idx)
@@ -290,7 +287,7 @@ local function buildSimulation(self, tbl)
 	 -- evaluate supplied IC function
 	 local v = { tbl.init(0.0, xn) } -- braces around function put return values in table
 	 -- set values in cell
-	 local fItr = fld:get(indexer(idx)) -- pointer to data in cell
+	 fld:fill(indexer(idx), fItr) -- pointer to data in cell
 	 for c = 1, meqn do fItr[c] = v[c] end
       end
    end
