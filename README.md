@@ -26,7 +26,7 @@ probably only need to install LuaJIT.
 Build instructions for dependencies are provided in the build sections
 below. Gkyl depends on the following tools and packages:
 
-- A C/C++ compiler
+- A modern C/C++ compiler; Python (for use in waf build system)
 - LuaJIT
 - MPI
 - ADIO IO library
@@ -39,19 +39,37 @@ Optionally, you will need
 
 ## Building dependencies
 
-Building dependencies can be complicated. Some example scripts are
-provided in the install-deps directory. You can use these as-is or
-modify them as needed to suit your system. If you build your own
-dependencies and want Waf to find them automatically, install them in
-the $HOME/gkylsoft directory. Obviously, the dependencies need to be
-built only once.
+Depending on your system, building dependencies can be
+complicated. Some example scripts are provided in the install-deps
+directory. On a Mac or Linux machine the scripts in the install-deps
+directories are sufficient and you can simply run the
+build-all-deps.sh script (or the individual package
+scripts). Obviously, the dependencies need to be built only once.
+
+On most supercomputers you will likely need to use the system
+recommended compilers and MPI library. In this case, you should edit
+the install-deps/build-opts.sh directory to specify options, and then
+build libraries not provided by the system. In practice, this likely
+means LuaJIT, ADIOS and Eigen. After modifying the build-opts.sh
+script you can simply run the build scripts for the remaining
+dependencies.
 
 ## Building Gkyl
 
 Once you have all dependencies installed, you can build Gkyl
 itself. Gkyl uses the Waf build system. You do NOT need to install waf
-as it is included with the distribution. To configure gkyl for
-building do
+as it is included with the distribution. However, waf depends on
+Python (included on most systems).
+
+If you have installed dependencies in the gkylsoft directory you can
+simply run
+
+~~~~~~~
+./waf configure
+~~~~~~~
+
+In other cases (when using system provided MPI, for example) to
+configure Gkyl do:
 
 - Copy the configure-par.sh-in script to configure-par.sh
 
@@ -68,8 +86,8 @@ and install:
 ./waf build install
 ~~~~~~~
 
-The builds are created in a 'build-par' directory. The executable is
-build-par/gkyl. It takes a single parameter, the name of the LuaJIT script
+The builds are created in a 'build' directory. The executable is
+build/gkyl. It takes a single parameter, the name of the LuaJIT script
 to run. Note that, in general, you **can not** run the executable from
 the build directory. (The reason for this is that besides the
 executable a bunch of LuaJIT files are also needed to run most
@@ -99,7 +117,8 @@ generated files will not be zipped up.
 ## Note on building LuaJIT
 
 To avoid linking to the shared LuaJIT library, please delete the
-installed LuaJIT shared libraries.
+installed LuaJIT shared libraries. The script provided in the
+install-deps directory does this automatically.
 
 LuaJIT builds easily on most machines with standard GCC
 compiler. Often, you may run into problems on older gcc as they do not
