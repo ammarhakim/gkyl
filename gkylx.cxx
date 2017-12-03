@@ -25,6 +25,8 @@
 # include <adios.h>
 #endif
 
+#include <whereami.h>
+
 // A simple logger for parallel simulations
 class Logger {
   public:
@@ -52,12 +54,30 @@ int finish(int err) {
   return err;
 }
 
+// Find location of executable
+std::string
+findExecPath() {
+  int len = wai_getExecutablePath(NULL, 0, NULL);
+  char *path = (char*) malloc(len+1);
+  int dirname_len;
+  wai_getExecutablePath(path, len, &dirname_len);
+  path[len] = '\0';
+  return std::string(path, dirname_len); // path just of directory
+}
+
 // Create top-level variable definitions
 std::string
 createTopLevelDefs(int argc, char **argv) {
   // load compile-time constants into Lua compiler so they become
   // available to scripts
   std::ostringstream varDefs;
+
+  // find executable location and modify package paths
+  std::string execPath = findExecPath();
+  varDefs << "package.path = package.path .. \";"
+          << execPath << "/?.lua;"
+          << execPath << "/?/init.lua" << "\"";
+  
 #ifdef HAVE_MPI_H
   varDefs << "GKYL_HAVE_MPI = true" << std::endl;
 #else
