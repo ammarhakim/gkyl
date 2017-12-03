@@ -10,6 +10,8 @@ def options(opt):
                    default=os.path.expandvars('$HOME/gkylsoft'))
     opt.add_option('--cxxflags', type='string', help='Compiler flags', dest='gkcxxflags',
                    default='-O3,-Wall,-std=c++14')
+    opt.add_option('--cflags', type='string', help='Compiler flags', dest='gkcflags',
+                   default='-O3,-Wall')
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
                    default=os.path.expandvars('$HOME/gkylsoft/gkyl'))
 
@@ -23,10 +25,14 @@ def check_gkyl(conf):
     conf.env.PREFIX = conf.options.prefix
 
     conf.env.append_value('CXXFLAGS', conf.options.gkcxxflags.split(','))
-    conf.env.append_value('CFLAGS', conf.options.gkcxxflags.split(','))
+    conf.env.append_value('CFLAGS', conf.options.gkcflags.split(','))
     conf.start_msg("Checking if CXXFLAGS work")
     conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
     conf.end_msg("Flags work (%s)" % conf.options.gkcxxflags)
+
+    conf.start_msg("Checking if CFLAGS work")
+    conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
+    conf.end_msg("Flags work (%s)" % conf.options.gkcflags)
     
     return 1
 
