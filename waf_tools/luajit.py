@@ -28,7 +28,7 @@ def check_luajit(conf):
     if conf.options.luaJitShrDir:
 	conf.env.SHARE_LUAJIT = conf.options.luaJitShrDir
     else:
-        conf.env.SHARE_LUAJIT = conf.options.gkylDepsDir+'/luajit/share/luajit-2.1.0-beta3'
+        conf.env.SHARE_LUAJIT = conf.options.gkylDepsDir+'/luajit/share/luajit'
 
     conf.env.STLIB_LUAJIT = ["luajit-5.1"]
         

@@ -343,9 +343,8 @@ local function buildApplication(self, tbl)
 	    if tCurr+myDt > nextIOt or tCurr+myDt >= tEnd then
 	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
 
-	       -- write field
+	       -- write field and diagnostics
 	       fieldIo:write(field[1], string.format("field_%d.bp", frame), tCurr+myDt)
-	       -- write diagnostics
 	       writeDiagnostics(frame, tCurr+myDt)
 	       
 	       frame = frame + 1
