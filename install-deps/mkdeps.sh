@@ -5,11 +5,12 @@ PREFIX=$HOME/gkylsoft
 
 # default build options
 BUILD_LUAJIT=yes
-BUILD_ADIOS=yes
+BUILD_LUAROCKS=no
+BUILD_ADIOS=no
 BUILD_OPENMPI=no
 BUILD_EIGEN=no
 BUILD_PETSC=no
-BUILD_LUAROCKS=no
+
 
 # ----------------------------------------------------------------------------
 # FUNCTION DEFINITIONS
@@ -19,17 +20,26 @@ BUILD_LUAROCKS=no
 
 show_help() {
 cat <<EOF
-Build Gkyl dependencies. Default libraries built are: LuaJIT and ADIOS.
 
+Build Gkyl dependencies. Default libraries built are: LuaJIT and
+ADIOS. To build ADIOS corectly, please ensure that the correct mpicc
+and mpicxx are in your path.
+
+-h
 --help                      This help.
 --prefix=DIR                Prefix where dependencies should be installed.
                             Default is $HOME/gkylsoft
+
+The following flags specify which libraries to build. By default, only
+LuaJIT is built. If you build libraries that depend on MPI please
+ensure mpicc and mpicxx are in the path.
+
+--build-luajit              [yes] Should we build LuaJIT?
+--build-luarocks            [no] Should we build Luarocks?
+--build-adios               [no] Should we build ADIOS?
 --build-openmpi             [no] Should we build OpenMPI?
 --build-eigen               [no] Should we build Eigen?
 --build-petsc               [no] Should we build Petsc?
---build-luajit              [yes] Should we build LuaJIT?
---build-adios               [yes] Should we build ADIOS?
---build-luarocks            [no] Should we build Luarocks?
 EOF
 }
 
@@ -69,6 +79,10 @@ do
       echo
    fi
    case "$key" in
+   -h)
+      show_help
+      exit 0
+      ;;
    --help)
       show_help
       exit 0
