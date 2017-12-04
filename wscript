@@ -58,6 +58,7 @@ def configure(conf):
 def build(bld):
     # recurse down directories and build C++ code
     bld.recurse("whereami")
+    bld.recurse("Lib") 
     bld.recurse("Comm")
     bld.recurse("Unit")
     bld.recurse("Updater")
@@ -150,10 +151,10 @@ def build(bld):
     binPath = bld.env.PREFIX+"/bin"
     sharePath = bld.env.SHARE_LUAJIT+"/?.lua"
     bld(rule=r"""sed -e 's#SHAREPATH#%s#' -e 's#BINPATH#%s#' ${SRC} > ${TGT}""" % (sharePath, binPath),
-        source='gkyl-in', target='gkyl')    
+        source='xgkyl-in', target='xgkyl')
     
     # Install wrapper shell script
-    bld.install_files("${PREFIX}/bin", "gkyl", chmod=0755)
+    bld.install_files("${PREFIX}/bin", "xgkyl", chmod=0755)
 
 def buildExec(bld):
     r"""Build top-level executable"""
@@ -164,9 +165,9 @@ def buildExec(bld):
 
     # build gkyl executable
     bld.program(
-        source ='gkylx.cxx', target='gkylx',
+        source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm sol whereami',
-        use='gkwhereami gkdatastruct gkeq gkunit gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL',
+        use='gklib gkwhereami gkdatastruct gkeq gkunit gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'
