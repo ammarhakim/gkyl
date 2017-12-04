@@ -21,9 +21,9 @@ BUILD_PETSC=no
 show_help() {
 cat <<EOF
 
-Build Gkyl dependencies. Default libraries built are: LuaJIT and
-ADIOS. To build ADIOS corectly, please ensure that the correct mpicc
-and mpicxx are in your path.
+Build Gkyl dependencies. By default, only LuaJIT is built. To build
+ADIOS corectly, please ensure that the correct mpicc and mpicxx are in
+your path.
 
 -h
 --help                      This help.
@@ -56,7 +56,7 @@ find_program() {
 die() {
    echo "$*"
    echo
-   echo "configure failed."
+   echo "Dependency builds failed."
    echo
    exit 1
 }
