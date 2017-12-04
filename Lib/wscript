@@ -7,6 +7,6 @@ import os
 
 def build(bld):
     bldFunc = bld.shlib
-    
-    bldFunc(source = 'lfs.c', use = "LUAJIT",
-            includes = '.', target = 'lfs', vnum="1.0")
+
+    bld.objects(source = 'lfs.c', use = "LUAJIT", includes = '.', target = 'lfs')
+    #bldFunc(source = 'lfsobjs', target = 'lfs', vnum="1.0")
