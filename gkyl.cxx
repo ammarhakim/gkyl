@@ -76,7 +76,13 @@ createTopLevelDefs(int argc, char **argv) {
   std::string execPath = findExecPath();
   varDefs << "package.path = package.path .. \";"
           << execPath << "/?.lua;"
+          << execPath << "/Lib/?.lua;" // we need add Lib to allow using external libraries
           << execPath << "/?/init.lua" << "\"";
+
+  varDefs << "package.cpath = package.cpath .. \";"
+          << execPath << "/../lib/lib?.so;"
+          << execPath << "/../lib/lib?.dylib;"
+          << "\"";
   
 #ifdef HAVE_MPI_H
   varDefs << "GKYL_HAVE_MPI = true" << std::endl;
