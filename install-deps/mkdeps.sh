@@ -4,6 +4,11 @@
 PREFIX=$HOME/gkylsoft
 
 # default build options
+CC=gcc
+CXX=g++
+MPICC=mpicc
+MPICXX=mpicxx
+
 BUILD_LUAJIT=yes
 BUILD_LUAROCKS=no
 BUILD_ADIOS=no
@@ -21,9 +26,16 @@ BUILD_PETSC=no
 show_help() {
 cat <<EOF
 
+./mkdeps.sh CC=cc CXX=cxx MPICC=mpicc MPICXX=mpicxx
+
 Build Gkyl dependencies. By default, only LuaJIT is built. To build
 ADIOS corectly, please ensure that the correct mpicc and mpicxx are in
 your path.
+
+CC 
+CXX
+MPICC
+MPICXX                      C, C++, MPI C and MPI C++ compilers to use
 
 -h
 --help                      This help.
@@ -87,6 +99,22 @@ do
       show_help
       exit 0
       ;;
+   CC)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CC="$value"
+      ;;
+   CXX)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CXX="$value"
+      ;;
+   MPICC)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      MPICC="$value"
+      ;;
+   MPICXX)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      MPICXX="$value"
+      ;;   
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
@@ -127,6 +155,10 @@ echo "# Configuration information. Generated automatically. Do not edit!
 
 # location where Gkyl dependencies will be installed
 GKYLSOFT=$PREFIX
+CC=$CC
+CXX=$CXX
+MPICC=$MPICC
+MPICXX=$MPICXX
 " > build-opts.sh
 
 build_openmpi() {
@@ -134,13 +166,6 @@ build_openmpi() {
     then
 	echo "Building OpenMPI"
 	./build-openmpi.sh
-    else
-	# write information to build-opts
-	echo "
-# MPI library locations
-MPICC=mpicc
-MPICXX=mpicxx
-" >> build-opts.sh
     fi
 }
 

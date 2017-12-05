@@ -1,9 +1,0 @@
-## -*- python -*-
-# Build code in this directory
-##    _______     ___
-## + 6 @ |||| # P ||| +
-
-import os
-
-def build(bld):
-    bld.objects(source = "whereami.c", includes = '.', target = 'whereami')

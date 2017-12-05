@@ -65,11 +65,14 @@ If you have installed dependencies in the gkylsoft directory you can
 simply run
 
 ~~~~~~~
-./waf configure
+./waf configure CC=mpicc CXX=mpicxx
 ~~~~~~~
 
-In other cases (when using system provided MPI, for example) to
-configure Gkyl do:
+where CC and CXX are names of the MPI compilers to use. Note that in
+some cases the exact path to the compiler may need to be specified.
+
+In some cases one may need to specify more complex set of paths. For
+this follow these steps:
 
 - Copy the configure-par.sh-in script to configure-par.sh
 
@@ -88,10 +91,7 @@ and install:
 
 The builds are created in a 'build' directory. The executable is
 build/gkyl. It takes a single parameter, the name of the LuaJIT script
-to run. Note that, in general, you **can not** run the executable from
-the build directory. (The reason for this is that besides the
-executable a bunch of LuaJIT files are also needed to run most
-simulations). Hence, the code **must** be installed as shown above.
+to run. The executable should be run from the install directory.
 
 If you need to clean up a build do:
 
@@ -115,10 +115,6 @@ This will create a zip file with the code. The repo hidden files and
 generated files will not be zipped up.
 
 ## Note on building LuaJIT
-
-To avoid linking to the shared LuaJIT library, please delete the
-installed LuaJIT shared libraries. The script provided in the
-install-deps directory does this automatically.
 
 LuaJIT builds easily on most machines with standard GCC
 compiler. Often, you may run into problems on older gcc as they do not

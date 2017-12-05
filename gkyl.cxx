@@ -26,6 +26,8 @@
 # include <adios.h>
 #endif
 
+// Gkyl includes
+#include <lfs.h>
 #include <whereami.h>
 
 // A simple logger for parallel simulations
@@ -159,6 +161,7 @@ main(int argc, char **argv) {
   }
   lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
   luaL_openlibs(L);  // open standard libraries
+  luaopen_lfs(L); // open Lua file system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
   
   std::string topDefs = createTopLevelDefs(argc, argv);

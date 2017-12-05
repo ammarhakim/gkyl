@@ -1,6 +1,0 @@
-#!/bin/bash
-LJ_EXEC="$(pwd)"
-LJ_ROOT="BINPATH"
-LJ_LJ_JIT="SHAREPATH"
-LJ_LUA_PATH="$LJ_LJ_JIT;""$LJ_ROOT""/?.lua;""$LJ_ROOT""/?/init.lua;""?.lua;""?/init.lua;"
-LUA_EXEC="$LJ_EXEC" LUA_ROOT="$LJ_ROOT" LUA_PATH="$LJ_LUA_PATH" LUA_CPATH="$LJ_LUA_CPATH" $LJ_ROOT/gkylx $@

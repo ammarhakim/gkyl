@@ -50,7 +50,6 @@ def configure(conf):
 
 def build(bld):
     # recurse down directories and build C++ code
-    bld.recurse("whereami")
     bld.recurse("Lib") 
     bld.recurse("Comm")
     bld.recurse("Unit")
@@ -140,18 +139,9 @@ def build(bld):
         Basis_dir.ant_glob('**/*.lua'),
         cwd=Basis_dir, relative_trick=True)
 
-    # build wrapper shell script
-    binPath = bld.env.PREFIX+"/bin"
-    sharePath = bld.env.SHARE_LUAJIT+"/?.lua"
-    bld(rule=r"""sed -e 's#SHAREPATH#%s#' -e 's#BINPATH#%s#' ${SRC} > ${TGT}""" % (sharePath, binPath),
-        source='xgkyl-in', target='xgkyl')
-    
-    # Install wrapper shell script
-    bld.install_files("${PREFIX}/bin", "xgkyl", chmod=0755)
-
 def buildExec(bld):
     r"""Build top-level executable"""
-    if platform.system() == 'Darwin' and platform.system() == 'x86_64':
+    if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
         # we need to append special flags to get stuff to work on a 64 bit Mac
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
 
@@ -165,8 +155,8 @@ def buildExec(bld):
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
-        includes = 'Unit Comm sol whereami',
-        use='lib whereami datastruct eq unit comm updater basis LUAJIT ADIOS MPI M DL',
+        includes = 'Unit Lib Comm sol',
+        use='lib datastruct eq unit comm updater basis LUAJIT ADIOS MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'
