@@ -45,13 +45,6 @@ def configure(conf):
 
     conf.env.append_value("RPATH", conf.env.LIBDIR)
 
-    # slightly modify Linux linker that thinks that he is smart and is
-    # not exporting the symbols that are only used in the Lua part
-    if platform.system() == 'Linux':
-        conf.env.LINKFLAGS_cstlib = ['-Wl,-Bstatic,-E']
-        conf.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
-        conf.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
-
     # write out configuration info into header
     conf.write_config_header('gkylconfig.h')
 
@@ -158,10 +151,16 @@ def build(bld):
 
 def buildExec(bld):
     r"""Build top-level executable"""
-    uname = os.uname()
-    if uname[0] == 'Darwin' and uname[4] == 'x86_64':
-        # we need to append special flags to get stuff to work on a Mac
+    if platform.system() == 'Darwin' and platform.system() == 'x86_64':
+        # we need to append special flags to get stuff to work on a 64 bit Mac
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
+
+    # slightly modify Linux linker that thinks that he is smart and is
+    # not exporting the symbols that are only used in the Lua part
+    if platform.system() == 'Linux':
+        bld.env.LINKFLAGS_cstlib = ['-Wl,-Bstatic,-E']
+        bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
+        bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
 
     # build gkyl executable
     bld.program(
