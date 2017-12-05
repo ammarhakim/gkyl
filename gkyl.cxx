@@ -138,6 +138,16 @@ main(int argc, char **argv) {
     return finish(0);
   }
 
+  // check if file exists  
+  std::string inpFile(argv[1]);
+  std::ifstream f(inpFile.c_str());
+  if (!f.good()) {
+    std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
+    std::cerr << "Usage: gkyl LUA-SCRIPT" << std::endl;
+    return finish(1);
+  }
+  f.close();  
+
 // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
   if (L==NULL) {
@@ -161,16 +171,6 @@ main(int argc, char **argv) {
     lua_close(L);
     return finish(1);    
   }
-
-  // check if file exists  
-  std::string inpFile(argv[1]);
-  std::ifstream f(inpFile.c_str());
-  if (!f.good()) {
-    std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
-    std::cerr << "Usage: gkyl LUA-SCRIPT" << std::endl;
-    return finish(1);
-  }
-  f.close();
 
   // load and run input file
   if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
