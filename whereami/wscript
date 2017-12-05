@@ -6,7 +6,4 @@
 import os
 
 def build(bld):
-    bldFunc = bld.shlib
-    
-    bldFunc(source = "whereami.c",
-            includes = '.', target = 'gkwhereami', vnum="1.0")
+    bld.objects(source = "whereami.c", includes = '.', target = 'whereami')

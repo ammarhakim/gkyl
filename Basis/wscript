@@ -7,7 +7,6 @@ import os
 
 def build(bld):
     bldFunc = bld.shlib
-    
     bldFunc(source = r"""
     """,
     includes = '. ./_data', target = 'gkbasis', vnum="1.0")

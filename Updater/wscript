@@ -6,9 +6,7 @@
 import os
 
 def build(bld):
-    bldFunc = bld.shlib
-    
-    bldFunc(source = r"""
+    bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
     vlasovData/VlasovStreamMax1x1v.cpp
     vlasovData/VlasovStreamMax1x2v.cpp
@@ -37,4 +35,4 @@ def build(bld):
     linearHyperbolicData/ModalMaxOrderBasisSurf2d.cpp
     linearHyperbolicData/ModalMaxOrderBasisSurf3d.cpp
     """,
-    includes = '. linearHyperbolicData', target = 'gkupdater', vnum="1.0")
+    includes = '. linearHyperbolicData', target = 'updater')
