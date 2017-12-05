@@ -15,6 +15,7 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <stdlib.h>
 
 #ifdef HAVE_MPI_H
 # include <mpi.h>
