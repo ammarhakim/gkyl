@@ -1,10 +1,13 @@
+## -*- python -*-
+# Build code in this directory
+##    _______     ___
+## + 6 @ |||| # P ||| +
+
 import os
 
 def build(bld):
-    bldFunc = bld.shlib
-    
-    bldFunc(
+    bld.objects(
         source = 'CartFieldImpl.cpp',
-        target = 'gkdatastruct',
-        includes = '.', vnum="1.0.0"
+        target = 'datastruct',
+        includes = '.'
     )

@@ -167,7 +167,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Comm sol whereami',
-        use='gkwhereami gkdatastruct gkeq gkunit gkcomm gkupdater gkbasis LUAJIT ADIOS MPI M DL',
+        use='lib whereami datastruct eq unit comm updater basis LUAJIT ADIOS MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'

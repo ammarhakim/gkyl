@@ -6,10 +6,8 @@
 import os
 
 def build(bld):
-    bldFunc = bld.shlib
-    
-    bldFunc(
+    bld.objects(
         source = 'TenMomentImpl.cpp',
-        target = 'gkeq',
-        includes = '.', vnum="1.0.0"
+        target = 'eq',
+        includes = '.'
     )    

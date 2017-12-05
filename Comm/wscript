@@ -10,10 +10,9 @@ def build(bld):
     
     # only build if in parallel
     if bld.env.MPI_FOUND:
-        bldFunc(
+        bld.objects(
             source = 'GkMpiFuncs.cpp',
-            target = 'gkcomm',
-            vnum="1.0",
+            target = 'comm',
             includes = '.',
             use = 'MPI'
         )    
