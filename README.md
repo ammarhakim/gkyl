@@ -5,7 +5,7 @@ Strange Case of Dr. Jekyll and Mr. Hyde". Gkyl is written in a
 combination of C++ and LuaJIT. The goal is to use C++ for
 time-critical parts while writing the higher-level parts in
 LuaJIT. Gkyl is developed at Princeton Plasma Physics Laboratory
-(PPPL).
+(PPPL) and is copyrighted by Ammar Hakim.
 
 # License
 
@@ -26,7 +26,7 @@ probably only need to install LuaJIT.
 Build instructions for dependencies are provided in the build sections
 below. Gkyl depends on the following tools and packages:
 
-- A modern C/C++ compiler; Python (for use in waf build system)
+- A modern C/C++ compiler; Python (for use in waf build system and post-processing)
 - LuaJIT
 - MPI
 - ADIO IO library
@@ -39,20 +39,8 @@ Optionally, you will need
 
 ## Building dependencies
 
-Depending on your system, building dependencies can be
-complicated. Some example scripts are provided in the install-deps
-directory. On a Mac or Linux machine the scripts in the install-deps
-directories are sufficient and you can simply run the
-build-all-deps.sh script (or the individual package
-scripts). Obviously, the dependencies need to be built only once.
-
-On most supercomputers you will likely need to use the system
-recommended compilers and MPI library. In this case, you should edit
-the install-deps/build-opts.sh directory to specify options, and then
-build libraries not provided by the system. In practice, this likely
-means LuaJIT, ADIOS and Eigen. After modifying the build-opts.sh
-script you can simply run the build scripts for the remaining
-dependencies.
+See REAME.md file in install-deps directory on instructions on how to
+build dependencies.
 
 ## Building Gkyl
 
@@ -69,9 +57,9 @@ simply run
 ~~~~~~~
 
 where CC and CXX are names of the MPI compilers to use. Note that in
-some cases the exact path to the compiler may need to be specified.
+some cases the full path to the compiler may need to be specified.
 
-In some cases one may need to specify more complex set of paths. For
+In some cases you may need to specify more complex set of paths. For
 this follow these steps:
 
 - Copy the configure-par.sh-in script to configure-par.sh
@@ -90,8 +78,7 @@ and install:
 ~~~~~~~
 
 The builds are created in a 'build' directory. The executable is
-build/gkyl. It takes a single parameter, the name of the LuaJIT script
-to run. The executable should be run from the install directory.
+build/gkyl. The executable should be run from the install directory.
 
 If you need to clean up a build do:
 

@@ -16,7 +16,7 @@ rm -rf luarocks-2.4.3 luarocks-2.4.3.tar*
 curl -L https://luarocks.org/releases/luarocks-2.4.3.tar.gz > luarocks-2.4.3.tar.gz
 tar zxpf luarocks-2.4.3.tar.gz
 cd luarocks-2.4.3
-cmd="./configure --prefix=$PREFIX --with-lua-bin=$LUA_BIN --with-lua-include=$LUA_INCLUDE --with-lua-lib=$LUA_LIB "
+cmd="./configure --prefix=$PREFIX --with-lua-bin=$LUA_BIN --with-lua-include=$LUA_INCLUDE --with-lua-lib=$LUA_LIB"
 echo $cmd
 $cmd
 make bootstrap

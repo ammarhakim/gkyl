@@ -308,7 +308,6 @@ local function buildApplication(self, tbl)
    -- return function that runs main simulation loop
    return function (self)
       log("Starting main loop of HyperEqnOnCartGrid simulation ...")
-      local tmSimStart = Time.clock()
       local tStart, tEnd, nFrame = 0, tbl.tEnd, tbl.nFrame
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
@@ -318,6 +317,7 @@ local function buildApplication(self, tbl)
       local tCurr = tStart
       local myDt = initDt
 
+      local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
 	 -- copy fields in case we need to take this step again
@@ -325,10 +325,8 @@ local function buildApplication(self, tbl)
 
 	 -- if needed adjust dt to hit tEnd exactly
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-
-	 -- Take a time-step
 	 log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
-	 local status, dtSuggested = updateHyper(tCurr, tCurr+myDt)
+	 local status, dtSuggested = updateHyper(tCurr, tCurr+myDt) -- take a time-step
 
 	 if not status then
 	    -- updater failed, time-step too large
@@ -336,27 +334,19 @@ local function buildApplication(self, tbl)
 	    myDt = dtSuggested
 	    field[1]:copy(fieldDup)
 	 else
-	    -- compute diagnostics
 	    calcDiagnostics(field[1], tCurr, tCurr+myDt)
-	    
 	    -- write out data if needed
 	    if tCurr+myDt > nextIOt or tCurr+myDt >= tEnd then
 	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
-
-	       -- write field and diagnostics
 	       fieldIo:write(field[1], string.format("field_%d.bp", frame), tCurr+myDt)
 	       writeDiagnostics(frame, tCurr+myDt)
-	       
 	       frame = frame + 1
 	       nextIOt = nextIOt + tFrame
 	       step = 0
 	    end
-	    
 	    tCurr = tCurr + myDt
 	    myDt = dtSuggested
 	    step = step + 1
-
-	    -- check if done
 	    if (tCurr >= tEnd) then
 	       break
 	    end
@@ -368,12 +358,10 @@ local function buildApplication(self, tbl)
       for d = 1, ndim do
 	 tmHyperSlvr = tmHyperSlvr+hyperSlvr[d].totalTime
       end
-
       local tmBC = 0.0 -- total time in BCs
       for _, bc in ipairs(boundaryConditions) do
 	 tmBC = tmBC+bc.totalTime
       end
-
       log(string.format("Hyper solvers took %g sec", tmHyperSlvr))
       log(string.format("Diagnostics took %g sec", tmDiag))
       log(string.format("Boundary conditions took %g sec", tmBC))
