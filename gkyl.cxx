@@ -65,7 +65,7 @@ findExecPath() {
   int dirname_len;
   wai_getExecutablePath(path, len, &dirname_len);
   path[len] = '\0';
-  return std::string(path, dirname_len); // path just of directory
+  return std::string(path, dirname_len);
 }
 
 // Create top-level variable definitions
@@ -124,9 +124,6 @@ createTopLevelDefs(int argc, char **argv) {
 #ifdef HAVE_ADIOS_H
 int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 #endif
-#ifdef HAVE_MPI_H
-MPI_Comm _get_MPI_COMM_WORLD() { return get_MPI_COMM_WORLD(); }
-#endif
 
 int
 main(int argc, char **argv) {
@@ -161,7 +158,7 @@ main(int argc, char **argv) {
   }
   lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
   luaL_openlibs(L);  // open standard libraries
-  luaopen_lfs(L); // open Lua file system library
+  luaopen_lfs(L); // open Lua file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
   
   std::string topDefs = createTopLevelDefs(argc, argv);

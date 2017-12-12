@@ -3,14 +3,16 @@
 ##    _______     ___
 ## + 6 @ |||| # P ||| +
 
+import datetime
 import os
-import sys
-#sys.path.insert(0, './waf_tools')
-#import commands
 import platform
+import sys
 
 APPNAME = 'gkyl'
-VERSION = '1.0'
+VER = "0.1"
+
+now = datetime.datetime.now()
+VERSION = VER + "-"+now.strftime("%Y-%m-%d")
 
 top = '.'
 out = 'build'
@@ -164,4 +166,4 @@ def buildExec(bld):
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
-    ctx.excl = " **/.waf-1* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh configure-ser.sh **/.hg **/.hgignore build install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios-1.11.0* install-deps/adios-1.10.0* build-par build-ser"
+    ctx.excl = " **/.waf* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh **/.hg **/.hgignore install-deps/build-opts.sh install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios-1.* install-deps/luarocks-2.4.3* install-deps/openmpi-* build build-par build-ser"

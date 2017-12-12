@@ -28,9 +28,7 @@ cat <<EOF
 
 ./mkdeps.sh CC=cc CXX=cxx MPICC=mpicc MPICXX=mpicxx
 
-Build Gkyl dependencies. By default, only LuaJIT is built. To build
-ADIOS corectly, please ensure that the correct mpicc and mpicxx are in
-your path.
+Build Gkyl dependencies. By default, only LuaJIT is built.
 
 CC 
 CXX
@@ -44,7 +42,7 @@ MPICXX                      C, C++, MPI C and MPI C++ compilers to use
 
 The following flags specify which libraries to build. By default, only
 LuaJIT is built. If you build libraries that depend on MPI please
-ensure mpicc and mpicxx are in the path.
+specify the MPI C and C++ compilers to use.
 
 --build-luajit              [yes] Should we build LuaJIT?
 --build-luarocks            [no] Should we build Luarocks?
@@ -118,7 +116,6 @@ do
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
-      PREFIX_SET=yes
       ;;
    --build-openmpi)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -151,15 +148,19 @@ do
    shift
 done
 
-echo "# Configuration information. Generated automatically. Do not edit!
+# Write out build options for scripts to use
+cat <<EOF1 > build-opts.sh
+# Generated automatically! Do not edit
 
-# location where Gkyl dependencies will be installed
+# Installation directory
 GKYLSOFT=$PREFIX
+# Various compilers
 CC=$CC
 CXX=$CXX
 MPICC=$MPICC
 MPICXX=$MPICXX
-" > build-opts.sh
+
+EOF1
 
 build_openmpi() {
     if [ "$BUILD_OPENMPI" = "yes" ]
