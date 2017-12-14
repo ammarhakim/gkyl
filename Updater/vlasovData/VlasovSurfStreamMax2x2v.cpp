@@ -4,8 +4,8 @@ void VlasovSurfStream2x2vMax_X_P1(const double *w, const double *dxv, const doub
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
   const unsigned int X=0, Y=1, VX=1, VY=2; 
-  double dvx = dxv[VX]; 
-  double wx = w[VX]; 
+  double dvx = dxv[VX]*2/dxv[X]; 
+  double wx = w[VX]*2/dxv[X]; 
 
   if (wx>0) { 
   outr[0] += 0.8660254037844386*fl[1]*wx+0.5*fl[0]*wx+0.1443375672974065*fl[3]*dvx; 
@@ -38,8 +38,8 @@ void VlasovSurfStream2x2vMax_X_P2(const double *w, const double *dxv, const doub
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
   const unsigned int X=0, Y=1, VX=1, VY=2; 
-  double dvx = dxv[VX]; 
-  double wx = w[VX]; 
+  double dvx = dxv[VX]*2/dxv[X]; 
+  double wx = w[VX]*2/dxv[X]; 
 
   if (wx>0) { 
   outr[0] += 1.118033988749895*fl[11]*wx+0.8660254037844386*fl[1]*wx+0.5*fl[0]*wx+0.25*fl[6]*dvx+0.1443375672974065*fl[3]*dvx; 
@@ -112,8 +112,8 @@ void VlasovSurfStream2x2vMax_Y_P1(const double *w, const double *dxv, const doub
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
   const unsigned int X=0, Y=1, VX=1, VY=2; 
-  double dvx = dxv[VY]; 
-  double wx = w[VY]; 
+  double dvx = dxv[VY]*2/dxv[Y]; 
+  double wx = w[VY]*2/dxv[Y]; 
 
   if (wx>0) { 
   outr[0] += 0.8660254037844386*fl[2]*wx+0.5*fl[0]*wx+0.1443375672974065*fl[4]*dvx; 
@@ -146,8 +146,8 @@ void VlasovSurfStream2x2vMax_Y_P2(const double *w, const double *dxv, const doub
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
   const unsigned int X=0, Y=1, VX=1, VY=2; 
-  double dvx = dxv[VY]; 
-  double wx = w[VY]; 
+  double dvx = dxv[VY]*2/dxv[Y]; 
+  double wx = w[VY]*2/dxv[Y]; 
 
   if (wx>0) { 
   outr[0] += 1.118033988749895*fl[12]*wx+0.8660254037844386*fl[2]*wx+0.5*fl[0]*wx+0.25*fl[9]*dvx+0.1443375672974065*fl[4]*dvx; 
