@@ -8,26 +8,43 @@ import os
 def build(bld):
     bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
+
     vlasovData/VlasovStreamMax1x1v.cpp
     vlasovData/VlasovStreamMax1x2v.cpp
     vlasovData/VlasovStreamMax1x3v.cpp
     vlasovData/VlasovStreamMax2x2v.cpp
+    vlasovData/VlasovStreamMax2x3v.cpp
     vlasovData/VlasovStreamSer1x1v.cpp
     vlasovData/VlasovStreamSer1x2v.cpp
     vlasovData/VlasovStreamSer1x3v.cpp
     vlasovData/VlasovStreamSer2x2v.cpp
+    vlasovData/VlasovStreamSer2x3v.cpp
+
+    vlasovData/VlasovSurfStreamMax1x1v.cpp
+    vlasovData/VlasovSurfStreamMax1x2v.cpp
+    vlasovData/VlasovSurfStreamMax1x3v.cpp
+    vlasovData/VlasovSurfStreamMax2x2v.cpp
+    vlasovData/VlasovSurfStreamMax2x3v.cpp
+    vlasovData/VlasovSurfStreamSer1x1v.cpp
+    vlasovData/VlasovSurfStreamSer1x2v.cpp
+    vlasovData/VlasovSurfStreamSer1x3v.cpp
+    vlasovData/VlasovSurfStreamSer2x2v.cpp
+    vlasovData/VlasovSurfStreamSer2x3v.cpp
+
     linearHyperbolicData/LinearHyperMax1dVolTerms.cpp
     linearHyperbolicData/LinearHyperMax2dVolTerms.cpp
     linearHyperbolicData/LinearHyperMax3dVolTerms.cpp
     linearHyperbolicData/LinearHyperSer1dVolTerms.cpp
     linearHyperbolicData/LinearHyperSer2dVolTerms.cpp
     linearHyperbolicData/LinearHyperSer3dVolTerms.cpp
+
     linearHyperbolicData/ModalMaxOrderBasisSurfToVol1d.cpp
     linearHyperbolicData/ModalMaxOrderBasisSurfToVol2d.cpp
     linearHyperbolicData/ModalMaxOrderBasisSurfToVol3d.cpp
     linearHyperbolicData/ModalSerendipBasisSurfToVol1d.cpp
     linearHyperbolicData/ModalSerendipBasisSurfToVol2d.cpp
     linearHyperbolicData/ModalSerendipBasisSurfToVol3d.cpp
+
     linearHyperbolicData/ModalSerendipBasisSurf1d.cpp
     linearHyperbolicData/ModalSerendipBasisSurf2d.cpp
     linearHyperbolicData/ModalSerendipBasisSurf3d.cpp

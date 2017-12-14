@@ -1,0 +1,44 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsP : [x, vx]$
+
+doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
+calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
+
+fh : openw("~/max-out/VlasovSurfStreamMax1x1v.cpp");
+
+for i : 1 thru 2 do (
+  basisP : gsOrthoNorm(varsP, makeMaxOrderBasis(varsP, i)),
+  printf(fh, "void VlasovSurfStream1x1vMax_X_P~a(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", i),
+  printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
+  printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
+  printf(fh, "  const unsigned int X=0, VX=1; ~%"),   
+  printf(fh, "  double dvx = dxv[VX]; ~%"),
+  printf(fh, "  double wx = w[VX]; ~%~%"),
+  fl_L : doExpand(fl, basisP),
+  fl_R : doExpand(fr, basisP),
+  printf(fh, "  if (wx>0) { ~%"),
+  fhat : subst(x=1, fl_L),
+  t1 : wx*calcInnerProdList(delete(x,varsP), 1, subst(x=-1, basisP), fhat),
+  t2 : dvx/2*calcInnerProdList(delete(x,varsP), vx, subst(x=-1, basisP), fhat),
+  writeCIncrExprs1(outr, t1+t2),
+  printf(fh, "~%"),
+  t1 : wx*calcInnerProdList(delete(x,varsP), 1, subst(x=1, basisP), fhat),
+  t2 : dvx/2*calcInnerProdList(delete(x,varsP), vx, subst(x=1, basisP), fhat),
+  writeCIncrExprs1(outl, -(t1+t2)),
+  printf(fh, "  } else { ~%"),
+  fhat : subst(x=-1, fl_R),
+  t1 : wx*calcInnerProdList(delete(x,varsP), 1, subst(x=-1, basisP), fhat),
+  t2 : dvx/2*calcInnerProdList(delete(x,varsP), vx, subst(x=-1, basisP), fhat),
+  writeCIncrExprs1(outr, t1+t2),
+  printf(fh, "~%"),
+  t1 : wx*calcInnerProdList(delete(x,varsP), 1, subst(x=1, basisP), fhat),
+  t2 : dvx/2*calcInnerProdList(delete(x,varsP), vx, subst(x=1, basisP), fhat),
+  writeCIncrExprs1(outl, -(t1+t2)),
+  printf(fh, "  } ~%"),
+  printf(fh, "} ~%")
+);
+
+close(fh);

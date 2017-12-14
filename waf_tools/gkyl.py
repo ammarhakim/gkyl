@@ -9,9 +9,9 @@ def options(opt):
     opt.add_option('-p', type='string', help='Path to Gkyl dependency directory', dest='gkylDepsDir',
                    default=os.path.expandvars('$HOME/gkylsoft'))
     opt.add_option('--cxxflags', type='string', help='Compiler flags', dest='gkcxxflags',
-                   default='-O3,-Wall,-std=c++14')
+                   default='-O3,-std=c++14')
     opt.add_option('--cflags', type='string', help='Compiler flags', dest='gkcflags',
-                   default='-O3,-Wall')
+                   default='-O3')
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
                    default=os.path.expandvars('$HOME/gkylsoft/gkyl'))
 
