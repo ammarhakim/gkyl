@@ -1,13 +1,6 @@
--- Gkyl ------------------------------------------------------------------------
---
--- Lua wrapper for various C functions used in the Vlasov solver
---    _______     ___
--- + 6 @ |||| # P ||| +
---------------------------------------------------------------------------------
-
-local ffi  = require "ffi"
-
-ffi.cdef [[
+#ifndef VLASOV_MOD_DELC_H 
+#define VLASOV_MOD_DELC_H 
+extern "C" { 
 void VlasovVolStream1x1vMaxP1(const double *w, const double *dxv, const double *f, double *out); 
 void VlasovSurfStream1x1vMax_X_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
 
@@ -86,4 +79,9 @@ void VlasovSurfStream2x3vSer_Y_P1(const double *w, const double *dxv, const doub
 void VlasovVolStream2x3vSerP2(const double *w, const double *dxv, const double *f, double *out); 
 void VlasovSurfStream2x3vSer_X_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
 void VlasovSurfStream2x3vSer_Y_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
-]]
+
+
+
+ 
+} 
+#endif 

@@ -1,3 +1,4 @@
+#include <VlasovModDecl.h> 
 void VlasovVolStream1x2vMaxP1(const double *w, const double *dxv, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output 
