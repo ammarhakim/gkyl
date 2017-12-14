@@ -8,6 +8,7 @@ doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
 calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
 
 fh : openw("~/max-out/VlasovStreamMax1x1v.cpp");
+printf(fh, "#include <VlasovModDecl.h> ~%")$
 
 for i : 1 thru 2 do (
   basisP : gsOrthoNorm(varsP, makeMaxOrderBasis(varsP, i)),

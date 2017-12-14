@@ -52,4 +52,4 @@ def build(bld):
     linearHyperbolicData/ModalMaxOrderBasisSurf2d.cpp
     linearHyperbolicData/ModalMaxOrderBasisSurf3d.cpp
     """,
-    includes = '. linearHyperbolicData', target = 'updater')
+    includes = '. linearHyperbolicData vlasovData', target = 'updater')
