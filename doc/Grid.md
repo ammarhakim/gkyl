@@ -93,6 +93,10 @@ with 1, Y-direction with 2, etc.__
   __please remember that indices start at 1__. This is specially
   important to keep in mind if using a raw ffi object as an index.
 
+`grid:cellCenterInDir(dir)`
+: Cell center coordinate of current cell (set by `setIndex`
+  method) in direction `dir`.
+
 `grid:cellCenter(xc)`
 : Cell center coordinate of current cell (set by `setIndex`
   method). `xc` must be pre-allocated.
@@ -176,6 +180,10 @@ with 1, Y-direction with 2, etc__).
 
 `grid:cellVolume()`
 : Volume of a grid cell.
+
+`grid:cellCenterInDir(dir)`
+: Cell center coordinate of current cell (set by `setIndex`
+  method) in direction `dir`.
 
 `grid:cellCenter(xc)`
 : Cell center coordinate of current cell (set by `setIndex`

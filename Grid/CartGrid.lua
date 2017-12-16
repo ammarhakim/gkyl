@@ -159,6 +159,9 @@ RectCart.__index = {
    dx = function (self, dir)
       return self._dx[dir]
    end,
+   cellCenterInDir = function (self, d)
+      return self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
+   end,
    cellCenter = function (self, xc)
       for d = 1, self._ndim do
 	 xc[d] = self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
@@ -281,6 +284,10 @@ NonUniformRectCart.__index = {
       local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
       return nodeCoords[idx[dir]+1]-nodeCoords[idx[dir]]
    end,
+   cellCenterInDir = function (self, d)
+      local nodeCoords = self:nodeCoords(d)
+      return 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
+   end,   
    cellCenter = function (self, xc)
       local idx = self._currIdx
       for d = 1, self._ndim do

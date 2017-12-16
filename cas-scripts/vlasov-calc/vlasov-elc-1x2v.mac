@@ -1,0 +1,28 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsP : [x, vx, vy]$
+varsC : [x]$
+
+doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
+calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
+
+fh : openw("~/max-out/VlasovElcMax1x2v.cpp");
+printf(fh, "#include <VlasovModDecl.h> ~%")$
+
+for i : 1 thru 2 do (
+  basisP : gsOrthoNorm(varsP, makeMaxOrderBasis(varsP, i)),
+  basisC : gsOrthoNorm(varsC, makeMaxOrderBasis(varsC, i)),
+  printf(fh, "void VlasovVolElc1x2vMaxP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", i),
+  printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output ~%"),
+  printf(fh, "  const unsigned int X=0, VX=1; ~%"),
+  printf(fh, "  double dx1 = 1/dxv[VX]; ~%"),
+  fl : doExpand(f, basisP),
+  El : doExpand(Ex, basisC),
+  t1 : 2*dx1*calcInnerProdList(varsP, 1, diff(basisP,vx), fl*El),
+  writeCIncrExprs(t1),
+  printf(fh, "} ~%")
+);
+
+close(fh);

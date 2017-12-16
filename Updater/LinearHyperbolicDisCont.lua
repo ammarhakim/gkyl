@@ -74,7 +74,7 @@ setmetatable(LinearHyperbolicDisCont, { __call = function (self, o) return self.
 local function advance(self, tCurr, dt, inFld, outFld)
    local grid = self._onGrid
 
-   local qIn = assert(outFld[1], "LinearHyperbolicDisCont.advance: Must specify an input field")
+   local qIn = assert(inFld[1], "LinearHyperbolicDisCont.advance: Must specify an input field")
    local qOut = assert(outFld[1], "LinearHyperbolicDisCont.advance: Must specify an output field")
 
    local ndim = grid:ndim()
@@ -95,7 +95,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local dx = Lin.Vec(ndim) -- cell shape
    local xc = Lin.Vec(ndim) -- cell center
 
-   qOut:clear(0.0) -- compute increments initally
+   qOut:clear(0.0) -- compute increments
 
    -- pointers for (re)use in update
    local qInPtr, qOutPtr = qIn:get(1), qOut:get(1)

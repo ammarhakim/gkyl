@@ -1,6 +1,6 @@
 Depending on your system, building dependencies can be complicated.
-On a Mac or Linux machine you can simply run the mkdeps.sh script. For
-details on usage and options please check its help by running
+On a Mac or Linux machine you can simply run the mkdeps.sh script, but
+first, please cheack details by running
 
 ./mkdeps.sh -h
 
