@@ -192,7 +192,6 @@ local function advance(self, tCurr, dt, inFld, outFld)
    
    -- loop, computing moments in each cell
    for idx in localExtRange:colMajorIter() do
-      -- get cell shape, center coordinates
       grid:setIndex(idx); grid:cellCenter(xcp)
       -- compute velocity cell spacing, cell-center and volume
       -- local vol = self._calcGridQuant(grid, xcp, dv, w)

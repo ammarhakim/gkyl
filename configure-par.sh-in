@@ -8,7 +8,7 @@ OUT=build-par
 PREFIX=$HOME/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
-CXXFLAGS='-O2,-Wall'
+CXXFLAGS='-O3'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1

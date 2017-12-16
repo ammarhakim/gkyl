@@ -15,6 +15,7 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
+local date = require "Lib.date"
 
 -- For returning module table
 local M = {}
@@ -45,6 +46,8 @@ local function buildApplication(self, tbl)
       logToFile = tbl.logToFile and tbl.logToFile or false
    }
 
+   log(date(false):fmt())
+   
    -- function to warn user about default values
    local function warnDefault(varVal, varNm, default)
       if varVal then return varVal end
@@ -366,6 +369,7 @@ local function buildApplication(self, tbl)
       log(string.format("Diagnostics took %g sec", tmDiag))
       log(string.format("Boundary conditions took %g sec", tmBC))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
+      log(date(false):fmt()) -- time-stamp for sim end
    end
 end
 

@@ -12,10 +12,8 @@ local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local LinearHyperbolicDisCont = require "Updater.LinearHyperbolicDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local VlasovDisCont = require "Updater.VlasovDisCont"
 local WavePropagation = require "Updater.WavePropagation"
-
--- system modules
-local xsys = require "xsys"
 
 return {
    Bc = Bc,
@@ -24,5 +22,6 @@ return {
    FiveMomentSrc = FiveMomentSrc,
    LinearHyperbolicDisCont = LinearHyperbolicDisCont,
    ProjectOnBasis = ProjectOnBasis,
+   VlasovDisCont = VlasovDisCont,   
    WavePropagation = WavePropagation,
 }
