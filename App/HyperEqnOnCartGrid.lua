@@ -46,7 +46,7 @@ local function buildApplication(self, tbl)
       logToFile = tbl.logToFile and tbl.logToFile or false
    }
 
-   log(date(false):fmt())
+   log(date(false):fmt()) -- time-stamp for sim start
    
    -- function to warn user about default values
    local function warnDefault(varVal, varNm, default)
