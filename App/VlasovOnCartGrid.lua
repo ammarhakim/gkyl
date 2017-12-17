@@ -8,17 +8,17 @@
 --------------------------------------------------------------------------------
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local Basis = require "Basis"
 local BoundaryCondition = require "Updater.BoundaryCondition"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
+local Lin = require "Lib.Linalg"
 local Logger = require "Lib.Logger"
+local Mpi = require "Comm.Mpi"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
 local date = require "Lib.date"
-
 
 local function showTbl(nm, tbl)
    io.write(string.format("--- %s ---\n", nm))
@@ -36,20 +36,30 @@ local Species = {}
 
 function Species:new(tbl)
    local self = setmetatable({}, Species)
-   self.type = "species"
+   self.type = "species" -- to identify objects of this (Species) type
+
    self.name = "name"
-   
    self.charge, self.mass = tbl.charge, tbl.mass
    self.qbym = self.charge/self.mass
    self.lower, self.upper = tbl.lower, tbl.upper
    self.cells = tbl.cells
-   self.decompCuts = tbl.decompCuts
-
    self.vdim = #self.cells -- velocity dimensions
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
-   assert(#self.decompCuts == self.vdim, "'decompCuts' must have " .. self.vdim .. " entries")
+
+   self.decompCuts = {}
+   -- parallel decomposition stuff
+   if tbl.decompCuts then
+      assert(self.vdim == #tbl.decompCuts, "decompCuts should have exactly " .. self.vdim .. " entries")
+      self.decompCuts = tbl.decompCuts
+   else
+      -- if not specified, use 1 processor
+      for d = 1, self.vdim do self.decompCuts[d] = 1 end
+   end
+
+   -- store initial condition function
+   self.initFunc = tbl.init
    
    return self
 end
@@ -58,11 +68,11 @@ setmetatable(Species, { __call = function (self, o) return self.new(self, o) end
 
 -- methods for species object
 Species.__index = {
-   createPhaseGrid = function(self, cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
+   createGrid = function(self, cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
       self.cdim = #cCells
       self.ndim = self.cdim+self.vdim
 
-      -- create decomposition      
+      -- create decomposition
       local decompCuts = {}
       for d = 1, self.cdim do table.insert(decompCuts, cDecompCuts[d]) end
       for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
@@ -90,6 +100,34 @@ Species.__index = {
 	 periodicDirs = cPeriodicDirs,
 	 decomposition = self.decomp,
       }
+   end,
+   createBasis = function(self, nm, polyOrder)
+      if nm == "serendipity" then
+	 self.basis = Basis.CartModalSerendipity { ndim = self.ndim, polyOrder = polyOrder }
+      elseif nm == "maximal-order" then
+	 self.basis = Basis.CartModalMaxOrder { ndim = self.ndim, polyOrder = polyOrder }
+      end
+   end,
+   alloc = function(self)
+      -- allocate fields needed in RK update
+      self.distf = DataStruct.Field {
+	 onGrid = self.grid,
+	 numComponents = self.basis:numBasis(),
+	 ghost = {1, 1}
+      }
+
+      -- create Adios object for field I/O
+      self.distIo = AdiosCartFieldIo { self.distf:elemType() }
+   end,
+   initDist = function(self)
+      local project = Updater.ProjectOnBasis {
+	 onGrid = self.grid,
+	 basis = self.basis,
+	 evaluate = self.initFunc
+      }
+      project:advance(0.0, 0.0, {}, {self.distf})
+
+      self.distIo:write(self.distf, string.format("%s_0.bp", self.name), 0.0)
    end,
 }
 
@@ -136,7 +174,7 @@ local function buildApplication(self, tbl)
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
    else
       -- if not specified, use 1 processor
-      decompCuts = { }
+      decompCuts = {}
       for d = 1, cdim do decompCuts[d] = 1 end
    end
    local useShared = tbl.useShared and tbl.useShared or false
@@ -153,20 +191,36 @@ local function buildApplication(self, tbl)
    end
 
    -- read in information about each species
-   local species = { }
+   local species = {}
    for nm, val in pairs(tbl) do
       if type(val) == "table" then
 	 if val.type == "species" then
-	    val.name = nm
-	    table.insert(species, val)
+	    species[nm] = val
+	    species[nm].name = nm
 	 end
       end
    end
 
-   -- construct phase-space grid for each species
-   for _, s in ipairs(species) do
-      s:createPhaseGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs)
+   -- setup each species
+   for _, s in pairs(species) do
+      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs)
+      s:createBasis(basisNm, polyOrder)
+      s:alloc()
    end
+
+   -- setup configuration space grid
+   local grid = Grid.RectCart {
+      lower = tbl.lower,
+      upper = tbl.upper,
+      cells = tbl.cells,
+      periodicDirs = periodicDirs,
+      -- NEED TO CREATE DECOMPOSITION
+   }
+
+   -- initialize species distributions and write them out
+   for _, s in pairs(species) do
+      s:initDist()
+   end   
 
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
