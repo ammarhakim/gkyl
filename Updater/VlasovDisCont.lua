@@ -53,7 +53,7 @@ setmetatable(VlasovDisCont, { __call = function (self, o) return self.new(self, 
 local function advance(self, tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local fIn = assert(inFld[1], "VlasovDisCont.advance: Must specify an input dist-function")
-   local fOut = assert(outFld[1], "VlasovDisCont.advance: Must specify an input dist-function")
+   local fOut = assert(outFld[1], "VlasovDisCont.advance: Must specify an output dist-function")
    
    local localRange = fOut:localRange()
    local fInIdxr, fOutIdxr = fIn:genIndexer(), fOut:genIndexer()

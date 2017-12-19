@@ -39,6 +39,7 @@ function Species:new(tbl)
    self.type = "species" -- to identify objects of this (Species) type
 
    self.name = "name"
+   self.cfl =  0.1
    self.charge, self.mass = tbl.charge, tbl.mass
    self.qbym = self.charge/self.mass
    self.lower, self.upper = tbl.lower, tbl.upper
@@ -68,6 +69,12 @@ setmetatable(Species, { __call = function (self, o) return self.new(self, o) end
 
 -- methods for species object
 Species.__index = {
+   setName = function(self, nm)
+      self.name = nm
+   end,
+   setCfl = function(self, cfl)
+      self.cfl = cfl
+   end,
    createGrid = function(self, cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
       self.cdim = #cCells
       self.ndim = self.cdim+self.vdim
@@ -104,20 +111,34 @@ Species.__index = {
    createBasis = function(self, nm, polyOrder)
       if nm == "serendipity" then
 	 self.basis = Basis.CartModalSerendipity { ndim = self.ndim, polyOrder = polyOrder }
+	 self.confBasis = Basis.CartModalSerendipity { ndim = self.cdim, polyOrder = polyOrder }
       elseif nm == "maximal-order" then
 	 self.basis = Basis.CartModalMaxOrder { ndim = self.ndim, polyOrder = polyOrder }
+	 self.confBasis = Basis.CartModalMaxOrder { ndim = self.cdim, polyOrder = polyOrder }
       end
    end,
    alloc = function(self)
       -- allocate fields needed in RK update
-      self.distf = DataStruct.Field {
+      self.distf = {}
+      for i = 1, 3 do
+	 self.distf[i] = DataStruct.Field {
+	    onGrid = self.grid,
+	    numComponents = self.basis:numBasis(),
+	    ghost = {1, 1}
+	 }
+      end
+      -- create updater to advance solution by one time-step
+      self.vlasovSlvr = Updater.VlasovDisCont {
 	 onGrid = self.grid,
-	 numComponents = self.basis:numBasis(),
-	 ghost = {1, 1}
+	 phaseBasis = self.basis,
+	 confBasis = self.confBasis,
+	 charge = self.charge,
+	 mass = self.mass,
+	 cfl = self.cfl
       }
-
+      
       -- create Adios object for field I/O
-      self.distIo = AdiosCartFieldIo { self.distf:elemType() }
+      self.distIo = AdiosCartFieldIo { self.distf[1]:elemType() }
    end,
    initDist = function(self)
       local project = Updater.ProjectOnBasis {
@@ -125,14 +146,39 @@ Species.__index = {
 	 basis = self.basis,
 	 evaluate = self.initFunc
       }
-      project:advance(0.0, 0.0, {}, {self.distf})
-
-      self.distIo:write(self.distf, string.format("%s_0.bp", self.name), 0.0)
+      project:advance(0.0, 0.0, {}, {self.distf[1]})
+   end,
+   write = function(self, frame, tm)
+      self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, frame), tm)
+   end,
+   rkStepperFields = function(self)
+      return self.distf[1], self.distf[2], self.distf[3]
+   end,
+   forwardEuler = function(self, tCurr, dt, fIn, fOut)
+      return self.vlasovSlvr:advance(tCurr, dt, {fIn}, {fOut})
+   end,
+   applyBc = function(self, tCurr, dt, fIn)
+      
+   end,
+   totalSolverTime = function(self)
+      return self.vlasovSlvr.totalTime
    end,
 }
 
 -- add to module table
 M.Species = Species
+
+-- function to check "type" of obj.
+local function isType(obj, typeString)
+   if type(obj) == typeString then
+      return true
+   elseif type(obj) == "table" then
+      if obj.type == typeString then
+	 return true
+      end
+   end
+   return false
+end
 
 -- top-level method to build application "run" method
 local function buildApplication(self, tbl)
@@ -167,6 +213,11 @@ local function buildApplication(self, tbl)
    local polyOrder = tbl.polyOrder
    -- CFL number
    local cfl = warnDefault(tbl.cfl, "cfl", 0.1)
+   -- time-stepper
+   local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
+   if timeStepperNm ~= "rk2" and timeStepperNm ~= "rk3" then
+      assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified")
+   end   
 
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
@@ -193,11 +244,10 @@ local function buildApplication(self, tbl)
    -- read in information about each species
    local species = {}
    for nm, val in pairs(tbl) do
-      if type(val) == "table" then
-	 if val.type == "species" then
-	    species[nm] = val
-	    species[nm].name = nm
-	 end
+      if isType(val, "species") then
+	 species[nm] = val
+	 species[nm]:setName(nm)
+	 species[nm]:setCfl(cfl)
       end
    end
 
@@ -220,7 +270,68 @@ local function buildApplication(self, tbl)
    -- initialize species distributions and write them out
    for _, s in pairs(species) do
       s:initDist()
-   end   
+   end
+
+   -- function to write data to file
+   local function writeData(frame, tCurr)
+      for _, s in pairs(species) do
+	 s:write(frame, tCurr)
+      end
+   end
+
+   writeData(0, 0.0) -- write initial conditions
+   
+   -- store fields used in RK time-stepping for each species
+   local speciesRkFields = { }
+   for nm, s in pairs(species) do
+      speciesRkFields[nm] = { s:rkStepperFields() } -- package them up as a table
+   end
+
+   -- function to take a single forward-euler time-step
+   local function fowardEuler(tCurr, dt, inIdx, outIdx)
+      local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      for nm, s in pairs(species) do
+	 local myStatus, myDtSuggested = s:forwardEuler(tCurr, dt, speciesRkFields[nm][inIdx], speciesRkFields[nm][outIdx])
+	 status = status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+      end
+      return status, dtSuggested
+   end
+
+   -- function to increment fields
+   local function increment(tCurr, dt, a, aIdx, b, bIdx, outIdx)
+      for nm, s in pairs(species) do
+	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
+	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+      end
+   end
+
+   local timeSteppers = {}
+
+   -- function to advance solution using SSP-RK2 scheme
+   function timeSteppers.rk2(tCurr, dt)
+      local status, dtSuggested
+      -- RK stage 1
+      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      if status == false then return status, dtSuggested end
+
+      -- RK stage 2
+      status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
+      if status == false then return status, dtSuggested end      
+
+      -- final update
+      increment(tCurr, dt, 0.5, 1, 0.5, 3, 2)
+      for nm, s in pairs(species) do
+	 speciesRkFields[nm][1]:copy(speciesRkFields[nm][2])
+      end
+      return status, dtSuggested
+   end
+
+   -- function to advance solution using SSP-RK3 scheme
+   function timeSteppers.rk3(tCurr, dt)
+
+   end
 
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
@@ -239,8 +350,42 @@ local function buildApplication(self, tbl)
 
       local tmSimStart = Time.clock()
       -- main simulation loop
+      -- main simulation loop
+      while true do
+	 -- if needed adjust dt to hit tEnd exactly
+	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
+	 log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
+	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt) -- take a time-step
 
+	 if not status then
+	    -- updater failed, time-step too large
+	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
+	    myDt = dtSuggested
+	 else
+	    -- write out data if needed
+	    if tCurr+myDt > nextIOt or tCurr+myDt >= tEnd then
+	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
+	       writeData(frame, tCurr+myDt)
+	       frame = frame + 1
+	       nextIOt = nextIOt + tFrame
+	       step = 0
+	    end
+	    tCurr = tCurr + myDt
+	    myDt = dtSuggested
+	    step = step + 1
+	    if (tCurr >= tEnd) then
+	       break
+	    end
+	 end 
+      end -- end of time-step loop
       local tmSimEnd = Time.clock()
+
+      local tmVlasovSlvr = 0.0 -- total time in Vlasov solver
+      for _, s in pairs(species) do
+	 tmVlasovSlvr = tmVlasovSlvr+s:totalSolverTime()
+      end
+
+      log(string.format("Vlasov solver took %g sec", tmVlasovSlvr))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end
