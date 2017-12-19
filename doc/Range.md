@@ -62,7 +62,20 @@ The following methods are provided.
   lower edge and upExt` added to upper edge in direction, `dir`.
 
 `range:shift(offsets)`
-: Returns a new Range object shifted by `offset`
+: Returns a new Range object shifted by `offsets`
+
+`range:shiftInDir(dir, offset)`
+: Returns a new Range object shifted by `offset` in direction `dir`.
+
+`range:lowerSkin(dir, nGhost)/upperSkin(dir, nGhost)`
+: Returns a new Range object representing the lower/upper skin
+  regions in direction `dir`. The width of the skin region is
+  `nGhost`.
+
+`range:lowerGhost(dir, nGhost)/upperGhost(dir, nGhost)`
+: Returns a new Range object representing the lower/upper ghost
+  regions in direction `dir`. The width of the ghost region is
+  `nGhost`.
 
 `range:intersect(rgn)`
 : Returns intersection of `range` with `rgn`. If the intersection is

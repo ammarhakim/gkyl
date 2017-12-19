@@ -478,6 +478,69 @@ function test_27()
    end
 end
 
+function test_28()
+   local r = Range.Range({1, 1}, {10, 10})
+
+   local lowerSkin = r:lowerSkin(1, 1)
+   assert_equal(10, lowerSkin:volume(), "Checking volume")
+   assert_equal(1, lowerSkin:lower(1), "Checking lower in 1")
+   assert_equal(1, lowerSkin:upper(1), "Checking upper in 1")
+   assert_equal(1, lowerSkin:lower(2), "Checking lower in 2")
+   assert_equal(10, lowerSkin:upper(2), "Checking upper in 2")
+
+   local lowerSkin = r:lowerSkin(2, 1)
+   assert_equal(10, lowerSkin:volume(), "Checking volume")
+   assert_equal(1, lowerSkin:lower(1), "Checking lower in 1")
+   assert_equal(10, lowerSkin:upper(1), "Checking upper in 1")
+   assert_equal(1, lowerSkin:lower(2), "Checking lower in 2")
+   assert_equal(1, lowerSkin:upper(2), "Checking upper in 2")
+
+   local upperSkin = r:upperSkin(1, 1)
+   assert_equal(10, upperSkin:volume(), "Checking volume")
+   assert_equal(10, upperSkin:lower(1), "Checking upper in 1")
+   assert_equal(10, upperSkin:upper(1), "Checking upper in 1")
+   assert_equal(1, upperSkin:lower(2), "Checking upper in 2")
+   assert_equal(10, upperSkin:upper(2), "Checking upper in 2")
+
+   local upperSkin = r:upperSkin(2, 1)
+   assert_equal(10, upperSkin:volume(), "Checking volume")
+   assert_equal(1, upperSkin:lower(1), "Checking upper in 1")
+   assert_equal(10, upperSkin:upper(1), "Checking upper in 1")
+   assert_equal(10, upperSkin:lower(2), "Checking upper in 2")
+   assert_equal(10, upperSkin:upper(2), "Checking upper in 2")
+
+   ---
+
+   local lowerGhost = r:lowerGhost(1, 1)
+   assert_equal(10, lowerGhost:volume(), "Checking volume")
+   assert_equal(0, lowerGhost:lower(1), "Checking lower in 1")
+   assert_equal(0, lowerGhost:upper(1), "Checking upper in 1")
+   assert_equal(1, lowerGhost:lower(2), "Checking lower in 2")
+   assert_equal(10, lowerGhost:upper(2), "Checking upper in 2")
+
+   local lowerGhost = r:lowerGhost(2, 1)
+   assert_equal(10, lowerGhost:volume(), "Checking volume")
+   assert_equal(1, lowerGhost:lower(1), "Checking lower in 1")
+   assert_equal(10, lowerGhost:upper(1), "Checking upper in 1")
+   assert_equal(0, lowerGhost:lower(2), "Checking lower in 2")
+   assert_equal(0, lowerGhost:upper(2), "Checking upper in 2")
+
+   local upperGhost = r:upperGhost(1, 1)
+   assert_equal(10, upperGhost:volume(), "Checking volume")
+   assert_equal(11, upperGhost:lower(1), "Checking upper in 1")
+   assert_equal(11, upperGhost:upper(1), "Checking upper in 1")
+   assert_equal(1, upperGhost:lower(2), "Checking upper in 2")
+   assert_equal(10, upperGhost:upper(2), "Checking upper in 2")
+
+   local upperGhost = r:upperGhost(2, 1)
+   assert_equal(10, upperGhost:volume(), "Checking volume")
+   assert_equal(1, upperGhost:lower(1), "Checking upper in 1")
+   assert_equal(10, upperGhost:upper(1), "Checking upper in 1")
+   assert_equal(11, upperGhost:lower(2), "Checking upper in 2")
+   assert_equal(11, upperGhost:upper(2), "Checking upper in 2")
+
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -506,6 +569,7 @@ test_24()
 test_25()
 test_26()
 test_27()
+test_28()
 
 
 if stats.fail > 0 then
