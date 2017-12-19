@@ -135,7 +135,43 @@ local range_mt = {
 	 end
 	 r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
 	 return r
-      end,      
+      end,
+      lowerSkin = function (self, dir, nGhost)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end
+	 r._upper[dir-1] = self:lower(dir)+nGhost-1
+	 return r
+      end,
+      upperSkin = function (self, dir, nGhost)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end
+	 r._lower[dir-1] = self:upper(dir)-nGhost+1
+	 return r
+      end,
+      lowerGhost = function (self, dir, nGhost)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end
+	 r._lower[dir-1], r._upper[dir-1] = self:lower(dir)-nGhost, self:lower(dir)-1
+	 return r
+      end,
+      upperGhost = function (self, dir, nGhost)
+	 local r = new(typeof("Range_t"))
+	 r._ndim = self:ndim()
+	 for d = 1, self:ndim() do
+	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
+	 end
+	 r._lower[dir-1], r._upper[dir-1] = self:upper(dir)+1, self:upper(dir)+nGhost
+	 return r
+      end,
       shorten = function (self, dir)
 	 local r = new(typeof("Range_t"))
 	 r._ndim = self:ndim()

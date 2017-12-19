@@ -210,6 +210,29 @@ local function Field_meta_ctor(elct)
 	 self._recvData[recvId] = allocator(shmComm, sz)
       end
 
+      -- pre-allocate memory for send/recv calls for periodic BCs
+      self._sendLowerPerData, self._recvLowerPerData = {}, {}
+
+      for dir = 1, self._ndim do
+	 if grid:isDirPeriodic(dir) then
+	    self._sendLowerPerData[dir] = {}
+	    
+	    local skelIds = decomposedRange:boundarySubDomainIds(dir)
+	    local shiftBy = self._globalRange:shape(dir) -- amount to shift by
+	    for i = 1, #skelIds do
+	       local lowerRgn = decomposedRange:subDomain(skelIds[i].lower)
+	       local upperRgn = decomposedRange:subDomain(skelIds[i].upper)
+	       local sendRgn = lowerRgn:intersect(
+		  upperRgn:shiftInDir(dir, -shiftBy):extend(self._lowerGhost, self._upperGhost))
+
+	       local sz = sendRgn:volume()*self._numComponents
+	       self._sendLowerPerData[dir][skelIds[i].upper] = allocator(shmComm, sz)
+
+
+	    end
+	 end
+      end
+
       return self
    end
    setmetatable(Field, { __call = function (self, o) return self.new(self, o) end })
