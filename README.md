@@ -39,7 +39,7 @@ Optionally, you will need
 
 ## Building dependencies
 
-See REAME.md file in install-deps directory on instructions on how to
+See README.md file in install-deps directory on instructions on how to
 build dependencies.
 
 ## Building Gkyl
