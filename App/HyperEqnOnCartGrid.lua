@@ -16,6 +16,7 @@ local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 local date = require "Lib.date"
+local xsys = require "xsys"
 
 -- For returning module table
 local M = {}
@@ -43,7 +44,7 @@ end
 local function buildApplication(self, tbl)
    -- create logger
    local log = Logger {
-      logToFile = tbl.logToFile and tbl.logToFile or false
+      logToFile = xsys.pickBool(tbl.logToFile, false)
    }
 
    log(date(false):fmt()) -- time-stamp for sim start
@@ -77,7 +78,7 @@ local function buildApplication(self, tbl)
       decompCuts = { }
       for d = 1, ndim do decompCuts[d] = 1 end
    end
-   local useShared = tbl.useShared and tbl.useShared or false
+   local useShared = xsys.pickBool(tbl.useShared, false)
 
    -- extract periodic directions
    local periodicDirs = {}

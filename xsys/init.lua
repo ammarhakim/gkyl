@@ -214,6 +214,11 @@ end
 local bit = union(bit)
 bit.lsb = lsb -- TODO: Document.
 
+-- pick default if val is nil, else pick val
+local function pickBool(val, default)
+   if val == nil then return default else return val end
+end
+
 -- Export ----------------------------------------------------------------------
 
 return {
@@ -224,4 +229,5 @@ return {
   table    = table,
   string   = string,
   bit      = bit,
+  pickBool = pickBool,
 }

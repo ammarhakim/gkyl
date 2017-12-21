@@ -121,6 +121,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    -- return if time-step was too large
    if cfla > cflm then return false, dt*cfl/cfla end
 
+   -- NEED TO ADD fIn after scaling fOut by dt
+
    return true, dt*cfl/cfla
 end
 
