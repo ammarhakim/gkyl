@@ -19,8 +19,8 @@ function Advection:new(tbl)
    local self = setmetatable({}, Advection)
 
    self._vel = ffi.new("double[7]", {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}) -- maximum 6D
-   self._ndim = assert(tbl.ndim, "Eq.Advection: Must specify dimension using 'ndim'")
    assert(tbl.velocity, "Eq.Advection: Must specify velocity vector")
+   self._ndim = #tbl.velocity
 
    -- read in velocity vector
    for d = 1, #tbl.velocity do
