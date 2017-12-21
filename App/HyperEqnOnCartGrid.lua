@@ -199,6 +199,7 @@ local function buildApplication(self, tbl)
       for _, bc in ipairs(boundaryConditions) do
 	 bc:advance(tCurr, t-tCurr, {}, {fld})
       end
+      fld:sync()
    end
 
    -- construct list of diagnostics to compute
@@ -278,7 +279,10 @@ local function buildApplication(self, tbl)
    end
 
    -- create Adios object for field I/O
-   local fieldIo = AdiosCartFieldIo { field[1]:elemType() }
+   local fieldIo = AdiosCartFieldIo {
+      elemType = field[1]:elemType(),
+      transport = "POSIX", -- one of MPI or POSIX
+   }
 
    -- function to apply initial conditions
    local function init(fld)
