@@ -471,6 +471,16 @@ local function Field_meta_ctor(elct)
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local basePerTag = 53 -- tag for periodic BCs
 
+	 -- Note on tags: Each MPI message (send/recv pair) must have
+	 -- a unique tag. With periodic BCs it is possible that a rank
+	 -- may send/recv more than one message and hence some way to
+	 -- distinguishing various messages is needed. The
+	 -- non-periodic messages are all tagged 42. The periodic
+	 -- messages have a base tag of 53, with up->lo tags being
+	 -- 53+dir+10, while lo->up tags being 53+dir. As at most we
+	 -- will have 6 directions, this generates enough unique tags
+	 -- to do periodic communication safely.
+
 	 local recvUpperReq, recvLowerReq  = {}, {}
 	 -- post non-blocking recv requests for periodic directions
 	 for dir = 1, self._ndim do
