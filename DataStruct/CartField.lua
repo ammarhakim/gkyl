@@ -8,8 +8,8 @@
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
+local new, copy, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, copy, sizeof, typeof, metatype")
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
@@ -64,7 +64,7 @@ local function new_field_comp_ct(elct)
       data = function(self)
 	 return self._cdata
       end
-   }      
+   }
    local field_comp_mt = {
       __index = function(self, k)
 	 if type(k) == "number" then
@@ -110,9 +110,9 @@ local function Field_meta_ctor(elct)
    local function sharedAllocatorFunc(comm, numElem)
       local alloc = AllocShared.AllocShared_meta_ctor(elct)
       return alloc(comm, numElem)
-   end   
+   end
 
-   -- make constructor for Field 
+   -- make constructor for Field
    local Field = {}
    function Field:new(tbl)
       local self = setmetatable({}, Field)
@@ -121,15 +121,15 @@ local function Field_meta_ctor(elct)
       local grid = tbl.onGrid
       local nc = tbl.numComponents and tbl.numComponents or 1 -- default numComponents=1
       local ghost = tbl.ghost and tbl.ghost or {0, 0} -- No ghost cells by default
-      local syncCorners = tbl.syncCorners and tbl.syncCorners or false -- Don't sync() corners by default
-      local syncPeriodicDirs = tbl.syncPeriodicDirs and tbl.syncPeriodicDirs or true -- sync() periodic directions by default
+
+      local syncCorners = xsys.pickBool(tbl.syncCorners, false) -- don't sync corners by default
+      self._syncPeriodicDirs = xsys.pickBool(tbl.syncPeriodicDirs, true) -- sync periodic BCs by default
+
       -- local and global ranges
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()
       -- various communicators for use in shared allocator
-      local comm = grid:commSet().comm     
       local shmComm = grid:commSet().sharedComm
-      local nodeComm = grid:commSet().nodeComm
 
       -- allocator function
       local allocator = grid:isShared() and sharedAllocatorFunc or allocatorFunc
@@ -196,7 +196,7 @@ local function Field_meta_ctor(elct)
 
       for _, sendId in ipairs(neigIds) do
 	 local neighRgn = decomposedRange:subDomain(sendId)
-	 local sendRgn = self._localRange:intersect(
+	 local sendRgn = localRange:intersect(
 	    neighRgn:extend(self._lowerGhost, self._upperGhost))
 	 local sz = sendRgn:volume()*self._numComponents
 	 self._sendData[sendId] = allocator(shmComm, sz)
@@ -212,23 +212,35 @@ local function Field_meta_ctor(elct)
 
       -- pre-allocate memory for send/recv calls for periodic BCs
       self._sendLowerPerData, self._recvLowerPerData = {}, {}
+      self._sendUpperPerData, self._recvUpperPerData = {}, {}
 
+      -- Following loop allocates memory for periodic directions. This
+      -- is complicated as one needs to treat lower -> upper transfers
+      -- differently than upper -> lower as the number of ghost cells
+      -- may be different on each lower/upper side. (AHH)
       for dir = 1, self._ndim do
 	 if grid:isDirPeriodic(dir) then
-	    self._sendLowerPerData[dir] = {}
-	    
 	    local skelIds = decomposedRange:boundarySubDomainIds(dir)
-	    local shiftBy = self._globalRange:shape(dir) -- amount to shift by
 	    for i = 1, #skelIds do
-	       local lowerRgn = decomposedRange:subDomain(skelIds[i].lower)
-	       local upperRgn = decomposedRange:subDomain(skelIds[i].upper)
-	       local sendRgn = lowerRgn:intersect(
-		  upperRgn:shiftInDir(dir, -shiftBy):extend(self._lowerGhost, self._upperGhost))
+	       local loId, upId = skelIds[i].lower, skelIds[i].upper
 
-	       local sz = sendRgn:volume()*self._numComponents
-	       self._sendLowerPerData[dir][skelIds[i].upper] = allocator(shmComm, sz)
-
-
+	       -- only allocate we are on proper ranks
+	       if myId == loId then
+		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
+		  local szSend = rgnSend:volume()*self._numComponents
+		  self._sendLowerPerData[dir] = allocator(shmComm, szSend)
+		  local rgnRecv = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
+		  local szRecv = rgnRecv:volume()*self._numComponents
+		  self._recvLowerPerData[dir] = allocator(shmComm, szRecv)
+	       end
+	       if myId == upId then
+		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
+		  local szSend = rgnSend:volume()*self._numComponents
+		  self._sendUpperPerData[dir] = allocator(shmComm, szSend)
+		  local rgnRecv = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
+		  local szRecv = rgnRecv:volume()*self._numComponents
+		  self._recvUpperPerData[dir] = allocator(shmComm, szRecv)
+	       end	       
 	    end
 	 end
       end
@@ -364,7 +376,10 @@ local function Field_meta_ctor(elct)
 	 return self._data+loc
       end,      
       sync = function (self)
-	 return self._field_sync(self)
+	 self._field_sync(self)
+	 if self._syncPeriodicDirs then
+	    self._field_periodic_sync(self)
+	 end
       end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
@@ -403,22 +418,19 @@ local function Field_meta_ctor(elct)
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
 	 local tag = 42 -- Communicator tag for regular (non-periodic) messages
-	 local basePerTag = 50 -- Base tag for periodic messages
 	 local localExtRange = self:localExtRange()
 
 	 local recvReq = {} -- list of recv requests
 	 -- post a non-blocking recv request
 	 for _, recvId in ipairs(neigIds) do
-	    local neighRgn = decomposedRange:subDomain(recvId)
-	    local recvRgn = localExtRange:intersect(neighRgn)
-	    local sz = recvRgn:volume()*self._numComponents
 	    local buff = self._recvData[recvId]
+	    local sz = buff:size()
 	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
 	    recvReq[recvId] = Mpi.Irecv(buff:data(), sz*elcCommSize, elctCommType, recvId-1, tag, comm)
 	 end
 	 
-	 -- do a blocking send (does not really block as the recv
-	 -- requests are already posted)
+	 -- do a blocking send (does not really block as recv requests
+	 -- are already posted)
 	 for _, sendId in ipairs(neigIds) do
 	    local neighRgn = decomposedRange:subDomain(sendId)
 	    local sendRgn = self._localRange:intersect(
@@ -426,10 +438,10 @@ local function Field_meta_ctor(elct)
 	    local sz = sendRgn:volume()*self._numComponents
 
 	    local buff = self._sendData[sendId]
-	    self:_copy_from_field_region(sendRgn, buff)
+	    self:_copy_from_field_region(sendRgn, buff) -- copy from skin cells
 	    -- send data: (its to sendId-1 as MPI ranks are zero indexed)
 	    Mpi.Send(buff:data(), sz*elcCommSize, elctCommType, sendId-1, tag, comm)
-	 end	 
+	 end
 
 	 -- complete recv
 	 for _, recvId in ipairs(neigIds) do
@@ -437,10 +449,109 @@ local function Field_meta_ctor(elct)
 	    local recvRgn = localExtRange:intersect(neighRgn)
 	    local buff = self._recvData[recvId]
 	    Mpi.Wait(recvReq[recvId], nil)
-	    -- copy data into ghost cells
-	    self:_copy_to_field_region(recvRgn, buff)	    
+	    self:_copy_to_field_region(recvRgn, buff) -- copy data into ghost cells
 	 end
       end,
+      _field_periodic_sync = function (self)
+	 local comm = self._grid:commSet().nodeComm -- communicator to use
+	 if not Mpi.Is_comm_valid(comm) then
+	    return -- no need to do anything if communicator is not valid
+	 end
+	 
+	 -- immediately return if nothing to sync
+	 if self._lowerGhost == 0 and self._upperGhost == 0 then return end
+
+	 local grid = self._grid
+
+	 -- Steps: (1) Post non-blocking recv requests. (2) Do
+	 -- blocking sends, (3) Complete recv and copy data into ghost
+	 -- cells
+
+	 local decomposedRange = self._grid:decomposedRange()
+	 local myId = self._grid:subGridId() -- grid ID on this processor
+	 local basePerTag = 53 -- tag for periodic BCs
+
+	 local recvUpperReq, recvLowerReq  = {}, {}
+	 -- post non-blocking recv requests for periodic directions
+	 for dir = 1, self._ndim do
+	    if grid:isDirPeriodic(dir) then
+	       local skelIds = decomposedRange:boundarySubDomainIds(dir)
+	       for i = 1, #skelIds do
+	 	  local loId, upId = skelIds[i].lower, skelIds[i].upper
+
+		  if myId == loId then
+		     local loTag = basePerTag+dir+10
+		     local loBuff = self._recvLowerPerData[dir]
+		     local sz = loBuff:size()
+		     --print(string.format("Recv request %d <- %d. Tag %d", myId, upId, loTag))
+		     recvLowerReq[dir] = Mpi.Irecv(loBuff:data(), sz*elcCommSize, elctCommType, upId-1, loTag, comm)
+		  end
+		  if myId == upId then
+		     local upTag = basePerTag+dir
+		     local upBuff = self._recvUpperPerData[dir]
+		     local sz = upBuff:size()
+		     --print(string.format("Recv request %d <- %d. Tag %d", myId, loId, upTag))
+		     recvUpperReq[dir] = Mpi.Irecv(upBuff:data(), sz*elcCommSize, elctCommType, loId-1, upTag, comm)
+		  end
+	       end
+	    end
+	 end
+	 
+	 -- do a blocking send for periodic directions (does not
+	 -- really block as recv requests are already posted)
+	 for dir = 1, self._ndim do
+	    if grid:isDirPeriodic(dir) then
+	       local skelIds = decomposedRange:boundarySubDomainIds(dir)
+	       for i = 1, #skelIds do
+		  local loId, upId = skelIds[i].lower, skelIds[i].upper
+
+		  if myId == loId then
+		     local loRgn = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
+		     local loTag = basePerTag+dir -- this must match recv tag posted above
+		     local loBuff = self._sendLowerPerData[dir]
+		     self:_copy_from_field_region(loRgn, loBuff) -- copy from skin cells
+		     local sz = loBuff:size()
+		     --print(string.format("Sending %d -> %d. Tag %d", myId, upId, loTag))
+		     Mpi.Send(loBuff:data(), sz*elcCommSize, elctCommType, upId-1, loTag, comm)
+		  end
+		  if myId == upId then
+		     local upRgn = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
+		     local upTag = basePerTag+dir+10 -- this must match recv tag posted above
+		     local upBuff = self._sendUpperPerData[dir]
+		     self:_copy_from_field_region(upRgn, upBuff) -- copy from skin cells
+		     local sz = upBuff:size()
+		     --print(string.format("Sending %d -> %d. Tag %d", myId, loId, upTag))
+		     Mpi.Send(upBuff:data(), sz*elcCommSize, elctCommType, loId-1, upTag, comm)
+		  end
+	       end
+	    end
+	 end
+
+	 -- complete recv for periodic directions
+	 for dir = 1, self._ndim do
+	    if grid:isDirPeriodic(dir) then
+	       local skelIds = decomposedRange:boundarySubDomainIds(dir)
+	       for i = 1, #skelIds do
+	 	  local loId, upId = skelIds[i].lower, skelIds[i].upper
+
+		  if myId == loId then
+		     local loRgn = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
+		     local loBuff = self._recvLowerPerData[dir]
+		     --print(string.format("Waiting for recv on %d", loId))
+		     Mpi.Wait(recvLowerReq[dir], nil)
+		     self:_copy_to_field_region(loRgn, loBuff) -- copy data into ghost cells
+		  end
+		  if myId == upId then
+		     local upRgn = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
+		     local upBuff = self._recvUpperPerData[dir]
+		     --print(string.format("Waiting for recv on %d", upId))
+		     Mpi.Wait(recvUpperReq[dir], nil)
+		     self:_copy_to_field_region(upRgn, upBuff) -- copy data into ghost cells
+		  end
+	       end
+	    end
+	 end
+      end,      
    }
    
    return Field
