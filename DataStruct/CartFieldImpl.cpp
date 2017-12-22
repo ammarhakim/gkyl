@@ -18,4 +18,9 @@ void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp
     out[n] = fact*inp[n];
 }
 
+void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) {
+  for (unsigned n=s; n<(s+nv); ++n)
+    out[n] *= fact;
+}
+
 

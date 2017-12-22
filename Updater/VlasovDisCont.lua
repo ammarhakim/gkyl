@@ -37,10 +37,10 @@ function VlasovDisCont:new(tbl)
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
 
-   -- by default, compute forward Euler: if incrementOnly is true,
+   -- by default, compute forward Euler: if onlyIncrement is true,
    -- then only increments are computed. NOTE: The increments are NOT
    -- multiplied by dt.
-   self._incrementOnly = xsys.pickBool(tbl._incrementOnly, "false")
+   self._onlyIncrement = xsys.pickBool(tbl._onlyIncrement, false)
 
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.VlasovDisCont: Must specify CFL number using 'cfl'")
@@ -128,8 +128,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    if cfla > cflm then return false, dt*cfl/cfla end
 
    -- accumulate full solution if not computing increments
-   if not self._incrementOnly then
-      fOut:scale(dt); fOut:accumulate(fIn) -- fOut = fIn + dt*fOut
+   if not self._onlyIncrement then
+      fOut:scale(dt); fOut:accumulate(1.0, fIn) -- fOut = fIn + dt*fOut
    end
 
    return true, dt*cfl/cfla
