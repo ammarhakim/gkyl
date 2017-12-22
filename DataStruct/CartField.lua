@@ -24,6 +24,7 @@ ffi.cdef [[
     // s: start index. nv: number of values to copy
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
 ]]
 
 -- Local definitions
@@ -315,6 +316,13 @@ local function Field_meta_ctor(elct)
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:combine: Combine only works on numeric fields")
 	 end,
+      scale = isNumberType and
+	 function (self, fact)
+	    ffi.C.gkylCartFieldScale(self:_localLower(), self:_localShape(), fact, self._data)
+	 end or
+	 function (self, fact)
+	    assert(false, "CartField:accumulate: Scale only works on numeric fields")
+	 end,      
       defaultLayout = function (self)
 	 if defaultLayout == rowMajLayout then
 	    return "row-major"

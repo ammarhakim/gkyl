@@ -217,7 +217,7 @@ local function buildApplication(self, tbl)
    local cfl = warnDefault(tbl.cfl, "cfl", 0.1)
    -- time-stepper
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
-   if timeStepperNm ~= "rk2" and timeStepperNm ~= "rk3" then
+   if timeStepperNm ~= "rk1" and timeStepperNm ~= "rk2" and timeStepperNm ~= "rk3" then
       assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified")
    end   
 
@@ -307,6 +307,19 @@ local function buildApplication(self, tbl)
    end
 
    local timeSteppers = {}
+
+   -- function to advance solution using SSP-RK2 scheme
+   function timeSteppers.rk1(tCurr, dt)
+      local status, dtSuggested
+      -- RK stage 1
+      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      if status == false then return status, dtSuggested end
+
+      for nm, s in pairs(species) do
+	 speciesRkFields[nm][1]:copy(speciesRkFields[nm][2])
+      end
+      return status, dtSuggested
+   end   
 
    -- function to advance solution using SSP-RK2 scheme
    function timeSteppers.rk2(tCurr, dt)
