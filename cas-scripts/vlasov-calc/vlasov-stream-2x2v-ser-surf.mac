@@ -1,55 +1,5 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
-fpprec : 24$
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/vlasov-calc/vlasov-stream-surf.mac")$
 
-varsP : [x, y, vx, vy]$
-varsV : [vx, vy]$
-
-cvars : [X, Y]$
-vvars : [VX, VY]$
-
-doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
-calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
-
-fh : openw("~/max-out/VlasovSurfStreamSer2x2v.cpp");
-printf(fh, "#include <VlasovModDecl.h> ~%")$
-
-calcUpdateInDir(dir) :=
-for i : 1 thru 2 do (
-  basisP : gsOrthoNorm(varsP, makeSerendipBasis(varsP, i)),
-  printf(fh, "void VlasovSurfStream2x2vSer_~a_P~a(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", cvars[dir], i),
-  printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
-  printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
-  printf(fh, "  const unsigned int X=0, Y=1, VX=1, VY=2; ~%"),
-  printf(fh, "  double dvx = dxv[~a]*2/dxv[~a]; ~%", vvars[dir], cvars[dir]),
-  printf(fh, "  double wx = w[~a]*2/dxv[~a]; ~%~%", vvars[dir], cvars[dir]),  
-  cv : varsP[dir],
-  vv : varsV[dir],
-  surfVars : delete(cv,varsP),
-  fl_L : doExpand(fl, basisP),
-  fl_R : doExpand(fr, basisP),
-  printf(fh, "  if (wx>0) { ~%"),
-  fhat : subst(cv=1, fl_L),
-  t1 : wx*calcInnerProdList(surfVars, 1, subst(cv=-1, basisP), fhat),
-  t2 : dvx/2*calcInnerProdList(surfVars, vv, subst(cv=-1, basisP), fhat),
-  writeCIncrExprs1(outr, t1+t2),
-  printf(fh, "~%"),
-  t1 : wx*calcInnerProdList(surfVars, 1, subst(cv=1, basisP), fhat),
-  t2 : dvx/2*calcInnerProdList(surfVars, vv, subst(cv=1, basisP), fhat),
-  writeCIncrExprs1(outl, -(t1+t2)),
-  printf(fh, "  } else { ~%"),
-  fhat : subst(cv=-1, fl_R),
-  t1 : wx*calcInnerProdList(surfVars, 1, subst(cv=-1, basisP), fhat),
-  t2 : dvx/2*calcInnerProdList(surfVars, vv, subst(cv=-1, basisP), fhat),
-  writeCIncrExprs1(outr, t1+t2),
-  printf(fh, "~%"),
-  t1 : wx*calcInnerProdList(surfVars, 1, subst(cv=1, basisP), fhat),
-  t2 : dvx/2*calcInnerProdList(surfVars, vv, subst(cv=1, basisP), fhat),
-  writeCIncrExprs1(outl, -(t1+t2)),
-  printf(fh, "  } ~%"),
-  printf(fh, "} ~%")
-);
-
-for dir : 1 thru 2 do ( calcUpdateInDir(dir) );
-
-close(fh);
+fh : openw("~/max-out/VlasovSurfStreamSer2x2v.cpp")$
+calcVlasovSurfUpdater(fh, "VlasovSurfStream2x2vSer", 2, 2, [x,y,vx,vy], makeSerendipBasis)$
+close(fh)$
