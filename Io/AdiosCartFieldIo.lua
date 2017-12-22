@@ -50,7 +50,7 @@ function AdiosCartFieldIo:new(tbl)
    -- by default, write out doubles
    local elct = tbl.elemType and tbl.elemType or typeof("double")
    self._elemType = elct -- element type stored in field
-   self._transport = tbl.transport and tbl.transport or "MPI"
+   self._method = tbl.method and tbl.method or "MPI"
 
    -- set ADIOS data-types
    self._elctIoType = Adios.double
@@ -119,7 +119,7 @@ AdiosCartFieldIo.__index = {
 
       -- setup group and set I/O method
       local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
-      Adios.select_method(grpId, self._transport, "", "")
+      Adios.select_method(grpId, self._method, "", "")
 
       -- field attributes
       local cells = new("int[?]", ndim)
