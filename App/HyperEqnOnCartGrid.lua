@@ -278,10 +278,15 @@ local function buildApplication(self, tbl)
       return status, suggestedDt
    end
 
+   local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
+   if ioMethod ~= "POSIX" and ioMethod ~= "MPI" then
+      assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
+   end
+   
    -- create Adios object for field I/O
    local fieldIo = AdiosCartFieldIo {
       elemType = field[1]:elemType(),
-      transport = "POSIX", -- one of MPI or POSIX
+      method = ioMethod,
    }
 
    -- function to apply initial conditions

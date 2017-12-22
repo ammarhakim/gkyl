@@ -138,7 +138,9 @@ Species.__index = {
       }
       
       -- create Adios object for field I/O
-      self.distIo = AdiosCartFieldIo { self.distf[1]:elemType() }
+      self.distIo = AdiosCartFieldIo {
+	 elemType = self.distf[1]:elemType()
+      }
    end,
    initDist = function(self)
       local project = Updater.ProjectOnBasis {
@@ -158,7 +160,7 @@ Species.__index = {
       return self.vlasovSlvr:advance(tCurr, dt, {fIn}, {fOut})
    end,
    applyBc = function(self, tCurr, dt, fIn)
-      
+      fIn:sync()
    end,
    totalSolverTime = function(self)
       return self.vlasovSlvr.totalTime
@@ -274,9 +276,7 @@ local function buildApplication(self, tbl)
 
    -- function to write data to file
    local function writeData(frame, tCurr)
-      for _, s in pairs(species) do
-	 s:write(frame, tCurr)
-      end
+      for _, s in pairs(species) do s:write(frame, tCurr) end
    end
 
    writeData(0, 0.0) -- write initial conditions
@@ -300,10 +300,9 @@ local function buildApplication(self, tbl)
    end
 
    -- function to increment fields
-   local function increment(tCurr, dt, a, aIdx, b, bIdx, outIdx)
+   local function increment(a, aIdx, b, bIdx, outIdx)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
-	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
    end
 
@@ -318,10 +317,10 @@ local function buildApplication(self, tbl)
 
       -- RK stage 2
       status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
-      if status == false then return status, dtSuggested end      
+      if status == false then return status, dtSuggested end
 
       -- final update
-      increment(tCurr, dt, 0.5, 1, 0.5, 3, 2)
+      increment(0.5, 1, 0.5, 3, 2)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][1]:copy(speciesRkFields[nm][2])
       end

@@ -11,6 +11,7 @@
 local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
+local xsys = require "xsys"
 
 -- Vlasov DG solver updater object
 local VlasovDisCont = {}
@@ -35,6 +36,11 @@ function VlasovDisCont:new(tbl)
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
+
+   -- by default, compute forward Euler: if incrementOnly is true,
+   -- then only increments are computed. NOTE: The increments are NOT
+   -- multiplied by dt.
+   self._incrementOnly = xsys.pickBool(tbl._incrementOnly, "false")
 
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.VlasovDisCont: Must specify CFL number using 'cfl'")
@@ -121,7 +127,10 @@ local function advance(self, tCurr, dt, inFld, outFld)
    -- return if time-step was too large
    if cfla > cflm then return false, dt*cfl/cfla end
 
-   -- NEED TO ADD fIn after scaling fOut by dt
+   -- accumulate full solution if not computing increments
+   if not self._incrementOnly then
+      fOut:scale(dt); fOut:accumulate(fIn) -- fOut = fIn + dt*fOut
+   end
 
    return true, dt*cfl/cfla
 end
