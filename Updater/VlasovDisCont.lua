@@ -10,6 +10,7 @@
 -- Gkyl libraries
 local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
 local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
 local xsys = require "xsys"
 
@@ -45,6 +46,10 @@ function VlasovDisCont:new(tbl)
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.VlasovDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
+
+   -- timers for surface and volume streaming terms
+   self._tmVolStreamUpdate = 0.0
+   self._tmSurfStreamUpdate = 0.0
 
    -- functions to perform streaming updates
    self._volStreamUpdate = VlasovModDecl.selectVolStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -85,6 +90,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    end
    
    fOut:clear(0.0) -- compute increments
+
+   local tmStart = Time.clock()
    -- accumulate contributions from volume integrals
    for idx in localRange:colMajorIter() do
       grid:setIndex(idx)
@@ -95,7 +102,9 @@ local function advance(self, tCurr, dt, inFld, outFld)
       fOut:fill(fOutIdxr(idx), fOutPtr)
       self._volStreamUpdate(xc:data(), dx:data(), fInPtr:data(), fOutPtr:data())
    end
+   self._tmVolStreamUpdate = self._tmVolStreamUpdate + Time.clock()-tmStart
 
+   tmStart = Time.clock()
    -- accumulate contributions from surface integrals in streaming direction
    for dir = 1, cdim do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
@@ -123,8 +132,9 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 end
       end
    end
+   self._tmSurfStreamUpdate = self._tmSurfStreamUpdate + Time.clock()-tmStart
 
-   -- return if time-step was too large
+   -- return failure if time-step was too large
    if cfla > cflm then return false, dt*cfl/cfla end
 
    -- accumulate full solution if not computing increments
@@ -136,6 +146,14 @@ local function advance(self, tCurr, dt, inFld, outFld)
 end
 
 -- Methods in updater
-VlasovDisCont.__index = { advance = Base.advanceFuncWrap(advance) }
+VlasovDisCont.__index = {
+   advance = Base.advanceFuncWrap(advance),
+   volTime = function(self)
+      return self._tmVolStreamUpdate
+   end,
+   surfTime = function(self)
+      return self._tmSurfStreamUpdate
+   end   
+}
 
 return VlasovDisCont

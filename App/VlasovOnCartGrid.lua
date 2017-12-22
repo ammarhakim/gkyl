@@ -69,6 +69,9 @@ setmetatable(Species, { __call = function (self, o) return self.new(self, o) end
 
 -- methods for species object
 Species.__index = {
+   ndim = function(self)
+      return self.vdim
+   end,
    setName = function(self, nm)
       self.name = nm
    end,
@@ -165,6 +168,12 @@ Species.__index = {
    totalSolverTime = function(self)
       return self.vlasovSlvr.totalTime
    end,
+   volTime = function(self)
+      return self.vlasovSlvr:volTime()
+   end,
+   surfTime = function(self)
+      return self.vlasovSlvr:surfTime()
+   end,
 }
 
 -- add to module table
@@ -213,13 +222,21 @@ local function buildApplication(self, tbl)
 
    -- polynomial order
    local polyOrder = tbl.polyOrder
-   -- CFL number
-   local cfl = warnDefault(tbl.cfl, "cfl", 0.1)
+
    -- time-stepper
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
    if timeStepperNm ~= "rk1" and timeStepperNm ~= "rk2" and timeStepperNm ~= "rk3" then
       assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified")
-   end   
+   end
+
+   -- CFL fractions for various steppers
+   local stepperCFLFracs = { rk2 = 1.0, rk3 = 1.0, rk4 = 2.0 }
+
+   local cflFrac = tbl.cflFrac
+   -- Compute CFL fraction if not specified
+   if  cflFrac == nil then
+      cflFrac = stepperCFLFracs[timeStepperNm]
+   end
 
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
@@ -249,9 +266,18 @@ local function buildApplication(self, tbl)
       if isType(val, "species") then
 	 species[nm] = val
 	 species[nm]:setName(nm)
-	 species[nm]:setCfl(cfl)
       end
    end
+
+   local cflMin = GKYL_MAX_DOUBLE
+   -- compute CFL numbers
+   for _, s in pairs(species) do
+      local ndim = cdim+s:ndim()
+      local myCfl = tbl.cfl and tbl.cfl or 1/(ndim*(2*polyOrder+1))
+      cflMin = math.min(cflMin, myCfl)
+      s:setCfl(myCfl)
+   end
+   log(string.format("Using CFL number %g", cflMin))
 
    -- setup each species
    for _, s in pairs(species) do
@@ -397,7 +423,14 @@ local function buildApplication(self, tbl)
 	 tmVlasovSlvr = tmVlasovSlvr+s:totalSolverTime()
       end
 
+      local tmVlasovVol, tmVlasovSurf = 0.0, 0.0
+      for _, s in pairs(species) do
+	 tmVlasovVol = tmVlasovVol + s:volTime()
+	 tmVlasovSurf = tmVlasovSurf + s:surfTime()
+      end
+
       log(string.format("Vlasov solver took %g sec", tmVlasovSlvr))
+      log(string.format("  [Vol updates took %g sec. Surf updates took %g sec]", tmVlasovVol, tmVlasovSurf))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end

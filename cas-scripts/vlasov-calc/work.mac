@@ -7,12 +7,12 @@ varsP : [x, vx]$
 doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
 calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
 
-fh : openw("~/max-out/VlasovSurfStreamMax1x1v.cpp");
+fh : openw("~/max-out/VlasovSurfStreamSer1x1v.cpp");
 printf(fh, "#include <VlasovModDecl.h> ~%")$
 
 for i : 1 thru 2 do (
-  basisP : gsOrthoNorm(varsP, makeMaxOrderBasis(varsP, i)),
-  printf(fh, "void VlasovSurfStream1x1vMax_X_P~a(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", i),
+  basisP : gsOrthoNorm(varsP, makeSerendipBasis(varsP, i)),
+  printf(fh, "void VlasovSurfStream1x1vSer_X_P~a(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
   printf(fh, "  const unsigned int X=0, VX=1; ~%"),   
@@ -55,6 +55,6 @@ for i : 1 thru 2 do (
   writeCIncrExprs1(outl, incr_s),  
   printf(fh, "  } ~%"),
   printf(fh, "} ~%")
-);
+)$
 
 close(fh);
