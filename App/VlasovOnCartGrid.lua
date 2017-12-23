@@ -431,7 +431,7 @@ local function buildApplication(self, tbl)
 
       log(string.format("Vlasov solver took %g sec", tmVlasovSlvr))
       log(string.format("  [Vol updates took %g sec. Surf updates took %g sec]", tmVlasovVol, tmVlasovSurf))
-      log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
+      log(string.format("Main loop completed in %g sec", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end
 end
