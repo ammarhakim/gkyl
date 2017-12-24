@@ -20,6 +20,17 @@ def build(bld):
     vlasovData/VlasovStreamSer2x2v.cpp
     vlasovData/VlasovStreamSer2x3v.cpp
 
+    vlasovData/VlasovElcMax1x1v.cpp
+    vlasovData/VlasovElcMax1x2v.cpp
+    vlasovData/VlasovElcMax1x3v.cpp
+    vlasovData/VlasovElcMax2x2v.cpp
+    vlasovData/VlasovElcMax2x3v.cpp
+    vlasovData/VlasovElcSer1x1v.cpp
+    vlasovData/VlasovElcSer1x2v.cpp
+    vlasovData/VlasovElcSer1x3v.cpp
+    vlasovData/VlasovElcSer2x2v.cpp
+    vlasovData/VlasovElcSer2x3v.cpp
+
     vlasovData/VlasovSurfStreamMax1x1v.cpp
     vlasovData/VlasovSurfStreamMax1x2v.cpp
     vlasovData/VlasovSurfStreamMax1x3v.cpp
