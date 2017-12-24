@@ -1,5 +1,0 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/vlasov-calc/vlasov-stream-surf.mac")$
-
-fh : openw("~/max-out/VlasovSurfStreamMax1x1v.cpp")$
-calcVlasovSurfUpdater(fh, "VlasovSurfStream1x1vMax", 1, 1, [x,vx], makeMaxOrderBasis)$
-close(fh)$
