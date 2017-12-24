@@ -1,5 +1,0 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/vlasov-calc/vlasov-stream-vol.mac")$
-
-fh : openw("~/max-out/VlasovStreamSer1x2v.cpp");
-calcVlasovVolUpdater(fh, "VlasovVolStream1x2vSer", 1, 2, [x,vx,vy], makeSerendipBasis)$
-close(fh)$
