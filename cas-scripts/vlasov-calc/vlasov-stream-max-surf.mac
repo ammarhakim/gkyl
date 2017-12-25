@@ -1,6 +1,9 @@
 load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/vlasov-calc/vlasov-stream-surf.mac")$
 load(stringproc)$
 
+vars : [x,y,z,vx,vy,vz]$
+makevarsP(cdim,vdim) := append(makelist(vars[i],i,cdim), makelist(vars[i],i,4,3+vdim))$
+
 for c : 1 thru 2 do (
   for v : c thru 3 do (
    fname : sconcat("~/max-out/VlasovSurfStreamMax", c, "x", v, "v", ".cpp"),

@@ -1,8 +1,11 @@
 load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/vlasov-calc/vlasov-stream-vol.mac")$
 load(stringproc)$
 
-for c : 1 thru 2 do (
-  for v : c thru 3 do (
+vars : [x,y,z,vx,vy,vz]$
+makevarsP(cdim,vdim) := append(makelist(vars[i],i,cdim), makelist(vars[i],i,4,3+vdim))$
+
+for c : 1 thru 1 do (
+  for v : c thru 2 do (
    fname : sconcat("~/max-out/VlasovStreamMax", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
    funcName : sconcat("VlasovVolStream", c, "x", v, "v", "Max"),

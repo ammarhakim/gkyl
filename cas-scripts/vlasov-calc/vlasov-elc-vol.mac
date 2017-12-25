@@ -9,6 +9,7 @@ vvars : [VX, VY, VZ]$
 dvdx : [dv0dx0, dv1dx1, dv2dx2]$
 wdx : [w0dx0, w1dx1, w2dx2]$
 dv1 : [dv10, dv11, dv12]$
+Efld : [E0, E1, E2]$
 
 doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
 calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
@@ -23,16 +24,18 @@ for i : 1 thru 2 do (
   basisP : gsOrthoNorm(varsP, basisFun(varsP, i)),
   varsC : slcn(varsP, cdim),
   basisC : gsOrthoNorm(varsC, basisFun(varsC, i)),
+  numC : length(basisC),
   printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *E, const double *f, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. E/f: Input electric-field/distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
   for dir : 1 thru cdim do (
-    printf(fh, "  double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir])
+    printf(fh, "  double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
+    printf(fh, "  const double *E~a = &E[~a]; ~%", dir-1, numC*(dir-1))
   ),
   fl : doExpand(f, basisP),
-  El : doExpand(E, basisC),
   t : (t : 0, for dir : 1 thru cdim do (
+     El : doExpand(Efld[dir], basisC),
      t : t + dv1[dir]*calcInnerProdList(varsP, El, diff(basisP,varsV[dir]), fl)
      ),
   t),
