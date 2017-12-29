@@ -1,0 +1,74 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+cvars : [X, Y, Z]$
+vvars : [VX, VY, VZ]$
+
+dvdx : [dv0dx0, dv1dx1, dv2dx2]$
+wdx : [w0dx0, w1dx1, w2dx2]$
+
+doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
+calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
+slcn(lst, n) := makelist(lst[i], i, 1, n)$
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+calcUpdateInDir(dir, fh, funcNm, cdim, vdim, varsP, basisFun) := block([],
+for i : 1 thru 2 do (
+  basisP : gsOrthoNorm(varsP, basisFun(varsP, i)),
+  varsC : slcn(varsP, cdim),
+  basisC : gsOrthoNorm(varsC, basisFun(varsC, i)),
+  numC : length(basisC),
+  printf(fh, "void ~a_~a_P~a(const double *w, const double *dxv, const double *Ein, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], i),
+  printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. E: electric field, fl/fr: Distribution function in left/right cells ~%"),
+  printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+  printf(fh, "  double dv1 = 2/dxv[~a]; ~%", vid[dir]),
+  printf(fh, "  const double *E = &Ein[~a]; ~%", numC*(dir-1)),
+  printf(fh, "  double incr[~a]; ~%~%", length(basisP)),
+  cv : varsP[dir],
+  vv : varsV[dir],
+  surfVars : delete(vv,varsP),
+  fl_L : doExpand(fl, basisP),
+  fl_R : doExpand(fr, basisP),
+  El : doExpand(E, basisC),
+  printf(fh, "  if (E[0]>0) { ~%"),
+  fhat : subst(vv=1, fl_L),
+  t : dv1*calcInnerProdList(surfVars, El, subst(vv=-1, basisP), fhat),
+  incr_r : t,
+  writeCExprs1(incr, incr_r),
+  printf(fh, "~%"),
+  incr_s : makelist(incr[i-1], i, 1, length(basisP)),
+  writeCIncrExprs1(outr, incr_s),  
+  printf(fh, "~%"),
+  t : dv1*calcInnerProdList(surfVars, El, subst(vv=1, basisP), fhat),
+  incr_l : -t,
+  signs : fullratsimp(incr_l/incr_r),
+  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(basisP)),
+  writeCIncrExprs1(outl, incr_s),
+  printf(fh, "  } else { ~%"),
+  fhat : subst(vv=-1, fl_R),
+  t : dv1*calcInnerProdList(surfVars, El, subst(vv=-1, basisP), fhat),
+  incr_r : t,
+  writeCExprs1(incr, incr_r),
+  printf(fh, "~%"),
+  incr_s : makelist(incr[i-1], i, 1, length(basisP)),
+  writeCIncrExprs1(outr, incr_s),  
+  printf(fh, "~%"),
+  t : dv1*calcInnerProdList(surfVars, El, subst(vv=1, basisP), fhat),
+  incr_l : -t,
+  signs : fullratsimp(incr_l/incr_r),
+  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(basisP)),
+  writeCIncrExprs1(outl, incr_s),
+  printf(fh, "  } ~%"),
+  printf(fh, "} ~%")
+));
+
+calcVlasovSurfUpdater(fh, funcNm, cdim, vdim, varsP, basisFun) := block([],
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
+  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, varsP, basisFun) )
+)$
