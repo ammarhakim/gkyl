@@ -20,6 +20,17 @@ def build(bld):
     vlasovData/VlasovStreamSer2x2v.cpp
     vlasovData/VlasovStreamSer2x3v.cpp
 
+    vlasovData/VlasovSurfStreamMax1x1v.cpp
+    vlasovData/VlasovSurfStreamMax1x2v.cpp
+    vlasovData/VlasovSurfStreamMax1x3v.cpp
+    vlasovData/VlasovSurfStreamMax2x2v.cpp
+    vlasovData/VlasovSurfStreamMax2x3v.cpp
+    vlasovData/VlasovSurfStreamSer1x1v.cpp
+    vlasovData/VlasovSurfStreamSer1x2v.cpp
+    vlasovData/VlasovSurfStreamSer1x3v.cpp
+    vlasovData/VlasovSurfStreamSer2x2v.cpp
+    vlasovData/VlasovSurfStreamSer2x3v.cpp
+
     vlasovData/VlasovElcMax1x1v.cpp
     vlasovData/VlasovElcMax1x2v.cpp
     vlasovData/VlasovElcMax1x3v.cpp
@@ -31,16 +42,17 @@ def build(bld):
     vlasovData/VlasovElcSer2x2v.cpp
     vlasovData/VlasovElcSer2x3v.cpp
 
-    vlasovData/VlasovSurfStreamMax1x1v.cpp
-    vlasovData/VlasovSurfStreamMax1x2v.cpp
-    vlasovData/VlasovSurfStreamMax1x3v.cpp
-    vlasovData/VlasovSurfStreamMax2x2v.cpp
-    vlasovData/VlasovSurfStreamMax2x3v.cpp
-    vlasovData/VlasovSurfStreamSer1x1v.cpp
-    vlasovData/VlasovSurfStreamSer1x2v.cpp
-    vlasovData/VlasovSurfStreamSer1x3v.cpp
-    vlasovData/VlasovSurfStreamSer2x2v.cpp
-    vlasovData/VlasovSurfStreamSer2x3v.cpp
+    vlasovData/VlasovSurfElcMax1x1v.cpp
+    vlasovData/VlasovSurfElcMax1x2v.cpp
+    vlasovData/VlasovSurfElcMax1x3v.cpp
+    vlasovData/VlasovSurfElcMax2x2v.cpp
+    vlasovData/VlasovSurfElcMax2x3v.cpp
+    vlasovData/VlasovSurfElcSer1x1v.cpp
+    vlasovData/VlasovSurfElcSer1x2v.cpp
+    vlasovData/VlasovSurfElcSer1x3v.cpp
+    vlasovData/VlasovSurfElcSer2x2v.cpp
+    vlasovData/VlasovSurfElcSer2x3v.cpp
+
 
     linearHyperbolicData/LinearHyperMax1dVolTerms.cpp
     linearHyperbolicData/LinearHyperMax2dVolTerms.cpp
