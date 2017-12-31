@@ -1,0 +1,17 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+
+vars : [x,y,z,vx,vy,vz]$
+makevarsC(cdim) := makelist(vars[i],i,cdim)$
+makevarsP(cdim,vdim) := append(makelist(vars[i],i,cdim), makelist(vars[i],i,4,3+vdim))$
+
+writeBasisToFile(cdim, vdim, pmax, basisFun, fname) := block([varsC, varsP, basisC, basisP],
+  varsC : makevarsC(cdim),
+  varsP : makevarsP(cdim,vdim),
+  basisC : [], basisP : [],
+  for i : 1 thru pmax do (
+    basisC : endcons(gsOrthoNorm(varsC, basisFun(varsC, i)), basisC),
+    basisP : endcons(gsOrthoNorm(varsP, basisFun(varsP, i)), basisP)
+  ),
+  save(fname, varsC, varsP, basisC, basisP)
+)$
+
