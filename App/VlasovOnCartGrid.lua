@@ -137,7 +137,9 @@ Species.__index = {
 	 confBasis = self.confBasis,
 	 charge = self.charge,
 	 mass = self.mass,
-	 cfl = self.cfl
+	 cfl = self.cfl,
+	 hasElectricField = false,
+	 hasMagneticField = false,
       }
       
       -- create Adios object for field I/O

@@ -1,0 +1,8 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/basis-precalc/basis-pre-calc.mac");
+
+for c : 1 thru 2 do (
+  for v : c thru 3 do (
+   fname : sconcat("~/max-out/basisSer", c, "x", v, "v", ".lisp"),
+   writeBasisToFile(c, v, 2, makeSerendipBasis, fname)
+  )
+)$

@@ -37,4 +37,28 @@ function _M.selectSurfStream(basisNm, CDIM, VDIM, polyOrder)
    end
 end
 
+-- select function to compute volume electric field acceleration terms
+function _M.selectVolElc(basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("VlasovVolElc%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   return ffi.C[funcNm]
+end
+
+-- select functions to compute surface electric field acceleration  terms (output is a table of functions)
+function _M.selectSurfElc(basisNm, CDIM, VDIM, polyOrder)
+   if VDIM == 1 then
+      local funcNmX = string.format("VlasovSurfElc%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX] }
+   elseif VDIM == 2 then
+      local funcNmX = string.format("VlasovSurfElc%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VlasovSurfElc%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], ffi.C[funcNmY] }
+   elseif VDIM == 3 then
+      local funcNmX = string.format("VlasovSurfElc%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VlasovSurfElc%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmZ = string.format("VlasovSurfElc%dx%dv%s_VZ_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+   end
+end
+
+
 return _M

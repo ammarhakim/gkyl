@@ -42,7 +42,7 @@ for ci : 1 thru 2 do (
     for pi : 1 thru 2 do (
       printf(fh, "void VlasovVolElc~ax~avMaxP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi),
       for si : 1 thru ci do (
-        printf(fh, "void VlasovSurfElc~ax~avMax_~a_P~a(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
+        printf(fh, "void VlasovSurfElc~ax~avMax_V~a_P~a(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
       ),
       printf(fh, "~%")      
     ),
@@ -57,7 +57,7 @@ for ci : 1 thru 2 do (
     for pi : 1 thru 2 do (
       printf(fh, "void VlasovVolElc~ax~avSerP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi),
       for si : 1 thru ci do (
-        printf(fh, "void VlasovSurfElc~ax~avSer_~a_P~a(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
+        printf(fh, "void VlasovSurfElc~ax~avSer_V~a_P~a(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
       ),
       printf(fh, "~%")      
     ),

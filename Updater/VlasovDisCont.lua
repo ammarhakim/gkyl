@@ -14,6 +14,11 @@ local Time = require "Lib.Time"
 local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
 local xsys = require "xsys"
 
+-- function that does nothing
+local function doNothing(...)
+   -- deliberately empty
+end
+
 -- Vlasov DG solver updater object
 local VlasovDisCont = {}
 
@@ -29,9 +34,12 @@ function VlasovDisCont:new(tbl)
       tbl.phaseBasis, "Updater.VlasovDisCont: Must specify phase-space basis functions to use using 'phaseBasis'")
    self._confBasis = assert(
       tbl.confBasis, "Updater.VlasovDisCont: Must specify configuration-space basis functions to use using 'confBasis'")
-   self._charge = assert(tbl.charge, "Updater.VlasovDisCont: must specify charge using 'charge' ")
-   self._mass = assert(tbl.mass, "Updater.VlasovDisCont: must specify mass using 'mass' ")
 
+   local charge = assert(tbl.charge, "Updater.VlasovDisCont: must specify charge using 'charge' ")
+   local mass = assert(tbl.mass, "Updater.VlasovDisCont: must specify mass using 'mass' ")
+
+   self._qbym = charge/mass -- only q/m ratio is ever needed
+   
    assert(self._onGrid:ndim() == self._phaseBasis:ndim(), "Dimensions of basis and grid must match")
 
    self._pdim = self._phaseBasis:ndim()
@@ -47,6 +55,10 @@ function VlasovDisCont:new(tbl)
    self._cfl = assert(tbl.cfl, "Updater.VlasovDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
 
+   -- check if we have a electric and magnetic field
+   local hasElcField = xsys.pickBool(tbl.hasElectricField, true)
+   local hasMagField = xsys.pickBool(tbl.hasMagneticField, true)
+
    -- timers for surface and volume streaming terms
    self._tmVolStreamUpdate = 0.0
    self._tmSurfStreamUpdate = 0.0
@@ -54,6 +66,18 @@ function VlasovDisCont:new(tbl)
    -- functions to perform streaming updates
    self._volStreamUpdate = VlasovModDecl.selectVolStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+
+   -- functions to perform electric/magnetic field updates
+   if hasElcField then
+      self._volElcUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   else
+      self._volElcUpdate = doNothing
+   end
+   if hasMagField then
+      self._surfElcUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   else
+      self._surfElcUpdate = doNothing
+   end
    
    return self
 end
