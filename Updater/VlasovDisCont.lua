@@ -67,16 +67,14 @@ function VlasovDisCont:new(tbl)
    self._volStreamUpdate = VlasovModDecl.selectVolStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
+   self._volElcUpdate, self._surfElcUpdate = doNothing, doNothing
    -- functions to perform electric/magnetic field updates
    if hasElcField then
       self._volElcUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-   else
-      self._volElcUpdate = doNothing
+      self._surfElcUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
    if hasMagField then
-      self._surfElcUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-   else
-      self._surfElcUpdate = doNothing
+      assert(true, "VlasovDisCont: hasMagField NYI!")
    end
    
    return self
@@ -109,7 +107,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
       X, VX, VY, VZ = 1, 2, 3, 4
    elseif cdim == 2 then
       X, Y, VX, VY, VZ = 1, 2, 3, 4, 5
-   elseif cdim == 2 then
+   elseif cdim == 3 then
       X, Y, Z, VX, VY, VZ = 1, 2, 3, 4, 5, 6
    end
    
