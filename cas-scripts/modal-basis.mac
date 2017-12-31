@@ -83,6 +83,9 @@ numNonZero(mat) := block([nc,nr,nz],
   return (nz)
 )$
 
+/* Compute inner product with specified function list */
+calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
+
 /* Compute mass matrix, i.e M_ij = <w phi_i phi_j> */
 calcMassMatrix(vars, w, basis) := block([n, mass],
                 n : length(basis),
@@ -155,4 +158,4 @@ calcSurfExpansionMatrix(varsSurf, vPerp, valPerp, basisSurf, basisVol) := block(
 )$
 
 doExpand(f, basis) := sum(f[i]*basis[i], i, 1, length(basis))$
-
+doExpand1(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$

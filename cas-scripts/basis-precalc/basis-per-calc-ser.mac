@@ -3,6 +3,8 @@ load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/basis-precalc/basis-p
 for c : 1 thru 2 do (
   for v : c thru 3 do (
    fname : sconcat("~/max-out/basisSer", c, "x", v, "v", ".lisp"),
-   writeBasisToFile(c, v, 2, makeSerendipBasis, fname)
+   writeBasisToFile(c, v, 4, makeSerendipBasis, fname)
   )
 )$
+
+writeBasisToFile(3, 3, 2, makeSerendipBasis, "~/max-out/basisSer3x3v.lisp")$
