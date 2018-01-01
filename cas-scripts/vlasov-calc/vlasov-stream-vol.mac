@@ -1,5 +1,6 @@
 load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
 load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+load(stringproc)$
 fpprec : 24$
 
 varsV : [vx, vy, vz]$
@@ -15,10 +16,13 @@ calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-calcVlasovVolUpdater(fh, funcNm, cdim, vdim, varsP, basisFun) := block([],
+calcVlasovVolUpdater(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
 printf(fh, "#include <VlasovModDecl.h> ~%"),
 for i : 1 thru 2 do (
-  basisP : gsOrthoNorm(varsP, basisFun(varsP, i)),
+  bP : basisP[i],
   printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
@@ -27,9 +31,9 @@ for i : 1 thru 2 do (
     printf(fh, "  double dv~adx~a = dxv[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir]),
     printf(fh, "  double w~adx~a = w[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir])
   ),
-  fl : doExpand(f, basisP),
+  fl : doExpand(f, bP),
   t : (t : 0, for dir : 1 thru cdim do (
-     t : t + 2*wdx[dir]*calcInnerProdList(varsP, 1, diff(basisP,varsP[dir]), fl) + dvdx[dir]*calcInnerProdList(varsP, varsV[dir], diff(basisP,varsP[dir]), fl)
+     t : t + calcInnerProdList(varsP, 2*wdx[dir]+dvdx[dir]*varsV[dir], diff(bP,varsP[dir]), fl)
      ),
   t),
   writeCIncrExprs(t),

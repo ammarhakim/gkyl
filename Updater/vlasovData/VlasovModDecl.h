@@ -40,6 +40,17 @@ void VlasovSurfStream2x3vMax_X_P2(const double *w, const double *dxv, const doub
 void VlasovSurfStream2x3vMax_Y_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
 
 
+void VlasovVolStream3x3vMaxP1(const double *w, const double *dxv, const double *f, double *out); 
+void VlasovSurfStream3x3vMax_X_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vMax_Y_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vMax_Z_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
+void VlasovVolStream3x3vMaxP2(const double *w, const double *dxv, const double *f, double *out); 
+void VlasovSurfStream3x3vMax_X_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vMax_Y_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vMax_Z_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
+
 
  
 void VlasovVolStream1x1vSerP1(const double *w, const double *dxv, const double *f, double *out); 
@@ -79,6 +90,17 @@ void VlasovSurfStream2x3vSer_Y_P1(const double *w, const double *dxv, const doub
 void VlasovVolStream2x3vSerP2(const double *w, const double *dxv, const double *f, double *out); 
 void VlasovSurfStream2x3vSer_X_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
 void VlasovSurfStream2x3vSer_Y_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
+
+void VlasovVolStream3x3vSerP1(const double *w, const double *dxv, const double *f, double *out); 
+void VlasovSurfStream3x3vSer_X_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vSer_Y_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vSer_Z_P1(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+
+void VlasovVolStream3x3vSerP2(const double *w, const double *dxv, const double *f, double *out); 
+void VlasovSurfStream3x3vSer_X_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vSer_Y_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfStream3x3vSer_Z_P2(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr); 
 
 
 
@@ -122,6 +144,17 @@ void VlasovSurfElc2x3vMax_VX_P2(const double *w, const double *dxv, const double
 void VlasovSurfElc2x3vMax_VY_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
 
 
+void VlasovVolElc3x3vMaxP1(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+void VlasovSurfElc3x3vMax_VX_P1(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vMax_VY_P1(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vMax_VZ_P1(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+
+void VlasovVolElc3x3vMaxP2(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+void VlasovSurfElc3x3vMax_VX_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vMax_VY_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vMax_VZ_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+
+
 
  
 void VlasovVolElc1x1vSerP1(const double *w, const double *dxv, const double *E, const double *f, double *out); 
@@ -161,6 +194,17 @@ void VlasovSurfElc2x3vSer_VY_P1(const double *w, const double *dxv, const double
 void VlasovVolElc2x3vSerP2(const double *w, const double *dxv, const double *E, const double *f, double *out); 
 void VlasovSurfElc2x3vSer_VX_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
 void VlasovSurfElc2x3vSer_VY_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+
+
+void VlasovVolElc3x3vSerP1(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+void VlasovSurfElc3x3vSer_VX_P1(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vSer_VY_P1(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vSer_VZ_P1(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+
+void VlasovVolElc3x3vSerP2(const double *w, const double *dxv, const double *E, const double *f, double *out); 
+void VlasovSurfElc3x3vSer_VX_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vSer_VY_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
+void VlasovSurfElc3x3vSer_VZ_P2(const double *w, const double *dxv, const double *E, const double *fl, const double *fr, double *outl, double *outr); 
 
 
 
