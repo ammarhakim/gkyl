@@ -1,4 +1,4 @@
-cvars : [X, Y]$
+cvars : [X, Y, Z]$
 
 fh : openw("~/max-out/VlasovModDecl.h")$
 
@@ -7,7 +7,7 @@ printf(fh, "#define VLASOV_MOD_DELC_H ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
 
-for ci : 1 thru 2 do (
+for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
     for pi : 1 thru 2 do (
       printf(fh, "void VlasovVolStream~ax~avMaxP~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
@@ -22,7 +22,7 @@ for ci : 1 thru 2 do (
 
 printf(fh, "~% ~%")$
 
-for ci : 1 thru 2 do (
+for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
     for pi : 1 thru 2 do (
       printf(fh, "void VlasovVolStream~ax~avSerP~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
@@ -37,7 +37,7 @@ for ci : 1 thru 2 do (
 
 printf(fh, "~% ~%")$
 
-for ci : 1 thru 2 do (
+for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
     for pi : 1 thru 2 do (
       printf(fh, "void VlasovVolElc~ax~avMaxP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi),
@@ -52,7 +52,7 @@ for ci : 1 thru 2 do (
 
 printf(fh, "~% ~%")$
 
-for ci : 1 thru 2 do (
+for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
     for pi : 1 thru 2 do (
       printf(fh, "void VlasovVolElc~ax~avSerP~a(const double *w, const double *dxv, const double *E, const double *f, double *out); ~%", ci, vi, pi),
