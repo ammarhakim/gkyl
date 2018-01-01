@@ -1,56 +1,56 @@
 
 writeBasis(fh, basisIn) := block([basis],
   print(basisIn[1]),
-  basis : float(expand(basisIn)),
+  basis : float(expand(radcan(basisIn))),
   for i : 1 thru length(basis) do (
     printf(fh, "   ~a = ~a ~%", b[i], basis[i])
   )
 )$
 
 writeExprs(rhs) := block([expr],
-  expr : float(expand(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     printf(fh, "   ~a = ~a ~%", out[i], expr[i])
   )
 )$
 
 writePlainExprs(rhs) := block([expr],
-  expr : float(expand(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     printf(fh, "   ~a ~%", expr[i])
   )
 )$
 
 writeCIncrExprs(rhs) := block([expr],
-  expr : float(expand(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", out[i-1], expr[i])
   )
 )$
 
 writeCIncrExprs1(lhs, rhs) := block([expr],
-  expr : float(expand(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", lhs[i-1], expr[i])
   )
 )$
 
 writeCExprs1(lhs, rhs) := block([expr],
-  expr : float(expand(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", lhs[i-1], expr[i])
   )
 )$
 
 writeLuaIncrExprs(rhs) := block([expr],
-  expr : float(expand(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "  ~a = ~a + ~a; ~%", out[i], out[i], expr[i])
   )
 )$
 
 writeLuaDecrExprs(rhs) := block([expr],
-  expr : float(expand(rhs)),
+  expr : float(expand(radcan(rhs))),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "  ~a = ~a - ~a; ~%", outl[i], outl[i], expr[i])
   )
