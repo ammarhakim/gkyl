@@ -14,6 +14,8 @@ def build(bld):
     vlasovData/VlasovStreamMax1x3v.cpp
     vlasovData/VlasovStreamMax2x2v.cpp
     vlasovData/VlasovStreamMax2x3v.cpp
+    vlasovData/VlasovStreamMax3x3v.cpp
+
     vlasovData/VlasovStreamSer1x1v.cpp
     vlasovData/VlasovStreamSer1x2v.cpp
     vlasovData/VlasovStreamSer1x3v.cpp
@@ -25,6 +27,8 @@ def build(bld):
     vlasovData/VlasovSurfStreamMax1x3v.cpp
     vlasovData/VlasovSurfStreamMax2x2v.cpp
     vlasovData/VlasovSurfStreamMax2x3v.cpp
+    vlasovData/VlasovSurfStreamMax3x3v.cpp
+
     vlasovData/VlasovSurfStreamSer1x1v.cpp
     vlasovData/VlasovSurfStreamSer1x2v.cpp
     vlasovData/VlasovSurfStreamSer1x3v.cpp
@@ -36,6 +40,8 @@ def build(bld):
     vlasovData/VlasovElcMax1x3v.cpp
     vlasovData/VlasovElcMax2x2v.cpp
     vlasovData/VlasovElcMax2x3v.cpp
+    vlasovData/VlasovElcMax3x3v.cpp
+
     vlasovData/VlasovElcSer1x1v.cpp
     vlasovData/VlasovElcSer1x2v.cpp
     vlasovData/VlasovElcSer1x3v.cpp
@@ -47,29 +53,13 @@ def build(bld):
     vlasovData/VlasovSurfElcMax1x3v.cpp
     vlasovData/VlasovSurfElcMax2x2v.cpp
     vlasovData/VlasovSurfElcMax2x3v.cpp
+    vlasovData/VlasovSurfElcMax3x3v.cpp
+
     vlasovData/VlasovSurfElcSer1x1v.cpp
     vlasovData/VlasovSurfElcSer1x2v.cpp
     vlasovData/VlasovSurfElcSer1x3v.cpp
     vlasovData/VlasovSurfElcSer2x2v.cpp
     vlasovData/VlasovSurfElcSer2x3v.cpp
 
-    linearHyperbolicData/LinearHyperMax1dVolTerms.cpp
-    linearHyperbolicData/LinearHyperMax2dVolTerms.cpp
-    linearHyperbolicData/LinearHyperMax3dVolTerms.cpp
-    linearHyperbolicData/LinearHyperSer1dVolTerms.cpp
-    linearHyperbolicData/LinearHyperSer2dVolTerms.cpp
-    linearHyperbolicData/LinearHyperSer3dVolTerms.cpp
-    linearHyperbolicData/ModalMaxOrderBasisSurfToVol1d.cpp
-    linearHyperbolicData/ModalMaxOrderBasisSurfToVol2d.cpp
-    linearHyperbolicData/ModalMaxOrderBasisSurfToVol3d.cpp
-    linearHyperbolicData/ModalSerendipBasisSurfToVol1d.cpp
-    linearHyperbolicData/ModalSerendipBasisSurfToVol2d.cpp
-    linearHyperbolicData/ModalSerendipBasisSurfToVol3d.cpp
-    linearHyperbolicData/ModalSerendipBasisSurf1d.cpp
-    linearHyperbolicData/ModalSerendipBasisSurf2d.cpp
-    linearHyperbolicData/ModalSerendipBasisSurf3d.cpp
-    linearHyperbolicData/ModalMaxOrderBasisSurf1d.cpp
-    linearHyperbolicData/ModalMaxOrderBasisSurf2d.cpp
-    linearHyperbolicData/ModalMaxOrderBasisSurf3d.cpp
     """,
-    includes = '. linearHyperbolicData vlasovData', target = 'updater')
+    includes = '. vlasovData', target = 'updater')
