@@ -49,7 +49,7 @@ function VlasovDisCont:new(tbl)
    -- by default, compute forward Euler: if onlyIncrement is true,
    -- then only increments are computed. NOTE: The increments are NOT
    -- multiplied by dt.
-   self._onlyIncrement = xsys.pickBool(tbl._onlyIncrement, false)
+   self._onlyIncrement = xsys.pickBool(tbl.onlyIncrement, false)
 
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.VlasovDisCont: Must specify CFL number using 'cfl'")
