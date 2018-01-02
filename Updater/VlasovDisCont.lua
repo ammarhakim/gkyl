@@ -55,25 +55,28 @@ function VlasovDisCont:new(tbl)
    self._cfl = assert(tbl.cfl, "Updater.VlasovDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
 
-   -- check if we have a electric and magnetic field
-   local hasElcField = xsys.pickBool(tbl.hasElectricField, true)
-   local hasMagField = xsys.pickBool(tbl.hasMagneticField, true)
-
-   -- timers for surface and volume streaming terms
-   self._tmVolStreamUpdate = 0.0
-   self._tmSurfStreamUpdate = 0.0
+   self._tmStreamUpdate = 0.0 -- time in streaming terms
+   self._tmForceUpdate = 0.0 -- time in field terms
+   self._tmIncrement = 0.0 -- time 
 
    -- functions to perform streaming updates
    self._volStreamUpdate = VlasovModDecl.selectVolStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
-   self._volElcUpdate, self._surfElcUpdate = doNothing, doNothing
-   -- functions to perform electric/magnetic field updates
-   if hasElcField then
-      self._volElcUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfElcUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   -- check if we have a electric and magnetic field
+   local hasElcField = xsys.pickBool(tbl.hasElectricField, true)
+   local hasMagField = xsys.pickBool(tbl.hasMagneticField, true)
+
+   self._hasForceTerm = false -- flag to indicate if we have any force terms at all
+   if hasElcField or hasMagField then
+      self._hasForceTerm = true
    end
-   if hasMagField then
+   
+   -- functions to perform force updates from electric field
+   self._volForceUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+
+   if hasMagField then -- more complicated functions if there is a magnetic field
       assert(true, "VlasovDisCont: hasMagField NYI!")
    end
    
@@ -86,6 +89,8 @@ setmetatable(VlasovDisCont, { __call = function (self, o) return self.new(self, 
 local function advance(self, tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local fIn = assert(inFld[1], "VlasovDisCont.advance: Must specify an input dist-function")
+   --local emIn = assert(inFld[2], "VlasovDisCont.advance: Must specify an input EM field")
+   
    local fOut = assert(outFld[1], "VlasovDisCont.advance: Must specify an output dist-function")
    
    local localRange = fOut:localRange()
@@ -113,21 +118,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    
    fOut:clear(0.0) -- compute increments
 
-   local tmStart = Time.clock()
-   -- accumulate contributions from volume integrals
-   for idx in localRange:colMajorIter() do
-      grid:setIndex(idx)
-      for d = 1, pdim do dx[d] = grid:dx(d) end
-      grid:cellCenter(xc)
-
-      fIn:fill(fInIdxr(idx), fInPtr)
-      fOut:fill(fOutIdxr(idx), fOutPtr)
-      self._volStreamUpdate(xc:data(), dx:data(), fInPtr:data(), fOutPtr:data())
-   end
-   self._tmVolStreamUpdate = self._tmVolStreamUpdate + Time.clock()-tmStart
-
-   tmStart = Time.clock()
-   -- accumulate contributions from surface integrals in streaming direction
+   local tmStreamStart = Time.clock()
+   -- accumulate contributions from streaming direction
    for dir = 1, cdim do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
@@ -150,19 +142,59 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
 	    fIn:fill(fInIdxr(idxm), fInL); fIn:fill(fInIdxr(idxp), fInR)
 	    fOut:fill(fOutIdxr(idxm), fOutL); fOut:fill(fOutIdxr(idxp), fOutR)
+
+	    -- accumulate contribution from volume and surface streaming terms
+	    self._volStreamUpdate(xc:data(), dx:data(), fInR:data(), fOutR:data())
 	    self._surfStreamUpdate[dir](xc:data(), dx:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
 	 end
       end
    end
-   self._tmSurfStreamUpdate = self._tmSurfStreamUpdate + Time.clock()-tmStart
+   self._tmStreamUpdate = self._tmStreamUpdate + Time.clock()-tmStreamStart
+
+   if self._hasForceTerm then
+      local tmForceStart = Time.clock()
+      -- accumulate contributions from force direction
+      for dir = cdim+1, pdim do
+	 -- lower/upper bounds in direction 'dir': these are edge indices
+	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
+	 local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
+
+	 -- outer loop is over directions orthogonal to 'dir' and inner
+	 -- loop is over 1D slice in `dir`.
+	 for idx in perpRange:colMajorIter() do
+	    grid:setIndex(idx)
+	    for d = 1, pdim do dx[d] = grid:dx(d) end
+	    grid:cellCenter(xc)
+
+	    -- compute local CFL number
+	    local vel = math.abs(xc[dir+cdim]) + 0.5*dx[dir+cdim] -- ptcl velocity at cell edge
+	    cfla = math.max(cfla, vel*dt/dx[dir])
+	    
+	    local idxp, idxm = idx:copy(), idx:copy()
+	    for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+	       idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+
+	       fIn:fill(fInIdxr(idxm), fInL); fIn:fill(fInIdxr(idxp), fInR)
+	       fOut:fill(fOutIdxr(idxm), fOutL); fOut:fill(fOutIdxr(idxp), fOutR)
+
+	       -- accumulate contribution from volume and surface force terms
+	       --self._volStreamUpdate(xc:data(), dx:data(), fInR:data(), fOutR:data())
+	       --self._surfStreamUpdate[dir](xc:data(), dx:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
+	    end
+	 end
+      end
+      self._tmForceUpdate = self._tmForceUpdate + Time.clock()-tmForceStart
+   end
 
    -- return failure if time-step was too large
    if cfla > cflm then return false, dt*cfl/cfla end
 
+   local tmIncrementStart = Time.clock()
    -- accumulate full solution if not computing increments
    if not self._onlyIncrement then
       fOut:scale(dt); fOut:accumulate(1.0, fIn) -- fOut = fIn + dt*fOut
    end
+   self._tmIncrement = self._tmIncrement + Time.clock()-tmIncrementStart
 
    return true, dt*cfl/cfla
 end
@@ -170,12 +202,15 @@ end
 -- Methods in updater
 VlasovDisCont.__index = {
    advance = Base.advanceFuncWrap(advance),
-   volTime = function(self)
-      return self._tmVolStreamUpdate
+   streamTime = function(self)
+      return self._tmStreamUpdate
    end,
-   surfTime = function(self)
-      return self._tmSurfStreamUpdate
-   end   
+   forceTime = function(self)
+      return self._tmForceUpdate
+   end,
+   incrementTime = function(self)
+      return self._tmIncrement
+   end
 }
 
 return VlasovDisCont

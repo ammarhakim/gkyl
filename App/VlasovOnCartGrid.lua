@@ -12,10 +12,12 @@ local Basis = require "Basis"
 local BoundaryCondition = require "Updater.BoundaryCondition"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
+local Field = require "App.VlasovOnCartGridField"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
+local Species = require "App.VlasovOnCartGridSpecies"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
@@ -29,275 +31,6 @@ local function createBasis(nm, ndim, polyOrder)
       return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
    end   
 end
-
--- For returning module table
-local M = {}
-
--- Class to store species-specific info
-local Species = {}
-function Species:new(tbl)
-   local self = setmetatable({}, Species)
-   self.type = "species" -- to identify objects of this (Species) type
-
-   self.name = "name"
-   self.cfl =  0.1
-   self.charge, self.mass = tbl.charge, tbl.mass
-   self.qbym = self.charge/self.mass
-   self.lower, self.upper = tbl.lower, tbl.upper
-   self.cells = tbl.cells
-   self.vdim = #self.cells -- velocity dimensions
-   self.ioMethod = "MPI"
-   self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
-   self.confBasis = nil -- Will be set later
-
-   assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
-   assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
-
-   self.decompCuts = {}
-   -- parallel decomposition stuff
-   if tbl.decompCuts then
-      assert(self.vdim == #tbl.decompCuts, "decompCuts should have exactly " .. self.vdim .. " entries")
-      self.decompCuts = tbl.decompCuts
-   else
-      -- if not specified, use 1 processor
-      for d = 1, self.vdim do self.decompCuts[d] = 1 end
-   end
-
-   -- store initial condition function
-   self.initFunc = tbl.init
-   
-   return self
-end
--- make object callable, and redirect call to the :new method
-setmetatable(Species, { __call = function (self, o) return self.new(self, o) end })
-
--- methods for species object
-Species.__index = {
-   ndim = function(self)
-      return self.vdim
-   end,
-   setName = function(self, nm)
-      self.name = nm
-   end,
-   setCfl = function(self, cfl)
-      self.cfl = cfl
-   end,
-   setIoMethod = function(self, ioMethod)
-      self.ioMethod = ioMethod
-   end,
-   setConfBasis = function (self, basis)
-      self.confBasis = basis
-   end,   
-   createGrid = function(self, cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
-      self.cdim = #cCells
-      self.ndim = self.cdim+self.vdim
-
-      -- create decomposition
-      local decompCuts = {}
-      for d = 1, self.cdim do table.insert(decompCuts, cDecompCuts[d]) end
-      for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
-      self.decomp = DecompRegionCalc.CartProd {
-      	 cuts = decompCuts,
-      	 shared = false,
-      }
-
-      -- create computational domain
-      local lower, upper, cells = {}, {}, {}
-      for d = 1, self.cdim do
-      	 table.insert(lower, cLo[d])
-      	 table.insert(upper, cUp[d])
-      	 table.insert(cells, cCells[d])
-      end
-      for d = 1, self.vdim do
-      	 table.insert(lower, self.lower[d])
-      	 table.insert(upper, self.upper[d])
-      	 table.insert(cells, self.cells[d])
-      end
-      self.grid = Grid.RectCart {
-	 lower = lower,
-	 upper = upper,
-	 cells = cells,
-	 periodicDirs = cPeriodicDirs,
-	 decomposition = self.decomp,
-      }
-   end,
-   createBasis = function(self, nm, polyOrder)
-      self.basis = createBasis(nm, self.ndim, polyOrder)
-   end,
-   alloc = function(self)
-      -- allocate fields needed in RK update
-      self.distf = {}
-      for i = 1, 3 do
-	 self.distf[i] = DataStruct.Field {
-	    onGrid = self.grid,
-	    numComponents = self.basis:numBasis(),
-	    ghost = {1, 1}
-	 }
-      end
-      -- create Adios object for field I/O
-      self.distIo = AdiosCartFieldIo {
-	 elemType = self.distf[1]:elemType(),
-	 method = self.ioMethod,
-      }
-   end,
-   createSolver = function (self, hasE, hasB)
-      -- create updater to advance solution by one time-step
-      self.vlasovSlvr = Updater.VlasovDisCont {
-	 onGrid = self.grid,
-	 phaseBasis = self.basis,
-	 confBasis = self.confBasis,
-	 charge = self.charge,
-	 mass = self.mass,
-	 cfl = self.cfl,
-	 hasElectricField = hasE,
-	 hasMagneticField = hasB,
-      }
-   end,
-   initDist = function(self)
-      local project = Updater.ProjectOnBasis {
-	 onGrid = self.grid,
-	 basis = self.basis,
-	 evaluate = self.initFunc
-      }
-      project:advance(0.0, 0.0, {}, {self.distf[1]})
-   end,
-   write = function(self, frame, tm)
-      if self.evolve then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, frame), tm)
-      else
-	 -- if not evolving species, don't write anything except initial conditions
-	 if frame == 0 then
-	    self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, frame), tm)
-	 end
-      end
-   end,
-   rkStepperFields = function(self)
-      return self.distf[1], self.distf[2], self.distf[3]
-   end,
-   forwardEuler = function(self, tCurr, dt, fIn, fOut)
-      if self.evolve then
-	 return self.vlasovSlvr:advance(tCurr, dt, {fIn}, {fOut})
-      else
-	 fOut:copy(fIn) -- just copy stuff over
-	 return true, GKYL_MAX_DOUBLE
-      end
-   end,
-   applyBc = function(self, tCurr, dt, fIn)
-      fIn:sync()
-   end,
-   totalSolverTime = function(self)
-      return self.vlasovSlvr.totalTime
-   end,
-   volTime = function(self)
-      return self.vlasovSlvr:volTime()
-   end,
-   surfTime = function(self)
-      return self.vlasovSlvr:surfTime()
-   end,
-}
-
--- add to module table
-M.Species = Species
-
--- Class to store Maxwell field info
-local EmField = {}
-function EmField:new(tbl)
-   local self = setmetatable({}, EmField)
-   self.type = "field" -- to identify objects of this type
-
-   self.epsilon0 = tbl.epsilon0
-   self.mu0 = tbl.mu0
-   self.ioMethod = "MPI"
-   self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
-
-   -- store initial condition function
-   self.initFunc = tbl.init
-
-   self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
-
-   return self
-end
--- make object callable, and redirect call to the :new method
-setmetatable(EmField, { __call = function (self, o) return self.new(self, o) end })
--- methods for EM field object
-EmField.__index = {
-   hasEB = function (self)
-      return true, false
-   end,
-   setCfl = function(self, cfl)
-      self.cfl = cfl
-   end,
-   setIoMethod = function(self, ioMethod)
-      self.ioMethod = ioMethod
-   end,
-   setBasis = function (self, basis)
-      self.basis = basis
-   end,
-   setGrid = function(self, grid)
-      self.grid = grid
-   end,
-   alloc = function(self)
-      -- allocate fields needed in RK update
-      self.em = {}
-      for i = 1, 3 do
-	 self.em[i] = DataStruct.Field {
-	    onGrid = self.grid,
-	    numComponents = self.basis:numBasis(),
-	    ghost = {1, 1}
-	 }
-      end
-      
-      -- create Adios object for field I/O
-      self.fieldIo = AdiosCartFieldIo {
-	 elemType = self.em[1]:elemType(),
-	 method = self.ioMethod,
-      }
-   end,
-   initField = function(self)
-      local project = Updater.ProjectOnBasis {
-	 onGrid = self.grid,
-	 basis = self.basis,
-	 evaluate = self.initFunc
-      }
-      project:advance(0.0, 0.0, {}, {self.em[1]})
-   end,
-   write = function(self, frame, tm)
-      if self.evolve then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
-      else
-	 -- if not evolving species, don't write anything except initial conditions
-	 if frame == 0 then
-	    self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
-	 end
-      end
-   end,
-   rkStepperFields = function(self)
-      return self.em[1], self.em[2], self.em[3]
-   end,
-   forwardEuler = function(self, tCurr, dt, emIn, emOut)
-      if self.evolve then
-	 assert(false, "EmField:forwardEuler. NYI!")
-      else
-	 emOut:copy(emIn) -- just copy stuff over
-	 return true, GKYL_MAX_DOUBLE
-      end
-   end,
-   applyBc = function(self, tCurr, dt, emIn)
-      emIn:sync()
-   end,
-   totalSolverTime = function(self)
-      return 0.0
-   end,
-   volTime = function(self)
-      return 0.0
-   end,
-   surfTime = function(self)
-      return 0.0
-   end,   
-}
-
--- add to module table
-M.EmField = EmField
 
 -- function to check "type" of obj.
 local function isType(obj, typeString)
@@ -426,8 +159,9 @@ local function buildApplication(self, tbl)
       -- NEED TO CREATE DECOMPOSITION
    }
 
-   -- setup information about fields
-   local field = tbl.field -- must always be called "field"
+   -- setup information about fields: if this is not specified, it is
+   -- assumed there are no force terms
+   local field = tbl.field and tbl.field or Field.NoField {}
    field:setIoMethod(ioMethod)
    field:setBasis(confBasis)
    field:setGrid(grid)
@@ -484,8 +218,7 @@ local function buildApplication(self, tbl)
       end
    end
 
-   local timeSteppers = {}
-
+   local timeSteppers = {} -- various time-steppers
    -- function to advance solution using SSP-RK2 scheme
    function timeSteppers.rk2(tCurr, dt)
       local status, dtSuggested
@@ -566,14 +299,17 @@ local function buildApplication(self, tbl)
 	 tmVlasovSlvr = tmVlasovSlvr+s:totalSolverTime()
       end
 
-      local tmVlasovVol, tmVlasovSurf = 0.0, 0.0
+      local tmVlasovStream, tmVlasovForce, tmVlasovIncr = 0.0, 0.0, 0.0
       for _, s in pairs(species) do
-	 tmVlasovVol = tmVlasovVol + s:volTime()
-	 tmVlasovSurf = tmVlasovSurf + s:surfTime()
+	 tmVlasovStream = tmVlasovStream + s:streamTime()
+	 tmVlasovForce = tmVlasovForce + s:forceTime()
+	 tmVlasovIncr = tmVlasovIncr + s:incrementTime()
       end
 
       log(string.format("Vlasov solver took %g sec", tmVlasovSlvr))
-      log(string.format("  [Vol updates took %g sec. Surf updates took %g sec]", tmVlasovVol, tmVlasovSurf))
+      log(string.format(
+	     "  [Streaming updates %g sec. Force updates %g sec]",
+	     tmVlasovStream, tmVlasovForce))
       log(string.format("Main loop completed in %g sec", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end
@@ -597,7 +333,8 @@ App.__index = {
    end
 }
 
--- add to table
-M.App = App
-
-return M
+return {
+   App = App,
+   Species = Species,
+   EmField = Field.EmField,
+}
