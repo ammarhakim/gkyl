@@ -57,7 +57,7 @@ setmetatable(EmField, { __call = function (self, o) return self.new(self, o) end
 -- methods for EM field object
 EmField.__index = {
    hasEB = function (self)
-      return true, false
+      return true, false 
    end,
    setCfl = function(self, cfl)
       self.cfl = cfl
@@ -168,6 +168,7 @@ NoField.__index = {
       return nil, nil, nil
    end,
    forwardEuler = function(self, tCurr, dt, emIn, emOut)
+      return true, GKYL_MAX_DOUBLE
    end,
    applyBc = function(self, tCurr, dt, emIn)
    end,

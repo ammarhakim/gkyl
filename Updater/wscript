@@ -61,5 +61,7 @@ def build(bld):
     vlasovData/VlasovSurfElcSer2x2v.cpp
     vlasovData/VlasovSurfElcSer2x3v.cpp
 
+    vlasovData/VlasovIncr.cpp
+
     """,
     includes = '. vlasovData', target = 'updater')

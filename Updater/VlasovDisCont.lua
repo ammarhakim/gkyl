@@ -10,13 +10,17 @@
 -- Gkyl libraries
 local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
+local ffi = require "ffi"
 local Time = require "Lib.Time"
 local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
 local xsys = require "xsys"
 
--- function that does nothing
-local function doNothing(...)
-   -- deliberately empty
+-- for incrementing in updater
+ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
+
+-- compute accelOut = q/m*forceIn
+local function calcAccelFromForce(qbym, forceIn, accelOut)
+   ffi.C.vlasovIncr(#accelOut, forceIn:data(), qbym, accelOut:data())
 end
 
 -- Vlasov DG solver updater object
@@ -77,7 +81,7 @@ function VlasovDisCont:new(tbl)
    self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
    if hasMagField then -- more complicated functions if there is a magnetic field
-      assert(true, "VlasovDisCont: hasMagField NYI!")
+      assert(false, "VlasovDisCont: hasMagField NYI!")
    end
    
    return self
@@ -88,9 +92,7 @@ setmetatable(VlasovDisCont, { __call = function (self, o) return self.new(self, 
 -- advance method
 local function advance(self, tCurr, dt, inFld, outFld)
    local grid = self._onGrid
-   local fIn = assert(inFld[1], "VlasovDisCont.advance: Must specify an input dist-function")
-   --local emIn = assert(inFld[2], "VlasovDisCont.advance: Must specify an input EM field")
-   
+   local fIn = assert(inFld[1], "VlasovDisCont.advance: Must specify an input dist-function")   
    local fOut = assert(outFld[1], "VlasovDisCont.advance: Must specify an output dist-function")
    
    local localRange = fOut:localRange()
@@ -152,8 +154,13 @@ local function advance(self, tCurr, dt, inFld, outFld)
    self._tmStreamUpdate = self._tmStreamUpdate + Time.clock()-tmStreamStart
 
    if self._hasForceTerm then
+      local emIn = assert(inFld[2], "VlasovDisCont.advance: Must specify an input EM field")
+      local emPtr = emIn:get(1)
+      local emIdxr = emIn:genIndexer()
+      local emAccel = Lin.Vec(emIn:numComponents())
+      
       local tmForceStart = Time.clock()
-      -- accumulate contributions from force direction
+      -- accumulate contributions from force directions
       for dir = cdim+1, pdim do
 	 -- lower/upper bounds in direction 'dir': these are edge indices
 	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
@@ -163,12 +170,13 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 -- loop is over 1D slice in `dir`.
 	 for idx in perpRange:colMajorIter() do
 	    grid:setIndex(idx)
-	    for d = 1, pdim do dx[d] = grid:dx(d) end
+	    for d = 1, cdim do dx[d] = grid:dx(d) end
 	    grid:cellCenter(xc)
 
-	    -- compute local CFL number
-	    local vel = math.abs(xc[dir+cdim]) + 0.5*dx[dir+cdim] -- ptcl velocity at cell edge
-	    cfla = math.max(cfla, vel*dt/dx[dir])
+	    emIn:fill(emIdxr(idx), emPtr) -- get pointer to EM field
+	    calcAccelFromForce(self._qbym, emPtr, emAccel) -- compute acceleration
+
+	    -- NEED TO COMPUTE CFL!!!
 	    
 	    local idxp, idxm = idx:copy(), idx:copy()
 	    for i = dirLoIdx, dirUpIdx do -- this loop is over edges
@@ -177,9 +185,13 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	       fIn:fill(fInIdxr(idxm), fInL); fIn:fill(fInIdxr(idxp), fInR)
 	       fOut:fill(fOutIdxr(idxm), fOutL); fOut:fill(fOutIdxr(idxp), fOutR)
 
-	       -- accumulate contribution from volume and surface force terms
-	       --self._volStreamUpdate(xc:data(), dx:data(), fInR:data(), fOutR:data())
-	       --self._surfStreamUpdate[dir](xc:data(), dx:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
+	       -- accumulate contribution from volume force terms
+	       self._volForceUpdate(xc:data(), dx:data(), emAccel:data(), fInR:data(), fOutR:data())
+	       if i > dirLoIdx and i < dirUpIdx then
+		  -- accumulate contribution from surface force terms (skip contribution from boundary faces)
+		  self._surfForceUpdate[dir-cdim](
+		     xc:data(), dx:data(), emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
+	       end
 	    end
 	 end
       end

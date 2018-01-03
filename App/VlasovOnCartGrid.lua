@@ -199,15 +199,26 @@ local function buildApplication(self, tbl)
       speciesRkFields[nm] = { s:rkStepperFields() } -- package them up as a table
    end
 
+   -- store fields from EM field for RK time-stepper
+   local emRkFields = { field:rkStepperFields() } -- package up as table
+
    -- function to take a single forward-euler time-step
    local function fowardEuler(tCurr, dt, inIdx, outIdx)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      -- update species
       for nm, s in pairs(species) do
-	 local myStatus, myDtSuggested = s:forwardEuler(tCurr, dt, speciesRkFields[nm][inIdx], speciesRkFields[nm][outIdx])
+	 local myStatus, myDtSuggested = s:forwardEuler(
+	    tCurr, dt, speciesRkFields[nm][inIdx], emRkFields[inIdx], speciesRkFields[nm][outIdx])
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
+      -- update EM field
+      local myStatus, myDtSuggested = field:forwardEuler(tCurr, dt, emRkFields[inIdx], emRkFields[outIdx])
+      status = status and myStatus
+      dtSuggested = math.min(dtSuggested, myDtSuggested)
+      field:applyBc(tCurr, dt, emRkFields[outIdx])
+      
       return status, dtSuggested
    end
 
@@ -215,6 +226,9 @@ local function buildApplication(self, tbl)
    local function increment(a, aIdx, b, bIdx, outIdx)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
+      end
+      if emRkFields[aIdx] then -- only increment EM fields if there are any
+	 emRkFields[outIdx]:combine(a, emRkFields[aIdx], b, emRkFields[bIdx])
       end
    end
 
