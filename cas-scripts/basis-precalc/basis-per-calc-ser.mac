@@ -8,3 +8,4 @@ for c : 1 thru 2 do (
 )$
 
 writeBasisToFile(3, 3, 2, makeSerendipBasis, "~/max-out/basisSer3x3v.lisp")$
+writeBasisToFile(3, 2, 2, makeSerendipBasis, "~/max-out/basisSer3x2v.lisp")$
