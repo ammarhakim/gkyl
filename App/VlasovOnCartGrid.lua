@@ -100,6 +100,9 @@ local function buildApplication(self, tbl)
       cflFrac = stepperCFLFracs[timeStepperNm]
    end
 
+   -- Number of fields needed for each stepper type
+   local stepperNumFields = { rk2 = 3, rk3 = 3, rk3s4 = 4 }
+
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
@@ -147,7 +150,7 @@ local function buildApplication(self, tbl)
       s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs)
       s:setConfBasis(confBasis)
       s:createBasis(basisNm, polyOrder)
-      s:alloc()
+      s:alloc(stepperNumFields[timeStepperNm])
    end
 
    -- setup configuration space grid
@@ -160,7 +163,7 @@ local function buildApplication(self, tbl)
    }
 
    -- setup information about fields: if this is not specified, it is
-   -- assumed there are no force terms
+   -- assumed there are no force terms (neutral particles)
    local field = tbl.field and tbl.field or Field.NoField {}
    field:setIoMethod(ioMethod)
    field:setBasis(confBasis)
@@ -170,7 +173,7 @@ local function buildApplication(self, tbl)
       field:setCfl(myCfl)
    end
    -- allocate field data
-   field:alloc()
+   field:alloc(stepperNumFields[timeStepperNm])
 
    -- initialize species solvers
    for _, s in pairs(species) do
@@ -178,11 +181,10 @@ local function buildApplication(self, tbl)
       s:createSolver(hasE, hasB)
    end   
 
-   -- initialize species distributions and write them out
+   -- initialize species distributions and field
    for _, s in pairs(species) do
       s:initDist()
    end
-   -- initialize fields
    field:initField()
 
    -- function to write data to file
@@ -196,11 +198,10 @@ local function buildApplication(self, tbl)
    -- store fields used in RK time-stepping for each species
    local speciesRkFields = { }
    for nm, s in pairs(species) do
-      speciesRkFields[nm] = { s:rkStepperFields() } -- package them up as a table
+      speciesRkFields[nm] = s:rkStepperFields()
    end
-
    -- store fields from EM field for RK time-stepper
-   local emRkFields = { field:rkStepperFields() } -- package up as table
+   local emRkFields = field:rkStepperFields()
 
    -- function to take a single forward-euler time-step
    local function fowardEuler(tCurr, dt, inIdx, outIdx)
@@ -222,13 +223,31 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
-   -- function to increment fields
-   local function increment(a, aIdx, b, bIdx, outIdx)
+   -- functions to copy/increment fields
+   local function increment1(aIdx, outIdx)
+      for nm, s in pairs(species) do
+	 speciesRkFields[nm][outIdx]:copy(speciesRkFields[nm][aIdx])
+      end
+      if emRkFields[aIdx] then -- only increment EM fields if there are any
+	 emRkFields[outIdx]:copy(emRkFields[aIdx])
+      end
+   end   
+   local function increment2(a, aIdx, b, bIdx, outIdx)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
       end
       if emRkFields[aIdx] then -- only increment EM fields if there are any
 	 emRkFields[outIdx]:combine(a, emRkFields[aIdx], b, emRkFields[bIdx])
+      end
+   end
+   local function increment3(a, aIdx, b, bIdx, c, cIdx, outIdx)
+      for nm, s in pairs(species) do
+	 speciesRkFields[nm][outIdx]:combine(
+	    a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx], c, speciesRkFields[nm][cIdx])
+      end
+      if emRkFields[aIdx] then -- only increment EM fields if there are any
+	 emRkFields[outIdx]:combine(
+	    a, emRkFields[aIdx], b, emRkFields[bIdx], c, emRkFields[cIdx])
       end
    end
 
@@ -243,23 +262,57 @@ local function buildApplication(self, tbl)
       -- RK stage 2
       status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
       if status == false then return status, dtSuggested end
-
-      -- final update
-      increment(0.5, 1, 0.5, 3, 2)
-      for nm, s in pairs(species) do
-	 speciesRkFields[nm][1]:copy(speciesRkFields[nm][2])
-      end
+      increment2(1.0/2.0, 1, 1.0/2.0, 3, 2)
+      increment1(2, 1)
+      
       return status, dtSuggested
    end
 
    -- function to advance solution using SSP-RK3 scheme
    function timeSteppers.rk3(tCurr, dt)
+      local status, dtSuggested
+      -- RK stage 1
+      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      if status == false then return status, dtSuggested end
 
+      -- RK stage 2
+      status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
+      if status == false then return status, dtSuggested end
+      increment2(3.0/4.0, 1, 1.0/4.0, 3, 2)
+
+      -- RK stage 3
+      status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
+      if status == false then return status, dtSuggested end
+      increment2(1.0/3.0, 1, 2.0/3.0, 3, 2)
+      increment1(2, 1)
+
+      return status, dtSuggested
    end
 
    -- function to advance solution using 4-stage SSP-RK3 scheme
    function timeSteppers.rk3s4(tCurr, dt)
-      assert(false, "timeSteppers.rk3s4: NYI!")
+      local status, dtSuggested
+      -- RK stage 1
+      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      if status == false then return status, dtSuggested end
+      increment2(1.0/2.0, 1, 1.0/2.0, 2, 3)
+
+      -- RK stage 2
+      status, dtSuggested = fowardEuler(tCurr, dt, 3, 4)
+      if status == false then return status, dtSuggested end
+      increment2(1.0/2.0, 3, 1.0/2.0, 4, 2)
+
+      -- RK stage 3
+      status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
+      if status == false then return status, dtSuggested end
+      increment3(2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3, 4)
+
+      -- RK stage 4
+      status, dtSuggested = fowardEuler(tCurr, dt, 4, 3)
+      if status == false then return status, dtSuggested end
+      increment2(1.0/2.0, 4, 1.0/2.0, 3, 1)
+
+      return status, dtSuggested
    end   
 
    local tmEnd = Time.clock()
@@ -267,7 +320,7 @@ local function buildApplication(self, tbl)
 
    -- return function that runs main simulation loop   
    return function(self)
-      log("Starting main loop of HyperEqnOnCartGrid simulation ...")
+      log("Starting main loop of VlasovOnCartGrid simulation ...")
       local tStart, tEnd, nFrame = 0, tbl.tEnd, tbl.nFrame
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
