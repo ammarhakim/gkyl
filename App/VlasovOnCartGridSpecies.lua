@@ -120,10 +120,10 @@ Species.__index = {
    createBasis = function(self, nm, polyOrder)
       self.basis = createBasis(nm, self.ndim, polyOrder)
    end,
-   alloc = function(self)
+   alloc = function(self, nFields)
       -- allocate fields needed in RK update
       self.distf = {}
-      for i = 1, 3 do
+      for i = 1, nFields do
 	 self.distf[i] = DataStruct.Field {
 	    onGrid = self.grid,
 	    numComponents = self.basis:numBasis(),
@@ -168,7 +168,7 @@ Species.__index = {
       end
    end,
    rkStepperFields = function(self)
-      return self.distf[1], self.distf[2], self.distf[3]
+      return self.distf
    end,
    forwardEuler = function(self, tCurr, dt, fIn, emIn, fOut)
       if self.evolve then

@@ -188,7 +188,9 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	       -- accumulate contribution from volume force terms
 	       self._volForceUpdate(xc:data(), dx:data(), emAccel:data(), fInR:data(), fOutR:data())
 	       if i > dirLoIdx and i < dirUpIdx then
-		  -- accumulate contribution from surface force terms (skip contribution from boundary faces)
+		  -- accumulate contribution from surface force terms
+		  -- (skiping contribution from boundary faces as
+		  -- assuming zero particle flux)
 		  self._surfForceUpdate[dir-cdim](
 		     xc:data(), dx:data(), emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
 	       end

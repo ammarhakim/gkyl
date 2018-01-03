@@ -71,10 +71,10 @@ EmField.__index = {
    setGrid = function(self, grid)
       self.grid = grid
    end,
-   alloc = function(self)
+   alloc = function(self, nField)
       -- allocate fields needed in RK update
       self.em = {}
-      for i = 1, 3 do
+      for i = 1, nField do
 	 self.em[i] = DataStruct.Field {
 	    onGrid = self.grid,
 	    numComponents = self.basis:numBasis(),
@@ -107,7 +107,7 @@ EmField.__index = {
       end
    end,
    rkStepperFields = function(self)
-      return self.em[1], self.em[2], self.em[3]
+      return self.em
    end,
    forwardEuler = function(self, tCurr, dt, emIn, emOut)
       if self.evolve then
@@ -158,7 +158,7 @@ NoField.__index = {
    end,
    setGrid = function(self, grid)
    end,
-   alloc = function(self)
+   alloc = function(self, nField)
    end,
    initField = function(self)
    end,
