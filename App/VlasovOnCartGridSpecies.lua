@@ -170,9 +170,9 @@ Species.__index = {
    rkStepperFields = function(self)
       return self.distf[1], self.distf[2], self.distf[3]
    end,
-   forwardEuler = function(self, tCurr, dt, fIn, fOut)
+   forwardEuler = function(self, tCurr, dt, fIn, emIn, fOut)
       if self.evolve then
-	 return self.vlasovSlvr:advance(tCurr, dt, {fIn}, {fOut})
+	 return self.vlasovSlvr:advance(tCurr, dt, {fIn, emIn}, {fOut})
       else
 	 fOut:copy(fIn) -- just copy stuff over
 	 return true, GKYL_MAX_DOUBLE
