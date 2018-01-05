@@ -8,11 +8,12 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Base = require "Updater.Base"
 local Lin = require "Lib.Linalg"
-local ffi = require "ffi"
+local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
+local UpdaterBase = require "Updater.Base"
 local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
+local ffi = require "ffi"
 local xsys = require "xsys"
 
 -- for incrementing in updater
@@ -24,11 +25,10 @@ local function calcAccelFromForce(qbym, forceIn, accelOut)
 end
 
 -- Vlasov DG solver updater object
-local VlasovDisCont = {}
+local VlasovDisCont = Proto(UpdaterBase)
 
-function VlasovDisCont:new(tbl)
-   local self = setmetatable({}, VlasovDisCont)
-   Base.setup(self, tbl) -- setup base object
+function VlasovDisCont:init(tbl)
+   VlasovDisCont.super.init(self, tbl) -- setup base object
 
    -- read data from input file
    self._onGrid = assert(
@@ -83,14 +83,10 @@ function VlasovDisCont:new(tbl)
    if hasMagField then -- more complicated functions if there is a magnetic field
       assert(false, "VlasovDisCont: hasMagField NYI!")
    end
-   
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(VlasovDisCont, { __call = function (self, o) return self.new(self, o) end })
 
 -- advance method
-local function advance(self, tCurr, dt, inFld, outFld)
+function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local fIn = assert(inFld[1], "VlasovDisCont.advance: Must specify an input dist-function")   
    local fOut = assert(outFld[1], "VlasovDisCont.advance: Must specify an output dist-function")
@@ -234,18 +230,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    return true, dt*cfl/cfla
 end
 
--- Methods in updater
-VlasovDisCont.__index = {
-   advance = Base.advanceFuncWrap(advance),
-   streamTime = function(self)
-      return self._tmStreamUpdate
-   end,
-   forceTime = function(self)
-      return self._tmForceUpdate
-   end,
-   incrementTime = function(self)
-      return self._tmIncrement
-   end
-}
+function VlasovDisCont:streamTime() return self._tmStreamUpdate end
+function VlasovDisCont:forceTime() return self._tmForceUpdate end
+function VlasovDisCont:incrementTime() return self._tmIncrement end
 
 return VlasovDisCont

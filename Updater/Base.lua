@@ -6,18 +6,16 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Time = require "Lib.Time"
 local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
+local Time = require "Lib.Time"
 
 -- system libraries
 local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
 
-local _M = {}
+local _M = Proto()
 
-function _M.setup(self, tbl)
+function _M:init(tbl)
    assert(tbl.onGrid, "Updater.Base: Must provide grid object using 'onGrid'")
    self._comm = tbl.onGrid:commSet().comm
    self._sharedComm = tbl.onGrid:commSet().sharedComm
@@ -25,27 +23,30 @@ function _M.setup(self, tbl)
    self.totalTime = 0.0 
 end
 
--- This function wraps an updater's advance() function and adds a
--- "totalTime" field to the updater, and also synchronizes the status
--- and time-step suggestion across processors.
-function _M.advanceFuncWrap(advanceFunc)
-   return function(self, tCurr, dt, inFld, outFld)
-      local tmStart = Time.clock()
-      -- >>> Take the time-step
-      local _status, _dtSuggested = advanceFunc(self, tCurr, dt, inFld, outFld)
-      -- >>> Done with advance
-      self.totalTime = self.totalTime + (Time.clock()-tmStart)
+-- must be provided by derived objects
+function _M:_advance(tCurr, dt, inFld, outFld)
+   assert(true, "_advance method not provided!")
+end
 
-      -- reduce across processors ...
-      local myStatus, myDtSuggested = new("int[1]"), new("double[1]")
-      local status, dtSuggested = new("int[1]"), new("double[1]")      
-      myStatus[0] = _status and 1 or 0; myDtSuggested[0] = _dtSuggested
+-- This function wraps derived updater's _advance() function and
+-- computes a "totalTime", and also synchronizes the status and
+-- time-step suggestion across processors.
+function _M:advance(tCurr, dt, inFld, outFld)
+   local tmStart = Time.clock()
+   -- >>> Take the time-step
+   local _status, _dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
+   -- >>> Done with advance
+   self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
-      Mpi.Allreduce(myStatus, status, 1, Mpi.INT, Mpi.MIN, self._nodeComm)
-      Mpi.Allreduce(myDtSuggested, dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._nodeComm)
-
-      return status[0] == 1 and true or false, dtSuggested[0]
-   end
+   -- reduce across processors ...
+   local myStatus, myDtSuggested = ffi.new("int[1]"), ffi.new("double[1]")
+   local status, dtSuggested = ffi.new("int[1]"), ffi.new("double[1]")      
+   myStatus[0] = _status and 1 or 0; myDtSuggested[0] = _dtSuggested
+   
+   Mpi.Allreduce(myStatus, status, 1, Mpi.INT, Mpi.MIN, self._nodeComm)
+   Mpi.Allreduce(myDtSuggested, dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._nodeComm)
+   
+   return status[0] == 1 and true or false, dtSuggested[0]
 end
 
 return _M

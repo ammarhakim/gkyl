@@ -8,29 +8,25 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Base = require "Updater.Base"
 local Mpi = require "Comm.Mpi"
+local Proto = require "Proto"
+local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
 
 -- Updater to computer diagnostic
-local CalcDiagnostic = {}
+local CalcDiagnostic = Proto(UpdaterBase)
 
 -- Constructor: read data from tbl
-function CalcDiagnostic:new(tbl)
-   local self = setmetatable({}, CalcDiagnostic)
-   Base.setup(self, tbl) -- setup base object
+function CalcDiagnostic:init(tbl)
+   CalcDiagnostic.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.CalcDiagnostic: Must provide grid object using 'onGrid'")
    -- diagnostic function
    self._diagnostic = assert(tbl.diagnostic, "Updater.CalcDiagnostic: Must specify diagnostic using 'diagnostic'")
-
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(CalcDiagnostic, { __call = function (self, o) return self.new(self, o) end })
 
 -- advance method computes diagnostic across MPI ranks
-local function advance(self, tCurr, dt, inFld, outFld)
+function CalcDiagnostic:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local qIn = assert(inFld[1], "CalcDiagnostic.advance: Must specify an output field")
    local dynOut = assert(outFld[1], "CalcDiagnostic.advance: Must specify an output field")
@@ -56,8 +52,5 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
    return true, GKYL_MAX_DOUBLE
 end
-
--- Methods in updater
-CalcDiagnostic.__index = { advance = Base.advanceFuncWrap(advance) }
 
 return CalcDiagnostic

@@ -16,7 +16,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local Range = require "Lib.Range"
+local Proto = require "Lib.Proto"
 
 -- SparseTriples ---------------------------------------------------------------
 --
@@ -24,45 +24,25 @@ local Range = require "Lib.Range"
 -- matrices for linear system solvers.
 --------------------------------------------------------------------------------
 
-local SparseTriples = {}
-function SparseTriples:new(tbl)
-   local self = setmetatable({}, SparseTriples)
+local SparseTriples = Proto()
 
+function SparseTriples:init(tbl)
    self._nRows = tbl[1]
    self._nCols = tbl[2]
 
    local allocator = Alloc.createAllocator("struct { int i ,j; double val; }")
    self._triples = allocator() -- triples
    self._tmpTriple = new("struct { int i ,j; double val; }") -- temp storage for single entry
-
-   return self
 end
-setmetatable(SparseTriples, { __call = function (self, o) return self.new(self, o) end })
 
--- callable methods
-local sparseTriple_funcs = {
-   numRows = function(self)
-      return self._nRows
-   end,
-   numColumns = function (self)
-      return self._nCols
-   end,
-   size = function (self)
-      return self._triples:size()
-   end,
-   append = function(self, i, j, val)
-      self._tmpTriple.i, self._tmpTriple.j, self._tmpTriple.val = i, j, val
-      self._triples:push(self._tmpTriple)
-   end,
-}
+function SparseTriples:numRows() return self._nRows end
+function SparseTriples:numColumns() return self._nCols end
+function SparseTriples:size() return self._triples:size() end
+function SparseTriples:get(k) return self._triples[k] end
 
--- dispatch object calls
-SparseTriples.__index = function (self, k)
-   if type(k) == "number" then
-      return self._triples[k]
-   else
-      return sparseTriple_funcs[k]
-   end
+function SparseTriples:append(i, j, val)
+   self._tmpTriple.i, self._tmpTriple.j, self._tmpTriple.val = i, j, val
+   self._triples:push(self._tmpTriple)
 end
 
 return {SparseTriples = SparseTriples}

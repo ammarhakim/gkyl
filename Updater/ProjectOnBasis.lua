@@ -10,16 +10,15 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local Base = require "Updater.Base"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Lin = require "Lib.Linalg"
+local Proto = require "Proto"
 local Range = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
 
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
 
 -- Template for function to map computional space -> physical space
 local compToPhysTempl = xsys.template([[
@@ -31,11 +30,10 @@ end
 ]])
 
 -- Projection  updater object
-local ProjectOnBasis = {}
+local ProjectOnBasis = Proto(UpdaterBase)
 
-function ProjectOnBasis:new(tbl)
-   local self = setmetatable({}, ProjectOnBasis)
-   Base.setup(self, tbl) -- setup base object
+function ProjectOnBasis:init(tbl)
+   ProjectOnBasis.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.ProjectOnBasis: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.ProjectOnBasis: Must specify basis functions to use using 'basis'")
@@ -76,14 +74,10 @@ function ProjectOnBasis:new(tbl)
 
    -- construct various functions from template representations
    self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
-
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(ProjectOnBasis, { __call = function (self, o) return self.new(self, o) end })
 
 -- advance method
-local function advance(self, tCurr, dt, inFld, outFld)
+function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local qOut = assert(outFld[1], "ProjectOnBasis.advance: Must specify an output field")
 
@@ -136,8 +130,5 @@ local function advance(self, tCurr, dt, inFld, outFld)
    
    return true, GKYL_MAX_DOUBLE
 end
-
--- Methods in updater
-ProjectOnBasis.__index = { advance = Base.advanceFuncWrap(advance) }
 
 return ProjectOnBasis
