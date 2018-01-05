@@ -7,14 +7,12 @@
 
 -- system libraries
 local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries
-local Range = require "Lib.Range"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
 
 -- create constructor to store vector of Range objects
 local RangeVec = Lin.new_vec_ct(ffi.typeof("Range_t"))
@@ -27,11 +25,9 @@ local PairsVec = Lin.new_vec_ct(ffi.typeof("struct { int32_t lower, upper; } "))
 -- DecomposedRange object
 --------------------------------------------------------------------------------
 
-local DecomposedRange = {}
+local DecomposedRange = Proto()
 -- constructor to make object that stores decomposed ranges
-function DecomposedRange:new(decomp)
-   local self = setmetatable({}, DecomposedRange)
-
+function DecomposedRange:init(decomp)
    local ones, upper = {}, {}
    for d = 1, decomp:ndim() do
       ones[d] = 1; upper[d] = decomp:cuts(d)
@@ -68,33 +64,15 @@ function DecomposedRange:new(decomp)
 	 c = c+1
       end
    end   
-   
-   return self   
 end
--- make object callable, and redirect call to the :new method
-setmetatable(DecomposedRange, { __call = function (self, o) return self.new(self, o) end })
 
 -- set callable methods
-DecomposedRange.__index = {
-   commSet = function (self)
-      return self._commSet
-   end,
-   ndim = function (self)
-      return self._cutsRange:ndim()
-   end,
-   cuts = function (self, dir)
-      return self._cutsRange:upper(dir)
-   end,
-   numSubDomains = function (self)
-      return self._cutsRange:volume()
-   end,
-   subDomain = function (self, k)
-      return self._domains[k]
-   end,
-   boundarySubDomainIds = function (self, dir)
-      return self._periodicDomPairs[dir]
-   end,
-}
+function DecomposedRange:commSet() return self._commSet end
+function DecomposedRange:ndim() return self._cutsRange:ndim() end
+function DecomposedRange:cuts(dir) return self._cutsRange:upper(dir) end
+function DecomposedRange:numSubDomains() return self._cutsRange:volume() end
+function DecomposedRange:subDomain(k) return self._domains[k] end
+function DecomposedRange:boundarySubDomainIds(dir) return self._periodicDomPairs[dir] end
 
 -- CartProdDecomp --------------------------------------------------------------
 --
@@ -102,11 +80,9 @@ DecomposedRange.__index = {
 -- cuts in each direction
 --------------------------------------------------------------------------------
 
-local CartProdDecomp = {}
+local CartProdDecomp = Proto()
 -- constructor to make new cart-prod decomp
-function CartProdDecomp:new(tbl)
-   local self = setmetatable({}, CartProdDecomp)
-   
+function CartProdDecomp:init(tbl)
    local ones = {}
    for d = 1, #tbl.cuts do ones[d] = 1 end
 
@@ -172,62 +148,49 @@ function CartProdDecomp:new(tbl)
    self._commSet = {
       comm = comm, sharedComm = shmComm, nodeComm = nodeComm
    }
-   
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(CartProdDecomp, { __call = function (self, o) return self.new(self, o) end })
 
 -- set callable methods
-CartProdDecomp.__index = {
-   commSet = function (self)
-      return self._commSet
-   end,
-   ndim = function (self)
-      return self._cutsRange:ndim()
-   end,
-   cuts = function (self, dir)
-      return self._cutsRange:upper(dir)
-   end,
-   isShared = function (self)
-      return self._useShared
-   end,
-   decompose = function (self, range) -- decompose range
-      local decompRgn = DecomposedRange(self)
-      
-      local shapes, starts = {}, {} -- to store shapes, start in each direction
-      -- compute shape and start index in each direction
+function CartProdDecomp:commSet() return self._commSet end
+function CartProdDecomp:ndim() return self._cutsRange:ndim() end
+function CartProdDecomp:cuts(dir) return self._cutsRange:upper(dir) end
+function CartProdDecomp:isShared() return self._useShared end
+
+function CartProdDecomp:decompose(range) -- decompose range
+   local decompRgn = DecomposedRange(self)
+   
+   local shapes, starts = {}, {} -- to store shapes, start in each direction
+   -- compute shape and start index in each direction
+   for dir = 1, range:ndim() do
+      shapes[dir] = Lin.IntVec(self:cuts(dir))
+      local baseShape = math.floor(range:shape(dir)/self:cuts(dir))
+      local remCells = range:shape(dir) % self:cuts(dir) -- extra cells left over
+      for c = 1, self:cuts(dir) do
+	 shapes[dir][c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell if any remain
+	 remCells = remCells-1
+      end
+
+      starts[dir] = Lin.IntVec(self:cuts(dir))
+      starts[dir][1] = range:lower(dir)
+      for c = 2, self:cuts(dir) do
+	 starts[dir][c] = starts[dir][c-1] + shapes[dir][c-1]
+      end
+   end
+
+   local c = 1
+   -- add regions
+   for idx in self._cutsRange:colMajorIter() do
+      local l, u = {}, {}
       for dir = 1, range:ndim() do
-	 shapes[dir] = Lin.IntVec(self:cuts(dir))
-	 local baseShape = math.floor(range:shape(dir)/self:cuts(dir))
-	 local remCells = range:shape(dir) % self:cuts(dir) -- extra cells left over
-	 for c = 1, self:cuts(dir) do
-	    shapes[dir][c] = baseShape + (remCells>0 and 1 or 0) -- add extra cell if any remain
-	    remCells = remCells-1
-	 end
-
-	 starts[dir] = Lin.IntVec(self:cuts(dir))
-	 starts[dir][1] = range:lower(dir)
-	 for c = 2, self:cuts(dir) do
-	    starts[dir][c] = starts[dir][c-1] + shapes[dir][c-1]
-	 end
+	 l[dir] = starts[dir][idx[dir]]
+	 u[dir] = l[dir]+shapes[dir][idx[dir]]-1
       end
+      decompRgn._domains[c] = Range.Range(l, u)
+      c = c+1
+   end
 
-      local c = 1
-      -- add regions
-      for idx in self._cutsRange:colMajorIter() do
-	 local l, u = {}, {}
-	 for dir = 1, range:ndim() do
-	    l[dir] = starts[dir][idx[dir]]
-	    u[dir] = l[dir]+shapes[dir][idx[dir]]-1
-	 end
-	 decompRgn._domains[c] = Range.Range(l, u)
-	 c = c+1
-      end
-
-      return decompRgn
-   end,
-}
+   return decompRgn
+end
 
 return {
    CartProd = CartProdDecomp,

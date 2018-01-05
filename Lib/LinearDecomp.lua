@@ -5,26 +5,20 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
-local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
-
 -- gkyl libraries
-local Range = require "Lib.Range"
 local Lin = require "Lib.Linalg"
+local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
 
 -- LinearDecomp ----------------------------------------------------------------
 --
 --  Decompose N elements equitably amongst a given number of "threads"
 --------------------------------------------------------------------------------
 
-local LinearDecomp = {}
--- constructor to make object that stores decomposed ranges
-function LinearDecomp:new(tbl)
-   local self = setmetatable({}, LinearDecomp)
+local LinearDecomp = Proto()
 
+-- constructor to make object that stores decomposed ranges
+function LinearDecomp:init(tbl)
    local domSize, numSplit = tbl.domSize, tbl.numSplit
    self._domSize, self._numSplit  = tbl.domSize, tbl.numSplit
 
@@ -40,40 +34,22 @@ function LinearDecomp:new(tbl)
    for c = 2, numSplit do
       self._start[c] = self._start[c-1]+self._shape[c-1]
    end
-   
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(LinearDecomp, { __call = function (self, o) return self.new(self, o) end })
 
-LinearDecomp.__index = {
-   domSize = function (self)
-      return self._domSize
-   end,
-   numSplit = function (self)
-      return self._numSplit
-   end,
-   lower = function (self, n)
-      return self._start[n]
-   end,
-   upper = function (self, n)
-      return self._start[n]+self._shape[n]-1
-   end,
-   shape = function (self, n)
-      return self._shape[n]
-   end,
-}
+function LinearDecomp:domSize() return self._domSize end
+function LinearDecomp:numSplit() return self._numSplit end
+function LinearDecomp:lower(n) return self._start[n] end
+function LinearDecomp:upper(n) return self._start[n]+self._shape[n]-1 end
+function LinearDecomp:shape(n) return self._shape[n] end
 
 -- LinearDecompRange -----------------------------------------------------------
 --
 --  Decompose a range object using a linear decomposition
 --------------------------------------------------------------------------------
 
-local LinearDecompRange = {}
--- constructor to make object that stores decomposed ranges
-function LinearDecompRange:new(tbl)
-   local self = setmetatable({}, LinearDecompRange)
+local LinearDecompRange = Proto()
 
+function LinearDecompRange:init(tbl)
    local r = tbl.range -- range to split   
    -- create linear decomp object
    self._linearDecomp = LinearDecomp {
@@ -97,35 +73,15 @@ function LinearDecompRange:new(tbl)
       rowInvIndexer(self._linearDecomp:lower(d), idx)
       self._rowStartIdx[d] = idx
    end   
-
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(LinearDecompRange, { __call = function (self, o) return self.new(self, o) end })
 
-LinearDecompRange.__index = {
-   domSize = function (self)
-      return self._linearDecomp:domSize()
-   end,
-   numSplit = function (self)
-      return self._linearDecomp:numSplit()
-   end,
-   lower = function (self, n)
-      return self._linearDecomp:lower(n)
-   end,
-   upper = function (self, n)
-      return self._linearDecomp:upper(n)
-   end,   
-   shape = function (self, n)
-      return self._linearDecomp:shape(n)
-   end,
-   rowStartIndex = function (self, n)
-      return self._rowStartIdx[n]
-   end,
-   colStartIndex = function (self, n)
-      return self._colStartIdx[n]
-   end,   
-}
+function LinearDecompRange:domSize() return self._linearDecomp:domSize() end
+function LinearDecompRange:numSplit() return self._linearDecomp:numSplit() end
+function LinearDecompRange:lower(n) return self._linearDecomp:lower(n) end
+function LinearDecompRange:upper(n) return self._linearDecomp:upper(n) end
+function LinearDecompRange:shape(n) return self._linearDecomp:shape(n) end
+function LinearDecompRange:rowStartIndex(n) return self._rowStartIdx[n] end
+function LinearDecompRange:colStartIndex(n) return self._colStartIdx[n] end
 
 return {
    LinearDecomp = LinearDecomp,
