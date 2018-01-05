@@ -147,9 +147,9 @@ function DistFuncMomentCalc:new(tbl)
    elseif mom == "pressure-tensor" then
       self._momCalcFun = pickPressureFunc(self._cDim, self._vDim, id, polyOrder)
    elseif mom == "heat-flux-tensor" then
-      assert(true, "Updater.DistFuncMomentCalc: 'heat-flux-tensor' NYI!")
+      assert(false, "Updater.DistFuncMomentCalc: 'heat-flux-tensor' NYI!")
    elseif mom == "heat-flux-vector" then
-      assert(true, "Updater.DistFuncMomentCalc: 'heat-flux-vector' NYI!")
+      assert(false, "Updater.DistFuncMomentCalc: 'heat-flux-vector' NYI!")
    else
       assert(false, "Updater.DistFuncMomentCalc: Did not recognize moment type " .. mom)
    end
