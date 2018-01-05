@@ -7,22 +7,20 @@
 
 -- system libraries
 local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries
-local Lin = require "Lib.Linalg"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Range = require "Lib.Range"
+local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
 
 -- Determine local domain index. This is complicated by the fact that
 -- when using MPI-SHM the processes that live in shmComm all have the
 -- same domain index. Hence, we need to use rank from nodeComm and
 -- broadcast it to everyone in shmComm.
 local function getSubDomIndex(nodeComm, shmComm)
-   local idx = new("int[1]")
+   local idx = ffi.new("int[1]")
    if Mpi.Is_comm_valid(nodeComm) then
       idx[0] = Mpi.Comm_rank(nodeComm)+1 -- sub-domains are indexed from 1
    end
@@ -32,9 +30,15 @@ local function getSubDomIndex(nodeComm, shmComm)
    return idx[0]
 end
 
--- Method to initialize basic elements in a cartesian grid. Used by
--- uniform and non-uniform grid objects
-local function initCartGrid(self, tbl)
+-- RectCart --------------------------------------------------------------------
+--
+-- A uniform Cartesian grid
+--------------------------------------------------------------------------------
+
+-- Uniform Cartesian grid
+local RectCart = Proto()
+
+function RectCart:init(tbl)
    local cells = tbl.cells
    self._ndim = #cells -- dimensions
    -- default grid extents
@@ -97,80 +101,34 @@ local function initCartGrid(self, tbl)
    end
 end
 
--- RectCart --------------------------------------------------------------------
---
--- A uniform Cartesian grid
---------------------------------------------------------------------------------
-
--- Uniform Cartesian grid
-local RectCart = {}
--- constructor to make a new uniform grid
-function RectCart:new(tbl)
-   local self = setmetatable({}, RectCart)
-   initCartGrid(self, tbl)
-   return self
+-- member functions
+function RectCart:commSet() return self._commSet end 
+function RectCart:isShared() return self._isShared end
+function RectCart:subGridId() return self._block end
+function RectCart:numSharedProcs() return Mpi.Comm_size(self._commSet.sharedComm) end
+function RectCart:decomposedRange() return self._decomposedRange end
+function RectCart:ndim() return self._ndim end
+function RectCart:lower(dir) return self._lower[dir] end
+function RectCart:upper(dir) return self._upper[dir] end
+function RectCart:numCells(dir) return self._numCells[dir] end
+function RectCart:localRange() return self._localRange end
+function RectCart:globalRange() return self._globalRange end
+function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
+function RectCart:setIndex(idx)
+   for d = 1, self._ndim do
+      self._currIdx[d] = idx[d]
+   end
 end
--- make object callable, and redirect call to the :new method
-setmetatable(RectCart, { __call = function (self, o) return self.new(self, o) end })
-
--- set callable methods
-RectCart.__index = {
-   commSet = function (self)
-      return self._commSet
-   end,
-   isShared = function (self)
-      return self._isShared
-   end,
-   subGridId = function (self)
-      return self._block
-   end,
-   numSharedProcs = function (self)
-      return Mpi.Comm_size(self._commSet.sharedComm)
-   end,
-   decomposedRange = function (self)
-      return self._decomposedRange
-   end,
-   ndim = function (self)
-      return self._ndim
-   end,
-   lower = function (self, dir)
-      return self._lower[dir]
-   end,
-   upper = function (self, dir)
-      return self._upper[dir]
-   end,
-   numCells = function (self, dir)
-      return self._numCells[dir]
-   end,
-   localRange = function (self)
-      return self._localRange
-   end,
-   globalRange = function (self)
-      return self._globalRange
-   end,
-   isDirPeriodic = function (self, dir)
-      return self._isDirPeriodic[dir]
-   end,
-   setIndex = function(self, idx)
-      for d = 1, self._ndim do
-      	 self._currIdx[d] = idx[d]
-      end
-   end,
-   dx = function (self, dir)
-      return self._dx[dir]
-   end,
-   cellCenterInDir = function (self, d)
-      return self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
-   end,
-   cellCenter = function (self, xc)
-      for d = 1, self._ndim do
-	 xc[d] = self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
-      end
-   end,
-   cellVolume = function (self)
-      return self._vol
-   end,
-}
+function RectCart:dx(dir) return self._dx[dir] end
+function RectCart:cellCenterInDir(d)
+   return self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
+end
+function RectCart:cellCenter(xc)
+   for d = 1, self._ndim do
+      xc[d] = self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
+   end
+end
+function RectCart:cellVolume() return self._vol end
 
 -- NonUniformRectCartGrid ----------------------------------------------------------------------
 --
@@ -196,12 +154,10 @@ local function fillWithMappedNodeCoords(lower, upper, ncell, mapFunc, vcoords)
    end
 end
 
-local NonUniformRectCart = {}
--- constructor to make a new non-uniform grid
-function NonUniformRectCart:new(tbl)
-   local self = setmetatable({}, NonUniformRectCart)
-
-   initCartGrid(self, tbl) -- initialize basic stuff
+local NonUniformRectCart = Proto(RectCart) -- extends RectCart
+-- ctor
+function NonUniformRectCart:init(tbl)
+   NonUniformRectCart.super.init(self, tbl)
 
    local ndim = self._ndim
    -- set grid index to first cell in domain
@@ -229,80 +185,34 @@ function NonUniformRectCart:new(tbl)
 	    mapFunc, self._nodeCoords[d])
       end
    end
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable (NonUniformRectCart, { __call = function (self, o) return self.new(self, o) end })
 
--- set callable methods
-NonUniformRectCart.__index = {
-   commSet = function (self)
-      return self._commSet
-   end,
-   isShared = function (self)
-      return self._isShared
-   end,   
-   subGridId = function (self)
-      return self._block
-   end,
-   numSharedProcs = function (self)
-      return Mpi.Comm_size(self._commSet.sharedComm)
-   end,
-   decomposedRange = function (self)
-      return self._decomposedRange
-   end,
-   ndim = function (self)
-      return self._ndim
-   end,
-   lower = function (self, dir)
-      return self._nodeCoords[dir][1]
-   end,
-   upper = function (self, dir)
-      return self._nodeCoords[dir][self:numCells(dir)+1]
-   end,
-   numCells = function (self, dir)
-      return self._numCells[dir]
-   end,
-   nodeCoords = function (self, dir)
-      return self._nodeCoords[dir]
-   end,
-   localRange = function (self)
-      return self._localRange
-   end,
-   globalRange = function (self)
-      return self._globalRange
-   end,
-   isDirPeriodic = function (self, dir)
-      return self._isDirPeriodic[dir]
-   end,
-   setIndex = function(self, idx)
-      for d = 1, self:ndim() do
-	 self._currIdx[d] = idx[d]
-      end
-   end,
-   dx = function (self, dir)
-      local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
-      return nodeCoords[idx[dir]+1]-nodeCoords[idx[dir]]
-   end,
-   cellCenterInDir = function (self, d)
+-- member functions
+function NonUniformRectCart:lower(dir) return self._nodeCoords[dir][1] end
+function NonUniformRectCart:upper(dir) return self._nodeCoords[dir][self:numCells(dir)+1] end
+function NonUniformRectCart:nodeCoords(dir) return self._nodeCoords[dir] end
+function NonUniformRectCart:dx(dir)
+   local nodeCoords, idx = self:nodeCoords(dir), self._currIdx
+   return nodeCoords[idx[dir]+1]-nodeCoords[idx[dir]]
+end
+function NonUniformRectCart:cellCenterInDir(d)
+   local nodeCoords = self:nodeCoords(d)
+   return 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
+end
+function NonUniformRectCart:cellCenter(xc)
+   local idx = self._currIdx
+   for d = 1, self._ndim do
       local nodeCoords = self:nodeCoords(d)
-      return 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
-   end,   
-   cellCenter = function (self, xc)
-      local idx = self._currIdx
-      for d = 1, self._ndim do
-	 local nodeCoords = self:nodeCoords(d)
-	 xc[d] = 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
-      end
-   end,
-   cellVolume = function (self)
-      local v = 1.0
-      for d = 1, self:ndim() do
-	 v = v*self:dx(d)
-      end
-      return v
-   end,
-}
+      xc[d] = 0.5*(nodeCoords[idx[d]+1]+nodeCoords[idx[d]])
+   end
+end
+function NonUniformRectCart:cellVolume()
+   local v = 1.0
+   for d = 1, self:ndim() do
+      v = v*self:dx(d)
+   end
+   return v
+end
 
 return {
    RectCart = RectCart,
