@@ -36,7 +36,7 @@ function test_1()
    -- test copy
    for i = 1, #vcopy1 do
       assert_equal((i+0.5)*0.1, vcopy1[i], "Checking vector copy")
-   end   
+   end
 end
 
 function test_2()

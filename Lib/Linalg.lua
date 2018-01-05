@@ -44,7 +44,7 @@ local function new_vec_ct(elct)
       end,
       copyInto = function (self, vecOut)
 	 vec_memcpy(vecOut, self)
-      end,      
+      end,
    }
    local vec_mt = {
       __new = function(ct, n)
@@ -118,6 +118,9 @@ local function new_mat_ct(elct)
 	 local m = mat_alloc(self, self._n, self._m)
 	 mat_memcpy(m, self)
 	 return m
+      end,
+      copyInto = function (self, matOut)
+	 mat_memcpy(matOut, self)
       end,
       numRows = function (self)
 	 return self._n

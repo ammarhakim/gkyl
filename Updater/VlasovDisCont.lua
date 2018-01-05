@@ -102,9 +102,10 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local fInPtr, fOutPtr = fIn:get(1), fOut:get(1)
    local fInL, fInR = fIn:get(1), fIn:get(1)
    local fOutL, fOutR = fOut:get(1), fOut:get(1)
-
+   
    local pdim, cdim, vdim = self._pdim, self._cdim, self._vdim
    local dx, xc = Lin.Vec(pdim), Lin.Vec(pdim)
+   local idxp, idxm = Lin.IntVec(pdim), Lin.IntVec(pdim)
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
 
@@ -143,8 +144,9 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 -- compute local CFL number
 	 local vel = math.abs(xc[dir+cdim]) + 0.5*dx[dir+cdim] -- ptcl velocity at cell edge
 	 cfla = math.max(cfla, vel*dt/dx[dir])
-	 
-	 local idxp, idxm = idx:copy(), idx:copy()
+
+	 idx:copyInto(idxp); idx:copyInto(idxm) -- idxm/idxp pointers to left/right cells
+
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
@@ -192,8 +194,9 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    calcAccelFromForce(self._qbym, emPtr, emAccel) -- compute acceleration
 
 	    -- NEED TO COMPUTE CFL!!!
-	    
-	    local idxp, idxm = idx:copy(), idx:copy()
+
+	    idx:copyInto(idxp); idx:copyInto(idxm) -- idxm/idxp pointers to left/right cells
+
 	    for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	       idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
