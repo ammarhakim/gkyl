@@ -8,14 +8,12 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Base = require "Updater.Base"
+local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
+local Proto = require "Lib.Proto"
 
 -- system libraries
 local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
 
 -- Define C types for storing private data for use in updater
 ffi.cdef [[
@@ -54,15 +52,14 @@ local function updateSrcTimeCentered(self, dt, dt1, dt2, fPtr, emPtr)
 end
 
 -- Five-moment source updater object
-local FiveMomentSrc = {}
--- constructor
-function FiveMomentSrc:new(tbl)
-   local self = setmetatable({}, FiveMomentSrc)
-   Base.setup(self, tbl) -- setup base object
+local FiveMomentSrc = Proto(UpdaterBase)
+
+function FiveMomentSrc:init(tbl)
+   FiveMomentSrc.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(tbl.onGrid, "Updater.FiveMomentSrc: Must provide grid object using 'onGrid'")
 
-   self._sd = ffi.new(typeof("FiveMomentSrcData_t"))   
+   self._sd = ffi.new(ffi.typeof("FiveMomentSrcData_t"))   
    -- Read in solver parameters
    self._sd.nFluids = assert(tbl.numFluids, "Updater.FiveMomentSrc: Must specify number of fluid using 'numFluids'")
 
@@ -96,14 +93,10 @@ function FiveMomentSrc:new(tbl)
    elseif scheme == "time-centered" then
       self._updateSrc = updateSrcTimeCentered
    end
-
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(FiveMomentSrc, { __call = function (self, o) return self.new(self, o) end })
 
 -- advance method
-local function advance(self, tCurr, dt, inFld, outFld)
+function FiveMomentSrc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local nFluids = self._sd.nFluids
    
@@ -138,8 +131,5 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
    return true, GKYL_MAX_DOUBLE
 end
-
--- Methods for wave-propagation scheme
-FiveMomentSrc.__index = { advance = Base.advanceFuncWrap(advance) }
 
 return FiveMomentSrc

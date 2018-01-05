@@ -9,15 +9,13 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local Base = require "Updater.Base"
+local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Range = require "Lib.Range"
+local Proto = require "Lib.Proto"
 
 -- system libraries
 local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
 
 -- makes dispatching into appropriate module easier
 local maxModNames = {
@@ -82,36 +80,11 @@ local function pickEnergyFunc(cDim, vDim, bId, polyOrder)
    return m.energy[polyOrder]
 end
 
--- set field values to zero
-local function scaleField(field, scale)
-   local localRange, indexer = field:localRange(), field:genIndexer()
-   for idx in localRange:colMajorIter() do
-      local fitr = field:get(indexer(idx))
-      for k = 1, field:numComponents() do
-	 fitr[k] = fitr[k]*scale
-      end
-   end
-end
-
--- templates for various functions
-local calcGridQuantTempl = xsys.template([[
-return function (grid, xcp, dv, w)
-  local vol = 1.0
-|for d = 1, VDIM do
-   dv[${d}] = grid:dx(${CDIM}+${d})
-   w[${d}] = xcp[${CDIM}+${d}]
-   vol = vol*dv[${d}]
-|end
-   return vol
-end
-]])
-
 -- Moments updater object
-local DistFuncMomentCalc = {}
+local DistFuncMomentCalc = Proto(UpdaterBase)
 
-function DistFuncMomentCalc:new(tbl)
-   local self = setmetatable({}, DistFuncMomentCalc)
-   Base.setup(self, tbl) -- setup base object
+function DistFuncMomentCalc:init(tbl)
+   DistFuncMomentCalc.super.init(self, tbl) -- setup base object
 
    self._onGrid = assert(
       tbl.onGrid, "Updater.DistFuncMomentCalc: Must provide grid object using 'onGrid'")
@@ -153,17 +126,10 @@ function DistFuncMomentCalc:new(tbl)
    else
       assert(false, "Updater.DistFuncMomentCalc: Did not recognize moment type " .. mom)
    end
-
-   -- construct various functions from template representations
-   self._calcGridQuant = loadstring(calcGridQuantTempl {VDIM = self._vDim, CDIM = self._cDim} )()
-   
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(DistFuncMomentCalc, { __call = function (self, o) return self.new(self, o) end })
 
 -- advance method
-local function advance(self, tCurr, dt, inFld, outFld)
+function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local distf = assert(inFld[1], "DistFuncMomentCalc:advance: Must supply input distribution function")
    local mom = assert(outFld[1], "DistFuncMomentCalc:advance: Must supply output moment field")
@@ -187,14 +153,13 @@ local function advance(self, tCurr, dt, inFld, outFld)
 
    local distfItr, momItr = distf:get(1), mom:get(1)
 
-   scaleField(mom, 0.0) -- zero out moments
+   mom:scale(0.0) -- zero out moments
    local refVol = 2^vDim -- volume of velocity space reference cell
    
    -- loop, computing moments in each cell
    for idx in localExtRange:colMajorIter() do
       grid:setIndex(idx); grid:cellCenter(xcp)
       -- compute velocity cell spacing, cell-center and volume
-      -- local vol = self._calcGridQuant(grid, xcp, dv, w)
       local vol = 1.0
       for d = 1, vDim do
       	 dv[d] = grid:dx(cDim+d)
@@ -215,8 +180,5 @@ local function advance(self, tCurr, dt, inFld, outFld)
    
    return true, GKYL_MAX_DOUBLE
 end
-
--- Methods in updater
-DistFuncMomentCalc.__index = { advance = Base.advanceFuncWrap(advance) }
 
 return DistFuncMomentCalc

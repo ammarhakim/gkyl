@@ -13,9 +13,10 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Base = require "Updater.Base"
-local Lin = require "Lib.Linalg"
 local Alloc = require "Lib.Alloc"
+local UpdaterBase = require "Updater.Base"
+local Lin = require "Lib.Linalg"
+local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 
 -- system libraries
@@ -153,12 +154,11 @@ local function clearSliceData(sd)
 end
 
 -- Wave-propagation updater object
-local WavePropagation = {}
+local WavePropagation = Proto(UpdaterBase)
 
 -- constructor
-function WavePropagation:new(tbl)
-   local self = setmetatable({}, WavePropagation)
-   Base.setup(self, tbl) -- setup base object
+function WavePropagation:init(tbl)
+   WavePropagation.super.init(self, tbl) -- setup base object
 
    -- read data from input table
    self._onGrid = assert(tbl.onGrid, "Updater.WavePropagation: Must provide grid object using 'onGrid'")
@@ -197,21 +197,11 @@ function WavePropagation:new(tbl)
    self._rescaleWave = loadstring( rescaleWaveTempl {MEQN = meqn} )()
    self._secondOrderFlux = loadstring( secondOrderFluxTempl {MEQN = meqn} )()
    self._secondOrderUpdate = loadstring( secondOrderUpdateTempl {MEQN = meqn} )()
-
-   -- timers for various stages in algorithm
-   self._tmFirstOrderUpdates = 0.0
-   self._tmLimiters = 0.0
-   self._tmSecondOrderUpdates = 0.0
-   self._tmRp = 0.0
-
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(WavePropagation, { __call = function (self, o) return self.new(self, o) end })
 
 -- Limit waves: this code closely follows the example of CLAWPACK and
 -- my (AHH) thesis code Miniwarpx.
-local function limitWaves(self, lower, upper, wavesSlice, speedsSlice)
+function WavePropagation:limitWaves(lower, upper, wavesSlice, speedsSlice)
    local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
    for mw = 1, mwave do
       local dotr = self._waveDotProd(meqn, wavesSlice[lower-1], wavesSlice[lower], mw)
@@ -229,7 +219,7 @@ local function limitWaves(self, lower, upper, wavesSlice, speedsSlice)
 end
 
 -- advance method
-local function advance(self, tCurr, dt, inFld, outFld)
+function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    local qIn = assert(inFld[1], "WavePropagation.advance: Must-specify an input field")
    local qOut = assert(outFld[1], "WavePropagation.advance: Must-specify an output field")
@@ -248,6 +238,8 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local s = Lin.Vec(mwave)
    local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
 
+   local idxp, idxm = Lin.IntVec(grid:ndim()), Lin.IntVec(grid:ndim())
+   
    local qInL, qInR = qIn:get(1), qIn:get(1) -- get pointers to (re)use inside inner loop
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
 
@@ -265,7 +257,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`. 
       for idx in perpRange:colMajorIter() do
-	 local idxp, idxm = idx:copy(), idx:copy()
+	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
@@ -289,7 +281,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	 if cfla > cflm then return false, dt*cfl/cfla end
 
 	 -- limit waves before computing second-order updates
-	 limitWaves(self, localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice)
+	 self:limitWaves(localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice)
 
 	 local dirLoIdx2, dirUpIdx2 = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
 	 -- compute second order correction fluxes
@@ -311,14 +303,5 @@ local function advance(self, tCurr, dt, inFld, outFld)
    end
    return true, dt*cfl/cfla
 end
-
--- Methods for wave-propagation scheme
-WavePropagation.__index = {
-   advance = Base.advanceFuncWrap(advance),
-   firstOrderTm = function (self) return self._tmFirstOrderUpdates end,
-   secondOrderTm = function (self) return self._tmSecondOrderUpdates end,
-   limiterTm = function (self) return self._tmLimiters end,
-   rpTm = function (self) return self._tmRp end,
-}
 
 return WavePropagation

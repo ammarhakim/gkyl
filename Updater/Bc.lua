@@ -7,21 +7,15 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Base = require "Updater.Base"
+local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
-
--- system libraries
-local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
+local UpdaterBase = require "Updater.Base"
 
 -- Boundary condition updater
-local Bc = {}
+local Bc = Proto(UpdaterBase)
 
-function Bc:new (tbl)
-   local self = setmetatable({}, Bc)
-   Base.setup(self, tbl) -- setup base object
+function Bc:init(tbl)
+   Bc.super.init(self, tbl) -- setup base object
    
    self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
    self._dir = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
@@ -33,13 +27,9 @@ function Bc:new (tbl)
    end
    self._bcList = assert(
       tbl.boundaryConditions, "Updater.Bc: Must specify boundary conditions to apply with 'boundaryConditions'")
-
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(Bc, { __call = function (self, o) return self.new(self, o) end })
 
-local function getGhostRange(self, global, globalExt)
+function Bc:getGhostRange(global, globalExt)
    local lv, uv = globalExt:lowerAsVec(), globalExt:upperAsVec()
    if self._edge == "lower" then
       uv[self._dir] = global:lower(self._dir)-1 -- for ghost cells on "left"
@@ -49,7 +39,7 @@ local function getGhostRange(self, global, globalExt)
    return Range.Range(lv, uv)
 end
 
-local function advance(self, tCurr, dt, inFld, outFld)
+function Bc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
@@ -57,7 +47,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local global, globalExt = qOut:globalRange(), qOut:globalExtRange()
    local localExtRange = qOut:localExtRange()
    local ghost = localExtRange:intersect(
-      getGhostRange(self, global, globalExt)) -- range spanning ghost cells
+      self:getGhostRange(global, globalExt)) -- range spanning ghost cells
    
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
    
@@ -72,8 +62,5 @@ local function advance(self, tCurr, dt, inFld, outFld)
    end
    return true, GKYL_MAX_DOUBLE
 end
-
--- Methods for BC object
-Bc.__index = { advance = Base.advanceFuncWrap(advance) }
 
 return Bc
