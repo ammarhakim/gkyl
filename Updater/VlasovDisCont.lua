@@ -123,6 +123,12 @@ local function advance(self, tCurr, dt, inFld, outFld)
    local tmStreamStart = Time.clock()
    -- accumulate contributions from streaming direction
    for dir = 1, cdim do
+      -- This flag is needed as the volume integral already contains
+      -- contributions from all streaming directions. Hence, we can
+      -- only accumulate the volume contribution once, skipping it for
+      -- other directions
+      local firstDir = true
+      
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
@@ -145,11 +151,16 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	    fIn:fill(fInIdxr(idxm), fInL); fIn:fill(fInIdxr(idxp), fInR)
 	    fOut:fill(fOutIdxr(idxm), fOutL); fOut:fill(fOutIdxr(idxp), fOutR)
 
-	    -- accumulate contribution from volume and surface streaming terms
-	    self._volStreamUpdate(xc:data(), dx:data(), fInR:data(), fOutR:data())
+	    if firstDir then
+	       -- accumulate contribution from volume streaming terms
+	       -- only if first time around
+	       self._volStreamUpdate(xc:data(), dx:data(), fInR:data(), fOutR:data())
+	    end
+	    -- accumulate contribution from surface streaming terms
 	    self._surfStreamUpdate[dir](xc:data(), dx:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
 	 end
       end
+      firstDir = false
    end
    self._tmStreamUpdate = self._tmStreamUpdate + Time.clock()-tmStreamStart
 
@@ -162,6 +173,10 @@ local function advance(self, tCurr, dt, inFld, outFld)
       local tmForceStart = Time.clock()
       -- accumulate contributions from force directions
       for dir = cdim+1, pdim do
+	 -- See comment for streaming terms above to understand role
+	 -- of this flag
+	 local firstDir = true
+	 
 	 -- lower/upper bounds in direction 'dir': these are edge indices
 	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
 	 local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
@@ -185,8 +200,10 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	       fIn:fill(fInIdxr(idxm), fInL); fIn:fill(fInIdxr(idxp), fInR)
 	       fOut:fill(fOutIdxr(idxm), fOutL); fOut:fill(fOutIdxr(idxp), fOutR)
 
-	       -- accumulate contribution from volume force terms
-	       self._volForceUpdate(xc:data(), dx:data(), emAccel:data(), fInR:data(), fOutR:data())
+	       if firstDir then
+		  -- accumulate contribution from volume force terms
+		  self._volForceUpdate(xc:data(), dx:data(), emAccel:data(), fInR:data(), fOutR:data())
+	       end
 	       if i > dirLoIdx and i < dirUpIdx then
 		  -- accumulate contribution from surface force terms
 		  -- (skiping contribution from boundary faces as
@@ -196,6 +213,7 @@ local function advance(self, tCurr, dt, inFld, outFld)
 	       end
 	    end
 	 end
+	 firstDir = false
       end
       self._tmForceUpdate = self._tmForceUpdate + Time.clock()-tmForceStart
    end
