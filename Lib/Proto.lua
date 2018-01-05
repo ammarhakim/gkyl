@@ -34,8 +34,8 @@ ProtoTable.__index = ProtoTable -- so functions can be called
 -- ProtoTable
 function ProtoTable.new(...)
    local t = setmetatable({}, ProtoTable)
-   for _,o in ipairs{...} do
-      for k,v in pairs(o) do
+   for _, o in ipairs{...} do
+      for k, v in pairs(o) do
 	 t[k] = v
       end
    end
@@ -58,7 +58,7 @@ local function Proto(...)
    pr.super = parents[1]
    pr.supers = parents
    
-   pr.__index = pr -- redirect calls those defined by objects
+   pr.__index = pr -- redirect calls to those defined by objects
    pr.new = newmember -- redirect new() to newmember
    pr.isa = isa -- for type checking
    

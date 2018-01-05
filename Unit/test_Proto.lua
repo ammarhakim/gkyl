@@ -34,6 +34,7 @@ function test_1()
 
    p:setw(10.5)
    assert_equal(10.5, p:getw(), "Checking object")
+   assert_equal(true, p:isa(Particle), "Checking isa")
 
    -- derived object
    local SpecialParticle = Proto(Particle)
@@ -52,6 +53,9 @@ function test_1()
    assert_equal(1.5, sp:getw(), "Checking object")
    assert_equal(101.5, sp.m, "Checking object")
    assert_equal(math.sqrt(125), sp:distance(), "Checking object")
+
+   assert_equal(true, sp:isa(SpecialParticle), "Checking isa")
+   assert_equal(true, sp:isa(Particle), "Checking isa")
 end
 
 function test_2()
@@ -111,33 +115,9 @@ function test_3()
    assert_equal(r.den, 1, "Checking rational add method")
 end
 
-function test_4()
-   local Base = Proto()
-   function Base:init(nm)
-      self.name = nm
-   end
-   function Base:subAdvance(t)
-   end
-   
-   function Base:advance(t)
-      print(string.format("Calling derived advance from %s", self.name))
-      self:subAdvance(t)
-      print("Done!")
-   end
-
-   local Wave = Proto(Base)
-   function Wave:subAdvance(t)
-      print("Wave advance called with ", t)
-   end
-
-   local w = Wave("Wave")
-   w:advance(1.5)
-end
-
 test_1()
 test_2()
 test_3()
-test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
