@@ -22,6 +22,7 @@ typedef struct {
    int64_t numFlux; /* Type of numerical flux to use */
    int useIntermediateWave; /* Flag to indicate intermediate wave use */
    double _rpTime; /* Time spent in RP */
+   double _tv[11]; /* To store stuff in flux() function */
 } TenMomentEqn_t;
 
 /* Ten-moment RP solver */
@@ -84,7 +85,7 @@ local tenMoment_mt = {
       flux = function (self, dir, qIn, fOut)
 	 local d = dirShuffle[dir] -- shuffle indices for `dir`
 	 local dp = dirShufflePr[dir] -- shuffle indices for `dir` for pressure tensor
-	 local v = ffi.new("double[11]")
+	 local v = self._tv
 	 
 	 primitive(qIn, v)
 	 

@@ -6,12 +6,11 @@
 --------------------------------------------------------------------------------
 
 -- system libraries
+local BoundaryCondition = require "Updater.BoundaryCondition"
+local Proto = require "Lib.Proto"
+local Time = require "Lib.Time"
 local ffi = require "ffi"
 local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
-local Time = require "Lib.Time"
-local BoundaryCondition = require "Updater.BoundaryCondition"
 
 -- C interfaces
 ffi.cdef [[
@@ -30,9 +29,9 @@ typedef struct {
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   new("int32_t[4]", 0, 2, 3, 4),
-   new("int32_t[4]", 0, 3, 4, 2),
-   new("int32_t[4]", 0, 4, 2, 3)
+   ffi.new("int32_t[4]", 0, 2, 3, 4),
+   ffi.new("int32_t[4]", 0, 3, 4, 2),
+   ffi.new("int32_t[4]", 0, 4, 2, 3)
 }
 
 -- helper to check if number is NaN
@@ -191,7 +190,7 @@ local RP_TYPE_ROE, RP_TYPE_LAX  = 1, 2
 
 local euler_mt = {
    __new = function (self, tbl)
-      local f = new(self)
+      local f = ffi.new(self)
       f._gasGamma = assert(tbl.gasGamma, "Eq.Euler: Must specify gas adiabatic constant (gasGamma)")
       -- determine numerical flux to use
       f._rpType = RP_TYPE_ROE
@@ -258,7 +257,7 @@ local euler_mt = {
       end,
    }
 }
-local EulerObj = metatype(typeof("EulerEqn_t"), euler_mt)
+local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
 
 -- create a wrapper on Euler eqn object and provide BCs specific to
 -- Euler equations
