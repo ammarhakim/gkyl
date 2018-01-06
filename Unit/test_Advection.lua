@@ -75,30 +75,8 @@ function test_2()
    assert_equal(df[1], apdq[1]+amdq[1], "Checking jump in flux is sum of fluctuations")   
 end
 
-function test_3()
-   local advection = Advection { ndim = 2, velocity = {1.0, 2.0} }
-   local basis = Basis.CartModalSerendipity {
-      ndim = 2, polyOrder = 2,
-   }
-
-   local qIn, flux = Lin.Vec(basis:numBasis()), Lin.Vec(basis:numBasis())
-   for i = 1, basis:numBasis() do qIn[i] = 1.0 end
-
-   -- calculate flux
-   advection:fluxCoeff(1, basis, qIn, flux)
-   for i = 1, basis:numBasis() do
-      assert_equal(advection:velocity(1)*qIn[i], flux[i], "Checking flux in dir 1")
-   end
-
-   advection:fluxCoeff(2, basis, qIn, flux)
-   for i = 1, basis:numBasis() do
-      assert_equal(advection:velocity(2)*qIn[i], flux[i], "Checking flux in dir 2")
-   end   
-end
-
 test_1()
 test_2()
-test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

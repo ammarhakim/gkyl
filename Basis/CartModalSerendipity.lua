@@ -5,11 +5,8 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
-local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
+-- Gkyl libraries
+local Proto = require "Lib.Proto"
 
 -- CartModalSerendipity -----------------------------------------------------------
 --
@@ -40,10 +37,8 @@ local function numBasis(ndim, polyOrder)
    return nbasis
 end
 
-local CartModalSerendipity = {}
-function CartModalSerendipity:new(tbl)
-   local self = setmetatable({}, CartModalSerendipity)
-
+local CartModalSerendipity = Proto()
+function CartModalSerendipity:init(tbl)
    -- read data from input table
    self._ndim = assert(tbl.ndim, "Basis.CartModalSerendipity: Must specify dimension using 'ndim'")
    self._polyOrder = assert(tbl.polyOrder, "Basis.CartModalSerendipity: Must specify polynonial order with 'polyOrder'")
@@ -92,38 +87,20 @@ function CartModalSerendipity:new(tbl)
       self._projectVolToSurfLower[d] = _m[self._polyOrder][d].lower
       self._projectVolToSurfUpper[d] = _m[self._polyOrder][d].upper
    end
-   
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(CartModalSerendipity, { __call = function (self, o) return self.new(self, o) end })
 
-CartModalSerendipity.__index = {
-   id = function (self)
-      return "serendipity"
-   end,   
-   ndim = function (self)
-      return self._ndim
-   end,
-   polyOrder = function (self)
-      return self._polyOrder
-   end,
-   numBasis = function (self)
-      return self._numBasis
-   end,
-   numSurfBasis = function (self)
-      return self._numSurfBasis
-   end,   
-   evalBasis = function (self, z, b)
-      return self._evalBasisFunc(z, b)
-   end,
-   volumeToLowerSurfExpansion = function (self, dir, volIn, surfOut)
-      return self._projectVolToSurfLower[dir](volIn, surfOut)
-   end,
-   volumeToUpperSurfExpansion = function (self, dir, volIn, surfOut)
-      return self._projectVolToSurfUpper[dir](volIn, surfOut)
-   end,
-}
+function CartModalSerendipity:id() return "serendipity" end
+function CartModalSerendipity:ndim() return self._ndim end
+function CartModalSerendipity:polyOrder() return self._polyOrder end
+function CartModalSerendipity:numBasis() return self._numBasis end
+function CartModalSerendipity:numSurfBasis() return self._numSurfBasis end
+function CartModalSerendipity:evalBasis(z, b) return self._evalBasisFunc(z, b) end
+function CartModalSerendipity:volumeToLowerSurfExpansion(dir, volIn, surfOut)
+   return self._projectVolToSurfLower[dir](volIn, surfOut)
+end
+function CartModalSerendipity:volumeToUpperSurfExpansion(dir, volIn, surfOut)
+   return self._projectVolToSurfUpper[dir](volIn, surfOut)
+end
 
 return {
    CartModalSerendipity = CartModalSerendipity   

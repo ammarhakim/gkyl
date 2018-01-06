@@ -5,11 +5,8 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
-local ffi = require "ffi"
-local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
+-- Gkyl libraries
+local Proto = require "Lib.Proto"
 
 -- CartModalMaxOrder -----------------------------------------------------------
 --
@@ -38,10 +35,8 @@ local function numBasis(ndim, polyOrder)
    return nbasis
 end
 
-local CartModalMaxOrder = {}
-function CartModalMaxOrder:new(tbl)
-   local self = setmetatable({}, CartModalMaxOrder)
-
+local CartModalMaxOrder = Proto()
+function CartModalMaxOrder:init(tbl)
    -- read data from input table
    self._ndim = assert(tbl.ndim, "Basis.CartModalMaxOrder: Must specify dimension using 'ndim'")
    self._polyOrder = assert(tbl.polyOrder, "Basis.CartModalMaxOrder: Must specify polynonial order with 'polyOrder'")
@@ -93,38 +88,20 @@ function CartModalMaxOrder:new(tbl)
       self._projectVolToSurfLower[d] = _m[self._polyOrder][d].lower
       self._projectVolToSurfUpper[d] = _m[self._polyOrder][d].upper
    end
-   
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(CartModalMaxOrder, { __call = function (self, o) return self.new(self, o) end })
 
-CartModalMaxOrder.__index = {
-   id = function (self)
-      return "maximal-order"
-   end,
-   ndim = function (self)
-      return self._ndim
-   end,
-   polyOrder = function (self)
-      return self._polyOrder
-   end,
-   numBasis = function (self)
-      return self._numBasis
-   end,
-   numSurfBasis = function (self)
-      return self._numSurfBasis
-   end,
-   evalBasis = function (self, z, b)
-      return self._evalBasisFunc(z, b)
-   end,
-   volumeToLowerSurfExpansion = function (self, dir, volIn, surfOut)
-      return self._projectVolToSurfLower[dir](volIn, surfOut)
-   end,
-   volumeToUpperSurfExpansion = function (self, dir, volIn, surfOut)
-      return self._projectVolToSurfUpper[dir](volIn, surfOut)
-   end,
-}
+function CartModalMaxOrder:id() return "maximal-order" end
+function CartModalMaxOrder:ndim() return self._ndim end
+function CartModalMaxOrder:polyOrder() return self._polyOrder end
+function CartModalMaxOrder:numBasis() return self._numBasis end
+function CartModalMaxOrder:numSurfBasis() return self._numSurfBasis end
+function CartModalMaxOrder:evalBasis(z, b) return self._evalBasisFunc(z, b) end
+function CartModalMaxOrder:volumeToLowerSurfExpansion(dir, volIn, surfOut)
+   return self._projectVolToSurfLower[dir](volIn, surfOut)
+end
+function CartModalMaxOrder:volumeToUpperSurfExpansion(dir, volIn, surfOut)
+   return self._projectVolToSurfUpper[dir](volIn, surfOut)
+end
 
 return {
    CartModalMaxOrder = CartModalMaxOrder   

@@ -115,9 +115,20 @@ function test_3()
    assert_equal(r.den, 1, "Checking rational add method")
 end
 
+function test_4()
+   local P = Proto()
+   function P:say(v)
+      return v
+   end
+
+   p = P()
+   assert_equal(4, p:say(4), "Checking no-ctor case")
+end
+
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
