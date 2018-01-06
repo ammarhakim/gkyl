@@ -15,6 +15,7 @@ local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
@@ -34,11 +35,9 @@ end
 -- Electromagnetic field (Maxwell equation are evolved)
 --------------------------------------------------------------------------------
 
-local EmField = {}
-function EmField:new(tbl)
-   local self = setmetatable({}, EmField)
-   self.type = "emField" -- to identify objects of this type
+local EmField = Proto()
 
+function EmField:init(tbl)
    self.epsilon0 = tbl.epsilon0
    self.mu0 = tbl.mu0
    self.ioMethod = "MPI"
@@ -48,140 +47,105 @@ function EmField:new(tbl)
    self.initFunc = tbl.init
 
    self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
-
-   return self
 end
--- make object callable, and redirect call to the :new method
-setmetatable(EmField, { __call = function (self, o) return self.new(self, o) end })
 
 -- methods for EM field object
-EmField.__index = {
-   hasEB = function (self)
-      return true, false 
-   end,
-   setCfl = function(self, cfl)
-      self.cfl = cfl
-   end,
-   setIoMethod = function(self, ioMethod)
-      self.ioMethod = ioMethod
-   end,
-   setBasis = function (self, basis)
-      self.basis = basis
-   end,
-   setGrid = function(self, grid)
-      self.grid = grid
-   end,
-   alloc = function(self, nField)
-      -- allocate fields needed in RK update
-      self.em = {}
-      for i = 1, nField do
-	 self.em[i] = DataStruct.Field {
-	    onGrid = self.grid,
-	    numComponents = self.basis:numBasis(),
-	    ghost = {1, 1}
-	 }
-      end
-      
-      -- create Adios object for field I/O
-      self.fieldIo = AdiosCartFieldIo {
-	 elemType = self.em[1]:elemType(),
-	 method = self.ioMethod,
-      }
-   end,
-   initField = function(self)
-      local project = Updater.ProjectOnBasis {
+function EmField:hasEB() return true, false end
+function EmField:setCfl(cfl) self.cfl = cfl end
+function EmField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+function EmField:setBasis(basis) self.basis = basis end
+function EmField:setGrid(grid) self.grid = grid end
+
+function EmField:alloc(nField)
+   -- allocate fields needed in RK update
+   self.em = {}
+   for i = 1, nField do
+      self.em[i] = DataStruct.Field {
 	 onGrid = self.grid,
-	 basis = self.basis,
-	 evaluate = self.initFunc
+	 numComponents = self.basis:numBasis(),
+	 ghost = {1, 1}
       }
-      project:advance(0.0, 0.0, {}, {self.em[1]})
-   end,
-   write = function(self, frame, tm)
-      if self.evolve then
+   end
+      
+   -- create Adios object for field I/O
+   self.fieldIo = AdiosCartFieldIo {
+      elemType = self.em[1]:elemType(),
+      method = self.ioMethod,
+   }
+end
+
+function EmField:initField()
+   local project = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = self.initFunc
+   }
+   project:advance(0.0, 0.0, {}, {self.em[1]})
+end
+
+function EmField:write(frame, tm)
+   if self.evolve then
+      self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
+   else
+      -- if not evolving species, don't write anything except initial conditions
+      if frame == 0 then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
-      else
-	 -- if not evolving species, don't write anything except initial conditions
-	 if frame == 0 then
-	    self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
-	 end
       end
-   end,
-   rkStepperFields = function(self)
-      return self.em
-   end,
-   forwardEuler = function(self, tCurr, dt, emIn, emOut)
-      if self.evolve then
-	 assert(false, "EmField:forwardEuler. NYI!")
-      else
-	 emOut:copy(emIn) -- just copy stuff over
-	 return true, GKYL_MAX_DOUBLE
-      end
-   end,
-   applyBc = function(self, tCurr, dt, emIn)
-      emIn:sync()
-   end,
-   totalSolverTime = function(self)
-      return 0.0
-   end,
-   volTime = function(self)
-      return 0.0
-   end,
-   surfTime = function(self)
-      return 0.0
-   end,   
-}
+   end
+end
+
+function EmField:rkStepperFields()
+   return self.em
+end
+
+function EmField:forwardEuler(tCurr, dt, emIn, emOut)
+   if self.evolve then
+      assert(false, "EmField:forwardEuler. NYI!")
+   else
+      emOut:copy(emIn) -- just copy stuff over
+      return true, GKYL_MAX_DOUBLE
+   end
+end
+
+function EmField:applyBc(tCurr, dt, emIn)
+   emIn:sync()
+end
+   
+function EmField:totalSolverTime()
+   return 0.0
+end
+
+function EmField:volTime()
+   return 0.0
+end
+
+function EmField:surfTime()
+   return 0.0
+end
 
 -- NoField ---------------------------------------------------------------------
 --
 -- Represents no field (nothing is evolved or stored)
 --------------------------------------------------------------------------------
 
-local NoField = {}
-function NoField:new(tbl)
-   local self = setmetatable({}, NoField)
-   self.type = "noField" -- to identify objects of this type
-   return self
-end
--- make object callable, and redirect call to the :new method
-setmetatable(NoField, { __call = function (self, o) return self.new(self, o) end })
+local NoField = Proto()
 
 -- methods for no field object
-NoField.__index = {
-   hasEB = function (self)
-      return false, false
-   end,
-   setCfl = function(self, cfl)
-   end,
-   setIoMethod = function(self, ioMethod)
-   end,
-   setBasis = function (self, basis)
-   end,
-   setGrid = function(self, grid)
-   end,
-   alloc = function(self, nField)
-   end,
-   initField = function(self)
-   end,
-   write = function(self, frame, tm)
-   end,
-   rkStepperFields = function(self)
-      return nil, nil, nil
-   end,
-   forwardEuler = function(self, tCurr, dt, emIn, emOut)
-      return true, GKYL_MAX_DOUBLE
-   end,
-   applyBc = function(self, tCurr, dt, emIn)
-   end,
-   totalSolverTime = function(self)
-      return 0.0
-   end,
-   volTime = function(self)
-      return 0.0
-   end,
-   surfTime = function(self)
-      return 0.0
-   end,   
-}
+function NoField:init(tbl) end
+function NoField:hasEB() return false, false end
+function NoField:setCfl() end
+function NoField:setIoMethod(ioMethod) end
+function NoField:setBasis(basis) end
+function NoField:setGrid(grid) end
+function NoField:alloc(nField) end
+function NoField:initField() end
+function NoField:write(frame, tm) end
+function NoField:rkStepperFields() return {} end
+function NoField:forwardEuler(tCurr, dt, emIn, emOut) return true, GKYL_MAX_DOUBLE end
+function NoField:applyBc(tCurr, dt, emIn) end
+function NoField:totalSolverTime() return 0.0 end
+function NoField:volTime() return 0.0 end
+function NoField:surfTime() return 0.0 end
 
 return {
    EmField = EmField,
