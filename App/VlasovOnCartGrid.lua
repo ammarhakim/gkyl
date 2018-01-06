@@ -17,6 +17,7 @@ local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
 local Species = require "App.VlasovOnCartGridSpecies"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
@@ -30,18 +31,6 @@ local function createBasis(nm, ndim, polyOrder)
    elseif nm == "maximal-order" then
       return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
    end   
-end
-
--- function to check "type" of obj.
-local function isType(obj, typeString)
-   if type(obj) == typeString then
-      return true
-   elseif type(obj) == "table" then
-      if obj.type == typeString then
-	 return true
-      end
-   end
-   return false
 end
 
 -- top-level method to build application "run" method
@@ -128,7 +117,7 @@ local function buildApplication(self, tbl)
    -- read in information about each species
    local species = {}
    for nm, val in pairs(tbl) do
-      if isType(val, "species") then
+      if Species.is(val) then
 	 species[nm] = val
 	 species[nm]:setName(nm)
 	 species[nm]:setIoMethod(ioMethod)
@@ -383,22 +372,15 @@ local function buildApplication(self, tbl)
 end
 
 -- VlasovOnCartGrid application object
-local App = {}
--- constructor
-function App:new(tbl)
-   local self = setmetatable({}, App)
-   self._runApplication = buildApplication(self, tbl)
-   return self
-end
--- make object callable, and redirect call to the :new method
-setmetatable(App, { __call = function (self, o) return self.new(self, o) end })
+local App = Proto()
 
--- set callable methods
-App.__index = {
-   run = function (self)
-      return self:_runApplication()
-   end
-}
+function App:init(tbl)
+   self._runApplication = buildApplication(self, tbl)
+end
+
+function App:run()
+   return self:_runApplication()
+end
 
 return {
    App = App,

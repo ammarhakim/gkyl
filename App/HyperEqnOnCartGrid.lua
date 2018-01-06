@@ -10,11 +10,12 @@ local BoundaryCondition = require "Updater.BoundaryCondition"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
+local Lin = require "Lib.Linalg"
 local Logger = require "Lib.Logger"
+local Mpi = require "Comm.Mpi"
+local Proto = require "Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
-local Lin = require "Lib.Linalg"
-local Mpi = require "Comm.Mpi"
 local date = require "Lib.date"
 local xsys = require "xsys"
 
@@ -384,22 +385,15 @@ local function buildApplication(self, tbl)
 end
 
 -- HyperEqn application object
-local App = {}
--- constructor
-function App:new(tbl)
-   local self = setmetatable({}, App)
-   self._runApplication = buildApplication(self, tbl)
-   return self
-end
--- make object callable, and redirect call to the :new method
-setmetatable(App, { __call = function (self, o) return self.new(self, o) end })
+local App = Proto()
 
--- set callable methods
-App.__index = {
-   run = function (self)
-      return self:_runApplication()
-   end
-}
+-- methods
+function App:init(tbl)
+   self._runApplication = buildApplication(self, tbl)
+end
+function App:run()
+   return self:_runApplication()
+end
 
 -- add to table
 M.App = App

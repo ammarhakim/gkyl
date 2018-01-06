@@ -123,6 +123,8 @@ function test_4()
 
    p = P()
    assert_equal(4, p:say(4), "Checking no-ctor case")
+   assert_equal(true, P.is(p), "Checking type")
+   assert_equal(false, P.is(10), "Checking type")
 end
 
 test_1()
