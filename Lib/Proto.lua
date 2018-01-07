@@ -47,7 +47,7 @@ setmetatable(ProtoTable, { __call = function(t, ...) return ProtoTable.new(...) 
 -- Proto -----------------------------------------------------------------------
 --
 -- Provides a primitive prototype object which can be used to define
--- other prototype objects in Gkyl
+-- objects in Gkyl
 --------------------------------------------------------------------------------
 local function Proto(...)
    local pr = ProtoTable(...) -- append all base vars/methods into this one
