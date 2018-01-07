@@ -32,15 +32,15 @@ end
 -- computes a "totalTime", and also synchronizes the status and
 -- time-step suggestion across processors.
 function _M:advance(tCurr, dt, inFld, outFld)
+
+   -- Take the time-step, measuring how long it took
    local tmStart = Time.clock()
-   -- >>> Take the time-step
    local _status, _dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
-   -- >>> Done with advance
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...
    local myStatus, myDtSuggested = ffi.new("int[1]"), ffi.new("double[1]")
-   local status, dtSuggested = ffi.new("int[1]"), ffi.new("double[1]")      
+   local status, dtSuggested = ffi.new("int[1]"), ffi.new("double[1]")  
    myStatus[0] = _status and 1 or 0; myDtSuggested[0] = _dtSuggested
    
    Mpi.Allreduce(myStatus, status, 1, Mpi.INT, Mpi.MIN, self._nodeComm)
