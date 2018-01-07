@@ -1,0 +1,29 @@
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+fpprec : 24$
+
+V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
+flux : [
+ [chi*c^2*phi, c^2*Bz, -c^2*By, gamma*psi, -Ez, Ey, chi*Ex, gamma*c^2*Bx],
+ [-c^2*Bz, chi*c^2*phi, c^2*Bx, c^2*Ez, gamma*c^2*psi, -c^2*Ex, chi*Ey, c^2*gamma*By],
+ [c^2*By, -c^2*Bx, chi*c^2*phi, -c^2*Ey, c^2, Ex, gamma*c^2*psi, chi*Ez, c^2*gamma*Bz]
+];
+
+load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/basis-precalc/basisSer2x2v")$
+
+bC : basisC[2]$
+
+Exl : doExpand1(ex,bC)$
+Eyl : doExpand1(ey,bC)$
+Ezl : doExpand1(ez,bC)$
+Bxl : doExpand1(bx,bC)$
+Byl : doExpand1(bx,bC)$
+Bzl : doExpand1(bz,bC)$
+phil : doExpand1(ph,bC)$
+psil : doExpand1(ps,bC)$
+
+fluxl : subst([Ex=Exl, Ey=Eyl, Ez=Ezl, Bx=Bxl, By=Byl, Bz=Bzl, phi=phil, psi=psil], flux)$
+
+volTerms : sum(makelist(calcInnerProdList(varsC, 1, diff(bC,varsC[d]), fluxl[d][i]), i, 1, length(V)), d, 1, length(varsC))$
+
+
