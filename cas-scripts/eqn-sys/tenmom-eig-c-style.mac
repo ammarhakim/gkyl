@@ -9,7 +9,7 @@ Author: Ammar Hakim.
 
 /* Generate the 10-moment equations */
 
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+load("out-scripts");
 load(itensor)$
 
 /** Declare symmetries */

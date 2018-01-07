@@ -1,5 +1,5 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+load("modal-basis");
+load("out-scripts");
 fpprec : 24$
 
 varsV : [vx, vy, vz]$
@@ -17,7 +17,7 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
 calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for i : 1 thru 2 do (
   bP : basisP[i],

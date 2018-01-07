@@ -1,4 +1,4 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/vlasov-calc/vlasov-elc-surf.mac")$
+load("vlasov-elc-surf")$
 load(stringproc)$
 
 for c : 3 thru 3 do (
