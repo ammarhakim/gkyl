@@ -1,5 +1,5 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+load("modal-basis");
+load("out-scripts");
 fpprec : 24$
 
 V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
@@ -9,7 +9,7 @@ flux : [
  [c^2*By, -c^2*Bx, chi*c^2*phi, -c^2*Ey, c^2, Ex, gamma*c^2*psi, chi*Ez, c^2*gamma*Bz]
 ];
 
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/basis-precalc/basisSer2x2v")$
+load("basisSer2x2v")$
 
 bC : basisC[2]$
 

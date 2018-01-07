@@ -1,4 +1,4 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("modal-basis");
 
 vars : [x,y,z,vx,vy,vz]$
 makevarsC(cdim) := makelist(vars[i],i,cdim)$

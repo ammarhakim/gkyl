@@ -1,5 +1,5 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/out-scripts.mac");
+load("modal-basis");
+load("out-scripts");
 fpprec : 24$
 
 varsC : [x]$

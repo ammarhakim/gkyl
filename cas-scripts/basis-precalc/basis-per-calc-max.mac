@@ -1,4 +1,4 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/basis-precalc/basis-pre-calc.mac");
+load("basis-precalc/basis-pre-calc");
 
 for c : 1 thru 2 do (
   for v : c thru 3 do (

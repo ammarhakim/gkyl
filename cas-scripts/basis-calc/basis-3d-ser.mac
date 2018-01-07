@@ -1,4 +1,4 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac");
+load("modal-basis.mac");
 fpprec : 24$
 
 /* Function to write out basis functions */

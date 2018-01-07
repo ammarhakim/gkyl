@@ -1,4 +1,4 @@
-load("/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac")$
+load("modal-basis")$
 fpprec : 24$
 
 writeExprs(fh, rhs) := block([expr],
