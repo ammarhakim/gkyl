@@ -6,34 +6,67 @@ fpprec : 24$
 /* Define variables and fluxes */
 V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
 flux : [
- [chi*c^2*phi, c^2*Bz, -c^2*By, gamma*psi, -Ez, Ey, chi*Ex, gamma*c^2*Bx],
- [-c^2*Bz, chi*c^2*phi, c^2*Bx, c^2*Ez, gamma*c^2*psi, -c^2*Ex, chi*Ey, c^2*gamma*By],
- [c^2*By, -c^2*Bx, chi*c^2*phi, -c^2*Ey, c^2, Ex, gamma*c^2*psi, chi*Ez, c^2*gamma*Bz]
+ [c2chi*phi, c2*Bz, -c2*By, gamma*psi, -Ez, Ey, chi*Ex, c2gamma*Bx],
+ [-c2*Bz, c2chi*phi, c2*Bx, c2*Ez, c2gamma*psi, -c2*Ex, chi*Ey, c2gamma*By],
+ [c2*By, -c2*Bx, c2chi*phi, -c2*Ey, c2, Ex, c2gamma*psi, chi*Ez, c2gammax*Bz]
 ]$
 
-dvInv : [dx1, dx2, dx3]$
+dxInv : [dx0, dx1, dx2]$
+
+lhs : [outEx, outEy, outEz, outBx, outBy, outBz, outPh, outPs]$
+rhs : [ex, ey, ez, bx, by, bz, ph, ps]$
 
 calcMaxVolUpdater(fh, funcNm, cdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", cdim, "v"),
-load(modNm)
-)$
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+load(modNm),
+printf(fh, "#include <MaxwellModDecl.h> ~%"),
+for i : 1 thru 2 do (
+  bC : basisC[i],
+  nbasis : length(bC),
+  printf(fh, "void ~aP~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
+  printf(fh, "  const double c2chi = c2*meq->chi, c2gamma = c2*meq->gamma; ~% ~%"),
 
-load("basis-precalc/basisSer2x2v")$
+  printf(fh, "  const double *ex = &q[~a]; ~%", 0*nbasis),
+  printf(fh, "  const double *ey = &q[~a]; ~%", 1*nbasis),
+  printf(fh, "  const double *ez = &q[~a]; ~%", 2*nbasis),
+  printf(fh, "  const double *bx = &q[~a]; ~%", 3*nbasis),
+  printf(fh, "  const double *by = &q[~a]; ~%", 4*nbasis),
+  printf(fh, "  const double *bz = &q[~a]; ~%", 5*nbasis),
+  printf(fh, "  const double *ph = &q[~a]; ~%", 6*nbasis),
+  printf(fh, "  const double *ps = &q[~a]; ~% ~%", 7*nbasis),
 
-bC : basisC[2]$
+  printf(fh, "  double *outEx = &out[~a]; ~%", 0*nbasis),
+  printf(fh, "  double *outEy = &out[~a]; ~%", 1*nbasis),
+  printf(fh, "  double *outEz = &out[~a]; ~%", 2*nbasis),
+  printf(fh, "  double *outBx = &out[~a]; ~%", 3*nbasis),
+  printf(fh, "  double *outBy = &out[~a]; ~%", 4*nbasis),
+  printf(fh, "  double *outBz = &out[~a]; ~%", 5*nbasis),
+  printf(fh, "  double *outPh = &out[~a]; ~%", 6*nbasis),
+  printf(fh, "  double *outPs = &out[~a]; ~% ~%", 7*nbasis),
 
-Exl : doExpand1(ex,bC)$
-Eyl : doExpand1(ey,bC)$
-Ezl : doExpand1(ez,bC)$
-Bxl : doExpand1(bx,bC)$
-Byl : doExpand1(bx,bC)$
-Bzl : doExpand1(bz,bC)$
-phil : doExpand1(ph,bC)$
-psil : doExpand1(ps,bC)$
+  for d : 1 thru cdim do (
+    printf(fh, "  double dx~a = 2.0/dx[~a]; ~%", d-1, d-1)
+  ),
 
-fluxl : subst([Ex=Exl, Ey=Eyl, Ez=Ezl, Bx=Bxl, By=Byl, Bz=Bzl, phi=phil, psi=psil], flux)$
+  printf(fh, "~% ~%"),
 
-volTerms : sum(makelist(2/dx[d]*calcInnerProdList(varsC, 1, diff(bC,varsC[d]), fluxl[d][i]), i, 1, length(V)), d, 1, length(varsC))$
-
-
+  Exl : doExpand1(ex,bC),
+  Eyl : doExpand1(ey,bC),
+  Ezl : doExpand1(ez,bC),
+  Bxl : doExpand1(bx,bC),
+  Byl : doExpand1(by,bC),
+  Bzl : doExpand1(bz,bC),
+  phil : doExpand1(ph,bC),
+  psil : doExpand1(ps,bC),
+  
+  fluxl : subst([Ex=Exl, Ey=Eyl, Ez=Ezl, Bx=Bxl, By=Byl, Bz=Bzl, phi=phil, psi=psil], flux),
+  volTerms : sum(makelist(dxInv[d]*calcInnerProdList(varsC, 1, diff(bC,varsC[d]), fluxl[d][i]), i, 1, length(V)), d, 1, cdim),
+  for m : 1 thru 8 do (
+    vt : volTerms[m],
+    writeCIncrExprs1(lhs[m], vt),
+    printf(fh, "~%")
+  ),
+  printf(fh, "} ~%")
+))$

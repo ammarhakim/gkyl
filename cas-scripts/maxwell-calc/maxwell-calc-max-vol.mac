@@ -1,0 +1,10 @@
+load("maxwell-calc/maxwell-calc-vol")$
+load(stringproc)$
+
+for c : 1 thru 3 do (
+   fname : sconcat("~/max-out/MaxwellVolMax", c, "x", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("MaxwellVol", c, "x", "Max"),
+   calcMaxVolUpdater(fh, funcName, c, "Max"),
+   close(fh)
+);
