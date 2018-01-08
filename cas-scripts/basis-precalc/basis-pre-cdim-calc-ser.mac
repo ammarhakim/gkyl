@@ -1,0 +1,6 @@
+load("basis-precalc/basis-pre-cdim-calc");
+
+for c : 1 thru 3 do (
+  fname : sconcat("~/max-out/basisSer", c, "x", ".lisp"),
+  writeBasisToFile(c, 4, makeSerendipBasis, fname)
+)$

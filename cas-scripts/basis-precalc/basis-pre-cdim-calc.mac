@@ -1,0 +1,15 @@
+load("modal-basis");
+
+vars : [x,y,z,vx,vy,vz]$
+makevarsC(cdim) := makelist(vars[i],i,cdim)$
+makevarsP(cdim,vdim) := append(makelist(vars[i],i,cdim), makelist(vars[i],i,4,3+vdim))$
+
+writeBasisToFile(cdim, pmax, basisFun, fname) := block([varsC, basisC],
+  varsC : makevarsC(cdim),
+  basisC : [],
+  for i : 1 thru pmax do (
+    basisC : endcons(gsOrthoNorm(varsC, basisFun(varsC, i)), basisC)
+  ),
+  save(fname, varsC, basisC)
+)$
+
