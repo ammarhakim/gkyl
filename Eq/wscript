@@ -6,8 +6,16 @@
 import os
 
 def build(bld):
-    bld.objects(
-        source = 'TenMomentImpl.cpp',
-        target = 'eq',
-        includes = '.'
-    )    
+    bld.objects(source = r"""
+    TenMomentImpl.cpp
+
+    maxwellData/MaxwellVolSer1x.cpp
+    maxwellData/MaxwellVolSer2x.cpp
+    maxwellData/MaxwellVolSer3x.cpp
+
+    maxwellData/MaxwellVolMax1x.cpp
+    maxwellData/MaxwellVolMax2x.cpp
+    maxwellData/MaxwellVolMax3x.cpp
+    """,
+    target = 'eq', includes = '. maxwellData'
+    )
