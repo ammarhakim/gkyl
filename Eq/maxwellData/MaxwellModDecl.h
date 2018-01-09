@@ -32,5 +32,34 @@ void MaxwellSurf3xMax_Z_P2(const MaxwellEq_t *meq, const double *w, const double
 
 
  
+void MaxwellVol1xSerP1(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
+void MaxwellSurf1xSer_X_P1(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+
+void MaxwellVol1xSerP2(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
+void MaxwellSurf1xSer_X_P2(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+
+
+void MaxwellVol2xSerP1(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
+void MaxwellSurf2xSer_X_P1(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+void MaxwellSurf2xSer_Y_P1(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+
+void MaxwellVol2xSerP2(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
+void MaxwellSurf2xSer_X_P2(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+void MaxwellSurf2xSer_Y_P2(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+
+
+void MaxwellVol3xSerP1(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
+void MaxwellSurf3xSer_X_P1(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+void MaxwellSurf3xSer_Y_P1(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+void MaxwellSurf3xSer_Z_P1(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+
+void MaxwellVol3xSerP2(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
+void MaxwellSurf3xSer_X_P2(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+void MaxwellSurf3xSer_Y_P2(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+void MaxwellSurf3xSer_Z_P2(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); 
+
+
+
+ 
 } 
 #endif 
