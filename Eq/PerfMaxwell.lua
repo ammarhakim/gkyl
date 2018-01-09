@@ -8,6 +8,7 @@
 --------------------------------------------------------------------------------
 
 -- system libraries
+local BoundaryCondition = require "Updater.BoundaryCondition"
 local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
@@ -157,4 +158,20 @@ local maxwell_mt = {
 }
 local PhMaxwellObj = metatype(typeof("PerfMaxwellEqn_t"), maxwell_mt)
 
-return PhMaxwellObj
+-- create a wrapper on Maxwell eqn object and provide BCs specific to
+-- Maxwell equations
+local PerfMaxwell = {}
+function PerfMaxwell:new(tbl)
+   local self = setmetatable({}, PerfMaxwell)
+   return PhMaxwellObj(tbl)
+end
+-- make object callable, and redirect call to the :new method
+setmetatable(PerfMaxwell, { __call = function (self, o) return self.new(self, o) end })
+
+local bcCondWallElc = BoundaryCondition.ZeroTangent { components = {1, 2, 3} }
+local bcCondWallMgn = BoundaryCondition.ZeroNormal { components = {4, 5, 6} }
+local bcCondWallPot = BoundaryCondition.Copy { components = {7, 8}, fact = {-1, 1} }
+-- add wall BC specific to Maxwell equations
+PerfMaxwell.bcCondWall = { bcCondWallElc, bcCondWallMgn, bcCondWallPot  }
+
+return PerfMaxwell
