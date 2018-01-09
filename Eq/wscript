@@ -13,9 +13,18 @@ def build(bld):
     maxwellData/MaxwellVolSer2x.cpp
     maxwellData/MaxwellVolSer3x.cpp
 
+    maxwellData/MaxwellSurfSer1x.cpp
+    maxwellData/MaxwellSurfSer2x.cpp
+    maxwellData/MaxwellSurfSer3x.cpp
+
     maxwellData/MaxwellVolMax1x.cpp
     maxwellData/MaxwellVolMax2x.cpp
     maxwellData/MaxwellVolMax3x.cpp
+
+    maxwellData/MaxwellSurfMax1x.cpp
+    maxwellData/MaxwellSurfMax2x.cpp
+    maxwellData/MaxwellSurfMax3x.cpp
+
     """,
     target = 'eq', includes = '. maxwellData'
     )

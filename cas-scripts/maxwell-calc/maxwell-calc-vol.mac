@@ -8,7 +8,7 @@ V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
 flux : [
  [c2chi*phi, c2*Bz, -c2*By, gamma*psi, -Ez, Ey, chi*Ex, c2gamma*Bx],
  [-c2*Bz, c2chi*phi, c2*Bx, c2*Ez, c2gamma*psi, -c2*Ex, chi*Ey, c2gamma*By],
- [c2*By, -c2*Bx, c2chi*phi, -c2*Ey, c2, Ex, c2gamma*psi, chi*Ez, c2gammax*Bz]
+ [c2*By, -c2*Bx, c2chi*phi, -c2*Ey, c2*Ex, c2gamma*psi, chi*Ez, c2gamma*Bz]
 ]$
 
 dxInv : [dx0, dx1, dx2]$
@@ -24,7 +24,7 @@ printf(fh, "#include <MaxwellModDecl.h> ~%"),
 for i : 1 thru 2 do (
   bC : basisC[i],
   nbasis : length(bC),
-  printf(fh, "void ~aP~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "void ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
   printf(fh, "  const double c2chi = c2*meq->chi, c2gamma = c2*meq->gamma; ~% ~%"),
 
