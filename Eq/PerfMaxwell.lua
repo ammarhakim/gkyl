@@ -9,10 +9,9 @@
 
 -- system libraries
 local BoundaryCondition = require "Updater.BoundaryCondition"
+local Proto = require "Lib.Proto"
 local ffi = require "ffi"
 local xsys = require "xsys"
-local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
 
 local _M = {}
 
@@ -30,9 +29,9 @@ typedef struct {
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
-   new("int32_t[7]", 0, 1, 2, 3, 4, 5, 6),
-   new("int32_t[7]", 0, 2, 3, 1, 5, 6, 4),
-   new("int32_t[7]", 0, 3, 1, 2, 6, 4, 5)
+   ffi.new("int32_t[7]", 0, 1, 2, 3, 4, 5, 6),
+   ffi.new("int32_t[7]", 0, 2, 3, 1, 5, 6, 4),
+   ffi.new("int32_t[7]", 0, 3, 1, 2, 6, 4, 5)
 }
 
 -- Riemann problem for Perfectly Hyperbolic Maxwell equations: `delta`
@@ -56,7 +55,7 @@ local function rp(self, dir, delta, ql, qr, waves, s)
    local a8 = 0.5*(delta[d[3]]-delta[d[5]]*c)
 
    -- set waves to 0.0 as most entries vanish
-   fill(waves:data(), 8*6*sizeof("double"))
+   ffi.fill(waves:data(), 8*6*ffi.sizeof("double"))
 
    -- wave 1:
    local w = waves[1]
@@ -123,7 +122,7 @@ local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
 local maxwell_mt = {
    __new = function (self, tbl)
-      local f = new(self)
+      local f = ffi.new(self)
       f._c = assert(tbl.lightSpeed, "Eq.PerfMaxwell: Must specify gas light speed (lightSpeed)")
       f._ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
       f._cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
@@ -145,8 +144,6 @@ local maxwell_mt = {
 	 fOut[7] = self._ce*qIn[d[1]]
 	 fOut[8] = self._cb*c2*qIn[d[4]]
       end,
-      fluxCoeff = function (self, dir, basis, qIn, fOut)
-      end,
       isPositive = function (self, q)
 	 return true
       end,
@@ -156,14 +153,15 @@ local maxwell_mt = {
       end,
    }
 }
-local PhMaxwellObj = metatype(typeof("PerfMaxwellEqn_t"), maxwell_mt)
+local PhMaxwellObj = ffi.metatype(ffi.typeof("PerfMaxwellEqn_t"), maxwell_mt)
 
 -- create a wrapper on Maxwell eqn object and provide BCs specific to
 -- Maxwell equations
-local PerfMaxwell = {}
+local PerfMaxwell = { }
 function PerfMaxwell:new(tbl)
    local self = setmetatable({}, PerfMaxwell)
-   return PhMaxwellObj(tbl)
+   self._obj = PhMaxwellObj(tbl)
+   return self._obj
 end
 -- make object callable, and redirect call to the :new method
 setmetatable(PerfMaxwell, { __call = function (self, o) return self.new(self, o) end })
