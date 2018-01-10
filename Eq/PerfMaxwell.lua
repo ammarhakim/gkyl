@@ -120,12 +120,20 @@ end
 -- function to compute fluctuations using q-wave method
 local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
+-- Perfectly hyperbolic Maxwell equations
+local PerfMaxwell = Proto()
+
+function PerfMaxwell:init(tbl)
+         f._c = assert(tbl.lightSpeed, "Eq.PerfMaxwell: Must specify gas light speed (lightSpeed)")
+      f._ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
+      f._cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
+
+end
+
+
 local maxwell_mt = {
    __new = function (self, tbl)
       local f = ffi.new(self)
-      f._c = assert(tbl.lightSpeed, "Eq.PerfMaxwell: Must specify gas light speed (lightSpeed)")
-      f._ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
-      f._cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
       return f
    end,
    __index = {
