@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Updater.vlasovData._VlasovCDef"
+local _ = require "Updater.vlasovData._VlasovCdef"
 
 -- map of basis function name -> function encoding
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
