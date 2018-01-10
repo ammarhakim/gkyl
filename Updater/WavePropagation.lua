@@ -160,6 +160,8 @@ local WavePropagation = Proto(UpdaterBase)
 function WavePropagation:init(tbl)
    WavePropagation.super.init(self, tbl) -- setup base object
 
+   self._isFirst = true -- will be reset first time _advance() is called
+
    -- read data from input table
    self._onGrid = assert(tbl.onGrid, "Updater.WavePropagation: Must provide grid object using 'onGrid'")
    self._equation = assert(tbl.equation, "Updater.WavePropagation: Must provide equation object using 'equation'")
@@ -188,6 +190,9 @@ function WavePropagation:init(tbl)
       self.speedsSlice[d] = SliceData(l, u, mwave)
       self.fsSlice[d] = SliceData(l, u, meqn)
    end
+   
+   -- store range objects needed in update
+   self._perpRange = {}
 
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = meqn} )()
@@ -239,9 +244,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local amdq, apdq = Lin.Vec(meqn), Lin.Vec(meqn)
 
    local idxp, idxm = Lin.IntVec(grid:ndim()), Lin.IntVec(grid:ndim())
-   
-   local qInL, qInR = qIn:get(1), qIn:get(1) -- get pointers to (re)use inside inner loop
+
+    -- pointers to (re)use inside inner loop
+   local qInL, qInR = qIn:get(1), qIn:get(1)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
+   local q1 = qOut:get(1)
 
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
@@ -252,7 +259,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
       local wavesSlice, speedsSlice, fsSlice = self.wavesSlice[dir], self.speedsSlice[dir], self.fsSlice[dir]
       -- lower/upper bounds in direction 'dir': these are edge indices
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
-      local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
+
+      if self._isFirst then
+	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
+      end
+      local perpRange = self._perpRange[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`. 
@@ -296,11 +307,13 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 	 -- add them to solution
 	 for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
 	    idxm[dir] = i -- cell index
-	    local q1 = qOut:get(qOutIdxr(idxm))
+	    qOut:fill(qOutIdxr(idxm), q1)
 	    self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
 	 end
       end
    end
+
+   self._isFirst = false -- no longer first time
    return true, dt*cfl/cfla
 end
 

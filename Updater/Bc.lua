@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
+local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
@@ -16,6 +17,8 @@ local Bc = Proto(UpdaterBase)
 
 function Bc:init(tbl)
    Bc.super.init(self, tbl) -- setup base object
+
+   self._isFirst = true -- will be reset first time _advance() is called
    
    self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
    self._dir = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
@@ -27,6 +30,8 @@ function Bc:init(tbl)
    end
    self._bcList = assert(
       tbl.boundaryConditions, "Updater.Bc: Must specify boundary conditions to apply with 'boundaryConditions'")
+
+   self._ghost = nil -- store ghost cells
 end
 
 function Bc:getGhostRange(global, globalExt)
@@ -44,22 +49,30 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
    local dir, edge = self._dir, self._edge
-   local global, globalExt = qOut:globalRange(), qOut:globalExtRange()
-   local localExtRange = qOut:localExtRange()
-   local ghost = localExtRange:intersect(
-      self:getGhostRange(global, globalExt)) -- range spanning ghost cells
+   local global = qOut:globalRange()
+
+   if self._isFirst then
+      -- compute ghost cells first time around only
+      local globalExt = qOut:globalExtRange()
+      local localExtRange = qOut:localExtRange()   
+      self._ghost = localExtRange:intersect(
+	 self:getGhostRange(global, globalExt)) -- range spanning ghost cells
+   end
    
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
+   local idxs = Lin.IntVec(grid:ndim()) -- prealloc this
    
    local indexer = qOut:genIndexer()
-   for idx in ghost:colMajorIter() do -- loop, applying BCs
-      local idxs = idx:copy()
+   for idx in self._ghost:colMajorIter() do -- loop, applying BCs
+      idx:copyInto(idxs)
       idxs[dir] = self._edge == "lower" and global:lower(dir)  or global:upper(dir)
       qOut:fill(indexer(idx), qG); qOut:fill(indexer(idxs), qS)
       for _, bc in ipairs(self._bcList) do -- loop over each BC
 	 bc(dir, tCurr+dt, nil, qS, qG) -- TODO: PASS COORDINATES
       end
    end
+
+   self._isFirst = false
    return true, GKYL_MAX_DOUBLE
 end
 
