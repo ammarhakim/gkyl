@@ -13,19 +13,6 @@ local Proto = require "Lib.Proto"
 local ffi = require "ffi"
 local xsys = require "xsys"
 
-local _M = {}
-
--- C interfaces
-ffi.cdef [[
-
-/* PH Maxwell equations */
-typedef struct {
-    double _c; /* Speed of light */
-    double _ce, _cb; /* Electric and Magnetic field error speeds (multiple of _c) */
-} PerfMaxwellEqn_t;
-
-]]
-
 -- Resuffle indices for various direction Riemann problem. The first
 -- entry is just a buffer to allow 1-based indexing
 local dirShuffle = {
@@ -33,64 +20,6 @@ local dirShuffle = {
    ffi.new("int32_t[7]", 0, 2, 3, 1, 5, 6, 4),
    ffi.new("int32_t[7]", 0, 3, 1, 2, 6, 4, 5)
 }
-
-local function rp(self, dir, delta, ql, qr, waves, s)
-   local d = dirShuffle[dir] -- shuffle indices for `dir`
-   local c, c1 = self._c, 1/self._c
-
-   -- compute projections of jump (generated from Maxima)
-   local a1 = 0.5*(delta[d[4]]-delta[8]*c1)
-   local a2 = 0.5*(delta[8]*c1+delta[d[4]])
-   local a3 = 0.5*(delta[d[1]]-delta[7]*c)
-   local a4 = 0.5*(delta[7]*c+delta[d[1]])
-   local a5 = 0.5*(delta[d[2]]-delta[d[6]]*c)
-   local a6 = 0.5*(delta[d[5]]*c+delta[d[3]])
-   local a7 = 0.5*(delta[d[6]]*c+delta[d[2]])
-   local a8 = 0.5*(delta[d[3]]-delta[d[5]]*c)
-
-   -- set waves to 0.0 as most entries vanish
-   ffi.fill(waves:data(), 8*6*ffi.sizeof("double"))
-
-   -- wave 1:
-   local w = waves[1]
-   w[d[4]] = a1
-   w[8] = -a1*c
-   s[1] = -c*self._cb
-
-   -- wave 2:
-   local w = waves[2]
-   w[d[4]] = a2
-   w[8] = a2*c
-   s[2] = c*self._cb
-
-   -- wave 3:
-   local w = waves[3]
-   w[d[1]] = a3
-   w[7] = -a3*c1
-   s[3] = -c*self._ce
-
-   -- wave 4:
-   local w = waves[4]
-   w[d[1]] = a4
-   w[7] = a4*c1
-   s[4] = c*self._ce
-
-   -- wave 5: (two waves with EV -c, -c lumped into one)
-   local w = waves[5]
-   w[d[2]] = a5
-   w[d[3]] = a6
-   w[d[5]] = a6*c1
-   w[d[6]] = -a5*c1
-   s[5] = -c
-
-   -- wave 6: (two waves with EV c, c lumped into one)
-   local w = waves[6]
-   w[d[2]] = a7
-   w[d[3]] = a8
-   w[d[5]] = -a8*c1
-   w[d[6]] = a7*c1
-   s[6] = c
-end
 
 -- The function to compute fluctuations is implemented as a template
 -- which unrolls the inner loop
@@ -119,16 +48,17 @@ local PerfMaxwell = Proto()
 
 -- ctor
 function PerfMaxwell:init(tbl)
-   self._c = assert(tbl.lightSpeed, "Eq.PerfMaxwell: Must specify gas light speed (lightSpeed)")
+   self._c = assert(tbl.lightSpeed, "Eq.PerfMaxwell: Must specify light speed (lightSpeed)")
    self._ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self._cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
 end
 
 -- Methods
-
 function PerfMaxwell:numEquations() return 8 end
 function PerfMaxwell:numWaves() return 6 end
+function PerfMaxwell:isPositive(q) return true end
 
+-- flux in direction dir
 function PerfMaxwell:flux(dir, qIn, fOut)
    local d = dirShuffle[dir] -- shuffle indices for `dir`
    local c2 = self._c*self._c
@@ -141,10 +71,6 @@ function PerfMaxwell:flux(dir, qIn, fOut)
    fOut[d[6]] = qIn[d[2]]
    fOut[7] = self._ce*qIn[d[1]]
    fOut[8] = self._cb*c2*qIn[d[4]]
-end
-
-function PerfMaxwell:isPositive(q)
-   return true
 end
 
 -- Riemann problem for Perfectly Hyperbolic Maxwell equations: `delta`

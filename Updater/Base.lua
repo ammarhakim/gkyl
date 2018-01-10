@@ -20,7 +20,9 @@ function _M:init(tbl)
    self._comm = tbl.onGrid:commSet().comm
    self._sharedComm = tbl.onGrid:commSet().sharedComm
    self._nodeComm = tbl.onGrid:commSet().nodeComm
-   self.totalTime = 0.0 
+   self.totalTime = 0.0
+   self._myStatus, self._myDtSuggested = ffi.new("int[1]"), ffi.new("double[1]")
+   self._status, self._dtSuggested = ffi.new("int[1]"), ffi.new("double[1]")
 end
 
 -- must be provided by derived objects
@@ -39,14 +41,13 @@ function _M:advance(tCurr, dt, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...
-   local myStatus, myDtSuggested = ffi.new("int[1]"), ffi.new("double[1]")
-   local status, dtSuggested = ffi.new("int[1]"), ffi.new("double[1]")  
-   myStatus[0] = _status and 1 or 0; myDtSuggested[0] = _dtSuggested
+   self._myStatus[0] = _status and 1 or 0
+   self._myDtSuggested[0] = _dtSuggested
    
-   Mpi.Allreduce(myStatus, status, 1, Mpi.INT, Mpi.MIN, self._nodeComm)
-   Mpi.Allreduce(myDtSuggested, dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._nodeComm)
+   Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.MIN, self._nodeComm)
+   Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._nodeComm)
    
-   return status[0] == 1 and true or false, dtSuggested[0]
+   return self._status[0] == 1 and true or false, self._dtSuggested[0]
 end
 
 return _M
