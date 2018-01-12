@@ -48,7 +48,7 @@ function HyperDisCont:init(tbl)
 end
 
 -- advance method
-local function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
+function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
@@ -100,7 +100,7 @@ local function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       -- loop is over 1D slice in `dir`.
       for idx in perpRange:colMajorIter() do
 	 
-	 idx:copyInto(idxp), idx:copyInto(idxm)
+	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
