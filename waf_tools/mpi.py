@@ -20,20 +20,20 @@ def check_mpi(conf):
     conf.env['MPI_FOUND'] = False
     
     if not conf.options.enable_mpi:
-	return
+        return
     if conf.options.mpiIncDir:
-	conf.env.INCLUDES_MPI = conf.options.mpiIncDir
+        conf.env.INCLUDES_MPI = conf.options.mpiIncDir
     else:
         conf.env.INCLUDES_MPI = conf.options.gkylDepsDir+"/openmpi/include"
 
     if conf.options.mpiLibDir:
-	conf.env.LIBPATH_MPI = conf.options.mpiLibDir
+        conf.env.LIBPATH_MPI = conf.options.mpiLibDir
     else:
         conf.env.LIBPATH_MPI = conf.options.gkylDepsDir+"/openmpi/lib"
 
     libList = conf.options.mpiLinkLibs
     conf.env.LIB_MPI = libList.split(',')
-        
+    
     conf.start_msg('Checking for MPI')
     conf.check(header_name='mpi.h', features='cxx cxxprogram', use="MPI", mandatory=True)
     conf.end_msg("Found MPI")

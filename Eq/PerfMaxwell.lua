@@ -9,6 +9,7 @@
 
 -- system libraries
 local BoundaryCondition = require "Updater.BoundaryCondition"
+local MaxwellModDecl = require "Eq.maxwellData.MaxwellModDecl"
 local Proto = require "Lib.Proto"
 local ffi = require "ffi"
 local xsys = require "xsys"
@@ -51,6 +52,21 @@ function PerfMaxwell:init(tbl)
    self._c = assert(tbl.lightSpeed, "Eq.PerfMaxwell: Must specify light speed (lightSpeed)")
    self._ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self._cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
+
+   -- if specified, store basis functions
+   self._basis = tbl.basis and tbl.basis or nil
+
+   -- store pointers to C kernels implementing volume and surface
+   -- terms
+   self._volTerm, self._surfTerms = nil, nil
+   if self._basis then
+      local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
+      self._volTerm = MaxwellModDecl.selectVol(nm, ndim, p)
+      self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
+   end
+
+   -- store stuff in C struct for use in DG solvers
+   self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
 end
 
 -- Methods
@@ -137,8 +153,18 @@ function PerfMaxwell:rp(dir, delta, ql, qr, waves, s)
    s[6] = c
 end
 
+-- Compute q-fluctuations
 function PerfMaxwell:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
    qFluctuations(dir, waves, s, amdq, apdq)
+end
+
+-- Volume integral term for use in DG scheme
+function PerfMaxwell:volTerm(w, dx, q, out)
+   self._volTerm(self._ceqn, w:data(), dx:data(), q:data(), out:data())
+end
+-- Surface integral term for use in DG scheme
+function PerfMaxwell:surfTerm(dir, w, dx, ql, qr, outl, outr)
+   self._surfTerms[dir](self._ceqn, w:data(), dx:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
 -- Create and add BCs specific to Maxwell equations
