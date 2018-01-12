@@ -18,15 +18,15 @@ def check_adios(conf):
     conf.env['ADIOS_FOUND'] = False
 
     if not conf.options.enable_adios:
-	return
+        return
     
     if conf.options.adiosIncDir:
-	conf.env.INCLUDES_ADIOS = conf.options.adiosIncDir
+        conf.env.INCLUDES_ADIOS = conf.options.adiosIncDir
     else:
         conf.env.INCLUDES_ADIOS = conf.options.gkylDepsDir+'/adios/include'
 
     if conf.options.adiosLibDir:
-	conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir
+        conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir
     else:
         conf.env.STLIBPATH_ADIOS = conf.options.gkylDepsDir+'/adios/lib'
 
