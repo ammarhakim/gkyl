@@ -65,6 +65,9 @@ function PerfMaxwell:init(tbl)
       self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
    end
 
+   -- maximum characteristic speed
+   self._maxc = math.max(self._c, self._c*self._ce, self._c*self._cb)
+
    -- store stuff in C struct for use in DG solvers
    self._ceqn = ffi.new("MaxwellEq_t", {self._c, self._ce, self._cb})
 end
@@ -158,6 +161,10 @@ function PerfMaxwell:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
    qFluctuations(dir, waves, s, amdq, apdq)
 end
 
+-- Maximum wave speed
+function PerfMaxwell:maxSpeed(dir, w, dx, q)
+   return self._maxc
+end       
 -- Volume integral term for use in DG scheme
 function PerfMaxwell:volTerm(w, dx, q, out)
    self._volTerm(self._ceqn, w:data(), dx:data(), q:data(), out:data())

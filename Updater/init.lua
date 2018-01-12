@@ -10,7 +10,7 @@ local Bc = require "Updater.Bc"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
---local LinearHyperbolicDisCont = require "Updater.LinearHyperbolicDisCont"
+local HyperDisCont = require "Updater.HyperDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local VlasovDisCont = require "Updater.VlasovDisCont"
 local WavePropagation = require "Updater.WavePropagation"
@@ -20,7 +20,7 @@ return {
    CalcDiagnostic = CalcDiagnostic,
    DistFuncMomentCalc = DistFuncMomentCalc,
    FiveMomentSrc = FiveMomentSrc,
-   --LinearHyperbolicDisCont = LinearHyperbolicDisCont,
+   HyperDisCont = HyperDisCont,
    ProjectOnBasis = ProjectOnBasis,
    VlasovDisCont = VlasovDisCont,   
    WavePropagation = WavePropagation,
