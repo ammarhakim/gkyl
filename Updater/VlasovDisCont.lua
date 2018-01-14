@@ -117,14 +117,15 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
    
    fOut:clear(0.0) -- compute increments
 
-   local tmStreamStart = Time.clock()
+   -- This flag is needed as the volume integral already contains
+   -- contributions from all streaming directions. Hence, we can only
+   -- accumulate the volume contribution once, skipping it for other
+   -- directions
+   local firstDir = true
+
+   local tmStreamStart = Time.clock()   
    -- accumulate contributions from streaming direction
    for dir = 1, cdim do
-      -- This flag is needed as the volume integral already contains
-      -- contributions from all streaming directions. Hence, we can
-      -- only accumulate the volume contribution once, skipping it for
-      -- other directions
-      local firstDir = true
       
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
@@ -167,13 +168,14 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
       local emPtr = emIn:get(1)
       local emIdxr = emIn:genIndexer()
       local emAccel = Lin.Vec(emIn:numComponents())
+
+      -- See comment for streaming terms above to understand role of
+      -- this flag
+      local firstDir = true
       
       local tmForceStart = Time.clock()
       -- accumulate contributions from force directions
       for dir = cdim+1, pdim do
-	 -- See comment for streaming terms above to understand role
-	 -- of this flag
-	 local firstDir = true
 	 
 	 -- lower/upper bounds in direction 'dir': these are edge indices
 	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1

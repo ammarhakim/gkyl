@@ -95,7 +95,7 @@ local function buildApplication(self, tbl)
    -- create decomposition and grid
    local decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
-      useShared = useShared
+      useShared = useShared,
    }
    -- computational domain
    local grid = Grid.RectCart {

@@ -153,7 +153,7 @@ function NoField:setIoMethod(ioMethod) end
 function NoField:setBasis(basis) end
 function NoField:setGrid(grid) end
 function NoField:alloc(nField) end
-function NoField:alloc(createSolver) end
+function NoField:createSolver() end
 function NoField:initField() end
 function NoField:write(frame, tm) end
 function NoField:rkStepperFields() return {} end

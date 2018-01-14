@@ -141,13 +141,18 @@ local function buildApplication(self, tbl)
       s:alloc(stepperNumFields[timeStepperNm])
    end
 
+   local decomp = DecompRegionCalc.CartProd {
+      cuts = decompCuts,
+      useShared = useShared,
+   }
+
    -- setup configuration space grid
    local grid = Grid.RectCart {
       lower = tbl.lower,
       upper = tbl.upper,
       cells = tbl.cells,
       periodicDirs = periodicDirs,
-      -- NEED TO CREATE DECOMPOSITION
+      decomposition = decomp,
    }
 
    -- setup information about fields: if this is not specified, it is
