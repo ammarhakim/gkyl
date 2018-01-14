@@ -76,15 +76,16 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local qInL, qInR = qIn:get(1), qIn:get(1)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
 
+   -- This flag is needed as the volume integral already contains
+   -- contributions from all directions. Hence, we can only
+   -- accumulate the volume contribution once, skipping it for
+   -- other directions
+   local firstDir = true
+
    qOut:clear(0.0) -- compute increments
 
    -- accumulate contributions from surface integrals
    for dir = 1, ndim do
-      -- This flag is needed as the volume integral already contains
-      -- contributions from all directions. Hence, we can only
-      -- accumulate the volume contribution once, skipping it for
-      -- other directions
-      local firstDir = true
 
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
@@ -98,7 +99,6 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       -- loop is over 1D slice in `dir`.
       for idx in perpRange:colMajorIter() do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
-
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 	    -- compute cell center coordinates and cell spacing
