@@ -16,14 +16,15 @@ dxInv : [dx0, dx1, dx2]$
 lhs : [outEx, outEy, outEz, outBx, outBy, outBz, outPh, outPs]$
 
 calcMaxVolUpdater(fh, funcNm, cdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
+kill(varsC, varsP, basisC, basisP, basisConstant),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
 printf(fh, "#include <MaxwellModDecl.h> ~%"),
-for i : 1 thru 2 do (
-  bC : basisC[i],
+for p : 0 thru 2 do (
+  bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
-  printf(fh, "void ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, i),
+  
+  printf(fh, "void ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, p),
   printf(fh, "  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
   printf(fh, "  const double c2chi = c2*chi, c2gamma = c2*gamma; ~% ~%"),
 

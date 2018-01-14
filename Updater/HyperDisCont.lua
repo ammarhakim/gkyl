@@ -31,7 +31,7 @@ function HyperDisCont:init(tbl)
    -- by default, compute forward Euler: if onlyIncrement is true,
    -- then only increments are computed. NOTE: The increments are NOT
    -- multiplied by dt.
-   self._onlyIncrement = xsys.pickBool(tbl.onlyIncrement, false) 
+   self._onlyIncrement = xsys.pickBool(tbl.onlyIncrement, false)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
    self._ndim = self._onGrid:ndim()
@@ -83,10 +83,8 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local firstDir = true
 
    qOut:clear(0.0) -- compute increments
-
    -- accumulate contributions from surface integrals
    for dir = 1, ndim do
-
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
 
