@@ -7,14 +7,13 @@ fpprec : 24$
 V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
 flux : [
  [c2chi*phi, c2*Bz, -c2*By, gamma*psi, -Ez, Ey, chi*Ex, c2gamma*Bx],
- [-c2*Bz, c2chi*phi, c2*Bx, c2*Ez, c2gamma*psi, -c2*Ex, chi*Ey, c2gamma*By],
- [c2*By, -c2*Bx, c2chi*phi, -c2*Ey, c2*Ex, c2gamma*psi, chi*Ez, c2gamma*Bz]
+ [-c2*Bz, c2chi*phi, c2*Bx, Ez, gamma*psi, -Ex, chi*Ey, c2gamma*By],
+ [c2*By, -c2*Bx, c2chi*phi, -Ey, Ex, gamma*psi, chi*Ez, c2gamma*Bz]
 ]$
 
 dxInv : [dx0, dx1, dx2]$
 
 lhs : [outEx, outEy, outEz, outBx, outBy, outBz, outPh, outPs]$
-rhs : [ex, ey, ez, bx, by, bz, ph, ps]$
 
 calcMaxVolUpdater(fh, funcNm, cdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
@@ -26,7 +25,7 @@ for i : 1 thru 2 do (
   nbasis : length(bC),
   printf(fh, "void ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
-  printf(fh, "  const double c2chi = c2*meq->chi, c2gamma = c2*meq->gamma; ~% ~%"),
+  printf(fh, "  const double c2chi = c2*chi, c2gamma = c2*gamma; ~% ~%"),
 
   printf(fh, "  const double *ex = &q[~a]; ~%", 0*nbasis),
   printf(fh, "  const double *ey = &q[~a]; ~%", 1*nbasis),
@@ -62,7 +61,7 @@ for i : 1 thru 2 do (
   psil : doExpand1(ps,bC),
   
   fluxl : subst([Ex=Exl, Ey=Eyl, Ez=Ezl, Bx=Bxl, By=Byl, Bz=Bzl, phi=phil, psi=psil], flux),
-  volTerms : sum(makelist(dxInv[d]*calcInnerProdList(varsC, 1, diff(bC,varsC[d]), fluxl[d][i]), i, 1, length(V)), d, 1, cdim),
+  volTerms : sum(makelist(dxInv[d]*calcInnerProdList(varsC, 1, diff(bC,varsC[d]), fluxl[d][i]), i, 1, 8), d, 1, cdim),
   for m : 1 thru 8 do (
     vt : volTerms[m],
     writeCIncrExprs1(lhs[m], vt),

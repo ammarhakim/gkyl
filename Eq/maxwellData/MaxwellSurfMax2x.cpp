@@ -22,14 +22,14 @@ void MaxwellSurf2xMax_X_P1(const MaxwellEq_t *meq, const double *w, const double
   double *outPhl = &outl[18]; 
   double *outPsl = &outl[21]; 
  
-  const double *exr = &ql[0]; 
-  const double *eyr = &ql[3]; 
-  const double *ezr = &ql[6]; 
-  const double *bxr = &ql[9]; 
-  const double *byr = &ql[12]; 
-  const double *bzr = &ql[15]; 
-  const double *phr = &ql[18]; 
-  const double *psr = &ql[21]; 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[3]; 
+  const double *ezr = &qr[6]; 
+  const double *bxr = &qr[9]; 
+  const double *byr = &qr[12]; 
+  const double *bzr = &qr[15]; 
+  const double *phr = &qr[18]; 
+  const double *psr = &qr[21]; 
  
   double *outExr = &outr[0]; 
   double *outEyr = &outr[3]; 
@@ -170,14 +170,14 @@ void MaxwellSurf2xMax_X_P2(const MaxwellEq_t *meq, const double *w, const double
   double *outPhl = &outl[36]; 
   double *outPsl = &outl[42]; 
  
-  const double *exr = &ql[0]; 
-  const double *eyr = &ql[6]; 
-  const double *ezr = &ql[12]; 
-  const double *bxr = &ql[18]; 
-  const double *byr = &ql[24]; 
-  const double *bzr = &ql[30]; 
-  const double *phr = &ql[36]; 
-  const double *psr = &ql[42]; 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[6]; 
+  const double *ezr = &qr[12]; 
+  const double *bxr = &qr[18]; 
+  const double *byr = &qr[24]; 
+  const double *bzr = &qr[30]; 
+  const double *phr = &qr[36]; 
+  const double *psr = &qr[42]; 
  
   double *outExr = &outr[0]; 
   double *outEyr = &outr[6]; 
@@ -390,14 +390,14 @@ void MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *w, const double
   double *outPhl = &outl[18]; 
   double *outPsl = &outl[21]; 
  
-  const double *exr = &ql[0]; 
-  const double *eyr = &ql[3]; 
-  const double *ezr = &ql[6]; 
-  const double *bxr = &ql[9]; 
-  const double *byr = &ql[12]; 
-  const double *bzr = &ql[15]; 
-  const double *phr = &ql[18]; 
-  const double *psr = &ql[21]; 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[3]; 
+  const double *ezr = &qr[6]; 
+  const double *bxr = &qr[9]; 
+  const double *byr = &qr[12]; 
+  const double *bzr = &qr[15]; 
+  const double *phr = &qr[18]; 
+  const double *psr = &qr[21]; 
  
   double *outExr = &outr[0]; 
   double *outEyr = &outr[3]; 
@@ -410,9 +410,9 @@ void MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *w, const double
  
   double incr[3]; 
  
-  incr[0] = 0.4330127018922193*exr[2]*c2+0.4330127018922193*exl[2]*c2+0.4330127018922193*bzr[2]*c2-0.4330127018922193*bzl[2]*c2-0.25*exr[0]*c2+0.25*exl[0]*c2-0.25*bzr[0]*c2-0.25*bzl[0]*c2; 
-  incr[1] = (-0.25*exr[1]*c2)+0.25*exl[1]*c2-0.25*bzr[1]*c2-0.25*bzl[1]*c2; 
-  incr[2] = (-0.75*exr[2]*c2)-0.75*exl[2]*c2-0.75*bzr[2]*c2+0.75*bzl[2]*c2+0.4330127018922193*exr[0]*c2-0.4330127018922193*exl[0]*c2+0.4330127018922193*bzr[0]*c2+0.4330127018922193*bzl[0]*c2; 
+  incr[0] = 0.4330127018922193*bzr[2]*c2-0.4330127018922193*bzl[2]*c2-0.25*bzr[0]*c2-0.25*bzl[0]*c2+0.4330127018922193*exr[2]*c+0.4330127018922193*exl[2]*c-0.25*exr[0]*c+0.25*exl[0]*c; 
+  incr[1] = (-0.25*bzr[1]*c2)-0.25*bzl[1]*c2-0.25*exr[1]*c+0.25*exl[1]*c; 
+  incr[2] = (-0.75*bzr[2]*c2)+0.75*bzl[2]*c2+0.4330127018922193*bzr[0]*c2+0.4330127018922193*bzl[0]*c2-0.75*exr[2]*c-0.75*exl[2]*c+0.4330127018922193*exr[0]*c-0.4330127018922193*exl[0]*c; 
 
   outExr[0] += incr[0]*dx1; 
   outExr[1] += incr[1]*dx1; 
@@ -436,9 +436,9 @@ void MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *w, const double
   outEyl[2] += incr[2]*dx1; 
 
  
-  incr[0] = 0.4330127018922193*ezr[2]*c2+0.4330127018922193*ezl[2]*c2-0.4330127018922193*bxr[2]*c2+0.4330127018922193*bxl[2]*c2-0.25*ezr[0]*c2+0.25*ezl[0]*c2+0.25*bxr[0]*c2+0.25*bxl[0]*c2; 
-  incr[1] = (-0.25*ezr[1]*c2)+0.25*ezl[1]*c2+0.25*bxr[1]*c2+0.25*bxl[1]*c2; 
-  incr[2] = (-0.75*ezr[2]*c2)-0.75*ezl[2]*c2+0.75*bxr[2]*c2-0.75*bxl[2]*c2+0.4330127018922193*ezr[0]*c2-0.4330127018922193*ezl[0]*c2-0.4330127018922193*bxr[0]*c2-0.4330127018922193*bxl[0]*c2; 
+  incr[0] = (-0.4330127018922193*bxr[2]*c2)+0.4330127018922193*bxl[2]*c2+0.25*bxr[0]*c2+0.25*bxl[0]*c2+0.4330127018922193*ezr[2]*c+0.4330127018922193*ezl[2]*c-0.25*ezr[0]*c+0.25*ezl[0]*c; 
+  incr[1] = 0.25*bxr[1]*c2+0.25*bxl[1]*c2-0.25*ezr[1]*c+0.25*ezl[1]*c; 
+  incr[2] = 0.75*bxr[2]*c2-0.75*bxl[2]*c2-0.4330127018922193*bxr[0]*c2-0.4330127018922193*bxl[0]*c2-0.75*ezr[2]*c-0.75*ezl[2]*c+0.4330127018922193*ezr[0]*c-0.4330127018922193*ezl[0]*c; 
 
   outEzr[0] += incr[0]*dx1; 
   outEzr[1] += incr[1]*dx1; 
@@ -449,9 +449,9 @@ void MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *w, const double
   outEzl[2] += incr[2]*dx1; 
 
  
-  incr[0] = (-0.4330127018922193*ezr[2]*c2)+0.4330127018922193*ezl[2]*c2+0.4330127018922193*bxr[2]*c2+0.4330127018922193*bxl[2]*c2+0.25*ezr[0]*c2+0.25*ezl[0]*c2-0.25*bxr[0]*c2+0.25*bxl[0]*c2; 
-  incr[1] = 0.25*ezr[1]*c2+0.25*ezl[1]*c2-0.25*bxr[1]*c2+0.25*bxl[1]*c2; 
-  incr[2] = 0.75*ezr[2]*c2-0.75*ezl[2]*c2-0.75*bxr[2]*c2-0.75*bxl[2]*c2-0.4330127018922193*ezr[0]*c2-0.4330127018922193*ezl[0]*c2+0.4330127018922193*bxr[0]*c2-0.4330127018922193*bxl[0]*c2; 
+  incr[0] = 0.4330127018922193*bxr[2]*c+0.4330127018922193*bxl[2]*c-0.25*bxr[0]*c+0.25*bxl[0]*c-0.4330127018922193*ezr[2]+0.4330127018922193*ezl[2]+0.25*ezr[0]+0.25*ezl[0]; 
+  incr[1] = (-0.25*bxr[1]*c)+0.25*bxl[1]*c+0.25*ezr[1]+0.25*ezl[1]; 
+  incr[2] = (-0.75*bxr[2]*c)-0.75*bxl[2]*c+0.4330127018922193*bxr[0]*c-0.4330127018922193*bxl[0]*c+0.75*ezr[2]-0.75*ezl[2]-0.4330127018922193*ezr[0]-0.4330127018922193*ezl[0]; 
 
   outBxr[0] += incr[0]*dx1; 
   outBxr[1] += incr[1]*dx1; 
@@ -462,9 +462,9 @@ void MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *w, const double
   outBxl[2] += incr[2]*dx1; 
 
  
-  incr[0] = (-0.4330127018922193*psr[2]*c2*gamma)+0.4330127018922193*psl[2]*c2*gamma+0.4330127018922193*byr[2]*c2*gamma+0.4330127018922193*byl[2]*c2*gamma+0.25*psr[0]*c2*gamma+0.25*psl[0]*c2*gamma-0.25*byr[0]*c2*gamma+0.25*byl[0]*c2*gamma; 
-  incr[1] = 0.25*psr[1]*c2*gamma+0.25*psl[1]*c2*gamma-0.25*byr[1]*c2*gamma+0.25*byl[1]*c2*gamma; 
-  incr[2] = 0.75*psr[2]*c2*gamma-0.75*psl[2]*c2*gamma-0.75*byr[2]*c2*gamma-0.75*byl[2]*c2*gamma-0.4330127018922193*psr[0]*c2*gamma-0.4330127018922193*psl[0]*c2*gamma+0.4330127018922193*byr[0]*c2*gamma-0.4330127018922193*byl[0]*c2*gamma; 
+  incr[0] = 0.4330127018922193*byr[2]*c*gamma+0.4330127018922193*byl[2]*c*gamma-0.25*byr[0]*c*gamma+0.25*byl[0]*c*gamma-0.4330127018922193*psr[2]*gamma+0.4330127018922193*psl[2]*gamma+0.25*psr[0]*gamma+0.25*psl[0]*gamma; 
+  incr[1] = (-0.25*byr[1]*c*gamma)+0.25*byl[1]*c*gamma+0.25*psr[1]*gamma+0.25*psl[1]*gamma; 
+  incr[2] = (-0.75*byr[2]*c*gamma)-0.75*byl[2]*c*gamma+0.4330127018922193*byr[0]*c*gamma-0.4330127018922193*byl[0]*c*gamma+0.75*psr[2]*gamma-0.75*psl[2]*gamma-0.4330127018922193*psr[0]*gamma-0.4330127018922193*psl[0]*gamma; 
 
   outByr[0] += incr[0]*dx1; 
   outByr[1] += incr[1]*dx1; 
@@ -475,9 +475,9 @@ void MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *w, const double
   outByl[2] += incr[2]*dx1; 
 
  
-  incr[0] = 0.4330127018922193*exr[2]*c2-0.4330127018922193*exl[2]*c2+0.4330127018922193*bzr[2]*c2+0.4330127018922193*bzl[2]*c2-0.25*exr[0]*c2-0.25*exl[0]*c2-0.25*bzr[0]*c2+0.25*bzl[0]*c2; 
-  incr[1] = (-0.25*exr[1]*c2)-0.25*exl[1]*c2-0.25*bzr[1]*c2+0.25*bzl[1]*c2; 
-  incr[2] = (-0.75*exr[2]*c2)+0.75*exl[2]*c2-0.75*bzr[2]*c2-0.75*bzl[2]*c2+0.4330127018922193*exr[0]*c2+0.4330127018922193*exl[0]*c2+0.4330127018922193*bzr[0]*c2-0.4330127018922193*bzl[0]*c2; 
+  incr[0] = 0.4330127018922193*bzr[2]*c+0.4330127018922193*bzl[2]*c-0.25*bzr[0]*c+0.25*bzl[0]*c+0.4330127018922193*exr[2]-0.4330127018922193*exl[2]-0.25*exr[0]-0.25*exl[0]; 
+  incr[1] = (-0.25*bzr[1]*c)+0.25*bzl[1]*c-0.25*exr[1]-0.25*exl[1]; 
+  incr[2] = (-0.75*bzr[2]*c)-0.75*bzl[2]*c+0.4330127018922193*bzr[0]*c-0.4330127018922193*bzl[0]*c-0.75*exr[2]+0.75*exl[2]+0.4330127018922193*exr[0]+0.4330127018922193*exl[0]; 
 
   outBzr[0] += incr[0]*dx1; 
   outBzr[1] += incr[1]*dx1; 
@@ -501,9 +501,9 @@ void MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *w, const double
   outPhl[2] += incr[2]*dx1; 
 
  
-  incr[0] = 0.4330127018922193*psr[2]*c2*gamma+0.4330127018922193*psl[2]*c2*gamma-0.4330127018922193*byr[2]*c2*gamma+0.4330127018922193*byl[2]*c2*gamma-0.25*psr[0]*c2*gamma+0.25*psl[0]*c2*gamma+0.25*byr[0]*c2*gamma+0.25*byl[0]*c2*gamma; 
-  incr[1] = (-0.25*psr[1]*c2*gamma)+0.25*psl[1]*c2*gamma+0.25*byr[1]*c2*gamma+0.25*byl[1]*c2*gamma; 
-  incr[2] = (-0.75*psr[2]*c2*gamma)-0.75*psl[2]*c2*gamma+0.75*byr[2]*c2*gamma-0.75*byl[2]*c2*gamma+0.4330127018922193*psr[0]*c2*gamma-0.4330127018922193*psl[0]*c2*gamma-0.4330127018922193*byr[0]*c2*gamma-0.4330127018922193*byl[0]*c2*gamma; 
+  incr[0] = (-0.4330127018922193*byr[2]*c2*gamma)+0.4330127018922193*byl[2]*c2*gamma+0.25*byr[0]*c2*gamma+0.25*byl[0]*c2*gamma+0.4330127018922193*psr[2]*c*gamma+0.4330127018922193*psl[2]*c*gamma-0.25*psr[0]*c*gamma+0.25*psl[0]*c*gamma; 
+  incr[1] = 0.25*byr[1]*c2*gamma+0.25*byl[1]*c2*gamma-0.25*psr[1]*c*gamma+0.25*psl[1]*c*gamma; 
+  incr[2] = 0.75*byr[2]*c2*gamma-0.75*byl[2]*c2*gamma-0.4330127018922193*byr[0]*c2*gamma-0.4330127018922193*byl[0]*c2*gamma-0.75*psr[2]*c*gamma-0.75*psl[2]*c*gamma+0.4330127018922193*psr[0]*c*gamma-0.4330127018922193*psl[0]*c*gamma; 
 
   outPsr[0] += incr[0]*dx1; 
   outPsr[1] += incr[1]*dx1; 
@@ -538,14 +538,14 @@ void MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *w, const double
   double *outPhl = &outl[36]; 
   double *outPsl = &outl[42]; 
  
-  const double *exr = &ql[0]; 
-  const double *eyr = &ql[6]; 
-  const double *ezr = &ql[12]; 
-  const double *bxr = &ql[18]; 
-  const double *byr = &ql[24]; 
-  const double *bzr = &ql[30]; 
-  const double *phr = &ql[36]; 
-  const double *psr = &ql[42]; 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[6]; 
+  const double *ezr = &qr[12]; 
+  const double *bxr = &qr[18]; 
+  const double *byr = &qr[24]; 
+  const double *bzr = &qr[30]; 
+  const double *phr = &qr[36]; 
+  const double *psr = &qr[42]; 
  
   double *outExr = &outr[0]; 
   double *outEyr = &outr[6]; 
@@ -558,12 +558,12 @@ void MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *w, const double
  
   double incr[6]; 
  
-  incr[0] = (-0.5590169943749475*exr[5]*c2)+0.5590169943749475*exl[5]*c2-0.5590169943749475*bzr[5]*c2-0.5590169943749475*bzl[5]*c2+0.4330127018922193*exr[2]*c2+0.4330127018922193*exl[2]*c2+0.4330127018922193*bzr[2]*c2-0.4330127018922193*bzl[2]*c2-0.25*exr[0]*c2+0.25*exl[0]*c2-0.25*bzr[0]*c2-0.25*bzl[0]*c2; 
-  incr[1] = 0.4330127018922193*exr[3]*c2+0.4330127018922193*exl[3]*c2+0.4330127018922193*bzr[3]*c2-0.4330127018922193*bzl[3]*c2-0.25*exr[1]*c2+0.25*exl[1]*c2-0.25*bzr[1]*c2-0.25*bzl[1]*c2; 
-  incr[2] = 0.9682458365518543*exr[5]*c2-0.9682458365518543*exl[5]*c2+0.9682458365518543*bzr[5]*c2+0.9682458365518543*bzl[5]*c2-0.75*exr[2]*c2-0.75*exl[2]*c2-0.75*bzr[2]*c2+0.75*bzl[2]*c2+0.4330127018922193*exr[0]*c2-0.4330127018922193*exl[0]*c2+0.4330127018922193*bzr[0]*c2+0.4330127018922193*bzl[0]*c2; 
-  incr[3] = (-0.75*exr[3]*c2)-0.75*exl[3]*c2-0.75*bzr[3]*c2+0.75*bzl[3]*c2+0.4330127018922193*exr[1]*c2-0.4330127018922193*exl[1]*c2+0.4330127018922193*bzr[1]*c2+0.4330127018922193*bzl[1]*c2; 
-  incr[4] = (-0.25*exr[4]*c2)+0.25*exl[4]*c2-0.25*bzr[4]*c2-0.25*bzl[4]*c2; 
-  incr[5] = (-1.25*exr[5]*c2)+1.25*exl[5]*c2-1.25*bzr[5]*c2-1.25*bzl[5]*c2+0.9682458365518543*exr[2]*c2+0.9682458365518543*exl[2]*c2+0.9682458365518543*bzr[2]*c2-0.9682458365518543*bzl[2]*c2-0.5590169943749475*exr[0]*c2+0.5590169943749475*exl[0]*c2-0.5590169943749475*bzr[0]*c2-0.5590169943749475*bzl[0]*c2; 
+  incr[0] = (-0.5590169943749475*bzr[5]*c2)-0.5590169943749475*bzl[5]*c2+0.4330127018922193*bzr[2]*c2-0.4330127018922193*bzl[2]*c2-0.25*bzr[0]*c2-0.25*bzl[0]*c2-0.5590169943749475*exr[5]*c+0.5590169943749475*exl[5]*c+0.4330127018922193*exr[2]*c+0.4330127018922193*exl[2]*c-0.25*exr[0]*c+0.25*exl[0]*c; 
+  incr[1] = 0.4330127018922193*bzr[3]*c2-0.4330127018922193*bzl[3]*c2-0.25*bzr[1]*c2-0.25*bzl[1]*c2+0.4330127018922193*exr[3]*c+0.4330127018922193*exl[3]*c-0.25*exr[1]*c+0.25*exl[1]*c; 
+  incr[2] = 0.9682458365518543*bzr[5]*c2+0.9682458365518543*bzl[5]*c2-0.75*bzr[2]*c2+0.75*bzl[2]*c2+0.4330127018922193*bzr[0]*c2+0.4330127018922193*bzl[0]*c2+0.9682458365518543*exr[5]*c-0.9682458365518543*exl[5]*c-0.75*exr[2]*c-0.75*exl[2]*c+0.4330127018922193*exr[0]*c-0.4330127018922193*exl[0]*c; 
+  incr[3] = (-0.75*bzr[3]*c2)+0.75*bzl[3]*c2+0.4330127018922193*bzr[1]*c2+0.4330127018922193*bzl[1]*c2-0.75*exr[3]*c-0.75*exl[3]*c+0.4330127018922193*exr[1]*c-0.4330127018922193*exl[1]*c; 
+  incr[4] = (-0.25*bzr[4]*c2)-0.25*bzl[4]*c2-0.25*exr[4]*c+0.25*exl[4]*c; 
+  incr[5] = (-1.25*bzr[5]*c2)-1.25*bzl[5]*c2+0.9682458365518543*bzr[2]*c2-0.9682458365518543*bzl[2]*c2-0.5590169943749475*bzr[0]*c2-0.5590169943749475*bzl[0]*c2-1.25*exr[5]*c+1.25*exl[5]*c+0.9682458365518543*exr[2]*c+0.9682458365518543*exl[2]*c-0.5590169943749475*exr[0]*c+0.5590169943749475*exl[0]*c; 
 
   outExr[0] += incr[0]*dx1; 
   outExr[1] += incr[1]*dx1; 
@@ -602,12 +602,12 @@ void MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *w, const double
   outEyl[5] += -1.0*incr[5]*dx1; 
 
  
-  incr[0] = (-0.5590169943749475*ezr[5]*c2)+0.5590169943749475*ezl[5]*c2+0.5590169943749475*bxr[5]*c2+0.5590169943749475*bxl[5]*c2+0.4330127018922193*ezr[2]*c2+0.4330127018922193*ezl[2]*c2-0.4330127018922193*bxr[2]*c2+0.4330127018922193*bxl[2]*c2-0.25*ezr[0]*c2+0.25*ezl[0]*c2+0.25*bxr[0]*c2+0.25*bxl[0]*c2; 
-  incr[1] = 0.4330127018922193*ezr[3]*c2+0.4330127018922193*ezl[3]*c2-0.4330127018922193*bxr[3]*c2+0.4330127018922193*bxl[3]*c2-0.25*ezr[1]*c2+0.25*ezl[1]*c2+0.25*bxr[1]*c2+0.25*bxl[1]*c2; 
-  incr[2] = 0.9682458365518543*ezr[5]*c2-0.9682458365518543*ezl[5]*c2-0.9682458365518543*bxr[5]*c2-0.9682458365518543*bxl[5]*c2-0.75*ezr[2]*c2-0.75*ezl[2]*c2+0.75*bxr[2]*c2-0.75*bxl[2]*c2+0.4330127018922193*ezr[0]*c2-0.4330127018922193*ezl[0]*c2-0.4330127018922193*bxr[0]*c2-0.4330127018922193*bxl[0]*c2; 
-  incr[3] = (-0.75*ezr[3]*c2)-0.75*ezl[3]*c2+0.75*bxr[3]*c2-0.75*bxl[3]*c2+0.4330127018922193*ezr[1]*c2-0.4330127018922193*ezl[1]*c2-0.4330127018922193*bxr[1]*c2-0.4330127018922193*bxl[1]*c2; 
-  incr[4] = (-0.25*ezr[4]*c2)+0.25*ezl[4]*c2+0.25*bxr[4]*c2+0.25*bxl[4]*c2; 
-  incr[5] = (-1.25*ezr[5]*c2)+1.25*ezl[5]*c2+1.25*bxr[5]*c2+1.25*bxl[5]*c2+0.9682458365518543*ezr[2]*c2+0.9682458365518543*ezl[2]*c2-0.9682458365518543*bxr[2]*c2+0.9682458365518543*bxl[2]*c2-0.5590169943749475*ezr[0]*c2+0.5590169943749475*ezl[0]*c2+0.5590169943749475*bxr[0]*c2+0.5590169943749475*bxl[0]*c2; 
+  incr[0] = 0.5590169943749475*bxr[5]*c2+0.5590169943749475*bxl[5]*c2-0.4330127018922193*bxr[2]*c2+0.4330127018922193*bxl[2]*c2+0.25*bxr[0]*c2+0.25*bxl[0]*c2-0.5590169943749475*ezr[5]*c+0.5590169943749475*ezl[5]*c+0.4330127018922193*ezr[2]*c+0.4330127018922193*ezl[2]*c-0.25*ezr[0]*c+0.25*ezl[0]*c; 
+  incr[1] = (-0.4330127018922193*bxr[3]*c2)+0.4330127018922193*bxl[3]*c2+0.25*bxr[1]*c2+0.25*bxl[1]*c2+0.4330127018922193*ezr[3]*c+0.4330127018922193*ezl[3]*c-0.25*ezr[1]*c+0.25*ezl[1]*c; 
+  incr[2] = (-0.9682458365518543*bxr[5]*c2)-0.9682458365518543*bxl[5]*c2+0.75*bxr[2]*c2-0.75*bxl[2]*c2-0.4330127018922193*bxr[0]*c2-0.4330127018922193*bxl[0]*c2+0.9682458365518543*ezr[5]*c-0.9682458365518543*ezl[5]*c-0.75*ezr[2]*c-0.75*ezl[2]*c+0.4330127018922193*ezr[0]*c-0.4330127018922193*ezl[0]*c; 
+  incr[3] = 0.75*bxr[3]*c2-0.75*bxl[3]*c2-0.4330127018922193*bxr[1]*c2-0.4330127018922193*bxl[1]*c2-0.75*ezr[3]*c-0.75*ezl[3]*c+0.4330127018922193*ezr[1]*c-0.4330127018922193*ezl[1]*c; 
+  incr[4] = 0.25*bxr[4]*c2+0.25*bxl[4]*c2-0.25*ezr[4]*c+0.25*ezl[4]*c; 
+  incr[5] = 1.25*bxr[5]*c2+1.25*bxl[5]*c2-0.9682458365518543*bxr[2]*c2+0.9682458365518543*bxl[2]*c2+0.5590169943749475*bxr[0]*c2+0.5590169943749475*bxl[0]*c2-1.25*ezr[5]*c+1.25*ezl[5]*c+0.9682458365518543*ezr[2]*c+0.9682458365518543*ezl[2]*c-0.5590169943749475*ezr[0]*c+0.5590169943749475*ezl[0]*c; 
 
   outEzr[0] += incr[0]*dx1; 
   outEzr[1] += incr[1]*dx1; 
@@ -624,12 +624,12 @@ void MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *w, const double
   outEzl[5] += -1.0*incr[5]*dx1; 
 
  
-  incr[0] = 0.5590169943749475*ezr[5]*c2+0.5590169943749475*ezl[5]*c2-0.5590169943749475*bxr[5]*c2+0.5590169943749475*bxl[5]*c2-0.4330127018922193*ezr[2]*c2+0.4330127018922193*ezl[2]*c2+0.4330127018922193*bxr[2]*c2+0.4330127018922193*bxl[2]*c2+0.25*ezr[0]*c2+0.25*ezl[0]*c2-0.25*bxr[0]*c2+0.25*bxl[0]*c2; 
-  incr[1] = (-0.4330127018922193*ezr[3]*c2)+0.4330127018922193*ezl[3]*c2+0.4330127018922193*bxr[3]*c2+0.4330127018922193*bxl[3]*c2+0.25*ezr[1]*c2+0.25*ezl[1]*c2-0.25*bxr[1]*c2+0.25*bxl[1]*c2; 
-  incr[2] = (-0.9682458365518543*ezr[5]*c2)-0.9682458365518543*ezl[5]*c2+0.9682458365518543*bxr[5]*c2-0.9682458365518543*bxl[5]*c2+0.75*ezr[2]*c2-0.75*ezl[2]*c2-0.75*bxr[2]*c2-0.75*bxl[2]*c2-0.4330127018922193*ezr[0]*c2-0.4330127018922193*ezl[0]*c2+0.4330127018922193*bxr[0]*c2-0.4330127018922193*bxl[0]*c2; 
-  incr[3] = 0.75*ezr[3]*c2-0.75*ezl[3]*c2-0.75*bxr[3]*c2-0.75*bxl[3]*c2-0.4330127018922193*ezr[1]*c2-0.4330127018922193*ezl[1]*c2+0.4330127018922193*bxr[1]*c2-0.4330127018922193*bxl[1]*c2; 
-  incr[4] = 0.25*ezr[4]*c2+0.25*ezl[4]*c2-0.25*bxr[4]*c2+0.25*bxl[4]*c2; 
-  incr[5] = 1.25*ezr[5]*c2+1.25*ezl[5]*c2-1.25*bxr[5]*c2+1.25*bxl[5]*c2-0.9682458365518543*ezr[2]*c2+0.9682458365518543*ezl[2]*c2+0.9682458365518543*bxr[2]*c2+0.9682458365518543*bxl[2]*c2+0.5590169943749475*ezr[0]*c2+0.5590169943749475*ezl[0]*c2-0.5590169943749475*bxr[0]*c2+0.5590169943749475*bxl[0]*c2; 
+  incr[0] = (-0.5590169943749475*bxr[5]*c)+0.5590169943749475*bxl[5]*c+0.4330127018922193*bxr[2]*c+0.4330127018922193*bxl[2]*c-0.25*bxr[0]*c+0.25*bxl[0]*c+0.5590169943749475*ezr[5]+0.5590169943749475*ezl[5]-0.4330127018922193*ezr[2]+0.4330127018922193*ezl[2]+0.25*ezr[0]+0.25*ezl[0]; 
+  incr[1] = 0.4330127018922193*bxr[3]*c+0.4330127018922193*bxl[3]*c-0.25*bxr[1]*c+0.25*bxl[1]*c-0.4330127018922193*ezr[3]+0.4330127018922193*ezl[3]+0.25*ezr[1]+0.25*ezl[1]; 
+  incr[2] = 0.9682458365518543*bxr[5]*c-0.9682458365518543*bxl[5]*c-0.75*bxr[2]*c-0.75*bxl[2]*c+0.4330127018922193*bxr[0]*c-0.4330127018922193*bxl[0]*c-0.9682458365518543*ezr[5]-0.9682458365518543*ezl[5]+0.75*ezr[2]-0.75*ezl[2]-0.4330127018922193*ezr[0]-0.4330127018922193*ezl[0]; 
+  incr[3] = (-0.75*bxr[3]*c)-0.75*bxl[3]*c+0.4330127018922193*bxr[1]*c-0.4330127018922193*bxl[1]*c+0.75*ezr[3]-0.75*ezl[3]-0.4330127018922193*ezr[1]-0.4330127018922193*ezl[1]; 
+  incr[4] = (-0.25*bxr[4]*c)+0.25*bxl[4]*c+0.25*ezr[4]+0.25*ezl[4]; 
+  incr[5] = (-1.25*bxr[5]*c)+1.25*bxl[5]*c+0.9682458365518543*bxr[2]*c+0.9682458365518543*bxl[2]*c-0.5590169943749475*bxr[0]*c+0.5590169943749475*bxl[0]*c+1.25*ezr[5]+1.25*ezl[5]-0.9682458365518543*ezr[2]+0.9682458365518543*ezl[2]+0.5590169943749475*ezr[0]+0.5590169943749475*ezl[0]; 
 
   outBxr[0] += incr[0]*dx1; 
   outBxr[1] += incr[1]*dx1; 
@@ -646,12 +646,12 @@ void MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *w, const double
   outBxl[5] += -1.0*incr[5]*dx1; 
 
  
-  incr[0] = 0.5590169943749475*psr[5]*c2*gamma+0.5590169943749475*psl[5]*c2*gamma-0.5590169943749475*byr[5]*c2*gamma+0.5590169943749475*byl[5]*c2*gamma-0.4330127018922193*psr[2]*c2*gamma+0.4330127018922193*psl[2]*c2*gamma+0.4330127018922193*byr[2]*c2*gamma+0.4330127018922193*byl[2]*c2*gamma+0.25*psr[0]*c2*gamma+0.25*psl[0]*c2*gamma-0.25*byr[0]*c2*gamma+0.25*byl[0]*c2*gamma; 
-  incr[1] = (-0.4330127018922193*psr[3]*c2*gamma)+0.4330127018922193*psl[3]*c2*gamma+0.4330127018922193*byr[3]*c2*gamma+0.4330127018922193*byl[3]*c2*gamma+0.25*psr[1]*c2*gamma+0.25*psl[1]*c2*gamma-0.25*byr[1]*c2*gamma+0.25*byl[1]*c2*gamma; 
-  incr[2] = (-0.9682458365518543*psr[5]*c2*gamma)-0.9682458365518543*psl[5]*c2*gamma+0.9682458365518543*byr[5]*c2*gamma-0.9682458365518543*byl[5]*c2*gamma+0.75*psr[2]*c2*gamma-0.75*psl[2]*c2*gamma-0.75*byr[2]*c2*gamma-0.75*byl[2]*c2*gamma-0.4330127018922193*psr[0]*c2*gamma-0.4330127018922193*psl[0]*c2*gamma+0.4330127018922193*byr[0]*c2*gamma-0.4330127018922193*byl[0]*c2*gamma; 
-  incr[3] = 0.75*psr[3]*c2*gamma-0.75*psl[3]*c2*gamma-0.75*byr[3]*c2*gamma-0.75*byl[3]*c2*gamma-0.4330127018922193*psr[1]*c2*gamma-0.4330127018922193*psl[1]*c2*gamma+0.4330127018922193*byr[1]*c2*gamma-0.4330127018922193*byl[1]*c2*gamma; 
-  incr[4] = 0.25*psr[4]*c2*gamma+0.25*psl[4]*c2*gamma-0.25*byr[4]*c2*gamma+0.25*byl[4]*c2*gamma; 
-  incr[5] = 1.25*psr[5]*c2*gamma+1.25*psl[5]*c2*gamma-1.25*byr[5]*c2*gamma+1.25*byl[5]*c2*gamma-0.9682458365518543*psr[2]*c2*gamma+0.9682458365518543*psl[2]*c2*gamma+0.9682458365518543*byr[2]*c2*gamma+0.9682458365518543*byl[2]*c2*gamma+0.5590169943749475*psr[0]*c2*gamma+0.5590169943749475*psl[0]*c2*gamma-0.5590169943749475*byr[0]*c2*gamma+0.5590169943749475*byl[0]*c2*gamma; 
+  incr[0] = (-0.5590169943749475*byr[5]*c*gamma)+0.5590169943749475*byl[5]*c*gamma+0.4330127018922193*byr[2]*c*gamma+0.4330127018922193*byl[2]*c*gamma-0.25*byr[0]*c*gamma+0.25*byl[0]*c*gamma+0.5590169943749475*psr[5]*gamma+0.5590169943749475*psl[5]*gamma-0.4330127018922193*psr[2]*gamma+0.4330127018922193*psl[2]*gamma+0.25*psr[0]*gamma+0.25*psl[0]*gamma; 
+  incr[1] = 0.4330127018922193*byr[3]*c*gamma+0.4330127018922193*byl[3]*c*gamma-0.25*byr[1]*c*gamma+0.25*byl[1]*c*gamma-0.4330127018922193*psr[3]*gamma+0.4330127018922193*psl[3]*gamma+0.25*psr[1]*gamma+0.25*psl[1]*gamma; 
+  incr[2] = 0.9682458365518543*byr[5]*c*gamma-0.9682458365518543*byl[5]*c*gamma-0.75*byr[2]*c*gamma-0.75*byl[2]*c*gamma+0.4330127018922193*byr[0]*c*gamma-0.4330127018922193*byl[0]*c*gamma-0.9682458365518543*psr[5]*gamma-0.9682458365518543*psl[5]*gamma+0.75*psr[2]*gamma-0.75*psl[2]*gamma-0.4330127018922193*psr[0]*gamma-0.4330127018922193*psl[0]*gamma; 
+  incr[3] = (-0.75*byr[3]*c*gamma)-0.75*byl[3]*c*gamma+0.4330127018922193*byr[1]*c*gamma-0.4330127018922193*byl[1]*c*gamma+0.75*psr[3]*gamma-0.75*psl[3]*gamma-0.4330127018922193*psr[1]*gamma-0.4330127018922193*psl[1]*gamma; 
+  incr[4] = (-0.25*byr[4]*c*gamma)+0.25*byl[4]*c*gamma+0.25*psr[4]*gamma+0.25*psl[4]*gamma; 
+  incr[5] = (-1.25*byr[5]*c*gamma)+1.25*byl[5]*c*gamma+0.9682458365518543*byr[2]*c*gamma+0.9682458365518543*byl[2]*c*gamma-0.5590169943749475*byr[0]*c*gamma+0.5590169943749475*byl[0]*c*gamma+1.25*psr[5]*gamma+1.25*psl[5]*gamma-0.9682458365518543*psr[2]*gamma+0.9682458365518543*psl[2]*gamma+0.5590169943749475*psr[0]*gamma+0.5590169943749475*psl[0]*gamma; 
 
   outByr[0] += incr[0]*dx1; 
   outByr[1] += incr[1]*dx1; 
@@ -668,12 +668,12 @@ void MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *w, const double
   outByl[5] += -1.0*incr[5]*dx1; 
 
  
-  incr[0] = (-0.5590169943749475*exr[5]*c2)-0.5590169943749475*exl[5]*c2-0.5590169943749475*bzr[5]*c2+0.5590169943749475*bzl[5]*c2+0.4330127018922193*exr[2]*c2-0.4330127018922193*exl[2]*c2+0.4330127018922193*bzr[2]*c2+0.4330127018922193*bzl[2]*c2-0.25*exr[0]*c2-0.25*exl[0]*c2-0.25*bzr[0]*c2+0.25*bzl[0]*c2; 
-  incr[1] = 0.4330127018922193*exr[3]*c2-0.4330127018922193*exl[3]*c2+0.4330127018922193*bzr[3]*c2+0.4330127018922193*bzl[3]*c2-0.25*exr[1]*c2-0.25*exl[1]*c2-0.25*bzr[1]*c2+0.25*bzl[1]*c2; 
-  incr[2] = 0.9682458365518543*exr[5]*c2+0.9682458365518543*exl[5]*c2+0.9682458365518543*bzr[5]*c2-0.9682458365518543*bzl[5]*c2-0.75*exr[2]*c2+0.75*exl[2]*c2-0.75*bzr[2]*c2-0.75*bzl[2]*c2+0.4330127018922193*exr[0]*c2+0.4330127018922193*exl[0]*c2+0.4330127018922193*bzr[0]*c2-0.4330127018922193*bzl[0]*c2; 
-  incr[3] = (-0.75*exr[3]*c2)+0.75*exl[3]*c2-0.75*bzr[3]*c2-0.75*bzl[3]*c2+0.4330127018922193*exr[1]*c2+0.4330127018922193*exl[1]*c2+0.4330127018922193*bzr[1]*c2-0.4330127018922193*bzl[1]*c2; 
-  incr[4] = (-0.25*exr[4]*c2)-0.25*exl[4]*c2-0.25*bzr[4]*c2+0.25*bzl[4]*c2; 
-  incr[5] = (-1.25*exr[5]*c2)-1.25*exl[5]*c2-1.25*bzr[5]*c2+1.25*bzl[5]*c2+0.9682458365518543*exr[2]*c2-0.9682458365518543*exl[2]*c2+0.9682458365518543*bzr[2]*c2+0.9682458365518543*bzl[2]*c2-0.5590169943749475*exr[0]*c2-0.5590169943749475*exl[0]*c2-0.5590169943749475*bzr[0]*c2+0.5590169943749475*bzl[0]*c2; 
+  incr[0] = (-0.5590169943749475*bzr[5]*c)+0.5590169943749475*bzl[5]*c+0.4330127018922193*bzr[2]*c+0.4330127018922193*bzl[2]*c-0.25*bzr[0]*c+0.25*bzl[0]*c-0.5590169943749475*exr[5]-0.5590169943749475*exl[5]+0.4330127018922193*exr[2]-0.4330127018922193*exl[2]-0.25*exr[0]-0.25*exl[0]; 
+  incr[1] = 0.4330127018922193*bzr[3]*c+0.4330127018922193*bzl[3]*c-0.25*bzr[1]*c+0.25*bzl[1]*c+0.4330127018922193*exr[3]-0.4330127018922193*exl[3]-0.25*exr[1]-0.25*exl[1]; 
+  incr[2] = 0.9682458365518543*bzr[5]*c-0.9682458365518543*bzl[5]*c-0.75*bzr[2]*c-0.75*bzl[2]*c+0.4330127018922193*bzr[0]*c-0.4330127018922193*bzl[0]*c+0.9682458365518543*exr[5]+0.9682458365518543*exl[5]-0.75*exr[2]+0.75*exl[2]+0.4330127018922193*exr[0]+0.4330127018922193*exl[0]; 
+  incr[3] = (-0.75*bzr[3]*c)-0.75*bzl[3]*c+0.4330127018922193*bzr[1]*c-0.4330127018922193*bzl[1]*c-0.75*exr[3]+0.75*exl[3]+0.4330127018922193*exr[1]+0.4330127018922193*exl[1]; 
+  incr[4] = (-0.25*bzr[4]*c)+0.25*bzl[4]*c-0.25*exr[4]-0.25*exl[4]; 
+  incr[5] = (-1.25*bzr[5]*c)+1.25*bzl[5]*c+0.9682458365518543*bzr[2]*c+0.9682458365518543*bzl[2]*c-0.5590169943749475*bzr[0]*c+0.5590169943749475*bzl[0]*c-1.25*exr[5]-1.25*exl[5]+0.9682458365518543*exr[2]-0.9682458365518543*exl[2]-0.5590169943749475*exr[0]-0.5590169943749475*exl[0]; 
 
   outBzr[0] += incr[0]*dx1; 
   outBzr[1] += incr[1]*dx1; 
@@ -712,12 +712,12 @@ void MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *w, const double
   outPhl[5] += -1.0*incr[5]*dx1; 
 
  
-  incr[0] = (-0.5590169943749475*psr[5]*c2*gamma)+0.5590169943749475*psl[5]*c2*gamma+0.5590169943749475*byr[5]*c2*gamma+0.5590169943749475*byl[5]*c2*gamma+0.4330127018922193*psr[2]*c2*gamma+0.4330127018922193*psl[2]*c2*gamma-0.4330127018922193*byr[2]*c2*gamma+0.4330127018922193*byl[2]*c2*gamma-0.25*psr[0]*c2*gamma+0.25*psl[0]*c2*gamma+0.25*byr[0]*c2*gamma+0.25*byl[0]*c2*gamma; 
-  incr[1] = 0.4330127018922193*psr[3]*c2*gamma+0.4330127018922193*psl[3]*c2*gamma-0.4330127018922193*byr[3]*c2*gamma+0.4330127018922193*byl[3]*c2*gamma-0.25*psr[1]*c2*gamma+0.25*psl[1]*c2*gamma+0.25*byr[1]*c2*gamma+0.25*byl[1]*c2*gamma; 
-  incr[2] = 0.9682458365518543*psr[5]*c2*gamma-0.9682458365518543*psl[5]*c2*gamma-0.9682458365518543*byr[5]*c2*gamma-0.9682458365518543*byl[5]*c2*gamma-0.75*psr[2]*c2*gamma-0.75*psl[2]*c2*gamma+0.75*byr[2]*c2*gamma-0.75*byl[2]*c2*gamma+0.4330127018922193*psr[0]*c2*gamma-0.4330127018922193*psl[0]*c2*gamma-0.4330127018922193*byr[0]*c2*gamma-0.4330127018922193*byl[0]*c2*gamma; 
-  incr[3] = (-0.75*psr[3]*c2*gamma)-0.75*psl[3]*c2*gamma+0.75*byr[3]*c2*gamma-0.75*byl[3]*c2*gamma+0.4330127018922193*psr[1]*c2*gamma-0.4330127018922193*psl[1]*c2*gamma-0.4330127018922193*byr[1]*c2*gamma-0.4330127018922193*byl[1]*c2*gamma; 
-  incr[4] = (-0.25*psr[4]*c2*gamma)+0.25*psl[4]*c2*gamma+0.25*byr[4]*c2*gamma+0.25*byl[4]*c2*gamma; 
-  incr[5] = (-1.25*psr[5]*c2*gamma)+1.25*psl[5]*c2*gamma+1.25*byr[5]*c2*gamma+1.25*byl[5]*c2*gamma+0.9682458365518543*psr[2]*c2*gamma+0.9682458365518543*psl[2]*c2*gamma-0.9682458365518543*byr[2]*c2*gamma+0.9682458365518543*byl[2]*c2*gamma-0.5590169943749475*psr[0]*c2*gamma+0.5590169943749475*psl[0]*c2*gamma+0.5590169943749475*byr[0]*c2*gamma+0.5590169943749475*byl[0]*c2*gamma; 
+  incr[0] = 0.5590169943749475*byr[5]*c2*gamma+0.5590169943749475*byl[5]*c2*gamma-0.4330127018922193*byr[2]*c2*gamma+0.4330127018922193*byl[2]*c2*gamma+0.25*byr[0]*c2*gamma+0.25*byl[0]*c2*gamma-0.5590169943749475*psr[5]*c*gamma+0.5590169943749475*psl[5]*c*gamma+0.4330127018922193*psr[2]*c*gamma+0.4330127018922193*psl[2]*c*gamma-0.25*psr[0]*c*gamma+0.25*psl[0]*c*gamma; 
+  incr[1] = (-0.4330127018922193*byr[3]*c2*gamma)+0.4330127018922193*byl[3]*c2*gamma+0.25*byr[1]*c2*gamma+0.25*byl[1]*c2*gamma+0.4330127018922193*psr[3]*c*gamma+0.4330127018922193*psl[3]*c*gamma-0.25*psr[1]*c*gamma+0.25*psl[1]*c*gamma; 
+  incr[2] = (-0.9682458365518543*byr[5]*c2*gamma)-0.9682458365518543*byl[5]*c2*gamma+0.75*byr[2]*c2*gamma-0.75*byl[2]*c2*gamma-0.4330127018922193*byr[0]*c2*gamma-0.4330127018922193*byl[0]*c2*gamma+0.9682458365518543*psr[5]*c*gamma-0.9682458365518543*psl[5]*c*gamma-0.75*psr[2]*c*gamma-0.75*psl[2]*c*gamma+0.4330127018922193*psr[0]*c*gamma-0.4330127018922193*psl[0]*c*gamma; 
+  incr[3] = 0.75*byr[3]*c2*gamma-0.75*byl[3]*c2*gamma-0.4330127018922193*byr[1]*c2*gamma-0.4330127018922193*byl[1]*c2*gamma-0.75*psr[3]*c*gamma-0.75*psl[3]*c*gamma+0.4330127018922193*psr[1]*c*gamma-0.4330127018922193*psl[1]*c*gamma; 
+  incr[4] = 0.25*byr[4]*c2*gamma+0.25*byl[4]*c2*gamma-0.25*psr[4]*c*gamma+0.25*psl[4]*c*gamma; 
+  incr[5] = 1.25*byr[5]*c2*gamma+1.25*byl[5]*c2*gamma-0.9682458365518543*byr[2]*c2*gamma+0.9682458365518543*byl[2]*c2*gamma+0.5590169943749475*byr[0]*c2*gamma+0.5590169943749475*byl[0]*c2*gamma-1.25*psr[5]*c*gamma+1.25*psl[5]*c*gamma+0.9682458365518543*psr[2]*c*gamma+0.9682458365518543*psl[2]*c*gamma-0.5590169943749475*psr[0]*c*gamma+0.5590169943749475*psl[0]*c*gamma; 
 
   outPsr[0] += incr[0]*dx1; 
   outPsr[1] += incr[1]*dx1; 

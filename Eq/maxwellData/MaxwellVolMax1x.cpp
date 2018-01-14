@@ -1,8 +1,8 @@
 #include <MaxwellModDecl.h> 
-void MaxwellVol1xMaxP1(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out) 
+void MaxwellVol1xMaxP1(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2chi = c2*meq->chi, c2gamma = c2*meq->gamma; 
+  const double c2chi = c2*chi, c2gamma = c2*gamma; 
  
   const double *ex = &q[0]; 
   const double *ey = &q[2]; 
@@ -42,10 +42,10 @@ void MaxwellVol1xMaxP1(const MaxwellEq_t *meq, const double *w, const double *dx
   outPs[1] += 1.732050807568877*bx[0]*c2gamma*dx0; 
 
 } 
-void MaxwellVol1xMaxP2(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out) 
+void MaxwellVol1xMaxP2(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2chi = c2*meq->chi, c2gamma = c2*meq->gamma; 
+  const double c2chi = c2*chi, c2gamma = c2*gamma; 
  
   const double *ex = &q[0]; 
   const double *ey = &q[3]; 

@@ -7,7 +7,7 @@ assume(gamma>0);
 VL : [ExL, EyL, EzL, BxL, ByL, BzL, phiL, psiL]$
 VR : [ExR, EyR, EzR, BxR, ByR, BzR, phiR, psiR]$
 
-/* Compute Jacobian */
+/* Compute upwinded flux */
 calcNumFlux(V, flx) := block([Aij, A, vals, vects, Rev, Lev, Evs, vlSub, vrSub],
   A : genmatrix(lambda ([i,j], diff(flx[i],V[j])), 8, 8),
 

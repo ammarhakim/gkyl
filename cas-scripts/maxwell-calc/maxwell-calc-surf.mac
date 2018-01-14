@@ -15,8 +15,8 @@ outl : [outExl, outEyl, outEzl, outBxl, outByl, outBzl, outPhl, outPsl]$
 V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
 flux : [
  [c^2*chi*phi, c^2*Bz, -c^2*By, gamma*psi, -Ez, Ey, chi*Ex, c^2*gamma*Bx],
- [-c^2*Bz, c^2*chi*phi, c^2*Bx, c^2*Ez, c^2*gamma*psi, -c^2*Ex, chi*Ey, c^2*gamma*By],
- [c^2*By, -c^2*Bx, c^2*chi*phi, -c^2*Ey, c^2*Ex, c^2*gamma*psi, chi*Ez, c^2*gamma*Bz]
+ [-c^2*Bz, c^2*chi*phi, c^2*Bx, Ez, gamma*psi, -Ex, chi*Ey, c^2*gamma*By],
+ [c^2*By, -c^2*Bx, c^2*chi*phi, -Ey, Ex, gamma*psi, chi*Ez, c^2*gamma*Bz]
 ]$
 
 calcUpdateInDir(dir, fh, funcNm, cdim, basisFun) := block([],
@@ -50,14 +50,14 @@ for i : 1 thru 2 do(
   printf(fh, "  double *outPhl = &outl[~a]; ~%", 6*nbasis),
   printf(fh, "  double *outPsl = &outl[~a]; ~% ~%", 7*nbasis),
 
-  printf(fh, "  const double *exr = &ql[~a]; ~%", 0*nbasis),
-  printf(fh, "  const double *eyr = &ql[~a]; ~%", 1*nbasis),
-  printf(fh, "  const double *ezr = &ql[~a]; ~%", 2*nbasis),
-  printf(fh, "  const double *bxr = &ql[~a]; ~%", 3*nbasis),
-  printf(fh, "  const double *byr = &ql[~a]; ~%", 4*nbasis),
-  printf(fh, "  const double *bzr = &ql[~a]; ~%", 5*nbasis),
-  printf(fh, "  const double *phr = &ql[~a]; ~%", 6*nbasis),
-  printf(fh, "  const double *psr = &ql[~a]; ~% ~%", 7*nbasis),
+  printf(fh, "  const double *exr = &qr[~a]; ~%", 0*nbasis),
+  printf(fh, "  const double *eyr = &qr[~a]; ~%", 1*nbasis),
+  printf(fh, "  const double *ezr = &qr[~a]; ~%", 2*nbasis),
+  printf(fh, "  const double *bxr = &qr[~a]; ~%", 3*nbasis),
+  printf(fh, "  const double *byr = &qr[~a]; ~%", 4*nbasis),
+  printf(fh, "  const double *bzr = &qr[~a]; ~%", 5*nbasis),
+  printf(fh, "  const double *phr = &qr[~a]; ~%", 6*nbasis),
+  printf(fh, "  const double *psr = &qr[~a]; ~% ~%", 7*nbasis),
 
   printf(fh, "  double *outExr = &outr[~a]; ~%", 0*nbasis),
   printf(fh, "  double *outEyr = &outr[~a]; ~%", 1*nbasis),
@@ -99,16 +99,14 @@ for i : 1 thru 2 do(
   for m : 1 thru 8 do (
     fhat : letsimp(numFlux[m][1]),
 
-    t : calcInnerProdList(surfVars, 1, subst(cv=-1, bC), fhat),
-    incr_r : t,
+    incr_r : calcInnerProdList(surfVars, 1, subst(cv=-1, bC), fhat),
     writeCExprs1(incr, incr_r),
     printf(fh, "~%"),
     incr_s : makelist(incr[i-1], i, 1, nbasis),
     writeCIncrExprs1(outr[m], dx1*incr_s),
     printf(fh, "~%"),
     
-    t : calcInnerProdList(surfVars, 1, subst(cv=1, bC), fhat),
-    incr_l : -t,
+    incr_l : -calcInnerProdList(surfVars, 1, subst(cv=1, bC), fhat),
     signs : fullratsimp(incr_l/incr_r),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, nbasis),
     writeCIncrExprs1(outl[m], dx1*incr_s),
