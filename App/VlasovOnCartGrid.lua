@@ -76,12 +76,12 @@ local function buildApplication(self, tbl)
 
    -- time-stepper
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
-   if timeStepperNm ~= "rk2" and timeStepperNm ~= "rk3" and timeStepperNm ~= "rk3s4" then
+   if timeStepperNm ~= "rk1" and timeStepperNm ~= "rk2" and timeStepperNm ~= "rk3" and timeStepperNm ~= "rk3s4" then
       assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified")
    end
 
    -- CFL fractions for various steppers
-   local stepperCFLFracs = { rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0 }
+   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0 }
 
    local cflFrac = tbl.cflFrac
    -- Compute CFL fraction if not specified
@@ -90,7 +90,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Number of fields needed for each stepper type
-   local stepperNumFields = { rk2 = 3, rk3 = 3, rk3s4 = 4 }
+   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4 }
 
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
@@ -132,7 +132,6 @@ local function buildApplication(self, tbl)
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
    end
-   log(string.format("Using CFL number %g", cflMin))
 
    -- setup each species
    for _, s in pairs(species) do
@@ -159,8 +158,11 @@ local function buildApplication(self, tbl)
    field:setGrid(grid)
    do
       local myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+      cflMin = math.min(cflMin, myCfl)
       field:setCfl(myCfl)
    end
+   log(string.format("Using CFL number %g", cflMin))
+   
    -- allocate field data
    field:alloc(stepperNumFields[timeStepperNm])
 
@@ -168,7 +170,10 @@ local function buildApplication(self, tbl)
    for _, s in pairs(species) do
       local hasE, hasB = field:hasEB()
       s:createSolver(hasE, hasB)
-   end   
+   end
+
+   -- initialize field solvers
+   field:createSolver()
 
    -- initialize species distributions and field
    for _, s in pairs(species) do
@@ -204,7 +209,8 @@ local function buildApplication(self, tbl)
 	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
       -- update EM field
-      local myStatus, myDtSuggested = field:forwardEuler(tCurr, dt, emRkFields[inIdx], emRkFields[outIdx])
+      local myStatus, myDtSuggested = field:forwardEuler(
+	 tCurr, dt, emRkFields[inIdx], emRkFields[outIdx])
       status = status and myStatus
       dtSuggested = math.min(dtSuggested, myDtSuggested)
       field:applyBc(tCurr, dt, emRkFields[outIdx])
@@ -241,6 +247,18 @@ local function buildApplication(self, tbl)
    end
 
    local timeSteppers = {} -- various time-steppers
+
+   -- function to advance solution using RK1 scheme (only for testing)
+   function timeSteppers.rk1(tCurr, dt)
+      local status, dtSuggested
+      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      if status == false then return status, dtSuggested end
+
+      increment1(2, 1)
+
+      return status, dtSuggested      
+   end
+
    -- function to advance solution using SSP-RK2 scheme
    function timeSteppers.rk2(tCurr, dt)
       local status, dtSuggested
@@ -366,6 +384,7 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "  [Streaming updates %g sec. Force updates %g sec]",
 	     tmVlasovStream, tmVlasovForce))
+      log(string.format("Field solver took %g sec", field:totalSolverTime()))
       log(string.format("Main loop completed in %g sec", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end

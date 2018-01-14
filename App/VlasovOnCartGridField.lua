@@ -44,8 +44,14 @@ function EmField:init(tbl)
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
 
+   self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
+   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0   
+
    -- store initial condition function
-   self.initFunc = tbl.init
+   self.initFunc = function (t, xn)
+      local ex, ey, ez, bx, by, bz = tbl.init(t, xn)
+      return ex, ey, ez, bx, by, bz, 0.0, 0.0
+   end
 
    self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
 end
@@ -63,7 +69,7 @@ function EmField:alloc(nField)
    for i = 1, nField do
       self.em[i] = DataStruct.Field {
 	 onGrid = self.grid,
-	 numComponents = self.basis:numBasis(),
+	 numComponents = 8*self.basis:numBasis(),
 	 ghost = {1, 1}
       }
    end
@@ -72,6 +78,22 @@ function EmField:alloc(nField)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
       method = self.ioMethod,
+   }
+end
+
+function EmField:createSolver()
+   local maxEq = PerfMaxwell {
+      lightSpeed = self.lightSpeed,
+      elcErrorSpeedFactor = self.ce,
+      mgnErrorSpeedFactor = self.cb,
+      basis = self.basis,
+   }
+   
+   self.fieldSlvr = Updater.HyperDisCont {
+      onGrid = self.grid,
+      basis = self.basis,
+      cfl = self.cfl,
+      equation = maxEq,
    }
 end
 
@@ -101,7 +123,7 @@ end
 
 function EmField:forwardEuler(tCurr, dt, emIn, emOut)
    if self.evolve then
-      assert(false, "EmField:forwardEuler. NYI!")
+      return self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
    else
       emOut:copy(emIn) -- just copy stuff over
       return true, GKYL_MAX_DOUBLE
@@ -113,15 +135,7 @@ function EmField:applyBc(tCurr, dt, emIn)
 end
    
 function EmField:totalSolverTime()
-   return 0.0
-end
-
-function EmField:volTime()
-   return 0.0
-end
-
-function EmField:surfTime()
-   return 0.0
+   return self.fieldSlvr.totalTime
 end
 
 -- NoField ---------------------------------------------------------------------
@@ -139,14 +153,13 @@ function NoField:setIoMethod(ioMethod) end
 function NoField:setBasis(basis) end
 function NoField:setGrid(grid) end
 function NoField:alloc(nField) end
+function NoField:alloc(createSolver) end
 function NoField:initField() end
 function NoField:write(frame, tm) end
 function NoField:rkStepperFields() return {} end
 function NoField:forwardEuler(tCurr, dt, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end
 function NoField:totalSolverTime() return 0.0 end
-function NoField:volTime() return 0.0 end
-function NoField:surfTime() return 0.0 end
 
 return {
    EmField = EmField,

@@ -22,14 +22,14 @@ void MaxwellSurf1xSer_X_P1(const MaxwellEq_t *meq, const double *w, const double
   double *outPhl = &outl[12]; 
   double *outPsl = &outl[14]; 
  
-  const double *exr = &ql[0]; 
-  const double *eyr = &ql[2]; 
-  const double *ezr = &ql[4]; 
-  const double *bxr = &ql[6]; 
-  const double *byr = &ql[8]; 
-  const double *bzr = &ql[10]; 
-  const double *phr = &ql[12]; 
-  const double *psr = &ql[14]; 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[2]; 
+  const double *ezr = &qr[4]; 
+  const double *bxr = &qr[6]; 
+  const double *byr = &qr[8]; 
+  const double *bzr = &qr[10]; 
+  const double *phr = &qr[12]; 
+  const double *psr = &qr[14]; 
  
   double *outExr = &outr[0]; 
   double *outEyr = &outr[2]; 
@@ -146,14 +146,14 @@ void MaxwellSurf1xSer_X_P2(const MaxwellEq_t *meq, const double *w, const double
   double *outPhl = &outl[18]; 
   double *outPsl = &outl[21]; 
  
-  const double *exr = &ql[0]; 
-  const double *eyr = &ql[3]; 
-  const double *ezr = &ql[6]; 
-  const double *bxr = &ql[9]; 
-  const double *byr = &ql[12]; 
-  const double *bzr = &ql[15]; 
-  const double *phr = &ql[18]; 
-  const double *psr = &ql[21]; 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[3]; 
+  const double *ezr = &qr[6]; 
+  const double *bxr = &qr[9]; 
+  const double *byr = &qr[12]; 
+  const double *bzr = &qr[15]; 
+  const double *phr = &qr[18]; 
+  const double *psr = &qr[21]; 
  
   double *outExr = &outr[0]; 
   double *outEyr = &outr[3]; 

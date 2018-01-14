@@ -1,8 +1,8 @@
 #include <MaxwellModDecl.h> 
-void MaxwellVol2xMaxP1(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out) 
+void MaxwellVol2xMaxP1(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2chi = c2*meq->chi, c2gamma = c2*meq->gamma; 
+  const double c2chi = c2*chi, c2gamma = c2*gamma; 
  
   const double *ex = &q[0]; 
   const double *ey = &q[3]; 
@@ -36,13 +36,13 @@ void MaxwellVol2xMaxP1(const MaxwellEq_t *meq, const double *w, const double *dx
   outEz[2] += 1.732050807568877*bx[0]*c2*dx1; 
 
   outBx[1] += 1.732050807568877*ps[0]*dx0*gamma; 
-  outBx[2] += 1.732050807568877*ez[0]*c2*dx1; 
+  outBx[2] += 1.732050807568877*ez[0]*dx1; 
 
   outBy[1] += -1.732050807568877*ez[0]*dx0; 
-  outBy[2] += 1.732050807568877*ps[0]*c2gamma*dx1; 
+  outBy[2] += 1.732050807568877*ps[0]*dx1*gamma; 
 
   outBz[1] += 1.732050807568877*ey[0]*dx0; 
-  outBz[2] += -1.732050807568877*ex[0]*c2*dx1; 
+  outBz[2] += -1.732050807568877*ex[0]*dx1; 
 
   outPh[1] += 1.732050807568877*ex[0]*chi*dx0; 
   outPh[2] += 1.732050807568877*ey[0]*chi*dx1; 
@@ -51,10 +51,10 @@ void MaxwellVol2xMaxP1(const MaxwellEq_t *meq, const double *w, const double *dx
   outPs[2] += 1.732050807568877*by[0]*c2gamma*dx1; 
 
 } 
-void MaxwellVol2xMaxP2(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out) 
+void MaxwellVol2xMaxP2(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2chi = c2*meq->chi, c2gamma = c2*meq->gamma; 
+  const double c2chi = c2*chi, c2gamma = c2*gamma; 
  
   const double *ex = &q[0]; 
   const double *ey = &q[6]; 
@@ -97,22 +97,22 @@ void MaxwellVol2xMaxP2(const MaxwellEq_t *meq, const double *w, const double *dx
   outEz[5] += 3.872983346207417*bx[2]*c2*dx1; 
 
   outBx[1] += 1.732050807568877*ps[0]*dx0*gamma; 
-  outBx[2] += 1.732050807568877*ez[0]*c2*dx1; 
-  outBx[3] += 1.732050807568877*ps[2]*dx0*gamma+1.732050807568877*ez[1]*c2*dx1; 
+  outBx[2] += 1.732050807568877*ez[0]*dx1; 
+  outBx[3] += 1.732050807568877*ps[2]*dx0*gamma+1.732050807568877*ez[1]*dx1; 
   outBx[4] += 3.872983346207417*ps[1]*dx0*gamma; 
-  outBx[5] += 3.872983346207417*ez[2]*c2*dx1; 
+  outBx[5] += 3.872983346207417*ez[2]*dx1; 
 
   outBy[1] += -1.732050807568877*ez[0]*dx0; 
-  outBy[2] += 1.732050807568877*ps[0]*c2gamma*dx1; 
-  outBy[3] += 1.732050807568877*ps[1]*c2gamma*dx1-1.732050807568877*ez[2]*dx0; 
+  outBy[2] += 1.732050807568877*ps[0]*dx1*gamma; 
+  outBy[3] += 1.732050807568877*ps[1]*dx1*gamma-1.732050807568877*ez[2]*dx0; 
   outBy[4] += -3.872983346207417*ez[1]*dx0; 
-  outBy[5] += 3.872983346207417*ps[2]*c2gamma*dx1; 
+  outBy[5] += 3.872983346207417*ps[2]*dx1*gamma; 
 
   outBz[1] += 1.732050807568877*ey[0]*dx0; 
-  outBz[2] += -1.732050807568877*ex[0]*c2*dx1; 
-  outBz[3] += 1.732050807568877*ey[2]*dx0-1.732050807568877*ex[1]*c2*dx1; 
+  outBz[2] += -1.732050807568877*ex[0]*dx1; 
+  outBz[3] += 1.732050807568877*ey[2]*dx0-1.732050807568877*ex[1]*dx1; 
   outBz[4] += 3.872983346207417*ey[1]*dx0; 
-  outBz[5] += -3.872983346207417*ex[2]*c2*dx1; 
+  outBz[5] += -3.872983346207417*ex[2]*dx1; 
 
   outPh[1] += 1.732050807568877*ex[0]*chi*dx0; 
   outPh[2] += 1.732050807568877*ey[0]*chi*dx1; 

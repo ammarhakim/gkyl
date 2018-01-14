@@ -9,7 +9,7 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local Base = require "Updater.Base"
+local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
@@ -17,10 +17,10 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 
 -- Hyperbolic DG solver updater object
-local HyperDisCont = Proto()
+local HyperDisCont = Proto(UpdaterBase)
 
 function HyperDisCont:init(tbl)
-   HyperDisCont.super.init(tbl)
+   HyperDisCont.super.init(self, tbl)
 
    self._isFirst = true -- will be reset first time _advance() is called
 
@@ -28,10 +28,15 @@ function HyperDisCont:init(tbl)
    self._onGrid = assert(tbl.onGrid, "Updater.HyperDisCont: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.HyperDisCont: Must specify basis functions to use using 'basis'")
 
+   -- by default, compute forward Euler: if onlyIncrement is true,
+   -- then only increments are computed. NOTE: The increments are NOT
+   -- multiplied by dt.
+   self._onlyIncrement = xsys.pickBool(tbl.onlyIncrement, false) 
+
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
    self._ndim = self._onGrid:ndim()
 
-   -- linear equation to solve
+   -- equation to solve
    self._equation = assert(tbl.equation, "Updater.HyperDisCont: Must provide equation object using 'equation'")
 
    -- read in which directions we are to update
@@ -55,12 +60,6 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local qOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
 
    local ndim = grid:ndim()
-   local numBasis = self._basis:numBasis()
-   local numSurfBasis = self._basis:numSurfBasis()
-   local meqn = qOut:numComponents()/numBasis
-
-   local flux = Lin.Vec(qOut:numComponents()) -- flux 
-   local numericalFlux = Lin.Vec(numSurfBasis*meqn) -- numerical flux on face 
 
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
@@ -71,10 +70,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    -- to store grid info
    local dx = Lin.Vec(ndim) -- cell shape
    local xc = Lin.Vec(ndim) -- cell center
-   local idxp, idxm = Lin.IntVec(pdim), Lin.IntVec(pdim)
+   local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim)
 
    -- pointers for (re)use in update
-   local qInPtr, qOutPtr = qIn:get(1), qOut:get(1)
    local qInL, qInR = qIn:get(1), qIn:get(1)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
 
@@ -86,7 +84,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       -- contributions from all directions. Hence, we can only
       -- accumulate the volume contribution once, skipping it for
       -- other directions
-      local firstDir = true      
+      local firstDir = true
 
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
@@ -99,35 +97,39 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
       for idx in perpRange:colMajorIter() do
-	 
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
-
 	    -- compute cell center coordinates and cell spacing
 	    grid:setIndex(idxp)
 	    grid:cellCenter(xc)
 	    for d = 1, ndim do dx[d] = grid:dx(d) end
 	    grid:cellCenter(xc)
 
-	    qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
-	    qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
+	    qIn:fill(qInIdxr(idxm), qInL)
+	    qIn:fill(qInIdxr(idxp), qInR)
+
+	    qOut:fill(qOutIdxr(idxm), qOutL)
+	    qOut:fill(qOutIdxr(idxp), qOutR)
 
 	    local maxs = self._equation:maxSpeed(dir, xc, dx, qInR)
 	    cfla = math.max(cfla, maxs*dt/dx[dir])
 
 	    if firstDir then
-	       -- accumulate contribution from volume terms
 	       self._equation:volTerm(xc, dx, qInR, qOutR)
 	    end
-	    -- accumulate contribution from surface terms
-	    self._equation:surfTerm(dir, xc, dx, fInL, fInR, fOutL, fOutR)
+	    self._equation:surfTerm(dir, xc, dx, qInL, qInR, qOutL, qOutR)
 	 end
 	 -- return failure if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end
       end
       firstDir = false
+   end
+
+   -- accumulate full solution if not computing increments
+   if not self._onlyIncrement then
+      qOut:scale(dt); qOut:accumulate(1.0, qIn) -- qOut = qIn + dt*qOut
    end
 
    self._isFirst = false
