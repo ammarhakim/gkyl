@@ -15,7 +15,7 @@ shaveCols(Abig, cols) := block([nx,ny,nc,Asmall],
 /* Inner product of functions f1 and f2 with weight w */
 innerProd(vars, w, f1, f2) := block([n, r],
     n : length(vars),
-    if n = 0 then return (f1*f2),
+    if n = 0 then return (w*f1*f2),
     r : integrate(w*f1*f2, vars[1], -1, 1),
     for i: 2 thru n do r : integrate(r, vars[i], -1, 1),
     return (r)

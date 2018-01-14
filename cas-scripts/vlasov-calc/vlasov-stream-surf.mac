@@ -26,12 +26,16 @@ for i : 1 thru 2 do (
   printf(fh, "  double dvx = dxv[~a]/dxv[~a]; ~%", vid[dir], cid[dir]),
   printf(fh, "  double wx = w[~a]*2/dxv[~a]; ~%~%", vid[dir], cid[dir]),
   printf(fh, "  double incr[~a]; ~%~%", length(bP)),
+
   cv : varsP[dir],
   vv : varsV[dir],
   surfVars : delete(cv,varsP),
+  
   fl_L : doExpand(fl, bP),
   fl_R : doExpand(fr, bP),
+  
   printf(fh, "  if (wx>0) { ~%"),
+  
   fhat : subst(cv=1, fl_L),
   t : calcInnerProdList(surfVars, wx+dvx*vv, subst(cv=-1, bP), fhat),
   incr_r : t,
@@ -40,13 +44,17 @@ for i : 1 thru 2 do (
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outr, incr_s),  
   printf(fh, "~%"),
+  
   t : calcInnerProdList(surfVars, wx+dvx*vv, subst(cv=1, bP), fhat),
   incr_l : -t,
   signs : fullratsimp(incr_l/incr_r),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outl, incr_s),
+
   printf(fh, "  } else { ~%"),
+  
   fhat : subst(cv=-1, fl_R),
+  
   t : calcInnerProdList(surfVars, wx+dvx*vv, subst(cv=-1, bP), fhat),
   incr_r : t,
   writeCExprs1(incr, incr_r),
@@ -54,11 +62,13 @@ for i : 1 thru 2 do (
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outr, incr_s),
   printf(fh, "~%"),
+  
   t : calcInnerProdList(surfVars, wx+dvx*vv, subst(cv=1, bP), fhat),
   incr_l : -t,
   signs : fullratsimp(incr_l/incr_r),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outl, incr_s),
+  
   printf(fh, "  } ~%"),
   printf(fh, "} ~%")
 ));
