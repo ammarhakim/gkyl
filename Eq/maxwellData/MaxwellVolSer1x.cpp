@@ -1,4 +1,39 @@
 #include <MaxwellModDecl.h> 
+void MaxwellVol1xSerP0(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+{ 
+  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
+  const double c2chi = c2*chi, c2gamma = c2*gamma; 
+ 
+  const double *ex = &q[0]; 
+  const double *ey = &q[1]; 
+  const double *ez = &q[2]; 
+  const double *bx = &q[3]; 
+  const double *by = &q[4]; 
+  const double *bz = &q[5]; 
+  const double *ph = &q[6]; 
+  const double *ps = &q[7]; 
+ 
+  double *outEx = &out[0]; 
+  double *outEy = &out[1]; 
+  double *outEz = &out[2]; 
+  double *outBx = &out[3]; 
+  double *outBy = &out[4]; 
+  double *outBz = &out[5]; 
+  double *outPh = &out[6]; 
+  double *outPs = &out[7]; 
+ 
+  double dx0 = 2.0/dx[0]; 
+
+ 
+
+
+
+
+
+
+
+
+} 
 void MaxwellVol1xSerP1(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 

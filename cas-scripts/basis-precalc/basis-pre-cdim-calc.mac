@@ -10,6 +10,7 @@ writeBasisToFile(cdim, pmax, basisFun, fname) := block([varsC, basisC],
   for i : 1 thru pmax do (
     basisC : endcons(gsOrthoNorm(varsC, basisFun(varsC, i)), basisC)
   ),
-  save(fname, varsC, basisC)
+  basisConstant : gsOrthoNorm(varsC, basisFun(varsC, 0)),
+  save(fname, varsC, basisC, basisConstant)
 )$
 

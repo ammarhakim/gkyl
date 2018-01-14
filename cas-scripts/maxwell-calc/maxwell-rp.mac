@@ -24,7 +24,7 @@ calcNumFlux(V, flx) := block([Aij, A, vals, vects, Rev, Lev, Evs, vlSub, vrSub],
   vrSub : makelist(V[i]=VR[i], i, 1, 8),
 
    W : Lev . V,
-   Wup : transpose(makelist(if Evs[i] > 0 then subst(vlSub, Evs[i]*W[i][1]) else subst(vrSub, Evs[i]*W[i][1]), i, 1, 8)),
+   Wup : transpose(makelist(if Evs[i] > 0 then subst(vlSub, W[i][1]) else subst(vrSub, W[i][1]), i, 1, 8)),
    Vup : fullratsimp(Rev . Wup),
-   return (Vup)
+   return (A.Vup)
 )$

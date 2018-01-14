@@ -314,3 +314,10 @@
                   SRC |$calcPowers| 61.))
                 $Y 4.))))))) 
 (ADD2LNC '|$basisC| $VALUES) 
+(DSKSETQ |$basisConstant|
+         '((MLIST SIMP
+            (31.
+             "/Users/ahakim/research/gkyl-project/gkyl/cas-scripts/modal-basis.mac"
+             SRC |$gsOrthoNorm| 29.))
+           ((RAT SIMP) 1. 2.))) 
+(ADD2LNC '|$basisConstant| $VALUES) 

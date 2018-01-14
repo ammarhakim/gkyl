@@ -1,4 +1,104 @@
 #include <MaxwellModDecl.h> 
+void MaxwellSurf3xSer_X_P0(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) 
+{ 
+  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
+  const double c2 = c*c; 
+  const double dx1 = 2.0/dx[0]; 
+  const double *exl = &ql[0]; 
+  const double *eyl = &ql[1]; 
+  const double *ezl = &ql[2]; 
+  const double *bxl = &ql[3]; 
+  const double *byl = &ql[4]; 
+  const double *bzl = &ql[5]; 
+  const double *phl = &ql[6]; 
+  const double *psl = &ql[7]; 
+ 
+  double *outExl = &outl[0]; 
+  double *outEyl = &outl[1]; 
+  double *outEzl = &outl[2]; 
+  double *outBxl = &outl[3]; 
+  double *outByl = &outl[4]; 
+  double *outBzl = &outl[5]; 
+  double *outPhl = &outl[6]; 
+  double *outPsl = &outl[7]; 
+ 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[1]; 
+  const double *ezr = &qr[2]; 
+  const double *bxr = &qr[3]; 
+  const double *byr = &qr[4]; 
+  const double *bzr = &qr[5]; 
+  const double *phr = &qr[6]; 
+  const double *psr = &qr[7]; 
+ 
+  double *outExr = &outr[0]; 
+  double *outEyr = &outr[1]; 
+  double *outEzr = &outr[2]; 
+  double *outBxr = &outr[3]; 
+  double *outByr = &outr[4]; 
+  double *outBzr = &outr[5]; 
+  double *outPhr = &outr[6]; 
+  double *outPsr = &outr[7]; 
+ 
+  double incr[1]; 
+ 
+  incr[0] = 0.25*phr[0]*c2*chi+0.25*phl[0]*c2*chi-0.25*exr[0]*c*chi+0.25*exl[0]*c*chi; 
+
+  outExr[0] += incr[0]*dx1; 
+
+  outExl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = 0.25*bzr[0]*c2+0.25*bzl[0]*c2-0.25*eyr[0]*c+0.25*eyl[0]*c; 
+
+  outEyr[0] += incr[0]*dx1; 
+
+  outEyl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*byr[0]*c2)-0.25*byl[0]*c2-0.25*ezr[0]*c+0.25*ezl[0]*c; 
+
+  outEzr[0] += incr[0]*dx1; 
+
+  outEzl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*bxr[0]*c*gamma)+0.25*bxl[0]*c*gamma+0.25*psr[0]*gamma+0.25*psl[0]*gamma; 
+
+  outBxr[0] += incr[0]*dx1; 
+
+  outBxl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*byr[0]*c)+0.25*byl[0]*c-0.25*ezr[0]-0.25*ezl[0]; 
+
+  outByr[0] += incr[0]*dx1; 
+
+  outByl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*bzr[0]*c)+0.25*bzl[0]*c+0.25*eyr[0]+0.25*eyl[0]; 
+
+  outBzr[0] += incr[0]*dx1; 
+
+  outBzl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*phr[0]*c*chi)+0.25*phl[0]*c*chi+0.25*exr[0]*chi+0.25*exl[0]*chi; 
+
+  outPhr[0] += incr[0]*dx1; 
+
+  outPhl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = 0.25*bxr[0]*c2*gamma+0.25*bxl[0]*c2*gamma-0.25*psr[0]*c*gamma+0.25*psl[0]*c*gamma; 
+
+  outPsr[0] += incr[0]*dx1; 
+
+  outPsl[0] += -1.0*incr[0]*dx1; 
+
+ 
+} 
 void MaxwellSurf3xSer_X_P1(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
@@ -823,6 +923,106 @@ void MaxwellSurf3xSer_X_P2(const MaxwellEq_t *meq, const double *w, const double
 
  
 } 
+void MaxwellSurf3xSer_Y_P0(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) 
+{ 
+  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
+  const double c2 = c*c; 
+  const double dx1 = 2.0/dx[1]; 
+  const double *exl = &ql[0]; 
+  const double *eyl = &ql[1]; 
+  const double *ezl = &ql[2]; 
+  const double *bxl = &ql[3]; 
+  const double *byl = &ql[4]; 
+  const double *bzl = &ql[5]; 
+  const double *phl = &ql[6]; 
+  const double *psl = &ql[7]; 
+ 
+  double *outExl = &outl[0]; 
+  double *outEyl = &outl[1]; 
+  double *outEzl = &outl[2]; 
+  double *outBxl = &outl[3]; 
+  double *outByl = &outl[4]; 
+  double *outBzl = &outl[5]; 
+  double *outPhl = &outl[6]; 
+  double *outPsl = &outl[7]; 
+ 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[1]; 
+  const double *ezr = &qr[2]; 
+  const double *bxr = &qr[3]; 
+  const double *byr = &qr[4]; 
+  const double *bzr = &qr[5]; 
+  const double *phr = &qr[6]; 
+  const double *psr = &qr[7]; 
+ 
+  double *outExr = &outr[0]; 
+  double *outEyr = &outr[1]; 
+  double *outEzr = &outr[2]; 
+  double *outBxr = &outr[3]; 
+  double *outByr = &outr[4]; 
+  double *outBzr = &outr[5]; 
+  double *outPhr = &outr[6]; 
+  double *outPsr = &outr[7]; 
+ 
+  double incr[1]; 
+ 
+  incr[0] = (-0.25*bzr[0]*c2)-0.25*bzl[0]*c2-0.25*exr[0]*c+0.25*exl[0]*c; 
+
+  outExr[0] += incr[0]*dx1; 
+
+  outExl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = 0.25*phr[0]*c2*chi+0.25*phl[0]*c2*chi-0.25*eyr[0]*c*chi+0.25*eyl[0]*c*chi; 
+
+  outEyr[0] += incr[0]*dx1; 
+
+  outEyl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = 0.25*bxr[0]*c2+0.25*bxl[0]*c2-0.25*ezr[0]*c+0.25*ezl[0]*c; 
+
+  outEzr[0] += incr[0]*dx1; 
+
+  outEzl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*bxr[0]*c)+0.25*bxl[0]*c+0.25*ezr[0]+0.25*ezl[0]; 
+
+  outBxr[0] += incr[0]*dx1; 
+
+  outBxl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*byr[0]*c*gamma)+0.25*byl[0]*c*gamma+0.25*psr[0]*gamma+0.25*psl[0]*gamma; 
+
+  outByr[0] += incr[0]*dx1; 
+
+  outByl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*bzr[0]*c)+0.25*bzl[0]*c-0.25*exr[0]-0.25*exl[0]; 
+
+  outBzr[0] += incr[0]*dx1; 
+
+  outBzl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*phr[0]*c*chi)+0.25*phl[0]*c*chi+0.25*eyr[0]*chi+0.25*eyl[0]*chi; 
+
+  outPhr[0] += incr[0]*dx1; 
+
+  outPhl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = 0.25*byr[0]*c2*gamma+0.25*byl[0]*c2*gamma-0.25*psr[0]*c*gamma+0.25*psl[0]*c*gamma; 
+
+  outPsr[0] += incr[0]*dx1; 
+
+  outPsl[0] += -1.0*incr[0]*dx1; 
+
+ 
+} 
 void MaxwellSurf3xSer_Y_P1(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
@@ -1644,6 +1844,106 @@ void MaxwellSurf3xSer_Y_P2(const MaxwellEq_t *meq, const double *w, const double
   outPsl[17] += incr[17]*dx1; 
   outPsl[18] += -1.0*incr[18]*dx1; 
   outPsl[19] += incr[19]*dx1; 
+
+ 
+} 
+void MaxwellSurf3xSer_Z_P0(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) 
+{ 
+  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
+  const double c2 = c*c; 
+  const double dx1 = 2.0/dx[2]; 
+  const double *exl = &ql[0]; 
+  const double *eyl = &ql[1]; 
+  const double *ezl = &ql[2]; 
+  const double *bxl = &ql[3]; 
+  const double *byl = &ql[4]; 
+  const double *bzl = &ql[5]; 
+  const double *phl = &ql[6]; 
+  const double *psl = &ql[7]; 
+ 
+  double *outExl = &outl[0]; 
+  double *outEyl = &outl[1]; 
+  double *outEzl = &outl[2]; 
+  double *outBxl = &outl[3]; 
+  double *outByl = &outl[4]; 
+  double *outBzl = &outl[5]; 
+  double *outPhl = &outl[6]; 
+  double *outPsl = &outl[7]; 
+ 
+  const double *exr = &qr[0]; 
+  const double *eyr = &qr[1]; 
+  const double *ezr = &qr[2]; 
+  const double *bxr = &qr[3]; 
+  const double *byr = &qr[4]; 
+  const double *bzr = &qr[5]; 
+  const double *phr = &qr[6]; 
+  const double *psr = &qr[7]; 
+ 
+  double *outExr = &outr[0]; 
+  double *outEyr = &outr[1]; 
+  double *outEzr = &outr[2]; 
+  double *outBxr = &outr[3]; 
+  double *outByr = &outr[4]; 
+  double *outBzr = &outr[5]; 
+  double *outPhr = &outr[6]; 
+  double *outPsr = &outr[7]; 
+ 
+  double incr[1]; 
+ 
+  incr[0] = 0.25*byr[0]*c2+0.25*byl[0]*c2-0.25*exr[0]*c+0.25*exl[0]*c; 
+
+  outExr[0] += incr[0]*dx1; 
+
+  outExl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*bxr[0]*c2)-0.25*bxl[0]*c2-0.25*eyr[0]*c+0.25*eyl[0]*c; 
+
+  outEyr[0] += incr[0]*dx1; 
+
+  outEyl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = 0.25*phr[0]*c2*chi+0.25*phl[0]*c2*chi-0.25*ezr[0]*c*chi+0.25*ezl[0]*c*chi; 
+
+  outEzr[0] += incr[0]*dx1; 
+
+  outEzl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*bxr[0]*c)+0.25*bxl[0]*c-0.25*eyr[0]-0.25*eyl[0]; 
+
+  outBxr[0] += incr[0]*dx1; 
+
+  outBxl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*byr[0]*c)+0.25*byl[0]*c+0.25*exr[0]+0.25*exl[0]; 
+
+  outByr[0] += incr[0]*dx1; 
+
+  outByl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*bzr[0]*c*gamma)+0.25*bzl[0]*c*gamma+0.25*psr[0]*gamma+0.25*psl[0]*gamma; 
+
+  outBzr[0] += incr[0]*dx1; 
+
+  outBzl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = (-0.25*phr[0]*c*chi)+0.25*phl[0]*c*chi+0.25*ezr[0]*chi+0.25*ezl[0]*chi; 
+
+  outPhr[0] += incr[0]*dx1; 
+
+  outPhl[0] += -1.0*incr[0]*dx1; 
+
+ 
+  incr[0] = 0.25*bzr[0]*c2*gamma+0.25*bzl[0]*c2*gamma-0.25*psr[0]*c*gamma+0.25*psl[0]*c*gamma; 
+
+  outPsr[0] += incr[0]*dx1; 
+
+  outPsl[0] += -1.0*incr[0]*dx1; 
 
  
 } 

@@ -10,7 +10,7 @@ printf(fh, "extern \"C\" { ~%")$
 printf(fh, "typedef struct { double c, chi, gamma; } MaxwellEq_t; ~% ~%")$
 
 for ci : 1 thru 3 do (
-    for pi : 1 thru 2 do (
+    for pi : 0 thru 2 do (
       printf(fh, "void MaxwellVol~axMaxP~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); ~%", ci, pi),
       for si : 1 thru ci do (
         printf(fh, "void MaxwellSurf~axMax_~a_P~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); ~%", ci, cvars[si], pi)
@@ -23,7 +23,7 @@ for ci : 1 thru 3 do (
 printf(fh, "~% ~%")$
 
 for ci : 1 thru 3 do (
-    for pi : 1 thru 2 do (
+    for pi : 0 thru 2 do (
       printf(fh, "void MaxwellVol~axSerP~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); ~%", ci, pi),
       for si : 1 thru ci do (
         printf(fh, "void MaxwellSurf~axSer_~a_P~a(const MaxwellEq_t * meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr); ~%", ci, cvars[si], pi)

@@ -47,7 +47,9 @@ function EmField:init(tbl)
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0   
 
-   -- store initial condition function
+   -- store initial condition function (this is a wrapper around user
+   -- supplied function as we need to add correction potential ICs
+   -- here)
    self.initFunc = function (t, xn)
       local ex, ey, ez, bx, by, bz = tbl.init(t, xn)
       return ex, ey, ez, bx, by, bz, 0.0, 0.0
