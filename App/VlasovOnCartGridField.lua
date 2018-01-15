@@ -84,7 +84,7 @@ function EmField:alloc(nField)
 end
 
 function EmField:createSolver()
-   local maxEq = PerfMaxwell {
+   local maxwellEqn = PerfMaxwell {
       lightSpeed = self.lightSpeed,
       elcErrorSpeedFactor = self.ce,
       mgnErrorSpeedFactor = self.cb,
@@ -95,7 +95,7 @@ function EmField:createSolver()
       onGrid = self.grid,
       basis = self.basis,
       cfl = self.cfl,
-      equation = maxEq,
+      equation = maxwellEqn
    }
 end
 
@@ -106,6 +106,7 @@ function EmField:initField()
       evaluate = self.initFunc
    }
    project:advance(0.0, 0.0, {}, {self.em[1]})
+   self:applyBc(0.0, 0.0, self.em[1])
 end
 
 function EmField:write(frame, tm)

@@ -155,6 +155,7 @@ function Species:initDist()
       evaluate = self.initFunc
    }
    project:advance(0.0, 0.0, {}, {self.distf[1]})
+   self:applyBc(0.0, 0.0, self.distf[1])
 end
    
 function Species:write(frame, tm)
