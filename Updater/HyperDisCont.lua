@@ -101,7 +101,6 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 	    -- compute cell center coordinates and cell spacing
 	    grid:setIndex(idxp)
-	    grid:cellCenter(xc)
 	    for d = 1, ndim do dx[d] = grid:dx(d) end
 	    grid:cellCenter(xc)
 
