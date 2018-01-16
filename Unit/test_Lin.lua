@@ -211,6 +211,13 @@ function test_8()
    end
 end
 
+function test_9()
+   local m = Lin.Mat(10, 20)
+   for i = 1, m:numRows() do
+      local v = m[i]
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -220,6 +227,7 @@ test_5()
 test_6()
 test_7()
 test_8()
+test_9()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
