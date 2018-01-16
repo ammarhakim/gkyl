@@ -29,11 +29,23 @@ return function (eta, dx, xc, xOut)
 end
 ]])
 
+-- Template for function to compute value of function at specified coordinates
+local evalFuncTempl = xsys.template([[
+return function (tCurr, xn, func, fout)
+|for i = 1, M-1 do
+   fout[${i}], 
+|end
+   fout[${M}] = func(tCurr, xn)
+end
+]])
+
 -- Projection  updater object
 local ProjectOnBasis = Proto(UpdaterBase)
 
 function ProjectOnBasis:init(tbl)
    ProjectOnBasis.super.init(self, tbl) -- setup base object
+
+   self._isFirst = true -- for use in advance()
 
    self._onGrid = assert(tbl.onGrid, "Updater.ProjectOnBasis: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.ProjectOnBasis: Must specify basis functions to use using 'basis'")
@@ -87,12 +99,17 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    local numBasis = self._basis:numBasis()
    local numVal = qOut:numComponents()/numBasis
 
+   if self._isFirst then
+      -- construct function to evaluate function at specified coorindate
+      self._evalFunc = loadstring(evalFuncTempl { M = numVal } )()
+   end
+
    -- sanity check: ensure number of variables, components and basis functions are consistent
    assert(qOut:numComponents() % numBasis == 0, "ProjectOnBasis:advance: Incompatible input field")
 
    local dx = Lin.Vec(ndim) -- cell shape
    local xc = Lin.Vec(ndim) -- cell center
-   local fv = Lin.Mat(numVal, numOrd) -- function values at ordinates
+   local fv = Lin.Mat(numOrd, numVal) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
    local localRange = qOut:localRange()
@@ -109,8 +126,7 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
       -- precompute value of function at each ordinate
       for mu = 1, numOrd do
 	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- compute coordinate
-	 local v = { self._evaluate(tCurr, xmu) } -- braces around function put return values in table
-	 for i = 1, numVal do fv[i][mu] = v[i] end
+	 self._evalFunc(tCurr, xmu, self._evaluate, fv[mu]) 
       end
 
       qOut:fill(indexer(idx), fItr)
@@ -123,13 +139,14 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
 	    fItr[offset+k] = 0.0
 	    -- loop over quadrature points, accumulate contribution to expansion coefficient
 	    for mu = 1, numOrd do
-	       fItr[offset+k] = fItr[offset+k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[n][mu]
+	       fItr[offset+k] = fItr[offset+k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[mu][n]
 	    end
 	 end
 	 offset = offset+numBasis
       end
    end
-   
+
+   self._isFirst = false
    return true, GKYL_MAX_DOUBLE
 end
 

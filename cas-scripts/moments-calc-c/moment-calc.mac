@@ -1,0 +1,47 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+calcM0(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 2 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_M0_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+
+  fl : doExpand1(f, bP),
+  M : calcInnerProdList(varsP, 1, bC, fl),
+  writeCExprs1(out, M),
+
+  printf(fh, "} ~%")
+))$
+
+vTrans : [vx*dvx/2+wx, vy*dvy/2+wy, vz*dvz/2+wz]$
+
+calcM1i(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 2 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_M1i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+
+  fl : doExpand1(f, bP),
+
+  for dir : 1 thru vdim do (
+    M : calcInnerProdList(varsP, vTrans[dir], bC, fl),
+    writeCExprs1(out, M)
+  ),
+
+  printf(fh, "} ~%")
+))$
+
+calcMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
+  calcM0(fh, funcNm, cdim, vdim, basisFun)  
+)$
