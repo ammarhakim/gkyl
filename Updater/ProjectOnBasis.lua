@@ -50,13 +50,15 @@ function ProjectOnBasis:init(tbl)
    local l, u = {}, {}
    for d = 1, ndim do l[d], u[d] = 1, N end
    local quadRange = Range.Range(l, u) -- for looping over quadrature nodes
+
+   local numOrdinates = quadRange:volume() -- number of ordinates
    
    -- construct weights and ordinates for integration in multiple dimensions
-   self._ordinates, self._weights = {}, {}
+   self._ordinates = Lin.Mat(numOrdinates, ndim)
+   self._weights = Lin.Vec(numOrdinates)
    local nodeNum = 1
    for idx in quadRange:colMajorIter() do
       self._weights[nodeNum] = 1.0
-      self._ordinates[nodeNum] = Lin.Vec(ndim)
       for d = 1, ndim do
 	 self._weights[nodeNum] = self._weights[nodeNum]*weights[idx[d]]
 	 self._ordinates[nodeNum][d] = ordinates[idx[d]]
@@ -65,11 +67,10 @@ function ProjectOnBasis:init(tbl)
    end
 
    local numBasis = self._basis:numBasis()
-   self._basisAtOrdinates = {} -- shape numOrdinates X numBasis
+   self._basisAtOrdinates = Lin.Mat(numOrdinates, numBasis)
    -- pre-compute values of basis functions at quadrature nodes
-   for n, ord in ipairs(self._ordinates) do
-      self._basisAtOrdinates[n] = Lin.Vec(numBasis)
-      self._basis:evalBasis(ord, self._basisAtOrdinates[n])
+   for n = 1, numOrdinates do
+      self._basis:evalBasis(self._ordinates[n], self._basisAtOrdinates[n])
    end
 
    -- construct various functions from template representations
@@ -94,12 +95,12 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    local fv = Lin.Mat(numVal, numOrd) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
-   local localExtRange = qOut:localExtRange()
-   local indexer = qOut:genIndexer()   
+   local localRange = qOut:localRange()
+   local indexer = qOut:genIndexer() 
    local fItr = qOut:get(1)
 
    -- loop, computing projections in each cell
-   for idx in localExtRange:colMajorIter() do
+   for idx in localRange:colMajorIter() do
       grid:setIndex(idx)
       -- get cell shape, cell center coordinates
       for d = 1, ndim do dx[d] = grid:dx(d) end
@@ -112,8 +113,9 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
 	 for i = 1, numVal do fv[i][mu] = v[i] end
       end
 
-      local offset = 0
       qOut:fill(indexer(idx), fItr)
+
+      local offset = 0
       -- update each component
       for n = 1, numVal do
 	 -- update each expansion coefficient
