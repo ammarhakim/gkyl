@@ -137,7 +137,7 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
 	 -- update each expansion coefficient
 	 for k = 1, numBasis do
 	    fItr[offset+k] = 0.0
-	    -- loop over quadrature points, accumulate contribution to expansion coefficient
+	    -- loop over quadrature points, accumulating contribution to expansion coefficient
 	    for mu = 1, numOrd do
 	       fItr[offset+k] = fItr[offset+k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[mu][n]
 	    end
