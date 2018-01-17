@@ -111,18 +111,18 @@ function DistFuncMomentCalc:init(tbl)
    local id, polyOrder = phaseBasis:id(), phaseBasis:polyOrder()
    
    self._momCalcFun = nil -- function to compute requested moments
-   if mom == "number-density" then
+   if mom == "M0" then
       self._momCalcFun = pickNumDensityFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "momentum" then
+   elseif mom == "M1i" then
       self._momCalcFun = pickMomentumFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "energy" then
+   elseif mom == "M2" then
       self._momCalcFun = pickEnergyFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "pressure-tensor" then
+   elseif mom == "M2ij" then
       self._momCalcFun = pickPressureFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "heat-flux-tensor" then
-      assert(false, "Updater.DistFuncMomentCalc: 'heat-flux-tensor' NYI!")
-   elseif mom == "heat-flux-vector" then
-      assert(false, "Updater.DistFuncMomentCalc: 'heat-flux-vector' NYI!")
+   elseif mom == "M3ijk" then
+      assert(false, "Updater.DistFuncMomentCalc: 'M3ijk' NYI!")
+   elseif mom == "M3i" then
+      assert(false, "Updater.DistFuncMomentCalc: 'M3i' NYI!")
    else
       assert(false, "Updater.DistFuncMomentCalc: Did not recognize moment type " .. mom)
    end
