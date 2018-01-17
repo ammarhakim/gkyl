@@ -2,14 +2,10 @@ load("modal-basis");
 load("out-scripts");
 fpprec : 24$
 
-varsC : [x]$
-varsP : [x, vx, vy]$
+load("basis-precalc/basisMax1x2v")$
 
 fh : openw("~/max-out/MaxOrderPressureMom1x2v.lua");
 printf(fh, "local _M = { pressureTensor = {}, energy = {} } ~% ~%");
-
-basisC : makelist(gsOrthoNorm(varsC, makeMaxOrderBasis(varsC, i)), i, 1, 4)$
-basisP : makelist(gsOrthoNorm(varsP, makeMaxOrderBasis(varsP, i)), i, 1, 4)$
 
 dv : [dv1, dv2, dv3]$
 w : [w1, w2, w3]$
@@ -32,7 +28,7 @@ for i : 1 thru 4 do (
   printf(fh, "   local w1, w2 = w[1], w[2] ~%"),
   writeExprs(append(colVecToList(mom[1]), colVecToList(mom[2]), colVecToList(mom[3]))),
   printf(fh, "end ~%"),
-  erMom : 1/2*(mom[1]+mom[3]),
+  erMom : mom[1]+mom[3],
   printf(fh, "_M.energy[~a] = function (f, out, dv, w) ~%", i),
   printf(fh, "   local dv1, dv2 = dv[1], dv[2] ~%"),
   printf(fh, "   local w1, w2 = w[1], w[2] ~%"),
