@@ -140,7 +140,9 @@ local function buildApplication(self, tbl)
       s:createBasis(basisNm, polyOrder)
       s:alloc(stepperNumFields[timeStepperNm])
    end
-
+   
+   -- configuration space decomp object (eventually, this will be
+   -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
       useShared = useShared,
@@ -154,6 +156,11 @@ local function buildApplication(self, tbl)
       periodicDirs = periodicDirs,
       decomposition = decomp,
    }
+
+   -- set conf grid for each species
+   for _, s in pairs(species) do
+      s:setConfGrid(grid)
+   end   
 
    -- setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles)
@@ -171,14 +178,16 @@ local function buildApplication(self, tbl)
    -- allocate field data
    field:alloc(stepperNumFields[timeStepperNm])
 
-   -- initialize species solvers
+   -- initialize species solvers and diagnostics
    for _, s in pairs(species) do
       local hasE, hasB = field:hasEB()
       s:createSolver(hasE, hasB)
+      s:createDiagnostics()
    end
 
-   -- initialize field solvers
+   -- initialize field solvers and diagnostics
    field:createSolver()
+   field:createDiagnostics()
 
    -- initialize species distributions and field
    for _, s in pairs(species) do
@@ -223,16 +232,16 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
-   -- functions to copy/increment fields
-   local function increment1(aIdx, outIdx)
+   -- various functions to copy/increment fields
+   local function copy1(aIdx, outIdx)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:copy(speciesRkFields[nm][aIdx])
       end
       if emRkFields[aIdx] then -- only increment EM fields if there are any
 	 emRkFields[outIdx]:copy(emRkFields[aIdx])
       end
-   end   
-   local function increment2(a, aIdx, b, bIdx, outIdx)
+   end
+   local function combine2(a, aIdx, b, bIdx, outIdx)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
       end
@@ -240,7 +249,7 @@ local function buildApplication(self, tbl)
 	 emRkFields[outIdx]:combine(a, emRkFields[aIdx], b, emRkFields[bIdx])
       end
    end
-   local function increment3(a, aIdx, b, bIdx, c, cIdx, outIdx)
+   local function combine3(a, aIdx, b, bIdx, c, cIdx, outIdx)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(
 	    a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx], c, speciesRkFields[nm][cIdx])
@@ -250,16 +259,15 @@ local function buildApplication(self, tbl)
 	    a, emRkFields[aIdx], b, emRkFields[bIdx], c, emRkFields[cIdx])
       end
    end
-
+  
    local timeSteppers = {} -- various time-steppers
 
-   -- function to advance solution using RK1 scheme (only for testing)
+   -- function to advance solution using RK1 scheme (UNSTABLE! Only for testing)
    function timeSteppers.rk1(tCurr, dt)
       local status, dtSuggested
       status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
-
-      increment1(2, 1)
+      copy1(2, 1)
 
       return status, dtSuggested      
    end
@@ -274,8 +282,8 @@ local function buildApplication(self, tbl)
       -- RK stage 2
       status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
       if status == false then return status, dtSuggested end
-      increment2(1.0/2.0, 1, 1.0/2.0, 3, 2)
-      increment1(2, 1)
+      combine2(1.0/2.0, 1, 1.0/2.0, 3, 2)
+      copy1(2, 1)
       
       return status, dtSuggested
    end
@@ -290,13 +298,13 @@ local function buildApplication(self, tbl)
       -- RK stage 2
       status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
       if status == false then return status, dtSuggested end
-      increment2(3.0/4.0, 1, 1.0/4.0, 3, 2)
+      combine2(3.0/4.0, 1, 1.0/4.0, 3, 2)
 
       -- RK stage 3
       status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
       if status == false then return status, dtSuggested end
-      increment2(1.0/3.0, 1, 2.0/3.0, 3, 2)
-      increment1(2, 1)
+      combine2(1.0/3.0, 1, 2.0/3.0, 3, 2)
+      copy1(2, 1)
 
       return status, dtSuggested
    end
@@ -307,22 +315,22 @@ local function buildApplication(self, tbl)
       -- RK stage 1
       status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
-      increment2(1.0/2.0, 1, 1.0/2.0, 2, 3)
+      combine2(1.0/2.0, 1, 1.0/2.0, 2, 3)
 
       -- RK stage 2
       status, dtSuggested = fowardEuler(tCurr, dt, 3, 4)
       if status == false then return status, dtSuggested end
-      increment2(1.0/2.0, 3, 1.0/2.0, 4, 2)
+      combine2(1.0/2.0, 3, 1.0/2.0, 4, 2)
 
       -- RK stage 3
       status, dtSuggested = fowardEuler(tCurr, dt, 2, 3)
       if status == false then return status, dtSuggested end
-      increment3(2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3, 4)
+      combine3(2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3, 4)
 
       -- RK stage 4
       status, dtSuggested = fowardEuler(tCurr, dt, 4, 3)
       if status == false then return status, dtSuggested end
-      increment2(1.0/2.0, 4, 1.0/2.0, 3, 1)
+      combine2(1.0/2.0, 4, 1.0/2.0, 3, 1)
 
       return status, dtSuggested
    end   
@@ -379,10 +387,12 @@ local function buildApplication(self, tbl)
       end
 
       local tmVlasovStream, tmVlasovForce, tmVlasovIncr = 0.0, 0.0, 0.0
+      local tmVlasovMom = 0.0
       for _, s in pairs(species) do
 	 tmVlasovStream = tmVlasovStream + s:streamTime()
 	 tmVlasovForce = tmVlasovForce + s:forceTime()
 	 tmVlasovIncr = tmVlasovIncr + s:incrementTime()
+	 tmVlasovMom = tmVlasovMom + s:momCalcTime()
       end
 
       log(string.format("Vlasov solver took %g sec", tmVlasovSlvr))
@@ -390,6 +400,7 @@ local function buildApplication(self, tbl)
 	     "  [Streaming updates %g sec. Force updates %g sec]",
 	     tmVlasovStream, tmVlasovForce))
       log(string.format("Field solver took %g sec", field:totalSolverTime()))
+      log(string.format("Moment calculations took %g sec", tmVlasovMom))
       log(string.format("Main loop completed in %g sec", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end

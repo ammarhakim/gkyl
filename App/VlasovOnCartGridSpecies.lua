@@ -30,6 +30,14 @@ local function createBasis(nm, ndim, polyOrder)
    end   
 end
 
+-- function to check if moment name is correct
+local function isMomentNameGood(nm)
+   if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" then
+      return true
+   end
+   return false
+end
+
 -- Class to store species-specific info
 local Species = Proto()
 
@@ -58,6 +66,18 @@ function Species:init(tbl)
       for d = 1, self.vdim do self.decompCuts[d] = 1 end
    end
 
+   -- read in which diagnostic moments to compute on output
+   self.diagnosticMoments = { }
+   if tbl.diagnosticMoments then
+      for i, nm in ipairs(tbl.diagnosticMoments) do
+	 if isMomentNameGood(nm) then
+	    self.diagnosticMoments[i] = nm
+	 else
+	    assert(false, string.format("Moment %s not valid", nm))
+	 end
+      end
+   end
+
    -- store initial condition function
    self.initFunc = tbl.init
 end
@@ -77,6 +97,9 @@ function Species:setIoMethod(ioMethod)
 end
 function Species:setConfBasis(basis)
    self.confBasis = basis
+end
+function Species:setConfGrid(cgrid)
+   self.confGrid = cgrid
 end
 
 function Species:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
@@ -148,6 +171,40 @@ function Species:createSolver(hasE, hasB)
    }
 end
 
+function Species:createDiagnostics()
+   local numComp = {}
+   numComp["M0"] = 1
+   numComp["M1i"] = self.vdim
+   numComp["M2ij"] = self.vdim*(self.vdim+1)/2
+   numComp["M2"] = 1
+   
+   self.diagnosticMomentFields = { }
+   self.diagnosticMomentUpdaters = { } 
+   -- allocate space to store moments and create moment updater
+   for i, mom in ipairs(self.diagnosticMoments) do
+      self.diagnosticMomentFields[i] = DataStruct.Field {
+	 onGrid = self.confGrid,
+	 numComponents = self.confBasis:numBasis()*numComp[mom],
+	 ghost = {1, 1}
+      }
+      
+      self.diagnosticMomentUpdaters[i] = Updater.DistFuncMomentCalc {
+	 onGrid = self.grid,
+	 phaseBasis = self.basis,
+	 confBasis = self.confBasis,
+	 moment = mom,
+      }
+   end
+end
+
+function Species:calcMoments()
+   local numMoms = #self.diagnosticMoments
+   for i = 1, numMoms do
+      self.diagnosticMomentUpdaters[i]:advance(
+	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
+   end
+end
+
 function Species:initDist()
    local project = Updater.ProjectOnBasis {
       onGrid = self.grid,
@@ -161,6 +218,12 @@ end
 function Species:write(frame, tm)
    if self.evolve then
       self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, frame), tm)
+      -- compute moments and write them out
+      self:calcMoments()
+      for i, mom in ipairs(self.diagnosticMoments) do
+	 -- should one use AdiosIo object for this?
+	 self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, frame), tm)
+      end
    else
       -- if not evolving species, don't write anything except initial conditions
       if frame == 0 then
@@ -200,6 +263,14 @@ end
 
 function Species:incrementTime()
    return self.vlasovSlvr:incrementTime()
+end
+
+function Species:momCalcTime()
+   local tm = 0.0
+   for i, mom in ipairs(self.diagnosticMoments) do
+      tm = tm + self.diagnosticMomentUpdaters[i].totalTime
+   end
+   return tm
 end
 
 return Species

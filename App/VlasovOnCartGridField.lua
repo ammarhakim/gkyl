@@ -99,6 +99,9 @@ function EmField:createSolver()
    }
 end
 
+function EmField:createDiagnostics()
+end
+
 function EmField:initField()
    local project = Updater.ProjectOnBasis {
       onGrid = self.grid,
@@ -157,6 +160,7 @@ function NoField:setBasis(basis) end
 function NoField:setGrid(grid) end
 function NoField:alloc(nField) end
 function NoField:createSolver() end
+function NoField:createDiagnostics() end
 function NoField:initField() end
 function NoField:write(frame, tm) end
 function NoField:rkStepperFields() return {} end
