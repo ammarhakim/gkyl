@@ -57,7 +57,7 @@ function test_ser_1x1v()
       onGrid = phaseGrid,
       phaseBasis = phaseBasis,
       confBasis = confBasis,
-      moment = "number-density",
+      moment = "M0",
    }
    calcNumDensity:advance(0.0, 0.0, {distf}, {numDensity})
 
@@ -99,7 +99,7 @@ function test_max_1x1v()
       onGrid = phaseGrid,
       phaseBasis = phaseBasis,
       confBasis = confBasis,
-      moment = "number-density",
+      moment = "M0",
    }
    
 end

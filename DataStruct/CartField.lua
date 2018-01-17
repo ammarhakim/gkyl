@@ -12,6 +12,7 @@ local new, copy, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, sizeof, typeof, metatype")
 
 -- Gkyl libraries
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Alloc = require "Lib.Alloc"
 local AllocShared = require "Lib.AllocShared"
 local CartDecompNeigh = require "Lib.CartDecompNeigh"
@@ -245,6 +246,9 @@ local function Field_meta_ctor(elct)
 	    end
 	 end
       end
+      
+      -- create IO object
+      self._adiosIo = AdiosCartFieldIo { elemType = elct }
 
       return self
    end
@@ -382,7 +386,10 @@ local function Field_meta_ctor(elct)
       getDataPtrAt = function (self, k) -- k is an integer returned by a linear indexer
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
 	 return self._data+loc
-      end,      
+      end,
+      write = function (self, fName, tmStamp)
+	 self._adiosIo:write(self, fName, tmStamp)
+      end,
       sync = function (self)
 	 self._field_sync(self)
 	 if self._syncPeriodicDirs then
