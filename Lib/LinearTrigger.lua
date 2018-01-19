@@ -11,11 +11,11 @@
 -- nBarrier: Number of barriers
 return function (tStart, tEnd, nBarrier)
    local tFrame = (tEnd-tStart)/nBarrier
-   local count = 1
-   local nextTrigger = tFrame
+   local count = 0
+   local nextTrigger = tStart
    local eps = tFrame*1e-9 -- not sure what this should be
    return function (t)
-      if t>nextTrigger or math.abs(t-tEnd) < eps then
+      if t>=nextTrigger or math.abs(t-tEnd) < eps then
 	 count = count+1
 	 nextTrigger = count*tFrame
 	 return true
