@@ -23,6 +23,7 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
 local xsys = require "xsys"
+local LinearTrigger = require "LinearTrigger"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)

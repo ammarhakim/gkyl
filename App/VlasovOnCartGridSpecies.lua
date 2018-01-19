@@ -228,6 +228,12 @@ function Species:write(frame, tm)
       -- if not evolving species, don't write anything except initial conditions
       if frame == 0 then
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, frame), tm)
+	 -- compute moments and write them out
+	 self:calcMoments()
+	 for i, mom in ipairs(self.diagnosticMoments) do
+	    -- should one use AdiosIo object for this?
+	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, frame), tm)
+	 end
       end
    end
 end
