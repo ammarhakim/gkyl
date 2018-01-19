@@ -38,14 +38,33 @@ end
 
 local EmField = Proto()
 
+-- this ctor simply stores what is passed to it and defers actual
+-- construction to the fullInit() method below
 function EmField:init(tbl)
+   self.tbl = tbl
+end
+
+-- Actual function to initialization. This indirection is needed as we
+-- need the app top-level table for proper initialization
+function EmField:init(vlasovTbl)
+   local tbl = self.tbl -- previously store table
+   
    self.epsilon0 = tbl.epsilon0
    self.mu0 = tbl.mu0
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
 
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
-   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0   
+   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
+
+   -- create triggers to write distribution functions and moments
+   if tbl.nFrame then
+      self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nFrame)
+   else
+      self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, vlasovTbl.nFrame)
+   end
+
+   self.ioFrame = 0 -- frame number for IO
 
    -- store initial condition function (this is a wrapper around user
    -- supplied function as we need to add correction potential ICs
@@ -112,14 +131,18 @@ function EmField:initField()
    self:applyBc(0.0, 0.0, self.em[1])
 end
 
-function EmField:write(frame, tm)
+function EmField:write(tm)
    if self.evolve then
-      self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
+      if self.ioTrigger(tm) then
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+	 self.ioFrame = self.ioFrame+1
+      end
    else
       -- if not evolving species, don't write anything except initial conditions
-      if frame == 0 then
+      if self.ioFrame == 0 then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
       end
+      self.ioFrame = self.ioFrame+1
    end
 end
 
@@ -153,6 +176,7 @@ local NoField = Proto()
 
 -- methods for no field object
 function NoField:init(tbl) end
+function NoField:fullInit(tbl) end
 function NoField:hasEB() return false, false end
 function NoField:setCfl() end
 function NoField:setIoMethod(ioMethod) end
@@ -162,7 +186,7 @@ function NoField:alloc(nField) end
 function NoField:createSolver() end
 function NoField:createDiagnostics() end
 function NoField:initField() end
-function NoField:write(frame, tm) end
+function NoField:write(tm) end
 function NoField:rkStepperFields() return {} end
 function NoField:forwardEuler(tCurr, dt, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end

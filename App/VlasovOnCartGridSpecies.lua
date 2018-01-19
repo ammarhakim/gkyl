@@ -13,6 +13,7 @@ local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
+local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
@@ -41,7 +42,17 @@ end
 -- Class to store species-specific info
 local Species = Proto()
 
+-- this ctor simply stores what is passed to it and defers actual
+-- construction to the fullInit() method below
 function Species:init(tbl)
+   self.tbl = tbl
+end
+
+-- Actual function to initialization. This indirection is needed as we
+-- need the app top-level table for proper initialization
+function Species:fullInit(vlasovTbl)
+   local tbl = self.tbl -- previously store table
+   
    self.name = "name"
    self.cfl =  0.1
    self.charge, self.mass = tbl.charge, tbl.mass
@@ -65,6 +76,22 @@ function Species:init(tbl)
       -- if not specified, use 1 processor
       for d = 1, self.vdim do self.decompCuts[d] = 1 end
    end
+
+   -- create triggers to write distribution functions and moments
+   if tbl.nDistFuncFrame then
+      self.distIoTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nDistFuncFrame)
+   else
+      self.distIoTrigger = LinearTrigger(0, vlasovTbl.tEnd, vlasovTbl.nFrame)
+   end
+   
+   if tbl.nDiagnosticFrame then
+      self.diagIoTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nDiagnosticFrame)
+   else
+      self.diagIoTrigger = LinearTrigger(0, vlasovTbl.tEnd, vlasovTbl.nFrame)
+   end
+
+   self.distIoFrame = 0 -- frame number for distrubution fucntion
+   self.diagIoFrame = 0 -- frame number for diagnostcia
 
    -- read in which diagnostic moments to compute on output
    self.diagnosticMoments = { }
@@ -215,26 +242,37 @@ function Species:initDist()
    self:applyBc(0.0, 0.0, self.distf[1])
 end
    
-function Species:write(frame, tm)
+function Species:write(tm)
    if self.evolve then
-      self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, frame), tm)
-      -- compute moments and write them out
-      self:calcMoments()
-      for i, mom in ipairs(self.diagnosticMoments) do
-	 -- should one use AdiosIo object for this?
-	 self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, frame), tm)
+      -- only write stuff if triggered
+      if self.distIoTrigger(tm) then
+	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm)
+	 self.distIoFrame = self.distIoFrame+1
       end
-   else
-      -- if not evolving species, don't write anything except initial conditions
-      if frame == 0 then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, frame), tm)
+
+      if self.diagIoTrigger(tm) then
 	 -- compute moments and write them out
 	 self:calcMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, frame), tm)
+	    self.diagnosticMomentFields[i]:write(
+	       string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm)
+	 end
+	 self.diagIoFrame = self.diagIoFrame+1
+      end
+   else
+      -- if not evolving species, don't write anything except initial conditions
+      if self.distIoFrame == 0 then
+	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm)
+
+	 -- compute moments and write them out
+	 self:calcMoments()
+	 for i, mom in ipairs(self.diagnosticMoments) do
+	    -- should one use AdiosIo object for this?
+	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm)
 	 end
       end
+      self.distIoFrame = self.distIoFrame+1
    end
 end
 
