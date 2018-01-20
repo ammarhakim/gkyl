@@ -39,8 +39,15 @@ function HyperDisCont:init(tbl)
    -- equation to solve
    self._equation = assert(tbl.equation, "Updater.HyperDisCont: Must provide equation object using 'equation'")
 
+   -- by default, update all directions
+   self._updateDirs = {}
+   for d = 1, self._ndim do
+      self._updateDirs[d] = d
+   end
    -- read in which directions we are to update
-   self._nUpdateDirs = tbl.updateDirections and #tbl.updateDirections or self._ndim
+   if tbl.updateDirections then
+      self._updateDirs = tbl.updateDirections
+   end
 
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
@@ -84,7 +91,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
    qOut:clear(0.0) -- compute increments
    -- accumulate contributions from surface integrals
-   for dir = 1, ndim do
+   for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
 

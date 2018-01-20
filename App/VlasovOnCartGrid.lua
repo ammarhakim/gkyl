@@ -15,6 +15,7 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.VlasovOnCartGridField"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
+local LinearTrigger = require "LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
@@ -23,7 +24,6 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
 local xsys = require "xsys"
-local LinearTrigger = require "LinearTrigger"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -41,11 +41,6 @@ local function buildApplication(self, tbl)
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
 
-   log("-- Gkyl --------------------------------------------------------")
-   log("--    _______     ___")
-   log("-- + 6 @ |||| # P ||| +")
-   log("----------------------------------------------------------------\n")
-   
    log(date(false):fmt()) -- time-stamp for sim start
 
    -- function to warn user about default values

@@ -48,8 +48,8 @@ function Species:init(tbl)
    self.tbl = tbl
 end
 
--- Actual function to initialization. This indirection is needed as we
--- need the app top-level table for proper initialization
+-- Actual function for initialization. This indirection is needed as
+-- we need the app top-level table for proper initialization
 function Species:fullInit(vlasovTbl)
    local tbl = self.tbl -- previously store table
    
