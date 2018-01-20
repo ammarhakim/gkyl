@@ -12,6 +12,7 @@ shaveCols(Abig, cols) := block([nx,ny,nc,Asmall],
 	        return (Asmall)
 )$
 
+
 /* Inner product of functions f1 and f2 with weight w */
 innerProd(vars, w, f1, f2) := block([n, r],
     n : length(vars),
@@ -85,6 +86,20 @@ numNonZero(mat) := block([nc,nr,nz],
 
 /* Compute inner product with specified function list */
 calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, w, funcList[i], f), i, 1, length(funcList)))$
+
+/* General product of functions f1 and f2 with weight w over arbitrary extents */
+innerProdGen(vars, lims, w, f1, f2) := block([n, r],
+    n : length(vars),
+    if n = 0 then return (w*f1*f2),
+    r : integrate(w*f1*f2, vars[1], lims[1][1], lims[1][2]),
+    for i: 2 thru n do r : integrate(r, vars[i], lims[i][1], lims[i][2]),
+    return (r)
+)$
+
+/* Compute inner product with specified function list */
+calcInnerProdListGen(vars, lims, w, funcList, f) :=
+  fullratsimp(makelist(innerProdGen(vars, lims, w, funcList[i], f), i, 1, length(funcList)))$
+
 
 /* Compute mass matrix, i.e M_ij = <w phi_i phi_j> */
 calcMassMatrix(vars, w, basis) := block([n, mass],
