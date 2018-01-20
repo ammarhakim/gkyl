@@ -356,41 +356,43 @@ local function buildApplication(self, tbl)
       local tCurr = tStart
       local myDt = initDt
 
-      local tenth = 1
       -- for logging every 10% of sim
       local logTrigger = LinearTrigger(tStart, tEnd, 10)
+      local tenth = 0      
+
+      -- for writing out log messages
+      local function writeLogMessage(tCurr)
+	 if logTrigger(tCurr) then
+	    log (string.format(" Step %5d. Time step %g. Completed %g%s", step, myDt, tenth*10, "%"))
+	    tenth = tenth+1
+	 end	 
+      end
 
       local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
 	 -- if needed adjust dt to hit tEnd exactly
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-
-	 if logTrigger(tCurr) then
-	    log (string.format(" Step %5d. Time step %g. Completed %g%s", step, myDt, tenth*10, "%"))
-	    tenth = tenth+1
-	 end
-	 
-	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt) -- take a time-step
-
-	 if not status then
-	    -- updater failed, time-step too large
-	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
-	    myDt = dtSuggested
-	 else
-	    -- write out data
-	    writeData(tCurr+myDt)
-	    
+	 -- take a time-step
+	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
+	 -- check if step was successful
+	 if status then
+	    writeLogMessage(tCurr)
+	    writeData(tCurr+myDt) -- give chance to everyone to write data
 	    tCurr = tCurr + myDt
 	    myDt = dtSuggested
 	    step = step + 1
 	    if (tCurr >= tEnd) then
 	       break
-	    end
+	    end	    
+	 else
+	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
+	    myDt = dtSuggested
 	 end 
       end -- end of time-step loop
+      writeLogMessage(tCurr)
       local tmSimEnd = Time.clock()
-
+      
       local tmVlasovSlvr = 0.0 -- total time in Vlasov solver
       for _, s in pairs(species) do
 	 tmVlasovSlvr = tmVlasovSlvr+s:totalSolverTime()
