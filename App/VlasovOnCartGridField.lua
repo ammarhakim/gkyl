@@ -13,6 +13,7 @@ local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
+local LinearTrigger = require "LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local PerfMaxwell = require "Eq.PerfMaxwell"
@@ -44,9 +45,9 @@ function EmField:init(tbl)
    self.tbl = tbl
 end
 
--- Actual function to initialization. This indirection is needed as we
--- need the app top-level table for proper initialization
-function EmField:init(vlasovTbl)
+-- Actual function for initialization. This indirection is needed as
+-- we need the app top-level table for proper initialization
+function EmField:fullInit(vlasovTbl)
    local tbl = self.tbl -- previously store table
    
    self.epsilon0 = tbl.epsilon0
@@ -57,7 +58,7 @@ function EmField:init(vlasovTbl)
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
 
-   -- create triggers to write distribution functions and moments
+   -- create triggers to write fields
    if tbl.nFrame then
       self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nFrame)
    else

@@ -147,7 +147,7 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local w = Lin.Vec(vDim) -- cell center
    local momCell = Lin.Vec(mom:numComponents()) -- moments in a cell
    
-   local localExtRange = distf:localExtRange()
+   local localRange = distf:localRange()
    local distfIndexer = distf:genIndexer()
    local momIndexer = mom:genIndexer()
 
@@ -157,7 +157,7 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local refVol = 2^vDim -- volume of velocity space reference cell
    
    -- loop, computing moments in each cell
-   for idx in localExtRange:colMajorIter() do
+   for idx in localRange:colMajorIter() do
       grid:setIndex(idx); grid:cellCenter(xcp)
       -- compute velocity cell spacing, cell-center and volume
       local vol = 1.0
