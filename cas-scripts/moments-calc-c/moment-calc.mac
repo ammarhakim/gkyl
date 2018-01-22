@@ -3,6 +3,16 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
+let(wx1^2, wx1_sq)$
+let(wx2^2, wx2_sq)$
+let(wx3^2, wx3_sq)$
+let(dv1^2, dv1_sq)$
+let(dv2^2, dv2_sq)$
+let(dv3^2, dv3_sq)$
+
+volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
+
+/* Number density */
 calcM0(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
@@ -12,16 +22,17 @@ for p : 1 thru 2 do (
   bC : basisC[p],
 
   printf(fh, "void ~a_M0_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-
+  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
   fl : doExpand1(f, bP),
   M : calcInnerProdList(varsP, 1, bC, fl),
-  writeCExprs1(out, M),
+  writeCIncrExprs1(out, volFact*M),
 
   printf(fh, "} ~%")
 ))$
 
-vTrans : [vx*dvx/2+wx, vy*dvy/2+wy, vz*dvz/2+wz]$
+vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
 
+/* Momentum */
 calcM1i(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
@@ -31,17 +42,85 @@ for p : 1 thru 2 do (
   bC : basisC[p],
 
   printf(fh, "void ~a_M1i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
+  ),
 
   fl : doExpand1(f, bP),
 
-  for dir : 1 thru vdim do (
-    M : calcInnerProdList(varsP, vTrans[dir], bC, fl),
-    writeCExprs1(out, M)
+  M : (M : [],
+       for dir : 1 thru vdim do (
+         M : append(M, calcInnerProdList(varsP, vTrans[dir], bC, fl))
+       ),
+  M),
+  
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+/* Pressure tensor */
+calcM2ij(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 2 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_M2ij_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
   ),
+
+  fl : doExpand1(f, bP),
+
+  M : (M : [],
+       for d1 : 1 thru vdim do (
+          for d2 : d1 thru vdim do (
+            M : append(M, calcInnerProdList(varsP, vTrans[d1]*vTrans[d2], bC, fl))
+       )),
+  M),
+
+  M : map(letsimp, M),
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+/* Energy tensor */
+calcM2(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 2 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_M2_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+  ),
+
+  fl : doExpand1(f, bP),
+
+  M : sum(calcInnerProdList(varsP, vTrans[d]*vTrans[d], bC, fl), d, 1, vdim),
+
+  M : map(letsimp, M),
+  writeCIncrExprs1(out, volFact*M),
 
   printf(fh, "} ~%")
 ))$
 
 calcMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
-  calcM0(fh, funcNm, cdim, vdim, basisFun)  
+  printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
+  calcM0(fh, funcNm, cdim, vdim, basisFun),
+  calcM1i(fh, funcNm, cdim, vdim, basisFun),
+  calcM2ij(fh, funcNm, cdim, vdim, basisFun),
+  calcM2(fh, funcNm, cdim, vdim, basisFun)
 )$
