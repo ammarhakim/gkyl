@@ -56,7 +56,6 @@ function Species:fullInit(vlasovTbl)
    self.name = "name"
    self.cfl =  0.1
    self.charge, self.mass = tbl.charge, tbl.mass
-   self.qbym = self.charge/self.mass
    self.lower, self.upper = tbl.lower, tbl.upper
    self.cells = tbl.cells
    self.vdim = #self.cells -- velocity dimensions
@@ -182,6 +181,27 @@ function Species:alloc(nFields)
       elemType = self.distf[1]:elemType(),
       method = self.ioMethod,
    }
+
+   -- allocate field to store coupling moments (for use in
+   -- charge calculations) 
+   self.momDensity = DataStruct.Field {
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis()*self.vdim,
+      ghost = {1, 1}
+   }
+end
+
+function Species:allocMomCouplingFields()
+   print("INSIDE Species:allocMomCouplingFields()")
+   -- only need currents for coupling to fields (returning a table
+   -- with single entry, i.e. space to store currents)
+   return {
+      DataStruct.Field {
+	 onGrid = self.confGrid,
+	 numComponents = self.confBasis:numBasis()*self.vdim,
+	 ghost = {1, 1}
+      }
+   }
 end
 
 function Species:createSolver(hasE, hasB)
@@ -195,6 +215,14 @@ function Species:createSolver(hasE, hasB)
       cfl = self.cfl,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+   }
+   -- create updater to compute momentum density (for use in current
+   -- calculations)
+   self.momDensityCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "M1i",
    }
 end
 
@@ -224,7 +252,7 @@ function Species:createDiagnostics()
    end
 end
 
-function Species:calcMoments()
+function Species:calcDiagnosticMoments()
    local numMoms = #self.diagnosticMoments
    for i = 1, numMoms do
       self.diagnosticMomentUpdaters[i]:advance(
@@ -241,7 +269,7 @@ function Species:initDist()
    project:advance(0.0, 0.0, {}, {self.distf[1]})
    self:applyBc(0.0, 0.0, self.distf[1])
 end
-   
+
 function Species:write(tm)
    if self.evolve then
       -- only write stuff if triggered
@@ -252,7 +280,7 @@ function Species:write(tm)
 
       if self.diagIoTrigger(tm) then
 	 -- compute moments and write them out
-	 self:calcMoments()
+	 self:calcDiagnosticMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
 	    self.diagnosticMomentFields[i]:write(
@@ -266,7 +294,7 @@ function Species:write(tm)
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm)
 
 	 -- compute moments and write them out
-	 self:calcMoments()
+	 self:calcDiagnosticMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
 	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm)
@@ -279,6 +307,7 @@ end
 function Species:rkStepperFields()
    return self.distf
 end
+
    
 function Species:forwardEuler(tCurr, dt, fIn, emIn, fOut)
    if self.evolve then
@@ -287,6 +316,12 @@ function Species:forwardEuler(tCurr, dt, fIn, emIn, fOut)
       fOut:copy(fIn) -- just copy stuff over
       return true, GKYL_MAX_DOUBLE
    end
+end
+
+function Species:incrementCouplingMoments(tCurr, dt, fIn, momOut)
+   -- compute momentum and increment as current into supplied field
+   self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
+   momOut[1]:accumulate(self.charge, self.momDensity)
 end
 
 function Species:applyBc(tCurr, dt, fIn)
@@ -310,7 +345,7 @@ function Species:incrementTime()
 end
 
 function Species:momCalcTime()
-   local tm = 0.0
+   local tm = self.momDensityCalc.totalTime
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end

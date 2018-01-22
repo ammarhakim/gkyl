@@ -140,7 +140,6 @@ local function buildApplication(self, tbl)
       s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs)
       s:setConfBasis(confBasis)
       s:createBasis(basisNm, polyOrder)
-      s:alloc(stepperNumFields[timeStepperNm])
    end
    
    -- configuration space decomp object (eventually, this will be
@@ -162,6 +161,7 @@ local function buildApplication(self, tbl)
    -- set conf grid for each species
    for _, s in pairs(species) do
       s:setConfGrid(grid)
+      s:alloc(stepperNumFields[timeStepperNm])
    end   
 
    -- setup information about fields: if this is not specified, it is
@@ -214,9 +214,30 @@ local function buildApplication(self, tbl)
    -- store fields from EM field for RK time-stepper
    local emRkFields = field:rkStepperFields()
 
+   local momCouplingFields = {}
+   -- store fields needed in coupling particles and fields (only a
+   -- single set is needed)
+   do 
+      local c = 0
+      for _, s in pairs(species) do
+	 if c == 0 then
+	    momCouplingFields = s:allocMomCouplingFields()
+	 end
+	 c = c+1
+      end
+   end
+
+   -- function to set all coupling fields to 0.0
+   local function clearMomCouplingFields()
+      for _, f in ipairs(momCouplingFields) do
+	 f:clear(0.0)
+      end
+   end
+
    -- function to take a single forward-euler time-step
    local function fowardEuler(tCurr, dt, inIdx, outIdx)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      clearMomCouplingFields()
       -- update species
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
@@ -224,6 +245,8 @@ local function buildApplication(self, tbl)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+	 -- increment charges/currents needed in coupling with fields
+	 s:incrementCouplingMoments(tCurr, dt, speciesRkFields[nm][outIdx], momCouplingFields)
       end
       -- update EM field
       local myStatus, myDtSuggested = field:forwardEuler(
