@@ -136,9 +136,9 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
 
    -- sanity checks
    assert(distf:ndim() == self._pDim,
-	  "DistFuncMomentCalc:advance: Phase-space dimensions do not match input distribution function ")
+   	  "DistFuncMomentCalc:advance: Phase-space dimensions do not match input distribution function ")
    assert(mom:ndim() == self._cDim,
-	  "DistFuncMomentCalc:advance: Config-space dimensions do not match output moment field")
+   	  "DistFuncMomentCalc:advance: Config-space dimensions do not match output moment field")
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
