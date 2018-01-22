@@ -1,11 +1,11 @@
 load("moments-calc-c/moment-calc")$
 load(stringproc)$
 
-for c : 1 thru 1 do (
+for c : 1 thru 2 do (
   for v : c thru 3 do (
-   fname : sconcat("~/max-out/MomentCalcSer", c, "x", v, "v", ".cpp"),
+   fname : sconcat("~/max-out/DistFuncMomentCalcSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
-   funcName : sconcat("MomentCalcSer", c, "x", v, "v", "Ser"),
+   funcName : sconcat("MomentCalc", c, "x", v, "v", "Ser"),
    calcMoments(fh, funcName, c, v, "Ser"),
    close(fh)
   )
