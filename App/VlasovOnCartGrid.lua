@@ -242,15 +242,21 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
 	    tCurr, dt, speciesRkFields[nm][inIdx], emRkFields[inIdx], speciesRkFields[nm][outIdx])
+	 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+
 	 -- increment charges/currents needed in coupling with fields
-	 s:incrementCouplingMoments(tCurr, dt, speciesRkFields[nm][outIdx], momCouplingFields)
+	 -- (we need to use inIdx here and not outIdx as in an explict
+	 -- scheme, things that go into the forward Euler must be from
+	 -- the previous time-step
+	 s:incrementCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx], momCouplingFields)
       end
       -- update EM field
       local myStatus, myDtSuggested = field:forwardEuler(
-	 tCurr, dt, emRkFields[inIdx], emRkFields[outIdx])
+	 tCurr, dt, emRkFields[inIdx], momCouplingFields, emRkFields[outIdx])
+      
       status = status and myStatus
       dtSuggested = math.min(dtSuggested, myDtSuggested)
       field:applyBc(tCurr, dt, emRkFields[outIdx])
@@ -379,9 +385,10 @@ local function buildApplication(self, tbl)
       local tenth = 0      
 
       -- for writing out log messages
-      local function writeLogMessage(tCurr)
+      local function writeLogMessage(tCurr, myDt)
 	 if logTrigger(tCurr) then
-	    log (string.format(" Step %5d. Time step %g. Completed %g%s", step, myDt, tenth*10, "%"))
+	    log (string.format(
+		    " Step %5d at time %g. Time step %g. Completed %g%s", step, tCurr, myDt, tenth*10, "%"))
 	    tenth = tenth+1
 	 end	 
       end
@@ -395,7 +402,7 @@ local function buildApplication(self, tbl)
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
 	 -- check if step was successful
 	 if status then
-	    writeLogMessage(tCurr)
+	    writeLogMessage(tCurr, myDt)
 	    writeData(tCurr+myDt) -- give chance to everyone to write data
 	    tCurr = tCurr + myDt
 	    myDt = dtSuggested
@@ -408,7 +415,7 @@ local function buildApplication(self, tbl)
 	    myDt = dtSuggested
 	 end 
       end -- end of time-step loop
-      writeLogMessage(tCurr)
+      writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
       
       local tmVlasovSlvr = 0.0 -- total time in Vlasov solver
