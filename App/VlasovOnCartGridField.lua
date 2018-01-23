@@ -146,14 +146,13 @@ function EmField:accumulateCurrent(dt, current, em)
    if current == nil then return end
 
    -- these many current components are supplied
-   local nCurr = current:numComponents()/self.basis:numBasis()
    local cItr, eItr = current:get(1), em:get(1)
    local cIdxr, eIdxr = current:genIndexer(), em:genIndexer()
 
    for idx in em:localRangeIter() do
       current:fill(cIdxr(idx), cItr)
       em:fill(eIdxr(idx), eItr)
-      for i = 1, nCurr do
+      for i = 1, current:numComponents() do
    	 eItr[i] = eItr[i]-dt/self.epsilon0*cItr[i]
       end
    end
