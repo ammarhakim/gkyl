@@ -23,15 +23,6 @@ local Updater = require "Updater"
 local date = require "Lib.date"
 local xsys = require "xsys"
 
--- function to create basis functions
-local function createBasis(nm, ndim, polyOrder)
-   if nm == "serendipity" then
-      return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
-   elseif nm == "maximal-order" then
-      return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
-   end   
-end
-
 -- EmField ---------------------------------------------------------------------
 --
 -- Electromagnetic field (Maxwell equation are evolved)
@@ -151,9 +142,29 @@ function EmField:rkStepperFields()
    return self.em
 end
 
-function EmField:forwardEuler(tCurr, dt, emIn, emOut)
+function EmField:accumulateCurrent(dt, current, em)
+   if current == nil then return end
+
+   -- these many current components are supplied
+   local nCurr = current:numComponents()/self.basis:numBasis()
+   local cItr, eItr = current:get(1), em:get(1)
+   local cIdxr, eIdxr = current:genIndexer(), em:genIndexer()
+
+   for idx in em:localRangeIter() do
+      current:fill(cIdxr(idx), cItr)
+      em:fill(eIdxr(idx), eItr)
+      for i = 1, nCurr do
+   	 eItr[i] = eItr[i]-dt/self.epsilon0*cItr[i]
+      end
+   end
+end
+
+-- momIn[1] is the current density
+function EmField:forwardEuler(tCurr, dt, emIn, momIn, emOut)
    if self.evolve then
-      return self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
+      local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
+      self:accumulateCurrent(dt, momIn[1], emOut)
+      return mys, mydt
    else
       emOut:copy(emIn) -- just copy stuff over
       return true, GKYL_MAX_DOUBLE
@@ -189,7 +200,7 @@ function NoField:createDiagnostics() end
 function NoField:initField() end
 function NoField:write(tm) end
 function NoField:rkStepperFields() return {} end
-function NoField:forwardEuler(tCurr, dt, emIn, emOut) return true, GKYL_MAX_DOUBLE end
+function NoField:forwardEuler(tCurr, dt, momIn, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end
 function NoField:totalSolverTime() return 0.0 end
 
