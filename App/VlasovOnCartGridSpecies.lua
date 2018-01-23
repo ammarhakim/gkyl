@@ -192,7 +192,6 @@ function Species:alloc(nFields)
 end
 
 function Species:allocMomCouplingFields()
-   print("INSIDE Species:allocMomCouplingFields()")
    -- only need currents for coupling to fields (returning a table
    -- with single entry, i.e. space to store currents)
    return {

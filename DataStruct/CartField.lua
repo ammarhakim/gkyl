@@ -130,6 +130,7 @@ local function Field_meta_ctor(elct)
       -- local and global ranges
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()
+      
       -- various communicators for use in shared allocator
       local shmComm = grid:commSet().sharedComm
 
@@ -153,7 +154,13 @@ local function Field_meta_ctor(elct)
       self._size = sz
 
       self._globalRange = globalRange
+      self._globalExtRange = self._globalRange:extend(
+	 self._lowerGhost, self._upperGhost)
+      
       self._localRange = localRange
+      self._localExtRange = self._localRange:extend(
+	 self._lowerGhost, self._upperGhost)
+      
       self._layout = defaultLayout -- default layout is column-major
       if tbl.layout then
       	 if tbl.layout == "row-major" then
@@ -349,13 +356,13 @@ local function Field_meta_ctor(elct)
 	 return self._localRange
       end,
       localExtRange = function (self) -- includes ghost cells
-	 return self:localRange():extend(self:lowerGhost(), self:upperGhost())
+	 return self._localExtRange
       end,      
       globalRange = function (self)
 	 return self._globalRange
       end,
       globalExtRange = function (self) -- includes ghost cells
-	 return self:globalRange():extend(self:lowerGhost(), self:upperGhost())
+	 return self._globalExtRange
       end,
       localRangeIter = function (self)
 	 if self._layout == rowMajLayout then

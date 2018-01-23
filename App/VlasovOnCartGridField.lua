@@ -141,7 +141,7 @@ function EmField:write(tm)
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", frame), tm)
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
       end
       self.ioFrame = self.ioFrame+1
    end

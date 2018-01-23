@@ -13,71 +13,14 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Range = require "Lib.Range"
 local Proto = require "Lib.Proto"
+local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
 
--- system libraries
-local ffi = require "ffi"
-
--- makes dispatching into appropriate module easier
-local maxModNames = {
-   {"MaxOrderMom1x1v", "MaxOrderMom1x2v", "MaxOrderMom1x3v"},
-   {nil, "MaxOrderMom2x2v", "MaxOrderMom2x3v"},
-   {nil, nil, "MaxOrderMom3x3v"},
-}
-local serModNames = {
-   {"SerendipMom1x1v", "SerendipMom1x2v", "SerendipMom1x3v"},
-   {nil, "SerendipMom2x2v", "SerendipMom2x3v"},
-   {nil, nil, "SerendipMom3x3v"},
-}
-
-local maxPrModNames = {
-   {"MaxOrderPressureMom1x1v", "MaxOrderPressureMom1x2v", "MaxOrderPressureMom1x3v"},
-   {nil, "MaxOrderPressureMom2x2v", "MaxOrderPressureMom2x3v"},
-   {nil, nil, "MaxOrderPressureMom3x3v"},
-}
-local serPrModNames = {
-   {"SerendipPressureMom1x1v", "SerendipPressureMom1x2v", "SerendipPressureMom1x3v"},
-   {nil, "SerendipPressureMom2x2v", "SerendipPressureMom2x3v"},
-   {nil, nil, "SerendipPressureMom3x3v"},
-}
-
--- select appropriate module
-local function selectMod(cDim, vDim, bId, polyOrder)
-   local nm = nil
-   if bId == "serendipity" then
-      nm = serModNames[cDim][vDim]
-   elseif bId == "maximal-order" then
-      nm = maxModNames[cDim][vDim]
+-- function to check if moment name is correct
+local function isMomentNameGood(nm)
+   if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" or nm == "M3i" then
+      return true
    end
-   return require("Updater.momentCalcData." .. nm)
-end
--- select appropriate module for energy and pressure-tensor (these are
--- stored in different files)
-local function selectPrMod(cDim, vDim, bId, polyOrder)
-   local nm = nil
-   if bId == "serendipity" then
-      nm = serPrModNames[cDim][vDim]
-   elseif bId == "maximal-order" then
-      nm = maxPrModNames[cDim][vDim]
-   end
-   return require("Updater.momentCalcData." .. nm)
-end
-
--- pick function to compute various moments
-local function pickNumDensityFunc(cDim, vDim, bId, polyOrder)
-   local m = selectMod(cDim, vDim, bId, polyOrder)
-   return m.numDensity[polyOrder]
-end
-local function pickMomentumFunc(cDim, vDim, bId, polyOrder)
-   local m = selectMod(cDim, vDim, bId, polyOrder)
-   return m.momentum[polyOrder]
-end
-local function pickPressureFunc(cDim, vDim, bId, polyOrder)
-   local m = selectPrMod(cDim, vDim, bId, polyOrder)
-   return m.pressureTensor[polyOrder]
-end
-local function pickEnergyFunc(cDim, vDim, bId, polyOrder)
-   local m = selectPrMod(cDim, vDim, bId, polyOrder)
-   return m.energy[polyOrder]
+   return false
 end
 
 -- Moments updater object
@@ -104,28 +47,22 @@ function DistFuncMomentCalc:init(tbl)
 	  "Polynomial orders of phase-space and config-space basis must match")
    assert(phaseBasis:id() == confBasis:id(),
 	  "Type of phase-space and config-space basis must match")
+
+   local id, polyOrder = phaseBasis:id(), phaseBasis:polyOrder()
    
    local mom = assert(
       tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
-   local id, polyOrder = phaseBasis:id(), phaseBasis:polyOrder()
-   
-   self._momCalcFun = nil -- function to compute requested moments
-   if mom == "M0" then
-      self._momCalcFun = pickNumDensityFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "M1i" then
-      self._momCalcFun = pickMomentumFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "M2" then
-      self._momCalcFun = pickEnergyFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "M2ij" then
-      self._momCalcFun = pickPressureFunc(self._cDim, self._vDim, id, polyOrder)
-   elseif mom == "M3ijk" then
-      assert(false, "Updater.DistFuncMomentCalc: 'M3ijk' NYI!")
-   elseif mom == "M3i" then
-      assert(false, "Updater.DistFuncMomentCalc: 'M3i' NYI!")
+   -- function to compute specified moment
+   if isMomentNameGood(mom) then
+      self._momCalcFun = MomDecl.selectMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
    else
-      assert(false, "Updater.DistFuncMomentCalc: Did not recognize moment type " .. mom)
+      assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i")
    end
+
+   -- for use in _advance() method
+   self.dxv = Lin.Vec(self._pDim) -- cell shape
+   self.w = Lin.Vec(self._pDim) -- phase-space cell center
 end
 
 -- advance method
@@ -142,11 +79,6 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
-   local dv = Lin.Vec(vDim) -- cell shape
-   local xcp = Lin.Vec(pDim) -- phase-space cell center
-   local w = Lin.Vec(vDim) -- cell center
-   local momCell = Lin.Vec(mom:numComponents()) -- moments in a cell
-   
    local localRange = distf:localRange()
    local distfIndexer = distf:genIndexer()
    local momIndexer = mom:genIndexer()
@@ -154,28 +86,15 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local distfItr, momItr = distf:get(1), mom:get(1)
 
    mom:scale(0.0) -- zero out moments
-   local refVol = 2^vDim -- volume of velocity space reference cell
-   
    -- loop, computing moments in each cell
    for idx in localRange:colMajorIter() do
-      grid:setIndex(idx); grid:cellCenter(xcp)
-      -- compute velocity cell spacing, cell-center and volume
-      local vol = 1.0
-      for d = 1, vDim do
-      	 dv[d] = grid:dx(cDim+d)
-      	 w[d] = xcp[cDim+d]
-      	 vol = vol*dv[d]
-      end
-
-      -- compute moment in cell
+      grid:setIndex(idx)
+      grid:cellCenter(self.w)
+      for d = 1, pDim do self.dxv[d] = grid:dx(d) end
+      
       distf:fill(distfIndexer(idx), distfItr)
-      self._momCalcFun(distfItr, momCell, dv, w)
-
-      -- accumulate it with proper normalization factor (Vv/2^dv)
       mom:fill(momIndexer(idx), momItr)
-      for k = 1, mom:numComponents() do
-      	 momItr[k] = momItr[k] + vol/refVol*momCell[k]
-      end
+      self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), momItr:data())
    end
    
    return true, GKYL_MAX_DOUBLE
