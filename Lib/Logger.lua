@@ -23,6 +23,13 @@ end
 local function makeLogger(tbl)
    local writeRank = 0 -- default write rank is 0
    if tbl.writeRank then writeRank = tbl.writeRank end
+
+   local fName
+   if tbl.logFile then
+      fName = GKYL_OUT_PREFIX .. "_" .. tbl.logFile .. ".log"
+   else
+      fName = GKYL_OUT_PREFIX .. "_" .. writeRank .. ".log"
+   end
    
    -- get hold of communicator if specified or use MPI_COMM_WORLD
    local comm = tbl.comm and tbl.comm or Mpi.COMM_WORLD
@@ -33,7 +40,7 @@ local function makeLogger(tbl)
       outStreams[1] = io.stdout -- always write to console
       -- open log file if needed
       if tbl.logToFile then
-	 outStreams[2] = io.open(GKYL_OUT_PREFIX .. "_" .. writeRank .. ".log", "w")
+	 outStreams[2] = io.open(fName, "w")
       end
    end
 
