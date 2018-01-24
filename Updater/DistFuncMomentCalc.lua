@@ -68,14 +68,7 @@ end
 -- advance method
 function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
-   local distf = assert(inFld[1], "DistFuncMomentCalc:advance: Must supply input distribution function")
-   local mom = assert(outFld[1], "DistFuncMomentCalc:advance: Must supply output moment field")
-
-   -- sanity checks
-   assert(distf:ndim() == self._pDim,
-   	  "DistFuncMomentCalc:advance: Phase-space dimensions do not match input distribution function ")
-   assert(mom:ndim() == self._cDim,
-   	  "DistFuncMomentCalc:advance: Config-space dimensions do not match output moment field")
+   local distf, mom = inFld[1], outFld[1]
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
