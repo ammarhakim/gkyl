@@ -30,6 +30,11 @@ function _M:_advance(tCurr, dt, inFld, outFld)
    assert(true, "_advance method not provided!")
 end
 
+-- return node comm for communications
+function _M:getNodeComm()
+   return self._nodeComm
+end
+
 -- This function wraps derived updater's _advance() function and
 -- computes a "totalTime", and also synchronizes the status and
 -- time-step suggestion across processors.
