@@ -14,10 +14,15 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
 
 local _M = {}
 
--- select function to compute volume streaming terms
+-- select function to compute specified moment
 function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("MomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
    return ffi.C[funcNm]
+end
+
+-- select function to compute integrated moments
+function _M.selectIntMomCalc(basisNm, VDIM, polyOrder)
+
 end
 
 return _M
