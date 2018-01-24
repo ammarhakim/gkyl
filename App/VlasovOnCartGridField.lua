@@ -67,6 +67,8 @@ function EmField:fullInit(vlasovTbl)
    end
 
    self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
+
+   self.tmCurrentAccum = 0.0 -- time spent in current accumulate
 end
 
 -- methods for EM field object
@@ -145,6 +147,8 @@ end
 function EmField:accumulateCurrent(dt, current, em)
    if current == nil then return end
 
+   local tmStart = Time.clock()
+
    -- these many current components are supplied
    local cItr, eItr = current:get(1), em:get(1)
    local cIdxr, eIdxr = current:genIndexer(), em:genIndexer()
@@ -156,6 +160,7 @@ function EmField:accumulateCurrent(dt, current, em)
    	 eItr[i] = eItr[i]-dt/self.epsilon0*cItr[i]
       end
    end
+   self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
 -- momIn[1] is the current density
@@ -175,7 +180,7 @@ function EmField:applyBc(tCurr, dt, emIn)
 end
    
 function EmField:totalSolverTime()
-   return self.fieldSlvr.totalTime
+   return self.fieldSlvr.totalTime + self.tmCurrentAccum
 end
 
 -- NoField ---------------------------------------------------------------------
