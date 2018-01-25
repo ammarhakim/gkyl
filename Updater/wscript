@@ -75,5 +75,17 @@ def build(bld):
     momentCalcData/DistFuncMomentCalcSer2x2v.cpp
     momentCalcData/DistFuncMomentCalcSer2x3v.cpp
 
+    momentCalcData/DistFuncIntegratedMomentCalcSer1x1v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcSer1x2v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcSer1x3v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcSer2x2v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcSer2x3v.cpp
+
+    momentCalcData/DistFuncIntegratedMomentCalcMax1x1v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcMax1x2v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcMax1x3v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcMax2x2v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcMax2x3v.cpp
+
     """,
     includes = '. vlasovData momentCalcData', target = 'updater')
