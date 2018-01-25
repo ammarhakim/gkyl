@@ -30,11 +30,28 @@ for p : 1 thru 2 do (
 
   printf(fh, "void ~a_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
   printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^(cdim+vdim)),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+  ),
+
+  printf(fh, " ~%"),
+
   fl : doExpand1(f, bP),
 
   M : [],
 
+  /* integrated M0 */
   M : endcons(fullratsimp(innerProd(varsP, 1, 1, fl)), M),
+
+  /* Integrated kinetic energy*/
+  M : append(M, [0, 0, 0]),
+
+  m2 : map(letsimp, sum(innerProd(varsP, 1, vTrans[d]*vTrans[d], fl), d, 1, vdim)),
+
+  /* Integrated total energy*/
+  M : endcons(m2, M),
+
   writeCIncrExprs1(out, volFact*M),
 
   printf(fh, "} ~%")
