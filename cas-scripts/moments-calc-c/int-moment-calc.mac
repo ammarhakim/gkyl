@@ -1,0 +1,46 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+let(wx1^2, wx1_sq)$
+let(wx2^2, wx2_sq)$
+let(wx3^2, wx3_sq)$
+let(dv1^2, dv1_sq)$
+let(dv2^2, dv2_sq)$
+let(dv3^2, dv3_sq)$
+
+let(wx1^3, wx1_cu)$
+let(wx2^3, wx2_cu)$
+let(wx3^3, wx3_cu)$
+let(dv1^3, dv1_cu)$
+let(dv2^3, dv2_cu)$
+let(dv3^3, dv3_cu)$
+
+volExpr(cdim, vdim) := prod(dxv[i-1], i, 1, cdim+vdim)$
+vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
+
+calcInt(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 2 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  fl : doExpand1(f, bP),
+
+  M : [],
+
+  M : endcons(fullratsimp(innerProd(varsP, 1, 1, fl)), M),
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+calcMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
+  printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
+  calcInt(fh, funcNm, cdim, vdim, basisFun)
+)$
