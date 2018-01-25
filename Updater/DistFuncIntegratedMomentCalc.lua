@@ -26,15 +26,27 @@ function DistFuncIntegratedMomentCalc:init(tbl)
       tbl.onGrid, "Updater.DistFuncIntegratedMomentCalc: Must provide grid object using 'onGrid'")
 
    local phaseBasis = assert(
-      tbl.phaseBasis, "Updater.DistFuncIntegratedMomentCalc: Must provide phase-space basis object using 'phaseBasis'")
+      tbl.phaseBasis,
+      "Updater.DistFuncIntegratedMomentCalc: Must provide phase-space basis object using 'phaseBasis'")
+   local confBasis = assert(
+      tbl.confBasis,
+      "Updater.DistFuncIntegratedMomentCalc: Must provide configuration-space basis object using 'confBasis'")
+
+   -- ensure sanity
+   assert(phaseBasis:polyOrder() == confBasis:polyOrder(),
+	  "Polynomial orders of phase-space and config-space basis must match")
+   assert(phaseBasis:id() == confBasis:id(),
+	  "Type of phase-space and config-space basis must match") 2
 
    -- dimension of spaces
-   self._pDim = phaseBasis:ndim() 
+   self._pDim = phaseBasis:ndim()
+   self._cDim = confBasis:ndim()
+   self._vDim = self._pDim - self._cDim
 
    local id, polyOrder = phaseBasis:id(), phaseBasis:polyOrder()
    
    -- function to compute integrated moments
-   self._intMomCalcFun = MomDecl.selectIntMomCalc(id, self._vDim, polyOrder)
+   self._intMomCalcFun = MomDecl.selectIntMomCalc(id, self._cDim, self._vDim, polyOrder)
 
    -- for use in _advance() method
    self.dxv = Lin.Vec(self._pDim) -- cell shape

@@ -21,8 +21,9 @@ function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- select function to compute integrated moments
-function _M.selectIntMomCalc(basisNm, VDIM, polyOrder)
-
+function _M.selectIntMomCalc(basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("IntMomentCalc%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   return ffi.C[funcNm]
 end
 
 return _M
