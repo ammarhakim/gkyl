@@ -104,6 +104,9 @@ function Species:fullInit(vlasovTbl)
       end
    end
 
+   -- for storing integrated moments
+   self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
+
    -- store initial condition function
    self.initFunc = tbl.init
 end
@@ -223,6 +226,12 @@ function Species:createSolver(hasE, hasB)
       confBasis = self.confBasis,
       moment = "M1i",
    }
+
+   -- create updater to compute integrated moments
+   self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+   }
 end
 
 function Species:createDiagnostics()
@@ -271,6 +280,9 @@ end
 
 function Species:write(tm)
    if self.evolve then
+      -- compute integrated diagnostics
+      self.intMomentCalc:advance(tm, 0.0, {self.distf[1]}, {self.integratedMoments})
+      
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm)
@@ -349,6 +361,10 @@ function Species:momCalcTime()
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end
    return tm
+end
+
+function Species:intMomCalcTime()
+   return self.intMomentCalc.totalTime
 end
 
 return Species

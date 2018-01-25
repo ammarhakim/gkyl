@@ -9,11 +9,12 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
-local Range = require "Lib.Range"
-local Proto = require "Lib.Proto"
 local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
 
 -- Moments updater object
 local DistFuncIntegratedMomentCalc = Proto(UpdaterBase)
@@ -58,12 +59,12 @@ function DistFuncIntegratedMomentCalc:_advance(tCurr, dt, inFld, outFld)
       grid:cellCenter(self.w)
       for d = 1, pDim do self.dxv[d] = grid:dx(d) end
       distf:fill(distfIndexer(idx), distfItr)
-      --self._intMomCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), self.localMom)
+      self._intMomCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), self.localMom)
    end
 
    -- all-reduce across processors
    local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self.localMom:data(), self:globalMom(), 5, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+   Mpi.Allreduce(self.localMom:data(), self.globalMom:data(), 5, Mpi.DOUBLE, Mpi.SUM, nodeComm)
    
    return true, GKYL_MAX_DOUBLE
 end

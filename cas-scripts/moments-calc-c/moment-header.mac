@@ -9,12 +9,13 @@ printf(fh, "extern \"C\" { ~%")$
 
 for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
-    for pi : 1 thru 2 do (
+    for pi : 1 thru 4 do (
       printf(fh, "void MomentCalc~ax~avSer_M0_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
       printf(fh, "void MomentCalc~ax~avSer_M1i_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
       printf(fh, "void MomentCalc~ax~avSer_M2ij_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
       printf(fh, "void MomentCalc~ax~avSer_M2_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
-      printf(fh, "void MomentCalc~ax~avSer_M3i_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),      
+      printf(fh, "void MomentCalc~ax~avSer_M3i_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+      printf(fh, "void IntMomentCalc~ax~avSer_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),            
       printf(fh, "~%") 
     ),
     printf(fh, "~%")
@@ -25,12 +26,13 @@ printf(fh, "~% ~%")$
 
 for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
-    for pi : 1 thru 2 do (
+    for pi : 1 thru 4 do (
       printf(fh, "void MomentCalc~ax~avMax_M0_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
       printf(fh, "void MomentCalc~ax~avMax_M1i_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
       printf(fh, "void MomentCalc~ax~avMax_M2ij_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
       printf(fh, "void MomentCalc~ax~avMax_M2_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
-      printf(fh, "void MomentCalc~ax~avMax_M3i_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi), 
+      printf(fh, "void MomentCalc~ax~avMax_M3i_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+      printf(fh, "void IntMomentCalc~ax~avMax_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),          
       printf(fh, "~%") 
     ),
     printf(fh, "~%")
