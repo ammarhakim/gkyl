@@ -282,7 +282,7 @@ end
 function Species:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
-      self.intMomentCalc:advance(tm, 0.0, {self.distf[1]}, {self.integratedMoments})
+      self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
       
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then

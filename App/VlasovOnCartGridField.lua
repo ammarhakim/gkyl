@@ -49,6 +49,8 @@ function EmField:fullInit(vlasovTbl)
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
 
+   self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
+
    -- create triggers to write fields
    if tbl.nFrame then
       self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nFrame)
@@ -66,7 +68,8 @@ function EmField:fullInit(vlasovTbl)
       return ex, ey, ez, bx, by, bz, 0.0, 0.0
    end
 
-   self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
+   -- for storing integrated energy components
+   self.emEnergy = DataStruct.DynVector { numComponents = 8 }
 
    self.tmCurrentAccum = 0.0 -- time spent in current accumulate
 end
@@ -110,6 +113,13 @@ function EmField:createSolver()
       cfl = self.cfl,
       equation = maxwellEqn
    }
+
+   self.emEnergyCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.grid,
+      basis = self.basis,
+      numComponents = 8,
+      quantity = "V2"
+   }
 end
 
 function EmField:createDiagnostics()
@@ -127,8 +137,13 @@ end
 
 function EmField:write(tm)
    if self.evolve then
+      -- compute EM energy integrated over domain
+      self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
+      
       if self.ioTrigger(tm) then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm)
+	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
@@ -183,6 +198,10 @@ function EmField:totalSolverTime()
    return self.fieldSlvr.totalTime + self.tmCurrentAccum
 end
 
+function EmField:energyCalcTime()
+   return self.emEnergyCalc.totalTime
+end
+
 -- NoField ---------------------------------------------------------------------
 --
 -- Represents no field (nothing is evolved or stored)
@@ -207,6 +226,7 @@ function NoField:rkStepperFields() return {} end
 function NoField:forwardEuler(tCurr, dt, momIn, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end
 function NoField:totalSolverTime() return 0.0 end
+function NoField:energyCalcTime() return 0.0 end
 
 return {
    EmField = EmField,

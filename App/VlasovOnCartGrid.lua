@@ -440,6 +440,7 @@ local function buildApplication(self, tbl)
       log(string.format("Field solver took %g sec", field:totalSolverTime()))
       log(string.format("Moment calculations took %g sec", tmVlasovMom))
       log(string.format("Integrated moment calculations took %g sec", tmVlasovIntMom))
+      log(string.format("Field energy calculations took %g sec", field:energyCalcTime()))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end
