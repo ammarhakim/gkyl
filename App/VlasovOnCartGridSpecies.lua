@@ -231,6 +231,7 @@ function Species:createSolver(hasE, hasB)
    self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
+      confBasis = self.confBasis,
    }
 end
 
@@ -297,6 +298,8 @@ function Species:write(tm)
 	    self.diagnosticMomentFields[i]:write(
 	       string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm)
 	 end
+	 self.integratedMoments:write(
+	    string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm)
 	 self.diagIoFrame = self.diagIoFrame+1
       end
    else
