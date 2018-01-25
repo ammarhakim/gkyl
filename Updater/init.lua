@@ -8,6 +8,7 @@
 -- Gkyl modules
 local Bc = require "Updater.Bc"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
+local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
@@ -18,6 +19,7 @@ local WavePropagation = require "Updater.WavePropagation"
 return {
    Bc = Bc,
    CalcDiagnostic = CalcDiagnostic,
+   DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,

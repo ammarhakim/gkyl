@@ -424,12 +424,13 @@ local function buildApplication(self, tbl)
       end
 
       local tmVlasovStream, tmVlasovForce, tmVlasovIncr = 0.0, 0.0, 0.0
-      local tmVlasovMom = 0.0
+      local tmVlasovMom, tmVlasovIntMom = 0.0, 0.0
       for _, s in pairs(species) do
 	 tmVlasovStream = tmVlasovStream + s:streamTime()
 	 tmVlasovForce = tmVlasovForce + s:forceTime()
 	 tmVlasovIncr = tmVlasovIncr + s:incrementTime()
 	 tmVlasovMom = tmVlasovMom + s:momCalcTime()
+	 tmVlasovIntMom = tmVlasovIntMom + s:intMomCalcTime()
       end
 
       log(string.format("\nVlasov solver took %g sec", tmVlasovSlvr))
@@ -438,6 +439,7 @@ local function buildApplication(self, tbl)
 	     tmVlasovStream, tmVlasovForce))
       log(string.format("Field solver took %g sec", field:totalSolverTime()))
       log(string.format("Moment calculations took %g sec", tmVlasovMom))
+      log(string.format("Integrated moment calculations took %g sec", tmVlasovIntMom))
       log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()) -- time-stamp for sim end
    end
