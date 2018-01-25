@@ -25,7 +25,7 @@ calcM0(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 2 do (
+for p : 1 thru 4 do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -44,7 +44,7 @@ calcM1i(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 2 do (
+for p : 1 thru 4 do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -72,7 +72,7 @@ calcM2ij(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 2 do (
+for p : 1 thru 4 do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -103,7 +103,7 @@ calcM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 2 do (
+for p : 1 thru 4 do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -129,7 +129,7 @@ calcM3i(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 2 do (
+for p : 1 thru 4 do (
   bP : basisP[p],
   bC : basisC[p],
 
