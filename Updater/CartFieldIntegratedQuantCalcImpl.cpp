@@ -1,0 +1,29 @@
+#include <CartFieldIntegratedQuantCalcImpl.h>
+#include <cmath>
+
+void
+gkylCartFieldIntQuantV(int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out)
+{
+  double vol = 1.0;
+  for (unsigned d=0; d<ndim; ++d)
+    vol *= dxv[d]/(2.0*std::sqrt(2.0));
+
+  for (unsigned c=0; c<nc; ++c)
+    out[c] += fIn[c*nc]*vol;
+}
+
+void
+gkylCartFieldIntQuantV2(int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out)
+{
+  double vol = 1.0;
+  for (unsigned d=0; d<ndim; ++d)
+    vol *= dxv[d]/2.0;
+
+  for (unsigned c=0; c<nc; ++c)
+  {
+    double v2 = 0.0;
+    for (unsigned b=0; b<nb; ++b)
+      v2 += fIn[c*nc+b]*fIn[c*nc+b];
+    out[c] += v2*vol;
+  }
+}

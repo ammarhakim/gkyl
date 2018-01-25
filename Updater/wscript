@@ -87,5 +87,7 @@ def build(bld):
     momentCalcData/DistFuncIntegratedMomentCalcMax2x2v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcMax2x3v.cpp
 
+    CartFieldIntegratedQuantCalcImpl.cpp
+
     """,
     includes = '. vlasovData momentCalcData', target = 'updater')

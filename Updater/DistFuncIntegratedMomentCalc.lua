@@ -16,7 +16,7 @@ local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
 
--- Moments updater object
+-- Integrated moments updater object
 local DistFuncIntegratedMomentCalc = Proto(UpdaterBase)
 
 function DistFuncIntegratedMomentCalc:init(tbl)

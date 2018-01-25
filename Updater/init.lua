@@ -8,6 +8,7 @@
 -- Gkyl modules
 local Bc = require "Updater.Bc"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
+local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
@@ -19,6 +20,7 @@ local WavePropagation = require "Updater.WavePropagation"
 return {
    Bc = Bc,
    CalcDiagnostic = CalcDiagnostic,
+   CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
    FiveMomentSrc = FiveMomentSrc,
