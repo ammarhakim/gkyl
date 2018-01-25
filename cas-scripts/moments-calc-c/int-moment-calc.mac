@@ -29,7 +29,7 @@ for p : 1 thru 2 do (
   bC : basisC[p],
 
   printf(fh, "void ~a_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^(cdim+vdim)),
   fl : doExpand1(f, bP),
 
   M : [],

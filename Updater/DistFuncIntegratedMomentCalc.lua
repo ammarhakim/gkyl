@@ -36,7 +36,7 @@ function DistFuncIntegratedMomentCalc:init(tbl)
    assert(phaseBasis:polyOrder() == confBasis:polyOrder(),
 	  "Polynomial orders of phase-space and config-space basis must match")
    assert(phaseBasis:id() == confBasis:id(),
-	  "Type of phase-space and config-space basis must match") 2
+	  "Type of phase-space and config-space basis must match")
 
    -- dimension of spaces
    self._pDim = phaseBasis:ndim()
@@ -64,6 +64,13 @@ function DistFuncIntegratedMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local distfIndexer = distf:genIndexer()
    local distfItr = distf:get(1)
 
+   -- clear local values
+   self.localMom[1] = 0.0
+   self.localMom[2] = 0.0
+   self.localMom[3] = 0.0
+   self.localMom[4] = 0.0
+   self.localMom[5] = 0.0
+
    local localRange = distf:localRange()   
    -- loop, computing integrated moments in each cell
    for idx in localRange:colMajorIter() do
@@ -71,12 +78,13 @@ function DistFuncIntegratedMomentCalc:_advance(tCurr, dt, inFld, outFld)
       grid:cellCenter(self.w)
       for d = 1, pDim do self.dxv[d] = grid:dx(d) end
       distf:fill(distfIndexer(idx), distfItr)
-      self._intMomCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), self.localMom)
+      self._intMomCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), self.localMom:data())
    end
 
-   -- all-reduce across processors
+   -- all-reduce across processors and push result into dyn-vector
    local nodeComm = self:getNodeComm()
    Mpi.Allreduce(self.localMom:data(), self.globalMom:data(), 5, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+   mom:appendData(tCurr, self.globalMom)
    
    return true, GKYL_MAX_DOUBLE
 end
