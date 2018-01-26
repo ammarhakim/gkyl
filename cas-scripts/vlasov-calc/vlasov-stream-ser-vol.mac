@@ -1,4 +1,4 @@
-load("vlasov-stream-vol")$
+load("vlasov-calc/vlasov-stream-vol")$
 load(stringproc)$
 
 for c : 1 thru 3 do (

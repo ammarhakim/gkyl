@@ -7,5 +7,5 @@ for c : 1 thru 2 do (
   )
 )$
 
-writeBasisToFile(3, 2, 2, makeMaxOrderBasis, "~/max-out/basisMax3x2v.lisp")$
-writeBasisToFile(3, 3, 2, makeMaxOrderBasis, "~/max-out/basisMax3x3v.lisp")$
+writeBasisToFile(3, 2, 4, makeMaxOrderBasis, "~/max-out/basisMax3x2v.lisp")$
+writeBasisToFile(3, 3, 4, makeMaxOrderBasis, "~/max-out/basisMax3x3v.lisp")$
