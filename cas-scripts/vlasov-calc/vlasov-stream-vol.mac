@@ -21,7 +21,7 @@ kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 printf(fh, "#include <VlasovModDecl.h> ~%"),
-for i : 1 thru 2 do (
+for i : 1 thru 4 do (
   bP : basisP[i],
   printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output ~%"),
