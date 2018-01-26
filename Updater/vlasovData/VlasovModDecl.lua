@@ -9,6 +9,9 @@
 local ffi = require "ffi"
 local _ = require "Updater.vlasovData._VlasovCdef"
 
+-- "do nothing" function
+local function nullFunc(...) end
+
 -- map of basis function name -> function encoding
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
 
@@ -47,11 +50,11 @@ end
 function _M.selectSurfElc(basisNm, CDIM, VDIM, polyOrder)
    if VDIM == 1 then
       local funcNmX = string.format("VlasovSurfElc%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX] }
+      return { ffi.C[funcNmX], nullFunc, nullFunc }
    elseif VDIM == 2 then
       local funcNmX = string.format("VlasovSurfElc%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmY = string.format("VlasovSurfElc%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY] }
+      return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
    elseif VDIM == 3 then
       local funcNmX = string.format("VlasovSurfElc%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmY = string.format("VlasovSurfElc%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
