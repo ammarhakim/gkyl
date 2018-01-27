@@ -1,6 +1,5 @@
 #include <CartFieldIntegratedQuantCalcImpl.h>
 #include <cmath>
-#include <iostream>
 
 void
 gkylCartFieldIntQuantV(int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out)
