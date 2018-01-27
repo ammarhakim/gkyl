@@ -1,15 +1,12 @@
-load("vlasov-elc-surf")$
+load("vlasov-calc/vlasov-elc-surf")$
 load(stringproc)$
 
-vars : [x,y,z,vx,vy,vz]$
-makevarsP(cdim,vdim) := append(makelist(vars[i],i,cdim), makelist(vars[i],i,4,3+vdim))$
-
 for c : 1 thru 2 do (
-  for v : c thru 3 do (
+  for v : c thru 2 do (
    fname : sconcat("~/max-out/VlasovSurfElcSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
    funcName : sconcat("VlasovSurfElc", c, "x", v, "v", "Ser"),
-   calcVlasovSurfUpdater(fh, funcName, c, v, makevarsP(c,v), makeSerendipBasis),
+   calcVlasovSurfUpdater(fh, funcName, c, v, "Ser"),
    close(fh)
   )
 );

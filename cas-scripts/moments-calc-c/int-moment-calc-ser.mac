@@ -1,7 +1,7 @@
 load("moments-calc-c/int-moment-calc")$
 load(stringproc)$
 
-for c : 1 thru 2 do (
+for c : 1 thru 3 do (
   for v : c thru 3 do (
    fname : sconcat("~/max-out/DistFuncIntegratedMomentCalcSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),

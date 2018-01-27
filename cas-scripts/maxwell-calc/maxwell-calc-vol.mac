@@ -20,7 +20,7 @@ kill(varsC, varsP, basisC, basisP, basisConstant),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
 printf(fh, "#include <MaxwellModDecl.h> ~%"),
-for p : 0 thru 2 do (
+for p : 0 thru 4 do (
   bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
   
