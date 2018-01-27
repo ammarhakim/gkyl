@@ -1,5 +1,6 @@
 #include <CartFieldIntegratedQuantCalcImpl.h>
 #include <cmath>
+#include <iostream>
 
 void
 gkylCartFieldIntQuantV(int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out)
@@ -9,7 +10,7 @@ gkylCartFieldIntQuantV(int ndim, unsigned nc, unsigned nb, const double *dxv, co
     vol *= dxv[d]/(2.0*std::sqrt(2.0));
 
   for (unsigned c=0; c<nc; ++c)
-    out[c] += fIn[c*nc]*vol;
+    out[c] += fIn[c*nb]*vol;
 }
 
 void
@@ -23,7 +24,7 @@ gkylCartFieldIntQuantV2(int ndim, unsigned nc, unsigned nb, const double *dxv, c
   {
     double v2 = 0.0;
     for (unsigned b=0; b<nb; ++b)
-      v2 += fIn[c*nc+b]*fIn[c*nc+b];
+      v2 += fIn[c*nb+b]*fIn[c*nb+b];
     out[c] += v2*vol;
   }
 }

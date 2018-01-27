@@ -46,8 +46,8 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 
    -- for use in advance method
    self.dxv = Lin.Vec(self.basis:ndim()) -- cell shape
-   self.localVals = Lin.Vec(self.numComponents*self.basis:numBasis())
-   self.globalVals = Lin.Vec(self.numComponents*self.basis:numBasis())
+   self.localVals = Lin.Vec(self.numComponents)
+   self.globalVals = Lin.Vec(self.numComponents)
 end   
 
 -- advance method
