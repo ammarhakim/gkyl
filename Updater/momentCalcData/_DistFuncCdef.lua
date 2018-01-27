@@ -355,5 +355,5 @@ void MomentCalc3x3vMax_M1i_P4(const double *w, const double *dxv, const double *
 void MomentCalc3x3vMax_M2ij_P4(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vMax_M2_P4(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vMax_M3i_P4(const double *w, const double *dxv, const double *f, double *out); 
-void IntMomentCalc3x3vMax_P4(const double *w, const double *dxv, const double *f, double *out); 
+void IntMomentCalc3x3vMax_P4(const double *w, const double *dxv, const double *f, double *out);  
 ]]

@@ -1,4 +1,4 @@
-load("vlasov-elc-vol")$
+load("vlasov-calc/vlasov-elc-vol")$
 load(stringproc)$
 
 for c : 1 thru 3 do (

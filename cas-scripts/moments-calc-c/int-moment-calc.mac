@@ -24,7 +24,7 @@ calcInt(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 2 do (
+for p : 1 thru 4 do (
   bP : basisP[p],
   bC : basisC[p],
 
