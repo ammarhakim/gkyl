@@ -80,8 +80,8 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim)
 
    -- pointers for (re)use in update
-   local qInL, qInR = qIn:get(1), qIn:get(1)
-   local qOutL, qOutR = qOut:get(1), qOut:get(1)
+   local qInM, qInP = qIn:get(1), qIn:get(1)
+   local qOutM, qOutP = qOut:get(1), qOut:get(1)
 
    -- This flag is needed as the volume integral already contains
    -- contributions from all directions. Hence, we can only
@@ -111,19 +111,19 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    for d = 1, ndim do dx[d] = grid:dx(d) end
 	    grid:cellCenter(xc)
 
-	    qIn:fill(qInIdxr(idxm), qInL)
-	    qIn:fill(qInIdxr(idxp), qInR)
+	    qIn:fill(qInIdxr(idxm), qInM)
+	    qIn:fill(qInIdxr(idxp), qInP)
 
-	    qOut:fill(qOutIdxr(idxm), qOutL)
-	    qOut:fill(qOutIdxr(idxp), qOutR)
+	    qOut:fill(qOutIdxr(idxm), qOutM)
+	    qOut:fill(qOutIdxr(idxp), qOutP)
 
-	    local maxs = self._equation:maxSpeed(dir, xc, dx, qInR)
+	    local maxs = self._equation:maxSpeed(dir, xc, dx, qInP)
 	    cfla = math.max(cfla, maxs*dt/dx[dir])
 
 	    if firstDir then
-	       self._equation:volTerm(xc, dx, qInR, qOutR)
+	       self._equation:volTerm(xc, dx, qInP, qOutP)
 	    end
-	    self._equation:surfTerm(dir, xc, dx, qInL, qInR, qOutL, qOutR)
+	    self._equation:surfTerm(dir, xc, dx, qInM, qInP, qOutM, qOutP)
 	 end
 	 -- return failure if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end
