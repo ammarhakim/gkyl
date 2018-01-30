@@ -2,7 +2,7 @@ load("vlasov-calc/vlasov-elc-surf")$
 load(stringproc)$
 
 for c : 1 thru 2 do (
-  for v : c thru 2 do (
+  for v : c thru 3 do (
    fname : sconcat("~/max-out/VlasovSurfElcSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
    funcName : sconcat("VlasovSurfElc", c, "x", v, "v", "Ser"),

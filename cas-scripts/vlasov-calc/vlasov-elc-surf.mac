@@ -9,7 +9,6 @@ vvars : [VX, VY, VZ]$
 dvdx : [dv0dx0, dv1dx1, dv2dx2]$
 wdx : [w0dx0, w1dx1, w2dx2]$
 
-doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
 slcn(lst, n) := makelist(lst[i], i, 1, n)$
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
@@ -19,14 +18,17 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for i : 1 thru 4 do (
+for i : 1 thru 2 do (
   bP : basisP[i],
   varsC : slcn(varsP, cdim),
   bC : basisC[i],
   numC : length(bC),
+  zr : makelist(varsC[d]=0, d, 1, cdim),
+
   printf(fh, "void ~a_~a_P~a(const double *w, const double *dxv, const double *Ein, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], i),
   printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. E: electric field, fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
+
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
   printf(fh, "  double dv1 = 2/dxv[~a]; ~%", vid[dir]),
@@ -35,10 +37,14 @@ for i : 1 thru 4 do (
   cv : varsP[dir],
   vv : varsV[dir],
   surfVars : delete(vv,varsP),
-  fl_L : doExpand(fl, bP),
-  fl_R : doExpand(fr, bP),
-  El : doExpand(E, bC),
-  printf(fh, "  if (E[0]>0) { ~%"),
+  fl_L : doExpand1(fl, bP),
+  fl_R : doExpand1(fr, bP),
+  El : doExpand1(E, bC),
+
+  Emid : float(expand(fullratsimp(subst(zr,El)))),
+  printf(fh, "  const double Emid = ~a; ~%", Emid),
+
+  printf(fh, "  if (Emid>0) { ~%"),
   fhat : subst(vv=1, fl_L),
   t : dv1*calcInnerProdList(surfVars, El, subst(vv=-1, bP), fhat),
   incr_r : t,
@@ -52,6 +58,7 @@ for i : 1 thru 4 do (
   signs : fullratsimp(incr_l/incr_r),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outl, incr_s),
+  
   printf(fh, "  } else { ~%"),
   fhat : subst(vv=-1, fl_R),
   t : dv1*calcInnerProdList(surfVars, El, subst(vv=-1, bP), fhat),

@@ -126,7 +126,6 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
    local tmStreamStart = Time.clock()   
    -- accumulate contributions from streaming direction
    for dir = 1, cdim do
-      
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
@@ -176,7 +175,6 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
       local tmForceStart = Time.clock()
       -- accumulate contributions from force directions
       for dir = cdim+1, pdim do
-	 
 	 -- lower/upper bounds in direction 'dir': these are edge indices
 	 local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
 	 local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
