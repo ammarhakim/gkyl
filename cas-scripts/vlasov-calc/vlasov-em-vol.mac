@@ -9,7 +9,7 @@ vvars : [VX, VY, VZ]$
 
 dvdx : [dv0dx0, dv1dx1, dv2dx2]$
 wdx : [w0dx0, w1dx1, w2dx2]$
-dv1 : [dv10, dv11, dv12]$
+dv11 : [dv10, dv11, dv12]$
 Efld : [E0, E1, E2]$
 Bfld : [B0, B1, B2]$
 
@@ -22,9 +22,9 @@ az(vx, vy, vz, bc) := doExpand1(Efld[3],bc) + vx*doExpand1(Bfld[2],bc) - vy*doEx
 vzero(vdim) := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [] $
 
 calcAccel(vdir, vdim, bc) :=
-  if vdir = 0
+  if vdir = 1
     then subst(vTransSubs, subst(vzero(vdim), ax(vvx,vvy,vvz,bc)))
-  elseif vdir = 1
+  elseif vdir = 2
     then subst(vTransSubs, subst(vzero(vdim), ay(vvx,vvy,vvz,bc)))
   else
     subst(vTransSubs, subst(vzero(vdim), az(vvx,vvy,vvz,bc)))$
@@ -57,8 +57,8 @@ for i : 1 thru 2 do (
   ),
   fl : doExpand1(f, bP),
   t : (t : 0, for dir : 1 thru vdim do (
-     acc : calcAccel(dir, vdim),
-     t : t + dv1[dir]*calcInnerProdList(varsP, acc, diff(bP,varsV[dir]), fl)
+     acc : calcAccel(dir, vdim, bC),
+     t : t + dv11[dir]*calcInnerProdList(varsP, acc, diff(bP,varsV[dir]), fl)
      ),
   t),
   writeCIncrExprs(t),  
