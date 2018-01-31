@@ -42,9 +42,8 @@ for i : 1 thru 2 do (
   El : doExpand1(E, bC),
 
   Emid : float(expand(fullratsimp(subst(zr,El)))),
-  printf(fh, "  const double Emid = ~a; ~%", Emid),
 
-  printf(fh, "  if (Emid>0) { ~%"),
+  printf(fh, "  if (E[0]>0) { ~%"),
   fhat : subst(vv=1, fl_L),
   t : dv1*calcInnerProdList(surfVars, El, subst(vv=-1, bP), fhat),
   incr_r : t,
