@@ -13,7 +13,7 @@ dv11 : [dv10, dv11, dv12]$
 Efld : [E0, E1, E2]$
 Bfld : [B0, B1, B2]$
 
-vTransSubs : [vvx=vx*dv1/2+wx1, vvy=vy*dv2/2+wx2, vvz=vz*dv3/2+wx3]$
+vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
 
 ax(vx, vy, vz, bc) := doExpand1(Efld[1],bc) + vy*doExpand1(Bfld[3],bc) - vz*doExpand1(Bfld[2],bc)$
 ay(vx, vy, vz, bc) := doExpand1(Efld[2],bc) + vz*doExpand1(Bfld[1],bc) - vx*doExpand1(Bfld[3],bc)$
@@ -48,13 +48,17 @@ for i : 1 thru 2 do (
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
 
-  for dir : 1 thru cdim do (
-    printf(fh, "  double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
-    printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, numC*(dir-1))    
+  for dir : 1 thru vdim do (
+    printf(fh, "  const double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
+    printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, numC*(dir-1)),
+    printf(fh, "  const double dv~a = dxv[~a], wv~a = w[~a]; ~%", dir, vid[dir], dir, vid[dir])
   ),
+  printf(fh, "~%"),
   for dir : 1 thru 3 do (
     printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, numC*(dir-1)+3*numC)
   ),
+  printf(fh, "~%"),
+
   fl : doExpand1(f, bP),
   t : (t : 0, for dir : 1 thru vdim do (
      acc : calcAccel(dir, vdim, bC),

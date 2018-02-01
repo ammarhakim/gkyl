@@ -12,7 +12,6 @@ wdx : [w0dx0, w1dx1, w2dx2]$
 dv1 : [dv10, dv11, dv12]$
 Efld : [E0, E1, E2]$
 
-doExpand(f, basis) := sum(f[i-1]*basis[i], i, 1, length(basis))$
 slcn(lst, n) := makelist(lst[i], i, 1, n)$
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
@@ -35,9 +34,9 @@ for i : 1 thru 4 do (
     printf(fh, "  double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
     printf(fh, "  const double *E~a = &E[~a]; ~%", dir-1, numC*(dir-1))
   ),
-  fl : doExpand(f, bP),
+  fl : doExpand1(f, bP),
   t : (t : 0, for dir : 1 thru cdim do (
-     El : doExpand(Efld[dir], bC),
+     El : doExpand1(Efld[dir], bC),
      t : t + dv1[dir]*calcInnerProdList(varsP, El, diff(bP,varsV[dir]), fl)
      ),
   t),
