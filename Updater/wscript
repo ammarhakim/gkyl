@@ -63,6 +63,23 @@ def build(bld):
     vlasovData/VlasovSurfElcSer2x2v.cpp
     vlasovData/VlasovSurfElcSer2x3v.cpp
 
+    vlasovData/VlasovElcMagMax1x1v.cpp
+    vlasovData/VlasovElcMagMax1x2v.cpp
+    vlasovData/VlasovElcMagMax1x3v.cpp
+    vlasovData/VlasovElcMagMax2x2v.cpp
+    vlasovData/VlasovElcMagMax2x3v.cpp
+
+    vlasovData/VlasovElcMagSer1x1v.cpp
+    vlasovData/VlasovElcMagSer1x2v.cpp
+    vlasovData/VlasovElcMagSer1x3v.cpp
+    vlasovData/VlasovElcMagSer2x2v.cpp
+
+    vlasovData/VlasovSurfElcMagMax1x1v.cpp
+    vlasovData/VlasovSurfElcMagMax1x2v.cpp
+
+    vlasovData/VlasovSurfElcMagSer1x1v.cpp
+    vlasovData/VlasovSurfElcMagSer1x2v.cpp
+
     vlasovData/VlasovIncr.cpp
 
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp

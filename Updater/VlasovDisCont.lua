@@ -81,7 +81,8 @@ function VlasovDisCont:init(tbl)
    self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
    if hasMagField then -- more complicated functions if there is a magnetic field
-      assert(false, "VlasovDisCont: hasMagField NYI!")
+      self._volForceUpdate = VlasovModDecl.selectVolElcMag(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 end
 
