@@ -48,16 +48,16 @@ local function buildApplication(self, tbl)
       logToFile = xsys.pickBool(tbl.logToFile, false)
    }
 
-   log(date(false):fmt()) -- time-stamp for sim start
+   log(date(false):fmt()); log("\n") -- time-stamp for sim start
    
    -- function to warn user about default values
    local function warnDefault(varVal, varNm, default)
       if varVal then return varVal end
-      log(string.format(" ** WARNING: %s not specified, assuming %s", varNm, tostring(default)))
+      log(string.format(" ** WARNING: %s not specified, assuming %s\n", varNm, tostring(default)))
       return default
    end
 
-   log("Initializing HyperEqnOnCartGrid simulation ...")
+   log("Initializing HyperEqnOnCartGrid simulation ...\n")
    local tmStart = Time.clock()
 
    -- basic parameters and checks
@@ -317,11 +317,11 @@ local function buildApplication(self, tbl)
    writeDiagnostics(0, 0.0)
 
    local tmEnd = Time.clock()
-   log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
+   log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
    -- return function that runs main simulation loop
    return function (self)
-      log("Starting main loop of HyperEqnOnCartGrid simulation ...")
+      log("Starting main loop of HyperEqnOnCartGrid simulation ...\n")
       local tStart, tEnd, nFrame = 0, tbl.tEnd, tbl.nFrame
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
@@ -340,19 +340,19 @@ local function buildApplication(self, tbl)
 
 	 -- if needed adjust dt to hit tEnd exactly
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-	 log (string.format(" Taking step %5d at time %6g with dt %g", step, tCurr, myDt))
+	 log (string.format(" Taking step %5d at time %6g with dt %g\n", step, tCurr, myDt))
 	 local status, dtSuggested = updateHyper(tCurr, tCurr+myDt) -- take a time-step
 
 	 if not status then
 	    -- updater failed, time-step too large
-	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
+	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
 	    field[1]:copy(fieldDup)
 	 else
 	    calcDiagnostics(field[1], tCurr, tCurr+myDt)
 	    -- write out data if needed
 	    if tCurr+myDt > nextIOt or tCurr+myDt >= tEnd then
-	       log (string.format(" Writing data at time %g (frame %d) ...\n", tCurr+myDt, frame))
+	       log (string.format(" Writing data at time %g (frame %d) ...\n\n", tCurr+myDt, frame))
 	       fieldIo:write(field[1], string.format("field_%d.bp", frame), tCurr+myDt)
 	       writeDiagnostics(frame, tCurr+myDt)
 	       frame = frame + 1
@@ -379,11 +379,11 @@ local function buildApplication(self, tbl)
       for _, bc in ipairs(boundaryConditions) do
 	 tmBC = tmBC+bc.totalTime
       end
-      log(string.format("Hyper solvers took %g sec", tmHyperSlvr))
-      log(string.format("Diagnostics took %g sec", tmDiag))
-      log(string.format("Boundary conditions took %g sec", tmBC))
-      log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
-      log(date(false):fmt()) -- time-stamp for sim end
+      log(string.format("Hyper solvers took %g sec\n", tmHyperSlvr))
+      log(string.format("Diagnostics took %g sec\n", tmDiag))
+      log(string.format("Boundary conditions took %g sec\n", tmBC))
+      log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
+      log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
 end
 
