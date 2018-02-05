@@ -49,6 +49,8 @@ function EmField:fullInit(vlasovTbl)
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
 
+   self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- by default there is a magnetic field
+
    self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
 
    -- create triggers to write fields
@@ -75,7 +77,7 @@ function EmField:fullInit(vlasovTbl)
 end
 
 -- methods for EM field object
-function EmField:hasEB() return true, false end
+function EmField:hasEB() return true, self.hasMagField end
 function EmField:setCfl(cfl) self.cfl = cfl end
 function EmField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function EmField:setBasis(basis) self.basis = basis end

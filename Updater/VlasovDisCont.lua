@@ -19,9 +19,9 @@ local xsys = require "xsys"
 -- for incrementing in updater
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
--- compute accelOut = q/m*forceIn
-local function calcAccelFromForce(qbym, forceIn, accelOut)
-   ffi.C.vlasovIncr(#accelOut, forceIn:data(), qbym, accelOut:data())
+-- compute emOut = q/m*emIn
+local function rescaleEmField(qbym, emIn, emOut)
+   ffi.C.vlasovIncr(#emOut, emIn:data(), qbym, emOut:data())
 end
 
 -- Vlasov DG solver updater object
@@ -75,14 +75,15 @@ function VlasovDisCont:init(tbl)
    if hasElcField or hasMagField then
       self._hasForceTerm = true
    end
-   
-   -- functions to perform force updates from electric field
-   self._volForceUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-   self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
-   if hasMagField then -- more complicated functions if there is a magnetic field
+   self._volForceUpdate, self._surfForceUpdate = nil, nil
+   -- functions to perform force updates from electric field
+   if hasMagField then 
       self._volForceUpdate = VlasovModDecl.selectVolElcMag(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   else
+      self._volForceUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 end
 
@@ -169,8 +170,7 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
       local emIdxr = emIn:genIndexer()
       local emAccel = Lin.Vec(emIn:numComponents())
 
-      -- See comment for streaming terms above to understand role of
-      -- this flag
+      -- See comment for streaming terms to understand this flag
       local firstDir = true
       
       local tmForceStart = Time.clock()
@@ -184,11 +184,10 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
 	 -- loop is over 1D slice in `dir`.
 	 for idx in perpRange:colMajorIter() do
 	    grid:setIndex(idx)
-	    for d = 1, cdim do dx[d] = grid:dx(d) end
-	    grid:cellCenter(xc)
+	    for d = 1, pdim do dx[d] = grid:dx(d) end
 
 	    emIn:fill(emIdxr(idx), emPtr) -- get pointer to EM field
-	    calcAccelFromForce(self._qbym, emPtr, emAccel) -- compute acceleration
+	    rescaleEmField(self._qbym, emPtr, emAccel) -- multiply EM field by q/m
 
 	    -- NEED TO COMPUTE CFL!!!
 
@@ -196,7 +195,9 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
 
 	    for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	       idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
-
+	       grid:setIndex(idxp) -- set grid pointer to right cell
+	       grid:cellCenter(xc) -- cell-center coordinates
+	       
 	       fIn:fill(fInIdxr(idxm), fInL); fIn:fill(fInIdxr(idxp), fInR)
 	       fOut:fill(fOutIdxr(idxm), fOutL); fOut:fill(fOutIdxr(idxp), fOutR)
 

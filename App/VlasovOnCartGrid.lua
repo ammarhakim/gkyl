@@ -41,7 +41,7 @@ local function buildApplication(self, tbl)
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
 
-   log(date(false):fmt()) -- time-stamp for sim start
+   log(date(false):fmt()); log("\n") -- time-stamp for sim start
 
    -- function to warn user about default values
    local function warnDefault(varVal, varNm, default)
@@ -50,7 +50,7 @@ local function buildApplication(self, tbl)
       return default
    end
 
-   log("Initializing VlasovOnCartGrid simulation ...")
+   log("Initializing VlasovOnCartGrid simulation ...\n")
    local tmStart = Time.clock()
 
    local cdim = #tbl.lower -- configuration space dimensions
@@ -176,7 +176,7 @@ local function buildApplication(self, tbl)
       cflMin = math.min(cflMin, myCfl)
       field:setCfl(myCfl)
    end
-   log(string.format("Using CFL number %g", cflMin))
+   log(string.format("Using CFL number %g\n", cflMin))
    
    -- allocate field data
    field:alloc(stepperNumFields[timeStepperNm])
@@ -368,11 +368,11 @@ local function buildApplication(self, tbl)
    end   
 
    local tmEnd = Time.clock()
-   log(string.format("Initializing completed in %g sec\n", tmEnd-tmStart))
+   log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
    -- return function that runs main simulation loop   
    return function(self)
-      log("Starting main loop of VlasovOnCartGrid simulation ...\n")
+      log("Starting main loop of VlasovOnCartGrid simulation ...\n\n")
       local tStart, tEnd = 0, tbl.tEnd
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
@@ -380,17 +380,24 @@ local function buildApplication(self, tbl)
       local tCurr = tStart
       local myDt = initDt
 
-      -- for logging every 10% of sim
+      -- triggers for 10% and 1% loggers
       local logTrigger = LinearTrigger(tStart, tEnd, 10)
-      local tenth = 0      
+      local logTrigger1p = LinearTrigger(tStart, tEnd, 100)
+      local tenth = 0
 
+      local p1c = 0
       -- for writing out log messages
       local function writeLogMessage(tCurr, myDt)
 	 if logTrigger(tCurr) then
 	    log (string.format(
-		    " Step %5d at time %g. Time step %g. Completed %g%s", step, tCurr, myDt, tenth*10, "%"))
+		    " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
 	    tenth = tenth+1
-	 end	 
+	 end
+	 if logTrigger1p(tCurr) then
+	    --log("#")
+	    log(string.format("%d", p1c))
+	    p1c = (p1c+1)%10
+	 end
       end
 
       local tmSimStart = Time.clock()
@@ -411,7 +418,7 @@ local function buildApplication(self, tbl)
 	       break
 	    end	    
 	 else
-	    log (string.format(" ** Time step %g too large! Will retake with dt %g", myDt, dtSuggested))
+	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
 	 end 
       end -- end of time-step loop
@@ -433,16 +440,16 @@ local function buildApplication(self, tbl)
 	 tmVlasovIntMom = tmVlasovIntMom + s:intMomCalcTime()
       end
 
-      log(string.format("\nVlasov solver took %g sec", tmVlasovSlvr))
+      log(string.format("\nVlasov solver took %g sec\n", tmVlasovSlvr))
       log(string.format(
-	     "  [Streaming updates %g sec. Force updates %g sec]",
+	     "  [Streaming updates %g sec. Force updates %g sec]\n",
 	     tmVlasovStream, tmVlasovForce))
-      log(string.format("Field solver took %g sec", field:totalSolverTime()))
-      log(string.format("Moment calculations took %g sec", tmVlasovMom))
-      log(string.format("Integrated moment calculations took %g sec", tmVlasovIntMom))
-      log(string.format("Field energy calculations took %g sec", field:energyCalcTime()))
-      log(string.format("Main loop completed in %g sec\n", tmSimEnd-tmSimStart))
-      log(date(false):fmt()) -- time-stamp for sim end
+      log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
+      log(string.format("Moment calculations took %g sec\n", tmVlasovMom))
+      log(string.format("Integrated moment calculations took %g sec\n", tmVlasovIntMom))
+      log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
+      log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
+      log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
 end
 

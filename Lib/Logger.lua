@@ -15,7 +15,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- write message to list of output streams
 local function writeToFile(outStreams, msg)
    for _, s in ipairs(outStreams) do
-      s:write(msg); s:write("\n")
+      s:write(msg); s:flush()
    end
 end
 
