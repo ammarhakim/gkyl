@@ -157,7 +157,7 @@ def buildExec(bld):
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
-        includes = 'Unit Lib Comm sol',
+        includes = 'Unit Lib Comm',
         use='lib datastruct eq unit comm updater basis LUAJIT ADIOS MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,

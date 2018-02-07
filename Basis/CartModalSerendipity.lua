@@ -67,26 +67,6 @@ function CartModalSerendipity:init(tbl)
    end
 
    self._evalBasisFunc = _m[self._polyOrder] -- function to evaluate basis functions
-
-   _m = nil -- to store module with vol -> surf projections
-   if (self._ndim == 1) then
-      _m = require "Basis._data.ModalSerendipBasisSurf1d"
-   elseif (self._ndim == 2) then
-      _m = require "Basis._data.ModalSerendipBasisSurf2d"
-   elseif (self._ndim == 3) then
-      _m = require "Basis._data.ModalSerendipBasisSurf3d"
-   elseif (self._ndim == 4) then
-      _m = require "Basis._data.ModalSerendipBasisSurf4d"
-   elseif (self._ndim == 5) then
-      _m = require "Basis._data.ModalSerendipBasisSurf5d"
-   end
-
-   self._projectVolToSurfLower = {} -- functions to project volume expansion of lower surface
-   self._projectVolToSurfUpper = {} -- functions to project volume expansion of upper surface
-   for d = 1, self._ndim do
-      self._projectVolToSurfLower[d] = _m[self._polyOrder][d].lower
-      self._projectVolToSurfUpper[d] = _m[self._polyOrder][d].upper
-   end
 end
 
 function CartModalSerendipity:id() return "serendipity" end
@@ -95,12 +75,6 @@ function CartModalSerendipity:polyOrder() return self._polyOrder end
 function CartModalSerendipity:numBasis() return self._numBasis end
 function CartModalSerendipity:numSurfBasis() return self._numSurfBasis end
 function CartModalSerendipity:evalBasis(z, b) return self._evalBasisFunc(z, b) end
-function CartModalSerendipity:volumeToLowerSurfExpansion(dir, volIn, surfOut)
-   return self._projectVolToSurfLower[dir](volIn, surfOut)
-end
-function CartModalSerendipity:volumeToUpperSurfExpansion(dir, volIn, surfOut)
-   return self._projectVolToSurfUpper[dir](volIn, surfOut)
-end
 
 return {
    CartModalSerendipity = CartModalSerendipity   
