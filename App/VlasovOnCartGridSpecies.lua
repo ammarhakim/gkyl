@@ -76,6 +76,8 @@ function Species:fullInit(vlasovTbl)
       for d = 1, self.vdim do self.decompCuts[d] = 1 end
    end
 
+
+
    -- create triggers to write distribution functions and moments
    if tbl.nDistFuncFrame then
       self.distIoTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nDistFuncFrame)
@@ -186,10 +188,20 @@ function Species:alloc(nFields)
    }
 
    -- allocate field to store coupling moments (for use in
-   -- charge calculations) 
+   -- charge calculations)
+   self.numDensity = DataStruct.Field {
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost = {1, 1}
+   }
    self.momDensity = DataStruct.Field {
       onGrid = self.confGrid,
       numComponents = self.confBasis:numBasis()*self.vdim,
+      ghost = {1, 1}
+   }
+   self.ptclEnergy = DataStruct.Field {
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
       ghost = {1, 1}
    }
 end
@@ -218,14 +230,26 @@ function Species:createSolver(hasE, hasB)
       hasElectricField = hasE,
       hasMagneticField = hasB,
    }
-   -- create updater to compute momentum density (for use in current
-   -- calculations)
+   
+   -- create updaters to compute various moments
+   self.numDensityCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "M0",
+   }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "M1i",
    }
+   self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "M2",
+   }   
 
    -- create updater to compute integrated moments
    self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
@@ -292,16 +316,16 @@ function Species:write(tm)
       end
 
       if self.diagIoTrigger(tm) then
-	 -- compute moments and write them out
-	 self:calcDiagnosticMoments()
-	 for i, mom in ipairs(self.diagnosticMoments) do
-	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[i]:write(
-	       string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm)
-	 end
-	 self.integratedMoments:write(
-	    string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm)
-	 self.diagIoFrame = self.diagIoFrame+1
+      	 -- compute moments and write them out
+      	 self:calcDiagnosticMoments()
+      	 for i, mom in ipairs(self.diagnosticMoments) do
+      	    -- should one use AdiosIo object for this?
+      	    self.diagnosticMomentFields[i]:write(
+      	       string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm)
+      	 end
+      	 self.integratedMoments:write(
+      	    string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm)
+      	 self.diagIoFrame = self.diagIoFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
@@ -333,9 +357,18 @@ function Species:forwardEuler(tCurr, dt, fIn, emIn, fOut)
    end
 end
 
-function Species:incrementCouplingMoments(tCurr, dt, fIn, momOut)
-   -- compute momentum and increment as current into supplied field
+function Species:calcCouplingMoments(tCurr, dt, fIn)
+   -- compute moments needed in coupling to fields and collisions
+   self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
    self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
+   self.ptclEnergyCalc:advance(tCurr, dt, {fIn}, { self.ptclEnergy })
+end
+
+function Species:fluidMoments()
+   return { self.numDensity, self.momDensity, self.ptclEnergy } 
+end
+
+function Species:incrementCouplingMoments(tCurr, dt, momOut)
    momOut[1]:accumulate(self.charge, self.momDensity)
 end
 

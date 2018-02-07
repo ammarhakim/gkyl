@@ -262,12 +262,19 @@ local function buildApplication(self, tbl)
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
 
+	 -- compute moments needed in coupling with fields and
+	 -- collisions (the species should update internal
+	 -- datastructures).  We need to use inIdx here and not outIdx
+	 -- as in an explict scheme, things that go into the forward
+	 -- Euler must be from the previous time-step
+	 s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx])
+	 
 	 -- increment charges/currents needed in coupling with fields
-	 -- (we need to use inIdx here and not outIdx as in an explict
-	 -- scheme, things that go into the forward Euler must be from
-	 -- the previous time-step
-	 s:incrementCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx], momCouplingFields)
+	 s:incrementCouplingMoments(tCurr, dt, momCouplingFields)
       end
+      -- update species with collisions
+      -- collisions:forwardEuler(tCurr, dt, inIdx, outIdx, species)
+      
       -- update EM field
       local myStatus, myDtSuggested = field:forwardEuler(
 	 tCurr, dt, emRkFields[inIdx], momCouplingFields, emRkFields[outIdx])
