@@ -66,28 +66,6 @@ function CartModalMaxOrder:init(tbl)
    end
 
    self._evalBasisFunc = _m[self._polyOrder] -- function to evaluate basis functions
-
-   _m = nil -- to store module with vol -> surf projections
-   if (self._ndim == 1) then
-      _m = require "Basis._data.ModalMaxOrderBasisSurf1d"
-   elseif (self._ndim == 2) then
-      _m = require "Basis._data.ModalMaxOrderBasisSurf2d"
-   elseif (self._ndim == 3) then
-      _m = require "Basis._data.ModalMaxOrderBasisSurf3d"
-   elseif (self._ndim == 4) then
-      _m = require "Basis._data.ModalMaxOrderBasisSurf4d"
-   elseif (self._ndim == 5) then
-      _m = require "Basis._data.ModalMaxOrderBasisSurf5d"
-   elseif (self._ndim == 6) then
-      _m = require "Basis._data.ModalMaxOrderBasisSurf6d"
-   end
-
-   self._projectVolToSurfLower = {} -- functions to project volume expansion of lower surface
-   self._projectVolToSurfUpper = {} -- functions to project volume expansion of upper surface
-   for d = 1, self._ndim do
-      self._projectVolToSurfLower[d] = _m[self._polyOrder][d].lower
-      self._projectVolToSurfUpper[d] = _m[self._polyOrder][d].upper
-   end
 end
 
 function CartModalMaxOrder:id() return "maximal-order" end
@@ -96,12 +74,6 @@ function CartModalMaxOrder:polyOrder() return self._polyOrder end
 function CartModalMaxOrder:numBasis() return self._numBasis end
 function CartModalMaxOrder:numSurfBasis() return self._numSurfBasis end
 function CartModalMaxOrder:evalBasis(z, b) return self._evalBasisFunc(z, b) end
-function CartModalMaxOrder:volumeToLowerSurfExpansion(dir, volIn, surfOut)
-   return self._projectVolToSurfLower[dir](volIn, surfOut)
-end
-function CartModalMaxOrder:volumeToUpperSurfExpansion(dir, volIn, surfOut)
-   return self._projectVolToSurfUpper[dir](volIn, surfOut)
-end
 
 return {
    CartModalMaxOrder = CartModalMaxOrder   
