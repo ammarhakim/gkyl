@@ -14,6 +14,8 @@ local stats = Unit.stats
 function test_1()
    local trig = LinearTrigger(0.0, 1.0, 10)
 
+   assert_equal(true, trig(0.01), "Checking linear trigger 0.11")
+   
    assert_equal(true, trig(0.11), "Checking linear trigger 0.11")
    assert_equal(false, trig(0.11), "Checking linear trigger 0.11")
 
@@ -57,7 +59,7 @@ function test_2()
 	 count = count + 1
       end
    end
-   assert_equal(22, count, "Checking if count is correct")
+   assert_equal(23, count, "Checking if count is correct")
 end
 
 test_1()
