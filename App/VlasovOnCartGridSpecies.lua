@@ -33,7 +33,7 @@ end
 
 -- function to check if moment name is correct
 local function isMomentNameGood(nm)
-   if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" then
+   if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" or nm == "M3i" then
       return true
    end
    return false

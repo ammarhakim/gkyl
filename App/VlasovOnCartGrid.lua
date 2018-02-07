@@ -15,7 +15,7 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.VlasovOnCartGridField"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
-local LinearTrigger = require "LinearTrigger"
+local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
@@ -394,7 +394,6 @@ local function buildApplication(self, tbl)
 	    tenth = tenth+1
 	 end
 	 if logTrigger1p(tCurr) then
-	    --log("#")
 	    log(string.format("%d", p1c))
 	    p1c = (p1c+1)%10
 	 end
