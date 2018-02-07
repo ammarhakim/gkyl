@@ -174,10 +174,6 @@ local function buildApplication(self, tbl)
 	 collisions[nm]:setName(nm)
       end
    end
-   if #collisions == 0 then
-      collisions["none"] = Collisions.NoCollisions {}
-      collisions["none"]:fullInit(tbl)
-   end
 
    -- setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles)
@@ -272,9 +268,13 @@ local function buildApplication(self, tbl)
 	 -- increment charges/currents needed in coupling with fields
 	 s:incrementCouplingMoments(tCurr, dt, momCouplingFields)
       end
-      -- update species with collisions
-      -- collisions:forwardEuler(tCurr, dt, inIdx, outIdx, species)
-      
+      --update species with collisions
+      for nm, c in pairs(collisions) do
+	 local myStatus, myDtSuggested = c:forwardEuler(tCurr, dt, inIdx, outIdx, species)
+	 status = status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+	 -- apply BC?
+      end
       -- update EM field
       local myStatus, myDtSuggested = field:forwardEuler(
 	 tCurr, dt, emRkFields[inIdx], momCouplingFields, emRkFields[outIdx])
@@ -488,5 +488,6 @@ end
 return {
    App = App,
    Species = Species,
+   BgkCollisions = Collisions.BgkCollisions,
    EmField = Field.EmField,
 }

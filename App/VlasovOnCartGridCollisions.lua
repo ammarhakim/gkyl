@@ -88,78 +88,22 @@ function BgkCollisions:createSolver()
    }
 end
 
-
-
 function BgkCollisions:rkStepperFields()
    return self.em
 end
 
-function BgkCollisions:accumulateCurrent(dt, current, em)
-   if current == nil then return end
-
-   local tmStart = Time.clock()
-
-   -- these many current components are supplied
-   local cItr, eItr = current:get(1), em:get(1)
-   local cIdxr, eIdxr = current:genIndexer(), em:genIndexer()
-
-   for idx in em:localRangeIter() do
-      current:fill(cIdxr(idx), cItr)
-      em:fill(eIdxr(idx), eItr)
-      for i = 1, current:numComponents() do
-   	 eItr[i] = eItr[i]-dt/self.epsilon0*cItr[i]
-      end
-   end
-   self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
-end
-
--- momIn[1] is the current density
 function BgkCollisions:forwardEuler(tCurr, dt, emIn, momIn, emOut)
-   if self.evolve then
-      local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
-      self:accumulateCurrent(dt, momIn[1], emOut)
-      return mys, mydt
-   else
-      emOut:copy(emIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
-   end
+   local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
+   return mys, mydt
 end
 
-function BgkCollisions:applyBc(tCurr, dt, emIn)
-   emIn:sync()
-end
    
 function BgkCollisions:totalSolverTime()
    return self.fieldSlvr.totalTime + self.tmCurrentAccum
 end
 
-function BgkCollisions:energyCalcTime()
-   return self.emEnergyCalc.totalTime
-end
-
--- NoCollisions ----------------------------------------------------------------
---
--- Represents no collisions (nothing is evolved or stored)
---------------------------------------------------------------------------------
-
-local NoCollisions = Proto()
-
--- methods for no field object
-function NoCollisions:init(tbl) end
-function NoCollisions:fullInit(tbl) end
-function NoCollisions:setCfl() end
-function NoCollisions:setBasis(basis) end
-function NoCollisions:setGrid(grid) end
-function NoCollisions:alloc(nField) end
-function NoCollisions:createSolver() end
-function NoCollisions:write(tm) end
-function NoCollisions:rkStepperFields() return {} end
-function NoCollisions:forwardEuler(tCurr, dt, momIn, gIn, fOut) return true, GKYL_MAX_DOUBLE end
-function NoCollisions:totalSolverTime() return 0.0 end
-
 return {
    BgkCollisions = BgkCollisions,
-   NoCollisions = NoCollisions,
 }
 
 function forwardEuler(tCurr, dt, inIdx, outIdx, speciesList)
