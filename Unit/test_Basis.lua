@@ -97,16 +97,6 @@ function test_2d_m_p2()
    -- surface expansions
    local vol = {1.0, 0.5, 0.25, 0.1, 0.1, 0.1}
    local surf = {0.0, 0.0, 0.0} -- to store surface expansion
-
-   basis:volumeToLowerSurfExpansion(1, vol, surf)
-   assert_equal(0.2528482284991718, surf[1], "Testing left expansion")
-   assert_equal(0.054302208157478, surf[2], "Testing left expansion")
-   assert_equal(0.07071067811865464, surf[3], "Testing left expansion")
-
-   basis:volumeToUpperSurfExpansion(1, vol, surf)
-   assert_equal(1.477593099890761, surf[1], "Testing right expansion")
-   assert_equal(0.2992511824357955, surf[2], "Testing right expansion")
-   assert_equal(0.07071067811865464, surf[3], "Testing right expansion")
 end
 
 function test_2d_s_p1()
@@ -192,11 +182,131 @@ function test_2d_s_p2()
    assert_equal(math.sqrt(15)/2, bvalues[8], "Checking values 8")
 end
 
+function test_fs_1d_p1()
+   local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 1 }
+   local fIn, fOut = Lin.Vec(basis:numBasis()), Lin.Vec(basis:numBasis())
+
+   for i = 1, #fIn do fIn[i] = 1 end
+
+   basis:flipSign(1, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(-fIn[2], fOut[2], "Checking if flip-sign worked")
+  
+end
+
+function test_fs_1d_p2()
+   local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
+   local fIn, fOut = Lin.Vec(basis:numBasis()), Lin.Vec(basis:numBasis())
+
+   for i = 1, #fIn do fIn[i] = 1 end
+
+   basis:flipSign(1, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(-fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(fIn[3], fOut[3], "Checking if flip-sign worked")
+  
+end
+
+function test_fs_s_2d_p1()
+   local basis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 1 }
+   local fIn, fOut = Lin.Vec(basis:numBasis()), Lin.Vec(basis:numBasis())
+
+   for i = 1, #fIn do fIn[i] = 1 end
+
+   basis:flipSign(1, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(-fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(fIn[3], fOut[3], "Checking if flip-sign worked")   
+   assert_equal(-fIn[4], fOut[4], "Checking if flip-sign worked")
+
+   basis:flipSign(2, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(-fIn[3], fOut[3], "Checking if flip-sign worked")
+   assert_equal(-fIn[4], fOut[4], "Checking if flip-sign worked")
+end
+
+function test_fs_s_2d_p2()
+   local basis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 2 }
+   local fIn, fOut = Lin.Vec(basis:numBasis()), Lin.Vec(basis:numBasis())
+
+   for i = 1, #fIn do fIn[i] = 1 end
+
+   basis:flipSign(1, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(-fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(fIn[3], fOut[3], "Checking if flip-sign worked")   
+   assert_equal(-fIn[4], fOut[4], "Checking if flip-sign worked")
+   assert_equal(fIn[5], fOut[5], "Checking if flip-sign worked")
+   assert_equal(fIn[6], fOut[6], "Checking if flip-sign worked")
+   assert_equal(fIn[7], fOut[7], "Checking if flip-sign worked")
+   assert_equal(-fIn[8], fOut[8], "Checking if flip-sign worked")
+
+   basis:flipSign(2, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(-fIn[3], fOut[3], "Checking if flip-sign worked")   
+   assert_equal(-fIn[4], fOut[4], "Checking if flip-sign worked")
+   assert_equal(fIn[5], fOut[5], "Checking if flip-sign worked")
+   assert_equal(fIn[6], fOut[6], "Checking if flip-sign worked")
+   assert_equal(-fIn[7], fOut[7], "Checking if flip-sign worked")
+   assert_equal(fIn[8], fOut[8], "Checking if flip-sign worked")
+end
+
+function test_fs_m_2d_p1()
+   local basis = Basis.CartModalMaxOrder { ndim = 2, polyOrder = 1 }
+   local fIn, fOut = Lin.Vec(basis:numBasis()), Lin.Vec(basis:numBasis())
+
+   for i = 1, #fIn do fIn[i] = 1 end
+
+   basis:flipSign(1, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(-fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(fIn[3], fOut[3], "Checking if flip-sign worked")   
+
+   basis:flipSign(2, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(-fIn[3], fOut[3], "Checking if flip-sign worked")
+end
+
+function test_fs_m_2d_p2()
+   local basis = Basis.CartModalMaxOrder { ndim = 2, polyOrder = 2 }
+   local fIn, fOut = Lin.Vec(basis:numBasis()), Lin.Vec(basis:numBasis())
+
+   for i = 1, #fIn do fIn[i] = 1 end
+
+   basis:flipSign(1, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(-fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(fIn[3], fOut[3], "Checking if flip-sign worked")   
+   assert_equal(-fIn[4], fOut[4], "Checking if flip-sign worked")
+   assert_equal(fIn[5], fOut[5], "Checking if flip-sign worked")
+   assert_equal(fIn[6], fOut[6], "Checking if flip-sign worked")
+
+   basis:flipSign(2, fIn, fOut)
+   assert_equal(fIn[1], fOut[1], "Checking if flip-sign worked")
+   assert_equal(fIn[2], fOut[2], "Checking if flip-sign worked")
+   assert_equal(-fIn[3], fOut[3], "Checking if flip-sign worked")   
+   assert_equal(-fIn[4], fOut[4], "Checking if flip-sign worked")
+   assert_equal(fIn[5], fOut[5], "Checking if flip-sign worked")
+   assert_equal(fIn[6], fOut[6], "Checking if flip-sign worked")
+end
+
 test_2d_m_p1()
 test_2d_m_p2()
 
 test_2d_s_p1()
 test_2d_s_p2()
+
+test_fs_1d_p1()
+test_fs_1d_p2()
+
+test_fs_m_2d_p1()
+test_fs_m_2d_p2()
+
+test_fs_s_2d_p1()
+test_fs_s_2d_p2()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
