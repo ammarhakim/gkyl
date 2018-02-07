@@ -241,6 +241,7 @@ function Species:createDiagnostics()
    numComp["M1i"] = self.vdim
    numComp["M2ij"] = self.vdim*(self.vdim+1)/2
    numComp["M2"] = 1
+   numComp["M3i"] = self.vdim
    
    self.diagnosticMomentFields = { }
    self.diagnosticMomentUpdaters = { } 
