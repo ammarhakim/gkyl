@@ -161,3 +161,13 @@ return {
    BgkCollisions = BgkCollisions,
    NoCollisions = NoCollisions,
 }
+
+function forwardEuler(tCurr, dt, inIdx, outIdx, speciesList)
+   local spRkFields, spMomFields = {},  {}
+
+   for i, nm in ipairs(species) do
+      spOutFields[i] = speciesList[nm]:rkStepperFields()[outIdx]
+      spMomFields[i] = speciesList[nm]:fluidMoments()
+   end
+   return updater:advance(tCurr, dt, spMomFields, spOutFields)
+end
