@@ -187,8 +187,8 @@ function Species:alloc(nFields)
       method = self.ioMethod,
    }
 
-   -- allocate field to store coupling moments (for use in
-   -- charge calculations)
+   -- allocate fields to store coupling moments (for use in coupling
+   -- to field and collisions)
    self.numDensity = DataStruct.Field {
       onGrid = self.confGrid,
       numComponents = self.confBasis:numBasis(),
@@ -276,7 +276,6 @@ function Species:createDiagnostics()
 	 numComponents = self.confBasis:numBasis()*numComp[mom],
 	 ghost = {1, 1}
       }
-      
       self.diagnosticMomentUpdaters[i] = Updater.DistFuncMomentCalc {
 	 onGrid = self.grid,
 	 phaseBasis = self.basis,
@@ -346,7 +345,6 @@ end
 function Species:rkStepperFields()
    return self.distf
 end
-
    
 function Species:forwardEuler(tCurr, dt, fIn, emIn, fOut)
    if self.evolve then
