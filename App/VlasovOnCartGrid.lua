@@ -10,6 +10,7 @@
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
 local BoundaryCondition = require "Updater.BoundaryCondition"
+local Collisions = require "App.VlasovOnCartGridCollisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.VlasovOnCartGridField"
@@ -162,7 +163,21 @@ local function buildApplication(self, tbl)
    for _, s in pairs(species) do
       s:setConfGrid(grid)
       s:alloc(stepperNumFields[timeStepperNm])
-   end   
+   end
+
+   -- read in information about collisions
+   local collisions = {}
+   for nm, val in pairs(tbl) do
+      if Collisions.BgkCollisions.is(val) then
+	 val:fullInit(tbl) -- initialize species
+	 collisions[nm] = val
+	 collisions[nm]:setName(nm)
+      end
+   end
+   if #collisions == 0 then
+      collisions["none"] = Collisions.NoCollisions {}
+      collisions["none"]:fullInit(tbl)
+   end
 
    -- setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles)
