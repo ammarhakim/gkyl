@@ -11,6 +11,7 @@
 #include <lua.hpp>
 
 // std include
+#include <fenv.h> 
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -127,6 +128,10 @@ int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 
 int
 main(int argc, char **argv) {
+  // This prevents denormalized floats from occuring in code. Is this
+  // really platform/compiler independent? Ammar, 8/2/2018
+  fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+  
 #ifdef HAVE_MPI_H
   MPI_Init(&argc, &argv);
 #endif
