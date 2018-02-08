@@ -42,6 +42,15 @@ end
 -- Class to store species-specific info
 local Species = Proto()
 
+-- add constants to object indicate various supported boundary conditions
+local SP_BC_ABSORB = 1
+local SP_BC_OPEN = 2
+local SP_BC_REFLECT = 3
+
+Species.bcAbsorb = SP_BC_ABSORB -- absorb all particles
+Species.bcOpen = SP_BC_OPEN -- zero gradient
+Species.bcReflect = SP_BC_REFLECT -- specular reflection
+
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
 function Species:init(tbl)
@@ -76,8 +85,6 @@ function Species:fullInit(vlasovTbl)
       for d = 1, self.vdim do self.decompCuts[d] = 1 end
    end
 
-
-
    -- create triggers to write distribution functions and moments
    if tbl.nDistFuncFrame then
       self.distIoTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nDistFuncFrame)
@@ -111,6 +118,24 @@ function Species:fullInit(vlasovTbl)
 
    -- store initial condition function
    self.initFunc = tbl.init
+
+   self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
+   self.bcx, self.bcy, self.bcz = { }, { }, { }
+   
+   -- read in boundary conditions
+   if tbl.bcx then
+      self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+      self.hasNonPeriodicBc = true
+   end
+   if tbl.bcy then
+      self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+      self.hasNonPeriodicBc = true
+   end
+   if tbl.bcz then
+      self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+      self.hasNonPeriodicBc = true
+   end
+   
 end
 
 -- methods for species object
@@ -257,6 +282,51 @@ function Species:createSolver(hasE, hasB)
       phaseBasis = self.basis,
       confBasis = self.confBasis,
    }
+
+   -- function to construct a BC updater
+   local function makeBcUpdater(dir, edge, bcList)
+      return Updater.Bc {
+	 onGrid = self.grid,
+	 boundaryConditions = bcList,
+	 dir = dir,
+	 edge = edge,
+      }
+   end
+
+   -- various functions to apply BCs of different types
+   local function bcAbsorb(dir, tm, xc, fIn, fOut)
+      for i = 1, self.basis:numBasis() do
+	 fOut[i] = 0.0
+      end
+   end
+   local function bcCopy(dir, tm, xc, fIn, fOut)
+      self.basis:flipSign(dit, fIn, fOut)
+   end   
+
+   self.boundaryConditions = { } -- list of Bcs to apply
+   local function appendBoundaryConditions(dir, edge, bcType)
+      if bcType == SP_BC_ABSORB then
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcAbsorb }))
+      elseif bcType == SP_BC_OPEN then
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcCopy }))
+      else
+	 assert(false, "VlasovOnCartGridSpecies: Unsupported BC type!")
+      end
+   end
+
+   local function handleBc(dir, bc)
+      if bc[1] then
+	 appendBoundaryConditions(dir, "lower", bc[1])
+      end
+      if bc[2] then
+	 appendBoundaryConditions(dir, "upper", bc[2])
+      end
+   end
+   
+   -- add various BCs to list of BCs to apply
+   handleBc(1, self.bcx)
+   handleBc(2, self.bcy)
+   handleBc(3, self.bcz)
 end
 
 function Species:createDiagnostics()
@@ -371,6 +441,11 @@ function Species:incrementCouplingMoments(tCurr, dt, momOut)
 end
 
 function Species:applyBc(tCurr, dt, fIn)
+   if self.hasNonPeriodicBc then
+      for _, bc in ipairs(self.boundaryConditions) do
+	 bc:advance(tCurr, dt, {}, {fIn})
+      end
+   end
    fIn:sync()
 end
 

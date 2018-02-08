@@ -441,7 +441,7 @@ local function buildApplication(self, tbl)
 	 else
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
-	 end 
+	 end
       end -- end of time-step loop
       writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
