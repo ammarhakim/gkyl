@@ -168,10 +168,14 @@ local function buildApplication(self, tbl)
    -- read in information about collisions
    local collisions = {}
    for nm, val in pairs(tbl) do
-      if Collisions.BgkCollisions.is(val) then
+      if Collisions.CollisionsBase.is(val) then
 	 val:fullInit(tbl) -- initialize species
 	 collisions[nm] = val
 	 collisions[nm]:setName(nm)
+	 collisions[nm]:setConfGrid(grid)
+	 collisions[nm]:setConfBasis(confBasis)
+	 collisions[nm]:setPhaseGrid(species)
+	 collisions[nm]:setPhaseBasis(species)
       end
    end
 
