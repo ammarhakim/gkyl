@@ -18,6 +18,13 @@
 #include <sstream>
 #include <stdlib.h>
 
+#if defined(__clang__)
+
+#elif defined(__GNUC__) || defined(__GNUG__)
+# include <xmmintrin.h>
+#endif
+
+
 #ifdef HAVE_MPI_H
 # include <mpi.h>
 # include <GkMpiFuncs.h>
@@ -129,8 +136,11 @@ int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 int
 main(int argc, char **argv) {
   // This prevents denormalized floats from occuring in code. Is this
-  // really platform/compiler independent? Ammar, 8/2/2018
+#if defined(__clang__)
   fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#elif defined(__GNUC__) || defined(__GNUG__)
+  _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);  
+#endif
   
 #ifdef HAVE_MPI_H
   MPI_Init(&argc, &argv);
