@@ -135,7 +135,9 @@ int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 
 int
 main(int argc, char **argv) {
-  // This prevents denormalized floats from occuring in code. Is this
+  // This prevents denormalized floats from occuring in
+  // code. Otherwise, the code become horribly slow in some rare (but
+  // not impossible to reproduce) situations.
 #if defined(__clang__)
   fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 #elif defined(__GNUC__) || defined(__GNUG__)

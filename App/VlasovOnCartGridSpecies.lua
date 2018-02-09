@@ -300,7 +300,7 @@ function Species:createSolver(hasE, hasB)
       end
    end
    local function bcCopy(dir, tm, xc, fIn, fOut)
-      self.basis:flipSign(dit, fIn, fOut)
+      self.basis:flipSign(dir, fIn, fOut)
    end   
 
    self.boundaryConditions = { } -- list of Bcs to apply
