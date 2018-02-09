@@ -7,6 +7,7 @@
 
 -- Gkyl modules
 local Bc = require "Updater.Bc"
+local BgkCollisions = require "Updater.BgkCollisions"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
@@ -19,6 +20,7 @@ local WavePropagation = require "Updater.WavePropagation"
 
 return {
    Bc = Bc,
+   BgkCollisions = BgkCollisions,
    CalcDiagnostic = CalcDiagnostic,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
