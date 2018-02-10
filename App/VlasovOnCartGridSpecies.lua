@@ -51,6 +51,14 @@ Species.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 Species.bcOpen = SP_BC_OPEN -- zero gradient
 Species.bcReflect = SP_BC_REFLECT -- specular reflection
 
+-- function to check if BC type is good
+local function isBcGood(bcType)
+   if bcType == SP_BC_ABSORB or bcType == SP_BC_OPEN or bcType == SP_BC_REFLECT then
+      return true
+   end
+   return false
+end
+
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
 function Species:init(tbl)
@@ -125,14 +133,17 @@ function Species:fullInit(vlasovTbl)
    -- read in boundary conditions
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+      assert(isBcGood(self.bcx[1]) and isBcGood(self.bcx[2]), "VlasovOnCartGridSpecies: Incorrect X BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcy then
       self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+      assert(isBcGood(self.bcy[1]) and isBcGood(self.bcy[2]), "VlasovOnCartGridSpecies: Incorrect Y BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcz then
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+      assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "VlasovOnCartGridSpecies: Incorrect Z BC type specified!")
       self.hasNonPeriodicBc = true
    end
    
@@ -301,8 +312,9 @@ function Species:createSolver(hasE, hasB)
    end
    local function bcCopy(dir, tm, xc, fIn, fOut)
       self.basis:flipSign(dir, fIn, fOut)
-   end   
+   end
 
+   -- functions to make life easier while reading in BCs to apply
    self.boundaryConditions = { } -- list of Bcs to apply
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == SP_BC_ABSORB then
