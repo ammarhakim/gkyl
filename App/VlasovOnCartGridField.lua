@@ -30,6 +30,21 @@ local xsys = require "xsys"
 
 local EmField = Proto()
 
+-- add constants to object indicate various supported boundary conditions
+local EM_BC_OPEN = 1
+local EM_BC_REFLECT = 2
+
+EmField.bcOpen = EM_BC_OPEN -- zero gradient
+EmField.bcReflect = EM_BC_REFLECT -- perfect electric conductor
+
+-- function to check if BC type is good
+local function isBcGood(bcType)
+   if bcType == EM_BC_OPEN or bcType == EM_BC_REFLECT then
+      return true
+   end
+   return false
+end
+
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
 function EmField:init(tbl)
@@ -68,6 +83,26 @@ function EmField:fullInit(vlasovTbl)
    self.initFunc = function (t, xn)
       local ex, ey, ez, bx, by, bz = tbl.init(t, xn)
       return ex, ey, ez, bx, by, bz, 0.0, 0.0
+   end
+
+   self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
+   self.bcx, self.bcy, self.bcz = { }, { }, { }
+   
+   -- read in boundary conditions
+   if tbl.bcx then
+      self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+      assert(isBcGood(self.bcx[1]) and isBcGood(self.bcx[2]), "VlasovOnCartGridField: Incorrect X BC type specified!")
+      self.hasNonPeriodicBc = true
+   end
+   if tbl.bcy then
+      self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+      assert(isBcGood(self.bcy[1]) and isBcGood(self.bcy[2]), "VlasovOnCartGridField: Incorrect Y BC type specified!")
+      self.hasNonPeriodicBc = true
+   end
+   if tbl.bcz then
+      self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+      assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "VlasovOnCartGridField: Incorrect Z BC type specified!")
+      self.hasNonPeriodicBc = true
    end
 
    -- for storing integrated energy components
@@ -122,6 +157,47 @@ function EmField:createSolver()
       numComponents = 8,
       quantity = "V2"
    }
+
+   -- function to construct a BC updater
+   local function makeBcUpdater(dir, edge, bcList)
+      return Updater.Bc {
+	 onGrid = self.grid,
+	 boundaryConditions = bcList,
+	 dir = dir,
+	 edge = edge,
+      }
+   end
+
+   -- various functions to apply BCs of different types
+   local function bcCopy(dir, tm, xc, fIn, fOut)
+      for i = 1, 8*self.basis:numBasis() do
+	 fOut[i] = fIn[i]
+      end
+   end
+
+   -- functions to make life easier while reading in BCs to apply
+   self.boundaryConditions = { } -- list of Bcs to apply
+   local function appendBoundaryConditions(dir, edge, bcType)
+      if bcType == EM_BC_OPEN then
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcCopy }))
+      else
+	 assert(false, "VlasovOnCartGridField: Unsupported BC type!")
+      end
+   end
+
+   local function handleBc(dir, bc)
+      if bc[1] then
+	 appendBoundaryConditions(dir, "lower", bc[1])
+      end
+      if bc[2] then
+	 appendBoundaryConditions(dir, "upper", bc[2])
+      end
+   end
+   
+   -- add various BCs to list of BCs to apply
+   handleBc(1, self.bcx)
+   handleBc(2, self.bcy)
+   handleBc(3, self.bcz)
 end
 
 function EmField:createDiagnostics()
@@ -193,6 +269,11 @@ function EmField:forwardEuler(tCurr, dt, emIn, momIn, emOut)
 end
 
 function EmField:applyBc(tCurr, dt, emIn)
+   if self.hasNonPeriodicBc then
+      for _, bc in ipairs(self.boundaryConditions) do
+	 bc:advance(tCurr, dt, {}, {emIn})
+      end
+   end   
    emIn:sync()
 end
    
