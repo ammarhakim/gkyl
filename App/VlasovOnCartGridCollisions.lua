@@ -108,11 +108,11 @@ function BgkCollisions:createSolver(species)
 end
 
 function BgkCollisions:forwardEuler(tCurr, dt, idxIn, outIdx, species)
-   local spRkFields, spMomFields = {},  {}
-
-   for _, nm in ipairs(species) do
-      spOutFields[mn] = species[nm]:rkStepperFields()[outIdx]
-      spMomFields[mn] = species[nm]:fluidMoments()
+   local spOutFields, spMomFields = {},  {}
+   for nm, sp in pairs(species) do
+      print(sp)
+      spOutFields[mn] = sp:rkStepperFields()[outIdx]
+      spMomFields[mn] = sp:fluidMoments()
    end
    return self.collisionSlvr:advance(tCurr, dt, spMomFields, spOutFields)
 end
