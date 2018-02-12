@@ -169,7 +169,7 @@ function EmField:createSolver()
    end
 
    -- various functions to apply BCs of different types
-   local function bcCopy(dir, tm, xc, fIn, fOut)
+   local function bcOpen(dir, tm, xc, fIn, fOut)
       for i = 1, 8*self.basis:numBasis() do
 	 fOut[i] = fIn[i]
       end
@@ -179,7 +179,7 @@ function EmField:createSolver()
    self.boundaryConditions = { } -- list of Bcs to apply
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == EM_BC_OPEN then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcCopy }))
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }))
       else
 	 assert(false, "VlasovOnCartGridField: Unsupported BC type!")
       end
