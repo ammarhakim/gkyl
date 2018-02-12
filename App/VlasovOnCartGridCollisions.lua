@@ -6,22 +6,8 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
-local Basis = require "Basis"
-local BoundaryCondition = require "Updater.BoundaryCondition"
-local DataStruct = require "DataStruct"
-local DecompRegionCalc = require "Lib.CartDecomp"
-local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
-local LinearTrigger = require "LinearTrigger"
-local Logger = require "Lib.Logger"
-local Mpi = require "Comm.Mpi"
-local PerfMaxwell = require "Eq.PerfMaxwell"
 local Proto = require "Lib.Proto"
-local Time = require "Lib.Time"
 local Updater = require "Updater"
-local date = require "Lib.date"
-local xsys = require "xsys"
 
 local CollisionsBase = Proto()
 
@@ -110,9 +96,8 @@ end
 function BgkCollisions:forwardEuler(tCurr, dt, idxIn, outIdx, species)
    local spOutFields, spMomFields = {},  {}
    for nm, sp in pairs(species) do
-      print(sp)
-      spOutFields[mn] = sp:rkStepperFields()[outIdx]
-      spMomFields[mn] = sp:fluidMoments()
+      spMomFields[nm] = sp:fluidMoments()
+      spOutFields[nm] = sp:rkStepperFields()[outIdx]
    end
    return self.collisionSlvr:advance(tCurr, dt, spMomFields, spOutFields)
 end
