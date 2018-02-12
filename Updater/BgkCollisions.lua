@@ -100,7 +100,7 @@ end
 -- advance method
 function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    local numConfDims = self._confGrid:ndim()
-   local numConfBasis = #self._confBasis
+   local numConfBasis = self._confBasis:numBasis()
    local l, u = {}, {}
    for d = 1, numConfDims do l[d], u[d] = 1, self._N end
    local confQuadRange = Range.Range(l, u)
@@ -108,7 +108,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 
    for _, nm in ipairs(self._speciesList) do
       local numPhaseDims = self._phaseGrid:ndim()
-      local numPhaseBasis = #self._phaseBasis
+      local numPhaseBasis = self._phaseBasis:numBasis()
       for d = 1, numPhaseDims do l[d], u[d] = 1, self._N end
       local phaseQuadRange = Range.Range(l, u)
       local phaseQuadIndexer = Range.makeColMajorGenIndexer(phaseQuadRange)
@@ -155,13 +155,12 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
       local phaseMu = 0
       local offset = 0
       local maxwell = 0
-      local nu = self._collFreq[nm]
+      local nu = 0.01--self._collFreq[nm]
       -- configuration space loop
       for confIdx in confRange:colMajorIter() do
 	 numDensityIn:fill(confIndexer(confIdx), ndItr)
 	 momDensityIn:fill(confIndexer(confIdx), mdItr)
 	 ptclEnergyIn:fill(confIndexer(confIdx), peItr)
-
 	 for muIdx in confQuadRange:colMajorIter() do
 	    confMu = confQuadIndexer(muIdx)
 	    numDensityOrd[confMu] = 0
@@ -170,7 +169,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	    end
 	    ptclEnergyOrd[confMu] = 0
 	    for k = 1, numConfBasis do
-	       numDensityIn[confMu] = numDensityIn[confMu] +
+	       numDensityOrd[confMu] = numDensityOrd[confMu] +
 		  ndItr[k] * self._confBasisAtOrdinates[confMu][k]
 	       ptclEnergyOrd[confMu] = ptclEnergyOrd[confMu] +
 		  peItr[k] * self._confBasisAtOrdinates[confMu][k]
@@ -179,7 +178,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	    for d = 1, numVelDims do
 	       for k = 1, numConfBasis do
 		  momDensityOrd[confMu][d] = momDensityOrd[confMu][d] +
-		     ndItr[offset + k] * self._confBasisAtOrdinates[confMu][k]
+		     mdItr[offset + k] * self._confBasisAtOrdinates[confMu][k]
 	       end
 	       offset = offset + numConfBasis
 	    end
@@ -211,7 +210,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 				 (2 * velTherm2Ord[confMu]))
 	       end
 	       for k = 1, numPhaseBasis do
-		  fItr[k] = fItr[k] + self._cfl * dt * nu(numDensityOrd[confMu], velTherm2Ord[confMu]) *
+		  fItr[k] = fItr[k] +  dt * nu *--(numDensityOrd[confMu], velTherm2Ord[confMu]) *
 		     (self._phaseWeights[phaseMu] * maxwell * self._phaseBasisAtOrdinates[phaseMu][k] -
 			 fItr[k])
 	       end
