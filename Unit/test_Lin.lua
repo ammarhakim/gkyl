@@ -218,6 +218,23 @@ function test_9()
    end
 end
 
+function test_10()
+   local _data = ffi.new("double[?]", 10)
+   local v = Lin.Vec(10, _data)
+
+   for i = 1, #v do
+      v[i] = i+0.5
+   end
+
+   for i = 0, #v-1 do
+      assert_equal(i+1.5, _data[i], "Checking vec created from data")
+   end
+
+   for i = 1, #v do
+      assert_equal(_data[i-1], v[i], "Checking vec created from data")
+   end   
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -228,6 +245,7 @@ test_6()
 test_7()
 test_8()
 test_9()
+test_10()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

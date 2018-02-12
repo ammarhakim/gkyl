@@ -380,6 +380,51 @@ function test_10()
    end   
 end
 
+function test_11()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3*3,
+      ghost = {1, 2},
+   }
+
+   field:clear(10.0)
+
+   local function set(fIn, val)
+      for i = 1, 3 do fIn[i] = val end
+   end
+
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr = field:get(indexer(idx))
+      local data = fitr:data()
+      set(data+0-1, 1.5)
+      set(data+3-1, 2.5)
+      set(data+6-1, 3.5)
+   end
+
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr = field:get(indexer(idx))
+      assert_equal(1.5, fitr[1], "Checking set")
+      assert_equal(1.5, fitr[2], "Checking set")
+      assert_equal(1.5, fitr[3], "Checking set")
+
+      assert_equal(2.5, fitr[4], "Checking set")
+      assert_equal(2.5, fitr[5], "Checking set")
+      assert_equal(2.5, fitr[6], "Checking set")
+
+      assert_equal(3.5, fitr[7], "Checking set")
+      assert_equal(3.5, fitr[8], "Checking set")
+      assert_equal(3.5, fitr[9], "Checking set")
+   end   
+   
+end
+
 test_1()
 test_2()
 test_3()
@@ -390,6 +435,7 @@ test_7()
 test_8()
 test_9()
 test_10()
+test_11()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

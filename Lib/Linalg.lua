@@ -18,9 +18,15 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Allocate vector with type "ct" and size "n"
 local function vec_alloc(ct, n)
-  local v = new(ct, n)
-  v._n, v._p = n, v._a
-  return v
+   local v = new(ct, n)
+   v._n, v._p = n, v._a
+   return v
+end
+
+local function vec_alloc_from_data(ct, n, data)
+   local v = new(ct, 1) -- allocate a single element (this is never used)
+   v._n, v._p = n, data
+   return v
 end
 
 -- copy vector "x" into vector "y"
@@ -47,8 +53,8 @@ local function new_vec_ct(elct)
       end,
    }
    local vec_mt = {
-      __new = function(ct, n)
-	 return vec_alloc(ct, n)
+      __new = function(ct, n, data)
+	 return data and vec_alloc_from_data(ct, n, data) or vec_alloc(ct, n)
       end,
       __len = function (self)
 	 return self._n
