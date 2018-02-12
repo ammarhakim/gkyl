@@ -169,9 +169,11 @@ function EmField:createSolver()
    end
 
    -- various functions to apply BCs of different types
-   local function bcCopy(dir, tm, xc, fIn, fOut)
-      for i = 1, 8*self.basis:numBasis() do
-	 fOut[i] = fIn[i]
+   local function bcOpen(dir, tm, xc, fIn, fOut)
+      local nb = self.basis:numBasis()
+      local fInData, fOutData = fIn:data(), fOut:data()
+      for i = 1, 8 do
+	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
       end
    end
 
@@ -179,7 +181,7 @@ function EmField:createSolver()
    self.boundaryConditions = { } -- list of Bcs to apply
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == EM_BC_OPEN then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcCopy }))
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }))
       else
 	 assert(false, "VlasovOnCartGridField: Unsupported BC type!")
       end
@@ -281,6 +283,14 @@ function EmField:totalSolverTime()
    return self.fieldSlvr.totalTime + self.tmCurrentAccum
 end
 
+function EmField:totalBcTime()
+   local tm = 0.0
+   for _, bc in ipairs(self.boundaryConditions) do
+      tm = tm + bc.totalTime
+   end
+   return tm
+end
+
 function EmField:energyCalcTime()
    return self.emEnergyCalc.totalTime
 end
@@ -309,6 +319,7 @@ function NoField:rkStepperFields() return {} end
 function NoField:forwardEuler(tCurr, dt, momIn, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end
 function NoField:totalSolverTime() return 0.0 end
+function NoField:totalBcTime() return 0.0 end
 function NoField:energyCalcTime() return 0.0 end
 
 return {

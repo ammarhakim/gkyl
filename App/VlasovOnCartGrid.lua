@@ -458,20 +458,23 @@ local function buildApplication(self, tbl)
       end
 
       local tmVlasovStream, tmVlasovForce, tmVlasovIncr = 0.0, 0.0, 0.0
-      local tmVlasovMom, tmVlasovIntMom = 0.0, 0.0
+      local tmVlasovMom, tmVlasovIntMom, tmVlasovBc = 0.0, 0.0, 0.0
       for _, s in pairs(species) do
 	 tmVlasovStream = tmVlasovStream + s:streamTime()
 	 tmVlasovForce = tmVlasovForce + s:forceTime()
 	 tmVlasovIncr = tmVlasovIncr + s:incrementTime()
 	 tmVlasovMom = tmVlasovMom + s:momCalcTime()
 	 tmVlasovIntMom = tmVlasovIntMom + s:intMomCalcTime()
+	 tmVlasovBc = tmVlasovBc + s:totalBcTime()
       end
 
       log(string.format("\nVlasov solver took %g sec\n", tmVlasovSlvr))
       log(string.format(
 	     "  [Streaming updates %g sec. Force updates %g sec]\n",
 	     tmVlasovStream, tmVlasovForce))
+      log(string.format("Vlasov solver BCs took %g sec\n", tmVlasovBc))
       log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
+      log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))
       log(string.format("Moment calculations took %g sec\n", tmVlasovMom))
       log(string.format("Integrated moment calculations took %g sec\n", tmVlasovIntMom))
       log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))

@@ -310,7 +310,7 @@ function Species:createSolver(hasE, hasB)
 	 fOut[i] = 0.0
       end
    end
-   local function bcCopy(dir, tm, xc, fIn, fOut)
+   local function bcOpen(dir, tm, xc, fIn, fOut)
       self.basis:flipSign(dir, fIn, fOut)
    end
 
@@ -320,7 +320,7 @@ function Species:createSolver(hasE, hasB)
       if bcType == SP_BC_ABSORB then
 	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcAbsorb }))
       elseif bcType == SP_BC_OPEN then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcCopy }))
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }))
       else
 	 assert(false, "VlasovOnCartGridSpecies: Unsupported BC type!")
       end
@@ -481,6 +481,14 @@ function Species:momCalcTime()
    local tm = self.momDensityCalc.totalTime
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
+   end
+   return tm
+end
+
+function Species:totalBcTime()
+   local tm = 0.0
+   for _, bc in ipairs(self.boundaryConditions) do
+      tm = tm + bc.totalTime
    end
    return tm
 end
