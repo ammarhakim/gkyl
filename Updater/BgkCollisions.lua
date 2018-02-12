@@ -155,7 +155,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
       local phaseMu = 0
       local offset = 0
       local maxwell = 0
-      local nu = 0
+      local nu = self._collFreq[nm]
       -- configuration space loop
       for confIdx in confRange:colMajorIter() do
 	 numDensityIn:fill(confIndexer(confIdx), ndItr)
@@ -210,7 +210,6 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 				 (self._phaseOrdinates[phaseMu][numConfDims + d] - velBulkOrd[confMu][d]) /
 				 (2 * velTherm2Ord[confMu]))
 	       end
-	       nu = self._collFreq[nm]
 	       for k = 1, numPhaseBasis do
 		  fItr[k] = fItr[k] + self._cfl * dt * nu(numDensityOrd[confMu], velTherm2Ord[confMu]) *
 		     (self._phaseWeights[phaseMu] * maxwell * self._phaseBasisAtOrdinates[phaseMu][k] -
