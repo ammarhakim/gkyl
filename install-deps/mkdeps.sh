@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Defaults
-PREFIX=$HOME/gkylsoft
+PREFIX=/l/pcagas/gkylsoft
 
 # default build options
 CC=gcc

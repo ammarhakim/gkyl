@@ -48,12 +48,6 @@ function BgkCollisions:setConfGrid(cgrid)
 end
 
 function BgkCollisions:setPhaseBasis(species)
-   for _, nm in pairs(self.speciesList) do
-      self.cfl = species[nm].cfl
-   end
-end
-
-function BgkCollisions:setPhaseBasis(species)
    self.phaseBasis = {}
    for _, nm in pairs(self.speciesList) do
       self.phaseBasis[nm] = species[nm].basis
@@ -68,7 +62,11 @@ function BgkCollisions:setPhaseGrid(species)
 end
 
 -- methods for Bgk collisions object
-function BgkCollisions:setCfl(cfl) self.cfl = cfl end
+function BgkCollisions:setCfl(species) 
+   for _, nm in pairs(self.speciesList) do
+      self.cfl = species[nm].cfl
+   end
+end
 
 function BgkCollisions:createSolver(species)
    local confBasis = nil
