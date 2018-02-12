@@ -62,7 +62,7 @@ function BgkCollisions:setPhaseGrid(species)
 end
 
 -- methods for Bgk collisions object
-function BgkCollisions:setCfl(species) 
+function BgkCollisions:setCfl(species)
    for _, nm in pairs(self.speciesList) do
       self.cfl = species[nm].cfl
    end
@@ -100,7 +100,6 @@ function BgkCollisions:forwardEuler(tCurr, dt, idxIn, outIdx, species)
    return self.collisionSlvr:advance(tCurr, dt, spMomFields, spOutFields)
 end
 
-   
 function BgkCollisions:totalSolverTime()
    return self.collisionSlvr.totalTime + self.tmCurrentAccum
 end

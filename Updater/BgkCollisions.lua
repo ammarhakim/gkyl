@@ -48,7 +48,7 @@ function BgkCollisions:init(tbl)
    assert(#self._speciesList == #self._collFreq,
 	  "List of species table and collision frequences table must have the same size")
 
-   -- number of quadrature points in each direction
+   -- Number of quadrature points in each direction
    self._N = tbl.numConfQuad and tbl.numConfQuad or self._confBasis:polyOrder() + 1
 
    -- 1D weights and ordinates
@@ -119,18 +119,46 @@ end
 function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    local numConfDims = self._confGrid:ndim()
    local numConfBasis = self._confBasis:numBasis()
+   local numPhaseDims = self._phaseGrid:ndim()
+   local numPhaseBasis = self._phaseBasis:numBasis()
+   local numVelDims = numPhaseDims - numConfDims
+
+   -- Define regions for looping over ordinates
    local l, u = {}, {}
    for d = 1, numConfDims do l[d], u[d] = 1, self._N end
    local confQuadRange = Range.Range(l, u)
    local confQuadIndexer = Range.makeColMajorGenIndexer(confQuadRange)
+   for d = 1, numPhaseDims do l[d], u[d] = 1, self._N end
+   local phaseQuadRange = Range.Range(l, u)
+   local phaseQuadIndexer = Range.makeColMajorGenIndexer(phaseQuadRange)
+   local phaseIdx = {}
 
+   -- Variables for evaluating the moments at quadrature points
+   local numConfOrdinates = confQuadRange:volume()
+   local numDensityOrd = Lin.Vec(numConfOrdinates)
+   local momDensityOrd = Lin.Mat(numConfOrdinates, numVelDims)
+   local ptclEnergyOrd = Lin.Vec(numConfOrdinates)
+   local velBulkOrd = Lin.Mat(numConfOrdinates, numVelDims)
+   local velTherm2Ord = Lin.Vec(numConfOrdinates)
+
+   -- Variables to get the physical coordinates from of the
+   -- computational space
+   local dz = Lin.Vec(numPhaseDims) -- cell shape
+   local zc = Lin.Vec(numPhaseDims) -- cell center
+   local zPhys = Lin.Vec(numPhaseDims)
+
+   -- Additional variables which we don't want to allocate inside the
+   -- loops
+   local maxwellian = nil
+   local maxwellianModal = Lin.Vec(numPhaseBasis)
+   local u2 = nil
+   local confMu = nil
+   local phaseMu = nil
+   local offset = nil
+
+   -- Main loop over the species
    for i, nm in ipairs(self._speciesList) do
-      local numPhaseDims = self._phaseGrid:ndim()
-      local numPhaseBasis = self._phaseBasis:numBasis()
-      for d = 1, numPhaseDims do l[d], u[d] = 1, self._N end
-      local phaseQuadRange = Range.Range(l, u)
-      local phaseQuadIndexer = Range.makeColMajorGenIndexer(phaseQuadRange)
-
+      -- Get the inputs and outputs
       local numDensityIn = assert(inFld[nm][1],
 				  "BgkCollisions.advance: Must specify an input fluid moments field")
       local momDensityIn = assert(inFld[nm][2],
@@ -139,49 +167,33 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 				  "BgkCollisions.advance: Must specify an input fluid moments field")
       local fOut = assert(outFld[nm],
 			  "BgkCollisions.advance: Must specify an output field")
-
-      local confRange = numDensityIn:localRange()
-      local confIndexer = numDensityIn:genIndexer()
       local ndItr = numDensityIn:get(1)
       local mdItr = momDensityIn:get(1)
       local peItr = ptclEnergyIn:get(1)
+      local fItr = fOut:get(1)
+
+      -- Get the Ranges to loop over the domain
+      local confRange = numDensityIn:localRange()
+      local confIndexer = numDensityIn:genIndexer()
       local phaseRange = fOut:localRange()
       local phaseIndexer = fOut:genIndexer()
-      local fItr = fOut:get(1)
       l, u = {}, {}
-      local numVelDims = numPhaseDims - numConfDims
       for d = 1, numVelDims do
 	 l[d] = phaseRange:lower(numConfDims + d)
 	 u[d] = phaseRange:upper(numConfDims + d)
       end
       local velRange = Range.Range(l, u)
 
-      local numConfOrdinates = confQuadRange:volume()
-      local numDensityOrd = Lin.Vec(numConfOrdinates)
-      local momDensityOrd = Lin.Mat(numConfOrdinates, numVelDims)
-      local ptclEnergyOrd = Lin.Vec(numConfOrdinates)
-      local velBulkOrd = Lin.Mat(numConfOrdinates, numVelDims)
-      local velTherm2Ord = Lin.Vec(numConfOrdinates)
+      local nu = self._collFreq[i]  -- Collision frequency function
 
-      local maxwellModal = Lin.Vec(numPhaseBasis)
-
-      local dz = Lin.Vec(numPhaseDims) -- cell shape
-      local zc = Lin.Vec(numPhaseDims) -- cell center
-      local zPhys = Lin.Vec(numPhaseDims)
-
-      local u2 = nil
-      local confMu = nil
-      local phaseMu = nil
-      local offset = nil
-      local maxwell = nil
-      local nu = self._collFreq[i]
-      local phaseIdx = {}
-
-      -- configuration space loop
+      -- Configuration space loop
       for confIdx in confRange:colMajorIter() do
 	 numDensityIn:fill(confIndexer(confIdx), ndItr)
 	 momDensityIn:fill(confIndexer(confIdx), mdItr)
 	 ptclEnergyIn:fill(confIndexer(confIdx), peItr)
+
+	 -- Evaluate the the moments (given as expansion coefficiens)
+	 -- on the ordinates
 	 for muIdx in confQuadRange:colMajorIter() do
 	    confMu = confQuadIndexer(muIdx)
 	    numDensityOrd[confMu] = 0
@@ -204,6 +216,8 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	       offset = offset + numConfBasis
 	    end
 
+	    -- Calculate the bulk velocity out of the flux and thermal
+	    -- velocity out of the energy
 	    u2 = 0
 	    for d = 1, numVelDims do
 	       velBulkOrd[confMu][d] = momDensityOrd[confMu][d] / numDensityOrd[confMu]
@@ -212,40 +226,45 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	    velTherm2Ord[confMu] = ptclEnergyOrd[confMu] / numDensityOrd[confMu] - u2
 	 end
 
-	 -- velocity space loop
+	 -- Velocity space loop
 	 for velIdx in velRange:colMajorIter() do
+	    -- Construct the phase space index ot of the configuration
+	    -- space a velocity space indices
 	    for d = 1, numConfDims do phaseIdx[d] = confIdx[d] end
 	    for d = 1, numVelDims do phaseIdx[d + numConfDims] = velIdx[d] end
 	    fOut:fill(phaseIndexer(phaseIdx), fItr)
+
+	    -- Get cell shape, cell center coordinates
 	    self._phaseGrid:setIndex(phaseIdx)
-	    -- get cell shape, cell center coordinates
 	    for d = 1, numPhaseDims do dz[d] = self._phaseGrid:dx(d) end
 	    self._phaseGrid:cellCenter(zc)
 
-	    for k = 1, numPhaseBasis do maxwellModal[k] = 0 end
+	    for k = 1, numPhaseBasis do maxwellianModal[k] = 0 end
 	    for muIdx in phaseQuadRange:colMajorIter() do
 	       confMu = confQuadIndexer(muIdx)
 	       phaseMu = phaseQuadIndexer(muIdx)
-	       
-	       -- get the physical velocity coordinates
+
+	       -- Get the physical velocity coordinates
 	       self._compToPhys(self._phaseOrdinates[phaseMu], dz, zc, zPhys)
-	       
-	       maxwell = numDensityOrd[confMu]
+
+	       -- Constract the Maxwellian
+	       maxwellian = numDensityOrd[confMu]
 	       for d = 1, numVelDims do
-		  maxwell = maxwell / math.sqrt(2 * math.pi * velTherm2Ord[confMu]) *
+		  maxwellian = maxwellian / math.sqrt(2 * math.pi * velTherm2Ord[confMu]) *
 		     math.exp(-(zPhys[numConfDims + d] - velBulkOrd[confMu][d]) *
 				 (zPhys[numConfDims + d] - velBulkOrd[confMu][d]) /
 				 (2 * velTherm2Ord[confMu]))
 	       end
-	       
+	       -- Project the Maxwellian on basis
 	       for k = 1, numPhaseBasis do
-		  maxwellModal[k] = maxwellModal[k] + 
-		     self._phaseWeights[phaseMu] * maxwell * self._phaseBasisAtOrdinates[phaseMu][k]
+		  maxwellianModal[k] = maxwellianModal[k] +
+		     self._phaseWeights[phaseMu] * maxwellian * self._phaseBasisAtOrdinates[phaseMu][k]
 	       end
 	    end
+	    -- Modify the solution with BGK collisions
 	    for k = 1, numPhaseBasis do
-	       fItr[k] = fItr[k] + self._cfl * dt * nu(1, 0) * --nu(numDensityOrd[confMu], velTherm2Ord[confMu]) *
-		  (maxwellModal[k] - fItr[k])
+	       fItr[k] = fItr[k] + self._cfl * dt * nu(1, 1) *
+		  (maxwellianModal[k] - fItr[k])
 	    end
 	 end
       end

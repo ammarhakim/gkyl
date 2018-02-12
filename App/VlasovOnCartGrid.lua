@@ -32,7 +32,7 @@ local function createBasis(nm, ndim, polyOrder)
       return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
    elseif nm == "maximal-order" then
       return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
-   end   
+   end
 end
 
 -- top-level method to build application "run" method
@@ -142,7 +142,7 @@ local function buildApplication(self, tbl)
       s:setConfBasis(confBasis)
       s:createBasis(basisNm, polyOrder)
    end
-   
+
    -- configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
@@ -194,7 +194,7 @@ local function buildApplication(self, tbl)
       field:setCfl(myCfl)
    end
    log(string.format("Using CFL number %g\n", cflMin))
-   
+
    -- allocate field data
    field:alloc(stepperNumFields[timeStepperNm])
 
@@ -222,7 +222,7 @@ local function buildApplication(self, tbl)
    end
 
    writeData(0.0) -- write initial conditions
-   
+
    -- store fields used in RK time-stepping for each species
    local speciesRkFields = { }
    for nm, s in pairs(species) do
@@ -234,7 +234,7 @@ local function buildApplication(self, tbl)
    local momCouplingFields = {}
    -- store fields needed in coupling particles and fields (only a
    -- single set is needed)
-   do 
+   do
       local c = 0
       for _, s in pairs(species) do
 	 if c == 0 then
@@ -259,7 +259,7 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
 	    tCurr, dt, speciesRkFields[nm][inIdx], emRkFields[inIdx], speciesRkFields[nm][outIdx])
-	 
+
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
@@ -270,25 +270,28 @@ local function buildApplication(self, tbl)
 	 -- as in an explict scheme, things that go into the forward
 	 -- Euler must be from the previous time-step
 	 s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx])
-	 
+
 	 -- increment charges/currents needed in coupling with fields
 	 s:incrementCouplingMoments(tCurr, dt, momCouplingFields)
       end
       --update species with collisions
-      for nm, c in pairs(collisions) do
+      for _, c in pairs(collisions) do
 	 local myStatus, myDtSuggested = c:forwardEuler(tCurr, dt, inIdx, outIdx, species)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 -- apply BC?
+	 -- Apply BC
+	 for _, nm in ipairs(c.speciesList) do
+	    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+	 end
       end
       -- update EM field
       local myStatus, myDtSuggested = field:forwardEuler(
 	 tCurr, dt, emRkFields[inIdx], momCouplingFields, emRkFields[outIdx])
-      
+
       status = status and myStatus
       dtSuggested = math.min(dtSuggested, myDtSuggested)
       field:applyBc(tCurr, dt, emRkFields[outIdx])
-      
+
       return status, dtSuggested
    end
 
@@ -319,7 +322,7 @@ local function buildApplication(self, tbl)
 	    a, emRkFields[aIdx], b, emRkFields[bIdx], c, emRkFields[cIdx])
       end
    end
-  
+
    local timeSteppers = {} -- various time-steppers
 
    -- function to advance solution using RK1 scheme (UNSTABLE! Only for testing)
@@ -329,7 +332,7 @@ local function buildApplication(self, tbl)
       if status == false then return status, dtSuggested end
       copy1(2, 1)
 
-      return status, dtSuggested      
+      return status, dtSuggested 
    end
 
    -- function to advance solution using SSP-RK2 scheme
@@ -344,7 +347,7 @@ local function buildApplication(self, tbl)
       if status == false then return status, dtSuggested end
       combine2(1.0/2.0, 1, 1.0/2.0, 3, 2)
       copy1(2, 1)
-      
+
       return status, dtSuggested
    end
 
@@ -393,12 +396,12 @@ local function buildApplication(self, tbl)
       combine2(1.0/2.0, 4, 1.0/2.0, 3, 1)
 
       return status, dtSuggested
-   end   
+   end
 
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
-   -- return function that runs main simulation loop   
+   -- return function that runs main simulation loop
    return function(self)
       log("Starting main loop of VlasovOnCartGrid simulation ...\n\n")
       local tStart, tEnd = 0, tbl.tEnd
@@ -443,7 +446,7 @@ local function buildApplication(self, tbl)
 	    step = step + 1
 	    if (tCurr >= tEnd) then
 	       break
-	    end	    
+	    end
 	 else
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
@@ -451,7 +454,7 @@ local function buildApplication(self, tbl)
       end -- end of time-step loop
       writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
-      
+
       local tmVlasovSlvr = 0.0 -- total time in Vlasov solver
       for _, s in pairs(species) do
 	 tmVlasovSlvr = tmVlasovSlvr+s:totalSolverTime()
