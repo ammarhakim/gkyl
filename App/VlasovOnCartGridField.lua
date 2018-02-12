@@ -283,6 +283,14 @@ function EmField:totalSolverTime()
    return self.fieldSlvr.totalTime + self.tmCurrentAccum
 end
 
+function EmField:totalBcTime()
+   local tm = 0.0
+   for _, bc in ipairs(self.boundaryConditions) do
+      tm = tm + bc.totalTime
+   end
+   return tm
+end
+
 function EmField:energyCalcTime()
    return self.emEnergyCalc.totalTime
 end
@@ -311,6 +319,7 @@ function NoField:rkStepperFields() return {} end
 function NoField:forwardEuler(tCurr, dt, momIn, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end
 function NoField:totalSolverTime() return 0.0 end
+function NoField:totalBcTime() return 0.0 end
 function NoField:energyCalcTime() return 0.0 end
 
 return {
