@@ -485,6 +485,14 @@ function Species:momCalcTime()
    return tm
 end
 
+function Species:totalBcTime()
+   local tm = 0.0
+   for _, bc in ipairs(self.boundaryConditions) do
+      tm = tm + bc.totalTime
+   end
+   return tm
+end
+
 function Species:intMomCalcTime()
    return self.intMomentCalc.totalTime
 end
