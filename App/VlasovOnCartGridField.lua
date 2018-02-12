@@ -170,8 +170,10 @@ function EmField:createSolver()
 
    -- various functions to apply BCs of different types
    local function bcOpen(dir, tm, xc, fIn, fOut)
-      for i = 1, 8*self.basis:numBasis() do
-	 fOut[i] = fIn[i]
+      local nb = self.basis:numBasis()
+      local fInData, fOutData = fIn:data(), fOut:data()
+      for i = 1, 8 do
+	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
       end
    end
 
