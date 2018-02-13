@@ -101,7 +101,15 @@ function BgkCollisions:forwardEuler(tCurr, dt, idxIn, outIdx, species)
 end
 
 function BgkCollisions:totalSolverTime()
-   return self.collisionSlvr.totalTime + self.tmCurrentAccum
+   return self.collisionSlvr.totalTime 
+end
+
+function BgkCollisions:evalMomTime()
+   return self.collisionSlvr:evalMomTime()
+end
+
+function BgkCollisions:projectMaxwellTime()
+   return self.collisionSlvr:projectMaxwellTime()
 end
 
 return {

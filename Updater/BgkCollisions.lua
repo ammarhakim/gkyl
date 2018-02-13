@@ -9,6 +9,7 @@ local GaussQuadRules = require "Lib.GaussQuadRules"
 local Lin = require "Lib.Linalg"
 local Proto = require "Proto"
 local Range = require "Lib.Range"
+local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
 
 -- System libraries
@@ -112,6 +113,10 @@ function BgkCollisions:init(tbl)
 
    -- construct various functions from template representations
    self._compToPhys = loadstring(compToPhysTempl {NDIM = numPhaseDims} )()
+
+   -- timings
+   self._tmEvalMom = 0.0
+   self._tmProjectMaxwell = 0.0
 end
 
 ----------------------------------------------------------------------
@@ -156,6 +161,10 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    local phaseMu = nil
    local offset = nil
 
+   -- Timings
+   local tmEvalMomStart = 0.0
+   local tmProjectMaxwellStart = 0.0
+
    -- Main loop over the species
    for i, nm in ipairs(self._speciesList) do
       -- Get the inputs and outputs
@@ -194,6 +203,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 
 	 -- Evaluate the the moments (given as expansion coefficiens)
 	 -- on the ordinates
+	 tmEvalMomStart = Time.clock()
 	 for muIdx in confQuadRange:colMajorIter() do
 	    confMu = confQuadIndexer(muIdx)
 	    numDensityOrd[confMu] = 0
@@ -224,9 +234,11 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	       u2 = u2 + velBulkOrd[confMu][d] * velBulkOrd[confMu][d]
 	    end
 	    velTherm2Ord[confMu] = ptclEnergyOrd[confMu] / numDensityOrd[confMu] - u2
-	 end
+	 end	
+	 self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
 	 -- Velocity space loop
+	 tmProjectMaxwellStart = Time.clock()
 	 for velIdx in velRange:colMajorIter() do
 	    -- Construct the phase space index ot of the configuration
 	    -- space a velocity space indices
@@ -267,9 +279,13 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 		  (maxwellianModal[k] - fItr[k])
 	    end
 	 end
+	 self._tmProjectMaxwell = self._tmProjectMaxwell + Time.clock() - tmProjectMaxwellStart
       end
    end
    return true, GKYL_MAX_DOUBLE
 end
+
+function BgkCollisions:evalMomTime() return self._tmEvalMom end
+function BgkCollisions:projectMaxwellTime() return self._tmProjectMaxwell end
 
 return BgkCollisions
