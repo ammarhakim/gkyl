@@ -14,7 +14,6 @@ def build(bld):
     vlasovData/VlasovStreamMax1x3v.cpp
     vlasovData/VlasovStreamMax2x2v.cpp
     vlasovData/VlasovStreamMax2x3v.cpp
-    vlasovData/VlasovStreamMax3x3v.cpp
 
     vlasovData/VlasovStreamSer1x1v.cpp
     vlasovData/VlasovStreamSer1x2v.cpp
@@ -68,12 +67,19 @@ def build(bld):
     vlasovData/VlasovElcMagSer1x2v.cpp
     vlasovData/VlasovElcMagSer1x3v.cpp
     vlasovData/VlasovElcMagSer2x2v.cpp
+    vlasovData/VlasovElcMagSer2x3v.cpp
 
     vlasovData/VlasovSurfElcMagMax1x1v.cpp
     vlasovData/VlasovSurfElcMagMax1x2v.cpp
+    vlasovData/VlasovSurfElcMagMax1x3v.cpp
+    vlasovData/VlasovSurfElcMagMax2x2v.cpp
+    vlasovData/VlasovSurfElcMagMax2x3v.cpp
 
     vlasovData/VlasovSurfElcMagSer1x1v.cpp
     vlasovData/VlasovSurfElcMagSer1x2v.cpp
+    vlasovData/VlasovSurfElcMagSer1x3v.cpp
+    vlasovData/VlasovSurfElcMagSer2x2v.cpp
+    vlasovData/VlasovSurfElcMagSer2x3v.cpp
 
     vlasovData/VlasovIncr.cpp
 
