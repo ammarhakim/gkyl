@@ -470,6 +470,12 @@ local function buildApplication(self, tbl)
 	 tmVlasovIntMom = tmVlasovIntMom + s:intMomCalcTime()
 	 tmVlasovBc = tmVlasovBc + s:totalBcTime()
       end
+      local tmColl, tmCollEvalMom, tmCollProjectMaxwell = 0.0, 0.0, 0.0
+      for _, c in pairs(collisions) do
+	 tmColl = tmColl + c:totalSolverTime()
+	 tmCollEvalMom = tmCollEvalMom + c:evalMomTime()
+	 tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
+      end
 
       log(string.format("\nVlasov solver took %g sec\n", tmVlasovSlvr))
       log(string.format(
@@ -481,6 +487,10 @@ local function buildApplication(self, tbl)
       log(string.format("Moment calculations took %g sec\n", tmVlasovMom))
       log(string.format("Integrated moment calculations took %g sec\n", tmVlasovIntMom))
       log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
+      log(string.format("Collision solver took %g sec\n", tmColl))
+      log(string.format(
+	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
+	     tmCollEvalMom, tmCollProjectMaxwell))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
