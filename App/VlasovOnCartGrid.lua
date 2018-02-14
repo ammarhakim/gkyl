@@ -176,7 +176,6 @@ local function buildApplication(self, tbl)
 	 collisions[nm]:setConfBasis(confBasis)
 	 collisions[nm]:setPhaseGrid(species)
 	 collisions[nm]:setPhaseBasis(species)
-	 collisions[nm]:setCfl(species)
 	 collisions[nm]:createSolver(species)
       end
    end
@@ -276,7 +275,8 @@ local function buildApplication(self, tbl)
       end
       --update species with collisions
       for _, c in pairs(collisions) do
-	 local myStatus, myDtSuggested = c:forwardEuler(tCurr, dt, inIdx, outIdx, species)
+	 local myStatus, myDtSuggested = c:forwardEuler(tCurr, dt, inIdx,
+							outIdx, species)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 -- Apply BC

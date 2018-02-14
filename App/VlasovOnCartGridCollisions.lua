@@ -31,9 +31,9 @@ function BgkCollisions:fullInit(collTbl)
 
    self.speciesList = tbl.species
    self.collFreq = tbl.collFreq
-   self.cfl = 0.1
 
-   assert(#self.speciesList == #self.collFreq, "'nu' must be defined for each 'species'")
+   assert(#self.speciesList == #self.collFreq,
+	  "'nu' must be defined for each 'species'")
 end
 
 function BgkCollisions:setName(nm)
@@ -62,11 +62,6 @@ function BgkCollisions:setPhaseGrid(species)
 end
 
 -- methods for Bgk collisions object
-function BgkCollisions:setCfl(species)
-   for _, nm in pairs(self.speciesList) do
-      self.cfl = species[nm].cfl
-   end
-end
 
 function BgkCollisions:createSolver(species)
    local confBasis = nil

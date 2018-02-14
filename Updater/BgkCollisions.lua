@@ -32,7 +32,6 @@ local BgkCollisions = Proto(UpdaterBase)
 function BgkCollisions:init(tbl)
    BgkCollisions.super.init(self, tbl) -- setup base object
 
-   self._cfl = assert(tbl.cfl, "Updater.BgkCollisions: Must provide CFL number using 'cfl'")
    self._speciesList = assert(tbl.speciesList,
 			      "Updater.BgkCollisions: Must provide a list of species using 'speciesList'")
    self._collFreq = assert(tbl.collFreq,
@@ -230,10 +229,12 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	    -- velocity out of the energy
 	    u2 = 0
 	    for d = 1, numVelDims do
-	       velBulkOrd[confMu][d] = momDensityOrd[confMu][d] / numDensityOrd[confMu]
+	       velBulkOrd[confMu][d] = momDensityOrd[confMu][d] / 
+		  numDensityOrd[confMu]
 	       u2 = u2 + velBulkOrd[confMu][d] * velBulkOrd[confMu][d]
 	    end
-	    velTherm2Ord[confMu] = ptclEnergyOrd[confMu] / numDensityOrd[confMu] - u2
+	    velTherm2Ord[confMu] = ptclEnergyOrd[confMu] / 
+	       numDensityOrd[confMu] - u2
 	 end	
 	 self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
@@ -262,24 +263,27 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	       -- Constract the Maxwellian
 	       maxwellian = numDensityOrd[confMu]
 	       for d = 1, numVelDims do
-		  maxwellian = maxwellian / math.sqrt(2 * math.pi * velTherm2Ord[confMu]) *
-		     math.exp(-(zPhys[numConfDims + d] - velBulkOrd[confMu][d]) *
-				 (zPhys[numConfDims + d] - velBulkOrd[confMu][d]) /
+		  maxwellian = maxwellian / math.sqrt(2*math.pi *
+							 velTherm2Ord[confMu]) *
+		     math.exp(-(zPhys[numConfDims+d]-velBulkOrd[confMu][d]) *
+				 (zPhys[numConfDims+d]-velBulkOrd[confMu][d]) /
 				 (2 * velTherm2Ord[confMu]))
 	       end
 	       -- Project the Maxwellian on basis
 	       for k = 1, numPhaseBasis do
 		  maxwellianModal[k] = maxwellianModal[k] +
-		     self._phaseWeights[phaseMu] * maxwellian * self._phaseBasisAtOrdinates[phaseMu][k]
+		     self._phaseWeights[phaseMu] * maxwellian * 
+		     self._phaseBasisAtOrdinates[phaseMu][k]
 	       end
 	    end
 	    -- Modify the solution with BGK collisions
 	    for k = 1, numPhaseBasis do
-	       fItr[k] = fItr[k] + self._cfl * dt * nu(1, 1) *
+	       fItr[k] = fItr[k] + dt * nu(1, 1) * -- FIX collision frequency!
 		  (maxwellianModal[k] - fItr[k])
 	    end
 	 end
-	 self._tmProjectMaxwell = self._tmProjectMaxwell + Time.clock() - tmProjectMaxwellStart
+	 self._tmProjectMaxwell = self._tmProjectMaxwell + Time.clock() - 
+	    tmProjectMaxwellStart
       end
    end
    return true, GKYL_MAX_DOUBLE
