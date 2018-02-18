@@ -295,6 +295,116 @@ function EmField:energyCalcTime()
    return self.emEnergyCalc.totalTime
 end
 
+-- FuncField ---------------------------------------------------------------------
+--
+-- A field object with EM fields specified as a time-dependent function
+--------------------------------------------------------------------------------
+
+local FuncField = Proto()
+
+-- methods for no field object
+function FuncField:init(tbl)
+   self.tbl = tbl
+end
+
+function FuncField:fullInit(vlasovTbl)
+   local tbl = self.tbl -- previously store table
+
+   self.ioMethod = "MPI"
+   self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
+
+   -- create triggers to write fields
+   if tbl.nFrame then
+      self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nFrame)
+   else
+      self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, vlasovTbl.nFrame)
+   end
+
+   self.ioFrame = 0 -- frame number for IO
+   
+   -- store function to compute EM field
+   self.emFunc = tbl.emFunc
+end
+
+function FuncField:hasEB()
+   return true, true
+end
+
+function FuncField:setCfl() end
+function FuncField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+function FuncField:setBasis(basis) self.basis = basis end
+function FuncField:setGrid(grid) self.grid = grid end
+
+function FuncField:alloc(nField)
+   -- allocate fields needed in RK update
+   self.em = {}
+   for i = 1, nField do
+      self.em[i] = DataStruct.Field {
+	 onGrid = self.grid,
+	 numComponents = 8*self.basis:numBasis(),
+	 ghost = {1, 1}
+      }
+   end
+      
+   -- create Adios object for field I/O
+   self.fieldIo = AdiosCartFieldIo {
+      elemType = self.em[1]:elemType(),
+      method = self.ioMethod,
+   }   
+end
+
+function FuncField:createSolver()
+   self.fieldSlvr = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = self.emFunc
+   }
+end
+
+function FuncField:createDiagnostics()
+end
+
+function FuncField:initField()
+   self.fieldSlvr:advance(0.0, 0.0, {}, {self.em[1]})
+   self:applyBc(0.0, 0.0, self.em[1])
+end
+
+function FuncField:write(tm)
+   if self.evolve then
+      if self.ioTrigger(tm) then
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+	 
+	 self.ioFrame = self.ioFrame+1
+      end
+   else
+      -- if not evolving species, don't write anything except initial conditions
+      if self.ioFrame == 0 then
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+      end
+      self.ioFrame = self.ioFrame+1
+   end
+end
+
+function FuncField:rkStepperFields()
+   return self.em
+end
+
+function FuncField:forwardEuler(tCurr, dt, momIn, emIn, emOut)
+   self.fieldSlvr:advance(tCurr, dt, {}, {emOut})
+   return true, GKYL_MAX_DOUBLE
+end
+
+function FuncField:applyBc(tCurr, dt, emIn)
+   emIn:sync()
+end
+
+function FuncField:totalSolverTime()
+   return self.fieldSlvr.totalTime
+end
+
+function FuncField:totalBcTime() return 0.0 end
+function FuncField:energyCalcTime() return 0.0 end
+
 -- NoField ---------------------------------------------------------------------
 --
 -- Represents no field (nothing is evolved or stored)
