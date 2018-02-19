@@ -513,6 +513,8 @@ end
 return {
    App = App,
    Species = Species,
-   BgkCollisions = Collisions.BgkCollisions,
+   BgkCollisions = Collisions.BgkCollisions,   
    EmField = Field.EmField,
+   NoField = Field.NoField,
+   FuncField = Field.FuncField,
 }

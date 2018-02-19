@@ -341,7 +341,7 @@ function FuncField:alloc(nField)
    for i = 1, nField do
       self.em[i] = DataStruct.Field {
 	 onGrid = self.grid,
-	 numComponents = 8*self.basis:numBasis(),
+	 numComponents = 6*self.basis:numBasis(),
 	 ghost = {1, 1}
       }
    end
@@ -390,7 +390,9 @@ function FuncField:rkStepperFields()
 end
 
 function FuncField:forwardEuler(tCurr, dt, momIn, emIn, emOut)
-   self.fieldSlvr:advance(tCurr, dt, {}, {emOut})
+   if self.evolve then
+      self.fieldSlvr:advance(tCurr, dt, {}, {emOut})
+   end
    return true, GKYL_MAX_DOUBLE
 end
 
@@ -434,5 +436,6 @@ function NoField:energyCalcTime() return 0.0 end
 
 return {
    EmField = EmField,
+   FuncField = FuncField,
    NoField = NoField,
 }
