@@ -251,7 +251,7 @@ local function buildApplication(self, tbl)
    end
 
    -- function to take a single forward-euler time-step
-   local function fowardEuler(tCurr, dt, inIdx, outIdx)
+   local function forwardEuler(tCurr, dt, inIdx, outIdx)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       clearMomCouplingFields()
       -- update species
@@ -331,7 +331,7 @@ local function buildApplication(self, tbl)
    -- function to advance solution using RK1 scheme (UNSTABLE! Only for testing)
    function timeSteppers.rk1(tCurr, dt)
       local status, dtSuggested
-      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
       copy1(2, 1)
 
@@ -342,11 +342,11 @@ local function buildApplication(self, tbl)
    function timeSteppers.rk2(tCurr, dt)
       local status, dtSuggested
       -- RK stage 1
-      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
 
       -- RK stage 2
-      status, dtSuggested = fowardEuler(tCurr+dt, dt, 2, 3)
+      status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       combine2(1.0/2.0, 1, 1.0/2.0, 3, 2)
       copy1(2, 1)
@@ -358,16 +358,16 @@ local function buildApplication(self, tbl)
    function timeSteppers.rk3(tCurr, dt)
       local status, dtSuggested
       -- RK stage 1
-      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
 
       -- RK stage 2
-      status, dtSuggested = fowardEuler(tCurr+dt, dt, 2, 3)
+      status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       combine2(3.0/4.0, 1, 1.0/4.0, 3, 2)
 
       -- RK stage 3
-      status, dtSuggested = fowardEuler(tCurr+dt/2, dt, 2, 3)
+      status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 2, 3)
       if status == false then return status, dtSuggested end
       combine2(1.0/3.0, 1, 2.0/3.0, 3, 2)
       copy1(2, 1)
@@ -379,22 +379,22 @@ local function buildApplication(self, tbl)
    function timeSteppers.rk3s4(tCurr, dt)
       local status, dtSuggested
       -- RK stage 1
-      status, dtSuggested = fowardEuler(tCurr, dt, 1, 2)
+      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
       combine2(1.0/2.0, 1, 1.0/2.0, 2, 3)
 
       -- RK stage 2
-      status, dtSuggested = fowardEuler(tCurr+dt/2, dt, 3, 4)
+      status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 3, 4)
       if status == false then return status, dtSuggested end
       combine2(1.0/2.0, 3, 1.0/2.0, 4, 2)
 
       -- RK stage 3
-      status, dtSuggested = fowardEuler(tCurr+dt, dt, 2, 3)
+      status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       combine3(2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3, 4)
 
       -- RK stage 4
-      status, dtSuggested = fowardEuler(tCurr+dt/2, dt, 4, 3)
+      status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 4, 3)
       if status == false then return status, dtSuggested end
       combine2(1.0/2.0, 4, 1.0/2.0, 3, 1)
 
