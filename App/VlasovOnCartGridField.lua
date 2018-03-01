@@ -323,7 +323,10 @@ function FuncField:fullInit(vlasovTbl)
    self.ioFrame = 0 -- frame number for IO
    
    -- store function to compute EM field
-   self.emFunc = tbl.emFunc
+   self.emFunc = function (t, xn)
+      local ex, ey, ez, bx, by, bz = tbl.emFunc(t, xn)
+      return ex, ey, ez, bx, by, bz, 0.0, 0.0
+   end
 end
 
 function FuncField:hasEB()
@@ -337,18 +340,15 @@ function FuncField:setGrid(grid) self.grid = grid end
 
 function FuncField:alloc(nField)
    -- allocate fields needed in RK update
-   self.em = {}
-   for i = 1, nField do
-      self.em[i] = DataStruct.Field {
-	 onGrid = self.grid,
-	 numComponents = 6*self.basis:numBasis(),
-	 ghost = {1, 1}
-      }
-   end
+   self.em = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = 8*self.basis:numBasis(),
+      ghost = {1, 1}
+   }
       
    -- create Adios object for field I/O
    self.fieldIo = AdiosCartFieldIo {
-      elemType = self.em[1]:elemType(),
+      elemType = self.em:elemType(),
       method = self.ioMethod,
    }   
 end
@@ -365,28 +365,28 @@ function FuncField:createDiagnostics()
 end
 
 function FuncField:initField()
-   self.fieldSlvr:advance(0.0, 0.0, {}, {self.em[1]})
-   self:applyBc(0.0, 0.0, self.em[1])
+   self.fieldSlvr:advance(0.0, 0.0, {}, {self.em})
+   self:applyBc(0.0, 0.0, self.em)
 end
 
 function FuncField:write(tm)
    if self.evolve then
       if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm)
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm)
       end
       self.ioFrame = self.ioFrame+1
    end
 end
 
 function FuncField:rkStepperFields()
-   return self.em
+   return { self.em, self.em, self.em, self.em }
 end
 
 function FuncField:forwardEuler(tCurr, dt, momIn, emIn, emOut)

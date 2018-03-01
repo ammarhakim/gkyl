@@ -180,44 +180,58 @@ local function buildApplication(self, tbl)
       end
    end
 
+   local function completeFieldSetup(fld)
+      fld:fullInit(tbl) -- complete initialization
+      fld:setIoMethod(ioMethod)
+      fld:setBasis(confBasis)
+      fld:setGrid(grid)
+      do
+	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+	 cflMin = math.min(cflMin, myCfl)
+	 fld:setCfl(myCfl)
+      end
+      log(string.format("Using CFL number %g\n", cflMin))
+      
+      -- allocate field data
+      fld:alloc(stepperNumFields[timeStepperNm])
+
+      -- initialize field solvers and diagnostics
+      fld:createSolver()
+      fld:createDiagnostics()
+   end
+
    -- setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles)
    local field = tbl.field and tbl.field or Field.NoField {}
-   field:fullInit(tbl) -- complete initialization
-   field:setIoMethod(ioMethod)
-   field:setBasis(confBasis)
-   field:setGrid(grid)
-   do
-      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
-      cflMin = math.min(cflMin, myCfl)
-      field:setCfl(myCfl)
+   completeFieldSetup(field)
+
+   -- setup information about functional fields
+   if tbl.funcField then
+      assert(Field.FuncField.is(tbl.funcField), "VlasovOnCartGrid: funcField must be of Vlasov.FuncField")
    end
-   log(string.format("Using CFL number %g\n", cflMin))
-
-   -- allocate field data
-   field:alloc(stepperNumFields[timeStepperNm])
-
+   local funcField = tbl.funcField and tbl.funcField or Field.NoField {}
+   completeFieldSetup(funcField)
+   
    -- initialize species solvers and diagnostics
    for _, s in pairs(species) do
       local hasE, hasB = field:hasEB()
-      s:createSolver(hasE, hasB)
+      local funcHasE, funcHasB = funcField:hasEB()
+      s:createSolver(hasE or funcHasE, hasB or funcHasB)
       s:createDiagnostics()
    end
-
-   -- initialize field solvers and diagnostics
-   field:createSolver()
-   field:createDiagnostics()
 
    -- initialize species distributions and field
    for _, s in pairs(species) do
       s:initDist()
    end
    field:initField()
+   funcField:initField()
 
    -- function to write data to file
    local function writeData(tCurr)
       for _, s in pairs(species) do s:write(tCurr) end
       field:write(tCurr)
+      funcField:write(tCurr)
    end
 
    writeData(0.0) -- write initial conditions
@@ -229,6 +243,7 @@ local function buildApplication(self, tbl)
    end
    -- store fields from EM field for RK time-stepper
    local emRkFields = field:rkStepperFields()
+   local emRkFuncFields = funcField:rkStepperFields()
 
    local momCouplingFields = {}
    -- store fields needed in coupling particles and fields (only a
@@ -254,10 +269,24 @@ local function buildApplication(self, tbl)
    local function forwardEuler(tCurr, dt, inIdx, outIdx)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       clearMomCouplingFields()
+
+      local totalEmField = nil -- pointer to total EM field
+      -- compute functional field (if any)
+      funcField:forwardEuler(tCurr, dt, nil, nil, emRkFuncFields[1])
+      -- accumulate into it the Maxwell field (if needed)
+      if emRkFuncFields[1] then
+	 if emRkFields[inIdx] then
+	    emRkFuncFields[1]:accumulate(1.0, emRkFields[inIdx])
+	 end
+	 totalEmField = emRkFuncFields[1]
+      else
+	 totalEmField = emRkFields[inIdx]
+      end
+      
       -- update species
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
-	    tCurr, dt, speciesRkFields[nm][inIdx], emRkFields[inIdx], speciesRkFields[nm][outIdx])
+	    tCurr, dt, speciesRkFields[nm][inIdx], totalEmField, speciesRkFields[nm][outIdx])
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
@@ -275,11 +304,11 @@ local function buildApplication(self, tbl)
       end
       --update species with collisions
       for _, c in pairs(collisions) do
-	 local myStatus, myDtSuggested = c:forwardEuler(tCurr, dt, inIdx,
-							outIdx, species)
+	 local myStatus, myDtSuggested = c:forwardEuler(
+	    tCurr, dt, inIdx, outIdx, species)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 -- Apply BC
+	 -- apply BC
 	 for _, nm in ipairs(c.speciesList) do
 	    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
 	 end
@@ -487,6 +516,7 @@ local function buildApplication(self, tbl)
       log(string.format("Vlasov solver BCs took %g sec\n", tmVlasovBc))
       log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
       log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))
+      log(string.format("Function field solver took %g sec\n", funcField:totalSolverTime()))
       log(string.format("Moment calculations took %g sec\n", tmVlasovMom))
       log(string.format("Integrated moment calculations took %g sec\n", tmVlasovIntMom))
       log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))

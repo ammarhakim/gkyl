@@ -136,6 +136,17 @@ calcStiffMatrix(v, vars, basis) := block([n, stiff],
 	        return (stiff)
 )$
 
+/** Function to compute (part of) stiffness matrix */
+calcWeightedStiffMatrix(v, vars, w, basis) := block([n, stiff],
+                n : length(basis),
+		stiff : (stiff : zeromatrix(n,n), for i from 1 thru n
+		          do (for j from 1 thru n
+			    do (stiff[i,j] : innerProd(vars, w, diff(basis[i],v), diff(basis[j],v))
+                               )),
+	                  stiff),
+	        return (stiff)
+)$
+
 /* Compute mass matrix, i.e M_ij = <w phi_i phi_j> */
 calcCrossMassMatrix(varsC, basisC, varsP, basisP, w) := block([nC, nP, mass],
                 nC : length(basisC),
