@@ -21,10 +21,13 @@ double take_last(const double &in,const double &b) { return b; }
 
 FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_, 
                        double dx_, double dy_, bool periodicFlgs_[2], 
-                       bcdata_t bc_[2][2], bool writeMatrix_) 
+                       bcdata_t bc_[2][2], bool writeMatrix_,
+                       double laplacianWeight_, double modifierConstant_) 
   : nx(nx_), ny(ny_), ndim(ndim_), 
     polyOrder(polyOrder_), dx(dx_), dy(dy_), 
-    writeMatrix(writeMatrix_)
+    writeMatrix(writeMatrix_),
+    laplacianWeight(laplacianWeight_),
+    modifierConstant(modifierConstant_)
 {
 //#define DMSG(s) std::cout << s << std::endl;
 #define DMSG(s) ;
@@ -126,6 +129,8 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
     saveMarket(localMass, outName);
   }
   localMassModToNod *= 0.25*dx*dy;
+
+  localMass.resize(0,0);
 }
 
 FemPerpPoisson::~FemPerpPoisson() 
@@ -295,12 +300,14 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(
   int nonzeros = nlocal*(std::pow(2.0, 1.0*2)+1); // estimate number of nonzeros per row
 
   MatrixXd localStiff = MatrixXd::Zero(nlocal, nlocal);
+  MatrixXd localMass = MatrixXd::Zero(nlocal, nlocal);
 
   std::vector<int> lgMap(nlocal);
   std::vector<Triplet<double> > tripletList, identityTripletList;
   tripletList.reserve(nonzeros*nglobal); // estimate number of nonzero elements
 
   getPerpStiffnessMatrix(localStiff, ndim_in, polyOrder_in, dx, dy);
+  getMassMatrix(localMass, ndim_in, polyOrder_in);
 
   // loop over global region
   for(int idy=0; idy<ny; idy++) {
@@ -311,7 +318,7 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(
       for (unsigned k=0; k<nlocal; ++k)
       {
         for (unsigned m=0; m<nlocal; ++m) {
-          double val = -localStiff(k,m);
+          double val = -laplacianWeight*localStiff(k,m) + modifierConstant*localMass(k,m);
           unsigned globalIdx_k = lgMap[k];
           unsigned globalIdx_m = lgMap[m];
 
@@ -779,8 +786,6 @@ int FemPerpPoisson::getNumLocalNodes(int ndim, int p)
 void FemPerpPoisson::getPerpLocalToGlobalInteriorBLRT(std::vector<int>& lgMap, int ix, int iy, int nx, int ny, int ndim, int polyOrder, bool periodicFlgs[2])
 {
   int ninterior = (2*polyOrder-1)*nx*ny-polyOrder*(nx+ny)+1;
-  bool x_periodic = periodicFlgs[0];
-  bool y_periodic = periodicFlgs[1];
 
   if(ndim==2) {
     if (polyOrder == 1)
@@ -1016,9 +1021,9 @@ void FemPerpPoisson::getNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyO
 }
 
 // C wrappers for interfacing with FemPerpPoisson class
-extern "C" void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix)
+extern "C" void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant)
 {
-  FemPerpPoisson *f = new FemPerpPoisson(nx, ny, ndim, polyOrder, dx, dy, periodicFlgs, bc, writeMatrix);
+  FemPerpPoisson *f = new FemPerpPoisson(nx, ny, ndim, polyOrder, dx, dy, periodicFlgs, bc, writeMatrix, laplacianWeight, modifierConstant);
   return reinterpret_cast<void*>(f);
 }
 

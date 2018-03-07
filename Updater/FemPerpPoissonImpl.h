@@ -35,7 +35,7 @@ extern "C" {
   } bcdata_t;
 
 // C wrappers for interfacing with FemPerpPoisson class
-  void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix);
+  void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
   void delete_FemPerpPoisson(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc(FemPerpPoisson* f);
@@ -48,7 +48,8 @@ class FemPerpPoisson
  public:
   FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, 
              double dx, double dy, bool periodicFlgs[2],
-             bcdata_t bc[2][2], bool writeMatrix) ;
+             bcdata_t bc[2][2], bool writeMatrix,
+             double laplacianWeight, double modifierConstant) ;
   ~FemPerpPoisson();
   void createGlobalSrc(double* ptr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc();
@@ -60,6 +61,7 @@ class FemPerpPoisson
   const int nx, ny, ndim, polyOrder;
   const double dx, dy;
   const bool writeMatrix;
+  const double laplacianWeight, modifierConstant;
   bcdata_t bc[2][2], bc2d[2][2], bc2d_z0[2][2];
   bool periodicFlgs[2];
   bool allPeriodic;

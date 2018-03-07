@@ -24,12 +24,12 @@ def check_mpi(conf):
     if conf.options.mpiIncDir:
         conf.env.INCLUDES_MPI = conf.options.mpiIncDir
     else:
-        conf.env.INCLUDES_MPI = conf.options.gkylDepsDir+"/openmpi/include"
+        conf.env.INCLUDES_MPI = conf.options.gkylDepsDir+"/openmpi-3.0.0/include"
 
     if conf.options.mpiLibDir:
         conf.env.LIBPATH_MPI = conf.options.mpiLibDir
     else:
-        conf.env.LIBPATH_MPI = conf.options.gkylDepsDir+"/openmpi/lib"
+        conf.env.LIBPATH_MPI = conf.options.gkylDepsDir+"/openmpi-3.0.0/lib"
 
     libList = conf.options.mpiLinkLibs
     conf.env.LIB_MPI = libList.split(',')
