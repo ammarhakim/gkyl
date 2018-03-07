@@ -146,6 +146,9 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
       end
    end
 
+   -- set id of output to id of projection basis
+   qOut:setBasisId(self._basis:id())
+
    self._isFirst = false
    return true, GKYL_MAX_DOUBLE
 end

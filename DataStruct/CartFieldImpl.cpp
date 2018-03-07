@@ -23,4 +23,8 @@ void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) {
     out[n] *= fact;
 }
 
+void gkylCartFieldAbs(unsigned s, unsigned nv, double *out) {
+  for (unsigned n=s; n<(s+nv); ++n)
+    out[n] = fabs(out[n]);
+}
 

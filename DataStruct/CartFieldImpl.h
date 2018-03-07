@@ -13,6 +13,7 @@ extern "C" {
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
+    void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
 
     // ncopy: number of components to copy (size of cInp and cOut arrays)
     // ncInp: number of components in input field. cInp: list of components to copy from

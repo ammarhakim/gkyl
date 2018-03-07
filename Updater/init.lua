@@ -17,6 +17,7 @@ local HyperDisCont = require "Updater.HyperDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local VlasovDisCont = require "Updater.VlasovDisCont"
 local WavePropagation = require "Updater.WavePropagation"
+local FemPerpPoisson = require "Updater.FemPerpPoisson"
 
 return {
    Bc = Bc,
@@ -30,4 +31,5 @@ return {
    ProjectOnBasis = ProjectOnBasis,
    VlasovDisCont = VlasovDisCont,   
    WavePropagation = WavePropagation,
+   FemPerpPoisson = FemPerpPoisson,
 }

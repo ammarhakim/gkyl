@@ -12,6 +12,8 @@ def options(opt):
                    default='-O3,-Wall,-std=c++14,-march=native')
     opt.add_option('--cflags', type='string', help='Compiler flags', dest='gkcflags',
                    default='-O3,-Wall,-march=native')
+    opt.add_option('--debug', help='Debug flags', dest='gkdebug',
+                   action='store_true', default=False)
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
                    default=os.path.expandvars('$HOME/gkylsoft/gkyl'))
 
@@ -26,6 +28,11 @@ def check_gkyl(conf):
 
     conf.env.append_value('CXXFLAGS', conf.options.gkcxxflags.split(','))
     conf.env.append_value('CFLAGS', conf.options.gkcflags.split(','))
+    conf.env.append_value('LDFLAGS', conf.options.gkcflags.split(','))
+    if conf.options.gkdebug:
+      conf.env.append_value('CXXFLAGS', '-g')
+      conf.env.append_value('CFLAGS', '-g')
+     
     conf.start_msg("Checking if CXXFLAGS work")
     conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
     conf.end_msg("Flags work (%s)" % conf.options.gkcxxflags)

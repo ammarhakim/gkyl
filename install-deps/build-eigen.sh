@@ -6,11 +6,11 @@ source ./build-opts.sh
 PREFIX=$GKYLSOFT/eigen-3.3.4
 
 # delete old checkout and builds
-rm -rf 3.3.4.tar.bz2 eigen-eigen-*
+rm -rf eigen-3.3.4.tar* eigen-eigen-*
 
-curl -L http://bitbucket.org/eigen/eigen/get/3.3.4.tar.gz > 3.3.4.tar.gz
-gunzip 3.3.4.tar.gz
-tar -xvf 3.3.4.tar
+curl -L http://bitbucket.org/eigen/eigen/get/3.3.4.tar.gz > eigen-3.3.4.tar.gz
+gunzip eigen-3.3.4.tar.gz
+tar -xvf eigen-3.3.4.tar
 
 cd eigen-eigen-*
 mkdir build-dir; cd build-dir
