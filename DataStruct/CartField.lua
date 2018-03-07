@@ -26,6 +26,7 @@ ffi.cdef [[
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
+    void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
 ]]
 
 -- Local definitions
@@ -257,6 +258,8 @@ local function Field_meta_ctor(elct)
       -- create IO object
       self._adiosIo = AdiosCartFieldIo { elemType = elct }
 
+      self._basisId = "none"
+
       return self
    end
    setmetatable(Field, { __call = function (self, o) return self.new(self, o) end })
@@ -332,7 +335,14 @@ local function Field_meta_ctor(elct)
 	    ffi.C.gkylCartFieldScale(self:_localLower(), self:_localShape(), fact, self._data)
 	 end or
 	 function (self, fact)
-	    assert(false, "CartField:accumulate: Scale only works on numeric fields")
+	    assert(false, "CartField:scale: Scale only works on numeric fields")
+	 end,      
+      abs = isNumberType and
+         function (self)
+            ffi.C.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
+	 end or
+	 function (self, fact)
+	    assert(false, "CartField:abs: Abs only works on numeric fields")
 	 end,      
       defaultLayout = function (self)
 	 if defaultLayout == rowMajLayout then
@@ -402,6 +412,12 @@ local function Field_meta_ctor(elct)
 	 if self._syncPeriodicDirs then
 	    self._field_periodic_sync(self)
 	 end
+      end,
+      setBasisId = function(self, basisId)
+         self._basisId = basisId
+      end,
+      getBasisId = function(self)
+         return self._basisId
       end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()

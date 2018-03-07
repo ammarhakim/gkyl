@@ -34,6 +34,10 @@
 # include <adios.h>
 #endif
 
+#ifdef HAVE_EIGEN_CORE
+#include <Eigen/Core>
+#endif
+
 // Gkyl includes
 #include <lfs.h>
 #include <whereami.h>

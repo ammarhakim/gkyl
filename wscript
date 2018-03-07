@@ -1,4 +1,4 @@
-## -*- python -*-
+# -*- python -*-
 # Top-level build-script for Gkyl
 ##    _______     ___
 ## + 6 @ |||| # P ||| +
@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios',
+    opt.load('gkyl luajit mpi adios eigen',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -34,6 +34,7 @@ def configure(conf):
     conf.check_luajit()
     conf.check_mpi()
     conf.check_adios()
+    conf.check_eigen()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -158,7 +159,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
-        use='lib datastruct eq unit comm updater basis LUAJIT ADIOS MPI M DL',
+        use='lib datastruct eq unit comm updater basis LUAJIT ADIOS EIGEN MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'
