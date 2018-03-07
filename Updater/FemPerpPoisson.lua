@@ -32,7 +32,7 @@ ffi.cdef[[
           int iend[3];
       } bcdata_t;
   typedef struct FemPerpPoisson FemPerpPoisson;
-  FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix);
+  FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
   void delete_FemPerpPoisson(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc(FemPerpPoisson* f);
@@ -125,6 +125,16 @@ function FemPerpPoisson:init(tbl)
      end
    end
 
+   self._modifierConstant=0.0
+   if tbl.modifierConstant then
+     self._modifierConstant = tbl.modifierConstant
+   end
+
+   self._laplacianWeight=1.0
+   if tbl.laplacianWeight then
+     self._laplacianWeight = tbl.laplacianWeight
+   end
+
    self._nx = self._onGrid:numCells(1)
    self._ny = self._onGrid:numCells(2)
    self._p = self._basis:polyOrder()
@@ -134,7 +144,10 @@ function FemPerpPoisson:init(tbl)
    assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
    assert(self._ndim == 2 or self._ndim == 3, "This solver only implemented for 2D or 3D (with no solve in 3rd dimension)")
 
-   self._poisson = ffi.C.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, self._dx, self._dy, self._isDirPeriodic, self._bc, self._writeMatrix)
+   self._poisson = ffi.C.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
+                                            self._dx, self._dy, self._isDirPeriodic, 
+                                            self._bc, self._writeMatrix,
+                                            self._laplacianWeight, self._modifierConstant)
 
    return self
 end
@@ -189,7 +202,6 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
 
    -- loop over local z cells
    for idz=local_z_lower, local_z_upper do
-     --local t1 = os.clock()
      -- zero global source
      ffi.C.zeroGlobalSrc(self._poisson)
 
