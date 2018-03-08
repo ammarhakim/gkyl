@@ -12,3 +12,4 @@ install-deps/openmpi*
 install-deps/build-opts.sh
 */*.pyc
 Unit/*.bp
+*/*.bp

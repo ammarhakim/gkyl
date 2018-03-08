@@ -245,6 +245,10 @@ local function buildApplication(self, tbl)
    local emRkFields = field:rkStepperFields()
    local emRkFuncFields = funcField:rkStepperFields()
 
+   -- determine if field equations are elliptic 
+   local ellipticFieldEqn = false
+   if field.isElliptic ~= nil then ellipticFieldEqn = field.isElliptic end
+
    local momCouplingFields = {}
    -- store fields needed in coupling particles and fields (only a
    -- single set is needed)
@@ -266,8 +270,9 @@ local function buildApplication(self, tbl)
    end
 
    -- function to take a single forward-euler time-step
-   local function forwardEuler(tCurr, dt, inIdx, outIdx)
+   local function forwardEuler(tCurr, dt, inIdx, outIdx, evolveSpecies)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      local evolveSpecies = evolveSpecies==nil or evolveSpecies==true -- defaults to true
       clearMomCouplingFields()
 
       local totalEmField = nil -- pointer to total EM field
@@ -285,12 +290,14 @@ local function buildApplication(self, tbl)
       
       -- update species
       for nm, s in pairs(species) do
-	 local myStatus, myDtSuggested = s:forwardEuler(
-	    tCurr, dt, speciesRkFields[nm][inIdx], totalEmField, speciesRkFields[nm][outIdx])
+         if evolveSpecies then
+	    local myStatus, myDtSuggested = s:forwardEuler(
+	       tCurr, dt, speciesRkFields[nm][inIdx], totalEmField, speciesRkFields[nm][outIdx])
 
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+	    status = status and myStatus
+	    dtSuggested = math.min(dtSuggested, myDtSuggested)
+	    s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+         end
 
 	 -- compute moments needed in coupling with fields and
 	 -- collisions (the species should update internal
@@ -329,7 +336,7 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:copy(speciesRkFields[nm][aIdx])
       end
-      if emRkFields[aIdx] then -- only increment EM fields if there are any
+      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
 	 emRkFields[outIdx]:copy(emRkFields[aIdx])
       end
    end
@@ -337,7 +344,7 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
       end
-      if emRkFields[aIdx] then -- only increment EM fields if there are any
+      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
 	 emRkFields[outIdx]:combine(a, emRkFields[aIdx], b, emRkFields[bIdx])
       end
    end
@@ -346,7 +353,7 @@ local function buildApplication(self, tbl)
 	 speciesRkFields[nm][outIdx]:combine(
 	    a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx], c, speciesRkFields[nm][cIdx])
       end
-      if emRkFields[aIdx] then -- only increment EM fields if there are any
+      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
 	 emRkFields[outIdx]:combine(
 	    a, emRkFields[aIdx], b, emRkFields[bIdx], c, emRkFields[cIdx])
       end
@@ -363,6 +370,9 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
       copy1(2, 1)
+      if ellipticFieldEqn then -- calculate final fields if field equation is elliptic
+        status, dtSuggested = forwardEuler(tCurr, dt, 2, 1, false)
+      end
 
       return status, dtSuggested 
    end
@@ -379,6 +389,9 @@ local function buildApplication(self, tbl)
       if status == false then return status, dtSuggested end
       combine2(1.0/2.0, 1, 1.0/2.0, 3, 2)
       copy1(2, 1)
+      if ellipticFieldEqn then -- calculate final fields if field equation is elliptic
+        status, dtSuggested = forwardEuler(tCurr, dt, 2, 1, false)
+      end
 
       return status, dtSuggested
    end
@@ -400,6 +413,9 @@ local function buildApplication(self, tbl)
       if status == false then return status, dtSuggested end
       combine2(1.0/3.0, 1, 2.0/3.0, 3, 2)
       copy1(2, 1)
+      if ellipticFieldEqn then -- calculate final fields if field equation is elliptic
+        status, dtSuggested = forwardEuler(tCurr, dt, 2, 1, false)
+      end
 
       return status, dtSuggested
    end
@@ -426,6 +442,10 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 4, 3)
       if status == false then return status, dtSuggested end
       combine2(1.0/2.0, 4, 1.0/2.0, 3, 1)
+      if ellipticFieldEqn then -- calculate final fields if field equation is elliptic
+        status, dtSuggested = forwardEuler(tCurr, dt, 1, 2, false)
+        emRkFields[1]:copy(emRkFields[2])
+      end
 
       return status, dtSuggested
    end
@@ -545,6 +565,7 @@ return {
    Species = Species,
    BgkCollisions = Collisions.BgkCollisions,   
    EmField = Field.EmField,
+   GkField = Field.GkField,
    NoField = Field.NoField,
    FuncField = Field.FuncField,
 }
