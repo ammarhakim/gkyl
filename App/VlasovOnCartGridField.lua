@@ -114,6 +114,7 @@ end
 -- methods for EM field object
 function EmField:hasEB() return true, self.hasMagField end
 function EmField:setCfl(cfl) self.cfl = cfl end
+function EmField:getCfl() return self.cfl end
 function EmField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function EmField:setBasis(basis) self.basis = basis end
 function EmField:setGrid(grid) self.grid = grid end
@@ -453,7 +454,7 @@ function GkField:fullInit(vlasovTbl)
    if tbl.aparBcRight then self.aparBcRight = tbl.aparBcRight end
    if tbl.aparBcBottom then self.aparBcBottom = tbl.aparBcBottom end
    if tbl.aparBcTop then self.aparBcTop = tbl.aparBcTop end
-   if vlasovTbl.periodicDirs then self.periodicDirs = vlasovTbl.periodicDirs
+   if vlasovTbl.periodicDirs then self.periodicDirs = vlasovTbl.periodicDirs end
 
    -- for storing integrated energies
    self.elecEnergy = DataStruct.DynVector { numComponents = 1 }
@@ -528,6 +529,9 @@ function GkField:createSolver()
       numComponents = 1,
       quantity = "V2"
    }
+
+   -- need to set this flag so that field calculated self-consistently at end of full RK timestep
+   self.isElliptic = true
 end
 
 function GkField:createDiagnostics()
@@ -557,6 +561,7 @@ function GkField:write(tm)
 	 self.fieldIo:write(self.potentials[1][1], string.format("phi_%d.bp", self.ioFrame), tm)
          if self.isElectromagnetic then 
 	   self.fieldIo:write(self.potentials[1][2], string.format("apar_%d.bp", self.ioFrame), tm)
+         end
       end
       self.ioFrame = self.ioFrame+1
    end
