@@ -407,6 +407,202 @@ end
 function FuncField:totalBcTime() return 0.0 end
 function FuncField:energyCalcTime() return 0.0 end
 
+-- GkField ---------------------------------------------------------------------
+--
+-- Gyrokinetic fields phi and apar, solved by Poisson and Ampere equations
+--------------------------------------------------------------------------------
+
+local GkField = Proto()
+
+-- this ctor simply stores what is passed to it and defers actual
+-- construction to the fullInit() method below
+function GkField:init(tbl)
+   self.tbl = tbl
+end
+
+-- Actual function for initialization. This indirection is needed as
+-- we need the app top-level table for proper initialization
+function GkField:fullInit(vlasovTbl)
+   local tbl = self.tbl -- previously store table
+   
+   self.ioMethod = "MPI"
+   self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
+
+   self.isElectromagnetic = xsys.pickBool(tbl.isElectromagnetic, false) -- electrostatic by default 
+   self.nPotentials = 1
+   if self.isElectromagnetic then self.nPotentials = 2 end
+
+   self.lightSpeed = tbl.lightSpeed
+
+   -- create triggers to write fields
+   if tbl.nFrame then
+      self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, tbl.nFrame)
+   else
+      self.ioTrigger = LinearTrigger(0, vlasovTbl.tEnd, vlasovTbl.nFrame)
+   end
+
+   self.ioFrame = 0 -- frame number for IO
+
+   -- get boundary condition settings
+   -- these will be checked for consistency when the solver is initialized
+   if tbl.phiBcLeft then self.phiBcLeft = tbl.phiBcLeft end
+   if tbl.phiBcRight then self.phiBcRight = tbl.phiBcRight end
+   if tbl.phiBcBottom then self.phiBcBottom = tbl.phiBcBottom end
+   if tbl.phiBcTop then self.phiBcTop = tbl.phiBcTop end
+   if tbl.aparBcLeft then self.aparBcLeft = tbl.aparBcLeft end
+   if tbl.aparBcRight then self.aparBcRight = tbl.aparBcRight end
+   if tbl.aparBcBottom then self.aparBcBottom = tbl.aparBcBottom end
+   if tbl.aparBcTop then self.aparBcTop = tbl.aparBcTop end
+   if vlasovTbl.periodicDirs then self.periodicDirs = vlasovTbl.periodicDirs
+
+   -- for storing integrated energies
+   self.elecEnergy = DataStruct.DynVector { numComponents = 1 }
+   self.magEnergy = DataStruct.DynVector { numComponents = 1 }
+
+   self.tmCurrentAccum = 0.0 -- time spent in current accumulate
+end
+
+-- methods for EM field object
+function GkField:hasEB() return true, self.isElectromagnetic end
+function GkField:setCfl() end
+function GkField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+function GkField:setBasis(basis) self.basis = basis end
+function GkField:setGrid(grid) self.grid = grid end
+
+function GkField:alloc(nRkFields)
+   -- allocate fields needed in RK update
+   -- nField is related to number of RK stages
+   self.potentials = {}
+   for i = 1, nRkFields do
+      self.potentials[i] = {}
+      for j = 1, self.nPotentials do
+         self.potentials[i][j] = DataStruct.Field {
+            onGrid = self.grid,
+            numComponents = self.basis:numBasis(),
+            ghost = {1, 1}
+         }
+      end
+   end
+      
+   -- create Adios object for field I/O
+   self.fieldIo = AdiosCartFieldIo {
+      elemType = self.potentials[1][1]:elemType(),
+      method = self.ioMethod,
+   }
+end
+
+-- initial fields will be solved for self-consistently 
+-- from initial distribution function
+function GkField:initField()
+end
+
+function GkField:rkStepperFields()
+   return self.potentials
+end
+
+function GkField:createSolver()
+   self.phiSlvr = Updater.FemPerpPoisson {
+     onGrid = self.grid,
+     basis = self.basis,
+     bcLeft = self.phiBcLeft,
+     bcRight = self.phiBcRight,
+     bcBottom = self.phiBcBottom,
+     bcTop = self.phiBcTop,
+     periodicDirs = self.periodicDirs,
+   }
+   if self.isElectromagnetic then
+     self.aparSlvr = Updater.FemPerpPoisson {
+       onGrid = self.grid,
+       basis = self.basis,
+       bcLeft = self.aparBcLeft,
+       bcRight = self.aparBcRight,
+       bcBottom = self.aparBcBottom,
+       bcTop = self.aparBcTop,
+       periodicDirs = self.periodicDirs,
+     }
+   end
+
+   self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.grid,
+      basis = self.basis,
+      numComponents = 1,
+      quantity = "V2"
+   }
+end
+
+function GkField:createDiagnostics()
+end
+
+function GkField:write(tm)
+   if self.evolve then
+      -- compute electostatic energy integrated over domain
+      self.energyCalc:advance(tm, 0.0, { self.potentials[1][1] }, { self.elecEnergy })
+      if self.isElectromagnetic then 
+        self.energyCalc:advance(tm, 0.0, { self.potentials[1][2] }, { self.magEnergy })
+      end
+      
+      if self.ioTrigger(tm) then
+	 self.fieldIo:write(self.potentials[1][1], string.format("phi_%d.bp", self.ioFrame), tm)
+         if self.isElectromagnetic then 
+	   self.fieldIo:write(self.potentials[1][2], string.format("apar_%d.bp", self.ioFrame), tm)
+         end
+	 self.elecEnergy:write(string.format("elecEnergy_%d.bp", self.ioFrame), tm)
+	 self.magEnergy:write(string.format("magEnergy_%d.bp", self.ioFrame), tm)
+	 
+	 self.ioFrame = self.ioFrame+1
+      end
+   else
+      -- if not evolving species, don't write anything except initial conditions
+      if self.ioFrame == 0 then
+	 self.fieldIo:write(self.potentials[1][1], string.format("phi_%d.bp", self.ioFrame), tm)
+         if self.isElectromagnetic then 
+	   self.fieldIo:write(self.potentials[1][2], string.format("apar_%d.bp", self.ioFrame), tm)
+      end
+      self.ioFrame = self.ioFrame+1
+   end
+end
+
+-- not needed for GK
+function GkField:accumulateCurrent(dt, current, em)
+end
+
+-- momIn[1] is the current density
+function GkField:forwardEuler(tCurr, dt, potIn, momIn, potOut)
+   if self.evolve then
+      local mys2 = true
+      local mydt2 = GKYL_MAX_DOUBLE
+      local mys, mydt = self.phiSlvr:advance(tCurr, dt, {momIn[1]}, {potOut[1]})
+      if self.isElectromagnetic then
+        mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {momIn[2]}, {potOut[2]})
+      end
+      return mys and mys2, math.min(mydt,mydt2)
+   else
+      -- just copy stuff over
+      for i=1,self.nPotentials do
+        potOut[i]:copy(potIn[i])
+      end
+      return true, GKYL_MAX_DOUBLE
+   end
+end
+
+function GkField:applyBc(tCurr, dt, potIn)
+   for i=1,self.nPotentials do
+     potIn[i].sync()
+   end
+end
+   
+function GkField:totalSolverTime()
+   return self.fieldSlvr.totalTime
+end
+
+function GkField:totalBcTime()
+   return 0.0
+end
+
+function GkField:energyCalcTime()
+   return self.energyCalc.totalTime
+end
+
 -- NoField ---------------------------------------------------------------------
 --
 -- Represents no field (nothing is evolved or stored)
@@ -437,5 +633,6 @@ function NoField:energyCalcTime() return 0.0 end
 return {
    EmField = EmField,
    FuncField = FuncField,
+   GkField = GkField,
    NoField = NoField,
 }
