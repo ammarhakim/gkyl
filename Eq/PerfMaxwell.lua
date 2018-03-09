@@ -166,11 +166,11 @@ function PerfMaxwell:maxSpeed(dir, w, dx, q)
    return self._maxc
 end       
 -- Volume integral term for use in DG scheme
-function PerfMaxwell:volTerm(w, dx, q, out)
+function PerfMaxwell:volTerm(w, dx, idx, q, out)
    self._volTerm(self._ceqn, w:data(), dx:data(), q:data(), out:data())
 end
 -- Surface integral term for use in DG scheme
-function PerfMaxwell:surfTerm(dir, w, dx, ql, qr, outl, outr)
+function PerfMaxwell:surfTerm(dir, w, dx, idxl, idxr, ql, qr, outl, outr)
    self._surfTerms[dir](self._ceqn, w:data(), dx:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
