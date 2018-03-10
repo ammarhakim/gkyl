@@ -161,7 +161,6 @@ function FemPerpPoisson:init(tbl)
      local zrank = 0
      if self._ndim==3 then zrank = math.floor(nodeRank/self._onGrid:cuts(1)/self._onGrid:cuts(2)) end
      self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
-     self._worldComm = worldComm
    end
 
    return self
@@ -235,7 +234,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
        end
      end
 
-     if GKYL_HAVE_MPI then --and Mpi.Comm_size(self._worldComm)>1 then
+     if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
        -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
        ffi.C.allreduceGlobalSrc(self._poisson, Mpi.getComm(self._zcomm))
      end

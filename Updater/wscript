@@ -112,4 +112,4 @@ def build(bld):
     FemPerpPoissonImpl.cpp
 
     """,
-    includes = '. vlasovData momentCalcData', use='EIGEN', target = 'updater')
+    includes = '. vlasovData momentCalcData', use='EIGEN MPI', target = 'updater')
