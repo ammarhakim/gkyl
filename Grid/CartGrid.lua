@@ -90,6 +90,8 @@ function RectCart:init(tbl)
       self._block = subDomIdx
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
+      self._cuts = {}
+      for i = 1, self._ndim do self._cuts[i] = decomp:cuts(i) end
    else
       -- create a dummy decomp and use it to set the grid
       local cuts = {}
@@ -98,6 +100,7 @@ function RectCart:init(tbl)
       self._commSet = dec1:commSet()
       self._decomposedRange = dec1:decompose(self._globalRange)
       self._block = 1
+      self._cuts = cuts
    end
 end
 
@@ -114,6 +117,7 @@ function RectCart:numCells(dir) return self._numCells[dir] end
 function RectCart:localRange() return self._localRange end
 function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
+function RectCart:cuts(dir) return self._cuts[dir] end
 function RectCart:setIndex(idx)
    for d = 1, self._ndim do
       self._currIdx[d] = idx[d]

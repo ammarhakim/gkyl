@@ -375,7 +375,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
                     local d1 = b/12 - 1/2
                     local t1 = (1-a*x^2)*(-b*y^4/12 + y^2/2 + d0*y + d1)
                     local t2 = (1-b*y^2)*(-a*x^4/12 + x^2/2 + c0*x + c1)
-                    return t1+t2
+                    return (z+1)*(t1+t2)
                  end
    }
    initSrcModal:advance(0.,0.,{},{srcModal})
@@ -391,13 +391,14 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
       evaluate = function (t,xn)
                     local x = xn[1]
                     local y = xn[2]
+                    local z = xn[3]
                     local a, b = 2, 5
                     local c1, d0 = 0, 0
                     local c0 = a/12 - 1/2
                     local d1 = b/12 - 1/2
                     local t1 = x^2/2-a*x^4/12+c0*x+c1
                     local t2 = y^2/2-b*y^4/12+d0*y+d1
-                    return t1*t2
+                    return (z+1)*t1*t2
                  end
    }
    initExactSolModal:advance(0.,0.,{},{exactSolModal})
@@ -422,9 +423,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
 
-   --phiModal:write("phi-solution-3d.bp", 0.0)
-   --exactSolModal:write("exact-solution-3d.bp", 0.0)
-   --err:write("error-3d.bp", 0.0)
+   phiModal:write("phi-solution-3d.bp", 0.0)
+   exactSolModal:write("exact-solution-3d.bp", 0.0)
+   err:write("error-3d.bp", 0.0)
   
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
      onGrid = grid,
@@ -578,9 +579,9 @@ end
 
 function test_solve3d_p1()
   print("--- Testing convergence of 3D solver with p=1 ---")
-  err1 = test_solve3d(32, 32, 1, 1)
-  err2 = test_solve3d(64, 64, 1, 1)
-  err3 = test_solve3d(128, 128, 1, 1)
+  err1 = test_solve3d(32, 32, 4, 1)
+  err2 = test_solve3d(64, 64, 4, 1)
+  err3 = test_solve3d(128, 128, 4, 1)
   print("Order:", err1/err2/4.0, err2/err3/4.0)
   assert_close(1.0, err1/err2/4.0, .01)
   assert_close(1.0, err2/err3/4.0, .01)
@@ -589,9 +590,9 @@ end
 
 function test_solve3d_p2()
   print("--- Testing convergence of 3D solver with p=2 ---")
-  err1 = test_solve3d(32, 32, 1, 2)
-  err2 = test_solve3d(64, 64, 1, 2)
-  err3 = test_solve3d(128, 128, 1, 2)
+  err1 = test_solve3d(32, 32, 4, 2)
+  err2 = test_solve3d(64, 64, 4, 2)
+  err3 = test_solve3d(128, 128, 4, 2)
   print("Order:", err1/err2/4.0, err2/err3/4.0)
   assert_close(1.0, err1/err2/4.0, .01)
   assert_close(1.0, err2/err3/4.0, .01)
@@ -644,30 +645,18 @@ end
 
 -- run tests
 local t1 = os.clock()
-local status, err = pcall(test_init_nonperiodic)
-if status==false then print(err.code) end
-local status, err = pcall(test_init_allperiodic)
-if status==false then print(err.code) end
-local status, err = pcall(test_init_someperiodic)
-if status==false then print(err.code) end
-local status, err = pcall(test_init_errorcheck)
-if status==false then print(err.code) end
-local status, err = pcall(test_solve2d_p1)
-if status==false then print(err.code) end
-local status, err = pcall(test_solve2d_p2)
-if status==false then print(err.code) end
-local status, err = pcall(test_solve3d_p1)
-if status==false then print(err.code) end
-local status, err = pcall(test_solve3d_p2)
-if status==false then print(err.code) end
-local status, err = pcall(test_periodic2d_p1)
-if status==false then print(err.code) end
-local status, err = pcall(test_periodic2d_p2)
-if status==false then print(err.code) end
-local status, err = pcall(test_periodic3d_p1)
-if status==false then print(err.code) end
-local status, err = pcall(test_periodic3d_p2)
-if status==false then print(err.code) end
+test_init_nonperiodic()
+test_init_allperiodic()
+test_init_someperiodic()
+test_init_errorcheck()
+test_solve2d_p1()
+test_solve2d_p2()
+test_solve3d_p1()
+test_solve3d_p2()
+test_periodic2d_p1()
+test_periodic2d_p2()
+test_periodic3d_p1()
+test_periodic3d_p2()
 local t2 = os.clock()
 
 print()

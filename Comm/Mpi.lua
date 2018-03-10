@@ -85,6 +85,7 @@ ffi.cdef [[
   int MPI_Comm_rank(MPI_Comm comm, int *rank);
   int MPI_Comm_size(MPI_Comm comm, int *size);
   int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);  
+  int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
   // Win & SHM calls
   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
@@ -244,7 +245,12 @@ function _M.Comm_dup(comm)
    local err = ffi.C.MPI_Comm_dup(getObj(comm, "MPI_Comm[1]"), c)
    return c
 end
-
+-- MPI_Comm_split
+function _M.Comm_split(comm, color, key)
+   local c = new_MPI_Comm()
+   local err = ffi.C.MPI_Comm_split(getObj(comm, "MPI_Comm[1]"), color, key, c)
+   return c
+end
 -- MPI_Comm_split_type
 function _M.Comm_split_type(comm, split_type, key, info)
    local c = new_MPI_Comm()

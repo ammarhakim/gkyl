@@ -5,7 +5,7 @@ build-*/*
 .waf*
 .lock-waf*
 install-deps/luajit*
-install-deps/eigen-eigen*
+install-deps/eigen-*
 install-deps/adios*
 install-deps/luarocks*
 install-deps/openmpi*

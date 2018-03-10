@@ -18,6 +18,13 @@ static const int LO = 0;
 static const int HI = 1;
 
 double take_last(const double &in,const double &b) { return b; }
+void vectorSum(double *in, double *inout, int *len, MPI_Datatype *dptr)
+{
+  int i;
+  for(i=0; i< *len; ++i) {
+    inout[i] += in[i];
+  }
+}
 
 FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_, 
                        double dx_, double dy_, bool periodicFlgs_[2], 
@@ -129,8 +136,20 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
     saveMarket(localMass, outName);
   }
   localMassModToNod *= 0.25*dx*dy;
-
   localMass.resize(0,0);
+
+  // create MPI type for globalSrc vector
+  MPI_Type_contiguous(nglobal, MPI_DOUBLE, &MPI_vector_t);
+  MPI_Type_commit(&MPI_vector_t);
+
+  MPI_Op_create((MPI_User_function *) vectorSum, true, &MPI_vectorSum_op);
+}
+
+
+void FemPerpPoisson::allreduceGlobalSrc(MPI_Comm comm)
+{
+  int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
+  MPI_Allreduce(MPI_IN_PLACE, globalSrc.data(), nglobal, MPI_DOUBLE, MPI_vectorSum_op, comm);
 }
 
 FemPerpPoisson::~FemPerpPoisson() 
@@ -596,6 +615,7 @@ void FemPerpPoisson::createGlobalSrc(double* localSrcPtr, int idx, int idy, doub
   }
 }
 
+
 void FemPerpPoisson::solve()
 {
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
@@ -1041,6 +1061,11 @@ extern "C" void zeroGlobalSrc(FemPerpPoisson* f)
 {
   f->zeroGlobalSrc();
 } 
+
+extern "C" void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm)
+{
+  f->allreduceGlobalSrc(comm);
+}
 
 extern "C" void solve(FemPerpPoisson* f)
 {

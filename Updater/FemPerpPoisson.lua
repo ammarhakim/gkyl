@@ -16,6 +16,8 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local DataStruct = require "DataStruct"
+local Mpi
+if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
 ffi.cdef[[
 /** Structure to store BC data. */
@@ -35,6 +37,7 @@ ffi.cdef[[
   FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
   void delete_FemPerpPoisson(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
+  void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm);
   void zeroGlobalSrc(FemPerpPoisson* f);
   void solve(FemPerpPoisson* f);
   void getSolution(FemPerpPoisson* f, double* ptr, int idx, int idy);
@@ -149,6 +152,18 @@ function FemPerpPoisson:init(tbl)
                                             self._bc, self._writeMatrix,
                                             self._laplacianWeight, self._modifierConstant)
 
+   if GKYL_HAVE_MPI then
+     -- split communicators in z
+     local commSet = self._onGrid:commSet()
+     local worldComm = commSet.comm
+     local nodeComm = commSet.nodeComm
+     local nodeRank = Mpi.Comm_rank(nodeComm)
+     local zrank = 0
+     if self._ndim==3 then zrank = math.floor(nodeRank/self._onGrid:cuts(1)/self._onGrid:cuts(2)) end
+     self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
+     self._worldComm = worldComm
+   end
+
    return self
 end
 
@@ -206,9 +221,11 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
      ffi.C.zeroGlobalSrc(self._poisson)
 
      -- create global source 
-     -- loop over x and y cells globally
-     for idx=perpRange:lower(1),perpRange:upper(1) do     
-       for idy=perpRange:lower(2),perpRange:upper(2) do
+     -- globalSrc is an Eigen vector managed in C
+     -- each proc allocates a full globalSrc vector
+     -- loop over x and y cells locally to get local contributions to globalSrc
+     for idx=localRange:lower(1),localRange:upper(1) do     
+       for idy=localRange:lower(2),localRange:upper(2) do
          if ndim==2 then 
            src:fill(srcIndexer(idx,idy), srcPtr) 
          else 
@@ -216,6 +233,11 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
          end
          ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1])
        end
+     end
+
+     if GKYL_HAVE_MPI then --and Mpi.Comm_size(self._worldComm)>1 then
+       -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
+       ffi.C.allreduceGlobalSrc(self._poisson, Mpi.getComm(self._zcomm))
      end
 
      -- solve 

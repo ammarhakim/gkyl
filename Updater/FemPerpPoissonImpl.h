@@ -17,6 +17,8 @@
 #include <Eigen/SparseCholesky>
 #include <unsupported/Eigen/SparseExtra>
 
+#include <mpi.h>
+
 class FemPerpPoisson;
 
 extern "C" {
@@ -39,6 +41,7 @@ extern "C" {
   void delete_FemPerpPoisson(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc(FemPerpPoisson* f);
+  void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm);
   void getSolution(FemPerpPoisson* f, double* localSolPtr, int idx, int idy);
   void getNodalSolution(FemPerpPoisson* f, double* localSolPtr, int idx, int idy);
 }
@@ -53,6 +56,7 @@ class FemPerpPoisson
   ~FemPerpPoisson();
   void createGlobalSrc(double* ptr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc();
+  void allreduceGlobalSrc(MPI_Comm comm);
   void solve();
   void getSolution(double* ptr, int idx, int idy);
   void getNodalSolution(double* ptr, int idx, int idy);
@@ -65,6 +69,8 @@ class FemPerpPoisson
   bcdata_t bc[2][2], bc2d[2][2], bc2d_z0[2][2];
   bool periodicFlgs[2];
   bool allPeriodic;
+  MPI_Datatype MPI_vector_t;
+  MPI_Op MPI_vectorSum_op;
   /** Eigen sparse matrix to store stiffness matrix */
   Eigen::SparseMatrix<double,Eigen::ColMajor> stiffMat, stiffMat_z0;
   /** Eigen vectors for source and dirichlet modifications to source*/
