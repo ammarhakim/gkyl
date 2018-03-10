@@ -91,7 +91,10 @@ function RectCart:init(tbl)
       local localRange = self._decomposedRange:subDomain(subDomIdx)
       self._localRange:copy(localRange)
       self._cuts = {}
-      for i = 1, self._ndim do self._cuts[i] = decomp:cuts(i) end
+      for i = 1, self._ndim do 
+        assert(decomp:cuts(i) <= self._numCells[i], "Cannot have more decomposition cuts than cells in any dimension!")
+        self._cuts[i] = decomp:cuts(i) 
+      end
    else
       -- create a dummy decomp and use it to set the grid
       local cuts = {}

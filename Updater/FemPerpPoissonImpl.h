@@ -12,7 +12,7 @@
 
 // eigen includes
 #include <Eigen/Core>
-#include <Eigen/Dense>
+#include <Eigen/LU>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
 #include <unsupported/Eigen/SparseExtra>

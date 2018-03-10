@@ -117,23 +117,26 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
   getNodToModMatrix(localNodToMod, ndim, polyOrder);
   getMassMatrix(localMass, ndim, polyOrder);
   
-  localModToNod = localNodToMod.inverse();
+  localModToNod = localNodToMod.transpose().inverse().transpose();
   localMassModToNod = localMass*localModToNod;
 
   if (writeMatrix)
   {
-    std::string outName = "poisson-nodtomod";
+    std::string outName = "poisson-nodtomod"; 
     outName += std::to_string(ndim) + "d";
     saveMarket(localNodToMod, outName);
-    outName = "poisson-modtonod";
+    outName = "poisson-modtonod"; // wrong
     outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod, outName);
     outName = "poisson-massmodtonod";
     outName += std::to_string(ndim) + "d";
     saveMarket(localMassModToNod, outName);
-    outName = "poisson-mass";
+    outName = "poisson-mass";   
     outName += std::to_string(ndim) + "d";
     saveMarket(localMass, outName);
+    outName = "poisson-check";   
+    outName += std::to_string(ndim) + "d";
+    saveMarket(localModToNod*localNodToMod, outName);
   }
   localMassModToNod *= 0.25*dx*dy;
   localMass.resize(0,0);

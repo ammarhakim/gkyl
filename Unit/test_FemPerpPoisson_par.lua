@@ -29,8 +29,8 @@ function log(msg)
    end
 end
 
-local decomp2d = DecompRegionCalc.CartProd { cuts = {2, 1}, }
-local decomp3d = DecompRegionCalc.CartProd { cuts = {2, 1, 1}, }
+local decomp2d = DecompRegionCalc.CartProd { cuts = {4, 2}, }
+local decomp3d = DecompRegionCalc.CartProd { cuts = {2, 2, 2}, }
 
 function test_solve2d(nx, ny, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -55,7 +55,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
-   log(string.format("2D Poisson init took %f s\n", t2-t1))
+   log(string.format("2D Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
 	 onGrid = grid,
 	 numComponents = basis:numBasis(),
@@ -108,7 +108,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
    local t1 = os.clock()
    poisson:advance(0.,0.,{srcModal},{phiModal})
    local t2 = os.clock()
-   log(string.format("2D Poisson solve took total of %f s\n", t2-t1))
+   log(string.format("2D Poisson solve took total of %f s", t2-t1))
 
    local err = DataStruct.Field {
 	 onGrid = grid,
@@ -131,7 +131,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, 0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
-   log(string.format("Average RMS error = %e \n", math.sqrt(lv[1])))
+   log(string.format("Average RMS error = %e", math.sqrt(lv[1])))
    return math.sqrt(lv[1])
 end
 
@@ -153,7 +153,7 @@ function test_solve2d_periodic(nx, ny, p)
      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()
-   log(string.format("2D periodic Poisson init took %f s\n", t2-t1))
+   log(string.format("2D periodic Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
 	 onGrid = grid,
 	 numComponents = basis:numBasis(),
@@ -220,7 +220,7 @@ function test_solve2d_periodic(nx, ny, p)
    local t1 = os.clock()
    poisson:advance(0.,0.,{srcModal},{phiModal})
    local t2 = os.clock()
-   log(string.format("2D periodic Poisson solve took total of %f s \n", t2-t1))
+   log(string.format("2D periodic Poisson solve took total of %f s", t2-t1))
 
    local err = DataStruct.Field {
 	 onGrid = grid,
@@ -243,7 +243,7 @@ function test_solve2d_periodic(nx, ny, p)
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, 0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
-   log(string.format("Average RMS error = %e \n", math.sqrt(lv[1])))
+   log(string.format("Average RMS error = %e", math.sqrt(lv[1])))
    return math.sqrt(lv[1])
    
 end
@@ -258,7 +258,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
       decomposition = decomp3d,
    }
    local basis = Basis.CartModalSerendipity { ndim = 3, polyOrder = p }
-   log(string.format("nx=%d ny=%d nz=%d polyOrder=%d \n", nx, ny, nz, p))
+   log(string.format("nx=%d ny=%d nz=%d polyOrder=%d ", nx, ny, nz, p))
    local t1 = os.clock()
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
@@ -271,7 +271,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
-   log(string.format("3D Poisson init took %f s\n", t2-t1))
+   log(string.format("3D Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
 	 onGrid = grid,
 	 numComponents = basis:numBasis(),
@@ -328,7 +328,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    local t1 = os.clock()
    poisson:advance(0.,0.,{srcModal},{phiModal})
    local t2 = os.clock()
-   log(string.format("3D Poisson solve took total of %f s \n", t2-t1))
+   log(string.format("3D Poisson solve took total of %f s ", t2-t1))
 
    local err = DataStruct.Field {
 	 onGrid = grid,
@@ -351,7 +351,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, 0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
-   log(string.format("Average RMS error = %e \n", math.sqrt(lv[1])))
+   log(string.format("Average RMS error = %e ", math.sqrt(lv[1])))
 
    return math.sqrt(lv[1])
 end
@@ -365,7 +365,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
       decomposition = decomp3d,
    }
    local basis = Basis.CartModalSerendipity { ndim = 3, polyOrder = p }
-   log(string.format("nx=%d ny=%d nz=%d polyOrder=%d \n", nx, ny, nz, p))
+   log(string.format("nx=%d ny=%d nz=%d polyOrder=%d ", nx, ny, nz, p))
    local t1 = os.clock()
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
@@ -374,7 +374,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()
-   log(string.format("3D periodic Poisson init took %f s\n", t2-t1))
+   log(string.format("3D periodic Poisson init took %f s", t2-t1))
    local srcModal = DataStruct.Field {
 	 onGrid = grid,
 	 numComponents = basis:numBasis(),
@@ -441,7 +441,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
    local t1 = os.clock()
    poisson:advance(0.,0.,{srcModal},{phiModal})
    local t2 = os.clock()
-   log(string.format("3D periodic Poisson solve took total of %f s \n", t2-t1))
+   log(string.format("3D periodic Poisson solve took total of %f s ", t2-t1))
 
    local err = DataStruct.Field {
 	 onGrid = grid,
@@ -464,7 +464,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    calcInt:advance(0.0, 0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
-   log(string.format("Average RMS error = %e \n", math.sqrt(lv[1])))
+   log(string.format("Average RMS error = %e ", math.sqrt(lv[1])))
    return math.sqrt(lv[1])
    
 end
@@ -532,9 +532,9 @@ end
 
 function test_periodic3d_p1()
   log(string.format("--- Testing convergence of 3D periodic solver with p=1 ---"))
-  err1 = test_solve3d_periodic(32, 32, 1, 1)
-  err2 = test_solve3d_periodic(64, 64, 1, 1)
-  err3 = test_solve3d_periodic(128, 128, 1, 1)
+  err1 = test_solve3d_periodic(32, 32, 2, 1)
+  err2 = test_solve3d_periodic(64, 64, 2, 1)
+  err3 = test_solve3d_periodic(128, 128, 2, 1)
   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
   assert_close(1.0, err1/err2/4.0, .01, "3D periodic p=1")
   assert_close(1.0, err2/err3/4.0, .01, "3D periodic p=1")
@@ -542,9 +542,9 @@ end
 
 function test_periodic3d_p2()
   log(string.format("--- Testing convergence of 3D periodic solver with p=2 ---"))
-  err1 = test_solve3d_periodic(32, 32, 1, 2)
-  err2 = test_solve3d_periodic(64, 64, 1, 2)
-  err3 = test_solve3d_periodic(128, 128, 1, 2)
+  err1 = test_solve3d_periodic(32, 32, 4, 2)
+  err2 = test_solve3d_periodic(64, 64, 4, 2)
+  err3 = test_solve3d_periodic(128, 128, 4, 2)
   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
   assert_close(1.0, err1/err2/4.0, .01, "3D periodic p=2")
   assert_close(1.0, err2/err3/4.0, .01, "3D periodic p=2")

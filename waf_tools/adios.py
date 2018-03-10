@@ -11,6 +11,8 @@ def options(opt):
                    default=True)
     opt.add_option('--adios-inc-dir', type='string', help='Path to ADIOS includes', dest='adiosIncDir')
     opt.add_option('--adios-lib-dir', type='string', help='Path to ADIOS libraries', dest='adiosLibDir')
+    opt.add_option('--adios-link-libs', type='string', help='List of libraries to link with ADIOS',
+                   dest='adiosLinkLibs', default='')
 
 @conf
 def check_adios(conf):
@@ -26,7 +28,7 @@ def check_adios(conf):
         conf.env.INCLUDES_ADIOS = conf.options.gkylDepsDir+'/adios/include'
 
     if conf.options.adiosLibDir:
-        conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir
+        conf.env.STLIBPATH_ADIOS = conf.options.adiosLibDir.split(',')
     else:
         conf.env.STLIBPATH_ADIOS = conf.options.gkylDepsDir+'/adios/lib'
 
@@ -36,6 +38,9 @@ def check_adios(conf):
         conf.env.append_value('CXXFLAGS', '-D_NOMPI')
         conf.env.append_value('CFLAGS', '-D_NOMPI')
         conf.env.STLIB_ADIOS = ["adios_nompi"]
+
+    libList = conf.options.adiosLinkLibs
+    conf.env.append_value('STLIB_ADIOS', libList.split(','))
          
     conf.start_msg('Checking for ADIOS')
     conf.check(header_name='adios.h', features='cxx cxxprogram', use="ADIOS MPI", mandatory=True)
