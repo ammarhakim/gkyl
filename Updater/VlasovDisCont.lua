@@ -210,7 +210,7 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
 		  -- (skiping contribution from boundary faces as
 		  -- assuming zero particle flux)
 		  self._surfForceUpdate[dir-cdim](
-		     xc:data(), dx:data(), emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
+		     xc:data(), dx:data(), dt, cflm, emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
 	       end
 	    end
 	 end
