@@ -1,0 +1,15 @@
+load("modal-basis");
+load("out-scripts");
+
+load("basis-precalc/basisSer2x")$
+
+bC : basisC[1]$
+
+Hl : doExpand1(H,bC)$
+fl : doExpand1(f,bC)$
+
+PB(f,g) := diff(f,x)*diff(g,y) - diff(g,x)*diff(f,y)$
+pbBasis : fullratsimp(makelist(PB(bC[i],Hl), i, 1, length(bC)))$
+volTerms : calcInnerProdList(varsC, 1, pbBasis, fl)$
+
+vel(d) := PB(varsC[d],Hl)$
