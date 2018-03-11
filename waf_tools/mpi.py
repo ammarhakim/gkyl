@@ -8,7 +8,7 @@ from waflib.Configure import conf
 def options(opt):
     opt.add_option('--enable-mpi', help=('Enable parallel build'),
                    dest='enable_mpi', action='store_true',
-                   default=False)
+                   default=True)
     opt.add_option('--mpi-inc-dir', type='string', help='Path to MPI includes', dest='mpiIncDir')
     opt.add_option('--mpi-lib-dir', type='string', help='Path to MPI libraries', dest='mpiLibDir')
     opt.add_option('--mpi-link-libs', type='string', help='List of MPI libraries to link',
