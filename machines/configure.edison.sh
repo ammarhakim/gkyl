@@ -25,7 +25,7 @@ LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1
 LUAJIT_LIB_DIR=$HOME/gkylsoft/luajit/lib
 LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 
-## MPI options
+# MPI options
 ENABLE_MPI="--enable-mpi"
 MPI_INC_DIR=$MPICH_DIR/include
 MPI_LIB_DIR=$MPICH_DIR/lib

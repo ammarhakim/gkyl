@@ -12,7 +12,7 @@ def options(opt):
     opt.add_option('--adios-inc-dir', type='string', help='Path to ADIOS includes', dest='adiosIncDir')
     opt.add_option('--adios-lib-dir', type='string', help='Path to ADIOS libraries', dest='adiosLibDir')
     opt.add_option('--adios-link-libs', type='string', help='List of libraries to link with ADIOS',
-                   dest='adiosLinkLibs', default='')
+                   dest='adiosLinkLibs')
 
 @conf
 def check_adios(conf):
@@ -40,8 +40,8 @@ def check_adios(conf):
         conf.env.append_value('CFLAGS', '-D_NOMPI')
         conf.env.STLIB_ADIOS = ["adios_nompi"]
 
-    libList = conf.options.adiosLinkLibs
-    if libList != '':
+    if conf.options.adiosLinkLibs:
+        libList = conf.options.adiosLinkLibs
         conf.env.append_value('STLIB_ADIOS', libList.split(','))
          
     conf.start_msg('Checking for ADIOS')
