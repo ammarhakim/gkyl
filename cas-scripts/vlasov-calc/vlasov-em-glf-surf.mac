@@ -46,15 +46,15 @@ for i : 1 thru 2 do (
   numC : length(bC),
   zr : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "void ~a_~a_P~a(const double *w, const double *dxv, const double dt, const double cfl, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], i),
-  printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. dt/cfl: dt and cfl for amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells ~%"),
+  printf(fh, "double ~a_~a_P~a(const double *w, const double *dxv, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], i),
+  printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
+  printf(fh, "// returns abs(amid) for use in determining amax in cfl and global lax flux ~%"),
 
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
 
   printf(fh, "  double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
-  printf(fh, "  double amax1~a = cfl*dxv[~a]/dt; ~%", dir-1, vid[dir]),
   printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, numC*(dir-1)),
   printf(fh, "~%"),
 
@@ -77,24 +77,26 @@ for i : 1 thru 2 do (
   fl_R : doExpand1(fr, bP),
 
   acc : calcAccel(dir, vdim, bC),
+  amid : float(expand(fullratsimp(subst(zr,acc)))),
+  printf(fh, "  const double amid = ~a; ~%", amid),
 
   fhat_left : subst(vv=1, fl_L),
   fhat_right : subst(vv=-1, fl_R),
-  tavg : 0.5*dv11[dir]*calcInnerProdList(surfVars, acc, subst(vv=-1, bP), fhat_left+fhat_right),
-  tjump : 0.5*dv11[dir]*calcInnerProdList(surfVars, amax11[dir], subst(vv=-1, bP), fhat_right-fhat_left),
+  tavg : 0.5*calcInnerProdList(surfVars, acc, subst(vv=-1, bP), fhat_left+fhat_right),
+  tjump : 0.5*calcInnerProdList(surfVars, amax, subst(vv=-1, bP), fhat_right-fhat_left),
   incr_r : tavg-tjump,
   writeCExprs1(incr, incr_r),
   printf(fh, "~%"),
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
-  writeCIncrExprs1(outr, incr_s),  
+  writeCIncrExprs1(outr, dv11[dir]*incr_s),  
   printf(fh, "~%"),
-  tavg : 0.5*dv11[dir]*calcInnerProdList(surfVars, acc, subst(vv=1, bP), fhat_left+fhat_right),
-  tjump : 0.5*dv11[dir]*calcInnerProdList(surfVars, amax11[dir], subst(vv=1, bP), fhat_right-fhat_left),
+  tavg : 0.5*calcInnerProdList(surfVars, acc, subst(vv=1, bP), fhat_left+fhat_right),
+  tjump : 0.5*calcInnerProdList(surfVars, amax, subst(vv=1, bP), fhat_right-fhat_left),
   incr_l : -tavg+tjump,
   signs : fullratsimp(incr_l/incr_r),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
-  writeCIncrExprs1(outl, incr_s),
-
+  writeCIncrExprs1(outl, dv11[dir]*incr_s),
+  printf(fh, "return std::abs(amid); ~%"),
   printf(fh, "} ~%")
 ));
 
