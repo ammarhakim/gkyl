@@ -86,7 +86,11 @@ function VlasovDisCont:init(tbl)
       self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
-   self.amax = { 0.0, 0.0, 0.0 } -- maximum acceleration in each direction
+   -- for use in penalty terms in numerical fluxes
+   self.amax, self.amaxOld = Lin.Vec(3), Lin.Vec(3)
+   for d = 1, 3 do
+      self.amax[d], self.amaxOld[d] = 0.0, 0.0
+   end
 end
 
 -- advance method
@@ -176,7 +180,7 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
       local firstDir = true
 
       -- we need to use previous values of amax in penalty fluxes
-      local amaxOld = { self.amax[1], self.amax[2], self.amax[3] }
+      self.amaxOld[1], self.amaxOld[2], self.amaxOld[3] = self.amax[1], self.amax[2], self.amax[3]
       self.amax[1], self.amax[2], self.amax[3] = 0.0, 0.0, 0.0
       
       local tmForceStart = Time.clock()
@@ -194,8 +198,6 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
 
 	    emIn:fill(emIdxr(idx), emPtr) -- get pointer to EM field
 	    rescaleEmField(self._qbym, emPtr, emAccel) -- multiply EM field by q/m
-
-	    -- NEED TO COMPUTE CFL!!!
 
 	    idx:copyInto(idxp); idx:copyInto(idxm) -- idxm/idxp pointers to left/right cells
 
@@ -216,9 +218,9 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
 		  -- (skiping contribution from boundary faces as
 		  -- assuming zero particle flux)
 		  local adir = self._surfForceUpdate[dir-cdim](
-		     xc:data(), dx:data(), amaxOld[dir-cdim], emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
+		     xc:data(), dx:data(), self.amaxOld[dir-cdim], emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
 		  self.amax[dir-cdim] = math.max(self.amax[dir-cdim], adir)
-                  cfla = math.max(cfla, adir*dt/dx[dir])
+		  cfla = math.max(cfla, adir*dt/dx[dir])
 	       end
 	    end
 	 end
