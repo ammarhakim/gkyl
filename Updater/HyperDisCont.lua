@@ -56,6 +56,16 @@ function HyperDisCont:init(tbl)
    -- store range objects needed in update
    self._perpRange = {}
 
+   -- maximum characteristic velocities for use in pentalty based
+   -- fluxes
+   self._maxs, self._maxsOld = Lin.Vec(self._ndim), Lin.Vec(self._ndim)
+   for d = 1, self._ndim do
+      -- very first step the penalty term will be zero. However, in
+      -- subsequent steps the maximum speed from the previous step
+      -- will be used
+      self._maxs[d] = 0.0
+   end
+
    return self
 end
 
@@ -89,6 +99,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    -- other directions
    local firstDir = true
 
+   -- use maximum characteristic speeds from previous step as penalty
+   for d = 1, self._ndim do
+      self._maxsOld[d] = self._maxs[d]
+      self._maxs[d] = 0.0 -- reset to get new values in this step
+   end
+
    qOut:clear(0.0) -- compute increments
    -- accumulate contributions from volume and surface integrals
    for _, dir in ipairs(self._updateDirs) do
@@ -120,8 +136,10 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    if firstDir then
 	       self._equation:volTerm(xc, dx, idxp, qInP, qOutP)
 	    end
-	    local maxs = self._equation:surfTerm(dir, xc, dx, idxm, idxp, qInM, qInP, qOutM, qOutP)
+	    local maxs = self._equation:surfTerm(
+	       dir, xc, dx, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
 	    cfla = math.max(cfla, maxs*dt/dx[dir])
+	    self._maxs[dir] = math.max(self._maxs[dir], maxs)
 	 end
 	 -- return failure if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end
