@@ -175,8 +175,10 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
       -- See comment for streaming terms to understand this flag
       local firstDir = true
 
+      -- we need to use previous values of amax in penalty fluxes
       local amaxOld = { self.amax[1], self.amax[2], self.amax[3] }
       self.amax[1], self.amax[2], self.amax[3] = 0.0, 0.0, 0.0
+      
       local tmForceStart = Time.clock()
       -- accumulate contributions from force directions
       for dir = cdim+1, pdim do
