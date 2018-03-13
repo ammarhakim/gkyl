@@ -170,7 +170,7 @@ function PerfMaxwell:volTerm(w, dx, idx, q, out)
    self._volTerm(self._ceqn, w:data(), dx:data(), q:data(), out:data())
 end
 -- Surface integral term for use in DG scheme
-function PerfMaxwell:surfTerm(dir, w, dx, idxl, idxr, ql, qr, outl, outr)
+function PerfMaxwell:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
    return self._surfTerms[dir](self._ceqn, w:data(), dx:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
