@@ -10,14 +10,14 @@ vvars : [VX, VY, VZ]$
 dvdx : [dv0dx0, dv1dx1, dv2dx2]$
 wdx : [w0dx0, w1dx1, w2dx2]$
 dv11 : [dv10, dv11, dv12]$
-Efld : [E0, E1, E2]$
+abar : [abar0, abar1, abar2]$
 Bfld : [B0, B1, B2]$
 
-vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
+vTransSubs : [vvx=vx*dv1/2, vvy=vy*dv2/2, vvz=vz*dv3/2]$
 
-ax(vx, vy, vz, bc) := doExpand1(Efld[1],bc) + vy*doExpand1(Bfld[3],bc) - vz*doExpand1(Bfld[2],bc)$
-ay(vx, vy, vz, bc) := doExpand1(Efld[2],bc) + vz*doExpand1(Bfld[1],bc) - vx*doExpand1(Bfld[3],bc)$
-az(vx, vy, vz, bc) := doExpand1(Efld[3],bc) + vx*doExpand1(Bfld[2],bc) - vy*doExpand1(Bfld[1],bc)$
+ax(vx, vy, vz, bc) := doExpand1(abar[1],bc) + vy*doExpand1(Bfld[3],bc) - vz*doExpand1(Bfld[2],bc)$
+ay(vx, vy, vz, bc) := doExpand1(abar[2],bc) + vz*doExpand1(Bfld[1],bc) - vx*doExpand1(Bfld[3],bc)$
+az(vx, vy, vz, bc) := doExpand1(abar[3],bc) + vx*doExpand1(Bfld[2],bc) - vy*doExpand1(Bfld[1],bc)$
 
 vzero(vdim) := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [] $
 
@@ -57,15 +57,85 @@ for i : 1 thru 2 do (
   for dir : 1 thru 3 do (
     printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, numC*(dir-1)+3*numC)
   ),
-  printf(fh, "~%"),
-
-  fl : doExpand1(f, bP),
-  t : (t : 0, for dir : 1 thru vdim do (
-     acc : calcAccel(dir, vdim, bC),
-     t : t + dv11[dir]*calcInnerProdList(varsP, acc, diff(bP,varsV[dir]), fl)
-     ),
-  t),
-  writeCIncrExprs(t),  
+  printf(fh, "~%"),   
+  if vdim = 1 then (
+    printf(fh, "  double abar~a[~a]; ~%~%", 0, length(bC)),
+    printf(fh, "~%"),
+    for c : 1 thru length(bC) do (
+      printf(fh, "  abar~a[~a] = E~a[~a]; ~%", 0, c-1, 0, c-1)
+    ),
+    printf(fh, "~%"),
+    printf(fh, "  double incr~a[~a]; ~%~%", 0, length(bP)),
+    printf(fh, "  for(unsigned int i=0; i<~a; ++i){ ~%~%", length(bP)),
+    printf(fh, "    incr~a[i]=0.0; ~%~%", 0),
+    printf(fh, "  }; ~%~%"),
+    fl : doExpand1(f, bP),
+    acc : calcAccel(1, vdim, bC),
+    incr_r : calcInnerProdList(varsP, acc, diff(bP,varsV[1]), fl),
+    writeCExprs1(incr0, incr_r),
+    printf(fh, "~%"),
+    incr_s : makelist(dv11[1]*incr0[i-1], i, 1, length(bP)),
+    writeCIncrExprs1(out, incr_s)
+  ),
+  if vdim = 2 then (
+    printf(fh, "  double abar~a[~a]; ~%~%", 0, length(bC)),
+    printf(fh, "  double abar~a[~a]; ~%~%", 1, length(bC)),
+    printf(fh, "~%"),
+    for c : 1 thru length(bC) do (
+      printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]; ~%", 0, c-1, 0, c-1, 2, 2, c-1),
+      printf(fh, "  abar~a[~a] = E~a[~a]-wv~a*B~a[~a]; ~%", 1, c-1, 1, c-1, 1, 2, c-1)
+    ),
+    printf(fh, "~%"),
+    printf(fh, "  double incr~a[~a]; ~%~%", 0, length(bP)),
+    printf(fh, "  double incr~a[~a]; ~%~%", 1, length(bP)),
+    printf(fh, "  for(unsigned int i=0; i<~a; ++i){ ~%~%", length(bP)),
+    printf(fh, "    incr~a[i]=0.0; ~%~%", 0),
+    printf(fh, "    incr~a[i]=0.0; ~%~%", 1),
+    printf(fh, "  }; ~%~%"),
+    fl : doExpand1(f, bP),
+    acc : calcAccel(1, vdim, bC),
+    incr_r : calcInnerProdList(varsP, acc, diff(bP,varsV[1]), fl),
+    writeCExprs1(incr0, incr_r),
+    acc : calcAccel(2, vdim, bC),
+    incr_r : calcInnerProdList(varsP, acc, diff(bP,varsV[2]), fl),
+    writeCExprs1(incr1, incr_r),
+    printf(fh, "~%"),
+    incr_s : makelist(dv11[1]*incr0[i-1]+dv11[2]*incr1[i-1], i, 1, length(bP)),
+    writeCIncrExprs1(out, incr_s)
+  ),
+  if vdim = 3 then (
+    printf(fh, "  double abar~a[~a]; ~%~%", 0, length(bC)),
+    printf(fh, "  double abar~a[~a]; ~%~%", 1, length(bC)),
+    printf(fh, "  double abar~a[~a]; ~%~%", 2, length(bC)),
+    printf(fh, "~%"),
+    for c : 1 thru length(bC) do (
+      printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]-wv~a*B~a[~a]; ~%", 0, c-1, 0, c-1, 2, 2, c-1, 3, 1, c-1),
+      printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]-wv~a*B~a[~a]; ~%", 1, c-1, 1, c-1, 3, 0, c-1, 1, 2, c-1),
+      printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]-wv~a*B~a[~a]; ~%", 2, c-1, 2, c-1, 1, 1, c-1, 2, 0, c-1)
+    ),
+    printf(fh, "~%"),
+    printf(fh, "  double incr~a[~a]; ~%~%", 0, length(bP)),
+    printf(fh, "  double incr~a[~a]; ~%~%", 1, length(bP)),
+    printf(fh, "  double incr~a[~a]; ~%~%", 2, length(bP)),
+    printf(fh, "  for(unsigned int i=0; i<~a; ++i){ ~%~%", length(bP)),
+    printf(fh, "    incr~a[i]=0.0; ~%~%", 0),
+    printf(fh, "    incr~a[i]=0.0; ~%~%", 1),
+    printf(fh, "    incr~a[i]=0.0; ~%~%", 2),
+    printf(fh, "  }; ~%~%"),
+    fl : doExpand1(f, bP),
+    acc : calcAccel(1, vdim, bC),
+    incr_r : calcInnerProdList(varsP, acc, diff(bP,varsV[1]), fl),
+    writeCExprs1(incr0, incr_r),
+    acc : calcAccel(2, vdim, bC),
+    incr_r : calcInnerProdList(varsP, acc, diff(bP,varsV[2]), fl),
+    writeCExprs1(incr1, incr_r),
+    acc : calcAccel(3, vdim, bC),
+    incr_r : calcInnerProdList(varsP, acc, diff(bP,varsV[3]), fl),
+    writeCExprs1(incr2, incr_r),
+    printf(fh, "~%"),
+    incr_s : makelist(dv11[1]*incr0[i-1]+dv11[2]*incr1[i-1]+dv11[3]*incr2[i-1], i, 1, length(bP)),
+    writeCIncrExprs1(out, incr_s)
+  ),
 
   printf(fh, "} ~%")
 ))$

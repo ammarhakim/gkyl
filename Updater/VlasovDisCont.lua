@@ -85,6 +85,8 @@ function VlasovDisCont:init(tbl)
       self._volForceUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
+
+   self.amax = { 0.0, 0.0, 0.0 } -- maximum acceleration in each direction
 end
 
 -- advance method
@@ -172,7 +174,9 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
 
       -- See comment for streaming terms to understand this flag
       local firstDir = true
-      
+
+      local amaxOld = { self.amax[1], self.amax[2], self.amax[3] }
+      self.amax[1], self.amax[2], self.amax[3] = 0.0, 0.0, 0.0
       local tmForceStart = Time.clock()
       -- accumulate contributions from force directions
       for dir = cdim+1, pdim do
@@ -209,8 +213,10 @@ function VlasovDisCont:_advance(tCurr, dt, inFld, outFld)
 		  -- accumulate contribution from surface force terms
 		  -- (skiping contribution from boundary faces as
 		  -- assuming zero particle flux)
-		  self._surfForceUpdate[dir-cdim](
-		     xc:data(), dx:data(), emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
+		  local adir = self._surfForceUpdate[dir-cdim](
+		     xc:data(), dx:data(), amaxOld[dir-cdim], emAccel:data(), fInL:data(), fInR:data(), fOutL:data(), fOutR:data())
+		  self.amax[dir-cdim] = math.max(self.amax[dir-cdim], adir)
+                  cfla = math.max(cfla, adir*dt/dx[dir])
 	       end
 	    end
 	 end
