@@ -90,7 +90,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local firstDir = true
 
    qOut:clear(0.0) -- compute increments
-   -- accumulate contributions from surface integrals
+   -- accumulate contributions from volume and surface integrals
    for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1

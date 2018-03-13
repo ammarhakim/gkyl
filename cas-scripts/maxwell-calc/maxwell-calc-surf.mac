@@ -23,11 +23,11 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun) := block([],
 kill(varsC, basisC),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
-for p : 0 thru 4 do(
+for p : 1 thru 4 do(
   bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
   
-  printf(fh, "void ~a_~a_P~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
+  printf(fh, "double ~a_~a_P~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
 
   printf(fh, "  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
   printf(fh, "  const double c2 = c*c; ~%"),
@@ -114,6 +114,7 @@ for p : 0 thru 4 do(
     printf(fh, "~% ~%")
   ),
 
+  printf(fh, "  return c; ~%"),
   printf(fh, "} ~%")
 ))$
 
