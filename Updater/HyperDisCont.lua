@@ -49,6 +49,17 @@ function HyperDisCont:init(tbl)
       self._updateDirs = tbl.updateDirections
    end
 
+   -- set zero flux direction flags
+   self._zeroFluxFlags = {}
+   for d = 1, self._ndim do
+      self._zeroFluxFlags[d] = false
+   end
+   if tbl.zeroFluxDirections then
+      for d in tbl.zeroFluxDirections do
+         self._zeroFluxFlags[d] = true
+      end
+   end
+
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
@@ -75,6 +86,13 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
    local qOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+
+   -- pass aux fields to equation
+   local auxFields = {}
+   for i = 1, #inFld-1 do
+      auxFields[i] = inFld[i+1]
+   end
+   self._equation:setFields(auxFields)
 
    local ndim = grid:ndim()
 
@@ -110,6 +128,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
+
+      -- adjust bounds if zero flux direction
+      if self._zeroFluxFlags[dir] then 
+         dirLoIdx = dirLoIdx + 1
+         dirUpIdx = dirUpIdx - 1
+      end
 
       if self._isFirst then
 	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'

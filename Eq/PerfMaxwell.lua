@@ -182,4 +182,7 @@ local bcCondWallMgn = BoundaryCondition.ZeroNormal { components = {4, 5, 6} }
 local bcCondWallPot = BoundaryCondition.Copy { components = {7, 8}, fact = {-1, 1} }
 PerfMaxwell.bcCondWall = { bcCondWallElc, bcCondWallMgn, bcCondWallPot  }
 
+function PerfMaxwell:setFields(fields)
+end
+
 return PerfMaxwell
