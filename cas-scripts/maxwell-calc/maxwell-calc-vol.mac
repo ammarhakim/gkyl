@@ -24,7 +24,7 @@ for p : 1 thru 4 do (
   bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
   
-  printf(fh, "void ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "double ~aP~a(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) ~%{ ~%", funcNm, p),
   printf(fh, "  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
   printf(fh, "  const double c2chi = c2*chi, c2gamma = c2*gamma; ~% ~%"),
 
@@ -68,5 +68,11 @@ for p : 1 thru 4 do (
     writeCIncrExprs1(lhs[m], vt),
     printf(fh, "~%")
   ),
+  printf(fh, "  double cflFreq = 0.0; ~%"), 
+  for d : 1 thru cdim do (
+    printf(fh, "  cflFreq += meq->c/dx[~a]; ~%", d-1)
+  ),
+  
+  printf(fh, "  return cflFreq; ~%"),
   printf(fh, "} ~%")
 ))$

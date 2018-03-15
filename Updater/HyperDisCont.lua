@@ -158,11 +158,11 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    qOut:fill(qOutIdxr(idxp), qOutP)
 
 	    if firstDir then
-	       self._equation:volTerm(xc, dx, idxp, qInP, qOutP)
+	       local cflFreq = self._equation:volTerm(xc, dx, idxp, qInP, qOutP)
+	       cfla = math.max(cfla, cflFreq*dt)
 	    end
 	    local maxs = self._equation:surfTerm(
 	       dir, xc, dx, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
-	    cfla = math.max(cfla, maxs*dt/dx[dir])
 	    self._maxs[dir] = math.max(self._maxs[dir], maxs)
 	 end
 	 -- return failure if time-step was too large

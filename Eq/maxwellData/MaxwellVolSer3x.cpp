@@ -1,42 +1,5 @@
 #include <MaxwellModDecl.h> 
-void MaxwellVol3xSerP0(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
-{ 
-  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2chi = c2*chi, c2gamma = c2*gamma; 
- 
-  const double *ex = &q[0]; 
-  const double *ey = &q[1]; 
-  const double *ez = &q[2]; 
-  const double *bx = &q[3]; 
-  const double *by = &q[4]; 
-  const double *bz = &q[5]; 
-  const double *ph = &q[6]; 
-  const double *ps = &q[7]; 
- 
-  double *outEx = &out[0]; 
-  double *outEy = &out[1]; 
-  double *outEz = &out[2]; 
-  double *outBx = &out[3]; 
-  double *outBy = &out[4]; 
-  double *outBz = &out[5]; 
-  double *outPh = &out[6]; 
-  double *outPs = &out[7]; 
- 
-  double dx0 = 2.0/dx[0]; 
-  double dx1 = 2.0/dx[1]; 
-  double dx2 = 2.0/dx[2]; 
-
- 
-
-
-
-
-
-
-
-
-} 
-void MaxwellVol3xSerP1(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol3xSerP1(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -128,8 +91,13 @@ void MaxwellVol3xSerP1(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[6] += 1.732050807568877*bz[2]*c2gamma*dx2+1.732050807568877*by[3]*c2gamma*dx1; 
   outPs[7] += 1.732050807568877*bz[4]*c2gamma*dx2+1.732050807568877*by[5]*c2gamma*dx1+1.732050807568877*bx[6]*c2gamma*dx0; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  cflFreq += meq->c/dx[2]; 
+  return cflFreq; 
 } 
-void MaxwellVol3xSerP2(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol3xSerP2(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -317,8 +285,13 @@ void MaxwellVol3xSerP2(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[18] += 1.732050807568877*bz[12]*c2gamma*dx2+3.872983346207417*by[10]*c2gamma*dx1+1.732050807568877*bx[14]*c2gamma*dx0; 
   outPs[19] += 3.872983346207417*bz[10]*c2gamma*dx2+1.732050807568877*by[15]*c2gamma*dx1+1.732050807568877*bx[16]*c2gamma*dx0; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  cflFreq += meq->c/dx[2]; 
+  return cflFreq; 
 } 
-void MaxwellVol3xSerP3(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol3xSerP3(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -602,8 +575,13 @@ void MaxwellVol3xSerP3(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[30] += 1.732050807568877*bz[24]*c2gamma*dx2+5.916079783099617*by[21]*c2gamma*dx1+2.645751311064591*by[5]*c2gamma*dx1+1.732050807568877*bx[26]*c2gamma*dx0; 
   outPs[31] += 5.916079783099617*bz[22]*c2gamma*dx2+2.645751311064591*bz[4]*c2gamma*dx2+1.732050807568877*by[27]*c2gamma*dx1+1.732050807568877*bx[28]*c2gamma*dx0; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  cflFreq += meq->c/dx[2]; 
+  return cflFreq; 
 } 
-void MaxwellVol3xSerP4(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol3xSerP4(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -1031,4 +1009,9 @@ void MaxwellVol3xSerP4(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[48] += 1.732050807568877*bz[42]*c2gamma*dx2+7.937253933193772*by[39]*c2gamma*dx1+5.196152422706631*by[10]*c2gamma*dx1+1.732050807568877*bx[44]*c2gamma*dx0; 
   outPs[49] += 7.937253933193772*bz[40]*c2gamma*dx2+5.196152422706631*bz[10]*c2gamma*dx2+1.732050807568877*by[45]*c2gamma*dx1+1.732050807568877*bx[46]*c2gamma*dx0; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  cflFreq += meq->c/dx[2]; 
+  return cflFreq; 
 } 
