@@ -1,41 +1,5 @@
 #include <MaxwellModDecl.h> 
-void MaxwellVol2xMaxP0(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
-{ 
-  const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
-  const double c2chi = c2*chi, c2gamma = c2*gamma; 
- 
-  const double *ex = &q[0]; 
-  const double *ey = &q[1]; 
-  const double *ez = &q[2]; 
-  const double *bx = &q[3]; 
-  const double *by = &q[4]; 
-  const double *bz = &q[5]; 
-  const double *ph = &q[6]; 
-  const double *ps = &q[7]; 
- 
-  double *outEx = &out[0]; 
-  double *outEy = &out[1]; 
-  double *outEz = &out[2]; 
-  double *outBx = &out[3]; 
-  double *outBy = &out[4]; 
-  double *outBz = &out[5]; 
-  double *outPh = &out[6]; 
-  double *outPs = &out[7]; 
- 
-  double dx0 = 2.0/dx[0]; 
-  double dx1 = 2.0/dx[1]; 
-
- 
-
-
-
-
-
-
-
-
-} 
-void MaxwellVol2xMaxP1(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol2xMaxP1(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -86,8 +50,12 @@ void MaxwellVol2xMaxP1(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[1] += 1.732050807568877*bx[0]*c2gamma*dx0; 
   outPs[2] += 1.732050807568877*by[0]*c2gamma*dx1; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  return cflFreq; 
 } 
-void MaxwellVol2xMaxP2(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol2xMaxP2(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -162,8 +130,12 @@ void MaxwellVol2xMaxP2(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[4] += 3.872983346207417*bx[1]*c2gamma*dx0; 
   outPs[5] += 3.872983346207417*by[2]*c2gamma*dx1; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  return cflFreq; 
 } 
-void MaxwellVol2xMaxP3(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol2xMaxP3(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -270,8 +242,12 @@ void MaxwellVol2xMaxP3(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[8] += 5.916079783099617*bx[4]*c2gamma*dx0+2.645751311064591*bx[0]*c2gamma*dx0; 
   outPs[9] += 5.916079783099617*by[5]*c2gamma*dx1+2.645751311064591*by[0]*c2gamma*dx1; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  return cflFreq; 
 } 
-void MaxwellVol2xMaxP4(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
+double MaxwellVol2xMaxP4(const MaxwellEq_t * const meq, const double *w, const double *dx, const double *q, double *out) 
 { 
   const double c2 = meq->c*meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2chi = c2*chi, c2gamma = c2*gamma; 
@@ -418,4 +394,8 @@ void MaxwellVol2xMaxP4(const MaxwellEq_t * const meq, const double *w, const dou
   outPs[13] += 7.937253933193772*bx[8]*c2gamma*dx0+5.196152422706631*bx[1]*c2gamma*dx0; 
   outPs[14] += 7.937253933193772*by[9]*c2gamma*dx1+5.196152422706631*by[2]*c2gamma*dx1; 
 
+  double cflFreq = 0.0; 
+  cflFreq += meq->c/dx[0]; 
+  cflFreq += meq->c/dx[1]; 
+  return cflFreq; 
 } 
