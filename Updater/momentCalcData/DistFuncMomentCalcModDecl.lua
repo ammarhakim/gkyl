@@ -20,6 +20,12 @@ function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
+-- select function to compute specified gyrokinetic moment
+function _M.selectGkMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("GkMomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+   return ffi.C[funcNm]
+end
+
 -- select function to compute integrated moments
 function _M.selectIntMomCalc(basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("IntMomentCalc%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)

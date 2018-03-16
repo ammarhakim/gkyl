@@ -95,6 +95,16 @@ def build(bld):
     momentCalcData/DistFuncMomentCalcSer2x2v.cpp
     momentCalcData/DistFuncMomentCalcSer2x3v.cpp
 
+    momentCalcData/DistFuncGkMomentCalcMax1x1v.cpp
+    momentCalcData/DistFuncGkMomentCalcMax1x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcMax2x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcMax3x2v.cpp
+
+    momentCalcData/DistFuncGkMomentCalcSer1x1v.cpp
+    momentCalcData/DistFuncGkMomentCalcSer1x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcSer2x2v.cpp
+    momentCalcData/DistFuncGkMomentCalcSer3x2v.cpp
+
     momentCalcData/DistFuncIntegratedMomentCalcSer1x1v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer1x2v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer1x3v.cpp

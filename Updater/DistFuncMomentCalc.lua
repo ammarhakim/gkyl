@@ -22,6 +22,13 @@ local function isMomentNameGood(nm)
    end
    return false
 end
+local function isGkMomentNameGood(nm)
+   if nm == "Dens" or nm == "Upar" or nm == "Ppar" or nm == "Pperp" 
+         or nm == "Qpar" or nm == "Qperp" then
+      return true
+   end
+   return false
+end
 
 -- Moments updater object
 local DistFuncMomentCalc = Proto(UpdaterBase)
@@ -56,6 +63,8 @@ function DistFuncMomentCalc:init(tbl)
    -- function to compute specified moment
    if isMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
+   else if isGkMomentNameGood(mom) then
+      self._momCalcFun = MomDecl.selectGkMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
    else
       assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i")
    end

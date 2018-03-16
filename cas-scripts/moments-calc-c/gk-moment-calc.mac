@@ -1,0 +1,184 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+let(wx1^2, wx1_sq)$
+let(wx2^2, wx2_sq)$
+let(wx3^2, wx3_sq)$
+let(dv1^2, dv1_sq)$
+let(dv2^2, dv2_sq)$
+let(dv3^2, dv3_sq)$
+
+let(wx1^3, wx1_cu)$
+let(wx2^3, wx2_cu)$
+let(wx3^3, wx3_cu)$
+let(dv1^3, dv1_cu)$
+let(dv2^3, dv2_cu)$
+let(dv3^3, dv3_cu)$
+
+volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
+vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
+
+/* Density */
+/* Dens = < f > */
+calcDens(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 4 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_Dens_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  fl : doExpand1(f, bP),
+  M : calcInnerProdList(varsP, 1, bC, fl),
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+/* Parallel Momentum */
+/* Upar = < v_par f > */
+calcUpar(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 4 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_Upar_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
+  ),
+
+  fl : doExpand1(f, bP),
+
+  M : calcInnerProdList(varsP, vTrans[1], bC, fl),
+  M : map(letsimp, M),
+  
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+/* Parallel Pressure */
+/* Ppar = < v_par^2 f > */
+calcPpar(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 4 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_Ppar_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+  ),
+
+  fl : doExpand1(f, bP),
+
+  M : calcInnerProdList(varsP, vTrans[1]*vTrans[1], bC, fl),
+  M : map(letsimp, M),
+  
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+/* Perpendicular Pressure */
+/* Pperp = < mu f > */
+calcPperp(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 4 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_Pperp_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
+  ),
+
+  fl : doExpand1(f, bP),
+
+  M : calcInnerProdList(varsP, vTrans[2], bC, fl),
+  M : map(letsimp, M),
+  
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+/* Parallel Heat Flux */
+/* Qpar = < v_par^3 f > */
+calcQpar(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 4 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_Qpar_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i),
+    printf(fh, "  const double wx~a_cu = wx~a*wx~a*wx~a, dv~a_cu = dv~a*dv~a*dv~a; ~%", i, i, i, i, i, i, i, i)
+  ),
+
+  fl : doExpand1(f, bP),
+
+  M : calcInnerProdList(varsP, vTrans[1]*vTrans[1]*vTrans[1], bC, fl),
+  M : map(letsimp, M),
+  
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+/* Perpendicular Heat Flux */
+/* Qperp = < v_par mu f > */
+calcQperp(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 4 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_Qperp_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
+  ),
+
+  fl : doExpand1(f, bP),
+
+  M : calcInnerProdList(varsP, vTrans[1]*vTrans[2], bC, fl),
+  M : map(letsimp, M),
+  
+  writeCIncrExprs1(out, volFact*M),
+
+  printf(fh, "} ~%")
+))$
+
+calcGkMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
+  printf(fh, "#include <math.h> ~%"),
+  printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
+  calcDens(fh, funcNm, cdim, vdim, basisFun),
+  calcUpar(fh, funcNm, cdim, vdim, basisFun),
+  calcPpar(fh, funcNm, cdim, vdim, basisFun),
+  if vdim > 1 then calcPperp(fh, funcNm, cdim, vdim, basisFun),
+  calcQpar(fh, funcNm, cdim, vdim, basisFun),
+  if vdim > 1 then calcQperp(fh, funcNm, cdim, vdim, basisFun)
+)$
