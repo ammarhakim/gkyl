@@ -1,0 +1,20 @@
+load("moments-calc-c/gk-moment-calc")$
+load(stringproc)$
+
+for c : 1 thru 3 do (
+  for v : c thru 2 do (
+   fname : sconcat("~/max-out/DistFuncGkMomentCalcSer", c, "x", v, "v", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("GkMomentCalc", c, "x", v, "v", "Ser"),
+   calcGkMoments(fh, funcName, c, v, "Ser"),
+   close(fh)
+  )
+)$
+
+c : 3$
+v : 2$
+fname : sconcat("~/max-out/DistFuncGkMomentCalcSer", c, "x", v, "v", ".cpp")$
+fh : openw(fname)$
+funcName : sconcat("GkMomentCalc", c, "x", v, "v", "Ser")$
+calcGkMoments(fh, funcName, c, v, "Ser")$
+close(fh)$
