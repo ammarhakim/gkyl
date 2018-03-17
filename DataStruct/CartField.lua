@@ -419,6 +419,9 @@ local function Field_meta_ctor(elct)
       getBasisId = function(self)
          return self._basisId
       end,
+      compatible = function(self, fld)
+         return field_compatible(self, fld)
+      end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
 	 local c = 1
