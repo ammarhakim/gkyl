@@ -8,10 +8,8 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local Alloc = require "Lib.Alloc"
 local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
-local Range = require "Lib.Range"
 local Proto = require "Lib.Proto"
 local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
 
@@ -23,8 +21,7 @@ local function isMomentNameGood(nm)
    return false
 end
 local function isGkMomentNameGood(nm)
-   if nm == "Dens" or nm == "Upar" or nm == "Ppar" or nm == "Pperp" 
-         or nm == "Qpar" or nm == "Qperp" then
+   if nm == "Dens" or nm == "Upar" or nm == "Ppar" or nm == "Pperp" or nm == "Qpar" or nm == "Qperp" then
       return true
    end
    return false
@@ -63,7 +60,7 @@ function DistFuncMomentCalc:init(tbl)
    -- function to compute specified moment
    if isMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
-   else if isGkMomentNameGood(mom) then
+   elseif isGkMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectGkMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
    else
       assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i")
