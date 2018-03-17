@@ -92,7 +92,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    for i = 1, #inFld-1 do
       auxFields[i] = inFld[i+1]
    end
-   self._equation:setFields(auxFields)
+   self._equation:setAuxFields(auxFields)
 
    local ndim = grid:ndim()
 
