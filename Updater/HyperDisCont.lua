@@ -55,7 +55,7 @@ function HyperDisCont:init(tbl)
       self._zeroFluxFlags[d] = false
    end
    if tbl.zeroFluxDirections then
-      for d in tbl.zeroFluxDirections do
+      for i, d in ipairs(tbl.zeroFluxDirections) do
          self._zeroFluxFlags[d] = true
       end
    end
@@ -128,11 +128,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
-
+      local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
+      
       -- adjust bounds if zero flux direction
-      if self._zeroFluxFlags[dir] then 
-         dirLoIdx = dirLoIdx + 1
-         dirUpIdx = dirUpIdx - 1
+      if self._zeroFluxFlags[dir] then
+         dirLoSurfIdx = dirLoIdx+1
+         dirUpSurfIdx = dirUpIdx-1
       end
 
       if self._isFirst then
@@ -161,9 +162,11 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	       local cflFreq = self._equation:volTerm(xc, dx, idxp, qInP, qOutP)
 	       cfla = math.max(cfla, cflFreq*dt)
 	    end
-	    local maxs = self._equation:surfTerm(
-	       dir, xc, dx, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
-	    self._maxs[dir] = math.max(self._maxs[dir], maxs)
+	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
+	       local maxs = self._equation:surfTerm(
+		  dir, xc, dx, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
+	       self._maxs[dir] = math.max(self._maxs[dir], maxs)
+	    end
 	 end
 	 -- return failure if time-step was too large
 	 if cfla > cflm then return false, dt*cfl/cfla end

@@ -529,6 +529,7 @@ local function buildApplication(self, tbl)
 	 tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
       end
 
+      log(string.format("\nTotal number of time-steps %s\n", step))
       log(string.format("\nVlasov solver took %g sec\n", tmVlasovSlvr))
       log(string.format(
 	     "  [Streaming updates %g sec. Force updates %g sec]\n",
