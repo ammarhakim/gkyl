@@ -16,7 +16,6 @@ BUILD_OPENMPI=no
 BUILD_EIGEN=np
 BUILD_PETSC=no
 
-
 # ----------------------------------------------------------------------------
 # FUNCTION DEFINITIONS
 # ----------------------------------------------------------------------------
@@ -46,7 +45,7 @@ specify the MPI C and C++ compilers to use.
 
 --build-luajit              [yes] Should we build LuaJIT?
 --build-luarocks            [no] Should we build Luarocks?
---build-adios               [no] Should we build ADIOS?
+--build-adios               [yes] Should we build ADIOS?
 --build-openmpi             [no] Should we build OpenMPI?
 --build-eigen               [no] Should we build Eigen?
 --build-petsc               [no] Should we build Petsc?
