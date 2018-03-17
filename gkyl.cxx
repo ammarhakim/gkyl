@@ -110,6 +110,13 @@ createTopLevelDefs(int argc, char **argv) {
 #else
   varDefs << "GKYL_HAVE_ADIOS = false" << std::endl;
 #endif
+
+#ifdef HAVE_EIGEN_CORE
+  varDefs << "GKYL_HAVE_EIGEN = true" << std::endl;
+#else
+  varDefs << "GKYL_HAVE_EIGEN = false" << std::endl;
+#endif  
+  
   // numeric limits
   varDefs << "GKYL_MIN_DOUBLE = " << std::numeric_limits<double>::min() << std::endl;
   varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;

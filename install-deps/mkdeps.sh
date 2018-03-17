@@ -13,7 +13,7 @@ BUILD_LUAJIT=yes
 BUILD_LUAROCKS=no
 BUILD_ADIOS=yes
 BUILD_OPENMPI=no
-BUILD_EIGEN=np
+BUILD_EIGEN=no
 BUILD_PETSC=no
 
 # ----------------------------------------------------------------------------

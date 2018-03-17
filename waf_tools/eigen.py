@@ -24,7 +24,7 @@ def check_eigen(conf):
     if conf.options.eigenIncDir:
         conf.env.INCLUDES_EIGEN = conf.options.eigenIncDir
     else:
-        conf.env.INCLUDES_EIGEN = conf.options.gkylDepsDir+'/eigen-3.3.4/include/eigen3'
+        conf.env.INCLUDES_EIGEN = conf.options.gkylDepsDir+'/eigen/include/eigen3'
 
     conf.start_msg('Checking for EIGEN')
     conf.check(header_name='Eigen/Core', features='cxx cxxprogram', use='EIGEN', mandatory=True)
