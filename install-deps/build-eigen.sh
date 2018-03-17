@@ -16,3 +16,6 @@ cd eigen-eigen-*
 mkdir build-dir; cd build-dir
 cmake ../ -DCMAKE_INSTALL_PREFIX=$PREFIX
 make install
+
+# softlink to make finding easier
+ln -sf $PREFIX $GKYLSOFT/eigen
