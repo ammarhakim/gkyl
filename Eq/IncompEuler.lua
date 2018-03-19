@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local IncompEulerModDecl = require "Eq.poissonBracketData.CanonicalModDecl"
+local CanonicalModDecl = require "Eq.pbData.CanonicalModDecl"
 local Proto = require "Lib.Proto"
 local HamiltonianBase = require "Eq.HamiltonianBase"
 local ffi = require "ffi"
@@ -23,8 +23,9 @@ function IncompEuler:init(tbl)
    -- store pointers to C kernels implementing volume and surface terms
    local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
    assert(ndim == 2, "Incompressible Euler equations only implemented in 2D")
-   self._volTerm = IncompEulerModDecl.selectVol(nm, ndim, p)
-   self._surfTerms = IncompEulerModDecl.selectSurf(nm, ndim, p)
+   -- use 1x,1v canonical poisson bracket
+   self._volTerm = CanonicalModDecl.selectVol(nm, 1, 1, p)
+   self._surfTerms = CanonicalModDecl.selectSurf(nm, 1, 1, p)
 end
 
 function IncompEuler:initHamilTimeIndep()
