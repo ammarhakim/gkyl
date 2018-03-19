@@ -9,80 +9,6 @@ def build(bld):
     bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
 
-    vlasovData/VlasovStreamMax1x1v.cpp
-    vlasovData/VlasovStreamMax1x2v.cpp
-    vlasovData/VlasovStreamMax1x3v.cpp
-    vlasovData/VlasovStreamMax2x2v.cpp
-    vlasovData/VlasovStreamMax2x3v.cpp
-
-    vlasovData/VlasovStreamSer1x1v.cpp
-    vlasovData/VlasovStreamSer1x2v.cpp
-    vlasovData/VlasovStreamSer1x3v.cpp
-    vlasovData/VlasovStreamSer2x2v.cpp
-    vlasovData/VlasovStreamSer2x3v.cpp
-
-    vlasovData/VlasovSurfStreamMax1x1v.cpp
-    vlasovData/VlasovSurfStreamMax1x2v.cpp
-    vlasovData/VlasovSurfStreamMax1x3v.cpp
-    vlasovData/VlasovSurfStreamMax2x2v.cpp
-    vlasovData/VlasovSurfStreamMax2x3v.cpp
-
-    vlasovData/VlasovSurfStreamSer1x1v.cpp
-    vlasovData/VlasovSurfStreamSer1x2v.cpp
-    vlasovData/VlasovSurfStreamSer1x3v.cpp
-    vlasovData/VlasovSurfStreamSer2x2v.cpp
-    vlasovData/VlasovSurfStreamSer2x3v.cpp
-
-    vlasovData/VlasovElcMax1x1v.cpp
-    vlasovData/VlasovElcMax1x2v.cpp
-    vlasovData/VlasovElcMax1x3v.cpp
-    vlasovData/VlasovElcMax2x2v.cpp
-    vlasovData/VlasovElcMax2x3v.cpp
-
-    vlasovData/VlasovElcSer1x1v.cpp
-    vlasovData/VlasovElcSer1x2v.cpp
-    vlasovData/VlasovElcSer1x3v.cpp
-    vlasovData/VlasovElcSer2x2v.cpp
-    vlasovData/VlasovElcSer2x3v.cpp
-
-    vlasovData/VlasovSurfElcMax1x1v.cpp
-    vlasovData/VlasovSurfElcMax1x2v.cpp
-    vlasovData/VlasovSurfElcMax1x3v.cpp
-    vlasovData/VlasovSurfElcMax2x2v.cpp
-    vlasovData/VlasovSurfElcMax2x3v.cpp
-
-    vlasovData/VlasovSurfElcSer1x1v.cpp
-    vlasovData/VlasovSurfElcSer1x2v.cpp
-    vlasovData/VlasovSurfElcSer1x3v.cpp
-    vlasovData/VlasovSurfElcSer2x2v.cpp
-    vlasovData/VlasovSurfElcSer2x3v.cpp
-
-    vlasovData/VlasovElcMagMax1x1v.cpp
-    vlasovData/VlasovElcMagMax1x2v.cpp
-    vlasovData/VlasovElcMagMax1x3v.cpp
-    vlasovData/VlasovElcMagMax2x2v.cpp
-    vlasovData/VlasovElcMagMax2x3v.cpp
-
-    vlasovData/VlasovElcMagSer1x1v.cpp
-    vlasovData/VlasovElcMagSer1x2v.cpp
-    vlasovData/VlasovElcMagSer1x3v.cpp
-    vlasovData/VlasovElcMagSer2x2v.cpp
-    vlasovData/VlasovElcMagSer2x3v.cpp
-
-    vlasovData/VlasovSurfElcMagMax1x1v.cpp
-    vlasovData/VlasovSurfElcMagMax1x2v.cpp
-    vlasovData/VlasovSurfElcMagMax1x3v.cpp
-    vlasovData/VlasovSurfElcMagMax2x2v.cpp
-    vlasovData/VlasovSurfElcMagMax2x3v.cpp
-
-    vlasovData/VlasovSurfElcMagSer1x1v.cpp
-    vlasovData/VlasovSurfElcMagSer1x2v.cpp
-    vlasovData/VlasovSurfElcMagSer1x3v.cpp
-    vlasovData/VlasovSurfElcMagSer2x2v.cpp
-    vlasovData/VlasovSurfElcMagSer2x3v.cpp
-
-    vlasovData/VlasovIncr.cpp
-
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp
     momentCalcData/DistFuncMomentCalcMax1x3v.cpp
@@ -122,4 +48,4 @@ def build(bld):
     FemPerpPoissonImpl.cpp
 
     """,
-    includes = '. vlasovData momentCalcData', use='EIGEN MPI', target = 'updater')
+    includes = '. momentCalcData', use='EIGEN MPI', target = 'updater')
