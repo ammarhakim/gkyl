@@ -1,0 +1,13 @@
+load("pb-calc/canonical-vol")$
+load(stringproc)$
+
+pmax : 2$
+for c : 1 thru 2 do (
+   v : c,
+   fname : sconcat("~/max-out/CanonicalSer", c, "x", v, "v", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("CanonicalVol", c, "x", v, "v", "Ser"),
+   calcCanonicalPBVolUpdater(fh, funcName, c, v, "Ser", pmax),
+   close(fh)
+);
+
