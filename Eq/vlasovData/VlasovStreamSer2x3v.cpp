@@ -30,7 +30,7 @@ double VlasovVolStream2x3vSerP1(const double *w, const double *dxv, const double
   out[29] += 3.464101615137754*f[25]*w0dx0+f[15]*dv0dx0; 
   out[30] += 3.464101615137754*f[25]*w1dx1+f[14]*dv1dx1; 
   out[31] += 3.464101615137754*f[29]*w1dx1+3.464101615137754*f[30]*w0dx0+f[21]*dv1dx1+f[24]*dv0dx0; 
-return std:abs(w0dx0)+std:abs(w1dx1); 
+return std::abs(w0dx0)+std::abs(w1dx1); 
 } 
 double VlasovVolStream2x3vSerP2(const double *w, const double *dxv, const double *f, double *out) 
 { 
@@ -131,5 +131,5 @@ double VlasovVolStream2x3vSerP2(const double *w, const double *dxv, const double
   out[109] += 3.464101615137755*f[98]*w1dx1+3.464101615137755*f[99]*w0dx0+f[72]*dv1dx1+0.8944271909999159*f[55]*dv0dx0; 
   out[110] += 3.464101615137755*f[101]*w1dx1+3.464101615137755*f[102]*w0dx0+0.8944271909999159*f[54]*dv1dx1+f[78]*dv0dx0; 
   out[111] += 3.464101615137755*f[105]*w1dx1+3.464101615137755*f[106]*w0dx0+f[81]*dv1dx1+f[84]*dv0dx0; 
-return std:abs(w0dx0)+std:abs(w1dx1); 
+return std::abs(w0dx0)+std::abs(w1dx1); 
 } 
