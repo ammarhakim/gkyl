@@ -130,7 +130,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
       
-      -- adjust bounds if zero flux direction
+      -- compute loop bounds for zero flux direction
       if self._zeroFluxFlags[dir] then
          dirLoSurfIdx = dirLoIdx+1
          dirUpSurfIdx = dirUpIdx-1
