@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-void VlasovVolElcMag1x1vSerP1(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x1vSerP1(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -24,6 +24,7 @@ void VlasovVolElcMag1x1vSerP1(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7071067811865475*abar0[0]; 
   incr0[2] = 1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
   incr0[3] = 1.224744871391589*abar0[0]*f[1]+1.224744871391589*f[0]*abar0[1]; 
 
@@ -31,8 +32,9 @@ void VlasovVolElcMag1x1vSerP1(const double *w, const double *dxv, const double *
   out[1] += incr0[1]*dv10; 
   out[2] += incr0[2]*dv10; 
   out[3] += incr0[3]*dv10; 
+return std::abs(amid1)/dv1; 
 } 
-void VlasovVolElcMag1x1vSerP2(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x1vSerP2(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -58,6 +60,7 @@ void VlasovVolElcMag1x1vSerP2(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7071067811865475*abar0[0]-0.7905694150420947*abar0[2]; 
   incr0[2] = 1.224744871391589*abar0[2]*f[4]+1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
   incr0[3] = 1.095445115010332*abar0[1]*f[4]+1.095445115010332*f[1]*abar0[2]+1.224744871391589*abar0[0]*f[1]+1.224744871391589*f[0]*abar0[1]; 
   incr0[5] = 2.738612787525831*abar0[2]*f[6]+2.738612787525831*abar0[1]*f[3]+2.738612787525831*abar0[0]*f[2]; 
@@ -72,4 +75,5 @@ void VlasovVolElcMag1x1vSerP2(const double *w, const double *dxv, const double *
   out[5] += incr0[5]*dv10; 
   out[6] += incr0[6]*dv10; 
   out[7] += incr0[7]*dv10; 
+return std::abs(amid1)/dv1; 
 } 
