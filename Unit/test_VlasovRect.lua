@@ -8,7 +8,7 @@
 local Basis = require "Basis"
 local ffi  = require "ffi"
 local Unit = require "Unit"
-local VlasovRect = require "Eq.VlasovRect"
+local Vlasov = require "Eq.Vlasov"
 local Lin = require "Lib.Linalg"
 
 local assert_equal = Unit.assert_equal
@@ -18,7 +18,7 @@ function test_1()
    local confBasis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
    local phaseBasis = Basis.CartModalSerendipity { ndim = 3, polyOrder = 2 }
    
-   local vlasovEq = VlasovRect {
+   local vlasovEq = Vlasov {
       confBasis = confBasis,
       phaseBasis = phaseBasis,
       charge = -1.0,

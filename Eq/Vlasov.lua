@@ -6,7 +6,6 @@
 --------------------------------------------------------------------------------
 
 -- system libraries
-local BoundaryCondition = require "Updater.BoundaryCondition"
 local Proto = require "Lib.Proto"
 local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
 local ffi = require "ffi"
@@ -18,18 +17,18 @@ local function rescaleEmField(qbym, emIn, emOut)
 end
 
 -- Vlasov equation on a rectangular mesh
-local VlasovRect = Proto()
+local Vlasov = Proto()
 
 -- ctor
-function VlasovRect:init(tbl)
+function Vlasov:init(tbl)
 
    self._phaseBasis = assert(
-      tbl.phaseBasis, "Eq.VlasovRect: Must specify phase-space basis functions to use using 'phaseBasis'")
+      tbl.phaseBasis, "Eq.Vlasov: Must specify phase-space basis functions to use using 'phaseBasis'")
    self._confBasis = assert(
-      tbl.confBasis, "Eq.VlasovRect: Must specify configuration-space basis functions to use using 'confBasis'")
+      tbl.confBasis, "Eq.Vlasov: Must specify configuration-space basis functions to use using 'confBasis'")
    
-   local charge = assert(tbl.charge, "Eq.VlasovRect: must specify charge using 'charge' ")
-   local mass = assert(tbl.mass, "Eq.VlasovRect: must specify mass using 'mass' ")
+   local charge = assert(tbl.charge, "Eq.Vlasov: must specify charge using 'charge' ")
+   local mass = assert(tbl.mass, "Eq.Vlasov: must specify mass using 'mass' ")
 
    self._qbym = charge/mass -- only q/m ratio is ever needed
 
@@ -71,9 +70,9 @@ function VlasovRect:init(tbl)
 end
 
 -- Methods
-function VlasovRect:numEquations() return 1 end
-function VlasovRect:numWaves() return 1 end
-function VlasovRect:isPositive(q)
+function Vlasov:numEquations() return 1 end
+function Vlasov:numWaves() return 1 end
+function Vlasov:isPositive(q)
    if q[0] > 0.0 then
       return true
    else
@@ -82,26 +81,26 @@ function VlasovRect:isPositive(q)
 end
 
 -- flux in direction dir
-function VlasovRect:flux(dir, qIn, fOut)
-   assert(false, "VlasovRect:flux: NYI!")
+function Vlasov:flux(dir, qIn, fOut)
+   assert(false, "Vlasov:flux: NYI!")
 end
 
 -- Riemann problem for Vlasov equation
-function VlasovRect:rp(dir, delta, ql, qr, waves, s)
-   assert(false, "VlasovRect:rp: NYI!")
+function Vlasov:rp(dir, delta, ql, qr, waves, s)
+   assert(false, "Vlasov:rp: NYI!")
 end
 
 -- Compute q-fluctuations
-function VlasovRect:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
-   assert(false, "VlasovRect:qFluctuations: NYI!")
+function Vlasov:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
+   assert(false, "Vlasov:qFluctuations: NYI!")
 end
 
 -- Maximum wave speed
-function VlasovRect:maxSpeed(dir, w, dx, q)
+function Vlasov:maxSpeed(dir, w, dx, q)
    return 0.0
 end       
 -- Volume integral term for use in DG scheme
-function VlasovRect:volTerm(w, dx, idx, q, out)
+function Vlasov:volTerm(w, dx, idx, q, out)
    -- streaming term
    local cflFreqStream = self._volStreamUpdate(w:data(), dx:data(), q:data(), out:data())
    local cflFreqForce = 0.0
@@ -117,7 +116,7 @@ function VlasovRect:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme
-function VlasovRect:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
+function Vlasov:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
       -- streaming term
@@ -128,7 +127,7 @@ function VlasovRect:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
 	 -- force term
 	 -- set pointer to EM field and scale by q/m
 	 self._emIn:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
-	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/mself._surfForceUpdate[dir-cdim](
+	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
 	 amax = self._surfForceUpdate[dir-self._cdim](
 	    w:data(), dx:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
@@ -136,7 +135,7 @@ function VlasovRect:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
    return amax
 end
 
-function VlasovRect:setAuxFields(auxFields)
+function Vlasov:setAuxFields(auxFields)
    if self._hasForceTerm then -- (no fields for neutral particles)
       -- single aux field that has the full EM field
       self._emField = auxFields[1]
@@ -151,4 +150,4 @@ function VlasovRect:setAuxFields(auxFields)
    end
 end
 
-return VlasovRect
+return Vlasov
