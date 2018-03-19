@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-void VlasovVolStream3x3vMaxP1(const double *w, const double *dxv, const double *f, double *out) 
+double VlasovVolStream3x3vMaxP1(const double *w, const double *dxv, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output 
   double dv0dx0 = dxv[3]/dxv[0]; 
@@ -11,8 +11,9 @@ void VlasovVolStream3x3vMaxP1(const double *w, const double *dxv, const double *
   out[1] += 3.464101615137754*f[0]*w0dx0+f[4]*dv0dx0; 
   out[2] += 3.464101615137754*f[0]*w1dx1+f[5]*dv1dx1; 
   out[3] += 3.464101615137754*f[0]*w2dx2+f[6]*dv2dx2; 
+return std:abs(w0dx0)+std:abs(w1dx1)+std:abs(w2dx2); 
 } 
-void VlasovVolStream3x3vMaxP2(const double *w, const double *dxv, const double *f, double *out) 
+double VlasovVolStream3x3vMaxP2(const double *w, const double *dxv, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output 
   double dv0dx0 = dxv[3]/dxv[0]; 
@@ -39,8 +40,9 @@ void VlasovVolStream3x3vMaxP2(const double *w, const double *dxv, const double *
   out[22] += 7.745966692414834*f[1]*w0dx0+2.23606797749979*f[10]*dv0dx0; 
   out[23] += 7.745966692414834*f[2]*w1dx1+2.23606797749979*f[14]*dv1dx1; 
   out[24] += 7.745966692414834*f[3]*w2dx2+2.23606797749979*f[19]*dv2dx2; 
+return std:abs(w0dx0)+std:abs(w1dx1)+std:abs(w2dx2); 
 } 
-void VlasovVolStream3x3vMaxP3(const double *w, const double *dxv, const double *f, double *out) 
+double VlasovVolStream3x3vMaxP3(const double *w, const double *dxv, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output 
   double dv0dx0 = dxv[3]/dxv[0]; 
@@ -113,8 +115,9 @@ void VlasovVolStream3x3vMaxP3(const double *w, const double *dxv, const double *
   out[78] += 11.83215956619923*f[22]*w0dx0+5.291502622129181*f[0]*w0dx0+3.415650255319866*f[54]*dv0dx0+1.527525231651947*f[4]*dv0dx0; 
   out[79] += 11.83215956619923*f[23]*w1dx1+5.291502622129181*f[0]*w1dx1+3.415650255319866*f[61]*dv1dx1+1.527525231651947*f[5]*dv1dx1; 
   out[80] += 11.83215956619923*f[24]*w2dx2+5.291502622129181*f[0]*w2dx2+3.415650255319866*f[70]*dv2dx2+1.527525231651947*f[6]*dv2dx2; 
+return std:abs(w0dx0)+std:abs(w1dx1)+std:abs(w2dx2); 
 } 
-void VlasovVolStream3x3vMaxP4(const double *w, const double *dxv, const double *f, double *out) 
+double VlasovVolStream3x3vMaxP4(const double *w, const double *dxv, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output 
   double dv0dx0 = dxv[3]/dxv[0]; 
@@ -298,4 +301,5 @@ void VlasovVolStream3x3vMaxP4(const double *w, const double *dxv, const double *
   out[204] += 15.87450786638754*f[78]*w0dx0+10.39230484541326*f[1]*w0dx0+4.58257569495584*f[180]*dv0dx0+3.0*f[10]*dv0dx0; 
   out[205] += 15.87450786638754*f[79]*w1dx1+10.39230484541326*f[2]*w1dx1+4.58257569495584*f[187]*dv1dx1+3.0*f[14]*dv1dx1; 
   out[206] += 15.87450786638754*f[80]*w2dx2+10.39230484541326*f[3]*w2dx2+4.58257569495584*f[196]*dv2dx2+3.0*f[19]*dv2dx2; 
+return std:abs(w0dx0)+std:abs(w1dx1)+std:abs(w2dx2); 
 } 

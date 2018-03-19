@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-void VlasovVolElcMag1x1vMaxP1(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x1vMaxP1(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -24,13 +24,15 @@ void VlasovVolElcMag1x1vMaxP1(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7071067811865475*abar0[0]; 
   incr0[2] = 1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
 
   out[0] += incr0[0]*dv10; 
   out[1] += incr0[1]*dv10; 
   out[2] += incr0[2]*dv10; 
+return std::abs(amid1)/dv1; 
 } 
-void VlasovVolElcMag1x1vMaxP2(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x1vMaxP2(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -56,6 +58,7 @@ void VlasovVolElcMag1x1vMaxP2(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7071067811865475*abar0[0]-0.7905694150420947*abar0[2]; 
   incr0[2] = 1.224744871391589*abar0[2]*f[4]+1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
   incr0[3] = 1.095445115010332*abar0[1]*f[4]+1.095445115010332*f[1]*abar0[2]+1.224744871391589*abar0[0]*f[1]+1.224744871391589*f[0]*abar0[1]; 
   incr0[5] = 2.738612787525831*abar0[1]*f[3]+2.738612787525831*abar0[0]*f[2]; 
@@ -66,8 +69,9 @@ void VlasovVolElcMag1x1vMaxP2(const double *w, const double *dxv, const double *
   out[3] += incr0[3]*dv10; 
   out[4] += incr0[4]*dv10; 
   out[5] += incr0[5]*dv10; 
+return std::abs(amid1)/dv1; 
 } 
-void VlasovVolElcMag1x1vMaxP3(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x1vMaxP3(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -94,6 +98,7 @@ void VlasovVolElcMag1x1vMaxP3(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7071067811865475*abar0[0]-0.7905694150420947*abar0[2]; 
   incr0[2] = 1.224744871391589*abar0[3]*f[8]+1.224744871391589*abar0[2]*f[4]+1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
   incr0[3] = 1.075705748400954*abar0[2]*f[8]+1.075705748400954*abar0[3]*f[4]+1.095445115010332*abar0[1]*f[4]+1.095445115010332*f[1]*abar0[2]+1.224744871391589*abar0[0]*f[1]+1.224744871391589*f[0]*abar0[1]; 
   incr0[5] = 2.738612787525831*abar0[2]*f[6]+2.738612787525831*abar0[1]*f[3]+2.738612787525831*abar0[0]*f[2]; 
@@ -111,8 +116,9 @@ void VlasovVolElcMag1x1vMaxP3(const double *w, const double *dxv, const double *
   out[7] += incr0[7]*dv10; 
   out[8] += incr0[8]*dv10; 
   out[9] += incr0[9]*dv10; 
+return std::abs(amid1)/dv1; 
 } 
-void VlasovVolElcMag1x1vMaxP4(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x1vMaxP4(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -140,6 +146,7 @@ void VlasovVolElcMag1x1vMaxP4(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7954951288348656*abar0[4]-0.7905694150420947*abar0[2]+0.7071067811865475*abar0[0]; 
   incr0[2] = 1.224744871391589*abar0[4]*f[13]+1.224744871391589*abar0[3]*f[8]+1.224744871391589*abar0[2]*f[4]+1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
   incr0[3] = 1.069044967649698*abar0[3]*f[13]+1.069044967649698*abar0[4]*f[8]+1.075705748400954*abar0[2]*f[8]+1.075705748400954*abar0[3]*f[4]+1.095445115010332*abar0[1]*f[4]+1.095445115010332*f[1]*abar0[2]+1.224744871391589*abar0[0]*f[1]+1.224744871391589*f[0]*abar0[1]; 
   incr0[5] = 2.73861278752583*abar0[3]*f[11]+2.738612787525831*abar0[2]*f[6]+2.738612787525831*abar0[1]*f[3]+2.738612787525831*abar0[0]*f[2]; 
@@ -166,4 +173,5 @@ void VlasovVolElcMag1x1vMaxP4(const double *w, const double *dxv, const double *
   out[12] += incr0[12]*dv10; 
   out[13] += incr0[13]*dv10; 
   out[14] += incr0[14]*dv10; 
+return std::abs(amid1)/dv1; 
 } 

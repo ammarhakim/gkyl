@@ -1,5 +1,5 @@
 #include <VlasovModDecl.h> 
-void VlasovVolElcMag1x2vSerP1(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x2vSerP1(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -35,10 +35,12 @@ void VlasovVolElcMag1x2vSerP1(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7071067811865475*abar0[0]; 
   incr0[2] = 0.3535533905932737*B2[1]*f[5]*dv2+0.3535533905932737*B2[0]*f[3]*dv2+1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
   incr0[4] = 0.3535533905932737*B2[0]*f[5]*dv2+0.3535533905932737*B2[1]*f[3]*dv2+1.224744871391589*abar0[0]*f[1]+1.224744871391589*f[0]*abar0[1]; 
   incr0[6] = 0.3535533905932737*f[1]*B2[1]*dv2+0.3535533905932737*f[0]*B2[0]*dv2+1.224744871391589*abar0[1]*f[5]+1.224744871391589*abar0[0]*f[3]; 
   incr0[7] = 0.3535533905932737*f[0]*B2[1]*dv2+0.3535533905932737*B2[0]*f[1]*dv2+1.224744871391589*abar0[0]*f[5]+1.224744871391589*abar0[1]*f[3]; 
+  const double amid2 = 0.7071067811865475*abar1[0]; 
   incr1[3] = (-0.3535533905932737*B2[1]*f[4]*dv1)-0.3535533905932737*B2[0]*f[2]*dv1+1.224744871391589*abar1[1]*f[1]+1.224744871391589*abar1[0]*f[0]; 
   incr1[5] = (-0.3535533905932737*B2[0]*f[4]*dv1)-0.3535533905932737*B2[1]*f[2]*dv1+1.224744871391589*abar1[0]*f[1]+1.224744871391589*f[0]*abar1[1]; 
   incr1[6] = (-0.3535533905932737*f[1]*B2[1]*dv1)-0.3535533905932737*f[0]*B2[0]*dv1+1.224744871391589*abar1[1]*f[4]+1.224744871391589*abar1[0]*f[2]; 
@@ -52,8 +54,9 @@ void VlasovVolElcMag1x2vSerP1(const double *w, const double *dxv, const double *
   out[5] += incr1[5]*dv11+incr0[5]*dv10; 
   out[6] += incr1[6]*dv11+incr0[6]*dv10; 
   out[7] += incr1[7]*dv11+incr0[7]*dv10; 
+return std::abs(amid1)/dv1+std::abs(amid2)/dv2; 
 } 
-void VlasovVolElcMag1x2vSerP2(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
+double VlasovVolElcMag1x2vSerP2(const double *w, const double *dxv, const double *EM, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output 
   const double dv10 = 2/dxv[1]; 
@@ -91,6 +94,7 @@ void VlasovVolElcMag1x2vSerP2(const double *w, const double *dxv, const double *
 
   }; 
 
+  const double amid1 = 0.7071067811865475*abar0[0]-0.7905694150420947*abar0[2]; 
   incr0[2] = 0.3535533905932737*B2[2]*f[13]*dv2+0.3535533905932737*B2[1]*f[5]*dv2+0.3535533905932737*B2[0]*f[3]*dv2+1.224744871391589*abar0[2]*f[7]+1.224744871391589*abar0[1]*f[1]+1.224744871391589*abar0[0]*f[0]; 
   incr0[4] = 0.3162277660168379*B2[1]*f[13]*dv2+0.3162277660168379*B2[2]*f[5]*dv2+0.3535533905932737*B2[0]*f[5]*dv2+0.3535533905932737*B2[1]*f[3]*dv2+1.095445115010332*abar0[1]*f[7]+1.095445115010332*f[1]*abar0[2]+1.224744871391589*abar0[0]*f[1]+1.224744871391589*f[0]*abar0[1]; 
   incr0[6] = 0.3162277660168379*B2[1]*f[15]*dv2+0.3162277660168379*B2[0]*f[9]*dv2+0.3535533905932737*B2[2]*f[7]*dv2+0.3535533905932737*f[1]*B2[1]*dv2+0.3535533905932737*f[0]*B2[0]*dv2+1.224744871391589*abar0[2]*f[13]+1.224744871391589*abar0[1]*f[5]+1.224744871391589*abar0[0]*f[3]; 
@@ -103,6 +107,7 @@ void VlasovVolElcMag1x2vSerP2(const double *w, const double *dxv, const double *
   incr0[17] = 0.282842712474619*B2[1]*f[15]*dv2+0.3162277660168379*B2[2]*f[9]*dv2+0.2258769757263128*B2[2]*f[7]*dv2+0.3535533905932737*B2[0]*f[7]*dv2+0.3535533905932737*f[0]*B2[2]*dv2+0.3162277660168379*f[1]*B2[1]*dv2+0.7824607964359517*abar0[2]*f[13]+1.224744871391589*abar0[0]*f[13]+1.095445115010332*abar0[1]*f[5]+1.224744871391589*abar0[2]*f[3]; 
   incr0[18] = 0.6324555320336759*B2[2]*f[19]*dv2+0.7071067811865475*B2[0]*f[19]*dv2+0.7071067811865475*B2[1]*f[16]*dv2+0.7071067811865475*B2[1]*f[11]*dv2+0.7071067811865475*B2[2]*f[4]*dv2+0.7905694150420947*B2[0]*f[4]*dv2+0.7905694150420947*B2[1]*f[2]*dv2+2.449489742783178*abar0[1]*f[17]+2.449489742783178*abar0[2]*f[10]+2.738612787525831*abar0[0]*f[10]+2.738612787525831*abar0[1]*f[6]; 
   incr0[19] = 0.282842712474619*B2[1]*f[13]*dv2+0.2828427124746191*B2[2]*f[5]*dv2+0.3162277660168379*B2[0]*f[5]*dv2+0.3162277660168379*B2[1]*f[3]*dv2+1.095445115010332*abar0[2]*f[15]+1.224744871391589*abar0[0]*f[15]+1.224744871391589*abar0[1]*f[9]; 
+  const double amid2 = 0.7071067811865475*abar1[0]-0.7905694150420947*abar1[2]; 
   incr1[3] = (-0.3535533905932737*B2[2]*f[11]*dv1)-0.3535533905932737*B2[1]*f[4]*dv1-0.3535533905932737*B2[0]*f[2]*dv1+1.224744871391589*abar1[2]*f[7]+1.224744871391589*abar1[1]*f[1]+1.224744871391589*abar1[0]*f[0]; 
   incr1[5] = (-0.3162277660168379*B2[1]*f[11]*dv1)-0.3162277660168379*B2[2]*f[4]*dv1-0.3535533905932737*B2[0]*f[4]*dv1-0.3535533905932737*B2[1]*f[2]*dv1+1.095445115010332*abar1[1]*f[7]+1.095445115010332*f[1]*abar1[2]+1.224744871391589*abar1[0]*f[1]+1.224744871391589*f[0]*abar1[1]; 
   incr1[6] = (-0.3162277660168379*B2[1]*f[12]*dv1)-0.3162277660168379*B2[0]*f[8]*dv1-0.3535533905932737*B2[2]*f[7]*dv1-0.3535533905932737*f[1]*B2[1]*dv1-0.3535533905932737*f[0]*B2[0]*dv1+1.224744871391589*abar1[2]*f[11]+1.224744871391589*abar1[1]*f[4]+1.224744871391589*abar1[0]*f[2]; 
@@ -136,4 +141,5 @@ void VlasovVolElcMag1x2vSerP2(const double *w, const double *dxv, const double *
   out[17] += incr1[17]*dv11+incr0[17]*dv10; 
   out[18] += incr1[18]*dv11+incr0[18]*dv10; 
   out[19] += incr1[19]*dv11+incr0[19]*dv10; 
+return std::abs(amid1)/dv1+std::abs(amid2)/dv2; 
 } 
