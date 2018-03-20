@@ -131,7 +131,7 @@ local function buildApplication(self, tbl)
    -- compute CFL numbers
    for _, s in pairs(species) do
       local ndim = cdim+s:ndim()
-      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(ndim*(2*polyOrder+1))
+      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
    end
@@ -186,7 +186,7 @@ local function buildApplication(self, tbl)
       fld:setBasis(confBasis)
       fld:setGrid(grid)
       do
-	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
 	 cflMin = math.min(cflMin, myCfl)
 	 fld:setCfl(myCfl)
       end

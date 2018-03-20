@@ -136,15 +136,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
          dirUpSurfIdx = dirUpIdx-1
       end
 
-      if self._isFirst then
-	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
-      end
-      local perpRange = self._perpRange[dir]
-
-      -- outer loop is over directions orthogonal to 'dir' and inner
-      -- loop is over 1D slice in `dir`.
+      local perpRange = localRange:shorten(dir) -- range orthogonal to
+      -- 'dir' outer loop is over directions orthogonal to 'dir' and
+      -- inner loop is over 1D slice in `dir`.
       for idx in perpRange:colMajorIter() do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
+
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 	    -- compute cell center coordinates and cell spacing
