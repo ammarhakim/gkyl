@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Updater.vlasovData._VlasovCdef"
+local _ = require "Eq.vlasovData._VlasovCdef"
 
 -- "do nothing" function
 local function nullFunc(...) end

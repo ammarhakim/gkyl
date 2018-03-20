@@ -6,10 +6,14 @@
 --------------------------------------------------------------------------------
 
 -- system libraries
+local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
-local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
+local VlasovModDecl = require "Eq.vlasovData.VlasovModDecl"
 local ffi = require "ffi"
 local xsys = require "xsys"
+
+-- for incrementing in updater
+ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
 -- compute emOut = q/m*emIn
 local function rescaleEmField(qbym, emIn, emOut)
@@ -52,11 +56,15 @@ function Vlasov:init(tbl)
    self._volForceUpdate, self._surfForceUpdate = nil, nil
    -- functions to perform force updates from electric field
    if hasMagField then 
-      self._volForceUpdate = VlasovModDecl.selectVolElcMag(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._volForceUpdate = VlasovModDecl.selectVolElcMag(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    else
-      self._volForceUpdate = VlasovModDecl.selectVolElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfForceUpdate = VlasovModDecl.selectSurfElc(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._volForceUpdate = VlasovModDecl.selectVolElc(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfForceUpdate = VlasovModDecl.selectSurfElc(
+	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
    -- EM field object and pointers to cell values
@@ -107,7 +115,7 @@ function Vlasov:volTerm(w, dx, idx, q, out)
    -- force term
    if self._hasForceTerm then
       -- set pointer to EM field and scale by q/m
-      self._emIn:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
+      self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
       rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
       -- compute vol term
       cflFreqForce = self._volForceUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
@@ -119,14 +127,15 @@ end
 function Vlasov:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
-      -- streaming term
-      amax = self._surfStreamUpdate[dir](
+      -- streaming term (note that surface streaming kernels don't
+      -- return max speed)
+      self._surfStreamUpdate[dir](
 	 w:data(), dx:data(), ql:data(), qr:data(), outl:data(), outr:data())
    else
       if self._hasForceTerm then
 	 -- force term
 	 -- set pointer to EM field and scale by q/m
-	 self._emIn:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
+	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
 	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
 	 amax = self._surfForceUpdate[dir-self._cdim](
 	    w:data(), dx:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())

@@ -21,6 +21,7 @@ local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
 local xsys = require "xsys"
+local VlasovEqn = require "Eq.Vlasov"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -255,16 +256,22 @@ function Species:allocMomCouplingFields()
 end
 
 function Species:createSolver(hasE, hasB)
-   -- create updater to advance solution by one time-step
-   self.vlasovSlvr = Updater.VlasovDisCont {
-      onGrid = self.grid,
+   -- vlasov equation object
+   local vlasovEqn = VlasovEqn {
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       charge = self.charge,
       mass = self.mass,
-      cfl = self.cfl,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+   }
+   
+   -- create updater to advance solution by one time-step
+   self.vlasovSlvr = Updater.HyperDisCont {
+      onGrid = self.grid,
+      basis = self.basis,
+      cfl = self.cfl,
+      equation = vlasovEqn,
    }
    
    -- create updaters to compute various moments
@@ -466,15 +473,15 @@ function Species:totalSolverTime()
 end
 
 function Species:streamTime()
-   return self.vlasovSlvr:streamTime()
+   return 0.0
 end
 
 function Species:forceTime()
-   return self.vlasovSlvr:forceTime()
+   return 0.0
 end
 
 function Species:incrementTime()
-   return self.vlasovSlvr:incrementTime()
+   return 0.0
 end
 
 function Species:momCalcTime()
