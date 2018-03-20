@@ -14,7 +14,7 @@ local Hamiltonian = Proto()
 -- ctor
 function Hamiltonian:init(tbl)
    -- get grid and basis
-   self._grid = assert(tbl.grid, "Hamiltonian equation must specify a grid")
+   self._grid = assert(tbl.onGrid, "Hamiltonian equation must specify a grid")
    self._basis = assert(tbl.basis, "Hamiltonian equation must specify a basis")
 
    -- initialize hamiltonian
@@ -26,12 +26,22 @@ function Hamiltonian:init(tbl)
    self.hamiltonian:clear(0.0)
 
    -- initialize time-dependent and time-independent parts of hamiltonian
-   self.hamilTimeDep = self.hamiltonian
-   self.hamilTimeIndep = self.hamiltonian
+   self.hamilTimeDep = DataStruct.Field {
+     onGrid = self._grid,
+     numComponents = self._basis:numBasis(),
+     ghost = {1,1}
+   }
+   self.hamilTimeIndep = DataStruct.Field {
+     onGrid = self._grid,
+     numComponents = self._basis:numBasis(),
+     ghost = {1,1}
+   }
+   self.hamilTimeDep:clear(0.0)
+   self.hamilTimeIndep:clear(0.0)
 
    -- make pointers and indexers
    self.hamPtr = self.hamiltonian:get(1)
-   self.hamPtrL, self.hamPtrR = self.hamPtr, self.hamPtr
+   self.hamPtrL, self.hamPtrR = self.hamiltonian:get(1), self.hamiltonian:get(1)
    self.hamIdxr = self.hamiltonian:genIndexer()
 end
 
