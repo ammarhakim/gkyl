@@ -11,7 +11,7 @@ void CanonicalSurf2x2vMax_X_P1(const double *w, const double *dxv, const double 
   double incr[5]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = (1.732050807568877*H[3])/dxv2; 
+  double alpha0 = (1.732050807568877*H[3])/dxv2; 
 
   if (alpha0>0) { 
   incr[0] = 0.03125*(3.0*fl[1]+1.732050807568877*fl[0])*H[3]*dxv1*dxv3; 
@@ -63,7 +63,7 @@ void CanonicalSurf2x2vMax_X_P2(const double *w, const double *dxv, const double 
   double incr[15]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = -(1.0*(3.0*H[6]-1.732050807568877*H[3]))/dxv2; 
+  double alpha0 = -(1.0*(3.0*H[6]-1.732050807568877*H[3]))/dxv2; 
 
   if (alpha0>0) { 
   incr[0] = 0.03125*(6.708203932499369*fl[6]*H[13]+3.872983346207417*fl[3]*H[13]-6.708203932499369*H[6]*fl[11]+3.872983346207417*H[3]*fl[11]+3.0*fl[8]*H[10]+1.732050807568877*fl[4]*H[10]+3.0*fl[5]*H[7]+1.732050807568877*fl[2]*H[7]-5.196152422706631*fl[1]*H[6]-3.0*fl[0]*H[6]+3.0*fl[1]*H[3]+1.732050807568877*fl[0]*H[3])*dxv1*dxv3; 
@@ -175,7 +175,7 @@ void CanonicalSurf2x2vMax_Y_P1(const double *w, const double *dxv, const double 
   double incr[5]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = (1.732050807568877*H[4])/dxv3; 
+  double alpha0 = (1.732050807568877*H[4])/dxv3; 
 
   if (alpha0>0) { 
   incr[0] = 0.03125*(3.0*fl[2]+1.732050807568877*fl[0])*H[4]*dxv0*dxv2; 
@@ -227,7 +227,7 @@ void CanonicalSurf2x2vMax_Y_P2(const double *w, const double *dxv, const double 
   double incr[15]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = -(1.0*(3.0*H[9]-1.732050807568877*H[4]))/dxv3; 
+  double alpha0 = -(1.0*(3.0*H[9]-1.732050807568877*H[4]))/dxv3; 
 
   if (alpha0>0) { 
   incr[0] = 0.03125*(6.708203932499369*fl[9]*H[14]+3.872983346207417*fl[4]*H[14]-6.708203932499369*H[9]*fl[12]+3.872983346207417*H[4]*fl[12]+3.0*fl[7]*H[10]+1.732050807568877*fl[3]*H[10]-5.196152422706631*fl[2]*H[9]-3.0*fl[0]*H[9]+3.0*fl[5]*H[8]+1.732050807568877*fl[1]*H[8]+3.0*fl[2]*H[4]+1.732050807568877*fl[0]*H[4])*dxv0*dxv2; 
@@ -339,7 +339,7 @@ void CanonicalSurf2x2vMax_VX_P1(const double *w, const double *dxv, const double
   double incr[5]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = -(1.732050807568877*H[1])/dxv0; 
+  double alpha0 = -(1.732050807568877*H[1])/dxv0; 
 
   if (alpha0>0) { 
   incr[0] = -0.03125*H[1]*(3.0*fl[3]+1.732050807568877*fl[0])*dxv1*dxv3; 
@@ -391,7 +391,7 @@ void CanonicalSurf2x2vMax_VX_P2(const double *w, const double *dxv, const double
   double incr[15]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = (3.0*H[6]-1.732050807568877*H[1])/dxv0; 
+  double alpha0 = (3.0*H[6]-1.732050807568877*H[1])/dxv0; 
 
   if (alpha0>0) { 
   incr[0] = 0.03125*(6.708203932499369*H[6]*fl[13]-3.872983346207417*H[1]*fl[13]-6.708203932499369*fl[6]*H[11]-3.872983346207417*fl[1]*H[11]-3.0*H[8]*fl[10]-1.732050807568877*fl[4]*H[8]-3.0*H[5]*fl[7]+5.196152422706631*fl[3]*H[6]+3.0*fl[0]*H[6]-1.732050807568877*fl[2]*H[5]-3.0*H[1]*fl[3]-1.732050807568877*fl[0]*H[1])*dxv1*dxv3; 
@@ -503,7 +503,7 @@ void CanonicalSurf2x2vMax_VY_P1(const double *w, const double *dxv, const double
   double incr[5]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = -(1.732050807568877*H[2])/dxv1; 
+  double alpha0 = -(1.732050807568877*H[2])/dxv1; 
 
   if (alpha0>0) { 
   incr[0] = -0.03125*H[2]*(3.0*fl[4]+1.732050807568877*fl[0])*dxv0*dxv2; 
@@ -555,7 +555,7 @@ void CanonicalSurf2x2vMax_VY_P2(const double *w, const double *dxv, const double
   double incr[15]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = (3.0*H[9]-1.732050807568877*H[2])/dxv1; 
+  double alpha0 = (3.0*H[9]-1.732050807568877*H[2])/dxv1; 
 
   if (alpha0>0) { 
   incr[0] = 0.03125*(6.708203932499369*H[9]*fl[14]-3.872983346207417*H[2]*fl[14]-6.708203932499369*fl[9]*H[12]-3.872983346207417*fl[2]*H[12]-3.0*H[7]*fl[10]+5.196152422706631*fl[4]*H[9]+3.0*fl[0]*H[9]-3.0*H[5]*fl[8]-1.732050807568877*fl[3]*H[7]-1.732050807568877*fl[1]*H[5]-3.0*H[2]*fl[4]-1.732050807568877*fl[0]*H[2])*dxv0*dxv2; 
