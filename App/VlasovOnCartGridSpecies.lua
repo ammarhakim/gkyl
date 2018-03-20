@@ -265,6 +265,10 @@ function Species:createSolver(hasE, hasB)
       hasElectricField = hasE,
       hasMagneticField = hasB,
    }
+
+   -- must apply zero-flux BCs in velocity directions
+   local zfd = { }
+   for d = 1, self.vdim do zfd[d] = self.cdim+d end
    
    -- create updater to advance solution by one time-step
    self.vlasovSlvr = Updater.HyperDisCont {
@@ -272,6 +276,7 @@ function Species:createSolver(hasE, hasB)
       basis = self.basis,
       cfl = self.cfl,
       equation = vlasovEqn,
+      zeroFluxDirections = zfd,
    }
    
    -- create updaters to compute various moments
