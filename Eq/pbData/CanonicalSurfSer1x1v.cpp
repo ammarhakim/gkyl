@@ -9,7 +9,7 @@ void CanonicalSurf1x1vSer_X_P1(const double *w, const double *dxv, const double 
   double incr[4]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = -(1.0*(3.0*H[3]-1.732050807568877*H[2]))/dxv1; 
+  double alpha0 = -(1.0*(3.0*H[3]-1.732050807568877*H[2]))/dxv1; 
 
   if (alpha0>0) { 
   incr[0] = -0.25*(5.196152422706631*fl[1]*H[3]+3.0*fl[0]*H[3]-3.0*fl[1]*H[2]-1.732050807568877*fl[0]*H[2]); 
@@ -53,7 +53,7 @@ void CanonicalSurf1x1vSer_X_P2(const double *w, const double *dxv, const double 
   double incr[8]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = (3.872983346207417*H[6]-3.0*H[3]+1.732050807568877*H[2])/dxv1; 
+  double alpha0 = (3.872983346207417*H[6]-3.0*H[3]+1.732050807568877*H[2])/dxv1; 
 
   if (alpha0>0) { 
   incr[0] = -0.25*(15.0*fl[6]*H[7]+11.61895003862225*fl[3]*H[7]+6.708203932499369*fl[2]*H[7]-8.660254037844387*H[5]*fl[6]-8.660254037844387*fl[4]*H[6]-6.708203932499369*fl[1]*H[6]-3.872983346207417*fl[0]*H[6]-6.708203932499369*fl[3]*H[5]-3.872983346207417*fl[2]*H[5]+6.708203932499369*H[3]*fl[4]-3.872983346207417*H[2]*fl[4]+5.196152422706631*fl[1]*H[3]+3.0*fl[0]*H[3]-3.0*fl[1]*H[2]-1.732050807568877*fl[0]*H[2]); 
@@ -121,7 +121,7 @@ void CanonicalSurf1x1vSer_VX_P1(const double *w, const double *dxv, const double
   double incr[4]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = (3.0*H[3]-1.732050807568877*H[1])/dxv0; 
+  double alpha0 = (3.0*H[3]-1.732050807568877*H[1])/dxv0; 
 
   if (alpha0>0) { 
   incr[0] = 0.25*(5.196152422706631*fl[2]*H[3]+3.0*fl[0]*H[3]-3.0*H[1]*fl[2]-1.732050807568877*fl[0]*H[1]); 
@@ -165,7 +165,7 @@ void CanonicalSurf1x1vSer_VX_P2(const double *w, const double *dxv, const double
   double incr[8]; 
 
   // surface-averaged phase velocity in this direction 
-  alpha0 = -(1.0*(3.872983346207417*H[7]-3.0*H[3]+1.732050807568877*H[1]))/dxv0; 
+  double alpha0 = -(1.0*(3.872983346207417*H[7]-3.0*H[3]+1.732050807568877*H[1]))/dxv0; 
 
   if (alpha0>0) { 
   incr[0] = 0.25*(15.0*H[6]*fl[7]-8.660254037844387*H[4]*fl[7]-8.660254037844387*fl[5]*H[7]-6.708203932499369*fl[2]*H[7]-3.872983346207417*fl[0]*H[7]+11.61895003862225*fl[3]*H[6]+6.708203932499369*fl[1]*H[6]+6.708203932499369*H[3]*fl[5]-3.872983346207417*H[1]*fl[5]-6.708203932499369*fl[3]*H[4]-3.872983346207417*fl[1]*H[4]+5.196152422706631*fl[2]*H[3]+3.0*fl[0]*H[3]-3.0*H[1]*fl[2]-1.732050807568877*fl[0]*H[1]); 

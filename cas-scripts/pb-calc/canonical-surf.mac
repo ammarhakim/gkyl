@@ -64,7 +64,7 @@ for i : 1 thru pmax do (
   /* get cell-average value to use for upwinding */
   alpha0 : fullratsimp(innerProd(surfIntVars, 1, alpha_sv, subst(sv=-1, bP[1]))),
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
-  printf(fh, "  alpha0 = ~a; ~%~%", float(alpha0)),
+  printf(fh, "  double alpha0 = ~a; ~%~%", float(alpha0)),
 
   printf(fh, "  if (alpha0>0) { ~%"),
   fhat : subst(sv=1, fl_L),
