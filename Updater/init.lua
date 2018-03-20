@@ -15,7 +15,6 @@ local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
-local VlasovDisCont = require "Updater.VlasovDisCont"
 local WavePropagation = require "Updater.WavePropagation"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 
@@ -29,7 +28,6 @@ return {
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,
    ProjectOnBasis = ProjectOnBasis,
-   VlasovDisCont = VlasovDisCont,   
    WavePropagation = WavePropagation,
    FemPerpPoisson = FemPerpPoisson,
 }

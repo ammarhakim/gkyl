@@ -30,6 +30,9 @@ local xsys = require "xsys"
 
 local EmField = Proto()
 
+-- EM field is not elliptic
+EmField.isElliptic = false
+
 -- add constants to object indicate various supported boundary conditions
 local EM_BC_OPEN = 1
 local EM_BC_REFLECT = 2
