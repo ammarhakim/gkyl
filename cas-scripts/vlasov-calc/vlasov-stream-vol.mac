@@ -23,7 +23,7 @@ load(modNm),
 printf(fh, "#include <VlasovModDecl.h> ~%"),
 for i : 1 thru 4 do (
   bP : basisP[i],
-  printf(fh, "void ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
@@ -37,5 +37,14 @@ for i : 1 thru 4 do (
      ),
   t),
   writeCIncrExprs(t),
+  if cdim = 1 then (
+    printf(fh, "return std::abs(w0dx0); ~%")
+  ),
+  if cdim = 2 then (
+    printf(fh, "return std::abs(w0dx0)+std::abs(w1dx1); ~%")
+  ),
+  if cdim = 3 then (
+    printf(fh, "return std::abs(w0dx0)+std::abs(w1dx1)+std::abs(w2dx2); ~%")
+  ),
   printf(fh, "} ~%")
 ));
