@@ -10,17 +10,17 @@
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
 local BoundaryCondition = require "Updater.BoundaryCondition"
-local Collisions = require "App.GkylOnCartGridCollisions"
+local Collisions = require "GkylApp.Collisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Field = require "App.GkylOnCartGridField"
+local Field = require "GkylApp.Fields"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
-local Species = require "App.GkylOnCartGridSpecies"
+local Species = require "GkylApp.Species"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
@@ -207,7 +207,7 @@ local function buildApplication(self, tbl)
 
    -- setup information about functional fields
    if tbl.funcField then
-      assert(Field.FuncField.is(tbl.funcField), "GkylOnCartGrid: funcField must be of Vlasov.FuncField")
+      assert(Field.FuncField.is(tbl.funcField), "GkylOnCartGrid: funcField must be of Field.FuncField")
    end
    local funcField = tbl.funcField and tbl.funcField or Field.NoField {}
    completeFieldSetup(funcField)
@@ -219,6 +219,20 @@ local function buildApplication(self, tbl)
       s:createSolver(hasE or funcHasE, hasB or funcHasB)
       s:createDiagnostics()
    end
+
+   -- store fields used in RK time-stepping for each species
+   local speciesRkFields = { }
+   for nm, s in pairs(species) do
+      speciesRkFields[nm] = s:rkStepperFields()
+   end
+
+   -- initialize species distributions and field
+   for nm, s in pairs(species) do
+      s:initDist()
+      s:calcCouplingMoments(0, nil, speciesRkFields[nm][1])
+   end
+   field:initField(species)
+   funcField:initField()
 
    -- initialize species distributions and field
    for _, s in pairs(species) do
@@ -236,11 +250,6 @@ local function buildApplication(self, tbl)
 
    writeData(0.0) -- write initial conditions
 
-   -- store fields used in RK time-stepping for each species
-   local speciesRkFields = { }
-   for nm, s in pairs(species) do
-      speciesRkFields[nm] = s:rkStepperFields()
-   end
    -- store fields from EM field for RK time-stepper
    local emRkFields = field:rkStepperFields()
    local emRkFuncFields = funcField:rkStepperFields()
@@ -249,31 +258,10 @@ local function buildApplication(self, tbl)
    local ellipticFieldEqn = false
    if field.isElliptic ~= nil then ellipticFieldEqn = field.isElliptic end
 
-   --local momCouplingFields = {}
-   ---- store fields needed in coupling particles and fields (only a
-   ---- single set is needed)
-   --do
-   --   local c = 0
-   --   for _, s in pairs(species) do
-   --      if c == 0 then
-   --         momCouplingFields = s:allocMomCouplingFields()
-   --      end
-   --      c = c+1
-   --   end
-   --end
-
-   -- function to set all coupling fields to 0.0
-   --local function clearMomCouplingFields()
-   --   for _, f in ipairs(momCouplingFields) do
-   --      f:clear(0.0)
-   --   end
-   --end
-
    -- function to take a single forward-euler time-step
-   local function forwardEuler(tCurr, dt, inIdx, outIdx, evolveSpecies)
+   local function forwardEuler(tCurr, dt, inIdx, outIdx, evolveSpeciesIn)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local evolveSpecies = evolveSpecies==nil or evolveSpecies==true -- defaults to true
-      clearMomCouplingFields()
+      local evolveSpecies = evolveSpeciesIn==nil or evolveSpeciesIn==true -- defaults to true
 
       local totalEmField = nil -- pointer to total EM field
       -- compute functional field (if any)
@@ -304,10 +292,7 @@ local function buildApplication(self, tbl)
 	 -- datastructures).  We need to use inIdx here and not outIdx
 	 -- as in an explict scheme, things that go into the forward
 	 -- Euler must be from the previous time-step
-	 -- s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx])
-
-	 -- increment charges/currents needed in coupling with fields
-	 -- s:incrementCouplingMoments(tCurr, dt, momCouplingFields)
+         s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx])
       end
       --update species with collisions
       for _, c in pairs(collisions) do
@@ -529,6 +514,7 @@ local function buildApplication(self, tbl)
 	 tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
       end
 
+      log(string.format("\nTotal number of time-steps %s\n", step))
       log(string.format("\nVlasov solver took %g sec\n", tmVlasovSlvr))
       log(string.format(
 	     "  [Streaming updates %g sec. Force updates %g sec]\n",

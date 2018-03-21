@@ -69,6 +69,10 @@ function Species:fullInit(appTbl)
    self.distIoFrame = 0 -- frame number for distrubution fucntion
    self.diagIoFrame = 0 -- frame number for diagnostics
 
+   -- boundary condition information
+   self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
+   self.bcx, self.bcy, self.bcz = { }, { }, { }
+
    -- for storing integrated moments
    self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
 
@@ -99,10 +103,10 @@ end
 function Species:createBasis()
    self.basis = self.confBasis
 end
-function Species:alloc(nDup)
+function Species:alloc(nRkDup)
    -- allocate duplicate fields needed in RK update
    self.distf = {}
-   for i = 1, nDup do
+   for i = 1, nRkDup do
       self.distf[i] = DataStruct.Field {
 	 onGrid = self.grid,
 	 numComponents = self.basis:numBasis(),
@@ -162,6 +166,51 @@ end
 local KineticSpecies = Proto(Species)
 local FluidSpecies = Proto(Species)
 
+local IncompEulerSpecies = Proto(Species)
+function IncompEulerSpecies:alloc(nRkDup)
+   IncompEulerSpecies.super.alloc(self, nRkDup)
+   self.vorticity = self.distf
+end
+
+function IncompEulerSpecies:createSolver()
+   -- create updater to advance solution by one time-step
+   self.equation = Equation.IncompEuler {
+      onGrid = self.grid,
+      basis = self.basis,
+   }
+
+   self.solver = Updater.HyperDisCont {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      equation = self.equation
+      cfl = self.cfl
+   }
+   
+   -- create updaters to compute various moments
+   self.numDensityCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "M0",
+   }
+   self.momDensityCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "M1i",
+   }
+   self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "M2",
+   }   
+
+   -- create boundary conditions
+   self.createBCs()
+end
+
 function KineticSpecies:fullInit(appTbl)
    KineticSpecies.super.init(self, appTbl)
    
@@ -190,9 +239,6 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
 
-   -- boundary condition information
-   self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
-   self.bcx, self.bcy, self.bcz = { }, { }, { }
 
    -- function to check if BC type is good
    local function isBcGood(bcType)
@@ -273,8 +319,8 @@ function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
 end
 
-function KineticSpecies:alloc(nDup)
-   KineticSpecies.super.alloc(nDup)
+function KineticSpecies:alloc(nRkDup)
+   KineticSpecies.super.alloc(self, nRkDup)
 
    -- a generic moment 
    self.moment = DataStruct.Field {
@@ -371,8 +417,8 @@ end
 
 local VlasovSpecies = Proto(KineticSpecies)
 
-function VlasovSpecies:alloc(nDup)
-   VlasovSpecies.super.alloc(nDup)
+function VlasovSpecies:alloc(nRkDup)
+   VlasovSpecies.super.alloc(self, nRkDup)
 
    self.numDensity = self.moment
    self.momDensity = self.vectorMoment
@@ -427,7 +473,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
 end
 
 function VlasovSpecies:createDiagnostics()
-   VlasovSpecies.super.createDiagnostics()
+   VlasovSpecies.super.createDiagnostics(self)
 
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
@@ -467,7 +513,7 @@ function VlasovSpecies:createDiagnostics()
 end
 
 function VlasovSpecies:write(tm)
-   VlasovSpecies.super.write(tm)
+   VlasovSpecies.super.write(self, tm)
 
    -- also write moments
    if self.evolve then
@@ -536,8 +582,8 @@ end
 
 local GkSpecies = Proto(KineticSpecies)
 
-function GkSpecies:alloc(nDup)
-   GkSpecies.super.alloc(nDup)
+function GkSpecies:alloc(nRkDup)
+   GkSpecies.super.alloc(self, nRkDup)
 
    self.dens = self.moment
    self.upar = self.moment
@@ -586,7 +632,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
 end
 
 function GkSpecies:createDiagnostics()
-   GkSpecies.super.createDiagnostics()
+   GkSpecies.super.createDiagnostics(self)
    
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
@@ -619,7 +665,7 @@ function GkSpecies:createDiagnostics()
 end
 
 function GkSpecies:write(tm)
-   GkSpecies.super.write(tm)
+   GkSpecies.super.write(self,tm)
 
    -- also write moments
    if self.evolve then
