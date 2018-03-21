@@ -87,7 +87,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
    local qOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
 
-   -- pass aux fields to equation
+   -- pass aux fields to equation object
    local auxFields = {}
    for i = 1, #inFld-1 do
       auxFields[i] = inFld[i+1]
@@ -136,9 +136,10 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
          dirUpSurfIdx = dirUpIdx-1
       end
 
-      local perpRange = localRange:shorten(dir) -- range orthogonal to
-      -- 'dir' outer loop is over directions orthogonal to 'dir' and
-      -- inner loop is over 1D slice in `dir`.
+      local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
+
+      -- outer loop is over directions orthogonal to 'dir' and inner
+      -- loop is over 1D slice in `dir`.
       for idx in perpRange:colMajorIter() do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
