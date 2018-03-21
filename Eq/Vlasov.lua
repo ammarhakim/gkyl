@@ -159,4 +159,24 @@ function Vlasov:setAuxFields(auxFields)
    end
 end
 
+function Vlasov:pdim() return self._pdim end
+function Vlasov:cdim() return self._cdim end
+function Vlasov:vdim() return self._vdim end
+function Vlasov:qbym() return self._qbym end
+function Vlasov:hasForceTerm() return self._hasForceTerm end
+
+function Vlasov:volStreamUpdate()
+   return self._volStreamUpdate
+end
+function Vlasov:surfStreamUpdate()
+   return self._surfStreamUpdate
+end
+
+function Vlasov:volForceUpdate()
+   self._volForceUpdate
+end
+function Vlasov:surfForceUpdate()
+   self._surfForceUpdate
+end
+
 return Vlasov
