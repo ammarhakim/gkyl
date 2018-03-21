@@ -16,7 +16,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for i : 1 thru 4 do (
+for i : 1 thru 2 do (
   bP : basisP[i],
   printf(fh, "void ~a_~a_P~a(const double *w, const double *dxv, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
@@ -39,7 +39,8 @@ for i : 1 thru 4 do (
   fhat : subst(cv=1, fl_L),
   t : calcInnerProdList(surfVars, wx+dvx*vv, subst(cv=-1, bP), fhat),
   incr_r : t,
-  writeCExprs1(incr, incr_r),
+  clst : [wx, dvx],
+  writeCExprsCollect1(incr, incr_r, clst),
   printf(fh, "~%"),
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outr, incr_s),  
@@ -57,7 +58,8 @@ for i : 1 thru 4 do (
   
   t : calcInnerProdList(surfVars, wx+dvx*vv, subst(cv=-1, bP), fhat),
   incr_r : t,
-  writeCExprs1(incr, incr_r),
+  clst : [wx, dvx],
+  writeCExprsCollect1(incr, incr_r, clst),
   printf(fh, "~%"),
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outr, incr_s),
