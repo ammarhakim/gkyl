@@ -8,8 +8,6 @@
 local CanonicalModDecl = require "Eq.pbData.CanonicalModDecl"
 local Proto = require "Lib.Proto"
 local HamiltonianBase = require "Eq.HamiltonianBase"
-local ffi = require "ffi"
-local xsys = require "xsys"
 
 -- start from HamiltonianBase class
 local IncompEuler = Proto(HamiltonianBase)
