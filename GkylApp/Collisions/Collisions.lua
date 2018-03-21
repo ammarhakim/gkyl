@@ -9,8 +9,6 @@
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 
-local CollisionsBase = Proto()
-
 -- BgkCollisions ---------------------------------------------------------------
 --
 -- Bhatnagar-Gross-Krook Collision operator
@@ -107,7 +105,4 @@ function BgkCollisions:projectMaxwellTime()
    return self.collisionSlvr:projectMaxwellTime()
 end
 
-return {
-   CollisionsBase = CollisionsBase,
-   BgkCollisions = BgkCollisions,
-}
+return BgkCollisions
