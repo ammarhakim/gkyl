@@ -69,6 +69,7 @@ writeCExprsCollect1(lhs, rhs, clst) := block([expr],
 
 writeCExprsNoExpand1(lhs, rhs) := block([expr],
   expr : float(rhs),
+  for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", lhs[i-1], expr[i])
   )
 )$
