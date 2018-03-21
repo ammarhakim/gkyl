@@ -72,7 +72,9 @@ for i : 1 thru 4 do (
     printf(fh, "~%"),
     for c : 1 thru length(bC) do (
       printf(fh, "  abar~a[~a] = E~a[~a]; ~%", dir-1, c-1, dir-1, c-1)
-    )
+    ),
+    clst : [amax, dv1],
+    clst1 : append(clst, makelist(abar0[i-1], i, 1, length(bC)))
   ),
   if vdim = 2 then (
     printf(fh, "  double abar~a[~a]; ~%~%", 0, length(bC)),
@@ -81,12 +83,16 @@ for i : 1 thru 4 do (
     if dir = 1 then (
       for c : 1 thru length(bC) do (
         printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]; ~%", dir-1, c-1, dir-1, c-1, dir+1, dir+1, c-1)
-      )
+      ),
+      clst : [amax, dv1, dv2],
+      clst1 : append(clst, makelist(abar0[i-1], i, 1, length(bC)))
     ),
     if dir = 2 then (
       for c : 1 thru length(bC) do (
         printf(fh, "  abar~a[~a] = E~a[~a]-wv~a*B~a[~a]; ~%", dir-1, c-1, dir-1, c-1, dir-1, dir, c-1)
-      )
+      ),
+      clst : [amax, dv1, dv2],
+      clst1 : append(clst, makelist(abar1[i-1], i, 1, length(bC)))
     )
   ),
   if vdim = 3 then (
@@ -97,17 +103,23 @@ for i : 1 thru 4 do (
     if dir = 1 then (
       for c : 1 thru length(bC) do (
         printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]-wv~a*B~a[~a]; ~%", dir-1, c-1, dir-1, c-1, dir+1, dir+1, c-1, dir+2, dir, c-1)
-      )
+      ),
+      clst : [amax, dv1, dv2, dv3],
+      clst1 : append(clst, makelist(abar0[i-1], i, 1, length(bC)))
     ),
     if dir = 2 then (
       for c : 1 thru length(bC) do (
         printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]-wv~a*B~a[~a]; ~%", dir-1, c-1, dir-1, c-1, dir+1, dir-2, c-1, dir-1, dir, c-1)
-      )
+      ),
+      clst : [amax, dv1, dv2, dv3],
+      clst1 : append(clst, makelist(abar1[i-1], i, 1, length(bC)))
     ),
     if dir = 3 then (
       for c : 1 thru length(bC) do (
         printf(fh, "  abar~a[~a] = E~a[~a]+wv~a*B~a[~a]-wv~a*B~a[~a]; ~%", dir-1, c-1, dir-1, c-1, dir-2, dir-2, c-1, dir-1, dir-3, c-1)
-      )
+      ),
+      clst : [amax, dv1, dv2, dv3],
+      clst1 : append(clst, makelist(abar2[i-1], i, 1, length(bC)))
     )
   ),
   printf(fh, "~%"), 
@@ -125,7 +137,7 @@ for i : 1 thru 4 do (
 
   printf(fh, "  double fjump[~a]; ~%~%", length(bP)),
   for c : 1 thru length(bP) do (
-    printf(fh, "  fjump[~a] = ~a*fr[~a]-fl[~a]; ~%", c-1, signs[c], c-1, c-1)
+    printf(fh, "  fjump[~a] = amax*(~a*fr[~a]-fl[~a]); ~%", c-1, signs[c], c-1, c-1)
   ),
   
   surfVars : delete(vv,varsP),
@@ -139,15 +151,15 @@ for i : 1 thru 4 do (
   fhat_average : subst(vv=1, favg_e),
   fhat_jump : subst(vv=1, fjump_e),
   tavg : 0.5*calcInnerProdList(surfVars, acc, subst(vv=-1, bP), fhat_average),
-  tjump : 0.5*calcInnerProdList(surfVars, amax, subst(vv=-1, bP), fhat_jump),
+  tjump : 0.5*calcInnerProdList(surfVars, 1.0, subst(vv=-1, bP), fhat_jump),
   incr_r : tavg-tjump,
-  writeCExprs1(incr, incr_r),
+  writeCExprsCollect1(incr, incr_r, clst1),
   printf(fh, "~%"),
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
   writeCIncrExprs1(outr, dv11[dir]*incr_s),  
   printf(fh, "~%"),
   tavg : 0.5*calcInnerProdList(surfVars, acc, subst(vv=1, bP), fhat_average),
-  tjump : 0.5*calcInnerProdList(surfVars, amax, subst(vv=1, bP), fhat_jump),
+  tjump : 0.5*calcInnerProdList(surfVars, 1.0, subst(vv=1, bP), fhat_jump),
   incr_l : -tavg+tjump,
   signs : fullratsimp(incr_l/incr_r),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
