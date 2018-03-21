@@ -6,8 +6,7 @@
 --------------------------------------------------------------------------------
 
 local Proto = require "Lib.Proto"
-local ffi = require "ffi"
-local xsys = require "xsys"
+local DataStruct = require "DataStruct"
 
 local Hamiltonian = Proto()
 
@@ -47,10 +46,10 @@ end
 
 function Hamiltonian:setHamiltonian(hamilTimeDepIn)
    -- check if hamilTimeDep is on same grid as self.hamiltonian
-   -- if not, project hamilTimeDep onto grid of self.hamiltonian 
+   -- if not, project hamilTimeDep onto grid of self.hamiltonian
    local hamilTimeDep
    if hamilTimeDepIn:compatible(self.hamiltonian) then
-      hamilTimeDep = hamilTimeIndepIn
+      hamilTimeDep = hamilTimeDepIn
    else
       assert(false, "Using hamiltonian terms on different grids not yet implemented!")
    end
