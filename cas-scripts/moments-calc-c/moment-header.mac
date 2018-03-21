@@ -30,7 +30,19 @@ for ci : 1 thru 3 do (
   )
 )$
 
-printf(fh, "~% ~%")$
+ci : 3$
+vi : 2$
+for pi : 1 thru 4 do (
+  if vi < 3 then (
+     printf(fh, "void GkMomentCalc~ax~avSer_Dens_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     printf(fh, "void GkMomentCalc~ax~avSer_Upar_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     printf(fh, "void GkMomentCalc~ax~avSer_Ppar_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     if vi > 1 then printf(fh, "void GkMomentCalc~ax~avSer_Pperp_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     printf(fh, "void GkMomentCalc~ax~avSer_Qpar_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     if vi > 1 then printf(fh, "void GkMomentCalc~ax~avSer_Qperp_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi)
+  ),
+  printf(fh, "~%") 
+)$
 
 for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
@@ -55,8 +67,20 @@ for ci : 1 thru 3 do (
   )
 )$
 
-
 printf(fh, "~% ~%")$
+ci : 3$
+vi : 2$
+for pi : 1 thru 4 do (
+  if vi < 3 then (
+     printf(fh, "void GkMomentCalc~ax~avMax_Dens_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     printf(fh, "void GkMomentCalc~ax~avMax_Upar_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     printf(fh, "void GkMomentCalc~ax~avMax_Ppar_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     if vi > 1 then printf(fh, "void GkMomentCalc~ax~avMax_Pperp_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     printf(fh, "void GkMomentCalc~ax~avMax_Qpar_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),
+     if vi > 1 then printf(fh, "void GkMomentCalc~ax~avMax_Qperp_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi)
+  ),
+  printf(fh, "~%") 
+)$
 
 printf(fh, "} ~%")$
 

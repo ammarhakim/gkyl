@@ -239,8 +239,34 @@ void MomentCalc3x3vSer_M3i_P4(const double *w, const double *dxv, const double *
 void IntMomentCalc3x3vSer_P4(const double *w, const double *dxv, const double *f, double *out); 
 
 
+void GkMomentCalc3x2vSer_Dens_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Upar_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Ppar_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Pperp_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qpar_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qperp_P1(const double *w, const double *dxv, const double *f, double *out); 
 
- 
+void GkMomentCalc3x2vSer_Dens_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Upar_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Ppar_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Pperp_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qpar_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qperp_P2(const double *w, const double *dxv, const double *f, double *out); 
+
+void GkMomentCalc3x2vSer_Dens_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Upar_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Ppar_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Pperp_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qpar_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qperp_P3(const double *w, const double *dxv, const double *f, double *out); 
+
+void GkMomentCalc3x2vSer_Dens_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Upar_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Ppar_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Pperp_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qpar_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vSer_Qperp_P4(const double *w, const double *dxv, const double *f, double *out); 
+
 void MomentCalc1x1vMax_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vMax_M1i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vMax_M2ij_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -489,5 +515,33 @@ void IntMomentCalc3x3vMax_P4(const double *w, const double *dxv, const double *f
 
 
  
+void GkMomentCalc3x2vMax_Dens_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Upar_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Ppar_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Pperp_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qpar_P1(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qperp_P1(const double *w, const double *dxv, const double *f, double *out); 
+
+void GkMomentCalc3x2vMax_Dens_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Upar_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Ppar_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Pperp_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qpar_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qperp_P2(const double *w, const double *dxv, const double *f, double *out); 
+
+void GkMomentCalc3x2vMax_Dens_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Upar_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Ppar_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Pperp_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qpar_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qperp_P3(const double *w, const double *dxv, const double *f, double *out); 
+
+void GkMomentCalc3x2vMax_Dens_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Upar_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Ppar_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Pperp_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qpar_P4(const double *w, const double *dxv, const double *f, double *out); 
+void GkMomentCalc3x2vMax_Qperp_P4(const double *w, const double *dxv, const double *f, double *out); 
+
 } 
 #endif 

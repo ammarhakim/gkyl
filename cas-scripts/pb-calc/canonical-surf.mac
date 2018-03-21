@@ -1,0 +1,105 @@
+load("modal-basis");
+load("out-scripts");
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+cvars : [X, Y, Z]$
+vvars : [VX, VY, VZ]$
+
+dxv : [dxv0, dxv1, dxv2, dxv3, dxv4, dxv5]$
+
+PB(f,g,x,y) := diff(f,x)*diff(g,y) - diff(g,x)*diff(f,y)$
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for i : 1 thru pmax do (
+  bP : basisP[i],
+  bC : basisC[i],
+  numC : length(bC),
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+  if dir <= cdim then dirlabel : cvars[dir]
+  else dirlabel : vvars[dir-cdim],
+
+  printf(fh, "void ~a_~a_P~a(const double *w, const double *dxv, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells ~%"),
+  printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
+
+  for d : 1 thru cdim+vdim do (
+    printf(fh, "  double dxv~a = dxv[~a]; ~%", d-1, d-1)
+  ),
+  printf(fh, "  double wd = w[~a]; ~%", dir-1),
+  printf(fh, "  double incr[~a]; ~%~%", length(bP)),
+
+  /* get surface variable */
+  sv : varsP[dir],
+  /* remove surface variable from phase space */
+  surfIntVars : delete(sv,varsP),
+  /* make expansions */
+  fl_L : doExpand1(fl, bP),
+  fl_R : doExpand1(fr, bP),
+  Hl : doExpand1(H, bP),
+
+  volfac : 1,
+  for d : 1 thru cdim do (
+    pbfac[d] : 4/dxv[cid[d]+1]/dxv[vid[d]+1]
+  ),
+  for d : 1 thru cdim+vdim do (
+    volfac : volfac * dxv[d]/2
+  ),
+  surfac : fullratsimp(volfac*2/dxv[dir]),
+
+  /* calculate alpha in direction of sv at boundary from interior */
+  /* we assume alpha.n is continuous across boundary, although H may not be */
+  alpha_sv : (alpha : 0, for d : 1 thru cdim do (
+     pb : (pbfac[d]*PB(wd + dxv[dir]/2*sv,Hl,varsC[d],varsV[d])),
+     alpha : alpha + pb
+     ),
+  subst(sv=-1,alpha)),
+  /* get cell-average value to use for upwinding */
+  alpha0 : fullratsimp(innerProd(surfIntVars, 1, alpha_sv, subst(sv=-1, bP[1]))),
+  printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
+  printf(fh, "  double alpha0 = ~a; ~%~%", float(alpha0)),
+
+  printf(fh, "  if (alpha0>0) { ~%"),
+  fhat : subst(sv=1, fl_L),
+  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
+  incr_r : facsum(fullratsimp(t),dxv),
+  writeCExprsNoExpand1(incr, incr_r),
+  printf(fh, "~%"),
+  incr_s : makelist(incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outr, incr_s),  
+  printf(fh, "~%"),
+  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
+  incr_l : -t,
+  signs : fullratsimp(incr_l/incr_r),
+  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outl, incr_s),
+  
+  printf(fh, "  } else { ~%"),
+  fhat : subst(sv=-1, fl_R),
+  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
+  incr_r : facsum(fullratsimp(t),dxv),
+  writeCExprsNoExpand1(incr, incr_r),
+  printf(fh, "~%"),
+  incr_s : makelist(incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outr, incr_s),  
+  printf(fh, "~%"),
+  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
+  incr_l : -t,
+  signs : fullratsimp(incr_l/incr_r),
+  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outl, incr_s),
+  printf(fh, "  } ~%"),
+  printf(fh, "} ~%")
+));
+
+calcCanonicalPBSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax) := block([],
+  printf(fh, "#include <CanonicalModDecl.h> ~%"),
+  for dir : 1 thru cdim+vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax) )
+)$
