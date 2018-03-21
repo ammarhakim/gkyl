@@ -1,0 +1,75 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+dxv : [dxv0, dxv1, dxv2, dxv3, dxv4, dxv5]$
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+PB(f,g,x,y) := diff(f,x)*diff(g,y) - diff(g,x)*diff(f,y)$
+
+calcCanonicalPBVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+printf(fh, "#include <cmath> ~%"),
+printf(fh, "#include <CanonicalModDecl.h> ~%"),
+for i : 1 thru pmax do (
+  bP : basisP[i],
+  bC : basisC[i],
+  numC : length(bC),
+  printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *H, const double *f, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+  for dir : 1 thru cdim do (
+    pbfac[dir] : 4/dxv[cid[dir]+1]/dxv[vid[dir]+1]
+  ),
+  volfac : 1,
+  for d : 1 thru cdim+vdim do (
+    volfac : volfac * dxv[d]/2
+  ),
+  for dir : 1 thru cdim+vdim do (
+    printf(fh, "  double dxv~a = dxv[~a]; ~%", dir-1, dir-1)
+  ),
+  for dir : 1 thru cdim do (
+    printf(fh, "  double dxInv~a = 1.0/dxv[~a]; ~%", dir-1, cid[dir])
+  ),
+  for dir : 1 thru vdim do (
+    printf(fh, "  double dvInv~a = 1.0/dxv[~a]; ~%", dir-1, vid[dir])
+  ),
+  fl : doExpand1(f, bP),
+  Hl : doExpand1(H, bP),
+  pb : (pb : 0, for dir : 1 thru cdim do (
+     pbBasis : pbfac[dir]*(PB(bP,Hl,varsC[dir],varsV[dir])),
+     pb : pb + fullratsimp(volfac*calcInnerProdList(varsP, 1, pbBasis, fl))
+     ),
+  pb),
+  writeCIncrExprsNoExpand(facsum(fullratsimp(pb),dxv)),
+  printf(fh, "  double cflFreq = 0.0; ~%"), 
+  printf(fh, "  // calculate phase space speed alpha in each direction, and add to cfl ~%"),
+  printf(fh, "  // here alpha is cell-averaged ~%"),
+  printf(fh, "  double alpha = 0.0; ~%"), 
+  for d : 1 thru cdim do (
+    alpha : (alpha : 0, for dir : 1 thru cdim do (
+       pbBasis : (pbfac[dir]*PB(varsP[d],Hl,varsC[dir],varsV[dir])),
+       alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, bP[1]))
+       ),
+    alpha),
+    printf(fh, "  alpha = fabs(~a);  // alpha_x~a ~%", float(facsum(fullratsimp(innerProd(varsP, 1, bP[1], alpha)), dxv)), d-1),
+    printf(fh, "  cflFreq += alpha*dxInv~a; ~%", d-1)
+  ),
+  for d : 1 thru vdim do (
+    alpha : (alpha : 0, for dir : 1 thru cdim do (
+       pbBasis : (pbfac[dir]*PB(varsP[d+cdim],Hl,varsC[dir],varsV[dir])),
+       alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, bP[1]))
+       ),
+    alpha),
+    printf(fh, "  alpha = fabs(~a);  // alpha_v~a ~%", float(facsum(fullratsimp(innerProd(varsP, 1, bP[1], alpha)), dxv)), d-1),
+    printf(fh, "  cflFreq += alpha*dvInv~a; ~%", d-1)
+  ),
+  printf(fh, "  return cflFreq; ~%"),
+  printf(fh, "} ~%")
+));

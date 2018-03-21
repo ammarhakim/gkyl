@@ -99,6 +99,15 @@ def build(bld):
 
     vlasovData/VlasovIncr.cpp
 
+    pbData/CanonicalMax1x1v.cpp
+    pbData/CanonicalMax2x2v.cpp
+    pbData/CanonicalSer1x1v.cpp
+    pbData/CanonicalSer2x2v.cpp
+    pbData/CanonicalSurfMax1x1v.cpp
+    pbData/CanonicalSurfMax2x2v.cpp
+    pbData/CanonicalSurfSer1x1v.cpp
+    pbData/CanonicalSurfSer2x2v.cpp
+
     """,
-    target = 'eq', includes = '. maxwellData vlasovData'
+    target = 'eq', includes = '. maxwellData vlasovData pbData'
     )

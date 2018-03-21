@@ -173,10 +173,10 @@ function Vlasov:surfStreamUpdate()
 end
 
 function Vlasov:volForceUpdate()
-   self._volForceUpdate
+   return self._volForceUpdate
 end
 function Vlasov:surfForceUpdate()
-   self._surfForceUpdate
+   return self._surfForceUpdate
 end
 
 return Vlasov
