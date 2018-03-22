@@ -497,39 +497,32 @@ local function buildApplication(self, tbl)
 	 tmSlvr = tmSlvr+s:totalSolverTime()
       end
 
-      --local tmVlasovStream, tmVlasovForce, tmVlasovIncr = 0.0, 0.0, 0.0
-      --local tmVlasovMom, tmVlasovIntMom, tmVlasovBc = 0.0, 0.0, 0.0
-      --for _, s in pairs(species) do
-      --   tmVlasovStream = tmVlasovStream + s:streamTime()
-      --   tmVlasovForce = tmVlasovForce + s:forceTime()
-      --   tmVlasovIncr = tmVlasovIncr + s:incrementTime()
-      --   tmVlasovMom = tmVlasovMom + s:momCalcTime()
-      --   tmVlasovIntMom = tmVlasovIntMom + s:intMomCalcTime()
-      --   tmVlasovBc = tmVlasovBc + s:totalBcTime()
-      --end
-      --local tmColl, tmCollEvalMom, tmCollProjectMaxwell = 0.0, 0.0, 0.0
-      --for _, c in pairs(collisions) do
-      --   tmColl = tmColl + c:totalSolverTime()
-      --   tmCollEvalMom = tmCollEvalMom + c:evalMomTime()
-      --   tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
-      --end
+      local tmMom, tmIntMom, tmBc = 0.0, 0.0, 0.0
+      for _, s in pairs(species) do
+         tmMom = tmMom + s:momCalcTime()
+         tmIntMom = tmIntMom + s:intMomCalcTime()
+         tmBc = tmBc + s:totalBcTime()
+      end
+      local tmColl, tmCollEvalMom, tmCollProjectMaxwell = 0.0, 0.0, 0.0
+      for _, c in pairs(collisions) do
+         tmColl = tmColl + c:totalSolverTime()
+         tmCollEvalMom = tmCollEvalMom + c:evalMomTime()
+         tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
+      end
 
       log(string.format("\nTotal number of time-steps %s\n", step))
-      log(string.format("\nVlasov solver took %g sec\n", tmSlvr))
---      log(string.format(
---	     "  [Streaming updates %g sec. Force updates %g sec]\n",
---	     tmVlasovStream, tmVlasovForce))
---      log(string.format("Vlasov solver BCs took %g sec\n", tmVlasovBc))
---      log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
---      log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))
---      log(string.format("Function field solver took %g sec\n", funcField:totalSolverTime()))
---      log(string.format("Moment calculations took %g sec\n", tmVlasovMom))
---      log(string.format("Integrated moment calculations took %g sec\n", tmVlasovIntMom))
---      log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
---      log(string.format("Collision solver took %g sec\n", tmColl))
---      log(string.format(
---	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
---	     tmCollEvalMom, tmCollProjectMaxwell))
+      log(string.format("\nSolver took %g sec\n", tmSlvr))
+      log(string.format("Solver BCs took %g sec\n", tmBc))
+      log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
+      log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))
+      log(string.format("Function field solver took %g sec\n", funcField:totalSolverTime()))
+      log(string.format("Moment calculations took %g sec\n", tmMom))
+      log(string.format("Integrated moment calculations took %g sec\n", tmIntMom))
+      log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
+      log(string.format("Collision solver took %g sec\n", tmColl))
+      log(string.format(
+	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
+	     tmCollEvalMom, tmCollProjectMaxwell))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
