@@ -541,10 +541,14 @@ end
 
 return {
    App = App,
-   Species = Species,
+   VlasovSpecies = Species.VlasovSpecies,
+   GkSpecies = Species.GkSpecies,
    BgkCollisions = Collisions.BgkCollisions,   
    MaxwellField = Field.MaxwellField,
    GkField = Field.GkField,
    NoField = Field.NoField,
    FuncMaxwellField = Field.FuncMaxwellField,
+
+   VlasovMaxwell = {Species = Species.VlasovSpecies, Field = Field.MaxwellField},
+   Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField},
 }
