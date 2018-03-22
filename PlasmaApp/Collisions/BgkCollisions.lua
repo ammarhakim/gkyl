@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- VlasovOnCartGrid support code: Various field objects
+-- PlasmaOnCartGrid support code: BGK Collision operator
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -8,6 +8,7 @@
 
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
+local CollisionsBase = require "PlasmaApp.Collisions.CollisionsBase"
 
 -- BgkCollisions ---------------------------------------------------------------
 --

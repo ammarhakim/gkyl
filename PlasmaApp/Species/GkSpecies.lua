@@ -1,6 +1,6 @@
 local Proto = require "Lib.Proto"
-local KineticSpecies = require "GkylApp.Species.KineticSpecies"
-local Eq = require "Eq"
+local KineticSpecies = require "PlasmaApp.Species.KineticSpecies"
+local GkEq = require "Eq.Gyrokinetic"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
 
@@ -25,7 +25,7 @@ end
 
 function GkSpecies:createSolver(hasPhi, hasApar)
    -- create updater to advance solution by one time-step
-   local gkEqn = Eq.Gyrokinetic {
+   local gkEqn = GkEq {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,

@@ -9,7 +9,7 @@ local LinearTrigger = require "LinearTrigger"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local FieldBase = require "GkylApp.Field.FieldBase"
+local FieldBase = require "PlasmaApp.Field.FieldBase"
 
 local GkField = Proto(FieldBase.FieldBase)
 

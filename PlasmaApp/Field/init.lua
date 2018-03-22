@@ -1,7 +1,7 @@
 -- for accessing any field object
-local FieldBase = require "GkylApp.Field.FieldBase"
-local MaxwellField = require "GkylApp.Field.MaxwellField"
-local GkField = require "GkylApp.Field.GkField"
+local FieldBase = require "PlasmaApp.Field.FieldBase"
+local MaxwellField = require "PlasmaApp.Field.MaxwellField"
+local GkField = require "PlasmaApp.Field.GkField"
 
 return {
   FieldBase = FieldBase.FieldBase,
