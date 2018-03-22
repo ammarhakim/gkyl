@@ -31,8 +31,6 @@ function GkField:fullInit(appTbl)
    self.nPotentials = 1
    if self.isElectromagnetic then self.nPotentials = 2 end
 
-   self.lightSpeed = tbl.lightSpeed
-
    -- create triggers to write fields
    if tbl.nFrame then
       self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
