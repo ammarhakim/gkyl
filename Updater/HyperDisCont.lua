@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to compute RHS or forward Euler update for linear
--- hyperbolic equations with Discontinuous Galerkin scheme.
+-- Updater to compute RHS or forward Euler update for hyperbolic
+-- equations with Discontinuous Galerkin scheme.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -21,8 +21,6 @@ local HyperDisCont = Proto(UpdaterBase)
 
 function HyperDisCont:init(tbl)
    HyperDisCont.super.init(self, tbl)
-
-   self._isFirst = true -- will be reset first time _advance() is called
 
    -- read data from input file
    self._onGrid = assert(tbl.onGrid, "Updater.HyperDisCont: Must provide grid object using 'onGrid'")
@@ -77,6 +75,10 @@ function HyperDisCont:init(tbl)
       self._maxs[d] = 0.0
    end
 
+   self._isFirst = true
+   self._auxFields = {} -- auxilliary fields passed to eqn object
+   self._perpRange = {} -- perp ranges in each direction      
+   
    return self
 end
 
@@ -88,11 +90,10 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local qOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
 
    -- pass aux fields to equation object
-   local auxFields = {}
    for i = 1, #inFld-1 do
-      auxFields[i] = inFld[i+1]
+      self._auxFields[i] = inFld[i+1]
    end
-   self._equation:setAuxFields(auxFields)
+   self._equation:setAuxFields(self._auxFields)
 
    local ndim = grid:ndim()
 
@@ -112,9 +113,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local qOutM, qOutP = qOut:get(1), qOut:get(1)
 
    -- This flag is needed as the volume integral already contains
-   -- contributions from all directions. Hence, we can only
-   -- accumulate the volume contribution once, skipping it for
-   -- other directions
+   -- contributions from all directions. Hence, we must only
+   -- accumulate the volume contribution once, skipping it for other
+   -- directions
    local firstDir = true
 
    -- use maximum characteristic speeds from previous step as penalty
@@ -136,7 +137,10 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
          dirUpSurfIdx = dirUpIdx-1
       end
 
-      local perpRange = localRange:shorten(dir) -- range orthogonal to 'dir'
+      if self._isFirst then
+	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
+      end
+      local perpRange = self._perpRange[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
@@ -145,7 +149,6 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
-	    -- compute cell center coordinates and cell spacing
 	    grid:setIndex(idxp)
 	    for d = 1, ndim do dx[d] = grid:dx(d) end
 	    grid:cellCenter(xc)

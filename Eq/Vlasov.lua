@@ -54,7 +54,7 @@ function Vlasov:init(tbl)
    end
 
    self._volForceUpdate, self._surfForceUpdate = nil, nil
-   -- functions to perform force updates from electric field
+   -- functions to perform force
    if hasMagField then 
       self._volForceUpdate = VlasovModDecl.selectVolElcMag(
 	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -105,8 +105,10 @@ end
 
 -- Maximum wave speed
 function Vlasov:maxSpeed(dir, w, dx, q)
+   assert(false, "Vlasov:maxSpeed: NYI!")
    return 0.0
-end       
+end
+
 -- Volume integral term for use in DG scheme
 function Vlasov:volTerm(w, dx, idx, q, out)
    -- streaming term
@@ -114,10 +116,8 @@ function Vlasov:volTerm(w, dx, idx, q, out)
    local cflFreqForce = 0.0
    -- force term
    if self._hasForceTerm then
-      -- set pointer to EM field and scale by q/m
       self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
       rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
-      -- compute vol term
       cflFreqForce = self._volForceUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
    end
    return cflFreqStream+cflFreqForce
