@@ -47,7 +47,8 @@ function KineticSpecies:fullInit(appTbl)
 
    self.name = "name"
    self.cfl =  0.1
-   self.charge, self.mass = tbl.charge, tbl.mass
+   self.charge = tbl.charge and tbl.charge or 1.0
+   self.mass = tbl.mass and tbl.mass or 1.0
    self.lower, self.upper = tbl.lower, tbl.upper
    self.cells = tbl.cells
    self.vdim = #self.cells -- velocity dimensions
@@ -131,7 +132,7 @@ function KineticSpecies:getCharge() return self.charge end
 function KineticSpecies:getMass() return self.mass end
 
 function KineticSpecies:ndim()
-   return self.vdim
+   return self.ndim
 end
 function KineticSpecies:vdim()
    return self.vdim

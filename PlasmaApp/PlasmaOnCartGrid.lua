@@ -127,15 +127,6 @@ local function buildApplication(self, tbl)
       end
    end
 
-   local cflMin = GKYL_MAX_DOUBLE
-   -- compute CFL numbers
-   for _, s in pairs(species) do
-      local ndim = cdim+s:ndim()
-      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
-      cflMin = math.min(cflMin, myCfl)
-      s:setCfl(cflMin)
-   end
-
    -- setup each species
    for _, s in pairs(species) do
       s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs)
@@ -164,6 +155,16 @@ local function buildApplication(self, tbl)
       s:setConfGrid(grid)
       s:alloc(stepperNumFields[timeStepperNm])
    end
+
+   local cflMin = GKYL_MAX_DOUBLE
+   -- compute CFL numbers
+   for _, s in pairs(species) do
+      local ndim = s:ndim()
+      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
+      cflMin = math.min(cflMin, myCfl)
+      s:setCfl(cflMin)
+   end
+
 
    -- read in information about collisions
    local collisions = {}
@@ -229,16 +230,10 @@ local function buildApplication(self, tbl)
    -- initialize species distributions and field
    for nm, s in pairs(species) do
       s:initDist()
+      s:applyBc(0, nil, speciesRkFields[nm][1])
       s:calcCouplingMoments(0, nil, speciesRkFields[nm][1])
    end
    field:initField(species)
-   funcField:initField()
-
-   -- initialize species distributions and field
-   for _, s in pairs(species) do
-      s:initDist()
-   end
-   field:initField()
    funcField:initField()
 
    -- function to write data to file
@@ -549,6 +544,8 @@ return {
    NoField = Field.NoField,
    FuncMaxwellField = Field.FuncMaxwellField,
 
+   -- valid pre-packaged species-field systems
    VlasovMaxwell = {Species = Species.VlasovSpecies, Field = Field.MaxwellField},
    Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField},
+   IncompEuler = {Species = Species.IncompEulerSpecies, Field = Field.GkField},
 }
