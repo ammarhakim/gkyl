@@ -12,7 +12,7 @@ local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
-local VlasovModDecl = require "Updater.vlasovData.VlasovModDecl"
+local VlasovModDecl = require "Eq.vlasovData.VlasovModDecl"
 local ffi = require "ffi"
 local xsys = require "xsys"
 

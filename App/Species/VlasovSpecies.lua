@@ -1,5 +1,5 @@
 local Proto = require "Lib.Proto"
-local KineticSpecies = require "PlasmaApp.Species.KineticSpecies"
+local KineticSpecies = require "App.Species.KineticSpecies"
 local VlasovEq = require "Eq.Vlasov"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"

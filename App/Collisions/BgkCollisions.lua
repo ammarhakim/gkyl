@@ -8,7 +8,7 @@
 
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
-local CollisionsBase = require "PlasmaApp.Collisions.CollisionsBase"
+local CollisionsBase = require "App.Collisions.CollisionsBase"
 
 -- BgkCollisions ---------------------------------------------------------------
 --
