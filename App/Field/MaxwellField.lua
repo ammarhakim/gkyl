@@ -14,7 +14,7 @@ local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local FieldBase = require "PlasmaApp.Field.FieldBase"
+local FieldBase = require "App.Field.FieldBase"
 
 -- MaxwellField ---------------------------------------------------------------------
 --

@@ -121,13 +121,6 @@ def build(bld):
         App_dir.ant_glob('**/*.lua'),
         cwd=App_dir, relative_trick=True)
 
-    # - PlasmaApp
-    PlasmaApp_dir = bld.path.find_dir('PlasmaApp')
-    bld.install_files(
-        "${PREFIX}/bin/PlasmaApp",
-        PlasmaApp_dir.ant_glob('**/*.lua'),
-        cwd=PlasmaApp_dir, relative_trick=True)
-
     # - Comm
     Comm_dir = bld.path.find_dir('Comm')
     bld.install_files(

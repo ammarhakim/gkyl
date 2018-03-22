@@ -10,17 +10,17 @@
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
 local BoundaryCondition = require "Updater.BoundaryCondition"
-local Collisions = require "PlasmaApp.Collisions"
+local Collisions = require "App.Collisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Field = require "PlasmaApp.Field"
+local Field = require "App.Field"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
-local Species = require "PlasmaApp.Species"
+local Species = require "App.Species"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
@@ -159,7 +159,7 @@ local function buildApplication(self, tbl)
    local cflMin = GKYL_MAX_DOUBLE
    -- compute CFL numbers
    for _, s in pairs(species) do
-      local ndim = s:ndim()
+      local ndim = s:getNdim()
       local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)

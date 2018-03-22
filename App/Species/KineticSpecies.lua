@@ -15,7 +15,7 @@ local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local SpeciesBase = require "PlasmaApp.Species.SpeciesBase"
+local SpeciesBase = require "App.Species.SpeciesBase"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -131,7 +131,7 @@ end
 function KineticSpecies:getCharge() return self.charge end
 function KineticSpecies:getMass() return self.mass end
 
-function KineticSpecies:ndim()
+function KineticSpecies:getNdim()
    return self.ndim
 end
 function KineticSpecies:vdim()
