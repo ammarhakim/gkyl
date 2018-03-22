@@ -14,7 +14,7 @@ local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local FieldBase = require "GkylApp.Field.FieldBase"
+local FieldBase = require "PlasmaApp.Field.FieldBase"
 
 -- MaxwellField ---------------------------------------------------------------------
 --
@@ -102,6 +102,8 @@ function MaxwellField:fullInit(appTbl)
    self.emEnergy = DataStruct.DynVector { numComponents = 8 }
 
    self.tmCurrentAccum = 0.0 -- time spent in current accumulate
+
+   self._isFirst = true
 end
 
 -- methods for EM field object
@@ -129,12 +131,6 @@ function MaxwellField:alloc(nRkDup)
       method = self.ioMethod,
    }
 
-   -- create field for total current density
-   self.currentDens = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis()*self.vdim,
-      ghost = {1, 1}
-   }
 end
 
 function MaxwellField:createSolver()
@@ -260,11 +256,25 @@ function MaxwellField:accumulateCurrent(dt, current, em)
 end
 
 function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
+   if self._isFirst then
+      -- create field for total current density
+      do
+         local c = 0
+         for _, s in pairs(species) do
+            if c == 0 then
+               self.currentDens = s:allocMomCouplingFields().currentDensity
+            end
+            c = c+1
+         end
+      end
+      self._isFirst = false
+   end
+
    if self.evolve then
       local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
       self.currentDens:clear(0.0)
       for nm, s in pairs(species) do
-        self.currentDens:accumulate(s:charge(), s:getMomDensity())
+        self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
       end
       self:accumulateCurrent(dt, self.currentDens, emOut)
       return mys, mydt

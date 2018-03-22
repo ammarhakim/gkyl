@@ -1,6 +1,6 @@
 local Proto = require "Lib.Proto"
-local KineticSpecies = require "GkylApp.Species.KineticSpecies"
-local Eq = require "Eq"
+local KineticSpecies = require "PlasmaApp.Species.KineticSpecies"
+local VlasovEq = require "Eq.Vlasov"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
 
@@ -20,12 +20,12 @@ end
 function VlasovSpecies:allocMomCouplingFields()
    -- only need currents for coupling to fields (returning a table
    -- with single entry, i.e. space to store currents)
-   return {self:allocVectorMoment(self.vdim)}
+   return {currentDensity = self:allocVectorMoment(self.vdim)}
 end
 
 function VlasovSpecies:createSolver(hasE, hasB)
    -- create updater to advance solution by one time-step
-   local vlasovEqn = Eq.Vlasov {
+   local vlasovEqn = VlasovEq {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,

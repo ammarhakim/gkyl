@@ -15,7 +15,7 @@ local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local SpeciesBase = require "GkylApp.Species.SpeciesBase"
+local SpeciesBase = require "PlasmaApp.Species.SpeciesBase"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -127,6 +127,9 @@ function KineticSpecies:fullInit(appTbl)
    end
 end
 
+function KineticSpecies:getCharge() return self.charge end
+function KineticSpecies:getMass() return self.mass end
+
 function KineticSpecies:ndim()
    return self.vdim
 end
@@ -187,7 +190,7 @@ function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
 end
 
-function KineticSpecies:allocDistF()
+function KineticSpecies:allocDistf()
    local f = DataStruct.Field {
 	onGrid = self.grid,
 	numComponents = self.basis:numBasis(),
@@ -197,16 +200,16 @@ function KineticSpecies:allocDistF()
 end
 function KineticSpecies:allocMoment()
    local m = DataStruct.Field {
-	onGrid = self.grid,
-	numComponents = self.confbasis:numBasis(),
+	onGrid = self.confGrid,
+	numComponents = self.confBasis:numBasis(),
 	ghost = {1, 1}
    }
    return m
 end
 function KineticSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
-	onGrid = self.grid,
-	numComponents = self.confbasis:numBasis()*dim,
+	onGrid = self.confGrid,
+	numComponents = self.confBasis:numBasis()*dim,
 	ghost = {1, 1}
    }
    return m

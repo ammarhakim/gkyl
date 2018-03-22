@@ -10,17 +10,17 @@
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
 local BoundaryCondition = require "Updater.BoundaryCondition"
-local Collisions = require "GkylApp.Collisions"
+local Collisions = require "PlasmaApp.Collisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Field = require "GkylApp.Fields"
+local Field = require "PlasmaApp.Field"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
-local Species = require "GkylApp.Species"
+local Species = require "PlasmaApp.Species"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local date = require "Lib.date"
@@ -51,7 +51,7 @@ local function buildApplication(self, tbl)
       return default
    end
 
-   log("Initializing GkylOnCartGrid simulation ...\n")
+   log("Initializing PlasmaOnCartGrid simulation ...\n")
    local tmStart = Time.clock()
 
    local cdim = #tbl.lower -- configuration space dimensions
@@ -131,7 +131,7 @@ local function buildApplication(self, tbl)
    -- compute CFL numbers
    for _, s in pairs(species) do
       local ndim = cdim+s:ndim()
-      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(ndim*(2*polyOrder+1))
+      local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
    end
@@ -207,7 +207,7 @@ local function buildApplication(self, tbl)
 
    -- setup information about functional fields
    if tbl.funcField then
-      assert(Field.FuncField.is(tbl.funcField), "GkylOnCartGrid: funcField must be of Field.FuncField")
+      assert(Field.FuncField.is(tbl.funcField), "PlasmaOnCartGrid: funcField must be of Field.FuncField")
    end
    local funcField = tbl.funcField and tbl.funcField or Field.NoField {}
    completeFieldSetup(funcField)
@@ -440,7 +440,7 @@ local function buildApplication(self, tbl)
 
    -- return function that runs main simulation loop
    return function(self)
-      log("Starting main loop of GkylOnCartGrid simulation ...\n\n")
+      log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
       local tStart, tEnd = 0, tbl.tEnd
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
@@ -492,50 +492,50 @@ local function buildApplication(self, tbl)
       writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
 
-      local tmVlasovSlvr = 0.0 -- total time in Vlasov solver
+      local tmSlvr = 0.0 -- total time in solver
       for _, s in pairs(species) do
-	 tmVlasovSlvr = tmVlasovSlvr+s:totalSolverTime()
+	 tmSlvr = tmSlvr+s:totalSolverTime()
       end
 
-      local tmVlasovStream, tmVlasovForce, tmVlasovIncr = 0.0, 0.0, 0.0
-      local tmVlasovMom, tmVlasovIntMom, tmVlasovBc = 0.0, 0.0, 0.0
-      for _, s in pairs(species) do
-	 tmVlasovStream = tmVlasovStream + s:streamTime()
-	 tmVlasovForce = tmVlasovForce + s:forceTime()
-	 tmVlasovIncr = tmVlasovIncr + s:incrementTime()
-	 tmVlasovMom = tmVlasovMom + s:momCalcTime()
-	 tmVlasovIntMom = tmVlasovIntMom + s:intMomCalcTime()
-	 tmVlasovBc = tmVlasovBc + s:totalBcTime()
-      end
-      local tmColl, tmCollEvalMom, tmCollProjectMaxwell = 0.0, 0.0, 0.0
-      for _, c in pairs(collisions) do
-	 tmColl = tmColl + c:totalSolverTime()
-	 tmCollEvalMom = tmCollEvalMom + c:evalMomTime()
-	 tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
-      end
+      --local tmVlasovStream, tmVlasovForce, tmVlasovIncr = 0.0, 0.0, 0.0
+      --local tmVlasovMom, tmVlasovIntMom, tmVlasovBc = 0.0, 0.0, 0.0
+      --for _, s in pairs(species) do
+      --   tmVlasovStream = tmVlasovStream + s:streamTime()
+      --   tmVlasovForce = tmVlasovForce + s:forceTime()
+      --   tmVlasovIncr = tmVlasovIncr + s:incrementTime()
+      --   tmVlasovMom = tmVlasovMom + s:momCalcTime()
+      --   tmVlasovIntMom = tmVlasovIntMom + s:intMomCalcTime()
+      --   tmVlasovBc = tmVlasovBc + s:totalBcTime()
+      --end
+      --local tmColl, tmCollEvalMom, tmCollProjectMaxwell = 0.0, 0.0, 0.0
+      --for _, c in pairs(collisions) do
+      --   tmColl = tmColl + c:totalSolverTime()
+      --   tmCollEvalMom = tmCollEvalMom + c:evalMomTime()
+      --   tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
+      --end
 
       log(string.format("\nTotal number of time-steps %s\n", step))
-      log(string.format("\nVlasov solver took %g sec\n", tmVlasovSlvr))
-      log(string.format(
-	     "  [Streaming updates %g sec. Force updates %g sec]\n",
-	     tmVlasovStream, tmVlasovForce))
-      log(string.format("Vlasov solver BCs took %g sec\n", tmVlasovBc))
-      log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
-      log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))
-      log(string.format("Function field solver took %g sec\n", funcField:totalSolverTime()))
-      log(string.format("Moment calculations took %g sec\n", tmVlasovMom))
-      log(string.format("Integrated moment calculations took %g sec\n", tmVlasovIntMom))
-      log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
-      log(string.format("Collision solver took %g sec\n", tmColl))
-      log(string.format(
-	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
-	     tmCollEvalMom, tmCollProjectMaxwell))
+      log(string.format("\nVlasov solver took %g sec\n", tmSlvr))
+--      log(string.format(
+--	     "  [Streaming updates %g sec. Force updates %g sec]\n",
+--	     tmVlasovStream, tmVlasovForce))
+--      log(string.format("Vlasov solver BCs took %g sec\n", tmVlasovBc))
+--      log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
+--      log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))
+--      log(string.format("Function field solver took %g sec\n", funcField:totalSolverTime()))
+--      log(string.format("Moment calculations took %g sec\n", tmVlasovMom))
+--      log(string.format("Integrated moment calculations took %g sec\n", tmVlasovIntMom))
+--      log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
+--      log(string.format("Collision solver took %g sec\n", tmColl))
+--      log(string.format(
+--	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
+--	     tmCollEvalMom, tmCollProjectMaxwell))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
 end
 
--- GkylOnCartGrid application object
+-- PlasmaOnCartGrid application object
 local App = Proto()
 
 function App:init(tbl)
@@ -550,8 +550,8 @@ return {
    App = App,
    Species = Species,
    BgkCollisions = Collisions.BgkCollisions,   
-   EmField = Field.EmField,
+   MaxwellField = Field.MaxwellField,
    GkField = Field.GkField,
    NoField = Field.NoField,
-   FuncField = Field.FuncField,
+   FuncMaxwellField = Field.FuncMaxwellField,
 }
