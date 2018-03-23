@@ -64,10 +64,10 @@ function Hamiltonian:volTerm(w, dx, idx, q, out)
    return self._volTerm(w:data(), dx:data(), self.hamPtr:data(), q:data(), out:data())
 end
 -- Surface integral term for use in DG scheme
-function Hamiltonian:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
+function Hamiltonian:surfTerm(dir, wl, dxl, wr, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    self.hamiltonian:fill(self.hamIdxr(idxl), self.hamPtrL)
    self.hamiltonian:fill(self.hamIdxr(idxr), self.hamPtrR)
-   return self._surfTerms[dir](w:data(), dx:data(), self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   return self._surfTerms[dir](wr:data(), dxr:data(), self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
 return Hamiltonian

@@ -124,13 +124,13 @@ function Vlasov:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme
-function Vlasov:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
+function Vlasov:surfTerm(dir, wl, dxl, wr, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
       -- streaming term (note that surface streaming kernels don't
       -- return max speed)
       self._surfStreamUpdate[dir](
-	 w:data(), dx:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	 wr:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    else
       if self._hasForceTerm then
 	 -- force term
@@ -138,7 +138,7 @@ function Vlasov:surfTerm(dir, w, dx, maxs, idxl, idxr, ql, qr, outl, outr)
 	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
 	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
 	 amax = self._surfForceUpdate[dir-self._cdim](
-	    w:data(), dx:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	    wr:data(), dxr:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return amax

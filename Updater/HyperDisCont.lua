@@ -104,9 +104,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local qInIdxr, qOutIdxr = qIn:genIndexer(), qOut:genIndexer() -- indexer functions into fields
 
    -- to store grid info
-   local dx = Lin.Vec(ndim) -- cell shape
-   local xc = Lin.Vec(ndim) -- cell center
-   local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim)
+   local dxp, dxm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
+   local xcp, xcm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell center on right/left
+   local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim) -- index on right/left
 
    -- pointers for (re)use in update
    local qInM, qInP = qIn:get(1), qIn:get(1)
@@ -149,9 +149,14 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+
+	    grid:setIndex(idxm)
+	    for d = 1, ndim do dxm[d] = grid:dx(d) end
+	    grid:cellCenter(xcm)
+
 	    grid:setIndex(idxp)
-	    for d = 1, ndim do dx[d] = grid:dx(d) end
-	    grid:cellCenter(xc)
+	    for d = 1, ndim do dxp[d] = grid:dx(d) end
+	    grid:cellCenter(xcp)
 
 	    qIn:fill(qInIdxr(idxm), qInM)
 	    qIn:fill(qInIdxr(idxp), qInP)
@@ -160,12 +165,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    qOut:fill(qOutIdxr(idxp), qOutP)
 
 	    if firstDir then
-	       local cflFreq = self._equation:volTerm(xc, dx, idxp, qInP, qOutP)
+	       local cflFreq = self._equation:volTerm(xcp, dxp, idxp, qInP, qOutP)
 	       cfla = math.max(cfla, cflFreq*dt)
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
-		  dir, xc, dx, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
+		  dir, xcm, dxm, xcp, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
 	       self._maxs[dir] = math.max(self._maxs[dir], maxs)
 	    end
 	 end
