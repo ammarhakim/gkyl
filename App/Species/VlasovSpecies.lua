@@ -115,10 +115,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, dt, fIn)
    self.ptclEnergyCalc:advance(tCurr, dt, {fIn}, { self.ptclEnergy })
 end
 
-function VlasovSpecies:incrementCouplingMoments(tCurr, dt, momOut)
-   momOut[1]:accumulate(self.charge, self.momDensity)
-end
-
 function VlasovSpecies:fluidMoments()
    return { self.numDensity, self.momDensity, self.ptclEnergy } 
 end

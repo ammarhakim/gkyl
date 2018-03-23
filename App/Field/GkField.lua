@@ -108,7 +108,7 @@ end
 -- solve for initial fields self-consistently 
 -- from initial distribution function
 function GkField:initField(species)
-   self:forwardEuler(0, nil, nil, species, self.potentials)
+   self:forwardEuler(0, nil, nil, species, self.potentials[1])
 end
 
 function GkField:rkStepperFields()
@@ -191,13 +191,13 @@ function GkField:forwardEuler(tCurr, dt, potIn, species, potOut)
       local mydt2 = GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do
-        self.chargeDens:accumulate(s:charge(), s:getDens())
+        self.chargeDens:accumulate(s:getCharge(), s:getDens())
       end
       local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
       if self.isElectromagnetic then
         self.currentDens:clear(0.0)
         for nm, s in pairs(species) do
-          self.currentDens:accumulate(s:charge(), s:getUpar())
+          self.currentDens:accumulate(s:getCharge(), s:getUpar())
         end
         mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
       end
@@ -217,7 +217,9 @@ function GkField:applyBc(tCurr, dt, potIn)
 end
    
 function GkField:totalSolverTime()
-   return self.fieldSlvr.totalTime
+   local time = self.phiSlvr.totalTime
+   if isElectromagnetic then time = time + self.aparSlvr.totalTime end
+   return time
 end
 
 function GkField:totalBcTime()

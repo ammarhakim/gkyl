@@ -61,11 +61,13 @@ function RectCart:init(tbl)
    self._currIdx = Lin.IntVec(self._ndim)
 
    self._vol = 1.0
+   self._gridVol = 1.0
    for d = 1, #cells do
       self._lower[d], self._upper[d] = lo[d], up[d]
       self._numCells[d] = cells[d]
       self._dx[d] = (up[d]-lo[d])/cells[d]
       self._vol = self._vol*self._dx[d]
+      self._gridVol = self._gridVol*(up[d]-lo[d])
    end
 
    -- compute global range
@@ -136,6 +138,7 @@ function RectCart:cellCenter(xc)
    end
 end
 function RectCart:cellVolume() return self._vol end
+function RectCart:gridVolume() return self._gridVol end
 
 -- NonUniformRectCartGrid ----------------------------------------------------------------------
 --
