@@ -171,7 +171,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
-		  dir, xcm, dxm, xcp, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
+		  dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
 	    end
 	 end
