@@ -9,10 +9,11 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
 local xsys = require "xsys"
 
@@ -67,7 +68,7 @@ function HyperDisCont:init(tbl)
 
    -- maximum characteristic velocities for use in pentalty based
    -- fluxes
-   self._maxs, self._maxsOld = Lin.Vec(self._ndim), Lin.Vec(self._ndim)
+   self._maxs, self._maxsOld, self._maxsLocal = Lin.Vec(self._ndim), Lin.Vec(self._ndim), Lin.Vec(self._ndim)
    for d = 1, self._ndim do
       -- very first step the penalty term will be zero. However, in
       -- subsequent steps the maximum speed from the previous step
@@ -121,7 +122,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    -- use maximum characteristic speeds from previous step as penalty
    for d = 1, self._ndim do
       self._maxsOld[d] = self._maxs[d]
-      self._maxs[d] = 0.0 -- reset to get new values in this step
+      self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
 
    qOut:clear(0.0) -- compute increments
@@ -166,7 +167,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
 		  dir, xc, dx, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
-	       self._maxs[dir] = math.max(self._maxs[dir], maxs)
+	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
 	    end
 	 end
 	 -- return failure if time-step was too large
@@ -174,6 +175,10 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       end
       firstDir = false
    end
+
+   -- determine largest amax across processors
+   local nodeComm = self:getNodeComm()
+   Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
 
    -- accumulate full solution if not computing increments
    if not self._onlyIncrement then
