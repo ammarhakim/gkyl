@@ -208,7 +208,7 @@ local function buildApplication(self, tbl)
 
    -- setup information about functional fields
    if tbl.funcField then
-      assert(Field.FuncField.is(tbl.funcField), "PlasmaOnCartGrid: funcField must be of Field.FuncField")
+      assert(Field.FuncFieldBase.is(tbl.funcField), "PlasmaOnCartGrid: funcField must be of Field.FuncField")
    end
    local funcField = tbl.funcField and tbl.funcField or Field.NoField {}
    completeFieldSetup(funcField)

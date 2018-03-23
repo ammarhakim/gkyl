@@ -120,7 +120,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local firstDir = true
 
    -- use maximum characteristic speeds from previous step as penalty
-   for d = 1, self._ndim do
+   for d = 1, ndim do
       self._maxsOld[d] = self._maxs[d]
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
