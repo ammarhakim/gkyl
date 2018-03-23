@@ -33,7 +33,7 @@ end
 
 function IncompEuler:setAuxFields(auxFields)
    -- get streamfunction, psi
-   self.psi = auxFields[1]
+   self.psi = auxFields[1].phi
 
    -- for incomp euler system, time-dependent part of hamiltonian is just psi
    self:setHamiltonian(self.psi)

@@ -15,6 +15,7 @@ local Range = require "Lib.Range"
 local ffi = require "ffi"
 local xsys = require "xsys"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
+local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local DataStruct = require "DataStruct"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
@@ -57,7 +58,7 @@ function FemPerpPoisson:init(tbl)
    FemPerpPoisson.super.init(self, tbl)
 
    -- read data from input file
-   self._onGrid = assert(tbl.onGrid, "Updater.FemPerpPoisson: Must provide grid object using 'onGrid'")
+   self._grid = assert(tbl.onGrid, "Updater.FemPerpPoisson: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.FemPerpPoisson: Must specify basis functions to use using 'basis'")
 
    assert(self._basis:id()=="serendipity", "Updater.FemPerpPoisson only implemented for modal serendipity basis")
@@ -89,8 +90,8 @@ function FemPerpPoisson:init(tbl)
 
    self._writeMatrix = xsys.pickBool(tbl.writeStiffnessMatrix, false)
   
-   assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
-   self._ndim = self._onGrid:ndim()
+   assert(self._grid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
+   self._ndim = self._grid:ndim()
 
    function getBcData(tbl)
      local bc = ffi.new("bcdata_t")
@@ -138,11 +139,11 @@ function FemPerpPoisson:init(tbl)
      self._laplacianWeight = tbl.laplacianWeight
    end
 
-   self._nx = self._onGrid:numCells(1)
-   self._ny = self._onGrid:numCells(2)
+   self._nx = self._grid:numCells(1)
+   self._ny = self._grid:numCells(2)
    self._p = self._basis:polyOrder()
-   self._dx = self._onGrid:dx(1)
-   self._dy = self._onGrid:dx(2)
+   self._dx = self._grid:dx(1)
+   self._dy = self._grid:dx(2)
 
    assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
    assert(self._ndim == 2 or self._ndim == 3, "This solver only implemented for 2D or 3D (with no solve in 3rd dimension)")
@@ -154,12 +155,12 @@ function FemPerpPoisson:init(tbl)
 
    if GKYL_HAVE_MPI then
      -- split communicators in z
-     local commSet = self._onGrid:commSet()
+     local commSet = self._grid:commSet()
      local worldComm = commSet.comm
      local nodeComm = commSet.nodeComm
      local nodeRank = Mpi.Comm_rank(nodeComm)
      local zrank = 0
-     if self._ndim==3 then zrank = math.floor(nodeRank/self._onGrid:cuts(1)/self._onGrid:cuts(2)) end
+     if self._ndim==3 then zrank = math.floor(nodeRank/self._grid:cuts(1)/self._grid:cuts(2)) end
      self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
    end
 
@@ -172,7 +173,7 @@ function FemPerpPoisson:bcValue(dir,side) return self._bc[dir][side].value end
 
 ---- advance method
 function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld) 
-   local grid = self._onGrid
+   local grid = self._grid
    local basis = self._basis
 
    local src = assert(inFld[1], "FemPerpPoisson.advance: Must specify an input field")
@@ -208,7 +209,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
      local calcInt = CartFieldIntegratedQuantCalc {
        onGrid = grid,
        basis = basis,
-       numComponents = basis:numBasis(),
+       numComponents = 1,
      }
      calcInt:advance(0.0, 0.0, {src}, {dynVec})
      _, intSrcVol = dynVec:lastData()
@@ -230,7 +231,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
          else 
            src:fill(srcIndexer(idx, idy, idz), srcPtr) 
          end
-         ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1])
+         ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
        end
      end
 

@@ -113,11 +113,6 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
 end
 
-function GkSpecies:incrementCouplingMoments(tCurr, dt, momOut)
-   momOut[1]:accumulate(self.charge, self.dens)
-   momOut[2]:accumulate(self.charge, self.upar)
-end
-
 function GkSpecies:fluidMoments()
    return { self.dens, self.upar, self.ppar, self.pperp } 
 end

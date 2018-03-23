@@ -388,7 +388,7 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(
     }
   }
   // bottom right
-  if(bc_in[DX][HI].type==DIRICHLET_BC || bc_in[DY][LO].type==DIRICHLET_BC) {
+  if((bc_in[DX][HI].type==DIRICHLET_BC || bc_in[DY][LO].type==DIRICHLET_BC) || allPeriodic) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc_in[DY][LO].iend[zblock]+1;
       stiffMatRowMajor.middleRows(corner, 1) = SparseMatrix<double,RowMajor>(1, stiffMatRowMajor.cols());
@@ -467,7 +467,7 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(
     }
   }
   // bottom right
-  if(bc_in[DX][HI].type==DIRICHLET_BC || bc_in[DY][LO].type==DIRICHLET_BC) {
+  if((bc_in[DX][HI].type==DIRICHLET_BC || bc_in[DY][LO].type==DIRICHLET_BC) || allPeriodic) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc_in[DY][LO].iend[zblock]+1;
 // copy cols corresponding to Dirichlet BCs to sourceModMat
@@ -536,10 +536,11 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(
     }
   }
   // bottom right
-  if(bc_in[DX][HI].type==DIRICHLET_BC || bc_in[DY][LO].type==DIRICHLET_BC) {
+  if((bc_in[DX][HI].type==DIRICHLET_BC || bc_in[DY][LO].type==DIRICHLET_BC) || allPeriodic) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc_in[DY][LO].iend[zblock]+1;
       dirichletVec.coeffRef(corner) = bc_in[DX][HI].type==DIRICHLET_BC ? bc_in[DX][HI].value : bc_in[DY][LO].value;
+      if(allPeriodic) dirichletVec.coeffRef(corner) = 0.;
     }
   }
   // top left
@@ -578,9 +579,12 @@ void FemPerpPoisson::createGlobalSrc(double* localSrcPtr, int idx, int idy, doub
   std::vector<int> lgMap(nlocal);
   std::vector<double> localSrc(nlocal), localMassSrc(nlocal);
 
-  // copy data from input, and adjust source
+  // copy data from input
   for (unsigned k=0; k<nlocal; ++k)
-    localSrc[k] = localSrcPtr[k] - intSrcVol;
+    localSrc[k] = localSrcPtr[k];
+
+  // adjust src cell-average 
+  localSrc[0] = localSrc[0] - intSrcVol;
   
   getPerpLocalToGlobalInteriorBLRT(lgMap,idx,idy,nx,ny,ndim,polyOrder,periodicFlgs);
 
@@ -642,8 +646,8 @@ void FemPerpPoisson::solve()
   }
 
 // handle Dirichlet corners
+// also make corners effectively Dirichlet if all periodic BCs
   // bottom left
-  // also make this corner effectively Dirichlet if all periodic BCs
   if((bc[DX][LO].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC) || allPeriodic) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc[DY][LO].istart[zblock]-1;
@@ -652,10 +656,11 @@ void FemPerpPoisson::solve()
     }
   }
   // bottom right
-  if(bc[DX][HI].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC) {
+  if((bc[DX][HI].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC) || allPeriodic) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc[DY][LO].iend[zblock]+1;
       globalSrc.coeffRef(corner) = bc[DX][HI].type==DIRICHLET_BC ? bc[DX][HI].value : bc[DY][LO].value;
+      if(allPeriodic) globalSrc.coeffRef(corner) = 0.;
     }
   }
   // top left
