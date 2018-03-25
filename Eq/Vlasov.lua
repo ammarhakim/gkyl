@@ -61,10 +61,7 @@ function Vlasov:init(tbl)
       self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
 	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    else
-      self._volForceUpdate = VlasovModDecl.selectVolElc(
-	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfForceUpdate = VlasovModDecl.selectSurfElc(
-	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      assert(false, "Vlasov: Pure ES kernels NYI!")
    end
 
    -- EM field object and pointers to cell values

@@ -63,9 +63,6 @@ function HyperDisCont:init(tbl)
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
 
-   -- store range objects needed in update
-   self._perpRange = {}
-
    -- maximum characteristic velocities for use in pentalty based
    -- fluxes
    self._maxs, self._maxsOld, self._maxsLocal = Lin.Vec(self._ndim), Lin.Vec(self._ndim), Lin.Vec(self._ndim)
