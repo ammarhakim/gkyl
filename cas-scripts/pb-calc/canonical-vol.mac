@@ -5,6 +5,9 @@ fpprec : 24$
 
 varsV : [vx, vy, vz]$
 dxv : [dxv0, dxv1, dxv2, dxv3, dxv4, dxv5]$
+dxdvInv : [dxdvInv0, dxdvInv1, dxdvInv2]$
+dxInv : [dxInv0, dxInv1, dxInv2]$
+dvInv : [dvInv0, dvInv1, dvInv2]$
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
@@ -25,14 +28,14 @@ for i : 1 thru pmax do (
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
   for dir : 1 thru cdim do (
-    pbfac[dir] : 4/dxv[cid[dir]+1]/dxv[vid[dir]+1]
+    pbfac[dir] : 4*dxdvInv[dir]
   ),
   volfac : 1,
-  for d : 1 thru cdim+vdim do (
+  /*for d : 1 thru cdim+vdim do (
     volfac : volfac * dxv[d]/2
-  ),
-  for dir : 1 thru cdim+vdim do (
-    printf(fh, "  double dxv~a = dxv[~a]; ~%", dir-1, dir-1)
+  ),*/
+  for dir : 1 thru cdim do (
+    printf(fh, "  double dxdvInv~a = 1.0/(dxv[~a]*dxv[~a]); ~%", dir-1, cid[dir], vid[dir])
   ),
   for dir : 1 thru cdim do (
     printf(fh, "  double dxInv~a = 1.0/dxv[~a]; ~%", dir-1, cid[dir])
@@ -54,7 +57,7 @@ for i : 1 thru pmax do (
   printf(fh, "  double alpha = 0.0; ~%"), 
   for d : 1 thru cdim do (
     alpha : (alpha : 0, for dir : 1 thru cdim do (
-       pbBasis : (pbfac[dir]*PB(varsP[d],Hl,varsC[dir],varsV[dir])),
+       pbBasis : (2*dvInv[d]*PB(varsP[d],Hl,varsC[dir],varsV[dir])),
        alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, bP[1]))
        ),
     alpha),
@@ -63,7 +66,7 @@ for i : 1 thru pmax do (
   ),
   for d : 1 thru vdim do (
     alpha : (alpha : 0, for dir : 1 thru cdim do (
-       pbBasis : (pbfac[dir]*PB(varsP[d+cdim],Hl,varsC[dir],varsV[dir])),
+       pbBasis : (2*dxInv[d]*PB(varsP[d+cdim],Hl,varsC[dir],varsV[dir])),
        alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, bP[1]))
        ),
     alpha),

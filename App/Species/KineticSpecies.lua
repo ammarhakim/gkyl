@@ -134,7 +134,7 @@ function KineticSpecies:getMass() return self.mass end
 function KineticSpecies:getNdim()
    return self.ndim
 end
-function KineticSpecies:vdim()
+function KineticSpecies:getVdim()
    return self.vdim
 end
 function KineticSpecies:setName(nm)
