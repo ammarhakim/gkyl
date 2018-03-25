@@ -49,9 +49,10 @@ for i : 1 thru pmax do (
   for d : 1 thru cdim do (
     pbfac[d] : 4/dxv[cid[d]+1]/dxv[vid[d]+1]
   ),
+  /*
   for d : 1 thru cdim+vdim do (
     volfac : volfac * dxv[d]/2
-  ),
+  ),*/
   surfac : fullratsimp(volfac*2/dxv[dir]),
 
   /* calculate alpha in direction of sv at boundary from interior */
