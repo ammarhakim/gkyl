@@ -34,7 +34,7 @@ function test_init_nonperiodic()
      bcRight = { T = "D", V = 0.0 },
      bcBottom = { T = "N", V = 0.0 },
      bcTop = { T = "D", V = 0.0 },
-     -- periodicDirs = {0,1},
+     -- periodicDirs = {1,2},
      --writeStiffnessMatrix = true,
    }
    local t2 = os.clock()
@@ -66,7 +66,7 @@ function test_init_allperiodic()
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0,1},
+     periodicDirs = {1,2},
    }
    assert_equal(true, poisson._allPeriodic, "allPeriodic")
    assert_equal(true, poisson._isDirPeriodic[0], "periodic dir 0")
@@ -83,7 +83,7 @@ function test_init_someperiodic()
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0},
+     periodicDirs = {1},
      bcBottom = { T = "N", V = 0.0 },
      bcTop = { T = "D", V = 0.0 },
    }
@@ -96,7 +96,7 @@ function test_init_errorcheck()
    assert_equal(false, pcall(Updater.FemPerpPoisson, {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0},
+     periodicDirs = {1},
      bcBottom = { T = "N", V = 0.0 },
      bcLeft = { T = "D", V = 0.0 },
    }), "mismatched BCs")
@@ -104,7 +104,7 @@ function test_init_errorcheck()
    assert_equal(false, pcall(Updater.FemPerpPoisson, {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0},
+     periodicDirs = {1},
      bcBottom = { T = "N", V = 0.0 },
      bcTop = { T = "V", V = 0.0 },
    }), "bad BC value")
@@ -112,7 +112,7 @@ function test_init_errorcheck()
    assert_equal(false, pcall(Updater.FemPerpPoisson, {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0},
+     periodicDirs = {1},
      bcBottom = { T = "N", V = 0.0 },
    }), "not enough BCs")
 end
@@ -136,7 +136,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
      bcRight = { T = "D", V = 0.0 },
      bcBottom = { T = "N", V = 0.0 },
      bcTop = { T = "D", V = 0.0 },
-     -- periodicDirs = {0,1},
+     -- periodicDirs = {1,2},
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
@@ -234,7 +234,7 @@ function test_solve2d_periodic(nx, ny, p)
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0,1},
+     periodicDirs = {1,2},
      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()
@@ -352,7 +352,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
      bcRight = { T = "D", V = 0.0 },
      bcBottom = { T = "N", V = 0.0 },
      bcTop = { T = "D", V = 0.0 },
-     -- periodicDirs = {0,1},
+     -- periodicDirs = {1,2},
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
@@ -455,7 +455,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0,1},
+     periodicDirs = {1,2},
      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()
