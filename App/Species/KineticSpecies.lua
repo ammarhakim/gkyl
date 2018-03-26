@@ -158,7 +158,7 @@ function KineticSpecies:setConfGrid(cgrid)
    self.confGrid = cgrid
 end
 
-function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
+function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs, cMap)
    self.cdim = #cCells
    self.ndim = self.cdim+self.vdim
 
@@ -185,6 +185,27 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
    end
    local gridConstructor = Grid.RectCart
    if self.coordinateMap then
+      local coordinateMap = {}
+      if cMap then
+         for d = 1, self.cdim do
+            table.insert(coordinateMap, cMap[d])
+         end
+         for d = 1, self.vdim do
+            table.insert(coordinateMap, self.coordinateMap[d])
+         end
+      else
+         for d = 1, self.cdim do
+            cMap = {
+               function(zeta)
+                  return zeta
+               end,
+            }
+            table.insert(coordinateMap, cMap)
+         end
+         for d = 1, self.vdim do
+            table.insert(coordinateMap, self.coordinateMap[d])
+         end         
+      end
       gridConstructor = Grid.NonUniformRectCart
    end
    self.grid = gridConstructor {
@@ -193,7 +214,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
       cells = cells,
       periodicDirs = cPeriodicDirs,
       decomposition = self.decomp,
-      mappings = self.coordinateMap,
+      mappings = coordinateMap,
    }
 end
 
