@@ -54,24 +54,21 @@ for i : 1 thru pmax do (
   printf(fh, "  double cflFreq = 0.0; ~%"), 
   printf(fh, "  // calculate phase space speed alpha in each direction, and add to cfl ~%"),
   printf(fh, "  // here alpha is cell-averaged ~%"),
-  printf(fh, "  double alpha = 0.0; ~%"), 
   for d : 1 thru cdim do (
     alpha : (alpha : 0, for dir : 1 thru cdim do (
        pbBasis : (2*dvInv[d]*PB(varsP[d],Hl,varsC[dir],varsV[dir])),
-       alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, bP[1]))
+       alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, 1/4))
        ),
     alpha),
-    printf(fh, "  alpha = fabs(~a);  // alpha_x~a ~%", float(facsum(fullratsimp(innerProd(varsP, 1, bP[1], alpha)), dxv)), d-1),
-    printf(fh, "  cflFreq += alpha*dxInv~a; ~%", d-1)
+    printf(fh, "  cflFreq += fabs(~a)*dxInv~a; ~%", float(alpha), d-1)
   ),
   for d : 1 thru vdim do (
     alpha : (alpha : 0, for dir : 1 thru cdim do (
        pbBasis : (2*dxInv[d]*PB(varsP[d+cdim],Hl,varsC[dir],varsV[dir])),
-       alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, bP[1]))
+       alpha : alpha + fullratsimp(volfac*innerProd(varsP, 1, pbBasis, 1/4))
        ),
     alpha),
-    printf(fh, "  alpha = fabs(~a);  // alpha_v~a ~%", float(facsum(fullratsimp(innerProd(varsP, 1, bP[1], alpha)), dxv)), d-1),
-    printf(fh, "  cflFreq += alpha*dvInv~a; ~%", d-1)
+    printf(fh, "  cflFreq += fabs(~a)*dvInv~a; ~%", float(alpha), d-1)
   ),
   printf(fh, "  return cflFreq; ~%"),
   printf(fh, "} ~%")

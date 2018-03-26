@@ -12,10 +12,7 @@ double CanonicalVol1x1vSerP1(const double *w, const double *dxv, const double *H
   double cflFreq = 0.0; 
   // calculate phase space speed alpha in each direction, and add to cfl 
   // here alpha is cell-averaged 
-  double alpha = 0.0; 
-  alpha = fabs(6.928203230275509*H[2]*dvInv0);  // alpha_x0 
-  cflFreq += alpha*dxInv0; 
-  alpha = fabs(-6.928203230275509*H[1]*dxInv0);  // alpha_v0 
-  cflFreq += alpha*dvInv0; 
+  cflFreq += fabs(1.732050807568877*H[2]*dvInv0)*dxInv0; 
+  cflFreq += fabs(-1.732050807568877*H[1]*dxInv0)*dvInv0; 
   return cflFreq; 
 } 
