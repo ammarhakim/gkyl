@@ -58,6 +58,7 @@ function KineticSpecies:fullInit(appTbl)
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
+   self.coordinateMap = tbl.coordinateMap
 
    self.decompCuts = {}
    -- parallel decomposition stuff
@@ -178,12 +179,17 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
       table.insert(upper, self.upper[d])
       table.insert(cells, self.cells[d])
    end
-   self.grid = Grid.RectCart {
+   local gridConstructor = Grid.RectCart
+   if self.coordinateMap then
+      gridConstructor = Grid.RectCartNonuniform
+   end
+   self.grid = gridConstructor {
       lower = lower,
       upper = upper,
       cells = cells,
       periodicDirs = cPeriodicDirs,
       decomposition = self.decomp,
+      mappings = self.coordinateMap,
    }
 end
 

@@ -140,14 +140,18 @@ local function buildApplication(self, tbl)
       cuts = decompCuts,
       useShared = useShared,
    }
-
+   local gridConstructor = Grid.RectCart
+   if tbl.coordinateMap then
+      gridConstructor = Grid.RectCartNonuniform
+   end
    -- setup configuration space grid
-   local grid = Grid.RectCart {
+   local grid = gridConstructor {
       lower = tbl.lower,
       upper = tbl.upper,
       cells = tbl.cells,
       periodicDirs = periodicDirs,
       decomposition = decomp,
+      mappings = tbl.coordinateMap,
    }
 
    -- set conf grid for each species
