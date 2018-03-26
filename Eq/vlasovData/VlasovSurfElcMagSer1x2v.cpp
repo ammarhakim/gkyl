@@ -1,14 +1,15 @@
 #include <VlasovModDecl.h> 
-double VlasovSurfElcMag1x2vSer_VX_P1(const double *w, const double *dxv, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+double VlasovSurfElcMag1x2vSer_VX_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
 // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv10 = 2/dxv[1]; 
+  double dv10l = 2/dxvl[1]; 
+  double dv10r = 2/dxvr[1]; 
   const double *E0 = &EM[0]; 
 
-  const double dv1 = dxv[1], wv1 = w[1]; 
-  const double dv2 = dxv[2], wv2 = w[2]; 
+  const double dv1 = dxvr[1], wv1 = wr[1]; 
+  const double dv2 = dxvr[2], wv2 = wr[2]; 
 
   const double *B0 = &EM[6]; 
   const double *B1 = &EM[8]; 
@@ -56,35 +57,36 @@ double VlasovSurfElcMag1x2vSer_VX_P1(const double *w, const double *dxv, const d
   Ghat[3] = (0.1767766952966368*B2[1]*favg[4]+0.1767766952966368*B2[0]*favg[2]+0.1020620726159657*favg[1]*B2[1]+0.1020620726159657*favg[0]*B2[0])*dv2+abar0[1]*(0.6123724356957942*favg[7]+0.3535533905932737*favg[5])-0.8660254037844385*fjump[6]+abar0[0]*(0.6123724356957942*favg[6]+0.3535533905932737*favg[3])-0.5*fjump[3]; 
   Ghat[5] = (0.1767766952966368*B2[0]*favg[4]+0.1767766952966368*B2[1]*favg[2]+0.1020620726159657*favg[0]*B2[1]+0.1020620726159657*B2[0]*favg[1])*dv2-0.8660254037844385*fjump[7]+abar0[0]*(0.6123724356957942*favg[7]+0.3535533905932737*favg[5])+abar0[1]*(0.6123724356957942*favg[6]+0.3535533905932737*favg[3])-0.5*fjump[5]; 
 
-  outr[0] += 0.5*Ghat[0]*dv10; 
-  outr[1] += 0.5*Ghat[1]*dv10; 
-  outr[2] += -0.8660254037844386*Ghat[0]*dv10; 
-  outr[3] += 0.5*Ghat[3]*dv10; 
-  outr[4] += -0.8660254037844386*Ghat[1]*dv10; 
-  outr[5] += 0.5*Ghat[5]*dv10; 
-  outr[6] += -0.8660254037844386*Ghat[3]*dv10; 
-  outr[7] += -0.8660254037844386*Ghat[5]*dv10; 
+  outr[0] += 0.5*Ghat[0]*dv10r; 
+  outr[1] += 0.5*Ghat[1]*dv10r; 
+  outr[2] += -0.8660254037844386*Ghat[0]*dv10r; 
+  outr[3] += 0.5*Ghat[3]*dv10r; 
+  outr[4] += -0.8660254037844386*Ghat[1]*dv10r; 
+  outr[5] += 0.5*Ghat[5]*dv10r; 
+  outr[6] += -0.8660254037844386*Ghat[3]*dv10r; 
+  outr[7] += -0.8660254037844386*Ghat[5]*dv10r; 
 
-  outl[0] += -0.5*Ghat[0]*dv10; 
-  outl[1] += -0.5*Ghat[1]*dv10; 
-  outl[2] += -0.8660254037844386*Ghat[0]*dv10; 
-  outl[3] += -0.5*Ghat[3]*dv10; 
-  outl[4] += -0.8660254037844386*Ghat[1]*dv10; 
-  outl[5] += -0.5*Ghat[5]*dv10; 
-  outl[6] += -0.8660254037844386*Ghat[3]*dv10; 
-  outl[7] += -0.8660254037844386*Ghat[5]*dv10; 
+  outl[0] += -0.5*Ghat[0]*dv10l; 
+  outl[1] += -0.5*Ghat[1]*dv10l; 
+  outl[2] += -0.8660254037844386*Ghat[0]*dv10l; 
+  outl[3] += -0.5*Ghat[3]*dv10l; 
+  outl[4] += -0.8660254037844386*Ghat[1]*dv10l; 
+  outl[5] += -0.5*Ghat[5]*dv10l; 
+  outl[6] += -0.8660254037844386*Ghat[3]*dv10l; 
+  outl[7] += -0.8660254037844386*Ghat[5]*dv10l; 
 return std::abs(amid); 
 } 
-double VlasovSurfElcMag1x2vSer_VX_P2(const double *w, const double *dxv, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+double VlasovSurfElcMag1x2vSer_VX_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
 // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv10 = 2/dxv[1]; 
+  double dv10l = 2/dxvl[1]; 
+  double dv10r = 2/dxvr[1]; 
   const double *E0 = &EM[0]; 
 
-  const double dv1 = dxv[1], wv1 = w[1]; 
-  const double dv2 = dxv[2], wv2 = w[2]; 
+  const double dv1 = dxvr[1], wv1 = wr[1]; 
+  const double dv2 = dxvr[2], wv2 = wr[2]; 
 
   const double *B0 = &EM[9]; 
   const double *B1 = &EM[12]; 
@@ -161,59 +163,60 @@ double VlasovSurfElcMag1x2vSer_VX_P2(const double *w, const double *dxv, const d
   Ghat[13] = (0.1414213562373095*B2[1]*favg[19]+0.158113883008419*B2[2]*favg[16]+0.08164965809277257*B2[1]*favg[15]+0.2041241452319315*B2[1]*favg[12]+0.1129384878631564*B2[2]*favg[11]+0.1767766952966368*B2[0]*favg[11]+0.09128709291752767*B2[2]*favg[9]+0.2282177322938192*B2[2]*favg[8]+0.06520506636966261*B2[2]*favg[7]+0.1020620726159658*B2[0]*favg[7]+0.1581138830084189*B2[1]*favg[4]+0.1767766952966369*favg[2]*B2[2]+0.1020620726159658*favg[0]*B2[2]+0.09128709291752767*favg[1]*B2[1])*dv2+abar0[1]*(0.7071067811865475*favg[18]+0.5477225575051661*favg[10]+0.3162277660168378*favg[5])-0.8660254037844388*fjump[17]+abar0[0]*(0.6123724356957946*favg[17]+0.3535533905932737*favg[13])+abar0[2]*(0.3912303982179758*favg[17]+0.7905694150420949*favg[14]+0.2258769757263128*favg[13]+0.6123724356957946*favg[6]+0.3535533905932737*favg[3])-0.5*fjump[13]; 
   Ghat[15] = (0.1825741858350554*B2[2]*favg[18]+0.2041241452319315*B2[0]*favg[18]+0.1414213562373095*B2[1]*favg[17]+0.2041241452319315*B2[1]*favg[14]+0.08164965809277258*B2[1]*favg[13]+0.1414213562373095*B2[2]*favg[10]+0.1581138830084189*B2[0]*favg[10]+0.1581138830084189*B2[1]*favg[6]+0.08164965809277261*B2[2]*favg[5]+0.09128709291752768*B2[0]*favg[5]+0.09128709291752768*B2[1]*favg[3])*dv2-0.8660254037844388*fjump[19]+abar0[0]*(0.6123724356957946*favg[19]+0.3535533905932737*favg[15])+abar0[2]*(0.5477225575051662*favg[19]+0.3162277660168379*favg[15])+abar0[1]*(0.6123724356957945*favg[16]+0.3535533905932738*favg[9])-0.5*fjump[15]; 
 
-  outr[0] += 0.5*Ghat[0]*dv10; 
-  outr[1] += 0.5*Ghat[1]*dv10; 
-  outr[2] += -0.8660254037844386*Ghat[0]*dv10; 
-  outr[3] += 0.5*Ghat[3]*dv10; 
-  outr[4] += -0.8660254037844386*Ghat[1]*dv10; 
-  outr[5] += 0.5*Ghat[5]*dv10; 
-  outr[6] += -0.8660254037844386*Ghat[3]*dv10; 
-  outr[7] += 0.5*Ghat[7]*dv10; 
-  outr[8] += 1.118033988749895*Ghat[0]*dv10; 
-  outr[9] += 0.5*Ghat[9]*dv10; 
-  outr[10] += -0.8660254037844386*Ghat[5]*dv10; 
-  outr[11] += -0.8660254037844387*Ghat[7]*dv10; 
-  outr[12] += 1.118033988749895*Ghat[1]*dv10; 
-  outr[13] += 0.5*Ghat[13]*dv10; 
-  outr[14] += 1.118033988749895*Ghat[3]*dv10; 
-  outr[15] += 0.5*Ghat[15]*dv10; 
-  outr[16] += -0.8660254037844387*Ghat[9]*dv10; 
-  outr[17] += -0.8660254037844387*Ghat[13]*dv10; 
-  outr[18] += 1.118033988749895*Ghat[5]*dv10; 
-  outr[19] += -0.8660254037844387*Ghat[15]*dv10; 
+  outr[0] += 0.5*Ghat[0]*dv10r; 
+  outr[1] += 0.5*Ghat[1]*dv10r; 
+  outr[2] += -0.8660254037844386*Ghat[0]*dv10r; 
+  outr[3] += 0.5*Ghat[3]*dv10r; 
+  outr[4] += -0.8660254037844386*Ghat[1]*dv10r; 
+  outr[5] += 0.5*Ghat[5]*dv10r; 
+  outr[6] += -0.8660254037844386*Ghat[3]*dv10r; 
+  outr[7] += 0.5*Ghat[7]*dv10r; 
+  outr[8] += 1.118033988749895*Ghat[0]*dv10r; 
+  outr[9] += 0.5*Ghat[9]*dv10r; 
+  outr[10] += -0.8660254037844386*Ghat[5]*dv10r; 
+  outr[11] += -0.8660254037844387*Ghat[7]*dv10r; 
+  outr[12] += 1.118033988749895*Ghat[1]*dv10r; 
+  outr[13] += 0.5*Ghat[13]*dv10r; 
+  outr[14] += 1.118033988749895*Ghat[3]*dv10r; 
+  outr[15] += 0.5*Ghat[15]*dv10r; 
+  outr[16] += -0.8660254037844387*Ghat[9]*dv10r; 
+  outr[17] += -0.8660254037844387*Ghat[13]*dv10r; 
+  outr[18] += 1.118033988749895*Ghat[5]*dv10r; 
+  outr[19] += -0.8660254037844387*Ghat[15]*dv10r; 
 
-  outl[0] += -0.5*Ghat[0]*dv10; 
-  outl[1] += -0.5*Ghat[1]*dv10; 
-  outl[2] += -0.8660254037844386*Ghat[0]*dv10; 
-  outl[3] += -0.5*Ghat[3]*dv10; 
-  outl[4] += -0.8660254037844386*Ghat[1]*dv10; 
-  outl[5] += -0.5*Ghat[5]*dv10; 
-  outl[6] += -0.8660254037844386*Ghat[3]*dv10; 
-  outl[7] += -0.5*Ghat[7]*dv10; 
-  outl[8] += -1.118033988749895*Ghat[0]*dv10; 
-  outl[9] += -0.5*Ghat[9]*dv10; 
-  outl[10] += -0.8660254037844386*Ghat[5]*dv10; 
-  outl[11] += -0.8660254037844387*Ghat[7]*dv10; 
-  outl[12] += -1.118033988749895*Ghat[1]*dv10; 
-  outl[13] += -0.5*Ghat[13]*dv10; 
-  outl[14] += -1.118033988749895*Ghat[3]*dv10; 
-  outl[15] += -0.5*Ghat[15]*dv10; 
-  outl[16] += -0.8660254037844387*Ghat[9]*dv10; 
-  outl[17] += -0.8660254037844387*Ghat[13]*dv10; 
-  outl[18] += -1.118033988749895*Ghat[5]*dv10; 
-  outl[19] += -0.8660254037844387*Ghat[15]*dv10; 
+  outl[0] += -0.5*Ghat[0]*dv10l; 
+  outl[1] += -0.5*Ghat[1]*dv10l; 
+  outl[2] += -0.8660254037844386*Ghat[0]*dv10l; 
+  outl[3] += -0.5*Ghat[3]*dv10l; 
+  outl[4] += -0.8660254037844386*Ghat[1]*dv10l; 
+  outl[5] += -0.5*Ghat[5]*dv10l; 
+  outl[6] += -0.8660254037844386*Ghat[3]*dv10l; 
+  outl[7] += -0.5*Ghat[7]*dv10l; 
+  outl[8] += -1.118033988749895*Ghat[0]*dv10l; 
+  outl[9] += -0.5*Ghat[9]*dv10l; 
+  outl[10] += -0.8660254037844386*Ghat[5]*dv10l; 
+  outl[11] += -0.8660254037844387*Ghat[7]*dv10l; 
+  outl[12] += -1.118033988749895*Ghat[1]*dv10l; 
+  outl[13] += -0.5*Ghat[13]*dv10l; 
+  outl[14] += -1.118033988749895*Ghat[3]*dv10l; 
+  outl[15] += -0.5*Ghat[15]*dv10l; 
+  outl[16] += -0.8660254037844387*Ghat[9]*dv10l; 
+  outl[17] += -0.8660254037844387*Ghat[13]*dv10l; 
+  outl[18] += -1.118033988749895*Ghat[5]*dv10l; 
+  outl[19] += -0.8660254037844387*Ghat[15]*dv10l; 
 return std::abs(amid); 
 } 
-double VlasovSurfElcMag1x2vSer_VY_P1(const double *w, const double *dxv, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+double VlasovSurfElcMag1x2vSer_VY_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
 // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv11 = 2/dxv[2]; 
+  double dv11l = 2/dxvl[2]; 
+  double dv11r = 2/dxvr[2]; 
   const double *E1 = &EM[2]; 
 
-  const double dv1 = dxv[1], wv1 = w[1]; 
-  const double dv2 = dxv[2], wv2 = w[2]; 
+  const double dv1 = dxvr[1], wv1 = wr[1]; 
+  const double dv2 = dxvr[2], wv2 = wr[2]; 
 
   const double *B0 = &EM[6]; 
   const double *B1 = &EM[8]; 
@@ -261,35 +264,36 @@ double VlasovSurfElcMag1x2vSer_VY_P1(const double *w, const double *dxv, const d
   Ghat[2] = ((-0.1767766952966368*B2[1]*favg[5])-0.1767766952966368*B2[0]*favg[3]-0.1020620726159657*favg[1]*B2[1]-0.1020620726159657*favg[0]*B2[0])*dv1+abar1[1]*(0.6123724356957942*favg[7]+0.3535533905932737*favg[4])-0.8660254037844385*fjump[6]+abar1[0]*(0.6123724356957942*favg[6]+0.3535533905932737*favg[2])-0.5*fjump[2]; 
   Ghat[4] = ((-0.1767766952966368*B2[0]*favg[5])-0.1767766952966368*B2[1]*favg[3]-0.1020620726159657*favg[0]*B2[1]-0.1020620726159657*B2[0]*favg[1])*dv1-0.8660254037844385*fjump[7]+abar1[0]*(0.6123724356957942*favg[7]+0.3535533905932737*favg[4])+abar1[1]*(0.6123724356957942*favg[6]+0.3535533905932737*favg[2])-0.5*fjump[4]; 
 
-  outr[0] += 0.5*Ghat[0]*dv11; 
-  outr[1] += 0.5*Ghat[1]*dv11; 
-  outr[2] += 0.5*Ghat[2]*dv11; 
-  outr[3] += -0.8660254037844386*Ghat[0]*dv11; 
-  outr[4] += 0.5*Ghat[4]*dv11; 
-  outr[5] += -0.8660254037844386*Ghat[1]*dv11; 
-  outr[6] += -0.8660254037844386*Ghat[2]*dv11; 
-  outr[7] += -0.8660254037844386*Ghat[4]*dv11; 
+  outr[0] += 0.5*Ghat[0]*dv11r; 
+  outr[1] += 0.5*Ghat[1]*dv11r; 
+  outr[2] += 0.5*Ghat[2]*dv11r; 
+  outr[3] += -0.8660254037844386*Ghat[0]*dv11r; 
+  outr[4] += 0.5*Ghat[4]*dv11r; 
+  outr[5] += -0.8660254037844386*Ghat[1]*dv11r; 
+  outr[6] += -0.8660254037844386*Ghat[2]*dv11r; 
+  outr[7] += -0.8660254037844386*Ghat[4]*dv11r; 
 
-  outl[0] += -0.5*Ghat[0]*dv11; 
-  outl[1] += -0.5*Ghat[1]*dv11; 
-  outl[2] += -0.5*Ghat[2]*dv11; 
-  outl[3] += -0.8660254037844386*Ghat[0]*dv11; 
-  outl[4] += -0.5*Ghat[4]*dv11; 
-  outl[5] += -0.8660254037844386*Ghat[1]*dv11; 
-  outl[6] += -0.8660254037844386*Ghat[2]*dv11; 
-  outl[7] += -0.8660254037844386*Ghat[4]*dv11; 
+  outl[0] += -0.5*Ghat[0]*dv11l; 
+  outl[1] += -0.5*Ghat[1]*dv11l; 
+  outl[2] += -0.5*Ghat[2]*dv11l; 
+  outl[3] += -0.8660254037844386*Ghat[0]*dv11l; 
+  outl[4] += -0.5*Ghat[4]*dv11l; 
+  outl[5] += -0.8660254037844386*Ghat[1]*dv11l; 
+  outl[6] += -0.8660254037844386*Ghat[2]*dv11l; 
+  outl[7] += -0.8660254037844386*Ghat[4]*dv11l; 
 return std::abs(amid); 
 } 
-double VlasovSurfElcMag1x2vSer_VY_P2(const double *w, const double *dxv, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
+double VlasovSurfElcMag1x2vSer_VY_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double amax, const double *EM, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. E: EM field. fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
 // returns abs(amid) for use in determining amax in cfl and global lax flux 
-  double dv11 = 2/dxv[2]; 
+  double dv11l = 2/dxvl[2]; 
+  double dv11r = 2/dxvr[2]; 
   const double *E1 = &EM[3]; 
 
-  const double dv1 = dxv[1], wv1 = w[1]; 
-  const double dv2 = dxv[2], wv2 = w[2]; 
+  const double dv1 = dxvr[1], wv1 = wr[1]; 
+  const double dv2 = dxvr[2], wv2 = wr[2]; 
 
   const double *B0 = &EM[9]; 
   const double *B1 = &EM[12]; 
@@ -366,46 +370,46 @@ double VlasovSurfElcMag1x2vSer_VY_P2(const double *w, const double *dxv, const d
   Ghat[11] = ((-0.1414213562373095*B2[1]*favg[18])-0.2041241452319315*B2[1]*favg[15]-0.158113883008419*B2[2]*favg[14]-0.1129384878631564*B2[2]*favg[13]-0.1767766952966368*B2[0]*favg[13]-0.08164965809277257*B2[1]*favg[12]-0.2282177322938192*B2[2]*favg[9]-0.09128709291752767*B2[2]*favg[8]-0.06520506636966261*B2[2]*favg[7]-0.1020620726159658*B2[0]*favg[7]-0.1581138830084189*B2[1]*favg[5]-0.1767766952966369*B2[2]*favg[3]-0.1020620726159658*favg[0]*B2[2]-0.09128709291752767*favg[1]*B2[1])*dv1+abar1[1]*(0.7071067811865475*favg[19]+0.5477225575051661*favg[10]+0.3162277660168378*favg[4])-0.8660254037844388*fjump[17]+abar1[0]*(0.6123724356957946*favg[17]+0.3535533905932737*favg[11])+abar1[2]*(0.3912303982179758*favg[17]+0.7905694150420949*favg[16]+0.2258769757263128*favg[11]+0.6123724356957946*favg[6]+0.3535533905932737*favg[2])-0.5*fjump[11]; 
   Ghat[12] = ((-0.1825741858350554*B2[2]*favg[19])-0.2041241452319315*B2[0]*favg[19]-0.1414213562373095*B2[1]*favg[17]-0.2041241452319315*B2[1]*favg[16]-0.08164965809277258*B2[1]*favg[11]-0.1414213562373095*B2[2]*favg[10]-0.1581138830084189*B2[0]*favg[10]-0.1581138830084189*B2[1]*favg[6]-0.08164965809277261*B2[2]*favg[4]-0.09128709291752768*B2[0]*favg[4]-0.09128709291752768*B2[1]*favg[2])*dv1-0.8660254037844388*fjump[18]+abar1[0]*(0.6123724356957946*favg[18]+0.3535533905932737*favg[12])+abar1[2]*(0.5477225575051662*favg[18]+0.3162277660168379*favg[12])+abar1[1]*(0.6123724356957945*favg[14]+0.3535533905932738*favg[8])-0.5*fjump[12]; 
 
-  outr[0] += 0.5*Ghat[0]*dv11; 
-  outr[1] += 0.5*Ghat[1]*dv11; 
-  outr[2] += 0.5*Ghat[2]*dv11; 
-  outr[3] += -0.8660254037844386*Ghat[0]*dv11; 
-  outr[4] += 0.5*Ghat[4]*dv11; 
-  outr[5] += -0.8660254037844386*Ghat[1]*dv11; 
-  outr[6] += -0.8660254037844386*Ghat[2]*dv11; 
-  outr[7] += 0.5*Ghat[7]*dv11; 
-  outr[8] += 0.5*Ghat[8]*dv11; 
-  outr[9] += 1.118033988749895*Ghat[0]*dv11; 
-  outr[10] += -0.8660254037844386*Ghat[4]*dv11; 
-  outr[11] += 0.5*Ghat[11]*dv11; 
-  outr[12] += 0.5*Ghat[12]*dv11; 
-  outr[13] += -0.8660254037844387*Ghat[7]*dv11; 
-  outr[14] += -0.8660254037844387*Ghat[8]*dv11; 
-  outr[15] += 1.118033988749895*Ghat[1]*dv11; 
-  outr[16] += 1.118033988749895*Ghat[2]*dv11; 
-  outr[17] += -0.8660254037844387*Ghat[11]*dv11; 
-  outr[18] += -0.8660254037844387*Ghat[12]*dv11; 
-  outr[19] += 1.118033988749895*Ghat[4]*dv11; 
+  outr[0] += 0.5*Ghat[0]*dv11r; 
+  outr[1] += 0.5*Ghat[1]*dv11r; 
+  outr[2] += 0.5*Ghat[2]*dv11r; 
+  outr[3] += -0.8660254037844386*Ghat[0]*dv11r; 
+  outr[4] += 0.5*Ghat[4]*dv11r; 
+  outr[5] += -0.8660254037844386*Ghat[1]*dv11r; 
+  outr[6] += -0.8660254037844386*Ghat[2]*dv11r; 
+  outr[7] += 0.5*Ghat[7]*dv11r; 
+  outr[8] += 0.5*Ghat[8]*dv11r; 
+  outr[9] += 1.118033988749895*Ghat[0]*dv11r; 
+  outr[10] += -0.8660254037844386*Ghat[4]*dv11r; 
+  outr[11] += 0.5*Ghat[11]*dv11r; 
+  outr[12] += 0.5*Ghat[12]*dv11r; 
+  outr[13] += -0.8660254037844387*Ghat[7]*dv11r; 
+  outr[14] += -0.8660254037844387*Ghat[8]*dv11r; 
+  outr[15] += 1.118033988749895*Ghat[1]*dv11r; 
+  outr[16] += 1.118033988749895*Ghat[2]*dv11r; 
+  outr[17] += -0.8660254037844387*Ghat[11]*dv11r; 
+  outr[18] += -0.8660254037844387*Ghat[12]*dv11r; 
+  outr[19] += 1.118033988749895*Ghat[4]*dv11r; 
 
-  outl[0] += -0.5*Ghat[0]*dv11; 
-  outl[1] += -0.5*Ghat[1]*dv11; 
-  outl[2] += -0.5*Ghat[2]*dv11; 
-  outl[3] += -0.8660254037844386*Ghat[0]*dv11; 
-  outl[4] += -0.5*Ghat[4]*dv11; 
-  outl[5] += -0.8660254037844386*Ghat[1]*dv11; 
-  outl[6] += -0.8660254037844386*Ghat[2]*dv11; 
-  outl[7] += -0.5*Ghat[7]*dv11; 
-  outl[8] += -0.5*Ghat[8]*dv11; 
-  outl[9] += -1.118033988749895*Ghat[0]*dv11; 
-  outl[10] += -0.8660254037844386*Ghat[4]*dv11; 
-  outl[11] += -0.5*Ghat[11]*dv11; 
-  outl[12] += -0.5*Ghat[12]*dv11; 
-  outl[13] += -0.8660254037844387*Ghat[7]*dv11; 
-  outl[14] += -0.8660254037844387*Ghat[8]*dv11; 
-  outl[15] += -1.118033988749895*Ghat[1]*dv11; 
-  outl[16] += -1.118033988749895*Ghat[2]*dv11; 
-  outl[17] += -0.8660254037844387*Ghat[11]*dv11; 
-  outl[18] += -0.8660254037844387*Ghat[12]*dv11; 
-  outl[19] += -1.118033988749895*Ghat[4]*dv11; 
+  outl[0] += -0.5*Ghat[0]*dv11l; 
+  outl[1] += -0.5*Ghat[1]*dv11l; 
+  outl[2] += -0.5*Ghat[2]*dv11l; 
+  outl[3] += -0.8660254037844386*Ghat[0]*dv11l; 
+  outl[4] += -0.5*Ghat[4]*dv11l; 
+  outl[5] += -0.8660254037844386*Ghat[1]*dv11l; 
+  outl[6] += -0.8660254037844386*Ghat[2]*dv11l; 
+  outl[7] += -0.5*Ghat[7]*dv11l; 
+  outl[8] += -0.5*Ghat[8]*dv11l; 
+  outl[9] += -1.118033988749895*Ghat[0]*dv11l; 
+  outl[10] += -0.8660254037844386*Ghat[4]*dv11l; 
+  outl[11] += -0.5*Ghat[11]*dv11l; 
+  outl[12] += -0.5*Ghat[12]*dv11l; 
+  outl[13] += -0.8660254037844387*Ghat[7]*dv11l; 
+  outl[14] += -0.8660254037844387*Ghat[8]*dv11l; 
+  outl[15] += -1.118033988749895*Ghat[1]*dv11l; 
+  outl[16] += -1.118033988749895*Ghat[2]*dv11l; 
+  outl[17] += -0.8660254037844387*Ghat[11]*dv11l; 
+  outl[18] += -0.8660254037844387*Ghat[12]*dv11l; 
+  outl[19] += -1.118033988749895*Ghat[4]*dv11l; 
 return std::abs(amid); 
 } 

@@ -127,7 +127,7 @@ function Vlasov:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, 
       -- streaming term (note that surface streaming kernels don't
       -- return max speed)
       self._surfStreamUpdate[dir](
-	 wr:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	 wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
    else
       if self._hasForceTerm then
 	 -- force term
@@ -135,7 +135,7 @@ function Vlasov:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, 
 	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
 	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
 	 amax = self._surfForceUpdate[dir-self._cdim](
-	    wr:data(), dxr:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	    wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return amax

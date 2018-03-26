@@ -6,6 +6,8 @@ fpprec : 24$
 
 /* For simpliciations */
 let (c^2, c2);
+let (c2*chi, c2chi);
+let (c2*gamma, c2gamma);
 
 cvars : [X, Y, Z]$
 outr : [outExr, outEyr, outEzr, outBxr, outByr, outBzr, outPhr, outPsr]$
@@ -13,6 +15,7 @@ outl : [outExl, outEyl, outEzl, outBxl, outByl, outBzl, outPhl, outPsl]$
 
 /* Define variables and fluxes */
 V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
+
 flux : [
  [c^2*chi*phi, c^2*Bz, -c^2*By, gamma*psi, -Ez, Ey, chi*Ex, c^2*gamma*Bx],
  [-c^2*Bz, c^2*chi*phi, c^2*Bx, Ez, gamma*psi, -Ex, chi*Ey, c^2*gamma*By],
@@ -27,11 +30,13 @@ for p : 1 thru 4 do(
   bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
   
-  printf(fh, "double ~a_~a_P~a(const MaxwellEq_t *meq, const double *w, const double *dx, const double *ql, const double *qr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
+  printf(fh, "double ~a_~a_P~a(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double *ql, const double *qr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
 
   printf(fh, "  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
   printf(fh, "  const double c2 = c*c; ~%"),
-  printf(fh, "  const double dx1 = 2.0/dx[~a]; ~%", dir-1),
+  printf(fh, "  const double c2chi = c2*chi, c2gamma = c2*gamma; ~% ~%"),
+  printf(fh, "  const double dxl1 = 2.0/dxl[~a]; ~%", dir-1),
+  printf(fh, "  const double dxr1 = 2.0/dxr[~a]; ~%", dir-1),
   
   printf(fh, "  const double *exl = &ql[~a]; ~%", 0*nbasis),
   printf(fh, "  const double *eyl = &ql[~a]; ~%", 1*nbasis),
@@ -97,20 +102,22 @@ for p : 1 thru 4 do(
 
   surfVars : delete(cv,varsC),
 
+  clst : [c2, gamma, chi, c2gamma, c2chi],
+
   for m : 1 thru 8 do (
     fhat : letsimp(numFlux[m][1]),
 
     incr_r : calcInnerProdList(surfVars, 1, subst(cv=-1, bC), fhat),
-    writeCExprs1(incr, incr_r),
+    writeCExprsCollect1(incr, incr_r, clst),
     printf(fh, "~%"),
     incr_s : makelist(incr[i-1], i, 1, nbasis),
-    writeCIncrExprs1(outr[m], dx1*incr_s),
+    writeCIncrExprs1(outr[m], dxr1*incr_s),
     printf(fh, "~%"),
     
     incr_l : -calcInnerProdList(surfVars, 1, subst(cv=1, bC), fhat),
     signs : fullratsimp(incr_l/incr_r),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, nbasis),
-    writeCIncrExprs1(outl[m], dx1*incr_s),
+    writeCIncrExprs1(outl[m], dxl1*incr_s),
     printf(fh, "~% ~%")
   ),
 
