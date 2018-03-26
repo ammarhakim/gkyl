@@ -3,7 +3,7 @@
 source ./build-opts.sh
 
 # Install prefix
-PREFIX=$HOME/gkylsoft/eigen-3.3.4
+PREFIX=$GKYLSOFT/eigen-3.3.4
 
 # delete old checkout and builds
 rm -rf eigen-3.3.4.tar* eigen-eigen-*
@@ -18,4 +18,4 @@ cmake ../ -DCMAKE_INSTALL_PREFIX=$PREFIX
 make install
 
 # softlink to make finding easier
-ln -sf $PREFIX $HOME/gkylsoft/eigen
+ln -sf $PREFIX $GKYLSOFT/eigen
