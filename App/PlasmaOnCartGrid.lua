@@ -234,8 +234,8 @@ local function buildApplication(self, tbl)
    -- initialize species distributions and field
    for nm, s in pairs(species) do
       s:initDist()
-      s:applyBc(0, nil, speciesRkFields[nm][1])
-      s:calcCouplingMoments(0, nil, speciesRkFields[nm][1])
+      s:applyBc(0, 0, speciesRkFields[nm][1])
+      s:calcCouplingMoments(0, 0, speciesRkFields[nm][1])
    end
    field:initField(species)
    funcField:initField()
