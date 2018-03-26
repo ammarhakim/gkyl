@@ -172,11 +172,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	       if maxs ~= nil then self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs) end
 	    end
 	 end
-	 -- return failure if time-step was too large
-	 if cfla > cflm then return false, dt*cfl/cfla end
       end
       firstDir = false
    end
+
+   -- return failure if time-step was too large
+   if cfla > cflm then return false, dt*cfl/cfla end
 
    -- determine largest amax across processors
    local nodeComm = self:getNodeComm()
