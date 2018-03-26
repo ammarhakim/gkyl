@@ -129,7 +129,7 @@ local function buildApplication(self, tbl)
 
    -- setup each species
    for _, s in pairs(species) do
-      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs)
+      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs, tbl.coordinateMap)
       s:setConfBasis(confBasis)
       s:createBasis(basisNm, polyOrder)
    end
