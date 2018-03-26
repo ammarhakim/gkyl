@@ -8,6 +8,9 @@ vvars : [VX, VY, VZ]$
 
 dxv : [dxv0, dxv1, dxv2, dxv3, dxv4, dxv5]$
 
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
 PB(f,g,x,y) := diff(f,x)*diff(g,y) - diff(g,x)*diff(f,y)$
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
@@ -25,10 +28,12 @@ for i : 1 thru pmax do (
   vid : vidx(cdim,vdim),
   if dir <= cdim then dirlabel : cvars[dir]
   else dirlabel : vvars[dir-cdim],
+  zeros : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "void ~a_~a_P~a(const double *w, const double *dxv, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
-  printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells ~%"),
+  printf(fh, "double ~a_~a_P~a(const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. amax: amax in global lax flux. H: Hamiltonian. fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
+  printf(fh, "// returns abs(alpha0) for use in determining amax in cfl and global lax flux ~%"),
 
   for d : 1 thru cdim+vdim do (
     printf(fh, "  double dxv~a = dxv[~a]; ~%", d-1, d-1)
@@ -36,67 +41,77 @@ for i : 1 thru pmax do (
   printf(fh, "  double wd = w[~a]; ~%", dir-1),
   printf(fh, "  double incr[~a]; ~%~%", length(bP)),
 
+  printf(fh, "  double Ghat[~a]; ~%~%", length(bP)),
+
   /* get surface variable */
-  sv : varsP[dir],
+  surfVar : varsP[dir],
   /* remove surface variable from phase space */
-  surfIntVars : delete(sv,varsP),
+  surfIntVars : delete(surfVar,varsP),
   /* make expansions */
   fl_L : doExpand1(fl, bP),
   fl_R : doExpand1(fr, bP),
   Hl : doExpand1(H, bP),
+  favg_e : doExpand1(favg, bP),
+  fjump_e : doExpand1(fjump, bP),
 
+  /* volfac = 1 because volume factors on both sides of equation cancel */
   volfac : 1,
+  /* pbfac from converting derivatives in physical coordinates to derivatives in local cell coordinates */
   for d : 1 thru cdim do (
     pbfac[d] : 4/dxv[cid[d]+1]/dxv[vid[d]+1]
   ),
-  /*
-  for d : 1 thru cdim+vdim do (
-    volfac : volfac * dxv[d]/2
-  ),*/
+  /* remove volume contribution from surface variable that is not integrated over */
   surfac : fullratsimp(volfac*2/dxv[dir]),
 
-  /* calculate alpha in direction of sv at boundary from interior */
+  /* get sign flip of basis functions at the surfVar=-1 edge of local domain */
+  basisFlip : subst(surfVar=-1*surfVar, bP),
+  signs : fullratsimp(basisFlip/bP),
+
+  /* calculate favg at edge. fr is evaluated at surfVar=-1, hence the sign flip */
+  printf(fh, "  double favg[~a]; ~%~%", length(bP)),
+  for c : 1 thru length(bP) do (
+    printf(fh, "  favg[~a] = ~a*fr[~a]+fl[~a]; ~%", c-1, signs[c], c-1, c-1)
+  ),
+  /* similarly for fjump */
+  printf(fh, "  double fjump[~a]; ~%~%", length(bP)),
+  for c : 1 thru length(bP) do (
+    printf(fh, "  fjump[~a] = amax*(~a*fr[~a]-fl[~a]); ~%", c-1, signs[c], c-1, c-1)
+  ),
+
+  /* calculate alpha in direction of surfVar */
   /* we assume alpha.n is continuous across boundary, although H may not be */
-  alpha_sv : (alpha : 0, for d : 1 thru cdim do (
-     pb : (pbfac[d]*PB(wd + dxv[dir]/2*sv,Hl,varsC[d],varsV[d])),
+  alpha_surfVar : (alpha : 0, for d : 1 thru cdim do (
+     pb : (pbfac[d]*PB(wd + dxv[dir]/2*surfVar,Hl,varsC[d],varsV[d])),
      alpha : alpha + pb
-     ),
-  subst(sv=-1,alpha)),
+  ), alpha),
   /* get cell-average value to use for upwinding */
-  alpha0 : fullratsimp(innerProd(surfIntVars, 1, alpha_sv, subst(sv=-1, bP[1]))),
-  printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
+  alpha0 : float(expand(fullratsimp(subst(zeros,alpha_surfVar)))),
+  /*alpha0 : fullratsimp(innerProd(surfIntVars, 1, subst(surfVar=-1, alpha_surfVar), subst(surfVar=-1, bP[1]))),*/
+  printf(fh, "  // cell-average phase velocity in this direction ~%"),
   printf(fh, "  double alpha0 = ~a; ~%~%", float(alpha0)),
 
-  printf(fh, "  if (alpha0>0) { ~%"),
-  fhat : subst(sv=1, fl_L),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
-  incr_r : facsum(fullratsimp(t),dxv),
-  writeCExprsNoExpand1(incr, incr_r),
+  /* evaluate fhat_average and fhat_jump at boundary. substitute surfVar=1 since sign flip already handled above. */
+  fhat_average : subst(surfVar=1, favg_e),
+  fhat_jump : subst(surfVar=1, fjump_e),
+  /* project flux term = Ghat on basis */
+  t : calcInnerProdList(varsP, 1, bP, (alpha_surfVar*fhat_average-fhat_jump)/2),
+  incr_r : t,
+  /* write Ghat expressions */
+  writeCExprsCollect1(Ghat, incr_r, dxv),
   printf(fh, "~%"),
-  incr_s : makelist(incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outr, incr_s),  
+  glst1 : doMakeExprLst(incr_r, Ghat),
+  Ghat_e : doExpandLst(glst1, bP),
+  Ghat_final : subst(surfVar=1, Ghat_e),
+  /* right of boundary contributions (surfVar=-1) */
+  incr_s : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), Ghat_final),
+  writeCIncrExprs1(outr, incr_s),  
   printf(fh, "~%"),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
-  incr_l : -t,
-  signs : fullratsimp(incr_l/incr_r),
-  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outl, incr_s),
-  
-  printf(fh, "  } else { ~%"),
-  fhat : subst(sv=-1, fl_R),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
-  incr_r : facsum(fullratsimp(t),dxv),
-  writeCExprsNoExpand1(incr, incr_r),
-  printf(fh, "~%"),
-  incr_s : makelist(incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outr, incr_s),  
-  printf(fh, "~%"),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
-  incr_l : -t,
-  signs : fullratsimp(incr_l/incr_r),
-  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outl, incr_s),
-  printf(fh, "  } ~%"),
+  /* left of boundary contributions (surfVar=1) are same except for signs */
+  incr_l : surfac*calcInnerProdList(surfIntVars, -1, subst(surfVar=1, bP), Ghat_final),
+  signs : fullratsimp(incr_l/incr_s),
+  incr_new : makelist(signs[i]*incr_s[i], i, 1, length(bP)),
+  writeCIncrExprs1(outl, incr_new),
+  printf(fh, "return std::abs(alpha0); ~%"),
   printf(fh, "} ~%")
 ));
 
