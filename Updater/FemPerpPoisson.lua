@@ -68,17 +68,17 @@ function FemPerpPoisson:init(tbl)
    local periodicDirs = {}
    if tbl.periodicDirs then
       for i, d in ipairs(tbl.periodicDirs) do
-	 if d<1 and d>2 then
+	 if d<1 or d>2 then
 	    assert(false, "Directions in periodicDirs table should be 1 (for X), or 2 (for Y)")
 	 end
 	 periodicDirs[i] = d
       end
    end
-   -- set flags to indicate which directions are periodic
+   -- set C flags to indicate which directions are periodic (0-based)
    self._isDirPeriodic = ffi.new("bool[2]")
    self._isDirPeriodic[0] = false
    self._isDirPeriodic[1] = false
-   for _, d in ipairs(periodicDirs) do self._isDirPeriodic[d] = true end
+   for _, d in ipairs(periodicDirs) do self._isDirPeriodic[d-1] = true end
 
    -- set flag to indicate all directions are periodic 
    self._allPeriodic = true
