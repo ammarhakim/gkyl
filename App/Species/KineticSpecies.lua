@@ -34,6 +34,10 @@ local SP_BC_REFLECT = 3
 -- base class for kinetic species
 local KineticSpecies = Proto(SpeciesBase)
 
+KineticSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
+KineticSpecies.bcOpen = SP_BC_OPEN -- zero gradient
+KineticSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
+
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
 function KineticSpecies:init(tbl)
@@ -181,7 +185,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
    end
    local gridConstructor = Grid.RectCart
    if self.coordinateMap then
-      gridConstructor = Grid.RectCartNonuniform
+      gridConstructor = Grid.NonUniformRectCart
    end
    self.grid = gridConstructor {
       lower = lower,

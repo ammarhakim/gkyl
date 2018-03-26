@@ -142,7 +142,7 @@ local function buildApplication(self, tbl)
    }
    local gridConstructor = Grid.RectCart
    if tbl.coordinateMap then
-      gridConstructor = Grid.RectCartNonuniform
+      gridConstructor = Grid.NonUniformRectCart
    end
    -- setup configuration space grid
    local grid = gridConstructor {
