@@ -63,12 +63,15 @@ function FemPerpPoisson:init(tbl)
 
    assert(self._basis:id()=="serendipity", "Updater.FemPerpPoisson only implemented for modal serendipity basis")
 
+   assert(self._grid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
+   self._ndim = self._grid:ndim()
+
    -- boundary conditions
    -- extract periodic directions
    local periodicDirs = {}
    if tbl.periodicDirs then
       for i, d in ipairs(tbl.periodicDirs) do
-	 if d<1 or d>2 then
+	 if d<1 or d>self._ndim then
 	    assert(false, "Directions in periodicDirs table should be 1 (for X), or 2 (for Y)")
 	 end
 	 periodicDirs[i] = d
@@ -90,9 +93,6 @@ function FemPerpPoisson:init(tbl)
 
    self._writeMatrix = xsys.pickBool(tbl.writeStiffnessMatrix, false)
   
-   assert(self._grid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
-   self._ndim = self._grid:ndim()
-
    function getBcData(tbl)
      local bc = ffi.new("bcdata_t")
      if tbl.T == "D" then bc.type = DIRICHLET
