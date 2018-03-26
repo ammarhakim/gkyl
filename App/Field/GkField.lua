@@ -165,7 +165,7 @@ function GkField:write(tm)
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
          end
 	 self.elecEnergy:write(string.format("elecEnergy_%d.bp", self.ioFrame), tm)
-	 self.magEnergy:write(string.format("magEnergy_%d.bp", self.ioFrame), tm)
+	 if self.isElectromagnetic then self.magEnergy:write(string.format("magEnergy_%d.bp", self.ioFrame), tm) end
 	 
 	 self.ioFrame = self.ioFrame+1
       end
