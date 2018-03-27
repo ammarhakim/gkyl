@@ -140,12 +140,14 @@ local function buildApplication(self, tbl)
       cuts = decompCuts,
       useShared = useShared,
    }
-   local gridConstructor = Grid.RectCart
+
+   -- pick grid ctor based on uniform/non-uniform grid
+   local GridConstructor = Grid.RectCart
    if tbl.coordinateMap then
-      gridConstructor = Grid.NonUniformRectCart
+      GridConstructor = Grid.NonUniformRectCart
    end
    -- setup configuration space grid
-   local grid = gridConstructor {
+   local grid = GridConstructor {
       lower = tbl.lower,
       upper = tbl.upper,
       cells = tbl.cells,
