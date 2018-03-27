@@ -183,9 +183,11 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs,
       table.insert(upper, self.upper[d])
       table.insert(cells, self.cells[d])
    end
-   local gridConstructor = Grid.RectCart
+
+   local GridConstructor = Grid.RectCart
+   local coordinateMap = {} -- table of functions   
+   -- construct comp -> phys mappings if they exist
    if self.coordinateMap then
-      local coordinateMap = {}
       if cMap then
          for d = 1, self.cdim do
             table.insert(coordinateMap, cMap[d])
@@ -195,20 +197,15 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs,
          end
       else
          for d = 1, self.cdim do
-            cMap = {
-               function(zeta)
-                  return zeta
-               end,
-            }
-            table.insert(coordinateMap, cMap)
+            table.insert(coordinateMap, function (z) return z end)
          end
          for d = 1, self.vdim do
             table.insert(coordinateMap, self.coordinateMap[d])
-         end         
+         end
       end
-      gridConstructor = Grid.NonUniformRectCart
+      GridConstructor = Grid.NonUniformRectCart
    end
-   self.grid = gridConstructor {
+   self.grid = GridConstructor {
       lower = lower,
       upper = upper,
       cells = cells,
