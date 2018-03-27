@@ -170,11 +170,6 @@ cmd="$GKYL test_Range.lua"
 echo "${ctext}${cmd}${reset}"
 $cmd
 
-# SparseTriples
-cmd="$GKYL test_SparseTriples.lua"
-echo "${ctext}${cmd}${reset}"
-$cmd
-
 # Template
 cmd="$GKYL test_Template.lua"
 echo "${ctext}${cmd}${reset}"
