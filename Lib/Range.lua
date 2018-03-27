@@ -21,6 +21,7 @@ local _M = {}
 --------------------------------------------------------------------------------
 
 ffi.cdef [[ typedef struct { int32_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; ]]
+local rTy = typeof("Range_t")
 
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
@@ -65,13 +66,14 @@ local range_mt = {
       for d = 0, 5 do
       	 r._lower[d], r._upper[d] = 0, 0
       end
-      r._ndim = #lower
+      local ndim = #lower
+      r._ndim = ndim
       assert(r._ndim < 7, "Range.new: Only objects upto 6D are supported")
       for d = 1, #lower do
 	 r._lower[d-1] = lower[d]
 	 r._upper[d-1] = upper[d]
       end
-      for d = 1, #lower do
+      for d = 1, ndim do
 	 -- adjust to give zero volume range if upper is less than lower
 	 if r._upper[d-1] < r._lower[d-1] then
 	    r._upper[d-1] = r._lower[d-1]-1
@@ -115,12 +117,12 @@ local range_mt = {
       volume = function (self)
 	 local v = 1
 	 for dir = 1, self._ndim do
-	    v = v*self:shape(dir)
+	    v = v*math.max(0, self._upper[dir-1]-self._lower[dir-1]+1)
 	 end
 	 return v
       end,
       extend = function (self, lExt, uExt)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for dir = 1, self:ndim() do
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir)-lExt, self:upper(dir)+uExt
@@ -128,7 +130,7 @@ local range_mt = {
 	 return r
       end,
       extendDir = function (self, extDir, lExt, uExt)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for dir = 1, self:ndim() do
 	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir), self:upper(dir)
@@ -137,7 +139,7 @@ local range_mt = {
 	 return r
       end,
       lowerSkin = function (self, dir, nGhost)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
@@ -146,7 +148,7 @@ local range_mt = {
 	 return r
       end,
       upperSkin = function (self, dir, nGhost)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
@@ -155,7 +157,7 @@ local range_mt = {
 	 return r
       end,
       lowerGhost = function (self, dir, nGhost)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
@@ -164,7 +166,7 @@ local range_mt = {
 	 return r
       end,
       upperGhost = function (self, dir, nGhost)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
@@ -173,7 +175,7 @@ local range_mt = {
 	 return r
       end,
       shorten = function (self, dir)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
@@ -182,7 +184,7 @@ local range_mt = {
 	 return r	 
       end,
       shift = function (self, offsets)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d)+offsets[d], self:upper(d)+offsets[d]
@@ -190,7 +192,7 @@ local range_mt = {
 	 return r
       end,
       shiftInDir = function (self, dir, offset)
-	 local r = new(typeof("Range_t"))
+	 local r = new(rTy)
 	 r._ndim = self:ndim()
 	 for d = 1, self:ndim() do
 	    r._lower[d-1], r._upper[d-1] = self:lower(d), self:upper(d)
@@ -252,7 +254,7 @@ local range_mt = {
    }
 }
 -- construct Range object, attaching meta-type to it
-_M.Range = metatype(typeof("Range_t"), range_mt)
+_M.Range = metatype(rTy, range_mt)
 
 -- Indexers --------------------------------------------------------------------
 --
