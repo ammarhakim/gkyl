@@ -23,7 +23,7 @@ local Proto = require "Lib.Proto"
 local Species = require "App.Species"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
-local date = require "Lib.date"
+local date = require "xsys.date"
 local xsys = require "xsys"
 
 -- function to create basis functions
