@@ -11,10 +11,9 @@ MPICXX=mpicxx
 
 BUILD_LUAJIT=yes
 BUILD_LUAROCKS=no
-BUILD_ADIOS=yes
+BUILD_ADIOS=no
 BUILD_OPENMPI=no
 BUILD_EIGEN=no
-BUILD_PETSC=no
 
 # ----------------------------------------------------------------------------
 # FUNCTION DEFINITIONS
@@ -45,10 +44,9 @@ specify the MPI C and C++ compilers to use.
 
 --build-luajit              [yes] Should we build LuaJIT?
 --build-luarocks            [no] Should we build Luarocks?
---build-adios               [yes] Should we build ADIOS?
+--build-adios               [no] Should we build ADIOS?
 --build-openmpi             [no] Should we build OpenMPI?
 --build-eigen               [no] Should we build Eigen?
---build-petsc               [no] Should we build Petsc?
 EOF
 }
 
@@ -123,10 +121,6 @@ do
    --build-eigen)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_EIGEN="$value"
-      ;;
-   --build-petsc)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_PETSC="$value"
       ;;
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."

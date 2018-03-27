@@ -7,5 +7,5 @@ first, please cheack details by running
 On most supercomputers you will likely need to use the system
 recommended compilers and MPI libraries. In this case, you should pass
 the appropriate compilers to mkdeps.sh, and then build libraries not
-provided by the system. In practice, this likely means LuaJIT, ADIOS
-and, optionally LuaRocks and Eigen.
+provided by the system. In practice, this likely means LuaJIT, ADIOS,
+Eigen and, optionally LuaRocks.
