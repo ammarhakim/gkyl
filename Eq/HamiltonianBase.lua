@@ -67,7 +67,7 @@ end
 function Hamiltonian:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    self.hamiltonian:fill(self.hamIdxr(idxl), self.hamPtrL)
    self.hamiltonian:fill(self.hamIdxr(idxr), self.hamPtrR)
-   return self._surfTerms[dir](wr:data(), dxr:data(), self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   return self._surfTerms[dir](wr:data(), dxr:data(), maxs, self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
 return Hamiltonian

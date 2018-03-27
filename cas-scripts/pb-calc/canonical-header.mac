@@ -5,6 +5,7 @@ fh : openw("~/max-out/CanonicalModDecl.h")$
 
 printf(fh, "#ifndef CANONICAL_MOD_DELC_H ~%")$
 printf(fh, "#define CANONICAL_MOD_DELC_H ~%")$
+printf(fh, "#include <cmath> ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
 
@@ -15,7 +16,7 @@ for ci : 1 thru 2 do (
       for si : 1 thru ci+vi do (
         if si <= ci then dirlabel : cvars[si]
         else dirlabel : vvars[si-ci],
-        printf(fh, "void CanonicalSurf~ax~avMax_~a_P~a(const double *w, const double *dxv, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
+        printf(fh, "double CanonicalSurf~ax~avMax_~a_P~a(const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
       ),
       printf(fh, "~%")      
     ),
@@ -31,7 +32,7 @@ for ci : 1 thru 2 do (
       for si : 1 thru ci+vi do (
         if si <= ci then dirlabel : cvars[si]
         else dirlabel : vvars[si-ci],
-        printf(fh, "void CanonicalSurf~ax~avSer_~a_P~a(const double *w, const double *dxv, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
+        printf(fh, "double CanonicalSurf~ax~avSer_~a_P~a(const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
       ),
       printf(fh, "~%")      
     ),
