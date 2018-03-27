@@ -187,13 +187,20 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs,
    local GridConstructor = Grid.RectCart
    local coordinateMap = {} -- table of functions   
    -- construct comp -> phys mappings if they exist
-   if self.coordinateMap then
-      if cMap then
+   if self.coordinateMap or cMap then
+      if cMap and self.coordinateMap then
          for d = 1, self.cdim do
             table.insert(coordinateMap, cMap[d])
          end
          for d = 1, self.vdim do
             table.insert(coordinateMap, self.coordinateMap[d])
+         end
+      elseif cMap then
+         for d = 1, self.cdim do
+            table.insert(coordinateMap, cMap[d])
+         end
+         for d = 1, self.vdim do
+            table.insert(coordinateMap, function (z) return z end)
          end
       else
          for d = 1, self.cdim do
