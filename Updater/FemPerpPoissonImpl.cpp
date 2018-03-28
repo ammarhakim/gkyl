@@ -6,6 +6,9 @@
 //------------------------------------------------------------------------------
 
 #include <FemPerpPoissonImpl.h>
+
+// std includes
+#include <string>
 #include <vector>
 
 using namespace Eigen;
