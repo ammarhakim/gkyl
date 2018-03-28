@@ -234,7 +234,7 @@ local function Field_meta_ctor(elct)
 	    for i = 1, #skelIds do
 	       local loId, upId = skelIds[i].lower, skelIds[i].upper
 
-	       -- only allocate we are on proper ranks
+	       -- only allocate if we are on proper ranks
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
 		  local szSend = rgnSend:volume()*self._numComponents
@@ -257,7 +257,7 @@ local function Field_meta_ctor(elct)
       
       -- create IO object
       self._adiosIo = AdiosCartFieldIo { elemType = elct }
-
+      -- tag to identify basis used to set this field
       self._basisId = "none"
 
       return self
