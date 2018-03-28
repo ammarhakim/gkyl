@@ -114,7 +114,7 @@ function KineticSpecies:fullInit(appTbl)
       end
       return false
    end
-   
+
    -- read in boundary conditions
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
@@ -185,7 +185,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs,
    end
 
    local GridConstructor = Grid.RectCart
-   local coordinateMap = {} -- table of functions   
+   local coordinateMap = {} -- table of functions
    -- construct comp -> phys mappings if they exist
    if self.coordinateMap or cMap then
       if cMap and self.coordinateMap then
@@ -253,12 +253,14 @@ end
 
 function KineticSpecies:createBCs()
    -- function to construct a BC updater
-   local function makeBcUpdater(dir, edge, bcList)
+   local function makeBcUpdater(dir, edge, bcList, skinLoop)
       return Updater.Bc {
 	 onGrid = self.grid,
 	 boundaryConditions = bcList,
 	 dir = dir,
 	 edge = edge,
+	 skinLoop = skinLoop,
+	 cdim = self.cdim,
       }
    end
 
@@ -271,14 +273,29 @@ function KineticSpecies:createBCs()
    local function bcOpen(dir, tm, xc, fIn, fOut)
       self.basis:flipSign(dir, fIn, fOut)
    end
+   local function bcReflect(dir, tm, xc, fIn, fOut)
+      -- get handle to function to compute basis functions at specified coordinates
+      local bName = ""
+      if self.basis:id() == "serendipity" then
+	 bName = "Serendip"
+      else
+	 bName = "MaxOrder"
+      end
+      local fName = "Basis._data.Modal" .. bName .. "BasisReflect" .. self.cdim .. "x" .. self.vdim .. "v"
+      local _m = require(fName)
+      local polyOrder = self.basis:polyOrder()
+      _m[polyOrder](dir, fIn, fOut) -- function to flip sign of both configuration and velocity component
+   end
 
    -- functions to make life easier while reading in BCs to apply
    self.boundaryConditions = { } -- list of Bcs to apply
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == SP_BC_ABSORB then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcAbsorb }))
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcAbsorb }, "pointwise"))
       elseif bcType == SP_BC_OPEN then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }))
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }, "pointwise"))
+      elseif bcType == SP_BC_REFLECT then
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcReflect }, "flip"))
       else
 	 assert(false, "KineticSpecies: Unsupported BC type!")
       end
@@ -292,7 +309,7 @@ function KineticSpecies:createBCs()
 	 appendBoundaryConditions(dir, "upper", bc[2])
       end
    end
-   
+
    -- add various BCs to list of BCs to apply
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
@@ -367,7 +384,7 @@ function KineticSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
       self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
-      
+
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm)
