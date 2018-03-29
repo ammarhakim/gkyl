@@ -18,4 +18,4 @@ cmake ../ -DCMAKE_INSTALL_PREFIX=$PREFIX
 make install
 
 # softlink to make finding easier
-ln -sf $PREFIX $GKYLSOFT/eigen
+ln -sf $PREFIX $GKYLSOFT/eigen3
