@@ -26,13 +26,15 @@ local MaxwellField = Proto(FieldBase.FieldBase)
 -- add constants to object indicate various supported boundary conditions
 local EM_BC_OPEN = 1
 local EM_BC_REFLECT = 2
+local EM_BC_SYMMETRY = 2
 
 MaxwellField.bcOpen = EM_BC_OPEN -- zero gradient
 MaxwellField.bcReflect = EM_BC_REFLECT -- perfect electric conductor
+MaxwellField.bcSymmetry = EM_BC_SYMMETRY
 
 -- function to check if BC type is good
 local function isBcGood(bcType)
-   if bcType == EM_BC_OPEN or bcType == EM_BC_REFLECT then
+   if bcType == EM_BC_OPEN or bcType == EM_BC_REFLECT or bcType == EM_BC_SYMMETRY then
       return true
    end
    return false
@@ -167,6 +169,8 @@ function MaxwellField:createSolver()
 
    -- indices for tangent and normal components of E and B for dir
    local idxEt = {{2, 3}, {1, 3}, {1, 2}}
+   local idxEn = {1, 2, 3}
+   local idxBt = {{5, 6}, {4, 6}, {4, 5}}
    local idxBn = {4, 5, 6}
 
    -- various functions to apply BCs of different types
@@ -195,6 +199,24 @@ function MaxwellField:createSolver()
 	    -1.0 * fOutData[(idxBn[dir]-1)*nb + i - 1]
       end
    end
+   local function bcSymmetry(dir, tm, xc, fIn, fOut)
+      local nb = self.basis:numBasis()
+      local fInData, fOutData = fIn:data(), fOut:data()
+      -- zero gradient for all the components
+      for i = 1, 8 do
+	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
+      end
+      for i = 1, self.basis:numBasis() do
+	 -- zero normal for electric field
+	 fOutData[(idxEn[dir]-1)*nb + i - 1] = 
+	    -1.0 * fOutData[(idxEn[dir]-1)*nb + i - 1]
+	 -- zero tangent for magnetic field
+	 fOutData[(idxBt[dir][1]-1)*nb + i - 1] = 
+	    -1.0 * fOutData[(idxBt[dir][1]-1)*nb + i - 1]
+	 fOutData[(idxBt[dir][2]-1)*nb + i - 1] = 
+	    -1.0 * fOutData[(idxBt[dir][2]-1)*nb + i - 1]
+      end
+   end
 
    -- functions to make life easier while reading in BCs to apply
    self.boundaryConditions = { } -- list of Bcs to apply
@@ -205,6 +227,9 @@ function MaxwellField:createSolver()
       elseif bcType == EM_BC_REFLECT then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, { bcReflect }))
+      elseif bcType == EM_BC_SYMMETRY then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, { bcSymmetry }))
       else
 	 assert(false, "VlasovOnCartGridField: Unsupported BC type!")
       end
