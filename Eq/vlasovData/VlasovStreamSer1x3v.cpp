@@ -12,7 +12,7 @@ double VlasovVolStream1x3vSerP1(const double *w, const double *dxv, const double
   out[12] += 3.464101615137754*f[9]*w0dx0+f[4]*dv0dx0; 
   out[13] += 3.464101615137754*f[10]*w0dx0+f[14]*dv0dx0; 
   out[15] += 3.464101615137754*f[14]*w0dx0+f[10]*dv0dx0; 
-return std::abs(w0dx0); 
+return std::abs(w0dx0)+dv0dx0/2; 
 } 
 double VlasovVolStream1x3vSerP2(const double *w, const double *dxv, const double *f, double *out) 
 { 
@@ -47,5 +47,5 @@ double VlasovVolStream1x3vSerP2(const double *w, const double *dxv, const double
   out[45] += 3.464101615137755*f[38]*w0dx0+0.8944271909999161*f[18]*dv0dx0; 
   out[46] += 3.464101615137755*f[40]*w0dx0+f[27]*dv0dx0; 
   out[47] += 3.464101615137755*f[43]*w0dx0+f[30]*dv0dx0; 
-return std::abs(w0dx0); 
+return std::abs(w0dx0)+dv0dx0/2; 
 } 
