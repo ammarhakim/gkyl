@@ -165,6 +165,10 @@ function MaxwellField:createSolver()
       }
    end
 
+   -- indices for tangent and normal components of E and B for dir
+   local idxEt = {{2, 3}, {1, 3}, {1, 2}}
+   local idxBn = {4, 5, 6}
+
    -- various functions to apply BCs of different types
    local function bcOpen(dir, tm, xc, fIn, fOut)
       local nb = self.basis:numBasis()
@@ -173,12 +177,34 @@ function MaxwellField:createSolver()
 	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
       end
    end
+   local function bcReflect(dir, tm, xc, fIn, fOut)
+      local nb = self.basis:numBasis()
+      local fInData, fOutData = fIn:data(), fOut:data()
+      -- zero gradient for all the components
+      for i = 1, 8 do
+	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
+      end
+      for i = 1, self.basis:numBasis() do
+	 -- zero tangent for electric field
+	 fOutData[(idxEt[dir][1]-1)*nb + i - 1] = 
+	    -1.0 * fOutData[(idxEt[dir][1]-1)*nb + i - 1]
+	 fOutData[(idxEt[dir][2]-1)*nb + i - 1] = 
+	    -1.0 * fOutData[(idxEt[dir][2]-1)*nb + i - 1]
+	 -- zero normal for magnetic field
+	 fOutData[(idxBn[dir]-1)*nb + i - 1] = 
+	    -1.0 * fOutData[(idxBn[dir]-1)*nb + i - 1]
+      end
+   end
 
    -- functions to make life easier while reading in BCs to apply
    self.boundaryConditions = { } -- list of Bcs to apply
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == EM_BC_OPEN then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }))
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, { bcOpen }))
+      elseif bcType == EM_BC_REFLECT then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, { bcReflect }))
       else
 	 assert(false, "VlasovOnCartGridField: Unsupported BC type!")
       end
