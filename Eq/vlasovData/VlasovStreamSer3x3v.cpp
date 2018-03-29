@@ -64,7 +64,7 @@ double VlasovVolStream3x3vSerP1(const double *w, const double *dxv, const double
   out[61] += 3.464101615137754*f[54]*w2dx2+3.464101615137754*f[56]*w0dx0+f[29]*dv2dx2+f[40]*dv0dx0; 
   out[62] += 3.464101615137754*f[55]*w2dx2+3.464101615137754*f[56]*w1dx1+f[30]*dv2dx2+f[37]*dv1dx1; 
   out[63] += 3.464101615137754*f[60]*w2dx2+3.464101615137754*f[61]*w1dx1+3.464101615137754*f[62]*w0dx0+f[44]*dv2dx2+f[49]*dv1dx1+f[53]*dv0dx0; 
-return std::abs(w0dx0)+std::abs(w1dx1)+std::abs(w2dx2); 
+return std::abs(w0dx0)+std::abs(w1dx1)+std::abs(w2dx2)+dv0dx0/2+dv1dx1/2+dv2dx2/2; 
 } 
 double VlasovVolStream3x3vSerP2(const double *w, const double *dxv, const double *f, double *out) 
 { 
@@ -311,5 +311,5 @@ double VlasovVolStream3x3vSerP2(const double *w, const double *dxv, const double
   out[253] += 3.464101615137755*f[238]*w2dx2+3.464101615137755*f[239]*w1dx1+3.464101615137755*f[240]*w0dx0+f[172]*dv2dx2+f[189]*dv1dx1+0.8944271909999161*f[158]*dv0dx0; 
   out[254] += 3.464101615137755*f[242]*w2dx2+3.464101615137755*f[243]*w1dx1+3.464101615137755*f[244]*w0dx0+f[176]*dv2dx2+0.8944271909999161*f[157]*dv1dx1+f[205]*dv0dx0; 
   out[255] += 3.464101615137755*f[247]*w2dx2+3.464101615137755*f[248]*w1dx1+3.464101615137755*f[249]*w0dx0+0.8944271909999161*f[156]*dv2dx2+f[211]*dv1dx1+f[215]*dv0dx0; 
-return std::abs(w0dx0)+std::abs(w1dx1)+std::abs(w2dx2); 
+return std::abs(w0dx0)+std::abs(w1dx1)+std::abs(w2dx2)+dv0dx0/2+dv1dx1/2+dv2dx2/2; 
 } 
