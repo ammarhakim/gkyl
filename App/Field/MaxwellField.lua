@@ -8,13 +8,13 @@
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local DataStruct = require "DataStruct"
+local FieldBase = require "App.Field.FieldBase"
 local LinearTrigger = require "LinearTrigger"
 local PerfMaxwell = require "Eq.PerfMaxwell"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local FieldBase = require "App.Field.FieldBase"
 
 -- MaxwellField ---------------------------------------------------------------------
 --
@@ -323,11 +323,13 @@ function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
 
    if self.evolve then
       local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
-      self.currentDens:clear(0.0)
-      for nm, s in pairs(species) do
-        self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
+      if self.currentDens then -- no currents for source-free Maxwell
+	 self.currentDens:clear(0.0)
+	 for nm, s in pairs(species) do
+	    self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
+	 end
+	 self:accumulateCurrent(dt, self.currentDens, emOut)
       end
-      self:accumulateCurrent(dt, self.currentDens, emOut)
       return mys, mydt
    else
       emOut:copy(emIn) -- just copy stuff over
