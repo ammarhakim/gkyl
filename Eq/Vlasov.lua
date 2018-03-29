@@ -54,14 +54,16 @@ function Vlasov:init(tbl)
    end
 
    self._volForceUpdate, self._surfForceUpdate = nil, nil
-   -- functions to perform force
-   if hasMagField then 
-      self._volForceUpdate = VlasovModDecl.selectVolElcMag(
-	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
-	 self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-   else
-      assert(false, "Vlasov: Pure ES kernels NYI!")
+   if self._hasForceTerm then
+      -- functions to perform force
+      if hasMagField then 
+	 self._volForceUpdate = VlasovModDecl.selectVolElcMag(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
+	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      else
+	 assert(false, "Vlasov: Pure ES kernels NYI!")
+      end
    end
 
    -- EM field object and pointers to cell values
