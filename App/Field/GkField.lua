@@ -10,6 +10,7 @@ local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
 local FieldBase = require "App.Field.FieldBase"
+local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -57,6 +58,8 @@ function GkField:fullInit(appTbl)
    self.magEnergy = DataStruct.DynVector { numComponents = 1 }
 
    self.tmCurrentAccum = 0.0 -- time spent in current accumulate
+
+   self.adiabatic = false
 end
 
 -- methods for EM field object
@@ -108,6 +111,7 @@ end
 -- solve for initial fields self-consistently 
 -- from initial distribution function
 function GkField:initField(species)
+   if self.adiabatic then self.qneutFacInv = 1/self.adiabSpec:qneutFac() end
    self:forwardEuler(0, nil, nil, species, self.potentials[1])
 end
 
@@ -115,26 +119,35 @@ function GkField:rkStepperFields()
    return self.potentials
 end
 
-function GkField:createSolver()
-   self.phiSlvr = Updater.FemPerpPoisson {
-     onGrid = self.grid,
-     basis = self.basis,
-     bcLeft = self.phiBcLeft,
-     bcRight = self.phiBcRight,
-     bcBottom = self.phiBcBottom,
-     bcTop = self.phiBcTop,
-     periodicDirs = self.periodicDirs,
-   }
-   if self.isElectromagnetic then
-     self.aparSlvr = Updater.FemPerpPoisson {
-       onGrid = self.grid,
-       basis = self.basis,
-       bcLeft = self.aparBcLeft,
-       bcRight = self.aparBcRight,
-       bcBottom = self.aparBcBottom,
-       bcTop = self.aparBcTop,
-       periodicDirs = self.periodicDirs,
-     }
+function GkField:createSolver(species)
+   -- get adiabatic species info
+   for nm, s in pairs(species) do
+      if AdiabaticSpecies.is(s) then
+         self.adiabatic = true
+         self.adiabSpec = s
+      end
+   end
+   if not self.adiabatic then
+      self.phiSlvr = Updater.FemPerpPoisson {
+        onGrid = self.grid,
+        basis = self.basis,
+        bcLeft = self.phiBcLeft,
+        bcRight = self.phiBcRight,
+        bcBottom = self.phiBcBottom,
+        bcTop = self.phiBcTop,
+        periodicDirs = self.periodicDirs,
+      }
+      if self.isElectromagnetic then
+        self.aparSlvr = Updater.FemPerpPoisson {
+          onGrid = self.grid,
+          basis = self.basis,
+          bcLeft = self.aparBcLeft,
+          bcRight = self.aparBcRight,
+          bcBottom = self.aparBcBottom,
+          bcTop = self.aparBcTop,
+          periodicDirs = self.periodicDirs,
+        }
+      end
    end
 
    self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
@@ -187,19 +200,23 @@ end
 
 function GkField:forwardEuler(tCurr, dt, potIn, species, potOut)
    if self.evolve then
-      local mys2 = true
-      local mydt2 = GKYL_MAX_DOUBLE
+      local mys, mys2 = true, true
+      local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do
-        self.chargeDens:accumulate(s:getCharge(), s:getDens())
+         self.chargeDens:accumulate(s:getCharge(), s:getDens())
       end
-      local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
-      if self.isElectromagnetic then
-        self.currentDens:clear(0.0)
-        for nm, s in pairs(species) do
-          self.currentDens:accumulate(s:getCharge(), s:getUpar())
-        end
-        mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
+      if self.adiabatic then
+         potOut.phi:combine(self.qneutFacInv, self.chargeDens)
+      else
+         local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
+         if self.isElectromagnetic then
+           self.currentDens:clear(0.0)
+           for nm, s in pairs(species) do
+             self.currentDens:accumulate(s:getCharge(), s:getUpar())
+           end
+           mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
+         end
       end
       return mys and mys2, math.min(mydt,mydt2)
    else
@@ -217,9 +234,12 @@ function GkField:applyBc(tCurr, dt, potIn)
 end
    
 function GkField:totalSolverTime()
-   local time = self.phiSlvr.totalTime
-   if isElectromagnetic then time = time + self.aparSlvr.totalTime end
-   return time
+   if self.phiSlvr then
+     local time = self.phiSlvr.totalTime
+     if self.isElectromagnetic and self.aparSlvr then time = time + self.aparSlvr.totalTime end
+     return time
+   end
+   return 0.0
 end
 
 function GkField:totalBcTime()

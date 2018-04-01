@@ -1,0 +1,13 @@
+load("pb-calc/canonical-upwind-discont-surf")$
+load(stringproc)$
+
+pmax : 1$
+for c : 1 thru 1 do (
+   v : c,
+   fname : sconcat("~/max-out/CanonicalDisContSurfSer", c, "x", v, "v", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("CanonicalDisContCorrectionSurf", c, "x", v, "v", "Ser"),
+   calcCanonicalPBDisContSurfUpdater(fh, funcName, c, v, "Ser", pmax),
+   close(fh)
+);
+

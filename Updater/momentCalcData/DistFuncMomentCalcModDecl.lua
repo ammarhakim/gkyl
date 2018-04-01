@@ -22,7 +22,7 @@ end
 
 -- select function to compute specified gyrokinetic moment
 function _M.selectGkMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("GkMomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+   local funcNm = string.format("GkMomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], string.sub(mom,3), polyOrder)
    return ffi.C[funcNm]
 end
 

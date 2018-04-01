@@ -83,7 +83,14 @@ def build(bld):
     pbData/CanonicalSurfMax2x2v.cpp
     pbData/CanonicalSurfSer1x1v.cpp
     pbData/CanonicalSurfSer2x2v.cpp
+    pbData/CanonicalDisContSurfSer1x1v.cpp
+
 
     """,
     target = 'eq', includes = '. maxwellData vlasovData pbData'
     )
+
+    ##gkData/GyrokineticSer2x2v.cpp
+    ##gkData/GyrokineticSer3x2v.cpp
+    ##gkData/GyrokineticSurfSer2x2v.cpp
+    ##gkData/GyrokineticSurfSer3x2v.cpp

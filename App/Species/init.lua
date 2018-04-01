@@ -3,14 +3,18 @@ local SpeciesBase = require "App.Species.SpeciesBase"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local FluidSpecies = require "App.Species.FluidSpecies"
 local VlasovSpecies = require "App.Species.VlasovSpecies"
---local GkSpecies = require "App.Species.GkSpecies"
+local HamilVlasovSpecies = require "App.Species.HamilVlasovSpecies"
+local GkSpecies = require "App.Species.GkSpecies"
 local IncompEulerSpecies = require "App.Species.IncompEulerSpecies"
+local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
 
 return {
   SpeciesBase = SpeciesBase,
   KineticSpecies = KineticSpecies,
   VlasovSpecies = VlasovSpecies,
-  --GkSpecies = GkSpecies,
+  HamilVlasovSpecies = HamilVlasovSpecies,
+  GkSpecies = GkSpecies,
   FluidSpecies = FluidSpecies,
   IncompEulerSpecies = IncompEulerSpecies,
+  AdiabaticSpecies = AdiabaticSpecies,
 }

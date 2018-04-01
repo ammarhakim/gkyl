@@ -46,6 +46,22 @@ def build(bld):
     CartFieldIntegratedQuantCalcImpl.cpp
 
     FemPerpPoissonImpl.cpp
+  
+    confToPhaseData/ConfToPhaseMax1x1v.cpp
+    confToPhaseData/ConfToPhaseMax1x2v.cpp
+    confToPhaseData/ConfToPhaseMax1x3v.cpp
+    confToPhaseData/ConfToPhaseMax2x2v.cpp
+    confToPhaseData/ConfToPhaseMax2x3v.cpp
+    confToPhaseData/ConfToPhaseMax3x2v.cpp
+    confToPhaseData/ConfToPhaseMax3x3v.cpp
+    confToPhaseData/ConfToPhaseSer1x1v.cpp
+    confToPhaseData/ConfToPhaseSer1x2v.cpp
+    confToPhaseData/ConfToPhaseSer1x3v.cpp
+    confToPhaseData/ConfToPhaseSer2x2v.cpp
+    confToPhaseData/ConfToPhaseSer2x3v.cpp
+    confToPhaseData/ConfToPhaseSer3x2v.cpp
+    confToPhaseData/ConfToPhaseSer3x3v.cpp
+
 
     """,
-    includes = '. momentCalcData', use='EIGEN MPI', target = 'updater')
+    includes = '. momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')

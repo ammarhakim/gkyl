@@ -12,10 +12,6 @@ function IncompEulerSpecies:fullInit(appTbl)
    self.nMoments = 1
 end
 
-function IncompEulerSpecies:allocMomCouplingFields()
-   return {self:allocVectorMoment(self.nMoments)}
-end
-
 function IncompEulerSpecies:createSolver(hasE, hasB)
    -- create updater to advance solution by one time-step
    local eqn = IncompEulerEq {
