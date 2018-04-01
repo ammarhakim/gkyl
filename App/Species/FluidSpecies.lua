@@ -174,6 +174,10 @@ function FluidSpecies:allocVectorMoment(dim)
    return m
 end
 
+function FluidSpecies:allocMomCouplingFields()
+   return {self:allocVectorMoment(self.nMoments)}
+end
+
 function FluidSpecies:createBCs()
    -- function to construct a BC updater
    local function makeBcUpdater(dir, edge, bcList)
@@ -304,7 +308,10 @@ end
 
 -- timers
 function FluidSpecies:totalSolverTime()
-   return self.solver.totalTime
+   if self.solver then
+     return self.solver.totalTime
+   end
+   return 0
 end
 function FluidSpecies:totalBcTime()
    local tm = 0.0

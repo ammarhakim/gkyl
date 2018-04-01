@@ -21,7 +21,7 @@ local function isMomentNameGood(nm)
    return false
 end
 local function isGkMomentNameGood(nm)
-   if nm == "Dens" or nm == "Upar" or nm == "Ppar" or nm == "Pperp" or nm == "Qpar" or nm == "Qperp" then
+   if nm == "GkDens" or nm == "GkUpar" or nm == "GkPpar" or nm == "GkPperp" or nm == "GkQpar" or nm == "GkQperp" then
       return true
    end
    return false
@@ -63,6 +63,7 @@ function DistFuncMomentCalc:init(tbl)
    elseif isGkMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectGkMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
    else
+      print("DistFuncMomentCalc: Requested moment is", mom)
       assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i")
    end
 

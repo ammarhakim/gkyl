@@ -308,7 +308,8 @@ end
 
 function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
    if self._isFirst then
-      -- create field for total current density
+      -- create field for total current density. need to do this here because
+      -- field object does not know about vdim
       do
          local c = 0
          for _, s in pairs(species) do

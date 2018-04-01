@@ -303,6 +303,7 @@ local function Field_meta_ctor(elct)
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld), "CartField:accumulate/combine: Can only accumulate/combine compatible fields")
 	 assert(type(fact) == "number", "CartField:accumulate/combine: Factor not a number")
+         assert(self:layout() == fld:layout(), "CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
 	 ffi.C.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,

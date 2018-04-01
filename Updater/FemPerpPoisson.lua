@@ -192,9 +192,6 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
      local_z_upper = localRange:upper(3)
    end
 
-   -- Allgather src within perpRange
-   -- Allgather(...)
-   
    -- create indexers and pointers for src and sol
    local srcIndexer = src:indexer() 
    local srcPtr = src:get(1)

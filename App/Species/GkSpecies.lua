@@ -19,13 +19,12 @@ function GkSpecies:alloc(nRkDup)
 end
 
 function GkSpecies:allocMomCouplingFields()
-   -- this will become total charge density and current density
-   return {self:allocMoment(), self:allocMoment()}
+   assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
 function GkSpecies:createSolver(hasPhi, hasApar)
    -- create updater to advance solution by one time-step
-   local gkEqn = GkEq {
+   self.gkEqn = GkEq {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
@@ -33,6 +32,9 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       mass = self.mass,
       hasPhi = hasPhi,
       hasApar = hasApar,
+      -- let the Hamiltonian be discontinuous in the z direction, 
+      -- which is assumed to be the last configuration space direction
+      hamilDisContDirs = {self.cdim}, 
    }
 
    -- must apply zero-flux BCs in velocity directions
@@ -43,7 +45,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       onGrid = self.grid,
       basis = self.basis,
       cfl = self.cfl,
-      equation = gkEqn,
+      equation = self.gkEqn,
       zeroFluxDirections = zfd,
    }
    
@@ -66,12 +68,14 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       confBasis = self.confBasis,
       moment = "GkPpar",
    }
-   self.calcPperp = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
-      phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkPperp",
-   }
+   if self.vdim > 1 then
+      self.calcPperp = Updater.DistFuncMomentCalc {
+         onGrid = self.grid,
+         phaseBasis = self.basis,
+         confBasis = self.confBasis,
+         moment = "GkPperp",
+      }
+   end
 end
 
 function GkSpecies:createDiagnostics()
@@ -89,7 +93,7 @@ function GkSpecies:createDiagnostics()
    self.diagnosticMomentUpdaters = { } 
    -- allocate space to store moments and create moment updater
    for i, mom in ipairs(self.diagnosticMoments) do
-      if isMomentNameGood(nm) then
+      if isMomentNameGood(mom) then
          self.diagnosticMomentFields[i] = DataStruct.Field {
             onGrid = self.confGrid,
             numComponents = self.confBasis:numBasis(),
@@ -102,8 +106,15 @@ function GkSpecies:createDiagnostics()
             moment = mom,
          }
       else
-         assert(false, string.format("Moment %s not valid", nm))
+         assert(false, string.format("Moment %s not valid", mom))
       end
+   end
+end
+
+function GkSpecies:write(tm)
+   GkSpecies.super.write(self, tm)
+   if self.distIoTrigger(tm) then
+      self.gkEqn:writeHamiltonian(self.distIo, tm) 
    end
 end
 
@@ -133,3 +144,5 @@ function GkSpecies:momCalcTime()
    end
    return tm
 end
+
+return GkSpecies

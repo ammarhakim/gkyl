@@ -1,0 +1,62 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+pmax : 3$
+
+accumulateConfToPhase(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : basisP[p],
+  bC : basisC[p],
+  printf(fh, "void ~a_P~a(const double fact, const double *fconf, double *fphase) ~%{ ~%", funcNm, p),
+  fconf_expd : doExpand1(fconf, bC),
+  fphase_k : fullratsimp(innerProd(varsP, 1, bP, fconf_expd)),
+  writeCIncrExprs1(fphase, fact*fphase_k),
+  printf(fh, "} ~%")
+))$
+
+assignConfToPhase(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : basisP[p],
+  bC : basisC[p],
+  printf(fh, "void ~a_P~a(const double fact, const double *fconf, double *fphase) ~%{ ~%", funcNm, p),
+  fconf_expd : doExpand1(fconf, bC),
+  fphase_k : fullratsimp(innerProd(varsP, 1, bP, fconf_expd)),
+  writeCExprsWithZeros1(fphase, fact*fphase_k),
+  printf(fh, "} ~%")
+))$
+
+for c : 1 thru 3 do (
+  for v : 1 thru 3 do (
+   if (c <= v or (c=3 and v=2)) then (
+     fname : sconcat("~/max-out/ConfToPhaseSer", c, "x", v, "v", ".cpp"),
+     fh : openw(fname),
+     printf(fh, "#include <ConfToPhaseModDecl.h>~%"),
+     funcName : sconcat("accumulateConfToPhase", c, "x", v, "v", "Ser"),
+     accumulateConfToPhase(fh, funcName, c, v, "Ser"),
+     funcName : sconcat("assignConfToPhase", c, "x", v, "v", "Ser"),
+     assignConfToPhase(fh, funcName, c, v, "Ser"),
+     close(fh)
+   )
+  )
+);
+for c : 1 thru 3 do (
+  for v : 1 thru 3 do (
+   if (c <= v or (c=3 and v=2)) then (
+     fname : sconcat("~/max-out/ConfToPhaseMax", c, "x", v, "v", ".cpp"),
+     fh : openw(fname),
+     printf(fh, "#include <ConfToPhaseModDecl.h>~%"),
+     funcName : sconcat("accumulateConfToPhase", c, "x", v, "v", "Max"),
+     accumulateConfToPhase(fh, funcName, c, v, "Max"),
+     funcName : sconcat("assignConfToPhase", c, "x", v, "v", "Max"),
+     assignConfToPhase(fh, funcName, c, v, "Max"),
+     close(fh)
+   )
+  )
+);

@@ -1,0 +1,30 @@
+cvars : [X, Y, Z]$
+
+fh : openw("~/max-out/ConfToPhaseModDecl.h")$
+
+printf(fh, "#ifndef CONF_TO_PHASE_MOD_DELC_H ~%")$
+printf(fh, "#define CONF_TO_PHASE_MOD_DELC_H ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+
+for ci : 1 thru 3 do (
+  for vi : 1 thru 3 do (
+   if (ci <= vi or (ci=3 and vi=2)) then (
+    for pi : 1 thru 3 do (
+      printf(fh, "void accumulateConfToPhase~ax~avSer_P~a(const double fact, const double *fconf, double *fphase); ~%", ci, vi, pi),
+      printf(fh, "void assignConfToPhase~ax~avSer_P~a(const double fact, const double *fconf, double *fphase); ~%", ci, vi, pi),
+      printf(fh, "~%"),
+      printf(fh, "void accumulateConfToPhase~ax~avMax_P~a(const double fact, const double *fconf, double *fphase); ~%", ci, vi, pi),
+      printf(fh, "void assignConfToPhase~ax~avMax_P~a(const double fact, const double *fconf, double *fphase); ~%", ci, vi, pi),
+      printf(fh, "~%") 
+    ),
+    printf(fh, "~%")
+   )
+  )
+)$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

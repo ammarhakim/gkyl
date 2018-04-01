@@ -30,25 +30,24 @@ for i : 1 thru pmax do (
   else dirlabel : vvars[dir-cdim],
   zeros : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "double ~a_~a_P~a(const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "void ~a_~a_P~a(const double *w, const double *dxv, const double amax_in, const double *Hl, const double *Hr, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
   printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
 
   for d : 1 thru cdim+vdim do (
     printf(fh, "  double dxv~a = dxv[~a]; ~%", d-1, d-1)
   ),
-  printf(fh, "  double wd = w[~a]; ~%", dir-1),
-  printf(fh, "  double incr[~a]; ~%~%", length(bP)),
-  printf(fh, "  double Ghat[~a]; ~%~%", length(bP)),
+  printf(fh, "  double fhat[~a]; ~%~%", length(bP)),
 
   /* get surface variable */
   surfVar : varsP[dir],
   /* remove surface variable from integrand of surface integrals */
   surfIntVars : delete(surfVar,varsP),
   /* make expansions */
-  fl_L : doExpand1(fl, bP),
-  fl_R : doExpand1(fr, bP),
-  Hl : doExpand1(H, bP),
+  fL_expd : doExpand1(fl, bP),
+  fR_expd : doExpand1(fr, bP),
+  HL_expd : doExpand1(Hl, bP),
+  HR_expd : doExpand1(Hr, bP),
 
   /* volfac = 1 because volume factors on both sides of equation cancel */
   volfac : 1,
@@ -61,59 +60,62 @@ for i : 1 thru pmax do (
 
   /* calculate alpha in direction of surfVar */
   /* we assume alpha.n is continuous across boundary, although H may not be */
-  alpha_surfVar : (alpha : 0, for d : 1 thru cdim do (
-     pb : (pbfac[d]*PB(wd + dxv[dir]/2*surfVar,Hl,varsC[d],varsV[d])),
+  alpha_expd : (alpha : 0, for d : 1 thru cdim do (
+     pb : (pbfac[d]*PB(wd + dxv[dir]/2*surfVar,HR_expd,varsC[d],varsV[d])),
      alpha : alpha + pb
      ),
   alpha),
   /* evaluate at boundary from interior (surfVar=-1) */
-  alpha_surfVar : subst(surfVar=-1,alpha_surfVar),
+  alphaSurf_expd : subst(surfVar=-1,alpha_expd),
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
-  alpha0expr : fullratsimp(innerProd(surfIntVars, 1, alpha_surfVar, subst(surfVar=-1, bP[1]))),
+  alpha0 : subst(zeros, alphaSurf_expd),
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
-  printf(fh, "  double alpha0 = std::abs(~a); ~%~%", float(alpha0expr)),
+  printf(fh, "  double alpha0 = ~a; ~%~%", float(alpha0)),
 
   /* determine whether to use local or global value for penalty amax */
-  printf(fh, "  double amax = 0.0; ~%"),
+  printf(fh, "  // compute amaxNorm ~~ amax/alpha0 ~%"),
+  printf(fh, "  double amaxNorm = 0.0; ~%"),
   printf(fh, "  bool upwind = false; ~%"), 
   printf(fh, "  if(upwind) ~%"),
-  printf(fh, "    amax = alpha0; ~%"),
+  printf(fh, "    amaxNorm = (alpha0 > 0) - (alpha0 < 0); // this gives sign(alpha0) ~%"),
   printf(fh, "  else ~%"),
-  printf(fh, "    amax = amax_in; ~%~%"),
+  printf(fh, "    amaxNorm = amax_in/alpha0; ~%~%"),
 
   /* calculate lax penalty flux expression */
   /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
-  flux : fullratsimp(alpha_surfVar/2*(subst(surfVar=1, fl_L)+subst(surfVar=-1, fl_R))-amax/2*(subst(surfVar=-1, fl_R)-subst(surfVar=1, fl_L))),
+  fhat_expd : facsum(fullratsimp((subst(surfVar=1, fL_expd)+subst(surfVar=-1, fR_expd))/2-amaxNorm/2*(subst(surfVar=-1, fR_expd)-subst(surfVar=1, fL_expd))),amaxNorm),
   /* project flux expression onto basis functions */
-  fluxl : calcInnerProdList(varsP, 1, bP, flux),
-  /* print fluxl list to c array Ghat */
-  writeCExprsCollect1(Ghat, fluxl, [dxv,alpha0]),
+  fhat_k : facsum(fullratsimp(innerProd(varsP, 1, bP, fhat_expd)),amaxNorm),
+  /* print fhat_k list to c array fhat */
+  writeCExprsNoExpand1(fhat, fhat_k),
+  /* new expansion for fhat using unspecified coefficients fhat, for which the C fhat expressions will be used */
+  /* first drop components of fhat that are zero from list fhat_k */
+  fhat_drop0_k : doMakeExprLst(fhat_k, fhat),
+  /* then expand fhat for the arbitrary nonzero coefficients */
+  fhat_expd : fhat_drop0_k.bP,
   printf(fh, "~%"),
-  /* these functions drop components of Ghat that are zero from list Ghatl */
-  glst1 : doMakeExprLst(fluxl, Ghat),
-  Ghatl : doExpandLst(glst1, bP),
 
-  /* evaluate contribution to right boundary (surfVar=-1) */
-  t : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), subst(surfVar=-1,Ghatl)),
-  incr_r : facsum(fullratsimp(t),dxv),
-  writeCExprsNoExpand1(incr, incr_r),
+  /* evaluate {z[d], basisfunction} */
+  alphaBasis_k : (alpha : 0, for d : 1 thru cdim do (
+     pb : (pbfac[d]*PB(wd + dxv[dir]/2*surfVar,bP,varsC[d],varsV[d])),
+     alpha : alpha + pb
+     ),
+  alpha),
+
+  /* evaluate boundary contribution from right (surfVar=-1) */
+  t_k : surfac*innerProd(surfIntVars, subst(surfVar=-1,alphaBasis_k), subst(surfVar=1,HL_expd), subst(surfVar=-1,fhat_expd)),
+  incr_r : facsum(fullratsimp(t_k),dxv),
+  writeCIncrExprsNoExpand1(outr, incr_r),
   printf(fh, "~%"),
-  incr_s : makelist(incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outr, incr_s),  
-  printf(fh, "~%"),
-  /* contribution to left boundary (surfVar=1) is same except for signs */
-  t : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=1, bP), subst(surfVar=1, Ghatl)),
-  incr_l : -t,
-  signs : fullratsimp(incr_l/incr_r),
-  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outl, incr_s),
-  /* return alpha0 so that we can find global value */
-  printf(fh, "return alpha0; ~%"),
+  /* evaluate boundary contribution from left (surfVar=1) */
+  t_k : surfac*innerProd(surfIntVars, subst(surfVar=1,alphaBasis_k), subst(surfVar=-1,HR_expd), subst(surfVar=1,fhat_expd)),
+  incr_l : facsum(fullratsimp(-t_k),dxv),
+  writeCIncrExprsNoExpand1(outl, incr_l),
   
   printf(fh, "} ~%")
 ));
 
-calcCanonicalPBSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax) := block([],
+calcCanonicalPBDisContSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax) := block([],
   printf(fh, "#include <CanonicalModDecl.h> ~%"),
   for dir : 1 thru cdim+vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax) )
 )$

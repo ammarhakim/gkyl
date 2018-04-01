@@ -203,7 +203,7 @@ local function buildApplication(self, tbl)
       fld:alloc(stepperNumFields[timeStepperNm])
 
       -- initialize field solvers and diagnostics
-      fld:createSolver()
+      fld:createSolver(species)
       fld:createDiagnostics()
    end
 
@@ -226,6 +226,7 @@ local function buildApplication(self, tbl)
       s:createSolver(hasE or funcHasE, hasB or funcHasB)
       s:createDiagnostics()
    end
+
 
    -- store fields used in RK time-stepping for each species
    local speciesRkFields = { }
@@ -540,12 +541,15 @@ end
 return {
    App = App,
    VlasovSpecies = Species.VlasovSpecies,
+   HamilVlasovSpecies = Species.HamilVlasovSpecies,
    GkSpecies = Species.GkSpecies,
    BgkCollisions = Collisions.BgkCollisions,   
    MaxwellField = Field.MaxwellField,
    GkField = Field.GkField,
    NoField = Field.NoField,
    FuncMaxwellField = Field.FuncMaxwellField,
+   IncompEulerSpecies = Species.IncompEulerSpecies,
+   AdiabaticSpecies = Species.AdiabaticSpecies,
 
    -- valid pre-packaged species-field systems
    VlasovMaxwell = {Species = Species.VlasovSpecies, Field = Field.MaxwellField},
