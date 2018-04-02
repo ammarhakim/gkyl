@@ -289,24 +289,14 @@ local function buildApplication(self, tbl)
         dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
-      local totalEmField = nil -- pointer to total EM field
       -- compute functional field (if any)
       funcField:forwardEuler(tCurr, dt, nil, nil, emRkFuncFields[1])
-      -- accumulate into it the Maxwell field (if needed)
-      if emRkFuncFields[1] then
-	 if emRkFields[inIdx] then
-	    emRkFuncFields[1]:accumulate(1.0, emRkFields[inIdx])
-	 end
-	 totalEmField = emRkFuncFields[1]
-      else
-	 totalEmField = emRkFields[inIdx]
-      end
       
       -- update species
       for nm, s in pairs(species) do
          if evolveSpecies then
 	    local myStatus, myDtSuggested = s:forwardEuler(
-	       tCurr, dt, speciesRkFields[nm][inIdx], totalEmField, speciesRkFields[nm][outIdx])
+	       tCurr, dt, speciesRkFields[nm][inIdx], {emRkFields[inIdx], emRkFuncFields[1]}, speciesRkFields[nm][outIdx])
 
 	    status = status and myStatus
 	    dtSuggested = math.min(dtSuggested, myDtSuggested)
