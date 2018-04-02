@@ -68,6 +68,28 @@ function VlasovSpecies:createSolver(hasE, hasB)
    }   
 end
 
+function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+   -- accumulate functional Maxwell fields (if needed)
+   local emFields = emIn[1]
+   local emFuncFields = emIn[2]
+   local totalEmField = nil
+   if emFuncFields then
+      if emFields then
+         emFuncFields:accumulate(1.0, emFields)
+      end
+      totalEmField = emFuncFields
+   else
+      totalEmField = emFields
+   end
+
+   if self.evolve then
+      return self.solver:advance(tCurr, dt, {fIn, totalEmField}, {fOut})
+   else
+      fOut:copy(fIn) -- just copy stuff over
+      return true, GKYL_MAX_DOUBLE
+   end
+end
+
 function VlasovSpecies:createDiagnostics()
    VlasovSpecies.super.createDiagnostics(self)
 

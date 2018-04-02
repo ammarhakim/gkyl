@@ -78,6 +78,17 @@ function GkSpecies:createSolver(hasPhi, hasApar)
    end
 end
 
+function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+   if self.evolve then
+      local em = emIn[1]
+      local emFunc = emIn[2]
+      return self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+   else
+      fOut:copy(fIn) -- just copy stuff over
+      return true, GKYL_MAX_DOUBLE
+   end
+end
+
 function GkSpecies:createDiagnostics()
    GkSpecies.super.createDiagnostics(self)
    
