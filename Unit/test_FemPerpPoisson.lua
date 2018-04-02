@@ -423,9 +423,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
 
-   phiModal:write("phi-solution-3d.bp", 0.0)
-   exactSolModal:write("exact-solution-3d.bp", 0.0)
-   err:write("error-3d.bp", 0.0)
+   --phiModal:write("phi-solution-3d.bp", 0.0)
+   --exactSolModal:write("exact-solution-3d.bp", 0.0)
+   --err:write("error-3d.bp", 0.0)
   
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
      onGrid = grid,
@@ -594,8 +594,8 @@ function test_solve3d_p2()
   err2 = test_solve3d(64, 64, 4, 2)
   err3 = test_solve3d(128, 128, 4, 2)
   print("Order:", err1/err2/4.0, err2/err3/4.0)
-  assert_close(1.0, err1/err2/4.0, .01)
-  assert_close(1.0, err2/err3/4.0, .01)
+  assert_close(2.0, err1/err2/4.0, .01)
+  assert_close(2.0, err2/err3/4.0, .01)
   print()
 end
 
@@ -638,8 +638,8 @@ function test_periodic3d_p2()
   err2 = test_solve3d_periodic(64, 64, 1, 2)
   err3 = test_solve3d_periodic(128, 128, 1, 2)
   print("Order:", err1/err2/4.0, err2/err3/4.0)
-  assert_close(1.0, err1/err2/4.0, .01)
-  assert_close(1.0, err2/err3/4.0, .01)
+  assert_close(2.0, err1/err2/4.0, .01)
+  assert_close(2.0, err2/err3/4.0, .01)
   print()
 end
 

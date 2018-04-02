@@ -14,3 +14,4 @@ install-deps/build-opts.sh
 Unit/*.bp
 */*.bp
 *.swp
+*.log
