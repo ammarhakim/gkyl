@@ -506,8 +506,8 @@ function test_solve3d_p2()
   err2 = test_solve3d(64, 64, 4, 2)
   err3 = test_solve3d(128, 128, 4, 2)
   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(1.0, err1/err2/4.0, .01, "3D p=2")
-  assert_close(1.0, err2/err3/4.0, .01, "3D p=2")
+  assert_close(2.0, err1/err2/4.0, .01, "3D p=2")
+  assert_close(2.0, err2/err3/4.0, .01, "3D p=2")
 end
 
 function test_periodic2d_p1()
@@ -546,8 +546,8 @@ function test_periodic3d_p2()
   err2 = test_solve3d_periodic(64, 64, 4, 2)
   err3 = test_solve3d_periodic(128, 128, 4, 2)
   log(string.format("Order:\t%f\t%f\n", err1/err2/4.0, err2/err3/4.0))
-  assert_close(1.0, err1/err2/4.0, .01, "3D periodic p=2")
-  assert_close(1.0, err2/err3/4.0, .01, "3D periodic p=2")
+  assert_close(2.0, err1/err2/4.0, .01, "3D periodic p=2")
+  assert_close(2.0, err2/err3/4.0, .01, "3D periodic p=2")
 end
 
 -- run tests
