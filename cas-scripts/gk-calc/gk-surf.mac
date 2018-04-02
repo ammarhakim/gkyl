@@ -1,0 +1,167 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+wc : [wx, wy, wz, wv, wm];
+wc2 : [wx2, wy2, wz2, wv2, wm2];
+derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m];
+derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2];
+gkvsub:[vx=vpar,vy=mu];
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+cvars : [X, Y, Z]$
+vvars : [Vpar, Mu]$
+
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+/* set up some vector calculus functions */
+load("vect");
+fgrad(f):= ev(express(grad(f)),diff)*derivfacsC;
+
+gkPB(f,g):=Bstar_expd.fgrad(f)*derivfac[4]*diff(g,vpar)-Bstar_expd.fgrad(g)*derivfac[4]*diff(f,vpar)-mcByq*derivfac[1]*derivfac[2]*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
+
+calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for i : 1 thru pmax do (
+  if cdim = 2 then (
+    label:["x", "y", "v", "m"],
+    derivfacList:[dfac_x, dfac_y, dfac_v, dfac_m]
+  ),
+  if cdim = 3 then (
+    label:["x", "y", "z", "v", "m"],
+    derivfacList:derivfac
+  ),
+  bP : subst(gkvsub, basisP[i]),
+  bC : basisC[i],
+  varsP : subst(gkvsub, varsP),
+  numC : length(bC),
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+  volfac : 1,
+  /* get surface variable */
+  surfVar : varsP[surfDir],
+  /* remove surface variable from integrand of surface integrals */
+  surfIntVars : delete(surfVar,varsP),
+  if surfDir <= cdim then dirlabel : cvars[surfDir]
+  else dirlabel : vvars[surfDir-cdim],
+  cellCenter : makelist(varsP[d]=0, d, 1, length(varsP)),
+  Bvars:[y=0,z=0], /* this makes it so that Bmag is assumed to only vary in x */
+  scalefactors(varsC),
+  derivfacsC : makelist(derivfac[d], d, 1, length(varsC)),
+  derivfacSurf : derivfacList[surfDir],
+
+  /* remove volume contribution from surface variable, which is not integrated */
+  surfac : fullratsimp(volfac*derivfacSurf),
+
+  printf(fh, "double ~a_~a_P~a(const double mcByq, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
+
+  for dir : 1 thru cdim+vdim do (
+    printf(fh, "  double dfac_~a = 2.0/dxv[~a]; ~%", label[dir], dir-1)
+  ),
+
+  for dir : 1 thru cdim+vdim do (
+    printf(fh, "  double w~a = w[~a]; ~%", label[dir], dir-1)
+  ),
+  printf(fh, "  double wv2 = wv*wv; ~%"),
+  printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%"),
+  printf(fh, "  double Ghat[~a]; ~%", length(bP)),
+  printf(fh, "  double incr[~a]; ~%", length(bP)),
+
+  /* expand background magnetic field Bmag, assuming it only varies in x */
+  Bmag_expd:subst(Bvars,doExpand1(Bmag,bC)),
+  /* expand Phi */
+  Phi_expd:doExpand1(Phi,bC),
+
+  /* calculate full expansion expression for Hamiltonian */
+  H_full:vpar^2/(2*derivfac2[4])+(wc[4]*vpar)/derivfac[4]+wc2[4]/2 + (wc[5]+mu/derivfac[5])*Bmag_expd + Phi_expd,
+  
+  /* project Hamiltonian onto basis functions */
+  H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
+  /* expand projected Hamiltonian on basis */
+  H_expd:H_k.bP,
+
+  /* expand distribution function on basis */
+  fL_expd:doExpand1(fl,bP),
+  fR_expd:doExpand1(fr,bP),
+
+  /* expand BcurvY = curl(bhat) on basis, assuming it only varies in x */
+  BcurvY_expd : subst(Bvars, doExpand1(BcurvY, bC)),
+  /* expand BstarY = mc/q vpar BcurvY on basis */
+  BstarY_expd : mcByq*(wc[4]+vpar/derivfac[4])*BcurvY_expd,
+  /* make Bstar vector */
+  if cdim = 2 then Bstar_expd : [0, BstarY_expd],
+  if cdim = 3 then Bstar_expd : [0, BstarY_expd, Bmag_expd],
+
+  /* calculate phase space velocity alpha in direction of surfVar */
+  /* we assume alpha.n is continuous across boundary, although H may not be */
+  alpha_expd : gkPB(wc[surfDir] + varsP[surfDir]/derivfacSurf, H_expd),
+  /* evaluate at boundary from interior (surfVar=-1) */
+  alpha_expd : subst(surfVar=-1, alpha_expd),
+  /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
+  alpha0expr : fullratsimp(innerProd(surfIntVars, 1, alpha_expd, subst(surfVar=-1, bP[1]))),
+  printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
+  printf(fh, "  double alpha0 = std::abs(~a); ~%~%", float(subst(wv^2=wv2, alpha0expr))),
+
+  /* determine whether to use local or global value for penalty amax */
+  printf(fh, "  double amax = 0.0; ~%"),
+  printf(fh, "  bool upwind = false; ~%"), 
+  printf(fh, "  if(upwind) ~%"),
+  printf(fh, "    amax = alpha0; ~%"),
+  printf(fh, "  else ~%"),
+  printf(fh, "    amax = amax_in; ~%~%"),
+
+  /* calculate lax penalty flux expression */
+  /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
+  flux_expd : fullratsimp(alpha_expd/2*(subst(surfVar=1, fL_expd)+subst(surfVar=-1, fR_expd))-amax/2*(subst(surfVar=-1, fR_expd)-subst(surfVar=1, fL_expd))),
+  /* project flux expression onto basis functions */
+  flux_k : calcInnerProdList(varsP, 1, bP, flux_expd),
+  /* print fluxl list to c array Ghat */
+  writeCExprsCollect1(Ghat, subst(wv^2=wv2, flux_k), [dxv,alpha0]),
+  printf(fh, "~%"),
+  /* these functions drop components of Ghat that are zero from list Ghatl */
+  glst1 : doMakeExprLst(flux_k, Ghat),
+  Ghat_k : doExpandLst(glst1, bP),
+
+  /* evaluate contribution to right boundary (surfVar=-1) */
+  t : surfac*innerProd(surfIntVars, 1, subst(surfVar=-1, bP), subst(surfVar=-1,Ghat_k)),
+  incr_r : facsum(fullratsimp(t),dxv),
+  writeCExprsNoExpand1(incr, incr_r),
+  printf(fh, "~%"),
+  incr_s : makelist(incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outr, incr_s),  
+  printf(fh, "~%"),
+  /* contribution to left boundary (surfVar=1) is same except for signs */
+  t : surfac*innerProd(surfIntVars, 1, subst(surfVar=1, bP), subst(surfVar=1, Ghat_k)),
+  incr_l : -t,
+  signs : fullratsimp(incr_l/incr_r),
+  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+  writeCIncrExprsNoExpand1(outl, incr_s),
+  /* return alpha0 so that we can find global value */
+  printf(fh, "return alpha0; ~%"),
+  
+  printf(fh, "} ~%")
+));
+
+calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax) := block([],
+  printf(fh, "#include <GyrokineticModDecl.h> ~%"),
+  for dir : 1 thru cdim+vdim-1 do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax) )
+)$
+
+pmax:1;
+for c : 2 thru 3 do (
+v:2,
+fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
+fh : openw(fname),
+funcName : sconcat("GyrokineticSurf", c, "x", v, "v", "Ser"),
+calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax),
+close(fh)
+);
+
+
