@@ -81,6 +81,9 @@ ffi.cdef [[
   MPI_Op get_MPI_MINLOC();
   MPI_Op get_MPI_MAXLOC();
 
+  // Errors
+  int get_MPI_SUCCESS();
+
   // Communicators
   int MPI_Comm_rank(MPI_Comm comm, int *rank);
   int MPI_Comm_size(MPI_Comm comm, int *size);
@@ -162,18 +165,21 @@ _M.LONG_DOUBLE_INT = ffi.C.get_MPI_LONG_DOUBLE_INT()
 _M.PACKED = ffi.C.get_MPI_PACKED()
 
 -- Operators
-_M.MAX = ffi.C.get_MPI_MAX();
-_M.MIN = ffi.C.get_MPI_MIN();
-_M.SUM = ffi.C.get_MPI_SUM();
-_M.PROD = ffi.C.get_MPI_PROD();
-_M.LAND = ffi.C.get_MPI_LAND();
-_M.BAND = ffi.C.get_MPI_BAND();
-_M.LOR = ffi.C.get_MPI_LOR();
-_M.BOR = ffi.C.get_MPI_BOR();
-_M.LXOR = ffi.C.get_MPI_LXOR();
-_M.BXOR = ffi.C.get_MPI_BXOR();
-_M.MINLOC = ffi.C.get_MPI_MINLOC();
-_M.MAXLOC = ffi.C.get_MPI_MAXLOC();
+_M.MAX = ffi.C.get_MPI_MAX()
+_M.MIN = ffi.C.get_MPI_MIN()
+_M.SUM = ffi.C.get_MPI_SUM()
+_M.PROD = ffi.C.get_MPI_PROD()
+_M.LAND = ffi.C.get_MPI_LAND()
+_M.BAND = ffi.C.get_MPI_BAND()
+_M.LOR = ffi.C.get_MPI_LOR()
+_M.BOR = ffi.C.get_MPI_BOR()
+_M.LXOR = ffi.C.get_MPI_LXOR()
+_M.BXOR = ffi.C.get_MPI_BXOR()
+_M.MINLOC = ffi.C.get_MPI_MINLOC()
+_M.MAXLOC = ffi.C.get_MPI_MAXLOC()
+
+-- Error codes
+_M.SUCCESS = ffi.C.get_MPI_SUCCESS()
 
 -- some types for use in MPI functions
 local int_1 = typeof("int[1]")

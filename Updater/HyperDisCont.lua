@@ -176,12 +176,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       firstDir = false
    end
 
-   -- return failure if time-step was too large
-   if cfla > cflm then return false, dt*cfl/cfla end
-
    -- determine largest amax across processors
    local nodeComm = self:getNodeComm()
    Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
+
+   -- return failure if time-step was too large
+   if cfla > cflm then return false, dt*cfl/cfla end   
 
    -- accumulate full solution if not computing increments
    if not self._onlyIncrement then
