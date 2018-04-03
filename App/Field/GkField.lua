@@ -29,8 +29,6 @@ function GkField:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
 
    self.isElectromagnetic = xsys.pickBool(tbl.isElectromagnetic, false) -- electrostatic by default 
-   self.nPotentials = 1
-   if self.isElectromagnetic then self.nPotentials = 2 end
 
    -- create triggers to write fields
    if tbl.nFrame then
@@ -250,4 +248,138 @@ function GkField:energyCalcTime()
    return self.energyCalc.totalTime
 end
 
-return {GkField = GkField}
+-- GkGeometry ---------------------------------------------------------------------
+--
+-- A field object with fields specifying the magnetic geometry for GK
+--------------------------------------------------------------------------------
+
+local GkGeometry = Proto(FieldBase.FuncFieldBase)
+
+-- methods for no field object
+function GkGeometry:init(tbl)
+   self.tbl = tbl
+end
+
+function GkGeometry:fullInit(appTbl)
+   local tbl = self.tbl -- previously store table
+
+   self.ioMethod = "MPI"
+   self.evolve = xsys.pickBool(tbl.evolve, false) -- by default these fields are not time-dependent
+
+   -- create triggers to write fields
+   if tbl.nFrame then
+      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
+   else
+      self.ioTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
+   end
+
+   self.ioFrame = 0 -- frame number for IO
+   
+   -- get function to initialize background magnetic field
+   self.bmagFunc = assert(tbl.bmag, "GkGeometry: must specify background magnetic field with 'bmag'")
+   -- get function to initialize bcurvY = curl(bhat).grad(y)
+   self.bcurvYFunc = tbl.bcurvY
+end
+
+function GkGeometry:hasEB() end
+function GkGeometry:setCfl() end
+function GkGeometry:setIoMethod(ioMethod) self.ioMethod = ioMethod end
+function GkGeometry:setBasis(basis) self.basis = basis end
+function GkGeometry:setGrid(grid) self.grid = grid end
+
+function GkGeometry:alloc()
+   -- allocate fields 
+   self.geo = {}
+
+   -- background magnetic field
+   self.geo.bmag = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1}
+   }
+
+   -- curl(bhat).grad(y) ... contains curvature info
+   self.geo.bcurvY = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1}
+   }
+      
+   -- create Adios object for field I/O
+   self.fieldIo = AdiosCartFieldIo {
+      elemType = self.geo.bmag:elemType(),
+      method = self.ioMethod,
+   }   
+end
+
+function GkGeometry:createSolver()
+   self.setBmag = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = self.bmagFunc
+   }
+   if self.bcurvYFunc then 
+      self.setBcurvY = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.bcurvYFunc
+      }
+   end
+end
+
+function GkGeometry:createDiagnostics()
+end
+
+function GkGeometry:initField()
+   self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
+   if self.setBcurvY  then self.setBcurvY:advance(0.0, 0.0, {}, {self.geo.bcurvY})
+   else self.geo.bcurvY:clear(0.0) end
+   self:applyBc(0.0, 0.0, self.geo)
+end
+
+function GkGeometry:write(tm)
+   if self.evolve then
+      if self.ioTrigger(tm) then
+	 self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.geo.bcurvY, string.format("bcurvY_%d.bp", self.ioFrame), tm)
+	 
+	 self.ioFrame = self.ioFrame+1
+      end
+   else
+      -- if not evolving species, don't write anything except initial conditions
+      if self.ioFrame == 0 then
+	 self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.geo.bcurvY, string.format("bcurvY_%d.bp", self.ioFrame), tm)
+      end
+      self.ioFrame = self.ioFrame+1
+   end
+end
+
+function GkGeometry:rkStepperFields()
+   return { self.geo, self.geo, self.geo, self.geo }
+end
+
+function GkGeometry:forwardEuler(tCurr, dt, momIn, geoIn, geoOut)
+   if self.evolve then
+      self.setBmag:advance(tCurr, dt, {}, {geoOut.bmag})
+      if self.setBcurvY  then self.setBcurvY:advance(0.0, 0.0, {}, {self.geoOut.bcurvY})
+      else self.geo.bcurvY:clear(0.0) end
+      self:applyBc(0.0, 0.0, self.geo)
+   end
+   return true, GKYL_MAX_DOUBLE
+end
+
+function GkGeometry:applyBc(tCurr, dt, geoIn)
+   geoIn.bmag:sync()
+   geoIn.bcurvY:sync()
+end
+
+function GkGeometry:totalSolverTime()
+   return self.setBmag.totalTime + self.setBcurvY.totalTime
+end
+
+function GkGeometry:totalBcTime() return 0.0 end
+function GkGeometry:energyCalcTime() return 0.0 end
+
+
+return {GkField = GkField, GkGeometry = GkGeometry}

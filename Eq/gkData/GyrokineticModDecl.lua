@@ -30,15 +30,13 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
       local funcNmX = string.format("GyrokineticSurf%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmY = string.format("GyrokineticSurf%dx%dv%s_Y_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmVpar = string.format("GyrokineticSurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmMu = string.format("GyrokineticSurf%dx%dv%s_Mu_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmVpar], ffi.C[funcNmMu] }
+      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmVpar] }
    elseif CDIM == 3 and VDIM == 2 then
       local funcNmX = string.format("GyrokineticSurf%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmY = string.format("GyrokineticSurf%dx%dv%s_Y_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("GyrokineticSurf%dx%dv%s_Z_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmZ = string.format("GyrokineticSurf%dx%dv%s_Z_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmVpar = string.format("GyrokineticSurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmMu = string.format("GyrokineticSurf%dx%dv%s_Mu_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmVpar], ffi.C[funcNmMu] }
+      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ], ffi.C[funcNmVpar] }
    else
       assert(false, "Gyrokinetic equation not implemented for this dimensionality!")
    end

@@ -10,5 +10,6 @@ return {
   MaxwellField = MaxwellField.MaxwellField,
   FuncMaxwellField = MaxwellField.FuncMaxwellField,
   GkField = GkField.GkField,
+  GkGeometry = GkField.GkGeometry,
   --FuncGkField = GkField.FuncGkField,
 }

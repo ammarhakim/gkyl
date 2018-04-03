@@ -32,21 +32,19 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       mass = self.mass,
       hasPhi = hasPhi,
       hasApar = hasApar,
-      -- let the Hamiltonian be discontinuous in the z direction, 
-      -- which is assumed to be the last configuration space direction
-      hamilDisContDirs = {self.cdim}, 
    }
 
-   -- must apply zero-flux BCs in velocity directions
-   local zfd = { }
-   for d = 1, self.vdim do zfd[d] = self.cdim+d end
+   -- no update in mu direction (last velocity direction if present)
+   local upd = {}
+   for d = 1, self.cdim + 1 do upd[d] = d end
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
       basis = self.basis,
       cfl = self.cfl,
       equation = self.gkEqn,
-      zeroFluxDirections = zfd,
+      zeroFluxDirections = {self.cdim+1},
+      updateDirections = upd,
    }
    
    -- create updaters to compute various moments

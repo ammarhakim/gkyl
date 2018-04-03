@@ -102,7 +102,20 @@ function KineticSpecies:fullInit(appTbl)
    self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
 
    -- store initial condition function
-   self.initFunc = tbl.init
+   self.initBackgroundFunc = tbl.initBackground
+   if self.initBackgroundFunc then 
+      self.initFunc = function (t, xn)
+         return tbl.init(t, xn, tbl)
+      end
+   else 
+      self.initFunc = tbl.init
+   end
+
+   self.fluctuationBCs = tbl.fluctuationBCs
+   if self.fluctuationBCs then 
+      assert(self.initBackgroundFunc, [[KineticSpecies: must specify an initial
+        background distribution with 'initBackground' in order to use fluctuation-only BCs]]) 
+   end
 
    self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
    self.bcx, self.bcy, self.bcz = { }, { }, { }
@@ -328,10 +341,24 @@ function KineticSpecies:alloc(nRkDup)
       method = self.ioMethod,
    }
 
+   if self.fluctuationBCs then
+     self.f0 = self:allocDistf()
+   end
+
    self:createBCs()
 end
 
 function KineticSpecies:initDist()
+   if self.initBackgroundFunc then
+      local projectBackground = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.initBackgroundFunc
+      }
+      projectBackground:advance(0.0, 0.0, {}, {self.f0})
+      self.f0:sync()
+   end
+
    local project = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
@@ -345,22 +372,23 @@ function KineticSpecies:rkStepperFields()
    return self.distf
 end
 
-function KineticSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
-   if self.evolve then
-      return self.solver:advance(tCurr, dt, {fIn, emIn}, {fOut})
-   else
-      fOut:copy(fIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
-   end
-end
-
 function KineticSpecies:applyBc(tCurr, dt, fIn)
+   -- if fluctuation-only BCs, subtract off background before applying BCs
+   if self.fluctuationBCs then
+     fIn:accumulate(-1.0, self.f0)
+   end
+
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
 	 bc:advance(tCurr, dt, {}, {fIn})
       end
    end
    fIn:sync()
+
+   -- put back background
+   if self.fluctuationBCs then
+     fIn:accumulate(1.0, self.f0)
+   end
 end
 
 function KineticSpecies:createDiagnostics()
