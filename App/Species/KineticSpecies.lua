@@ -10,9 +10,11 @@ local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
+local GaussQuadRules = require "Lib.GaussQuadRules"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
 local Updater = require "Updater"
 local xsys = require "xsys"
 local SpeciesBase = require "App.Species.SpeciesBase"
@@ -30,6 +32,7 @@ end
 local SP_BC_ABSORB = 1
 local SP_BC_OPEN = 2
 local SP_BC_REFLECT = 3
+local SP_BC_SEE = 4
 
 -- base class for kinetic species
 local KineticSpecies = Proto(SpeciesBase)
@@ -37,6 +40,7 @@ local KineticSpecies = Proto(SpeciesBase)
 KineticSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 KineticSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 KineticSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
+KineticSpecies.bcSEE = SP_BC_SEE -- specular reflection
 
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
@@ -122,7 +126,7 @@ function KineticSpecies:fullInit(appTbl)
 
    -- function to check if BC type is good
    local function isBcGood(bcType)
-      if bcType == SP_BC_ABSORB or bcType == SP_BC_OPEN or bcType == SP_BC_REFLECT then
+      if bcType == SP_BC_ABSORB or bcType == SP_BC_OPEN or bcType == SP_BC_REFLECT or bcType == SP_BC_SEE then
          return true
       end
       return false
@@ -143,6 +147,39 @@ function KineticSpecies:fullInit(appTbl)
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
       assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "KineticSpecies: Incorrect Z BC type specified!")
       self.hasNonPeriodicBc = true
+   end
+end
+
+function KineticSpecies:createQuadratureData()
+   -- Gauss-Legendre quadrature data
+   self._N = self.basis:polyOrder() + 1
+   local ordinates1D = GaussQuadRules.ordinates[self._N]
+   local weights1D = GaussQuadRules.weights[self._N]
+
+   local numDims = self.basis:ndim()
+   local l, d = {}, {}
+   for d = 1, numDims do l[d], u[d] = 1, self._N end
+   quadRange = Range.Range(l, u) -- for looping over quadrature nodes
+   self._numOrdinates = quadRange:volume() -- number of ordinates
+   -- construct weights and ordinates for integration in multiple dimensions
+   self._ordinates = Lin.Mat(self._numOrdinates, numDims)
+   self._weights = Lin.Vec(self._numOrdinates)
+   local nodeNum = 1
+   for idx in quadRange:colMajorIter() do
+      self._weights[nodeNum] = 1.0
+      for d = 1, numDims do
+	 self._weights[nodeNum] =
+	    self._weights[nodeNum] * weights1D[idx[d]]
+	 self._ordinates[nodeNum][d] = ordinates1D[idx[d]]
+      end
+      nodeNum = nodeNum + 1
+   end
+   numBasis = self.basis:numBasis()
+   self._basisAtOrdinates = Lin.Mat(self._numOrdinates, numBasis)
+   -- pre-compute values of basis functions at quadrature nodes
+   for n = 1, self._numOrdinates do
+      self.basis:evalBasis(self._ordinates[n],
+			   self._basisAtOrdinates[n])
    end
 end
 
@@ -300,6 +337,10 @@ function KineticSpecies:createBCs()
       _m[polyOrder](dir, fIn, fOut) -- function to flip sign of both configuration and velocity component
    end
 
+   local function bcSEE(dir, tm, xcIn, xcOut, fIn, fOut)
+
+   end
+
    -- functions to make life easier while reading in BCs to apply
    self.boundaryConditions = { } -- list of Bcs to apply
    local function appendBoundaryConditions(dir, edge, bcType)
@@ -309,6 +350,8 @@ function KineticSpecies:createBCs()
 	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }, "pointwise"))
       elseif bcType == SP_BC_REFLECT then
 	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcReflect }, "flip"))
+      elseif bcType == SP_BC_SEE then
+	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcSEE }, "integrate"))
       else
 	 assert(false, "KineticSpecies: Unsupported BC type!")
       end

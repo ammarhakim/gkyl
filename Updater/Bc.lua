@@ -36,12 +36,20 @@ function Bc:init(tbl)
       self._skinLoop = "pointwise"
    end
    if self._skinLoop ~= "pointwise" and self._skinLoop ~= "flip" and self._skinLoop ~= "integrate" then
-      error("Updater.Bc: 'skinLoop' must one of 'pointwise', 'flip', or 'integrate'."
-	       .. " Was '" .. self._skinLoop .. "' instead")
+      error("Updater.Bc: 'skinLoop' must one of 'pointwise', 'flip', or 'integrate'. Was '" .. self._skinLoop .. "' instead")
    end
    if self._skinLoop == "flip" or self._skinLoop == "integrate" then
       self._cdim = assert(
-	 tbl.cdim,  "Updater.Bc: Must specify configuration space dimensions to apply with 'cdim'")
+	 tbl.cdim,
+	 "Updater.Bc: Must specify configuration space dimensions to apply with 'cdim'")
+   end
+   if self._skinLoop == "integrate" then
+      self._vdim = assert(
+	 tbl.vdim,
+	 "Updater.Bc: Must specify velocity space dimensions to apply with 'vdim'")
+      self._numComps = assert(
+	 tbl.numComps,
+	 "Updater.Bc: Must specify the number of components of the field using 'numComps'")
    end
 
    self._ghost = nil -- store ghost cells
@@ -53,6 +61,15 @@ function Bc:getGhostRange(global, globalExt)
       uv[self._dir] = global:lower(self._dir)-1 -- for ghost cells on "left"
    else
       lv[self._dir] = global:upper(self._dir)+1 -- for ghost cells on "right"
+   end
+   return Range.Range(lv, uv)
+end
+
+function Bc:getVelocityRange(localRange)
+   local lv, uv = {}, {}
+   for d = 1, self._vdim do
+      lv[d]= localRange:lower(self._cdim + d)
+      uv[d]= localRange:upper(self._cdim + d)
    end
    return Range.Range(lv, uv)
 end
@@ -70,6 +87,9 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
       local localExtRange = qOut:localExtRange()
       self._ghost = localExtRange:intersect(
 	 self:getGhostRange(global, globalExt)) -- range spanning ghost cells
+      if self._skinLoop == "integrate" then
+	 self._skin = self:getVelocityRange(qOut:localRange())
+      end
    end
 
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
@@ -77,23 +97,37 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local indexer = qOut:genIndexer()
 
    if self._skinLoop == "pointwise" then
-      for idx in self._ghost:colMajorIter() do -- loop, applying BCs
-	 idx:copyInto(idxS)
-	 idxS[dir] = edge == "lower" and global:lower(dir)  or global:upper(dir)
-	 qOut:fill(indexer(idx), qG); qOut:fill(indexer(idxS), qS)
+      for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
+	 idxG:copyInto(idxS)
+	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+	 qOut:fill(indexer(idxG), qG); qOut:fill(indexer(idxS), qS)
 	 for _, bc in ipairs(self._bcList) do -- loop over each BC
 	    bc(dir, tCurr+dt, nil, qS, qG) -- TODO: PASS COORDINATES
 	 end
       end
    elseif self._skinLoop == "flip" then
       local vdir = dir + self._cdim
-      for idx in self._ghost:colMajorIter() do -- loop, applying BCs
-	 idx:copyInto(idxS)
-	 idxS[dir] = edge == "lower" and global:lower(dir)  or global:upper(dir)
+      for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
+	 idxG:copyInto(idxS)
+	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
 	 idxS[vdir] = global:upper(vdir) + 1 - idxS[vdir]
-	 qOut:fill(indexer(idx), qG); qOut:fill(indexer(idxS), qS)
+	 qOut:fill(indexer(idxG), qG); qOut:fill(indexer(idxS), qS)
 	 for _, bc in ipairs(self._bcList) do -- loop over each BC
 	    bc(dir, tCurr+dt, nil, qS, qG) -- TODO: PASS COORDINATES
+	 end
+      end
+   elseif self._skinLoop == "integrate" then
+      for idxG in self._ghost:colMajorIter() do -- loop over ghost cells
+	 qOut:fill(indexer(idxG), qG)
+	 idxG:copyInto(idxS)
+	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+	 for c = 1, self._numComponetns do qG[c] = 0 end -- clear the ghost cells before accumulating
+	 for idx in self._skin:colMajorIter() do -- loop over the skin cells
+	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
+	    qOut:fill(indexer(idxS), qS)
+	    for _, bc in ipairs(self._bcList) do -- loop over each BC
+	       bc(dir, tCurr+dt, zS, zG, qS, qG)
+	    end
 	 end
       end
    end
