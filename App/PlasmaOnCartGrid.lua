@@ -209,15 +209,37 @@ local function buildApplication(self, tbl)
 
    -- setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles)
-   local field = tbl.field and tbl.field or Field.NoField {}
-   completeFieldSetup(field)
+   --local field = tbl.field and tbl.field or Field.NoField {}
+   local field = nil
+   local nfields = 0
+   for _, val in pairs(tbl) do
+      if Field.FieldBase.is(val) then
+        field = val
+        completeFieldSetup(field)
+        nfields = nfields + 1
+      end
+   end
+   assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
+   if field == nil then field = Field.NoField {} end
 
    -- setup information about functional fields
-   if tbl.funcField then
-      assert(Field.FuncFieldBase.is(tbl.funcField), "PlasmaOnCartGrid: funcField must be of Field.FuncField")
+   --if tbl.funcField then
+   --   assert(Field.FuncFieldBase.is(tbl.funcField), "PlasmaOnCartGrid: funcField must be of Field.FuncField")
+   --end
+   --local funcField = tbl.funcField and tbl.funcField or Field.NoField {}
+   --completeFieldSetup(funcField)
+
+   local funcField = nil
+   nfields = 0
+   for _, val in pairs(tbl) do
+      if Field.FuncFieldBase.is(val) then
+        funcField = val
+        completeFieldSetup(funcField)
+        nfields = nfields + 1
+      end
    end
-   local funcField = tbl.funcField and tbl.funcField or Field.NoField {}
-   completeFieldSetup(funcField)
+   assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
+   if funcField == nil then funcField = Field.NoField {} end
    
    -- initialize species solvers and diagnostics
    for _, s in pairs(species) do
@@ -536,6 +558,7 @@ return {
    BgkCollisions = Collisions.BgkCollisions,   
    MaxwellField = Field.MaxwellField,
    GkField = Field.GkField,
+   GkGeometry = Field.GkGeometry,
    NoField = Field.NoField,
    FuncMaxwellField = Field.FuncMaxwellField,
    IncompEulerSpecies = Species.IncompEulerSpecies,
@@ -543,6 +566,6 @@ return {
 
    -- valid pre-packaged species-field systems
    VlasovMaxwell = {Species = Species.VlasovSpecies, Field = Field.MaxwellField},
-   Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField},
+   Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
    IncompEuler = {Species = Species.IncompEulerSpecies, Field = Field.GkField},
 }
