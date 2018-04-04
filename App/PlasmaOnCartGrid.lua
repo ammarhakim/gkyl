@@ -203,7 +203,6 @@ local function buildApplication(self, tbl)
       fld:alloc(stepperNumFields[timeStepperNm])
 
       -- initialize field solvers and diagnostics
-      fld:createSolver(species)
       fld:createDiagnostics()
    end
 
@@ -249,7 +248,6 @@ local function buildApplication(self, tbl)
       s:createDiagnostics()
    end
 
-
    -- store fields used in RK time-stepping for each species
    local speciesRkFields = { }
    for nm, s in pairs(species) do
@@ -262,6 +260,8 @@ local function buildApplication(self, tbl)
       s:applyBc(0, 0, speciesRkFields[nm][1])
       s:calcCouplingMoments(0, 0, speciesRkFields[nm][1])
    end
+   field:createSolver(species)
+   funcField:createSolver(species)
    field:initField(species)
    funcField:initField()
 

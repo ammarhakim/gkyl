@@ -16,6 +16,9 @@ function GkSpecies:alloc(nRkDup)
    self.upar = self:allocMoment()
    self.ppar = self:allocMoment()
    self.pperp = self:allocMoment()
+
+   -- account for d^3v = 2 pi/m dvpar dmu B
+   self.momfac = 2*math.pi/self.mass
 end
 
 function GkSpecies:allocMomCouplingFields()
@@ -120,17 +123,19 @@ function GkSpecies:createDiagnostics()
    end
 end
 
-function GkSpecies:write(tm)
-   GkSpecies.super.write(self, tm)
-   if self.distIoTrigger(tm) then
-      self.gkEqn:writeHamiltonian(self.distIo, tm) 
-   end
-end
+--function GkSpecies:write(tm)
+--   GkSpecies.super.write(self, tm)
+--   if self.distIoTrigger(tm) then
+--      self.gkEqn:writeHamiltonian(self.distIo, tm) 
+--   end
+--end
 
 function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    -- compute moments needed in coupling to fields and collisions
    self.calcDens:advance(tCurr, dt, {fIn}, { self.dens })
    self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
+   self.dens:scale(self.momfac)
+   self.upar:scale(self.momfac)
 end
 
 function GkSpecies:fluidMoments()

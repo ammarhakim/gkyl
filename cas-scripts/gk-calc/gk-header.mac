@@ -14,11 +14,11 @@ pmax:1$
 for ci : 2 thru 3 do (
   vi : 2,
     for pi : 1 thru pmax do (
-      printf(fh, "double GyrokineticVol~ax~avSerP~a(const double mcByq, const double *w, const double *dxv, const double *Bmag, const double *BcurvY, const double *Phi, const double *f, double *out); ~%", ci, vi, pi),
+      printf(fh, "double GyrokineticVol~ax~avSerP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out); ~%", ci, vi, pi),
       for si : 1 thru ci+vi-1 do (
         if si <= ci then dirlabel : cvars[si]
         else dirlabel : vvars[si-ci],
-        printf(fh, "double GyrokineticSurf~ax~avSer_~a_P~a(const double mcByq, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
+        printf(fh, "double GyrokineticSurf~ax~avSer_~a_P~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
       ),
       printf(fh, "~%")      
     ),
