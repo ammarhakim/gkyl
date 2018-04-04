@@ -9,6 +9,9 @@ derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m];
 derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2];
 gkvsub:[vx=vpar,vy=mu];
 
+let (wv^2, wv2);
+let (dfac_v^2, dfac_v2);
+
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
@@ -22,7 +25,7 @@ doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 load("vect");
 fgrad(f):= ev(express(grad(f)),diff)*derivfacsC;
 
-gkPB(f,g):=Bstar_expd.fgrad(f)*derivfac[4]*diff(g,vpar)-Bstar_expd.fgrad(g)*derivfac[4]*diff(f,vpar)-mcByq*derivfac[1]*derivfac[2]*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
+gkPB(f,g):=1/m_*Bstar_by_Bmag_expd.(fgrad(f)*dfac_v*diff(g,vpar)-fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
 
 calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
 kill(varsC, varsP, basisC, basisP),
@@ -30,12 +33,10 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for i : 1 thru pmax do (
   if cdim = 2 then (
-    label:["x", "y", "v", "m"],
-    derivfacList:[dfac_x, dfac_y, dfac_v, dfac_m]
+    label:["x", "y", "v", "m"]
   ),
   if cdim = 3 then (
-    label:["x", "y", "z", "v", "m"],
-    derivfacList:derivfac
+    label:["x", "y", "z", "v", "m"]
   ),
   bP : subst(gkvsub, basisP[i]),
   bC : basisC[i],
@@ -54,12 +55,17 @@ for i : 1 thru pmax do (
   Bvars:[y=0,z=0], /* this makes it so that Bmag is assumed to only vary in x */
   scalefactors(varsC),
   derivfacsC : makelist(derivfac[d], d, 1, length(varsC)),
-  derivfacSurf : derivfacList[surfDir],
+  derivfacsV : makelist(derivfac[d], d, 4, 5),
+  wC : makelist(wc[d], d, 1, length(varsC)),
+  wV : makelist(wc[d], d, 4, 5),
+  surfLabel : label[surfDir],
+  if surfDir <= cdim then (dfacSurf : derivfacsC[surfDir], wSurf : wC[surfDir])
+  else (dfacSurf : derivfacsV[surfDir-cdim], wSurf : wV[surfDir-cdim]),
 
   /* remove volume contribution from surface variable, which is not integrated */
-  surfac : fullratsimp(volfac*derivfacSurf),
+  surfac : fullratsimp(volfac*dfacSurf),
 
-  printf(fh, "double ~a_~a_P~a(const double mcByq, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "double ~a_~a_P~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
 
   for dir : 1 thru cdim+vdim do (
@@ -76,11 +82,12 @@ for i : 1 thru pmax do (
 
   /* expand background magnetic field Bmag, assuming it only varies in x */
   Bmag_expd:subst(Bvars,doExpand1(Bmag,bC)),
+  BmagInv_expd:subst(Bvars,doExpand1(BmagInv,bC)),
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
 
   /* calculate full expansion expression for Hamiltonian */
-  H_full:vpar^2/(2*derivfac2[4])+(wc[4]*vpar)/derivfac[4]+wc2[4]/2 + (wc[5]+mu/derivfac[5])*Bmag_expd + Phi_expd,
+  H_full:1/2*m_*(wv + vpar/dfac_v)^2 + (wm+mu/dfac_m)*Bmag_expd + q_*Phi_expd,
   
   /* project Hamiltonian onto basis functions */
   H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
@@ -91,17 +98,17 @@ for i : 1 thru pmax do (
   fL_expd:doExpand1(fl,bP),
   fR_expd:doExpand1(fr,bP),
 
-  /* expand BcurvY = curl(bhat) on basis, assuming it only varies in x */
+  /* expand BcurvY = 1/B*curl(bhat)*grad(y) on basis, assuming it only varies in x */
   BcurvY_expd : subst(Bvars, doExpand1(BcurvY, bC)),
-  /* expand BstarY = mc/q vpar BcurvY on basis */
-  BstarY_expd : mcByq*(wc[4]+vpar/derivfac[4])*BcurvY_expd,
-  /* make Bstar vector */
-  if cdim = 2 then Bstar_expd : [0, BstarY_expd],
-  if cdim = 3 then Bstar_expd : [0, BstarY_expd, Bmag_expd],
+  /* expand BstarY/Bmag = m/q vpar BcurvY = vpar/Omega*curl(bhat)*grad(y) on basis */
+  BstarY_by_Bmag_expd : m_/q_*(wv+vpar/dfac_v)*BcurvY_expd,
+  /* make Bstar/Bmag vector */
+  if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd],
+  if cdim = 3 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd, 1],
 
   /* calculate phase space velocity alpha in direction of surfVar */
   /* we assume alpha.n is continuous across boundary, although H may not be */
-  alpha_expd : gkPB(wc[surfDir] + varsP[surfDir]/derivfacSurf, H_expd),
+  alpha_expd : gkPB(wSurf + surfVar/dfacSurf, H_expd),
   /* evaluate at boundary from interior (surfVar=-1) */
   alpha_expd : subst(surfVar=-1, alpha_expd),
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
@@ -111,7 +118,7 @@ for i : 1 thru pmax do (
 
   /* determine whether to use local or global value for penalty amax */
   printf(fh, "  double amax = 0.0; ~%"),
-  printf(fh, "  bool upwind = false; ~%"), 
+  printf(fh, "  bool upwind = true; ~%"), 
   printf(fh, "  if(upwind) ~%"),
   printf(fh, "    amax = alpha0; ~%"),
   printf(fh, "  else ~%"),
@@ -121,9 +128,9 @@ for i : 1 thru pmax do (
   /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
   flux_expd : fullratsimp(alpha_expd/2*(subst(surfVar=1, fL_expd)+subst(surfVar=-1, fR_expd))-amax/2*(subst(surfVar=-1, fR_expd)-subst(surfVar=1, fL_expd))),
   /* project flux expression onto basis functions */
-  flux_k : calcInnerProdList(varsP, 1, bP, flux_expd),
+  flux_k : subst([wv^2=wv2,dfac_v^2=dfac_v2],calcInnerProdList(varsP, 1, bP, flux_expd)),
   /* print fluxl list to c array Ghat */
-  writeCExprsCollect1(Ghat, subst(wv^2=wv2, flux_k), [dxv,alpha0]),
+  writeCExprsCollect1(Ghat, flux_k, [derivfac,alpha0]),
   printf(fh, "~%"),
   /* these functions drop components of Ghat that are zero from list Ghatl */
   glst1 : doMakeExprLst(flux_k, Ghat),

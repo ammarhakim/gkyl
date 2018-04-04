@@ -109,7 +109,6 @@ end
 -- solve for initial fields self-consistently 
 -- from initial distribution function
 function GkField:initField(species)
-   if self.adiabatic then self.qneutFacInv = 1/self.adiabSpec:qneutFac() end
    self:forwardEuler(0, nil, nil, species, self.potentials[1])
 end
 
@@ -125,7 +124,24 @@ function GkField:createSolver(species)
          self.adiabSpec = s
       end
    end
-   if not self.adiabatic then
+   if self.adiabatic then
+      assert(self.grid:ndim()==2, "Adiabatic solve only supported in 2d for now!")
+      -- if adiabatic, we don't solve the Poisson equation, but
+      -- we do need to project the discontinuous charge densities
+      -- onto a continuous basis to set phi. 
+      -- HACK for 2d: use FemPerpPoisson with no laplacian and a weighted mass matrix.
+      self.phiSlvr = Updater.FemPerpPoisson {
+        onGrid = self.grid,
+        basis = self.basis,
+        bcLeft = self.phiBcLeft,
+        bcRight = self.phiBcRight,
+        bcBottom = self.phiBcBottom,
+        bcTop = self.phiBcTop,
+        periodicDirs = self.periodicDirs,
+        laplacianWeight = 0.0,
+        modifierConstant = self.adiabSpec:qneutFac() -- = n0*q^2/T
+      }
+   else
       self.phiSlvr = Updater.FemPerpPoisson {
         onGrid = self.grid,
         basis = self.basis,
@@ -147,6 +163,7 @@ function GkField:createSolver(species)
         }
       end
    end
+   --if self.adiabatic then self.qneutFacInv = 1/self.adiabSpec:qneutFac() end
 
    self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
       onGrid = self.grid,
@@ -204,17 +221,16 @@ function GkField:forwardEuler(tCurr, dt, potIn, species, potOut)
       for nm, s in pairs(species) do
          self.chargeDens:accumulate(s:getCharge(), s:getDens())
       end
-      if self.adiabatic then
-         potOut.phi:combine(self.qneutFacInv, self.chargeDens)
-      else
-         local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
-         if self.isElectromagnetic then
-           self.currentDens:clear(0.0)
-           for nm, s in pairs(species) do
-             self.currentDens:accumulate(s:getCharge(), s:getUpar())
-           end
-           mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
-         end
+      --if self.adiabatic and self.discontinuous then
+      --   potOut.phi:combine(self.qneutFacInv, self.chargeDens)
+      --end
+      local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
+      if self.isElectromagnetic then
+        self.currentDens:clear(0.0)
+        for nm, s in pairs(species) do
+          self.currentDens:accumulate(s:getCharge(), s:getUpar())
+        end
+        mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
       end
       return mys and mys2, math.min(mydt,mydt2)
    else
@@ -277,7 +293,7 @@ function GkGeometry:fullInit(appTbl)
    
    -- get function to initialize background magnetic field
    self.bmagFunc = assert(tbl.bmag, "GkGeometry: must specify background magnetic field with 'bmag'")
-   -- get function to initialize bcurvY = curl(bhat).grad(y)
+   -- get function to initialize bcurvY = 1/B*curl(bhat).grad(y)
    self.bcurvYFunc = tbl.bcurvY
 end
 
@@ -298,7 +314,14 @@ function GkGeometry:alloc()
       ghost = {1, 1}
    }
 
-   -- curl(bhat).grad(y) ... contains curvature info
+   -- 1/B
+   self.geo.bmagInv = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1}
+   }
+
+   -- 1/B*curl(bhat).grad(y) ... contains curvature info
    self.geo.bcurvY = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
@@ -318,6 +341,14 @@ function GkGeometry:createSolver()
       basis = self.basis,
       evaluate = self.bmagFunc
    }
+   local bmagInvFunc = function (t, xn)
+      return 1/self.bmagFunc(t,xn)
+   end
+   self.setBmagInv = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = bmagInvFunc
+   }
    if self.bcurvYFunc then 
       self.setBcurvY = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -332,6 +363,7 @@ end
 
 function GkGeometry:initField()
    self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
+   self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
    if self.setBcurvY  then self.setBcurvY:advance(0.0, 0.0, {}, {self.geo.bcurvY})
    else self.geo.bcurvY:clear(0.0) end
    self:applyBc(0.0, 0.0, self.geo)
@@ -362,6 +394,7 @@ end
 function GkGeometry:forwardEuler(tCurr, dt, momIn, geoIn, geoOut)
    if self.evolve then
       self.setBmag:advance(tCurr, dt, {}, {geoOut.bmag})
+      self.setBmagInv:advance(tCurr, dt, {}, {geoOut.bmagInv})
       if self.setBcurvY  then self.setBcurvY:advance(0.0, 0.0, {}, {self.geoOut.bcurvY})
       else self.geo.bcurvY:clear(0.0) end
       self:applyBc(0.0, 0.0, self.geo)

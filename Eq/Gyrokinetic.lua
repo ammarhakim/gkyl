@@ -34,8 +34,8 @@ function Gyrokinetic:init(tbl)
 
    local charge = assert(tbl.charge, "Gyrokinetic: must specify charge using 'charge' ")
    local mass = assert(tbl.mass, "Gyrokinetic: must specify mass using 'mass' ")
-   self._qbym = charge/mass -- only q/m ratio is ever needed
-   self._mbyq = mass/charge -- only q/m ratio is ever needed
+   self.charge = charge
+   self.mass = mass
 
    assert(tbl.hasPhi==true, "Gyrokinetic: must have an electrostatic potential!")
    self._isElectromagnetic = xsys.pickBool(tbl.hasApar, false)
@@ -64,18 +64,20 @@ function Gyrokinetic:setAuxFields(auxFields)
 
    -- get phi, and scale by q/m
    self.phi = potentials.phi
-   self.phi:scale(self._qbym)
 
    self.bmag = geo.bmag
+   self.bmagInv = geo.bmagInv
    self.bcurvY = geo.bcurvY
 
    if self._isFirst then
       -- allocate pointers to field objects
       self.phiPtr, self.phiPtrL, self.phiPtrR = self.phi:get(1), self.phi:get(1), self.phi:get(1)
       self.bmagPtr = self.bmag:get(1)
+      self.bmagInvPtr = self.bmagInv:get(1)
       self.bcurvYPtr = self.bcurvY:get(1)
       self.phiIdxr = self.phi:genIndexer()
       self.bmagIdxr = self.bmag:genIndexer()
+      self.bmagInvIdxr = self.bmagInv:genIndexer()
       self.bcurvYIdxr = self.bcurvY:genIndexer()
       self._isFirst = false -- no longer first time
    end
@@ -85,8 +87,9 @@ end
 function Gyrokinetic:volTerm(w, dx, idx, f, out)
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
+   self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
    self.bcurvY:fill(self.bcurvYIdxr(idx), self.bcurvYPtr)
-   return self._volTerm(self._mbyq, w:data(), dx:data(), self.bmagPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), f:data(), out:data())
+   return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), f:data(), out:data())
 end
 
 -- Surface integral term for use in DG scheme
@@ -94,8 +97,9 @@ function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, o
    self.phi:fill(self.phiIdxr(idxl), self.phiPtrL)
    self.phi:fill(self.phiIdxr(idxr), self.phiPtrR)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
+   self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
    self.bcurvY:fill(self.bcurvYIdxr(idxr), self.bcurvYPtr)
-   return self._surfTerms[dir](self._mbyq, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bcurvYPtr:data(), self.phiPtrR:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtrR:data(), fl:data(), fr:data(), outl:data(), outr:data())
 end
 
 return Gyrokinetic

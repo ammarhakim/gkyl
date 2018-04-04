@@ -384,7 +384,7 @@ function KineticSpecies:alloc(nRkDup)
       method = self.ioMethod,
    }
 
-   if self.fluctuationBCs then
+   if self.initBackgroundFunc then
      self.f0 = self:allocDistf()
    end
 
@@ -455,6 +455,10 @@ function KineticSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
       self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
+
+      if self.distIoFrame == 0 and self.initBackgroundFunc then
+         self.distIo:write(self.f0, string.format("%s_background_%d.bp", self.name, 0), tm)
+      end
 
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then

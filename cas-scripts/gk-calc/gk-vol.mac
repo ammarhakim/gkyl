@@ -3,13 +3,14 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
-gkvsub:[vx=vpar,vy=mu];
-
 wc : [wx, wy, wz, wv, wm];
 wc2 : [wx2, wy2, wz2, wv2, wm2];
 derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m];
 derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2];
 gkvsub:[vx=vpar,vy=mu];
+
+let (wv^2, wv2);
+let (dfac_v^2, dfac_v2);
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
@@ -17,9 +18,8 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 /* set up some vector calculus functions */
 load("vect");
 fgrad(f):= ev(express(grad(f)),diff)*derivfacsC;
-fcurl(f):= ev(express(curl(f)),diff);
 
-gkPB(f,g):=Bstar_expd.fgrad(f)*derivfac[4]*diff(g,vpar)-Bstar_expd.fgrad(g)*derivfac[4]*diff(f,vpar)-mcByq*derivfac[1]*derivfac[2]*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
+gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
 
 calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
 kill(varsC, varsP, basisC, basisP),
@@ -28,18 +28,16 @@ load(modNm),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 for i : 1 thru pmax do (
   if cdim = 2 then (
-    label:["x", "y", "v", "m"],
-    derivfacList:[dfac_x, dfac_y, dfac_v, dfac_m]
+    label:["x", "y", "v", "m"]
   ),
   if cdim = 3 then (
-    label:["x", "y", "z", "v", "m"],
-    derivfacList:derivfac
+    label:["x", "y", "z", "v", "m"]
   ),
   bP : subst(gkvsub, basisP[i]),
   bC : basisC[i],
   varsP : subst(gkvsub, varsP),
   numC : length(bC),
-  printf(fh, "double ~aP~a(const double mcByq, const double *w, const double *dxv, const double *Bmag, const double *BcurvY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
@@ -49,27 +47,33 @@ for i : 1 thru pmax do (
   /* for grad and curl expressions */
   scalefactors(varsC),
   derivfacsC : makelist(derivfac[d], d, 1, length(varsC)),
+  derivfacsV : makelist(derivfac[d], d, 4, 5),
+  wC : makelist(wc[d], d, 1, length(varsC)),
+  wV : makelist(wc[d], d, 4, 5),
 
   for dir : 1 thru cdim+vdim do (
     printf(fh, "  double d~aInv = 1.0/dxv[~a]; ~%", label[dir], dir-1)
   ),
   for dir : 1 thru cdim+vdim do (
-    printf(fh, "  double dfac_~a = 2.0*d~aInv; ~%", label[dir], label[dir])
+    printf(fh, "  double dfac_~a = 2.0/dxv[~a]; ~%", label[dir], dir-1)
   ),
 
   for dir : 1 thru cdim+vdim do (
     printf(fh, "  double w~a = w[~a]; ~%", label[dir], dir-1)
   ),
   printf(fh, "  double wv2 = wv*wv; ~%"),
-  printf(fh, "  double dfac_v2 = 4.0*dvInv*dvInv; ~%"),
+  printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%"),
+  printf(fh, "  double q2 = q_*q_; ~%"),
+  printf(fh, "  double m2 = m_*m_; ~%"),
 
   /* expand background magnetic field Bmag, assuming it only varies in x */
   Bmag_expd:subst(Bvars,doExpand1(Bmag,bC)),
+  BmagInv_expd:subst(Bvars,doExpand1(BmagInv,bC)),
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
 
-  /* calculate full expansion expression for Hamiltonian */
-  H_full:vpar^2/(2*derivfac2[4])+(wc[4]*vpar)/derivfac[4]+wc2[4]/2 + (wc[5]+mu/derivfac[5])*Bmag_expd + Phi_expd,
+  /* calculate full expansion expression for Hamiltonian. note Phi already includes factor of q/m. */
+  H_full:1/2*m_*(wv + vpar/dfac_v)^2 + (wm+mu/dfac_m)*Bmag_expd + q_*Phi_expd,
   /* project Hamiltonian onto basis functions */
   H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
   /* expand projected Hamiltonian on basis */
@@ -78,13 +82,14 @@ for i : 1 thru pmax do (
   /* expand distribution function on basis */
   f_expd:doExpand1(f,bP),
 
-  /* expand BcurvY = curl(bhat) on basis, assuming it only varies in x */
+
+  /* expand BcurvY = 1/B*curl(bhat)*grad(y) on basis, assuming it only varies in x */
   BcurvY_expd : subst(Bvars, doExpand1(BcurvY, bC)),
-  /* expand BstarY = mc/q vpar BcurvY on basis */
-  BstarY_expd : mcByq*(wc[4]+vpar/derivfac[4])*BcurvY_expd,
-  /* make Bstar vector */
-  if cdim = 2 then Bstar_expd : [0, BstarY_expd],
-  if cdim = 3 then Bstar_expd : [0, BstarY_expd, Bmag_expd],
+  /* expand BstarY/Bmag = m/q vpar BcurvY = vpar/Omega*curl(bhat)*grad(y) on basis */
+  BstarY_by_Bmag_expd : m_/q_*(wv+vpar/dfac_v)*BcurvY_expd,
+  /* make Bstar/Bmag vector */
+  if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd],
+  if cdim = 3 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd, 1],
 
   /* calculate GK poisson bracket of basis functions and Hamiltonian */
   gkPB_basis : fullratsimp(gkPB(bP, H_expd)),
@@ -93,18 +98,26 @@ for i : 1 thru pmax do (
   gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, gkPB_basis)),
 
   /* write C increment expressions for volume term */
-  writeCIncrExprsNoExpand(float(subst([wv^2=wv2, dfac_v^2=dfac_v2], facsum(gkVolTerm_k,[derivfac,wc])))),
+  writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
 
   /* calculate cflFeq = sum_d alpha_d / dxv[d] */
   printf(fh, "  double cflFreq = 0.0; ~%"), 
-  /* note: no contribution from mu */
-  for d : 1 thru cdim+1 do (
+  for d : 1 thru cdim do (
     /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    alpha_expd : gkPB(wc[d] + varsP[d]/derivfacList[d], H_expd),
+    alpha_expd : gkPB(wC[d] + varsP[d]/derivfacsC[d], H_expd),
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst(wv^2=wv2, alpha0)), label[d])
+    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(letsimp(alpha0)), label[d])
+  ),
+  /* note: no contribution from mu */
+  for d : cdim+1 thru cdim+1 do (
+    /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
+    alpha_expd : gkPB(wV[d-cdim] + varsP[d]/derivfacsV[d-cdim], H_expd),
+    /* take cell center value */
+    alpha0 : subst(cellCenter, alpha_expd),
+    /* write to increment cflFreq */
+    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(letsimp(alpha0)), label[d])
   ),
 
   printf(fh, "  return cflFreq; ~%"),
