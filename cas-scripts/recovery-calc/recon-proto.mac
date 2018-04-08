@@ -1,6 +1,6 @@
 load("modal-basis")$
 load("basis-precalc/basisSer1x")$
-bC : basisC[1]$
+bC : basisC[2]$
 eta(xc,dx,b) := subst(x=(z-xc)/(dx/2), b)$
 pL : eta(-1/2,1,bC)$
 pR : eta(1/2,1,bC)$
@@ -18,7 +18,7 @@ hsol : makelist(S[i][1], i, 1, 2*N)$
 
 kill(basisC)$
 load("basis-precalc/basisSer2x")$
-bC2 : basisC[1]$
+bC2 : basisC[2]$
 fh : doExpand(f, bC2)$
 hcoeff : calcInnerProdList([x], 1, bC, fh)$
 
@@ -27,18 +27,3 @@ fRs : subst(makelist(f[i]=FR[i],i,length(bC2)), hcoeff)$
 hsol2 : subst(append(makelist(fL[i]=fLs[i], i, 1, N), makelist(fR[i]=fRs[i], i, 1, N)), hsol)$
 
 h2d : sum(hsol2[i]*x^(i-1), i, 1, 2*N)$
-
-surfVar : subst(append(makelist(fL[i]=gL[i],i,N), makelist(fR[i]=gR[i],i,N)), R0)$
-Ghat : calcInnerProdList([x,y], 1, bC2, surfVar)$
-
-kill(basisC)$
-load("basis-precalc/basisSer3x")$
-bC2 : basisC[1]$
-fh : doExpand(f2, bC2)$
-gcoeff : calcInnerProdList([x], 1, bC, fh)$
-
-gL : subst(makelist(f[i]=fL[i],i,length(bC2)), gcoeff)$
-gR : subst(makelist(f[i]=fR[i],i,length(bC2)), gcoeff)$
-
-surfVar : subst(append(makelist(fL[i]=gL[i],i,N), makelist(fR[i]=gR[i],i,N)), R0)$
-Ghat : calcInnerProdList([x,y,z], 1, bC2, surfVar)$
