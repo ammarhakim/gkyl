@@ -1,6 +1,6 @@
 load("modal-basis")$
 load("basis-precalc/basisSer1x")$
-bC : basisC[2]$
+bC : basisC[1]$
 eta(xc,dx,b) := subst(x=(z-xc)/(dx/2), b)$
 pL : eta(-1/2,1,bC)$
 pR : eta(1/2,1,bC)$
@@ -18,7 +18,7 @@ hsol : makelist(S[i][1], i, 1, 2*N)$
 
 kill(basisC)$
 load("basis-precalc/basisSer2x")$
-bC2 : basisC[2]$
+bC2 : basisC[1]$
 fh : doExpand(f, bC2)$
 hcoeff : calcInnerProdList([x], 1, bC, fh)$
 
