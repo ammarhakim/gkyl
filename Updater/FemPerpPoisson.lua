@@ -33,6 +33,8 @@ ffi.cdef[[
 
           int istart[3];
           int iend[3];
+          int cornerstart[3];
+          int cornerend[3];
       } bcdata_t;
   typedef struct FemPerpPoisson FemPerpPoisson;
   FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
@@ -93,7 +95,7 @@ function FemPerpPoisson:init(tbl)
 
    self._writeMatrix = xsys.pickBool(tbl.writeStiffnessMatrix, false)
   
-   function getBcData(tbl)
+   local function getBcData(tbl)
      local bc = ffi.new("bcdata_t")
      if tbl.T == "D" then bc.type = DIRICHLET
      elseif tbl.T == "N" then bc.type = NEUMANN
@@ -138,6 +140,9 @@ function FemPerpPoisson:init(tbl)
    if tbl.laplacianWeight then
      self._laplacianWeight = tbl.laplacianWeight
    end
+
+   self._adjustSource = false
+   if self._allPeriodic and self._modifierConstant == 0.0 then self._adjustSource = true end
 
    self._nx = self._grid:numCells(1)
    self._ny = self._grid:numCells(2)
@@ -201,7 +206,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    local intSrcVol = {0.0}
    local dynVec = DataStruct.DynVector { numComponents = 1 }
    -- if all directions periodic need to adjust source so that integral is 0 
-   if self._allPeriodic then
+   if self._adjustSource then
      -- integrate source
      local calcInt = CartFieldIntegratedQuantCalc {
        onGrid = grid,
@@ -228,7 +233,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
          else 
            src:fill(srcIndexer(idx, idy, idz), srcPtr) 
          end
-         ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
+         ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume())
        end
      end
 

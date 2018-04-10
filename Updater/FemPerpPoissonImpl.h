@@ -15,6 +15,8 @@
 #include <Eigen/LU>
 #include <Eigen/Sparse>
 #include <Eigen/SparseCholesky>
+#include <Eigen/SparseQR>
+#include <Eigen/IterativeLinearSolvers>
 #include <unsupported/Eigen/SparseExtra>
 
 #include <mpi.h>
@@ -34,6 +36,8 @@ extern "C" {
 
     int istart[3];
     int iend[3];
+    int cornerstart[3];
+    int cornerend[3];
   } bcdata_t;
 
 // C wrappers for interfacing with FemPerpPoisson class
@@ -69,6 +73,8 @@ class FemPerpPoisson
   bcdata_t bc[2][2], bc2d[2][2], bc2d_z0[2][2];
   bool periodicFlgs[2];
   bool allPeriodic;
+  bool adjustSource;
+  double cornerval;
   MPI_Datatype MPI_vector_t;
   MPI_Op MPI_vectorSum_op;
   /** Eigen sparse matrix to store stiffness matrix */
