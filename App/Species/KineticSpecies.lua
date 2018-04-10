@@ -115,7 +115,7 @@ function KineticSpecies:fullInit(appTbl)
       self.initFunc = tbl.init
    end
 
-   self.fluctuationBCs = tbl.fluctuationBCs
+   self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.fluctuationBCs then 
       assert(self.initBackgroundFunc, [[KineticSpecies: must specify an initial
         background distribution with 'initBackground' in order to use fluctuation-only BCs]]) 
@@ -280,7 +280,7 @@ function KineticSpecies:allocDistf()
    local f = DataStruct.Field {
 	onGrid = self.grid,
 	numComponents = self.basis:numBasis(),
-	ghost = {1, 1}
+	ghost = {1, 1},
    }
    return f
 end
@@ -288,7 +288,7 @@ function KineticSpecies:allocMoment()
    local m = DataStruct.Field {
 	onGrid = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
-	ghost = {1, 1}
+	ghost = {1, 1},
    }
    return m
 end
@@ -296,7 +296,7 @@ function KineticSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
 	onGrid = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
-	ghost = {1, 1}
+	ghost = {1, 1},
    }
    return m
 end
@@ -384,31 +384,39 @@ function KineticSpecies:alloc(nRkDup)
       method = self.ioMethod,
    }
 
-   if self.initBackgroundFunc then
-     self.f0 = self:allocDistf()
-   end
+   -- background (or initial) distribution
+   self.f0 = self:allocDistf()
 
    self:createBCs()
 end
 
 function KineticSpecies:initDist()
-   if self.initBackgroundFunc then
-      local projectBackground = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.initBackgroundFunc
-      }
-      projectBackground:advance(0.0, 0.0, {}, {self.f0})
-      self.f0:sync()
-   end
+   local syncPeriodicDirs = true
+   if self.fluctuationBCs then syncPeriodicDirs = false end
 
    local project = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
-      evaluate = self.initFunc
+      evaluate = self.initFunc,
+      projectOnGhosts = true
    }
    project:advance(0.0, 0.0, {}, {self.distf[1]})
-   self:applyBc(0.0, 0.0, self.distf[1])
+
+   if self.initBackgroundFunc then
+      local projectBackground = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.initBackgroundFunc,
+         projectOnGhosts = true
+      }
+      projectBackground:advance(0.0, 0.0, {}, {self.f0})
+      self.f0:sync(syncPeriodicDirs)
+   else
+      -- if no specified background distribution, use initial
+      -- distribution function as background
+      self.f0:copy(self.distf[1])
+      self:applyBc(0.0, 0.0, self.f0)
+   end
 end
 
 function KineticSpecies:rkStepperFields()
@@ -416,22 +424,33 @@ function KineticSpecies:rkStepperFields()
 end
 
 function KineticSpecies:applyBc(tCurr, dt, fIn)
-   -- if fluctuation-only BCs, subtract off background before applying BCs
+   -- fIn is total distribution function
+
+   local syncPeriodicDirsTrue = true
+
    if self.fluctuationBCs then
+     -- if fluctuation-only BCs, subtract off background before applying BCs
      fIn:accumulate(-1.0, self.f0)
    end
 
+   -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
 	 bc:advance(tCurr, dt, {}, {fIn})
       end
    end
-   fIn:sync()
 
-   -- put back background
+   -- apply periodic BCs (to only fluctuations if fluctuation BCs)
+   fIn:sync(syncPeriodicDirsTrue)
+
    if self.fluctuationBCs then
+     -- put back together total distribution
      fIn:accumulate(1.0, self.f0)
+
+     -- update ghosts in total distribution, without enforcing periodicity
+     fIn:sync(not syncPeriodicDirsTrue)
    end
+
 end
 
 function KineticSpecies:createDiagnostics()
@@ -456,15 +475,19 @@ function KineticSpecies:write(tm)
       -- compute integrated diagnostics
       self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
 
-      if self.distIoFrame == 0 and self.initBackgroundFunc then
-         self.distIo:write(self.f0, string.format("%s_background_%d.bp", self.name, 0), tm)
-      end
-
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm)
+         if self.initBackgroundFunc then
+            self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm)
+            self.distf[1]:accumulate(-1, self.f0)
+            self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm)
+            self.distf[1]:accumulate(1, self.f0)
+            self.distIo:write(self.distf[1], string.format("%s_ftot_%d.bp", self.name, self.distIoFrame), tm)
+         end
 	 self.distIoFrame = self.distIoFrame+1
       end
+
 
       if self.diagIoTrigger(tm) then
          -- compute moments and write them out

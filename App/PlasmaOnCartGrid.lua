@@ -241,29 +241,31 @@ local function buildApplication(self, tbl)
    if funcField == nil then funcField = Field.NoField {} end
    
    -- initialize species solvers and diagnostics
-   for _, s in pairs(species) do
+   local speciesRkFields = { }
+   for nm, s in pairs(species) do
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
+      speciesRkFields[nm] = s:rkStepperFields()
+      s:initDist()
+      s:applyBc(0, 0, speciesRkFields[nm][1])
       s:createSolver(hasE or funcHasE, hasB or funcHasB)
       s:createDiagnostics()
    end
 
-   -- store fields used in RK time-stepping for each species
-   local speciesRkFields = { }
-   for nm, s in pairs(species) do
-      speciesRkFields[nm] = s:rkStepperFields()
-   end
+   -- store fields from EM field for RK time-stepper
+   local emRkFields = field:rkStepperFields()
+   local emRkFuncFields = funcField:rkStepperFields()
 
-   -- initialize species distributions and field
+   -- initialize field
    for nm, s in pairs(species) do
-      s:initDist()
-      s:applyBc(0, 0, speciesRkFields[nm][1])
       s:calcCouplingMoments(0, 0, speciesRkFields[nm][1])
    end
    field:createSolver(species)
    funcField:createSolver(species)
    field:initField(species)
    funcField:initField()
+   field:applyBc(0, 0, emRkFields[1])
+   funcField:applyBc(0, 0, emRkFuncFields[1])
 
    -- function to write data to file
    local function writeData(tCurr)
@@ -274,9 +276,6 @@ local function buildApplication(self, tbl)
 
    writeData(0.0) -- write initial conditions
 
-   -- store fields from EM field for RK time-stepper
-   local emRkFields = field:rkStepperFields()
-   local emRkFuncFields = funcField:rkStepperFields()
 
    -- determine if field equations are elliptic 
    local ellipticFieldEqn = false

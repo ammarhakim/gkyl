@@ -13,6 +13,10 @@ function AdiabaticSpecies:fullInit(appTbl)
    assert(self.evolve==false, "AdiabaticSpecies: cannot evolve an adiabatic species")
 end
 
+--function AdiabaticSpecies:initDist()
+--   self.moments[1]:combine(1/self.charge, kineticChargeDens)
+--end
+
 function AdiabaticSpecies:createSolver(hasE, hasB)
    -- compute density in center of domain
    local gridCenter = {}

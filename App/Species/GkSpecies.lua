@@ -13,12 +13,10 @@ function GkSpecies:alloc(nRkDup)
    -- allocate fields to store coupling moments (for use in coupling
    -- to field and collisions)
    self.dens = self:allocMoment()
+   self.dens0 = self:allocMoment()
    self.upar = self:allocMoment()
    self.ppar = self:allocMoment()
    self.pperp = self:allocMoment()
-
-   -- account for d^3v = 2 pi/m dvpar dmu B
-   self.momfac = 2*math.pi/self.mass
 end
 
 function GkSpecies:allocMomCouplingFields()
@@ -49,6 +47,10 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       zeroFluxDirections = {self.cdim+1},
       updateDirections = upd,
    }
+
+   -- account for factor of mass in definition of mu
+   -- note that factor of 2*pi from gyrophase integration handled in GkMoment calculations
+   self.momfac = 1/self.mass
    
    -- create updaters to compute various moments
    self.calcDens = Updater.DistFuncMomentCalc {
@@ -56,18 +58,21 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "GkDens",
+      momfac = self.momfac,
    }
    self.calcUpar = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "GkUpar",
+      momfac = self.momfac,
    }
    self.calcPpar = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "GkPpar",
+      momfac = self.momfac,
    }
    if self.vdim > 1 then
       self.calcPperp = Updater.DistFuncMomentCalc {
@@ -75,7 +80,26 @@ function GkSpecies:createSolver(hasPhi, hasApar)
          phaseBasis = self.basis,
          confBasis = self.confBasis,
          moment = "GkPperp",
+         momfac = self.momfac,
       }
+   end
+
+   -- calculate background density averaged over simulation domain
+   self.n0 = nil
+   if self.f0 then
+      self.calcDens:advance(0,0, {self.f0}, {self.dens0})
+      local data
+      local dynVec = DataStruct.DynVector { numComponents = 1 }
+      -- integrate source
+      local calcInt = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,
+         basis = self.confBasis,
+         numComponents = 1,
+      }
+      calcInt:advance(0.0, 0.0, {self.dens0}, {dynVec})
+      _, data = dynVec:lastData()
+      self.n0 = data[1]/self.confGrid:gridVolume()
+      print("Average density is " .. self.n0)
    end
 end
 
@@ -116,6 +140,7 @@ function GkSpecies:createDiagnostics()
             phaseBasis = self.basis,
             confBasis = self.confBasis,
             moment = mom,
+            momfac = self.momfac,
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -132,10 +157,21 @@ end
 
 function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    -- compute moments needed in coupling to fields and collisions
+   -- we only want perturbed moments so that we can calculate perturbed fields
+   fIn:accumulate(-1, self.f0)
    self.calcDens:advance(tCurr, dt, {fIn}, { self.dens })
    self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
-   self.dens:scale(self.momfac)
-   self.upar:scale(self.momfac)
+   fIn:accumulate(1, self.f0)
+end
+
+function GkSpecies:calcDiagnosticMoments()
+   self.distf[1]:accumulate(-1, self.f0)
+   local numMoms = #self.diagnosticMoments
+   for i = 1, numMoms do
+      self.diagnosticMomentUpdaters[i]:advance(
+	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
+   end
+   self.distf[1]:accumulate(1, self.f0)
 end
 
 function GkSpecies:fluidMoments()

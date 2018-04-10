@@ -247,10 +247,10 @@ function FluidSpecies:initDist()
    local project = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
-      evaluate = self.initFunc
+      evaluate = self.initFunc,
+      projectOnGhosts = true,
    }
    project:advance(0.0, 0.0, {}, {self.moments[1]})
-   self:applyBc(0.0, 0.0, self.moments[1])
 end
 
 function FluidSpecies:rkStepperFields()

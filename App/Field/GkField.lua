@@ -58,6 +58,13 @@ function GkField:fullInit(appTbl)
    self.tmCurrentAccum = 0.0 -- time spent in current accumulate
 
    self.adiabatic = false
+   if tbl.adiabatic then
+      self.adiabatic = true
+      self.adiabDens = tbl.adiabatic.dens
+      self.adiabCharge = tbl.adiabatic.charge
+      self.adiabQneutFac = tbl.adiabatic.dens*tbl.adiabatic.charge^2/tbl.adiabatic.temp
+   end
+   self.discontinuous = xsys.pickBool(tbl.discontinuous, false)
 end
 
 -- methods for EM field object
@@ -78,6 +85,7 @@ function GkField:alloc(nRkDup)
             numComponents = self.basis:numBasis(),
             ghost = {1, 1}
       }
+      self.potentials[i].phi:clear(0.0)
       if self.isElectromagnetic then
          self.potentials[i].apar = DataStruct.Field {
                onGrid = self.grid,
@@ -116,14 +124,7 @@ function GkField:rkStepperFields()
    return self.potentials
 end
 
-function GkField:createSolver(species)
-   -- get adiabatic species info
-   for nm, s in pairs(species) do
-      if AdiabaticSpecies.is(s) then
-         self.adiabatic = true
-         self.adiabSpec = s
-      end
-   end
+function GkField:createSolver()
    if self.adiabatic then
       assert(self.grid:ndim()==2, "Adiabatic solve only supported in 2d for now!")
       -- if adiabatic, we don't solve the Poisson equation, but
@@ -138,8 +139,8 @@ function GkField:createSolver(species)
         bcBottom = self.phiBcBottom,
         bcTop = self.phiBcTop,
         periodicDirs = self.periodicDirs,
-        laplacianWeight = 0.0,
-        modifierConstant = self.adiabSpec:qneutFac() -- = n0*q^2/T
+        laplacianWeight = 0.0, 
+        modifierConstant = self.adiabQneutFac -- = n0*q^2/T
       }
    else
       self.phiSlvr = Updater.FemPerpPoisson {
@@ -163,7 +164,6 @@ function GkField:createSolver(species)
         }
       end
    end
-   --if self.adiabatic then self.qneutFacInv = 1/self.adiabSpec:qneutFac() end
 
    self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
       onGrid = self.grid,
@@ -214,23 +214,24 @@ function GkField:accumulateCurrent(dt, current, em)
 end
 
 function GkField:forwardEuler(tCurr, dt, potIn, species, potOut)
-   if self.evolve then
+   if self.evolve or tCurr == 0.0 then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do
          self.chargeDens:accumulate(s:getCharge(), s:getDens())
       end
-      --if self.adiabatic and self.discontinuous then
-      --   potOut.phi:combine(self.qneutFacInv, self.chargeDens)
-      --end
-      local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
-      if self.isElectromagnetic then
-        self.currentDens:clear(0.0)
-        for nm, s in pairs(species) do
-          self.currentDens:accumulate(s:getCharge(), s:getUpar())
-        end
-        mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
+      if self.adiabatic and self.discontinuous then
+         potOut.phi:combine(1.0/self.adiabQneutFac, self.chargeDens)
+      else
+         local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
+         if self.isElectromagnetic then
+           self.currentDens:clear(0.0)
+           for nm, s in pairs(species) do
+             self.currentDens:accumulate(s:getCharge(), s:getUpar())
+           end
+           mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
+         end
       end
       return mys and mys2, math.min(mydt,mydt2)
    else
@@ -243,7 +244,7 @@ end
 
 -- boundary conditions handled by solver. this just updates ghosts.
 function GkField:applyBc(tCurr, dt, potIn)
-   potIn.phi:sync()
+   potIn.phi:sync(true)
    if self.isElectromagnetic then potIn.apar:sync() end
 end
    
@@ -311,21 +312,24 @@ function GkGeometry:alloc()
    self.geo.bmag = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
-      ghost = {1, 1}
+      ghost = {1, 1},
+      syncPeriodicDirs = false
    }
 
    -- 1/B
    self.geo.bmagInv = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
-      ghost = {1, 1}
+      ghost = {1, 1},
+      syncPeriodicDirs = false
    }
 
    -- 1/B*curl(bhat).grad(y) ... contains curvature info
    self.geo.bcurvY = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
-      ghost = {1, 1}
+      ghost = {1, 1},
+      syncPeriodicDirs = false
    }
       
    -- create Adios object for field I/O
@@ -339,7 +343,8 @@ function GkGeometry:createSolver()
    self.setBmag = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
-      evaluate = self.bmagFunc
+      evaluate = self.bmagFunc,
+      projectOnGhosts = true,
    }
    local bmagInvFunc = function (t, xn)
       return 1/self.bmagFunc(t,xn)
@@ -347,12 +352,14 @@ function GkGeometry:createSolver()
    self.setBmagInv = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
+      projectOnGhosts = true,
       evaluate = bmagInvFunc
    }
    if self.bcurvYFunc then 
       self.setBcurvY = Updater.ProjectOnBasis {
          onGrid = self.grid,
          basis = self.basis,
+         projectOnGhosts = true,
          evaluate = self.bcurvYFunc
       }
    end
@@ -366,7 +373,11 @@ function GkGeometry:initField()
    self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
    if self.setBcurvY  then self.setBcurvY:advance(0.0, 0.0, {}, {self.geo.bcurvY})
    else self.geo.bcurvY:clear(0.0) end
-   self:applyBc(0.0, 0.0, self.geo)
+   -- sync ghost cells. these calls do not enforce periodicity because
+   -- these fields initialized with syncPeriodicDirs = false
+   self.geo.bmag:sync(false)
+   self.geo.bmagInv:sync(false)
+   self.geo.bcurvY:sync(false)
 end
 
 function GkGeometry:write(tm)
@@ -392,19 +403,11 @@ function GkGeometry:rkStepperFields()
 end
 
 function GkGeometry:forwardEuler(tCurr, dt, momIn, geoIn, geoOut)
-   if self.evolve then
-      self.setBmag:advance(tCurr, dt, {}, {geoOut.bmag})
-      self.setBmagInv:advance(tCurr, dt, {}, {geoOut.bmagInv})
-      if self.setBcurvY  then self.setBcurvY:advance(0.0, 0.0, {}, {self.geoOut.bcurvY})
-      else self.geo.bcurvY:clear(0.0) end
-      self:applyBc(0.0, 0.0, self.geo)
-   end
+   assert(self.evolve==false, "Evolving GkGeometry not supported")
    return true, GKYL_MAX_DOUBLE
 end
 
 function GkGeometry:applyBc(tCurr, dt, geoIn)
-   geoIn.bmag:sync()
-   geoIn.bcurvY:sync()
 end
 
 function GkGeometry:totalSolverTime()
