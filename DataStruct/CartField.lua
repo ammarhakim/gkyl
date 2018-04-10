@@ -408,9 +408,10 @@ local function Field_meta_ctor(elct)
       write = function (self, fName, tmStamp)
 	 self._adiosIo:write(self, fName, tmStamp)
       end,
-      sync = function (self)
+      sync = function (self, syncPeriodicDirs)
+         syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs, true)
 	 self._field_sync(self)
-	 if self._syncPeriodicDirs then
+	 if self._syncPeriodicDirs and syncPeriodicDirs then
 	    self._field_periodic_sync(self)
 	 end
       end,

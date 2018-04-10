@@ -72,7 +72,7 @@ for i : 1 thru pmax do (
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
 
-  /* calculate full expansion expression for Hamiltonian. note Phi already includes factor of q/m. */
+  /* calculate full expansion expression for Hamiltonian. */
   H_full:1/2*m_*(wv + vpar/dfac_v)^2 + (wm+mu/dfac_m)*Bmag_expd + q_*Phi_expd,
   /* project Hamiltonian onto basis functions */
   H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
@@ -82,10 +82,9 @@ for i : 1 thru pmax do (
   /* expand distribution function on basis */
   f_expd:doExpand1(f,bP),
 
-
   /* expand BcurvY = 1/B*curl(bhat)*grad(y) on basis, assuming it only varies in x */
   BcurvY_expd : subst(Bvars, doExpand1(BcurvY, bC)),
-  /* expand BstarY/Bmag = m/q vpar BcurvY = vpar/Omega*curl(bhat)*grad(y) on basis */
+  /* expand BstarY/Bmag = m/q vpar BcurvY = mvpar/qB*curl(bhat)*grad(y) on basis */
   BstarY_by_Bmag_expd : m_/q_*(wv+vpar/dfac_v)*BcurvY_expd,
   /* make Bstar/Bmag vector */
   if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd],
@@ -104,7 +103,7 @@ for i : 1 thru pmax do (
   printf(fh, "  double cflFreq = 0.0; ~%"), 
   for d : 1 thru cdim do (
     /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    alpha_expd : gkPB(wC[d] + varsP[d]/derivfacsC[d], H_expd),
+    alpha_expd : Bmag_expd*gkPB(wC[d] + varsP[d]/derivfacsC[d], H_expd),
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
@@ -113,7 +112,7 @@ for i : 1 thru pmax do (
   /* note: no contribution from mu */
   for d : cdim+1 thru cdim+1 do (
     /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    alpha_expd : gkPB(wV[d-cdim] + varsP[d]/derivfacsV[d-cdim], H_expd),
+    alpha_expd : Bmag_expd*gkPB(wV[d-cdim] + varsP[d]/derivfacsV[d-cdim], H_expd),
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */

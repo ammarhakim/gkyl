@@ -7,7 +7,6 @@
 
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local Proto = require "Lib.Proto"
-local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local xsys = require "xsys"
 
 local Gyrokinetic = Proto()
@@ -62,16 +61,17 @@ function Gyrokinetic:setAuxFields(auxFields)
    local potentials = auxFields[1] -- first auxField is Field object
    local geo = auxFields[2] -- second auxField is FuncField object
 
-   -- get phi, and scale by q/m
+   -- get phi
    self.phi = potentials.phi
 
+   -- get magnetic geometry fields
    self.bmag = geo.bmag
    self.bmagInv = geo.bmagInv
    self.bcurvY = geo.bcurvY
 
    if self._isFirst then
       -- allocate pointers to field objects
-      self.phiPtr, self.phiPtrL, self.phiPtrR = self.phi:get(1), self.phi:get(1), self.phi:get(1)
+      self.phiPtr = self.phi:get(1)
       self.bmagPtr = self.bmag:get(1)
       self.bmagInvPtr = self.bmagInv:get(1)
       self.bcurvYPtr = self.bcurvY:get(1)
@@ -94,12 +94,11 @@ end
 
 -- Surface integral term for use in DG scheme
 function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
-   self.phi:fill(self.phiIdxr(idxl), self.phiPtrL)
-   self.phi:fill(self.phiIdxr(idxr), self.phiPtrR)
+   self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
    self.bcurvY:fill(self.bcurvYIdxr(idxr), self.bcurvYPtr)
-   return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtrR:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
 end
 
 return Gyrokinetic

@@ -33,8 +33,8 @@ double GyrokineticVol2x2vSerP1(const double q_, const double m_, const double *w
   out[14] += (0.25*(1.732050807568877*dfac_m*dfac_v*dfac_y*(2.0*BcurvY[1]*f[13]*m_*wv2+2.0*BcurvY[0]*f[10]*m_*wv2-1.0*BcurvY[0]*Phi[3]*f[15]*q_-1.0*BcurvY[1]*Phi[2]*f[15]*q_-1.0*BcurvY[1]*Phi[3]*f[14]*q_-1.0*BcurvY[0]*Phi[2]*f[14]*q_)-3.0*(BcurvY[0]*Phi[3]*f[12]+BcurvY[1]*Phi[2]*f[12]+BcurvY[1]*Phi[3]*f[9]+BcurvY[0]*Phi[2]*f[9])*dfac_m*dfac_v2*dfac_y*q_*wv+2.0*(BcurvY[1]*f[8]+BcurvY[0]*f[4])*dfac_m*dfac_y*m_*wv+3.0*dfac_m*dfac_v*dfac_x*dfac_y*(Bmag[1]*BmagInv[1]*f[13]*wm+BmagInv[0]*Bmag[1]*f[10]*wm+BmagInv[1]*Phi[3]*f[15]*q_+BmagInv[0]*Phi[3]*f[14]*q_+BmagInv[1]*Phi[1]*f[13]*q_+BmagInv[0]*Phi[1]*f[10]*q_)+1.732050807568877*Bmag[1]*(BmagInv[1]*f[6]+BmagInv[0]*f[3])*dfac_v*dfac_x*dfac_y))/(dfac_m*dfac_v*q_); 
   out[15] += (0.05*(1.732050807568877*dfac_m*dfac_v*dfac_y*(10.0*BcurvY[0]*f[13]*m_*wv2+10.0*BcurvY[1]*f[10]*m_*wv2-9.0*BcurvY[1]*Phi[3]*f[15]*q_-5.0*BcurvY[0]*Phi[2]*f[15]*q_-5.0*BcurvY[0]*Phi[3]*f[14]*q_-5.0*BcurvY[1]*Phi[2]*f[14]*q_)-3.0*(9.0*BcurvY[1]*Phi[3]*f[12]+5.0*BcurvY[0]*Phi[2]*f[12]+5.0*BcurvY[0]*Phi[3]*f[9]+5.0*BcurvY[1]*Phi[2]*f[9])*dfac_m*dfac_v2*dfac_y*q_*wv+10.0*(BcurvY[0]*f[8]+BcurvY[1]*f[4])*dfac_m*dfac_y*m_*wv+15.0*dfac_m*dfac_v*dfac_x*dfac_y*(BmagInv[0]*Bmag[1]*f[13]*wm+Bmag[1]*BmagInv[1]*f[10]*wm-1.0*BmagInv[1]*Phi[2]*f[15]*q_-1.0*BmagInv[0]*Phi[2]*f[14]*q_+BmagInv[0]*Phi[1]*f[13]*q_+BmagInv[1]*Phi[1]*f[10]*q_)+8.660254037844386*Bmag[1]*(BmagInv[0]*f[6]+BmagInv[1]*f[3])*dfac_v*dfac_x*dfac_y))/(dfac_m*dfac_v*q_); 
   double cflFreq = 0.0; 
-  cflFreq += fabs(-0.4330127018922193*BmagInv[0]*Phi[2]*dfac_y)*dxInv; 
-  cflFreq += fabs((0.25*(2.0*BcurvY[0]*m_*wv2+1.732050807568877*BmagInv[0]*Bmag[1]*dfac_x*wm+1.732050807568877*BmagInv[0]*Phi[1]*dfac_x*q_))/q_)*dyInv; 
-  cflFreq += fabs(-0.4330127018922193*BcurvY[0]*Phi[2]*dfac_y*wv)*dvInv; 
+  cflFreq += fabs(-0.2165063509461096*Bmag[0]*BmagInv[0]*Phi[2]*dfac_y)*dxInv; 
+  cflFreq += fabs((0.125*(2.0*BcurvY[0]*Bmag[0]*m_*wv2+1.732050807568877*Bmag[0]*BmagInv[0]*Bmag[1]*dfac_x*wm+1.732050807568877*Bmag[0]*BmagInv[0]*Phi[1]*dfac_x*q_))/q_)*dyInv; 
+  cflFreq += fabs(-0.2165063509461096*BcurvY[0]*Bmag[0]*Phi[2]*dfac_y*wv)*dvInv; 
   return cflFreq; 
 } 

@@ -55,6 +55,8 @@ function ProjectOnBasis:init(tbl)
 
    local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- number of quadrature points in each direction
 
+   self._projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
+
    -- 1D weights and ordinates
    local ordinates, weights = GaussQuadRules.ordinates[N], GaussQuadRules.weights[N]
 
@@ -112,7 +114,12 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    local fv = Lin.Mat(numOrd, numVal) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
-   local localRange = qOut:localRange()
+   local localRange
+   if self._projectOnGhosts then
+      localRange = qOut:localExtRange()
+   else
+      localRange = qOut:localRange()
+   end
    local indexer = qOut:genIndexer() 
    local fItr = qOut:get(1)
 

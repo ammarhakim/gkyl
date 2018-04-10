@@ -66,6 +66,9 @@ function DistFuncMomentCalc:init(tbl)
       print("DistFuncMomentCalc: Requested moment is", mom)
       assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i")
    end
+ 
+   self.momfac = 1.0
+   if tbl.momfac then self.momfac = tbl.momfac end
 
    -- for use in _advance() method
    self.dxv = Lin.Vec(self._pDim) -- cell shape
@@ -96,6 +99,7 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
       mom:fill(momIndexer(idx), momItr)
       self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), momItr:data())
    end
+   if self.momfac ~= 1.0 then mom:scale(self.momfac) end
    
    return true, GKYL_MAX_DOUBLE
 end

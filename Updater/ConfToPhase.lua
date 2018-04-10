@@ -86,7 +86,6 @@ function ConfToPhase:_advance(tCurr, dt, inFld, outFld)
       fconf:fill(fconfIndexer(idx), fconfItr)
       self._confToPhaseFun(fact, fconfItr:data(), fphaseItr:data())
    end
-   fphase:sync()
    
    return true, GKYL_MAX_DOUBLE
 end
