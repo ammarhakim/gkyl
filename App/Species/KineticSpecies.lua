@@ -28,19 +28,8 @@ local function createBasis(nm, ndim, polyOrder)
    end
 end
 
--- add constants to object indicate various supported boundary conditions
-local SP_BC_ABSORB = 1
-local SP_BC_OPEN = 2
-local SP_BC_REFLECT = 3
-local SP_BC_SEE = 4
-
 -- base class for kinetic species
 local KineticSpecies = Proto(SpeciesBase)
-
-KineticSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
-KineticSpecies.bcOpen = SP_BC_OPEN -- zero gradient
-KineticSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
-KineticSpecies.bcSEE = SP_BC_SEE -- specular reflection
 
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
@@ -124,30 +113,22 @@ function KineticSpecies:fullInit(appTbl)
    self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
    self.bcx, self.bcy, self.bcz = { }, { }, { }
 
-   -- function to check if BC type is good
-   local function isBcGood(bcType)
-      if bcType == SP_BC_ABSORB or bcType == SP_BC_OPEN or bcType == SP_BC_REFLECT or bcType == SP_BC_SEE then
-         return true
-      end
-      return false
-   end
-
    -- read in boundary conditions
+   -- check to see if bc type is good is now done in createBc
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      assert(isBcGood(self.bcx[1]) and isBcGood(self.bcx[2]), "KineticSpecies: Incorrect X BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcy then
       self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      assert(isBcGood(self.bcy[1]) and isBcGood(self.bcy[2]), "KineticSpecies: Incorrect Y BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcz then
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "KineticSpecies: Incorrect Z BC type specified!")
       self.hasNonPeriodicBc = true
    end
+
+   self.boundaryConditions = { } -- list of Bcs to apply
 end
 
 function KineticSpecies:createQuadratureData()
@@ -301,68 +282,41 @@ function KineticSpecies:allocVectorMoment(dim)
    return m
 end
 
+-- various functions to apply BCs of different types
+function KineticSpecies:bcAbsorbFunc(dir, tm, xc, fIn, fOut)
+   -- note that for bcAbsorb there is no operation on fIn,
+   -- so skinLoop (which determines indexing of fIn) does not matter 
+   for i = 1, self.basis:numBasis() do
+      fOut[i] = 0.0
+   end
+end
+function KineticSpecies:bcOpenFunc(dir, tm, xc, fIn, fOut)
+   -- requires skinLoop = "pointwise"
+   self.basis:flipSign(dir, fIn, fOut)
+end
+-- function to construct a BC updater
+function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop)
+   return Updater.Bc {
+      onGrid = self.grid,
+      boundaryConditions = bcList,
+      dir = dir,
+      vdir = vdir,
+      edge = edge,
+      skinLoop = skinLoop,
+      cdim = self.cdim,
+      vdim = self.vdim,
+   }
+end
+
 function KineticSpecies:createBCs()
-   -- function to construct a BC updater
-   local function makeBcUpdater(dir, edge, bcList, skinLoop)
-      return Updater.Bc {
-	 onGrid = self.grid,
-	 boundaryConditions = bcList,
-	 dir = dir,
-	 edge = edge,
-	 skinLoop = skinLoop,
-	 cdim = self.cdim,
-      }
-   end
-
-   -- various functions to apply BCs of different types
-   local function bcAbsorb(dir, tm, xc, fIn, fOut)
-      for i = 1, self.basis:numBasis() do
-	 fOut[i] = 0.0
-      end
-   end
-   local function bcOpen(dir, tm, xc, fIn, fOut)
-      self.basis:flipSign(dir, fIn, fOut)
-   end
-   local function bcReflect(dir, tm, xc, fIn, fOut)
-      -- get handle to function to compute basis functions at specified coordinates
-      local bName = ""
-      if self.basis:id() == "serendipity" then
-	 bName = "Serendip"
-      else
-	 bName = "MaxOrder"
-      end
-      local fName = "Basis._data.Modal" .. bName .. "BasisReflect" .. self.cdim .. "x" .. self.vdim .. "v"
-      local _m = require(fName)
-      local polyOrder = self.basis:polyOrder()
-      _m[polyOrder](dir, fIn, fOut) -- function to flip sign of both configuration and velocity component
-   end
-
-   local function bcSEE(dir, tm, xcIn, xcOut, fIn, fOut)
-
-   end
-
    -- functions to make life easier while reading in BCs to apply
-   self.boundaryConditions = { } -- list of Bcs to apply
-   local function appendBoundaryConditions(dir, edge, bcType)
-      if bcType == SP_BC_ABSORB then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcAbsorb }, "pointwise"))
-      elseif bcType == SP_BC_OPEN then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }, "pointwise"))
-      elseif bcType == SP_BC_REFLECT then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcReflect }, "flip"))
-      elseif bcType == SP_BC_SEE then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcSEE }, "integrate"))
-      else
-	 assert(false, "KineticSpecies: Unsupported BC type!")
-      end
-   end
-
+   -- note: appendBoundaryConditions defined in sub-classes
    local function handleBc(dir, bc)
       if bc[1] then
-	 appendBoundaryConditions(dir, "lower", bc[1])
+	 self:appendBoundaryConditions(dir, "lower", bc[1])
       end
       if bc[2] then
-	 appendBoundaryConditions(dir, "upper", bc[2])
+	 self:appendBoundaryConditions(dir, "upper", bc[2])
       end
    end
 
@@ -423,10 +377,16 @@ function KineticSpecies:rkStepperFields()
    return self.distf
 end
 
-function KineticSpecies:applyBc(tCurr, dt, fIn)
+function KineticSpecies:getBcAux(em)
+   return nil
+end
+
+function KineticSpecies:applyBc(tCurr, dt, fIn, emIn, emFuncIn)
    -- fIn is total distribution function
 
    local syncPeriodicDirsTrue = true
+   local bcAux = self:getBcAux(emIn)
+   local bcAuxFunc = self:getBcAux(emFuncIn)
 
    if self.fluctuationBCs then
      -- if fluctuation-only BCs, subtract off background before applying BCs
@@ -436,7 +396,7 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
    -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
-	 bc:advance(tCurr, dt, {}, {fIn})
+	 bc:advance(tCurr, dt, {bcAux, bcAuxFunc}, {fIn})
       end
    end
 
@@ -450,7 +410,6 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
      -- update ghosts in total distribution, without enforcing periodicity
      fIn:sync(not syncPeriodicDirsTrue)
    end
-
 end
 
 function KineticSpecies:createDiagnostics()
