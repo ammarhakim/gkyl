@@ -267,6 +267,11 @@ local function buildApplication(self, tbl)
    field:applyBc(0, 0, emRkFields[1])
    funcField:applyBc(0, 0, emRkFuncFields[1])
 
+   -- apply species BCs one more time in case needed fields
+   for nm, s in pairs(species) do
+      s:applyBc(0, 0, speciesRkFields[nm][1], emRkFields[1])
+   end
+
    -- function to write data to file
    local function writeData(tCurr)
       for _, s in pairs(species) do s:write(tCurr) end
@@ -282,9 +287,8 @@ local function buildApplication(self, tbl)
    if field.isElliptic ~= nil then ellipticFieldEqn = field.isElliptic end
 
    -- function to take a single forward-euler time-step
-   local function forwardEuler(tCurr, dt, inIdx, outIdx, evolveSpeciesIn)
+   local function forwardEuler(tCurr, dt, inIdx, outIdx)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local evolveSpecies = evolveSpeciesIn==nil or evolveSpeciesIn==true -- defaults to true
 
       -- update EM field
       for nm, s in pairs(species) do
@@ -315,14 +319,12 @@ local function buildApplication(self, tbl)
       
       -- update species
       for nm, s in pairs(species) do
-         if evolveSpecies then
-	    local myStatus, myDtSuggested = s:forwardEuler(
-	       tCurr, dt, speciesRkFields[nm][inIdx], {emRkFields[inIdx], emRkFuncFields[1]}, speciesRkFields[nm][outIdx])
+	 local myStatus, myDtSuggested = s:forwardEuler(
+	    tCurr, dt, speciesRkFields[nm][inIdx], {emRkFields[inIdx], emRkFuncFields[1]}, speciesRkFields[nm][outIdx])
 
-	    status = status and myStatus
-	    dtSuggested = math.min(dtSuggested, myDtSuggested)
-	    s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
-         end
+	 status = status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx], emRkFields[inIdx])
       end
       --update species with collisions
       for _, c in pairs(collisions) do
@@ -331,10 +333,18 @@ local function buildApplication(self, tbl)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 -- apply BC
+         -- NRM: @Petr, does collision updater require that species BCs have been set prior to call? 
+         -- NRM: if not, can remove applyBc from update species loop above and this loop below, and just have
+         -- NRM: one loop over all species that sets BCs before returning (as commented below)
 	 for _, nm in ipairs(c.speciesList) do
-	    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+	    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx], emRkFields[inIdx])
 	 end
       end
+
+      -- if collisions doesn't require BCs to be set before update, then just do BCs down here
+      --for nm, s in pairs(species) do
+      --   s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+      --end
 
       return status, dtSuggested
    end

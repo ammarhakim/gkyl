@@ -6,6 +6,16 @@ local DataStruct = require "DataStruct"
 
 local GkSpecies = Proto(KineticSpecies)
 
+-- add constants to object indicate various supported boundary conditions
+local SP_BC_ABSORB = 1
+local SP_BC_OPEN = 2
+local SP_BC_REFLECT = 3
+local SP_BC_SHEATH = 4
+GkSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
+GkSpecies.bcOpen = SP_BC_OPEN -- zero gradient
+GkSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
+GkSpecies.bcSheath = SP_BC_SHEATH -- specular reflection
+
 function GkSpecies:alloc(nRkDup)
    -- allocate distribution function
    GkSpecies.super.alloc(self, nRkDup)
@@ -148,12 +158,78 @@ function GkSpecies:createDiagnostics()
    end
 end
 
---function GkSpecies:write(tm)
---   GkSpecies.super.write(self, tm)
---   if self.distIoTrigger(tm) then
---      self.gkEqn:writeHamiltonian(self.distIo, tm) 
---   end
---end
+-- BC functions
+function GkSpecies:bcReflectFunc(dir, tm, xc, fIn, fOut)
+   -- skinLoop should be "flip"
+   self.basis:flipSign(dir, fIn, fOut)
+   -- GK reflection only makes sense in z-vpar
+   -- z is always last config space dir and vpar is always next
+   if dir==self.cdim then 
+      local vpardir=self.cdim+1 
+      self.basis:flipSign(vpardir, fOut, fOut)
+   end
+end
+function GkSpecies:bcPartialReflectFunc(dir, tm, xc, fIn, fOut, vcut)
+
+end
+function GkSpecies:bcSheathFunc(dir, tm, gridIn, fIn, fOut, phi)
+   -- if phi not passed in, do nothing
+   if phi == nil then return end
+
+   -- calculate sheath cutoff velocity
+   local vcut = nil
+
+   local vpardir = self.cdim+1
+   local vL = gridIn:cellLowerInDir(vpardir)
+   local vR = gridIn:cellUpperInDir(vpardir)
+   local vlower, vupper
+   if abs(vR)>abs(vL) then
+      vlower = abs(vL)
+      vupper = abs(vR)
+   else
+      vlower = abs(vR)
+      vupper = abs(vL)
+   end
+   if vcut < vlower then
+      self:bcReflectFunc(dir, tm, xc, fIn, fOut)
+   elseif vcut < vupper then
+      self:bcPartialReflectFunc(dir, tm, xc, fIn, fOut, vcut)
+   else
+      self:bcAbsorbFunc(dir, tm, xc, fIn, fOut)
+   end
+end
+
+function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
+   -- need to wrap member functions so that self is passed
+   local function bcAbsorbFunc(...) self:bcAbsorbFunc(...) end
+   local function bcOpenFunc(...) self:bcOpenFunc(...) end
+   local function bcReflectFunc(...) self:bcReflectFunc(...) end
+   local function bcSheathFunc(...) self:bcSheathFunc(...) end
+   
+   local vdir = nil
+   if dir==self.cdim then 
+      vdir=self.cdim+1 
+   end
+
+   if bcType == SP_BC_ABSORB then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorb }, "pointwise"))
+   elseif bcType == SP_BC_OPEN then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpen }, "pointwise"))
+   -- note: reflection and sheath BCs only make sense in z direction,
+   -- which is always last config space direction, i.e. dir = self.cdim
+   elseif bcType == SP_BC_REFLECT and dir==self.cdim then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflect }, "flip"))
+   elseif bcType == SP_BC_SHEATH and dir==self.cdim then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheath }, "flip"))
+   else
+      assert(false, "GkSpecies: Unsupported BC type!")
+   end
+end
+
+-- sheath BCs need phi
+function GkSpecies:getBcAux(potentials)
+   return potentials.phi
+end
 
 function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    -- compute moments needed in coupling to fields and collisions

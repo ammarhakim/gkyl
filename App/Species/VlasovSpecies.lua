@@ -6,6 +6,16 @@ local DataStruct = require "DataStruct"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
+-- add constants to object indicate various supported boundary conditions
+local SP_BC_ABSORB = 1
+local SP_BC_OPEN = 2
+local SP_BC_REFLECT = 3
+local SP_BC_SEE = 4
+VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
+VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
+VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
+VlasovSpecies.bcSEE = SP_BC_SEE -- specular reflection
+
 function VlasovSpecies:alloc(nRkDup)
    -- allocate distribution function
    VlasovSpecies.super.alloc(self, nRkDup)
@@ -22,6 +32,7 @@ function VlasovSpecies:allocMomCouplingFields()
    -- with single entry, i.e. space to store currents)
    return {currentDensity = self:allocVectorMoment(self.vdim)}
 end
+
 
 function VlasovSpecies:createSolver(hasE, hasB)
    -- create updater to advance solution by one time-step
@@ -127,6 +138,49 @@ function VlasovSpecies:createDiagnostics()
       else
          assert(false, string.format("Moment %s not valid", mom))
       end
+   end
+end
+
+-- BC functions
+function VlasovSpecies:bcReflectFunc(dir, tm, xc, fIn, fOut)
+   -- requires skinLoop = "flip"
+   -- get handle to function to compute basis functions at specified coordinates
+   local bName = ""
+   if self.basis:id() == "serendipity" then
+      bName = "Serendip"
+   else
+      bName = "MaxOrder"
+   end
+   local fName = "Basis._data.Modal" .. bName .. "BasisReflect" .. self.cdim .. "x" .. self.vdim .. "v"
+   local _m = require(fName)
+   local polyOrder = self.basis:polyOrder()
+   _m[polyOrder](dir, fIn, fOut) -- function to flip sign of both configuration and velocity component
+end
+
+function VlasovSpecies:bcSeeFunc(dir, tm, xcIn, xcOut, fIn, fOut)
+   -- requires skinLoop = "integrate"
+
+end
+
+function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
+   -- need to wrap member functions so that self is passed
+   local function bcAbsorbFunc(...) self:bcAbsorbFunc(...) end
+   local function bcOpenFunc(...) self:bcOpenFunc(...) end
+   local function bcReflectFunc(...) self:bcReflectFunc(...) end
+   local function bcSeeFunc(...) self:bcSeeFunc(...) end
+
+   local vdir = dir + self.cdim
+
+   if bcType == SP_BC_ABSORB then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
+   elseif bcType == SP_BC_OPEN then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpenFunc }, "pointwise"))
+   elseif bcType == SP_BC_REFLECT then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflectFunc }, "flip"))
+   elseif bcType == SP_BC_SEE then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSeeFunc }, "integrate"))
+   else
+      assert(false, "VlasovSpecies: Unsupported BC type!")
    end
 end
 

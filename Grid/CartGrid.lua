@@ -132,6 +132,12 @@ function RectCart:dx(dir) return self._dx[dir] end
 function RectCart:cellCenterInDir(d)
    return self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
 end
+function RectCart:cellLowerInDir(d)
+   return self:lower(d) + (self._currIdx[d]-1)*self:dx(d)
+end
+function RectCart:cellUpperInDir(d)
+   return self:lower(d) + (self._currIdx[d])*self:dx(d)
+end
 function RectCart:cellCenter(xc)
    for d = 1, self._ndim do
       xc[d] = self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)

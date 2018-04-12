@@ -43,6 +43,11 @@ function Bc:init(tbl)
 	 tbl.cdim,
 	 "Updater.Bc: Must specify configuration space dimensions to apply with 'cdim'")
    end
+   if self._skinLoop == "flip" then
+      self._vdir = assert(
+	 tbl.vdir,
+	 "Updater.Bc: Must specify velocity direction to flip with 'vdir'")
+   end
    if self._skinLoop == "integrate" then
       self._vdim = assert(
 	 tbl.vdim,
@@ -76,9 +81,11 @@ end
 
 function Bc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._grid
+   local aux = inFld[1]
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
    local dir, edge = self._dir, self._edge
+   local vdir = self._vdir
    local global = qOut:globalRange()
 
    if self._isFirst then
@@ -95,40 +102,35 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
    local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
    local indexer = qOut:genIndexer()
+   local auxS, auxIndexer = nil, nil
+   if aux then 
+      auxS = aux:get(1) 
+      auxIndexer = aux:genIndexer()
+   end
 
-   if self._skinLoop == "pointwise" then
-      for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
-	 idxG:copyInto(idxS)
-	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
-	 qOut:fill(indexer(idxG), qG); qOut:fill(indexer(idxS), qS)
-	 for _, bc in ipairs(self._bcList) do -- loop over each BC
-	    bc(dir, tCurr+dt, nil, qS, qG) -- TODO: PASS COORDINATES
-	 end
-      end
-   elseif self._skinLoop == "flip" then
-      local vdir = dir + self._cdim
-      for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
-	 idxG:copyInto(idxS)
-	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+   for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
+      idxG:copyInto(idxS)
+      idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+      if self._skinLoop == "flip" then
 	 idxS[vdir] = global:upper(vdir) + 1 - idxS[vdir]
-	 qOut:fill(indexer(idxG), qG); qOut:fill(indexer(idxS), qS)
-	 for _, bc in ipairs(self._bcList) do -- loop over each BC
-	    bc(dir, tCurr+dt, nil, qS, qG) -- TODO: PASS COORDINATES
-	 end
       end
-   elseif self._skinLoop == "integrate" then
-      for idxG in self._ghost:colMajorIter() do -- loop over ghost cells
-	 qOut:fill(indexer(idxG), qG)
-	 idxG:copyInto(idxS)
-	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
-	 for c = 1, self._numComponetns do qG[c] = 0 end -- clear the ghost cells before accumulating
-	 for idx in self._skin:colMajorIter() do -- loop over the skin cells
+      qOut:fill(indexer(idxG), qG) 
+      if self._skinLoop == "integrate" then 
+	 for c = 1, self._numComponents do qG[c] = 0 end -- clear the ghost cells before accumulating
+         for idx in self._skin:colMajorIter() do
 	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
 	    qOut:fill(indexer(idxS), qS)
-	    for _, bc in ipairs(self._bcList) do -- loop over each BC
-	       bc(dir, tCurr+dt, zS, zG, qS, qG)
-	    end
-	 end
+            if aux then aux:fill(auxIndexer(idxS), auxS) end
+            for _, bc in ipairs(self._bcList) do -- loop over each BC
+               bc(dir, tCurr+dt, grid:setIndex(idxS), qS, qG, auxS) -- TODO: PASS COORDINATES
+            end
+         end
+      else
+         qOut:fill(indexer(idxS), qS)
+         if aux then aux:fill(auxIndexer(idxS), auxS) end
+         for _, bc in ipairs(self._bcList) do -- loop over each BC
+            bc(dir, tCurr+dt, grid:setIndex(idxS), qS, qG, auxS) -- TODO: PASS COORDINATES
+         end
       end
    end
 
