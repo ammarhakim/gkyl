@@ -80,7 +80,7 @@ end
 function Vlasov:numEquations() return 1 end
 function Vlasov:numWaves() return 1 end
 function Vlasov:isPositive(q)
-   if q[0] > 0.0 then
+   if q[1] > 0.0 then
       return true
    else
       return false
