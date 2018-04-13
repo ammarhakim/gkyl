@@ -41,7 +41,7 @@ end
 function ConstDiffusion:numEquations() return 1 end
 function ConstDiffusion:numWaves() return 1 end
 function ConstDiffusion:isPositive(q)
-   if q[0] > 0.0 then
+   if q[1] > 0.0 then
       return true
    else
       return false
