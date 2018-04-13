@@ -1,0 +1,40 @@
+cvars : [X, Y, Z]$
+
+fh : openw("~/max-out/ConstDiffusionModDecl.h")$
+
+printf(fh, "#ifndef CONSTDIFFUSION_MOD_DELC_H ~%")$
+printf(fh, "#define CONSTDIFFUSION_MOD_DELC_H ~%")$
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "extern \"C\" { ~%")$
+
+for ci : 1 thru 3 do (
+    for pi : 1 thru 4 do (
+      printf(fh, "double ConstDiffusionVol~axMaxP~a(const double *w, const double *dxv, const double nu, const double *f, double *out); ~%", ci, pi),
+      for si : 1 thru ci do (
+        printf(fh, "void ConstDiffusionSurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const doubel nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+      ),
+      printf(fh, "~%")      
+    ),
+    printf(fh, "~%")
+)$
+
+printf(fh, "~% ~%")$
+
+for ci : 1 thru 3 do (
+    for pi : 1 thru 4 do (
+      printf(fh, "double ConstDiffusionVol~axSerP~a(const double *w, const double *dxv, const double nu, const double *f, double *out); ~%", ci, pi),
+      for si : 1 thru ci do (
+        printf(fh, "void ConstDiffusionSurf~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+      ),
+      printf(fh, "~%")
+    ),
+    printf(fh, "~%")
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$
