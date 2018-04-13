@@ -142,7 +142,7 @@ function VlasovSpecies:createDiagnostics()
 end
 
 -- BC functions
-function VlasovSpecies:bcReflectFunc(dir, tm, xc, fIn, fOut)
+function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "flip"
    -- get handle to function to compute basis functions at specified coordinates
    local bName = ""
@@ -155,9 +155,13 @@ function VlasovSpecies:bcReflectFunc(dir, tm, xc, fIn, fOut)
    local _m = require(fName)
    local polyOrder = self.basis:polyOrder()
    _m[polyOrder](dir, fIn, fOut) -- function to flip sign of both configuration and velocity component
+
+   -- NRM: note that same behavior can be obtained from the following
+   --self.basis:flipSign(dir, fIn, fOut)
+   --self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
-function VlasovSpecies:bcSeeFunc(dir, tm, xcIn, xcOut, fIn, fOut)
+function VlasovSpecies:bcSeeFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "integrate"
 
 end

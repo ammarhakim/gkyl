@@ -81,7 +81,6 @@ end
 
 function Bc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._grid
-   local aux = inFld[1]
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
 
    local dir, edge = self._dir, self._edge
@@ -102,11 +101,6 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
    local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
    local indexer = qOut:genIndexer()
-   local auxS, auxIndexer = nil, nil
-   if aux then 
-      auxS = aux:get(1) 
-      auxIndexer = aux:genIndexer()
-   end
 
    for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
       idxG:copyInto(idxS)
@@ -120,16 +114,14 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
          for idx in self._skin:colMajorIter() do
 	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
 	    qOut:fill(indexer(idxS), qS)
-            if aux then aux:fill(auxIndexer(idxS), auxS) end
             for _, bc in ipairs(self._bcList) do -- loop over each BC
-               bc(dir, tCurr+dt, grid:setIndex(idxS), qS, qG, auxS) -- TODO: PASS COORDINATES
+               bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
             end
          end
       else
          qOut:fill(indexer(idxS), qS)
-         if aux then aux:fill(auxIndexer(idxS), auxS) end
          for _, bc in ipairs(self._bcList) do -- loop over each BC
-            bc(dir, tCurr+dt, grid:setIndex(idxS), qS, qG, auxS) -- TODO: PASS COORDINATES
+            bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
          end
       end
    end
