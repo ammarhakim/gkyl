@@ -10,7 +10,7 @@ double ConstDiffusionVol2xSerP1(const double *w, const double *dxv, const double
   out[2] += 3.0*rdx[1]*f[2]*nu; 
   out[3] += 3.0*rdx[1]*f[3]*nu+3.0*rdx[0]*f[3]*nu; 
 
-return std::nu*(rdx[0]+rdx[1])*0.5; 
+return nu*(rdx[0]+rdx[1])*0.5; 
 
 } 
 double ConstDiffusionVol2xSerP2(const double *w, const double *dxv, const double nu, const double *f, double *out) 
@@ -28,7 +28,7 @@ double ConstDiffusionVol2xSerP2(const double *w, const double *dxv, const double
   out[6] += 3.0*rdx[1]*f[6]*nu+15.0*rdx[0]*f[6]*nu; 
   out[7] += 15.0*rdx[1]*f[7]*nu+3.0*rdx[0]*f[7]*nu; 
 
-return std::nu*(rdx[0]+rdx[1])*0.5; 
+return nu*(rdx[0]+rdx[1])*0.5; 
 
 } 
 double ConstDiffusionVol2xSerP3(const double *w, const double *dxv, const double nu, const double *f, double *out) 
@@ -50,7 +50,7 @@ double ConstDiffusionVol2xSerP3(const double *w, const double *dxv, const double
   out[10] += 3.0*rdx[1]*f[10]*nu+42.0*rdx[0]*f[10]*nu+4.58257569495584*rdx[0]*f[3]*nu; 
   out[11] += 42.0*rdx[1]*f[11]*nu+3.0*rdx[0]*f[11]*nu+4.58257569495584*rdx[1]*f[3]*nu; 
 
-return std::nu*(rdx[0]+rdx[1])*0.5; 
+return nu*(rdx[0]+rdx[1])*0.5; 
 
 } 
 double ConstDiffusionVol2xSerP4(const double *w, const double *dxv, const double nu, const double *f, double *out) 
@@ -77,6 +77,6 @@ double ConstDiffusionVol2xSerP4(const double *w, const double *dxv, const double
   out[15] += 3.0*rdx[1]*f[15]*nu+90.0*rdx[0]*f[15]*nu+20.1246117974981*rdx[0]*f[6]*nu; 
   out[16] += 90.0*rdx[1]*f[16]*nu+3.0*rdx[0]*f[16]*nu+20.1246117974981*rdx[1]*f[7]*nu; 
 
-return std::nu*(rdx[0]+rdx[1])*0.5; 
+return nu*(rdx[0]+rdx[1])*0.5; 
 
 } 
