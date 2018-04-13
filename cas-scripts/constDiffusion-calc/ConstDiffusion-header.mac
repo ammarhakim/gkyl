@@ -11,7 +11,7 @@ for ci : 1 thru 3 do (
     for pi : 1 thru 4 do (
       printf(fh, "double ConstDiffusionVol~axMaxP~a(const double *w, const double *dxv, const double nu, const double *f, double *out); ~%", ci, pi),
       for si : 1 thru ci do (
-        printf(fh, "void ConstDiffusionSurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const doubel nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+        printf(fh, "void ConstDiffusionSurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
       ),
       printf(fh, "~%")      
     ),
