@@ -9,6 +9,14 @@ def build(bld):
     bld.objects(source = r"""
     TenMomentImpl.cpp
 
+    constDiffusionData/ConstDiffusionSer1x.cpp
+    constDiffusionData/ConstDiffusionSer2x.cpp
+    constDiffusionData/ConstDiffusionSer3x.cpp
+
+    constDiffusionData/ConstDiffusionSurfSer1x.cpp
+    constDiffusionData/ConstDiffusionSurfSer2x.cpp
+    constDiffusionData/ConstDiffusionSurfSer3x.cpp
+
     maxwellData/MaxwellVolSer1x.cpp
     maxwellData/MaxwellVolSer2x.cpp
     maxwellData/MaxwellVolSer3x.cpp
@@ -91,6 +99,6 @@ def build(bld):
     gkData/GyrokineticSurfSer3x2v.cpp
 
     """,
-    target = 'eq', includes = '. maxwellData vlasovData pbData gkData'
+    target = 'eq', includes = '. constDiffusionData maxwellData vlasovData pbData gkData'
     )
 
