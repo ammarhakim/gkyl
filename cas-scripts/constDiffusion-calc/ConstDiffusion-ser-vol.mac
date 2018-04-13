@@ -1,0 +1,13 @@
+load("/Users/mana/Documents/Research/Gkeyll/Code/RecoveryModal/ConstDiffusion-vol")$
+load(stringproc)$
+
+/* Maximum polynomial order to generate kernels for */
+inMaxPolyOrder : 4$
+
+for c : 1 thru 3 do (
+  fname : sconcat("~/max-out/ConstDiffusionSer", c, "x", ".cpp"),
+  fh : openw(fname),
+  funcName : sconcat("ConstDiffusionVol", c, "x", "Ser"),
+  calcConstDiffusionVolUpdater(fh, funcName, c, "Ser", inMaxPolyOrder),
+  close(fh)
+);
