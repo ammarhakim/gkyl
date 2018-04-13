@@ -159,43 +159,74 @@ function GkSpecies:createDiagnostics()
 end
 
 -- BC functions
-function GkSpecies:bcReflectFunc(dir, tm, xc, fIn, fOut)
+function GkSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
    -- skinLoop should be "flip"
+   -- note that GK reflection only valid in z-vpar.
+   -- this is checked when bc is created.
+
    self.basis:flipSign(dir, fIn, fOut)
-   -- GK reflection only makes sense in z-vpar
-   -- z is always last config space dir and vpar is always next
-   if dir==self.cdim then 
-      local vpardir=self.cdim+1 
-      self.basis:flipSign(vpardir, fOut, fOut)
+   -- vpar is always first velocity dimension
+   local vpardir=self.cdim+1 
+   self.basis:flipSign(vpardir, fOut, fOut)
+end
+function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
+   -- skinLoop should be "flip"
+   -- note that GK reflection only valid in z-vpar.
+   -- this is checked when bc is created.
+
+   -- need to figure out if we are on lower or upper domain edge
+   local global = fOut:globalRange()
+   local edgeVal
+   if idxIn[dir] == global:lower(dir) then 
+      -- this means we are at lower domain edge, 
+      -- so we need to evaluate basis functions at z=-1
+      edgeVal = -1 
+   else 
+      -- this means we are at upper domain edge
+      -- so we need to evaluate basis functions at z=1
+      edgeVal = 1 
    end
-end
-function GkSpecies:bcPartialReflectFunc(dir, tm, xc, fIn, fOut, vcut)
+   -- calculate deltaPhi = phi - phiWall
+   -- note: this gives surface-averaged scalar value of deltaPhi in this cell
+   local deltaPhi = self.gkEqn:calcSheathDeltaPhi(idxIn, edgeVal)
 
-end
-function GkSpecies:bcSheathFunc(dir, tm, gridIn, fIn, fOut, phi)
-   -- if phi not passed in, do nothing
-   if phi == nil then return end
-
-   -- calculate sheath cutoff velocity
-   local vcut = nil
-
+   -- get vpar limits of cell
    local vpardir = self.cdim+1
+   local gridIn = self.grid:setIndex(idxIn)
    local vL = gridIn:cellLowerInDir(vpardir)
    local vR = gridIn:cellUpperInDir(vpardir)
    local vlower, vupper
-   if abs(vR)>abs(vL) then
-      vlower = abs(vL)
-      vupper = abs(vR)
+   -- this makes it so that we only need to deal with absolute values of vpar
+   if abs(vR)>=abs(vL) then
+      vlower = math.abs(vL)
+      vupper = math.abs(vR)
    else
-      vlower = abs(vR)
-      vupper = abs(vL)
+      vlower = math.abs(vR)
+      vupper = math.abs(vL)
    end
-   if vcut < vlower then
-      self:bcReflectFunc(dir, tm, xc, fIn, fOut)
-   elseif vcut < vupper then
-      self:bcPartialReflectFunc(dir, tm, xc, fIn, fOut, vcut)
-   else
-      self:bcAbsorbFunc(dir, tm, xc, fIn, fOut)
+   if -self.charge*deltaPhi > 0 then
+      -- calculate cutoff velocity for reflection
+      local vcut = math.sqrt(-2*self.charge*deltaPhi/self.mass)
+      if vcut > vupper then
+         -- reflect if vcut is above the velocities in this cell
+         self:bcReflectFunc(dir, tm, nil, fIn, fOut)
+      elseif vcut > vlower then
+          -- partial reflect if vcut is in this velocity cell
+          local fhat = self.fhatSheathPtr
+          self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
+          local w = gridIn:cellCenterInDir(vpardir)
+          local dv = gridIn:dx(vpardir)
+          -- calculate weak-equivalent distribution fhat
+          self.gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
+          -- reflect fhat into skin cells
+          self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
+      else
+         -- absorb if vcut is below the velocities in this cell
+         self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
+      end
+   else 
+      -- entire species (usually ions) is lost
+      self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
    end
 end
 
@@ -220,15 +251,13 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    elseif bcType == SP_BC_REFLECT and dir==self.cdim then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflect }, "flip"))
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
+      self.fhatSheath = self:allocDistf()
+      self.fhatSheathPtr = self.fhatSheath:get(1)
+      self.fhatSheathIdxr = self.fhatSheath:genIndexer()
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheath }, "flip"))
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end
-end
-
--- sheath BCs need phi
-function GkSpecies:getBcAux(potentials)
-   return potentials.phi
 end
 
 function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
