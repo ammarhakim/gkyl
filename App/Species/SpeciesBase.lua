@@ -4,25 +4,25 @@ local Proto = require "Lib.Proto"
 local SpeciesBase = Proto()
 
 -- functions that must be defined by subclasses
-function SpeciesBase:init() end
-function SpeciesBase:fullInit() end
-function SpeciesBase:setName() end
-function SpeciesBase:setIoMethod() end
-function SpeciesBase:createGrid() end
-function SpeciesBase:setConfBasis() end
+function SpeciesBase:init(tbl) end
+function SpeciesBase:fullInit(appTbl) end
+function SpeciesBase:setName(nm) end
+function SpeciesBase:setIoMethod(ioMethod) end
+function SpeciesBase:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs, cMap) end
+function SpeciesBase:setConfBasis(basis) end
 function SpeciesBase:createBasis() end
-function SpeciesBase:setConfGrid() end
-function SpeciesBase:alloc() end
-function SpeciesBase:setCfl() end
+function SpeciesBase:setConfGrid(grid) end
+function SpeciesBase:alloc(nRkDup) end
+function SpeciesBase:setCfl(cfl) end
 function SpeciesBase:getNdim() end
 function SpeciesBase:createSolver() end
 function SpeciesBase:createDiagnostics() end
 function SpeciesBase:rkStepperFields() end
 function SpeciesBase:initDist() end
 function SpeciesBase:calcCouplingMoments() end
-function SpeciesBase:write() end
-function SpeciesBase:forwardEuler() end
-function SpeciesBase:applyBc() end
+function SpeciesBase:write(tm) end
+function SpeciesBase:forwardEuler(tCurr, dt, fIn, emIn, fOut) end
+function SpeciesBase:applyBc(tCurr, dt, fld) end
 function SpeciesBase:totalSolverTime() end
 function SpeciesBase:momCalcTime() end
 function SpeciesBase:intMomCalcTime() end
