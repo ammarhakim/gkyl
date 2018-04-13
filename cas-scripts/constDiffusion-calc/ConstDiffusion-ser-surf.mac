@@ -1,4 +1,4 @@
-load("/Users/mana/Documents/Research/Gkeyll/Code/RecoveryModal/ConstDiffusion-surf")$
+load("constDiffusion-calc/ConstDiffusion-surf")$
 load(stringproc)$
 
 /* Maximum polynomial order to generate kernels for */
