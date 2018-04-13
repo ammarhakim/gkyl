@@ -1,0 +1,99 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+gkvsub:[vx=vpar,vy=mu];
+
+calcGkSheathFuncs(fh, cdim, vdim, basisFun, pmax) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : subst(gkvsub, basisP[p]),
+  bC : basisC[p],
+
+/* function to compute surface-average deltaPhi */
+  funcNm : sconcat("calcSheathDeltaPhi", cdim, "x", basisFun),
+  printf(fh, "double ~a_P~a(const double *phi, const double *phiWall, const double zVal) ~%{ ~%", funcNm, p),
+
+  /* get name of last config space dimension, which is assumed to be z */
+  zVar : varsC[cdim],
+
+  phiSheath_expd : subst(zVar=zVal,doExpand1(phi, bC)),
+  /* assume wall potential specified without z dependence */
+  phiWall_expd : subst(zVar=0,doExpand1(phiWall, bC)),
+
+  deltaPhi_expd : phiSheath_expd - phiWall_expd,
+  /* we will use surface-center value. we already got rid of zVar, but we need to set other config coords to 0 */
+  deltaPhi0 : subst([x=0,y=0,z=0], deltaPhi_expd),
+  printf(fh, "  return ~a; ~%", float(deltaPhi0)),
+  printf(fh, "}~%~%"),
+
+/* function to compute weak-equivalent partially-reflected distribution fhat */
+
+  funcNm : sconcat("calcSheathPartialReflection", cdim, "x", vdim, "v", basisFun),
+  printf(fh, "void ~a_P~a(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
+
+  varsP : subst(gkvsub, varsP),
+  if vdim=1 then varsV:[vpar] else varsV:[vpar,mu],
+
+  edgesub : [zVar=zVal],
+
+  /* expand f at upper z edge */
+  f_expd : subst(edgesub, doExpand1(f, bP)),
+  /* we also expand fhat at the upper z edge, but we don't care about
+     z dependence of fhat, so we just take z=0 in the expansion */
+  fhat_expd : subst(zVar=0, doExpand1(fhat, bP)),
+
+  /* make sure velocity integration vars are first, and remove z from integral */
+  /* we do this in case vcut depends on x and y at some point */
+  intVars : flatten([varsV,delete(zVar,varsC)]),
+  lims : makelist([-1,1],i,1,length(varsP)-1),
+  cutlims : makelist([-1,1],i,1,length(varsP)-1),
+  /* first velocity dim is always vpar, and we need to modify the upper integration limit */
+  cutlims[1] : [-1,2*(vcut-wv)/dv],
+
+  bPz : subst(edgesub,bP),
+  
+  /* project f onto basis at z surface */
+  f_k:fullratsimp(innerProdGen(intVars,lims,1,bPz,f_expd)),
+
+  /* project fhat onto basis at z surface, but with modified upper vpar limit */
+  fhat_k:fullratsimp(innerProdGen(intVars,cutlims,1,bPz,fhat_expd)),
+
+  /* set up system to solve weak-equivalence */
+  eqns : makelist(f_k[i]=fhat_k[i],i,1,length(fhat_k)),
+  sol : fullratsimp(linsolve(eqns,makelist(fhat[i],i,0,length(fhat_k)-1))),
+
+  /* substitute fhat solution into fhat expansion, and then 
+     project onto entire basis (instead of just basis at surface)
+     this gets rid of any redundancy in solution */
+  sol_k : fullratsimp(innerProd(varsP, 1, bP, subst(sol, fhat_expd))),
+  /* get common denominator */
+  denomExpr : denom(fullratsimp(subst(sol,fhat_expd))),
+
+  powersimp:[wv^2=wv2, wv^3=wv3, vcut^2=vcut2, vcut^3=vcut3, dv^2=dv2, dv^3=dv3],
+  printf(fh, "  double wv2 = wv*wv; ~%"),
+  printf(fh, "  double wv3 = wv2*wv; ~%"),
+  printf(fh, "  double dv2 = dv*dv; ~%"),
+  printf(fh, "  double dv3 = dv2*dv; ~%"),
+  printf(fh, "  double vcut2 = vcut*vcut; ~%"),
+  printf(fh, "  double vcut3 = vcut2*vcut; ~%"),
+
+  printf(fh, "  double denom = ~a; ~%", subst(powersimp, denomExpr)),
+  writeCExprsWithZerosNoExpand1(fhat, fullratsimp(subst(powersimp, sol_k*denomExpr/denom))),
+
+  printf(fh, "} ~%~%")
+
+))$
+
+pmax:1;
+fname : "~/max-out/GkSheathFuncsSer.cpp";
+fh : openw(fname);
+for c : 1 thru 3 do (
+v:2,
+if c=1 then v:1,
+calcGkSheathFuncs(fh, c, v, "Ser", pmax)
+);
+close(fh);

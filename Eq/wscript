@@ -97,6 +97,7 @@ def build(bld):
     gkData/GyrokineticSer3x2v.cpp
     gkData/GyrokineticSurfSer2x2v.cpp
     gkData/GyrokineticSurfSer3x2v.cpp
+    gkData/GkSheathFuncsSer.cpp
 
     """,
     target = 'eq', includes = '. constDiffusionData maxwellData vlasovData pbData gkData'
