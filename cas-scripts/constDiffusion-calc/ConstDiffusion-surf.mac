@@ -89,10 +89,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     
     /* Contribution to vector to the left and right of the boundary. */
     /* No need to deal with the (identity) mass matrix. */    
-/*    incr_l : colVecToList(fullratsimp(invM.makelist(subst(1,z,bC[i]*hsol[2]),i,1,N)))$   */
-/*    incr_r : colVecToList(fullratsimp(invM.makelist(subst(-1,z,-bC[i]*hsol[2]),i,1,N)))$ */
-    incr_l : calcInnerProdList(surfVars,-1,subst(cv=1,bC),hsol[2]),
-    incr_r : calcInnerProdList(surfVars,1,subst(cv=-1,bC),hsol[2]),
+    incr_l : calcInnerProdList(surfVars,1,subst(cv=1,bC),hsol[2]),
+    incr_r : calcInnerProdList(surfVars,-1,subst(cv=-1,bC),hsol[2]),
     
     printf(fh, "void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
     printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
@@ -104,6 +102,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "~%"),
   
     clst : [wxr, dvxr],
+    disp(incr),
+    disp(incr_r),
+    disp(clst),
     writeCExprsCollect1(incr, incr_r, clst),
     printf(fh, "~%"),
   

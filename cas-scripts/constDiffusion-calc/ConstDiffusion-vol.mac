@@ -57,7 +57,9 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
       if (incr_r[i] = 0) then
         incr_s[i] : 0
     ), */
-    writeCIncrExprs1(out, nu*incr),
+    /* The minus here is the one in front of the volume
+       term coming from integrating by parts. */
+    writeCIncrExprs1(out, -nu*incr),
     printf(fh, "~%"),
 
     if cdim = 1 then (
