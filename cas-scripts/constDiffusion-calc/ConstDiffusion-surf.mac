@@ -102,9 +102,6 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "~%"),
   
     clst : [wxr, dvxr],
-    disp(incr),
-    disp(incr_r),
-    disp(clst),
     writeCExprsCollect1(incr, incr_r, clst),
     printf(fh, "~%"),
   
