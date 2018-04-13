@@ -1,0 +1,76 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the surface term kernels needed
+   for applying second order diffusion in all directions */
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+
+calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
+  printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+    load(modNm),
+
+    /* Polynomial basis and its derivatives. */
+    bC : basisC[polyOrder],
+    N : length(bC),
+    bCp : diff(bC,x),
+
+    fg : doExpand(f, bC),	/* Function expanded in basis. */
+    fg : subst(makelist(f[i]=f[i-1],i,1,N),fg),
+    
+    /* Mass matrix. Not needed. */
+/*    M : calcMassMatrix(varsC,1,bC),
+    invM : invert(M), */
+
+    /* Volume matrix (convolution of derivatives). */
+/*    sgen[i,j] := innerProd(varsC,1,bCp[i],bCp[j]),
+    S : genmatrix(sgen,N,N), 
+    incr : S.fg, */
+    incr : (
+      incr : 0,
+      for dir : 1 thru cdim do (
+        incr : incr+calcInnerProdList(varsC,rdx[dir-1],diff(bC,varsC[dir]),diff(fg,varsC[dir]))
+      ),
+      incr
+    ),
+
+    /* Contribution to vector of the boundary. */
+    
+    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double nu, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output ~%"),
+    cid : cidx(cdim),
+    printf(fh, "  double rdx[~a]; ~%", cdim),
+    for dir : 1 thru cdim do (
+      printf(fh, "  rdx[~a] = 4.0/(dxv[~a]*dxv[~a]); ~%", dir-1, dir-1, dir-1)
+    ),
+    printf(fh, "~%"),
+  
+/*    Don't do coefficients where the increment is zero 
+    for i : 1 thru N do (
+      if (incr_r[i] = 0) then
+        incr_s[i] : 0
+    ), */
+    writeCIncrExprs1(out, nu*incr),
+    printf(fh, "~%"),
+
+    if cdim = 1 then (
+      printf(fh, "return std::nu*rdx[0]*0.5; ~%")
+    ),
+    if cdim = 2 then (
+      printf(fh, "return std::nu*(rdx[0]+rdx[1])*0.5; ~%")
+    ),
+    if cdim = 3 then (
+      printf(fh, "return std::nu*(rdx[0]+rdx[1]+rdx[2])*0.5; ~%")
+    ),
+    printf(fh, "~%"),
+  
+    printf(fh, "} ~%")
+));
+
