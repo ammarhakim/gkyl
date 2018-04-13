@@ -283,14 +283,14 @@ function KineticSpecies:allocVectorMoment(dim)
 end
 
 -- various functions to apply BCs of different types
-function KineticSpecies:bcAbsorbFunc(dir, tm, xc, fIn, fOut)
+function KineticSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
    -- note that for bcAbsorb there is no operation on fIn,
    -- so skinLoop (which determines indexing of fIn) does not matter 
    for i = 1, self.basis:numBasis() do
       fOut[i] = 0.0
    end
 end
-function KineticSpecies:bcOpenFunc(dir, tm, xc, fIn, fOut)
+function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "pointwise"
    self.basis:flipSign(dir, fIn, fOut)
 end
@@ -377,16 +377,10 @@ function KineticSpecies:rkStepperFields()
    return self.distf
 end
 
-function KineticSpecies:getBcAux(em)
-   return nil
-end
-
 function KineticSpecies:applyBc(tCurr, dt, fIn, emIn, emFuncIn)
    -- fIn is total distribution function
 
    local syncPeriodicDirsTrue = true
-   local bcAux = self:getBcAux(emIn)
-   local bcAuxFunc = self:getBcAux(emFuncIn)
 
    if self.fluctuationBCs then
      -- if fluctuation-only BCs, subtract off background before applying BCs
@@ -396,7 +390,7 @@ function KineticSpecies:applyBc(tCurr, dt, fIn, emIn, emFuncIn)
    -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
-	 bc:advance(tCurr, dt, {bcAux, bcAuxFunc}, {fIn})
+	 bc:advance(tCurr, dt, {}, {fIn})
       end
    end
 

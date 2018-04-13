@@ -296,6 +296,9 @@ function GkGeometry:fullInit(appTbl)
    self.bmagFunc = assert(tbl.bmag, "GkGeometry: must specify background magnetic field with 'bmag'")
    -- get function to initialize bcurvY = 1/B*curl(bhat).grad(y)
    self.bcurvYFunc = tbl.bcurvY
+
+   -- wall potential for sheath BCs
+   self.phiWallFunc = tbl.phiWall
 end
 
 function GkGeometry:hasEB() end
@@ -326,6 +329,14 @@ function GkGeometry:alloc()
 
    -- 1/B*curl(bhat).grad(y) ... contains curvature info
    self.geo.bcurvY = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
+   -- wall potential for sheath BCs
+   self.geo.phiWall = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
@@ -363,6 +374,14 @@ function GkGeometry:createSolver()
          evaluate = self.bcurvYFunc
       }
    end
+   if self.phiWallFunc then 
+      self.setPhiWall = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.phiWallFunc
+      }
+   end
 end
 
 function GkGeometry:createDiagnostics()
@@ -371,13 +390,16 @@ end
 function GkGeometry:initField()
    self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
    self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
-   if self.setBcurvY  then self.setBcurvY:advance(0.0, 0.0, {}, {self.geo.bcurvY})
+   if self.setBcurvY then self.setBcurvY:advance(0.0, 0.0, {}, {self.geo.bcurvY})
    else self.geo.bcurvY:clear(0.0) end
+   if self.setPhiWall then self.setPhiWall:advance(0.0, 0.0, {}, {self.geo.phiWall})
+   else self.geo.phiWall:clear(0.0) end
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
    self.geo.bcurvY:sync(false)
+   self.geo.phiWall:sync(false)
 end
 
 function GkGeometry:write(tm)
@@ -403,11 +425,16 @@ function GkGeometry:rkStepperFields()
 end
 
 function GkGeometry:forwardEuler(tCurr, dt, momIn, geoIn, geoOut)
-   assert(self.evolve==false, "Evolving GkGeometry not supported")
+   if self.evolve then 
+      self.setPhiWall:advance(tCurr, dt, {}, self.geo.phiWall)
+   end 
    return true, GKYL_MAX_DOUBLE
 end
 
 function GkGeometry:applyBc(tCurr, dt, geoIn)
+   if self.evolve then 
+      self.geo.phiWall:sync(false)
+   end
 end
 
 function GkGeometry:totalSolverTime()

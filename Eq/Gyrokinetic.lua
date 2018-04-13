@@ -48,13 +48,18 @@ function Gyrokinetic:init(tbl)
    self._volTerm = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p)
    self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p)
 
+   self._calcSheathDeltaPhi = GyrokineticModDecl.selectSheathDeltaPhi(nm, self._cdim, p)
+   self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
+
    self._isFirst = true
    self.phiPtr = nil
    self.bmagPtr = nil
    self.bcurvYPtr = nil
+   self.phiWallPtr = nil
    self.phiIdxr = nil
    self.bmagIdxr = nil
    self.bcurvYIdxr = nil
+   self.phiWallIdxr = nil
 end
 
 function Gyrokinetic:setAuxFields(auxFields)
@@ -68,6 +73,7 @@ function Gyrokinetic:setAuxFields(auxFields)
    self.bmag = geo.bmag
    self.bmagInv = geo.bmagInv
    self.bcurvY = geo.bcurvY
+   self.phiWall = geo.phiWall  -- for sheath BCs
 
    if self._isFirst then
       -- allocate pointers to field objects
@@ -75,10 +81,12 @@ function Gyrokinetic:setAuxFields(auxFields)
       self.bmagPtr = self.bmag:get(1)
       self.bmagInvPtr = self.bmagInv:get(1)
       self.bcurvYPtr = self.bcurvY:get(1)
+      self.phiWallPtr = self.phiWall:get(1)
       self.phiIdxr = self.phi:genIndexer()
       self.bmagIdxr = self.bmag:genIndexer()
       self.bmagInvIdxr = self.bmagInv:genIndexer()
       self.bcurvYIdxr = self.bcurvY:genIndexer()
+      self.phiWallIdxr = self.phiWall:genIndexer()
       self._isFirst = false -- no longer first time
    end
 end
@@ -99,6 +107,17 @@ function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, o
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
    self.bcurvY:fill(self.bcurvYIdxr(idxr), self.bcurvYPtr)
    return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+end
+
+-- calculate deltaPhi at domain edge for sheath BCs
+function Gyrokinetic:calcSheathDeltaPhi(idx, edgeVal) 
+   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   self.phiWall:fill(self.phiWallIdxr(idx), self.phiWallPtr)
+   return self._calcSheathDeltaPhi(phi:data(), phiWall:data(), edgeVal)
+end
+-- calculate deltaPhi at domain edge for sheath BCs
+function Gyrokinetic:calcSheathPartialReflection(w, dv, edgeVal, vcut, f, fhat)
+   return self._calcSheathPartialReflection(w, dv, edgeVal, vcut, f:data(), fhat:data())
 end
 
 return Gyrokinetic
