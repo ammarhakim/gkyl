@@ -189,3 +189,8 @@ $cmd
 cmd="$GKYL test_CalcDiagnostic.lua"
 echo "${ctext}${cmd}${reset}"
 $cmd
+
+# ProtoObjectWrapper
+cmd="$GKYL test_ProtoObjectWrapper.lua"
+echo "${ctext}${cmd}${reset}"
+$cmd
