@@ -168,10 +168,10 @@ end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- need to wrap member functions so that self is passed
-   local function bcAbsorbFunc(...) self:bcAbsorbFunc(...) end
-   local function bcOpenFunc(...) self:bcOpenFunc(...) end
-   local function bcReflectFunc(...) self:bcReflectFunc(...) end
-   local function bcSeeFunc(...) self:bcSeeFunc(...) end
+   local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
+   local function bcOpenFunc(...) return self:bcOpenFunc(...) end
+   local function bcReflectFunc(...) return self:bcReflectFunc(...) end
+   local function bcSeeFunc(...) return self:bcSeeFunc(...) end
 
    local vdir = dir + self.cdim
 
