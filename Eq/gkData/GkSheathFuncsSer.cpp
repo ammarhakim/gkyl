@@ -1,3 +1,4 @@
+#include <GyrokineticModDecl.h> 
 double calcSheathDeltaPhi1xSer_P1(const double *phi, const double *phiWall, const double zVal) 
 { 
   return 1.224744871391589*phi[1]*zVal-0.7071067811865475*phiWall[0]+0.7071067811865475*phi[0]; 

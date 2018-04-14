@@ -48,6 +48,7 @@ function Gyrokinetic:init(tbl)
    self._volTerm = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p)
    self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p)
 
+   -- for sheath BCs
    self._calcSheathDeltaPhi = GyrokineticModDecl.selectSheathDeltaPhi(nm, self._cdim, p)
    self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
 
