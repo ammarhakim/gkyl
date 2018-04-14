@@ -33,6 +33,21 @@ function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
+function GkSpecies:initDist(geo)
+   -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
+   self.jacobian = geo.bmag
+   if self.jacobian then
+      self.initFunc = function (t, xn)
+         return self.jacobian(t,xn)*self.initFunc(t,xn)
+      end
+      self.initBackgroundFunc = function(t,xn)
+         return self.jacobian(t,xn)*self.initBackgroundFunc(t,xn)
+      end
+   end
+
+   GkSpecies.super.initDist(self)
+end
+
 function GkSpecies:createSolver(hasPhi, hasApar)
    -- create updater to advance solution by one time-step
    self.gkEqn = GkEq {
@@ -232,10 +247,10 @@ end
 
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- need to wrap member functions so that self is passed
-   local function bcAbsorbFunc(...) self:bcAbsorbFunc(...) end
-   local function bcOpenFunc(...) self:bcOpenFunc(...) end
-   local function bcReflectFunc(...) self:bcReflectFunc(...) end
-   local function bcSheathFunc(...) self:bcSheathFunc(...) end
+   local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
+   local function bcOpenFunc(...) return  self:bcOpenFunc(...) end
+   local function bcReflectFunc(...) return self:bcReflectFunc(...) end
+   local function bcSheathFunc(...) return self:bcSheathFunc(...) end
    
    local vdir = nil
    if dir==self.cdim then 
