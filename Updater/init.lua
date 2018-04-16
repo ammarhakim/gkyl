@@ -18,18 +18,20 @@ local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local WavePropagation = require "Updater.WavePropagation"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local ConfToPhase = require "Updater.ConfToPhase"
+local SolidSurface = require "Updater.SolidSurface"
 
 return {
    Bc = Bc,
    BgkCollisions = BgkCollisions,
    CalcDiagnostic = CalcDiagnostic,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
+   ConfToPhase = ConfToPhase,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
+   FemPerpPoisson = FemPerpPoisson,
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,
    ProjectOnBasis = ProjectOnBasis,
+   SolidSurface = SolidSurface,
    WavePropagation = WavePropagation,
-   FemPerpPoisson = FemPerpPoisson,
-   ConfToPhase = ConfToPhase,
 }

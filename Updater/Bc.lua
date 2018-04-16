@@ -32,12 +32,6 @@ function Bc:init(tbl)
       tbl.boundaryConditions, "Updater.Bc: Must specify boundary conditions to apply with 'boundaryConditions'")
 
    self._skinLoop = tbl.skinLoop
-   if self._skinLoop == nil then
-      self._skinLoop = "pointwise"
-   end
-   if self._skinLoop ~= "pointwise" and self._skinLoop ~= "flip" and self._skinLoop ~= "integrate" then
-      error("Updater.Bc: 'skinLoop' must one of 'pointwise', 'flip', or 'integrate'. Was '" .. self._skinLoop .. "' instead")
-   end
    if self._skinLoop == "flip" or self._skinLoop == "integrate" then
       self._cdim = assert(
 	 tbl.cdim,
@@ -110,12 +104,14 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
       end
       qOut:fill(indexer(idxG), qG) 
       if self._skinLoop == "integrate" then 
-	 for c = 1, self._numComponents do qG[c] = 0 end -- clear the ghost cells before accumulating
+	 -- clear the ghost cells before accumulating
+	 for c = 1, self._numComponents do qG[c] = 0 end
+
          for idx in self._skin:colMajorIter() do
 	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
 	    qOut:fill(indexer(idxS), qS)
             for _, bc in ipairs(self._bcList) do -- loop over each BC
-               bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
+               bc(dir, tCurr+dt, idxS, qS, qG)
             end
          end
       else
