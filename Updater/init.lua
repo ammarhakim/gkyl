@@ -17,6 +17,7 @@ local HyperDisCont = require "Updater.HyperDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local WavePropagation = require "Updater.WavePropagation"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
+local FemParPoisson = require "Updater.FemParPoisson"
 local ConfToPhase = require "Updater.ConfToPhase"
 local SolidSurface = require "Updater.SolidSurface"
 
@@ -28,6 +29,7 @@ return {
    ConfToPhase = ConfToPhase,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
+   FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,

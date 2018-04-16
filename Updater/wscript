@@ -46,6 +46,7 @@ def build(bld):
     CartFieldIntegratedQuantCalcImpl.cpp
 
     FemPerpPoissonImpl.cpp
+    FemParPoissonImpl.cpp
   
     confToPhaseData/ConfToPhaseMax1x1v.cpp
     confToPhaseData/ConfToPhaseMax1x2v.cpp

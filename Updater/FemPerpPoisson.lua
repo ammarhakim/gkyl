@@ -1,6 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to solve 2D Poisson equation with FEM scheme
+-- Updater to solve Poisson equation in perpendicular directions with FEM scheme
+-- Perpendicular directions assumed to be first two configuration-space directions
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
