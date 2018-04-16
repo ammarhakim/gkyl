@@ -10,11 +10,11 @@ local VlasovSpecies = Proto(KineticSpecies)
 local SP_BC_ABSORB = 1
 local SP_BC_OPEN = 2
 local SP_BC_REFLECT = 3
-local SP_BC_SEE = 4
+local SP_BC_REFLECT_QM = 4
 VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
-VlasovSpecies.bcSEE = SP_BC_SEE -- specular reflection
+VlasovSpecies.bcReflectQM = SP_BC_REFLECT_QM -- specular reflection with < 1 probability
 
 function VlasovSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -45,7 +45,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       hasElectricField = hasE,
       hasMagneticField = hasB,
    }
- 
+
    -- must apply zero-flux BCs in velocity directions
    local zfd = { }
    for d = 1, self.vdim do zfd[d] = self.cdim+d end
@@ -57,7 +57,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       equation = vlasovEqn,
       zeroFluxDirections = zfd,
    }
-   
+
    -- create updaters to compute various moments
    self.numDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
@@ -76,7 +76,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "M2",
-   }   
+   }
 end
 
 function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
@@ -118,7 +118,7 @@ function VlasovSpecies:createDiagnostics()
    numComp["M2ij"] = self.vdim*(self.vdim+1)/2
    numComp["M2"] = 1
    numComp["M3i"] = self.vdim
-   
+
    self.diagnosticMomentFields = { }
    self.diagnosticMomentUpdaters = { } 
    -- allocate space to store moments and create moment updater
@@ -144,26 +144,27 @@ end
 -- BC functions
 function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "flip"
-   -- get handle to function to compute basis functions at specified coordinates
-   local bName = ""
-   if self.basis:id() == "serendipity" then
-      bName = "Serendip"
-   else
-      bName = "MaxOrder"
-   end
-   local fName = "Basis._data.Modal" .. bName .. "BasisReflect" .. self.cdim .. "x" .. self.vdim .. "v"
-   local _m = require(fName)
-   local polyOrder = self.basis:polyOrder()
-   _m[polyOrder](dir, fIn, fOut) -- function to flip sign of both configuration and velocity component
-
-   -- NRM: note that same behavior can be obtained from the following
-   --self.basis:flipSign(dir, fIn, fOut)
-   --self.basis:flipSign(dir+self.cdim, fOut, fOut)
+   self.basis:flipSign(dir, fIn, fOut)
+   self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
-function VlasovSpecies:bcSeeFunc(dir, tm, idxIn, fIn, fOut)
-   -- requires skinLoop = "integrate"
+function VlasovSpecies:bcReflectQMFunc(dir, tm, idxIn, fIn, fOut)
+   -- requires skinLoop = "flip"
+   self.basis:flipSign(dir, fIn, fOut)
+   self.basis:flipSign(dir+self.cdim, fOut, fOut)
 
+   local zc = {}
+   self.grid:setIndex(idxIn)
+   self.grid:cellCenter(zc)
+   local E = 0
+   for d = self.cdim + 1, self.cdim + self.vdim do E = E + zc[d]*zc[d] end
+   local mu = math.abs(zc[self.cdim+dir])/math.sqrt(E)
+   E = 0.5*self.mass*E/math.abs(self.charge)
+   local R = 1 - Updater.SolidSurface.StickingProb(E, mu, 1.2, 0.75)
+   print(R)
+   for i = 1, self.basis:numBasis() do
+      fOut[i] = fOut[i] * R
+   end
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
@@ -171,18 +172,26 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
    local function bcOpenFunc(...) return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
-   local function bcSeeFunc(...) return self:bcSeeFunc(...) end
+   local function bcReflectQMFunc(...) return self:bcReflectQMFunc(...) end
 
    local vdir = dir + self.cdim
 
    if bcType == SP_BC_ABSORB then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpenFunc }, "pointwise"))
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcOpenFunc }, "pointwise"))
    elseif bcType == SP_BC_REFLECT then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflectFunc }, "flip"))
-   elseif bcType == SP_BC_SEE then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSeeFunc }, "integrate"))
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcReflectFunc }, "flip"))
+   elseif bcType == SP_BC_REFLECT_QM then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcReflectQMFunc }, "flip"))
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end
@@ -196,7 +205,7 @@ function VlasovSpecies:calcCouplingMoments(tCurr, dt, fIn)
 end
 
 function VlasovSpecies:fluidMoments()
-   return { self.numDensity, self.momDensity, self.ptclEnergy } 
+   return { self.numDensity, self.momDensity, self.ptclEnergy }
 end
 
 function VlasovSpecies:getNumDensity()

@@ -131,39 +131,6 @@ function KineticSpecies:fullInit(appTbl)
    self.boundaryConditions = { } -- list of Bcs to apply
 end
 
-function KineticSpecies:createQuadratureData()
-   -- Gauss-Legendre quadrature data
-   self._N = self.basis:polyOrder() + 1
-   local ordinates1D = GaussQuadRules.ordinates[self._N]
-   local weights1D = GaussQuadRules.weights[self._N]
-
-   local numDims = self.basis:ndim()
-   local l, d = {}, {}
-   for d = 1, numDims do l[d], u[d] = 1, self._N end
-   quadRange = Range.Range(l, u) -- for looping over quadrature nodes
-   self._numOrdinates = quadRange:volume() -- number of ordinates
-   -- construct weights and ordinates for integration in multiple dimensions
-   self._ordinates = Lin.Mat(self._numOrdinates, numDims)
-   self._weights = Lin.Vec(self._numOrdinates)
-   local nodeNum = 1
-   for idx in quadRange:colMajorIter() do
-      self._weights[nodeNum] = 1.0
-      for d = 1, numDims do
-	 self._weights[nodeNum] =
-	    self._weights[nodeNum] * weights1D[idx[d]]
-	 self._ordinates[nodeNum][d] = ordinates1D[idx[d]]
-      end
-      nodeNum = nodeNum + 1
-   end
-   numBasis = self.basis:numBasis()
-   self._basisAtOrdinates = Lin.Mat(self._numOrdinates, numBasis)
-   -- pre-compute values of basis functions at quadrature nodes
-   for n = 1, self._numOrdinates do
-      self.basis:evalBasis(self._ordinates[n],
-			   self._basisAtOrdinates[n])
-   end
-end
-
 function KineticSpecies:getCharge() return self.charge end
 function KineticSpecies:getMass() return self.mass end
 
