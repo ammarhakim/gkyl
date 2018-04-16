@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Tests for 2D FEM Poisson solver
+-- Tests for FEM perpendicular Poisson solver
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -853,9 +853,9 @@ end
 
 function test_periodic3d_p1()
   print("--- Testing convergence of 3D periodic solver with p=1 ---")
-  err1 = test_solve3d_periodic(32, 32, 1, 1)
-  err2 = test_solve3d_periodic(64, 64, 1, 1)
-  err3 = test_solve3d_periodic(128, 128, 1, 1)
+  err1 = test_solve3d_periodic(32, 32, 4, 1)
+  err2 = test_solve3d_periodic(64, 64, 4, 1)
+  err3 = test_solve3d_periodic(128, 128, 4, 1)
   print("Order:", err1/err2/4.0, err2/err3/4.0)
   assert_close(1.0, err1/err2/4.0, .01)
   assert_close(1.0, err2/err3/4.0, .01)
