@@ -77,6 +77,16 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis = self.confBasis,
       moment = "M2",
    }
+
+   -- create updater to evaluate source 
+   if self.sourceFunc then 
+      self.evalSource = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.sourceFunc,
+         projectOnGhosts = true
+      }
+   end
 end
 
 function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
@@ -94,7 +104,13 @@ function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
    end
 
    if self.evolve then
-      return self.solver:advance(tCurr, dt, {fIn, totalEmField}, {fOut})
+      local status, dtSuggested
+      status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, totalEmField}, {fOut})
+      if self.sourceFunc then
+        self.evalSource:advance(tCurr, dt, {}, {self.fSource})
+        fOut:accumulate(dt, self.fSource)
+      end
+      return status, dtSuggested
    else
       fOut:copy(fIn) -- just copy stuff over
       return true, GKYL_MAX_DOUBLE
