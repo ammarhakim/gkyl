@@ -170,6 +170,19 @@ function FemPerpPoisson:init(tbl)
      self._zcomm = Mpi.Comm_split(worldComm, zrank, nodeRank)
    end
 
+   self.zContinuous = xsys.pickBool(tbl.zContinuous, false)
+   self.zDiscontToCont = nil
+   if self._ndim == 3 and self.zContinuous then
+     self.zDisContToCont = Updater.FemParPoisson {
+       onGrid = self._grid,
+       basis = self._basis,
+       bcBack = { T = "N", V = 0.0 },
+       bcFront = { T = "N", V = 0.0 },
+       laplacianWeight = 0.0,
+       modifierConstant = 1.0,
+     }
+   end
+
    return self
 end
 
@@ -259,6 +272,9 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
        end
      end
    end 
+
+   -- optionally make continuous in z
+   if self.zContinuous then self.zDiscontToCont:advance(tCurr, dt, {sol}, {sol}) end
 
    return true, GKYL_MAX_DOUBLE
 end

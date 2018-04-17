@@ -126,7 +126,6 @@ end
 
 function GkField:createSolver()
    if self.adiabatic then
-      assert(self.grid:ndim()==2, "Adiabatic solve only supported in 2d for now!")
       -- if adiabatic, we don't solve the Poisson equation, but
       -- we do need to project the discontinuous charge densities
       -- onto a continuous basis to set phi. 
@@ -140,7 +139,8 @@ function GkField:createSolver()
         bcTop = self.phiBcTop,
         periodicDirs = self.periodicDirs,
         laplacianWeight = 0.0, 
-        modifierConstant = self.adiabQneutFac -- = n0*q^2/T
+        modifierConstant = self.adiabQneutFac, -- = n0*q^2/T
+        zContinuous = true,
       }
    else
       self.phiSlvr = Updater.FemPerpPoisson {
@@ -151,6 +151,7 @@ function GkField:createSolver()
         bcBottom = self.phiBcBottom,
         bcTop = self.phiBcTop,
         periodicDirs = self.periodicDirs,
+        zContinuous = true,
       }
       if self.isElectromagnetic then
         self.aparSlvr = Updater.FemPerpPoisson {

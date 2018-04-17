@@ -505,9 +505,10 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
 	 ghost = {1, 1}
    }
 
+   phiModal:copy(srcModal)
    print("Smoothing...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,0.,{phiModal},{phiModal})
    local t2 = os.clock()
    io.write("3D parallel Poisson smooth took total of ", t2-t1, " s\n")
 
