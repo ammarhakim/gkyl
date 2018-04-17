@@ -73,11 +73,11 @@ def build(bld):
         cwd=xsys_dir, relative_trick=True)
 
     # - sci
-    sci_dir = bld.path.find_dir('sci')
-    bld.install_files(
-        "${PREFIX}/bin/sci",
-        sci_dir.ant_glob('**/*.lua'),
-        cwd=sci_dir, relative_trick=True)
+    # sci_dir = bld.path.find_dir('sci')
+    # bld.install_files(
+    #     "${PREFIX}/bin/sci",
+    #     sci_dir.ant_glob('**/*.lua'),
+    #     cwd=sci_dir, relative_trick=True)
     
     # - Unit
     Unit_dir = bld.path.find_dir('Unit')
