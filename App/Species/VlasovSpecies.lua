@@ -107,8 +107,10 @@ function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
       local status, dtSuggested
       status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, totalEmField}, {fOut})
       if self.sourceFunc then
-        self.evalSource:advance(tCurr, dt, {}, {self.fSource})
-        fOut:accumulate(dt, self.fSource)
+        -- if there is a source, add it to the RHS
+        local fSource = self.fSource
+        self.evalSource:advance(tCurr, dt, {}, {fSource})
+        fOut:accumulate(dt, fSource)
       end
       return status, dtSuggested
    else
