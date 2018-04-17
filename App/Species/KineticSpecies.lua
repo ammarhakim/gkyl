@@ -309,7 +309,9 @@ function KineticSpecies:alloc(nRkDup)
    }
 
    -- background (or initial) distribution
-   self.f0 = self:allocDistf()
+   if self.initBackgroundFunc then
+      self.f0 = self:allocDistf()
+   end
 
    -- source 
    if self.sourceFunc then 
@@ -340,11 +342,6 @@ function KineticSpecies:initDist()
       }
       projectBackground:advance(0.0, 0.0, {}, {self.f0})
       self.f0:sync(syncPeriodicDirs)
-   else
-      -- if no specified background distribution, use initial
-      -- distribution function as background
-      self.f0:copy(self.distf[1])
-      self:applyBc(0.0, 0.0, self.f0)
    end
 end
 
@@ -406,12 +403,11 @@ function KineticSpecies:write(tm)
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm)
-         if self.initBackgroundFunc then
-            self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm)
+         if self.f0 then
+            if tm==0.0 then self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm) end
             self.distf[1]:accumulate(-1, self.f0)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm)
             self.distf[1]:accumulate(1, self.f0)
-            self.distIo:write(self.distf[1], string.format("%s_ftot_%d.bp", self.name, self.distIoFrame), tm)
          end
 	 self.distIoFrame = self.distIoFrame+1
       end

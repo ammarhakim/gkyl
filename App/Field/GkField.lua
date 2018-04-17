@@ -55,8 +55,6 @@ function GkField:fullInit(appTbl)
    self.elecEnergy = DataStruct.DynVector { numComponents = 1 }
    self.magEnergy = DataStruct.DynVector { numComponents = 1 }
 
-   self.tmCurrentAccum = 0.0 -- time spent in current accumulate
-
    self.adiabatic = false
    if tbl.adiabatic then
       self.adiabatic = true
@@ -65,6 +63,13 @@ function GkField:fullInit(appTbl)
       self.adiabQneutFac = tbl.adiabatic.dens*tbl.adiabatic.charge^2/tbl.adiabatic.temp
    end
    self.discontinuous = xsys.pickBool(tbl.discontinuous, false)
+
+   -- for ndim=1 non-adiabatic only
+   self.kperp2 = tbl.kperp2
+
+   -- species-dependent weight on polarization term == sum_s m_s n_s / B^2
+   -- note: in future may calculate this directly from species tables
+   self.polarizationWeight = tbl.polarizationWeight
 end
 
 -- methods for EM field object
@@ -125,12 +130,33 @@ function GkField:rkStepperFields()
 end
 
 function GkField:createSolver()
+   -- leaving this here for a possible future implementation...
+   --local laplacianWeight = {}
+   --local modifierConstant = {}
+   --if self.adiabatic then
+   --  local fac = self.adiabQneutFac
+   --  for d = 1, self.ndim do 
+   --    laplacianWeight[d] = 0.0
+   --    modifierConstant[d] = fac
+   --  end
+   --else
+   --  if ndim==1 then  -- z
+   --    laplacianWeight = {0.0}
+   --    modifierConstant = {self.kperp2}
+   --  elseif ndim==2 then  -- x,y
+   --    laplacianWeight = {1.0, 1.0}
+   --    modifierConstant = {0.0, 0.0}
+   --  else -- x,y,z
+   --    laplacianWeight = {1.0, 1.0, 0.0}
+   --    modifierConstant = {0.0, 0.0, 1.0}
+   --  end
+   --end
+
    if self.adiabatic then
       -- if adiabatic, we don't solve the Poisson equation, but
       -- we do need to project the discontinuous charge densities
       -- onto a continuous basis to set phi. 
-      -- HACK for 2d: use FemPerpPoisson with no laplacian and a weighted mass matrix.
-      self.phiSlvr = Updater.FemPerpPoisson {
+      self.phiSlvr = Updater.FemPoisson {
         onGrid = self.grid,
         basis = self.basis,
         bcLeft = self.phiBcLeft,
@@ -143,7 +169,20 @@ function GkField:createSolver()
         zContinuous = true,
       }
    else
-      self.phiSlvr = Updater.FemPerpPoisson {
+      local ndim = self.grid:ndim()
+      local laplacianWeight, modifierConstant
+      if ndim==1 then  -- z
+        assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
+        laplacianWeight = 0.0 -- {0.0}
+        modifierConstant = self.kperp2*self.polarizationWeight -- {self.kperp2}
+      elseif ndim==2 then  -- x,y
+        laplacianWeight = self.polarizationWeight -- {1.0, 1.0}
+        modifierConstant = 0.0 --  {0.0, 0.0}
+      else -- x,y,z
+        laplacianWeight = self.polarizationWeight -- {1.0, 1.0, 0.0}
+        modifierConstant = 0.0 -- {0.0, 0.0, 1.0}
+      end
+      self.phiSlvr = Updater.FemPoisson {
         onGrid = self.grid,
         basis = self.basis,
         bcLeft = self.phiBcLeft,
@@ -151,10 +190,12 @@ function GkField:createSolver()
         bcBottom = self.phiBcBottom,
         bcTop = self.phiBcTop,
         periodicDirs = self.periodicDirs,
+        laplacianWeight = laplacianWeight,
+        modifierConstant = modifierConstant,
         zContinuous = true,
       }
       if self.isElectromagnetic then
-        self.aparSlvr = Updater.FemPerpPoisson {
+        self.aparSlvr = Updater.FemPoisson {
           onGrid = self.grid,
           basis = self.basis,
           bcLeft = self.aparBcLeft,
@@ -162,6 +203,9 @@ function GkField:createSolver()
           bcBottom = self.aparBcBottom,
           bcTop = self.aparBcTop,
           periodicDirs = self.periodicDirs,
+          laplacianWeight = laplacianWeight,
+          modifierConstant = modifierConstant,
+          zContinuous = false,
         }
       end
    end

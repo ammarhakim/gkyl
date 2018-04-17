@@ -44,6 +44,10 @@ function Te(x)
    return Te0*(1-(x-R)/L_T)
 end
 
+function maxwellian(n0, vt2, v2)
+   return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
+end
+
 plasmaApp = Plasma.App {
    logToFile = true,
 
@@ -75,24 +79,41 @@ plasmaApp = Plasma.App {
       decompCuts = {1, 1},
       -- initial conditions
       initBackground = function (t, xn)
-         local x, y, v, mu = xn[1], xn[2], xn[3], xn[4]
-         return n0*(2*math.pi*Te(x)/me)^(-3/2)*math.exp(-me*v^2/(2*Te(x)))*
-                math.exp(-math.abs(mu)*Bmag(x)/(Te(x)))
+         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+         return maxwellian(n0, Te(x)/me, vpar^2+2*math.abs(mu)*Bmag(x)/me)
       end,
       init = function (t, xn, self)
-         local x, y, v, mu = xn[1], xn[2], xn[3], xn[4]
+         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
          local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
          return self.initBackground(t,xn)*(1+perturb)
       end,
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkDens"},
+      diagnosticMoments = {"GkDens"}, 
+   },
+
+   -- adiabatic ions
+   adiabaticIon = Plasma.GkSpecies {
+      charge = qi,
+      mass = mi,
+      -- velocity space grid
+      lower = {VPAR_LOWER*math.sqrt(me/mi), MU_LOWER},
+      upper = {VPAR_UPPER*math.sqrt(me/mi), MU_UPPER},
+      cells = {N_VPAR, N_MU},
+      decompCuts = {1, 1},
+      -- initial conditions
+      init = function (t, xn)
+         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+         return maxwellian(n0, Ti0/mi, vpar^2+2*math.abs(mu)*Bmag(x)/mi)
+      end,
+      evolve = false, -- evolve species?
    },
 
    -- field solver
    field = Plasma.GkField {
       evolve = true, -- evolve fields?
       adiabatic = {response = "ion", charge = qi, dens = n0, temp = Ti0},
+      polarizationWeight = mi*n0/B0^2,
       discontinuous = false
    },
 

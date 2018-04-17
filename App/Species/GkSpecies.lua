@@ -38,17 +38,18 @@ function GkSpecies:initDist(geo)
    self.jacobianFunc = geo.bmagFunc
    if self.jacobianFunc then
       local initFuncWithoutJacobian = self.initFunc
-      local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
-      
       self.initFunc = function (t, xn)
          local J = self.jacobianFunc(t,xn)
          local f = initFuncWithoutJacobian(t,xn)
          return J*f
       end
-      self.initBackgroundFunc = function(t,xn)
-         local J = self.jacobianFunc(t,xn)
-         local f0 = initBackgroundFuncWithoutJacobian(t,xn)
-         return J*f0
+      if self.initBackgroundFunc then
+         local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
+         self.initBackgroundFunc = function(t,xn)
+            local J = self.jacobianFunc(t,xn)
+            local f0 = initBackgroundFuncWithoutJacobian(t,xn)
+            return J*f0
+         end
       end
    end
 
@@ -115,6 +116,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
          momfac = self.momfac,
       }
    end
+   self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
  
    -- create updater to evaluate source 
    if self.sourceFunc then 
@@ -302,21 +304,23 @@ end
 
 function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    -- compute moments needed in coupling to fields and collisions
-   -- we only want perturbed moments so that we can calculate perturbed fields
-   fIn:accumulate(-1, self.f0)
-   self.calcDens:advance(tCurr, dt, {fIn}, { self.dens })
-   self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
-   fIn:accumulate(1, self.f0)
+   if self.evolve or self._firstMomentCalc then
+      self.calcDens:advance(tCurr, dt, {fIn}, { self.dens })
+      self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
+   end
+   if not self.evolve then self._firstMomentCalc = false end
 end
 
 function GkSpecies:calcDiagnosticMoments()
-   self.distf[1]:accumulate(-1, self.f0)
+   -- if there is a background distribution f0, we will output only
+   -- perturbed moments by subtracting off background
+   if self.f0 then self.distf[1]:accumulate(-1, self.f0) end
    local numMoms = #self.diagnosticMoments
    for i = 1, numMoms do
       self.diagnosticMomentUpdaters[i]:advance(
 	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
    end
-   self.distf[1]:accumulate(1, self.f0)
+   if self.f0 then self.distf[1]:accumulate(1, self.f0) end
 end
 
 function GkSpecies:fluidMoments()

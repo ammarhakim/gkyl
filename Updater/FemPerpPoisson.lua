@@ -17,6 +17,7 @@ local ffi = require "ffi"
 local xsys = require "xsys"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local FemParPoisson = require "Updater.FemParPoisson"
 local DataStruct = require "DataStruct"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
@@ -173,7 +174,7 @@ function FemPerpPoisson:init(tbl)
    self.zContinuous = xsys.pickBool(tbl.zContinuous, false)
    self.zDiscontToCont = nil
    if self._ndim == 3 and self.zContinuous then
-     self.zDisContToCont = Updater.FemParPoisson {
+     self.zDisContToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
        bcBack = { T = "N", V = 0.0 },
