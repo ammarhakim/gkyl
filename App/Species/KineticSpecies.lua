@@ -104,6 +104,9 @@ function KineticSpecies:fullInit(appTbl)
       self.initFunc = tbl.init
    end
 
+   -- source term
+   self.sourceFunc = tbl.source
+
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.fluctuationBCs then 
       assert(self.initBackgroundFunc, [[KineticSpecies: must specify an initial
@@ -307,6 +310,11 @@ function KineticSpecies:alloc(nRkDup)
 
    -- background (or initial) distribution
    self.f0 = self:allocDistf()
+
+   -- source 
+   if self.sourceFunc then 
+      self.fSource = self:allocDistf()
+   end
 
    self:createBCs()
 end

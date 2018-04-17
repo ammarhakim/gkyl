@@ -35,13 +35,20 @@ end
 
 function GkSpecies:initDist(geo)
    -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
-   self.jacobian = geo.bmag
-   if self.jacobian then
+   self.jacobianFunc = geo.bmagFunc
+   if self.jacobianFunc then
+      local initFuncWithoutJacobian = self.initFunc
+      local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
+      
       self.initFunc = function (t, xn)
-         return self.jacobian(t,xn)*self.initFunc(t,xn)
+         local J = self.jacobianFunc(t,xn)
+         local f = initFuncWithoutJacobian(t,xn)
+         return J*f
       end
       self.initBackgroundFunc = function(t,xn)
-         return self.jacobian(t,xn)*self.initBackgroundFunc(t,xn)
+         local J = self.jacobianFunc(t,xn)
+         local f0 = initBackgroundFuncWithoutJacobian(t,xn)
+         return J*f0
       end
    end
 
@@ -108,6 +115,16 @@ function GkSpecies:createSolver(hasPhi, hasApar)
          momfac = self.momfac,
       }
    end
+ 
+   -- create updater to evaluate source 
+   if self.sourceFunc then 
+      self.evalSource = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.sourceFunc,
+         projectOnGhosts = true
+      }
+   end
 
    -- calculate background density averaged over simulation domain
    self.n0 = nil
@@ -132,7 +149,13 @@ function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
    if self.evolve then
       local em = emIn[1]
       local emFunc = emIn[2]
-      return self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      local status, dtSuggested
+      status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      if self.sourceFunc then
+        self.evalSource:advance(tCurr, dt, {}, {self.fSource})
+        fOut:accumulate(dt, self.fSource)
+      end
+      return status, dtSuggested
    else
       fOut:copy(fIn) -- just copy stuff over
       return true, GKYL_MAX_DOUBLE

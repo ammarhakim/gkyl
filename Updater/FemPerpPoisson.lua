@@ -274,7 +274,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    end 
 
    -- optionally make continuous in z
-   if self.zContinuous then self.zDiscontToCont:advance(tCurr, dt, {sol}, {sol}) end
+   if self.zDiscontToCont then self.zDiscontToCont:advance(tCurr, dt, {sol}, {sol}) end
 
    return true, GKYL_MAX_DOUBLE
 end
