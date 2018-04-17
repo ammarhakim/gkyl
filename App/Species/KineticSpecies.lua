@@ -104,7 +104,7 @@ function KineticSpecies:fullInit(appTbl)
       self.initFunc = tbl.init
    end
 
-   -- source term
+   -- source term for RHS (e.g. df/dt = ... + source)
    self.sourceFunc = tbl.source
 
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
