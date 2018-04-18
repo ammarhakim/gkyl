@@ -19,6 +19,7 @@ plasmaApp = Plasma.App {
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
+   cflFrac = 1.0,
 
    -- decomposition for configuration space
    decompCuts = {1}, -- cuts in each configuration direction
@@ -37,6 +38,14 @@ plasmaApp = Plasma.App {
       cells = {128},
       decompCuts = {1},
       -- initial conditions
+      -- specify background so that we can plot perturbed distribution and moments
+      initBackground = function (t, xn) 
+	 local x, v = xn[1], xn[2]
+         local k = knumber
+         local vth2 = Ti0
+         local alpha = 0.01
+	 return ni0/math.sqrt(2*math.pi*vth2)*math.exp(-v^2/(2*vth2))
+      end,
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
          local k = knumber
@@ -77,7 +86,7 @@ plasmaApp = Plasma.App {
    funcField = Plasma.GkGeometry {
       -- background magnetic field
       bmag = function (t, xn)
-         return 1
+         return 1.0
       end,
       -- geometry is not time-dependent
       evolve = false,

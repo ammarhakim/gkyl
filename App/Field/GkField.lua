@@ -293,7 +293,7 @@ end
 
 -- boundary conditions handled by solver. this just updates ghosts.
 function GkField:applyBc(tCurr, dt, potIn)
-   potIn.phi:sync(true)
+   potIn.phi:sync()
    if self.isElectromagnetic then potIn.apar:sync() end
 end
    
