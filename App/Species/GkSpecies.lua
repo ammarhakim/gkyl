@@ -84,6 +84,8 @@ function GkSpecies:createSolver(hasPhi, hasApar)
    -- account for factor of mass in definition of mu
    -- note that factor of 2*pi from gyrophase integration handled in GkMoment calculations
    self.momfac = 1/self.mass
+   -- except in 1v there is no mu, so no factor of mass and also remove the factor of 2*pi... 
+   if self.vdim == 1 then self.momfac = 1 / (2*math.pi) end
    
    -- create updaters to compute various moments
    self.calcDens = Updater.DistFuncMomentCalc {
