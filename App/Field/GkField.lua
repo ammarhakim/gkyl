@@ -45,6 +45,8 @@ function GkField:fullInit(appTbl)
    if tbl.phiBcRight then self.phiBcRight = tbl.phiBcRight end
    if tbl.phiBcBottom then self.phiBcBottom = tbl.phiBcBottom end
    if tbl.phiBcTop then self.phiBcTop = tbl.phiBcTop end
+   if tbl.phiBcBack then self.phiBcBack = tbl.phiBcBack end
+   if tbl.phiBcFront then self.phiBcFront = tbl.phiBcFront end
    if tbl.aparBcLeft then self.aparBcLeft = tbl.aparBcLeft end
    if tbl.aparBcRight then self.aparBcRight = tbl.aparBcRight end
    if tbl.aparBcBottom then self.aparBcBottom = tbl.aparBcBottom end
@@ -163,6 +165,8 @@ function GkField:createSolver()
         bcRight = self.phiBcRight,
         bcBottom = self.phiBcBottom,
         bcTop = self.phiBcTop,
+        bcBack = self.phiBcBack,
+        bcFront = self.phiBcFront,
         periodicDirs = self.periodicDirs,
         laplacianWeight = 0.0, 
         modifierConstant = self.adiabQneutFac, -- = n0*q^2/T
@@ -448,21 +452,12 @@ function GkGeometry:initField()
 end
 
 function GkGeometry:write(tm)
-   if self.evolve then
-      if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
-	 self.fieldIo:write(self.geo.bcurvY, string.format("bcurvY_%d.bp", self.ioFrame), tm)
-	 
-	 self.ioFrame = self.ioFrame+1
-      end
-   else
-      -- if not evolving species, don't write anything except initial conditions
-      if self.ioFrame == 0 then
-	 self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
-	 self.fieldIo:write(self.geo.bcurvY, string.format("bcurvY_%d.bp", self.ioFrame), tm)
-      end
-      self.ioFrame = self.ioFrame+1
+   -- not evolving geometry, so only write geometry at beginning
+   if self.ioFrame == 0 then
+      self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
+      if self.setBcurvY then self.fieldIo:write(self.geo.bcurvY, string.format("bcurvY_%d.bp", self.ioFrame), tm) end
    end
+   self.ioFrame = self.ioFrame+1
 end
 
 function GkGeometry:rkStepperFields()
@@ -483,7 +478,8 @@ function GkGeometry:applyBc(tCurr, dt, geoIn)
 end
 
 function GkGeometry:totalSolverTime()
-   return self.setBmag.totalTime + self.setBcurvY.totalTime
+   if self.evolve then return self.setPhiWall.totalTime
+   else return 0 end
 end
 
 function GkGeometry:totalBcTime() return 0.0 end

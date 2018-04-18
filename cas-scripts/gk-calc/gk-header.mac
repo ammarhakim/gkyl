@@ -11,11 +11,14 @@ printf(fh, "extern \"C\" { ~%")$
 
 pmax:1$
 
-for ci : 2 thru 3 do (
+for ci : 1 thru 3 do (
   vi : 2,
+  if ci=1 then vi:1,
     for pi : 1 thru pmax do (
       printf(fh, "double GyrokineticVol~ax~avSerP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru ci+vi-1 do (
+      lastdir : ci+vi-1,
+      if vi=1 then lastdir: ci+vi,
+      for si : 1 thru lastdir do (
         if si <= ci then dirlabel : cvars[si]
         else dirlabel : vvars[si-ci],
         printf(fh, "double GyrokineticSurf~ax~avSer_~a_P~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)

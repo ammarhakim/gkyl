@@ -22,11 +22,11 @@ end
 
 -- select functions to compute surface terms (output is a table of functions)
 function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
-   --if CDIM == 1 and VDIM == 1 then
-   --   local funcNmX = string.format("GyrokineticSurf%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-   --   local funcNmVpar = string.format("GyrokineticSurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-   --   return { ffi.C[funcNmX], ffi.C[funcNmVpar] }
-   if CDIM == 2 and VDIM == 2 then
+   if CDIM == 1 and VDIM == 1 then
+      local funcNmX = string.format("GyrokineticSurf%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmVpar = string.format("GyrokineticSurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], ffi.C[funcNmVpar] }
+   elseif CDIM == 2 and VDIM == 2 then
       local funcNmX = string.format("GyrokineticSurf%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmY = string.format("GyrokineticSurf%dx%dv%s_Y_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmVpar = string.format("GyrokineticSurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)

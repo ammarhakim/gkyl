@@ -125,8 +125,9 @@ function test_smooth1d(nz, p, writeMatrix)
    local poisson = Updater.FemParPoisson {
      onGrid = grid,
      basis = basis,
-     bcBack = { T = "N", V = 0.0 },
-     bcFront = { T = "N", V = 0.0 },
+     --bcBack = { T = "N", V = 0.0 },
+     --bcFront = { T = "N", V = 0.0 },
+     periodicDirs = {1},
      laplacianWeight = 0.0,
      modifierConstant = 1.0,
      writeStiffnessMatrix = writeMatrix,
@@ -138,16 +139,12 @@ function test_smooth1d(nz, p, writeMatrix)
 	 numComponents = basis:numBasis(),
 	 ghost = {1, 1},
    }
-   -- initialization constants
-   local a, b = 2, -12
-   local c1 = 0
-   local c0 = -a/12 - 1/2 - b/30
    local initSrcModal = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
       evaluate = function (t,xn)
                     local z = xn[1]
-                    return  1+a*z^2+b*z^4
+                    return math.cos(2*math.pi*2*z)
                  end
    }
    initSrcModal:advance(0.,0.,{},{srcModal})

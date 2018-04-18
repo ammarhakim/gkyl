@@ -32,6 +32,9 @@ kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for i : 1 thru pmax do (
+  if cdim = 1 then (
+    label:["x", "v", "m"]
+  ),
   if cdim = 2 then (
     label:["x", "y", "v", "m"]
   ),
@@ -87,7 +90,8 @@ for i : 1 thru pmax do (
   Phi_expd:doExpand1(Phi,bC),
 
   /* calculate full expansion expression for Hamiltonian */
-  H_full:1/2*m_*(wv + vpar/dfac_v)^2 + (wm+mu/dfac_m)*Bmag_expd + q_*Phi_expd,
+  H_full:1/2*m_*(wv + vpar/dfac_v)^2 + q_*Phi_expd,
+  if vdim > 1 then H_full : H_full + (wm+mu/dfac_m)*Bmag_expd,
   
   /* project Hamiltonian onto basis functions */
   H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
@@ -103,6 +107,7 @@ for i : 1 thru pmax do (
   /* expand BstarY/Bmag = m/q vpar BcurvY = vpar/Omega*curl(bhat)*grad(y) on basis */
   BstarY_by_Bmag_expd : m_/q_*(wv+vpar/dfac_v)*BcurvY_expd,
   /* make Bstar/Bmag vector */
+  if cdim = 1 then Bstar_by_Bmag_expd : [1],
   if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd],
   if cdim = 3 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd, 1],
 
@@ -152,12 +157,15 @@ for i : 1 thru pmax do (
 
 calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax) := block([],
   printf(fh, "#include <GyrokineticModDecl.h> ~%"),
-  for dir : 1 thru cdim+vdim-1 do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax) )
+  lastdir : cdim+vdim-1,
+  if vdim=1 then lastdir: cdim+vdim,
+  for dir : 1 thru lastdir do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax) )
 )$
 
 pmax:1;
-for c : 2 thru 3 do (
+for c : 1 thru 1 do (
 v:2,
+if c=1 then v:1,
 fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 funcName : sconcat("GyrokineticSurf", c, "x", v, "v", "Ser"),
