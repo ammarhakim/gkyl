@@ -241,7 +241,7 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    local vR = gridIn:cellUpperInDir(vpardir)
    local vlower, vupper
    -- this makes it so that we only need to deal with absolute values of vpar
-   if abs(vR)>=abs(vL) then
+   if math.abs(vR)>=math.abs(vL) then
       vlower = math.abs(vL)
       vupper = math.abs(vR)
    else
@@ -287,18 +287,18 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 
    if bcType == SP_BC_ABSORB then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorb }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpen }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpenFunc }, "pointwise"))
    -- note: reflection and sheath BCs only make sense in z direction,
    -- which is always last config space direction, i.e. dir = self.cdim
    elseif bcType == SP_BC_REFLECT and dir==self.cdim then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflect }, "flip"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflectFunc }, "flip"))
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
       self.fhatSheath = self:allocDistf()
       self.fhatSheathPtr = self.fhatSheath:get(1)
       self.fhatSheathIdxr = self.fhatSheath:genIndexer()
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheath }, "flip"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end
