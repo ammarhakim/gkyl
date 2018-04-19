@@ -269,7 +269,7 @@ local function buildApplication(self, tbl)
 
    -- apply species BCs one more time in case needed fields
    for nm, s in pairs(species) do
-      s:applyBc(0, 0, speciesRkFields[nm][1], emRkFields[1])
+      s:applyBc(0, 0, speciesRkFields[nm][1])
    end
 
    -- function to write data to file
@@ -300,8 +300,11 @@ local function buildApplication(self, tbl)
         -- if field equation is elliptic, calculate field 
         -- that is self-consistent with speciesRkFields[inIdx] 
         -- to use in species update
+        local oldIdx = inIdx
+        --oldIdx = 1
+        --if inIdx == 1 then oldIdx = #emRkFields-1 end
         local myStatus, myDtSuggested = field:forwardEuler(
-           tCurr, dt, emRkFields[inIdx], species, emRkFields[inIdx])
+           tCurr, dt, emRkFields[oldIdx], species, emRkFields[inIdx])
         field:applyBc(tCurr, dt, emRkFields[inIdx])
         status = status and myStatus
         dtSuggested = math.min(dtSuggested, myDtSuggested)
@@ -324,7 +327,7 @@ local function buildApplication(self, tbl)
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx], emRkFields[inIdx])
+	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx]) -- see comment below
       end
       --update species with collisions
       for _, c in pairs(collisions) do
@@ -337,7 +340,7 @@ local function buildApplication(self, tbl)
          -- NRM: if not, can remove applyBc from update species loop above and this loop below, and just have
          -- NRM: one loop over all species that sets BCs before returning (as commented below)
 	 for _, nm in ipairs(c.speciesList) do
-	    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx], emRkFields[inIdx])
+	    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
 	 end
       end
 
