@@ -349,7 +349,7 @@ function KineticSpecies:rkStepperFields()
    return self.distf
 end
 
-function KineticSpecies:applyBc(tCurr, dt, fIn, emIn, emFuncIn)
+function KineticSpecies:applyBc(tCurr, dt, fIn)
    -- fIn is total distribution function
 
    local syncPeriodicDirsTrue = true

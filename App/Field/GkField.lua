@@ -64,14 +64,24 @@ function GkField:fullInit(appTbl)
       self.adiabCharge = tbl.adiabatic.charge
       self.adiabQneutFac = tbl.adiabatic.dens*tbl.adiabatic.charge^2/tbl.adiabatic.temp
    end
-   self.discontinuous = xsys.pickBool(tbl.discontinuous, false)
+   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic")
+   self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
+   self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
 
    -- for ndim=1 non-adiabatic only
    self.kperp2 = tbl.kperp2
+   if not self.adiabatic then 
+      assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
+   end
 
    -- species-dependent weight on polarization term == sum_s m_s n_s / B^2
    -- note: in future may calculate this directly from species tables
    self.polarizationWeight = tbl.polarizationWeight
+   
+   if self.isElectromagnetic then
+      self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
+      self.dApardtInitFunc = tbl.dApardtInit
+   end
 end
 
 -- methods for EM field object
@@ -99,6 +109,13 @@ function GkField:alloc(nRkDup)
                numComponents = self.basis:numBasis(),
                ghost = {1, 1}
          }
+         self.potentials[i].dApardt = DataStruct.Field {
+               onGrid = self.grid,
+               numComponents = self.basis:numBasis(),
+               ghost = {1, 1}
+         }
+         self.potentials[i].apar:clear(0.0)
+         self.potentials[i].dApardt:clear(0.0)
       end
    end
       
@@ -124,7 +141,16 @@ end
 -- solve for initial fields self-consistently 
 -- from initial distribution function
 function GkField:initField(species)
-   self:forwardEuler(0, nil, nil, species, self.potentials[1])
+   self:forwardEuler(0, 1.0, self.potentials[1], species, self.potentials[1])
+   if self.dApardtInitFunc then
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.dApardtInitFunc,
+         projectOnGhosts = true
+      }
+      project:advance(0.0, 0.0, {}, {self.potentials[1].dApardt})
+   end
 end
 
 function GkField:rkStepperFields()
@@ -170,13 +196,12 @@ function GkField:createSolver()
         periodicDirs = self.periodicDirs,
         laplacianWeight = 0.0, 
         modifierConstant = self.adiabQneutFac, -- = n0*q^2/T
-        zContinuous = true,
+        zContinuous = not self.discontinuousPhi,
       }
    else
       local ndim = self.grid:ndim()
       local laplacianWeight, modifierConstant
       if ndim==1 then  -- z
-        assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
         laplacianWeight = 0.0 -- {0.0}
         modifierConstant = self.kperp2*self.polarizationWeight -- {self.kperp2}
       elseif ndim==2 then  -- x,y
@@ -196,9 +221,16 @@ function GkField:createSolver()
         periodicDirs = self.periodicDirs,
         laplacianWeight = laplacianWeight,
         modifierConstant = modifierConstant,
-        zContinuous = true,
+        zContinuous = not self.discontinuousPhi,
       }
-      if self.isElectromagnetic then
+      if self.isElectromagnetic then 
+        if ndim==1 then
+           laplacianWeight = 0.0
+           modifierConstant = self.kperp2/self.mu0
+        else
+           laplacianWeight = 1.0/self.mu0
+           modifierConstant = 0.0
+        end
         self.aparSlvr = Updater.FemPoisson {
           onGrid = self.grid,
           basis = self.basis,
@@ -209,7 +241,7 @@ function GkField:createSolver()
           periodicDirs = self.periodicDirs,
           laplacianWeight = laplacianWeight,
           modifierConstant = modifierConstant,
-          zContinuous = false,
+          zContinuous = not self.discontinuousApar,
         }
       end
    end
@@ -240,6 +272,7 @@ function GkField:write(tm)
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm)
          if self.isElectromagnetic then 
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
+	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm)
          end
 	 self.elecEnergy:write(string.format("elecEnergy_%d.bp", self.ioFrame), tm)
 	 if self.isElectromagnetic then self.magEnergy:write(string.format("magEnergy_%d.bp", self.ioFrame), tm) end
@@ -252,6 +285,7 @@ function GkField:write(tm)
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm)
          if self.isElectromagnetic then 
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
+	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm)
          end
       end
       self.ioFrame = self.ioFrame+1
@@ -270,31 +304,42 @@ function GkField:forwardEuler(tCurr, dt, potIn, species, potOut)
       for nm, s in pairs(species) do
          self.chargeDens:accumulate(s:getCharge(), s:getDens())
       end
-      if self.adiabatic and self.discontinuous then
-         potOut.phi:combine(1.0/self.adiabQneutFac, self.chargeDens)
-      else
-         local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
-         if self.isElectromagnetic then
-           self.currentDens:clear(0.0)
-           for nm, s in pairs(species) do
-             self.currentDens:accumulate(s:getCharge(), s:getUpar())
-           end
-           mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar})
-         end
+      -- phi solve
+      local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
+
+      if self.isElectromagnetic then
+        -- begin calculating dApar/dt = (AparNew - AparOld)/dt (using forward Euler time-difference)
+        potOut.dApardt:combine(-1.0/dt, potIn.apar)
+
+        self.currentDens:clear(0.0)
+        for nm, s in pairs(species) do
+          self.currentDens:accumulate(s:getCharge(), s:getUpar())
+        end
+        -- Apar solve
+        mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar}) 
+
+        -- finish calculating dApar/dt
+        potOut.dApardt:accumulate(1.0/dt, potOut.apar)
       end
       return mys and mys2, math.min(mydt,mydt2)
    else
       -- just copy stuff over
       potOut.phi:copy(potIn.phi)
-      if self.isElectromagnetic then potOut.apar:copy(potIn.apar) end
+      if self.isElectromagnetic then 
+         potOut.apar:copy(potIn.apar) 
+         potOut.dApardt:copy(potIn.dApardt) 
+      end
       return true, GKYL_MAX_DOUBLE
    end
 end
 
 -- boundary conditions handled by solver. this just updates ghosts.
 function GkField:applyBc(tCurr, dt, potIn)
-   potIn.phi:sync()
-   if self.isElectromagnetic then potIn.apar:sync() end
+   potIn.phi:sync(true)
+   if self.isElectromagnetic then 
+     potIn.apar:sync(true) 
+     potIn.dApardt:sync(true) 
+   end
 end
    
 function GkField:totalSolverTime()

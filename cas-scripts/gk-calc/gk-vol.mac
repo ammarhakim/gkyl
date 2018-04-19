@@ -21,11 +21,10 @@ fgrad(f):= ev(express(grad(f)),diff)*derivfacsC;
 
 gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
 
-calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
+calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax, emflag) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 for i : 1 thru pmax do (
   if cdim = 1 then (
     label:["x", "v", "m"]
@@ -40,7 +39,10 @@ for i : 1 thru pmax do (
   bC : basisC[i],
   varsP : subst(gkvsub, varsP),
   numC : length(bC),
-  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i),
+
+  if emflag then printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, i)
+  else printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i),
+
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
@@ -74,6 +76,16 @@ for i : 1 thru pmax do (
   BmagInv_expd:subst(Bvars,doExpand1(BmagInv,bC)),
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
+  if emflag then (
+    /* expand Apar */
+    Apar_expd:doExpand1(Apar,bC),
+    /* expand dApar/dt */
+    dAdt_expd:doExpand1(dApardt,bC)
+  )
+  else (
+    Apar_expd : 0,
+    dAdt_expd : 0
+  ),
 
   /* calculate full expansion expression for Hamiltonian. */
   H_full:1/2*m_*(wv + vpar/dfac_v)^2 + q_*Phi_expd,
@@ -89,18 +101,27 @@ for i : 1 thru pmax do (
 
   /* expand BcurvY = 1/B*curl(bhat)*grad(y) on basis, assuming it only varies in x */
   BcurvY_expd : subst(Bvars, doExpand1(BcurvY, bC)),
-  /* expand BstarY/Bmag = m/q vpar BcurvY = mvpar/qB*curl(bhat)*grad(y) on basis */
-  BstarY_by_Bmag_expd : m_/q_*(wv+vpar/dfac_v)*BcurvY_expd,
+  /* expand BstarY/Bmag = ( m/q vpar + Apar ) BcurvY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
+  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BcurvY_expd,
+  /* make vApar = -bhatXgrad(Apar) vector */
+  if cdim = 1 then vApar_expd : [0], 
+  if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x],
+  if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0], 
+
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [1],
-  if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd],
-  if cdim = 3 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd, 1],
+  if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd] + vApar_expd,
+  if cdim = 3 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd, 1] + vApar_expd,
 
-  /* calculate GK poisson bracket of basis functions and Hamiltonian */
+  /* calculate alpha.grad(bP) = {bP, H} = GK poisson bracket of basis functions and Hamiltonian */
   gkPB_basis : fullratsimp(gkPB(bP, H_expd)),
 
-  /* calculate volume term, which is inner product < f {basisFunction, H} > */
-  gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, gkPB_basis)),
+  /* calculate q/m dApar/dt d/dvpar(bP) */
+  gkEM_basis : fullratsimp(q_/m_*dAdt_expd*diff(bP,vpar)*dfac_v),
+
+  /* calculate volume term, which is inner product
+     < f alpha.grad(bP) - q/m dApar/dt d/dvpar(bP) > = < f {bP, H} - q/m dApar/dt d/dvpar(bP) > */
+  gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, gkPB_basis-gkEM_basis)),
 
   /* write C increment expressions for volume term */
   writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
@@ -109,6 +130,7 @@ for i : 1 thru pmax do (
   printf(fh, "  double cflFreq = 0.0; ~%"), 
   for d : 1 thru cdim do (
     /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
+    /* also include factor of jacobian = Bmag */
     alpha_expd : Bmag_expd*gkPB(wC[d] + varsP[d]/derivfacsC[d], H_expd),
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
@@ -117,8 +139,9 @@ for i : 1 thru pmax do (
   ),
   /* note: no contribution from mu */
   for d : cdim+1 thru cdim+1 do (
-    /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    alpha_expd : Bmag_expd*gkPB(wV[d-cdim] + varsP[d]/derivfacsV[d-cdim], H_expd),
+    /* calculate phase space velocity alpha_d = {vpar, H} - q/m dApar/dt = dvpar/dt - q/m dApar/dt */
+    /* also include factor of jacobian = Bmag */
+    alpha_expd : Bmag_expd*gkPB(wV[d-cdim] + varsP[d]/derivfacsV[d-cdim], H_expd) - q_/m_*Bmag_expd*dAdt_expd,
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
@@ -130,12 +153,15 @@ for i : 1 thru pmax do (
 ));
 
 pmax:1;
-for c : 1 thru 1 do (
+for c : 1 thru 3 do (
 v:2,
 if c=1 then v:1,
 fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
+printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
-calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax),
+calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false),
+funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
+calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true),
 close(fh)
 );
