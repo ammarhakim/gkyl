@@ -32,6 +32,9 @@ function HyperDisCont:init(tbl)
    -- multiplied by dt.
    self._onlyIncrement = xsys.pickBool(tbl.onlyIncrement, false)
 
+   -- by default, clear output field before incrementing with vol/surf updates
+   self._clearOut = xsys.pickBool(tbl.clearOut, true)
+
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
    self._ndim = self._onGrid:ndim()
 
@@ -122,7 +125,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
 
-   qOut:clear(0.0) -- compute increments
+   if self._clearOut then
+      qOut:clear(0.0) -- clear output field before computing vol/surf increments
+   end
    -- accumulate contributions from volume and surface integrals
    for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)

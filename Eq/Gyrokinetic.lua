@@ -20,16 +20,16 @@ function Gyrokinetic:init(tbl)
 
    self._ndim = self._grid:ndim()
 
-   -- set hamiltonian discontinuity direction flags
-   self._hamilDisCont = {}
-   for d = 1, self._ndim do
-      self._hamilDisCont[d] = false
-   end
-   if tbl.hamilDisContDirs then
-      for i, d in ipairs(tbl.hamilDisContDirs) do
-         self._hamilDisCont[d] = true
-      end
-   end
+   -- set hamiltonian discontinuity direction flags.. CURRENTLY NOT SUPPORTED
+   --self._hamilDisCont = {}
+   --for d = 1, self._ndim do
+   --   self._hamilDisCont[d] = false
+   --end
+   --if tbl.hamilDisContDirs then
+   --   for i, d in ipairs(tbl.hamilDisContDirs) do
+   --      self._hamilDisCont[d] = true
+   --   end
+   --end
 
    local charge = assert(tbl.charge, "Gyrokinetic: must specify charge using 'charge' ")
    local mass = assert(tbl.mass, "Gyrokinetic: must specify mass using 'mass' ")
@@ -38,7 +38,6 @@ function Gyrokinetic:init(tbl)
 
    assert(tbl.hasPhi==true, "Gyrokinetic: must have an electrostatic potential!")
    self._isElectromagnetic = xsys.pickBool(tbl.hasApar, false)
-   --assert(self._isElectromagnetic==false, "Gyrokinetic: electromagnetic not yet implemented!")
 
    self._ndim = self._basis:ndim()
    self._cdim = self._confBasis:ndim()
@@ -150,7 +149,7 @@ end
 function Gyrokinetic:calcSheathDeltaPhi(idx, edgeVal) 
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.phiWall:fill(self.phiWallIdxr(idx), self.phiWallPtr)
-   return self._calcSheathDeltaPhi(phi:data(), phiWall:data(), edgeVal)
+   return self._calcSheathDeltaPhi(self.phiPtr:data(), self.phiWallPtr:data(), edgeVal)
 end
 -- calculate deltaPhi at domain edge for sheath BCs
 function Gyrokinetic:calcSheathPartialReflection(w, dv, edgeVal, vcut, f, fhat)

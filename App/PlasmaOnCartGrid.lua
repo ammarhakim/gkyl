@@ -247,7 +247,6 @@ local function buildApplication(self, tbl)
       local funcHasE, funcHasB = funcField:hasEB()
       speciesRkFields[nm] = s:rkStepperFields()
       s:initDist(funcField)
-      s:applyBc(0, 0, speciesRkFields[nm][1])
       s:createSolver(hasE or funcHasE, hasB or funcHasB)
       s:createDiagnostics()
    end
@@ -267,8 +266,14 @@ local function buildApplication(self, tbl)
    field:applyBc(0, 0, emRkFields[1])
    funcField:applyBc(0, 0, emRkFuncFields[1])
 
-   -- apply species BCs one more time in case needed fields
+   -- apply species BCs 
    for nm, s in pairs(species) do
+      -- this is a dummy forwardEuler call because some BCs require 
+      -- auxFields to be set, which is controlled by species solver
+      s:forwardEuler(0, 0, speciesRkFields[nm][1], {emRkFields[1], emRkFuncFields[1]}, speciesRkFields[nm][2])
+      -- restore initial condition
+      s:initDist(funcField)
+      -- apply BCs
       s:applyBc(0, 0, speciesRkFields[nm][1])
    end
 
@@ -300,11 +305,8 @@ local function buildApplication(self, tbl)
         -- if field equation is elliptic, calculate field 
         -- that is self-consistent with speciesRkFields[inIdx] 
         -- to use in species update
-        local oldIdx = inIdx
-        --oldIdx = 1
-        --if inIdx == 1 then oldIdx = #emRkFields-1 end
         local myStatus, myDtSuggested = field:forwardEuler(
-           tCurr, dt, emRkFields[oldIdx], species, emRkFields[inIdx])
+           tCurr, dt, emRkFields[inIdx], species, emRkFields[inIdx])
         field:applyBc(tCurr, dt, emRkFields[inIdx])
         status = status and myStatus
         dtSuggested = math.min(dtSuggested, myDtSuggested)
