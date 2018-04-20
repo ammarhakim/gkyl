@@ -94,6 +94,7 @@ FemParPoisson::FemParPoisson(int nz_, int ndim_, int polyOrder_,
 
 // initialize global source vector
   globalSrc = VectorXd(nglobal);
+  x = VectorXd(nglobal);
 
 // initialize modal-nodal transformation matrices
  
@@ -360,7 +361,6 @@ void FemParPoisson::solve()
     saveMarket(globalSrc, outName);
   }
  
-  x = Eigen::VectorXd(nglobal);
   
 // solve linear system(s)
 // modify non-dirichlet rows of source by subtracting sourceModVec
