@@ -1,343 +1,343 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionSurf2xSer_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[0]*dxvl[0]); 
-  double dxr = 4.0/(dxvr[0]*dxvr[0]); 
+  double rdxSq2nul = 2.0*nu[0]/(dxvl[0]*dxvl[0]); 
+  double rdxSq2nur = 2.0*nu[0]/(dxvr[0]*dxvr[0]); 
   double incr[4]; 
 
-  incr[0] = 1.082531754730548*fr[1]+1.082531754730548*fl[1]-1.590990257669731*fr[0]+1.590990257669731*fl[0]; 
-  incr[1] = (-1.875*fr[1])-1.875*fl[1]+2.755675960631073*fr[0]-2.755675960631073*fl[0]; 
-  incr[2] = 1.082531754730548*fr[3]+1.082531754730548*fl[3]; 
-  incr[3] = (-1.875*fr[3])-1.875*fl[3]; 
+  incr[0] = 1.082531754730548*fr[1]+1.082531754730548*fl[1]-1.125*fr[0]+1.125*fl[0]; 
+  incr[1] = (-1.875*fr[1])-1.875*fl[1]+1.948557158514986*fr[0]-1.948557158514986*fl[0]; 
+  incr[2] = 1.082531754730548*fr[3]+1.082531754730548*fl[3]-1.125*fr[2]+1.125*fl[2]; 
+  incr[3] = (-1.875*fr[3])-1.875*fl[3]+1.948557158514986*fr[2]-1.948557158514986*fl[2]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += incr[1]*dxl*nu; 
-  outl[2] += -1.0*incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += incr[1]*rdxSq2nul; 
+  outl[2] += -1.0*incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf2xSer_X_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_X_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[0]*dxvl[0]); 
-  double dxr = 4.0/(dxvr[0]*dxvr[0]); 
+  double rdxSq2nul = 2.0*nu[0]/(dxvl[0]*dxvl[0]); 
+  double rdxSq2nur = 2.0*nu[0]/(dxvr[0]*dxvr[0]); 
   double incr[8]; 
 
-  incr[0] = 1.684024198163434*fr[7]+1.684024198163434*fl[7]-1.341640786499874*fr[2]+1.341640786499874*fl[2]+2.381569860407206*fr[1]+2.381569860407206*fl[1]-2.651650429449552*fr[0]+2.651650429449552*fl[0]; 
-  incr[1] = (-2.916815472394507*fr[7])-2.916815472394507*fl[7]+2.32379000772445*fr[2]-2.32379000772445*fl[2]-4.125*fr[1]-4.125*fl[1]+4.592793267718456*fr[0]-4.592793267718456*fl[0]; 
-  incr[2] = 1.684024198163434*fr[5]+1.684024198163434*fl[5]-1.341640786499874*fr[4]+1.341640786499874*fl[4]; 
-  incr[3] = (-2.916815472394507*fr[5])-2.916815472394507*fl[5]+2.32379000772445*fr[4]-2.32379000772445*fl[4]; 
-  incr[4] = 3.765592582848016*fr[7]+3.765592582848016*fl[7]-3.0*fr[2]+3.0*fl[2]+5.325352101035199*fr[1]+5.325352101035199*fl[1]-5.929270612815711*fr[0]+5.929270612815711*fl[0]; 
-  incr[5] = (-1.341640786499874*fr[8])+1.341640786499874*fl[8]+1.506237033139207*fr[7]+1.506237033139207*fl[7]+2.381569860407206*fr[6]+2.381569860407206*fl[6]; 
-  incr[6] = 3.765592582848016*fr[5]+3.765592582848016*fl[5]-3.0*fr[4]+3.0*fl[4]; 
-  incr[7] = 2.32379000772445*fr[8]-2.32379000772445*fl[8]-2.608879069638912*fr[7]-2.608879069638912*fl[7]-4.125*fr[6]-4.125*fl[6]; 
+  incr[0] = (-1.341640786499874*fr[4])+1.341640786499874*fl[4]+2.381569860407206*fr[1]+2.381569860407206*fl[1]-1.875*fr[0]+1.875*fl[0]; 
+  incr[1] = 2.32379000772445*fr[4]-2.32379000772445*fl[4]-4.125*fr[1]-4.125*fl[1]+3.247595264191645*fr[0]-3.247595264191645*fl[0]; 
+  incr[2] = (-1.341640786499874*fr[6])+1.341640786499874*fl[6]+2.381569860407206*fr[3]+2.381569860407206*fl[3]-1.875*fr[2]+1.875*fl[2]; 
+  incr[3] = 2.32379000772445*fr[6]-2.32379000772445*fl[6]-4.125*fr[3]-4.125*fl[3]+3.247595264191645*fr[2]-3.247595264191645*fl[2]; 
+  incr[4] = (-3.0*fr[4])+3.0*fl[4]+5.325352101035199*fr[1]+5.325352101035199*fl[1]-4.192627457812106*fr[0]+4.192627457812106*fl[0]; 
+  incr[5] = 2.381569860407206*fr[7]+2.381569860407206*fl[7]-1.875*fr[5]+1.875*fl[5]; 
+  incr[6] = (-3.0*fr[6])+3.0*fl[6]+5.325352101035199*fr[3]+5.325352101035199*fl[3]-4.192627457812105*fr[2]+4.192627457812105*fl[2]; 
+  incr[7] = (-4.125*fr[7])-4.125*fl[7]+3.247595264191645*fr[5]-3.247595264191645*fl[5]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
-  outr[4] += incr[4]*dxr*nu; 
-  outr[5] += incr[5]*dxr*nu; 
-  outr[6] += incr[6]*dxr*nu; 
-  outr[7] += incr[7]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
+  outr[4] += incr[4]*rdxSq2nur; 
+  outr[5] += incr[5]*rdxSq2nur; 
+  outr[6] += incr[6]*rdxSq2nur; 
+  outr[7] += incr[7]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += incr[1]*dxl*nu; 
-  outl[2] += -1.0*incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
-  outl[4] += -1.0*incr[4]*dxl*nu; 
-  outl[5] += -1.0*incr[5]*dxl*nu; 
-  outl[6] += -1.0*incr[6]*dxl*nu; 
-  outl[7] += incr[7]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += incr[1]*rdxSq2nul; 
+  outl[2] += -1.0*incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
+  outl[4] += -1.0*incr[4]*rdxSq2nul; 
+  outl[5] += -1.0*incr[5]*rdxSq2nul; 
+  outl[6] += -1.0*incr[6]*rdxSq2nul; 
+  outl[7] += incr[7]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf2xSer_X_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_X_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[0]*dxvl[0]); 
-  double dxr = 4.0/(dxvr[0]*dxvr[0]); 
+  double rdxSq2nul = 2.0*nu[0]/(dxvl[0]*dxvl[0]); 
+  double rdxSq2nur = 2.0*nu[0]/(dxvr[0]*dxvr[0]); 
   double incr[12]; 
 
-  incr[0] = (-2.198771185585824*fr[11])+2.198771185585824*fl[11]+2.73653932201558*fr[7]+2.73653932201558*fl[7]+1.36421551976768*fr[5]+1.36421551976768*fl[5]-3.109532031210645*fr[2]+3.109532031210645*fl[2]+3.87005102316171*fr[1]+3.87005102316171*fl[1]-3.866990209613929*fr[0]+3.866990209613929*fl[0]; 
-  incr[1] = 3.808383407653104*fr[11]-3.808383407653104*fl[11]-4.739825142641072*fr[7]-4.739825142641072*fl[7]-2.362890592711605*fr[5]-2.362890592711605*fl[5]+5.385867465819689*fr[2]-5.385867465819689*fl[2]-6.703125*fr[1]-6.703125*fl[1]+6.697823515422747*fr[0]-6.697823515422747*fl[0]; 
-  incr[2] = (-2.198771185585824*fr[9])+2.198771185585824*fl[9]+1.36421551976768*fr[7]+1.36421551976768*fl[7]+2.736539322015579*fr[5]+2.736539322015579*fl[5]; 
-  incr[3] = 3.808383407653105*fr[9]-3.808383407653105*fl[9]-2.362890592711605*fr[7]-2.362890592711605*fl[7]-4.739825142641072*fr[5]-4.739825142641072*fl[5]; 
-  incr[4] = (-4.916601837937709*fr[11])+4.916601837937709*fl[11]+6.119087947128023*fr[7]+6.119087947128023*fl[7]+3.05047863816074*fr[5]+3.05047863816074*fl[5]-6.953125*fr[2]+6.953125*fl[2]+8.653697164182198*fr[1]+8.653697164182198*fl[1]-8.646852977022908*fr[0]+8.646852977022908*fl[0]; 
-  incr[5] = (-1.966640735175084*fr[11])+1.966640735175084*fl[11]-3.109532031210645*fr[8]+3.109532031210645*fl[8]+2.447635178851209*fr[7]+2.447635178851209*fl[7]+3.87005102316171*fr[6]+3.87005102316171*fl[6]; 
-  incr[6] = (-4.916601837937709*fr[9])+4.916601837937709*fl[9]+3.05047863816074*fr[7]+3.05047863816074*fl[7]+6.119087947128023*fr[5]+6.119087947128023*fl[5]; 
-  incr[7] = 3.406321673557854*fr[11]-3.406321673557854*fl[11]+5.385867465819689*fr[8]-5.385867465819689*fl[8]-4.23942848816323*fr[7]-4.23942848816323*fl[7]-6.703125*fr[6]-6.703125*fl[6]; 
-  incr[8] = 5.817401746994739*fr[11]-5.817401746994739*fl[11]-7.240202499002526*fr[7]-7.240202499002526*fl[7]-3.609375*fr[5]-3.609375*fl[5]+8.227048448372905*fr[2]-8.227048448372905*fl[2]-10.23919256841696*fr[1]-10.23919256841696*fl[1]+10.23109441695999*fr[0]-10.23109441695999*fl[0]; 
-  incr[9] = (-3.109532031210645*fr[12])+3.109532031210645*fl[12]+3.87005102316171*fr[10]+3.87005102316171*fl[10]; 
-  incr[10] = 5.817401746994739*fr[9]-5.817401746994739*fl[9]-3.609375*fr[7]-3.609375*fl[7]-7.240202499002525*fr[5]-7.240202499002525*fl[5]; 
-  incr[11] = 5.385867465819689*fr[12]-5.385867465819689*fl[12]-6.703124999999999*fr[10]-6.703124999999999*fl[10]; 
+  incr[0] = 1.36421551976768*fr[8]+1.36421551976768*fl[8]-3.109532031210645*fr[4]+3.109532031210645*fl[4]+3.87005102316171*fr[1]+3.87005102316171*fl[1]-2.734375*fr[0]+2.734375*fl[0]; 
+  incr[1] = (-2.362890592711605*fr[8])-2.362890592711605*fl[8]+5.385867465819689*fr[4]-5.385867465819689*fl[4]-6.703125*fr[1]-6.703125*fl[1]+4.736076426946148*fr[0]-4.736076426946148*fl[0]; 
+  incr[2] = 1.36421551976768*fr[10]+1.36421551976768*fl[10]-3.109532031210645*fr[6]+3.109532031210645*fl[6]+3.87005102316171*fr[3]+3.87005102316171*fl[3]-2.734375*fr[2]+2.734375*fl[2]; 
+  incr[3] = (-2.362890592711605*fr[10])-2.362890592711605*fl[10]+5.38586746581969*fr[6]-5.38586746581969*fl[6]-6.703125*fr[3]-6.703125*fl[3]+4.736076426946148*fr[2]-4.736076426946148*fl[2]; 
+  incr[4] = 3.05047863816074*fr[8]+3.05047863816074*fl[8]-6.953125*fr[4]+6.953125*fl[4]+8.653697164182198*fr[1]+8.653697164182198*fl[1]-6.114248375975989*fr[0]+6.114248375975989*fl[0]; 
+  incr[5] = 3.87005102316171*fr[7]+3.87005102316171*fl[7]-2.734375*fr[5]+2.734375*fl[5]; 
+  incr[6] = 3.050478638160739*fr[10]+3.050478638160739*fl[10]-6.953125*fr[6]+6.953125*fl[6]+8.653697164182198*fr[3]+8.653697164182198*fl[3]-6.114248375975989*fr[2]+6.114248375975989*fl[2]; 
+  incr[7] = (-6.703125*fr[7])-6.703125*fl[7]+4.73607642694615*fr[5]-4.73607642694615*fl[5]; 
+  incr[8] = (-3.609375*fr[8])-3.609375*fl[8]+8.227048448372905*fr[4]-8.227048448372905*fl[4]-10.23919256841696*fr[1]-10.23919256841696*fl[1]+7.23447624119224*fr[0]-7.23447624119224*fl[0]; 
+  incr[9] = 3.87005102316171*fr[11]+3.87005102316171*fl[11]-2.734375*fr[9]+2.734375*fl[9]; 
+  incr[10] = (-3.609375*fr[10])-3.609375*fl[10]+8.227048448372903*fr[6]-8.227048448372903*fl[6]-10.23919256841696*fr[3]-10.23919256841696*fl[3]+7.234476241192241*fr[2]-7.234476241192241*fl[2]; 
+  incr[11] = (-6.703125*fr[11])-6.703125*fl[11]+4.736076426946149*fr[9]-4.736076426946149*fl[9]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
-  outr[4] += incr[4]*dxr*nu; 
-  outr[5] += incr[5]*dxr*nu; 
-  outr[6] += incr[6]*dxr*nu; 
-  outr[7] += incr[7]*dxr*nu; 
-  outr[8] += incr[8]*dxr*nu; 
-  outr[9] += incr[9]*dxr*nu; 
-  outr[10] += incr[10]*dxr*nu; 
-  outr[11] += incr[11]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
+  outr[4] += incr[4]*rdxSq2nur; 
+  outr[5] += incr[5]*rdxSq2nur; 
+  outr[6] += incr[6]*rdxSq2nur; 
+  outr[7] += incr[7]*rdxSq2nur; 
+  outr[8] += incr[8]*rdxSq2nur; 
+  outr[9] += incr[9]*rdxSq2nur; 
+  outr[10] += incr[10]*rdxSq2nur; 
+  outr[11] += incr[11]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += incr[1]*dxl*nu; 
-  outl[2] += -1.0*incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
-  outl[4] += -1.0*incr[4]*dxl*nu; 
-  outl[5] += -1.0*incr[5]*dxl*nu; 
-  outl[6] += -1.0*incr[6]*dxl*nu; 
-  outl[7] += incr[7]*dxl*nu; 
-  outl[8] += incr[8]*dxl*nu; 
-  outl[9] += -1.0*incr[9]*dxl*nu; 
-  outl[10] += incr[10]*dxl*nu; 
-  outl[11] += incr[11]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += incr[1]*rdxSq2nul; 
+  outl[2] += -1.0*incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
+  outl[4] += -1.0*incr[4]*rdxSq2nul; 
+  outl[5] += -1.0*incr[5]*rdxSq2nul; 
+  outl[6] += -1.0*incr[6]*rdxSq2nul; 
+  outl[7] += incr[7]*rdxSq2nul; 
+  outl[8] += incr[8]*rdxSq2nul; 
+  outl[9] += -1.0*incr[9]*rdxSq2nul; 
+  outl[10] += incr[10]*rdxSq2nul; 
+  outl[11] += incr[11]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf2xSer_X_P4(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_X_P4(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[0]*dxvl[0]); 
-  double dxr = 4.0/(dxvr[0]*dxvr[0]); 
+  double rdxSq2nul = 2.0*nu[0]/(dxvl[0]*dxvl[0]); 
+  double rdxSq2nur = 2.0*nu[0]/(dxvr[0]*dxvr[0]); 
   double incr[17]; 
 
-  incr[0] = 2.763838886296431*fr[16]+2.763838886296431*fl[16]+2.389691338818511*fr[14]+2.389691338818511*fl[14]-3.650207221014668*fr[12]+3.650207221014668*fl[12]-1.25*fr[9]+1.25*fl[9]+3.908658437214559*fr[7]+3.908658437214559*fl[7]-5.162172557431155*fr[2]+5.162172557431155*fl[2]+5.527677772592862*fr[1]+5.527677772592862*fl[1]-5.220436782978802*fr[0]+5.220436782978802*fl[0]; 
-  incr[1] = (-4.787109375*fr[16])-4.787109375*fl[16]-4.139066813240952*fr[14]-4.139066813240952*fl[14]+6.322344364952203*fr[12]-6.322344364952203*fl[12]+2.165063509461096*fr[9]-2.165063509461096*fl[9]-6.769995002688383*fr[7]-6.769995002688383*fl[7]+8.941145146908527*fr[2]-8.941145146908527*fl[2]-9.57421875*fr[1]-9.57421875*fl[1]+9.042061745820703*fr[0]-9.042061745820703*fl[0]; 
-  incr[2] = 2.389691338818511*fr[16]+2.389691338818511*fl[16]+2.763838886296431*fr[14]+2.763838886296431*fl[14]-1.25*fr[12]+1.25*fl[12]+3.49601038657594*fr[11]+3.49601038657594*fl[11]-3.650207221014668*fr[9]+3.650207221014668*fl[9]+3.379533901242661*fr[7]+3.379533901242661*fl[7]; 
-  incr[3] = (-4.139066813240952*fr[16])-4.139066813240952*fl[16]-4.787109375*fr[14]-4.787109375*fl[14]+2.165063509461096*fr[12]-2.165063509461096*fl[12]-6.055267613338039*fr[11]-6.055267613338039*fl[11]+6.322344364952203*fr[9]-6.322344364952203*fl[9]-5.853524422853749*fr[7]-5.853524422853749*fl[7]; 
-  incr[4] = 6.180131628616133*fr[16]+6.180131628616133*fl[16]+5.343512278840672*fr[14]+5.343512278840672*fl[14]-8.162111478149393*fr[12]+8.162111478149393*fl[12]-2.795084971874738*fr[9]+2.795084971874738*fl[9]+8.740025966439848*fr[7]+8.740025966439848*fl[7]-11.54296875*fr[2]+11.54296875*fl[2]+12.36026325723227*fr[1]+12.36026325723227*fl[1]-11.67325151898092*fr[0]+11.67325151898092*fl[0]; 
-  incr[5] = 2.472052651446453*fr[16]+2.472052651446453*fl[16]-3.264844591259759*fr[12]+3.264844591259759*fl[12]+3.379533901242661*fr[11]+3.379533901242661*fl[11]-5.162172557431155*fr[8]+5.162172557431155*fl[8]+3.496010386575939*fr[7]+3.496010386575939*fl[7]+5.527677772592862*fr[6]+5.527677772592862*fl[6]; 
-  incr[6] = 5.343512278840673*fr[16]+5.343512278840673*fl[16]+6.180131628616132*fr[14]+6.180131628616132*fl[14]-2.795084971874737*fr[12]+2.795084971874737*fl[12]+7.81731687442912*fr[11]+7.81731687442912*fl[11]-8.162111478149399*fr[9]+8.162111478149399*fl[9]+7.556867535443652*fr[7]+7.556867535443652*fl[7]; 
-  incr[7] = (-4.281720791290613*fr[16])-4.281720791290613*fl[16]+5.654876710878346*fr[12]-5.654876710878346*fl[12]-5.853524422853749*fr[11]-5.853524422853749*fl[11]+8.941145146908527*fr[8]-8.941145146908527*fl[8]-6.055267613338039*fr[7]-6.055267613338039*fl[7]-9.57421875*fr[6]-9.57421875*fl[6]; 
-  incr[8] = (-7.312430356990081*fr[16])-7.312430356990081*fl[16]-6.322528992718771*fr[14]-6.322528992718771*fl[14]+9.657540540656994*fr[12]-9.657540540656994*fl[12]+3.307189138830738*fr[9]-3.307189138830738*fl[9]-10.34133818476409*fr[7]-10.34133818476409*fl[7]+13.65782481176513*fr[2]-13.65782481176513*fl[2]-14.62486071398016*fr[1]-14.62486071398016*fl[1]+13.81197746289598*fr[0]-13.81197746289598*fl[0]; 
-  incr[9] = (-5.162172557431155*fr[13])+5.162172557431155*fl[13]+3.433014048607729*fr[11]+3.433014048607729*fl[11]+5.527677772592862*fr[10]+5.527677772592862*fl[10]; 
-  incr[10] = 5.527677772592862*fr[16]+5.527677772592862*fl[16]-7.300414442029337*fr[12]+7.300414442029337*fl[12]+7.556867535443652*fr[11]+7.556867535443652*fl[11]-11.54296875*fr[8]+11.54296875*fl[8]+7.81731687442912*fr[7]+7.81731687442912*fl[7]+12.36026325723227*fr[6]+12.36026325723227*fl[6]; 
-  incr[11] = (-6.322528992718771*fr[16])-6.322528992718771*fl[16]-7.31243035699008*fr[14]-7.31243035699008*fl[14]+3.307189138830738*fr[12]-3.307189138830738*fl[12]-9.249574063778718*fr[11]-9.249574063778718*fl[11]+9.657540540656994*fr[9]-9.657540540656994*fl[9]-8.94140625*fr[7]-8.94140625*fl[7]; 
-  incr[12] = 8.941145146908527*fr[13]-8.941145146908527*fl[13]-5.946154755286316*fr[11]-5.946154755286316*fl[11]-9.57421875*fr[10]-9.57421875*fl[10]; 
-  incr[13] = 8.291516658889293*fr[16]+8.291516658889293*fl[16]+7.169074016455531*fr[14]+7.169074016455531*fl[14]-10.950621663044*fr[12]+10.950621663044*fl[12]-3.75*fr[9]+3.75*fl[9]+11.72597531164368*fr[7]+11.72597531164368*fl[7]-15.48651767229347*fr[2]+15.48651767229347*fl[2]+16.58303331777859*fr[1]+16.58303331777859*fl[1]-15.66131034893641*fr[0]+15.66131034893641*fl[0]; 
-  incr[14] = (-5.162172557431155*fr[17])+5.162172557431155*fl[17]+5.527677772592862*fr[15]+5.527677772592862*fl[15]; 
-  incr[15] = 7.169074016455531*fr[16]+7.169074016455531*fl[16]+8.291516658889293*fr[14]+8.291516658889293*fl[14]-3.749999999999999*fr[12]+3.749999999999999*fl[12]+10.48803115972782*fr[11]+10.48803115972782*fl[11]-10.950621663044*fr[9]+10.950621663044*fl[9]+10.13860170372798*fr[7]+10.13860170372798*fl[7]; 
-  incr[16] = 8.941145146908527*fr[17]-8.941145146908527*fl[17]-9.57421875*fr[15]-9.57421875*fl[15]; 
+  incr[0] = (-1.25*fr[13])+1.25*fl[13]+3.379533901242661*fr[8]+3.379533901242661*fl[8]-5.162172557431155*fr[4]+5.162172557431155*fl[4]+5.527677772592862*fr[1]+5.527677772592862*fl[1]-3.69140625*fr[0]+3.69140625*fl[0]; 
+  incr[1] = 2.165063509461096*fr[13]-2.165063509461096*fl[13]-5.853524422853748*fr[8]-5.853524422853748*fl[8]+8.941145146908527*fr[4]-8.941145146908527*fl[4]-9.57421875*fr[1]-9.57421875*fl[1]+6.393703176377298*fr[0]-6.393703176377298*fl[0]; 
+  incr[2] = (-1.25*fr[15])+1.25*fl[15]+3.37953390124266*fr[11]+3.37953390124266*fl[11]-5.162172557431155*fr[6]+5.162172557431155*fl[6]+5.527677772592862*fr[3]+5.527677772592862*fl[3]-3.69140625*fr[2]+3.69140625*fl[2]; 
+  incr[3] = 2.165063509461096*fr[15]-2.165063509461096*fl[15]-5.853524422853749*fr[11]-5.853524422853749*fl[11]+8.941145146908529*fr[6]-8.941145146908529*fl[6]-9.57421875*fr[3]-9.57421875*fl[3]+6.393703176377298*fr[2]-6.393703176377298*fl[2]; 
+  incr[4] = (-2.795084971874738*fr[13])+2.795084971874738*fl[13]+7.556867535443652*fr[8]+7.556867535443652*fl[8]-11.54296875*fr[4]+11.54296875*fl[4]+12.36026325723227*fr[1]+12.36026325723227*fl[1]-8.254235307567585*fr[0]+8.254235307567585*fl[0]; 
+  incr[5] = (-5.162172557431155*fr[10])+5.162172557431155*fl[10]+5.527677772592862*fr[7]+5.527677772592862*fl[7]-3.69140625*fr[5]+3.69140625*fl[5]; 
+  incr[6] = (-2.795084971874738*fr[15])+2.795084971874738*fl[15]+7.556867535443651*fr[11]+7.556867535443651*fl[11]-11.54296875*fr[6]+11.54296875*fl[6]+12.36026325723226*fr[3]+12.36026325723226*fl[3]-8.254235307567583*fr[2]+8.254235307567583*fl[2]; 
+  incr[7] = 8.941145146908529*fr[10]-8.941145146908529*fl[10]-9.57421875*fr[7]-9.57421875*fl[7]+6.393703176377302*fr[5]-6.393703176377302*fl[5]; 
+  incr[8] = 3.307189138830738*fr[13]-3.307189138830738*fl[13]-8.94140625*fr[8]-8.94140625*fl[8]+13.65782481176513*fr[4]-13.65782481176513*fl[4]-14.62486071398016*fr[1]-14.62486071398016*fl[1]+9.766542925609524*fr[0]-9.766542925609524*fl[0]; 
+  incr[9] = 5.527677772592861*fr[12]+5.527677772592861*fl[12]-3.69140625*fr[9]+3.69140625*fl[9]; 
+  incr[10] = (-11.54296875*fr[10])+11.54296875*fl[10]+12.36026325723226*fr[7]+12.36026325723226*fl[7]-8.254235307567585*fr[5]+8.254235307567585*fl[5]; 
+  incr[11] = 3.307189138830739*fr[15]-3.307189138830739*fl[15]-8.94140625*fr[11]-8.94140625*fl[11]+13.65782481176513*fr[6]-13.65782481176513*fl[6]-14.62486071398016*fr[3]-14.62486071398016*fl[3]+9.76654292560952*fr[2]-9.76654292560952*fl[2]; 
+  incr[12] = (-9.57421875*fr[12])-9.57421875*fl[12]+6.393703176377302*fr[9]-6.393703176377302*fl[9]; 
+  incr[13] = (-3.75*fr[13])+3.75*fl[13]+10.13860170372798*fr[8]+10.13860170372798*fl[8]-15.48651767229347*fr[4]+15.48651767229347*fl[4]+16.58303331777859*fr[1]+16.58303331777859*fl[1]-11.07421875*fr[0]+11.07421875*fl[0]; 
+  incr[14] = 5.527677772592862*fr[16]+5.527677772592862*fl[16]-3.69140625*fr[14]+3.69140625*fl[14]; 
+  incr[15] = (-3.75*fr[15])+3.75*fl[15]+10.13860170372798*fr[11]+10.13860170372798*fl[11]-15.48651767229346*fr[6]+15.48651767229346*fl[6]+16.58303331777859*fr[3]+16.58303331777859*fl[3]-11.07421875*fr[2]+11.07421875*fl[2]; 
+  incr[16] = (-9.57421875*fr[16])-9.57421875*fl[16]+6.393703176377298*fr[14]-6.393703176377298*fl[14]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
-  outr[4] += incr[4]*dxr*nu; 
-  outr[5] += incr[5]*dxr*nu; 
-  outr[6] += incr[6]*dxr*nu; 
-  outr[7] += incr[7]*dxr*nu; 
-  outr[8] += incr[8]*dxr*nu; 
-  outr[9] += incr[9]*dxr*nu; 
-  outr[10] += incr[10]*dxr*nu; 
-  outr[11] += incr[11]*dxr*nu; 
-  outr[12] += incr[12]*dxr*nu; 
-  outr[13] += incr[13]*dxr*nu; 
-  outr[14] += incr[14]*dxr*nu; 
-  outr[15] += incr[15]*dxr*nu; 
-  outr[16] += incr[16]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
+  outr[4] += incr[4]*rdxSq2nur; 
+  outr[5] += incr[5]*rdxSq2nur; 
+  outr[6] += incr[6]*rdxSq2nur; 
+  outr[7] += incr[7]*rdxSq2nur; 
+  outr[8] += incr[8]*rdxSq2nur; 
+  outr[9] += incr[9]*rdxSq2nur; 
+  outr[10] += incr[10]*rdxSq2nur; 
+  outr[11] += incr[11]*rdxSq2nur; 
+  outr[12] += incr[12]*rdxSq2nur; 
+  outr[13] += incr[13]*rdxSq2nur; 
+  outr[14] += incr[14]*rdxSq2nur; 
+  outr[15] += incr[15]*rdxSq2nur; 
+  outr[16] += incr[16]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += incr[1]*dxl*nu; 
-  outl[2] += -1.0*incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
-  outl[4] += -1.0*incr[4]*dxl*nu; 
-  outl[5] += -1.0*incr[5]*dxl*nu; 
-  outl[6] += -1.0*incr[6]*dxl*nu; 
-  outl[7] += incr[7]*dxl*nu; 
-  outl[8] += incr[8]*dxl*nu; 
-  outl[9] += -1.0*incr[9]*dxl*nu; 
-  outl[10] += -1.0*incr[10]*dxl*nu; 
-  outl[11] += incr[11]*dxl*nu; 
-  outl[12] += incr[12]*dxl*nu; 
-  outl[13] += -1.0*incr[13]*dxl*nu; 
-  outl[14] += -1.0*incr[14]*dxl*nu; 
-  outl[15] += -1.0*incr[15]*dxl*nu; 
-  outl[16] += incr[16]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += incr[1]*rdxSq2nul; 
+  outl[2] += -1.0*incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
+  outl[4] += -1.0*incr[4]*rdxSq2nul; 
+  outl[5] += -1.0*incr[5]*rdxSq2nul; 
+  outl[6] += -1.0*incr[6]*rdxSq2nul; 
+  outl[7] += incr[7]*rdxSq2nul; 
+  outl[8] += incr[8]*rdxSq2nul; 
+  outl[9] += -1.0*incr[9]*rdxSq2nul; 
+  outl[10] += -1.0*incr[10]*rdxSq2nul; 
+  outl[11] += incr[11]*rdxSq2nul; 
+  outl[12] += incr[12]*rdxSq2nul; 
+  outl[13] += -1.0*incr[13]*rdxSq2nul; 
+  outl[14] += -1.0*incr[14]*rdxSq2nul; 
+  outl[15] += -1.0*incr[15]*rdxSq2nul; 
+  outl[16] += incr[16]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf2xSer_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_Y_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[1]*dxvl[1]); 
-  double dxr = 4.0/(dxvr[1]*dxvr[1]); 
+  double rdxSq2nul = 2.0*nu[1]/(dxvl[1]*dxvl[1]); 
+  double rdxSq2nur = 2.0*nu[1]/(dxvr[1]*dxvr[1]); 
   double incr[4]; 
 
-  incr[0] = 0.7654655446197428*fr[4]+0.7654655446197428*fl[4]+1.082531754730548*fr[1]+1.082531754730548*fl[1]-1.590990257669731*fr[0]+1.590990257669731*fl[0]; 
-  incr[1] = 0.7654655446197428*fr[3]+0.7654655446197428*fl[3]; 
-  incr[2] = (-1.325825214724776*fr[4])-1.325825214724776*fl[4]-1.875*fr[1]-1.875*fl[1]+2.755675960631073*fr[0]-2.755675960631073*fl[0]; 
-  incr[3] = (-1.325825214724776*fr[3])-1.325825214724776*fl[3]; 
+  incr[0] = 1.082531754730548*fr[2]+1.082531754730548*fl[2]-1.125*fr[0]+1.125*fl[0]; 
+  incr[1] = 1.082531754730548*fr[3]+1.082531754730548*fl[3]-1.125*fr[1]+1.125*fl[1]; 
+  incr[2] = (-1.875*fr[2])-1.875*fl[2]+1.948557158514986*fr[0]-1.948557158514986*fl[0]; 
+  incr[3] = (-1.875*fr[3])-1.875*fl[3]+1.948557158514986*fr[1]-1.948557158514986*fl[1]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += -1.0*incr[1]*dxl*nu; 
-  outl[2] += incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += -1.0*incr[1]*rdxSq2nul; 
+  outl[2] += incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf2xSer_Y_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_Y_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[1]*dxvl[1]); 
-  double dxr = 4.0/(dxvr[1]*dxvr[1]); 
+  double rdxSq2nul = 2.0*nu[1]/(dxvl[1]*dxvl[1]); 
+  double rdxSq2nur = 2.0*nu[1]/(dxvr[1]*dxvr[1]); 
   double incr[8]; 
 
-  incr[0] = 1.190784930203603*fr[8]+1.190784930203603*fl[8]-0.9486832980505137*fr[6]+0.9486832980505137*fl[6]+1.684024198163434*fr[4]+1.684024198163434*fl[4]+2.381569860407206*fr[1]+2.381569860407206*fl[1]-2.651650429449552*fr[0]+2.651650429449552*fl[0]; 
-  incr[1] = (-0.9486832980505138*fr[8])+0.9486832980505138*fl[8]+1.506237033139207*fr[7]+1.506237033139207*fl[7]+1.190784930203603*fr[6]+1.190784930203603*fl[6]-1.341640786499874*fr[4]+1.341640786499874*fl[4]; 
-  incr[2] = (-2.0625*fr[8])-2.0625*fl[8]+1.643167672515498*fr[6]-1.643167672515498*fl[6]-2.916815472394507*fr[4]-2.916815472394507*fl[4]-4.125*fr[1]-4.125*fl[1]+4.592793267718456*fr[0]-4.592793267718456*fl[0]; 
-  incr[3] = 1.643167672515498*fr[8]-1.643167672515498*fl[8]-2.608879069638912*fr[7]-2.608879069638912*fl[7]-2.0625*fr[6]-2.0625*fl[6]+2.32379000772445*fr[4]-2.32379000772445*fl[4]; 
-  incr[4] = 1.06507042020704*fr[8]+1.06507042020704*fl[8]-1.341640786499874*fr[7]+1.341640786499874*fl[7]+2.381569860407206*fr[5]+2.381569860407206*fl[5]+1.506237033139206*fr[4]+1.506237033139206*fl[4]; 
-  incr[5] = 2.662676050517599*fr[8]+2.662676050517599*fl[8]-2.121320343559642*fr[6]+2.121320343559642*fl[6]+3.765592582848016*fr[4]+3.765592582848016*fl[4]+5.325352101035199*fr[1]+5.325352101035199*fl[1]-5.929270612815711*fr[0]+5.929270612815711*fl[0]; 
-  incr[6] = (-1.844756081437327*fr[8])-1.844756081437327*fl[8]+2.32379000772445*fr[7]-2.32379000772445*fl[7]-4.125*fr[5]-4.125*fl[5]-2.608879069638912*fr[4]-2.608879069638912*fl[4]; 
-  incr[7] = (-2.121320343559642*fr[8])+2.121320343559642*fl[8]+3.368048396326869*fr[7]+3.368048396326869*fl[7]+2.662676050517599*fr[6]+2.662676050517599*fl[6]-3.0*fr[4]+3.0*fl[4]; 
+  incr[0] = (-1.341640786499874*fr[5])+1.341640786499874*fl[5]+2.381569860407206*fr[2]+2.381569860407206*fl[2]-1.875*fr[0]+1.875*fl[0]; 
+  incr[1] = (-1.341640786499874*fr[7])+1.341640786499874*fl[7]+2.381569860407206*fr[3]+2.381569860407206*fl[3]-1.875*fr[1]+1.875*fl[1]; 
+  incr[2] = 2.32379000772445*fr[5]-2.32379000772445*fl[5]-4.125*fr[2]-4.125*fl[2]+3.247595264191645*fr[0]-3.247595264191645*fl[0]; 
+  incr[3] = 2.32379000772445*fr[7]-2.32379000772445*fl[7]-4.125*fr[3]-4.125*fl[3]+3.247595264191645*fr[1]-3.247595264191645*fl[1]; 
+  incr[4] = 2.381569860407206*fr[6]+2.381569860407206*fl[6]-1.875*fr[4]+1.875*fl[4]; 
+  incr[5] = (-3.0*fr[5])+3.0*fl[5]+5.325352101035199*fr[2]+5.325352101035199*fl[2]-4.192627457812106*fr[0]+4.192627457812106*fl[0]; 
+  incr[6] = (-4.125*fr[6])-4.125*fl[6]+3.247595264191645*fr[4]-3.247595264191645*fl[4]; 
+  incr[7] = (-3.0*fr[7])+3.0*fl[7]+5.325352101035199*fr[3]+5.325352101035199*fl[3]-4.192627457812105*fr[1]+4.192627457812105*fl[1]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
-  outr[4] += incr[4]*dxr*nu; 
-  outr[5] += incr[5]*dxr*nu; 
-  outr[6] += incr[6]*dxr*nu; 
-  outr[7] += incr[7]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
+  outr[4] += incr[4]*rdxSq2nur; 
+  outr[5] += incr[5]*rdxSq2nur; 
+  outr[6] += incr[6]*rdxSq2nur; 
+  outr[7] += incr[7]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += -1.0*incr[1]*dxl*nu; 
-  outl[2] += incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
-  outl[4] += -1.0*incr[4]*dxl*nu; 
-  outl[5] += -1.0*incr[5]*dxl*nu; 
-  outl[6] += incr[6]*dxl*nu; 
-  outl[7] += -1.0*incr[7]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += -1.0*incr[1]*rdxSq2nul; 
+  outl[2] += incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
+  outl[4] += -1.0*incr[4]*rdxSq2nul; 
+  outl[5] += -1.0*incr[5]*rdxSq2nul; 
+  outl[6] += incr[6]*rdxSq2nul; 
+  outl[7] += -1.0*incr[7]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf2xSer_Y_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_Y_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[1]*dxvl[1]); 
-  double dxr = 4.0/(dxvr[1]*dxvr[1]); 
+  double rdxSq2nul = 2.0*nu[1]/(dxvl[1]*dxvl[1]); 
+  double rdxSq2nur = 2.0*nu[1]/(dxvr[1]*dxvr[1]); 
   double incr[12]; 
 
-  incr[0] = (-2.198771185585824*fr[12])+2.198771185585824*fl[12]+1.935025511580855*fr[10]+1.935025511580855*fl[10]+1.935025511580855*fr[8]+1.935025511580855*fl[8]-0.8345556658181448*fr[6]+3.562986705353504*fl[6]+3.87005102316171*fr[1]+3.87005102316171*fl[1]-3.866990209613929*fr[0]+3.866990209613929*fl[0]; 
-  incr[1] = 3.483045920845539*fr[12]+3.483045920845539*fl[12]-2.198771185585824*fr[10]+2.198771185585824*fl[10]-0.8345556658181448*fr[8]+3.562986705353505*fl[8]+2.447635178851209*fr[7]+2.447635178851209*fl[7]+1.935025511580855*fr[6]+1.935025511580855*fl[6]; 
-  incr[2] = 3.808383407653104*fr[12]-3.808383407653104*fl[12]-3.3515625*fr[10]-3.3515625*fl[10]-3.3515625*fr[8]-3.3515625*fl[8]+1.4454928149415*fr[6]-6.17127400036471*fl[6]-6.703125*fr[1]-6.703125*fl[1]+6.697823515422747*fr[0]-6.697823515422747*fl[0]; 
-  incr[3] = (-6.032812499999998*fr[12])-6.032812499999998*fl[12]+3.808383407653105*fr[10]-3.808383407653105*fl[10]+1.4454928149415*fr[8]-6.17127400036471*fl[8]-4.239428488163231*fr[7]-4.239428488163231*fl[7]-3.3515625*fr[6]-3.3515625*fl[6]; 
-  incr[4] = (-1.966640735175084*fr[12])+1.966640735175084*fl[12]+2.403530031583379*fr[11]+2.403530031583379*fl[11]+1.730739432836439*fr[10]+1.730739432836439*fl[10]+1.73073943283644*fr[8]+1.73073943283644*fl[8]-3.109532031210645*fr[7]+3.109532031210645*fl[7]+3.87005102316171*fr[5]+3.87005102316171*fl[5]; 
-  incr[5] = (-4.916601837937709*fr[12])+4.916601837937709*fl[12]+4.326848582091099*fr[10]+4.326848582091099*fl[10]+4.326848582091099*fr[8]+4.326848582091099*fl[8]-1.866123199776969*fr[6]+7.967080476098449*fl[6]+8.653697164182198*fr[1]+8.653697164182198*fl[1]-8.646852977022908*fr[0]+8.646852977022908*fl[0]; 
-  incr[6] = 3.406321673557854*fr[12]-3.406321673557854*fl[12]-4.163036132220042*fr[11]-4.163036132220042*fl[11]-2.997728632335656*fr[10]-2.997728632335656*fl[10]-2.997728632335655*fr[8]-2.997728632335655*fl[8]+5.385867465819689*fr[7]-5.385867465819689*fl[7]-6.703125*fr[5]-6.703125*fl[5]; 
-  incr[7] = 7.788327447763975*fr[12]+7.788327447763975*fl[12]-4.916601837937709*fr[10]+4.916601837937709*fl[10]-1.866123199776969*fr[8]+7.967080476098449*fl[8]+5.473078644031159*fr[7]+5.473078644031159*fl[7]+4.326848582091099*fr[6]+4.326848582091099*fl[6]; 
-  incr[8] = 1.520125864883985*fr[12]+1.520125864883985*fl[12]-3.109532031210645*fr[11]+3.109532031210645*fl[11]+3.87005102316171*fr[9]+3.87005102316171*fl[9]+2.40353003158338*fr[7]+2.40353003158338*fl[7]; 
-  incr[9] = 5.817401746994739*fr[12]-5.817401746994739*fl[12]-5.119596284208478*fr[10]-5.119596284208478*fl[10]-5.119596284208478*fr[8]-5.119596284208478*fl[8]+2.208026746994739*fr[6]-9.42677674699474*fl[6]-10.23919256841696*fr[1]-10.23919256841696*fl[1]+10.23109441695999*fr[0]-10.23109441695999*fl[0]; 
-  incr[10] = (-2.632935231878645*fr[12])-2.632935231878645*fl[12]+5.385867465819689*fr[11]-5.385867465819689*fl[11]-6.703124999999999*fr[9]-6.703124999999999*fl[9]-4.163036132220042*fr[7]-4.163036132220042*fl[7]; 
-  incr[11] = (-9.215273311575258*fr[12])-9.215273311575258*fl[12]+5.817401746994739*fr[10]-5.817401746994739*fl[10]+2.208026746994739*fr[8]-9.42677674699474*fl[8]-6.475833983453401*fr[7]-6.475833983453401*fl[7]-5.119596284208478*fr[6]-5.119596284208478*fl[6]; 
+  incr[0] = 1.36421551976768*fr[9]+1.36421551976768*fl[9]-3.109532031210645*fr[5]+3.109532031210645*fl[5]+3.87005102316171*fr[2]+3.87005102316171*fl[2]-2.734375*fr[0]+2.734375*fl[0]; 
+  incr[1] = 1.36421551976768*fr[11]+1.36421551976768*fl[11]-3.109532031210645*fr[7]+3.109532031210645*fl[7]+3.87005102316171*fr[3]+3.87005102316171*fl[3]-2.734375*fr[1]+2.734375*fl[1]; 
+  incr[2] = (-2.362890592711605*fr[9])-2.362890592711605*fl[9]+5.385867465819689*fr[5]-5.385867465819689*fl[5]-6.703125*fr[2]-6.703125*fl[2]+4.736076426946148*fr[0]-4.736076426946148*fl[0]; 
+  incr[3] = (-2.362890592711605*fr[11])-2.362890592711605*fl[11]+5.38586746581969*fr[7]-5.38586746581969*fl[7]-6.703125*fr[3]-6.703125*fl[3]+4.736076426946148*fr[1]-4.736076426946148*fl[1]; 
+  incr[4] = 3.87005102316171*fr[6]+3.87005102316171*fl[6]-2.734375*fr[4]+2.734375*fl[4]; 
+  incr[5] = 3.05047863816074*fr[9]+3.05047863816074*fl[9]-6.953125*fr[5]+6.953125*fl[5]+8.653697164182198*fr[2]+8.653697164182198*fl[2]-6.114248375975989*fr[0]+6.114248375975989*fl[0]; 
+  incr[6] = (-6.703125*fr[6])-6.703125*fl[6]+4.73607642694615*fr[4]-4.73607642694615*fl[4]; 
+  incr[7] = 3.050478638160739*fr[11]+3.050478638160739*fl[11]-6.953125*fr[7]+6.953125*fl[7]+8.653697164182198*fr[3]+8.653697164182198*fl[3]-6.114248375975989*fr[1]+6.114248375975989*fl[1]; 
+  incr[8] = 3.87005102316171*fr[10]+3.87005102316171*fl[10]-2.734375*fr[8]+2.734375*fl[8]; 
+  incr[9] = (-3.609375*fr[9])-3.609375*fl[9]+8.227048448372905*fr[5]-8.227048448372905*fl[5]-10.23919256841696*fr[2]-10.23919256841696*fl[2]+7.23447624119224*fr[0]-7.23447624119224*fl[0]; 
+  incr[10] = (-6.703125*fr[10])-6.703125*fl[10]+4.736076426946149*fr[8]-4.736076426946149*fl[8]; 
+  incr[11] = (-3.609375*fr[11])-3.609375*fl[11]+8.227048448372903*fr[7]-8.227048448372903*fl[7]-10.23919256841696*fr[3]-10.23919256841696*fl[3]+7.234476241192241*fr[1]-7.234476241192241*fl[1]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
-  outr[4] += incr[4]*dxr*nu; 
-  outr[5] += incr[5]*dxr*nu; 
-  outr[6] += incr[6]*dxr*nu; 
-  outr[7] += incr[7]*dxr*nu; 
-  outr[8] += incr[8]*dxr*nu; 
-  outr[9] += incr[9]*dxr*nu; 
-  outr[10] += incr[10]*dxr*nu; 
-  outr[11] += incr[11]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
+  outr[4] += incr[4]*rdxSq2nur; 
+  outr[5] += incr[5]*rdxSq2nur; 
+  outr[6] += incr[6]*rdxSq2nur; 
+  outr[7] += incr[7]*rdxSq2nur; 
+  outr[8] += incr[8]*rdxSq2nur; 
+  outr[9] += incr[9]*rdxSq2nur; 
+  outr[10] += incr[10]*rdxSq2nur; 
+  outr[11] += incr[11]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += -1.0*incr[1]*dxl*nu; 
-  outl[2] += incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
-  outl[4] += -1.0*incr[4]*dxl*nu; 
-  outl[5] += -1.0*incr[5]*dxl*nu; 
-  outl[6] += incr[6]*dxl*nu; 
-  outl[7] += -1.0*incr[7]*dxl*nu; 
-  outl[8] += -1.0*incr[8]*dxl*nu; 
-  outl[9] += incr[9]*dxl*nu; 
-  outl[10] += incr[10]*dxl*nu; 
-  outl[11] += incr[11]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += -1.0*incr[1]*rdxSq2nul; 
+  outl[2] += incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
+  outl[4] += -1.0*incr[4]*rdxSq2nul; 
+  outl[5] += -1.0*incr[5]*rdxSq2nul; 
+  outl[6] += incr[6]*rdxSq2nul; 
+  outl[7] += -1.0*incr[7]*rdxSq2nul; 
+  outl[8] += -1.0*incr[8]*rdxSq2nul; 
+  outl[9] += incr[9]*rdxSq2nul; 
+  outl[10] += incr[10]*rdxSq2nul; 
+  outl[11] += incr[11]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf2xSer_Y_P4(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf2xSer_Y_P4(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells 
+// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
-  double dxl = 4.0/(dxvl[1]*dxvl[1]); 
-  double dxr = 4.0/(dxvr[1]*dxvr[1]); 
+  double rdxSq2nul = 2.0*nu[1]/(dxvl[1]*dxvl[1]); 
+  double rdxSq2nur = 2.0*nu[1]/(dxvr[1]*dxvr[1]); 
   double incr[17]; 
 
-  incr[0] = (-3.650207221014668*fr[13])+3.650207221014668*fl[13]+1.513838886296431*fr[10]+4.013838886296432*fl[10]+2.763838886296431*fr[8]+2.763838886296431*fl[8]-0.2706733197720075*fr[6]+7.029741122257329*fl[6]+5.527677772592862*fr[1]+5.527677772592862*fl[1]-5.220436782978802*fr[0]+5.220436782978802*fl[0]; 
-  incr[1] = 3.49601038657594*fr[17]+3.49601038657594*fl[17]+3.724909995333575*fr[13]+6.224909995333575*fl[13]+2.472052651446453*fr[11]+2.472052651446453*fl[11]-3.650207221014668*fr[10]+3.650207221014668*fl[10]-0.2706733197720075*fr[8]+7.029741122257329*fl[8]+3.496010386575939*fr[7]+3.496010386575939*fl[7]+2.763838886296431*fr[6]+2.763838886296431*fl[6]; 
-  incr[2] = 6.322344364952203*fr[13]-6.322344364952203*fl[13]-2.622045865538904*fr[10]-6.952172884461096*fl[10]-4.787109375*fr[8]-4.787109375*fl[8]+0.4688199420984551*fr[6]-12.17586878780595*fl[6]-9.57421875*fr[1]-9.57421875*fl[1]+9.042061745820703*fr[0]-9.042061745820703*fl[0]; 
-  incr[3] = (-6.055267613338039*fr[17])-6.055267613338039*fl[17]-6.4517333655389*fr[13]-10.78186038446109*fl[13]-4.281720791290613*fr[11]-4.281720791290613*fl[11]+6.322344364952203*fr[10]-6.322344364952203*fl[10]+0.4688199420984551*fr[8]-12.17586878780595*fl[8]-6.055267613338039*fr[7]-6.055267613338039*fl[7]-4.787109375*fr[6]-4.787109375*fl[6]; 
-  incr[4] = 3.908658437214559*fr[15]+3.908658437214559*fl[15]-3.264844591259759*fr[13]+3.264844591259759*fl[13]+3.433014048607728*fr[12]+3.433014048607728*fl[12]-0.2706733197720075*fr[11]+7.029741122257329*fl[11]+2.472052651446453*fr[10]+2.472052651446453*fl[10]+2.472052651446453*fr[8]+2.472052651446453*fl[8]-5.162172557431155*fr[7]+5.162172557431155*fl[7]; 
-  incr[5] = (-8.162111478149393*fr[13])+8.162111478149393*fl[13]+3.385046656741395*fr[10]+8.975216600490871*fl[10]+6.180131628616132*fr[8]+6.180131628616132*fl[8]-0.6052439427057452*fr[6]+15.71897901359305*fl[6]+12.36026325723227*fr[1]+12.36026325723227*fl[1]-11.67325151898092*fr[0]+11.67325151898092*fl[0]; 
-  incr[6] = (-6.769995002688383*fr[15])-6.769995002688383*fl[15]+5.654876710878346*fr[13]-5.654876710878346*fl[13]-5.946154755286317*fr[12]-5.946154755286317*fl[12]+0.4688199420984551*fr[11]-12.17586878780595*fl[11]-4.281720791290613*fr[10]-4.281720791290613*fl[10]-4.281720791290613*fr[8]-4.281720791290613*fl[8]+8.941145146908527*fr[7]-8.941145146908527*fl[7]; 
-  incr[7] = 7.81731687442912*fr[17]+7.81731687442912*fl[17]+8.3291519596343*fr[13]+13.91932190338377*fl[13]+5.527677772592862*fr[11]+5.527677772592862*fl[11]-8.162111478149399*fr[10]+8.162111478149399*fl[10]-0.6052439427057452*fr[8]+15.71897901359305*fl[8]+7.817316874429119*fr[7]+7.817316874429119*fl[7]+6.180131628616132*fr[6]+6.180131628616132*fl[6]; 
-  incr[8] = 3.433014048607729*fr[17]+3.433014048607729*fl[17]+3.41175679128829*fr[16]+3.41175679128829*fl[16]+2.171228726591287*fr[13]+2.171228726591287*fl[13]-5.162172557431155*fr[12]+5.162172557431155*fl[12]+2.427507513679211*fr[11]+2.427507513679211*fl[11]+5.527677772592862*fr[9]+5.527677772592862*fl[9]+3.433014048607729*fr[7]+3.433014048607729*fl[7]; 
-  incr[9] = 9.657540540656994*fr[13]-9.657540540656994*fl[13]-4.005241218159343*fr[10]-10.61961949582082*fl[10]-7.31243035699008*fr[8]-7.31243035699008*fl[8]+0.7161342906569956*fr[6]-18.598946790657*fl[6]-14.62486071398016*fr[1]-14.62486071398016*fl[1]+13.81197746289598*fr[0]-13.81197746289598*fl[0]; 
-  incr[10] = 8.740025966439848*fr[15]+8.740025966439848*fl[15]-7.300414442029337*fr[13]+7.300414442029337*fl[13]+7.676452780398648*fr[12]+7.676452780398648*fl[12]-0.6052439427057452*fr[11]+15.71897901359305*fl[11]+5.527677772592862*fr[10]+5.527677772592862*fl[10]+5.527677772592862*fr[8]+5.527677772592862*fl[8]-11.54296875*fr[7]+11.54296875*fl[7]; 
-  incr[11] = (-5.946154755286316*fr[17])-5.946154755286316*fl[17]-5.909336105579483*fr[16]-5.909336105579483*fl[16]-3.760678469309183*fr[13]-3.760678469309183*fl[13]+8.941145146908527*fr[12]-8.941145146908527*fl[12]-4.204566349447596*fr[11]-4.204566349447596*fl[11]-9.57421875*fr[9]-9.57421875*fl[9]-5.946154755286317*fr[7]-5.946154755286317*fl[7]; 
-  incr[12] = (-9.249574063778718*fr[17])-9.249574063778718*fl[17]-9.855185503751404*fr[13]-16.46956378141288*fl[13]-6.540436543585149*fr[11]-6.540436543585149*fl[11]+9.657540540656994*fr[10]-9.657540540656994*fl[10]+0.7161342906569939*fr[8]-18.598946790657*fl[8]-9.249574063778718*fr[7]-9.249574063778718*fl[7]-7.31243035699008*fr[6]-7.31243035699008*fl[6]; 
-  incr[13] = (-5.162172557431155*fr[16])+5.162172557431155*fl[16]+5.527677772592862*fr[14]+5.527677772592862*fl[14]+3.411756791288289*fr[12]+3.411756791288289*fl[12]; 
-  incr[14] = (-10.950621663044*fr[13])+10.950621663044*fl[13]+4.541516658889293*fr[10]+12.04151665888929*fl[10]+8.291516658889293*fr[8]+8.291516658889293*fl[8]-0.8120199593160216*fr[6]+21.08922336677199*fl[6]+16.58303331777859*fr[1]+16.58303331777859*fl[1]-15.66131034893641*fr[0]+15.66131034893641*fl[0]; 
-  incr[15] = 8.941145146908527*fr[16]-8.941145146908527*fl[16]-9.57421875*fr[14]-9.57421875*fl[14]-5.909336105579483*fr[12]-5.909336105579483*fl[12]; 
-  incr[16] = 10.48803115972782*fr[17]+10.48803115972782*fl[17]+11.17472998600073*fr[13]+18.67472998600072*fl[13]+7.416157954339358*fr[11]+7.416157954339358*fl[11]-10.950621663044*fr[10]+10.950621663044*fl[10]-0.8120199593160251*fr[8]+21.08922336677199*fl[8]+10.48803115972782*fr[7]+10.48803115972782*fl[7]+8.291516658889293*fr[6]+8.291516658889293*fl[6]; 
+  incr[0] = (-1.25*fr[14])+1.25*fl[14]+3.379533901242661*fr[9]+3.379533901242661*fl[9]-5.162172557431155*fr[5]+5.162172557431155*fl[5]+5.527677772592862*fr[2]+5.527677772592862*fl[2]-3.69140625*fr[0]+3.69140625*fl[0]; 
+  incr[1] = (-1.25*fr[16])+1.25*fl[16]+3.37953390124266*fr[12]+3.37953390124266*fl[12]-5.162172557431155*fr[7]+5.162172557431155*fl[7]+5.527677772592862*fr[3]+5.527677772592862*fl[3]-3.69140625*fr[1]+3.69140625*fl[1]; 
+  incr[2] = 2.165063509461096*fr[14]-2.165063509461096*fl[14]-5.853524422853748*fr[9]-5.853524422853748*fl[9]+8.941145146908527*fr[5]-8.941145146908527*fl[5]-9.57421875*fr[2]-9.57421875*fl[2]+6.393703176377298*fr[0]-6.393703176377298*fl[0]; 
+  incr[3] = 2.165063509461096*fr[16]-2.165063509461096*fl[16]-5.853524422853749*fr[12]-5.853524422853749*fl[12]+8.941145146908529*fr[7]-8.941145146908529*fl[7]-9.57421875*fr[3]-9.57421875*fl[3]+6.393703176377298*fr[1]-6.393703176377298*fl[1]; 
+  incr[4] = (-5.162172557431155*fr[10])+5.162172557431155*fl[10]+5.527677772592862*fr[6]+5.527677772592862*fl[6]-3.69140625*fr[4]+3.69140625*fl[4]; 
+  incr[5] = (-2.795084971874738*fr[14])+2.795084971874738*fl[14]+7.556867535443652*fr[9]+7.556867535443652*fl[9]-11.54296875*fr[5]+11.54296875*fl[5]+12.36026325723227*fr[2]+12.36026325723227*fl[2]-8.254235307567585*fr[0]+8.254235307567585*fl[0]; 
+  incr[6] = 8.941145146908529*fr[10]-8.941145146908529*fl[10]-9.57421875*fr[6]-9.57421875*fl[6]+6.393703176377302*fr[4]-6.393703176377302*fl[4]; 
+  incr[7] = (-2.795084971874738*fr[16])+2.795084971874738*fl[16]+7.556867535443651*fr[12]+7.556867535443651*fl[12]-11.54296875*fr[7]+11.54296875*fl[7]+12.36026325723226*fr[3]+12.36026325723226*fl[3]-8.254235307567583*fr[1]+8.254235307567583*fl[1]; 
+  incr[8] = 5.527677772592861*fr[11]+5.527677772592861*fl[11]-3.69140625*fr[8]+3.69140625*fl[8]; 
+  incr[9] = 3.307189138830738*fr[14]-3.307189138830738*fl[14]-8.94140625*fr[9]-8.94140625*fl[9]+13.65782481176513*fr[5]-13.65782481176513*fl[5]-14.62486071398016*fr[2]-14.62486071398016*fl[2]+9.766542925609524*fr[0]-9.766542925609524*fl[0]; 
+  incr[10] = (-11.54296875*fr[10])+11.54296875*fl[10]+12.36026325723226*fr[6]+12.36026325723226*fl[6]-8.254235307567585*fr[4]+8.254235307567585*fl[4]; 
+  incr[11] = (-9.57421875*fr[11])-9.57421875*fl[11]+6.393703176377302*fr[8]-6.393703176377302*fl[8]; 
+  incr[12] = 3.307189138830739*fr[16]-3.307189138830739*fl[16]-8.94140625*fr[12]-8.94140625*fl[12]+13.65782481176513*fr[7]-13.65782481176513*fl[7]-14.62486071398016*fr[3]-14.62486071398016*fl[3]+9.76654292560952*fr[1]-9.76654292560952*fl[1]; 
+  incr[13] = 5.527677772592862*fr[15]+5.527677772592862*fl[15]-3.69140625*fr[13]+3.69140625*fl[13]; 
+  incr[14] = (-3.75*fr[14])+3.75*fl[14]+10.13860170372798*fr[9]+10.13860170372798*fl[9]-15.48651767229347*fr[5]+15.48651767229347*fl[5]+16.58303331777859*fr[2]+16.58303331777859*fl[2]-11.07421875*fr[0]+11.07421875*fl[0]; 
+  incr[15] = (-9.57421875*fr[15])-9.57421875*fl[15]+6.393703176377298*fr[13]-6.393703176377298*fl[13]; 
+  incr[16] = (-3.75*fr[16])+3.75*fl[16]+10.13860170372798*fr[12]+10.13860170372798*fl[12]-15.48651767229346*fr[7]+15.48651767229346*fl[7]+16.58303331777859*fr[3]+16.58303331777859*fl[3]-11.07421875*fr[1]+11.07421875*fl[1]; 
 
-  outr[0] += incr[0]*dxr*nu; 
-  outr[1] += incr[1]*dxr*nu; 
-  outr[2] += incr[2]*dxr*nu; 
-  outr[3] += incr[3]*dxr*nu; 
-  outr[4] += incr[4]*dxr*nu; 
-  outr[5] += incr[5]*dxr*nu; 
-  outr[6] += incr[6]*dxr*nu; 
-  outr[7] += incr[7]*dxr*nu; 
-  outr[8] += incr[8]*dxr*nu; 
-  outr[9] += incr[9]*dxr*nu; 
-  outr[10] += incr[10]*dxr*nu; 
-  outr[11] += incr[11]*dxr*nu; 
-  outr[12] += incr[12]*dxr*nu; 
-  outr[13] += incr[13]*dxr*nu; 
-  outr[14] += incr[14]*dxr*nu; 
-  outr[15] += incr[15]*dxr*nu; 
-  outr[16] += incr[16]*dxr*nu; 
+  outr[0] += incr[0]*rdxSq2nur; 
+  outr[1] += incr[1]*rdxSq2nur; 
+  outr[2] += incr[2]*rdxSq2nur; 
+  outr[3] += incr[3]*rdxSq2nur; 
+  outr[4] += incr[4]*rdxSq2nur; 
+  outr[5] += incr[5]*rdxSq2nur; 
+  outr[6] += incr[6]*rdxSq2nur; 
+  outr[7] += incr[7]*rdxSq2nur; 
+  outr[8] += incr[8]*rdxSq2nur; 
+  outr[9] += incr[9]*rdxSq2nur; 
+  outr[10] += incr[10]*rdxSq2nur; 
+  outr[11] += incr[11]*rdxSq2nur; 
+  outr[12] += incr[12]*rdxSq2nur; 
+  outr[13] += incr[13]*rdxSq2nur; 
+  outr[14] += incr[14]*rdxSq2nur; 
+  outr[15] += incr[15]*rdxSq2nur; 
+  outr[16] += incr[16]*rdxSq2nur; 
 
-  outl[0] += -1.0*incr[0]*dxl*nu; 
-  outl[1] += -1.0*incr[1]*dxl*nu; 
-  outl[2] += incr[2]*dxl*nu; 
-  outl[3] += incr[3]*dxl*nu; 
-  outl[4] += -1.0*incr[4]*dxl*nu; 
-  outl[5] += -1.0*incr[5]*dxl*nu; 
-  outl[6] += incr[6]*dxl*nu; 
-  outl[7] += -1.0*incr[7]*dxl*nu; 
-  outl[8] += -1.0*incr[8]*dxl*nu; 
-  outl[9] += incr[9]*dxl*nu; 
-  outl[10] += -1.0*incr[10]*dxl*nu; 
-  outl[11] += incr[11]*dxl*nu; 
-  outl[12] += incr[12]*dxl*nu; 
-  outl[13] += -1.0*incr[13]*dxl*nu; 
-  outl[14] += -1.0*incr[14]*dxl*nu; 
-  outl[15] += incr[15]*dxl*nu; 
-  outl[16] += -1.0*incr[16]*dxl*nu; 
+  outl[0] += -1.0*incr[0]*rdxSq2nul; 
+  outl[1] += -1.0*incr[1]*rdxSq2nul; 
+  outl[2] += incr[2]*rdxSq2nul; 
+  outl[3] += incr[3]*rdxSq2nul; 
+  outl[4] += -1.0*incr[4]*rdxSq2nul; 
+  outl[5] += -1.0*incr[5]*rdxSq2nul; 
+  outl[6] += incr[6]*rdxSq2nul; 
+  outl[7] += -1.0*incr[7]*rdxSq2nul; 
+  outl[8] += -1.0*incr[8]*rdxSq2nul; 
+  outl[9] += incr[9]*rdxSq2nul; 
+  outl[10] += -1.0*incr[10]*rdxSq2nul; 
+  outl[11] += incr[11]*rdxSq2nul; 
+  outl[12] += incr[12]*rdxSq2nul; 
+  outl[13] += -1.0*incr[13]*rdxSq2nul; 
+  outl[14] += -1.0*incr[14]*rdxSq2nul; 
+  outl[15] += incr[15]*rdxSq2nul; 
+  outl[16] += -1.0*incr[16]*rdxSq2nul; 
 
 } 
