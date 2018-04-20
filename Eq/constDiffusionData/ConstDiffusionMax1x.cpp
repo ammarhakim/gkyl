@@ -1,5 +1,5 @@
 #include <ConstDiffusionModDecl.h> 
-double ConstDiffusionVol1xSerP1(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol1xMaxP1(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). f: Input distribution function. out: Incremented output 
   double rdxSq4nu[1]; 
@@ -10,7 +10,7 @@ double ConstDiffusionVol1xSerP1(const double *w, const double *dxv, const double
 return rdxSq4nu[0]*0.5; 
 
 } 
-double ConstDiffusionVol1xSerP2(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol1xMaxP2(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). f: Input distribution function. out: Incremented output 
   double rdxSq4nu[1]; 
@@ -22,7 +22,7 @@ double ConstDiffusionVol1xSerP2(const double *w, const double *dxv, const double
 return rdxSq4nu[0]*0.5; 
 
 } 
-double ConstDiffusionVol1xSerP3(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol1xMaxP3(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). f: Input distribution function. out: Incremented output 
   double rdxSq4nu[1]; 
@@ -35,7 +35,7 @@ double ConstDiffusionVol1xSerP3(const double *w, const double *dxv, const double
 return rdxSq4nu[0]*0.5; 
 
 } 
-double ConstDiffusionVol1xSerP4(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
+double ConstDiffusionVol1xMaxP4(const double *w, const double *dxv, const double *nu, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). f: Input distribution function. out: Incremented output 
   double rdxSq4nu[1]; 
