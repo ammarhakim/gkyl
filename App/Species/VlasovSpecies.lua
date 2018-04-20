@@ -180,9 +180,8 @@ function VlasovSpecies:bcReflectQMFunc(dir, tm, idxIn, fIn, fOut)
    -- E = 0.5*self.mass*E/math.abs(self.charge)
    -- local R = 1 - Updater.SolidSurface.StickingProb(E, mu, 1.2, 0.75)
    -- print(R)
-   for i = 1, self.basis:numBasis() do
-      fOut[i] = fOut[i] * 0.52
-   end
+   local wallFunction = require "wall"
+   wallFunction[1](idxIn[2], fOut, fOut)
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
