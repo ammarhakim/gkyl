@@ -40,10 +40,10 @@ function FemPoisson:init(tbl)
       self.slvr = FemPerpPoisson {
         onGrid = tbl.onGrid,
         basis = tbl.basis,
-        bcLeft = tbl.phiBcLeft,
-        bcRight = tbl.phiBcRight,
-        bcBottom = tbl.phiBcBottom,
-        bcTop = tbl.phiBcTop,
+        bcLeft = tbl.bcLeft,
+        bcRight = tbl.bcRight,
+        bcBottom = tbl.bcBottom,
+        bcTop = tbl.bcTop,
         periodicDirs = tbl.periodicDirs,
         laplacianWeight = self.laplacianWeight, 
         modifierConstant = self.modifierConstant,
@@ -52,10 +52,10 @@ function FemPoisson:init(tbl)
       self.slvr = FemPerpPoisson {
         onGrid = tbl.onGrid,
         basis = tbl.basis,
-        bcLeft = tbl.phiBcLeft,
-        bcRight = tbl.phiBcRight,
-        bcBottom = tbl.phiBcBottom,
-        bcTop = tbl.phiBcTop,
+        bcLeft = tbl.bcLeft,
+        bcRight = tbl.bcRight,
+        bcBottom = tbl.bcBottom,
+        bcTop = tbl.bcTop,
         periodicDirs = tbl.periodicDirs,
         laplacianWeight = self.laplacianWeight, 
         modifierConstant = self.modifierConstant,
@@ -73,7 +73,7 @@ end
 function FemPoisson:_advance(tCurr, dt, inFld, outFld) 
    if self.ndim == 1 and not self.zContinuous and self.laplacianWeight == 0.0 then
       local fin, fout = inFld[1], outFld[1]
-      fout:combine(1/self.modifierConstant, fin)
+      fout:combine(1.0/self.modifierConstant, fin)
       return true, GKYL_MAX_DOUBLE
    else
       return self.slvr:advance(tCurr, dt, inFld, outFld)

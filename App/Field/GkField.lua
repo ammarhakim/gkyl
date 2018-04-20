@@ -150,6 +150,8 @@ function GkField:initField(species)
          projectOnGhosts = true
       }
       project:advance(0.0, 0.0, {}, {self.potentials[1].dApardt})
+   elseif self.isElectromagnetic then
+      self.potentials[1].dApardt:clear(0.0)
    end
 end
 

@@ -38,7 +38,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     A : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
     
     /* RHS is similar to the mass matrix */
-    RHS : transpose(append(makelist(fl[i]/2,i,0,polyOrder), makelist(fr[i]/2,i,0,polyOrder))),
+    RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
     
     /* solve system of equations for coefficients of h */
     S : fullratsimp(invert(A) . RHS),
@@ -64,13 +64,13 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     /* Obtain the left and right function coefficients
        by projecting the function onto the direction of interest. */
     hcoeff : calcInnerProdList([cv], 1, subst(x=cv,bC1), fg),
-    fls : subst(makelist(f[i]=fl[i],i,length(bC)), hcoeff),
-    frs : subst(makelist(f[i]=fr[i],i,length(bC)), hcoeff),
+    fls : subst(makelist(f[i]=fl[i],i,N), hcoeff),
+    frs : subst(makelist(f[i]=fr[i],i,N), hcoeff),
 
     /* Substitute these "left" and "right" function coefficients,
        which contain variation along other dimensions, into the
        1D recovery polynomial coefficients computed above. */
-    hsol : subst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
+    hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
     
     /* Write out the full recovery polynomial. */
     h : sum(hsol[i]*cv^(i-1), i, 1, 2*N1),
@@ -83,21 +83,20 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
 /*    M : calcMassMatrix(varsC,1,bC),
     invM : invert(M), */
 
-    /* Volume matrix (convolution of derivatives). */
-    sgen[i,j] := innerProd(varsC,1,bCp[i],bCp[j]),
-    S:genmatrix(sgen,N,N), 
-    
     /* Contribution to vector to the left and right of the boundary. */
     /* No need to deal with the (identity) mass matrix. */    
     incr_l : calcInnerProdList(surfVars,1,subst(cv=1,bC),hsol[2]),
     incr_r : calcInnerProdList(surfVars,-1,subst(cv=-1,bC),hsol[2]),
+    /* Make these two zero indexed for C++ */
+    incr_l : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l),
+    incr_r : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r),
     
-    printf(fh, "void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
-    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
+    printf(fh, "void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
+    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells ~%"),
     printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
     cid : cidx(cdim),
-    printf(fh, "  double dxl = 4.0/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir]),
-    printf(fh, "  double dxr = 4.0/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir]),
+    printf(fh, "  double rdxSq2nul = 2.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh, "  double rdxSq2nur = 2.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
     printf(fh, "  double incr[~a]; ~%", length(bC)),
     printf(fh, "~%"),
   
@@ -111,7 +110,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
       if (incr_r[i] = 0) then
         incr_s[i] : 0
     ), 
-    writeCIncrExprs1(outr, nu*dxr*incr_s),
+    writeCIncrExprs1(outr, rdxSq2nur*incr_s),
     printf(fh, "~%"),
   
 /*    signs : fullratsimp(incr_l/incr_r), */
@@ -128,7 +127,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
       if (incr_r[i] = 0) then
         incr_s[i] : 0
     ), 
-    writeCIncrExprs1(outl, nu*dxl*incr_s),
+    writeCIncrExprs1(outl, rdxSq2nul*incr_s),
     printf(fh, "~%"),
   
     printf(fh, "} ~%")

@@ -1,5 +1,5 @@
 #include <ConstDiffusionModDecl.h> 
-void ConstDiffusionSurf1xSer_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf1xMax_X_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
@@ -17,7 +17,7 @@ void ConstDiffusionSurf1xSer_X_P1(const double *wl, const double *wr, const doub
   outl[1] += incr[1]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf1xSer_X_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf1xMax_X_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
@@ -38,7 +38,7 @@ void ConstDiffusionSurf1xSer_X_P2(const double *wl, const double *wr, const doub
   outl[2] += -1.0*incr[2]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf1xSer_X_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf1xMax_X_P3(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 
@@ -62,7 +62,7 @@ void ConstDiffusionSurf1xSer_X_P3(const double *wl, const double *wr, const doub
   outl[3] += incr[3]*rdxSq2nul; 
 
 } 
-void ConstDiffusionSurf1xSer_X_P4(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
+void ConstDiffusionSurf1xMax_X_P4(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells 
 // outl/outr: Incremented distribution function in left/right cells 

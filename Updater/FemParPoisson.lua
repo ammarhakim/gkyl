@@ -140,6 +140,8 @@ function FemParPoisson:init(tbl)
      self._xycomm = Mpi.Comm_split(worldComm, xyrank, nodeRank)
    end
 
+   self.dynVec = DataStruct.DynVector { numComponents = 1 }
+
    return self
 end
 
@@ -175,7 +177,6 @@ function FemParPoisson:_advance(tCurr, dt, inFld, outFld)
    local solPtr = sol:get(1)
 
    local intSrcVol = {0.0}
-   local dynVec = DataStruct.DynVector { numComponents = 1 }
    -- if all directions periodic need to adjust source so that integral is 0 
    if self._adjustSource then
      -- integrate source
@@ -184,8 +185,8 @@ function FemParPoisson:_advance(tCurr, dt, inFld, outFld)
        basis = basis,
        numComponents = 1,
      }
-     calcInt:advance(0.0, 0.0, {src}, {dynVec})
-     _, intSrcVol = dynVec:lastData()
+     calcInt:advance(0.0, 0.0, {src}, {self.dynVec})
+     _, intSrcVol = self.dynVec:lastData()
    end
 
    -- loop over local x-y cells

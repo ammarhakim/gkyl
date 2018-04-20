@@ -8,7 +8,7 @@
 -- system libraries
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
-local ConstDiffusionModDecl = require "Eq.ConstDiffusionData.ConstDiffusionModDecl"
+local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 local ffi = require "ffi"
 local xsys = require "xsys"
 
@@ -18,11 +18,16 @@ local ConstDiffusion = Proto()
 -- ctor
 function ConstDiffusion:init(tbl)
    
-   self._nu = assert(tbl.nu, "Eq.ConstDiffusion: must specify diffusion coefficient using 'nu' ")
+   -- Read diffusion coefficient vector
+   self._nu = Lin.Vec(3)
+   assert(tbl.Dcoeff, "Eq.constDiffusion: must specify diffusion coefficient vector using 'Dcoeff' ")
+   for d = 1, #tbl.Dcoeff do
+      self._nu[d] = tbl.Dcoeff[d]
+   end
 
    -- if specified, store basis functions
    self._basis = assert(
-      tbl.basis, "Eq.ConstDiffusion: Must specify basis functions to use using 'basis'")
+      tbl.basis, "Eq.constDiffusion: Must specify basis functions to use using 'basis'")
 
    -- store pointers to C kernels implementing volume and surface
    -- terms
@@ -72,23 +77,18 @@ end
 -- Volume integral term for use in DG scheme
 function ConstDiffusion:volTerm(w, dx, idx, q, out)
    -- streaming term
-   local cflFreqDiffusion = self._volUpdate(w:data(), dx:data(), self._nu, q:data(), out:data())
+   local cflFreqDiffusion = self._volTerm(w:data(), dx:data(), self._nu:data(), q:data(), out:data())
    return cflFreqDiffusion
 end
 
 -- Surface integral term for use in DG scheme
 function ConstDiffusion:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
-   self._surfUpdate[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), self._nu, ql:data(), qr:data(), outl:data(), outr:data())
+   self._surfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), self._nu:data(), ql:data(), qr:data(), outl:data(), outr:data())
    return 0
 end
 
-function ConstDiffusion:dim() return self._ndim end
+function ConstDiffusion:setAuxFields(auxFields)
+end
 
-function ConstDiffusion:volUpdate()
-   return self._volUpdate
-end
-function ConstDiffusion:surfUpdate()
-   return self._surfUpdate
-end
 
 return ConstDiffusion
