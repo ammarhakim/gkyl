@@ -171,17 +171,10 @@ function VlasovSpecies:bcReflectQMFunc(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 
-   -- local zc = {}
-   -- self.grid:setIndex(idxIn)
-   -- self.grid:cellCenter(zc)
-   -- local E = 0
-   -- for d = self.cdim + 1, self.cdim + self.vdim do E = E + zc[d]*zc[d] end
-   -- local mu = math.abs(zc[self.cdim+dir])/math.sqrt(E)
-   -- E = 0.5*self.mass*E/math.abs(self.charge)
-   -- local R = 1 - Updater.SolidSurface.StickingProb(E, mu, 1.2, 0.75)
-   -- print(R)
    local wallFunction = require "wall"
-   wallFunction[1](idxIn[2], fOut, fOut)
+   local velIdx = {}
+   velIdx[1] = idxIn[2]
+   wallFunction[1](velIdx, fOut, fOut)
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
