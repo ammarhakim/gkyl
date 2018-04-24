@@ -146,6 +146,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
      bcTop = { T = "D", V = 0.0 },
      -- periodicDirs = {1,2},
      writeStiffnessMatrix = writeMatrix,
+     constStiff = false,
    }
    local t2 = os.clock()
    io.write("2D Poisson init took ", t2-t1, " s\n")
@@ -201,7 +202,11 @@ function test_solve2d(nx, ny, p, writeMatrix)
    local t1 = os.clock()
    poisson:advance(0.,0.,{srcModal},{phiModal})
    local t2 = os.clock()
-   io.write("2D Poisson solve took total of ", t2-t1, " s\n")
+   io.write("1st 2D Poisson solve took total of ", t2-t1, " s\n")
+   local t1 = os.clock()
+   poisson:advance(0.,0.,{srcModal},{phiModal})
+   local t2 = os.clock()
+   io.write("2nd 2D Poisson solve took total of ", t2-t1, " s\n")
 
    local err = DataStruct.Field {
 	 onGrid = grid,
@@ -540,6 +545,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
      bcTop = { T = "D", V = 0.0 },
      -- periodicDirs = {1,2},
      writeStiffnessMatrix = writeMatrix,
+     constStiff = false,
    }
    local t2 = os.clock()
    io.write("3D Poisson init took ", t2-t1, " s\n")
@@ -599,7 +605,11 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    local t1 = os.clock()
    poisson:advance(0.,0.,{srcModal},{phiModal})
    local t2 = os.clock()
-   io.write("3D Poisson solve took total of ", t2-t1, " s\n")
+   io.write("1st 3D Poisson solve took total of ", t2-t1, " s\n")
+   local t1 = os.clock()
+   poisson:advance(0.,0.,{srcModal},{phiModal})
+   local t2 = os.clock()
+   io.write("2nd 3D Poisson solve took total of ", t2-t1, " s\n")
 
    local err = DataStruct.Field {
 	 onGrid = grid,
@@ -875,22 +885,22 @@ end
 
 -- run tests
 local t1 = os.clock()
-test_init_nonperiodic()
-test_init_allperiodic()
-test_init_someperiodic()
-test_init_errorcheck()
-test_solve2d_p1()
-test_solve2d_p2()
-test_smooth2d_p1()
-test_smooth2d_p2()
+--test_init_nonperiodic()
+--test_init_allperiodic()
+--test_init_someperiodic()
+--test_init_errorcheck()
+--test_solve2d_p1()
+--test_solve2d_p2()
+--test_smooth2d_p1()
+--test_smooth2d_p2()
 test_solve3d_p1()
-test_solve3d_p2()
-test_periodic2d_p1()
-test_periodic2d_p2()
-test_smooth_periodic2d_p1()
-test_smooth_periodic2d_p2()
-test_periodic3d_p1()
-test_periodic3d_p2()
+--test_solve3d_p2()
+--test_periodic2d_p1()
+--test_periodic2d_p2()
+--test_smooth_periodic2d_p1()
+--test_smooth_periodic2d_p2()
+--test_periodic3d_p1()
+--test_periodic3d_p2()
 local t2 = os.clock()
 
 print()
