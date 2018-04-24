@@ -239,12 +239,12 @@ local function buildApplication(self, tbl)
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
    if funcField == nil then funcField = Field.NoField {} end
+   local hasE, hasB = field:hasEB()
+   local funcHasE, funcHasB = funcField:hasEB()
    
    -- initialize species solvers and diagnostics
    local speciesRkFields = { }
    for nm, s in pairs(species) do
-      local hasE, hasB = field:hasEB()
-      local funcHasE, funcHasB = funcField:hasEB()
       speciesRkFields[nm] = s:rkStepperFields()
       s:initDist(funcField)
       s:createSolver(hasE or funcHasE, hasB or funcHasB)
@@ -286,6 +286,9 @@ local function buildApplication(self, tbl)
 
    writeData(0.0) -- write initial conditions
 
+   -- determine whether we need two steps in forwardEuler
+   local step2 = false
+   if field.step2 ~= nil then step2 = field.step2 end
 
    -- determine if field equations are elliptic 
    local ellipticFieldEqn = false
@@ -350,6 +353,43 @@ local function buildApplication(self, tbl)
       --for nm, s in pairs(species) do
       --   s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       --end
+
+      if step2 then      
+         -- update EM field.. step 2 (if necessary)
+         for nm, s in pairs(species) do
+            -- compute moments needed in coupling with fields and
+            -- collisions (the species should update internal datastructures). 
+            -- this calculates dens with inIdx and upar with outIdx
+            s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx], speciesRkFields[nm][outIdx])
+         end
+         if ellipticFieldEqn then
+           -- if field equation is elliptic, calculate field 
+           -- that is self-consistent with speciesRkFields[inIdx] 
+           -- to use in species update
+           local myStatus, myDtSuggested = field:forwardEulerStep2(
+              tCurr, dt, emRkFields[inIdx], species, emRkFields[inIdx])
+           field:applyBc(tCurr, dt, emRkFields[inIdx])
+           status = status and myStatus
+           dtSuggested = math.min(dtSuggested, myDtSuggested)
+         else
+           -- otherwise evolve field inIdx -> outIdx
+           local myStatus, myDtSuggested = field:forwardEulerStep2(
+              tCurr, dt, emRkFields[inIdx], species, emRkFields[outIdx])
+           field:applyBc(tCurr, dt, emRkFields[outIdx])
+           status = status and myStatus
+           dtSuggested = math.min(dtSuggested, myDtSuggested)
+         end
+
+         -- update species.. step 2 (if necessary)
+         for nm, s in pairs(species) do
+            local myStatus, myDtSuggested = s:forwardEulerStep2(
+               tCurr, dt, speciesRkFields[nm][inIdx], {emRkFields[inIdx], emRkFuncFields[1]}, speciesRkFields[nm][outIdx])
+
+            status = status and myStatus
+            dtSuggested = math.min(dtSuggested, myDtSuggested)
+            s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx]) 
+         end
+      end
 
       return status, dtSuggested
    end

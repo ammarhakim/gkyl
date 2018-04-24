@@ -136,6 +136,11 @@ function GkField:alloc(nRkDup)
             numComponents = self.basis:numBasis(),
             ghost = {1, 1}
    }
+   self.massWeight = DataStruct.Field {
+            onGrid = self.grid,
+            numComponents = self.basis:numBasis(),
+            ghost = {1, 1}
+   }
 end
 
 -- solve for initial fields self-consistently 
@@ -228,7 +233,7 @@ function GkField:createSolver()
       if self.isElectromagnetic then 
         if ndim==1 then
            laplacianWeight = 0.0
-           modifierConstant = self.kperp2/self.mu0
+           modifierConstant = 1.0/self.mu0
         else
            laplacianWeight = 1.0/self.mu0
            modifierConstant = 0.0
@@ -245,6 +250,41 @@ function GkField:createSolver()
           modifierConstant = modifierConstant,
           zContinuous = not self.discontinuousApar,
         }
+
+        if ndim==1 then
+           laplacianWeight = 0.0
+           modifierConstant = 1.0
+        else
+           laplacianWeight = 1.0/self.mu0
+           modifierConstant = 1.0
+        end
+        self.dApardtSlvr = Updater.FemPoisson {
+          onGrid = self.grid,
+          basis = self.basis,
+          bcLeft = self.aparBcLeft,
+          bcRight = self.aparBcRight,
+          bcBottom = self.aparBcBottom,
+          bcTop = self.aparBcTop,
+          periodicDirs = self.periodicDirs,
+          laplacianWeight = laplacianWeight,
+          modifierConstant = modifierConstant,
+          zContinuous = not self.discontinuousApar,
+        }
+
+        -- set up constant dummy field
+        self.unitWeight = DataStruct.Field {
+             onGrid = self.grid,
+             numComponents = self.basis:numBasis(),
+             ghost = {1, 1},
+        }
+        local initUnit = Updater.ProjectOnBasis {
+           onGrid = self.grid,
+           basis = self.basis,
+           evaluate = function (t,xn)
+                         return 1.0
+                      end
+        }
+        initUnit:advance(0.,0.,{},{self.unitWeight})
       end
    end
 
@@ -257,6 +297,8 @@ function GkField:createSolver()
 
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
    self.isElliptic = true
+
+   if self.isElectromagnetic then self.step2 = true end
 end
 
 function GkField:createDiagnostics()
@@ -310,18 +352,12 @@ function GkField:forwardEuler(tCurr, dt, potIn, species, potOut)
       local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potOut.phi})
 
       if self.isElectromagnetic then
-        -- begin calculating dApar/dt = (AparNew - AparOld)/dt (using forward Euler time-difference)
-        potOut.dApardt:combine(-1.0/dt, potIn.apar)
-
         self.currentDens:clear(0.0)
         for nm, s in pairs(species) do
           self.currentDens:accumulate(s:getCharge(), s:getUpar())
         end
         -- Apar solve
         mys2, mydt2 = self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {potOut.apar}) 
-
-        -- finish calculating dApar/dt
-        potOut.dApardt:accumulate(1.0/dt, potOut.apar)
       end
       return mys and mys2, math.min(mydt,mydt2)
    else
@@ -331,6 +367,30 @@ function GkField:forwardEuler(tCurr, dt, potIn, species, potOut)
          potOut.apar:copy(potIn.apar) 
          potOut.dApardt:copy(potIn.dApardt) 
       end
+      return true, GKYL_MAX_DOUBLE
+   end
+end
+
+function GkField:forwardEulerStep2(tCurr, dt, potIn, species, potOut)
+   if self.evolve then
+      local mys, mys2 = true, true
+      local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
+      self.currentDens:clear(0.0)
+      if self.ndim==1 then 
+         self.massWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+      else 
+         self.massWeight:clear(0.0)
+      end
+      for nm, s in pairs(species) do
+        if s:isEvolving() then 
+           self.massWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getDens())
+           self.currentDens:accumulate(s:getCharge(), s:getUpar())
+        end
+      end
+      -- dApar/dt solve
+      mys2, mydt2 = self.dApardtSlvr:advance(tCurr, dt, {self.currentDens, nil, self.massWeight}, {potOut.dApardt}) 
+      return mys and mys2, math.min(mydt,mydt2)
+   else
       return true, GKYL_MAX_DOUBLE
    end
 end
