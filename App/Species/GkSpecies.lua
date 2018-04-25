@@ -34,21 +34,23 @@ function GkSpecies:allocMomCouplingFields()
 end
 
 function GkSpecies:initDist(geo)
-   -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
-   self.jacobianFunc = geo.bmagFunc
-   if self.jacobianFunc then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.jacobianFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
-      end
-      if self.initBackgroundFunc then
-         local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
-         self.initBackgroundFunc = function(t,xn)
+   if geo then
+      -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
+      self.jacobianFunc = geo.bmagFunc
+      if self.jacobianFunc then
+         local initFuncWithoutJacobian = self.initFunc
+         self.initFunc = function (t, xn)
             local J = self.jacobianFunc(t,xn)
-            local f0 = initBackgroundFuncWithoutJacobian(t,xn)
-            return J*f0
+            local f = initFuncWithoutJacobian(t,xn)
+            return J*f
+         end
+         if self.initBackgroundFunc then
+            local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
+            self.initBackgroundFunc = function(t,xn)
+               local J = self.jacobianFunc(t,xn)
+               local f0 = initBackgroundFuncWithoutJacobian(t,xn)
+               return J*f0
+            end
          end
       end
    end
