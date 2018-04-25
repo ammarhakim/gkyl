@@ -2,7 +2,7 @@ cvars : [X, Y, Z]$
 vvars : [Vpar, Mu]$
 
 printPrototypes() := block([], 
-pmax:1,
+pmax:2,
 for ci : 1 thru 3 do (
   vi : 2,
   if ci=1 then vi:1,
