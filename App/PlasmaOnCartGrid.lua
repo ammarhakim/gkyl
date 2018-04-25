@@ -272,7 +272,7 @@ local function buildApplication(self, tbl)
       -- auxFields to be set, which is controlled by species solver
       s:forwardEuler(0, 0, speciesRkFields[nm][1], {emRkFields[1], emRkFuncFields[1]}, speciesRkFields[nm][2])
       -- restore initial condition
-      s:initDist(funcField)
+      s:initDist()
       -- apply BCs
       s:applyBc(0, 0, speciesRkFields[nm][1])
    end
