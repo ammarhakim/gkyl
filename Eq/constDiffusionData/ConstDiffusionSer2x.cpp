@@ -6,9 +6,6 @@ double ConstDiffusionVol2xSerP1(const double *w, const double *dxv, const double
   rdxSq4nu[0] = 4.0*nu[0]/(dxv[0]*dxv[0]); 
   rdxSq4nu[1] = 4.0*nu[1]/(dxv[1]*dxv[1]); 
 
-  out[1] += -3.0*rdxSq4nu[0]*f[1]; 
-  out[2] += -3.0*rdxSq4nu[1]*f[2]; 
-  out[3] += (-3.0*rdxSq4nu[1]*f[3])-3.0*rdxSq4nu[0]*f[3]; 
 
 return (rdxSq4nu[0]+rdxSq4nu[1])*0.5; 
 
@@ -20,13 +17,10 @@ double ConstDiffusionVol2xSerP2(const double *w, const double *dxv, const double
   rdxSq4nu[0] = 4.0*nu[0]/(dxv[0]*dxv[0]); 
   rdxSq4nu[1] = 4.0*nu[1]/(dxv[1]*dxv[1]); 
 
-  out[1] += -3.0*rdxSq4nu[0]*f[1]; 
-  out[2] += -3.0*rdxSq4nu[1]*f[2]; 
-  out[3] += (-3.0*rdxSq4nu[1]*f[3])-3.0*rdxSq4nu[0]*f[3]; 
-  out[4] += -15.0*rdxSq4nu[0]*f[4]; 
-  out[5] += -15.0*rdxSq4nu[1]*f[5]; 
-  out[6] += (-3.0*rdxSq4nu[1]*f[6])-15.0*rdxSq4nu[0]*f[6]; 
-  out[7] += (-15.0*rdxSq4nu[1]*f[7])-3.0*rdxSq4nu[0]*f[7]; 
+  out[4] += 6.708203932499369*f[0]*rdxSq4nu[0]; 
+  out[5] += 6.708203932499369*f[0]*rdxSq4nu[1]; 
+  out[6] += 6.708203932499369*rdxSq4nu[0]*f[2]; 
+  out[7] += 6.708203932499369*f[1]*rdxSq4nu[1]; 
 
 return (rdxSq4nu[0]+rdxSq4nu[1])*0.5; 
 
@@ -38,17 +32,14 @@ double ConstDiffusionVol2xSerP3(const double *w, const double *dxv, const double
   rdxSq4nu[0] = 4.0*nu[0]/(dxv[0]*dxv[0]); 
   rdxSq4nu[1] = 4.0*nu[1]/(dxv[1]*dxv[1]); 
 
-  out[1] += (-4.58257569495584*rdxSq4nu[0]*f[8])-3.0*rdxSq4nu[0]*f[1]; 
-  out[2] += (-4.58257569495584*rdxSq4nu[1]*f[9])-3.0*rdxSq4nu[1]*f[2]; 
-  out[3] += (-4.58257569495584*rdxSq4nu[1]*f[11])-4.58257569495584*rdxSq4nu[0]*f[10]-3.0*rdxSq4nu[1]*f[3]-3.0*rdxSq4nu[0]*f[3]; 
-  out[4] += -15.0*rdxSq4nu[0]*f[4]; 
-  out[5] += -15.0*rdxSq4nu[1]*f[5]; 
-  out[6] += (-3.0*rdxSq4nu[1]*f[6])-15.0*rdxSq4nu[0]*f[6]; 
-  out[7] += (-15.0*rdxSq4nu[1]*f[7])-3.0*rdxSq4nu[0]*f[7]; 
-  out[8] += (-42.0*rdxSq4nu[0]*f[8])-4.58257569495584*rdxSq4nu[0]*f[1]; 
-  out[9] += (-42.0*rdxSq4nu[1]*f[9])-4.58257569495584*rdxSq4nu[1]*f[2]; 
-  out[10] += (-3.0*rdxSq4nu[1]*f[10])-42.0*rdxSq4nu[0]*f[10]-4.58257569495584*rdxSq4nu[0]*f[3]; 
-  out[11] += (-42.0*rdxSq4nu[1]*f[11])-3.0*rdxSq4nu[0]*f[11]-4.58257569495584*rdxSq4nu[1]*f[3]; 
+  out[4] += 6.708203932499369*f[0]*rdxSq4nu[0]; 
+  out[5] += 6.708203932499369*f[0]*rdxSq4nu[1]; 
+  out[6] += 6.708203932499369*rdxSq4nu[0]*f[2]; 
+  out[7] += 6.708203932499369*f[1]*rdxSq4nu[1]; 
+  out[8] += 22.9128784747792*rdxSq4nu[0]*f[1]; 
+  out[9] += 22.9128784747792*rdxSq4nu[1]*f[2]; 
+  out[10] += 22.9128784747792*rdxSq4nu[0]*f[3]; 
+  out[11] += 22.9128784747792*rdxSq4nu[1]*f[3]; 
 
 return (rdxSq4nu[0]+rdxSq4nu[1])*0.5; 
 
@@ -60,22 +51,19 @@ double ConstDiffusionVol2xSerP4(const double *w, const double *dxv, const double
   rdxSq4nu[0] = 4.0*nu[0]/(dxv[0]*dxv[0]); 
   rdxSq4nu[1] = 4.0*nu[1]/(dxv[1]*dxv[1]); 
 
-  out[1] += (-4.58257569495584*rdxSq4nu[0]*f[8])-3.0*rdxSq4nu[0]*f[1]; 
-  out[2] += (-4.58257569495584*rdxSq4nu[1]*f[9])-3.0*rdxSq4nu[1]*f[2]; 
-  out[3] += (-4.58257569495584*rdxSq4nu[1]*f[12])-4.58257569495584*rdxSq4nu[0]*f[11]-3.0*rdxSq4nu[1]*f[3]-3.0*rdxSq4nu[0]*f[3]; 
-  out[4] += (-20.12461179749811*rdxSq4nu[0]*f[13])-15.0*rdxSq4nu[0]*f[4]; 
-  out[5] += (-20.12461179749811*rdxSq4nu[1]*f[14])-15.0*rdxSq4nu[1]*f[5]; 
-  out[6] += (-20.1246117974981*rdxSq4nu[0]*f[15])-3.0*rdxSq4nu[1]*f[6]-15.0*rdxSq4nu[0]*f[6]; 
-  out[7] += (-20.1246117974981*rdxSq4nu[1]*f[16])-15.0*rdxSq4nu[1]*f[7]-3.0*rdxSq4nu[0]*f[7]; 
-  out[8] += (-42.0*rdxSq4nu[0]*f[8])-4.58257569495584*rdxSq4nu[0]*f[1]; 
-  out[9] += (-42.0*rdxSq4nu[1]*f[9])-4.58257569495584*rdxSq4nu[1]*f[2]; 
-  out[10] += (-15.0*rdxSq4nu[1]*f[10])-15.0*rdxSq4nu[0]*f[10]; 
-  out[11] += (-3.0*rdxSq4nu[1]*f[11])-42.0*rdxSq4nu[0]*f[11]-4.58257569495584*rdxSq4nu[0]*f[3]; 
-  out[12] += (-42.0*rdxSq4nu[1]*f[12])-3.0*rdxSq4nu[0]*f[12]-4.58257569495584*rdxSq4nu[1]*f[3]; 
-  out[13] += (-90.0*rdxSq4nu[0]*f[13])-20.12461179749811*rdxSq4nu[0]*f[4]; 
-  out[14] += (-90.0*rdxSq4nu[1]*f[14])-20.12461179749811*rdxSq4nu[1]*f[5]; 
-  out[15] += (-3.0*rdxSq4nu[1]*f[15])-90.0*rdxSq4nu[0]*f[15]-20.1246117974981*rdxSq4nu[0]*f[6]; 
-  out[16] += (-90.0*rdxSq4nu[1]*f[16])-3.0*rdxSq4nu[0]*f[16]-20.1246117974981*rdxSq4nu[1]*f[7]; 
+  out[4] += 6.708203932499369*f[0]*rdxSq4nu[0]; 
+  out[5] += 6.708203932499369*f[0]*rdxSq4nu[1]; 
+  out[6] += 6.708203932499369*rdxSq4nu[0]*f[2]; 
+  out[7] += 6.708203932499369*f[1]*rdxSq4nu[1]; 
+  out[8] += 22.9128784747792*rdxSq4nu[0]*f[1]; 
+  out[9] += 22.9128784747792*rdxSq4nu[1]*f[2]; 
+  out[10] += 6.708203932499369*rdxSq4nu[0]*f[5]+6.708203932499369*rdxSq4nu[1]*f[4]; 
+  out[11] += 22.9128784747792*rdxSq4nu[0]*f[3]; 
+  out[12] += 22.9128784747792*rdxSq4nu[1]*f[3]; 
+  out[13] += 46.95742752749558*rdxSq4nu[0]*f[4]+30.0*f[0]*rdxSq4nu[0]; 
+  out[14] += 46.95742752749558*rdxSq4nu[1]*f[5]+30.0*f[0]*rdxSq4nu[1]; 
+  out[15] += 46.95742752749558*rdxSq4nu[0]*f[6]+30.0*rdxSq4nu[0]*f[2]; 
+  out[16] += 46.95742752749558*rdxSq4nu[1]*f[7]+30.0*f[1]*rdxSq4nu[1]; 
 
 return (rdxSq4nu[0]+rdxSq4nu[1])*0.5; 
 

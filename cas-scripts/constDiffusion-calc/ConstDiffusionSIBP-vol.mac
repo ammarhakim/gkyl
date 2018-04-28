@@ -5,7 +5,7 @@ fpprec : 24$
 
 /* This script generates the kernels needed for adding the
    volume contributions from second order diffusion in all
-   directions using two integrations by parts. */
+   directions using a single integration by parts. */
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 
@@ -21,7 +21,7 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
     /* Polynomial basis and its derivatives. */
     bC : basisC[polyOrder],
     N : length(bC),
-/*    bCp : diff(bC,x), */
+    bCp : diff(bC,x),
 
     fg : doExpand(f, bC),	/* Function expanded in basis. */
     fg : subst(makelist(f[i]=f[i-1],i,1,N),fg),
@@ -37,8 +37,7 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
     incr : (
       incr : 0,
       for dir : 1 thru cdim do (
-        cv : varsC[dir],
-        incr : incr+calcInnerProdList(varsC,rdxSq4nu[dir-1],diff(bC,cv,2),fg)
+        incr : incr+calcInnerProdList(varsC,rdxSq4nu[dir-1],diff(bC,varsC[dir]),diff(fg,varsC[dir]))
       ),
       incr
     ),
@@ -59,7 +58,9 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
       if (incr_r[i] = 0) then
         incr_s[i] : 0
     ), */
-    writeCIncrExprs1(out, incr),
+    /* The minus here is the one in front of the volume
+       term coming from integrating by parts. */
+    writeCIncrExprs1(out, -incr),
     printf(fh, "~%"),
 
     if cdim = 1 then (
