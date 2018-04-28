@@ -98,8 +98,10 @@ function FemParPoisson:init(tbl)
    end
 
    -- make sure BCs are specified consistently
-   if self._periodic == false then
-     assert(self._bc[0].isSet and self._bc[1].isSet, "Must specify non-periodic BCs on each side")
+   if self._periodic == false and not (self._bc[0].isSet and self._bc[1].isSet) then
+     -- use neumann by default (usually doing discont-to-cont projection)
+     self._bc[0] = getBcData({ T = "N", V = 0.0 })
+     self._bc[1] = getBcData({ T = "N", V = 0.0 })
    else
      assert(not (self._bc[0].isSet or self._bc[1].isSet), "Cannot specify BCs if direction is periodic")
    end
