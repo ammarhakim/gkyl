@@ -34,21 +34,23 @@ function GkSpecies:allocMomCouplingFields()
 end
 
 function GkSpecies:initDist(geo)
-   -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
-   self.jacobianFunc = geo.bmagFunc
-   if self.jacobianFunc then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.jacobianFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
-      end
-      if self.initBackgroundFunc then
-         local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
-         self.initBackgroundFunc = function(t,xn)
+   if geo then
+      -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
+      self.jacobianFunc = geo.bmagFunc
+      if self.jacobianFunc then
+         local initFuncWithoutJacobian = self.initFunc
+         self.initFunc = function (t, xn)
             local J = self.jacobianFunc(t,xn)
-            local f0 = initBackgroundFuncWithoutJacobian(t,xn)
-            return J*f0
+            local f = initFuncWithoutJacobian(t,xn)
+            return J*f
+         end
+         if self.initBackgroundFunc then
+            local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
+            self.initBackgroundFunc = function(t,xn)
+               local J = self.jacobianFunc(t,xn)
+               local f0 = initBackgroundFuncWithoutJacobian(t,xn)
+               return J*f0
+            end
          end
       end
    end
@@ -219,9 +221,9 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    -- this is checked when bc is created.
 
    -- need to figure out if we are on lower or upper domain edge
-   local global = fOut:globalRange()
+   --local global = fOut:globalRange()
    local edgeVal
-   if idxIn[dir] == global:lower(dir) then 
+   if idxIn[dir] <= 2 then -- HACK! == global:lower(dir) then 
       -- this means we are at lower domain edge, 
       -- so we need to evaluate basis functions at z=-1
       edgeVal = -1 
@@ -230,13 +232,15 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
       -- so we need to evaluate basis functions at z=1
       edgeVal = 1 
    end
+   local gkEqn = self.gkEqn
    -- calculate deltaPhi = phi - phiWall
    -- note: this gives surface-averaged scalar value of deltaPhi in this cell
-   local deltaPhi = self.gkEqn:calcSheathDeltaPhi(idxIn, edgeVal)
+   local deltaPhi = gkEqn:calcSheathDeltaPhi(idxIn, edgeVal)
 
    -- get vpar limits of cell
    local vpardir = self.cdim+1
-   local gridIn = self.grid:setIndex(idxIn)
+   local gridIn = self.grid
+   gridIn:setIndex(idxIn)
    local vL = gridIn:cellLowerInDir(vpardir)
    local vR = gridIn:cellUpperInDir(vpardir)
    local vlower, vupper
@@ -261,7 +265,7 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
           local w = gridIn:cellCenterInDir(vpardir)
           local dv = gridIn:dx(vpardir)
           -- calculate weak-equivalent distribution fhat
-          self.gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
+          gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
           -- reflect fhat into skin cells
           self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
       else
