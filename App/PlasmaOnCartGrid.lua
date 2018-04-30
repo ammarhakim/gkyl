@@ -221,13 +221,6 @@ local function buildApplication(self, tbl)
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
    if field == nil then field = Field.NoField {} end
 
-   -- setup information about functional fields
-   --if tbl.funcField then
-   --   assert(Field.FuncFieldBase.is(tbl.funcField), "PlasmaOnCartGrid: funcField must be of Field.FuncField")
-   --end
-   --local funcField = tbl.funcField and tbl.funcField or Field.NoField {}
-   --completeFieldSetup(funcField)
-
    local funcField = nil
    nfields = 0
    for _, val in pairs(tbl) do

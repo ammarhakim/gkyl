@@ -25,6 +25,9 @@ function VlasovSpecies:alloc(nRkDup)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
+
+   -- allocate field to accumulate funcField if any
+   self.totalEmField = self:allocVectorMoment(8) -- 8 components of EM field
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -91,16 +94,18 @@ end
 
 function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
    -- accumulate functional Maxwell fields (if needed)
-   local emFields = emIn[1]
-   local emFuncFields = emIn[2]
+   local emField = emIn[1]
+   local emFuncField = emIn[2]
    local totalEmField = nil
-   if emFuncFields then
-      if emFields then
-         emFuncFields:accumulate(1.0, emFields)
+   if emFuncField then
+      if emField then
+	 self.totalEmField:combine(1.0, emFuncField, 1.0, emField)
+	 totalEmField = self.totalEmField
+      else
+	 totalEmField = emFuncField
       end
-      totalEmField = emFuncFields
    else
-      totalEmField = emFields
+      totalEmField = emField
    end
 
    if self.evolve then
