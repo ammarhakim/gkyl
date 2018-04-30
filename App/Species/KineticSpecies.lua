@@ -95,13 +95,20 @@ function KineticSpecies:fullInit(appTbl)
    self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
 
    -- store initial condition function
-   self.initBackgroundFunc = tbl.initBackground
+   -- note: need to wrap these functions so that self can be (optionally) passed as last argument
+   if tbl.initBackground then 
+      self.initBackgroundFunc = function (t, xn)
+         return tbl.initBackground(t, xn, self)
+      end
+   end
    if self.initBackgroundFunc then 
       self.initFunc = function (t, xn)
-         return tbl.init(t, xn, tbl)
+         return tbl.init(t, xn, self)
       end
    else 
-      self.initFunc = tbl.init
+      self.initFunc = function (t, xn)
+         return tbl.init(t, xn, self)
+      end
    end
 
    -- source term for RHS (e.g. df/dt = ... + source)

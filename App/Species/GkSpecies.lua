@@ -35,8 +35,10 @@ end
 
 function GkSpecies:initDist(geo)
    if geo then
+      -- save bmagFunc for later...
+      self.bmagFunc = geo.bmagFunc
       -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
-      self.jacobianFunc = geo.bmagFunc
+      self.jacobianFunc = self.bmagFunc
       if self.jacobianFunc then
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
@@ -348,6 +350,18 @@ function GkSpecies:momCalcTime()
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end
    return tm
+end
+
+function GkSpecies:Maxwellian(xn, n0, T0, vd)
+   local vd = vd or 0.0
+   local vt2 = T0/self.mass
+   local vpar = xn[self.cdim+1]
+   local v2 = (vpar-vd)^2
+   if self.vdim > 1 then 
+     local mu = xn[self.cdim+2]
+     v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
+   end
+   return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
 end
 
 return GkSpecies

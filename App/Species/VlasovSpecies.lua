@@ -239,4 +239,15 @@ function VlasovSpecies:momCalcTime()
    return tm
 end
 
+-- please test this for higher than 1x1v... 
+function VlasovSpecies:Maxwellian(xn, n0, T0, vdn)
+   local vdn = vdn or {0, 0, 0}
+   local vt2 = T0/self.mass
+   local v2 = 0.0
+   for d = self.cdim+1, self.cdim+self.vdim do
+     v2 = v2 + (xn[d] - vdn[d-self.cdim])^2
+   end
+   return n0/math.sqrt(2*math.pi*vt2)^self.cdim*math.exp(-v2/(2*vt2))
+end
+
 return VlasovSpecies
