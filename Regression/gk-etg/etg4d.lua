@@ -44,10 +44,6 @@ function Te(x)
    return Te0*(1-(x-R)/L_T)
 end
 
-function maxwellian(n0, vt2, v2)
-   return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
-end
-
 plasmaApp = Plasma.App {
    logToFile = true,
 
@@ -78,14 +74,14 @@ plasmaApp = Plasma.App {
       cells = {N_VPAR, N_MU},
       decompCuts = {1, 1},
       -- initial conditions
-      initBackground = function (t, xn)
+      initBackground = function (t, xn, self)
          local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
-         return maxwellian(n0, Te(x)/me, vpar^2+2*math.abs(mu)*Bmag(x)/me)
+         return self:Maxwellian(xn, n0, Te(x))
       end,
       init = function (t, xn, self)
          local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
          local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
-         return self.initBackground(t,xn)*(1+perturb)
+         return self:Maxwellian(xn, n0, Te(x))*(1+perturb)
       end,
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
@@ -102,9 +98,8 @@ plasmaApp = Plasma.App {
       cells = {N_VPAR, N_MU},
       decompCuts = {1, 1},
       -- initial conditions
-      init = function (t, xn)
-         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
-         return maxwellian(n0, Ti0/mi, vpar^2+2*math.abs(mu)*Bmag(x)/mi)
+      init = function (t, xn, self)
+         return self:Maxwellian(xn, n0, Ti0)
       end,
       evolve = false, -- evolve species?
    },
