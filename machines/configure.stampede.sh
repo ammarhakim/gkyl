@@ -5,7 +5,8 @@
 # Build directory
 OUT=build-par
 # Install location
-PREFIX=$HOME/gkylsoft/gkyl
+export GKYLSOFT='$HOME/gkylsoft'
+PREFIX=$GKYLSOFT/gkyl
 
 # Compile flags (set optimization/debug flags here)
 export CC='icc'
@@ -13,9 +14,9 @@ export CXX='icpc'
 CXXFLAGS='-O3,-std=c++14,-axMIC-AVX512'
 
 # LuaJIT options
-LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1
-LUAJIT_LIB_DIR=$HOME/gkylsoft/luajit/lib
-LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
+LUAJIT_INC_DIR=$GKYLSOFT/luajit/include/luajit-2.1
+LUAJIT_LIB_DIR=$GKYLSOFT/luajit/lib
+LUAJIT_SHARE_DIR=$GKYLSOFT/luajit/share/luajit-2.1.0-beta3
 
 ## MPI options
 export MPICC='mpicc'
@@ -27,11 +28,11 @@ MPI_LINK_LIBS="mpi,mpicxx"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
-ADIOS_INC_DIR=$WORK/gkylsoft/adios/include
-ADIOS_LIB_DIR=$WORK/gkylsoft/adios/lib
+ADIOS_INC_DIR=$GKYLSOFT/adios/include
+ADIOS_LIB_DIR=$GKYLSOFT/adios/lib
 
 # EIGEN options
-EIGEN_INC_DIR=$WORK/gkylsoft/eigen/include/eigen3
+EIGEN_INC_DIR=$GKYLSOFT/eigen/include/eigen3
 
 # You probably do not need to modify the command itself
 cmd="./waf --out=$OUT --prefix=$PREFIX --cxxflags=$CXXFLAGS --luajit-inc-dir=$LUAJIT_INC_DIR --luajit-lib-dir=$LUAJIT_LIB_DIR --luajit-share-dir=$LUAJIT_SHARE_DIR $ENABLE_MPI --mpi-inc-dir=$MPI_INC_DIR --mpi-lib-dir=$MPI_LIB_DIR --mpi-link-libs=$MPI_LINK_LIBS $ENABLE_ADIOS --adios-inc-dir=$ADIOS_INC_DIR --adios-lib-dir=$ADIOS_LIB_DIR configure"
