@@ -459,6 +459,7 @@ end
 
 function FuncMaxwellField:forwardEuler(tCurr, dt, momIn, emIn, emOut)
    if self.evolve then
+      emOut:clear(0.0)
       self.fieldSlvr:advance(tCurr, dt, {}, {emOut})
    end
    return true, GKYL_MAX_DOUBLE
