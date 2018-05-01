@@ -1,4 +1,7 @@
--- Plasma ------------------------------------------------------------------------
+-- GK ion sound wave test case
+-- to check result, use 
+-- pgkyl -f ion-sound_phi2_ -f ion-sound_phi2-correct.h5 log plot
+
 local Plasma = require "App.PlasmaOnCartGrid"
 
 TiTe = 1.0
@@ -17,7 +20,7 @@ plasmaApp = Plasma.App {
    upper = {math.pi/knumber}, -- configuration space upper right
    cells = {64}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 1, -- polynomial order
+   polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
    cflFrac = 1.0,
 

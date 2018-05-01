@@ -54,8 +54,8 @@ function GkField:fullInit(appTbl)
    if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs end
 
    -- for storing integrated energies
-   self.elecEnergy = DataStruct.DynVector { numComponents = 1 }
-   self.magEnergy = DataStruct.DynVector { numComponents = 1 }
+   self.phi2 = DataStruct.DynVector { numComponents = 1 }
+   self.apar2 = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
    if tbl.adiabatic then
@@ -118,12 +118,6 @@ function GkField:alloc(nRkDup)
          self.potentials[i].dApardt:clear(0.0)
       end
    end
-      
-   -- create Adios object for field I/O
-   self.fieldIo = AdiosCartFieldIo {
-      elemType = self.potentials[1].phi:elemType(),
-      method = self.ioMethod,
-   }
 
    -- create fields for total charge and current densities
    self.chargeDens = DataStruct.Field {
@@ -248,26 +242,30 @@ function GkField:createSolver()
       end
    end
 
-   self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,
-      basis = self.basis,
-      numComponents = 1,
-      quantity = "V2"
-   }
-
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
    self.isElliptic = true
 end
 
 function GkField:createDiagnostics()
+   -- create Adios object for field I/O
+   self.fieldIo = AdiosCartFieldIo {
+      elemType = self.potentials[1].phi:elemType(),
+      method = self.ioMethod,
+   }
+
+   self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.grid,
+      basis = self.basis,
+      quantity = "V2"
+   }
 end
 
 function GkField:write(tm)
    if self.evolve then
-      -- compute electostatic energy integrated over domain
-      self.energyCalc:advance(tm, 0.0, { self.potentials[1].phi }, { self.elecEnergy })
+      -- compute integrated quantities over domain
+      self.energyCalc:advance(tm, 0.0, { self.potentials[1].phi }, { self.phi2 })
       if self.isElectromagnetic then 
-        self.energyCalc:advance(tm, 0.0, { self.potentials[1].apar }, { self.magEnergy })
+        self.energyCalc:advance(tm, 0.0, { self.potentials[1].apar }, { self.apar2 })
       end
       
       if self.ioTrigger(tm) then
@@ -276,8 +274,8 @@ function GkField:write(tm)
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
 	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm)
          end
-	 self.elecEnergy:write(string.format("elecEnergy_%d.bp", self.ioFrame), tm)
-	 if self.isElectromagnetic then self.magEnergy:write(string.format("magEnergy_%d.bp", self.ioFrame), tm) end
+	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm)
+	 if self.isElectromagnetic then self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm) end
 	 
 	 self.ioFrame = self.ioFrame+1
       end
