@@ -37,9 +37,9 @@ function GkSpecies:initDist(geo)
    if geo then
       -- save bmagFunc for later...
       self.bmagFunc = geo.bmagFunc
-      -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
+      -- if vdim>1, get jacobian=bmag from geo, and multiply it by init functions for f0 and f
       self.jacobianFunc = self.bmagFunc
-      if self.jacobianFunc then
+      if self.jacobianFunc and self.vdim > 1 then
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
             local J = self.jacobianFunc(t,xn)
@@ -140,7 +140,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       self.calcDens:advance(0,0, {self.f0}, {self.dens0})
       local data
       local dynVec = DataStruct.DynVector { numComponents = 1 }
-      -- integrate source
+      -- integrate 
       local calcInt = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.confGrid,
          basis = self.confBasis,
@@ -360,8 +360,10 @@ function GkSpecies:Maxwellian(xn, n0, T0, vd)
    if self.vdim > 1 then 
      local mu = xn[self.cdim+2]
      v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
+     return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
+   else
+     return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
    end
-   return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
 end
 
 return GkSpecies

@@ -94,8 +94,9 @@ function KineticSpecies:fullInit(appTbl)
    -- for storing integrated moments
    self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
 
-   -- store initial condition function
+   -- get functions for initial conditions and sources
    -- note: need to wrap these functions so that self can be (optionally) passed as last argument
+   -- initial condition functions 
    if tbl.initBackground then 
       self.initBackgroundFunc = function (t, xn)
          return tbl.initBackground(t, xn, self)
@@ -110,9 +111,13 @@ function KineticSpecies:fullInit(appTbl)
          return tbl.init(t, xn, self)
       end
    end
-
    -- source term for RHS (e.g. df/dt = ... + source)
    self.sourceFunc = tbl.source
+   if tbl.source then 
+      self.sourceFunc = function (t, xn)
+         return tbl.source(t, xn, self)
+      end
+   end
 
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.fluctuationBCs then 
