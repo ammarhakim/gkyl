@@ -19,7 +19,9 @@
 #include <stdlib.h>
 
 #if defined(__clang__)
-
+// nothing to include
+#elif defined(__powerpc__)
+// nothing to include
 #elif defined(__GNUC__) || defined(__GNUG__)
 # include <xmmintrin.h>
 #endif
@@ -150,6 +152,8 @@ main(int argc, char **argv) {
   // not impossible to reproduce) situations.
 #if defined(__clang__)
   fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#elif defined(__powerpc__)
+  // not sure what the POWER calls are for denormalized floats
 #elif defined(__GNUC__) || defined(__GNUG__)
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);  
 #endif
@@ -172,7 +176,7 @@ main(int argc, char **argv) {
     std::cerr << "Usage: gkyl LUA-SCRIPT" << std::endl;
     return finish(1);
   }
-  f.close();  
+  f.close();
 
 // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
