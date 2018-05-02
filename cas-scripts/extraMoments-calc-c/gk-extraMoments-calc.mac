@@ -1,0 +1,64 @@
+/* Generate kernels that obtain additional moments not computed
+   by the DistFuncMomentCalc routines, namely Upar and Vt^2 */
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* Parallel speed */
+/* Upar/Dens = < v_par f >/< f > */
+calcUpar(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_Upar_P~a(const double *m0, const double *m1, const double *m2, double *out) ~%{ ~%", funcNm, polyOrder),
+
+    /* Expand zeroth and first moment in configuration space basis. */
+    m0e : doExpand1(m0, bC),
+    m1e : doExpand1(m1, bC),
+    /* Array of 0th and 1st moment expansion coefficients. */
+    m0n : makelist(m0[i],i,0,N-1),
+    m1n : makelist(m1[i],i,0,N-1),
+  
+    /* E is the matrix resulting from the dot product of the tensor constructed
+       from the inner product of three basis functions, and the vector of expansion
+       coefficients of the 0th moment. */
+    E : zeromatrix(N,N),
+    for i from 1 thru N do(
+      for j from 1 thru N do(
+        for k from 1 thru N do (
+          E[i][j] : E[i][j]+innerProd(varsC,bC[k],bC[i],bC[j])*subst(k=k-1,m0n[k])
+        )
+      )
+    ),
+
+    /* Factoring out the determinant may be computationally beneficial. */
+    detE : determinant(E),
+    rdetE : fullratsimp(1.0/detE),
+    rdetE : psubst(makelist(m0[i]^2=m0sq[i],i,0,N-1),rdetE),
+
+    printf(fh, "  double m0sq[~a]; ~%",N),
+    for i from 1 thru N do(
+      printf(fh, "  m0sq[~a] = m0[~a]*m0[~a]; ~%",i-1, i-1, i-1)
+    ),
+    printf(fh, "  double rdet = ~a; ~%",rdetE),
+
+    /* Compute the parallel speed. */
+    Upar : colVecToList(fullratsimp((invert(E).m1n)*detE)),
+
+    writeCIncrExprs1(out, rdet*Upar),
+  
+    printf(fh, "} ~%")
+  )
+)$
+
+calcGkExtraMoments(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
+  printf(fh, "#include <math.h> ~%"),
+  printf(fh, "#include <ExtraMomentsCalcModDecl.h> ~%"),
+  calcUpar(fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+)$

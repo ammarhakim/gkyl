@@ -1,0 +1,26 @@
+cvars : [X, Y, Z]$
+
+fh : openw("~/max-out/ExtraMomentsCalcModDecl.h")$
+
+printf(fh, "#ifndef EXTRAMOMENTS_CALC_MOD_DECL_H ~%")$
+printf(fh, "#define EXTRAMOMENTS_CALC_MOD_DECL_H ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+
+for ci : 1 thru 1 do (
+  for vi : ci thru 1 do (
+    for pi : 1 thru 1 do (
+      if vi < 3 then (
+         printf(fh, "void GkMomentCalc~ax~avSer_Upar_P~a(const double *m0, const double *m1, const double *m2, double *out); ~%", ci, vi, pi)
+      ),
+      printf(fh, "~%") 
+    ),
+    printf(fh, "~%")
+  )
+)$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

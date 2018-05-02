@@ -49,6 +49,13 @@ writeCIncrExprsNoExpand1(lhs, rhs) := block([expr],
   )
 )$
 
+writeCExprs(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", lhs[i], expr[i])
+  )
+)$
+
 writeCExprs1(lhs, rhs) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (

@@ -1,0 +1,78 @@
+/* Generate kernels that obtain primitive moments not computed
+   by DistFuncMomentCalc, namely Upar and Vt^2 */
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+writeCExprsB(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", ssubst(")","]",ssubst("(","[",string(lhs[i]))), expr[i])
+  )
+)$
+
+/* Parallel speed */
+/* Upar/Dens = < v_par f >/< f > */
+calcUpar(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_Upar_P~a(const double *m0, const double *m1, const double *m2, double *out) ~%{ ~%", funcNm, polyOrder),
+
+    /* Expand zeroth and first moment in configuration space basis. */
+    m0e : doExpand1(m0, bC),
+    m1e : doExpand1(m1, bC),
+    /* Array of 0th and 1st moment expansion coefficients. */
+    m0n : makelist(m0[i],i,0,N-1),
+    m1n : makelist(m1[i],i,0,N-1),
+    /* Expand flow speed and create a list of expansion coefficients. */ 
+    ue : doExpand1(u,bC),
+    un : makelist(u[i],i,0,N-1),
+
+    eq : calcInnerProdList(varsC,ue,bC,m0e),
+  
+    E : fullratsimp(coefmatrix(eq,un)),
+    /* Flatten E for WriteCExprs1. */
+    Eflat : list_matrix_entries(E),
+
+    /* Make a list of the LHS matrix assignments. */
+    /* Note: Eigen defaults to Column-major order. */
+    Ef [i,j] := m0EM[i,j],
+    Elhs : list_matrix_entries(genmatrix(Ef,N-1,N-1,0,0)),
+
+    printf(fh, "  // Define Eigen Matrix with triple basis tensor dotted with m0 vector. ~%"),
+    printf(fh, "  Eigen::MatrixXd m0EM(~a,~a); ~%", N, N),
+    writeCExprsB(Elhs,Eflat),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // Define Eigen Vector with coefficients of m1. ~%"),
+    printf(fh, "  Eigen::Map<const VectorXd> m1EV(m1,~a); ~%", N),
+    printf(fh, "  ::new (&m1EV) Eigen::Map<const VectorXd>(m1,~a); ~%", N),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // Solve the system of equations. ~%"),
+    printf(fh, "  Eigen::VectorXd parU(~a); ~%", N),
+    printf(fh, "  parU = m0EM.colPivHouseholderQr().solve(m1EV); ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // Copy data from Eigen vector. ~%"),
+    printf(fh, "  Eigen::Map<VectorXd>(out,~a,1) = parU; ~%", N),
+    printf(fh, " ~%"),
+    printf(fh, "} ~%")
+  )
+)$
+
+calcGkPrimMoment(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
+  printf(fh, "#include <math.h> ~%"),
+  printf(fh, "#include <DistFuncPrimMomentCalcModDecl.h> ~%"),
+  printf(fh, " ~%"),
+  printf(fh, "using namespace Eigen; ~%"),
+  printf(fh, " ~%"),
+  calcUpar(fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+)$
