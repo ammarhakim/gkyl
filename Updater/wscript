@@ -9,6 +9,8 @@ def build(bld):
     bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
 
+    primMomentCalcData/DistFuncGkPrimMomentCalcSer1x1v.cpp
+
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp
     momentCalcData/DistFuncMomentCalcMax1x3v.cpp
@@ -65,4 +67,4 @@ def build(bld):
 
 
     """,
-    includes = '. momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+    includes = '. primMomentCalcData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')

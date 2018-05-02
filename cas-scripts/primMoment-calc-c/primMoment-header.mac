@@ -1,0 +1,31 @@
+cvars : [X, Y, Z]$
+
+fh : openw("~/max-out/DistFuncPrimMomentCalcModDecl.h")$
+
+printf(fh, "#ifndef DIST_FUNC_PRIM_MOMENT_CALC_MOD_DECL_H ~%")$
+printf(fh, "#define DIST_FUNC_PRIM_MOMENT_CALC_MOD_DECL_H ~%")$
+
+printf(fh, " ~%")$
+printf(fh, "// Eigen include statements. ~%")$
+printf(fh, "#include <Eigen/Dense> ~%")$
+printf(fh, " ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+
+for ci : 1 thru 1 do (
+  for vi : ci thru 1 do (
+    for pi : 1 thru 1 do (
+      if vi < 3 then (
+         printf(fh, "void GkPrimMomentCalc~ax~avSer_Upar_P~a(const double *m0, const double *m1, const double *m2, double *out); ~%", ci, vi, pi)
+      ),
+      printf(fh, "~%") 
+    ),
+    printf(fh, "~%")
+  )
+)$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$
