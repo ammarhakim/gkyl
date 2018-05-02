@@ -12,6 +12,7 @@ local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
+local DistFuncPrimMomentCalc = require "Updater.DistFuncPrimMomentCalc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
@@ -31,6 +32,7 @@ return {
    ConfToPhase = ConfToPhase,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
+   DistFuncPrimMomentCalc = DistFuncPrimMomentCalc,
    FemPoisson = FemPoisson,
    FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,
