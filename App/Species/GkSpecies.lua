@@ -145,6 +145,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
          onGrid = self.confGrid,
          basis = self.confBasis,
          numComponents = 1,
+	 quantity = "V"
       }
       calcInt:advance(0.0, 0.0, {self.dens0}, {dynVec})
       _, data = dynVec:lastData()
