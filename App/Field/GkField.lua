@@ -70,9 +70,6 @@ function GkField:fullInit(appTbl)
 
    -- for ndim=1 non-adiabatic only
    self.kperp2 = tbl.kperp2
-   if not self.adiabatic then 
-      assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
-   end
 
    -- species-dependent weight on polarization term == sum_s m_s n_s / B^2
    -- note: in future may calculate this directly from species tables
@@ -197,7 +194,9 @@ function GkField:createSolver()
    else
       local ndim = self.grid:ndim()
       local laplacianWeight, modifierConstant
+      assert(self.polarizationWeight, "GkField: must specify polarizationWeight = ni*mi/B^2 for non-adiabatic field")
       if ndim==1 then  -- z
+        assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
         laplacianWeight = 0.0 -- {0.0}
         modifierConstant = self.kperp2*self.polarizationWeight -- {self.kperp2}
       elseif ndim==2 then  -- x,y
