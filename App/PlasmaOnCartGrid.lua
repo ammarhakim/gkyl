@@ -208,7 +208,6 @@ local function buildApplication(self, tbl)
 
    -- setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles)
-   --local field = tbl.field and tbl.field or Field.NoField {}
    local field = nil
    local nfields = 0
    for _, val in pairs(tbl) do
@@ -278,7 +277,6 @@ local function buildApplication(self, tbl)
    end
 
    writeData(0.0) -- write initial conditions
-
 
    -- determine if field equations are elliptic 
    local ellipticFieldEqn = false
@@ -390,7 +388,8 @@ local function buildApplication(self, tbl)
       return status, dtSuggested 
    end
 
-   -- function to advance solution using SSP-RK2 scheme
+   -- function to advance solution using SSP-RK2 scheme (mildly
+   -- unstable and in general should not be used)
    function timeSteppers.rk2(tCurr, dt)
       local status, dtSuggested
       -- RK stage 1
@@ -510,7 +509,8 @@ local function buildApplication(self, tbl)
       writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
 
-      local tmSlvr = 0.0 -- total time in solver
+      -- compute time spent in various parts of code
+      local tmSlvr = 0.0 -- total time in ptcl solver
       for _, s in pairs(species) do
 	 tmSlvr = tmSlvr+s:totalSolverTime()
       end
