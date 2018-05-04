@@ -394,12 +394,6 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
 end
 
 function KineticSpecies:createDiagnostics()
-   -- create updater to compute volume-integrated moments
-   self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
-      onGrid = self.grid,
-      phaseBasis = self.basis,
-      confBasis = self.confBasis,
-   }
 end
 
 function KineticSpecies:calcDiagnosticMoments()
@@ -413,7 +407,7 @@ end
 function KineticSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
-      self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
+      if self.intMomentCalc then self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments }) end
 
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
@@ -468,7 +462,7 @@ function KineticSpecies:totalBcTime()
    return tm
 end
 function KineticSpecies:intMomCalcTime()
-   return self.intMomentCalc.totalTime
+   if self.intMomentCalc then return self.intMomentCalc.totalTime else return 0 end
 end
 
 return KineticSpecies

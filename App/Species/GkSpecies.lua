@@ -174,7 +174,8 @@ function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
 end
 
 function GkSpecies:createDiagnostics()
-   GkSpecies.super.createDiagnostics(self)
+   -- create updater to compute volume-integrated moments -- NOT YET IMPLEMENTED FOR GK
+   self.intMomentCalc = nil
    
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)

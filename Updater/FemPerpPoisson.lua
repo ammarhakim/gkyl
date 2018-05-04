@@ -177,8 +177,6 @@ function FemPerpPoisson:init(tbl)
      self.zDisContToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
-       bcBack = { T = "N", V = 0.0 },
-       bcFront = { T = "N", V = 0.0 },
        laplacianWeight = 0.0,
        modifierConstant = 1.0,
      }
