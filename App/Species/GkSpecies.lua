@@ -314,8 +314,11 @@ end
 function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
+      -- note: this is a hack until inaccuracy in initial conditions worked out
+      if self.f0 then self.distf[1]:accumulate(-1, self.f0) end  --
       self.calcDens:advance(tCurr, dt, {fIn}, { self.dens })
       self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
+      if self.f0 then self.distf[1]:accumulate(1, self.f0) end  --
    end
    if not self.evolve then self._firstMomentCalc = false end
 end
