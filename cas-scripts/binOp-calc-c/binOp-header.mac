@@ -1,0 +1,37 @@
+cvars : [X, Y, Z]$
+
+fh : openw("~/max-out/BinOpModDecl.h")$
+
+polyOrderMax : 2$
+
+printf(fh, "#ifndef BIN_OP_MOD_DECL_H ~%")$
+printf(fh, "#define BIN_OP_MOD_DECL_H ~%")$
+
+printf(fh, " ~%")$
+printf(fh, "// Eigen include statements. ~%")$
+printf(fh, "#include <Eigen/Dense> ~%")$
+printf(fh, " ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+
+for ci : 1 thru 1 do (
+  for pi : 1 thru polyOrderMax do (
+       printf(fh, "void BinOpMultiply~axSer_P~a(const double *A, const double *B, const short int vDim, double *out); ~%", ci, pi),
+    printf(fh, "~%") 
+  ),
+  printf(fh, "~%")
+)$
+
+for ci : 1 thru 1 do (
+  for pi : 1 thru polyOrderMax do (
+       printf(fh, "void BinOpDivide~axSer_P~a(const double *A, const double *B, const short int vDim, double *out); ~%", ci, pi),
+    printf(fh, "~%") 
+  ),
+  printf(fh, "~%")
+)$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

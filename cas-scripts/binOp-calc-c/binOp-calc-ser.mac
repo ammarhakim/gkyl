@@ -1,0 +1,46 @@
+/* Generate kernels that perform binary operations between
+   two fields. Currently two operations are supported:
+     1) Weak division by a scalar function.
+     2) Weak multiplication.
+   This script calls the function calcBinOp for various
+   combinations of configuration and velocity space, and
+   indicates the maximum polyOrder to generate code for. */
+/* load("binOp-calc-c/binOp-multiplication-calc")$ */
+load("binOp-calc-c/binOp-division-calc")$
+load("binOp-calc-c/binOp-multiplication-calc")$
+load(stringproc)$
+
+/* Maximum polynomial order to generate kernels for. */
+inMaxPolyOrder : 2$
+
+for c : 1 thru 3 do (
+  fname : sconcat("~/max-out/BinOpSer", c, "x", ".cpp"),
+  fh : openw(fname),
+
+  printf(fh, "#include <math.h> ~%"),
+  printf(fh, "#include <BinOpModDecl.h> ~%"),
+  printf(fh, " ~%"),
+  printf(fh, "using namespace Eigen; ~%"),
+  printf(fh, " ~%"),
+ 
+  funcName : sconcat("BinOpMultiply", c, "x", "Ser"),
+  calcBinOpMultiply(fh, funcName, c, "Ser",inMaxPolyOrder), 
+ 
+  funcName : sconcat("BinOpDivide", c, "x", "Ser"),
+  calcBinOpDivide(fh, funcName, c, "Ser",inMaxPolyOrder),
+ 
+  close(fh)
+)$
+
+/* c : 3$
+v : 2$
+fname : sconcat("~/max-out/BinOpSer", c, "x", v, "v", ".cpp")$
+fh : openw(fname)$
+
+funcName : sconcat("BinOpMultiply", c, "x", v, "v", "Ser")$
+calcBinOpMultiply(fh, funcName, c, v, "Ser")$
+
+funcName : sconcat("BinOpDivide", c, "x", v, "v", "Ser")$
+calcBinOpDivide(fh, funcName, c, v, "Ser")$
+
+close(fh)$ */
