@@ -8,11 +8,11 @@
 -- Gkyl modules
 local Bc = require "Updater.Bc"
 local BgkCollisions = require "Updater.BgkCollisions"
+local BinOp = require "Updater.BinOp"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
-local DistFuncPrimMomentCalc = require "Updater.DistFuncPrimMomentCalc"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
@@ -26,13 +26,13 @@ local SolidSurface = require "Updater.SolidSurface"
 
 return {
    Bc = Bc,
+   BinOp = BinOp,
    BgkCollisions = BgkCollisions,
    CalcDiagnostic = CalcDiagnostic,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    ConfToPhase = ConfToPhase,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
-   DistFuncPrimMomentCalc = DistFuncPrimMomentCalc,
    FemPoisson = FemPoisson,
    FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,

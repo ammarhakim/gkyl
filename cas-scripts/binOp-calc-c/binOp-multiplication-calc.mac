@@ -1,0 +1,53 @@
+/* Generate kernels that perform weak multiplication of two
+   fields, say if u .= A*B, (where .= means weak equality).
+   For now assume A and B are either both scalar functions or
+   both vector functions of same dimensionality. */
+
+/* To avoid the expensive algebraic matrix inversion in
+   Maxima we use Eigen to solve the system. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+calcMultiplication(fh, funcNm, cdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int vDim, double *out) ~%{ ~%", funcNm, polyOrder),
+
+    /* Expand fields A and B in configuration space basis. */
+    Ae : doExpand1(A, bC),
+    Be : doExpand1(B, bC),
+
+    /* To allow for multiple components change the cofficient indices in Ae and Be. */
+    Ae : psubst(makelist(A[i]=A[c0+i],i,0,N-1),Ae),
+    Be : psubst(makelist(B[i]=B[c0+i],i,0,N-1),Be),
+
+    prod : calcInnerProdList(varsC,Ae,bC,Be),
+  
+    printf(fh, "  for(short int vd=0; vd<vDim; vd++) ~%"),
+    printf(fh, "  { ~%"),
+    printf(fh, "    short int c0 = ~a; ~%",N*vd),
+
+    printf(fh, "    // Component-wise (of the vectors) multiplication. ~%"),
+    expr : float(expand(prod)),
+    for i : 1 thru N do (
+      printf(fh, "    ~a = ~a; ~%", out[c0+i-1], expr[i])
+    ),
+
+    printf(fh, "  } ~%"),
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcBinOpMultiply(fh, funcNm, cdim, basisFun, polyOrderMax) := block([],
+  calcMultiplication(fh, funcNm, cdim, basisFun, polyOrderMax)
+)$

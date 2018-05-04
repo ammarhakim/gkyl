@@ -1,0 +1,95 @@
+/* Generate kernels that perform weak division of two
+   fields, say if Au .= B, (where .= means weak equality)
+   then this kernel computes u .= A\B. */
+
+/* To avoid the expensive algebraic matrix inversion in
+   Maxima we use Eigen to solve the system. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+writeCExprsB(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", ssubst(")","]",ssubst("(","[",string(lhs[i]))), expr[i])
+  )
+)$
+
+writeEVExprs(lhs, rhs) := block([expr],
+  len : length(rhs),
+  start : len+(len-1)+(5+7*(len-1)+len*slength(string(len)))+1,
+  printf(fh, "    ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+)$
+
+calcDivision(fh, funcNm, cdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int vDim, double *out) ~%{ ~%", funcNm, polyOrder),
+
+    /* Expand fields A and B in configuration space basis. */
+    Ae : doExpand1(A, bC),
+    Be : doExpand1(B, bC),
+    /* Array of expansion coefficients. */
+    An : makelist(A[i],i,0,N-1),
+    Bn : makelist(B[i],i,0,N-1),
+    /* Expand u function and create a list of expansion coefficients. */ 
+    ue : doExpand1(u,bC),
+    un : makelist(u[i],i,0,N-1),
+
+    eq : calcInnerProdList(varsC,ue,bC,Ae),
+  
+    E : fullratsimp(coefmatrix(eq,un)),
+    /* Flatten E for WriteCExprsB. */
+    Eflat : list_matrix_entries(E),
+
+    /* Make a list of the LHS matrix assignments. */
+    /* Note: Eigen defaults to Column-major order. */
+    Ef [i,j] := AEM[i,j],
+    Elhs : list_matrix_entries(genmatrix(Ef,N-1,N-1,0,0)),
+
+    printf(fh, "  // Declare Eigen Matrix with triple basis tensor dotted with B vector. ~%"),
+    printf(fh, "  Eigen::MatrixXd AEM(~a,~a); ~%", N, N),
+    printf(fh, "  // Declare Eigen Vector with coefficients of B. ~%"),
+    printf(fh, "  Eigen::VectorXd BEV(~a); ~%", N),
+    printf(fh, "  // Declare vector with solution to system of equations. ~%"),
+    printf(fh, "  Eigen::VectorXd u(~a); ~%", N),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // Fill AEM matrix. ~%"),
+    writeCExprsB(Elhs,Eflat),
+    printf(fh, " ~%"),
+
+    printf(fh, "  for(short int vd=0; vd<vDim; vd++) ~%"),
+    printf(fh, "  { ~%"),
+
+    printf(fh, "    // Fill BEV. ~%"),
+/*    printf(fh, "    Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", N), */
+/*  Something like this is only needed if the BEV vector is pre-initialized during init. */
+/*    printf(fh, "    ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", N), */
+    writeEVExprs(BEV,makelist(B[i],i,vd*N+0,vd*N+N-1)),
+    printf(fh, " ~%"),
+
+    printf(fh, "    // Solve the system of equations. ~%"),
+    printf(fh, "    u = AEM.colPivHouseholderQr().solve(BEV); ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "    // Copy data from Eigen vector. ~%"),
+    printf(fh, "    Eigen::Map<VectorXd>(out+vd*~a,~a,1) = u; ~%", N, N),
+    printf(fh, " ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcBinOpDivide(fh, funcNm, cdim, basisFun, polyOrderMax) := block([],
+  calcDivision(fh, funcNm, cdim, basisFun, polyOrderMax)
+)$
