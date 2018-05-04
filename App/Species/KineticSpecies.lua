@@ -321,7 +321,7 @@ function KineticSpecies:alloc(nRkDup)
    }
 
    -- background (or initial) distribution
-   if self.initBackgroundFunc then
+   if self.initBackgroundFunc or not self.evolve then
       self.f0 = self:allocDistf()
    end
 
@@ -354,6 +354,9 @@ function KineticSpecies:initDist()
       }
       projectBackground:advance(0.0, 0.0, {}, {self.f0})
       self.f0:sync(syncPeriodicDirs)
+   elseif not self.evolve then
+      -- if not evolving, use initial condition as background
+      self.f0:copy(self.distf[1])
    end
 end
 

@@ -54,6 +54,7 @@ function ProjectOnBasis:init(tbl)
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
    local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- number of quadrature points in each direction
+   assert(N<=8, "Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
    self._projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
 

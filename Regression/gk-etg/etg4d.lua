@@ -81,7 +81,7 @@ plasmaApp = Plasma.App {
       init = function (t, xn, self)
          local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
          local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
-         return self:Maxwellian(xn, n0, Te(x))*(1+perturb)
+         return self:Maxwellian(xn, n0*(1+perturb), Te(x))
       end,
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
@@ -102,6 +102,7 @@ plasmaApp = Plasma.App {
          return self:Maxwellian(xn, n0, Ti0)
       end,
       evolve = false, -- evolve species?
+      diagnosticMoments = {"GkDens"}, 
    },
 
    -- field solver
