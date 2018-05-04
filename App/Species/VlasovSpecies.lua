@@ -125,7 +125,12 @@ function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
 end
 
 function VlasovSpecies:createDiagnostics()
-   VlasovSpecies.super.createDiagnostics(self)
+   -- create updater to compute volume-integrated moments
+   self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+   }
 
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
