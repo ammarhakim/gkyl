@@ -8,11 +8,15 @@ local VlasovSpecies = Proto(KineticSpecies)
 
 -- add constants to object indicate various supported boundary conditions
 local SP_BC_ABSORB = 1
-local SP_BC_OPEN = 2
 local SP_BC_REFLECT = 3
 local SP_BC_REFLECT_QM = 4
+local SP_BC_COPY = 5
+-- AHH: This was 2 but seems that is unstable. So using plain copy
+local SP_BC_OPEN = SP_BC_COPY
+
 VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
+VlasovSpecies.bcCopy = SP_BC_COPY -- copy stuff
 VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 VlasovSpecies.bcReflectQM = SP_BC_REFLECT_QM -- specular reflection with < 1 probability
 
@@ -190,6 +194,7 @@ end
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- need to wrap member functions so that self is passed
    local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
+   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
    local function bcOpenFunc(...) return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcReflectQMFunc(...) return self:bcReflectQMFunc(...) end
@@ -203,7 +208,11 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcOpenFunc }, "pointwise"))
+				      { bcCopyFunc }, "pointwise"))
+   elseif bcType == SP_BC_COPY then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_REFLECT then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
