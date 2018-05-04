@@ -24,11 +24,14 @@ local xsys = require "xsys"
 local MaxwellField = Proto(FieldBase.FieldBase)
 
 -- add constants to object indicate various supported boundary conditions
-local EM_BC_OPEN = 1
-local EM_BC_REFLECT = 2
+local EM_BC_REFLECT = 1
 local EM_BC_SYMMETRY = 2
+local EM_BC_COPY = 3
+-- AHH: This was 2 but seems that is unstable. So using plain copy
+local EM_BC_OPEN = EM_BC_COPY
 
 MaxwellField.bcOpen = EM_BC_OPEN -- zero gradient
+MaxwellField.bcCopy = EM_BC_COPY -- copy fields
 MaxwellField.bcReflect = EM_BC_REFLECT -- perfect electric conductor
 MaxwellField.bcSymmetry = EM_BC_SYMMETRY
 
@@ -181,6 +184,11 @@ function MaxwellField:createSolver()
 	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
       end
    end
+   local function bcCopy(dir, tm, xc, fIn, fOut)
+      for i = 1, 8*self.basis:numBasis() do
+	 fOut[i] = fIn[i]
+      end
+   end 
    local function bcReflect(dir, tm, xc, fIn, fOut)
       local nb = self.basis:numBasis()
       local fInData, fOutData = fIn:data(), fOut:data()
@@ -223,7 +231,10 @@ function MaxwellField:createSolver()
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == EM_BC_OPEN then
 	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { bcOpen }))
+		      makeBcUpdater(dir, edge, { bcCopy }))
+      elseif bcType == EM_BC_COPY then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, { bcCopy }))
       elseif bcType == EM_BC_REFLECT then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, { bcReflect }))

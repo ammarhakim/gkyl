@@ -15,9 +15,9 @@ local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
+local SpeciesBase = require "App.Species.SpeciesBase"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local SpeciesBase = require "App.Species.SpeciesBase"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -276,6 +276,12 @@ function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "pointwise"
    self.basis:flipSign(dir, fIn, fOut)
 end
+function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+   for i = 1, self.basis:numBasis() do
+      fOut[i] = fIn[i]
+   end
+end
+
 -- function to construct a BC updater
 function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop)
    return Updater.Bc {
