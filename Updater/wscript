@@ -9,7 +9,15 @@ def build(bld):
     bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
 
-    binOpCalcData/BinOpSer1x.cpp
+    binOpCalcData/CartFieldBinOpSer1x.cpp
+    binOpCalcData/CartFieldBinOpSer2x.cpp
+    binOpCalcData/CartFieldBinOpSer3x.cpp
+    binOpCalcData/CartFieldBinOpSer1x1v.cpp
+    binOpCalcData/CartFieldBinOpSer1x2v.cpp
+    binOpCalcData/CartFieldBinOpSer1x3v.cpp
+    binOpCalcData/CartFieldBinOpSer2x2v.cpp
+    binOpCalcData/CartFieldBinOpSer2x3v.cpp
+    binOpCalcData/CartFieldBinOpSer3x2v.cpp
 
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp

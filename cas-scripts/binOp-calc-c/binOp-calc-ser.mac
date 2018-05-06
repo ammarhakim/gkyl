@@ -2,10 +2,9 @@
    two fields. Currently two operations are supported:
      1) Weak division by a scalar function.
      2) Weak multiplication.
-   This script calls the function calcBinOp for various
+   This script calls the functions calcBinOp for various
    combinations of configuration and velocity space, and
    indicates the maximum polyOrder to generate code for. */
-/* load("binOp-calc-c/binOp-multiplication-calc")$ */
 load("binOp-calc-c/binOp-division-calc")$
 load("binOp-calc-c/binOp-multiplication-calc")$
 load(stringproc)$
@@ -14,33 +13,61 @@ load(stringproc)$
 inMaxPolyOrder : 2$
 
 for c : 1 thru 3 do (
-  fname : sconcat("~/max-out/BinOpSer", c, "x", ".cpp"),
+  fname : sconcat("~/max-out/CartFieldBinOpSer", c, "x", ".cpp"),
   fh : openw(fname),
 
+  disp(printf(false,"Creating ~ax",c)),
+
   printf(fh, "#include <math.h> ~%"),
-  printf(fh, "#include <BinOpModDecl.h> ~%"),
+  printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
   printf(fh, " ~%"),
   printf(fh, "using namespace Eigen; ~%"),
   printf(fh, " ~%"),
- 
-  funcName : sconcat("BinOpMultiply", c, "x", "Ser"),
-  calcBinOpMultiply(fh, funcName, c, "Ser",inMaxPolyOrder), 
- 
-  funcName : sconcat("BinOpDivide", c, "x", "Ser"),
-  calcBinOpDivide(fh, funcName, c, "Ser",inMaxPolyOrder),
+  
+  funcName : sconcat("CartFieldBinOpMultiply", c, "x", "Ser"),
+  calcBinOpMultiplyS(fh, funcName, c, "Ser",inMaxPolyOrder),
+  
+  funcName : sconcat("CartFieldBinOpDivide", c, "x", "Ser"),
+  calcBinOpDivideS(fh, funcName, c, "Ser",inMaxPolyOrder),
  
   close(fh)
 )$
 
-/* c : 3$
+for c : 1 thru 2 do (
+  for v : c thru 2 do (
+    fname : sconcat("~/max-out/CartFieldBinOpSer", c, "x", v, "v",".cpp"),
+    fh : openw(fname),
+
+    disp(printf(false,"Creating ~ax~av",c,v)),
+
+    printf(fh, "#include <math.h> ~%"),
+    printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
+    printf(fh, " ~%"),
+    printf(fh, "using namespace Eigen; ~%"),
+    printf(fh, " ~%"),
+   
+    funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", "Ser"),
+    calcBinOpMultiplyD(fh, funcName, c, v, "Ser",inMaxPolyOrder), 
+
+    funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", "Ser"),
+    calcBinOpDivideD(fh, funcName, c, v, "Ser",inMaxPolyOrder),
+
+    close(fh)
+  )
+)$
+
+
+c : 3$
 v : 2$
-fname : sconcat("~/max-out/BinOpSer", c, "x", v, "v", ".cpp")$
+disp(printf(false,"Creating ~ax~av",c,v)),
+
+fname : sconcat("~/max-out/CartFieldBinOpSer", c, "x", v, "v", ".cpp")$
 fh : openw(fname)$
 
-funcName : sconcat("BinOpMultiply", c, "x", v, "v", "Ser")$
-calcBinOpMultiply(fh, funcName, c, v, "Ser")$
+funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", "Ser"),
+calcBinOpMultiplyD(fh, funcName, c, v, "Ser",inMaxPolyOrder), 
 
-funcName : sconcat("BinOpDivide", c, "x", v, "v", "Ser")$
-calcBinOpDivide(fh, funcName, c, v, "Ser")$
+funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", "Ser"),
+calcBinOpDivideD(fh, funcName, c, v, "Ser",inMaxPolyOrder),
 
-close(fh)$ */
+close(fh)$
