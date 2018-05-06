@@ -1,11 +1,11 @@
 cvars : [X, Y, Z]$
 
-fh : openw("~/max-out/BinOpModDecl.h")$
+fh : openw("~/max-out/CartFieldBinOpModDecl.h")$
 
 polyOrderMax : 2$
 
-printf(fh, "#ifndef BIN_OP_MOD_DECL_H ~%")$
-printf(fh, "#define BIN_OP_MOD_DECL_H ~%")$
+printf(fh, "#ifndef CART_FIELD_BINOP_MOD_DECL_H ~%")$
+printf(fh, "#define CART_FIELD_BINOP_MOD_DECL_H ~%")$
 
 printf(fh, " ~%")$
 printf(fh, "// Eigen include statements. ~%")$
@@ -14,19 +14,51 @@ printf(fh, " ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
 
-for ci : 1 thru 1 do (
+for ci : 1 thru 3 do (
   for pi : 1 thru polyOrderMax do (
-       printf(fh, "void BinOpMultiply~axSer_P~a(const double *A, const double *B, const short int vDim, double *out); ~%", ci, pi),
+       printf(fh, "void CartFieldBinOpMultiply~axSer_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, pi),
     printf(fh, "~%") 
   ),
   printf(fh, "~%")
 )$
 
-for ci : 1 thru 1 do (
+for ci : 1 thru 3 do (
   for pi : 1 thru polyOrderMax do (
-       printf(fh, "void BinOpDivide~axSer_P~a(const double *A, const double *B, const short int vDim, double *out); ~%", ci, pi),
+       printf(fh, "void CartFieldBinOpDivide~axSer_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, pi),
     printf(fh, "~%") 
   ),
+  printf(fh, "~%")
+)$
+
+for ci : 1 thru 3 do (
+  for vi : ci thru 3 do (
+    for pi : 1 thru polyOrderMax do (
+      printf(fh, "void CartFieldBinOpMultiply~ax~avSer_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, pi),
+      printf(fh, "~%") 
+    )
+  ),
+  printf(fh, "~%")
+)$
+
+for ci : 1 thru 3 do (
+  for vi : ci thru 3 do (
+    for pi : 1 thru polyOrderMax do (
+      printf(fh, "void CartFieldBinOpDivide~ax~avSer_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, pi),
+      printf(fh, "~%") 
+    )
+  ),
+  printf(fh, "~%")
+)$
+
+ci : 3$
+vi : 2$
+for pi : 1 thru polyOrderMax do (
+  printf(fh, "void CartFieldBinOpMultiply~ax~avSer_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, pi),
+  printf(fh, "~%")
+)$
+
+for pi : 1 thru polyOrderMax do (
+  printf(fh, "void CartFieldBinOpDivide~ax~avSer_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, pi),
   printf(fh, "~%")
 )$
 

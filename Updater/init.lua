@@ -8,7 +8,7 @@
 -- Gkyl modules
 local Bc = require "Updater.Bc"
 local BgkCollisions = require "Updater.BgkCollisions"
-local BinOp = require "Updater.BinOp"
+local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
@@ -26,7 +26,7 @@ local SolidSurface = require "Updater.SolidSurface"
 
 return {
    Bc = Bc,
-   BinOp = BinOp,
+   CartFieldBinOp = CartFieldBinOp,
    BgkCollisions = BgkCollisions,
    CalcDiagnostic = CalcDiagnostic,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
