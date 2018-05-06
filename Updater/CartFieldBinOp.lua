@@ -86,8 +86,9 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
       Bfld, Afld = inFld[1], inFld[2]
    end
 
-   -- assuming the localRange is the same for Bfld and Afld.
-   local localRange  = Afld:localRange()
+   -- Either the localRange is the same for Bfld and Afld,
+   -- or just use the range of the phase space field,
+   local localBRange  = Bfld:localRange()
 
    local AfldIndexer = Afld:genIndexer()
    local BfldIndexer = Bfld:genIndexer()
@@ -117,7 +118,7 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
 
    uOut:scale(0.0) -- zero out output.
    -- loop, computing moments in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in localBRange:colMajorIter() do
       grid:setIndex(idx)
 
       Afld:fill(AfldIndexer(idx), AfldItr)
