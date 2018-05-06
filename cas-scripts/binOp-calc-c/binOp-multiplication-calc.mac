@@ -53,7 +53,7 @@ calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
 
-    printf(fh, "  // This tmp allows for inplace multiplication. ~%"),
+    printf(fh, "  // This tmp allows for in-place multiplication. ~%"),
     printf(fh, "  for (short int i=0; i<~a*Ncomp; i++) ~%",N),
     printf(fh, "  { ~%"),
     printf(fh, "    out[i] = tmp[i]; ~%"),
@@ -71,7 +71,7 @@ calcBinOpMultiplyD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     bP : basisP[polyOrder],
-    N  : length(bC),
+    N  : length(bP),
   
     /* Function declaration with input/output variables. */
     printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
@@ -88,7 +88,17 @@ calcBinOpMultiplyD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     prod : calcInnerProdList(varsP,Ae,bP,Be),
   
-    writeCExprs1(out,prod),
+    printf(fh, "  double tmp[~a]; ~%",N),
+    printf(fh, " ~%"),
+
+    writeCExprs1(tmp,prod),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // This tmp allows for in-place multiplication. ~%"),
+    printf(fh, "  for (short int i=0; i<~a; i++) ~%",N),
+    printf(fh, "  { ~%"),
+    printf(fh, "    out[i] = tmp[i]; ~%"),
+    printf(fh, "  } ~%"),
     printf(fh, " ~%"),
 
     printf(fh, "} ~%"),

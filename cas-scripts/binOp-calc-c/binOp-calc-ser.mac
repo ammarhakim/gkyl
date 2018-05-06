@@ -11,7 +11,9 @@ load(stringproc)$
 
 /* Maximum polynomial order to generate kernels for. */
 inMaxPolyOrder : 2$
-
+ 
+/* Generate kernels for operations between two fields defined on
+   spaces with same dimensions (1D, 2D, 3D). */
 for c : 1 thru 3 do (
   fname : sconcat("~/max-out/CartFieldBinOpSer", c, "x", ".cpp"),
   fh : openw(fname),
@@ -33,8 +35,11 @@ for c : 1 thru 3 do (
   close(fh)
 )$
 
+/* Kernels for operations between two fields defined on
+   spaces with different dimensions, mostly for operations between
+   a configuration space field and a phase space field. */
 for c : 1 thru 2 do (
-  for v : c thru 2 do (
+  for v : c thru 3 do (
     fname : sconcat("~/max-out/CartFieldBinOpSer", c, "x", v, "v",".cpp"),
     fh : openw(fname),
 
@@ -57,17 +62,28 @@ for c : 1 thru 2 do (
 )$
 
 
+/* Generate the 3x2v case (mostly for gyrokinetics). */
+
 c : 3$
 v : 2$
-disp(printf(false,"Creating ~ax~av",c,v)),
+disp(printf(false,"Creating ~ax~av",c,v))$
 
 fname : sconcat("~/max-out/CartFieldBinOpSer", c, "x", v, "v", ".cpp")$
 fh : openw(fname)$
 
-funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", "Ser"),
-calcBinOpMultiplyD(fh, funcName, c, v, "Ser",inMaxPolyOrder), 
+printf(fh, "#include <math.h> ~%")$
+printf(fh, "#include <CartFieldBinOpModDecl.h> ~%")$
+printf(fh, " ~%")$
+printf(fh, "using namespace Eigen; ~%")$
+printf(fh, " ~%")$
 
-funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", "Ser"),
-calcBinOpDivideD(fh, funcName, c, v, "Ser",inMaxPolyOrder),
+funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", "Ser")$
+calcBinOpMultiplyD(fh, funcName, c, v, "Ser",inMaxPolyOrder)$
+
+   
+funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", "Ser")$
+calcBinOpDivideD(fh, funcName, c, v, "Ser",inMaxPolyOrder)$
 
 close(fh)$
+
+

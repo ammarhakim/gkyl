@@ -22,7 +22,7 @@ void CartFieldBinOpMultiply1xSer_P1(const double *A, const double *B, const shor
     tmp[b0+1] = 0.7071067811865475*A[a0]*B[b0+1]+0.7071067811865475*A[a0+1]*B[b0]; 
   } 
  
-  // This tmp allows for inplace multiplication. 
+  // This tmp allows for in-place multiplication. 
   for (short int i=0; i<2*Ncomp; i++) 
   { 
     out[i] = tmp[i]; 
@@ -50,7 +50,7 @@ void CartFieldBinOpMultiply1xSer_P2(const double *A, const double *B, const shor
     tmp[b0+2] = 0.4517539514526256*A[a0+2]*B[b0+2]+0.7071067811865475*A[a0]*B[b0+2]+0.6324555320336759*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0+2]*B[b0]; 
   } 
  
-  // This tmp allows for inplace multiplication. 
+  // This tmp allows for in-place multiplication. 
   for (short int i=0; i<3*Ncomp; i++) 
   { 
     out[i] = tmp[i]; 
