@@ -63,8 +63,8 @@ function CartFieldBinOp:init(tbl)
       self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, polyOrder)
       if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder) end
    else
-      print("CartFieldBinOp: Requested operation is", op)
-      assert(false, "CartFieldBinOp: Operation must be one of Multiply, Divide.")
+      assert(false, string.format(
+		"CartFieldBinOp: Operation must be one of Multiply, Divide. Requested %s instead.", op))
    end
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
@@ -78,7 +78,7 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
    --                              but in the latter Afld must be the scalar).
    -- Division:       Bfld/Afld (Afld must be a scalar function).
 
-   uOut = outFld[1]
+   local uOut = outFld[1]
    -- Remove SOME burden from the user in ordering the inputs. Order them here so that
    -- in scalar-vector and conf-phase operations they enter the kernels as
    -- BinOp(scalar,vector) and BinOp(conf field,phase field).
@@ -120,7 +120,6 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
      self._BinOpCalc = self._BinOpCalcD
    end
 
-   uOut:scale(0.0) -- zero out output.
    -- loop, computing moments in each cell
    for idx in localBRange:colMajorIter() do
       grid:setIndex(idx)
