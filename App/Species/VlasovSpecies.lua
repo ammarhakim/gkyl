@@ -246,7 +246,7 @@ function VlasovSpecies:getMomDensity()
 end
 
 function VlasovSpecies:momCalcTime()
-   local tm = self.momDensityCalc.totalTime
+   local tm = self.momDensityCalc.totalTime + self.numDensityCalc.totalTime + self.ptclEnergyCalc.totalTime
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end

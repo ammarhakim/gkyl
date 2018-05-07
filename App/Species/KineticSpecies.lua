@@ -18,6 +18,7 @@ local Range = require "Lib.Range"
 local SpeciesBase = require "App.Species.SpeciesBase"
 local Updater = require "Updater"
 local xsys = require "xsys"
+local Time = require "Lib.Time"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -144,6 +145,8 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    self.boundaryConditions = { } -- list of Bcs to apply
+
+   self.bcTime = 0.0 -- timer for BCs
 end
 
 function KineticSpecies:getCharge() return self.charge end
@@ -372,6 +375,7 @@ end
 
 function KineticSpecies:applyBc(tCurr, dt, fIn)
    -- fIn is total distribution function
+   local tmStart = Time.clock()
 
    local syncPeriodicDirsTrue = true
 
@@ -397,6 +401,8 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
      -- update ghosts in total distribution, without enforcing periodicity
      fIn:sync(not syncPeriodicDirsTrue)
    end
+
+   self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end
 
 function KineticSpecies:createDiagnostics()
@@ -461,11 +467,7 @@ function KineticSpecies:totalSolverTime()
    return self.solver.totalTime
 end
 function KineticSpecies:totalBcTime()
-   local tm = 0.0
-   for _, bc in ipairs(self.boundaryConditions) do
-      tm = tm + bc.totalTime
-   end
-   return tm
+   return self.bcTime
 end
 function KineticSpecies:intMomCalcTime()
    if self.intMomentCalc then return self.intMomentCalc.totalTime else return 0 end

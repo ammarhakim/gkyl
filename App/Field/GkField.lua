@@ -11,6 +11,7 @@ local Updater = require "Updater"
 local xsys = require "xsys"
 local FieldBase = require "App.Field.FieldBase"
 local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
+local Time = require "Lib.Time"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -79,6 +80,8 @@ function GkField:fullInit(appTbl)
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
       self.dApardtInitFunc = tbl.dApardtInit
    end
+
+   self.bcTime = 0.0 -- timer for BCs
 end
 
 -- methods for EM field object
@@ -334,11 +337,13 @@ end
 
 -- boundary conditions handled by solver. this just updates ghosts.
 function GkField:applyBc(tCurr, dt, potIn)
+   local tmStart = Time.clock()
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
      potIn.apar:sync(true) 
      potIn.dApardt:sync(true) 
    end
+   self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end
    
 function GkField:totalSolverTime()
@@ -351,7 +356,7 @@ function GkField:totalSolverTime()
 end
 
 function GkField:totalBcTime()
-   return 0.0
+   return self.bcTime
 end
 
 function GkField:energyCalcTime()
