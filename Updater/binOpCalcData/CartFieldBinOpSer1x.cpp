@@ -11,21 +11,22 @@ void CartFieldBinOpMultiply1xSer_P1(const double *A, const double *B, const shor
   // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. 
   // out:     output field A*B (same number of components as B). 
  
-  double tmp[2*Ncomp]; 
+  double tmp[2]; 
  
   for (short int vd=0; vd<Ncomp; vd++) 
   { 
     short int b0 = 2*vd; 
     short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
-    tmp[b0] = 0.7071067811865475*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0]*B[b0]; 
-    tmp[b0+1] = 0.7071067811865475*A[a0]*B[b0+1]+0.7071067811865475*A[a0+1]*B[b0]; 
-  } 
+    tmp[0] = 0.7071067811865475*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0]*B[b0]; 
+    tmp[1] = 0.7071067811865475*A[a0]*B[b0+1]+0.7071067811865475*A[a0+1]*B[b0]; 
  
-  // This tmp allows for in-place multiplication. 
-  for (short int i=0; i<2*Ncomp; i++) 
-  { 
-    out[i] = tmp[i]; 
+    // This tmp allows for in-place multiplication. 
+    for (short int i=0; i<2; i++) 
+    { 
+      out[b0+i] = tmp[i]; 
+    } 
+ 
   } 
  
 } 
@@ -38,22 +39,23 @@ void CartFieldBinOpMultiply1xSer_P2(const double *A, const double *B, const shor
   // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. 
   // out:     output field A*B (same number of components as B). 
  
-  double tmp[3*Ncomp]; 
+  double tmp[3]; 
  
   for (short int vd=0; vd<Ncomp; vd++) 
   { 
     short int b0 = 3*vd; 
     short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
-    tmp[b0] = 0.7071067811865475*A[a0+2]*B[b0+2]+0.7071067811865475*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0]*B[b0]; 
-    tmp[b0+1] = 0.6324555320336759*A[a0+1]*B[b0+2]+0.6324555320336759*A[a0+2]*B[b0+1]+0.7071067811865475*A[a0]*B[b0+1]+0.7071067811865475*A[a0+1]*B[b0]; 
-    tmp[b0+2] = 0.4517539514526256*A[a0+2]*B[b0+2]+0.7071067811865475*A[a0]*B[b0+2]+0.6324555320336759*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0+2]*B[b0]; 
-  } 
+    tmp[0] = 0.7071067811865475*A[a0+2]*B[b0+2]+0.7071067811865475*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0]*B[b0]; 
+    tmp[1] = 0.6324555320336759*A[a0+1]*B[b0+2]+0.6324555320336759*A[a0+2]*B[b0+1]+0.7071067811865475*A[a0]*B[b0+1]+0.7071067811865475*A[a0+1]*B[b0]; 
+    tmp[2] = 0.4517539514526256*A[a0+2]*B[b0+2]+0.7071067811865475*A[a0]*B[b0+2]+0.6324555320336759*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0+2]*B[b0]; 
  
-  // This tmp allows for in-place multiplication. 
-  for (short int i=0; i<3*Ncomp; i++) 
-  { 
-    out[i] = tmp[i]; 
+    // This tmp allows for in-place multiplication. 
+    for (short int i=0; i<3; i++) 
+    { 
+      out[b0+i] = tmp[i]; 
+    } 
+ 
   } 
  
 } 

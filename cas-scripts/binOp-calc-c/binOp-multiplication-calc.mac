@@ -38,7 +38,7 @@ calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     prod : calcInnerProdList(varsC,Ae,bC,Be),
   
-    printf(fh, "  double tmp[~a*Ncomp]; ~%",N),
+    printf(fh, "  double tmp[~a]; ~%",N),
     printf(fh, " ~%"),
 
     printf(fh, "  for (short int vd=0; vd<Ncomp; vd++) ~%"),
@@ -48,17 +48,18 @@ calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "    // Component-wise (of the vectors) multiplication. ~%"),
     expr : float(expand(prod)),
     for i : 1 thru N do (
-      printf(fh, "    ~a = ~a; ~%", tmp[b0+i-1], expr[i])
+      printf(fh, "    ~a = ~a; ~%", tmp[i-1], expr[i])
     ),
+    printf(fh, " ~%"),
+    printf(fh, "    // This tmp allows for in-place multiplication. ~%"),
+    printf(fh, "    for (short int i=0; i<~a; i++) ~%",N),
+    printf(fh, "    { ~%"),
+    printf(fh, "      out[b0+i] = tmp[i]; ~%"),
+    printf(fh, "    } ~%"),
+    printf(fh, " ~%"),
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
 
-    printf(fh, "  // This tmp allows for in-place multiplication. ~%"),
-    printf(fh, "  for (short int i=0; i<~a*Ncomp; i++) ~%",N),
-    printf(fh, "  { ~%"),
-    printf(fh, "    out[i] = tmp[i]; ~%"),
-    printf(fh, "  } ~%"),
-    printf(fh, " ~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")
   )
