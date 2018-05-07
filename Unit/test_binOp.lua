@@ -830,8 +830,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
    -- Compute flow speed.
    local fldDiv = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Divide",
    }
 
@@ -843,8 +842,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
 
    local fldMult = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Multiply",
    }
    print("Computing momentum...")
@@ -1138,8 +1136,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Divide",
    }
    print("Computing flow speed...")
@@ -1156,8 +1153,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    -- Compute momentum.
    local calcMom1 = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Multiply",
    }
    print("Computing momentum...")
@@ -1477,8 +1473,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Divide",
    }
    print("Computing flow speed...")
@@ -1495,8 +1490,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    -- Compute momentum.
    local calcMom1 = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Multiply",
    }
    print("Computing momentum...")
@@ -1818,8 +1812,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Divide",
    }
    print("Computing flow speed...")
@@ -1836,8 +1829,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    -- Compute momentum.
    local calcMom1 = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Multiply",
    }
    print("Computing momentum...")
@@ -2160,8 +2152,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Divide",
    }
    print("Computing flow speed...")
@@ -2178,8 +2169,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    -- Compute momentum.
    local calcMom1 = Updater.CartFieldBinOp {
       onGrid     = confGrid,
-      weakBasis  = phaseBasis,
-      fieldBasis = confBasis,
+      weakBasis  = confBasis,
       operation  = "Multiply",
    }
    print("Computing momentum...")
@@ -2482,7 +2472,7 @@ end
 
 -- run tests
 local t1 = os.clock()
-binOp1x_conv(1)
+-- binOp1x_conv(1)
 -- binOp1x_conv(2)
 -- binOp2x_conv(1)
 -- binOp2x_conv(2)
@@ -2492,7 +2482,7 @@ binOp1x_conv(1)
 -- binOp1x1v_conv(2)
 -- binOp1x2v_conv(1)
 -- binOp1x2v_conv(2)
--- binOp2x2v_conv(1)
+binOp2x2v_conv(1)
 -- binOp2x2v_conv(2)
 -- binOp2x3v_conv(1)
 -- binOp2x3v_conv(2)
