@@ -53,10 +53,17 @@ sim = Plasma.App {
       cells = {16},
       decompCuts = {1},
       -- initial conditions
-      init = function (t, xn, self)
-	 local x, v = xn[1], xn[2]
-         return self:Maxwellian(xn, n_e, T_e, {vd_e})
-      end,
+      init = {"maxwellian", 
+              density = function (t, xn)
+                 return n_e
+              end,
+              temperature = function (t, xn)
+                 return T_e
+              end,
+              driftSpeed = function (t, xn)
+                 return {vd_e}
+              end
+             },
       evolve = true, -- evolve species?
       bcx = { Plasma.VlasovSpecies.bcAbsorb,
 	      Plasma.VlasovSpecies.bcReflect },
@@ -71,10 +78,17 @@ sim = Plasma.App {
       cells = {16},
       decompCuts = {1},
       -- initial conditions
-      init = function (t, xn, self)
-	 local x, v = xn[1], xn[2]
-         return self:Maxwellian(xn, n_i, T_i, {vd_i})
-      end,
+      init = {"maxwellian", 
+              density = function (t, xn)
+                 return n_i
+              end,
+              temperature = function (t, xn)
+                 return T_i
+              end,
+              driftSpeed = function (t, xn)
+                 return {vd_i}
+              end
+             },
       evolve = true, -- evolve species?
       bcx = { Plasma.VlasovSpecies.bcAbsorb,
 	      Plasma.VlasovSpecies.bcReflect },

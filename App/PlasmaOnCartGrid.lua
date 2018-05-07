@@ -238,8 +238,8 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
       speciesRkFields[nm] = s:rkStepperFields()
-      s:initDist(funcField)
       s:createSolver(hasE or funcHasE, hasB or funcHasB)
+      s:initDist(funcField)
       s:createDiagnostics()
    end
 

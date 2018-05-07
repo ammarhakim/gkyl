@@ -51,7 +51,7 @@ plasmaApp = Plasma.App {
    nFrame = 1, -- number of output frames
    lower = {R, -deltaR/2}, -- configuration space lower left
    upper = {R+deltaR, deltaR/2}, -- configuration space upper right
-   cells = {1, 8}, -- configuration space cells
+   cells = {4, 8}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
@@ -74,35 +74,40 @@ plasmaApp = Plasma.App {
       cells = {N_VPAR, N_MU},
       decompCuts = {1, 1},
       -- initial conditions
-      initBackground = function (t, xn, self)
-         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
-         return self:Maxwellian(xn, n0, Te(x))
-      end,
-      init = function (t, xn, self)
-         local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
-         local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
-         return self:Maxwellian(xn, n0*(1+perturb), Te(x))
-      end,
+      initBackground = {"maxwellian",
+              density = function (t, xn)
+                 return n0
+              end,
+              temperature = function (t, xn)
+                 local x = xn[1]
+                 return Te(x)
+              end,
+             },
+      init = {"maxwellian",
+              density = function (t, xn)
+                 local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
+                 local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
+                 return n0*(1+perturb)
+              end,
+              temperature = function (t, xn)
+                 local x = xn[1]
+                 return Te(x)
+              end,
+             },
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkDens"}, 
    },
 
    -- adiabatic ions
-   adiabaticIon = Plasma.GkSpecies {
+   adiabaticIon = Plasma.AdiabaticSpecies {
       charge = qi,
       mass = mi,
-      -- velocity space grid
-      lower = {VPAR_LOWER*math.sqrt(me/mi), MU_LOWER},
-      upper = {VPAR_UPPER*math.sqrt(me/mi), MU_UPPER},
-      cells = {N_VPAR, N_MU},
-      decompCuts = {1, 1},
       -- initial conditions
       init = function (t, xn, self)
-         return self:Maxwellian(xn, n0, Ti0)
+         return n0
       end,
       evolve = false, -- evolve species?
-      diagnosticMoments = {"GkDens"}, 
    },
 
    -- field solver
