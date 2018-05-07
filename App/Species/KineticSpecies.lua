@@ -99,24 +99,54 @@ function KineticSpecies:fullInit(appTbl)
    -- note: need to wrap these functions so that self can be (optionally) passed as last argument
    -- initial condition functions 
    if tbl.initBackground then 
-      self.initBackgroundFunc = function (t, xn)
-         return tbl.initBackground(t, xn, self)
+      if type(tbl.initBackground)=="function" then 
+         self.initBackgroundFunc = function (t, xn)
+            return tbl.initBackground(t, xn, self)
+         end
+      elseif tbl.initBackground[1] == "maxwellian" then
+         self.initBackgroundType = "maxwellian"
+         self.initBackgroundDensityFunc = tbl.initBackground.density
+         self.initBackgroundTemperatureFunc = tbl.initBackground.temperature
+         self.initBackgroundDriftSpeedFunc = tbl.initBackground.driftSpeed or function (t, xn) return nil end
+         self.initBackgroundFunc = function(t, xn)
+            return self:Maxwellian(xn, self.initBackgroundDensityFunc(t, xn), self.initBackgroundTemperatureFunc(t, xn), self.initBackgroundDriftSpeedFunc(t,xn))
+         end
+      else 
+         assert(false, "initBackground not correctly specified")
       end
    end
-   if self.initBackgroundFunc then 
+   assert(tbl.init, "Must specify initial condition with init")
+   if type(tbl.init) == "function" then
       self.initFunc = function (t, xn)
          return tbl.init(t, xn, self)
+      end
+   elseif tbl.init[1] == "maxwellian" then
+      self.initType = "maxwellian"
+      self.initDensityFunc = tbl.init.density
+      self.initTemperatureFunc = tbl.init.temperature
+      self.initDriftSpeedFunc = tbl.init.driftSpeed or function (t, xn) return nil end
+      self.initFunc = function(t, xn)
+         return self:Maxwellian(xn, self.initDensityFunc(t, xn), self.initTemperatureFunc(t, xn), self.initDriftSpeedFunc(t, xn))
       end
    else 
-      self.initFunc = function (t, xn)
-         return tbl.init(t, xn, self)
-      end
+      assert(false, "init not correctly specified")
    end
    -- source term for RHS (e.g. df/dt = ... + source)
-   self.sourceFunc = tbl.source
    if tbl.source then 
-      self.sourceFunc = function (t, xn)
-         return tbl.source(t, xn, self)
+      if type(tbl.source)=="function" then 
+         self.sourceFunc = function (t, xn)
+            return tbl.source(t, xn, self)
+         end
+      elseif tbl.source[1] == "maxwellian" then
+         self.sourceType = "maxwellian"
+         self.sourceDensityFunc = tbl.source.density
+         self.sourceTemperatureFunc = tbl.source.temperature
+         self.sourceDriftSpeedFunc = tbl.source.driftSpeed or function (t, xn) return nil end
+         self.sourceFunc = function(t, xn)
+            return self:Maxwellian(xn, self.sourceDensityFunc(t, xn), self.sourceTemperatureFunc(t, xn), self.sourceDriftSpeedFunc(t, xn))
+         end
+      else 
+         assert(false, "source not correctly specified")
       end
    end
 
@@ -367,6 +397,50 @@ function KineticSpecies:initDist()
       -- if not evolving, use initial condition as background
       self.f0:copy(self.distf[1])
    end
+
+   -- if maxwellian initial conditions, modify to ensure correct density
+   if self.initType == "maxwellian" then
+      self:modifyDensity(self.distf[1], self.initDensityFunc)
+   end
+   if self.initBackgroundType == "maxwellian" then
+      self:modifyDensity(self.f0, self.initBackgroundDensityFunc)
+   end
+end
+
+function KineticSpecies:modifyDensity(f, trueDensFunc)
+   local ninit, ntrue, nmod = self:allocMoment(), self:allocMoment(), self:allocMoment()
+   local ftemp = self:allocDistf()
+   self.numDensityCalc:advance(0, 0, {f}, {ninit})
+   ninit:write("ninit.bp", 0.0)
+   local projectTrueDens = Updater.ProjectOnBasis {
+      onGrid = self.confGrid,
+      basis = self.confBasis,
+      evaluate = trueDensFunc,
+      projectOnGhosts = true,
+   }
+   projectTrueDens:advance(0, 0, {}, {ntrue})
+   ntrue:write("ntrue.bp", 0.0)
+   local calcDensMod = Updater.CartFieldBinOp {
+      onGrid = self.grid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts = true,
+   }
+   -- calculate nmod = ntrue / ninit
+   calcDensMod:advance(0, 0, {ninit, ntrue}, {nmod})
+   nmod:write("nmod.bp", 0.0)
+   local modDistf = Updater.CartFieldBinOp {
+      onGrid = self.grid,
+      weakBasis = self.basis,
+      fieldBasis = self.confBasis,
+      operation = "Multiply",
+      onGhosts = true,
+   }
+   -- calculate distf = nmod * distf
+   modDistf:advance(0, 0, {nmod, f}, {ftemp})
+   self.numDensityCalc:advance(0, 0, {ftemp}, {nmod})
+   nmod:write("nnew.bp", 0.0)
+   f:copy(ftemp)
 end
 
 function KineticSpecies:rkStepperFields()

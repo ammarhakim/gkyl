@@ -24,7 +24,6 @@ function GkSpecies:alloc(nRkDup)
    -- allocate fields to store coupling moments (for use in coupling
    -- to field and collisions)
    self.dens = self:allocMoment()
-   self.dens0 = self:allocMoment()
    self.upar = self:allocMoment()
    self.ppar = self:allocMoment()
    self.pperp = self:allocMoment()
@@ -93,14 +92,14 @@ function GkSpecies:createSolver(hasPhi, hasApar)
    if self.vdim == 1 then self.momfac = 1 / (2*math.pi) end
    
    -- create updaters to compute various moments
-   self.calcDens = Updater.DistFuncMomentCalc {
+   self.numDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "GkDens",
       momfac = self.momfac,
    }
-   self.calcUpar = Updater.DistFuncMomentCalc {
+   self.momDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
@@ -138,7 +137,8 @@ function GkSpecies:createSolver(hasPhi, hasApar)
    -- calculate background density averaged over simulation domain
    self.n0 = nil
    if self.f0 then
-      self.calcDens:advance(0,0, {self.f0}, {self.dens0})
+      local dens0 = self:allocMoment()
+      self.numDensityCalc:advance(0,0, {self.f0}, {dens0})
       local data
       local dynVec = DataStruct.DynVector { numComponents = 1 }
       -- integrate 
@@ -148,7 +148,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
          numComponents = 1,
 	 quantity = "V"
       }
-      calcInt:advance(0.0, 0.0, {self.dens0}, {dynVec})
+      calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
       _, data = dynVec:lastData()
       self.n0 = data[1]/self.confGrid:gridVolume()
       --print("Average density is " .. self.n0)
@@ -319,11 +319,10 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-      -- note: this is a hack until inaccuracy in initial conditions worked out
-      if self.f0 then fIn:accumulate(-1, self.f0) end  --
-      self.calcDens:advance(tCurr, dt, {fIn}, { self.dens })
-      self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
-      if self.f0 then fIn:accumulate(1, self.f0) end  --
+
+      self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.dens })
+      self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.upar })
+
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end

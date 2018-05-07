@@ -14,6 +14,7 @@ local UpdaterBase = require "Updater.Base"
 local Lin         = require "Lib.Linalg"
 local Proto       = require "Lib.Proto"
 local BinOpDecl   = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
+local xsys = require "xsys"
 
 -- function to check if moment name is correct
 local function isOpNameGood(nm)
@@ -66,6 +67,8 @@ function CartFieldBinOp:init(tbl)
       assert(false, "CartFieldBinOp: Operation must be one of Multiply, Divide.")
    end
 
+   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+
 end
 
 -- advance method
@@ -89,6 +92,7 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
    -- Either the localRange is the same for Bfld and Afld,
    -- or just use the range of the phase space field,
    local localBRange  = Bfld:localRange()
+   if self.onGhosts then localBRange = Bfld:localExtRange() end
 
    local AfldIndexer = Afld:genIndexer()
    local BfldIndexer = Bfld:genIndexer()

@@ -42,38 +42,36 @@ plasmaApp = Plasma.App {
       decompCuts = {1},
       -- initial conditions
       -- specify background so that we can plot perturbed distribution and moments
-      initBackground = function (t, xn) 
-	 local x, v = xn[1], xn[2]
-         local k = knumber
-         local vth2 = Ti0
-         local alpha = 0.01
-	 return ni0/math.sqrt(2*math.pi*vth2)*math.exp(-v^2/(2*vth2))
-      end,
-      init = function (t, xn)
-	 local x, v = xn[1], xn[2]
-         local k = knumber
-         local vth2 = Ti0
-         local alpha = 0.01
-	 return ni0/math.sqrt(2*math.pi*vth2)*math.exp(-v^2/(2*vth2))*(1.0 + alpha * math.cos(k*x))
-      end,
+      initBackground = {"maxwellian",
+              density = function (t, xn)
+                 return ni0
+              end,
+              temperature = function (t, xn)
+                 return Ti0
+              end,
+             },
+      init = {"maxwellian",
+              density = function (t, xn)
+                 local x, v = xn[1], xn[2]
+                 local k = knumber
+                 local alpha = 0.01
+                 local perturb = alpha*math.cos(k*x)
+                 return ni0*(1+perturb)
+              end,
+              temperature = function (t, xn)
+                 return Ti0
+              end,
+             },
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkDens"},
    },
 
-   adiabaticElectron = Plasma.GkSpecies {
+   adiabaticElectron = Plasma.AdiabaticSpecies {
       charge = -1.0,
       mass = 1.0,
-      -- velocity space grid
-      lower = {-6.0},
-      upper = {6.0},
-      cells = {128},
-      decompCuts = {1},
       -- initial conditions.. use ion background so that background is exactly neutral
       init = function (t, xn)
-	 local x, v = xn[1], xn[2]
-         local k = knumber
-         local vth2 = Ti0
-	 return ni0/math.sqrt(2*math.pi*vth2)*math.exp(-v^2/(2*vth2))
+         return ne0
       end,
       evolve = false, -- evolve species?
    },
