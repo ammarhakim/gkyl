@@ -150,7 +150,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       calcInt:advance(0.0, 0.0, {self.dens0}, {dynVec})
       _, data = dynVec:lastData()
       self.n0 = data[1]/self.confGrid:gridVolume()
-      print("Average density is " .. self.n0)
+      --print("Average density is " .. self.n0)
    end
 end
 
