@@ -3,6 +3,7 @@ local KineticSpecies = require "App.Species.KineticSpecies"
 local GkEq = require "Eq.Gyrokinetic"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
+local Time = require "Lib.Time"
 
 local GkSpecies = Proto(KineticSpecies)
 
@@ -152,6 +153,8 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       self.n0 = data[1]/self.confGrid:gridVolume()
       --print("Average density is " .. self.n0)
    end
+
+   self.tmCouplingMom = 0.0 -- for timer 
 end
 
 function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
@@ -315,11 +318,13 @@ end
 function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
+      local tmStart = Time.clock()
       -- note: this is a hack until inaccuracy in initial conditions worked out
-      if self.f0 then self.distf[1]:accumulate(-1, self.f0) end  --
+      if self.f0 then fIn:accumulate(-1, self.f0) end  --
       self.calcDens:advance(tCurr, dt, {fIn}, { self.dens })
       self.calcUpar:advance(tCurr, dt, {fIn}, { self.upar })
-      if self.f0 then self.distf[1]:accumulate(1, self.f0) end  --
+      if self.f0 then fIn:accumulate(1, self.f0) end  --
+      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
 end
@@ -349,8 +354,7 @@ function GkSpecies:getUpar()
 end
 
 function GkSpecies:momCalcTime()
-   local tm = self.calcDens.totalTime
-   tm = tm + self.calcUpar.totalTime
+   local tm = self.tmCouplingMom
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end

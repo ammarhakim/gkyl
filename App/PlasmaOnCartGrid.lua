@@ -377,13 +377,16 @@ local function buildApplication(self, tbl)
    -- SSP-RK schemes:
    -- http://gkyl.readthedocs.io/en/latest/dev/ssp-rk.html
    local timeSteppers = {}
+   local stepperTime = 0.0
 
    -- function to advance solution using RK1 scheme (UNSTABLE! Only for testing)
    function timeSteppers.rk1(tCurr, dt)
       local status, dtSuggested
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
+      local tm = Time.clock()
       copy1(2, 1)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested 
    end
@@ -399,15 +402,17 @@ local function buildApplication(self, tbl)
       -- RK stage 2
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
+      local tm = Time.clock()
       combine2(1.0/2.0, 1, 1.0/2.0, 3, 2)
       copy1(2, 1)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
    end
 
    -- function to advance solution using SSP-RK3 scheme
    function timeSteppers.rk3(tCurr, dt)
-      local status, dtSuggested
+      local status, dtSuggested, tm
       -- RK stage 1
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
@@ -415,39 +420,51 @@ local function buildApplication(self, tbl)
       -- RK stage 2
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
+      tm = Time.clock()
       combine2(3.0/4.0, 1, 1.0/4.0, 3, 2)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 2, 3)
       if status == false then return status, dtSuggested end
+      tm = Time.clock()
       combine2(1.0/3.0, 1, 2.0/3.0, 3, 2)
       copy1(2, 1)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
    end
 
    -- function to advance solution using 4-stage SSP-RK3 scheme
    function timeSteppers.rk3s4(tCurr, dt)
-      local status, dtSuggested
+      local status, dtSuggested, tm
       -- RK stage 1
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
+      tm = Time.clock()
       combine2(1.0/2.0, 1, 1.0/2.0, 2, 3)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 2
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 3, 4)
       if status == false then return status, dtSuggested end
+      tm = Time.clock()
       combine2(1.0/2.0, 3, 1.0/2.0, 4, 2)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
+      tm = Time.clock()
       combine3(2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3, 4)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 4
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 4, 3)
       if status == false then return status, dtSuggested end
+      tm = Time.clock()
       combine2(1.0/2.0, 4, 1.0/2.0, 3, 1)
+      stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
    end
@@ -541,6 +558,7 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
 	     tmCollEvalMom, tmCollProjectMaxwell))
+      log(string.format("Stepper combine/copy took %g sec\n", stepperTime))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
