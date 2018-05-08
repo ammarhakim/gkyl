@@ -103,10 +103,10 @@ function KineticSpecies:fullInit(appTbl)
          self.initBackgroundFunc = function (t, xn)
             return tbl.initBackground(t, xn, self)
          end
-      elseif tbl.initBackground[1] == "maxwellian" then
+      elseif tbl.initBackground[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
          self.initBackgroundType = "maxwellian"
-         self.initBackgroundDensityFunc = tbl.initBackground.density
-         self.initBackgroundTemperatureFunc = tbl.initBackground.temperature
+         self.initBackgroundDensityFunc = assert(tbl.initBackground.density, "maxwellian: must specify density")
+         self.initBackgroundTemperatureFunc = assert(tbl.initBackground.temperature, "maxwellian: must specify temperature")
          self.initBackgroundDriftSpeedFunc = tbl.initBackground.driftSpeed or function (t, xn) return nil end
          self.initBackgroundFunc = function(t, xn)
             return self:Maxwellian(xn, self.initBackgroundDensityFunc(t, xn), self.initBackgroundTemperatureFunc(t, xn), self.initBackgroundDriftSpeedFunc(t,xn))
@@ -120,10 +120,10 @@ function KineticSpecies:fullInit(appTbl)
       self.initFunc = function (t, xn)
          return tbl.init(t, xn, self)
       end
-   elseif tbl.init[1] == "maxwellian" then
+   elseif tbl.init[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
       self.initType = "maxwellian"
-      self.initDensityFunc = tbl.init.density
-      self.initTemperatureFunc = tbl.init.temperature
+      self.initDensityFunc = assert(tbl.init.density, "maxwellian: must specify density")
+      self.initTemperatureFunc = assert(tbl.init.temperature, "maxwellian: must specify temperature")
       self.initDriftSpeedFunc = tbl.init.driftSpeed or function (t, xn) return nil end
       self.initFunc = function(t, xn)
          return self:Maxwellian(xn, self.initDensityFunc(t, xn), self.initTemperatureFunc(t, xn), self.initDriftSpeedFunc(t, xn))
@@ -137,10 +137,10 @@ function KineticSpecies:fullInit(appTbl)
          self.sourceFunc = function (t, xn)
             return tbl.source(t, xn, self)
          end
-      elseif tbl.source[1] == "maxwellian" then
+      elseif tbl.source[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
          self.sourceType = "maxwellian"
-         self.sourceDensityFunc = tbl.source.density
-         self.sourceTemperatureFunc = tbl.source.temperature
+         self.sourceDensityFunc = assert(tbl.source.density, "maxwellian: must specify density")
+         self.sourceTemperatureFunc = assert(tbl.source.temperature, "maxwellian: must specify temperature")
          self.sourceDriftSpeedFunc = tbl.source.driftSpeed or function (t, xn) return nil end
          self.sourceFunc = function(t, xn)
             return self:Maxwellian(xn, self.sourceDensityFunc(t, xn), self.sourceTemperatureFunc(t, xn), self.sourceDriftSpeedFunc(t, xn))
@@ -411,7 +411,6 @@ end
 
 function KineticSpecies:modifyDensity(f, trueDensFunc)
    local ninit, ntrue, nmod = self:allocMoment(), self:allocMoment(), self:allocMoment()
-   local ftemp = self:allocDistf()
    self.numDensityCalc:advance(0, 0, {f}, {ninit})
    local projectTrueDens = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
@@ -435,10 +434,8 @@ function KineticSpecies:modifyDensity(f, trueDensFunc)
       operation = "Multiply",
       onGhosts = true,
    }
-   -- calculate distf = nmod * distf
-   modDistf:advance(0, 0, {nmod, f}, {ftemp})
-   self.numDensityCalc:advance(0, 0, {ftemp}, {nmod})
-   f:copy(ftemp)
+   -- calculate f = nmod * f
+   modDistf:advance(0, 0, {nmod, f}, {f})
 end
 
 function KineticSpecies:rkStepperFields()
