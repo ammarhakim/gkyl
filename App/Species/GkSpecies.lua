@@ -58,6 +58,26 @@ function GkSpecies:initDist(geo)
    end
 
    GkSpecies.super.initDist(self)
+
+   -- calculate background density averaged over simulation domain
+   self.n0 = nil
+   if self.f0 then
+      local dens0 = self:allocMoment()
+      self.numDensityCalc:advance(0,0, {self.f0}, {dens0})
+      local data
+      local dynVec = DataStruct.DynVector { numComponents = 1 }
+      -- integrate 
+      local calcInt = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.confGrid,
+         basis = self.confBasis,
+         numComponents = 1,
+	 quantity = "V"
+      }
+      calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
+      _, data = dynVec:lastData()
+      self.n0 = data[1]/self.confGrid:gridVolume()
+      --print("Average density is " .. self.n0)
+   end
 end
 
 function GkSpecies:createSolver(hasPhi, hasApar)
@@ -111,7 +131,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "GkPpar",
-      momfac = self.momfac,
+      momfac = self.momfac*self.mass,
    }
    if self.vdim > 1 then
       self.calcPperp = Updater.DistFuncMomentCalc {
@@ -132,26 +152,6 @@ function GkSpecies:createSolver(hasPhi, hasApar)
          evaluate = self.sourceFunc,
          projectOnGhosts = true
       }
-   end
-
-   -- calculate background density averaged over simulation domain
-   self.n0 = nil
-   if self.f0 then
-      local dens0 = self:allocMoment()
-      self.numDensityCalc:advance(0,0, {self.f0}, {dens0})
-      local data
-      local dynVec = DataStruct.DynVector { numComponents = 1 }
-      -- integrate 
-      local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,
-         basis = self.confBasis,
-         numComponents = 1,
-	 quantity = "V"
-      }
-      calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
-      _, data = dynVec:lastData()
-      self.n0 = data[1]/self.confGrid:gridVolume()
-      --print("Average density is " .. self.n0)
    end
 
    self.tmCouplingMom = 0.0 -- for timer 
