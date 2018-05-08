@@ -384,6 +384,11 @@ function KineticSpecies:initDist()
    }
    project:advance(0.0, 0.0, {}, {self.distf[1]})
 
+   -- if maxwellian initial conditions, modify to ensure correct density
+   if self.initType == "maxwellian" then
+      self:modifyDensity(self.distf[1], self.initDensityFunc)
+   end
+
    if self.initBackgroundFunc then
       local projectBackground = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -399,9 +404,6 @@ function KineticSpecies:initDist()
    end
 
    -- if maxwellian initial conditions, modify to ensure correct density
-   if self.initType == "maxwellian" then
-      self:modifyDensity(self.distf[1], self.initDensityFunc)
-   end
    if self.initBackgroundType == "maxwellian" then
       self:modifyDensity(self.f0, self.initBackgroundDensityFunc)
    end
@@ -411,7 +413,6 @@ function KineticSpecies:modifyDensity(f, trueDensFunc)
    local ninit, ntrue, nmod = self:allocMoment(), self:allocMoment(), self:allocMoment()
    local ftemp = self:allocDistf()
    self.numDensityCalc:advance(0, 0, {f}, {ninit})
-   ninit:write("ninit.bp", 0.0)
    local projectTrueDens = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
       basis = self.confBasis,
@@ -419,7 +420,6 @@ function KineticSpecies:modifyDensity(f, trueDensFunc)
       projectOnGhosts = true,
    }
    projectTrueDens:advance(0, 0, {}, {ntrue})
-   ntrue:write("ntrue.bp", 0.0)
    local calcDensMod = Updater.CartFieldBinOp {
       onGrid = self.grid,
       weakBasis = self.confBasis,
@@ -428,7 +428,6 @@ function KineticSpecies:modifyDensity(f, trueDensFunc)
    }
    -- calculate nmod = ntrue / ninit
    calcDensMod:advance(0, 0, {ninit, ntrue}, {nmod})
-   nmod:write("nmod.bp", 0.0)
    local modDistf = Updater.CartFieldBinOp {
       onGrid = self.grid,
       weakBasis = self.basis,
@@ -439,7 +438,6 @@ function KineticSpecies:modifyDensity(f, trueDensFunc)
    -- calculate distf = nmod * distf
    modDistf:advance(0, 0, {nmod, f}, {ftemp})
    self.numDensityCalc:advance(0, 0, {ftemp}, {nmod})
-   nmod:write("nnew.bp", 0.0)
    f:copy(ftemp)
 end
 
