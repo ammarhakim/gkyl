@@ -69,6 +69,7 @@ plasmaApp = Plasma.App {
    adiabaticElectron = Plasma.AdiabaticSpecies {
       charge = -1.0,
       mass = 1.0,
+      temp = Te0,
       -- initial conditions.. use ion background so that background is exactly neutral
       init = function (t, xn)
          return ne0
@@ -79,8 +80,6 @@ plasmaApp = Plasma.App {
    -- field solver
    field = Plasma.GkField {
       evolve = true, -- evolve field?
-      adiabatic = {response = "electron", charge = -1.0, dens = ne0, temp = Te0},
-      discontinuous = false,
    },
 
    -- magnetic geometry 

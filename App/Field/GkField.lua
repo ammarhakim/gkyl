@@ -59,13 +59,6 @@ function GkField:fullInit(appTbl)
    self.apar2 = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
-   if tbl.adiabatic then
-      self.adiabatic = true
-      self.adiabDens = tbl.adiabatic.dens
-      self.adiabCharge = tbl.adiabatic.charge
-      self.adiabQneutFac = tbl.adiabatic.dens*tbl.adiabatic.charge^2/tbl.adiabatic.temp
-   end
-   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic")
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
    self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
 
@@ -153,7 +146,7 @@ function GkField:rkStepperFields()
    return self.potentials
 end
 
-function GkField:createSolver()
+function GkField:createSolver(species)
    -- leaving this here for a possible future implementation...
    --local laplacianWeight = {}
    --local modifierConstant = {}
@@ -176,6 +169,15 @@ function GkField:createSolver()
    --  end
    --end
 
+   -- get adiabatic species info
+   for nm, s in pairs(species) do
+      if AdiabaticSpecies.is(s) then
+         self.adiabatic = true
+         self.adiabSpec = s
+      end
+   end
+   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
+
    if self.adiabatic then
       -- if adiabatic, we don't solve the Poisson equation, but
       -- we do need to project the discontinuous charge densities
@@ -191,7 +193,7 @@ function GkField:createSolver()
         bcFront = self.phiBcFront,
         periodicDirs = self.periodicDirs,
         laplacianWeight = 0.0, 
-        modifierConstant = self.adiabQneutFac, -- = n0*q^2/T
+        modifierConstant = self.adiabSpec:qneutFac(), -- = n0*q^2/T
         zContinuous = not self.discontinuousPhi,
       }
    else

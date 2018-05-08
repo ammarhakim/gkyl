@@ -51,7 +51,7 @@ plasmaApp = Plasma.App {
    nFrame = 1, -- number of output frames
    lower = {R, -deltaR/2}, -- configuration space lower left
    upper = {R+deltaR, deltaR/2}, -- configuration space upper right
-   cells = {4, 8}, -- configuration space cells
+   cells = {1, 8}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
@@ -103,6 +103,7 @@ plasmaApp = Plasma.App {
    adiabaticIon = Plasma.AdiabaticSpecies {
       charge = qi,
       mass = mi,
+      temp = Ti0,
       -- initial conditions
       init = function (t, xn, self)
          return n0
@@ -113,9 +114,6 @@ plasmaApp = Plasma.App {
    -- field solver
    field = Plasma.GkField {
       evolve = true, -- evolve fields?
-      adiabatic = {response = "ion", charge = qi, dens = n0, temp = Ti0},
-      polarizationWeight = mi*n0/B0^2,
-      discontinuous = false
    },
 
    -- magnetic geometry 
