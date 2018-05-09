@@ -143,16 +143,6 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       }
    end
    self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
- 
-   -- create updater to evaluate source 
-   if self.sourceFunc then 
-      self.evalSource = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.sourceFunc,
-         projectOnGhosts = true
-      }
-   end
 
    self.tmCouplingMom = 0.0 -- for timer 
 end
@@ -165,9 +155,7 @@ function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
       status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
       if self.sourceFunc then
         -- if there is a source, add it to the RHS
-        local fSource = self.fSource
-        self.evalSource:advance(tCurr, dt, {}, {fSource})
-        fOut:accumulate(dt, fSource)
+        fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
       end
       return status, dtSuggested
    else

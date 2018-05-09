@@ -19,6 +19,7 @@ local SpeciesBase = require "App.Species.SpeciesBase"
 local Updater = require "Updater"
 local xsys = require "xsys"
 local Time = require "Lib.Time"
+local Mpi = require "Comm.Mpi"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -95,6 +96,9 @@ function KineticSpecies:fullInit(appTbl)
    -- for storing integrated moments
    self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
 
+   -- get a random seed for random initial conditions
+   if tbl.randomseed then math.randomseed(tbl.randomseed) else math.randomseed(47*Mpi.Comm_rank(Mpi.COMM_WORLD)) end
+
    -- get functions for initial conditions and sources
    -- note: need to wrap these functions so that self can be (optionally) passed as last argument
    -- initial condition functions 
@@ -148,6 +152,7 @@ function KineticSpecies:fullInit(appTbl)
       else 
          assert(false, "source not correctly specified")
       end
+      if tbl.sourceTimeDependence then self.sourceTimeDependence = tbl.sourceTimeDependence else self.sourceTimeDependence = function (t) return 1 end end
    end
 
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
@@ -406,6 +411,22 @@ function KineticSpecies:initDist()
    -- if maxwellian initial conditions, modify to ensure correct density
    if self.initBackgroundType == "maxwellian" then
       self:modifyDensity(self.f0, self.initBackgroundDensityFunc)
+   end
+
+   -- create updater to evaluate source 
+   if self.sourceFunc then 
+      self.evalSource = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.sourceFunc,
+         projectOnGhosts = true
+      }
+      self.evalSource:advance(tCurr, dt, {}, {self.fSource})
+
+      -- if maxwellian source, modify to ensure correct density
+      if self.sourceType == "maxwellian" then
+         self:modifyDensity(self.fSource, self.sourceDensityFunc)
+      end
    end
 end
 
