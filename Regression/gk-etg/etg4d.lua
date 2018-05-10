@@ -35,15 +35,6 @@ VPAR_LOWER = -VPAR_UPPER
 MU_LOWER = 0
 MU_UPPER = math.min(16, 4*math.sqrt(N_MU/2))*me*vte*vte/B0
 
--- background magnetic field profile
-function Bmag(x) 
-   return B0*R/x
-end
--- background electron temperature profile
-function Te(x)
-   return Te0*(1-(x-R)/L_T)
-end
-
 plasmaApp = Plasma.App {
    logToFile = true,
 
@@ -80,7 +71,7 @@ plasmaApp = Plasma.App {
               end,
               temperature = function (t, xn)
                  local x = xn[1]
-                 return Te(x)
+                 return Te0*(1-(x-R)/L_T)
               end,
              },
       init = {"maxwellian",
@@ -91,7 +82,7 @@ plasmaApp = Plasma.App {
               end,
               temperature = function (t, xn)
                  local x = xn[1]
-                 return Te(x)
+                 return Te0*(1-(x-R)/L_T)
               end,
              },
       fluctuationBCs = true, -- only apply BCs to fluctuations
@@ -118,10 +109,13 @@ plasmaApp = Plasma.App {
 
    -- magnetic geometry 
    funcField = Plasma.GkGeometry {
+      ---- scalar background magnetic field strength
+      --B0 = B0,
+
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
-         return Bmag(x)
+         return B0*R/x
       end,
 
       -- bcurvY = 1/B*curl(bhat).grad(y)

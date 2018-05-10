@@ -33,7 +33,30 @@ function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
-function GkSpecies:initDist(geo)
+function GkSpecies:initDist()
+   GkSpecies.super.initDist(self)
+
+   -- calculate initial density averaged over simulation domain
+   self.n0 = nil
+   local dens0 = self:allocMoment()
+   self.numDensityCalc:advance(0,0, {self.distf[1]}, {dens0})
+   local data
+   local dynVec = DataStruct.DynVector { numComponents = 1 }
+   -- integrate 
+   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.confGrid,
+      basis = self.confBasis,
+      numComponents = 1,
+      quantity = "V"
+   }
+   calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
+   _, data = dynVec:lastData()
+   self.n0 = data[1]/self.confGrid:gridVolume()
+   --print("Average density is " .. self.n0)
+end
+
+function GkSpecies:createSolver(hasPhi, hasApar, geo)
+   -- set up jacobian
    if geo then
       -- save bmagFunc for later...
       self.bmagFunc = geo.bmagFunc
@@ -55,32 +78,9 @@ function GkSpecies:initDist(geo)
             end
          end
       end
+      self.B0 = geo.B0
    end
 
-   GkSpecies.super.initDist(self)
-
-   -- calculate background density averaged over simulation domain
-   self.n0 = nil
-   if self.f0 then
-      local dens0 = self:allocMoment()
-      self.numDensityCalc:advance(0,0, {self.f0}, {dens0})
-      local data
-      local dynVec = DataStruct.DynVector { numComponents = 1 }
-      -- integrate 
-      local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,
-         basis = self.confBasis,
-         numComponents = 1,
-	 quantity = "V"
-      }
-      calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
-      _, data = dynVec:lastData()
-      self.n0 = data[1]/self.confGrid:gridVolume()
-      --print("Average density is " .. self.n0)
-   end
-end
-
-function GkSpecies:createSolver(hasPhi, hasApar)
    -- create updater to advance solution by one time-step
    self.gkEqn = GkEq {
       onGrid = self.grid,
@@ -90,6 +90,8 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       mass = self.mass,
       hasPhi = hasPhi,
       hasApar = hasApar,
+      Bvars = geo.bmagVars,
+      hasSheathBcs = self.hasSheathBcs,
    }
 
    -- no update in mu direction (last velocity direction if present)
@@ -218,7 +220,8 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    -- need to figure out if we are on lower or upper domain edge
    --local global = fOut:globalRange()
    local edgeVal
-   if idxIn[dir] <= 2 then -- HACK! == global:lower(dir) then 
+   local globalRange = self.grid:globalRange()
+   if idxIn[dir] == globalRange:lower(dir) then 
       -- this means we are at lower domain edge, 
       -- so we need to evaluate basis functions at z=-1
       edgeVal = -1 
@@ -298,6 +301,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       self.fhatSheathPtr = self.fhatSheath:get(1)
       self.fhatSheathIdxr = self.fhatSheath:genIndexer()
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
+      self.hasSheathBcs = true
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end
@@ -338,6 +342,10 @@ end
 
 function GkSpecies:getUpar()
    return self.upar
+end
+
+function GkSpecies:polarizationWeight()
+   return self.n0*self.mass/self.B0^2
 end
 
 function GkSpecies:momCalcTime()

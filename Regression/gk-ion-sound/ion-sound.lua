@@ -10,6 +10,7 @@ XL, XU = -math.pi/knumber, math.pi/knumber
 Ti0 = 1.0
 Te0 = Ti0/TiTe
 ni0, ne0 = 1.0, 1.0
+B0 = 1.0
 
 plasmaApp = Plasma.App {
    logToFile = true,
@@ -86,7 +87,7 @@ plasmaApp = Plasma.App {
    funcField = Plasma.GkGeometry {
       -- background magnetic field
       bmag = function (t, xn)
-         return 1.0
+         return B0
       end,
       -- geometry is not time-dependent
       evolve = false,

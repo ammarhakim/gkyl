@@ -1,10 +1,37 @@
 #include <GyrokineticModDecl.h> 
+#include <CartFieldBinOpModDecl.h> 
 double calcSheathDeltaPhi1xSer_P1(const double *phi, const double *phiWall, const double zVal) 
 { 
   return 1.224744871391589*phi[1]*zVal-0.7071067811865475*phiWall[0]+0.7071067811865475*phi[0]; 
 }
 
-void calcSheathPartialReflection1x1vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled1x1vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+{ 
+  double u[2]; 
+  double uhat[2]; 
+  double c[2]; 
+  double zVal2 = zVal*zVal; 
+  double wv2 = wv*wv; 
+  double wv3 = wv2*wv; 
+  double wv4 = wv3*wv; 
+  double wv5 = wv4*wv; 
+  double dv2 = dv*dv; 
+  double dv3 = dv2*dv; 
+  double dv4 = dv3*dv; 
+  double dv5 = dv4*dv; 
+  double vcut2 = vcut*vcut; 
+  double vcut3 = vcut2*vcut; 
+  double vcut4 = vcut3*vcut; 
+  double vcut5 = vcut4*vcut; 
+  u[0] = (0.3333333333333333*((7.348469228349534*f[1]*dv*wv+4.242640687119286*f[3])*zVal+4.242640687119286*f[0]*dv*wv+2.449489742783178*f[2]))/dv; 
+  u[1] = 0.0; 
+  uhat[0] = (0.08333333333333333*(((50.91168824543144*f[3]*dv2-67.8822509939086*f[3])*wv3+((203.6467529817258*f[3]-101.8233764908629*f[3]*dv2)*vcut-29.39387691339815*f[1]*dv3+29.39387691339815*f[1]*dv)*wv2+((50.91168824543144*f[3]*dv2-203.6467529817258*f[3])*vcut2+(29.39387691339815*f[1]*dv3-58.7877538267963*f[1]*dv)*vcut+(14.69693845669907*f[1]-12.72792206135786*f[3])*dv4)*wv+67.8822509939086*f[3]*vcut3+29.39387691339815*f[1]*dv*vcut2+(8.485281374238571*f[3]-7.348469228349534*f[1])*dv3)*zVal+(29.39387691339815*f[2]*dv2-39.19183588453087*f[2])*wv3+((117.5755076535926*f[2]-58.7877538267963*f[2]*dv2)*vcut-16.97056274847715*f[0]*dv3+16.97056274847715*f[0]*dv)*wv2+((29.39387691339815*f[2]*dv2-117.5755076535926*f[2])*vcut2+(16.97056274847715*f[0]*dv3-33.9411254969543*f[0]*dv)*vcut+(8.485281374238571*f[0]-7.348469228349534*f[2])*dv4)*wv+39.19183588453087*f[2]*vcut3+16.97056274847715*f[0]*dv*vcut2+(4.898979485566357*f[2]-4.242640687119286*f[0])*dv3))/dv4; 
+  uhat[1] = 0.0; 
+  CartFieldBinOpDivide1xSer_P1(u, uhat, 2, 1, c); 
+  CartFieldBinOpMultiply1x1vSer_P1(c, f, 4, 0, fhat); 
+} 
+
+void calcSheathPartialReflectionWeakEquiv1x1vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double zVal2 = zVal*zVal; 
   double wv2 = wv*wv; 
@@ -32,7 +59,35 @@ double calcSheathDeltaPhi1xSer_P2(const double *phi, const double *phiWall, cons
   return 2.371708245126284*phi[2]*(zVal2-0.3333333333333333)+1.224744871391589*phi[1]*zVal+0.7905694150420947*phiWall[2]-0.7071067811865475*phiWall[0]+0.7071067811865475*phi[0]; 
 }
 
-void calcSheathPartialReflection1x1vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled1x1vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+{ 
+  double u[3]; 
+  double uhat[3]; 
+  double c[3]; 
+  double zVal2 = zVal*zVal; 
+  double wv2 = wv*wv; 
+  double wv3 = wv2*wv; 
+  double wv4 = wv3*wv; 
+  double wv5 = wv4*wv; 
+  double dv2 = dv*dv; 
+  double dv3 = dv2*dv; 
+  double dv4 = dv3*dv; 
+  double dv5 = dv4*dv; 
+  double vcut2 = vcut*vcut; 
+  double vcut3 = vcut2*vcut; 
+  double vcut4 = vcut3*vcut; 
+  double vcut5 = vcut4*vcut; 
+  u[0] = (0.1666666666666667*((28.46049894151542*f[4]*dv*wv+16.43167672515499*f[6])*zVal2+(14.69693845669907*f[1]*dv*wv+8.485281374238571*f[3])*zVal+(8.485281374238571*f[0]-9.48683298050514*f[4])*dv*wv-5.477225575051662*f[6]+4.898979485566357*f[2]))/dv; 
+  u[1] = 0.0; 
+  u[2] = 0.0; 
+  uhat[0] = (0.02083333333333333*(((394.3602414037198*f[6]*dv3-525.8136552049599*f[6]*dv)*wv3+((1577.44096561488*f[6]*dv-788.7204828074397*f[6]*dv3)*vcut-227.6839915321235*f[4]*dv4+227.6839915321235*f[4]*dv2)*wv2+((394.3602414037198*f[6]*dv3-1577.44096561488*f[6]*dv)*vcut2+(227.6839915321235*f[4]*dv4-455.3679830642469*f[4]*dv2)*vcut+(113.8419957660617*f[4]-98.59006035092993*f[6])*dv5)*wv+525.8136552049599*f[6]*dv*vcut3+227.6839915321235*f[4]*dv2*vcut2+(65.72670690061996*f[6]-56.92099788303084*f[4])*dv4)*zVal2+((788.7204828074397*f[7]-525.8136552049599*f[7]*dv2)*wv4+((1577.44096561488*f[7]*dv2-3154.88193122976*f[7])*vcut+203.6467529817258*f[3]*dv3-271.5290039756345*f[3]*dv)*wv3+((4732.322896844638*f[7]-1577.44096561488*f[7]*dv2)*vcut2+(814.5870119269034*f[3]*dv-407.2935059634517*f[3]*dv3)*vcut+(131.4534138012399*f[7]-117.5755076535926*f[1])*dv4+(117.5755076535926*f[1]-131.4534138012399*f[7])*dv2)*wv2+((525.8136552049599*f[7]*dv2-3154.88193122976*f[7])*vcut3+(203.6467529817258*f[3]*dv3-814.5870119269034*f[3]*dv)*vcut2+((117.5755076535926*f[1]-131.4534138012399*f[7])*dv4+(262.9068276024799*f[7]-235.1510153071852*f[1])*dv2)*vcut+(58.7877538267963*f[1]-50.91168824543144*f[3])*dv5)*wv+788.7204828074397*f[7]*vcut4+271.5290039756345*f[3]*dv*vcut3+(117.5755076535926*f[1]-131.4534138012399*f[7])*dv2*vcut2+((-16.43167672515499*f[7])+33.9411254969543*f[3]-29.39387691339815*f[1])*dv4)*zVal+(455.3679830642469*f[5]-303.5786553761646*f[5]*dv2)*wv4+((910.7359661284939*f[5]*dv2-1821.471932256988*f[5])*vcut+(117.5755076535926*f[2]-131.4534138012399*f[6])*dv3+(175.2712184016533*f[6]-156.7673435381235*f[2])*dv)*wv3+((2732.207898385482*f[5]-910.7359661284939*f[5]*dv2)*vcut2+((262.9068276024799*f[6]-235.1510153071852*f[2])*dv3+(470.3020306143706*f[2]-525.8136552049599*f[6])*dv)*vcut+(75.89466384404115*f[5]+75.89466384404115*f[4]-67.8822509939086*f[0])*dv4+((-75.89466384404115*f[5])-75.89466384404115*f[4]+67.8822509939086*f[0])*dv2)*wv2+((303.5786553761646*f[5]*dv2-1821.471932256988*f[5])*vcut3+((117.5755076535926*f[2]-131.4534138012399*f[6])*dv3+(525.8136552049599*f[6]-470.3020306143706*f[2])*dv)*vcut2+(((-75.89466384404115*f[5])-75.89466384404115*f[4]+67.8822509939086*f[0])*dv4+(151.7893276880823*f[5]+151.7893276880823*f[4]-135.7645019878172*f[0])*dv2)*vcut+(32.86335345030997*f[6]-37.94733192202057*f[4]-29.39387691339815*f[2]+33.9411254969543*f[0])*dv5)*wv+455.3679830642469*f[5]*vcut4+(156.7673435381235*f[2]-175.2712184016533*f[6])*dv*vcut3+((-75.89466384404115*f[5])-75.89466384404115*f[4]+67.8822509939086*f[0])*dv2*vcut2+((-21.90890230020666*f[6])-9.48683298050514*f[5]+18.97366596101028*f[4]+19.59591794226543*f[2]-16.97056274847715*f[0])*dv4))/dv5; 
+  uhat[1] = 0.0; 
+  uhat[2] = 0.0; 
+  CartFieldBinOpDivide1xSer_P2(u, uhat, 3, 1, c); 
+  CartFieldBinOpMultiply1x1vSer_P2(c, f, 8, 0, fhat); 
+} 
+
+void calcSheathPartialReflectionWeakEquiv1x1vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double zVal2 = zVal*zVal; 
   double wv2 = wv*wv; 
@@ -63,7 +118,37 @@ double calcSheathDeltaPhi2xSer_P1(const double *phi, const double *phiWall, cons
   return 0.8660254037844386*phi[2]*zVal-0.5*phiWall[0]+0.5*phi[0]; 
 }
 
-void calcSheathPartialReflection2x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled2x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+{ 
+  double u[4]; 
+  double uhat[4]; 
+  double c[4]; 
+  double zVal2 = zVal*zVal; 
+  double wv2 = wv*wv; 
+  double wv3 = wv2*wv; 
+  double wv4 = wv3*wv; 
+  double wv5 = wv4*wv; 
+  double dv2 = dv*dv; 
+  double dv3 = dv2*dv; 
+  double dv4 = dv3*dv; 
+  double dv5 = dv4*dv; 
+  double vcut2 = vcut*vcut; 
+  double vcut3 = vcut2*vcut; 
+  double vcut4 = vcut3*vcut; 
+  double vcut5 = vcut4*vcut; 
+  u[0] = (0.3333333333333333*((10.39230484541326*f[2]*dv*wv+6.0*f[7])*zVal+6.0*f[0]*dv*wv+3.464101615137754*f[3]))/dv; 
+  u[1] = (0.3333333333333333*((10.39230484541326*f[5]*dv*wv+6.0*f[11])*zVal+6.0*f[1]*dv*wv+3.464101615137754*f[6]))/dv; 
+  u[2] = 0.0; 
+  u[3] = 0.0; 
+  uhat[0] = (0.1666666666666667*(((36.0*f[7]*dv2-48.0*f[7])*wv3+((144.0*f[7]-72.0*f[7]*dv2)*vcut-20.78460969082652*f[2]*dv3+20.78460969082652*f[2]*dv)*wv2+((36.0*f[7]*dv2-144.0*f[7])*vcut2+(20.78460969082652*f[2]*dv3-41.56921938165305*f[2]*dv)*vcut+(10.39230484541326*f[2]-9.0*f[7])*dv4)*wv+48.0*f[7]*vcut3+20.78460969082652*f[2]*dv*vcut2+(6.0*f[7]-5.196152422706631*f[2])*dv3)*zVal+(20.78460969082652*f[3]*dv2-27.71281292110204*f[3])*wv3+((83.1384387633061*f[3]-41.56921938165305*f[3]*dv2)*vcut-12.0*f[0]*dv3+12.0*f[0]*dv)*wv2+((20.78460969082652*f[3]*dv2-83.1384387633061*f[3])*vcut2+(12.0*f[0]*dv3-24.0*f[0]*dv)*vcut+(6.0*f[0]-5.196152422706631*f[3])*dv4)*wv+27.71281292110204*f[3]*vcut3+12.0*f[0]*dv*vcut2+(3.464101615137754*f[3]-3.0*f[0])*dv3))/dv4; 
+  uhat[1] = (0.1666666666666667*(((36.0*f[11]*dv2-48.0*f[11])*wv3+((144.0*f[11]-72.0*f[11]*dv2)*vcut-20.78460969082652*f[5]*dv3+20.78460969082652*f[5]*dv)*wv2+((36.0*f[11]*dv2-144.0*f[11])*vcut2+(20.78460969082652*f[5]*dv3-41.56921938165305*f[5]*dv)*vcut+(10.39230484541326*f[5]-9.0*f[11])*dv4)*wv+48.0*f[11]*vcut3+20.78460969082652*f[5]*dv*vcut2+(6.0*f[11]-5.196152422706631*f[5])*dv3)*zVal+(20.78460969082652*f[6]*dv2-27.71281292110204*f[6])*wv3+((83.1384387633061*f[6]-41.56921938165305*f[6]*dv2)*vcut-12.0*f[1]*dv3+12.0*f[1]*dv)*wv2+((20.78460969082652*f[6]*dv2-83.1384387633061*f[6])*vcut2+(12.0*f[1]*dv3-24.0*f[1]*dv)*vcut+(6.0*f[1]-5.196152422706631*f[6])*dv4)*wv+27.71281292110204*f[6]*vcut3+12.0*f[1]*dv*vcut2+(3.464101615137754*f[6]-3.0*f[1])*dv3))/dv4; 
+  uhat[2] = 0.0; 
+  uhat[3] = 0.0; 
+  CartFieldBinOpDivide2xSer_P1(u, uhat, 4, 1, c); 
+  CartFieldBinOpMultiply2x2vSer_P1(c, f, 16, 0, fhat); 
+} 
+
+void calcSheathPartialReflectionWeakEquiv2x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double zVal2 = zVal*zVal; 
   double wv2 = wv*wv; 
@@ -102,7 +187,45 @@ double calcSheathDeltaPhi3xSer_P1(const double *phi, const double *phiWall, cons
   return 0.6123724356957944*phi[3]*zVal-0.3535533905932737*phiWall[0]+0.3535533905932737*phi[0]; 
 }
 
-void calcSheathPartialReflection3x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled3x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+{ 
+  double u[8]; 
+  double uhat[8]; 
+  double c[8]; 
+  double zVal2 = zVal*zVal; 
+  double wv2 = wv*wv; 
+  double wv3 = wv2*wv; 
+  double wv4 = wv3*wv; 
+  double wv5 = wv4*wv; 
+  double dv2 = dv*dv; 
+  double dv3 = dv2*dv; 
+  double dv4 = dv3*dv; 
+  double dv5 = dv4*dv; 
+  double vcut2 = vcut*vcut; 
+  double vcut3 = vcut2*vcut; 
+  double vcut4 = vcut3*vcut; 
+  double vcut5 = vcut4*vcut; 
+  u[0] = (0.3333333333333333*((10.39230484541326*f[3]*dv*wv+6.0*f[11])*zVal+6.0*f[0]*dv*wv+3.464101615137754*f[4]))/dv; 
+  u[1] = (0.3333333333333333*((10.39230484541326*f[7]*dv*wv+6.0*f[18])*zVal+6.0*f[1]*dv*wv+3.464101615137754*f[9]))/dv; 
+  u[2] = (0.3333333333333333*((10.39230484541326*f[8]*dv*wv+6.0*f[19])*zVal+6.0*f[2]*dv*wv+3.464101615137754*f[10]))/dv; 
+  u[3] = 0.0; 
+  u[4] = (0.3333333333333333*((10.39230484541326*f[16]*dv*wv+6.0*f[26])*zVal+6.0*f[6]*dv*wv+3.464101615137754*f[17]))/dv; 
+  u[5] = 0.0; 
+  u[6] = 0.0; 
+  u[7] = 0.0; 
+  uhat[0] = (0.1666666666666667*(((36.0*f[11]*dv2-48.0*f[11])*wv3+((144.0*f[11]-72.0*f[11]*dv2)*vcut-20.78460969082652*f[3]*dv3+20.78460969082652*f[3]*dv)*wv2+((36.0*f[11]*dv2-144.0*f[11])*vcut2+(20.78460969082652*f[3]*dv3-41.56921938165305*f[3]*dv)*vcut+(10.39230484541326*f[3]-9.0*f[11])*dv4)*wv+48.0*f[11]*vcut3+20.78460969082652*f[3]*dv*vcut2+(6.0*f[11]-5.196152422706631*f[3])*dv3)*zVal+(20.78460969082652*f[4]*dv2-27.71281292110204*f[4])*wv3+((83.1384387633061*f[4]-41.56921938165305*f[4]*dv2)*vcut-12.0*f[0]*dv3+12.0*f[0]*dv)*wv2+((20.78460969082652*f[4]*dv2-83.1384387633061*f[4])*vcut2+(12.0*f[0]*dv3-24.0*f[0]*dv)*vcut+(6.0*f[0]-5.196152422706631*f[4])*dv4)*wv+27.71281292110204*f[4]*vcut3+12.0*f[0]*dv*vcut2+(3.464101615137754*f[4]-3.0*f[0])*dv3))/dv4; 
+  uhat[1] = (0.1666666666666667*(((36.0*f[18]*dv2-48.0*f[18])*wv3+((144.0*f[18]-72.0*f[18]*dv2)*vcut-20.78460969082652*f[7]*dv3+20.78460969082652*f[7]*dv)*wv2+((36.0*f[18]*dv2-144.0*f[18])*vcut2+(20.78460969082652*f[7]*dv3-41.56921938165305*f[7]*dv)*vcut+(10.39230484541326*f[7]-9.0*f[18])*dv4)*wv+48.0*f[18]*vcut3+20.78460969082652*f[7]*dv*vcut2+(6.0*f[18]-5.196152422706631*f[7])*dv3)*zVal+(20.78460969082652*f[9]*dv2-27.71281292110204*f[9])*wv3+((83.1384387633061*f[9]-41.56921938165305*f[9]*dv2)*vcut-12.0*f[1]*dv3+12.0*f[1]*dv)*wv2+((20.78460969082652*f[9]*dv2-83.1384387633061*f[9])*vcut2+(12.0*f[1]*dv3-24.0*f[1]*dv)*vcut+(6.0*f[1]-5.196152422706631*f[9])*dv4)*wv+27.71281292110204*f[9]*vcut3+12.0*f[1]*dv*vcut2+(3.464101615137754*f[9]-3.0*f[1])*dv3))/dv4; 
+  uhat[2] = (0.1666666666666667*(((36.0*f[19]*dv2-48.0*f[19])*wv3+((144.0*f[19]-72.0*f[19]*dv2)*vcut-20.78460969082652*f[8]*dv3+20.78460969082652*f[8]*dv)*wv2+((36.0*f[19]*dv2-144.0*f[19])*vcut2+(20.78460969082652*f[8]*dv3-41.56921938165305*f[8]*dv)*vcut+(10.39230484541326*f[8]-9.0*f[19])*dv4)*wv+48.0*f[19]*vcut3+20.78460969082652*f[8]*dv*vcut2+(6.0*f[19]-5.196152422706631*f[8])*dv3)*zVal+(20.78460969082652*f[10]*dv2-27.71281292110204*f[10])*wv3+((83.1384387633061*f[10]-41.56921938165305*f[10]*dv2)*vcut-12.0*f[2]*dv3+12.0*f[2]*dv)*wv2+((20.78460969082652*f[10]*dv2-83.1384387633061*f[10])*vcut2+(12.0*f[2]*dv3-24.0*f[2]*dv)*vcut+(6.0*f[2]-5.196152422706631*f[10])*dv4)*wv+27.71281292110204*f[10]*vcut3+12.0*f[2]*dv*vcut2+(3.464101615137754*f[10]-3.0*f[2])*dv3))/dv4; 
+  uhat[3] = 0.0; 
+  uhat[4] = (0.1666666666666667*(((36.0*f[26]*dv2-48.0*f[26])*wv3+((144.0*f[26]-72.0*f[26]*dv2)*vcut-20.78460969082652*f[16]*dv3+20.78460969082652*f[16]*dv)*wv2+((36.0*f[26]*dv2-144.0*f[26])*vcut2+(20.78460969082652*f[16]*dv3-41.56921938165305*f[16]*dv)*vcut+(10.39230484541326*f[16]-9.0*f[26])*dv4)*wv+48.0*f[26]*vcut3+20.78460969082652*f[16]*dv*vcut2+(6.0*f[26]-5.196152422706631*f[16])*dv3)*zVal+(20.78460969082652*f[17]*dv2-27.71281292110204*f[17])*wv3+((83.1384387633061*f[17]-41.56921938165305*f[17]*dv2)*vcut-12.0*f[6]*dv3+12.0*f[6]*dv)*wv2+((20.78460969082652*f[17]*dv2-83.1384387633061*f[17])*vcut2+(12.0*f[6]*dv3-24.0*f[6]*dv)*vcut+(6.0*f[6]-5.196152422706631*f[17])*dv4)*wv+27.71281292110204*f[17]*vcut3+12.0*f[6]*dv*vcut2+(3.464101615137754*f[17]-3.0*f[6])*dv3))/dv4; 
+  uhat[5] = 0.0; 
+  uhat[6] = 0.0; 
+  uhat[7] = 0.0; 
+  CartFieldBinOpDivide3xSer_P1(u, uhat, 8, 1, c); 
+  CartFieldBinOpMultiply3x2vSer_P1(c, f, 32, 0, fhat); 
+} 
+
+void calcSheathPartialReflectionWeakEquiv3x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double zVal2 = zVal*zVal; 
   double wv2 = wv*wv; 

@@ -10,7 +10,7 @@ local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
 local FieldBase = require "App.Field.FieldBase"
-local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
+local Species = require "App.Species"
 local Time = require "Lib.Time"
 
 local GkField = Proto(FieldBase.FieldBase)
@@ -65,9 +65,6 @@ function GkField:fullInit(appTbl)
    -- for ndim=1 non-adiabatic only
    self.kperp2 = tbl.kperp2
 
-   -- species-dependent weight on polarization term == sum_s m_s n_s / B^2
-   -- note: in future may calculate this directly from species tables
-   self.polarizationWeight = tbl.polarizationWeight
    
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
@@ -169,11 +166,15 @@ function GkField:createSolver(species)
    --  end
    --end
 
-   -- get adiabatic species info
+   -- get adiabatic species info and calculate species-dependent 
+   -- weight on polarization term == sum_s m_s n_s / B^2
+   self.polarizationWeight = 0.0
    for nm, s in pairs(species) do
-      if AdiabaticSpecies.is(s) then
+      if Species.AdiabaticSpecies.is(s) then
          self.adiabatic = true
          self.adiabSpec = s
+      elseif Species.GkSpecies.is(s) then
+         self.polarizationWeight = self.polarizationWeight + s:polarizationWeight()
       end
    end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
@@ -391,14 +392,22 @@ function GkGeometry:fullInit(appTbl)
    end
 
    self.ioFrame = 0 -- frame number for IO
+
+   -- scalar magnetic field strength (e.g. to calculate gyro-radii with)
+   -- calculate from max(bmag)? 
+   self.B0 = assert(B0 or tbl.B0, "Must specify B0 as global App variable or in GkGeometry as 'B0'")
    
    -- get function to initialize background magnetic field
-   self.bmagFunc = assert(tbl.bmag, "GkGeometry: must specify background magnetic field with 'bmag'")
+   self.bmagFunc = tbl.bmag
+   assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
+
    -- get function to initialize bcurvY = 1/B*curl(bhat).grad(y)
    self.bcurvYFunc = tbl.bcurvY
+   if self.bcurvYFunc then assert(type(self.bcurvYFunc)=="function", "GkGeometry: bcurvY must be a function (t, xn)") end
 
    -- wall potential for sheath BCs
    self.phiWallFunc = tbl.phiWall
+   if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
 end
 
 function GkGeometry:hasEB() end
@@ -457,6 +466,24 @@ function GkGeometry:createSolver()
       evaluate = self.bmagFunc,
       projectOnGhosts = true,
    }
+
+   -- determine which variables bmag depends on by checking if setting a variable to nan results in nan
+   local ones = {}
+   for dir = 1, self.grid:ndim() do
+      ones[dir] = 1
+   end
+   self.bmagVars = {}
+   for dir = 1, self.grid:ndim() do
+      ones[dir] = 0/0 -- set this var to nan 
+      -- test if result is nan.. nan is the only value that doesn't equal itself
+      if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then 
+        -- if result is nan, bmag must depend on this var
+        table.insert(self.bmagVars, dir) 
+      end
+      ones[dir] = 1 -- reset so we can check other vars
+   end
+   if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+
    local bmagInvFunc = function (t, xn)
       return 1/self.bmagFunc(t,xn)
    end
