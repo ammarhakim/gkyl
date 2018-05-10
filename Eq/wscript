@@ -102,6 +102,6 @@ def build(bld):
     gkData/GkSheathFuncsSer.cpp
 
     """,
-    target = 'eq', includes = '. constDiffusionData maxwellData vlasovData pbData gkData'
+    target = 'eq', use='EIGEN', includes = '. constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
     )
 

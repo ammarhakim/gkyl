@@ -219,7 +219,10 @@ local function buildApplication(self, tbl)
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
    if field == nil then field = Field.NoField {} end
+   -- store fields from EM field for RK time-stepper
+   local emRkFields = field:rkStepperFields()
 
+   -- initialize funcField, which is sometimes needed to initialize species
    local funcField = nil
    nfields = 0
    for _, val in pairs(tbl) do
@@ -231,6 +234,11 @@ local function buildApplication(self, tbl)
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
    if funcField == nil then funcField = Field.NoField {} end
+   -- store fields from funcField for RK time-stepper
+   local emRkFuncFields = funcField:rkStepperFields()
+   funcField:createSolver()
+   funcField:initField()
+   funcField:applyBc(0, 0, emRkFuncFields[1])
    
    -- initialize species solvers and diagnostics
    local speciesRkFields = { }
@@ -238,25 +246,18 @@ local function buildApplication(self, tbl)
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
       speciesRkFields[nm] = s:rkStepperFields()
-      s:createSolver(hasE or funcHasE, hasB or funcHasB)
-      s:initDist(funcField)
+      s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
+      s:initDist()
       s:createDiagnostics()
    end
 
-   -- store fields from EM field for RK time-stepper
-   local emRkFields = field:rkStepperFields()
-   local emRkFuncFields = funcField:rkStepperFields()
-
-   -- initialize field
+   -- initialize field (sometimes requires species to have been initialized)
    for nm, s in pairs(species) do
       s:calcCouplingMoments(0, 0, speciesRkFields[nm][1])
    end
    field:createSolver(species)
-   funcField:createSolver(species)
    field:initField(species)
-   funcField:initField()
    field:applyBc(0, 0, emRkFields[1])
-   funcField:applyBc(0, 0, emRkFuncFields[1])
 
    -- apply species BCs 
    for nm, s in pairs(species) do
