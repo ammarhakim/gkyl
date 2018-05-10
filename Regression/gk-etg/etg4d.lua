@@ -109,21 +109,11 @@ plasmaApp = Plasma.App {
 
    -- magnetic geometry 
    funcField = Plasma.GkGeometry {
-      ---- scalar background magnetic field strength
-      --B0 = B0,
-
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
          return B0*R/x
       end,
-
-      -- bcurvY = 1/B*curl(bhat).grad(y)
-      bcurvY = function (t, xn)
-         local x = xn[1]
-         return -1/(B0*R)
-      end,
-
       -- geometry is not time-dependent
       evolve = false,
    },

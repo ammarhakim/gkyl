@@ -141,7 +141,7 @@ for i : 1 thru pmax do (
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(letsimp(alpha0)), label[d])
+    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d])
   ),
   /* note: no contribution from mu */
   for d : cdim+1 thru cdim+1 do (
@@ -151,7 +151,7 @@ for i : 1 thru pmax do (
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(letsimp(alpha0)), label[d])
+    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d])
   ),
 
   printf(fh, "  return cflFreq; ~%"),

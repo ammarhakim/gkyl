@@ -12,6 +12,8 @@ local xsys = require "xsys"
 local FieldBase = require "App.Field.FieldBase"
 local Species = require "App.Species"
 local Time = require "Lib.Time"
+local math = require("sci.math").generic
+local diff = require("sci.diff")
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -401,10 +403,6 @@ function GkGeometry:fullInit(appTbl)
    self.bmagFunc = tbl.bmag
    assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
 
-   -- get function to initialize bcurvY = 1/B*curl(bhat).grad(y)
-   self.bcurvYFunc = tbl.bcurvY
-   if self.bcurvYFunc then assert(type(self.bcurvYFunc)=="function", "GkGeometry: bcurvY must be a function (t, xn)") end
-
    -- wall potential for sheath BCs
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
@@ -436,8 +434,14 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- 1/B*curl(bhat).grad(y) ... contains curvature info
-   self.geo.bcurvY = DataStruct.Field {
+   -- functions for magnetic drifts ~ 1/B*curl(bhat) 
+   self.geo.bdriftX = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   self.geo.bdriftY = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
@@ -460,13 +464,6 @@ function GkGeometry:alloc()
 end
 
 function GkGeometry:createSolver()
-   self.setBmag = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = self.bmagFunc,
-      projectOnGhosts = true,
-   }
-
    -- determine which variables bmag depends on by checking if setting a variable to nan results in nan
    local ones = {}
    for dir = 1, self.grid:ndim() do
@@ -484,21 +481,62 @@ function GkGeometry:createSolver()
    end
    if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
 
-   local bmagInvFunc = function (t, xn)
+   -- calculate 1/B function
+   self.bmagInvFunc = function (t, xn)
       return 1/self.bmagFunc(t,xn)
    end
+   -- calculate magnetic drift functions
+   if self.grid:ndim() > 1 then
+      local function bgrad(xn)
+         local function bmagUnpack(...)
+            local xn = {...}
+            return self.bmagFunc(0, xn)
+         end
+         local deriv = diff.derivativef(bmagUnpack, #xn)
+         xntable = {}
+         for i = 1, #xn do
+           xntable[i] = xn[i]
+         end
+         local f, dx, dy, dz = deriv(unpack(xntable))
+         return dx, dy, dz
+      end
+      self.bdriftXFunc = function (t, xn)
+         local bgradX, bgradY, bgradZ = bgrad(xn)
+         return -bgradY/self.bmagFunc(t,xn)^2
+      end
+      self.bdriftYFunc = function (t, xn)
+         local bgradX, bgradY, bgradZ = bgrad(xn)
+         return bgradX/self.bmagFunc(t,xn)^2
+      end
+   end
+
+   -- projection updaters
+   self.setBmag = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = self.bmagFunc,
+      projectOnGhosts = true,
+   }
    self.setBmagInv = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
-      evaluate = bmagInvFunc
+      evaluate = self.bmagInvFunc
    }
-   if self.bcurvYFunc then 
-      self.setBcurvY = Updater.ProjectOnBasis {
+   if self.bdriftXFunc then 
+      self.setBdriftX = Updater.ProjectOnBasis {
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
-         evaluate = self.bcurvYFunc
+         evaluate = self.bdriftXFunc
+      }
+   end
+   if self.bdriftYFunc then
+      self.setBdriftY = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.bdriftYFunc
       }
    end
    if self.phiWallFunc then 
@@ -517,15 +555,18 @@ end
 function GkGeometry:initField()
    self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
    self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
-   if self.setBcurvY then self.setBcurvY:advance(0.0, 0.0, {}, {self.geo.bcurvY})
-   else self.geo.bcurvY:clear(0.0) end
+   if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
+   else self.geo.bdriftX:clear(0.0) end
+   if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})
+   else self.geo.bdriftY:clear(0.0) end
    if self.setPhiWall then self.setPhiWall:advance(0.0, 0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
-   self.geo.bcurvY:sync(false)
+   self.geo.bdriftX:sync(false)
+   self.geo.bdriftY:sync(false)
    self.geo.phiWall:sync(false)
 end
 
@@ -533,7 +574,8 @@ function GkGeometry:write(tm)
    -- not evolving geometry, so only write geometry at beginning
    if self.ioFrame == 0 then
       self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
-      if self.setBcurvY then self.fieldIo:write(self.geo.bcurvY, string.format("bcurvY_%d.bp", self.ioFrame), tm) end
+      if self.setBdriftX then self.fieldIo:write(self.geo.bdriftX, string.format("bdriftX_%d.bp", self.ioFrame), tm) end
+      if self.setBdriftY then self.fieldIo:write(self.geo.bdriftY, string.format("bdriftY_%d.bp", self.ioFrame), tm) end
    end
    self.ioFrame = self.ioFrame+1
 end

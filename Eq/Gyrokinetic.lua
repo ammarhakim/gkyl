@@ -58,11 +58,11 @@ function Gyrokinetic:init(tbl)
    self._isFirst = true
    self.phiPtr = nil
    self.bmagPtr = nil
-   self.bcurvYPtr = nil
+   self.bdriftYPtr = nil
    self.phiWallPtr = nil
    self.phiIdxr = nil
    self.bmagIdxr = nil
-   self.bcurvYIdxr = nil
+   self.bdriftYIdxr = nil
    self.phiWallIdxr = nil
    if self._isElectromagnetic then
       -- for electromagnetic terms
@@ -89,7 +89,7 @@ function Gyrokinetic:setAuxFields(auxFields)
    -- get magnetic geometry fields
    self.bmag = geo.bmag
    self.bmagInv = geo.bmagInv
-   self.bcurvY = geo.bcurvY
+   self.bdriftY = geo.bdriftY
    self.phiWall = geo.phiWall  -- for sheath BCs
 
    if self._isFirst then
@@ -108,11 +108,11 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- geometry
       self.bmagPtr = self.bmag:get(1)
       self.bmagInvPtr = self.bmagInv:get(1)
-      self.bcurvYPtr = self.bcurvY:get(1)
+      self.bdriftYPtr = self.bdriftY:get(1)
       self.phiWallPtr = self.phiWall:get(1)
       self.bmagIdxr = self.bmag:genIndexer()
       self.bmagInvIdxr = self.bmagInv:genIndexer()
-      self.bcurvYIdxr = self.bcurvY:genIndexer()
+      self.bdriftYIdxr = self.bdriftY:genIndexer()
       self.phiWallIdxr = self.phiWall:genIndexer()
 
       self._isFirst = false -- no longer first time
@@ -124,13 +124,13 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
-   self.bcurvY:fill(self.bcurvYIdxr(idx), self.bcurvYPtr)
+   self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
      self.dApardt:fill(self.dApardtIdxr(idx), self.dApardtPtr)
-     return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), f:data(), out:data())
+     return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), f:data(), out:data())
    else 
-     return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
 end
 
@@ -139,13 +139,13 @@ function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, o
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
-   self.bcurvY:fill(self.bcurvYIdxr(idxr), self.bcurvYPtr)
+   self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
      self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
-     return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    else 
-     return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
 end
 
