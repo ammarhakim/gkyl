@@ -16,7 +16,7 @@ local Mpi = require "Comm.Mpi"
 local Proto = require "Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
-local date = require "Lib.date"
+local date = require "xsys.date"
 local xsys = require "xsys"
 
 -- For returning module table
