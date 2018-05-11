@@ -529,8 +529,12 @@ local function buildApplication(self, tbl)
 
       -- compute time spent in various parts of code
       local tmSlvr = 0.0 -- total time in ptcl solver
+      local tmVol = 0.0 -- total time in ptcl solver vol terms
+      local tmSurf = 0.0 -- total time in ptcl solver surf terms
       for _, s in pairs(species) do
 	 tmSlvr = tmSlvr+s:totalSolverTime()
+         if s.solverVolTime then tmVol = tmVol+s:solverVolTime() end
+         if s.solverSurfTime then tmSurf = tmSurf+s:solverSurfTime() end
       end
 
       local tmMom, tmIntMom, tmBc = 0.0, 0.0, 0.0
@@ -548,6 +552,7 @@ local function buildApplication(self, tbl)
 
       log(string.format("\nTotal number of time-steps %s\n", step))
       log(string.format("\nSolver took %g sec\n", tmSlvr))
+      log(string.format("  [Vol kernels %g sec. Surf kernels %g sec. Surf-to-Vol ratio = %g]\n", tmVol, tmSurf, tmSurf/tmVol))
       log(string.format("Solver BCs took %g sec\n", tmBc))
       log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
       log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))

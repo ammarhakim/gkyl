@@ -75,7 +75,7 @@ for i : 1 thru pmax do (
   /* remove volume contribution from surface variable, which is not integrated */
   surfac : fullratsimp(volfac*dfacSurf),
 
-  printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_") ),
+  printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_") ),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
 
   for dir : 1 thru cdim+vdim do (
@@ -87,6 +87,7 @@ for i : 1 thru pmax do (
   ),
   printf(fh, "  double wv2 = wv*wv; ~%"),
   printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%"),
+  printf(fh, "  double q2 = q_*q_; ~%"),
   printf(fh, "  double Ghat[~a]; ~%", length(bP)),
   printf(fh, "  double incr[~a]; ~%", length(bP)),
 
@@ -109,14 +110,23 @@ for i : 1 thru pmax do (
   fL_expd:doExpand1(fl,bP),
   fR_expd:doExpand1(fr,bP),
 
-  /* expand BcurvY = 1/B*curl(bhat)*grad(y) on basis, assuming it only varies in x */
-  BcurvY_expd : subst(Bignorevars, doExpand1(BcurvY, bC)),
-  /* expand BstarY/Bmag = m/q vpar BcurvY = vpar/Omega*curl(bhat)*grad(y) on basis */
-  BstarY_by_Bmag_expd : m_/q_*(wv+vpar/dfac_v)*BcurvY_expd,
+  /* expand BdriftX = 1/B*curl(bhat)*grad(x) on basis */
+  BdriftX_expd : subst(Bignorevars, doExpand1(BdriftX, bC)),
+  /* expand BdriftY = 1/B*curl(bhat)*grad(y) on basis */
+  BdriftY_expd : subst(Bignorevars, doExpand1(BdriftY, bC)),
+  /* expand BstarX/Bmag = ( m/q vpar + Apar ) BdriftX = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
+  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftX_expd,
+  /* expand BstarY/Bmag = ( m/q vpar + Apar ) BdriftY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
+  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftY_expd,
+  /* make vApar = -bhatXgrad(Apar) vector */
+  if cdim = 1 then vApar_expd : [0], 
+  if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x],
+  if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0], 
+
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [1],
-  if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd],
-  if cdim = 3 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd, 1],
+  if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd] + vApar_expd,
+  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, 1] + vApar_expd,
 
   /* calculate phase space velocity alpha in direction of surfVar */
   /* we assume alpha.n is continuous across boundary, although H may not be */
@@ -140,7 +150,7 @@ for i : 1 thru pmax do (
   /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
   flux_expd : fullratsimp(alpha_expd/2*(subst(surfVar=1, fL_expd)+subst(surfVar=-1, fR_expd))-amax/2*(subst(surfVar=-1, fR_expd)-subst(surfVar=1, fL_expd))),
   /* project flux expression onto basis functions */
-  flux_k : subst([wv^2=wv2,dfac_v^2=dfac_v2],calcInnerProdList(varsP, 1, bP, flux_expd)),
+  flux_k : subst([wv^2=wv2,dfac_v^2=dfac_v2,q_^2=q2],calcInnerProdList(varsP, 1, bP, flux_expd)),
   /* print fluxl list to c array Ghat */
   writeCExprsCollect1(Ghat, flux_k, [derivfac,alpha0]),
   printf(fh, "~%"),
@@ -174,10 +184,10 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,bvarslist) := block([],
   for dir : 1 thru lastdir do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax,bvarslist) )
 )$
 
-pmax:2;
-for c : 1 thru 2 do (
+for c : 1 thru 3 do (
 v:2,
-if c=1 then v:1,
+pmax:1,
+if c=1 then (v:1, pmax:2),
 fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
