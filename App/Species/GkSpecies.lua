@@ -356,6 +356,14 @@ function GkSpecies:momCalcTime()
    return tm
 end
 
+function GkSpecies:solverVolTime()
+   return self.gkEqn.totalVolTime
+end
+
+function GkSpecies:solverSurfTime()
+   return self.gkEqn.totalSurfTime
+end
+
 function GkSpecies:Maxwellian(xn, n0, T0, vd)
    local vd = vd or 0.0
    local vt2 = T0/self.mass

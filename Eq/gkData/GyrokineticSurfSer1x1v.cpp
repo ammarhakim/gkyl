@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -8,6 +8,7 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, con
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[4]; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
@@ -39,7 +40,7 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, con
   outl[3] += incr[3]; 
 return alpha0; 
 } 
-double GyrokineticSurf1x1vSer_X_P2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_X_P2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -48,6 +49,7 @@ double GyrokineticSurf1x1vSer_X_P2_Bvars_0(const double q_, const double m_, con
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[8]; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
@@ -92,7 +94,7 @@ double GyrokineticSurf1x1vSer_X_P2_Bvars_0(const double q_, const double m_, con
   outl[7] += incr[7]; 
 return alpha0; 
 } 
-double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -101,6 +103,7 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[4]; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
@@ -132,7 +135,7 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   outl[3] += incr[3]; 
 return alpha0; 
 } 
-double GyrokineticSurf1x1vSer_Vpar_P2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_Vpar_P2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -141,6 +144,7 @@ double GyrokineticSurf1x1vSer_Vpar_P2_Bvars_0(const double q_, const double m_, 
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[8]; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
@@ -185,7 +189,7 @@ double GyrokineticSurf1x1vSer_Vpar_P2_Bvars_0(const double q_, const double m_, 
   outl[7] += -1.0*incr[7]; 
 return alpha0; 
 } 
-double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -194,6 +198,7 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, con
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[4]; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
@@ -225,7 +230,7 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, con
   outl[3] += incr[3]; 
 return alpha0; 
 } 
-double GyrokineticSurf1x1vSer_X_P2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_X_P2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -234,6 +239,7 @@ double GyrokineticSurf1x1vSer_X_P2_Bvars_1(const double q_, const double m_, con
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[8]; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
@@ -278,7 +284,7 @@ double GyrokineticSurf1x1vSer_X_P2_Bvars_1(const double q_, const double m_, con
   outl[7] += incr[7]; 
 return alpha0; 
 } 
-double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -287,6 +293,7 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[4]; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
@@ -318,7 +325,7 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   outl[3] += incr[3]; 
 return alpha0; 
 } 
-double GyrokineticSurf1x1vSer_Vpar_P2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_Vpar_P2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -327,6 +334,7 @@ double GyrokineticSurf1x1vSer_Vpar_P2_Bvars_1(const double q_, const double m_, 
   double wv = w[1]; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
+  double q2 = q_*q_; 
   double Ghat[8]; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
