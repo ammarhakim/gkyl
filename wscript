@@ -46,10 +46,6 @@ def configure(conf):
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
 
-    conf.env.append_value("RPATH", conf.env.LIBDIR)
-    conf.env.append_value("RPATH", '/Users/mana/anaconda/lib/')
-
-
     # write out configuration info into header
     conf.write_config_header('gkylconfig.h')
 
