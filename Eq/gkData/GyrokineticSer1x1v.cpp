@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dxInv = 1.0/dxv[0]; 
@@ -20,7 +20,7 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   cflFreq += fabs(-(0.8660254037844386*Bmag[0]*Phi[1]*dfac_x*q_)/m_)*dvInv; 
   return cflFreq; 
 } 
-double GyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dxInv = 1.0/dxv[0]; 
@@ -45,7 +45,7 @@ double GyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const d
   cflFreq += fabs(-(0.8660254037844386*Bmag[0]*Phi[1]*dfac_x*q_)/m_)*dvInv; 
   return cflFreq; 
 } 
-double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dxInv = 1.0/dxv[0]; 
@@ -66,7 +66,7 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
   cflFreq += fabs(-(0.8660254037844386*Bmag[0]*Phi[1]*dfac_x*q_)/m_)*dvInv; 
   return cflFreq; 
 } 
-double GyrokineticVol1x1vSerP2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dxInv = 1.0/dxv[0]; 
@@ -87,7 +87,7 @@ double GyrokineticVol1x1vSerP2_Bvars_1(const double q_, const double m_, const d
   out[6] += (0.03333333333333333*(116.1895003862225*f[3]*dfac_v*dfac_x*m_*wv-63.63961030678928*(Phi[1]*f[4]+2.0*f[1]*Phi[2])*dfac_v2*dfac_x*q_+10.0*(6.0*f[7]+6.708203932499369*f[1])*dfac_x*m_))/(dfac_v*m_); 
   out[7] += (0.03333333333333333*(51.96152422706632*f[5]*dfac_v*dfac_x*m_*wv-21.21320343559643*(13.41640786499874*Phi[2]*f[6]+6.708203932499369*Phi[1]*f[3]+15.0*Phi[2]*f[2])*dfac_v2*dfac_x*q_+26.83281572999747*f[2]*dfac_x*m_))/(dfac_v*m_); 
   double cflFreq = 0.0; 
-  cflFreq += fabs(0.3535533905932737*(2.0*Bmag[0]*wv-2.23606797749979*Bmag[2]*wv))*dxInv; 
-  cflFreq += fabs((0.25*(3.872983346207417*Phi[1]*Bmag[2]*dfac_x*q_-3.464101615137754*Bmag[0]*Phi[1]*dfac_x*q_))/m_)*dvInv; 
+  cflFreq += fabs((0.7071067811865475*Bmag[0]-0.7905694150420947*Bmag[2])*wv)*dxInv; 
+  cflFreq += fabs(-(1.224744871391589*Phi[1]*(0.7071067811865475*Bmag[0]-0.7905694150420947*Bmag[2])*dfac_x*q_)/m_)*dvInv; 
   return cflFreq; 
 } 
