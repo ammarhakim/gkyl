@@ -321,7 +321,7 @@ local function buildApplication(self, tbl)
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx]) -- see comment below
+	 -- s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx]) -- see comment below
       end
       --update species with collisions
       for _, c in pairs(collisions) do
@@ -333,15 +333,15 @@ local function buildApplication(self, tbl)
          -- NRM: @Petr, does collision updater require that species BCs have been set prior to call? 
          -- NRM: if not, can remove applyBc from update species loop above and this loop below, and just have
          -- NRM: one loop over all species that sets BCs before returning (as commented below)
-	 for _, nm in ipairs(c.speciesList) do
-	    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
-	 end
+	 -- for _, nm in ipairs(c.speciesList) do
+	 --    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+	 -- end
       end
 
       -- if collisions doesn't require BCs to be set before update, then just do BCs down here
-      --for nm, s in pairs(species) do
-      --   s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
-      --end
+      for nm, s in pairs(species) do
+        s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+      end
 
       return status, dtSuggested
    end
@@ -582,21 +582,22 @@ function App:run()
 end
 
 return {
+   AdiabaticSpecies = Species.AdiabaticSpecies,
    App = App,
-   VlasovSpecies = Species.VlasovSpecies,
-   HamilVlasovSpecies = Species.HamilVlasovSpecies,
-   GkSpecies = Species.GkSpecies,
    BgkCollisions = Collisions.BgkCollisions,   
-   MaxwellField = Field.MaxwellField,
+   FuncMaxwellField = Field.FuncMaxwellField,
    GkField = Field.GkField,
    GkGeometry = Field.GkGeometry,
-   NoField = Field.NoField,
-   FuncMaxwellField = Field.FuncMaxwellField,
+   GkSpecies = Species.GkSpecies,
+   HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
-   AdiabaticSpecies = Species.AdiabaticSpecies,
+   MaxwellField = Field.MaxwellField,
+   NoField = Field.NoField,
+   VlasovSpecies = Species.VlasovSpecies,
+   VoronovIonization = Collisions.VoronovIonization,
 
    -- valid pre-packaged species-field systems
-   VlasovMaxwell = {Species = Species.VlasovSpecies, Field = Field.MaxwellField},
    Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
    IncompEuler = {Species = Species.IncompEulerSpecies, Field = Field.GkField},
+   VlasovMaxwell = {Species = Species.VlasovSpecies, Field = Field.MaxwellField},
 }

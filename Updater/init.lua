@@ -8,37 +8,39 @@
 -- Gkyl modules
 local Bc = require "Updater.Bc"
 local BgkCollisions = require "Updater.BgkCollisions"
-local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
+local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
+local ConfToPhase = require "Updater.ConfToPhase"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
+local FemParPoisson = require "Updater.FemParPoisson"
+local FemParPoisson = require "Updater.FemParPoisson"
+local FemPerpPoisson = require "Updater.FemPerpPoisson"
+local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
-local WavePropagation = require "Updater.WavePropagation"
-local FemPoisson = require "Updater.FemPoisson"
-local FemParPoisson = require "Updater.FemParPoisson"
-local FemPerpPoisson = require "Updater.FemPerpPoisson"
-local FemParPoisson = require "Updater.FemParPoisson"
-local ConfToPhase = require "Updater.ConfToPhase"
 local SolidSurface = require "Updater.SolidSurface"
+local VoronovIonization = require "Updater.VoronovIonization"
+local WavePropagation = require "Updater.WavePropagation"
 
 return {
    Bc = Bc,
-   CartFieldBinOp = CartFieldBinOp,
    BgkCollisions = BgkCollisions,
    CalcDiagnostic = CalcDiagnostic,
+   CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    ConfToPhase = ConfToPhase,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
-   FemPoisson = FemPoisson,
    FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,
+   FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,
    ProjectOnBasis = ProjectOnBasis,
    SolidSurface = SolidSurface,
+   VoronovIonization = VoronovIonization,
    WavePropagation = WavePropagation,
 }
