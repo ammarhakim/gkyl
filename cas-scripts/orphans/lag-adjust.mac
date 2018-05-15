@@ -5,6 +5,8 @@ simpsum : true$
 load("modal-basis")$
 load("basis-precalc/basisSer1x1v")$
 
+makeLagList(L,n) := makelist(L[i],i,1,n)$
+
 bc : basisC[1]$
 bp : basisP[1]$
 
@@ -19,7 +21,11 @@ msum0 : subst(gsubList, m0)$
 msum1 : subst(gsubList, m1)$
 msum2 : subst(gsubList, m2)$
 
-RHS : msum0.[L0[1],L0[2]] + msum1.[L1[1],L1[2]] + msum2.[L2[1],L2[2]]$
+L0l : makeLagList(L0, length(bc))$
+L1l : makeLagList(L1, length(bc))$
+L2l : makeLagList(L2, length(bc))$
+
+RHS : msum0.L0l + msum1.L1l + msum2.L2l$
 RHSk : makelist(g[i]=subst(k=i,RHS),i,1,length(bp))$
 
 eq0 : makelist(dn[i]=sum(subst(RHSk,m0[i]),j,1,Nv), i,1,length(bc))$
@@ -27,7 +33,7 @@ eq1 : makelist(dm[i]=sum(subst(RHSk,m1[i]),j,1,Nv), i,1,length(bc))$
 eq2 : makelist(dE[i]=sum(subst(RHSk,m2[i]),j,1,Nv), i,1,length(bc))$
 
 eqns : fullratsimp(subst(w[j]=-Nv/2*dv+(j-1/2)*dv, append(eq0,eq1,eq2)))$
-sol : linsolve(eqns,[L0[1],L0[2],L1[1],L1[2],L2[1],L2[2]])$
+sol : linsolve(eqns, append(L0l,L1l,L2l))$
 
 deltaF : subst(sol,RHS)$
 deltaFk : subst(dv=2*L/Nv,makelist(subst(k=i,deltaF),i,1,length(bp)))$
