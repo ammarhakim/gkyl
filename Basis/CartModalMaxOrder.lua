@@ -61,7 +61,6 @@ function CartModalMaxOrder:init(tbl)
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalMaxOrderBasis5d"
    elseif (self._ndim == 6) then
-      assert(self._polyOrder <= 2, "For 6D polynomial order must be either 1 or 2")
       _m = require "Basis._data.ModalMaxOrderBasis6d"
    end
 
@@ -80,7 +79,7 @@ function CartModalMaxOrder:init(tbl)
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalMaxOrderBasisFlipSign5d"
    elseif (self._ndim == 6) then
-      assert(false, "FlipSigns in 6D NYI!")
+      _m = require "Basis._data.ModalMaxOrderBasisFlipSign6d"
    end
 
    self._flipSign = _m[self._polyOrder] -- function to flip sign

@@ -38,48 +38,56 @@ def build(bld):
     vlasovData/VlasovStreamMax1x3v.cpp
     vlasovData/VlasovStreamMax2x2v.cpp
     vlasovData/VlasovStreamMax2x3v.cpp
+    vlasovData/VlasovStreamMax3x3v.cpp
 
     vlasovData/VlasovStreamSer1x1v.cpp
     vlasovData/VlasovStreamSer1x2v.cpp
     vlasovData/VlasovStreamSer1x3v.cpp
     vlasovData/VlasovStreamSer2x2v.cpp
     vlasovData/VlasovStreamSer2x3v.cpp
+    vlasovData/VlasovStreamSer3x3v.cpp
 
     vlasovData/VlasovSurfStreamMax1x1v.cpp
     vlasovData/VlasovSurfStreamMax1x2v.cpp
     vlasovData/VlasovSurfStreamMax1x3v.cpp
     vlasovData/VlasovSurfStreamMax2x2v.cpp
     vlasovData/VlasovSurfStreamMax2x3v.cpp
+    vlasovData/VlasovSurfStreamMax3x3v.cpp
 
     vlasovData/VlasovSurfStreamSer1x1v.cpp
     vlasovData/VlasovSurfStreamSer1x2v.cpp
     vlasovData/VlasovSurfStreamSer1x3v.cpp
     vlasovData/VlasovSurfStreamSer2x2v.cpp
     vlasovData/VlasovSurfStreamSer2x3v.cpp
+    vlasovData/VlasovSurfStreamSer3x3v.cpp
 
     vlasovData/VlasovElcMagMax1x1v.cpp
     vlasovData/VlasovElcMagMax1x2v.cpp
     vlasovData/VlasovElcMagMax1x3v.cpp
     vlasovData/VlasovElcMagMax2x2v.cpp
     vlasovData/VlasovElcMagMax2x3v.cpp
+    vlasovData/VlasovElcMagMax3x3v.cpp
 
     vlasovData/VlasovElcMagSer1x1v.cpp
     vlasovData/VlasovElcMagSer1x2v.cpp
     vlasovData/VlasovElcMagSer1x3v.cpp
     vlasovData/VlasovElcMagSer2x2v.cpp
     vlasovData/VlasovElcMagSer2x3v.cpp
+    vlasovData/VlasovElcMagSer3x3v.cpp
 
     vlasovData/VlasovSurfElcMagMax1x1v.cpp
     vlasovData/VlasovSurfElcMagMax1x2v.cpp
     vlasovData/VlasovSurfElcMagMax1x3v.cpp
     vlasovData/VlasovSurfElcMagMax2x2v.cpp
     vlasovData/VlasovSurfElcMagMax2x3v.cpp
+    vlasovData/VlasovSurfElcMagMax3x3v.cpp
 
     vlasovData/VlasovSurfElcMagSer1x1v.cpp
     vlasovData/VlasovSurfElcMagSer1x2v.cpp
     vlasovData/VlasovSurfElcMagSer1x3v.cpp
     vlasovData/VlasovSurfElcMagSer2x2v.cpp
     vlasovData/VlasovSurfElcMagSer2x3v.cpp
+    vlasovData/VlasovSurfElcMagSer3x3v.cpp
 
     vlasovData/VlasovIncr.cpp
 
