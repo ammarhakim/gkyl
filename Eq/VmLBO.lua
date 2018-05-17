@@ -110,7 +110,7 @@ function VmLBO:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, o
    local vMuMidMax = 0.0
    -- set pointer to flowU and vthSq fields.
    self._flowU:fill(self._flowUIdxr(idxl), self._flowUPtr) -- get pointer to flowU field.
-   self._vthSq:fill(self._vthSqIdxr(idxl), self._vthSqPtr) -- get pointer to flowU field.
+   self._vthSq:fill(self._vthSqIdxr(idxl), self._vthSqPtr) -- get pointer to vthSq field.
    if dir > self._cdim then
      if self._inNu then
        vMuMidMax = self._surfUpdate[dir-self._cdim](

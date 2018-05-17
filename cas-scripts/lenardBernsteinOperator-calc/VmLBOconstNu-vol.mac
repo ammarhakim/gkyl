@@ -47,10 +47,10 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       for dir : 1 thru vdim do (
         cv : varsV[dir],
         incr : incr+(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
-                   /* Separate the w-u part of the drag term. Simplifies assignment of out*/        
-                     -rdv2nu[dir-1]*calcInnerProdList(varsP,w[vid[dir]],diff(bP,cv),f_e) 
-                     +rdv2nu[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,u_e,diff(bP,cv),f_e))) 
-/*              +rdv2nu[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))*/
+              /* Separate the w-u part of the drag term. Simplifies assignment of out*/        
+/*              -rdv2nu[dir-1]*calcInnerProdList(varsP,w[vid[dir]],diff(bP,cv),f_e) */
+/*              +rdv2nu[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,u_e,diff(bP,cv),f_e))) */
+              +rdv2nu[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
               +rdvSq4nu[dir-1]*calcInnerProdList(varsP,vtSq_e,diff(bP,cv,2),f_e)
       ),
       incr
