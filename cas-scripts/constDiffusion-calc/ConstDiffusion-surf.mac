@@ -80,12 +80,10 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
 
     /*............. RECOVERY DONE ..............................*/
 
-    /* Mass matrix. Not needed. */
-/*    M : calcMassMatrix(varsC,1,bC),
-    invM : invert(M), */
-
     /* Contribution to vector to the left and right of the boundary. */
-    /* No need to deal with the (identity) mass matrix. */    
+    /* incr_r2 has 3 minus signs. One comes from the second integration
+    ** by parts, another from evaluating at upper surface Minus lower
+    ** surface, and the last one from evaluating at cv=-1. */
     incr_l1 : calcInnerProdList(surfVars,1,subst(cv=1,bC),hsol[2]),
     incr_l2 : calcInnerProdList(surfVars,-2,subst(cv=1,bCp),hsol[1]),
 
