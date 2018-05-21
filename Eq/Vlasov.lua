@@ -117,7 +117,7 @@ function Vlasov:volTerm(w, dx, idx, q, out)
       cflFreq = self._volUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
    else
       -- if no force, only update streaming term
-      local cflFreq = self._volStreamUpdate(w:data(), dx:data(), q:data(), out:data())
+      local cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
    end
    return cflFreq
 end
