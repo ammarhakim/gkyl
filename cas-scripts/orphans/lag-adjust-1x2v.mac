@@ -41,11 +41,14 @@ makeEq(dm,mom) := makelist(dm[i]=sum(sum(subst(RHSk,mom[i]),jx,1,Nvx),jy,1,Nvy),
 eq0 : makeEq(dn,m0)$
 eq2 : makeEq(dE,m2)$
 
-eqns : fullratsimp(subst([wx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, wy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy], append(eq0,eq2)))$
+eqns : fullratsimp(subst([wx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx,
+                          wy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy],
+         append(eq0,eq2)))$
 sol : linsolve(eqns, append(L0l,L2l))$
 
 deltaF : subst(sol,RHS)$
-deltaFk : subst(dv=2*L/Nv,makelist(subst(k=i,deltaF),i,1,length(bp)))$
+deltaFk : subst([dvx=2*Lx/Nvx, dvy=2*Ly/Nvy],
+    makelist(subst(k=i,deltaF),i,1,length(bp)))$
 
 /* Cross check: m0 should be [dn[1],dn[2]], m2 should be [dE[1],dE[2]] */
 gcheckList : append(makelist(g[i]=deltaFk[i],i,1,length(bp)), [wx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, wy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy,dvx=2*Lx/Nvx,dvy=2*Ly/Nvy])$

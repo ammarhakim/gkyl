@@ -135,6 +135,11 @@ createTopLevelDefs(int argc, char **argv) {
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
+  // check what command was specified
+  std::string cmd("run");
+  if (argc == 3) cmd = argv[2];
+  varDefs << "GKYL_COMMAND = '" << cmd << "'" << std::endl;
+
   return varDefs.str();
 }
 
@@ -144,6 +149,18 @@ createTopLevelDefs(int argc, char **argv) {
 #ifdef HAVE_ADIOS_H
 int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 #endif
+
+void
+showUsage() {
+  Logger logger;
+  
+  logger.log("Usage: gkyl LUA-SCRIPT <cmd>");
+  logger.log(" <cmd> is optional and must be one of:");
+  logger.log(" run:     [default] Run the simulation");
+  logger.log(" init:    Initialize the simulation without running it");
+  logger.log(" restart: Restart the simulation");
+  logger.log("Not all Apps support these commands, and others may support more.\n");
+}
 
 int
 main(int argc, char **argv) {
@@ -163,8 +180,8 @@ main(int argc, char **argv) {
 #endif
   Logger logger;
 
-  if (argc != 2) {
-    logger.log("Usage: gkyl LUA-SCRIPT");
+  if ((argc != 2) && (argc !=3)) {
+    showUsage();
     return finish(0);
   }
 
@@ -173,10 +190,10 @@ main(int argc, char **argv) {
   std::ifstream f(inpFile.c_str());
   if (!f.good()) {
     std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
-    std::cerr << "Usage: gkyl LUA-SCRIPT" << std::endl;
+    showUsage();
     return finish(1);
   }
-  f.close();
+  f.close();  
 
 // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
