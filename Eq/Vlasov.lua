@@ -41,7 +41,7 @@ function Vlasov:init(tbl)
    self._vdim = self._pdim-self._cdim
 
    -- functions to perform streaming updates
-   self._volStreamUpdate = VlasovModDecl.selectVolStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   self._volUpdate = VlasovModDecl.selectVolStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
    -- check if we have a electric and magnetic field
@@ -57,7 +57,7 @@ function Vlasov:init(tbl)
    if self._hasForceTerm then
       -- functions to perform force
       if hasMagField then 
-	 self._volForceUpdate = VlasovModDecl.selectVolElcMag(
+	 self._volUpdate = VlasovModDecl.selectVolElcMag(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 	 self._surfForceUpdate = VlasovModDecl.selectSurfElcMag(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -110,16 +110,16 @@ end
 
 -- Volume integral term for use in DG scheme
 function Vlasov:volTerm(w, dx, idx, q, out)
-   -- streaming term
-   local cflFreqStream = self._volStreamUpdate(w:data(), dx:data(), q:data(), out:data())
-   local cflFreqForce = 0.0
-   -- force term
+   -- volume term if has force
    if self._hasForceTerm then
       self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
       rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
-      cflFreqForce = self._volForceUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
+   else
+      -- if no force, only update streaming term
+      local cflFreq = self._volStreamUpdate(w:data(), dx:data(), q:data(), out:data())
    end
-   return cflFreqStream+cflFreqForce
+   return cflFreq
 end
 
 -- Surface integral term for use in DG scheme
@@ -163,19 +163,5 @@ function Vlasov:cdim() return self._cdim end
 function Vlasov:vdim() return self._vdim end
 function Vlasov:qbym() return self._qbym end
 function Vlasov:hasForceTerm() return self._hasForceTerm end
-
-function Vlasov:volStreamUpdate()
-   return self._volStreamUpdate
-end
-function Vlasov:surfStreamUpdate()
-   return self._surfStreamUpdate
-end
-
-function Vlasov:volForceUpdate()
-   return self._volForceUpdate
-end
-function Vlasov:surfForceUpdate()
-   return self._surfForceUpdate
-end
 
 return Vlasov
