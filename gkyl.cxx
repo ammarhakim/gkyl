@@ -191,7 +191,7 @@ main(int argc, char **argv) {
   if (!f.good()) {
     std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
     showUsage();
-    return finish(1);
+    return finish(0);
   }
   f.close();  
 
