@@ -578,7 +578,11 @@ function App:init(tbl)
 end
 
 function App:run()
-   return self:_runApplication()
+   if GKYL_COMMAND == "run" then
+      return self:_runApplication()
+   elseif GKYL_COMMAND == "init" then
+      return function (...) end
+   end
 end
 
 return {
