@@ -13,20 +13,19 @@ void CartFieldBinOpMultiply1xSer_P1(const double *A, const double *B, const shor
  
   double tmp[2]; 
  
-  for (short int vd=0; vd<Ncomp; vd++) 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 2*vd; 
-    short int a0 = b0*eqNcomp; 
+    unsigned short int b0 = 2*vd; 
+    unsigned short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
     tmp[0] = 0.7071067811865475*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0]*B[b0]; 
     tmp[1] = 0.7071067811865475*A[a0]*B[b0+1]+0.7071067811865475*A[a0+1]*B[b0]; 
  
     // This tmp allows for in-place multiplication. 
-    for (short int i=0; i<2; i++) 
+    for (unsigned short int i=0; i<2; i++) 
     { 
       out[b0+i] = tmp[i]; 
     } 
- 
   } 
  
 } 
@@ -41,21 +40,20 @@ void CartFieldBinOpMultiply1xSer_P2(const double *A, const double *B, const shor
  
   double tmp[3]; 
  
-  for (short int vd=0; vd<Ncomp; vd++) 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 3*vd; 
-    short int a0 = b0*eqNcomp; 
+    unsigned short int b0 = 3*vd; 
+    unsigned short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
     tmp[0] = 0.7071067811865475*A[a0+2]*B[b0+2]+0.7071067811865475*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0]*B[b0]; 
     tmp[1] = 0.6324555320336759*A[a0+1]*B[b0+2]+0.6324555320336759*A[a0+2]*B[b0+1]+0.7071067811865475*A[a0]*B[b0+1]+0.7071067811865475*A[a0+1]*B[b0]; 
     tmp[2] = 0.4517539514526256*A[a0+2]*B[b0+2]+0.7071067811865475*A[a0]*B[b0+2]+0.6324555320336759*A[a0+1]*B[b0+1]+0.7071067811865475*A[a0+2]*B[b0]; 
  
     // This tmp allows for in-place multiplication. 
-    for (short int i=0; i<3; i++) 
+    for (unsigned short int i=0; i<3; i++) 
     { 
       out[b0+i] = tmp[i]; 
     } 
- 
   } 
  
 } 
@@ -81,9 +79,9 @@ void CartFieldBinOpDivide1xSer_P1(const double *A, const double *B, const short 
   AEM(1,0) = 0.7071067811865475*A[1]; 
   AEM(1,1) = 0.7071067811865475*A[0]; 
  
-  for(short int vd=0; vd<Ncomp; vd++) 
+  for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 2*vd; 
+    unsigned short int b0 = 2*vd; 
     // Fill BEV. 
     BEV << B[b0],B[b0+1]; 
  
@@ -92,7 +90,6 @@ void CartFieldBinOpDivide1xSer_P1(const double *A, const double *B, const short 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*2,2,1) = u; 
- 
   } 
 } 
  
@@ -122,9 +119,9 @@ void CartFieldBinOpDivide1xSer_P2(const double *A, const double *B, const short 
   AEM(2,1) = 0.6324555320336759*A[1]; 
   AEM(2,2) = 0.4517539514526256*A[2]+0.7071067811865475*A[0]; 
  
-  for(short int vd=0; vd<Ncomp; vd++) 
+  for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 3*vd; 
+    unsigned short int b0 = 3*vd; 
     // Fill BEV. 
     BEV << B[b0],B[b0+1],B[b0+2]; 
  
@@ -133,7 +130,55 @@ void CartFieldBinOpDivide1xSer_P2(const double *A, const double *B, const short 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*3,3,1) = u; 
- 
   } 
+} 
+ 
+void CartFieldBinOpDotProduct1xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
+  // A:       scalar/vector field. 
+  // B:       scalar/vector field (must be vector if A is vector). 
+  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). 
+  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (should be 1 here). 
+  // out:     output field A.B (out only has one component). 
+ 
+  // zero out. This is ok in this operator because there is no in-place dot-product. 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    out[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
+  { 
+    unsigned short int a0 = 2*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    out[0] += 0.7071067811865475*A[a0+1]*B[a0+1]+0.7071067811865475*A[a0]*B[a0]; 
+    out[1] += 0.7071067811865475*A[a0]*B[a0+1]+0.7071067811865475*B[a0]*A[a0+1]; 
+  } 
+ 
+} 
+ 
+void CartFieldBinOpDotProduct1xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
+  // A:       scalar/vector field. 
+  // B:       scalar/vector field (must be vector if A is vector). 
+  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). 
+  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (should be 1 here). 
+  // out:     output field A.B (out only has one component). 
+ 
+  // zero out. This is ok in this operator because there is no in-place dot-product. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    out[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
+  { 
+    unsigned short int a0 = 3*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    out[0] += 0.7071067811865475*A[a0+2]*B[a0+2]+0.7071067811865475*A[a0+1]*B[a0+1]+0.7071067811865475*A[a0]*B[a0]; 
+    out[1] += 0.6324555320336759*A[a0+1]*B[a0+2]+0.6324555320336759*B[a0+1]*A[a0+2]+0.7071067811865475*A[a0]*B[a0+1]+0.7071067811865475*B[a0]*A[a0+1]; 
+    out[2] += 0.4517539514526256*A[a0+2]*B[a0+2]+0.7071067811865475*A[a0]*B[a0+2]+0.7071067811865475*B[a0]*A[a0+2]+0.6324555320336759*A[a0+1]*B[a0+1]; 
+  } 
+ 
 } 
  

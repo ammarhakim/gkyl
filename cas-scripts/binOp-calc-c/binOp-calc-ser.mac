@@ -7,6 +7,7 @@
    indicates the maximum polyOrder to generate code for. */
 load("binOp-calc-c/binOp-division-calc")$
 load("binOp-calc-c/binOp-multiplication-calc")$
+load("binOp-calc-c/binOp-dotProduct-calc")$
 load(stringproc)$
 
 /* Maximum polynomial order to generate kernels for. */
@@ -32,12 +33,16 @@ for c : 1 thru 3 do (
   funcName : sconcat("CartFieldBinOpDivide", c, "x", "Ser"),
   calcBinOpDivideS(fh, funcName, c, "Ser",inMaxPolyOrder),
  
+  funcName : sconcat("CartFieldBinOpDotProduct", c, "x", "Ser"),
+  calcBinOpDotProduct(fh, funcName, c, "Ser",inMaxPolyOrder),
+ 
   close(fh)
 )$
 
 /* Kernels for operations between two fields defined on
    spaces with different dimensions, mostly for operations between
    a configuration space field and a phase space field. */
+
 for c : 1 thru 2 do (
   for v : c thru 3 do (
     fname : sconcat("~/max-out/CartFieldBinOpSer", c, "x", v, "v",".cpp"),
@@ -62,7 +67,9 @@ for c : 1 thru 2 do (
 )$
 
 
+
 /* Generate the 3x2v case (mostly for gyrokinetics). */
+
 
 c : 3$
 v : 2$
@@ -79,11 +86,11 @@ printf(fh, " ~%")$
 
 funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", "Ser")$
 calcBinOpMultiplyD(fh, funcName, c, v, "Ser",inMaxPolyOrder)$
-
    
 funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", "Ser")$
 calcBinOpDivideD(fh, funcName, c, v, "Ser",inMaxPolyOrder)$
 
 close(fh)$
+
 
 

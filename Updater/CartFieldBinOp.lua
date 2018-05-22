@@ -4,6 +4,7 @@
 -- Currently only supporting the following:
 --   1) Weak division (B divided by A. A must be a scalar function).
 --   2) Weak multiplication.
+--   3) Dot product of two vector fields.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -14,11 +15,11 @@ local UpdaterBase = require "Updater.Base"
 local Lin         = require "Lib.Linalg"
 local Proto       = require "Lib.Proto"
 local BinOpDecl   = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
-local xsys = require "xsys"
+local xsys        = require "xsys"
 
 -- function to check if moment name is correct
 local function isOpNameGood(nm)
-   if nm == "Multiply" or nm == "Divide" then
+   if nm == "Multiply" or nm == "Divide" or nm=="DotProduct" then
       return true
    end
    return false
@@ -56,6 +57,9 @@ function CartFieldBinOp:init(tbl)
      self._cDim = self._wDim
    end
 
+   -- Number of basis functions. Used to compute number of vector components.
+   self._numBasis = weakBasis:numBasis()
+
    local id, polyOrder = weakBasis:id(), weakBasis:polyOrder()
 
    -- function to compute specified operation.
@@ -77,6 +81,7 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
    -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
    --                              but in the latter Afld must be the scalar).
    -- Division:       Bfld/Afld (Afld must be a scalar function).
+   -- DotProduct:     Afld . Bfld (both vector fields).
 
    local uOut = outFld[1]
    -- Remove SOME burden from the user in ordering the inputs. Order them here so that
@@ -98,9 +103,12 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
    local BfldIndexer = Bfld:genIndexer()
    local uOutIndexer = uOut:genIndexer()
 
-   local AfldItr     = Afld:get(1)
-   local BfldItr     = Bfld:get(1)
-   local uOutItr     = uOut:get(1)
+   local AfldItr = Afld:get(1)
+   local BfldItr = Bfld:get(1)
+   local uOutItr = uOut:get(1)
+
+   -- Number of vectorial components.
+   local nComp = Bfld:numComponents()/self._numBasis
 
    local nCompEq
    -- This factor is used in the kernel to differentiate the case of
@@ -128,7 +136,8 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
       Bfld:fill(BfldIndexer(idx), BfldItr)
       uOut:fill(uOutIndexer(idx), uOutItr)
 
-      self._BinOpCalc(AfldItr:data(), BfldItr:data(), Bfld:numComponents(), nCompEq, uOutItr:data())
+      -- self._BinOpCalc(AfldItr:data(), BfldItr:data(), Bfld:numComponents(), nCompEq, uOutItr:data())
+      self._BinOpCalc(AfldItr:data(), BfldItr:data(), nComp, nCompEq, uOutItr:data())
    end
 
    return true, GKYL_MAX_DOUBLE

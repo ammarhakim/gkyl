@@ -89,10 +89,10 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
     writeCExprsB(Elhs,Eflat),
     printf(fh, " ~%"),
 
-    printf(fh, "  for(short int vd=0; vd<Ncomp; vd++) ~%"),
+    printf(fh, "  for(unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
     printf(fh, "  { ~%"),
 
-    printf(fh, "    short int b0 = ~a*vd; ~%", N),
+    printf(fh, "    unsigned short int b0 = ~a*vd; ~%", N),
     printf(fh, "    // Fill BEV. ~%"),
 /*    printf(fh, "    Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", N), */
 /*  Something like this is only needed if the BEV vector is pre-initialized during init. */
@@ -106,7 +106,6 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     printf(fh, "    // Copy data from Eigen vector. ~%"),
     printf(fh, "    Eigen::Map<VectorXd>(out+vd*~a,~a,1) = u; ~%", N, N),
-    printf(fh, " ~%"),
     printf(fh, "  } ~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")

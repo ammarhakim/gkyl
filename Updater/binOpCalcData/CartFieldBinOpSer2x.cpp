@@ -13,10 +13,10 @@ void CartFieldBinOpMultiply2xSer_P1(const double *A, const double *B, const shor
  
   double tmp[4]; 
  
-  for (short int vd=0; vd<Ncomp; vd++) 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 4*vd; 
-    short int a0 = b0*eqNcomp; 
+    unsigned short int b0 = 4*vd; 
+    unsigned short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
     tmp[0] = 0.5*A[a0+3]*B[b0+3]+0.5*A[a0+2]*B[b0+2]+0.5*A[a0+1]*B[b0+1]+0.5*A[a0]*B[b0]; 
     tmp[1] = 0.5*A[a0+2]*B[b0+3]+0.5*A[a0+3]*B[b0+2]+0.5*A[a0]*B[b0+1]+0.5*A[a0+1]*B[b0]; 
@@ -24,11 +24,10 @@ void CartFieldBinOpMultiply2xSer_P1(const double *A, const double *B, const shor
     tmp[3] = 0.5*A[a0]*B[b0+3]+0.5*A[a0+1]*B[b0+2]+0.5*A[a0+2]*B[b0+1]+0.5*A[a0+3]*B[b0]; 
  
     // This tmp allows for in-place multiplication. 
-    for (short int i=0; i<4; i++) 
+    for (unsigned short int i=0; i<4; i++) 
     { 
       out[b0+i] = tmp[i]; 
     } 
- 
   } 
  
 } 
@@ -43,10 +42,10 @@ void CartFieldBinOpMultiply2xSer_P2(const double *A, const double *B, const shor
  
   double tmp[8]; 
  
-  for (short int vd=0; vd<Ncomp; vd++) 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 8*vd; 
-    short int a0 = b0*eqNcomp; 
+    unsigned short int b0 = 8*vd; 
+    unsigned short int a0 = b0*eqNcomp; 
     // Component-wise (of the vectors) multiplication. 
     tmp[0] = 0.5*A[a0+7]*B[b0+7]+0.5*A[a0+6]*B[b0+6]+0.5*A[a0+5]*B[b0+5]+0.5*A[a0+4]*B[b0+4]+0.5*A[a0+3]*B[b0+3]+0.5*A[a0+2]*B[b0+2]+0.5*A[a0+1]*B[b0+1]+0.5*A[a0]*B[b0]; 
     tmp[1] = 0.5000000000000001*A[a0+5]*B[b0+7]+0.447213595499958*A[a0+3]*B[b0+6]+0.5000000000000001*A[a0+7]*B[b0+5]+0.4472135954999579*A[a0+1]*B[b0+4]+0.447213595499958*A[a0+6]*B[b0+3]+0.5*A[a0+2]*B[b0+3]+0.5*A[a0+3]*B[b0+2]+0.4472135954999579*A[a0+4]*B[b0+1]+0.5*A[a0]*B[b0+1]+0.5*A[a0+1]*B[b0]; 
@@ -58,11 +57,10 @@ void CartFieldBinOpMultiply2xSer_P2(const double *A, const double *B, const shor
     tmp[7] = 0.31943828249997*A[a0+5]*B[b0+7]+0.4472135954999579*A[a0+4]*B[b0+7]+0.5*A[a0]*B[b0+7]+0.4*A[a0+3]*B[b0+6]+0.31943828249997*A[a0+7]*B[b0+5]+0.5000000000000001*A[a0+1]*B[b0+5]+0.4472135954999579*A[a0+7]*B[b0+4]+0.4*A[a0+6]*B[b0+3]+0.447213595499958*A[a0+2]*B[b0+3]+0.447213595499958*A[a0+3]*B[b0+2]+0.5000000000000001*A[a0+5]*B[b0+1]+0.5*A[a0+7]*B[b0]; 
  
     // This tmp allows for in-place multiplication. 
-    for (short int i=0; i<8; i++) 
+    for (unsigned short int i=0; i<8; i++) 
     { 
       out[b0+i] = tmp[i]; 
     } 
- 
   } 
  
 } 
@@ -100,9 +98,9 @@ void CartFieldBinOpDivide2xSer_P1(const double *A, const double *B, const short 
   AEM(3,2) = 0.5*A[1]; 
   AEM(3,3) = 0.5*A[0]; 
  
-  for(short int vd=0; vd<Ncomp; vd++) 
+  for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 4*vd; 
+    unsigned short int b0 = 4*vd; 
     // Fill BEV. 
     BEV << B[b0],B[b0+1],B[b0+2],B[b0+3]; 
  
@@ -111,7 +109,6 @@ void CartFieldBinOpDivide2xSer_P1(const double *A, const double *B, const short 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*4,4,1) = u; 
- 
   } 
 } 
  
@@ -194,9 +191,9 @@ void CartFieldBinOpDivide2xSer_P2(const double *A, const double *B, const short 
   AEM(7,6) = 0.4*A[3]; 
   AEM(7,7) = 0.31943828249997*A[5]+0.4472135954999579*A[4]+0.5*A[0]; 
  
-  for(short int vd=0; vd<Ncomp; vd++) 
+  for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
-    short int b0 = 8*vd; 
+    unsigned short int b0 = 8*vd; 
     // Fill BEV. 
     BEV << B[b0],B[b0+1],B[b0+2],B[b0+3],B[b0+4],B[b0+5],B[b0+6],B[b0+7]; 
  
@@ -205,7 +202,62 @@ void CartFieldBinOpDivide2xSer_P2(const double *A, const double *B, const short 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*8,8,1) = u; 
- 
   } 
+} 
+ 
+void CartFieldBinOpDotProduct2xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
+  // A:       scalar/vector field. 
+  // B:       scalar/vector field (must be vector if A is vector). 
+  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). 
+  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (should be 1 here). 
+  // out:     output field A.B (out only has one component). 
+ 
+  // zero out. This is ok in this operator because there is no in-place dot-product. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    out[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
+  { 
+    unsigned short int a0 = 4*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    out[0] += 0.5*A[a0+3]*B[a0+3]+0.5*A[a0+2]*B[a0+2]+0.5*A[a0+1]*B[a0+1]+0.5*A[a0]*B[a0]; 
+    out[1] += 0.5*A[a0+2]*B[a0+3]+0.5*B[a0+2]*A[a0+3]+0.5*A[a0]*B[a0+1]+0.5*B[a0]*A[a0+1]; 
+    out[2] += 0.5*A[a0+1]*B[a0+3]+0.5*B[a0+1]*A[a0+3]+0.5*A[a0]*B[a0+2]+0.5*B[a0]*A[a0+2]; 
+    out[3] += 0.5*A[a0]*B[a0+3]+0.5*B[a0]*A[a0+3]+0.5*A[a0+1]*B[a0+2]+0.5*B[a0+1]*A[a0+2]; 
+  } 
+ 
+} 
+ 
+void CartFieldBinOpDotProduct2xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
+  // A:       scalar/vector field. 
+  // B:       scalar/vector field (must be vector if A is vector). 
+  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). 
+  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (should be 1 here). 
+  // out:     output field A.B (out only has one component). 
+ 
+  // zero out. This is ok in this operator because there is no in-place dot-product. 
+  for (unsigned short int vd=0; vd<8; vd++) 
+  { 
+    out[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<Ncomp; vd++) 
+  { 
+    unsigned short int a0 = 8*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    out[0] += 0.5*A[a0+7]*B[a0+7]+0.5*A[a0+6]*B[a0+6]+0.5*A[a0+5]*B[a0+5]+0.5*A[a0+4]*B[a0+4]+0.5*A[a0+3]*B[a0+3]+0.5*A[a0+2]*B[a0+2]+0.5*A[a0+1]*B[a0+1]+0.5*A[a0]*B[a0]; 
+    out[1] += 0.5000000000000001*A[a0+5]*B[a0+7]+0.5000000000000001*B[a0+5]*A[a0+7]+0.447213595499958*A[a0+3]*B[a0+6]+0.447213595499958*B[a0+3]*A[a0+6]+0.4472135954999579*A[a0+1]*B[a0+4]+0.4472135954999579*B[a0+1]*A[a0+4]+0.5*A[a0+2]*B[a0+3]+0.5*B[a0+2]*A[a0+3]+0.5*A[a0]*B[a0+1]+0.5*B[a0]*A[a0+1]; 
+    out[2] += 0.447213595499958*A[a0+3]*B[a0+7]+0.447213595499958*B[a0+3]*A[a0+7]+0.5000000000000001*A[a0+4]*B[a0+6]+0.5000000000000001*B[a0+4]*A[a0+6]+0.4472135954999579*A[a0+2]*B[a0+5]+0.4472135954999579*B[a0+2]*A[a0+5]+0.5*A[a0+1]*B[a0+3]+0.5*B[a0+1]*A[a0+3]+0.5*A[a0]*B[a0+2]+0.5*B[a0]*A[a0+2]; 
+    out[3] += 0.4*A[a0+6]*B[a0+7]+0.447213595499958*A[a0+2]*B[a0+7]+0.4*B[a0+6]*A[a0+7]+0.447213595499958*B[a0+2]*A[a0+7]+0.447213595499958*A[a0+1]*B[a0+6]+0.447213595499958*B[a0+1]*A[a0+6]+0.4472135954999579*A[a0+3]*B[a0+5]+0.4472135954999579*B[a0+3]*A[a0+5]+0.4472135954999579*A[a0+3]*B[a0+4]+0.4472135954999579*B[a0+3]*A[a0+4]+0.5*A[a0]*B[a0+3]+0.5*B[a0]*A[a0+3]+0.5*A[a0+1]*B[a0+2]+0.5*B[a0+1]*A[a0+2]; 
+    out[4] += 0.4472135954999579*A[a0+7]*B[a0+7]+0.31943828249997*A[a0+6]*B[a0+6]+0.5000000000000001*A[a0+2]*B[a0+6]+0.5000000000000001*B[a0+2]*A[a0+6]+0.31943828249997*A[a0+4]*B[a0+4]+0.5*A[a0]*B[a0+4]+0.5*B[a0]*A[a0+4]+0.4472135954999579*A[a0+3]*B[a0+3]+0.4472135954999579*A[a0+1]*B[a0+1]; 
+    out[5] += 0.31943828249997*A[a0+7]*B[a0+7]+0.5000000000000001*A[a0+1]*B[a0+7]+0.5000000000000001*B[a0+1]*A[a0+7]+0.4472135954999579*A[a0+6]*B[a0+6]+0.31943828249997*A[a0+5]*B[a0+5]+0.5*A[a0]*B[a0+5]+0.5*B[a0]*A[a0+5]+0.4472135954999579*A[a0+3]*B[a0+3]+0.4472135954999579*A[a0+2]*B[a0+2]; 
+    out[6] += 0.4*A[a0+3]*B[a0+7]+0.4*B[a0+3]*A[a0+7]+0.4472135954999579*A[a0+5]*B[a0+6]+0.31943828249997*A[a0+4]*B[a0+6]+0.5*A[a0]*B[a0+6]+0.4472135954999579*B[a0+5]*A[a0+6]+0.31943828249997*B[a0+4]*A[a0+6]+0.5*B[a0]*A[a0+6]+0.5000000000000001*A[a0+2]*B[a0+4]+0.5000000000000001*B[a0+2]*A[a0+4]+0.447213595499958*A[a0+1]*B[a0+3]+0.447213595499958*B[a0+1]*A[a0+3]; 
+    out[7] += 0.31943828249997*A[a0+5]*B[a0+7]+0.4472135954999579*A[a0+4]*B[a0+7]+0.5*A[a0]*B[a0+7]+0.31943828249997*B[a0+5]*A[a0+7]+0.4472135954999579*B[a0+4]*A[a0+7]+0.5*B[a0]*A[a0+7]+0.4*A[a0+3]*B[a0+6]+0.4*B[a0+3]*A[a0+6]+0.5000000000000001*A[a0+1]*B[a0+5]+0.5000000000000001*B[a0+1]*A[a0+5]+0.447213595499958*A[a0+2]*B[a0+3]+0.447213595499958*B[a0+2]*A[a0+3]; 
+  } 
+ 
 } 
  

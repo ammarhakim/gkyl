@@ -12,7 +12,6 @@ void CartFieldBinOpMultiply1x3vSer_P1(const double *A, const double *B, const sh
   // out:     output field A*B (same number of components as B). 
  
   double tmp[16]; 
- 
   tmp[0] = 0.7071067811865475*A[1]*B[1]+0.7071067811865475*A[0]*B[0]; 
   tmp[1] = 0.7071067811865475*A[0]*B[1]+0.7071067811865475*B[0]*A[1]; 
   tmp[2] = 0.7071067811865475*A[1]*B[5]+0.7071067811865475*A[0]*B[2]; 
@@ -31,7 +30,7 @@ void CartFieldBinOpMultiply1x3vSer_P1(const double *A, const double *B, const sh
   tmp[15] = 0.7071067811865475*A[0]*B[15]+0.7071067811865475*A[1]*B[14]; 
  
   // This tmp allows for in-place multiplication. 
-  for (short int i=0; i<16; i++) 
+  for (unsigned short int i=0; i<16; i++) 
   { 
     out[i] = tmp[i]; 
   } 
@@ -47,7 +46,6 @@ void CartFieldBinOpMultiply1x3vSer_P2(const double *A, const double *B, const sh
   // out:     output field A*B (same number of components as B). 
  
   double tmp[48]; 
- 
   tmp[0] = 0.7071067811865475*A[2]*B[11]+0.7071067811865475*A[1]*B[1]+0.7071067811865475*A[0]*B[0]; 
   tmp[1] = 0.6324555320336759*A[1]*B[11]+0.6324555320336759*B[1]*A[2]+0.7071067811865475*A[0]*B[1]+0.7071067811865475*B[0]*A[1]; 
   tmp[2] = 0.7071067811865475*A[2]*B[19]+0.7071067811865475*A[1]*B[5]+0.7071067811865475*A[0]*B[2]; 
@@ -98,7 +96,7 @@ void CartFieldBinOpMultiply1x3vSer_P2(const double *A, const double *B, const sh
   tmp[47] = 0.6324555320336759*A[2]*B[47]+0.7071067811865475*A[0]*B[47]+0.7071067811865475*A[1]*B[43]; 
  
   // This tmp allows for in-place multiplication. 
-  for (short int i=0; i<48; i++) 
+  for (unsigned short int i=0; i<48; i++) 
   { 
     out[i] = tmp[i]; 
   } 

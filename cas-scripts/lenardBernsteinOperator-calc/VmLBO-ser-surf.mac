@@ -1,7 +1,7 @@
 load("lenardBernsteinOperator-calc/VmLBOconstNu-surf")$
 load(stringproc)$
 
-polyOrderMax : 2$
+polyOrderMax : 3$
 
 for c : 1 thru 2 do (
   for v : c thru 2 do (
