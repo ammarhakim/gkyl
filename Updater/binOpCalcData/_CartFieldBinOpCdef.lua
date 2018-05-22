@@ -38,6 +38,21 @@ void CartFieldBinOpDivide3xSer_P1(const double *A, const double *B, const short 
 void CartFieldBinOpDivide3xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 
+void CartFieldBinOpDotProduct1xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out);
+
+void CartFieldBinOpDotProduct1xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out);
+
+
+void CartFieldBinOpDotProduct2xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out);
+
+void CartFieldBinOpDotProduct2xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out);
+
+
+void CartFieldBinOpDotProduct3xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out);
+
+void CartFieldBinOpDotProduct3xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out);
+
+
 void CartFieldBinOpMultiply1x1vSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
 void CartFieldBinOpMultiply1x1vSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 

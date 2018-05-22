@@ -101,12 +101,14 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     cid : cidx(cdim),
     printf(fh, "  double rdxSq2nul = 2.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
     printf(fh, "  double rdxSq2nur = 2.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
-    printf(fh, "  double incr1[~a]; ~%", length(bC)),
-    printf(fh, "  double incr2[~a]; ~%", length(bC)),
     printf(fh, "~%"),
   
     clst : [wxr, dvxr],
+    printf(fh, "  double incr1[~a]; ~%", length(bC)),
     writeCExprsCollect1(incr1, incr_r1, clst),
+    printf(fh, "~%"),
+
+    printf(fh, "  double incr2[~a]; ~%", length(bC)),
     writeCExprsCollect1(incr2, incr_r2, clst),
     printf(fh, "~%"),
   

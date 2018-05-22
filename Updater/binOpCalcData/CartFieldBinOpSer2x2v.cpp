@@ -12,7 +12,6 @@ void CartFieldBinOpMultiply2x2vSer_P1(const double *A, const double *B, const sh
   // out:     output field A*B (same number of components as B). 
  
   double tmp[16]; 
- 
   tmp[0] = 0.5*A[3]*B[5]+0.5*A[2]*B[2]+0.5*A[1]*B[1]+0.5*A[0]*B[0]; 
   tmp[1] = 0.5*A[2]*B[5]+0.5*B[2]*A[3]+0.5*A[0]*B[1]+0.5*B[0]*A[1]; 
   tmp[2] = 0.5*A[1]*B[5]+0.5*B[1]*A[3]+0.5*A[0]*B[2]+0.5*B[0]*A[2]; 
@@ -31,7 +30,7 @@ void CartFieldBinOpMultiply2x2vSer_P1(const double *A, const double *B, const sh
   tmp[15] = 0.5*A[0]*B[15]+0.5*A[1]*B[14]+0.5*A[2]*B[13]+0.5*A[3]*B[10]; 
  
   // This tmp allows for in-place multiplication. 
-  for (short int i=0; i<16; i++) 
+  for (unsigned short int i=0; i<16; i++) 
   { 
     out[i] = tmp[i]; 
   } 
@@ -47,7 +46,6 @@ void CartFieldBinOpMultiply2x2vSer_P2(const double *A, const double *B, const sh
   // out:     output field A*B (same number of components as B). 
  
   double tmp[48]; 
- 
   tmp[0] = 0.5*A[7]*B[20]+0.5*A[6]*B[19]+0.5*A[5]*B[12]+0.5*A[4]*B[11]+0.5*A[3]*B[5]+0.5*A[2]*B[2]+0.5*A[1]*B[1]+0.5*A[0]*B[0]; 
   tmp[1] = 0.5000000000000001*A[5]*B[20]+0.447213595499958*A[3]*B[19]+0.5000000000000001*A[7]*B[12]+0.4472135954999579*A[1]*B[11]+0.447213595499958*B[5]*A[6]+0.5*A[2]*B[5]+0.4472135954999579*B[1]*A[4]+0.5*B[2]*A[3]+0.5*A[0]*B[1]+0.5*B[0]*A[1]; 
   tmp[2] = 0.447213595499958*A[3]*B[20]+0.5000000000000001*A[4]*B[19]+0.4472135954999579*A[2]*B[12]+0.5000000000000001*A[6]*B[11]+0.447213595499958*B[5]*A[7]+0.5*A[1]*B[5]+0.4472135954999579*B[2]*A[5]+0.5*B[1]*A[3]+0.5*A[0]*B[2]+0.5*B[0]*A[2]; 
@@ -98,7 +96,7 @@ void CartFieldBinOpMultiply2x2vSer_P2(const double *A, const double *B, const sh
   tmp[47] = 0.4472135954999579*A[5]*B[47]+0.4472135954999579*A[4]*B[47]+0.5*A[0]*B[47]+0.4472135954999579*A[7]*B[43]+0.5000000000000001*A[1]*B[43]+0.4472135954999579*A[6]*B[42]+0.5000000000000001*A[2]*B[42]+0.5*A[3]*B[30]; 
  
   // This tmp allows for in-place multiplication. 
-  for (short int i=0; i<48; i++) 
+  for (unsigned short int i=0; i<48; i++) 
   { 
     out[i] = tmp[i]; 
   } 

@@ -23,7 +23,7 @@ function VmLBO:init(tbl)
 
    self._phaseBasis = assert(
       tbl.phaseBasis, "Eq.VmLBO: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis = assert(
+   self._confBasis  = assert(
       tbl.confBasis, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'confBasis'")
    
    assert(tbl.nu, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'nu'")
@@ -36,10 +36,10 @@ function VmLBO:init(tbl)
 
    -- functions to perform LBO updates.
    if self._inNu then
-      self._volUpdate = VmLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._volUpdate  = VmLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    else
-      self._volUpdate = VmLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._volUpdate  = VmLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
@@ -99,7 +99,7 @@ function VmLBO:volTerm(w, dx, idx, q, out)
    if self._inNu then
      cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._flowUPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
    else
-     self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
+     self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- get pointer to nu field.
      cflFreq = self._volUpdate(w:data(), dx:data(), self._nuPtr:data(), self._flowUPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
    end
    return cflFreq
@@ -115,6 +115,8 @@ function VmLBO:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, o
      if self._inNu then
        vMuMidMax = self._surfUpdate[dir-self._cdim](
           wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._flowUPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+--       vMuMidMax = self._surfUpdate[dir-self._cdim](
+--          wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, 0.0, self._flowUPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      else
        self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
        vMuMidMax = self._surfUpdate[dir-self._cdim](
