@@ -6,22 +6,23 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
-local Grid = require "Grid"
-local DataStruct = require "DataStruct"
-local Basis = require "Basis"
-local Updater = require "Updater"
-local Lin = require "Lib.Linalg"
+local Unit           = require "Unit"
+local Grid           = require "Grid"
+local DataStruct     = require "DataStruct"
+local Basis          = require "Basis"
+local Updater        = require "Updater"
+local Lin            = require "Lib.Linalg"
 local CalcDiagnostic = require "Updater.CalcDiagnostic"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
-local stats = Unit.stats
+local stats        = Unit.stats
 
 ------------------------------------------------------------------------------------
 ---                    Test in 1x
 --- * Test weak division of a scalar 1x field by a scalar 1x field.
 --- * Test weak multiplication of a scalar 1x field by a scalar 1x field.
+--- * Test dot product of 1D vector fields.
 ------------------------------------------------------------------------------------
 function test_binOp1x(nx, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -62,6 +63,17 @@ function test_binOp1x(nx, p, writeMatrix)
       numComponents = basis:numBasis(),
       ghost         = {1, 1},
    }
+   -- Calculated and analytic dot momentum squared.
+   local mom1Sq = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   local mom1SqA = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
 
    -- Initialize number density and first moment.
    local initDens = Updater.ProjectOnBasis {
@@ -93,6 +105,15 @@ function test_binOp1x(nx, p, writeMatrix)
                  end
    }
    initMom1i:advance(0.,0.,{},{mom1A})
+   local initMom1Sqi = Updater.ProjectOnBasis {
+      onGrid   = confGrid,
+      basis    = basis,
+      evaluate = function (t,xn)
+                    local x = xn[1]
+                    return ((math.exp(-x))*math.sin(4.0*2.0*math.pi*x))^2
+                 end
+   }
+   initMom1Sqi:advance(0.,0.,{},{mom1SqA})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -132,6 +153,17 @@ function test_binOp1x(nx, p, writeMatrix)
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
 
+   local confDotProduct = Updater.CartFieldBinOp {
+      onGrid     = confGrid,
+      weakBasis  = basis,
+      operation  = "DotProduct",
+   }
+   print("Computing momentum squared...")
+   local t1 = os.clock()
+   confDotProduct:advance(0.,0.,{mom1,mom1},{mom1Sq})
+   local t2 = os.clock()
+   io.write("Mom1Sq computation took total of ", t2-t1, " s\n")
+
    local errU = DataStruct.Field {
       onGrid        = confGrid,
       numComponents = basis:numBasis(),
@@ -142,13 +174,21 @@ function test_binOp1x(nx, p, writeMatrix)
       numComponents = basis:numBasis(),
       ghost = {1, 1}
    }
+   local errMom1Sq = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost = {1, 1}
+   }
 
    errU:combine(1.0, UiA, -1.0, Ui)
    errMom1:combine(1.0, mom1A, -1.0, mom1)
+   errMom1Sq:combine(1.0, mom1SqA, -1.0, mom1Sq)
 
    numDens:write("numDens.bp", 0.0)
    mom1A:write("mom1A.bp", 0.0)
    mom1:write("mom1.bp", 0.0)
+   mom1SqA:write("mom1SqA.bp", 0.0)
+   mom1Sq:write("mom1Sq.bp", 0.0)
    Ui:write("Ui.bp", 0.0)
    UiA:write("UiA.bp", 0.0)
 
@@ -167,8 +207,13 @@ function test_binOp1x(nx, p, writeMatrix)
    calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
+
+   local dynVecMom1Sq = DataStruct.DynVector { numComponents = 1 }
+   calcInt:advance(0.0, 0.0, {errMom1Sq}, {dynVecMom1Sq})
+   local tmMom1Sq, lvMom1Sq = dynVecMom1Sq:lastData()
+   io.write("Average RMS in Mom1Sq error = ", math.sqrt(lvMom1Sq[1]), "\n")
    print()
-   return math.sqrt(lvUi[1]), math.sqrt(lvMom1[1])
+   return math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), math.sqrt(lvMom1Sq[1])
 end
 
 ------------------------------------------------------------------------------------
@@ -177,6 +222,8 @@ end
 --- * Test weak multiplication of a scalar 2x field by a scalar 2x field.
 --- * Test weak division of a 2D vector in 2x by a scalar 2x field.
 --- * Test weak multiplication of a 2D vector in 2x by a scalar 2x field.
+--- * Test dot product of a 2D vector field with itself.
+--- * Test dot product of two different 2D vector fields.
 ------------------------------------------------------------------------------------
 function test_binOp2x(nx, ny, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -235,6 +282,28 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    local UiA2D = DataStruct.Field {
       onGrid        = confGrid,
       numComponents = basis:numBasis()*2,
+      ghost         = {1, 1},
+   }
+   -- Calculated and analytic speed squared and
+   -- kinetic energy.
+   local Usq = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   local UsqA = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   local Ke = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   local KeA = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
       ghost         = {1, 1},
    }
 
@@ -309,7 +378,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
                  end
    }
    initUi:advance(0.,0.,{},{UiA})
-   -- Analytic flow speed.
+   -- Analytic 2D flow velocity.
    local initUi2D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -324,6 +393,31 @@ function test_binOp2x(nx, ny, p, writeMatrix)
                  end
    }
    initUi2D:advance(0.,0.,{},{UiA2D})
+   -- Analytic flow speed squared.
+   local initUsq = Updater.ProjectOnBasis {
+      onGrid   = confGrid,
+      basis    = basis,
+      evaluate = function (t,xn)
+                    local x, y = xn[1], xn[2]
+                    return 2.0
+                 end
+   }
+   initUsq:advance(0.,0.,{},{UsqA})
+   -- Analytic kinetic energy.
+   local initKe = Updater.ProjectOnBasis {
+      onGrid   = confGrid,
+      basis    = basis,
+      evaluate = function (t,xn)
+                    local x, y = xn[1], xn[2]
+                    local mu  = 0.5
+                    local sig = 0.04
+                    return (math.exp(-((x-mu)/(math.sqrt(2)*sig))^2)*
+                            math.exp(-((y-mu)/(math.sqrt(2)*sig))^2))+0.1
+                          +(math.exp(-((x-mu)/(math.sqrt(2)*sig))^2)*
+                            math.exp(-((y-mu)/(math.sqrt(2)*sig))^2))+0.1 
+                 end
+   }
+   initKe:advance(0.,0.,{},{KeA})
 
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
@@ -359,6 +453,22 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    local t2 = os.clock()
    io.write("Mom12D computation took total of ", t2-t1, " s\n")
 
+   local confDotProduct = Updater.CartFieldBinOp {
+      onGrid     = confGrid,
+      weakBasis  = basis,
+      operation  = "DotProduct",
+   }
+   print("Computing speed squared...")
+   local t1 = os.clock()
+   confDotProduct:advance(0.,0.,{UiA2D,UiA2D},{Usq})
+   local t2 = os.clock()
+   io.write("Usq computation took total of ", t2-t1, " s\n")
+   print("Computing kinetic energy...")
+   local t1 = os.clock()
+   confDotProduct:advance(0.,0.,{UiA2D,mom1A2D},{Ke})
+   local t2 = os.clock()
+   io.write("Ke computation took total of ", t2-t1, " s\n")
+
    local errU = DataStruct.Field {
       onGrid        = confGrid,
       numComponents = basis:numBasis(),
@@ -379,11 +489,23 @@ function test_binOp2x(nx, ny, p, writeMatrix)
       numComponents = basis:numBasis()*2,
       ghost = {1, 1}
    }
+   local errUsq = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost = {1, 1}
+   }
+   local errKe = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost = {1, 1}
+   }
 
    errU:combine(1.0, UiA, -1.0, Ui)
    errMom1:combine(1.0, mom1A, -1.0, mom1)
    errU2D:combine(1.0, UiA2D, -1.0, Ui2D)
    errMom12D:combine(1.0, mom1A2D, -1.0, mom12D)
+   errUsq:combine(1.0, UsqA, -1.0, Usq)
+   errKe:combine(1.0, KeA, -1.0, Ke)
 
    numDens:write("numDens.bp", 0.0)
    mom1A:write("mom1A.bp", 0.0)
@@ -394,6 +516,10 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    mom12D:write("mom12D.bp", 0.0)
    Ui2D:write("Ui2D.bp", 0.0)
    UiA2D:write("UiA2D.bp", 0.0)
+   Usq:write("Usq.bp", 0.0)
+   UsqA:write("UsqA.bp", 0.0)
+   Ke:write("Ke.bp", 0.0)
+   KeA:write("KeA.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
       onGrid        = confGrid,
@@ -426,9 +552,18 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    calcInt2D:advance(0.0, 0.0, {errMom12D}, {dynVecMom12D})
    local tmMom12D, lvMom12D = dynVecMom12D:lastData()
    io.write("Average RMS in Mom12D error = (", math.sqrt(lvMom12D[1]),",", math.sqrt(lvMom12D[2]),") \n")
+
+   local dynVecUsq = DataStruct.DynVector { numComponents = 1 }
+   calcInt:advance(0.0, 0.0, {errUsq}, {dynVecUsq})
+   local tmUsq, lvUsq = dynVecUsq:lastData()
+   io.write("Average RMS in Usq error = ", math.sqrt(lvUsq[1]), "\n")
+   local dynVecKe = DataStruct.DynVector { numComponents = 1 }
+   calcInt:advance(0.0, 0.0, {errKe}, {dynVecKe})
+   local tmKe, lvKe = dynVecKe:lastData()
+   io.write("Average RMS in Ke error = ", math.sqrt(lvKe[1]), "\n")
    print()
    return math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), math.sqrt(lvUi2D[1]), math.sqrt(lvMom12D[1]), 
-          math.sqrt(lvUi2D[2]), math.sqrt(lvMom12D[2])
+          math.sqrt(lvUi2D[2]), math.sqrt(lvMom12D[2]), math.sqrt(lvUsq[1]), math.sqrt(lvKe[1])
 end
 
 ------------------------------------------------------------------------------------
@@ -437,6 +572,9 @@ end
 --- * Test weak multiplication of a scalar 3x field by a scalar 3x field.
 --- * Test weak division of a 3D vector in 3x by a scalar 3x field.
 --- * Test weak multiplication of a 3D vector in 3x by a scalar 3x field.
+--- * Test dot product of a 3D vector field with itself.
+--- * Test dot product of two different 3D vector fields.
+-- 
 ------------------------------------------------------------------------------------
 function test_binOp3x(nx, ny, nz, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -495,6 +633,28 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    local UiA3D = DataStruct.Field {
       onGrid        = confGrid,
       numComponents = basis:numBasis()*3,
+      ghost         = {1, 1},
+   }
+   -- Calculated and analytic speed squared
+   -- and kinetic energy.
+   local Usq = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   local UsqA = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   local Ke = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   local KeA = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
       ghost         = {1, 1},
    }
 
@@ -576,6 +736,33 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                  end
    }
    initUi3D:advance(0.,0.,{},{UiA3D})
+   -- Analytic squared speed.
+   local initUsq = Updater.ProjectOnBasis {
+      onGrid   = confGrid,
+      basis    = basis,
+      evaluate = function (t,xn)
+                    local mu  = 0.5
+                    local sig = 0.04
+                    local x, y, z = xn[1], xn[2], xn[3]
+                    return (math.sin(4.0*2.0*math.pi*x))^2+1.0+1.0
+                 end
+   }
+   initUsq:advance(0.,0.,{},{UsqA})
+   -- Analytic kinetic energy.
+   local initKe = Updater.ProjectOnBasis {
+      onGrid   = confGrid,
+      basis    = basis,
+      evaluate = function (t,xn)
+                    local mu  = 0.5
+                    local sig = 0.04
+                    local x, y, z = xn[1], xn[2], xn[3]
+                    return math.exp(-x)*math.exp(-((y-mu)/(math.sqrt(2)*sig))^2)*(math.tanh(z)+3.0)*
+                           math.sin(4.0*2.0*math.pi*x)*math.sin(4.0*2.0*math.pi*x)  
+                          +math.exp(-x)*math.exp(-((y-mu)/(math.sqrt(2)*sig))^2)*(math.tanh(z)+3.0)
+                          +math.exp(-x)*math.exp(-((y-mu)/(math.sqrt(2)*sig))^2)*(math.tanh(z)+3.0)
+                 end
+   }
+   initKe:advance(0.,0.,{},{KeA})
 
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
@@ -611,6 +798,22 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    local t2 = os.clock()
    io.write("Mom13D computation took total of ", t2-t1, " s\n")
 
+   local confDotProduct = Updater.CartFieldBinOp {
+      onGrid     = confGrid,
+      weakBasis  = basis,
+      operation  = "DotProduct",
+   }
+   print("Computing squared speed...")
+   local t1 = os.clock()
+   confDotProduct:advance(0.,0.,{UiA3D,UiA3D},{Usq})
+   local t2 = os.clock()
+   io.write("Usq computation took total of ", t2-t1, " s\n")
+   print("Computing kinetic energy...")
+   local t1 = os.clock()
+   confDotProduct:advance(0.,0.,{UiA3D,mom1A3D},{Ke})
+   local t2 = os.clock()
+   io.write("Ke computation took total of ", t2-t1, " s\n")
+
    local errU = DataStruct.Field {
       onGrid        = confGrid,
       numComponents = basis:numBasis(),
@@ -631,11 +834,23 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
       numComponents = basis:numBasis()*3,
       ghost = {1, 1}
    }
+   local errUsq = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost = {1, 1}
+   }
+   local errKe = DataStruct.Field {
+      onGrid        = confGrid,
+      numComponents = basis:numBasis(),
+      ghost = {1, 1}
+   }
 
    errU:combine(1.0, UiA, -1.0, Ui)
    errMom1:combine(1.0, mom1A, -1.0, mom1)
    errU3D:combine(1.0, UiA3D, -1.0, Ui3D)
    errMom13D:combine(1.0, mom1A3D, -1.0, mom13D)
+   errUsq:combine(1.0, UsqA, -1.0, Usq)
+   errKe:combine(1.0, KeA, -1.0, Ke)
 
    numDens:write("numDens.bp", 0.0)
    mom1A:write("mom1A.bp", 0.0)
@@ -646,6 +861,10 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    mom13D:write("mom13D.bp", 0.0)
    Ui3D:write("Ui3D.bp", 0.0)
    UiA3D:write("UiA3D.bp", 0.0)
+   Usq:write("Usq.bp", 0.0)
+   UsqA:write("UsqA.bp", 0.0)
+   Ke:write("Ke.bp", 0.0)
+   KeA:write("KeA.bp", 0.0)
 
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
       onGrid        = confGrid,
@@ -678,13 +897,24 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    calcInt3D:advance(0.0, 0.0, {errMom13D}, {dynVecMom13D})
    local tmMom13D, lvMom13D = dynVecMom1:lastData()
    io.write("Average RMS in Mom13D error = (", math.sqrt(lvMom13D[1]),",", math.sqrt(lvMom13D[2]),",", math.sqrt(lvMom13D[3]),") \n")
+
+   local dynVecUsq = DataStruct.DynVector { numComponents = 1 }
+   calcInt:advance(0.0, 0.0, {errUsq}, {dynVecUsq})
+   local tmUsq, lvUsq = dynVecUsq:lastData()
+   io.write("Average RMS in Usq error = ", math.sqrt(lvUsq[1]), "\n")
+   local dynVecKe = DataStruct.DynVector { numComponents = 1 }
+   calcInt:advance(0.0, 0.0, {errKe}, {dynVecKe})
+   local tmKe, lvKe = dynVecKe:lastData()
+   io.write("Average RMS in Ke error = ", math.sqrt(lvKe[1]), "\n")
+
    print()
    return math.sqrt(lvUi[1]), math.sqrt(lvMom1[1]), math.sqrt(lvUi3D[1]), math.sqrt(lvMom13D[1]), 
-          math.sqrt(lvUi3D[2]), math.sqrt(lvMom13D[2]), math.sqrt(lvUi3D[3]), math.sqrt(lvMom13D[3])
+          math.sqrt(lvUi3D[2]), math.sqrt(lvMom13D[2]), math.sqrt(lvUi3D[3]), math.sqrt(lvMom13D[3]),
+          math.sqrt(lvUsq[1]), math.sqrt(lvKe[1])
 end
 
 ------------------------------------------------------------------------------------
----                    Test in 1x1V
+---                    Test in 1x1v
 --- * Test weak division of a scalar 1x field by a scalar 1x field.
 --- * Test weak multiplication of a scalar 1x field by a scalar 1x field.
 --- * Test weak multiplication of a 1x1v scalar field by a scalar 1x field.
@@ -2277,13 +2507,15 @@ end
 function binOp1x_conv(p)
   print(" ")
   print("--- Testing convergence of BinOpSer1x updater with p=",p," ---")
-  errUi1, errMom11 = test_binOp1x(32, p)
-  errUi2, errMom12 = test_binOp1x(64, p)
-  errUi3, errMom13 = test_binOp1x(128, p)
+  errUi1, errMom11, errMom1Sq1 = test_binOp1x(32, p)
+  errUi2, errMom12, errMom1Sq2 = test_binOp1x(64, p)
+  errUi3, errMom13, errMom1Sq3 = test_binOp1x(128, p)
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
   print("Multiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
                            math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("DotProduct order:", math.log10(errMom1Sq1/errMom1Sq2)/math.log10(2.0), 
+                             math.log10(errMom1Sq2/errMom1Sq3)/math.log10(2.0))
 --  assert_close(1.0, err1/err2/4.0, .01)
 --  assert_close(1.0, err2/err3/4.0, .01)
   print()
@@ -2295,13 +2527,20 @@ end
 function binOp2x_conv(p)
   print(" ")
   print("--- Testing convergence of BinOpSer2x updater with p=",p," ---")
-  errUi1, errMom11, errUi2Dx1, errMom12Dx1, errUi2Dy1, errMom12Dy1 = test_binOp2x(32, 32, p)
-  errUi2, errMom12, errUi2Dx2, errMom12Dx2, errUi2Dy2, errMom12Dy2 = test_binOp2x(64, 64, p)
-  errUi3, errMom13, errUi2Dx3, errMom12Dx3, errUi2Dy3, errMom12Dy3 = test_binOp2x(128, 128, p)
+  errUi1, errMom11, errUi2Dx1, errMom12Dx1, 
+    errUi2Dy1, errMom12Dy1, errUsq1, errKe1 = test_binOp2x(32, 32, p)
+  errUi2, errMom12, errUi2Dx2, errMom12Dx2,
+    errUi2Dy2, errMom12Dy2, errUsq2, errKe2 = test_binOp2x(64, 64, p)
+  errUi3, errMom13, errUi2Dx3, errMom12Dx3,
+    errUi2Dy3, errMom12Dy3, errUsq3, errKe3 = test_binOp2x(128, 128, p)
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
   print("Multiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
                            math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("Same field DotProduct order:", math.log10(errUsq1/errUsq2)/math.log10(2.0), 
+                                        math.log10(errUsq2/errUsq3)/math.log10(2.0))
+  print("Different field DotProduct order:", math.log10(errKe1/errKe2)/math.log10(2.0), 
+                                             math.log10(errKe2/errKe3)/math.log10(2.0))
   print("2D Division order: (", math.log10(errUi2Dx1/errUi2Dx2)/math.log10(2.0),",", 
     math.log10(errUi2Dy1/errUi2Dy2)/math.log10(2.0),")  (", 
     math.log10(errUi2Dx2/errUi2Dx3)/math.log10(2.0),",", math.log10(errUi2Dy2/errUi2Dy3)/math.log10(2.0))
@@ -2319,16 +2558,20 @@ end
 function binOp3x_conv(p)
   print(" ")
   print("--- Testing convergence of BinOpSer3x updater with p=",p," ---")
-  errUi1, errMom11, errUi3Dx1, errMom13Dx1, 
-    errUi3Dy1, errMom13Dy1, errUi3Dz1, errMom13Dz1 = test_binOp3x(32, 32, 32, p)
-  errUi2, errMom12, errUi3Dx2, errMom13Dx2, 
-    errUi3Dy2, errMom13Dy2, errUi3Dz2, errMom13Dz2 = test_binOp3x(64, 64, 64, p)
-  errUi3, errMom13, errUi3Dx3, errMom13Dx3, 
-    errUi3Dy3, errMom13Dy3, errUi3Dz3, errMom13Dz3 = test_binOp3x(128, 128, 128, p)
+  errUi1, errMom11, errUi3Dx1, errMom13Dx1, errUi3Dy1, errMom13Dy1, 
+    errUi3Dz1, errMom13Dz1, errUsq1, errKe1 = test_binOp3x(32, 32, 32, p)
+  errUi2, errMom12, errUi3Dx2, errMom13Dx2, errUi3Dy2, errMom13Dy2, 
+    errUi3Dz2, errMom13Dz2, errUsq2, errKe2 = test_binOp3x(64, 64, 64, p)
+  errUi3, errMom13, errUi3Dx3, errMom13Dx3, errUi3Dy3, errMom13Dy3, 
+    errUi3Dz3, errMom13Dz3, errUsq3, errKe3 = test_binOp3x(128, 128, 128, p)
   print("Division order:", math.log10(errUi1/errUi2)/math.log10(2.0), 
                            math.log10(errUi2/errUi3)/math.log10(2.0))
   print("Multiply order:", math.log10(errMom11/errMom12)/math.log10(2.0), 
                            math.log10(errMom12/errMom13)/math.log10(2.0))
+  print("Same field DotProduct order:", math.log10(errUsq1/errUsq2)/math.log10(2.0), 
+                                        math.log10(errUsq2/errUsq3)/math.log10(2.0))
+  print("Different field DotProduct order:", math.log10(errKe1/errKe2)/math.log10(2.0), 
+                                             math.log10(errKe2/errKe3)/math.log10(2.0))
   print("3D Division order: (", math.log10(errUi3Dx1/errUi3Dx2)/math.log10(2.0),",", 
     math.log10(errUi3Dy1/errUi3Dy2)/math.log10(2.0),",",math.log10(errUi3Dz1/errUi3Dz2)/math.log10(2.0),")  (", 
     math.log10(errUi3Dx2/errUi3Dx3)/math.log10(2.0),",", math.log10(errUi3Dy2/errUi3Dy3)/math.log10(2.0),",",math.log10(errUi3Dz2/errUi3Dz3)/math.log10(2.0),")")
@@ -2473,7 +2716,7 @@ end
 -- run tests
 local t1 = os.clock()
 -- binOp1x_conv(1)
--- binOp1x_conv(2)
+binOp1x_conv(2)
 -- binOp2x_conv(1)
 -- binOp2x_conv(2)
 -- binOp3x_conv(1)  -- This one takes a little time.
@@ -2482,7 +2725,7 @@ local t1 = os.clock()
 -- binOp1x1v_conv(2)
 -- binOp1x2v_conv(1)
 -- binOp1x2v_conv(2)
-binOp2x2v_conv(1)
+-- binOp2x2v_conv(1)
 -- binOp2x2v_conv(2)
 -- binOp2x3v_conv(1)
 -- binOp2x3v_conv(2)
@@ -2491,10 +2734,11 @@ binOp2x2v_conv(1)
 local t2 = os.clock()
 
 print()
-if stats.fail > 0 then
-   print(string.format("\nPASSED %d tests", stats.pass))
-   print(string.format("**** FAILED %d tests", stats.fail))
-else
-   print(string.format("PASSED ALL %d tests!", stats.pass))
-end
+-- if stats.fail > 0 then
+--    print(string.format("\nPASSED %d tests", stats.pass))
+--    print(string.format("**** FAILED %d tests", stats.fail))
+-- else
+--    print(string.format("PASSED ALL %d tests!", stats.pass))
+-- end
+print(string.format("Tests finished! Check RMS error and order of convergence."))
 io.write("Total test time: ", t2-t1, " s\n")

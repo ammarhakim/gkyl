@@ -69,7 +69,7 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Compute the wxl-u drift part separately. */
     printf(fh, "  double drBar[~a]; ~%", NC*vdim),
-    /* w-u part of the drag term. */
+    /* -(w-u) part of the drag term. */
     for dir : 1 thru vdim do (
        drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-w[vid[dir]]+u_e)),
        for i : 1 thru NC do (
