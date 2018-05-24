@@ -39,7 +39,7 @@ kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 printf(fh, "#include <VlasovModDecl.h> ~%"),
-for i : 1 thru 3 do (
+for i : 1 thru 4 do (
   bP : basisP[i],
   bC : basisC[i],
   numC : length(bC),
@@ -77,8 +77,6 @@ for i : 1 thru 3 do (
     printf(fh, "  }; ~%~%"),
     fl : doExpand1(f, bP),
     incr_cdim : calcInnerProdList(varsP, 2*wdx[1]+dvdx[1]*varsV[1], diff(bP,varsP[1]), fl),
-    clstcdim : [w0dx0, dv0dx0],
-    writeCExprsCollect1(incr0, incr_cdim, clstcdim),
     acc : calcAccel(1, vdim, bC),
     amid1 : float(expand(fullratsimp(subst(zr,acc)))),
     printf(fh, "  const double amid1 = ~a; ~%", amid1),
@@ -97,7 +95,7 @@ for i : 1 thru 3 do (
     for i : 1 thru length(expr) do (
        if expr[i] # 0.0 then incr_s1[i] : dv11[1]*incr1[i-1]
     ),
-    writeCIncrExprs1(out, incr_s0+incr_s1),
+    writeCIncrExprs1(out, incr_cdim+incr_s0+incr_s1),
     printf(fh, "return std::abs(w0dx0)+dv0dx0/2+std::abs(amid1)/dv1; ~%")
   ),
   if vdim = 2 then (
@@ -119,9 +117,7 @@ for i : 1 thru 3 do (
        printf(fh, "    incr~a[i]=0.0; ~%~%", 1),
        printf(fh, "    incr~a[i]=0.0; ~%~%", 2),
        printf(fh, "  }; ~%~%"),
-       incr_cdim1 : calcInnerProdList(varsP, 2*wdx[1]+dvdx[1]*varsV[1], diff(bP,varsP[1]), fl),
-       clstcdim : [w0dx0, dv0dx0],
-       writeCExprsCollect1(incr0, incr_cdim1, clstcdim)
+       incr_cdim : calcInnerProdList(varsP, 2*wdx[1]+dvdx[1]*varsV[1], diff(bP,varsP[1]), fl)
     ),
     if cdim = 2 then (
        printf(fh, "  double incr~a[~a]; ~%~%", 0, length(bP)),
@@ -132,10 +128,7 @@ for i : 1 thru 3 do (
        printf(fh, "    incr~a[i]=0.0; ~%~%", 1),
        printf(fh, "    incr~a[i]=0.0; ~%~%", 2),
        printf(fh, "  }; ~%~%"),
-       incr_cdim1 : calcInnerProdList(varsP, 2*wdx[1]+dvdx[1]*varsV[1], diff(bP,varsP[1]), fl),
-       incr_cdim2 : calcInnerProdList(varsP, 2*wdx[2]+dvdx[2]*varsV[2], diff(bP,varsP[2]), fl),
-       clstcdim : [w0dx0, dv0dx0, w1dx1, dv1dx1],
-       writeCExprsCollect1(incr0, incr_cdim1+incr_cdim2, clstcdim)
+       incr_cdim : calcInnerProdList(varsP, 2*wdx[1]+dvdx[1]*varsV[1], diff(bP,varsP[1]), fl)+calcInnerProdList(varsP, 2*wdx[2]+dvdx[2]*varsV[2], diff(bP,varsP[2]), fl)
     ),
     B2_e : doExpand1(B2,bC),
     acc : calcAccel(1, vdim, bC),
@@ -154,11 +147,6 @@ for i : 1 thru 3 do (
     writeCExprsCollect1(incr2, incr_r2, clst1),
     printf(fh, "~%"),
     if cdim = 1 then (
-       incr_s0 : makelist(0, i, 1, length(bP)),
-       expr : float(incr_cdim1),
-       for i : 1 thru length(expr) do (
-          if expr[i] # 0.0 then incr_s0[i] : incr0[i-1]
-       ),
        incr_s1 : makelist(0, i, 1, length(bP)),
        expr : float(incr_r1),
        for i : 1 thru length(expr) do (
@@ -169,15 +157,10 @@ for i : 1 thru 3 do (
        for i : 1 thru length(expr) do (
           if expr[i] # 0.0 then incr_s2[i] : dv11[2]*incr2[i-1]
        ),
-       writeCIncrExprs1(out, incr_s0+incr_s1+incr_s2),
+       writeCIncrExprs1(out, incr_cdim+incr_s1+incr_s2),
        printf(fh, "return std::abs(w0dx0)+dv0dx0/2+std::abs(amid1)/dv1+std::abs(amid2)/dv2; ~%")
     ),
     if cdim = 2 then (
-       incr_s0 : makelist(0, i, 1, length(bP)),
-       expr : float(incr_cdim1+incr_cdim2),
-       for i : 1 thru length(expr) do (
-          if expr[i] # 0.0 then incr_s0[i] : incr0[i-1]
-       ),
        incr_s1 : makelist(0, i, 1, length(bP)),
        expr : float(incr_r1),
        for i : 1 thru length(expr) do (
@@ -188,7 +171,7 @@ for i : 1 thru 3 do (
        for i : 1 thru length(expr) do (
           if expr[i] # 0.0 then incr_s2[i] : dv11[2]*incr2[i-1]
        ),
-       writeCIncrExprs1(out, incr_s0+incr_s1+incr_s2),
+       writeCIncrExprs1(out, incr_cdim+incr_s1+incr_s2),
        printf(fh, "return std::abs(w0dx0)+std::abs(w1dx1)+dv0dx0/2+dv1dx1/2+std::abs(amid1)/dv1+std::abs(amid2)/dv2; ~%")
     )
   ),
