@@ -11,14 +11,12 @@ fpprec : 24$
 cvars : [X, Y, Z]$
 varsV : [vx, vy, vz]$
 vvars : [VX, VY, VZ]$
-ux : [uX, uY, uZ]$
+ux    : [uX, uY, uZ]$
 
-cidx(cdim) := makelist(i,i,1,cdim)$
-vidx(cdim,vdim) := makelist(i,i,cdim+1,cdim+vdim)$
-cidx1(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim)  := makelist(i,i,cdim+1,cdim+vdim)$
 vidx1(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 load ("scifac")$
@@ -58,13 +56,13 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
     eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
     LHS : append(eqL,eqR),
-    A : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
+    A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
     
     /* RHS is similar to the mass matrix */
     RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
     
     /* solve system of equations for coefficients of h */
-    S : fullratsimp(invert(A) . RHS),
+    S     : fullratsimp(invert(A) . RHS),
     hsol1 : makelist(S[i][1],i,1,hOrder+1),
 
     /*... Recovery polynomial coefficients of requested dimensionality ...*/
@@ -74,9 +72,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     load(modNm),
 
     /* Variables. */
-    vid : vidx(cdim,vdim),
+    vid  : vidx(cdim,vdim),
     vid1 : vidx1(cdim,vdim),
-    vv : varsV[dir],
+    vv   : varsV[dir],
     surfVars : delete(vv,varsP),
 
     /* Polynomial basis and its derivatives. */
@@ -111,20 +109,17 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* First compute the contribution coming from the second
     ** differentiation by parts to left and right cells. */
     vtSq_e : doExpand1(vtSq,bC),
-    vtSq_c : makelist(vtSq[i],i,0,NC-1),
 
     /* Now do the contribution from the generalized flux Ghat. */
     basisFlip : subst(vv=-1*vv, bP),
-    signs : fullratsimp(basisFlip/bP),
+    signs     : fullratsimp(basisFlip/bP),
     /* Expand the average and jump functions in the phase basis. */
-    favg_e : doExpand1(favg, bP),
+    favg_e  : doExpand1(favg, bP),
     fjump_e : doExpand1(fjump, bP),
     /* Expand the mean flow speed in the configuration basis. */
-    
     u_e : doExpand1(ux[dir],bC),
-    u_c : makelist(ux[dir][i],i,0,NC-1),
     /* Calculate the drift. */
-    dr : (1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]]-u_e,
+    dr  : (1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]]-u_e,
     /* Separate out the wl-u part to simplify assignment of Ghat. */
     drD : (1/2)*dxvl[vid1[dir]]*vv,
     drBar_c : calcInnerProdList(varsC,1,bC,wl[vid1[dir]]-u_e),
@@ -133,12 +128,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* vMuMid is the value returned and from which vMuMidMax is computed. */
     zr : makelist(varsP[d]=0, d, 1, length(varsP)),
     vMuMid : float(expand(fullratsimp(subst(zr,dr)))),
-    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
-    vMuLMax : 0.0, /*float(expand(fullratsimp(subst(zr,(1/2)*dxvl[vid1[dir]]+wl[vid1[dir]]-u_e)))),
-    */
 
     /* Evaluate the average and jump functions at vv=1. */
-    fhat_avg : subst(vv=1, favg_e),
+    fhat_avg  : subst(vv=1, favg_e),
     fhat_jump : subst(vv=1, fjump_e),
 
     /* Separate out diffusion part of Ghat to simplify Ghat assignment.
@@ -147,7 +139,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
     ** but that could result in references to elements of Gdiff in Ghat
     ** which have value zero. Instead do the following: */
-    glst1 : doMakeExprLst(Gdiff_c, Gdiff),
+    glst1   : doMakeExprLst(Gdiff_c, Gdiff),
     Gdiff_e : doExpandLst(glst1, bP),
     /* Because f's in hsol are index-1, we need to switch to
     ** 0-indexed for C++. */
@@ -156,15 +148,15 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Calculate Ghat projected on the phase basis. */
     Ghat_eP : (1/2)*(subst(vv=1,drD)*fhat_avg-fhat_jump),
-    Ghat_c : calcInnerProdList(varsP,1,bP,Ghat_eP)
-            +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg))
-            +rdv*calcInnerProdList(varsP,1,bP,Gdiff_e),
+    Ghat_c  : calcInnerProdList(varsP,1,bP,Ghat_eP)
+             +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg))
+             +rdv*calcInnerProdList(varsP,1,bP,Gdiff_e),
             
 
     /* Ghat_c (coefficients of Ghat) is what gets written. From here
     ** on we can simply refer to Ghat. */
-    glst1 : doMakeExprLst(Ghat_c, Ghat),
-    Ghat_e : doExpandLst(glst1, bP),
+    glst1      : doMakeExprLst(Ghat_c, Ghat),
+    Ghat_e     : doExpandLst(glst1, bP),
     Ghat_final : subst(vv=1, Ghat_e),
 
     /* Contribution from second differentiation by parts. */
@@ -172,11 +164,11 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
-    incr_r1 : calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
+    incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
     incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), g),
 
     /* Increments to the left cell (some dimensional factors missing). */
-    incr_l1 : calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
+    incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
     incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), g),
 
     /* Because f's in hsol are index-1, we need to switch to
@@ -192,7 +184,6 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "// vtSq[~a]: thermal speed squared. ~%", NC),
     printf(fh, "// fl/fr: Distribution function in left/right cells ~%"),
     printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
-    cid : cidx1(cdim),
     printf(fh, "  double rdv = 1.0/dxvl[~a]; ~%", vid1[dir]),
     printf(fh, "  double rdv2nul = 2.0*nu/dxvl[~a]; ~%", vid1[dir]),
     printf(fh, "  double rdv2nur = 2.0*nu/dxvr[~a]; ~%", vid1[dir]),
@@ -200,15 +191,15 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  double rdvSq4nur = 4.0*nu/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
     printf(fh, "~%"),
 
+    /* Create pointer to component of u relevant to this surface. */
+    printf(fh, "  const double *u~a = &u[~a]; ~%", cvars[dir], NC*(dir-1)),
+    printf(fh, "~%"),
+
     /* Declare and populate favg. */
     printf(fh, "  double favg[~a]; ~%", NP),
     for c : 1 thru NP do (
       printf(fh, "  favg[~a] = ~a*fr[~a]+fl[~a]; ~%", c-1, signs[c], c-1, c-1)
     ),
-    printf(fh, "~%"),
-
-    /* Create pointer to component of u relevant to this surface. */
-    printf(fh, "  const double *u~a = &u[~a]; ~%", cvars[dir], NC*(dir-1)),
     printf(fh, "~%"),
 
     /* Declare and populate fjump. */
@@ -292,25 +283,6 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Write out contribution to left cell. */
     writeCIncrExprs1(outl, rdv2nul*incr_s1+rdvSq4nul*incr_s2), 
     printf(fh, "~%"),
-    /*
-    printf(fh, "  double incr1l[~a]; ~%", NP),
-    writeCExprsCollect1(incr1l, incr_l1, clst),
-    printf(fh, "~%"),
-    printf(fh, "  double incr2l[~a]; ~%", NP),
-    clst : makelist(vtSq[i],i,0,NC-1), 
-    writeCExprsCollect1c(incr2l, incr_l2, clst),
-    printf(fh, "~%"),
-    incr_s1 : makelist(incr1l[i-1], i, 1, NP),
-    incr_s2 : makelist(incr2l[i-1], i, 1, NP),
-    for i : 1 thru NP do (
-      if (incr_l1[i] = 0) then
-        incr_s1[i] : 0,
-      if (incr_l2[i] = 0) then
-        incr_s2[i] : 0
-    ), 
-    writeCIncrExprs1(outl, rdv2nul*(incr_s1+incr_s2)),
-    printf(fh, "~%"),
-    */
 
     printf(fh, "  const double vMuMid = ~a; ~%", vMuMid),
     printf(fh, "  return std::abs(vMuMid); ~%"),

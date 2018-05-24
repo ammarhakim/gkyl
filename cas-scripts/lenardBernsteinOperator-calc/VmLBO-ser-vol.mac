@@ -5,7 +5,7 @@ load(stringproc)$
 inMaxPolyOrder : 3$
 
 for c : 1 thru 2 do (
-  for v : c thru 2 do (
+  for v : c thru 3 do (
     disp(printf(false,"Creating volume VmLBOconstNu ~ax~av",c,v)),
     fname : sconcat("~/max-out/VmLBOconstNuSer", c, "x", v, "v", ".cpp"),
     fh : openw(fname),

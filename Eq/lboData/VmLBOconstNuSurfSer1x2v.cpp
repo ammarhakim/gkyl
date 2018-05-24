@@ -14,6 +14,8 @@ double VmLBOconstNuSurf1x2vSer_VX_P1(const double *wl, const double *wr, const d
   double rdvSq4nul = 4.0*nu/(dxvl[1]*dxvl[1]); 
   double rdvSq4nur = 4.0*nu/(dxvr[1]*dxvr[1]); 
 
+  const double *uX = &u[0]; 
+
   double favg[8]; 
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
@@ -23,8 +25,6 @@ double VmLBOconstNuSurf1x2vSer_VX_P1(const double *wl, const double *wr, const d
   favg[5] = 1*fr[5]+fl[5]; 
   favg[6] = -1*fr[6]+fl[6]; 
   favg[7] = -1*fr[7]+fl[7]; 
-
-  const double *uX = &u[0]; 
 
   double fjump[8]; 
   fjump[0] = vMuMidMax*(fl[0]-(1*fr[0])); 
@@ -108,6 +108,8 @@ double VmLBOconstNuSurf1x2vSer_VX_P2(const double *wl, const double *wr, const d
   double rdvSq4nul = 4.0*nu/(dxvl[1]*dxvl[1]); 
   double rdvSq4nur = 4.0*nu/(dxvr[1]*dxvr[1]); 
 
+  const double *uX = &u[0]; 
+
   double favg[20]; 
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
@@ -129,8 +131,6 @@ double VmLBOconstNuSurf1x2vSer_VX_P2(const double *wl, const double *wr, const d
   favg[17] = -1*fr[17]+fl[17]; 
   favg[18] = 1*fr[18]+fl[18]; 
   favg[19] = -1*fr[19]+fl[19]; 
-
-  const double *uX = &u[0]; 
 
   double fjump[20]; 
   fjump[0] = vMuMidMax*(fl[0]-(1*fr[0])); 
@@ -279,6 +279,8 @@ double VmLBOconstNuSurf1x2vSer_VX_P3(const double *wl, const double *wr, const d
   double rdvSq4nul = 4.0*nu/(dxvl[1]*dxvl[1]); 
   double rdvSq4nur = 4.0*nu/(dxvr[1]*dxvr[1]); 
 
+  const double *uX = &u[0]; 
+
   double favg[32]; 
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
@@ -312,8 +314,6 @@ double VmLBOconstNuSurf1x2vSer_VX_P3(const double *wl, const double *wr, const d
   favg[29] = -1*fr[29]+fl[29]; 
   favg[30] = -1*fr[30]+fl[30]; 
   favg[31] = -1*fr[31]+fl[31]; 
-
-  const double *uX = &u[0]; 
 
   double fjump[32]; 
   fjump[0] = vMuMidMax*(fl[0]-(1*fr[0])); 
@@ -527,6 +527,8 @@ double VmLBOconstNuSurf1x2vSer_VY_P1(const double *wl, const double *wr, const d
   double rdvSq4nul = 4.0*nu/(dxvl[2]*dxvl[2]); 
   double rdvSq4nur = 4.0*nu/(dxvr[2]*dxvr[2]); 
 
+  const double *uY = &u[2]; 
+
   double favg[8]; 
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
@@ -536,8 +538,6 @@ double VmLBOconstNuSurf1x2vSer_VY_P1(const double *wl, const double *wr, const d
   favg[5] = -1*fr[5]+fl[5]; 
   favg[6] = -1*fr[6]+fl[6]; 
   favg[7] = -1*fr[7]+fl[7]; 
-
-  const double *uY = &u[2]; 
 
   double fjump[8]; 
   fjump[0] = vMuMidMax*(fl[0]-(1*fr[0])); 
@@ -621,6 +621,8 @@ double VmLBOconstNuSurf1x2vSer_VY_P2(const double *wl, const double *wr, const d
   double rdvSq4nul = 4.0*nu/(dxvl[2]*dxvl[2]); 
   double rdvSq4nur = 4.0*nu/(dxvr[2]*dxvr[2]); 
 
+  const double *uY = &u[3]; 
+
   double favg[20]; 
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
@@ -642,8 +644,6 @@ double VmLBOconstNuSurf1x2vSer_VY_P2(const double *wl, const double *wr, const d
   favg[17] = -1*fr[17]+fl[17]; 
   favg[18] = -1*fr[18]+fl[18]; 
   favg[19] = 1*fr[19]+fl[19]; 
-
-  const double *uY = &u[3]; 
 
   double fjump[20]; 
   fjump[0] = vMuMidMax*(fl[0]-(1*fr[0])); 
@@ -792,6 +792,8 @@ double VmLBOconstNuSurf1x2vSer_VY_P3(const double *wl, const double *wr, const d
   double rdvSq4nul = 4.0*nu/(dxvl[2]*dxvl[2]); 
   double rdvSq4nur = 4.0*nu/(dxvr[2]*dxvr[2]); 
 
+  const double *uY = &u[4]; 
+
   double favg[32]; 
   favg[0] = 1*fr[0]+fl[0]; 
   favg[1] = 1*fr[1]+fl[1]; 
@@ -825,8 +827,6 @@ double VmLBOconstNuSurf1x2vSer_VY_P3(const double *wl, const double *wr, const d
   favg[29] = -1*fr[29]+fl[29]; 
   favg[30] = -1*fr[30]+fl[30]; 
   favg[31] = -1*fr[31]+fl[31]; 
-
-  const double *uY = &u[4]; 
 
   double fjump[32]; 
   fjump[0] = vMuMidMax*(fl[0]-(1*fr[0])); 
