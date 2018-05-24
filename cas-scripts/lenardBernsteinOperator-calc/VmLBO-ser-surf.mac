@@ -3,8 +3,8 @@ load(stringproc)$
 
 polyOrderMax : 3$
 
-for c : 1 thru 2 do (
-  for v : c thru 2 do (
+for c : 1 thru 3 do (
+  for v : c thru 3 do (
    disp(printf(false,"Creating surface VmLBOconstNu ~ax~av",c,v)),
    fname : sconcat("~/max-out/VmLBOconstNuSurfSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),

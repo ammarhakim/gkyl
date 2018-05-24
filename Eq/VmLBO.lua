@@ -115,8 +115,6 @@ function VmLBO:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, o
      if self._inNu then
        vMuMidMax = self._surfUpdate[dir-self._cdim](
           wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._flowUPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
---       vMuMidMax = self._surfUpdate[dir-self._cdim](
---          wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, 0.0, self._flowUPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      else
        self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
        vMuMidMax = self._surfUpdate[dir-self._cdim](
