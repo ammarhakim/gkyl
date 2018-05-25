@@ -589,7 +589,7 @@ return {
    AdiabaticSpecies   = Species.AdiabaticSpecies,
    App                = App,
    BgkCollisions      = Collisions.BgkCollisions,   
-   VmLBOCollisions    = Collisions.VmLBOCollisions,   
+   VmLBOCollisions    = Collisions.VmLBOCollisions,
    FuncMaxwellField   = Field.FuncMaxwellField,
    GkField            = Field.GkField,
    GkGeometry         = Field.GkGeometry,
