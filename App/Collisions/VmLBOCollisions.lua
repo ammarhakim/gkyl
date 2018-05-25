@@ -84,6 +84,14 @@ function VmLBOCollisions:createSolver(species)
    end
 
    self.vdim = phaseGrid:ndim()-confGrid:ndim()
+
+   -- intemediate storage for output of collisions
+   self.collOut = DataStruct.Field {
+      onGrid        = phaseGrid,
+      numComponents = phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }   
+   
    -- Flow velocity in vdim directions.
    self.velocity = DataStruct.Field {
       onGrid        = confGrid,
@@ -108,7 +116,7 @@ function VmLBOCollisions:createSolver(species)
       ghost         = {1, 1},
    }
    -- Lenard-Bernestein equation.
-   local VmLBOconstNuCalc = VmLBOconstNuEq {
+   local vmLBOconstNuCalc = VmLBOconstNuEq {
       nu         = self.collFreq[1],
       phaseBasis = phaseBasis,
       confBasis  = confBasis,
@@ -122,7 +130,8 @@ function VmLBOCollisions:createSolver(species)
       onGrid             = phaseGrid,
       basis              = phaseBasis,
       cfl                = self.cfl,
-      equation           = VmLBOconstNuCalc,
+      equation           = vmLBOconstNuCalc,
+      onlyIncrement      = true,
       zeroFluxDirections = zfd,
    }
    -- Also need weak binary operations for primitive moments.
@@ -154,29 +163,27 @@ function primMoments(mom0,mom1,mom2)
 end
 
 function VmLBOCollisions:forwardEuler(tCurr, dt, idxIn, idxOut, species)
-   local spOutFields, spMomFields = {},  {}
    -- Timings
    local tmEvalMomStart = 0.0
-   -- for _, nm in pairs(self.speciesList) do
-   -- for nm in self.speciesList do
-      nm = "neut"
-      spMomFields[nm] = species[nm]:fluidMoments()
-      spOutFields[nm] = species[nm]:rkStepperFields()[idxOut]
+   local nm = self.speciesList[1] -- for now, only self-collisions
+   local spMomFields = species[nm]:fluidMoments()
+   local spInField = species[nm]:rkStepperFields()[idxIn]
+   local spOutField = species[nm]:rkStepperFields()[idxOut]
 
    tmEvalMomStart = Time.clock()
-   --   primMoments(spMomFields[nm][1],spMomFields[nm][2],spMomFields[nm][3]) 
-      -- Compute the flow velocity using weak division of mom0 and mom1.
-      self.confDiv:advance(0.,0.,{spMomFields[nm][1],spMomFields[nm][2]},{self.velocity})
-      -- Compute kinetic energy using weak multiplication of u and mom1.
-      self.confDotProduct:advance(0.,0.,{self.velocity,spMomFields[nm][2]},{self.kinEnergyDensM})
-      -- Thermal energy density =  mom2 - u*mom1.
-      self.thEnergyDens:combine(1.0/self.vdim, spMomFields[nm][3], -1.0/self.vdim, self.kinEnergyDensM)
-      -- Compute thermal speed squared via weak division of thEnergy and mom0.
-      self.confDiv:advance(0.,0.,{spMomFields[nm][1],self.thEnergyDens},{self.vthSq})
+   -- compute primitive moments
+   self.confDiv:advance(0.,0.,{spMomFields[1], spMomFields[2]},{self.velocity})
+   self.confDotProduct:advance(0.,0.,{self.velocity,spMomFields[2]},{self.kinEnergyDensM})
+   self.thEnergyDens:combine(1.0/self.vdim, spMomFields[3], -1.0/self.vdim, self.kinEnergyDensM)
+   self.confDiv:advance(0.,0.,{spMomFields[1],self.thEnergyDens},{self.vthSq})
 
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
-      return self.collisionSlvr:advance(tCurr, dt, {spOutFields[nm],self.velocity,self.vthSq}, {spOutFields[nm]})
-   -- end
+   local myStatus, myDt = self.collisionSlvr:advance(
+      tCurr, dt, {spInField, self.velocity, self.vthSq}, {self.collOut})
+   
+   spOutField:accumulate(dt, self.collOut) -- accumulate output from collisions
+
+   return myStatus, myDt
 end
 
 function VmLBOCollisions:totalSolverTime()
