@@ -586,19 +586,20 @@ function App:run()
 end
 
 return {
-   AdiabaticSpecies = Species.AdiabaticSpecies,
-   App = App,
-   BgkCollisions = Collisions.BgkCollisions,   
-   FuncMaxwellField = Field.FuncMaxwellField,
-   GkField = Field.GkField,
-   GkGeometry = Field.GkGeometry,
-   GkSpecies = Species.GkSpecies,
+   AdiabaticSpecies   = Species.AdiabaticSpecies,
+   App                = App,
+   BgkCollisions      = Collisions.BgkCollisions,   
+   VmLBOCollisions    = Collisions.VmLBOCollisions,   
+   FuncMaxwellField   = Field.FuncMaxwellField,
+   GkField            = Field.GkField,
+   GkGeometry         = Field.GkGeometry,
+   GkSpecies          = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
-   MaxwellField = Field.MaxwellField,
-   NoField = Field.NoField,
-   VlasovSpecies = Species.VlasovSpecies,
-   VoronovIonization = Collisions.VoronovIonization,
+   MaxwellField       = Field.MaxwellField,
+   NoField            = Field.NoField,
+   VlasovSpecies      = Species.VlasovSpecies,
+   VoronovIonization  = Collisions.VoronovIonization,
 
    -- valid pre-packaged species-field systems
    Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
