@@ -552,7 +552,6 @@ local function buildApplication(self, tbl)
 
       log(string.format("\nTotal number of time-steps %s\n", step))
       log(string.format("\nSolver took %g sec\n", tmSlvr))
-      log(string.format("  [Vol kernels %g sec. Surf kernels %g sec. Surf-to-Vol ratio = %g]\n", tmVol, tmSurf, tmSurf/tmVol))
       log(string.format("Solver BCs took %g sec\n", tmBc))
       log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
       log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))

@@ -68,14 +68,11 @@ function VmLBOCollisions:setPhaseGrid(species)
    end
 end
 
--- methods for Bgk collisions object
-
 function VmLBOCollisions:createSolver(species)
    local confBasis  = nil
    local confGrid   = nil
    local phaseBasis = nil
    local phaseGrid  = nil
-   local zfd = { }
    for _, nm in pairs(self.speciesList) do
       confBasis  = species[nm].confBasis
       confGrid   = species[nm].confGrid
@@ -115,25 +112,29 @@ function VmLBOCollisions:createSolver(species)
       numComponents = confBasis:numBasis(),
       ghost         = {1, 1},
    }
+
+   -- Zero-flux BCs in the velocity dimensions.
+   local zfd = { }
+   for d = 1, (phaseGrid:ndim()-confGrid:ndim()) do
+      zfd[d] = confGrid:ndim()+d
+   end
+   
    -- Lenard-Bernestein equation.
    local vmLBOconstNuCalc = VmLBOconstNuEq {
       nu         = self.collFreq[1],
       phaseBasis = phaseBasis,
       confBasis  = confBasis,
    }
-   -- Zero-flux BCs in the velocity dimensions.
-   local zfd = { }
-   for d = 1, (phaseGrid:ndim()-confGrid:ndim()) do
-      zfd[d] = confGrid:ndim()+d
-   end
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = phaseGrid,
       basis              = phaseBasis,
       cfl                = self.cfl,
       equation           = vmLBOconstNuCalc,
       onlyIncrement      = true,
+      updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
+
    -- Also need weak binary operations for primitive moments.
    -- Weak division of two configuration space fields.
    self.confDiv = Updater.CartFieldBinOp {
@@ -151,26 +152,20 @@ end
 
 -- This function computes the primitive moments velocity
 -- and vth=sqrt(T/m) from the zeroth, first and second moments.
-function primMoments(mom0,mom1,mom2)
-   -- Compute the flow velocity using weak division of mom0 and mom1.
-   self.confDiv:advance(0.,0.,{mom0,mom1},{self.velocity})
-   -- Compute kinetic energy using weak multiplication of u and mom1.
+function VmLBOCollisions:primMoments(mom0, mom1, mom2)
+   self.confDiv:advance(0.,0.,{mom0, mom1}, {self.velocity})
    self.confDotProduct:advance(0.,0.,{self.velocity,mom1},{self.kinEnergyDensM})
-   -- Thermal energy density =  mom2 - u*mom1.
    self.thEnergyDens:combine(1.0/self.vdim, mom2, -1.0/self.vdim, self.kinEnergyDensM)
-   -- Compute thermal speed squared via weak division of thEnergy and mom0.
    self.confDiv:advance(0.,0.,{mom0,self.thEnergyDens},{self.vthSq})
 end
 
 function VmLBOCollisions:forwardEuler(tCurr, dt, idxIn, idxOut, species)
-   -- Timings
-   local tmEvalMomStart = 0.0
    local nm = self.speciesList[1] -- for now, only self-collisions
    local spMomFields = species[nm]:fluidMoments()
    local spInField = species[nm]:rkStepperFields()[idxIn]
    local spOutField = species[nm]:rkStepperFields()[idxOut]
 
-   tmEvalMomStart = Time.clock()
+   local tmEvalMomStart = Time.clock()
    -- compute primitive moments
    self.confDiv:advance(0.,0.,{spMomFields[1], spMomFields[2]},{self.velocity})
    self.confDotProduct:advance(0.,0.,{self.velocity,spMomFields[2]},{self.kinEnergyDensM})
@@ -178,25 +173,26 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, idxIn, idxOut, species)
    self.confDiv:advance(0.,0.,{spMomFields[1],self.thEnergyDens},{self.vthSq})
 
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
+
+   -- compute increment from collisions
    local myStatus, myDt = self.collisionSlvr:advance(
       tCurr, dt, {spInField, self.velocity, self.vthSq}, {self.collOut})
    
-   spOutField:accumulate(dt, self.collOut) -- accumulate output from collisions
+   -- accumulate to output collisions
+   spOutField:accumulate(dt, self.collOut)
 
    return myStatus, myDt
 end
 
 function VmLBOCollisions:totalSolverTime()
-   return self.collisionSlvr.totalTime 
+   return self.collisionSlvr.totalTime + self._tmEvalMom
 end
 
 function VmLBOCollisions:evalMomTime()
---    return self.collisionSlvr:evalMomTime()
    return self._tmEvalMom
 end
 
 function VmLBOCollisions:projectMaxwellTime()
---   return self.collisionSlvr:projectMaxwellTime()
    return 0.0
 end
 
