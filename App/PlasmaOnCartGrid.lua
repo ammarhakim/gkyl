@@ -7,22 +7,16 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
-local BoundaryCondition = require "Updater.BoundaryCondition"
 local Collisions = require "App.Collisions"
-local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.Field"
 local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
-local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Species = require "App.Species"
 local Time = require "Lib.Time"
-local Updater = require "Updater"
 local date = require "xsys.date"
 local xsys = require "xsys"
 
@@ -348,7 +342,7 @@ local function buildApplication(self, tbl)
 
    -- various functions to copy/increment fields
    local function copy1(aIdx, outIdx)
-      for nm, s in pairs(species) do
+      for nm, _ in pairs(species) do
 	 speciesRkFields[nm][outIdx]:copy(speciesRkFields[nm][aIdx])
       end
       if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
@@ -356,7 +350,7 @@ local function buildApplication(self, tbl)
       end
    end
    local function combine2(a, aIdx, b, bIdx, outIdx)
-      for nm, s in pairs(species) do
+      for nm, _ in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
       end
       if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
@@ -364,7 +358,7 @@ local function buildApplication(self, tbl)
       end
    end
    local function combine3(a, aIdx, b, bIdx, c, cIdx, outIdx)
-      for nm, s in pairs(species) do
+      for nm, _ in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(
 	    a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx], c, speciesRkFields[nm][cIdx])
       end

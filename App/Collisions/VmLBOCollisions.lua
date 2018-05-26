@@ -25,8 +25,6 @@ local VmLBOCollisions = Proto(CollisionsBase)
 -- construction to the fullInit() method below.
 function VmLBOCollisions:init(tbl)
    self.tbl = tbl
-
-   -- timings.
    self._tmEvalMom = 0.0
 end
 
@@ -87,8 +85,8 @@ function VmLBOCollisions:createSolver(species)
       onGrid        = phaseGrid,
       numComponents = phaseBasis:numBasis(),
       ghost         = {1, 1},
-   }   
-   
+   }
+
    -- Flow velocity in vdim directions.
    self.velocity = DataStruct.Field {
       onGrid        = confGrid,
@@ -150,8 +148,8 @@ function VmLBOCollisions:createSolver(species)
    }
 end
 
--- This function computes the primitive moments velocity
--- and vth=sqrt(T/m) from the zeroth, first and second moments.
+-- Computes primitive moments velocity and vth=sqrt(T/m) from zeroth,
+-- first and second moments.
 function VmLBOCollisions:primMoments(mom0, mom1, mom2)
    self.confDiv:advance(0.,0.,{mom0, mom1}, {self.velocity})
    self.confDotProduct:advance(0.,0.,{self.velocity,mom1},{self.kinEnergyDensM})
@@ -165,13 +163,9 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, idxIn, idxOut, species)
    local spInField = species[nm]:rkStepperFields()[idxIn]
    local spOutField = species[nm]:rkStepperFields()[idxOut]
 
-   local tmEvalMomStart = Time.clock()
    -- compute primitive moments
-   self.confDiv:advance(0.,0.,{spMomFields[1], spMomFields[2]},{self.velocity})
-   self.confDotProduct:advance(0.,0.,{self.velocity,spMomFields[2]},{self.kinEnergyDensM})
-   self.thEnergyDens:combine(1.0/self.vdim, spMomFields[3], -1.0/self.vdim, self.kinEnergyDensM)
-   self.confDiv:advance(0.,0.,{spMomFields[1],self.thEnergyDens},{self.vthSq})
-
+   local tmEvalMomStart = Time.clock()
+   self:primMoments(spMomFields[1], spMomFields[2], spMomFields[3])
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
    -- compute increment from collisions
