@@ -20,6 +20,7 @@ local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
+local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SolidSurface = require "Updater.SolidSurface"
 local VoronovIonization = require "Updater.VoronovIonization"
@@ -39,6 +40,7 @@ return {
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,
+   MaxwellianOnBasis = MaxwellianOnBasis,
    ProjectOnBasis = ProjectOnBasis,
    SolidSurface = SolidSurface,
    VoronovIonization = VoronovIonization,
