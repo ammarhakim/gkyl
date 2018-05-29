@@ -6,9 +6,10 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local CollisionsBase = require "App.Collisions.CollisionsBase"
+local DataStruct = require "DataStruct"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
-local CollisionsBase = require "App.Collisions.CollisionsBase"
 
 -- BgkCollisions ---------------------------------------------------------------
 --
@@ -28,11 +29,11 @@ end
 function BgkCollisions:fullInit(collTbl)
    local tbl = self.tbl -- previously store table
 
-   self.speciesList = tbl.species
-   self.collFreq = tbl.collFreq
-
-   assert(#self.speciesList == #self.collFreq,
-	  "'nu' must be defined for each 'species'")
+   self.species = assert(tbl.species,
+			 "Updater.BgkCollisions: Must specify species with 'species'")
+   self.crossSpecies = tbl.crossSpecies
+   self.collFreq = assert(tbl.collFreq,
+			  "Updater.BgkCollisions: Must specify the collision frequency with 'collFreq'")
 end
 
 function BgkCollisions:setName(nm)
@@ -47,51 +48,46 @@ function BgkCollisions:setConfGrid(cgrid)
 end
 
 function BgkCollisions:setPhaseBasis(species)
-   self.phaseBasis = {}
-   for _, nm in pairs(self.speciesList) do
-      self.phaseBasis[nm] = species[nm].basis
-   end
+   self.phaseBasis = species[self.species].basis
 end
 
 function BgkCollisions:setPhaseGrid(species)
-   self.phaseGrid = {}
-   for _, nm in pairs(self.speciesList) do
-      self.phaseGrid[nm] = species[nm].grid
-   end
+   self.phaseGrid = species[self.species].grid
 end
 
 -- methods for Bgk collisions object
 
-function BgkCollisions:createSolver(species)
-   local confBasis = nil
-   local confGrid = nil
-   local phaseBasis = nil
-   local phaseGrid = nil
-   for _, nm in pairs(self.speciesList) do
-      confBasis = species[nm].confBasis
-      confGrid = species[nm].confGrid
-      phaseBasis = species[nm].basis
-      phaseGrid = species[nm].grid
-   end
+function BgkCollisions:createSolver()
+   self.fMaxwell = DataStruct.Field {
+      onGrid = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost = {1, 1},
+   }
+   self.maxwellian = Updater.MaxwellianOnBasis {
+      onGrid = self.confGrid,
+      confGrid = self.confGrid,
+      confBasis = self.confBasis,
+      phaseGrid = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
+   }
    self.collisionSlvr = Updater.BgkCollisions {
-      onGrid = confGrid,
-      confGrid = confGrid,
-      confBasis = confBasis,
-      phaseGrid = phaseGrid,
-      phaseBasis = phaseBasis,
-      speciesList = self.speciesList,
+      onGrid = self.confGrid,
+      confGrid = self.confGrid,
+      confBasis = self.confBasis,
+      phaseGrid = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
       collFreq = self.collFreq,
-      cfl = self.cfl,
    }
 end
 
-function BgkCollisions:forwardEuler(tCurr, dt, idxIn, outIdx, species)
-   local spOutFields, spMomFields = {},  {}
-   for nm, sp in pairs(species) do
-      spMomFields[nm] = sp:fluidMoments()
-      spOutFields[nm] = sp:rkStepperFields()[outIdx]
-   end
-   return self.collisionSlvr:advance(tCurr, dt, spMomFields, spOutFields)
+function BgkCollisions:forwardEuler(tCurr, dt, idxIn, idxOut, species)
+   local momFields = species[self.species]:fluidMoments()
+   self.maxwellian:advance(tCurr, dt, {momFields[1], momFields[2], momFields[3]},
+			   {self.fMaxwell})
+   return self.collisionSlvr:advance(tCurr, dt,
+				     {species[self.species]:rkStepperFields()[idxIn],
+				      self.fMaxwell},
+				     {species[self.species]:rkStepperFields()[idxOut]})
 end
 
 function BgkCollisions:totalSolverTime()
