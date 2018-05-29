@@ -1,28 +1,23 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Vlasov solver on a Cartesian grid. Works in arbitrary CDIM/VDIM
--- (VDIM>=CDIM) with either Maxwell, Poisson or specified EM fields.
+-- Plasma solver on a Cartesian grid. Works in arbitrary CDIM/VDIM
+-- (VDIM>=CDIM) with either Vlaosv, gyrokinetic, fuilds and Maxwell,
+-- Poisson or specified EM fields.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
-local BoundaryCondition = require "Updater.BoundaryCondition"
 local Collisions = require "App.Collisions"
-local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.Field"
 local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
-local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Species = require "App.Species"
 local Time = require "Lib.Time"
-local Updater = require "Updater"
 local date = require "xsys.date"
 local xsys = require "xsys"
 
@@ -321,7 +316,6 @@ local function buildApplication(self, tbl)
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 -- s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx]) -- see comment below
       end
       --update species with collisions
       for _, c in pairs(collisions) do
@@ -329,16 +323,8 @@ local function buildApplication(self, tbl)
 	    tCurr, dt, inIdx, outIdx, species)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 -- apply BC
-         -- NRM: @Petr, does collision updater require that species BCs have been set prior to call? 
-         -- NRM: if not, can remove applyBc from update species loop above and this loop below, and just have
-         -- NRM: one loop over all species that sets BCs before returning (as commented below)
-	 -- for _, nm in ipairs(c.speciesList) do
-	 --    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
-	 -- end
       end
 
-      -- if collisions doesn't require BCs to be set before update, then just do BCs down here
       for nm, s in pairs(species) do
         s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
@@ -348,7 +334,7 @@ local function buildApplication(self, tbl)
 
    -- various functions to copy/increment fields
    local function copy1(aIdx, outIdx)
-      for nm, s in pairs(species) do
+      for nm, _ in pairs(species) do
 	 speciesRkFields[nm][outIdx]:copy(speciesRkFields[nm][aIdx])
       end
       if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
@@ -356,7 +342,7 @@ local function buildApplication(self, tbl)
       end
    end
    local function combine2(a, aIdx, b, bIdx, outIdx)
-      for nm, s in pairs(species) do
+      for nm, _ in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
       end
       if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
@@ -364,7 +350,7 @@ local function buildApplication(self, tbl)
       end
    end
    local function combine3(a, aIdx, b, bIdx, c, cIdx, outIdx)
-      for nm, s in pairs(species) do
+      for nm, _ in pairs(species) do
 	 speciesRkFields[nm][outIdx]:combine(
 	    a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx], c, speciesRkFields[nm][cIdx])
       end
@@ -552,7 +538,6 @@ local function buildApplication(self, tbl)
 
       log(string.format("\nTotal number of time-steps %s\n", step))
       log(string.format("\nSolver took %g sec\n", tmSlvr))
-      log(string.format("  [Vol kernels %g sec. Surf kernels %g sec. Surf-to-Vol ratio = %g]\n", tmVol, tmSurf, tmSurf/tmVol))
       log(string.format("Solver BCs took %g sec\n", tmBc))
       log(string.format("Field solver took %g sec\n", field:totalSolverTime()))
       log(string.format("Field solver BCs took %g sec\n", field:totalBcTime()))
@@ -586,19 +571,20 @@ function App:run()
 end
 
 return {
-   AdiabaticSpecies = Species.AdiabaticSpecies,
-   App = App,
-   BgkCollisions = Collisions.BgkCollisions,   
-   FuncMaxwellField = Field.FuncMaxwellField,
-   GkField = Field.GkField,
-   GkGeometry = Field.GkGeometry,
-   GkSpecies = Species.GkSpecies,
+   AdiabaticSpecies   = Species.AdiabaticSpecies,
+   App                = App,
+   BgkCollisions      = Collisions.BgkCollisions,   
+   VmLBOCollisions    = Collisions.VmLBOCollisions,
+   FuncMaxwellField   = Field.FuncMaxwellField,
+   GkField            = Field.GkField,
+   GkGeometry         = Field.GkGeometry,
+   GkSpecies          = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
-   MaxwellField = Field.MaxwellField,
-   NoField = Field.NoField,
-   VlasovSpecies = Species.VlasovSpecies,
-   VoronovIonization = Collisions.VoronovIonization,
+   MaxwellField       = Field.MaxwellField,
+   NoField            = Field.NoField,
+   VlasovSpecies      = Species.VlasovSpecies,
+   VoronovIonization  = Collisions.VoronovIonization,
 
    -- valid pre-packaged species-field systems
    Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
