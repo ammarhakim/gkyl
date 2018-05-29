@@ -73,12 +73,14 @@ function Vlasov:init(tbl)
    self._emAccel = nil
 
    self._hasConstGrav = false
-   self._gravDir, self._gravAccel = 1, 0.0
+   self._gravAccelIdx, self._gravAccelCoeff = 1, 0.0
    -- check if we have gravity terms
    if tbl.constGravity then
       self._hasConstGrav = true
-      self._gravDir = tbl.constGravity.dir
-      self._gravAccel = tbl.constGravity.accel
+      -- gravAccelIdx is the index location to add gravitational
+      -- acceleration term
+      self._gravAccelIdx = 1+self._confBasis:numBasis()*(tbl.constGravity.dir-1)
+      self._gravAccelCoeff = math.sqrt(2^self._cdim)*tbl.constGravity.accel
    end
 
    -- flag to indicate if we are being called for first time
@@ -126,6 +128,9 @@ function Vlasov:volTerm(w, dx, idx, q, out)
    if self._hasForceTerm then
       self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
       rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
+      if self._hasConstGrav then
+	 self._emAccel[self._gravAccelIdx] = self._emAccel[self._gravAccelIdx]+self._gravAccelCoeff
+      end
       cflFreqForce = self._volForceUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
    end
    return cflFreqStream+cflFreqForce
@@ -144,6 +149,9 @@ function Vlasov:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, 
 	 -- force term
 	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
 	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
+	 if self._hasConstGrav then
+	    self._emAccel[self._gravAccelIdx] = self._emAccel[self._gravAccelIdx]+self._gravAccelCoeff
+	 end	 
 	 amax = self._surfForceUpdate[dir-self._cdim](
 	    wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
