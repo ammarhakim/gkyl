@@ -25,7 +25,7 @@ function log(msg)
    end
 end
 
-function test_1(comm)
+function test_1w(comm)
    local nproc = Mpi.Comm_size(comm)
    if nproc > 1 then
       log("Not running test_1 as number of procs > 1")
@@ -80,7 +80,7 @@ function test_1(comm)
    Adios.finalize(rank)
 end
 
-function test_2(comm)
+function test_2w(comm)
    local nproc = Mpi.Comm_size(comm)
    local rank = Mpi.Comm_rank(comm)
 
@@ -130,8 +130,8 @@ function test_2(comm)
 end
 
 -- Run tests
-test_1(Mpi.COMM_WORLD)
-test_2(Mpi.COMM_WORLD)
+test_1w(Mpi.COMM_WORLD)
+test_2w(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
