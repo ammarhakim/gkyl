@@ -178,7 +178,7 @@ local function buildApplication(self, tbl)
 	 collisions[nm]:setConfBasis(confBasis)
 	 collisions[nm]:setPhaseGrid(species)
 	 collisions[nm]:setPhaseBasis(species)
-	 collisions[nm]:createSolver(species)
+	 collisions[nm]:createSolver()
       end
    end
 
