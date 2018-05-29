@@ -55,7 +55,7 @@ function Vlasov:init(tbl)
 
    self._volForceUpdate, self._surfForceUpdate = nil, nil
    if self._hasForceTerm then
-      -- functions to perform force
+      -- functions to perform force updates
       if hasMagField then 
 	 self._volForceUpdate = VlasovModDecl.selectVolElcMag(
 	    self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -71,6 +71,17 @@ function Vlasov:init(tbl)
    -- (these will be set on the first call to setAuxFields() method)
    self._emPtr, self._emIdxr = nil, nil
    self._emAccel = nil
+
+   self._hasConstGrav = false
+   self._gravAccelIdx, self._gravAccelCoeff = 1, 0.0
+   -- check if we have gravity terms
+   if tbl.constGravity then
+      self._hasConstGrav = true
+      -- gravAccelIdx is the index location to add gravitational
+      -- acceleration term
+      self._gravAccelIdx = 1+self._confBasis:numBasis()*(tbl.constGravity.dir-1)
+      self._gravAccelCoeff = math.sqrt(2^self._cdim)*tbl.constGravity.accel
+   end
 
    -- flag to indicate if we are being called for first time
    self._isFirst = true
@@ -117,6 +128,9 @@ function Vlasov:volTerm(w, dx, idx, q, out)
    if self._hasForceTerm then
       self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
       rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
+      if self._hasConstGrav then
+	 self._emAccel[self._gravAccelIdx] = self._emAccel[self._gravAccelIdx]+self._gravAccelCoeff
+      end
       cflFreqForce = self._volForceUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
    end
    return cflFreqStream+cflFreqForce
@@ -133,9 +147,11 @@ function Vlasov:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, 
    else
       if self._hasForceTerm then
 	 -- force term
-	 -- set pointer to EM field and scale by q/m
 	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
 	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
+	 if self._hasConstGrav then
+	    self._emAccel[self._gravAccelIdx] = self._emAccel[self._gravAccelIdx]+self._gravAccelCoeff
+	 end	 
 	 amax = self._surfForceUpdate[dir-self._cdim](
 	    wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
@@ -149,7 +165,6 @@ function Vlasov:setAuxFields(auxFields)
       self._emField = auxFields[1]
 
       if self._isFirst then
-	 -- allocate pointers to field object
 	 self._emPtr = self._emField:get(1)
 	 self._emIdxr = self._emField:genIndexer()
 	 self._emAccel = Lin.Vec(self._emField:numComponents())
