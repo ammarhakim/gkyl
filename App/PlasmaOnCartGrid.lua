@@ -1,7 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Vlasov solver on a Cartesian grid. Works in arbitrary CDIM/VDIM
--- (VDIM>=CDIM) with either Maxwell, Poisson or specified EM fields.
+-- Plasma solver on a Cartesian grid. Works in arbitrary CDIM/VDIM
+-- (VDIM>=CDIM) with either Vlaosv, gyrokinetic, fuilds and Maxwell,
+-- Poisson or specified EM fields.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -315,7 +316,6 @@ local function buildApplication(self, tbl)
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 -- s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx]) -- see comment below
       end
       --update species with collisions
       for _, c in pairs(collisions) do
@@ -323,16 +323,8 @@ local function buildApplication(self, tbl)
 	    tCurr, dt, inIdx, outIdx, species)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-	 -- apply BC
-         -- NRM: @Petr, does collision updater require that species BCs have been set prior to call? 
-         -- NRM: if not, can remove applyBc from update species loop above and this loop below, and just have
-         -- NRM: one loop over all species that sets BCs before returning (as commented below)
-	 -- for _, nm in ipairs(c.speciesList) do
-	 --    species[nm]:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
-	 -- end
       end
 
-      -- if collisions doesn't require BCs to be set before update, then just do BCs down here
       for nm, s in pairs(species) do
         s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
