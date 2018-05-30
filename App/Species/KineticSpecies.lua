@@ -20,6 +20,7 @@ local Updater = require "Updater"
 local xsys = require "xsys"
 local Time = require "Lib.Time"
 local Mpi = require "Comm.Mpi"
+local Collisions = require "App.Collisions"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -97,10 +98,15 @@ function KineticSpecies:fullInit(appTbl)
    self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
 
    -- get a random seed for random initial conditions
-   if tbl.randomseed then math.randomseed(tbl.randomseed) else math.randomseed(47*Mpi.Comm_rank(Mpi.COMM_WORLD)) end
+   if tbl.randomseed then
+      math.randomseed(tbl.randomseed)
+   else
+      math.randomseed(47*Mpi.Comm_rank(Mpi.COMM_WORLD))
+   end
 
-   -- get functions for initial conditions and sources
-   -- note: need to wrap these functions so that self can be (optionally) passed as last argument
+   -- get functions for initial conditions and sources note: need to
+   -- wrap these functions so that self can be (optionally) passed as
+   -- last argument
    -- initial condition functions 
    if tbl.initBackground then 
       if type(tbl.initBackground)=="function" then 
@@ -182,6 +188,16 @@ function KineticSpecies:fullInit(appTbl)
    self.boundaryConditions = { } -- list of Bcs to apply
 
    self.bcTime = 0.0 -- timer for BCs
+
+   -- Collisions/Sources
+   self.collisions = {}
+   for nm, val in pairs(tbl) do
+      if Collisions.CollisionsBase.is(val) then
+	 val:fullInit(tbl) -- initialize species
+	 self.collisions[nm] = val
+	 self.collisions[nm]:setName(nm)
+      end
+   end
 end
 
 function KineticSpecies:getCharge() return self.charge end
@@ -204,12 +220,19 @@ function KineticSpecies:setIoMethod(ioMethod)
 end
 function KineticSpecies:setConfBasis(basis)
    self.confBasis = basis
+   for _, c in pairs(self.collisions) do
+      c:setConfBasis(basis)
+   end
 end
-function KineticSpecies:setConfGrid(cgrid)
-   self.confGrid = cgrid
+function KineticSpecies:setConfGrid(grid)
+   self.confGrid = grid
+   for _, c in pairs(self.collisions) do
+      c:setConfGrid(grid)
+   end
 end
 
-function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs, cMap)
+function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
+				   cPeriodicDirs, cMap)
    self.cdim = #cCells
    self.ndim = self.cdim+self.vdim
 
@@ -271,10 +294,17 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs,
       decomposition = self.decomp,
       mappings = coordinateMap,
    }
+
+   for _, c in pairs(self.collisions) do
+      c:setPhaseGrid(self.grid)
+   end
 end
 
 function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
+   for _, c in pairs(self.collisions) do
+      c:setPhaseBasis(self.basis)
+   end
 end
 
 function KineticSpecies:allocDistf()
@@ -350,6 +380,13 @@ function KineticSpecies:createBCs()
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
+end
+
+function KineticSpecies:createSolver()
+   -- create solvers for collisions
+   for _, c in pairs(self.collisions) do
+      c:createSolver()
+   end
 end
 
 function KineticSpecies:alloc(nRkDup)

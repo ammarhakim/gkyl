@@ -10,6 +10,7 @@ local CollisionsBase = require "App.Collisions.CollisionsBase"
 local DataStruct = require "DataStruct"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
+local xsys = require "xsys"
 
 -- BgkCollisions ---------------------------------------------------------------
 --
@@ -26,11 +27,10 @@ end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization
-function BgkCollisions:fullInit(collTbl)
+function BgkCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- previously store table
 
-   self.species = assert(tbl.species,
-			 "Updater.BgkCollisions: Must specify species with 'species'")
+   self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
    self.crossSpecies = tbl.crossSpecies
    self.collFreq = assert(tbl.collFreq,
 			  "Updater.BgkCollisions: Must specify the collision frequency with 'collFreq'")
@@ -39,23 +39,18 @@ end
 function BgkCollisions:setName(nm)
    self.name = nm
 end
-
 function BgkCollisions:setConfBasis(basis)
    self.confBasis = basis
 end
-function BgkCollisions:setConfGrid(cgrid)
-   self.confGrid = cgrid
+function BgkCollisions:setConfGrid(grid)
+   self.confGrid = grid
 end
-
-function BgkCollisions:setPhaseBasis(species)
-   self.phaseBasis = species[self.species].basis
+function BgkCollisions:setPhaseBasis(basis)
+   self.phaseBasis = basis
 end
-
-function BgkCollisions:setPhaseGrid(species)
-   self.phaseGrid = species[self.species].grid
+function BgkCollisions:setPhaseGrid(grid)
+   self.phaseGrid = grid
 end
-
--- methods for Bgk collisions object
 
 function BgkCollisions:createSolver()
    self.fMaxwell = DataStruct.Field {
@@ -80,18 +75,17 @@ function BgkCollisions:createSolver()
    }
 end
 
-function BgkCollisions:forwardEuler(tCurr, dt, idxIn, idxOut, species)
-   local momFields = species[self.species]:fluidMoments()
-   self.maxwellian:advance(tCurr, dt, {momFields[1], momFields[2], momFields[3]},
+function BgkCollisions:forwardEuler(tCurr, dt, fIn, momIn, fOut)
+   self.maxwellian:advance(tCurr, dt,
+			   {momIn[1], momIn[2], momIn[3]},
 			   {self.fMaxwell})
    return self.collisionSlvr:advance(tCurr, dt,
-				     {species[self.species]:rkStepperFields()[idxIn],
-				      self.fMaxwell},
-				     {species[self.species]:rkStepperFields()[idxOut]})
+				     {fIn, self.fMaxwell},
+				     {fOut})
 end
 
 function BgkCollisions:totalSolverTime()
-   return self.collisionSlvr.totalTime 
+   return self.collisionSlvr.totalTime
 end
 
 function BgkCollisions:evalMomTime()
