@@ -28,7 +28,7 @@ end
 function test_1w(comm)
    local nproc = Mpi.Comm_size(comm)
    if nproc > 1 then
-      log("Not running test_1 as number of procs > 1")
+      log("Not running test_1w as number of procs > 1")
    end
    local rank = Mpi.Comm_rank(comm)
 
@@ -78,6 +78,45 @@ function test_1w(comm)
    
    Adios.close(fd)
    Adios.finalize(rank)
+end
+
+function test_1r(comm)
+   local nproc = Mpi.Comm_size(comm)
+   if nproc > 1 then
+      log("Not running test_1r as number of procs > 1")
+   end
+   local rank = Mpi.Comm_rank(comm)
+
+   Adios.init_noxml(comm)
+
+   -- create group and set I/O method
+   local grpId = Adios.declare_group("Moments", "", Adios.flag_no)
+   Adios.select_method(grpId, "MPI", "", "")
+
+   -- define variables
+   Adios.define_var(grpId, "NX", "", Adios.integer, "", "", "")
+   Adios.define_var(grpId, "NY", "", Adios.integer, "", "", "")
+   Adios.define_var(grpId, "temperature", "", Adios.double, "NX", "", "")
+
+   -- open file for reading
+   local fd = Adios.open("Moments", "adios-test-1.bp", "r", comm)
+
+   local totalSize = Adios.group_size(fd, 0)
+
+   local nx = new("int[1]")
+   local ny = new("int[1]")
+
+   -- read various things
+   Adios.read(fd, "NX", nx, sizeof("int"))
+   Adios.read(fd, "NY", ny, sizeof("int"))
+
+   Adios.close(fd)
+
+   assert_equal(100, nx[0], "Checking NX")
+   assert_equal(20, ny[0], "Checking NY")
+   
+   
+   Adios.finalize(rank)   
 end
 
 function test_2w(comm)
@@ -132,6 +171,8 @@ end
 -- Run tests
 test_1w(Mpi.COMM_WORLD)
 test_2w(Mpi.COMM_WORLD)
+
+test_1r(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

@@ -89,6 +89,13 @@ end
 -- adios_write
 function _M.write(fd, name, var)
    local err = ffi.C.adios_write(fd[0], name, var)
+   return err
+end
+
+-- adios_read
+function _M.read(fd, name, buff, buffSz)
+   local err = ffi.C.adios_read(fd[0], name, buff, buffSz)
+   return err
 end
 
 -- adios_close
