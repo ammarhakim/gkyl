@@ -71,8 +71,8 @@ function AdiosCartFieldIo:init(tbl)
    self._outBuff = self._allocator(1) -- this will be resized on an actual write()
 end
 
--- set callable methods
-function AdiosCartFieldIo:write(field, fName, tmStamp)
+-- set callable methods (frNum is frame number)
+function AdiosCartFieldIo:write(field, fName, tmStamp, frNum)
    local comm =  Mpi.getComm(field:grid():commSet().nodeComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
@@ -101,6 +101,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp)
    adGlobalSz = toCSV(_adGlobalSz)
    adOffset = toCSV(_adOffset)
 
+   if not frNum then frNum = 5000 end  -- default frame-number
    if not tmStamp then tmStamp = 0.0 end -- default time-stamp
 
    -- resize buffer (only done if needed. Alloc handles this automatically)
@@ -131,6 +132,8 @@ function AdiosCartFieldIo:write(field, fName, tmStamp)
 
    -- define data to write
    Adios.define_var(
+      grpId, "frame", "", Adios.integer, "", "", "")
+   Adios.define_var(
       grpId, "time", "", Adios.double, "", "", "")
    Adios.define_var(
       grpId, "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
@@ -143,8 +146,13 @@ function AdiosCartFieldIo:write(field, fName, tmStamp)
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- concatenate prefix
    -- open file to write out group
    local fd = Adios.open("CartField", fullNm, "w", comm)
+
    local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
    Adios.write(fd, "time", tmStampBuff)
+
+   local frNumBuff = new("int[1]"); frNumBuff[0] = frNum
+   Adios.write(fd, "frame", frNumBuff)
+
    Adios.write(fd, "CartGridField", self._outBuff:data())
    Adios.close(fd)
    

@@ -280,15 +280,15 @@ function MaxwellField:write(tm)
       self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
       
       if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
-	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
       end
       self.ioFrame = self.ioFrame+1
    end
