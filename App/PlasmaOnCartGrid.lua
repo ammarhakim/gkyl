@@ -124,7 +124,8 @@ local function buildApplication(self, tbl)
 
    -- setup each species
    for _, s in pairs(species) do
-      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs, tbl.coordinateMap)
+      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts,
+		   periodicDirs, tbl.coordinateMap)
       s:setConfBasis(confBasis)
       s:createBasis(basisNm, polyOrder)
    end
@@ -164,22 +165,6 @@ local function buildApplication(self, tbl)
       local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
-   end
-
-
-   -- read in information about collisions
-   local collisions = {}
-   for nm, val in pairs(tbl) do
-      if Collisions.CollisionsBase.is(val) then
-	 val:fullInit(tbl) -- initialize species
-	 collisions[nm] = val
-	 collisions[nm]:setName(nm)
-	 collisions[nm]:setConfGrid(grid)
-	 collisions[nm]:setConfBasis(confBasis)
-	 collisions[nm]:setPhaseGrid(species)
-	 collisions[nm]:setPhaseBasis(species)
-	 collisions[nm]:createSolver(species)
-      end
    end
 
    local function completeFieldSetup(fld)
@@ -312,21 +297,14 @@ local function buildApplication(self, tbl)
       -- update species
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
-	    tCurr, dt, speciesRkFields[nm][inIdx], {emRkFields[inIdx], emRkFuncFields[1]}, speciesRkFields[nm][outIdx])
+	    tCurr, dt, speciesRkFields[nm][inIdx],
+	    {emRkFields[inIdx], emRkFuncFields[1]},
+	    speciesRkFields[nm][outIdx])
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-      --update species with collisions
-      for _, c in pairs(collisions) do
-	 local myStatus, myDtSuggested = c:forwardEuler(
-	    tCurr, dt, inIdx, outIdx, species)
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
 
-      for nm, s in pairs(species) do
-        s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
 
       return status, dtSuggested
@@ -529,12 +507,6 @@ local function buildApplication(self, tbl)
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
       end
-      local tmColl, tmCollEvalMom, tmCollProjectMaxwell = 0.0, 0.0, 0.0
-      for _, c in pairs(collisions) do
-         tmColl = tmColl + c:totalSolverTime()
-         tmCollEvalMom = tmCollEvalMom + c:evalMomTime()
-         tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
-      end
 
       log(string.format("\nTotal number of time-steps %s\n", step))
       log(string.format("\nSolver took %g sec\n", tmSlvr))
@@ -545,10 +517,10 @@ local function buildApplication(self, tbl)
       log(string.format("Moment calculations took %g sec\n", tmMom))
       log(string.format("Integrated moment calculations took %g sec\n", tmIntMom))
       log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
-      log(string.format("Collision solver took %g sec\n", tmColl))
-      log(string.format(
-	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
-	     tmCollEvalMom, tmCollProjectMaxwell))
+      -- log(string.format("Collision solver took %g sec\n", tmColl))
+      -- log(string.format(
+      -- 	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
+      -- 	     tmCollEvalMom, tmCollProjectMaxwell))
       log(string.format("Stepper combine/copy took %g sec\n", stepperTime))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
