@@ -14,6 +14,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 require "Io._AdiosCdef" -- load FFI binding
+require "Io._AdiosReadCdef" -- load FFI binding
 
 local _M = {}
 
