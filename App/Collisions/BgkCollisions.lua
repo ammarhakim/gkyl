@@ -32,8 +32,8 @@ function BgkCollisions:fullInit(speciesTbl)
 
    self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
    self.crossSpecies = tbl.crossSpecies
-   self.collFreq = assert(tbl.collFreq,
-			  "Updater.BgkCollisions: Must specify the collision frequency with 'collFreq'")
+   self.collFreq = assert(
+      tbl.collFreq, "Updater.BgkCollisions: Must specify the collision frequency with 'collFreq'")
 end
 
 function BgkCollisions:setName(nm)
@@ -76,12 +76,12 @@ function BgkCollisions:createSolver()
 end
 
 function BgkCollisions:forwardEuler(tCurr, dt, fIn, momIn, fOut)
-   self.maxwellian:advance(tCurr, dt,
-			   {momIn[1], momIn[2], momIn[3]},
-			   {self.fMaxwell})
-   return self.collisionSlvr:advance(tCurr, dt,
-				     {fIn, self.fMaxwell},
-				     {fOut})
+   self.maxwellian:advance(
+      tCurr, dt, {momIn[1], momIn[2], momIn[3]},
+      {self.fMaxwell})
+   return self.collisionSlvr:advance(
+      tCurr, dt, {fIn, self.fMaxwell},
+      {fOut})
 end
 
 function BgkCollisions:totalSolverTime()
