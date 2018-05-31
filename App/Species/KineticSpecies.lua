@@ -54,6 +54,8 @@ function KineticSpecies:fullInit(appTbl)
    self.vdim = #self.cells -- velocity dimensions
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
+   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
+   self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
    self.confBasis = nil -- Will be set later
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
@@ -211,9 +213,17 @@ function KineticSpecies:getVdim()
 end
 function KineticSpecies:setName(nm)
    self.name = nm
+   -- set "self species" for collisions
+   for _, c in pairs(self.collisions) do
+      c:setSpeciesName(nm)
+   end
+
 end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
+   for _, c in pairs(self.collisions) do
+      c:setCfl(cfl)
+   end   
 end
 function KineticSpecies:setIoMethod(ioMethod)
    self.ioMethod = ioMethod
