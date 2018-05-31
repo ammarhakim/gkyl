@@ -444,6 +444,7 @@ local function buildApplication(self, tbl)
       local step = 1
       local tCurr = tStart
       local myDt = initDt
+      local maxDt = tbl.maximumDt and tbl.maximumDt or GKYL_MAX_DOUBLE -- max time-step
 
       -- triggers for 10% and 1% loggers
       local logTrigger = LinearTrigger(tStart, tEnd, 10)
@@ -475,7 +476,7 @@ local function buildApplication(self, tbl)
 	    writeLogMessage(tCurr, myDt)
 	    writeData(tCurr+myDt)
 	    tCurr = tCurr + myDt
-	    myDt = dtSuggested
+	    myDt = math.min(dtSuggested, maxDt)
 	    step = step + 1
 	    if (tCurr >= tEnd) then
 	       break
