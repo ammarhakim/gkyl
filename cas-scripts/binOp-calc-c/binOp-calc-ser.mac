@@ -11,7 +11,7 @@ load("binOp-calc-c/binOp-dotProduct-calc")$
 load(stringproc)$
 
 /* Maximum polynomial order to generate kernels for. */
-inMaxPolyOrder : 2$
+inMaxPolyOrder : 4$
  
 /* Generate kernels for operations between two fields defined on
    spaces with same dimensions (1D, 2D, 3D). */

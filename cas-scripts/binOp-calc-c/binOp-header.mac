@@ -2,7 +2,7 @@ cvars : [X, Y, Z]$
 
 fh : openw("~/max-out/CartFieldBinOpModDecl.h")$
 
-polyOrderMax : 2$
+polyOrderMax : 4$
 
 printf(fh, "#ifndef CART_FIELD_BINOP_MOD_DECL_H ~%")$
 printf(fh, "#define CART_FIELD_BINOP_MOD_DECL_H ~%")$
