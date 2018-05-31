@@ -42,6 +42,10 @@ end
 
 
 function VlasovSpecies:createSolver(hasE, hasB)
+   -- run the KineticSpecies 'createSolver()' to initialize the
+   -- collisions solver
+   VlasovSpecies.super.createSolver(self)
+
    -- create updater to advance solution by one time-step
    local vlasovEqn = VlasovEq {
       onGrid = self.grid,
@@ -114,13 +118,26 @@ function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
 
    if self.evolve then
       local status, dtSuggested
-      status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, totalEmField}, {fOut})
+      local collStatus, collDt
+      status, dtSuggested = self.solver:advance(tCurr, dt,
+						{fIn, totalEmField},
+						{fOut})
       if self.sourceFunc then
         -- if there is a source, add it to the RHS
         local fSource = self.fSource
         self.evalSource:advance(tCurr, dt, {}, {fSource})
         fOut:accumulate(dt, fSource)
       end
+
+      -- perform the collision update
+      for _, c in pairs(self.collisions) do
+	 collStatus, collDt = c:forwardEuler(tCurr, dt,
+					     fIn, self:fluidMoments(),
+					     fOut)
+	 status = status and collStatus
+	 dtSuggested = math.min(dtSuggested, collDt)
+      end
+
       return status, dtSuggested
    else
       fOut:copy(fIn) -- just copy stuff over

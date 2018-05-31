@@ -32,7 +32,6 @@ end
 
 -- top-level method to build application "run" method
 local function buildApplication(self, tbl)
-   -- create logger
    local log = Logger {
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
@@ -59,8 +58,7 @@ local function buildApplication(self, tbl)
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
-   -- polynomial order
-   local polyOrder = tbl.polyOrder
+   local polyOrder = tbl.polyOrder -- polynomial order
 
    -- create basis function for configuration space
    local confBasis = createBasis(basisNm, cdim, polyOrder)
@@ -124,7 +122,8 @@ local function buildApplication(self, tbl)
 
    -- setup each species
    for _, s in pairs(species) do
-      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts, periodicDirs, tbl.coordinateMap)
+      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts,
+		   periodicDirs, tbl.coordinateMap)
       s:setConfBasis(confBasis)
       s:createBasis(basisNm, polyOrder)
    end
@@ -164,22 +163,6 @@ local function buildApplication(self, tbl)
       local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
-   end
-
-
-   -- read in information about collisions
-   local collisions = {}
-   for nm, val in pairs(tbl) do
-      if Collisions.CollisionsBase.is(val) then
-	 val:fullInit(tbl) -- initialize species
-	 collisions[nm] = val
-	 collisions[nm]:setName(nm)
-	 collisions[nm]:setConfGrid(grid)
-	 collisions[nm]:setConfBasis(confBasis)
-	 collisions[nm]:setPhaseGrid(species)
-	 collisions[nm]:setPhaseBasis(species)
-	 collisions[nm]:createSolver(species)
-      end
    end
 
    local function completeFieldSetup(fld)
@@ -312,21 +295,14 @@ local function buildApplication(self, tbl)
       -- update species
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
-	    tCurr, dt, speciesRkFields[nm][inIdx], {emRkFields[inIdx], emRkFuncFields[1]}, speciesRkFields[nm][outIdx])
+	    tCurr, dt, speciesRkFields[nm][inIdx],
+	    {emRkFields[inIdx], emRkFuncFields[1]},
+	    speciesRkFields[nm][outIdx])
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-      --update species with collisions
-      for _, c in pairs(collisions) do
-	 local myStatus, myDtSuggested = c:forwardEuler(
-	    tCurr, dt, inIdx, outIdx, species)
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
 
-      for nm, s in pairs(species) do
-        s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
 
       return status, dtSuggested
@@ -468,6 +444,7 @@ local function buildApplication(self, tbl)
       local step = 1
       local tCurr = tStart
       local myDt = initDt
+      local maxDt = tbl.maximumDt and tbl.maximumDt or GKYL_MAX_DOUBLE -- max time-step
 
       -- triggers for 10% and 1% loggers
       local logTrigger = LinearTrigger(tStart, tEnd, 10)
@@ -491,16 +468,15 @@ local function buildApplication(self, tbl)
       local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
-	 -- if needed adjust dt to hit tEnd exactly
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-	 -- take a time-step
+
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
-	 -- check if step was successful
+
 	 if status then
 	    writeLogMessage(tCurr, myDt)
-	    writeData(tCurr+myDt) -- give chance to everyone to write data
+	    writeData(tCurr+myDt)
 	    tCurr = tCurr + myDt
-	    myDt = dtSuggested
+	    myDt = math.min(dtSuggested, maxDt)
 	    step = step + 1
 	    if (tCurr >= tEnd) then
 	       break
@@ -509,18 +485,14 @@ local function buildApplication(self, tbl)
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
 	 end
-      end -- end of time-step loop
+      end
       writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
 
       -- compute time spent in various parts of code
-      local tmSlvr = 0.0 -- total time in ptcl solver
-      local tmVol = 0.0 -- total time in ptcl solver vol terms
-      local tmSurf = 0.0 -- total time in ptcl solver surf terms
+      local tmSlvr = 0.0
       for _, s in pairs(species) do
 	 tmSlvr = tmSlvr+s:totalSolverTime()
-         if s.solverVolTime then tmVol = tmVol+s:solverVolTime() end
-         if s.solverSurfTime then tmSurf = tmSurf+s:solverSurfTime() end
       end
 
       local tmMom, tmIntMom, tmBc = 0.0, 0.0, 0.0
@@ -528,12 +500,6 @@ local function buildApplication(self, tbl)
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
-      end
-      local tmColl, tmCollEvalMom, tmCollProjectMaxwell = 0.0, 0.0, 0.0
-      for _, c in pairs(collisions) do
-         tmColl = tmColl + c:totalSolverTime()
-         tmCollEvalMom = tmCollEvalMom + c:evalMomTime()
-         tmCollProjectMaxwell = tmCollProjectMaxwell + c:projectMaxwellTime()
       end
 
       log(string.format("\nTotal number of time-steps %s\n", step))
@@ -545,10 +511,10 @@ local function buildApplication(self, tbl)
       log(string.format("Moment calculations took %g sec\n", tmMom))
       log(string.format("Integrated moment calculations took %g sec\n", tmIntMom))
       log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
-      log(string.format("Collision solver took %g sec\n", tmColl))
-      log(string.format(
-	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
-	     tmCollEvalMom, tmCollProjectMaxwell))
+      -- log(string.format("Collision solver took %g sec\n", tmColl))
+      -- log(string.format(
+      -- 	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
+      -- 	     tmCollEvalMom, tmCollProjectMaxwell))
       log(string.format("Stepper combine/copy took %g sec\n", stepperTime))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
