@@ -214,6 +214,9 @@ function KineticSpecies:setName(nm)
 end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
+   for _, c in pairs(self.collisions) do
+      c:setCfl(cfl)
+   end   
 end
 function KineticSpecies:setIoMethod(ioMethod)
    self.ioMethod = ioMethod
