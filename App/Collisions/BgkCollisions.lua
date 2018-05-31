@@ -77,11 +77,9 @@ end
 
 function BgkCollisions:forwardEuler(tCurr, dt, fIn, momIn, fOut)
    self.maxwellian:advance(
-      tCurr, dt, {momIn[1], momIn[2], momIn[3]},
-      {self.fMaxwell})
+      tCurr, dt, {momIn[1], momIn[2], momIn[3]}, {self.fMaxwell})
    return self.collisionSlvr:advance(
-      tCurr, dt, {fIn, self.fMaxwell},
-      {fOut})
+      tCurr, dt, {fIn, self.fMaxwell}, {fOut})
 end
 
 function BgkCollisions:totalSolverTime()

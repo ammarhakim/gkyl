@@ -32,7 +32,6 @@ end
 
 -- top-level method to build application "run" method
 local function buildApplication(self, tbl)
-   -- create logger
    local log = Logger {
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
@@ -59,8 +58,7 @@ local function buildApplication(self, tbl)
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
-   -- polynomial order
-   local polyOrder = tbl.polyOrder
+   local polyOrder = tbl.polyOrder -- polynomial order
 
    -- create basis function for configuration space
    local confBasis = createBasis(basisNm, cdim, polyOrder)
@@ -469,14 +467,13 @@ local function buildApplication(self, tbl)
       local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
-	 -- if needed adjust dt to hit tEnd exactly
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-	 -- take a time-step
+
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
-	 -- check if step was successful
+
 	 if status then
 	    writeLogMessage(tCurr, myDt)
-	    writeData(tCurr+myDt) -- give chance to everyone to write data
+	    writeData(tCurr+myDt)
 	    tCurr = tCurr + myDt
 	    myDt = dtSuggested
 	    step = step + 1
@@ -487,18 +484,14 @@ local function buildApplication(self, tbl)
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
 	 end
-      end -- end of time-step loop
+      end
       writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
 
       -- compute time spent in various parts of code
-      local tmSlvr = 0.0 -- total time in ptcl solver
-      local tmVol = 0.0 -- total time in ptcl solver vol terms
-      local tmSurf = 0.0 -- total time in ptcl solver surf terms
+      local tmSlvr = 0.0
       for _, s in pairs(species) do
 	 tmSlvr = tmSlvr+s:totalSolverTime()
-         if s.solverVolTime then tmVol = tmVol+s:solverVolTime() end
-         if s.solverSurfTime then tmSurf = tmSurf+s:solverSurfTime() end
       end
 
       local tmMom, tmIntMom, tmBc = 0.0, 0.0, 0.0
