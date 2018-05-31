@@ -292,15 +292,16 @@ function FluidSpecies:write(tm)
       
       -- only write stuff if triggered
       if self.diagIoTrigger(tm) then
-	 self.momIo:write(self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm)
+	 self.momIo:write(
+	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
-            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm)
+            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.diagIoFrame == 0 then
-         self.momIo:write(self.moments[1], string.format("%s_%d.bp", self.name, 0), tm)
+         self.momIo:write(self.moments[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
       end
       self.diagIoFrame = self.diagIoFrame+1
    end

@@ -7,10 +7,10 @@
 --------------------------------------------------------------------------------
 
 local CollisionsBase = require "App.Collisions.CollisionsBase"
-local DataStruct     = require "DataStruct"
-local Proto          = require "Lib.Proto"
-local Time           = require "Lib.Time"
-local Updater        = require "Updater"
+local DataStruct = require "DataStruct"
+local Proto = require "Lib.Proto"
+local Time = require "Lib.Time"
+local Updater = require "Updater"
 local VmLBOconstNuEq = require "Eq.VmLBO"
 local xsys = require "xsys"
 
@@ -26,7 +26,6 @@ local VmLBOCollisions = Proto(CollisionsBase)
 -- construction to the fullInit() method below.
 function VmLBOCollisions:init(tbl)
    self.tbl = tbl
-   self._tmEvalMom = 0.0
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -34,15 +33,24 @@ end
 function VmLBOCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- previously stored table
 
-   self.cfl = 0.1
+   self.cfl = 0.0 -- will be replaced
    self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
    self.crossSpecies = tbl.crossSpecies
-   self.collFreq = assert(tbl.collFreq,
-			  "Updater.VmLBOCollisions: Must specify the collision frequency with 'collFreq'")
+   self.collFreq = assert(
+      tbl.collFreq, "Updater.VmLBOCollisions: Must specify the collision frequency with 'collFreq'")
+
+   self.tmEvalMom = 0.0
 end
 
 function VmLBOCollisions:setName(nm)
    self.name = nm
+end
+function VmLBOCollisions:setSpeciesName(nm)
+   self.speciesName = nm
+end
+
+function VmLBOCollisions:setCfl(cfl)
+   self.cfl = cfl/3.0 -- what should this be? - AHH
 end
 function VmLBOCollisions:setConfBasis(basis)
    self.confBasis = basis
@@ -130,37 +138,40 @@ end
 
 -- Computes primitive moments velocity and vth=sqrt(T/m) from zeroth,
 -- first and second moments.
-function VmLBOCollisions:primMoments(mom0, mom1, mom2)
-   self.confDiv:advance(0., 0., {mom0, mom1}, {self.velocity})
-   self.confDotProduct:advance(0., 0., {self.velocity, mom1},
+function VmLBOCollisions:calcPrimMoments(mom0, mom1, mom2)
+   self.confDiv:advance(0, 0, {mom0, mom1}, {self.velocity})
+   self.confDotProduct:advance(0, 0, {self.velocity, mom1},
 			       {self.kinEnergyDensM})
    self.thEnergyDens:combine(1.0/self.vdim, mom2,
 				-1.0/self.vdim, self.kinEnergyDensM)
-   self.confDiv:advance(0., 0., {mom0, self.thEnergyDens}, {self.vthSq})
+   self.confDiv:advance(0, 0, {mom0, self.thEnergyDens}, {self.vthSq})
 end
 
-function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, momIn, fOut)
-   -- compute primitive moments
-   local tmEvalMomStart = Time.clock()
-   self:primMoments(momIn[1], momIn[2], momIn[3])
-   self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
+function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   local selfMom = species[self.speciesName]:fluidMoments()
 
-   -- compute increment from collisions
-   local myStatus, myDt = self.collisionSlvr:advance(
-      tCurr, dt, {fIn, self.velocity, self.vthSq}, {self.collOut})
+   if self.selfCollisions then
+      local tmEvalMomStart = Time.clock()
+      self:calcPrimMoments(selfMom[1], selfMom[2], selfMom[3])
+      self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
+      
+      -- compute increment from collisions and accumulate it into output
+      local tmpStatus, tmpDt = self.collisionSlvr:advance(
+	 tCurr, dt, {fIn, self.velocity, self.vthSq}, {self.collOut})
+      status = status and tmpStatus
+      dtSuggested = math.min(dtSuggested, tmpDt)
 
-   -- accumulate to output collisions
-   fOut:accumulate(dt, self.collOut)
-
-   return myStatus, myDt
+      fOut:accumulate(dt, self.collOut)
+   end
+   if self.crossSpecies then
+      -- Insert cross collisions here!
+   end
+   return status, dtSuggested
 end
 
-function VmLBOCollisions:totalSolverTime()
-   return self.collisionSlvr.totalTime + self._tmEvalMom
-end
-
-function VmLBOCollisions:evalMomTime()
-   return self._tmEvalMom
+function VmLBOCollisions:totalTime()
+   return self.collisionSlvr.totalTime + self.tmEvalMom
 end
 
 return VmLBOCollisions

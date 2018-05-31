@@ -54,6 +54,8 @@ function KineticSpecies:fullInit(appTbl)
    self.vdim = #self.cells -- velocity dimensions
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
+   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
+   self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
    self.confBasis = nil -- Will be set later
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
@@ -211,9 +213,17 @@ function KineticSpecies:getVdim()
 end
 function KineticSpecies:setName(nm)
    self.name = nm
+   -- set "self species" for collisions
+   for _, c in pairs(self.collisions) do
+      c:setSpeciesName(nm)
+   end
+
 end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
+   for _, c in pairs(self.collisions) do
+      c:setCfl(cfl)
+   end   
 end
 function KineticSpecies:setIoMethod(ioMethod)
    self.ioMethod = ioMethod
@@ -552,11 +562,13 @@ function KineticSpecies:write(tm)
 
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm)
+	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
-            if tm==0.0 then self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm) end
+            if tm == 0.0 then
+	       self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
+	    end
             self.distf[1]:accumulate(-1, self.f0)
-            self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm)
+            self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
 	 self.distIoFrame = self.distIoFrame+1
@@ -569,22 +581,22 @@ function KineticSpecies:write(tm)
          for i, mom in ipairs(self.diagnosticMoments) do
             -- should one use AdiosIo object for this?
             self.diagnosticMomentFields[i]:write(
-               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm)
+               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
          end
          self.integratedMoments:write(
-            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm)
+            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.distIoFrame == 0 then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm)
+	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
 	 -- compute moments and write them out
 	 self:calcDiagnosticMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm)
+	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0)
 	 end
       end
       self.distIoFrame = self.distIoFrame+1

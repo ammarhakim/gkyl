@@ -1,3 +1,11 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Incompressible Euler equation in 2D
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local Proto = require "Lib.Proto"
 local FluidSpecies = require "App.Species.FluidSpecies"
 local IncompEulerEq = require "Eq.IncompEuler"
