@@ -26,7 +26,6 @@ local VmLBOCollisions = Proto(CollisionsBase)
 -- construction to the fullInit() method below.
 function VmLBOCollisions:init(tbl)
    self.tbl = tbl
-   self._tmEvalMom = 0.0
 end
 
 -- Actual function for initialization. This indirection is needed as
@@ -34,15 +33,20 @@ end
 function VmLBOCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- previously stored table
 
-   self.cfl = 0.1
+   self.cfl = 0.0 -- will be replaced
    self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
    self.crossSpecies = tbl.crossSpecies
-   self.collFreq = assert(tbl.collFreq,
-			  "Updater.VmLBOCollisions: Must specify the collision frequency with 'collFreq'")
+   self.collFreq = assert(
+      tbl.collFreq, "Updater.VmLBOCollisions: Must specify the collision frequency with 'collFreq'")
+
+   self._tmEvalMom = 0.0
 end
 
 function VmLBOCollisions:setName(nm)
    self.name = nm
+end
+function VmLBOCollisions:setCfl(cfl)
+   self.cfl = cfl/3.0 -- what should this be? - AHH
 end
 function VmLBOCollisions:setConfBasis(basis)
    self.confBasis = basis

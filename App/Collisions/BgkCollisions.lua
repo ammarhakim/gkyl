@@ -30,6 +30,7 @@ end
 function BgkCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- previously store table
 
+   self.cfl = 0.1 -- some default value
    self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
    self.crossSpecies = tbl.crossSpecies
    self.collFreq = assert(
@@ -38,6 +39,9 @@ end
 
 function BgkCollisions:setName(nm)
    self.name = nm
+end
+function BgkCollisions:setCfl(cfl)
+   self.cfl = cfl
 end
 function BgkCollisions:setConfBasis(basis)
    self.confBasis = basis
