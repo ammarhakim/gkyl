@@ -405,8 +405,8 @@ local function Field_meta_ctor(elct)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
 	 return self._data+loc
       end,
-      write = function (self, fName, tmStamp)
-	 self._adiosIo:write(self, fName, tmStamp)
+      write = function (self, fName, tmStamp, frNum)
+	 self._adiosIo:write(self, fName, tmStamp, frNum)
       end,
       sync = function (self, syncPeriodicDirs)
          syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs, true)

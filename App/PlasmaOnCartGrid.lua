@@ -32,7 +32,6 @@ end
 
 -- top-level method to build application "run" method
 local function buildApplication(self, tbl)
-   -- create logger
    local log = Logger {
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
@@ -59,8 +58,7 @@ local function buildApplication(self, tbl)
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
-   -- polynomial order
-   local polyOrder = tbl.polyOrder
+   local polyOrder = tbl.polyOrder -- polynomial order
 
    -- create basis function for configuration space
    local confBasis = createBasis(basisNm, cdim, polyOrder)
@@ -243,7 +241,9 @@ local function buildApplication(self, tbl)
    for nm, s in pairs(species) do
       -- this is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver
-      s:forwardEuler(0, 0, speciesRkFields[nm][1], {emRkFields[1], emRkFuncFields[1]}, speciesRkFields[nm][2])
+      s:forwardEuler(0, 0, speciesRkFields[nm][1],
+		     {emRkFields[1], emRkFuncFields[1]},
+		     species, speciesRkFields[nm][2])
       -- restore initial condition
       s:initDist()
       -- apply BCs
@@ -298,7 +298,7 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
 	    tCurr, dt, speciesRkFields[nm][inIdx],
-	    {emRkFields[inIdx], emRkFuncFields[1]},
+	    {emRkFields[inIdx], emRkFuncFields[1]}, species,
 	    speciesRkFields[nm][outIdx])
 
 	 status = status and myStatus
@@ -446,6 +446,7 @@ local function buildApplication(self, tbl)
       local step = 1
       local tCurr = tStart
       local myDt = initDt
+      local maxDt = tbl.maximumDt and tbl.maximumDt or GKYL_MAX_DOUBLE -- max time-step
 
       -- triggers for 10% and 1% loggers
       local logTrigger = LinearTrigger(tStart, tEnd, 10)
@@ -469,16 +470,15 @@ local function buildApplication(self, tbl)
       local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
-	 -- if needed adjust dt to hit tEnd exactly
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-	 -- take a time-step
+
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
-	 -- check if step was successful
+
 	 if status then
 	    writeLogMessage(tCurr, myDt)
-	    writeData(tCurr+myDt) -- give chance to everyone to write data
+	    writeData(tCurr+myDt)
 	    tCurr = tCurr + myDt
-	    myDt = dtSuggested
+	    myDt = math.min(dtSuggested, maxDt)
 	    step = step + 1
 	    if (tCurr >= tEnd) then
 	       break
@@ -487,25 +487,24 @@ local function buildApplication(self, tbl)
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
 	 end
-      end -- end of time-step loop
+      end
       writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
 
       -- compute time spent in various parts of code
-      local tmSlvr = 0.0 -- total time in ptcl solver
-      local tmVol = 0.0 -- total time in ptcl solver vol terms
-      local tmSurf = 0.0 -- total time in ptcl solver surf terms
+      local tmSlvr = 0.0
       for _, s in pairs(species) do
 	 tmSlvr = tmSlvr+s:totalSolverTime()
-         if s.solverVolTime then tmVol = tmVol+s:solverVolTime() end
-         if s.solverSurfTime then tmSurf = tmSurf+s:solverSurfTime() end
       end
 
-      local tmMom, tmIntMom, tmBc = 0.0, 0.0, 0.0
+      local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
       for _, s in pairs(species) do
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
+	 for _, c in pairs(s.collisions) do
+	    tmColl = tmColl + c:totalTime()
+	 end
       end
 
       log(string.format("\nTotal number of time-steps %s\n", step))
@@ -517,10 +516,7 @@ local function buildApplication(self, tbl)
       log(string.format("Moment calculations took %g sec\n", tmMom))
       log(string.format("Integrated moment calculations took %g sec\n", tmIntMom))
       log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
-      -- log(string.format("Collision solver took %g sec\n", tmColl))
-      -- log(string.format(
-      -- 	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
-      -- 	     tmCollEvalMom, tmCollProjectMaxwell))
+      log(string.format("Collision solver(s) took %g sec\n", tmColl))
       log(string.format("Stepper combine/copy took %g sec\n", stepperTime))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
