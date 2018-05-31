@@ -130,7 +130,7 @@ end
 
 -- Computes primitive moments velocity and vth=sqrt(T/m) from zeroth,
 -- first and second moments.
-function VmLBOCollisions:primMoments(mom0, mom1, mom2)
+function VmLBOCollisions:calcPrimMoments(mom0, mom1, mom2)
    self.confDiv:advance(0, 0, {mom0, mom1}, {self.velocity})
    self.confDotProduct:advance(0, 0, {self.velocity, mom1}, {self.kinEnergyDensM})
    self.thEnergyDens:combine(1.0/self.vdim, mom2, -1.0/self.vdim, self.kinEnergyDensM)
@@ -138,14 +138,14 @@ function VmLBOCollisions:primMoments(mom0, mom1, mom2)
 end
 
 function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, momIn, fOut)
+
    local tmEvalMomStart = Time.clock()
-   self:primMoments(momIn[1], momIn[2], momIn[3]) -- compute primitive moments
+   self:calcPrimMoments(momIn[1], momIn[2], momIn[3]) -- compute primitive moments
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
-   -- compute increment from collisions
+   -- compute increment from collisions and accumulate it into output
    local myStatus, myDt = self.collisionSlvr:advance(
       tCurr, dt, {fIn, self.velocity, self.vthSq}, {self.collOut})
-   -- accumulate to output collisions
    fOut:accumulate(dt, self.collOut)
 
    return myStatus, myDt
