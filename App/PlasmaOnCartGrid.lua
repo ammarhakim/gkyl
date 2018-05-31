@@ -241,7 +241,9 @@ local function buildApplication(self, tbl)
    for nm, s in pairs(species) do
       -- this is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver
-      s:forwardEuler(0, 0, speciesRkFields[nm][1], {emRkFields[1], emRkFuncFields[1]}, speciesRkFields[nm][2])
+      s:forwardEuler(0, 0, speciesRkFields[nm][1],
+		     {emRkFields[1], emRkFuncFields[1]},
+		     species, speciesRkFields[nm][2])
       -- restore initial condition
       s:initDist()
       -- apply BCs
@@ -296,7 +298,7 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 local myStatus, myDtSuggested = s:forwardEuler(
 	    tCurr, dt, speciesRkFields[nm][inIdx],
-	    {emRkFields[inIdx], emRkFuncFields[1]},
+	    {emRkFields[inIdx], emRkFuncFields[1]}, species,
 	    speciesRkFields[nm][outIdx])
 
 	 status = status and myStatus
@@ -495,11 +497,14 @@ local function buildApplication(self, tbl)
 	 tmSlvr = tmSlvr+s:totalSolverTime()
       end
 
-      local tmMom, tmIntMom, tmBc = 0.0, 0.0, 0.0
+      local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
       for _, s in pairs(species) do
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
+	 for _, c in pairs(s.collisions) do
+	    tmColl = tmColl + c:totalTime()
+	 end
       end
 
       log(string.format("\nTotal number of time-steps %s\n", step))
@@ -511,10 +516,7 @@ local function buildApplication(self, tbl)
       log(string.format("Moment calculations took %g sec\n", tmMom))
       log(string.format("Integrated moment calculations took %g sec\n", tmIntMom))
       log(string.format("Field energy calculations took %g sec\n", field:energyCalcTime()))
-      -- log(string.format("Collision solver took %g sec\n", tmColl))
-      -- log(string.format(
-      -- 	     "  [Moment evaluation %g sec. Maxwellian projection %g sec]\n",
-      -- 	     tmCollEvalMom, tmCollProjectMaxwell))
+      log(string.format("Collision solver(s) took %g sec\n", tmColl))
       log(string.format("Stepper combine/copy took %g sec\n", stepperTime))
       log(string.format("Main loop completed in %g sec\n\n", tmSimEnd-tmSimStart))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
