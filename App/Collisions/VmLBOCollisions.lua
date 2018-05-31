@@ -6,12 +6,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto          = require "Lib.Proto"
-local Updater        = require "Updater"
 local CollisionsBase = require "App.Collisions.CollisionsBase"
+local DataStruct = require "DataStruct"
+local Proto = require "Lib.Proto"
+local Time = require "Lib.Time"
+local Updater = require "Updater"
 local VmLBOconstNuEq = require "Eq.VmLBO"
-local DataStruct     = require "DataStruct"
-local Time           = require "Lib.Time"
+local xsys = require "xsys"
 
 -- VmLBOCollisions ---------------------------------------------------------------
 --
@@ -25,107 +26,90 @@ local VmLBOCollisions = Proto(CollisionsBase)
 -- construction to the fullInit() method below.
 function VmLBOCollisions:init(tbl)
    self.tbl = tbl
-   self._tmEvalMom = 0.0
 end
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
-function VmLBOCollisions:fullInit(collTbl)
-   local tbl = self.tbl -- previously store table.
+function VmLBOCollisions:fullInit(speciesTbl)
+   local tbl = self.tbl -- previously stored table
 
-   self.cfl         = 0.1
-   self.speciesList = tbl.species
-   self.collFreq    = tbl.collFreq
+   self.cfl = 0.0 -- will be replaced
+   self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
+   self.crossSpecies = tbl.crossSpecies
+   self.collFreq = assert(
+      tbl.collFreq, "Updater.VmLBOCollisions: Must specify the collision frequency with 'collFreq'")
 
-   assert(#self.speciesList == #self.collFreq,
-	  "'nu' must be defined for each 'species'")
+   self._tmEvalMom = 0.0
 end
 
 function VmLBOCollisions:setName(nm)
    self.name = nm
 end
-
+function VmLBOCollisions:setCfl(cfl)
+   self.cfl = cfl/3.0 -- what should this be? - AHH
+end
 function VmLBOCollisions:setConfBasis(basis)
    self.confBasis = basis
 end
-function VmLBOCollisions:setConfGrid(cgrid)
-   self.confGrid = cgrid
+function VmLBOCollisions:setConfGrid(grid)
+   self.confGrid = grid
+end
+function VmLBOCollisions:setPhaseBasis(basis)
+   self.phaseBasis = basis
+end
+function VmLBOCollisions:setPhaseGrid(grid)
+   self.phaseGrid = grid
 end
 
-function VmLBOCollisions:setPhaseBasis(species)
-   self.phaseBasis = {}
-   for _, nm in pairs(self.speciesList) do
-      self.phaseBasis[nm] = species[nm].basis
-   end
-end
-
-function VmLBOCollisions:setPhaseGrid(species)
-   self.phaseGrid = {}
-   for _, nm in pairs(self.speciesList) do
-      self.phaseGrid[nm] = species[nm].grid
-   end
-end
-
-function VmLBOCollisions:createSolver(species)
-   local confBasis  = nil
-   local confGrid   = nil
-   local phaseBasis = nil
-   local phaseGrid  = nil
-   for _, nm in pairs(self.speciesList) do
-      confBasis  = species[nm].confBasis
-      confGrid   = species[nm].confGrid
-      phaseBasis = species[nm].basis
-      phaseGrid  = species[nm].grid
-   end
-
-   self.vdim = phaseGrid:ndim()-confGrid:ndim()
+function VmLBOCollisions:createSolver()
+   self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    -- intemediate storage for output of collisions
    self.collOut = DataStruct.Field {
-      onGrid        = phaseGrid,
-      numComponents = phaseBasis:numBasis(),
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
    }
 
    -- Flow velocity in vdim directions.
    self.velocity = DataStruct.Field {
-      onGrid        = confGrid,
-      numComponents = confBasis:numBasis()*self.vdim,
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis()*self.vdim,
       ghost         = {1, 1},
    }
    -- Thermal speed squared, vth=sqrt(T/m).
    self.vthSq = DataStruct.Field {
-      onGrid        = confGrid,
-      numComponents = confBasis:numBasis(),
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
    }
    -- Magnitude of kinetic energy density vector.
    self.kinEnergyDensM = DataStruct.Field {
-      onGrid        = confGrid,
-      numComponents = confBasis:numBasis(),
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
    }
    self.thEnergyDens = DataStruct.Field {
-      onGrid        = confGrid,
-      numComponents = confBasis:numBasis(),
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
    }
 
    -- Zero-flux BCs in the velocity dimensions.
    local zfd = { }
-   for d = 1, (phaseGrid:ndim()-confGrid:ndim()) do
-      zfd[d] = confGrid:ndim()+d
+   for d = 1, self.vdim do
+      zfd[d] = self.confGrid:ndim() + d
    end
-   
+
    -- Lenard-Bernestein equation.
    local vmLBOconstNuCalc = VmLBOconstNuEq {
-      nu         = self.collFreq[1],
-      phaseBasis = phaseBasis,
-      confBasis  = confBasis,
+      nu         = self.collFreq,
+      phaseBasis = self.phaseBasis,
+      confBasis  = self.confBasis,
    }
    self.collisionSlvr = Updater.HyperDisCont {
-      onGrid             = phaseGrid,
-      basis              = phaseBasis,
+      onGrid             = self.phaseGrid,
+      basis              = self.phaseBasis,
       cfl                = self.cfl,
       equation           = vmLBOconstNuCalc,
       onlyIncrement      = true,
@@ -136,44 +120,37 @@ function VmLBOCollisions:createSolver(species)
    -- Also need weak binary operations for primitive moments.
    -- Weak division of two configuration space fields.
    self.confDiv = Updater.CartFieldBinOp {
-      onGrid     = confGrid,
-      weakBasis  = confBasis,
+      onGrid     = self.confGrid,
+      weakBasis  = self.confBasis,
       operation  = "Divide",
    }
    -- Dot product of two configuration space vector fields.
    self.confDotProduct = Updater.CartFieldBinOp {
-      onGrid     = confGrid,
-      weakBasis  = confBasis,
+      onGrid     = self.confGrid,
+      weakBasis  = self.confBasis,
       operation  = "DotProduct",
    }
 end
 
 -- Computes primitive moments velocity and vth=sqrt(T/m) from zeroth,
 -- first and second moments.
-function VmLBOCollisions:primMoments(mom0, mom1, mom2)
-   self.confDiv:advance(0.,0.,{mom0, mom1}, {self.velocity})
-   self.confDotProduct:advance(0.,0.,{self.velocity,mom1},{self.kinEnergyDensM})
+function VmLBOCollisions:calcPrimMoments(mom0, mom1, mom2)
+   self.confDiv:advance(0, 0, {mom0, mom1}, {self.velocity})
+   self.confDotProduct:advance(0, 0, {self.velocity, mom1}, {self.kinEnergyDensM})
    self.thEnergyDens:combine(1.0/self.vdim, mom2, -1.0/self.vdim, self.kinEnergyDensM)
-   self.confDiv:advance(0.,0.,{mom0,self.thEnergyDens},{self.vthSq})
+   self.confDiv:advance(0, 0, {mom0, self.thEnergyDens}, {self.vthSq})
 end
 
-function VmLBOCollisions:forwardEuler(tCurr, dt, idxIn, idxOut, species)
-   local nm = self.speciesList[1] -- for now, only self-collisions
-   local spMomFields = species[nm]:fluidMoments()
-   local spInField = species[nm]:rkStepperFields()[idxIn]
-   local spOutField = species[nm]:rkStepperFields()[idxOut]
+function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, momIn, fOut)
 
-   -- compute primitive moments
    local tmEvalMomStart = Time.clock()
-   self:primMoments(spMomFields[1], spMomFields[2], spMomFields[3])
+   self:calcPrimMoments(momIn[1], momIn[2], momIn[3]) -- compute primitive moments
    self._tmEvalMom = self._tmEvalMom + Time.clock() - tmEvalMomStart
 
-   -- compute increment from collisions
+   -- compute increment from collisions and accumulate it into output
    local myStatus, myDt = self.collisionSlvr:advance(
-      tCurr, dt, {spInField, self.velocity, self.vthSq}, {self.collOut})
-   
-   -- accumulate to output collisions
-   spOutField:accumulate(dt, self.collOut)
+      tCurr, dt, {fIn, self.velocity, self.vthSq}, {self.collOut})
+   fOut:accumulate(dt, self.collOut)
 
    return myStatus, myDt
 end
@@ -184,10 +161,6 @@ end
 
 function VmLBOCollisions:evalMomTime()
    return self._tmEvalMom
-end
-
-function VmLBOCollisions:projectMaxwellTime()
-   return 0.0
 end
 
 return VmLBOCollisions

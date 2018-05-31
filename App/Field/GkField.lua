@@ -276,23 +276,25 @@ function GkField:write(tm)
       end
       
       if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
-	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
-	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm)
+	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
-	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm)
-	 if self.isElectromagnetic then self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm) end
+	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 if self.isElectromagnetic then
+	    self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 end
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
-	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
-	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm)
+	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
       end
       self.ioFrame = self.ioFrame+1
@@ -573,9 +575,13 @@ end
 function GkGeometry:write(tm)
    -- not evolving geometry, so only write geometry at beginning
    if self.ioFrame == 0 then
-      self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
-      if self.setBdriftX then self.fieldIo:write(self.geo.bdriftX, string.format("bdriftX_%d.bp", self.ioFrame), tm) end
-      if self.setBdriftY then self.fieldIo:write(self.geo.bdriftY, string.format("bdriftY_%d.bp", self.ioFrame), tm) end
+      self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm, self.ioFrame)
+      if self.setBdriftX then
+	 self.fieldIo:write(self.geo.bdriftX, string.format("bdriftX_%d.bp", self.ioFrame), tm, self.ioFrame)
+      end
+      if self.setBdriftY then
+	 self.fieldIo:write(self.geo.bdriftY, string.format("bdriftY_%d.bp", self.ioFrame), tm, self.ioFrame)
+      end
    end
    self.ioFrame = self.ioFrame+1
 end

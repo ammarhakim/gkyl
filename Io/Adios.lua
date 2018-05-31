@@ -14,6 +14,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 require "Io._AdiosCdef" -- load FFI binding
+require "Io._AdiosReadCdef" -- load FFI binding
 
 local _M = {}
 
@@ -89,6 +90,13 @@ end
 -- adios_write
 function _M.write(fd, name, var)
    local err = ffi.C.adios_write(fd[0], name, var)
+   return err
+end
+
+-- adios_read
+function _M.read(fd, name, buff, buffSz)
+   local err = ffi.C.adios_read(fd[0], name, buff, buffSz)
+   return err
 end
 
 -- adios_close
