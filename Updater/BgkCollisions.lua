@@ -36,7 +36,6 @@ function BgkCollisions:init(tbl)
 
    -- -- Number of quadrature points in each direction
    -- self._N = tbl.numConfQuad and tbl.numConfQuad or self._confBasis:polyOrder() + 1
-
    -- -- 1D weights and ordinates
    -- local ordinates = GaussQuadRules.ordinates[self._N]
    -- local weights = GaussQuadRules.weights[self._N]
@@ -87,10 +86,6 @@ function BgkCollisions:init(tbl)
    --    self._phaseBasis:evalBasis(self._phaseOrdinates[n],
    -- 				 self._phaseBasisAtOrdinates[n])
    -- end
-
-   -- timings
-   self._tmEvalMom = 0.0
-   self._tmProjectMaxwell = 0.0
 end
 
 ----------------------------------------------------------------------
@@ -100,39 +95,6 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    -- local numConfBasis = self._confBasis:numBasis()
    local numPhaseDims = self._phaseGrid:ndim()
    local numPhaseBasis = self._phaseBasis:numBasis()
-
-   -- Define regions for looping over ordinates
-   -- local l, u = {}, {}
-   -- for d = 1, numConfDims do l[d], u[d] = 1, self._N end
-   -- local confQuadRange = Range.Range(l, u)
-   -- local confQuadIndexer = Range.makeColMajorGenIndexer(confQuadRange)
-   -- for d = 1, numPhaseDims do l[d], u[d] = 1, self._N end
-   -- local phaseQuadRange = Range.Range(l, u)
-   -- local phaseQuadIndexer = Range.makeColMajorGenIndexer(phaseQuadRange)
-   -- local phaseIdx = {}
-
-   -- -- Variables for evaluating the moments at quadrature points
-   -- local numConfOrdinates = confQuadRange:volume()
-   -- local numDensityOrd = Lin.Vec(numConfOrdinates)
-   -- local momDensityOrd = Lin.Mat(numConfOrdinates, numVelDims)
-   -- local ptclEnergyOrd = Lin.Vec(numConfOrdinates)
-   -- local velBulkOrd = Lin.Mat(numConfOrdinates, numVelDims)
-   -- local velTherm2Ord = Lin.Vec(numConfOrdinates)
-
-   -- -- Variables to get the physical coordinates from of the
-   -- -- computational space
-   -- local dz = Lin.Vec(numPhaseDims) -- cell shape
-   -- local zc = Lin.Vec(numPhaseDims) -- cell center
-   -- local zPhys = Lin.Vec(numPhaseDims)
-
-   -- -- Additional variables which we don't want to allocate inside the
-   -- -- loops
-   -- local maxwellian = nil
-   -- local maxwellianModal = Lin.Vec(numPhaseBasis)
-   -- local u2 = nil
-   -- local confMu = nil
-   -- local phaseMu = nil
-   -- local offset = nil
 
    -- Get the inputs and outputs
    local fIn = assert(inFld[1],
@@ -167,8 +129,5 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    end
    return true, GKYL_MAX_DOUBLE
 end
-
-function BgkCollisions:evalMomTime() return self._tmEvalMom end
-function BgkCollisions:projectMaxwellTime() return self._tmProjectMaxwell end
 
 return BgkCollisions

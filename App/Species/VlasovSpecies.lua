@@ -100,7 +100,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
    end
 end
 
-function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
    -- accumulate functional Maxwell fields (if needed)
    local emField = emIn[1]
    local emFuncField = emIn[2]
@@ -116,9 +116,8 @@ function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
       totalEmField = emField
    end
 
-   if self.evolve then
-      local status, dtSuggested
-      local collStatus, collDt
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   if self.evolveCollisionless then      
       status, dtSuggested = self.solver:advance(tCurr, dt,
 						{fIn, totalEmField},
 						{fOut})
@@ -128,21 +127,24 @@ function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
         self.evalSource:advance(tCurr, dt, {}, {fSource})
         fOut:accumulate(dt, fSource)
       end
-
-      -- perform the collision update
+   else
+      fOut:copy(fIn) -- just copy stuff over
+   end
+   -- perform the collision update
+   if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-	 collStatus, collDt = c:forwardEuler(tCurr, dt,
-					     fIn, self:fluidMoments(),
-					     fOut)
+	 local collStatus, collDt = c:forwardEuler(tCurr, dt,
+						   fIn, species,
+						   fOut)
+	 -- the full 'species' list is needed for the cross-species
+	 -- collisions
 	 status = status and collStatus
 	 dtSuggested = math.min(dtSuggested, collDt)
       end
-
+      
       return status, dtSuggested
-   else
-      fOut:copy(fIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
    end
+   return status, dtSuggested
 end
 
 function VlasovSpecies:createDiagnostics()
