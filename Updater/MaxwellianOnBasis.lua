@@ -13,7 +13,6 @@ local Lin = require "Lib.Linalg"
 local Proto = require "Proto"
 local Range = require "Lib.Range"
 local Time = require "Lib.Time"
-local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local UpdaterBase = require "Updater.Base"
 
 -- System libraries
@@ -107,54 +106,6 @@ function MaxwellianOnBasis:init(tbl)
 
    -- Construct the logical space to physical space mapping
    self.compToPhys = loadstring(compToPhysTempl {NDIM = self.numPhaseDims} )()
-
-   -- Weak division of two configuration space fields
-   self.confDiv = CartFieldBinOp {
-      onGrid = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-   }
-   -- Dot product of two configuration space vector fields
-   self.confDotProduct = CartFieldBinOp {
-      onGrid = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "DotProduct",
-   }
-
-   -- Flow velocity in vdim directions
-   self.bulkVelocity = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.numConfBasis*self.numVelDims,
-      ghost = {1, 1},
-   }
-   -- Thermal velocity squared; vth=sqrt(T/m)
-   self.thermVelocity2 = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.numConfBasis,
-      ghost = {1, 1},
-   }
-   -- Magnitude of kinetic energy density vector
-   self.kinEnergyDens = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.numConfBasis,
-      ghost = {1, 1},
-   }
-   self.thermEnergyDens = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.numConfBasis,
-      ghost = {1, 1},
-   }
-end
-
--- Computes primitive variables from the moments
-function MaxwellianOnBasis:primVariables(M0, M1i, M2)
-   self.confDiv:advance(0., 0., {M0, M1i}, {self.bulkVelocity})
-   self.confDotProduct:advance(0., 0., {self.bulkVelocity, M1i},
-			       {self.kinEnergyDens})
-   self.thermEnergyDens:combine(1.0/self.numVelDims, M2,
-				   -1.0/self.numVelDims, self.kinEnergyDens)
-   self.confDiv:advance(0., 0., {M0, self.thermEnergyDens},
-			{self.thermVelocity2})
 end
 
 ----------------------------------------------------------------------
@@ -184,22 +135,22 @@ function MaxwellianOnBasis:_advance(tCurr, dt, inFld, outFld)
    local offset = nil
 
    -- Get the inputs and outputs
-   assert(inFld[1], "MaxwellianOnBasis.advance: Must specify M0 input fluid moments field")
-   assert(inFld[2], "MaxwellianOnBasis.advance: Must specify M1i input fluid moments field")
-   assert(inFld[3], "MaxwellianOnBasis.advance: Must specify M2 input fluid moments field")
-   -- load the moments and calculate the primitive variables
-   self.numDensity = inFld[1]
-   self:primVariables(inFld[1], inFld[2], inFld[3])
-
+   assert(inFld[1], "MaxwellianOnBasis.advance: Must specify density")
+   assert(inFld[2], "MaxwellianOnBasis.advance: Must specify bulk velocity")
+   assert(inFld[3], "MaxwellianOnBasis.advance: Must specify thermal velocity")
+   local numDensity = inFld[1]
+   local bulkVelocity = inFld[2]
+   local thermVelocity2 = inFld[3]
    local fOut = assert(outFld[1], "MaxwellianOnBasis.advance: Must specify an output field")
-   local numDensityItr = self.numDensity:get(1)
-   local bulkVelocityItr = self.bulkVelocity:get(1)
-   local thermVelocity2Itr = self.thermVelocity2:get(1)
+
+   local numDensityItr = numDensity:get(1)
+   local bulkVelocityItr = bulkVelocity:get(1)
+   local thermVelocity2Itr = thermVelocity2:get(1)
    local fItr = fOut:get(1)
 
    -- Get the Ranges to loop over the domain
-   local confRange = self.numDensity:localRange()
-   local confIndexer = self.numDensity:genIndexer()
+   local confRange = numDensity:localRange()
+   local confIndexer = numDensity:genIndexer()
    local phaseRange = fOut:localRange()
    local phaseIndexer = fOut:genIndexer()
    local l, u = {}, {}
@@ -211,9 +162,9 @@ function MaxwellianOnBasis:_advance(tCurr, dt, inFld, outFld)
 
    -- The conf. space loop
    for confIdx in confRange:colMajorIter() do
-      self.numDensity:fill(confIndexer(confIdx), numDensityItr)
-      self.bulkVelocity:fill(confIndexer(confIdx), bulkVelocityItr)
-      self.thermVelocity2:fill(confIndexer(confIdx), thermVelocity2Itr)
+      numDensity:fill(confIndexer(confIdx), numDensityItr)
+      bulkVelocity:fill(confIndexer(confIdx), bulkVelocityItr)
+      thermVelocity2:fill(confIndexer(confIdx), thermVelocity2Itr)
 
       -- Evaluate the the primitive variables (given as expansion
       -- coefficiens) on the ordinates

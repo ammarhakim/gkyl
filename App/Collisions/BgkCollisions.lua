@@ -61,11 +61,47 @@ function BgkCollisions:setPhaseGrid(grid)
 end
 
 function BgkCollisions:createSolver()
+   -- temporary fields for the primitive moments
+   self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
+   self.bulkVelocity = DataStruct.Field {
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis()*self.numVelDims,
+      ghost = {1, 1},
+   }
+   self.thermVelocity2 = DataStruct.Field {
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost = {1, 1},
+   }
+   self._kinEnergyDens = DataStruct.Field {
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost = {1, 1},
+   }
+   self._thermEnergyDens = DataStruct.Field {
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost = {1, 1},
+   }
+   -- Updaters for the primitive moments
+   self.confDiv = Updater.CartFieldBinOp {
+      onGrid = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+   }
+   self.confDotProduct = Updater.CartFieldBinOp {
+      onGrid = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "DotProduct",
+   }
+
+   -- Maxwellian field
    self.fMaxwell = DataStruct.Field {
       onGrid = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost = {1, 1},
    }
+   -- Maxwellian solver
    self.maxwellian = Updater.MaxwellianOnBasis {
       onGrid = self.confGrid,
       confGrid = self.confGrid,
@@ -73,6 +109,8 @@ function BgkCollisions:createSolver()
       phaseGrid = self.phaseGrid,
       phaseBasis = self.phaseBasis,
    }
+
+   -- BGK Collision solver itself
    self.collisionSlvr = Updater.BgkCollisions {
       onGrid = self.confGrid,
       confGrid = self.confGrid,
@@ -83,13 +121,25 @@ function BgkCollisions:createSolver()
    }
 end
 
+function BgkCollisions:primMoments(M0, M1i, M2, u, vth2)
+   self.confDiv:advance(0., 0., {M0, M1i}, {u})
+   self.confDotProduct:advance(0., 0., {u, M1i},
+			       {self._kinEnergyDens})
+   self._thermEnergyDens:combine(1.0/self.numVelDims, M2,
+				   -1.0/self.numVelDims, self._kinEnergyDens)
+   self.confDiv:advance(0., 0., {M0, self._thermEnergyDens}, {vth2})
+end
+
 function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    local selfMom = species[self.speciesName]:fluidMoments()
 
+   self:primMoments(selfMom[1], selfMom[2], selfMom[3], 
+		    self.bulkVelocity, self.thermVelocity2)
    if self.selfCollisions then
       self.maxwellian:advance(
-	 tCurr, dt, {selfMom[1], selfMom[2], selfMom[3]}, {self.fMaxwell})
+	 tCurr, dt, {selfMom[1], self.bulkVelocity, self.thermVelocity2},
+	 {self.fMaxwell})
       local tmpStatus, tmpDt = self.collisionSlvr:advance(
 	 tCurr, dt, {fIn, self.fMaxwell}, {fOut})
       status = status and tmpStatus
