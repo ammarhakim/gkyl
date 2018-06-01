@@ -35,6 +35,8 @@ function BgkCollisions:fullInit(speciesTbl)
    self.crossSpecies = tbl.crossSpecies
    self.collFreq = assert(
       tbl.collFreq, "Updater.BgkCollisions: Must specify the collision frequency with 'collFreq'")
+   self.beta = assert(
+      tbl.beta, "Updater.BgkCollisions: Must specify the beta from Green with 'beta'")
 end
 
 function BgkCollisions:setName(nm)
@@ -61,18 +63,35 @@ function BgkCollisions:setPhaseGrid(grid)
 end
 
 function BgkCollisions:createSolver()
-   -- temporary fields for the primitive moments
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
-   self.bulkVelocity = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.confBasis:numBasis()*self.numVelDims,
-      ghost = {1, 1},
-   }
-   self.thermVelocity2 = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost = {1, 1},
-   }
+
+   function createUField()
+      return DataStruct.Field {
+	 onGrid = self.confGrid,
+	 numComponents = self.confBasis:numBasis()*self.numVelDims,
+	 ghost = {1, 1},
+      }
+   end
+   self.uSelf = createUField()
+   if self.selfCollisions then
+      self.uOther = createUField()
+      self.uCross = createUField()
+   end
+
+   function createVth2Field()
+      return DataStruct.Field {
+	 onGrid = self.confGrid,
+	 numComponents = self.confBasis:numBasis(),
+	 ghost = {1, 1},
+      }
+   end
+   self.vth2Self = createVth2Field()
+   if self.selfCollisions then
+      self.vth2Other = createVth2Field()
+      self.vth2Cross = createVth2Field()
+   end
+
+   -- dummy fields for the primitive moment calculator
    self._kinEnergyDens = DataStruct.Field {
       onGrid = self.confGrid,
       numComponents = self.confBasis:numBasis(),
@@ -103,7 +122,7 @@ function BgkCollisions:createSolver()
    }
    -- Maxwellian solver
    self.maxwellian = Updater.MaxwellianOnBasis {
-      onGrid = self.confGrid,
+      onGrid = self.phaseGrid,
       confGrid = self.confGrid,
       confBasis = self.confBasis,
       phaseGrid = self.phaseGrid,
@@ -112,7 +131,7 @@ function BgkCollisions:createSolver()
 
    -- BGK Collision solver itself
    self.collisionSlvr = Updater.BgkCollisions {
-      onGrid = self.confGrid,
+      onGrid = self.phaseGrid,
       confGrid = self.confGrid,
       confBasis = self.confBasis,
       phaseGrid = self.phaseGrid,
@@ -132,21 +151,53 @@ end
 
 function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   local tmpStatus, tmpDt = true, GKYL_MAX_DOUBLE
    local selfMom = species[self.speciesName]:fluidMoments()
 
    self:primMoments(selfMom[1], selfMom[2], selfMom[3], 
-		    self.bulkVelocity, self.thermVelocity2)
+		    self.uSelf, self.vth2Self)
    if self.selfCollisions then
       self.maxwellian:advance(
-	 tCurr, dt, {selfMom[1], self.bulkVelocity, self.thermVelocity2},
+	 tCurr, dt, {selfMom[1], self.uSelf, self.vth2Self},
 	 {self.fMaxwell})
-      local tmpStatus, tmpDt = self.collisionSlvr:advance(
+      tmpStatus, tmpDt = self.collisionSlvr:advance(
 	 tCurr, dt, {fIn, self.fMaxwell}, {fOut})
       status = status and tmpStatus
       dtSuggested = math.min(dtSuggested, tmpDt)
    end
+
    if self.crossSpecies then
-      -- Insert cross collisions here!
+      for _, otherNm in ipairs(self.crossSpecies) do
+	 local mSelf = species[self.speciesName]:getMass()
+	 local mOther = species[otherNm]:getMass()
+	 local otherMom = species[otherNm]:fluidMoments()
+	 self:primMoments(otherMom[1], otherMom[2], otherMom[3], 
+			  self.uOther, self.vth2Other)
+	 
+	 -- Greene, Improved BGK model for electron-ion collisions, 1973
+	 self.uCross:combine(1.0, self.uSelf, -1.0, self.uOther)
+	 self.confDotProduct:advance(0., 0., {self.uCross, self.uCross},
+				     {self._kinEnergyDens})
+	 self.uCross:combine(0.5, self.uSelf, 0.5, self.uOther,
+				-0.5*self.beta, self.uSelf,
+			     0.5*self.beta, self.uOther)
+	 self.vth2Cross:combine(mOther, self.vth2Self, mOther, self.vth2Other,
+				   -self.beta*mSelf, self.vth2Self,
+				self.beta*mOther, self.vth2Other,
+				(1-self.beta*self.beta)/6*mOther,
+				self._kinEnergyDens, 
+				(1+self.beta)*(1+self.beta)/12*(mOther-mSelf),
+				self._kinEnergyDens)
+	 self.vth2Cross:scale(1.0/(mOther+mSelf))
+
+	 self.maxwellian:advance(
+	    tCurr, dt, {selfMom[1], self.uCross, self.vth2Cross},
+	    {self.fMaxwell})
+	 tmpStatus, tmpDt = self.collisionSlvr:advance(
+	    tCurr, dt, {fIn, self.fMaxwell}, {fOut})
+	 status = status and tmpStatus
+	 dtSuggested = math.min(dtSuggested, tmpDt)
+      end
    end
    return status, dtSuggested
 end
