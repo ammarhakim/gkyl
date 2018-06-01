@@ -123,7 +123,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
       fOut:fill(phaseIndexer(phaseIdx), fOutItr)
 
       for k = 1, numPhaseBasis do
-	 fOutItr[k] = fOutItr[k] + dt * nu(1, 1) * -- FIX collision frequency!
+	 fOutItr[k] = fOutItr[k] + dt * nu * -- FIX collision frequency!
 	    (fMaxwellItr[k] - fInItr[k])
       end
    end
