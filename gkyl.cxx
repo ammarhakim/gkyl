@@ -167,13 +167,13 @@ main(int argc, char **argv) {
   // This prevents denormalized floats from occuring in
   // code. Otherwise, the code become horribly slow in some rare (but
   // not impossible to reproduce) situations.
-  //#if defined(__clang__)
-  // fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
-  //#elif defined(__powerpc__)
+#if defined(__clang__)
+  fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#elif defined(__powerpc__)
   // not sure what the POWER calls are for denormalized floats
-  //#elif defined(__GNUC__) || defined(__GNUG__)
+#elif defined(__GNUC__) || defined(__GNUG__)
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);  
-  //#endif
+#endif
   
 #ifdef HAVE_MPI_H
   MPI_Init(&argc, &argv);
