@@ -27,7 +27,7 @@ function log(msg)
    end
 end
 
-function test_1(comm)
+function test_1w(comm)
    local grid = Grid.RectCart {
       lower = {0.0, 0.0},
       upper = {1.0, 1.0},
@@ -43,8 +43,37 @@ function test_1(comm)
    -- I/O object
    local adiosIo = AdiosCartFieldIo { elemType = field:elemType() }
 
-   adiosIo:write(field, "field.bp", 0.0)
+   adiosIo:write(field, "field.bp", 3.1, 42)
+end
 
+function test_1r(comm)
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 1,
+      ghost = {1, 1},
+   }
+
+   -- I/O object
+   local adiosIo = AdiosCartFieldIo { elemType = field:elemType() }
+
+   local tmStamp, frNum = adiosIo:read(field, "field.bp")
+
+   assert_equal(3.1, tmStamp, "Checking time-stamp")
+   assert_equal(42, frNum, "Checking frame number")
+
+   local indexer = field:indexer()
+   local localRange = field:localRange()
+   for i = localRange:lower(1),  localRange:upper(1) do
+      for j = localRange:lower(2), localRange:upper(2) do
+	 local fitr = field:get(indexer(i, j))
+	 assert_equal(10.5, fitr[1], "Checking field value")
+      end
+   end
 end
 
 function allReduceOneInt(localv)
@@ -55,7 +84,8 @@ function allReduceOneInt(localv)
 end
 
 -- Run tests
-test_1(Mpi.COMM_WORLD)
+test_1w(Mpi.COMM_WORLD)
+test_1r(Mpi.COMM_WORLD)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
