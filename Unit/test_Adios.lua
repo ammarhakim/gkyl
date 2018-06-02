@@ -105,16 +105,20 @@ function test_1r(comm)
 
    local nx = new("int[1]")
    local ny = new("int[1]")
+   local temperature = new("double[?]", 100)
 
    -- read various things
    Adios.read(fd, "NX", nx, sizeof("int"))
    Adios.read(fd, "NY", ny, sizeof("int"))
+   Adios.read(fd, "temperature", temperature, 100*sizeof("double"))
 
    Adios.close(fd)
 
    assert_equal(100, nx[0], "Checking NX")
    assert_equal(20, ny[0], "Checking NY")
-   
+   for i = 0, nx[0]-1 do
+      assert_equal(i, temperature[i], "Checking temperature")
+   end
    
    Adios.finalize(rank)   
 end
