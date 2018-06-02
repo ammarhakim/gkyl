@@ -1,6 +1,10 @@
 -- GkField ---------------------------------------------------------------------
 --
--- App support code: Gyrokinetic fields phi and apar, solved by (perpendicular) Poisson and Ampere equations
+-- App support code: Gyrokinetic fields phi and apar, solved by
+-- (perpendicular) Poisson and Ampere equations
+-- 
+--    _______     ___
+-- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
