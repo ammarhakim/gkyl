@@ -194,9 +194,6 @@ function AdiosCartFieldIo:read(field, fName)
    adGlobalSz = toCSV(_adGlobalSz)
    adOffset = toCSV(_adOffset)
 
-   if not frNum then frNum = 5000 end  -- default frame-number
-   if not tmStamp then tmStamp = 0.0 end -- default time-stamp
-
    -- resize buffer (only done if needed. Alloc handles this automatically)
    self._outBuff:expand(field:size())
 
