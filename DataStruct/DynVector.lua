@@ -111,7 +111,64 @@ function DynVector:_copy_from_dynvector(buff)
    end
 end
 
-function DynVector:write(outNm, tmStamp)
+function DynVector:write(outNm, tmStamp, frNum)
+   local comm = self._ioComm
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   if rank ~= 0 then  -- only run on rank 0 ...
+      self:clear() -- ... but clear data on all ranks
+      return
+   end
+
+   if not frNum then frNum = 5000 end  -- default frame-number
+   if not tmStamp then tmStamp = 0.0 end -- default time-stamp
+
+   -- setup ADIOS for IO
+   Adios.init_noxml(comm[0])
+
+   -- create group and set I/O method
+   local grpId = Adios.declare_group("DynVector", "", Adios.flag_no)
+   Adios.select_method(grpId, "MPI", "", "")
+   
+   -- ADIOS expects CSV string to specify data shape
+   local localTmSz = toCSV( {self._data:size()} )
+   local localDatSz = toCSV( {self._data:size(), self._numComponents} )
+   
+   -- define data to write
+   Adios.define_var(
+      grpId, "frame", "", Adios.integer, "", "", "")
+   Adios.define_var(
+      grpId, "time", "", Adios.double, "", "", "")
+   Adios.define_var(
+      grpId, "TimeMesh", "", Adios.double, localTmSz, "", "")
+   Adios.define_var(
+      grpId, "Data", "", Adios.double, localDatSz, "", "")
+
+   local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
+
+   -- open file to write out group
+   local fd = Adios.open("DynVector", fullNm, "w", comm[0])
+
+   -- write data
+   local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
+   Adios.write(fd, "time", tmStampBuff)
+
+   local frNumBuff = new("int[1]"); frNumBuff[0] = frNum
+   Adios.write(fd, "frame", frNumBuff)
+
+   Adios.write(fd, "TimeMesh", self._timeMesh:data())
+   -- copy data to IO buffer
+   self._ioBuff:expand(self._data:size()*self._numComponents)
+   self:_copy_from_dynvector(self._ioBuff)
+   Adios.write(fd, "Data", self._ioBuff:data())
+   
+   Adios.close(fd)
+   
+   Adios.finalize(rank)
+   self:clear() -- clear data for next round of IO
+end
+
+-- returns time-stamp and frame number
+function DynVector:read(outNm)
    local comm = self._ioComm
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
    if rank ~= 0 then  -- only run on rank 0 ...
@@ -132,6 +189,8 @@ function DynVector:write(outNm, tmStamp)
    
    -- define data to write
    Adios.define_var(
+      grpId, "frame", "", Adios.integer, "", "", "")
+   Adios.define_var(
       grpId, "time", "", Adios.double, "", "", "")
    Adios.define_var(
       grpId, "TimeMesh", "", Adios.double, localTmSz, "", "")
@@ -141,21 +200,20 @@ function DynVector:write(outNm, tmStamp)
    local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
 
    -- open file to write out group
-   local fd = Adios.open("DynVector", fullNm, "w", comm[0])
+   local fd = Adios.open("DynVector", fullNm, "r", comm[0])
 
    -- write data
-   local tmStampBuff = new("double[1]"); tmStampBuff[0] = tmStamp
-   Adios.write(fd, "time", tmStampBuff)
-   Adios.write(fd, "TimeMesh", self._timeMesh:data())
-   -- copy data to IO buffer
-   self._ioBuff:expand(self._data:size()*self._numComponents)
-   self:_copy_from_dynvector(self._ioBuff)
-   Adios.write(fd, "Data", self._ioBuff:data())
+   local tmStampBuff = new("double[1]")
+   Adios.read(fd, "time", tmStampBuff, sizeof("double"))
+
+   local frNumBuff = new("int[1]")
+   Adios.read(fd, "frame", frNumBuff, sizeof("int"))
    
    Adios.close(fd)
    
    Adios.finalize(rank)
-   self:clear() -- clear data for next round of IO
+
+   return tmStampBuff[0], frNumBuff[0]
 end
 
 return { DynVector = DynVector }
