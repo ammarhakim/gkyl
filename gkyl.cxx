@@ -34,6 +34,7 @@
 
 #ifdef HAVE_ADIOS_H
 # include <adios.h>
+# include <adios_read.h>
 #endif
 
 #ifdef HAVE_EIGEN_CORE
@@ -148,6 +149,9 @@ createTopLevelDefs(int argc, char **argv) {
 // not know it yet.
 #ifdef HAVE_ADIOS_H
 int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
+ADIOS_FILE*
+_adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm comm)
+{ return adios_read_open_file(fname, method, comm); }
 #endif
 
 void
