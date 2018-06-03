@@ -120,4 +120,12 @@ function _M.inq_var_byid(fd, i)
    return ffi.C.adios_inq_var_byid(fd, i)
 end
 
+function _M.type_size(vtype, vvalue)
+   return ffi.C.adios_type_size(vtype, vvalue)
+end
+
+function _M.type_to_string(vtype)
+   return ffi.string(ffi.C.adios_type_to_string(vtype))
+end
+
 return _M
