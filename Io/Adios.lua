@@ -39,6 +39,9 @@ _M.complex = ffi.C.adios_complex
 _M.double_complex = ffi.C.adios_double_complex
 _M.string_array = ffi.C.adios_string_array
 
+-- ADIOS read methods from adios_read
+_M.read_method_bp = ffi.C.ADIOS_READ_METHOD_BP
+
 -- adios_init_noxml
 function _M.init_noxml(comm)
    local err = ffi.C.adios_init_noxml(comm)
@@ -106,6 +109,15 @@ end
 -- adios_finalize
 function _M.finalize(rank)
    local err = ffi.C.adios_finalize(rank)
+end
+
+-- ADIOS v2 read API wrappers
+function _M.read_open_file(name, comm)
+   return ffi.C.adios_read_open_file(name, _M.read_method_bp, comm)
+end
+
+function _M.inq_var_byid(fd, i)
+   return ffi.C.adios_inq_var_byid(fd, i)
 end
 
 return _M

@@ -34,11 +34,11 @@ def check_adios(conf):
         conf.env.STLIBPATH_ADIOS = conf.options.gkylDepsDir+'/adios/lib'
 
     if conf.options.enable_mpi:
-        conf.env.STLIB_ADIOS = ["adios"]
+        conf.env.STLIB_ADIOS = ["adios", "adiosread"]
     else:
         conf.env.append_value('CXXFLAGS', '-D_NOMPI')
         conf.env.append_value('CFLAGS', '-D_NOMPI')
-        conf.env.STLIB_ADIOS = ["adios_nompi"]
+        conf.env.STLIB_ADIOS = ["adios_nompi", "adiosread_nompi"]
 
     if conf.options.adiosLinkLibs:
         libList = conf.options.adiosLinkLibs
