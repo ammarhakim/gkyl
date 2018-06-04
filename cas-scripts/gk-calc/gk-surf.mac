@@ -97,6 +97,24 @@ for i : 1 thru pmax do (
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
 
+  emflag : false,
+
+  if emflag then (
+    /* expand Apar */
+    Apar_expd:doExpand1(Apar,bC),
+    /* expand dApar/dt */
+    dAdt_expd:doExpand1(dApardt,bC)
+    /* NOTE: even though Apar and dApar/dt are allowed
+       to be discontinuous in the parallel (z) direction,
+       the surface term in the z direction does not involve
+       Apar. since Apar is continuous in the other directions,
+       it does not matter if we use the right or left value */
+  )
+  else (
+    Apar_expd : 0,
+    dAdt_expd : 0
+  ),
+
   /* calculate full expansion expression for Hamiltonian */
   H_full:1/2*m_*(wv + vpar/dfac_v)^2 + q_*Phi_expd,
   if vdim > 1 then H_full : H_full + (wm+mu/dfac_m)*Bmag_expd,
@@ -136,7 +154,7 @@ for i : 1 thru pmax do (
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
   alpha0expr : fullratsimp(innerProd(surfIntVars, 1, alpha_expd, subst(surfVar=-1, bP[1]))),
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
-  printf(fh, "  double alpha0 = std::abs(~a); ~%~%", float(subst(wv^2=wv2, alpha0expr))),
+  printf(fh, "  double alpha0 = std::abs(~a); ~%~%", float(subst([wv^2=wv2,q_^2=q2], alpha0expr))),
 
   /* determine whether to use local or global value for penalty amax */
   printf(fh, "  double amax = 0.0; ~%"),
