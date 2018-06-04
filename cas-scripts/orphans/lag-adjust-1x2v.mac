@@ -1,0 +1,63 @@
+/* Adjust distribution function to match moments */
+
+simpsum : true$
+
+load("modal-basis")$
+load("basis-precalc/basisSer1x2v")$
+
+makeLagList(L,n) := makelist(L[i],i,1,n)$
+
+bc : basisC[1]$
+bp : basisP[1]$
+
+momInt(f) := innerProd([vx,vy],1,1,f)$
+
+vvx : (dvx/2*vx+wx[jx])$
+vvy : (dvy/2*vy+wy[jy])$
+vfact : dvx/2*dvy/2$
+
+gl : doExpand(g,bp)$
+m0 : vfact*calcInnerProdList(varsC, 1, bc, momInt(gl))$
+m1[1] : vfact*calcInnerProdList(varsC, 1, bc, momInt(vvx*gl))$
+m1[2] : vfact*calcInnerProdList(varsC, 1, bc, momInt(vvy*gl))$
+m2 : vfact*calcInnerProdList(varsC, 1, bc, momInt((vvx^2+vvy^2)*gl))$
+
+gsubList : makelist(g[i]=kron_delta(i,k), i,1,length(bp))$
+
+msum0 : subst(gsubList, m0)$
+msum1[1] : subst(gsubList, m1[1])$
+msum1[2] : subst(gsubList, m1[2])$
+msum2 : subst(gsubList, m2)$
+
+L0l : makeLagList(L0, length(bc))$
+L1l : append(makeLagList(L11, length(bc)), makeLagList(L12, length(bc)))$
+L2l : makeLagList(L2, length(bc))$
+
+RHS : msum0.L0l + msum2.L2l$
+RHSk : makelist(g[i]=subst(k=i,RHS),i,1,length(bp))$
+
+makeEq(dm,mom) := makelist(dm[i]=sum(sum(subst(RHSk,mom[i]),jx,1,Nvx),jy,1,Nvy), i,1,length(bc))$
+
+eq0 : makeEq(dn,m0)$
+eq2 : makeEq(dE,m2)$
+
+eqns : fullratsimp(subst([wx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx,
+                          wy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy],
+         append(eq0,eq2)))$
+sol : linsolve(eqns, append(L0l,L2l))$
+
+deltaF : subst(sol,RHS)$
+deltaFk : subst([dvx=2*Lx/Nvx, dvy=2*Ly/Nvy],
+    makelist(subst(k=i,deltaF),i,1,length(bp)))$
+
+/* Cross check: m0 should be [dn[1],dn[2]], m2 should be [dE[1],dE[2]] */
+gcheckList : append(makelist(g[i]=deltaFk[i],i,1,length(bp)), [wx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, wy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy,dvx=2*Lx/Nvx,dvy=2*Ly/Nvy])$
+m0c : fullratsimp(sum(sum(subst(gcheckList,m0),jx,1,Nvx),jy,1,Nvy))$
+m2c : fullratsimp(sum(sum(subst(gcheckList,m2),jx,1,Nvx),jy,1,Nvy))$
+
+fh : openw("~/max-out/deltaf.lua")$
+expr : float(fullratsimp(subst(w[j]=w,deltaFk)))$
+for i : 1 thru 4 do (
+  printf(fh, "deltaf[~a] = ~a ~%", i, expr[i])
+)$
+close(fh)$

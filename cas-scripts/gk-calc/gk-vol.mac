@@ -21,7 +21,7 @@ fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
 gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
 
-calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax, emflag) := block([],
+calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax, emflag, bvarslist) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
@@ -40,15 +40,21 @@ for i : 1 thru pmax do (
   varsP : subst(gkvsub, varsP),
   numC : length(bC),
 
-  if emflag then printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *Apar, const double *f, double *out) ~%{ ~%", funcNm, i)
-  else printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BcurvY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i),
+  if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
+  else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
 
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
   vid : vidx(cdim,vdim),
   volfac : 1,
   cellCenter : makelist(varsP[d]=0, d, 1, length(varsP)),
-  Bvars:[y=0,z=0], /* this makes it so that Bmag is assumed to only vary in x */
+  /* set up ignorable variables for Bmag */
+  Bignorevars: flatten(makelist([varsC[d]^2=var2,var2=1/3,varsC[d]=0], d, 1, length(varsC))),
+  if bvarslist # [0] then (
+    for i : 1 thru length(bvarslist) do (
+      Bignorevars : delete( varsC[bvarslist[i]]=0, Bignorevars ),
+      Bignorevars : delete( varsC[bvarslist[i]]^2=var2, Bignorevars )
+  )),
   /* for grad and curl expressions */
   scalefactors(varsC),
   derivfacsC : makelist(derivfac[d], d, 1, length(varsC)),
@@ -72,8 +78,8 @@ for i : 1 thru pmax do (
   printf(fh, "  double m2 = m_*m_; ~%"),
 
   /* expand background magnetic field Bmag, assuming it only varies in x */
-  Bmag_expd:subst(Bvars,doExpand1(Bmag,bC)),
-  BmagInv_expd:subst(Bvars,doExpand1(BmagInv,bC)),
+  Bmag_expd:subst(Bignorevars,doExpand1(Bmag,bC)),
+  BmagInv_expd:subst(Bignorevars,doExpand1(BmagInv,bC)),
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
   if emflag then (
@@ -96,10 +102,14 @@ for i : 1 thru pmax do (
   /* expand distribution function on basis */
   f_expd:doExpand1(f,bP),
 
-  /* expand BcurvY = 1/B*curl(bhat)*grad(y) on basis, assuming it only varies in x */
-  BcurvY_expd : subst(Bvars, doExpand1(BcurvY, bC)),
-  /* expand BstarY/Bmag = ( m/q vpar + Apar ) BcurvY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
-  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BcurvY_expd,
+  /* expand BdriftX = 1/B*curl(bhat)*grad(x) on basis */
+  BdriftX_expd : subst(Bignorevars, doExpand1(BdriftX, bC)),
+  /* expand BdriftY = 1/B*curl(bhat)*grad(y) on basis */
+  BdriftY_expd : subst(Bignorevars, doExpand1(BdriftY, bC)),
+  /* expand BstarX/Bmag = ( m/q vpar + Apar ) BdriftX = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
+  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftX_expd,
+  /* expand BstarY/Bmag = ( m/q vpar + Apar ) BdriftY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
+  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftY_expd,
   /* make vApar = -bhatXgrad(Apar) vector */
   if cdim = 1 then vApar_expd : [0], 
   if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x],
@@ -107,8 +117,8 @@ for i : 1 thru pmax do (
 
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [1],
-  if cdim = 2 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd] + vApar_expd,
-  if cdim = 3 then Bstar_by_Bmag_expd : [0, BstarY_by_Bmag_expd, 1] + vApar_expd,
+  if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd] + vApar_expd,
+  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, 1] + vApar_expd,
 
   /* calculate alpha.grad(bP) = {bP, H} = GK poisson bracket of basis functions and Hamiltonian */
   gkPB_basis : fullratsimp(gkPB(bP, H_expd)),
@@ -129,7 +139,7 @@ for i : 1 thru pmax do (
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(letsimp(alpha0)), label[d])
+    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d])
   ),
   /* note: no contribution from mu */
   for d : cdim+1 thru cdim+1 do (
@@ -139,7 +149,7 @@ for i : 1 thru pmax do (
     /* take cell center value */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(letsimp(alpha0)), label[d])
+    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d])
   ),
 
   printf(fh, "  return cflFreq; ~%"),
@@ -170,8 +180,8 @@ for i : 1 thru pmax do (
   printf(fh, "  double dvInv = 1.0/dxv[~a]; ~%", cdim),
   printf(fh, "  double dfac_v = 2.0/dxv[~a]; ~%", cdim),
 
-  /* expand background magnetic field Bmag, assuming it only varies in x */
-  Bmag_expd:subst(Bvars,doExpand1(Bmag,bC)),
+  /* expand background magnetic field Bmag */
+  Bmag_expd:doExpand1(Bmag,bC),
   /* expand dApar/dt */
   dAdt_expd:doExpand1(dApardt,bC),
 
@@ -192,17 +202,22 @@ for i : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
-pmax:1$
-for c : 1 thru 3 do (
+for c : 1 thru 1 do (
 v:2,
-if c=1 then v:1,
+pmax:1,
+if c=1 then (v:1, pmax:2),
 fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
+if c=1 then bvarslist : [[0], [1]],
+if c=2 then bvarslist : [[0], [1], [2], [1,2]],
+if c=3 then bvarslist : [[0], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]],
+for b : 1 thru length(bvarslist) do (
 funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
-calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false),
+calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b]),
 funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
-calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true),
+calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
+),
 funcName : sconcat("dAdtVol", c, "x", v, "v", "Ser"),
 calcdAdtVolUpdater(fh, funcName, c, v, "Ser", pmax),
 close(fh)

@@ -12,6 +12,7 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local xsys = require "xsys"
 
 -- function to check if moment name is correct
 local function isMomentNameGood(nm)
@@ -70,6 +71,8 @@ function DistFuncMomentCalc:init(tbl)
    self.momfac = 1.0
    if tbl.momfac then self.momfac = tbl.momfac end
 
+   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+
    -- for use in _advance() method
    self.dxv = Lin.Vec(self._pDim) -- cell shape
    self.w = Lin.Vec(self._pDim) -- phase-space cell center
@@ -83,6 +86,11 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
    local localRange = distf:localRange()
+   if self.onGhosts then -- extend range to config-space ghosts
+      for dir = 1, cDim do
+         localRange = localRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+      end
+   end
    local distfIndexer = distf:genIndexer()
    local momIndexer = mom:genIndexer()
 

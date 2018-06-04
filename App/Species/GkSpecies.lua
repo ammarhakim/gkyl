@@ -3,6 +3,7 @@ local KineticSpecies = require "App.Species.KineticSpecies"
 local Gk = require "Eq.Gyrokinetic"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
+local Time = require "Lib.Time"
 
 local GkSpecies = Proto(KineticSpecies)
 
@@ -23,7 +24,6 @@ function GkSpecies:alloc(nRkDup)
    -- allocate fields to store coupling moments (for use in coupling
    -- to field and collisions)
    self.dens = self:allocMoment()
-   self.dens0 = self:allocMoment()
    self.upar = self:allocMoment()
    self.ppar = self:allocMoment()
    self.pperp = self:allocMoment()
@@ -33,30 +33,54 @@ function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
 end
 
-function GkSpecies:initDist(geo)
-   -- get jacobian=bmag from geo, and multiply it by init functions for f0 and f
-   self.jacobianFunc = geo.bmagFunc
-   if self.jacobianFunc then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.jacobianFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
-      end
-      if self.initBackgroundFunc then
-         local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
-         self.initBackgroundFunc = function(t,xn)
-            local J = self.jacobianFunc(t,xn)
-            local f0 = initBackgroundFuncWithoutJacobian(t,xn)
-            return J*f0
-         end
-      end
-   end
-
+function GkSpecies:initDist()
    GkSpecies.super.initDist(self)
+
+   -- calculate initial density averaged over simulation domain
+   self.n0 = nil
+   local dens0 = self:allocMoment()
+   self.numDensityCalc:advance(0,0, {self.distf[1]}, {dens0})
+   local data
+   local dynVec = DataStruct.DynVector { numComponents = 1 }
+   -- integrate 
+   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.confGrid,
+      basis = self.confBasis,
+      numComponents = 1,
+      quantity = "V"
+   }
+   calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
+   _, data = dynVec:lastData()
+   self.n0 = data[1]/self.confGrid:gridVolume()
+   --print("Average density is " .. self.n0)
 end
 
-function GkSpecies:createSolver(hasPhi, hasApar)
+function GkSpecies:createSolver(hasPhi, hasApar, geo)
+   -- set up jacobian
+   if geo then
+      -- save bmagFunc for later...
+      self.bmagFunc = geo.bmagFunc
+      -- if vdim>1, get jacobian=bmag from geo, and multiply it by init functions for f0 and f
+      self.jacobianFunc = self.bmagFunc
+      if self.jacobianFunc and self.vdim > 1 then
+         local initFuncWithoutJacobian = self.initFunc
+         self.initFunc = function (t, xn)
+            local J = self.jacobianFunc(t,xn)
+            local f = initFuncWithoutJacobian(t,xn)
+            return J*f
+         end
+         if self.initBackgroundFunc then
+            local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
+            self.initBackgroundFunc = function(t,xn)
+               local J = self.jacobianFunc(t,xn)
+               local f0 = initBackgroundFuncWithoutJacobian(t,xn)
+               return J*f0
+            end
+         end
+      end
+      self.B0 = geo.B0
+   end
+
    -- create updater to advance solution by one time-step
    self.gkEqn = Gk.GkEq {
       onGrid = self.grid,
@@ -66,6 +90,8 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       mass = self.mass,
       hasPhi = hasPhi,
       hasApar = hasApar,
+      Bvars = geo.bmagVars,
+      hasSheathBcs = self.hasSheathBcs,
    }
 
    -- no update in mu direction (last velocity direction if present)
@@ -111,14 +137,14 @@ function GkSpecies:createSolver(hasPhi, hasApar)
    if self.vdim == 1 then self.momfac = 1 / (2*math.pi) end
    
    -- create updaters to compute various moments
-   self.calcDens = Updater.DistFuncMomentCalc {
+   self.numDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "GkDens",
       momfac = self.momfac,
    }
-   self.calcUpar = Updater.DistFuncMomentCalc {
+   self.momDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
@@ -130,7 +156,7 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       moment = "GkPpar",
-      momfac = self.momfac,
+      momfac = self.momfac*self.mass,
    }
    if self.vdim > 1 then
       self.calcPperp = Updater.DistFuncMomentCalc {
@@ -142,37 +168,11 @@ function GkSpecies:createSolver(hasPhi, hasApar)
       }
    end
    self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
- 
-   -- create updater to evaluate source 
-   if self.sourceFunc then 
-      self.evalSource = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.sourceFunc,
-         projectOnGhosts = true
-      }
-   end
 
-   -- calculate background density averaged over simulation domain
-   self.n0 = nil
-   if self.f0 then
-      self.calcDens:advance(0,0, {self.f0}, {self.dens0})
-      local data
-      local dynVec = DataStruct.DynVector { numComponents = 1 }
-      -- integrate source
-      local calcInt = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.confGrid,
-         basis = self.confBasis,
-         numComponents = 1,
-      }
-      calcInt:advance(0.0, 0.0, {self.dens0}, {dynVec})
-      _, data = dynVec:lastData()
-      self.n0 = data[1]/self.confGrid:gridVolume()
-      print("Average density is " .. self.n0)
-   end
+   self.tmCouplingMom = 0.0 -- for timer 
 end
 
-function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
    if self.evolve then
       local em = emIn[1]
       local emFunc = emIn[2]
@@ -180,9 +180,7 @@ function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
       status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
       if self.sourceFunc then
         -- if there is a source, add it to the RHS
-        local fSource = self.fSource
-        self.evalSource:advance(tCurr, dt, {}, {fSource})
-        fOut:accumulate(dt, fSource)
+        fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
       end
       return status, dtSuggested
    else
@@ -205,7 +203,8 @@ function GkSpecies:forwardEulerStep2(tCurr, dt, fIn, emIn, fOut)
 end
 
 function GkSpecies:createDiagnostics()
-   GkSpecies.super.createDiagnostics(self)
+   -- create updater to compute volume-integrated moments -- NOT YET IMPLEMENTED FOR GK
+   self.intMomentCalc = nil
    
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
@@ -257,7 +256,8 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    -- need to figure out if we are on lower or upper domain edge
    --local global = fOut:globalRange()
    local edgeVal
-   if idxIn[dir] <= 2 then -- HACK! == global:lower(dir) then 
+   local globalRange = self.grid:globalRange()
+   if idxIn[dir] == globalRange:lower(dir) then 
       -- this means we are at lower domain edge, 
       -- so we need to evaluate basis functions at z=-1
       edgeVal = -1 
@@ -337,6 +337,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       self.fhatSheathPtr = self.fhatSheath:get(1)
       self.fhatSheathIdxr = self.fhatSheath:genIndexer()
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
+      self.hasSheathBcs = true
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end
@@ -346,8 +347,12 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, fInDens, fInUpar)
    if fInUpar == nil then fInUpar = fInDens end
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
-      self.calcDens:advance(tCurr, dt, {fInDens}, { self.dens })
-      self.calcUpar:advance(tCurr, dt, {fInUpar}, { self.upar })
+      local tmStart = Time.clock()
+
+      self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.dens })
+      self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.upar })
+
+      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
 end
@@ -380,13 +385,38 @@ function GkSpecies:getUpar()
    return self.upar
 end
 
+function GkSpecies:polarizationWeight()
+   return self.n0*self.mass/self.B0^2
+end
+
 function GkSpecies:momCalcTime()
-   local tm = self.calcDens.totalTime
-   tm = tm + self.calcUpar.totalTime
+   local tm = self.tmCouplingMom
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end
    return tm
+end
+
+function GkSpecies:solverVolTime()
+   return self.gkEqn.totalVolTime
+end
+
+function GkSpecies:solverSurfTime()
+   return self.gkEqn.totalSurfTime
+end
+
+function GkSpecies:Maxwellian(xn, n0, T0, vd)
+   local vd = vd or 0.0
+   local vt2 = T0/self.mass
+   local vpar = xn[self.cdim+1]
+   local v2 = (vpar-vd)^2
+   if self.vdim > 1 then 
+     local mu = xn[self.cdim+2]
+     v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
+     return n0*(2*math.pi*vt2)^(-3/2)*math.exp(-v2/(2*vt2))
+   else
+     return n0*(2*math.pi*vt2)^(-1/2)*math.exp(-v2/(2*vt2))
+   end
 end
 
 return GkSpecies

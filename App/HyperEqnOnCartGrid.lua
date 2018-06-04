@@ -16,7 +16,7 @@ local Mpi = require "Comm.Mpi"
 local Proto = require "Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
-local date = require "Lib.date"
+local date = require "xsys.date"
 local xsys = require "xsys"
 
 -- For returning module table
@@ -395,7 +395,11 @@ function App:init(tbl)
    self._runApplication = buildApplication(self, tbl)
 end
 function App:run()
-   return self:_runApplication()
+   if GKYL_COMMAND == "run" then
+      return self:_runApplication()
+   elseif GKYL_COMMAND == "init" then
+      return function (...) end
+   end
 end
 
 -- add to table

@@ -11,10 +11,11 @@
 local Plasma = require "App.PlasmaOnCartGrid"
 
 return {
-   App = Plasma.App,
-   Species = Plasma.VlasovSpecies,
-   EmField = Plasma.MaxwellField,
-   FuncField = Plasma.FuncMaxwellField,
-   NoField = Plasma.NoField,
-   BgkCollisions = Plasma.BgkCollisions,   
+   App             = Plasma.App,
+   Species         = Plasma.VlasovSpecies,
+   EmField         = Plasma.MaxwellField,
+   FuncField       = Plasma.FuncMaxwellField,
+   NoField         = Plasma.NoField,
+   BgkCollisions   = Plasma.BgkCollisions,   
+   VmLBOCollisions = Plasma.VmLBOCollisions,   
 }

@@ -1,0 +1,48 @@
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+cvars : [X, Y, Z]$
+vvars : [VX, VY, VZ]$
+
+dvdx : [dv0dx0, dv1dx1, dv2dx2]$
+wdx : [w0dx0, w1dx1, w2dx2]$
+dv11 : [dv10, dv11, dv12]$
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+calcVlasovVolUpdater(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+printf(fh, "#include <VlasovModDecl.h> ~%"),
+for i : 1 thru 2 do (
+  bP : basisP[i],
+  bC : basisC[i],
+  numC : length(bC),
+  zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+  printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *phi, const double *f, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. phi/f: Input phi-field/distribution function. out: Incremented output ~%"),
+  cid : cidx(cdim),
+  vid : vidx(cdim,vdim),
+
+  for dir : 1 thru vdim do (
+    printf(fh, "  const double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
+    printf(fh, "  const double dv~a = dxv[~a]; ~%", dir, vid[dir])
+  ),
+  printf(fh, "~%"),
+
+  phil : doExpand1(phi, bC),
+  fl : doExpand1(f, bP),
+
+  t : (t : 0, for dir : 1 thru cdim do (
+     t : t + dv1[dir]*calcInnerProdList(varsP, -diff(phil,varsC[dir]), diff(bP,varsV[dir]), fl)
+     ),
+  t),
+  writeCIncrExprs(t),
+
+  printf(fh, "} ~%")
+))$

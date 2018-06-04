@@ -31,7 +31,7 @@ function Bc:init(tbl)
    self._bcList = assert(
       tbl.boundaryConditions, "Updater.Bc: Must specify boundary conditions to apply with 'boundaryConditions'")
 
-   self._skinLoop = tbl.skinLoop
+   self._skinLoop = tbl.skinLoop and tbl.skinLoop or "pointwise"
    if self._skinLoop == "flip" or self._skinLoop == "integrate" then
       self._cdim = assert(
 	 tbl.cdim,

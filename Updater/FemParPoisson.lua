@@ -186,6 +186,7 @@ function FemParPoisson:_advance(tCurr, dt, inFld, outFld)
        onGrid = grid,
        basis = basis,
        numComponents = 1,
+       quantity = "V",
      }
      calcInt:advance(0.0, 0.0, {src}, {self.dynVec})
      _, intSrcVol = self.dynVec:lastData()

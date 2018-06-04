@@ -127,7 +127,7 @@ function FemPerpPoisson:init(tbl)
    -- make sure BCs are specified consistently
    for dir=0,1 do
      if self._isDirPeriodic[dir] == false then
-       assert(self._bc[dir][0].isSet and self._bc[dir][1].isSet, "Must specify non-periodic BCs on each side")
+       assert(self._bc[dir][0].isSet and self._bc[dir][1].isSet, "Must specify non-periodic BCs on each side (dir " .. dir .. ")")
      else
        assert(not (self._bc[dir][0].isSet or self._bc[dir][1].isSet), "Cannot specify BCs if direction is periodic")
      end
@@ -177,8 +177,6 @@ function FemPerpPoisson:init(tbl)
      self.zDisContToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
-       bcBack = { T = "N", V = 0.0 },
-       bcFront = { T = "N", V = 0.0 },
        laplacianWeight = 0.0,
        modifierConstant = 1.0,
      }
@@ -228,6 +226,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
        onGrid = grid,
        basis = basis,
        numComponents = 1,
+       quantity = "V",
      }
      calcInt:advance(0.0, 0.0, {src}, {self.dynVec})
      _, intSrcVol = self.dynVec:lastData()

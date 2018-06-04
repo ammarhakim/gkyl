@@ -1,0 +1,106 @@
+/* Generate kernels that perform weak multiplication of two
+   fields, say if u .= A*B, (where .= means weak equality).
+   For now assume A and B are either both scalar functions or
+   both vector functions of same dimensionality. */
+
+/* To avoid the expensive algebraic matrix inversion in
+   Maxima we use Eigen to solve the system. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // A:       scalar/vector field. ~%"),
+    printf(fh, "  // B:       scalar/vector field (must be vector if A is vector). ~%"),
+    printf(fh, "  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). ~%"),
+    printf(fh, "  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. ~%"),
+    printf(fh, "  // out:     output field A*B (same number of components as B). ~%"),
+    printf(fh, " ~%"),
+
+    /* Expand fields A and B in configuration space basis. */
+    Ae : doExpand1(A, bC),
+    Be : doExpand1(B, bC),
+
+    /* To allow for multiple components change the cofficient indices in Ae and Be. */
+    Ae : psubst(makelist(A[i]=A[a0+i],i,0,N-1),Ae),
+    Be : psubst(makelist(B[i]=B[b0+i],i,0,N-1),Be),
+
+    prod : calcInnerProdList(varsC,Ae,bC,Be),
+  
+    printf(fh, "  double tmp[~a]; ~%",N),
+    printf(fh, " ~%"),
+
+    printf(fh, "  for (unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int b0 = ~a; ~%",N*vd),
+    printf(fh, "    unsigned short int a0 = ~a; ~%",eqNcomp*b0),
+    printf(fh, "    // Component-wise (of the vectors) multiplication. ~%"),
+    expr : float(expand(prod)),
+    for i : 1 thru N do (
+      printf(fh, "    ~a = ~a; ~%", tmp[i-1], expr[i])
+    ),
+    printf(fh, " ~%"),
+    printf(fh, "    // This tmp allows for in-place multiplication. ~%"),
+    printf(fh, "    for (unsigned short int i=0; i<~a; i++) ~%",N),
+    printf(fh, "    { ~%"),
+    printf(fh, "      out[b0+i] = tmp[i]; ~%"),
+    printf(fh, "    } ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcBinOpMultiplyD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    bP : basisP[polyOrder],
+    N  : length(bP),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // A:       scalar/vector field in configuration space. ~%"),
+    printf(fh, "  // B:       scalar field in phase space. ~%"),
+    printf(fh, "  // Ncomp:   number of components of B (should =1 here). ~%"),
+    printf(fh, "  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (should=1 here). ~%"),
+    printf(fh, "  // out:     output field A*B (same number of components as B). ~%"),
+    printf(fh, " ~%"),
+
+    /* Expand fields A and B in configuration space basis. */
+    Ae : doExpand1(A, bC),
+    Be : doExpand1(B, bP),
+
+    prod : calcInnerProdList(varsP,Ae,bP,Be),
+  
+    printf(fh, "  double tmp[~a]; ~%",N),
+
+    writeCExprs1(tmp,prod),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // This tmp allows for in-place multiplication. ~%"),
+    printf(fh, "  for (unsigned short int i=0; i<~a; i++) ~%",N),
+    printf(fh, "  { ~%"),
+    printf(fh, "    out[i] = tmp[i]; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$

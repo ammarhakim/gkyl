@@ -1,6 +1,10 @@
 -- GkField ---------------------------------------------------------------------
 --
--- App support code: Gyrokinetic fields phi and apar, solved by (perpendicular) Poisson and Ampere equations
+-- App support code: Gyrokinetic fields phi and apar, solved by
+-- (perpendicular) Poisson and Ampere equations
+-- 
+--    _______     ___
+-- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
@@ -10,7 +14,10 @@ local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
 local FieldBase = require "App.Field.FieldBase"
-local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
+local Species = require "App.Species"
+local Time = require "Lib.Time"
+local math = require("sci.math").generic
+local diff = require("sci.diff")
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -54,34 +61,23 @@ function GkField:fullInit(appTbl)
    if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs end
 
    -- for storing integrated energies
-   self.elecEnergy = DataStruct.DynVector { numComponents = 1 }
-   self.magEnergy = DataStruct.DynVector { numComponents = 1 }
+   self.phi2 = DataStruct.DynVector { numComponents = 1 }
+   self.apar2 = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
-   if tbl.adiabatic then
-      self.adiabatic = true
-      self.adiabDens = tbl.adiabatic.dens
-      self.adiabCharge = tbl.adiabatic.charge
-      self.adiabQneutFac = tbl.adiabatic.dens*tbl.adiabatic.charge^2/tbl.adiabatic.temp
-   end
-   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic")
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
    self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
 
    -- for ndim=1 non-adiabatic only
    self.kperp2 = tbl.kperp2
-   if not self.adiabatic then 
-      assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
-   end
 
-   -- species-dependent weight on polarization term == sum_s m_s n_s / B^2
-   -- note: in future may calculate this directly from species tables
-   self.polarizationWeight = tbl.polarizationWeight
    
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
       self.dApardtInitFunc = tbl.dApardtInit
    end
+
+   self.bcTime = 0.0 -- timer for BCs
 end
 
 -- methods for EM field object
@@ -118,12 +114,6 @@ function GkField:alloc(nRkDup)
          self.potentials[i].dApardt:clear(0.0)
       end
    end
-      
-   -- create Adios object for field I/O
-   self.fieldIo = AdiosCartFieldIo {
-      elemType = self.potentials[1].phi:elemType(),
-      method = self.ioMethod,
-   }
 
    -- create fields for total charge and current densities
    self.chargeDens = DataStruct.Field {
@@ -164,7 +154,7 @@ function GkField:rkStepperFields()
    return self.potentials
 end
 
-function GkField:createSolver()
+function GkField:createSolver(species)
    -- leaving this here for a possible future implementation...
    --local laplacianWeight = {}
    --local modifierConstant = {}
@@ -187,6 +177,19 @@ function GkField:createSolver()
    --  end
    --end
 
+   -- get adiabatic species info and calculate species-dependent 
+   -- weight on polarization term == sum_s m_s n_s / B^2
+   self.polarizationWeight = 0.0
+   for nm, s in pairs(species) do
+      if Species.AdiabaticSpecies.is(s) then
+         self.adiabatic = true
+         self.adiabSpec = s
+      elseif Species.GkSpecies.is(s) then
+         self.polarizationWeight = self.polarizationWeight + s:polarizationWeight()
+      end
+   end
+   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
+
    if self.adiabatic then
       -- if adiabatic, we don't solve the Poisson equation, but
       -- we do need to project the discontinuous charge densities
@@ -202,13 +205,15 @@ function GkField:createSolver()
         bcFront = self.phiBcFront,
         periodicDirs = self.periodicDirs,
         laplacianWeight = 0.0, 
-        modifierConstant = self.adiabQneutFac, -- = n0*q^2/T
+        modifierConstant = self.adiabSpec:qneutFac(), -- = n0*q^2/T
         zContinuous = not self.discontinuousPhi,
       }
    else
       local ndim = self.grid:ndim()
       local laplacianWeight, modifierConstant
+      assert(self.polarizationWeight, "GkField: must specify polarizationWeight = ni*mi/B^2 for non-adiabatic field")
       if ndim==1 then  -- z
+        assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
         laplacianWeight = 0.0 -- {0.0}
         modifierConstant = self.kperp2*self.polarizationWeight -- {self.kperp2}
       elseif ndim==2 then  -- x,y
@@ -288,13 +293,6 @@ function GkField:createSolver()
       end
    end
 
-   self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,
-      basis = self.basis,
-      numComponents = 1,
-      quantity = "V2"
-   }
-
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
    self.isElliptic = true
 
@@ -302,34 +300,47 @@ function GkField:createSolver()
 end
 
 function GkField:createDiagnostics()
+   -- create Adios object for field I/O
+   self.fieldIo = AdiosCartFieldIo {
+      elemType = self.potentials[1].phi:elemType(),
+      method = self.ioMethod,
+   }
+
+   self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = self.grid,
+      basis = self.basis,
+      quantity = "V2"
+   }
 end
 
 function GkField:write(tm)
    if self.evolve then
-      -- compute electostatic energy integrated over domain
-      self.energyCalc:advance(tm, 0.0, { self.potentials[1].phi }, { self.elecEnergy })
+      -- compute integrated quantities over domain
+      self.energyCalc:advance(tm, 0.0, { self.potentials[1].phi }, { self.phi2 })
       if self.isElectromagnetic then 
-        self.energyCalc:advance(tm, 0.0, { self.potentials[1].apar }, { self.magEnergy })
+        self.energyCalc:advance(tm, 0.0, { self.potentials[1].apar }, { self.apar2 })
       end
       
       if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
-	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
-	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm)
+	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
-	 self.elecEnergy:write(string.format("elecEnergy_%d.bp", self.ioFrame), tm)
-	 if self.isElectromagnetic then self.magEnergy:write(string.format("magEnergy_%d.bp", self.ioFrame), tm) end
+	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 if self.isElectromagnetic then
+	    self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 end
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
-	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm)
-	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm)
+	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
+	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
       end
       self.ioFrame = self.ioFrame+1
@@ -397,11 +408,13 @@ end
 
 -- boundary conditions handled by solver. this just updates ghosts.
 function GkField:applyBc(tCurr, dt, potIn)
+   local tmStart = Time.clock()
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
      potIn.apar:sync(true) 
      potIn.dApardt:sync(true) 
    end
+   self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end
    
 function GkField:totalSolverTime()
@@ -414,7 +427,7 @@ function GkField:totalSolverTime()
 end
 
 function GkField:totalBcTime()
-   return 0.0
+   return self.bcTime
 end
 
 function GkField:energyCalcTime()
@@ -447,14 +460,18 @@ function GkGeometry:fullInit(appTbl)
    end
 
    self.ioFrame = 0 -- frame number for IO
+
+   -- scalar magnetic field strength (e.g. to calculate gyro-radii with)
+   -- calculate from max(bmag)? 
+   self.B0 = assert(B0 or tbl.B0, "Must specify B0 as global App variable or in GkGeometry as 'B0'")
    
    -- get function to initialize background magnetic field
-   self.bmagFunc = assert(tbl.bmag, "GkGeometry: must specify background magnetic field with 'bmag'")
-   -- get function to initialize bcurvY = 1/B*curl(bhat).grad(y)
-   self.bcurvYFunc = tbl.bcurvY
+   self.bmagFunc = tbl.bmag
+   assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
 
    -- wall potential for sheath BCs
    self.phiWallFunc = tbl.phiWall
+   if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
 end
 
 function GkGeometry:hasEB() end
@@ -483,8 +500,14 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- 1/B*curl(bhat).grad(y) ... contains curvature info
-   self.geo.bcurvY = DataStruct.Field {
+   -- functions for magnetic drifts ~ 1/B*curl(bhat) 
+   self.geo.bdriftX = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   self.geo.bdriftY = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
@@ -507,27 +530,79 @@ function GkGeometry:alloc()
 end
 
 function GkGeometry:createSolver()
+   -- determine which variables bmag depends on by checking if setting a variable to nan results in nan
+   local ones = {}
+   for dir = 1, self.grid:ndim() do
+      ones[dir] = 1
+   end
+   self.bmagVars = {}
+   for dir = 1, self.grid:ndim() do
+      ones[dir] = 0/0 -- set this var to nan 
+      -- test if result is nan.. nan is the only value that doesn't equal itself
+      if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then 
+        -- if result is nan, bmag must depend on this var
+        table.insert(self.bmagVars, dir) 
+      end
+      ones[dir] = 1 -- reset so we can check other vars
+   end
+   if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+
+   -- calculate 1/B function
+   self.bmagInvFunc = function (t, xn)
+      return 1/self.bmagFunc(t,xn)
+   end
+   -- calculate magnetic drift functions
+   if self.grid:ndim() > 1 then
+      local function bgrad(xn)
+         local function bmagUnpack(...)
+            local xn = {...}
+            return self.bmagFunc(0, xn)
+         end
+         local deriv = diff.derivativef(bmagUnpack, #xn)
+         xntable = {}
+         for i = 1, #xn do
+           xntable[i] = xn[i]
+         end
+         local f, dx, dy, dz = deriv(unpack(xntable))
+         return dx, dy, dz
+      end
+      self.bdriftXFunc = function (t, xn)
+         local bgradX, bgradY, bgradZ = bgrad(xn)
+         return -bgradY/self.bmagFunc(t,xn)^2
+      end
+      self.bdriftYFunc = function (t, xn)
+         local bgradX, bgradY, bgradZ = bgrad(xn)
+         return bgradX/self.bmagFunc(t,xn)^2
+      end
+   end
+
+   -- projection updaters
    self.setBmag = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
       evaluate = self.bmagFunc,
       projectOnGhosts = true,
    }
-   local bmagInvFunc = function (t, xn)
-      return 1/self.bmagFunc(t,xn)
-   end
    self.setBmagInv = Updater.ProjectOnBasis {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
-      evaluate = bmagInvFunc
+      evaluate = self.bmagInvFunc
    }
-   if self.bcurvYFunc then 
-      self.setBcurvY = Updater.ProjectOnBasis {
+   if self.bdriftXFunc then 
+      self.setBdriftX = Updater.ProjectOnBasis {
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
-         evaluate = self.bcurvYFunc
+         evaluate = self.bdriftXFunc
+      }
+   end
+   if self.bdriftYFunc then
+      self.setBdriftY = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.bdriftYFunc
       }
    end
    if self.phiWallFunc then 
@@ -546,23 +621,31 @@ end
 function GkGeometry:initField()
    self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
    self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
-   if self.setBcurvY then self.setBcurvY:advance(0.0, 0.0, {}, {self.geo.bcurvY})
-   else self.geo.bcurvY:clear(0.0) end
+   if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
+   else self.geo.bdriftX:clear(0.0) end
+   if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})
+   else self.geo.bdriftY:clear(0.0) end
    if self.setPhiWall then self.setPhiWall:advance(0.0, 0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
-   self.geo.bcurvY:sync(false)
+   self.geo.bdriftX:sync(false)
+   self.geo.bdriftY:sync(false)
    self.geo.phiWall:sync(false)
 end
 
 function GkGeometry:write(tm)
    -- not evolving geometry, so only write geometry at beginning
    if self.ioFrame == 0 then
-      self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm)
-      if self.setBcurvY then self.fieldIo:write(self.geo.bcurvY, string.format("bcurvY_%d.bp", self.ioFrame), tm) end
+      self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm, self.ioFrame)
+      if self.setBdriftX then
+	 self.fieldIo:write(self.geo.bdriftX, string.format("bdriftX_%d.bp", self.ioFrame), tm, self.ioFrame)
+      end
+      if self.setBdriftY then
+	 self.fieldIo:write(self.geo.bdriftY, string.format("bdriftY_%d.bp", self.ioFrame), tm, self.ioFrame)
+      end
    end
    self.ioFrame = self.ioFrame+1
 end
