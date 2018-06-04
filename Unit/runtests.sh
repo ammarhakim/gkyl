@@ -194,3 +194,8 @@ $cmd
 cmd="$GKYL test_ProtoObjectWrapper.lua"
 echo "${ctext}${cmd}${reset}"
 $cmd
+
+# ADIOS reader
+cmd="$GKYL test_AdiosReader.lua"
+echo "${ctext}${cmd}${reset}"
+$cmd
