@@ -349,8 +349,8 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, fInDens, fInUpar)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.dens })
-      self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.upar })
+      self.numDensityCalc:advance(tCurr, dt, {fInDens}, { self.dens })
+      self.momDensityCalc:advance(tCurr, dt, {fInUpar}, { self.upar })
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
