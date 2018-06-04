@@ -112,20 +112,45 @@ function _M.finalize(rank)
 end
 
 -- ADIOS v2 read API wrappers
+
+-- adios_read_open_file
 function _M.read_open_file(name, comm)
    return ffi.C.adios_read_open_file(name, _M.read_method_bp, comm)
 end
 
+-- adios_read_close
+function _M.read_close(fd)
+   return ffi.C.adios_read_close(fd)
+end
+
+-- adios_inq_var_byid
 function _M.inq_var_byid(fd, i)
    return ffi.C.adios_inq_var_byid(fd, i)
 end
 
+-- adios_type_size
 function _M.type_size(vtype, vvalue)
    return ffi.C.adios_type_size(vtype, vvalue)
 end
 
+-- adios_type_to_string
 function _M.type_to_string(vtype)
    return ffi.string(ffi.C.adios_type_to_string(vtype))
+end
+
+-- adios_selection_boundingbox
+function _M.selection_boundingbox(ndim, start, count)
+   return ffi.C.adios_selection_boundingbox(ndim, start:data(), count:data())
+end
+
+-- adios_schedule_read_byid
+function _M.schedule_read_byid(fp, sel, varid, from_steps, nsteps, data)
+   return ffi.C.adios_schedule_read_byid(fp, sel, varid, from_steps, nsteps, data:data())
+end
+
+-- adios_perform_reads
+function _M.perform_reads(fp, blocking)
+   return ffi.C.adios_perform_reads(fp, blocking)
 end
 
 return _M

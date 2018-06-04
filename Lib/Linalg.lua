@@ -160,8 +160,14 @@ end
 return {
    new_vec_ct = new_vec_ct,
    Vec = new_vec_ct(typeof("double")),
+   UIntVec = new_vec_ct(typeof("uint32_t")),
    IntVec = new_vec_ct(typeof("int32_t")),
    FloatVec = new_vec_ct(typeof("float")),
+   -- some specialized types
+   UIntVec = new_vec_ct(typeof("uint32_t")),
+   IntVec64 = new_vec_ct(typeof("int64_t")),
+   UIntVec64 = new_vec_ct(typeof("uint64_t")),
+
    new_mat_ct = new_mat_ct,
    Mat = new_mat_ct(typeof("double")),
    IntMat = new_mat_ct(typeof("int32_t")),
