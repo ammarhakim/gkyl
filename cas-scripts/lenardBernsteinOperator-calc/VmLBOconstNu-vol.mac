@@ -1,0 +1,100 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels for the volume term
+   contribution from Lenard Bernstein operator to the
+   Vlasov equation using two integrations by parts for
+   the diffusive term. */
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+varsV : [vx, vy, vz]$
+
+calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  printf(fh, "#include <VmLBOModDecl.h> ~%"),
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+    load(modNm),
+    vid : vidx(cdim,vdim),
+
+    /* Polynomial basis and its derivatives. */
+    bP : basisP[polyOrder],
+    bC : basisC[polyOrder],
+    NP : length(bP),
+    NC : length(bC),
+
+    /* Expand distribution function f in phase basis. */
+    f_e    : doExpand1(f, bP),
+    /* Expand flow speed u and thermal speed squared in configuration basis. */
+    u_e    : doExpand1(u, bC),
+    vtSq_e : doExpand1(vtSq, bC),
+
+    /* To allow for multiple components change the cofficient indices in Ae and Be. */
+    u_e : psubst(makelist(u[i]=u[a0+i],i,0,NC-1),u_e),
+
+    /* w-u part of the drag term. */
+    drBar_e : doExpand1(drBar,bC),
+    drBar_e : psubst(makelist(drBar[i]=drBar[a0+i],i,0,NC-1),drBar_e),
+    
+    /* Volume increment. */
+    incr : (
+      incr : 0,
+      for dir : 1 thru vdim do (
+        cv : varsV[dir],
+        incr : incr+(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
+              /* Separate the w-u part of the drag term. Simplifies assignment of out*/        
+/*              -rdv2nu[dir-1]*calcInnerProdList(varsP,w[vid[dir]],diff(bP,cv),f_e) 
+              +rdv2nu[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,u_e,diff(bP,cv),f_e))) */
+              +rdv2nu[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
+              +rdvSq4nu[dir-1]*calcInnerProdList(varsP,vtSq_e,diff(bP,cv,2),f_e)
+      ),
+      incr
+    ),
+
+    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double nu, const double *u, const double *vtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). u: flow speed. vtSq: thermal speed squared. f: Input distribution function. out: Incremented output ~%"),
+    cid : cidx(cdim),
+    printf(fh, "  double rdv2nu[~a]; ~%", vdim),
+    printf(fh, "  double rdvSq4nu[~a]; ~%", vdim),
+    for dir : 1 thru vdim do (
+      printf(fh, "  rdv2nu[~a] = 2.0*nu/dxv[~a]; ~%", dir-1, vid[dir]),
+      printf(fh, "  rdvSq4nu[~a] = 4.0*nu/(dxv[~a]*dxv[~a]); ~%", dir-1, vid[dir], vid[dir])
+    ),
+    printf(fh, "~%"),
+
+    /* Compute the wxl-u drift part separately. */
+    printf(fh, "  double drBar[~a]; ~%", NC*vdim),
+    /* -(w-u) part of the drag term. */
+    for dir : 1 thru vdim do (
+       drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-w[vid[dir]]+u_e)),
+       for i : 1 thru NC do (
+          printf(fh, "  ~a = ~a; ~%", drBar[NC*(dir-1)+i-1], float(expand(drBar_c[i])))
+       )
+    ),
+    printf(fh, "~%"),
+  
+/*    writeCIncrExprs1(out, incr), */
+    clst : append(makelist(rdv2nu[i],i,0,vdim-1),makelist(rdvSq4nu[i],i,0,vdim-1)),
+    writeCIncrExprsCollect1(out, incr, clst),
+    printf(fh, "~%"),
+
+    if vdim = 1 then (
+      printf(fh, "return rdvSq4nu[0]*0.5; ~%")
+    ),
+    if vdim = 2 then (
+      printf(fh, "return (rdvSq4nu[0]+rdvSq4nu[1])*0.5; ~%")
+    ),
+    if vdim = 3 then (
+      printf(fh, "return (rdvSq4nu[0]+rdvSq4nu[1]+rdvSq4nu[2])*0.5; ~%")
+    ),
+    printf(fh, "~%"),
+  
+    printf(fh, "} ~%")
+));
+

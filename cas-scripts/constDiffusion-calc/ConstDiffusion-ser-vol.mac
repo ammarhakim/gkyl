@@ -1,3 +1,5 @@
+/* For single integration by parts use ConstDiffusionSIBP-vol,
+   for double integration by parts use ConstDiffusion-vol */
 load("constDiffusion-calc/ConstDiffusion-vol")$
 load(stringproc)$
 

@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 local ffi  = require "ffi"
+local Mpi = require "Comm.Mpi"
 
 -- Cut and paste from ADIOS header file, comments unchanged: Perhaps
 -- this is not a good idea and this file could be auto-generated. Its

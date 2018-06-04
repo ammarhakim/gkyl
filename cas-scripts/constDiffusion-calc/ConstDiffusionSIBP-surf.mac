@@ -1,0 +1,141 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels needed for adding the
+   contributions from second order diffusion in all directions
+   using a single integration by parts. */
+
+cvars : [X, Y, Z]$
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+
+calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+
+    /*... Compute  1D recovery polynomial coefficients into hsol ...*/
+    /* Load 1D basis. */
+    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+    bC1 : basisC[polyOrder],
+    N1 : length(bC1),
+
+    eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
+
+    /* Construct the 1D recovery polynomial */
+    hOrder : 2*polyOrder+1,
+    /* Left and right (of the boundary) basis sets */ 
+    pL : eta(-1/2,1,bC1),
+    pR : eta(1/2,1,bC1),
+    /* Recovery polynomial expanded in z */
+    h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
+    
+    /* LHS of system of equations arising from weak equivalence relations */
+    eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
+    eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
+    LHS : append(eqL,eqR),
+    A : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
+    
+    /* RHS is similar to the mass matrix */
+    RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
+    
+    /* solve system of equations for coefficients of h */
+    S : fullratsimp(invert(A) . RHS),
+    hsol1 : makelist(S[i][1],i,1,hOrder+1),
+
+    /*... Recovery polynomial coefficients of requested dimensionality ...*/
+    kill(varsC, basisC),
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+    load(modNm),
+
+    /* Polynomial basis and its derivatives. */
+    bC : basisC[polyOrder],
+    N : length(bC),
+    bCp : diff(bC,x),
+
+    /* Variables. */
+    cv : varsC[dir],
+    surfVars : delete(cv,varsC),
+
+    fg : doExpand(f, bC),	/* Function expanded in basis. */
+
+    /* Obtain the left and right function coefficients
+       by projecting the function onto the direction of interest. */
+    hcoeff : calcInnerProdList([cv], 1, subst(x=cv,bC1), fg),
+    fls : subst(makelist(f[i]=fl[i],i,N), hcoeff),
+    frs : subst(makelist(f[i]=fr[i],i,N), hcoeff),
+
+    /* Substitute these "left" and "right" function coefficients,
+       which contain variation along other dimensions, into the
+       1D recovery polynomial coefficients computed above. */
+    hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
+    
+    /* Write out the full recovery polynomial. */
+    h : sum(hsol[i]*cv^(i-1), i, 1, 2*N1),
+    /* Evaluate the recovery polynomial at the discontinuity. */
+    hsolp0 : subst(cv=0,diff(h,cv)),
+
+    /*............. RECOVERY DONE ..............................*/
+
+    /* Mass matrix. Not needed. */
+/*    M : calcMassMatrix(varsC,1,bC),
+    invM : invert(M), */
+
+    /* Contribution to vector to the left and right of the boundary. */
+    /* No need to deal with the (identity) mass matrix. */    
+    incr_l : calcInnerProdList(surfVars,1,subst(cv=1,bC),hsol[2]),
+    incr_r : calcInnerProdList(surfVars,-1,subst(cv=-1,bC),hsol[2]),
+    /* Make these two zero indexed for C++ */
+    incr_l : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l),
+    incr_r : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r),
+    
+    printf(fh, "void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
+    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells ~%"),
+    printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
+    cid : cidx(cdim),
+    printf(fh, "  double rdxSq2nul = 2.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh, "  double rdxSq2nur = 2.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh, "  double incr[~a]; ~%", length(bC)),
+    printf(fh, "~%"),
+  
+    clst : [wxr, dvxr],
+    writeCExprsCollect1(incr, incr_r, clst),
+    printf(fh, "~%"),
+  
+    incr_s : makelist(incr[i-1], i, 1, N),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru N do (
+      if (incr_r[i] = 0) then
+        incr_s[i] : 0
+    ), 
+    writeCIncrExprs1(outr, rdxSq2nur*incr_s),
+    printf(fh, "~%"),
+  
+/*    signs : fullratsimp(incr_l/incr_r), */
+    signs : makelist(1,i,1,N),
+    for i : 1 thru N do (
+        if (incr_r[i] = 0) then
+          false
+        else
+          signs[i] : fullratsimp(incr_l[i]/incr_r[i])
+    ),
+    incr_s : makelist(signs[i]*incr[i-1], i, 1, N),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru N do (
+      if (incr_r[i] = 0) then
+        incr_s[i] : 0
+    ), 
+    writeCIncrExprs1(outl, rdxSq2nul*incr_s),
+    printf(fh, "~%"),
+  
+    printf(fh, "} ~%")
+));
+
+calcConstDiffusionSurfUpdater(fh, funcNm, cdim, basisFun, polyOrderMax) := block([],
+  printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
+  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, polyOrderMax) )
+)$
+

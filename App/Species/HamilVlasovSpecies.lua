@@ -1,3 +1,11 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Hamiltonian species
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local Proto = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
 local HamilVlasovEq = require "Eq.HamilVlasov"
@@ -73,7 +81,7 @@ function HamilVlasovSpecies:createSolver(hasPhi, hasA)
    }   
 end
 
-function HamilVlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+function HamilVlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
    if self.evolve then
       local em = emIn[1]
       local emFunc = emIn[2]

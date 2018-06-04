@@ -1,3 +1,5 @@
+/* For single integration by parts use ConstDiffusionSIBP-surf,
+   for double integration by parts use ConstDiffusion-surf */
 load("constDiffusion-calc/ConstDiffusion-surf")$
 load(stringproc)$
 

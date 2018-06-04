@@ -46,10 +46,6 @@ def configure(conf):
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
 
-    conf.env.append_value("RPATH", conf.env.LIBDIR)
-    conf.env.append_value("RPATH", '/Users/mana/anaconda/lib/')
-
-
     # write out configuration info into header
     conf.write_config_header('gkylconfig.h')
 
@@ -75,11 +71,11 @@ def build(bld):
         cwd=xsys_dir, relative_trick=True)
 
     # - sci
-    # sci_dir = bld.path.find_dir('sci')
-    # bld.install_files(
-    #     "${PREFIX}/bin/sci",
-    #     sci_dir.ant_glob('**/*.lua'),
-    #     cwd=sci_dir, relative_trick=True)
+    sci_dir = bld.path.find_dir('sci')
+    bld.install_files(
+        "${PREFIX}/bin/sci",
+        sci_dir.ant_glob('**/*.lua'),
+        cwd=sci_dir, relative_trick=True)
     
     # - Unit
     Unit_dir = bld.path.find_dir('Unit')

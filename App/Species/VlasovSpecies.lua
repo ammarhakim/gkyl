@@ -8,11 +8,15 @@ local VlasovSpecies = Proto(KineticSpecies)
 
 -- add constants to object indicate various supported boundary conditions
 local SP_BC_ABSORB = 1
-local SP_BC_OPEN = 2
 local SP_BC_REFLECT = 3
 local SP_BC_REFLECT_QM = 4
+local SP_BC_COPY = 5
+-- AHH: This was 2 but seems that is unstable. So using plain copy
+local SP_BC_OPEN = SP_BC_COPY
+
 VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
+VlasovSpecies.bcCopy = SP_BC_COPY -- copy stuff
 VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 VlasovSpecies.bcReflectQM = SP_BC_REFLECT_QM -- specular reflection with < 1 probability
 
@@ -25,6 +29,9 @@ function VlasovSpecies:alloc(nRkDup)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
+
+   -- allocate field to accumulate funcField if any
+   self.totalEmField = self:allocVectorMoment(8) -- 8 components of EM field
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -35,6 +42,10 @@ end
 
 
 function VlasovSpecies:createSolver(hasE, hasB)
+   -- run the KineticSpecies 'createSolver()' to initialize the
+   -- collisions solver
+   VlasovSpecies.super.createSolver(self)
+
    -- create updater to advance solution by one time-step
    local vlasovEqn = VlasovEq {
       onGrid = self.grid,
@@ -89,38 +100,60 @@ function VlasovSpecies:createSolver(hasE, hasB)
    end
 end
 
-function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
    -- accumulate functional Maxwell fields (if needed)
-   local emFields = emIn[1]
-   local emFuncFields = emIn[2]
+   local emField = emIn[1]
+   local emFuncField = emIn[2]
    local totalEmField = nil
-   if emFuncFields then
-      if emFields then
-         emFuncFields:accumulate(1.0, emFields)
+   if emFuncField then
+      if emField then
+	 self.totalEmField:combine(1.0, emFuncField, 1.0, emField)
+	 totalEmField = self.totalEmField
+      else
+	 totalEmField = emFuncField
       end
-      totalEmField = emFuncFields
    else
-      totalEmField = emFields
+      totalEmField = emField
    end
 
-   if self.evolve then
-      local status, dtSuggested
-      status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, totalEmField}, {fOut})
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   if self.evolveCollisionless then      
+      status, dtSuggested = self.solver:advance(tCurr, dt,
+						{fIn, totalEmField},
+						{fOut})
       if self.sourceFunc then
         -- if there is a source, add it to the RHS
         local fSource = self.fSource
         self.evalSource:advance(tCurr, dt, {}, {fSource})
         fOut:accumulate(dt, fSource)
       end
-      return status, dtSuggested
    else
       fOut:copy(fIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
    end
+   -- perform the collision update
+   if self.evolveCollisions then
+      for _, c in pairs(self.collisions) do
+	 local collStatus, collDt = c:forwardEuler(tCurr, dt,
+						   fIn, species,
+						   fOut)
+	 -- the full 'species' list is needed for the cross-species
+	 -- collisions
+	 status = status and collStatus
+	 dtSuggested = math.min(dtSuggested, collDt)
+      end
+      
+      return status, dtSuggested
+   end
+   return status, dtSuggested
 end
 
 function VlasovSpecies:createDiagnostics()
-   VlasovSpecies.super.createDiagnostics(self)
+   -- create updater to compute volume-integrated moments
+   self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+   }
 
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
@@ -180,6 +213,7 @@ end
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- need to wrap member functions so that self is passed
    local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
+   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
    local function bcOpenFunc(...) return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcReflectQMFunc(...) return self:bcReflectQMFunc(...) end
@@ -193,7 +227,11 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcOpenFunc }, "pointwise"))
+				      { bcCopyFunc }, "pointwise"))
+   elseif bcType == SP_BC_COPY then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_REFLECT then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
@@ -227,11 +265,22 @@ function VlasovSpecies:getMomDensity()
 end
 
 function VlasovSpecies:momCalcTime()
-   local tm = self.momDensityCalc.totalTime
+   local tm = self.momDensityCalc.totalTime + self.numDensityCalc.totalTime + self.ptclEnergyCalc.totalTime
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end
    return tm
+end
+
+-- please test this for higher than 1x1v... 
+function VlasovSpecies:Maxwellian(xn, n0, T0, vdn)
+   local vdn = vdn or {0, 0, 0}
+   local vt2 = T0/self.mass
+   local v2 = 0.0
+   for d = self.cdim+1, self.cdim+self.vdim do
+     v2 = v2 + (xn[d] - vdn[d-self.cdim])^2
+   end
+   return n0/math.sqrt(2*math.pi*vt2)^self.cdim*math.exp(-v2/(2*vt2))
 end
 
 return VlasovSpecies

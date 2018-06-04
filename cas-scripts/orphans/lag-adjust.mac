@@ -1,0 +1,53 @@
+/* Adjust distribution function to match moments */
+
+simpsum : true$
+
+load("modal-basis")$
+load("basis-precalc/basisSer1x1v")$
+
+makeLagList(L,n) := makelist(L[i],i,1,n)$
+
+bc : basisC[1]$
+bp : basisP[1]$
+
+gl : doExpand(g,bp)$
+m0 : dv/2*calcInnerProdList(varsC, 1, bc, integrate(gl,vx,-1,1))$
+m1 : dv/2*calcInnerProdList(varsC, 1, bc, integrate((dv/2*vx+w[j])*gl,vx,-1,1))$
+m2 : dv/2*calcInnerProdList(varsC, 1, bc, integrate((dv/2*vx+w[j])^2*gl,vx,-1,1))$
+
+gsubList : makelist(g[i]=kron_delta(i,k), i,1,length(bp))$
+
+msum0 : subst(gsubList, m0)$
+msum1 : subst(gsubList, m1)$
+msum2 : subst(gsubList, m2)$
+
+L0l : makeLagList(L0, length(bc))$
+L1l : makeLagList(L1, length(bc))$
+L2l : makeLagList(L2, length(bc))$
+
+RHS : msum0.L0l + msum1.L1l + msum2.L2l$
+RHSk : makelist(g[i]=subst(k=i,RHS),i,1,length(bp))$
+
+eq0 : makelist(dn[i]=sum(subst(RHSk,m0[i]),j,1,Nv), i,1,length(bc))$
+eq1 : makelist(dm[i]=sum(subst(RHSk,m1[i]),j,1,Nv), i,1,length(bc))$
+eq2 : makelist(dE[i]=sum(subst(RHSk,m2[i]),j,1,Nv), i,1,length(bc))$
+
+eqns : fullratsimp(subst(w[j]=-Nv/2*dv+(j-1/2)*dv, append(eq0,eq1,eq2)))$
+sol : linsolve(eqns, append(L0l,L1l,L2l))$
+
+deltaF : subst(sol,RHS)$
+deltaFk : subst(dv=2*L/Nv,makelist(subst(k=i,deltaF),i,1,length(bp)))$
+
+/* Cross check: m0 should be [dn[1],dn[2]], m2 should be [dE[1],dE[2]] */
+gcheckList : append(makelist(g[i]=deltaFk[i],i,1,length(bp)), [w[j]=-Nv/2*dv+(j-1/2)*dv,dv=2*L/Nv])$
+m0c : fullratsimp(sum(subst(gcheckList,m0),j,1,Nv))$
+m1c : fullratsimp(sum(subst(gcheckList,m1),j,1,Nv))$
+m2c : fullratsimp(sum(subst(gcheckList,m2),j,1,Nv))$
+
+fh : openw("~/max-out/deltaf.lua")$
+expr : float(fullratsimp(subst(w[j]=w,deltaFk)))$
+expr : fullratsimp(subst(w[j]=w,deltaFk))$
+for i : 1 thru 4 do (
+  printf(fh, "deltaf[~a] = ~a ~%", i, expr[i])
+)$
+close(fh)$

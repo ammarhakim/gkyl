@@ -24,11 +24,14 @@ local xsys = require "xsys"
 local MaxwellField = Proto(FieldBase.FieldBase)
 
 -- add constants to object indicate various supported boundary conditions
-local EM_BC_OPEN = 1
-local EM_BC_REFLECT = 2
+local EM_BC_REFLECT = 1
 local EM_BC_SYMMETRY = 2
+local EM_BC_COPY = 3
+-- AHH: This was 2 but seems that is unstable. So using plain copy
+local EM_BC_OPEN = EM_BC_COPY
 
 MaxwellField.bcOpen = EM_BC_OPEN -- zero gradient
+MaxwellField.bcCopy = EM_BC_COPY -- copy fields
 MaxwellField.bcReflect = EM_BC_REFLECT -- perfect electric conductor
 MaxwellField.bcSymmetry = EM_BC_SYMMETRY
 
@@ -86,17 +89,17 @@ function MaxwellField:fullInit(appTbl)
    -- read in boundary conditions
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      assert(isBcGood(self.bcx[1]) and isBcGood(self.bcx[2]), "VlasovOnCartGridField: Incorrect X BC type specified!")
+      assert(isBcGood(self.bcx[1]) and isBcGood(self.bcx[2]), "MaxwellField: Incorrect X BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcy then
       self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      assert(isBcGood(self.bcy[1]) and isBcGood(self.bcy[2]), "VlasovOnCartGridField: Incorrect Y BC type specified!")
+      assert(isBcGood(self.bcy[1]) and isBcGood(self.bcy[2]), "MaxwellField: Incorrect Y BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcz then
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "VlasovOnCartGridField: Incorrect Z BC type specified!")
+      assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "MaxwellField: Incorrect Z BC type specified!")
       self.hasNonPeriodicBc = true
    end
 
@@ -181,6 +184,11 @@ function MaxwellField:createSolver()
 	 self.basis:flipSign(dir, fInData+(i-1)*nb-1, fOutData+(i-1)*nb-1)
       end
    end
+   local function bcCopy(dir, tm, xc, fIn, fOut)
+      for i = 1, 8*self.basis:numBasis() do
+	 fOut[i] = fIn[i]
+      end
+   end 
    local function bcReflect(dir, tm, xc, fIn, fOut)
       local nb = self.basis:numBasis()
       local fInData, fOutData = fIn:data(), fOut:data()
@@ -223,7 +231,10 @@ function MaxwellField:createSolver()
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == EM_BC_OPEN then
 	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { bcOpen }))
+		      makeBcUpdater(dir, edge, { bcCopy }))
+      elseif bcType == EM_BC_COPY then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, { bcCopy }))
       elseif bcType == EM_BC_REFLECT then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, { bcReflect }))
@@ -231,7 +242,7 @@ function MaxwellField:createSolver()
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, { bcSymmetry }))
       else
-	 assert(false, "VlasovOnCartGridField: Unsupported BC type!")
+	 assert(false, "MaxwellField: Unsupported BC type!")
       end
    end
 
@@ -269,15 +280,15 @@ function MaxwellField:write(tm)
       self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
       
       if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
-	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
       end
       self.ioFrame = self.ioFrame+1
    end

@@ -19,6 +19,7 @@ local function numBasis(ndim, polyOrder)
    local numBasis_d3 = {8, 20, 32, 50}
    local numBasis_d4 = {16, 48, 80, 136}
    local numBasis_d5 = {32, 112, 192, 352}
+   local numBasis_d6 = {64, 256}
 
    local nbasis = 1
    if polyOrder > 0 then
@@ -32,6 +33,8 @@ local function numBasis(ndim, polyOrder)
 	 nbasis = numBasis_d4[polyOrder]
       elseif (ndim == 5) then
 	 nbasis = numBasis_d5[polyOrder]
+      elseif (ndim == 6) then
+	 nbasis = numBasis_d6[polyOrder]
       end
    end
    return nbasis
@@ -62,8 +65,10 @@ function CartModalSerendipity:init(tbl)
       _m = require "Basis._data.ModalSerendipBasis4d"
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalSerendipBasis5d"
-   elseif (self._data == 6) then
-      assert(false, "CartModalSerendipity: 6D Serendipity basis not implemented!")
+   elseif (self._ndim == 6) then
+      assert(self._polyOrder <= 2, "For 6D polynomial order must be either 1 or 2")
+      _m = require "Basis._data.ModalSerendipBasis6d"
+
    end
 
    self._evalBasisFunc = _m[self._polyOrder] -- function to evaluate basis functions
@@ -81,7 +86,7 @@ function CartModalSerendipity:init(tbl)
    elseif (self._ndim == 5) then
       _m = require "Basis._data.ModalSerendipBasisFlipSign5d"
    elseif (self._ndim == 6) then
-      assert(false, "FlipSigns in 6D NYI!")
+      _m = require "Basis._data.ModalSerendipBasisFlipSign6d"
    end
 
    self._flipSign = _m[self._polyOrder] -- function to flip sign   

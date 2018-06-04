@@ -19,7 +19,9 @@
 #include <stdlib.h>
 
 #if defined(__clang__)
-
+// nothing to include
+#elif defined(__powerpc__)
+// nothing to include
 #elif defined(__GNUC__) || defined(__GNUG__)
 # include <xmmintrin.h>
 #endif
@@ -32,6 +34,7 @@
 
 #ifdef HAVE_ADIOS_H
 # include <adios.h>
+# include <adios_read.h>
 #endif
 
 #ifdef HAVE_EIGEN_CORE
@@ -133,6 +136,11 @@ createTopLevelDefs(int argc, char **argv) {
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
+  // check what command was specified
+  std::string cmd("run");
+  if (argc == 3) cmd = argv[2];
+  varDefs << "GKYL_COMMAND = '" << cmd << "'" << std::endl;
+
   return varDefs.str();
 }
 
@@ -141,7 +149,22 @@ createTopLevelDefs(int argc, char **argv) {
 // not know it yet.
 #ifdef HAVE_ADIOS_H
 int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
+ADIOS_FILE*
+_adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm comm)
+{ return adios_read_open_file(fname, method, comm); }
 #endif
+
+void
+showUsage() {
+  Logger logger;
+  
+  logger.log("Usage: gkyl LUA-SCRIPT <cmd>");
+  logger.log(" <cmd> is optional and must be one of:");
+  logger.log(" run:     [default] Run the simulation");
+  logger.log(" init:    Initialize the simulation without running it");
+  logger.log(" restart: Restart the simulation");
+  logger.log("Not all Apps support these commands, and others may support more.\n");
+}
 
 int
 main(int argc, char **argv) {
@@ -150,6 +173,8 @@ main(int argc, char **argv) {
   // not impossible to reproduce) situations.
 #if defined(__clang__)
   fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
+#elif defined(__powerpc__)
+  // not sure what the POWER calls are for denormalized floats
 #elif defined(__GNUC__) || defined(__GNUG__)
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);  
 #endif
@@ -159,8 +184,8 @@ main(int argc, char **argv) {
 #endif
   Logger logger;
 
-  if (argc != 2) {
-    logger.log("Usage: gkyl LUA-SCRIPT");
+  if ((argc != 2) && (argc !=3)) {
+    showUsage();
     return finish(0);
   }
 
@@ -169,7 +194,7 @@ main(int argc, char **argv) {
   std::ifstream f(inpFile.c_str());
   if (!f.good()) {
     std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
-    std::cerr << "Usage: gkyl LUA-SCRIPT" << std::endl;
+    showUsage();
     return finish(1);
   }
   f.close();  

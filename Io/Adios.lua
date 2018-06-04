@@ -14,6 +14,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 require "Io._AdiosCdef" -- load FFI binding
+require "Io._AdiosReadCdef" -- load FFI binding
 
 local _M = {}
 
@@ -37,6 +38,9 @@ _M.string = ffi.C.adios_string
 _M.complex = ffi.C.adios_complex
 _M.double_complex = ffi.C.adios_double_complex
 _M.string_array = ffi.C.adios_string_array
+
+-- ADIOS read methods from adios_read
+_M.read_method_bp = ffi.C.ADIOS_READ_METHOD_BP
 
 -- adios_init_noxml
 function _M.init_noxml(comm)
@@ -89,6 +93,13 @@ end
 -- adios_write
 function _M.write(fd, name, var)
    local err = ffi.C.adios_write(fd[0], name, var)
+   return err
+end
+
+-- adios_read
+function _M.read(fd, name, buff, buffSz)
+   local err = ffi.C.adios_read(fd[0], name, buff, buffSz)
+   return err
 end
 
 -- adios_close
@@ -98,6 +109,23 @@ end
 -- adios_finalize
 function _M.finalize(rank)
    local err = ffi.C.adios_finalize(rank)
+end
+
+-- ADIOS v2 read API wrappers
+function _M.read_open_file(name, comm)
+   return ffi.C.adios_read_open_file(name, _M.read_method_bp, comm)
+end
+
+function _M.inq_var_byid(fd, i)
+   return ffi.C.adios_inq_var_byid(fd, i)
+end
+
+function _M.type_size(vtype, vvalue)
+   return ffi.C.adios_type_size(vtype, vvalue)
+end
+
+function _M.type_to_string(vtype)
+   return ffi.string(ffi.C.adios_type_to_string(vtype))
 end
 
 return _M

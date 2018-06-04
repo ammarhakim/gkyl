@@ -27,12 +27,66 @@ for p : 1 thru pmax do (
   deltaPhi_expd : phiSheath_expd - phiWall_expd,
   /* we will use surface-center value. we already got rid of zVar, but we need to set other config coords to 0 */
   deltaPhi0 : subst([x=0,y=0,z=0], deltaPhi_expd),
-  printf(fh, "  return ~a; ~%", float(deltaPhi0)),
+  if p=2 then printf(fh, "  double zVal2 = zVal*zVal; ~%"),
+  printf(fh, "  return ~a; ~%", subst(zVal^2=zVal2, float(deltaPhi0))),
   printf(fh, "}~%~%"),
+
+/* function to compute scaled partially-reflected distribution fhat */
+
+  funcNm : sconcat("calcSheathPartialReflectionScaled", cdim, "x", vdim, "v", basisFun),
+  printf(fh, "void ~a_P~a(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
+
+  varsP : subst(gkvsub, varsP),
+  if vdim=1 then varsV:[vpar] else varsV:[vpar,mu],
+
+  edgesub : [zVar=zVal],
+
+  /* expand f and fhat */
+  f_expd : doExpand1(f, bP),
+
+  /* make sure velocity integration vars are first, and remove z from integral */
+  /* we do this in case vcut depends on x and y at some point */
+  intVars : flatten([varsV,varsC]),
+  lims : makelist([-1,1],i,1,length(varsP)),
+  cutlims : makelist([-1,1],i,1,length(varsP)),
+  /* first velocity dim is always vpar, and we need to modify the upper integration limit */
+  cutlims[1] : [-1,2*(vcut-wv)/dv],
+  
+  /* flux projected onto conf basis evaluated at z surface */
+  u_k:fullratsimp(innerProdGen(intVars,lims,bC, wv + vpar/dv, subst(edgesub,f_expd))),
+
+  /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
+  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, wv + vpar/dv, subst(edgesub,f_expd))),
+
+  printf(fh, "  double u[~a]; ~%", length(bC)),
+  printf(fh, "  double uhat[~a]; ~%", length(bC)),
+  printf(fh, "  double c[~a]; ~%", length(bC)),
+
+  powersimp:[zVal^2=zVal2, wv^2=wv2, wv^3=wv3, wv^4=wv4, wv^5=wv5, vcut^2=vcut2, vcut^3=vcut3, vcut^4=vcut4, vcut^5=vcut5, dv^2=dv2, dv^3=dv3, dv^4=dv4, dv^5=dv5],
+  printf(fh, "  double zVal2 = zVal*zVal; ~%"),
+  printf(fh, "  double wv2 = wv*wv; ~%"),
+  printf(fh, "  double wv3 = wv2*wv; ~%"),
+  printf(fh, "  double wv4 = wv3*wv; ~%"),
+  printf(fh, "  double wv5 = wv4*wv; ~%"),
+  printf(fh, "  double dv2 = dv*dv; ~%"),
+  printf(fh, "  double dv3 = dv2*dv; ~%"),
+  printf(fh, "  double dv4 = dv3*dv; ~%"),
+  printf(fh, "  double dv5 = dv4*dv; ~%"),
+  printf(fh, "  double vcut2 = vcut*vcut; ~%"),
+  printf(fh, "  double vcut3 = vcut2*vcut; ~%"),
+  printf(fh, "  double vcut4 = vcut3*vcut; ~%"),
+  printf(fh, "  double vcut5 = vcut4*vcut; ~%"),
+
+  writeCExprsWithZerosNoExpand1(u, fullratsimp(subst(powersimp, u_k))),
+  writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
+  printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(u, uhat, ~a, 1, c); ~%", cdim, basisFun, p, length(bC)),
+  printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(c, f, ~a, 0, fhat); ~%", cdim, vdim, basisFun, p, length(bP)),
+
+  printf(fh, "} ~%~%"),
 
 /* function to compute weak-equivalent partially-reflected distribution fhat */
 
-  funcNm : sconcat("calcSheathPartialReflection", cdim, "x", vdim, "v", basisFun),
+  funcNm : sconcat("calcSheathPartialReflectionWeakEquiv", cdim, "x", vdim, "v", basisFun),
   printf(fh, "void ~a_P~a(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
 
   varsP : subst(gkvsub, varsP),
@@ -73,13 +127,20 @@ for p : 1 thru pmax do (
   /* get common denominator */
   denomExpr : denom(fullratsimp(subst(sol,fhat_expd))),
 
-  powersimp:[wv^2=wv2, wv^3=wv3, vcut^2=vcut2, vcut^3=vcut3, dv^2=dv2, dv^3=dv3],
+  powersimp:[zVal^2=zVal2, wv^2=wv2, wv^3=wv3, wv^4=wv4, wv^5=wv5, vcut^2=vcut2, vcut^3=vcut3, vcut^4=vcut4, vcut^5=vcut5, dv^2=dv2, dv^3=dv3, dv^4=dv4, dv^5=dv5],
+  printf(fh, "  double zVal2 = zVal*zVal; ~%"),
   printf(fh, "  double wv2 = wv*wv; ~%"),
   printf(fh, "  double wv3 = wv2*wv; ~%"),
+  printf(fh, "  double wv4 = wv3*wv; ~%"),
+  printf(fh, "  double wv5 = wv4*wv; ~%"),
   printf(fh, "  double dv2 = dv*dv; ~%"),
   printf(fh, "  double dv3 = dv2*dv; ~%"),
+  printf(fh, "  double dv4 = dv3*dv; ~%"),
+  printf(fh, "  double dv5 = dv4*dv; ~%"),
   printf(fh, "  double vcut2 = vcut*vcut; ~%"),
   printf(fh, "  double vcut3 = vcut2*vcut; ~%"),
+  printf(fh, "  double vcut4 = vcut3*vcut; ~%"),
+  printf(fh, "  double vcut5 = vcut4*vcut; ~%"),
 
   printf(fh, "  double denom = ~a; ~%", subst(powersimp, denomExpr)),
   writeCExprsWithZerosNoExpand1(fhat, fullratsimp(subst(powersimp, sol_k*denomExpr/denom))),
@@ -88,13 +149,14 @@ for p : 1 thru pmax do (
 
 ))$
 
-pmax:1;
 fname : "~/max-out/GkSheathFuncsSer.cpp";
 fh : openw(fname);
 printf(fh, "#include <GyrokineticModDecl.h> ~%");
+printf(fh, "#include <CartFieldBinOpModDecl.h> ~%");
 for c : 1 thru 3 do (
 v:2,
-if c=1 then v:1,
+pmax:2,
+/*if c=1 then (v:1, pmax:2),*/
 calcGkSheathFuncs(fh, c, v, "Ser", pmax)
 );
 close(fh);

@@ -1,0 +1,61 @@
+/* Generate kernels that perform the dot product of two
+   vector fields, say if u .= A.B, (where .= means weak equality). */
+
+/* To avoid the expensive algebraic matrix inversion in
+   Maxima we use Eigen to solve the system. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+calcBinOpDotProduct(fh, funcNm, cdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // A:       scalar/vector field. ~%"),
+    printf(fh, "  // B:       scalar/vector field (must be vector if A is vector). ~%"),
+    printf(fh, "  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). ~%"),
+    printf(fh, "  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (should be 1 here). ~%"),
+    printf(fh, "  // out:     output field A.B (out only has one component). ~%"),
+    printf(fh, " ~%"),
+
+    /* Expand fields A and B in configuration space basis. */
+    Ae : doExpand1(A, bC),
+    Be : doExpand1(B, bC),
+
+    /* To allow for multiple components change the cofficient indices in Ae and Be. */
+    Ae : psubst(makelist(A[i]=A[a0+i],i,0,N-1),Ae),
+    Be : psubst(makelist(B[i]=B[a0+i],i,0,N-1),Be),
+
+    prod : calcInnerProdList(varsC,Ae,bC,Be),
+  
+    printf(fh, "  // zero out. This is ok in this operator because there is no in-place dot-product. ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%",N),
+    printf(fh, "  { ~%"),
+    printf(fh, "    out[vd] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  for (unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a; ~%",N*vd),
+    printf(fh, "    // Contribution to dot-product from weak multiplication of vd component. ~%"),
+    expr : float(expand(prod)),
+    for i : 1 thru N do (
+      printf(fh, "    ~a += ~a; ~%", out[i-1], expr[i])
+    ),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+

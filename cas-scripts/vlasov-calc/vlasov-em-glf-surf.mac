@@ -43,7 +43,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for i : 1 thru 4 do (
+for i : 1 thru 3 do (
   bP : basisP[i],
   varsC : slcn(varsP, cdim),
   bC : basisC[i],

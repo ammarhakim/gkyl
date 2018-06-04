@@ -15,9 +15,12 @@ local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
+local SpeciesBase = require "App.Species.SpeciesBase"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local SpeciesBase = require "App.Species.SpeciesBase"
+local Time = require "Lib.Time"
+local Mpi = require "Comm.Mpi"
+local Collisions = require "App.Collisions"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -51,6 +54,8 @@ function KineticSpecies:fullInit(appTbl)
    self.vdim = #self.cells -- velocity dimensions
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
+   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
+   self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
    self.confBasis = nil -- Will be set later
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
@@ -94,18 +99,69 @@ function KineticSpecies:fullInit(appTbl)
    -- for storing integrated moments
    self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
 
-   -- store initial condition function
-   self.initBackgroundFunc = tbl.initBackground
-   if self.initBackgroundFunc then 
-      self.initFunc = function (t, xn)
-         return tbl.init(t, xn, tbl)
-      end
-   else 
-      self.initFunc = tbl.init
+   -- get a random seed for random initial conditions
+   if tbl.randomseed then
+      math.randomseed(tbl.randomseed)
+   else
+      math.randomseed(47*Mpi.Comm_rank(Mpi.COMM_WORLD))
    end
 
+   -- get functions for initial conditions and sources note: need to
+   -- wrap these functions so that self can be (optionally) passed as
+   -- last argument
+   -- initial condition functions 
+   if tbl.initBackground then 
+      if type(tbl.initBackground)=="function" then 
+         self.initBackgroundFunc = function (t, xn)
+            return tbl.initBackground(t, xn, self)
+         end
+      elseif tbl.initBackground[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
+         self.initBackgroundType = "maxwellian"
+         self.initBackgroundDensityFunc = assert(tbl.initBackground.density, "maxwellian: must specify density")
+         self.initBackgroundTemperatureFunc = assert(tbl.initBackground.temperature, "maxwellian: must specify temperature")
+         self.initBackgroundDriftSpeedFunc = tbl.initBackground.driftSpeed or function (t, xn) return nil end
+         self.initBackgroundFunc = function(t, xn)
+            return self:Maxwellian(xn, self.initBackgroundDensityFunc(t, xn), self.initBackgroundTemperatureFunc(t, xn), self.initBackgroundDriftSpeedFunc(t,xn))
+         end
+      else 
+         assert(false, "initBackground not correctly specified")
+      end
+   end
+   assert(tbl.init, "Must specify initial condition with init")
+   if type(tbl.init) == "function" then
+      self.initFunc = function (t, xn)
+         return tbl.init(t, xn, self)
+      end
+   elseif tbl.init[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
+      self.initType = "maxwellian"
+      self.initDensityFunc = assert(tbl.init.density, "maxwellian: must specify density")
+      self.initTemperatureFunc = assert(tbl.init.temperature, "maxwellian: must specify temperature")
+      self.initDriftSpeedFunc = tbl.init.driftSpeed or function (t, xn) return nil end
+      self.initFunc = function(t, xn)
+         return self:Maxwellian(xn, self.initDensityFunc(t, xn), self.initTemperatureFunc(t, xn), self.initDriftSpeedFunc(t, xn))
+      end
+   else 
+      assert(false, "init not correctly specified")
+   end
    -- source term for RHS (e.g. df/dt = ... + source)
-   self.sourceFunc = tbl.source
+   if tbl.source then 
+      if type(tbl.source)=="function" then 
+         self.sourceFunc = function (t, xn)
+            return tbl.source(t, xn, self)
+         end
+      elseif tbl.source[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
+         self.sourceType = "maxwellian"
+         self.sourceDensityFunc = assert(tbl.source.density, "maxwellian: must specify density")
+         self.sourceTemperatureFunc = assert(tbl.source.temperature, "maxwellian: must specify temperature")
+         self.sourceDriftSpeedFunc = tbl.source.driftSpeed or function (t, xn) return nil end
+         self.sourceFunc = function(t, xn)
+            return self:Maxwellian(xn, self.sourceDensityFunc(t, xn), self.sourceTemperatureFunc(t, xn), self.sourceDriftSpeedFunc(t, xn))
+         end
+      else 
+         assert(false, "source not correctly specified")
+      end
+      if tbl.sourceTimeDependence then self.sourceTimeDependence = tbl.sourceTimeDependence else self.sourceTimeDependence = function (t) return 1 end end
+   end
 
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.fluctuationBCs then 
@@ -132,6 +188,18 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    self.boundaryConditions = { } -- list of Bcs to apply
+
+   self.bcTime = 0.0 -- timer for BCs
+
+   -- Collisions/Sources
+   self.collisions = {}
+   for nm, val in pairs(tbl) do
+      if Collisions.CollisionsBase.is(val) then
+	 val:fullInit(tbl) -- initialize species
+	 self.collisions[nm] = val
+	 self.collisions[nm]:setName(nm)
+      end
+   end
 end
 
 function KineticSpecies:getCharge() return self.charge end
@@ -145,21 +213,36 @@ function KineticSpecies:getVdim()
 end
 function KineticSpecies:setName(nm)
    self.name = nm
+   -- set "self species" for collisions
+   for _, c in pairs(self.collisions) do
+      c:setSpeciesName(nm)
+   end
+
 end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
+   for _, c in pairs(self.collisions) do
+      c:setCfl(cfl)
+   end   
 end
 function KineticSpecies:setIoMethod(ioMethod)
    self.ioMethod = ioMethod
 end
 function KineticSpecies:setConfBasis(basis)
    self.confBasis = basis
+   for _, c in pairs(self.collisions) do
+      c:setConfBasis(basis)
+   end
 end
-function KineticSpecies:setConfGrid(cgrid)
-   self.confGrid = cgrid
+function KineticSpecies:setConfGrid(grid)
+   self.confGrid = grid
+   for _, c in pairs(self.collisions) do
+      c:setConfGrid(grid)
+   end
 end
 
-function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs, cMap)
+function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
+				   cPeriodicDirs, cMap)
    self.cdim = #cCells
    self.ndim = self.cdim+self.vdim
 
@@ -221,10 +304,17 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs,
       decomposition = self.decomp,
       mappings = coordinateMap,
    }
+
+   for _, c in pairs(self.collisions) do
+      c:setPhaseGrid(self.grid)
+   end
 end
 
 function KineticSpecies:createBasis(nm, polyOrder)
    self.basis = createBasis(nm, self.ndim, polyOrder)
+   for _, c in pairs(self.collisions) do
+      c:setPhaseBasis(self.basis)
+   end
 end
 
 function KineticSpecies:allocDistf()
@@ -264,6 +354,12 @@ function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "pointwise"
    self.basis:flipSign(dir, fIn, fOut)
 end
+function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+   for i = 1, self.basis:numBasis() do
+      fOut[i] = fIn[i]
+   end
+end
+
 -- function to construct a BC updater
 function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop)
    return Updater.Bc {
@@ -296,6 +392,13 @@ function KineticSpecies:createBCs()
    handleBc(3, self.bcz)
 end
 
+function KineticSpecies:createSolver()
+   -- create solvers for collisions
+   for _, c in pairs(self.collisions) do
+      c:createSolver()
+   end
+end
+
 function KineticSpecies:alloc(nRkDup)
    -- allocate fields needed in RK update
    self.distf = {}
@@ -309,7 +412,7 @@ function KineticSpecies:alloc(nRkDup)
    }
 
    -- background (or initial) distribution
-   if self.initBackgroundFunc then
+   if self.initBackgroundFunc or not self.evolve then
       self.f0 = self:allocDistf()
    end
 
@@ -333,6 +436,11 @@ function KineticSpecies:initDist()
    }
    project:advance(0.0, 0.0, {}, {self.distf[1]})
 
+   -- if maxwellian initial conditions, modify to ensure correct density
+   if self.initType == "maxwellian" then
+      self:modifyDensity(self.distf[1], self.initDensityFunc)
+   end
+
    if self.initBackgroundFunc then
       local projectBackground = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -342,7 +450,60 @@ function KineticSpecies:initDist()
       }
       projectBackground:advance(0.0, 0.0, {}, {self.f0})
       self.f0:sync(syncPeriodicDirs)
+   elseif not self.evolve then
+      -- if not evolving, use initial condition as background
+      self.f0:copy(self.distf[1])
    end
+
+   -- if maxwellian initial conditions, modify to ensure correct density
+   if self.initBackgroundType == "maxwellian" then
+      self:modifyDensity(self.f0, self.initBackgroundDensityFunc)
+   end
+
+   -- create updater to evaluate source 
+   if self.sourceFunc then 
+      self.evalSource = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.sourceFunc,
+         projectOnGhosts = true
+      }
+      self.evalSource:advance(tCurr, dt, {}, {self.fSource})
+
+      -- if maxwellian source, modify to ensure correct density
+      if self.sourceType == "maxwellian" then
+         self:modifyDensity(self.fSource, self.sourceDensityFunc)
+      end
+   end
+end
+
+function KineticSpecies:modifyDensity(f, trueDensFunc)
+   local ninit, ntrue, nmod = self:allocMoment(), self:allocMoment(), self:allocMoment()
+   self.numDensityCalc:advance(0, 0, {f}, {ninit})
+   local projectTrueDens = Updater.ProjectOnBasis {
+      onGrid = self.confGrid,
+      basis = self.confBasis,
+      evaluate = trueDensFunc,
+      projectOnGhosts = true,
+   }
+   projectTrueDens:advance(0, 0, {}, {ntrue})
+   local calcDensMod = Updater.CartFieldBinOp {
+      onGrid = self.grid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts = true,
+   }
+   -- calculate nmod = ntrue / ninit
+   calcDensMod:advance(0, 0, {ninit, ntrue}, {nmod})
+   local modDistf = Updater.CartFieldBinOp {
+      onGrid = self.grid,
+      weakBasis = self.basis,
+      fieldBasis = self.confBasis,
+      operation = "Multiply",
+      onGhosts = true,
+   }
+   -- calculate f = nmod * f
+   modDistf:advance(0, 0, {nmod, f}, {f})
 end
 
 function KineticSpecies:rkStepperFields()
@@ -351,40 +512,39 @@ end
 
 function KineticSpecies:applyBc(tCurr, dt, fIn)
    -- fIn is total distribution function
+   local tmStart = Time.clock()
 
-   local syncPeriodicDirsTrue = true
+   if self.evolve then 
+      local syncPeriodicDirsTrue = true
 
-   if self.fluctuationBCs then
-     -- if fluctuation-only BCs, subtract off background before applying BCs
-     fIn:accumulate(-1.0, self.f0)
-   end
+      if self.fluctuationBCs then
+        -- if fluctuation-only BCs, subtract off background before applying BCs
+        fIn:accumulate(-1.0, self.f0)
+      end
 
-   -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
-   if self.hasNonPeriodicBc then
-      for _, bc in ipairs(self.boundaryConditions) do
-	 bc:advance(tCurr, dt, {}, {fIn})
+      -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
+      if self.hasNonPeriodicBc then
+         for _, bc in ipairs(self.boundaryConditions) do
+            bc:advance(tCurr, dt, {}, {fIn})
+         end
+      end
+
+      -- apply periodic BCs (to only fluctuations if fluctuation BCs)
+      fIn:sync(syncPeriodicDirsTrue)
+
+      if self.fluctuationBCs then
+        -- put back together total distribution
+        fIn:accumulate(1.0, self.f0)
+
+        -- update ghosts in total distribution, without enforcing periodicity
+        fIn:sync(not syncPeriodicDirsTrue)
       end
    end
 
-   -- apply periodic BCs (to only fluctuations if fluctuation BCs)
-   fIn:sync(syncPeriodicDirsTrue)
-
-   if self.fluctuationBCs then
-     -- put back together total distribution
-     fIn:accumulate(1.0, self.f0)
-
-     -- update ghosts in total distribution, without enforcing periodicity
-     fIn:sync(not syncPeriodicDirsTrue)
-   end
+   self.bcTime = self.bcTime + (Time.clock()-tmStart)
 end
 
 function KineticSpecies:createDiagnostics()
-   -- create updater to compute volume-integrated moments
-   self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
-      onGrid = self.grid,
-      phaseBasis = self.basis,
-      confBasis = self.confBasis,
-   }
 end
 
 function KineticSpecies:calcDiagnosticMoments()
@@ -402,15 +562,17 @@ end
 function KineticSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
-      self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
+      if self.intMomentCalc then self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments }) end
 
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm)
+	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
-            if tm==0.0 then self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm) end
+            if tm == 0.0 then
+	       self.distIo:write(self.f0, string.format("%s_f0_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
+	    end
             self.distf[1]:accumulate(-1, self.f0)
-            self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm)
+            self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
 	 self.distIoFrame = self.distIoFrame+1
@@ -423,22 +585,22 @@ function KineticSpecies:write(tm)
          for i, mom in ipairs(self.diagnosticMoments) do
             -- should one use AdiosIo object for this?
             self.diagnosticMomentFields[i]:write(
-               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm)
+               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
          end
          self.integratedMoments:write(
-            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm)
+            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.distIoFrame == 0 then
-	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm)
+	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
 	 -- compute moments and write them out
 	 self:calcDiagnosticMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm)
+	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0)
 	 end
       end
       self.distIoFrame = self.distIoFrame+1
@@ -450,14 +612,10 @@ function KineticSpecies:totalSolverTime()
    return self.solver.totalTime
 end
 function KineticSpecies:totalBcTime()
-   local tm = 0.0
-   for _, bc in ipairs(self.boundaryConditions) do
-      tm = tm + bc.totalTime
-   end
-   return tm
+   return self.bcTime
 end
 function KineticSpecies:intMomCalcTime()
-   return self.intMomentCalc.totalTime
+   if self.intMomentCalc then return self.intMomentCalc.totalTime else return 0 end
 end
 
 return KineticSpecies

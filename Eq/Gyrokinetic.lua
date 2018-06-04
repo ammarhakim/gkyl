@@ -8,6 +8,7 @@
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local Proto = require "Lib.Proto"
 local xsys = require "xsys"
+local Time = require "Lib.Time"
 
 local Gyrokinetic = Proto()
 
@@ -39,26 +40,32 @@ function Gyrokinetic:init(tbl)
    assert(tbl.hasPhi==true, "Gyrokinetic: must have an electrostatic potential!")
    self._isElectromagnetic = xsys.pickBool(tbl.hasApar, false)
 
+   self.Bvars = tbl.Bvars
+
    self._ndim = self._basis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._ndim - self._cdim
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
-   self._volTerm = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic)
-   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic)
+   self._volTerm = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars)
+   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars)
 
    -- for sheath BCs
-   self._calcSheathDeltaPhi = GyrokineticModDecl.selectSheathDeltaPhi(nm, self._cdim, p)
-   self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
+   if tbl.hasSheathBcs then
+      self._calcSheathDeltaPhi = GyrokineticModDecl.selectSheathDeltaPhi(nm, self._cdim, p)
+      self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
+   end
 
    self._isFirst = true
    self.phiPtr = nil
    self.bmagPtr = nil
-   self.bcurvYPtr = nil
+   self.bdriftXPtr = nil
+   self.bdriftYPtr = nil
    self.phiWallPtr = nil
    self.phiIdxr = nil
    self.bmagIdxr = nil
-   self.bcurvYIdxr = nil
+   self.bdriftXIdxr = nil
+   self.bdriftYIdxr = nil
    self.phiWallIdxr = nil
    if self._isElectromagnetic then
       -- for electromagnetic terms
@@ -67,6 +74,10 @@ function Gyrokinetic:init(tbl)
       self.aparIdxr = nil
       self.dApardtIdxr = nil
    end
+
+   -- timers
+   self.totalVolTime = 0.0
+   self.totalSurfTime = 0.0
 end
 
 function Gyrokinetic:setAuxFields(auxFields)
@@ -85,7 +96,8 @@ function Gyrokinetic:setAuxFields(auxFields)
    -- get magnetic geometry fields
    self.bmag = geo.bmag
    self.bmagInv = geo.bmagInv
-   self.bcurvY = geo.bcurvY
+   self.bdriftX = geo.bdriftX
+   self.bdriftY = geo.bdriftY
    self.phiWall = geo.phiWall  -- for sheath BCs
 
    if self._isFirst then
@@ -104,11 +116,13 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- geometry
       self.bmagPtr = self.bmag:get(1)
       self.bmagInvPtr = self.bmagInv:get(1)
-      self.bcurvYPtr = self.bcurvY:get(1)
+      self.bdriftXPtr = self.bdriftX:get(1)
+      self.bdriftYPtr = self.bdriftY:get(1)
       self.phiWallPtr = self.phiWall:get(1)
       self.bmagIdxr = self.bmag:genIndexer()
       self.bmagInvIdxr = self.bmagInv:genIndexer()
-      self.bcurvYIdxr = self.bcurvY:genIndexer()
+      self.bdriftXIdxr = self.bdriftX:genIndexer()
+      self.bdriftYIdxr = self.bdriftY:genIndexer()
       self.phiWallIdxr = self.phiWall:genIndexer()
 
       self._isFirst = false -- no longer first time
@@ -117,32 +131,40 @@ end
 
 -- Volume integral term for use in DG scheme
 function Gyrokinetic:volTerm(w, dx, idx, f, out)
+   local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
-   self.bcurvY:fill(self.bcurvYIdxr(idx), self.bcurvYPtr)
+   self.bdriftX:fill(self.bdriftXIdxr(idx), self.bdriftXPtr)
+   self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
+   local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     self.dApardt:fill(self.dApardtIdxr(idx), self.dApardtPtr)
-     return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), f:data(), out:data())
    else 
-     return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
+   self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
+   return res
 end
 
 -- Surface integral term for use in DG scheme
 function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+   local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
-   self.bcurvY:fill(self.bcurvYIdxr(idxr), self.bcurvYPtr)
+   self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
+   self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
+   local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
-     self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
-     return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    else 
-     return self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bcurvYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
+   self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
+   return res
 end
 
 -- calculate deltaPhi at domain edge for sheath BCs

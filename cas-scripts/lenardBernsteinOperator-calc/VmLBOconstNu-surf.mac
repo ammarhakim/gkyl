@@ -1,0 +1,297 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels for the surface term
+   contribution from Lenard Bernstein operator using
+   two integrations by parts for the diffusive term and
+   a constant collisionality nu. */
+
+cvars : [X, Y, Z]$
+varsV : [vx, vy, vz]$
+vvars : [VX, VY, VZ]$
+ux    : [uX, uY, uZ]$
+
+vidx(cdim,vdim)  := makelist(i,i,cdim+1,cdim+vdim)$
+vidx1(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+load ("scifac")$
+writeCExprsCollect1c(lhs, rhs, clst) := block([expr],
+  expr : float(expand(rhs)), 
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      param : cons(expr[i], clst),
+      e : apply(collectterms, param),
+      printf(fh, "  ~a = ~a; ~%", lhs[i-1], gcfac(e))
+    )
+  )
+)$
+
+calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+
+    /*... Compute  1D recovery polynomial coefficients into hsol ...*/
+    /* Load 1D basis. */
+    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+    bC1 : basisC[polyOrder],
+    N1 : length(bC1),
+
+    eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
+
+    /* Construct the 1D recovery polynomial */
+    hOrder : 2*polyOrder+1,
+    /* Left and right (of the boundary) basis sets */ 
+    pL : eta(-1/2,1,bC1),
+    pR : eta(1/2,1,bC1),
+    /* Recovery polynomial expanded in z */
+    h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
+    
+    /* LHS of system of equations arising from weak equivalence relations */
+    eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
+    eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
+    LHS : append(eqL,eqR),
+    A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
+    
+    /* RHS is similar to the mass matrix */
+    RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
+    
+    /* solve system of equations for coefficients of h */
+    S     : fullratsimp(invert(A) . RHS),
+    hsol1 : makelist(S[i][1],i,1,hOrder+1),
+
+    /*... Recovery polynomial coefficients of requested dimensionality ...*/
+    kill(varsC, basisC),
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+    load(modNm),
+
+    /* Variables. */
+    vid  : vidx(cdim,vdim),
+    vid1 : vidx1(cdim,vdim),
+    vv   : varsV[dir],
+    surfVars : delete(vv,varsP),
+
+    /* Polynomial basis and its derivatives. */
+    bP : basisP[polyOrder],
+    bC : basisC[polyOrder],
+    NP : length(bP),
+    NC : length(bC),
+    bPp : diff(bP,vv),
+
+    fg : doExpand(f, bP),	/* Function expanded in basis. */
+
+    /* Obtain the left and right function coefficients
+       by projecting the function onto the direction of interest. */
+    hcoeff : calcInnerProdList([vv], 1, subst(x=vv,bC1), fg),
+    fls : subst(makelist(f[i]=fl[i],i,NP), hcoeff),
+    frs : subst(makelist(f[i]=fr[i],i,NP), hcoeff),
+
+    /* Substitute these "left" and "right" function coefficients,
+       which contain variation along other dimensions, into the
+       1D recovery polynomial coefficients computed above. */
+    hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
+    
+    /* Write out the full recovery polynomial and its derivative. */
+    h : sum(hsol[i]*vv^(i-1), i, 1, 2*N1),
+    hp : diff(h,vv),
+    /* Evaluate the recovery polynomial at the discontinuity. */
+    hsol0 : subst(vv=0,h),
+    hsolp0 : subst(vv=0,diff(h,vv)),
+
+    /*............. RECOVERY DONE ..............................*/
+
+    /* First compute the contribution coming from the second
+    ** differentiation by parts to left and right cells. */
+    vtSq_e : doExpand1(vtSq,bC),
+
+    /* Now do the contribution from the generalized flux Ghat. */
+    basisFlip : subst(vv=-1*vv, bP),
+    signs     : fullratsimp(basisFlip/bP),
+    /* Expand the average and jump functions in the phase basis. */
+    favg_e  : doExpand1(favg, bP),
+    fjump_e : doExpand1(fjump, bP),
+    /* Expand the mean flow speed in the configuration basis. */
+    u_e : doExpand1(ux[dir],bC),
+    /* Calculate the drift. */
+    dr  : (1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]]-u_e,
+    /* Separate out the wl-u part to simplify assignment of Ghat. */
+    drD : (1/2)*dxvl[vid1[dir]]*vv,
+    drBar_c : calcInnerProdList(varsC,1,bC,wl[vid1[dir]]-u_e),
+    drBar_e : doExpand1(drBar,bC),
+
+    /* vMuMid is the value returned and from which vMuMidMax is computed. */
+    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+    vMuMid : float(expand(fullratsimp(subst(zr,dr)))),
+
+    /* Evaluate the average and jump functions at vv=1. */
+    fhat_avg  : subst(vv=1, favg_e),
+    fhat_jump : subst(vv=1, fjump_e),
+
+    /* Separate out diffusion part of Ghat to simplify Ghat assignment.
+    ** Leave the rdv factor out for later multiplication. */
+    Gdiff_c : calcInnerProdList(varsP,1,bP,vtSq_e*hsol[2]),
+    /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
+    ** but that could result in references to elements of Gdiff in Ghat
+    ** which have value zero. Instead do the following: */
+    glst1   : doMakeExprLst(Gdiff_c, Gdiff),
+    Gdiff_e : doExpandLst(glst1, bP),
+    /* Because f's in hsol are index-1, we need to switch to
+    ** 0-indexed for C++. */
+    subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
+    Gdiff_c : psubst(subList,Gdiff_c),
+
+    /* Calculate Ghat projected on the phase basis. */
+    Ghat_eP : (1/2)*(subst(vv=1,drD)*fhat_avg-fhat_jump),
+    Ghat_c  : calcInnerProdList(varsP,1,bP,Ghat_eP)
+             +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg))
+             +rdv*calcInnerProdList(varsP,1,bP,Gdiff_e),
+            
+
+    /* Ghat_c (coefficients of Ghat) is what gets written. From here
+    ** on we can simply refer to Ghat. */
+    glst1      : doMakeExprLst(Ghat_c, Ghat),
+    Ghat_e     : doExpandLst(glst1, bP),
+    Ghat_final : subst(vv=1, Ghat_e),
+
+    /* Contribution from second differentiation by parts. */
+    g : vtSq_e*hsol[1],
+
+    /* Increments to the right cell (some dimensional factors missing).
+    ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
+    incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
+    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), g),
+
+    /* Increments to the left cell (some dimensional factors missing). */
+    incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
+    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), g),
+
+    /* Because f's in hsol are index-1, we need to switch to
+    ** 0-indexed for C++. */
+    incr_l2 : psubst(subList,incr_l2),
+    incr_r2 : psubst(subList,incr_r2),
+    
+    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], polyOrder),
+    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. ~%"),
+    printf(fh, "// nu: constant collisionality. ~%"),
+    printf(fh, "// vMuMidMax: maximum midpoint value of v-u. ~%"),
+    printf(fh, "// u[~a*~a]: mean flow speed in ~a directions. ~%", vdim, NC, vdim),
+    printf(fh, "// vtSq[~a]: thermal speed squared. ~%", NC),
+    printf(fh, "// fl/fr: Distribution function in left/right cells ~%"),
+    printf(fh, "// outl/outr: Incremented distribution function in left/right cells ~%"),
+    printf(fh, "  double rdv = 1.0/dxvl[~a]; ~%", vid1[dir]),
+    printf(fh, "  double rdv2nul = 2.0*nu/dxvl[~a]; ~%", vid1[dir]),
+    printf(fh, "  double rdv2nur = 2.0*nu/dxvr[~a]; ~%", vid1[dir]),
+    printf(fh, "  double rdvSq4nul = 4.0*nu/(dxvl[~a]*dxvl[~a]); ~%", vid1[dir], vid1[dir]),
+    printf(fh, "  double rdvSq4nur = 4.0*nu/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
+    printf(fh, "~%"),
+
+    /* Create pointer to component of u relevant to this surface. */
+    printf(fh, "  const double *u~a = &u[~a]; ~%", cvars[dir], NC*(dir-1)),
+    printf(fh, "~%"),
+
+    /* Declare and populate favg. */
+    printf(fh, "  double favg[~a]; ~%", NP),
+    for c : 1 thru NP do (
+      printf(fh, "  favg[~a] = ~a*fr[~a]+fl[~a]; ~%", c-1, signs[c], c-1, c-1)
+    ),
+    printf(fh, "~%"),
+
+    /* Declare and populate fjump. */
+    printf(fh, "  double fjump[~a]; ~%", NP),
+    for c : 1 thru NP do (
+      printf(fh, "  fjump[~a] = vMuMidMax*(fl[~a]-(~a*fr[~a])); ~%", c-1, c-1, signs[c], c-1)
+    ),
+    printf(fh, "~%"),
+
+    /* Compute the wl-u drift part of Ghat separately. */
+    printf(fh, "  double drBar[~a]; ~%", NC),
+    writeCExprs1(drBar,drBar_c),
+    printf(fh, "~%"),
+
+    /* Compute the diffusive part of Ghat separately. */
+    printf(fh, "  double Gdiff[~a]; ~%", NP),
+    /* This one yields less compact expressions: writeCExprs1(Gdiff,Gdiff_c), */
+    clst : makelist(vtSq[i],i,0,NC-1),
+    writeCExprsCollect1c(Gdiff, Gdiff_c, clst),
+    printf(fh, "~%"),
+
+    /* Declare and zero out Ghat. */
+    printf(fh, "  double Ghat[~a]; ~%", NP),
+    printf(fh, "  for(unsigned short int i=0; i<~a; ++i){ ~%", NP),
+    printf(fh, "    Ghat[i]=0.0; ~%", 0),
+    printf(fh, "  }; ~%"),
+    printf(fh, "~%"),
+
+    /* Populate Ghat. */
+    clst : append([rdv], makelist(drBar[i],i,0,NC-1)),
+    writeCExprsCollect1(Ghat, Ghat_c, clst),
+    printf(fh, "~%"),
+
+    /* Write out increments. */
+    printf(fh, "  double incr1[~a]; ~%", NP),
+    writeCExprsCollect1(incr1, incr_r1, clst),
+    printf(fh, "~%"),
+    printf(fh, "  double incr2[~a]; ~%", NP),
+    /* clst : append(makelist(vtSq[i],i,0,NC-1),makelist(fl[i],i,0,NP-1),makelist(fr[i],i,0,NP-1)),*/
+    clst : makelist(vtSq[i],i,0,NC-1), 
+    writeCExprsCollect1c(incr2, incr_r2, clst),
+    printf(fh, "~%"),
+  
+    incr_s1 : makelist(incr1[i-1], i, 1, NP),
+    incr_s2 : makelist(incr2[i-1], i, 1, NP),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru NP do (
+      if (incr_r1[i] = 0) then
+        incr_s1[i] : 0,
+      if (incr_r2[i] = 0) then
+        incr_s2[i] : 0
+    ), 
+    /* Write out contribution right cell. */
+    writeCIncrExprs1(outr, rdv2nur*incr_s1+rdvSq4nur*incr_s2), 
+ /*   writeCIncrExprs1(outr, rdv2nur*(incr_s1+incr_s2)), */
+    printf(fh, "~%"),
+  
+    signs1 : makelist(1,i,1,NP),
+    signs2 : makelist(1,i,1,NP),
+    for i : 1 thru NP do (
+        if (incr_r1[i] = 0) then
+          false
+        else
+          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i]),
+        if (incr_r2[i] = 0) then
+          false
+        else
+          signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
+    ),
+    incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NP),
+    incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru NP do (
+      if (incr_r1[i] = 0) then
+        incr_s1[i] : 0
+    ), 
+    for i : 1 thru NP do (
+      if (incr_r2[i] = 0) then
+        incr_s2[i] : 0
+    ), 
+    /* Write out contribution to left cell. */
+    writeCIncrExprs1(outl, rdv2nul*incr_s1+rdvSq4nul*incr_s2), 
+    printf(fh, "~%"),
+
+    printf(fh, "  const double vMuMid = ~a; ~%", vMuMid),
+    printf(fh, "  return std::abs(vMuMid); ~%"),
+  
+    printf(fh, "} ~%")
+));
+
+calcVmLBOconstNuSurfUpdater(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
+  printf(fh, "#include <VmLBOModDecl.h> ~%"),
+  for dir : 1 thru vdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax) )
+)$
+

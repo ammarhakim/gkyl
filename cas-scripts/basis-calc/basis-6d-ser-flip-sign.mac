@@ -1,0 +1,26 @@
+load("modal-basis");
+load("out-scripts");
+fpprec : 24$
+
+var : [z1, z2, z3, z4, z5, z6]$
+
+fh : openw("~/max-out/ModalSerendipBasisFlipSign6d.lua");
+printf(fh, "local _M = {} ~%");
+
+for i : 1 thru 2 do (
+  basis : gsOrthoNorm(var, makeSerendipBasis(var, i)),
+  printf(fh, "_M[~a] = function (dir, f, out) ~%", i),
+  for j : 1 thru 6 do (
+    printf(fh, "   if dir == ~a  then ~%", j),
+    cv : var[j],
+    basisFlip : subst(cv=-1.0*cv, basis),
+    signs : fullratsimp(basisFlip/basis),
+    gl : makelist(signs[i]*f[i], i, 1, length(signs)), 
+    writeExprs(gl),
+    printf(fh, "   end ~%", j)
+  ),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);

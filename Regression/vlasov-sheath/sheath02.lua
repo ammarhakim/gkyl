@@ -24,12 +24,6 @@ local lambda_D = math.sqrt((epsilon_0 * T_e)/(n_e * q_e^2))
 -- artificially decrease the speed of light
 mu_0 = 1.0/(epsilon_0 * (10*vth_e)^2)
 
--- initialization function
-local function maxwellian(n, vd, vth, v)
-   return n / math.sqrt(2*math.pi*vth*vth) * 
-      math.exp(-(v-vd)^2/(2*vth*vth))
-end
-
 sim = Plasma.App {
    logToFile = false,
 
@@ -59,10 +53,17 @@ sim = Plasma.App {
       cells = {16},
       decompCuts = {1},
       -- initial conditions
-      init = function (t, xn)
-	 local x, v = xn[1], xn[2]
-	 return maxwellian(n_e, vd_e, vth_e, v)
-      end,
+      init = {"maxwellian", 
+              density = function (t, xn)
+                 return n_e
+              end,
+              temperature = function (t, xn)
+                 return T_e
+              end,
+              driftSpeed = function (t, xn)
+                 return {vd_e}
+              end
+             },
       evolve = true, -- evolve species?
       bcx = { Plasma.VlasovSpecies.bcAbsorb,
 	      Plasma.VlasovSpecies.bcReflect },
@@ -77,10 +78,17 @@ sim = Plasma.App {
       cells = {16},
       decompCuts = {1},
       -- initial conditions
-      init = function (t, xn)
-	 local x, v = xn[1], xn[2]
-	 return maxwellian(n_i, vd_i, vth_i, v)
-      end,
+      init = {"maxwellian", 
+              density = function (t, xn)
+                 return n_i
+              end,
+              temperature = function (t, xn)
+                 return T_i
+              end,
+              driftSpeed = function (t, xn)
+                 return {vd_i}
+              end
+             },
       evolve = true, -- evolve species?
       bcx = { Plasma.VlasovSpecies.bcAbsorb,
 	      Plasma.VlasovSpecies.bcReflect },
