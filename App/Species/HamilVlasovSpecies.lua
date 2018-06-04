@@ -81,7 +81,7 @@ function HamilVlasovSpecies:createSolver(hasPhi, hasA)
    }   
 end
 
-function HamilVlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+function HamilVlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
    if self.evolve then
       local em = emIn[1]
       local emFunc = emIn[2]

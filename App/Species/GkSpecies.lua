@@ -149,7 +149,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
    self.tmCouplingMom = 0.0 -- for timer 
 end
 
-function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
    if self.evolve then
       local em = emIn[1]
       local emFunc = emIn[2]

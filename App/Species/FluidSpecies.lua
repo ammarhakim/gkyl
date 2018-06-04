@@ -257,7 +257,7 @@ function FluidSpecies:rkStepperFields()
    return self.moments
 end
 
-function FluidSpecies:forwardEuler(tCurr, dt, fIn, emIn, fOut)
+function FluidSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
    if self.evolve then
       return self.solver:advance(tCurr, dt, {fIn, emIn}, {fOut})
    else
