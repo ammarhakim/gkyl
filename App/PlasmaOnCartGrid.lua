@@ -502,9 +502,11 @@ local function buildApplication(self, tbl)
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
-	 for _, c in pairs(s.collisions) do
-	    tmColl = tmColl + c:totalTime()
-	 end
+         if s.collisions then
+	    for _, c in pairs(s.collisions) do
+	       tmColl = tmColl + c:totalTime()
+	    end
+         end
       end
 
       log(string.format("\nTotal number of time-steps %s\n", step))
