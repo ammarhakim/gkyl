@@ -46,6 +46,7 @@ function test_1(comm)
 
    local field = reader:getVar("CartGridField")
    assert_equal("CartGridField", field.name, "Checking name")
+   local data = field:read()
 end
 
 function allReduceOneInt(localv)
