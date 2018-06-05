@@ -220,7 +220,7 @@ function AdiosCartFieldIo:read(field, fName)
    for d = 1, ndim do upper[d-1] = field:grid():upper(d) end
    Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
 
-   -- define data to write
+   -- define data to read
    Adios.define_var(
       grpId, "frame", "", Adios.integer, "", "", "")
    Adios.define_var(
@@ -240,11 +240,9 @@ function AdiosCartFieldIo:read(field, fName)
 
    local fieldLocalSz = localRange:volume()*field:numComponents()*sizeof("double")
    Adios.read(fd, "CartGridField", self._outBuff:data(), fieldLocalSz)
-   Adios.close(fd)
+   Adios.close(fd) -- no reads actually happen unless one closes file!
 
-   -- copy output buffer into field (this copy is needed as field also
-   -- contains ghost-cell data, and, in addition, ADIOS expects data
-   -- to be laid out in row-major order)
+   -- copy output buffer into field
    field:_copy_to_field_region(field:localRange(), self._outBuff)
    
    Adios.finalize(rank)

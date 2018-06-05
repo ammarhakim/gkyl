@@ -257,6 +257,12 @@ local function buildApplication(self, tbl)
       funcField:write(tCurr)
    end
 
+   -- function to write restart frames to file
+   local function writeRestart(tCurr)
+      for _, s in pairs(species) do s:writeRestart(tCurr) end
+      field:writeRestart(tCurr)
+   end
+
    writeData(0.0) -- write initial conditions
 
    -- determine if field equations are elliptic 
@@ -436,6 +442,10 @@ local function buildApplication(self, tbl)
 
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
+
+   -- read some info about restarts (default is to write restarts 1/5 of sim)
+   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 0.2
+   local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
 
    -- return function that runs main simulation loop
    return function(self)
