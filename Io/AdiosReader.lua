@@ -49,29 +49,24 @@ local typeStringMap = {
 -- wrapper function to convert enum to integer before indexing table
 local function getTypeStringMap(ty) return typeStringMap[tonumber(ty)] end
 
--- method to read data and casting it to LuaJIT types
-local function getValue(ty, data)
-   local tmap = getTypeStringMap(ty)
-   local v = ffi.cast(tmap[2], data)
-   return v[0]
-end
-
 -- AdiosVar --------------------------------------------------------------------
 --
 -- Object to represent a variable in an ADIOS file (used internally
--- and can not be instantiated by the user)
+-- and can not be instantiated outside file)
 --------------------------------------------------------------------------------
 
 local AdiosVar = Proto()
 
-function AdiosVar:init(fd, vName, vObj)
-   self._fd, self.name, self._obj = fd, vName, vObj
+function AdiosVar:init(fd, vName, vid)
+   self._fd, self.name  = fd, vName
+   self._obj = Adios.inq_var_byid(fd, vid)
 
    self.shape, self.size = { }, 1
-   for j = 0, vObj.ndim-1 do
-      self.shape[j+1] = tonumber(vObj.dims[j])
-      self.size = self.size*vObj.dims[j]
+   for j = 0, self._obj.ndim-1 do
+      self.shape[j+1] = tonumber(self._obj.dims[j])
+      self.size = self.size*tonumber(self._obj.dims[j])
    end
+
    local t = getTypeStringMap(self._obj.type)
    self.type = t and t[1] or nil
 end
@@ -79,16 +74,17 @@ end
 -- Returned data is the value if var is a scalar or is the data
 -- stored as a flat array otherwise.
 function AdiosVar:read()
+   local tmap = getTypeStringMap(self._obj.type)
    if self._obj.ndim == 0 then
-      return getValue(self._obj.type, self._obj.value)
+      return ffi.cast(tmap[2], self._obj.value)[0]
    end
    
    local ndim = self._obj.ndim
-   -- need to read stuff from file: allocate memory first
-   local allocator = getTypeStringMap(self._obj.type)[3]
-   local data = allocator(tonumber(self.size))
+   local allocator = tmap[3]
+   local data = allocator(self.size)
    
-   -- create a bounding box for region of grid to read
+   -- create bounding box for region to read (ADIOS expects input to
+   -- be const uint64_t* objects, hence vector types below)
    local start, count = Lin.UInt64Vec(ndim), Lin.UInt64Vec(ndim)
    for d = 1, ndim do
       start[d] = 0
@@ -105,14 +101,28 @@ end
 -- AdiosAttr -------------------------------------------------------------------
 --
 -- Object to represent an attribute in an ADIOS file (used internally
--- and can not be instantiated by the user)
+-- and can not be instantiated outside this file)
 --------------------------------------------------------------------------------
 
 local AdiosAttr = Proto()
 
-function AdiosAttr:init(fd, aName)
-   self._fd, self.name = fd, aName
+function AdiosAttr:init(fd, aName, aid)
+   self.name = aName
+   local atype, asize, adata = Adios.get_attr_byid(fd, aid)
+   local type_size = Adios.type_size(atype, adata)
+
+   local tmap = getTypeStringMap(atype)
+   local v = ffi.cast(tmap[2], adata) -- cast to proper type
+
+   self._values = { }
+   for i = 1, asize/type_size do
+      self._values[i] = v[i-1]
+   end
+   
+   ffi.C.free(adata)
 end
+
+function AdiosAttr:read() return self._values end
 
 -- Reader ----------------------------------------------------------------------
 --
@@ -130,13 +140,13 @@ function Reader:init(fName, comm)
    self.varList = { }
    for i = 0, self._fd.nvars-1 do
       local nm = ffi.string(self._fd.var_namelist[i])
-      self.varList[nm] = AdiosVar(self._fd, nm, Adios.inq_var_byid(self._fd, i))
+      self.varList[nm] = AdiosVar(self._fd, nm, i)
    end
 
    self.attrList =  { }
    for i = 0, self._fd.nattrs-1 do
       local nm = ffi.string(self._fd.attr_namelist[i])
-      self.attrList[nm] = AdiosAttr(self._fd, nm)
+      self.attrList[nm] = AdiosAttr(self._fd, nm, i)
    end
 end
 
@@ -144,13 +154,18 @@ function Reader:hasVar(nm)
    if self.varList[nm] then return true end
    return false
 end
-
 function Reader:getVar(nm)
    return self.varList[nm]
 end
 
-function Reader:close()
-   Adios.read_close(self._fd)
+function Reader:hasAttr(nm)
+   if self.attrList[nm] then return true end
+   return false
 end
+function Reader:getAttr(nm)
+   return self.attrList[nm]
+end
+
+function Reader:close() Adios.read_close(self._fd) end
 
 return { Reader = Reader }

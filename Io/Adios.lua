@@ -153,4 +153,13 @@ function _M.perform_reads(fp, blocking)
    return ffi.C.adios_perform_reads(fp, blocking)
 end
 
+-- adios_get_attr_byid
+function _M.get_attr_byid(fp, attrid)
+   local typePtr = ffi.new("int[1]")
+   local sizePtr = ffi.new("int[1]")
+   local voidPtr = ffi.new(typeof("void *[1]"))
+   ffi.C.adios_get_attr_byid(fp, attrid, typePtr, sizePtr, voidPtr)
+   return typePtr[0], sizePtr[0], voidPtr[0]
+end
+
 return _M
