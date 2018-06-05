@@ -294,6 +294,9 @@ function MaxwellField:write(tm)
    end
 end
 
+function MaxwellField:writeRestart(tm)
+end
+
 function MaxwellField:rkStepperFields()
    return self.em
 end

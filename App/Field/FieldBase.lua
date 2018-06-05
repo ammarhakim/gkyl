@@ -32,6 +32,7 @@ function NoField:createSolver() end
 function NoField:createDiagnostics() end
 function NoField:initField() end
 function NoField:write(tm) end
+function NoField:writeRestart(tm) end
 function NoField:rkStepperFields() return {} end
 function NoField:forwardEuler(tCurr, dt, momIn, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end

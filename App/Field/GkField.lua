@@ -305,6 +305,9 @@ function GkField:write(tm)
    end
 end
 
+function GkField:writeRestart(tm)
+end
+
 -- not needed for GK
 function GkField:accumulateCurrent(dt, current, em)
 end
