@@ -22,6 +22,7 @@ local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
 local VoronovIonization = require "Updater.VoronovIonization"
 local WavePropagation = require "Updater.WavePropagation"
@@ -42,6 +43,7 @@ return {
    HyperDisCont = HyperDisCont,
    MaxwellianOnBasis = MaxwellianOnBasis,
    ProjectOnBasis = ProjectOnBasis,
+   SelfPrimMoments = SelfPrimMoments,
    SolidSurface = SolidSurface,
    VoronovIonization = VoronovIonization,
    WavePropagation = WavePropagation,

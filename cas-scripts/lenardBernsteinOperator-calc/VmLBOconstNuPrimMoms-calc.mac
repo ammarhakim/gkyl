@@ -1,0 +1,210 @@
+/* Generate kernels for the updater that computes the primitive
+   moments u and vt^2 given the moments and the distribution function.
+   Weak division, multiplication and dot products are employed. */
+
+/* At the moment we obtain u through weak division of m1 by m0. This
+   does not conserve momentum in a finite velocity grid. We include
+   the contribution coming from the finite velocity grid in the
+   calculation of vtSq. */
+
+/* To avoid the expensive symbolic matrix inversion in
+   Maxima we use Eigen to solve the system. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+writeCExprsB(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", ssubst(")","]",ssubst("(","[",string(lhs[i]))), expr[i])
+  )
+)$
+
+writeEVExprs(lhs, rhs) := block([expr],
+  len   : length(rhs),
+  digs  : slength(string(len)),
+/*  start : len+(len-1)+5+len*digs+6*(len-1)+digs*(len-1)+1, */
+  start : len*2+(len-1)+4+5*(len-1)+1,
+  for k : 1 thru (len-1) do (
+    start : start+slength(string(k))
+  ),
+  printf(fh, "    ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+)$
+
+writeEVExprsVtSq(lhs, rhs) := block([expr],
+  len   : length(rhs),
+  digs  : slength(string(len)),
+/*  start : len+(len-1)+5+len*digs+6*(len-1)+digs*(len-1)+1, */
+  start : len*12+(len-1)+2*len+1,
+  for k : 1 thru len do (
+    start : start+slength(string(k))
+  ),
+  printf(fh, "  ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+)$
+
+writeEVExprsS(lhs, rhs) := block([expr],
+  len   : length(rhs),
+  digs  : slength(string(len)),
+/*  start : len+(len-1)+5+len*digs+6*(len-1)+digs*(len-1)+1, */
+  start : len+(len-1)+2*len+1,
+  for k : 1 thru len do (
+    start : start+slength(string(k-1))
+  ),
+  printf(fh, "  ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+)$
+
+calcVmLBOPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    bP : basisP[polyOrder],
+    NP  : length(bP),
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *m0, const double *m1, const double *m2, const double *fvmin, const double *fvmax, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // m0,m1,m2:     moments of the distribution function. ~%"),
+    printf(fh, "  // fvmax, fvmin: distribution function at the velocity boundaries. ~%"),
+    printf(fh, "  // u:            velocity. ~%"),
+    printf(fh, "  // vtSq:         squared thermal speed, sqrt(T/m). ~%"),
+    printf(fh, " ~%"),
+
+    /*........... First compute u through weak division of M1 by M0 .............*/
+    /* Expand moments in configuration space basis. */
+    m0_e : doExpand1(m0, bC),
+    m1_e : doExpand1(m1, bC),
+    m2_e : doExpand1(m2, bC),
+    /* Array of expansion coefficients. */
+    m0_c : makelist(m0[i],i,0,NC-1),
+    m1_c : makelist(m1[i],i,0,NC-1),
+    m2_c : makelist(m2[i],i,0,NC-1),
+    /* Expand u function and create a list of expansion coefficients. */
+    u_e : doExpand1(u,bC),
+    u_c : makelist(u[i],i,0,NC-1),
+
+    eq : calcInnerProdList(varsC,u_e,bC,m0_e),
+
+    E : fullratsimp(coefmatrix(eq,u_c)),
+    /* Flatten E for WriteCExprsB. */
+    Eflat : list_matrix_entries(E),
+
+    /* Make a list of the LHS matrix assignments. */
+    /* Note: Eigen defaults to Column-major order. */
+    Ef [i,j] := AEM[i,j],
+    Elhs : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)),
+
+    printf(fh, "  // Declare Eigen matrix and vectors for weak division. ~%"),
+    printf(fh, "  Eigen::MatrixXd AEM(~a,~a); ~%", NC, NC),
+    printf(fh, "  Eigen::VectorXd bEV(~a); ~%", NC),
+    printf(fh, "  Eigen::VectorXd xEV(~a); ~%", NC),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // ....... Compute u through weak division m1/m0 .......... // ~%"),
+    writeCExprsB(Elhs,Eflat),
+    printf(fh, " ~%"),
+
+    printf(fh, "  for(unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+
+    printf(fh, "    unsigned short int b0 = ~a*vd; ~%", NC),
+/*    printf(fh, "    Eigen::Map<const VectorXd> bEV(B+0,~a); ~%", NC), */
+/*  Something like this is only needed if the bEV vector is pre-initialized during init. */
+/*    printf(fh, "    ::new (&bEV) Eigen::Map<const VectorXd>(B,~a); ~%", NC), */
+    writeEVExprs(bEV,makelist(m1[i],i,b0+0,b0+NC-1)),
+    printf(fh, " ~%"),
+
+    printf(fh, "    xEV = AEM.colPivHouseholderQr().solve(bEV); ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "    Eigen::Map<VectorXd>(u+vd*~a,~a,1) = xEV; ~%", NC, NC),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*........... Now obtain the kinetic energy density through weak dot product .............*/
+    /* To allow for multiple components change the cofficient indices in Ae and Be. */
+    u_e  : psubst(makelist(u[i]=u[a0+i],i,0,NC-1),u_e),
+    m1_e : psubst(makelist(m1[i]=m1[a0+i],i,0,NC-1),m1_e),
+
+    prod : calcInnerProdList(varsC,u_e,bC,m1_e),
+
+    printf(fh, "  // ....... Get kinetic energy density via weak dot product u.m1 .......... // ~%"),
+    printf(fh, "  double kinEnergyDens[~a]; ~%", NC),
+
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a; ~%",NC*vd),
+    expr : float(expand(prod)),
+    for i : 1 thru NC do (
+      printf(fh, "    ~a += ~a; ~%", kinEnergyDens[i-1], expr[i])
+    ),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*........... Get the internal energy density  .............*/
+    printf(fh, "  // ....... Thermal energy density: M2-u.M1 .......... // ~%"),
+    printf(fh, "  double thEnergyDens[~a]; ~%", NC),
+
+    printf(fh, "  for (unsigned short int i=0; i<~a; i++) ~%", NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    thEnergyDens[i] = m2[i] - kinEnergyDens[i]; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*........... M0 shifted by correction due to finite velocity grid .............*/
+    printf(fh, "  // ....... M0-(v*f)|^(+vmax)_(-vmax) .......... // ~%"),
+    printf(fh, "  double m0c[~a]; ~%", NC),
+
+    fvmin_e : doExpand1(fvmin,bP),
+    fvmax_e : doExpand1(fvmax,bP),
+
+    fvmin_c : calcInnerProdList(varsC,1,bC,subst(vx=-1,vx*fvmin_e)),
+    fvmax_c : calcInnerProdList(varsC,1,bC,subst(vx=1,vx*fvmax_e)),
+
+    writeCExprs1(m0c,m0_c-(fvmax_c-fvmin_c)),
+    printf(fh, " ~%"), 
+
+    /*........... Calculate vtSq u through weak division of thEnergyDens by m0c .............*/
+    /* Expand moments in configuration space basis. */
+    m0c_e : doExpand1(m0c, bC),
+    thEnergyDens_e : doExpand1(thEnergyDens, bC),
+    /* Array of expansion coefficients. */
+    m0c_c : makelist(m0c[i],i,0,NC-1),
+    thEnergyDens_c : makelist(thEnergyDens[i],i,0,NC-1),
+    /* Expand u function and create a list of expansion coefficients. */
+    vtSq_e : doExpand1(vtSq,bC),
+    vtSq_c : makelist(vtSq[i],i,0,NC-1),
+
+    eq : calcInnerProdList(varsC,vtSq_e,bC,m0c_e),
+
+    E : fullratsimp(coefmatrix(eq,vtSq_c)),
+    /* Flatten E for WriteCExprsB. */
+    Eflat : list_matrix_entries(E),
+
+    /* Make a list of the LHS matrix assignments. */
+    /* Note: Eigen defaults to Column-major order. */
+    Ef [i,j] := AEM[i,j],
+    Elhs : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)),
+
+    printf(fh, "  // ....... Compute vtSq through weak division thEnergyDens/m0c .......... // ~%"),
+
+    writeCExprsB(Elhs,Eflat),
+    printf(fh, " ~%"),
+
+    writeEVExprsVtSq(bEV,makelist(thEnergyDens[i],i,0,NC-1)),
+    printf(fh, " ~%"),
+
+    printf(fh, "  xEV = AEM.colPivHouseholderQr().solve(bEV); ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  Eigen::Map<VectorXd>(vtSq,~a,1) = xEV; ~%", NC),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
