@@ -38,6 +38,8 @@ function NoField:applyBc(tCurr, dt, emIn) end
 function NoField:totalSolverTime() return 0.0 end
 function NoField:totalBcTime() return 0.0 end
 function NoField:energyCalcTime() return 0.0 end
+function NoField:copyRk() end
+function NoField:combineRk() end
 
 return {FieldBase = FieldBase, FuncFieldBase = FuncFieldBase, NoField = NoField}
 
