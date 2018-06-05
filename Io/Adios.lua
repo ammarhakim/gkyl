@@ -14,7 +14,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 require "Io._AdiosCdef" -- load FFI binding
-require "Io._AdiosReadCdef" -- load FFI binding
+require "Io._AdiosReadCdef" -- load FFI binding for read API
 
 local _M = {}
 
@@ -154,9 +154,8 @@ function _M.perform_reads(fp, blocking)
 end
 
 -- adios_get_attr_byid
-function _M.get_attr_byid(fp, attrid)
-   local typePtr = ffi.new("int[1]")
-   local sizePtr = ffi.new("int[1]")
+function _M.get_attr_byid(fp, attrid) --> type, size, void* to data
+   local typePtr, sizePtr = ffi.new("int[1]"), ffi.new("int[1]")
    local voidPtr = ffi.new(typeof("void *[1]"))
    ffi.C.adios_get_attr_byid(fp, attrid, typePtr, sizePtr, voidPtr)
    return typePtr[0], sizePtr[0], voidPtr[0]

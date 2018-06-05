@@ -55,6 +55,21 @@ function test_2r()
    local tmStamp, frNum = dynVec:read("test_1.bp")
    assert_equal(1.5, tmStamp, "Testing time-stamp")
    assert_equal(1, frNum, "Testing frame")
+
+   -- check contents
+   assert_equal(5, dynVec:size(), "Checking size")
+
+   local tmMesh = dynVec:timeMesh()
+   for i = 1, dynVec:size() do
+      assert_equal(0.1*i, tmMesh[i], "Checking time-mesh")
+   end
+
+   local dynData = dynVec:data()
+   for i = 1, dynVec:size() do
+      local v = dynData[i]
+      assert_equal(2.5*i^2, v[1], "Checking contents[1]")
+      assert_equal(2.5*i^2+0.5, v[2], "Checking contents[2]")
+   end
 end
 
 function test_3()
