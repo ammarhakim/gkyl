@@ -121,16 +121,21 @@ function test_4()
       return v
    end
 
-   p = P()
+   local p = P()
    assert_equal(4, p:say(4), "Checking no-ctor case")
    assert_equal(true, P.is(p), "Checking type")
    assert_equal(false, P.is(10), "Checking type")
+end
+
+function test_5()
+   local P = Proto()
 end
 
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -66,6 +66,7 @@ local function Proto(...)
    pr.is = function(x)
       return type(x) == 'table' and x.isa and x:isa(pr)
    end
+
    setmetatable(pr, protometa)
    return pr
 end

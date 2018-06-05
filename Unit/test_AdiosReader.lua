@@ -8,6 +8,7 @@
 local AdiosReader = require "Io.AdiosReader"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
+local Range = require "Range"
 local Unit = require "Unit"
 
 local ffi  = require "ffi"
@@ -26,7 +27,7 @@ function log(msg)
 end
 
 function test_1(comm)
-   local reader = AdiosReader.Reader("t2-two-stream_elc_10.bp")
+   local reader = AdiosReader.Reader("t2-two-stream_elc_10.bp", comm)
 
    -- check if expected variables are present in file
    assert_equal(true, reader:hasVar("time"), "Checking for 'time'")
@@ -37,7 +38,7 @@ function test_1(comm)
    local time = reader:getVar("time")
    assert_equal("time", time.name, "Checking time ")
    assert_equal(50.0, time:read(), "Checking time-value")
-   assert_equal("double", time.type, "Checking time-type")   
+   assert_equal("double", time.type, "Checking time-type")
 
    local frame = reader:getVar("frame")
    assert_equal("frame", frame.name, "Checking frame ")
@@ -47,6 +48,29 @@ function test_1(comm)
    local field = reader:getVar("CartGridField")
    assert_equal("CartGridField", field.name, "Checking name")
    local data = field:read()
+
+   reader:close()
+end
+
+function test_2(comm)
+   local reader = AdiosReader.Reader("test_DynVector_test_1.bp", comm)
+
+   assert_equal(true, reader:hasVar("time"), "Checking for 'time'")
+   assert_equal(true, reader:hasVar("frame"), "Checking for 'frame'")
+
+   local timeMesh = reader:getVar("TimeMesh"):read()
+   local dataVar = reader:getVar("Data")
+   local data = dataVar:read()
+
+   local dynRange = Range.Range({1, 1}, {dataVar.shape[1], dataVar.shape[2]})
+   local indexer = Range.makeRowMajorIndexer(dynRange)
+
+   for i = 1, dynRange:shape(1) do
+      assert_equal(2.5*i^2,  data[indexer(i,1)], "Testing read data")
+      assert_equal(2.5*i^2+0.5,  data[indexer(i,2)], "Testing read data")
+   end
+
+   reader:close()
 end
 
 function allReduceOneInt(localv)
@@ -58,6 +82,7 @@ end
 
 -- Run tests
 test_1(Mpi.COMM_WORLD)
+test_2(Mpi.COMM_WORLD)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)
