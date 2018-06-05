@@ -463,6 +463,20 @@ local function buildApplication(self, tbl)
       local logTrigger1p = LinearTrigger(tStart, tEnd, 100)
       local tenth = 0
 
+      local tmSimStart = Time.clock()      
+
+      -- triggers for restarts
+      local restartTrigger = LinearTrigger(tStart, tEnd, math.floor(1/restartFrameEvery))
+      local nRestart = 0
+      -- function to check if restart frame should happen
+      local function ifWriteRestart(t)
+	 if restartTrigger(t) then
+	    if nRestart > 1 then return true end
+	 end
+	 nRestart = nRestart+1
+	 return false
+      end
+
       local p1c = 0
       -- for writing out log messages
       local function writeLogMessage(tCurr, myDt)
@@ -477,7 +491,6 @@ local function buildApplication(self, tbl)
 	 end
       end
 
-      local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
@@ -487,6 +500,10 @@ local function buildApplication(self, tbl)
 	 if status then
 	    writeLogMessage(tCurr, myDt)
 	    writeData(tCurr+myDt)
+	    if ifWriteRestart(tCurr+myDt) then
+	       writeRestart(tCurr+myDt)
+	    end
+	    
 	    tCurr = tCurr + myDt
 	    myDt = math.min(dtSuggested, maxDt)
 	    step = step + 1
