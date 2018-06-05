@@ -56,16 +56,20 @@ local function getValue(ty, data)
    return v[0]
 end
 
+-- AdiosVar --------------------------------------------------------------------
+--
 -- Object to represent a variable in an ADIOS file (used internally
 -- and can not be instantiated by the user)
+--------------------------------------------------------------------------------
+
 local AdiosVar = Proto()
 
 function AdiosVar:init(fd, vName, vObj)
    self._fd, self.name, self._obj = fd, vName, vObj
-   -- store shape of object and compute its size
+
    self.shape, self.size = { }, 1
    for j = 0, vObj.ndim-1 do
-      self.shape[j+1] = vObj.dims[j]
+      self.shape[j+1] = tonumber(vObj.dims[j])
       self.size = self.size*vObj.dims[j]
    end
    local t = getTypeStringMap(self._obj.type)
@@ -85,7 +89,7 @@ function AdiosVar:read()
    local data = allocator(tonumber(self.size))
    
    -- create a bounding box for region of grid to read
-   local start, count = Lin.UIntVec64(ndim), Lin.UIntVec64(ndim)
+   local start, count = Lin.UInt64Vec(ndim), Lin.UInt64Vec(ndim)
    for d = 1, ndim do
       start[d] = 0
       count[d] = self._obj.dims[d-1] -- dims is 0-indexed
@@ -98,6 +102,18 @@ function AdiosVar:read()
    return data
 end
 
+-- AdiosAttr -------------------------------------------------------------------
+--
+-- Object to represent an attribute in an ADIOS file (used internally
+-- and can not be instantiated by the user)
+--------------------------------------------------------------------------------
+
+local AdiosAttr = Proto()
+
+function AdiosAttr:init(fd, aName)
+   self._fd, self.name = fd, aName
+end
+
 -- Reader ----------------------------------------------------------------------
 --
 -- Reader for ADIOS BP file
@@ -107,16 +123,20 @@ local Reader = Proto()
 function Reader:init(fName, comm)
    if not comm then comm = Mpi.COMM_WORLD end
 
-   self.fName = fName
-   self.fd = Adios.read_open_file(fName, comm)
-   assert(not (self.fd == nil), string.format(
+   self._fd = Adios.read_open_file(fName, comm)
+   assert(not (self._fd == nil), string.format(
 	     "Unable to open ADIOS file %s for reading", fName))
 
    self.varList = { }
-   -- read list of variables in file
-   for i = 0, self.fd.nvars-1 do
-      local nm = ffi.string(self.fd.var_namelist[i])
-      self.varList[nm] = AdiosVar(self.fd, nm, Adios.inq_var_byid(self.fd, i))
+   for i = 0, self._fd.nvars-1 do
+      local nm = ffi.string(self._fd.var_namelist[i])
+      self.varList[nm] = AdiosVar(self._fd, nm, Adios.inq_var_byid(self._fd, i))
+   end
+
+   self.attrList =  { }
+   for i = 0, self._fd.nattrs-1 do
+      local nm = ffi.string(self._fd.attr_namelist[i])
+      self.attrList[nm] = AdiosAttr(self._fd, nm)
    end
 end
 
@@ -127,6 +147,10 @@ end
 
 function Reader:getVar(nm)
    return self.varList[nm]
+end
+
+function Reader:close()
+   Adios.read_close(self._fd)
 end
 
 return { Reader = Reader }
