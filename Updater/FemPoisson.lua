@@ -21,7 +21,8 @@ local FemPoisson = Proto(UpdaterBase)
 function FemPoisson:init(tbl)
    FemPoisson.super.init(self, tbl)
 
-   self.ndim = tbl.onGrid:ndim()
+   self.grid = tbl.onGrid
+   self.ndim = self.grid:ndim()
    self.basis = tbl.basis
    local ndim = self.ndim
    self.laplacianWeight = tbl.laplacianWeight
@@ -31,7 +32,7 @@ function FemPoisson:init(tbl)
    self.slvr = nil
    if ndim == 1 then 
       self.slvr = FemParPoisson {
-        onGrid = tbl.onGrid,
+        onGrid = self.grid,
         basis = self.basis,
         bcBack = tbl.bcBack,
         bcFront = tbl.bcFront,
@@ -41,21 +42,28 @@ function FemPoisson:init(tbl)
       }
       -- set up constant dummy field
       self.unitWeight = DataStruct.Field {
-           onGrid = tbl.onGrid,
+           onGrid = self.grid,
            numComponents = self.basis:numBasis(),
            ghost = {1, 1},
       }
       local initUnit = ProjectOnBasis {
-         onGrid = tbl.onGrid,
+         onGrid = self.grid,
          basis = self.basis,
          evaluate = function (t,xn)
                        return 1.0
                     end
       }
       initUnit:advance(0.,0.,{},{self.unitWeight})
+      -- set up weak division operator for special case when solve is algebraic
+      self.weakDivide = Updater.CartFieldBinOp {
+         onGrid = self.grid,
+         weakBasis = self.basis,
+         operation = "Divide",
+         onGhosts = true,
+      }
    elseif ndim == 2 then
       self.slvr = FemPerpPoisson {
-        onGrid = tbl.onGrid,
+        onGrid = self.grid,
         basis = self.basis,
         bcLeft = tbl.bcLeft,
         bcRight = tbl.bcRight,
@@ -67,7 +75,7 @@ function FemPoisson:init(tbl)
       }
    elseif ndim == 3 then
       self.slvr = FemPerpPoisson {
-        onGrid = tbl.onGrid,
+        onGrid = self.grid,
         basis = self.basis,
         bcLeft = tbl.bcLeft,
         bcRight = tbl.bcRight,
@@ -102,27 +110,11 @@ function FemPoisson:_advance(tCurr, dt, inFld, outFld)
          end
          return true, GKYL_MAX_DOUBLE
       end
-      local stiffWeight = inFld[2] or self.unitWeight
       local massWeight = inFld[3] or self.unitWeight
-      stiffWeight:scale(self.laplacianWeight)
       massWeight:scale(self.modifierConstant)
-      local localRange = src:localExtRange()
-      local srcIndexer = src:genIndexer()
-      local srcPtr = src:get(1)
-      local massWeightIndexer = massWeight:genIndexer()
-      local massWeightPtr = massWeight:get(1)
-      local solIndexer = sol:genIndexer()
-      local solPtr = sol:get(1)
- 
-      -- calculate sol := src / massWeight (via weak division)
-      for idx in localRange:colMajorIter() do
-         src:fill(srcIndexer(idx), srcPtr)
-         massWeight:fill(massWeightIndexer(idx), massWeightPtr)
-         sol:fill(solIndexer(idx), solPtr)
 
-         solPtr:data()[1] = (math.sqrt(2)*srcPtr:data()[1]*massWeightPtr:data()[1]-math.sqrt(2)*srcPtr:data()[0]*massWeightPtr:data()[0])/(massWeightPtr:data()[1]^2-massWeightPtr:data()[0]^2)
-         solPtr:data()[2] = (math.sqrt(2)*srcPtr:data()[0]*massWeightPtr:data()[1]-math.sqrt(2)*massWeightPtr:data()[0]*srcPtr:data()[1])/(massWeightPtr:data()[1]^2-massWeightPtr:data()[0]^2)
-      end
+      self.weakDivide:advance(0, 0, {massWeight, src}, {sol})
+
       return true, GKYL_MAX_DOUBLE
    else
       return self.slvr:advance(tCurr, dt, inFld, outFld)
