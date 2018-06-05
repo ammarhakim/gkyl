@@ -43,11 +43,30 @@ function test_1(comm)
    local frame = reader:getVar("frame")
    assert_equal("frame", frame.name, "Checking frame ")
    assert_equal(10, frame:read(), "Checking frame-value")
-   assert_equal("integer", frame.type, "Checking frame-type")   
+   assert_equal("integer", frame.type, "Checking frame-type")
 
    local field = reader:getVar("CartGridField")
    assert_equal("CartGridField", field.name, "Checking name")
    local data = field:read()
+
+   -- check if expected attributes are present in file
+   assert_equal(true, reader:hasAttr("numCells"), "Num cells")
+   assert_equal(true, reader:hasAttr("lowerBounds"), "lower bounds")
+   assert_equal(true, reader:hasAttr("upperBounds"), "upper bounds")
+   assert_equal(false, reader:hasAttr("Nothing"), "checking 'Nothing'")
+
+   -- read attributes
+   local numCells = reader:getAttr("numCells"):read()
+   assert_equal(64, numCells[1], "Number of cells in X")
+   assert_equal(32, numCells[2], "Number of cells in y")
+
+   local lowerBounds = reader:getAttr("lowerBounds"):read()
+   assert_equal(-2*math.pi, lowerBounds[1], "Lower bound in X")
+   assert_equal(-6, lowerBounds[2], "Lower bound in y")
+
+   local upperBounds = reader:getAttr("upperBounds"):read()
+   assert_equal(2*math.pi, upperBounds[1], "Upper bound in X")
+   assert_equal(6, upperBounds[2], "Upper bound in y")
 
    reader:close()
 end
