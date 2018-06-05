@@ -9,6 +9,8 @@ def build(bld):
     bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
 
+    primMomentsCalcData/VmLBOconstNuPrimMomentsSer1x1v.cpp
+
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
     binOpCalcData/CartFieldBinOpSer3x.cpp
@@ -75,4 +77,4 @@ def build(bld):
 
 
     """,
-    includes = '. binOpCalcData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+    includes = '. primMomentsCalcData binOpCalcData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')

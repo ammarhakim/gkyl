@@ -2716,13 +2716,13 @@ end
 -- run tests
 local t1 = os.clock()
 -- binOp1x_conv(1)
-binOp1x_conv(2)
+-- binOp1x_conv(2)
 -- binOp2x_conv(1)
 -- binOp2x_conv(2)
 -- binOp3x_conv(1)  -- This one takes a little time.
 -- binOp3x_conv(2)  -- This one takes more than a little time.
 -- binOp1x1v_conv(1)
--- binOp1x1v_conv(2)
+binOp1x1v_conv(4)
 -- binOp1x2v_conv(1)
 -- binOp1x2v_conv(2)
 -- binOp2x2v_conv(1)
