@@ -13,6 +13,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Gkyl libraries
 local Adios = require "Io.Adios"
+local AdiosReader = require "Io.AdiosReader"
 local Alloc = require "Lib.Alloc"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
@@ -81,6 +82,7 @@ function DynVector:lastTime() return self._timeMesh:last() end
 function DynVector:lastData() return self._timeMesh:last(), self._data:last() end
 function DynVector:timeMesh() return self._timeMesh end
 function DynVector:data() return self._data end
+function DynVector:size() return self._data:size() end
 
 function DynVector:appendData(t, v)
    self._timeMesh:push(t)
@@ -106,6 +108,17 @@ function DynVector:_copy_from_dynvector(buff)
       local v = self._data[i]
       for n = 1, self._numComponents do
 	 buff[c] = v[n]
+	 c = c+1
+      end
+   end
+end
+
+function DynVector:_copy_to_dynvector(buff)
+   local c = 1
+   for i = 1, self._data:size() do
+      local v = self._data[i]
+      for n = 1, self._numComponents do
+	 v[n] = buff[c]
 	 c = c+1
       end
    end
@@ -168,52 +181,32 @@ function DynVector:write(outNm, tmStamp, frNum)
 end
 
 -- returns time-stamp and frame number
-function DynVector:read(outNm)
+function DynVector:read(fName)
    local comm = self._ioComm
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
-   if rank ~= 0 then  -- only run on rank 0 ...
-      self:clear() -- ... but clear data on all ranks
-      return
+
+   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- concatenate prefix
+   local reader = AdiosReader.Reader(fullNm, comm[0])
+
+   -- read time and frame info
+   local tm = reader:getVar("time"):read()
+   local frame = reader:getVar("frame"):read()
+
+   -- read time-mesh and data
+   local timeMesh = reader:getVar("TimeMesh"):read()
+   local data = reader:getVar("Data"):read()
+
+   -- copy over time-mesh and data
+   local nVal = data:size()/self._numComponents   
+   self._timeMesh:expand(nVal)
+   for i = 1, self._timeMesh:size() do
+      self._timeMesh[i] = timeMesh[i]
    end
 
-   -- setup ADIOS for IO
-   Adios.init_noxml(comm[0])
-
-   -- create group and set I/O method
-   local grpId = Adios.declare_group("DynVector", "", Adios.flag_no)
-   Adios.select_method(grpId, "MPI", "", "")
+   self._data:expand(nVal)   
+   self:_copy_to_dynvector(data)
    
-   -- ADIOS expects CSV string to specify data shape
-   local localTmSz = toCSV( {self._data:size()} )
-   local localDatSz = toCSV( {self._data:size(), self._numComponents} )
-   
-   -- define data to write
-   Adios.define_var(
-      grpId, "frame", "", Adios.integer, "", "", "")
-   Adios.define_var(
-      grpId, "time", "", Adios.double, "", "", "")
-   Adios.define_var(
-      grpId, "TimeMesh", "", Adios.double, localTmSz, "", "")
-   Adios.define_var(
-      grpId, "Data", "", Adios.double, localDatSz, "", "")
-
-   local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
-
-   -- open file to write out group
-   local fd = Adios.open("DynVector", fullNm, "r", comm[0])
-
-   -- write data
-   local tmStampBuff = new("double[1]")
-   Adios.read(fd, "time", tmStampBuff, sizeof("double"))
-
-   local frNumBuff = new("int[1]")
-   Adios.read(fd, "frame", frNumBuff, sizeof("int"))
-   
-   Adios.close(fd)
-   
-   Adios.finalize(rank)
-
-   return tmStampBuff[0], frNumBuff[0]
+   return tm, frame
 end
 
 return { DynVector = DynVector }

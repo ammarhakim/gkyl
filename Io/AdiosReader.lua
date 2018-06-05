@@ -75,23 +75,24 @@ end
 -- stored as a flat array otherwise.
 function AdiosVar:read()
    local tmap = getTypeStringMap(self._obj.type)
-   if self._obj.ndim == 0 then
+
+   local ndim = self._obj.ndim
+   if ndim == 0 then
       return ffi.cast(tmap[2], self._obj.value)[0]
    end
    
-   local ndim = self._obj.ndim
    local allocator = tmap[3]
    local data = allocator(self.size)
    
-   -- create bounding box for region to read (ADIOS expects input to
-   -- be const uint64_t* objects, hence vector types below)
+   -- (ADIOS expects input to be const uint64_t* objects, hence vector
+   -- types below)
    local start, count = Lin.UInt64Vec(ndim), Lin.UInt64Vec(ndim)
    for d = 1, ndim do
       start[d] = 0
       count[d] = self._obj.dims[d-1] -- dims is 0-indexed
    end
-   -- perform read
    local sel = Adios.selection_boundingbox(ndim, start, count)
+
    Adios.schedule_read_byid(self._fd, sel, self._obj.varid, 0, 1, data)
    Adios.perform_reads(self._fd, 1)
 
