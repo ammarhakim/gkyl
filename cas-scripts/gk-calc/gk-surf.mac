@@ -27,7 +27,7 @@ fgrad(f):= ev(express(grad(f)),diff)*derivfacsC;
 
 gkPB(f,g):=1/m_*Bstar_by_Bmag_expd.(fgrad(f)*dfac_v*diff(g,vpar)-fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
 
-calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, pmax,bvarslist) := block([],
+calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, pmax,emflag, bvarslist) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
@@ -75,7 +75,8 @@ for i : 1 thru pmax do (
   /* remove volume contribution from surface variable, which is not integrated */
   surfac : fullratsimp(volfac*dfacSurf),
 
-  printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_") ),
+  if emflag then printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_"))
+  else printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_")),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
 
   for dir : 1 thru cdim+vdim do (
@@ -96,8 +97,6 @@ for i : 1 thru pmax do (
   BmagInv_expd:subst(Bignorevars,doExpand1(BmagInv,bC)),
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
-
-  emflag : false,
 
   if emflag then (
     /* expand Apar */
@@ -149,6 +148,7 @@ for i : 1 thru pmax do (
   /* calculate phase space velocity alpha in direction of surfVar */
   /* we assume alpha.n is continuous across boundary, although H may not be */
   alpha_expd : gkPB(wSurf + surfVar/dfacSurf, H_expd),
+  if surfVar = vpar then alpha_expd : alpha_expd - q_/m_*dAdt_expd,
   /* evaluate at boundary from interior (surfVar=-1) */
   alpha_expd : subst(surfVar=-1, alpha_expd),
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
@@ -196,13 +196,13 @@ for i : 1 thru pmax do (
   printf(fh, "} ~%")
 ));
 
-calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,bvarslist) := block([],
+calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := block([],
   lastdir : cdim+vdim-1,
   if vdim=1 then lastdir: cdim+vdim,
-  for dir : 1 thru lastdir do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax,bvarslist) )
+  for dir : 1 thru lastdir do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) )
 )$
 
-for c : 1 thru 3 do (
+for c : 1 thru 1 do (
 v:2,
 pmax:1,
 if c=1 then (v:1, pmax:2),
@@ -210,11 +210,13 @@ fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 if c=1 then bvarslist : [[0], [1]],
-if c=2 then bvarslist : [[0], [1], [2], [1,2]],
-if c=3 then bvarslist : [[0], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]],
+if c=2 then bvarslist : [[0], [1]/*, [2], [1,2]*/],
+if c=3 then bvarslist : [[0], [1]/*, [2], [3], [1,2], [1,3], [2,3], [1,2,3]*/],
 for b : 1 thru length(bvarslist) do (
 funcName : sconcat("GyrokineticSurf", c, "x", v, "v", "Ser"),
-calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, bvarslist[b])
+calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b]),
+funcName : sconcat("EmGyrokineticSurf", c, "x", v, "v", "Ser"),
+calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
 ),
 close(fh)
 );

@@ -71,6 +71,9 @@ function GkField:fullInit(appTbl)
    -- for ndim=1 non-adiabatic only
    self.kperp2 = tbl.kperp2
 
+   -- allow user to specify polarization weight. will be calculated automatically if not specified
+   self.polarizationWeight = tbl.polarizationWeight
+
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
       self.dApardtInitFunc = tbl.dApardtInit
@@ -196,13 +199,15 @@ function GkField:createSolver(species)
 
    -- get adiabatic species info and calculate species-dependent 
    -- weight on polarization term == sum_s m_s n_s / B^2
-   self.polarizationWeight = 0.0
-   for nm, s in pairs(species) do
-      if Species.AdiabaticSpecies.is(s) then
-         self.adiabatic = true
-         self.adiabSpec = s
-      elseif Species.GkSpecies.is(s) then
-         self.polarizationWeight = self.polarizationWeight + s:polarizationWeight()
+   if not self.polarizationWeight then 
+      self.polarizationWeight = 0.0
+      for nm, s in pairs(species) do
+         if Species.AdiabaticSpecies.is(s) then
+            self.adiabatic = true
+            self.adiabSpec = s
+         elseif Species.GkSpecies.is(s) then
+            self.polarizationWeight = self.polarizationWeight + s:polarizationWeight()
+         end
       end
    end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")

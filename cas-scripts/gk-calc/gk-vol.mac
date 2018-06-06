@@ -156,7 +156,7 @@ for i : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
-calcdAdtVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
+calcGKstep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
@@ -210,15 +210,15 @@ fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 if c=1 then bvarslist : [[0], [1]],
-if c=2 then bvarslist : [[0], [1], [2], [1,2]],
-if c=3 then bvarslist : [[0], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]],
+if c=2 then bvarslist : [[0], [1]/*, [2], [1,2]*/],
+if c=3 then bvarslist : [[0], [1]/*, [2], [3], [1,2], [1,3], [2,3], [1,2,3]*/],
 for b : 1 thru length(bvarslist) do (
 funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b]),
 funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
 ),
-funcName : sconcat("dAdtVol", c, "x", v, "v", "Ser"),
-calcdAdtVolUpdater(fh, funcName, c, v, "Ser", pmax),
+funcName : sconcat("EmGyrokineticStep2Vol", c, "x", v, "v", "Ser"),
+calcGKstep2VolUpdater(fh, funcName, c, v, "Ser", pmax),
 close(fh)
 )$
