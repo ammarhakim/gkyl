@@ -14,6 +14,7 @@ local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local DataStruct = require "DataStruct"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local CartFieldBinOp = require "Updater.CartFieldBinOp"
 
 -- FEM Poisson solver updater object
 local FemPoisson = Proto(UpdaterBase)
@@ -55,7 +56,7 @@ function FemPoisson:init(tbl)
       }
       initUnit:advance(0.,0.,{},{self.unitWeight})
       -- set up weak division operator for special case when solve is algebraic
-      self.weakDivide = Updater.CartFieldBinOp {
+      self.weakDivide = CartFieldBinOp {
          onGrid = self.grid,
          weakBasis = self.basis,
          operation = "Divide",
@@ -98,7 +99,6 @@ end
 function FemPoisson:_advance(tCurr, dt, inFld, outFld) 
    -- special case where solve is just algebraic
    if self.ndim == 1 and not self.zContinuous and self.laplacianWeight == 0.0 then
-      assert(self.basis:polyOrder() == 1, "1D pseudo-solve only works for p=1 for now")
       local src = inFld[1]
       local sol = outFld[1]
       if inFld[2] == nil and inFld[3] == nil then 

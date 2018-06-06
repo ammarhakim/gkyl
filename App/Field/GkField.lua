@@ -71,7 +71,6 @@ function GkField:fullInit(appTbl)
    -- for ndim=1 non-adiabatic only
    self.kperp2 = tbl.kperp2
 
-   
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
       self.dApardtInitFunc = tbl.dApardtInit
@@ -85,7 +84,7 @@ function GkField:hasEB() return true, self.isElectromagnetic end
 function GkField:setCfl() end
 function GkField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function GkField:setBasis(basis) self.basis = basis end
-function GkField:setGrid(grid) self.grid = grid end
+function GkField:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
 function GkField:alloc(nRkDup)
    -- allocate fields needed in RK update
@@ -227,7 +226,7 @@ function GkField:createSolver(species)
         zContinuous = not self.discontinuousPhi,
       }
    else
-      local ndim = self.grid:ndim()
+      local ndim = self.ndim
       local laplacianWeight, modifierConstant
       assert(self.polarizationWeight, "GkField: must specify polarizationWeight = ni*mi/B^2 for non-adiabatic field")
       if ndim==1 then  -- z
@@ -254,25 +253,25 @@ function GkField:createSolver(species)
         zContinuous = not self.discontinuousPhi,
       }
       if self.isElectromagnetic then 
-        if ndim==1 then
-           laplacianWeight = 0.0
-           modifierConstant = 1.0/self.mu0
-        else
-           laplacianWeight = 1.0/self.mu0
-           modifierConstant = 0.0
-        end
-        self.aparSlvr = Updater.FemPoisson {
-          onGrid = self.grid,
-          basis = self.basis,
-          bcLeft = self.aparBcLeft,
-          bcRight = self.aparBcRight,
-          bcBottom = self.aparBcBottom,
-          bcTop = self.aparBcTop,
-          periodicDirs = self.periodicDirs,
-          laplacianWeight = laplacianWeight,
-          modifierConstant = modifierConstant,
-          zContinuous = not self.discontinuousApar,
-        }
+        --if ndim==1 then
+        --   laplacianWeight = 0.0
+        --   modifierConstant = 1.0/self.mu0
+        --else
+        --   laplacianWeight = 1.0/self.mu0
+        --   modifierConstant = 0.0
+        --end
+        --self.aparSlvr = Updater.FemPoisson {
+        --  onGrid = self.grid,
+        --  basis = self.basis,
+        --  bcLeft = self.aparBcLeft,
+        --  bcRight = self.aparBcRight,
+        --  bcBottom = self.aparBcBottom,
+        --  bcTop = self.aparBcTop,
+        --  periodicDirs = self.periodicDirs,
+        --  laplacianWeight = laplacianWeight,
+        --  modifierConstant = modifierConstant,
+        --  zContinuous = not self.discontinuousApar,
+        --}
 
         if ndim==1 then
            laplacianWeight = 0.0
@@ -435,6 +434,7 @@ function GkField:totalSolverTime()
    if self.phiSlvr then
      local time = self.phiSlvr.totalTime
      if self.isElectromagnetic and self.aparSlvr then time = time + self.aparSlvr.totalTime end
+     if self.isElectromagnetic and self.dApardtSlvr then time = time + self.dApardtSlvr.totalTime end
      return time
    end
    return 0.0
@@ -492,7 +492,7 @@ function GkGeometry:hasEB() end
 function GkGeometry:setCfl() end
 function GkGeometry:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function GkGeometry:setBasis(basis) self.basis = basis end
-function GkGeometry:setGrid(grid) self.grid = grid end
+function GkGeometry:setGrid(grid) self.grid = grid; self.ndim = self.grid:ndim() end
 
 function GkGeometry:alloc()
    -- allocate fields 
@@ -546,11 +546,11 @@ end
 function GkGeometry:createSolver()
    -- determine which variables bmag depends on by checking if setting a variable to nan results in nan
    local ones = {}
-   for dir = 1, self.grid:ndim() do
+   for dir = 1, self.ndim do
       ones[dir] = 1
    end
    self.bmagVars = {}
-   for dir = 1, self.grid:ndim() do
+   for dir = 1, self.ndim do
       ones[dir] = 0/0 -- set this var to nan 
       -- test if result is nan.. nan is the only value that doesn't equal itself
       if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then 
@@ -566,7 +566,7 @@ function GkGeometry:createSolver()
       return 1/self.bmagFunc(t,xn)
    end
    -- calculate magnetic drift functions
-   if self.grid:ndim() > 1 then
+   if self.ndim > 1 then
       local function bgrad(xn)
          local function bmagUnpack(...)
             local xn = {...}

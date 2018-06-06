@@ -70,9 +70,7 @@ function Gyrokinetic:init(tbl)
    if self._isElectromagnetic then
       -- for electromagnetic terms
       self.aparPtr = nil
-      self.dApardtPtr = nil
       self.aparIdxr = nil
-      self.dApardtIdxr = nil
    end
 
    -- timers
@@ -90,7 +88,6 @@ function Gyrokinetic:setAuxFields(auxFields)
    if self._isElectromagnetic then
       -- get electromagnetic terms
       self.apar = potentials.apar
-      self.dApardt = potentials.dApardt
    end
 
    -- get magnetic geometry fields
@@ -108,9 +105,7 @@ function Gyrokinetic:setAuxFields(auxFields)
       self.phiIdxr = self.phi:genIndexer()
       if self._isElectromagnetic then
          self.aparPtr = self.apar:get(1)
-         self.dApardtPtr = self.dApardt:get(1)
          self.aparIdxr = self.apar:genIndexer()
-         self.dApardtIdxr = self.dApardt:genIndexer()
       end
 
       -- geometry
