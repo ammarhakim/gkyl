@@ -295,6 +295,9 @@ function MaxwellField:write(tm)
 end
 
 function MaxwellField:writeRestart(tm)
+   self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame)
+   -- (the final "false" prevents flushing of data after write)
+   self.emEnergy:write("fieldEnergy_restart.bp", tm, self.ioFrame, false)
 end
 
 function MaxwellField:rkStepperFields()

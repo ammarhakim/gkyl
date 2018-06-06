@@ -124,7 +124,7 @@ function DynVector:_copy_to_dynvector(buff)
    end
 end
 
-function DynVector:write(outNm, tmStamp, frNum)
+function DynVector:write(outNm, tmStamp, frNum, flushData)
    local comm = self._ioComm
    local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
    if rank ~= 0 then  -- only run on rank 0 ...
@@ -134,6 +134,7 @@ function DynVector:write(outNm, tmStamp, frNum)
 
    if not frNum then frNum = 5000 end  -- default frame-number
    if not tmStamp then tmStamp = 0.0 end -- default time-stamp
+   flushData = xsys.pickBool(flushData, true) -- default flush data on write
 
    -- setup ADIOS for IO
    Adios.init_noxml(comm[0])
@@ -175,9 +176,10 @@ function DynVector:write(outNm, tmStamp, frNum)
    Adios.write(fd, "Data", self._ioBuff:data())
    
    Adios.close(fd)
-   
    Adios.finalize(rank)
-   self:clear() -- clear data for next round of IO
+
+    -- clear data for next round of IO
+   if flushData then self:clear() end
 end
 
 -- returns time-stamp and frame number
@@ -205,6 +207,8 @@ function DynVector:read(fName)
 
    self._data:expand(nVal)   
    self:_copy_to_dynvector(data)
+
+   reader:close()
    
    return tm, frame
 end
