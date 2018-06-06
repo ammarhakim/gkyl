@@ -265,9 +265,9 @@ local function buildApplication(self, tbl)
 
    writeData(0.0) -- write initial conditions
 
-   -- determine if field equations are elliptic 
-   local ellipticFieldEqn = false
-   if field.isElliptic ~= nil then ellipticFieldEqn = field.isElliptic end
+   -- determine whether we need two steps in forwardEuler
+   local step2 = false
+   if field.step2 ~= nil then step2 = field.step2 end
 
    -- function to take a single forward-euler time-step
    local function forwardEuler(tCurr, dt, inIdx, outIdx)
@@ -279,23 +279,16 @@ local function buildApplication(self, tbl)
 	 -- collisions (the species should update internal datastructures). 
          s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx])
       end
-      if ellipticFieldEqn then
-        -- if field equation is elliptic, calculate field 
-        -- that is self-consistent with speciesRkFields[inIdx] 
-        -- to use in species update
-        local myStatus, myDtSuggested = field:forwardEuler(
-           tCurr, dt, emRkFields[inIdx], species, emRkFields[inIdx])
-        field:applyBc(tCurr, dt, emRkFields[inIdx])
-        status = status and myStatus
-        dtSuggested = math.min(dtSuggested, myDtSuggested)
-      else
-        -- otherwise evolve field inIdx -> outIdx
-        local myStatus, myDtSuggested = field:forwardEuler(
-           tCurr, dt, emRkFields[inIdx], species, emRkFields[outIdx])
-        field:applyBc(tCurr, dt, emRkFields[outIdx])
-        status = status and myStatus
-        dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
+      -- note that this can be either an elliptic solve, which updates emRkFields[inIdx]
+      -- or a hyperbolic solve, which updates emRkFields[outIdx], or a combination of both
+      local myStatus, myDtSuggested = field:forwardEuler(
+         tCurr, dt, emRkFields[inIdx], species, emRkFields[outIdx])
+      -- apply BCs to both inIdx and outIdx because we don't know which was updated... this could be
+      -- avoided by absorbing the application of BCs into the forwardEuler methods
+      field:applyBc(tCurr, dt, emRkFields[inIdx])
+      field:applyBc(tCurr, dt, emRkFields[outIdx])
+      status = status and myStatus
+      dtSuggested = math.min(dtSuggested, myDtSuggested)
 
       -- compute functional field (if any)
       funcField:forwardEuler(tCurr, dt, nil, nil, emRkFuncFields[1])
@@ -313,35 +306,57 @@ local function buildApplication(self, tbl)
 	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
       end
 
+      -- some systems (e.g. EM GK) require a second step to complete the forward Euler
+      if step2 then      
+         -- update EM field.. step 2 (if necessary)
+         for nm, s in pairs(species) do
+            -- compute moments needed in coupling with fields and
+            -- collisions (the species should update internal datastructures). 
+            -- note: this calculates numDensity with inIdx and momDensity with outIdx
+            s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx], speciesRkFields[nm][outIdx])
+         end
+         -- note that this can be either an elliptic solve, which updates emRkFields[inIdx]
+         -- or a hyperbolic solve, which updates emRkFields[outIdx], or a combination of both
+         local myStatus, myDtSuggested = field:forwardEulerStep2(
+            tCurr, dt, emRkFields[inIdx], species, emRkFields[outIdx])
+         -- apply BCs to both inIdx and outIdx because we don't know which was updated... this could be
+         -- avoided by absorbing the application of BCs into the forwardEuler methods
+         field:applyBc(tCurr, dt, emRkFields[inIdx])
+         field:applyBc(tCurr, dt, emRkFields[outIdx])
+         status = status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
+
+         -- update species.. step 2 (if necessary)
+         for nm, s in pairs(species) do
+            local myStatus, myDtSuggested = s:forwardEulerStep2(
+               tCurr, dt, speciesRkFields[nm][inIdx], {emRkFields[inIdx], emRkFuncFields[1]}, speciesRkFields[nm][outIdx])
+
+            status = status and myStatus
+            dtSuggested = math.min(dtSuggested, myDtSuggested)
+            s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx]) 
+         end
+      end
+
       return status, dtSuggested
    end
 
    -- various functions to copy/increment fields
-   local function copy1(aIdx, outIdx)
+   local function copy1(outIdx, aIdx)
       for nm, _ in pairs(species) do
 	 speciesRkFields[nm][outIdx]:copy(speciesRkFields[nm][aIdx])
       end
-      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
-	 emRkFields[outIdx]:copy(emRkFields[aIdx])
-      end
+      if emRkFields[aIdx] then field:copyRk(outIdx, aIdx) end
    end
-   local function combine2(a, aIdx, b, bIdx, outIdx)
+   local function combine(outIdx, a, aIdx, ...)
+      local args = {...} -- package up rest of args as table
+      local nFlds = #args/2
       for nm, _ in pairs(species) do
-	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
+         speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx])
+         for i = 1, nFlds do -- accumulate rest of the fields
+	    speciesRkFields[nm][outIdx]:accumulate(args[2*i-1], speciesRkFields[nm][args[2*i]])
+         end
       end
-      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
-	 emRkFields[outIdx]:combine(a, emRkFields[aIdx], b, emRkFields[bIdx])
-      end
-   end
-   local function combine3(a, aIdx, b, bIdx, c, cIdx, outIdx)
-      for nm, _ in pairs(species) do
-	 speciesRkFields[nm][outIdx]:combine(
-	    a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx], c, speciesRkFields[nm][cIdx])
-      end
-      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
-	 emRkFields[outIdx]:combine(
-	    a, emRkFields[aIdx], b, emRkFields[bIdx], c, emRkFields[cIdx])
-      end
+      if emRkFields[aIdx] then field:combineRk(outIdx, a, aIdx, ...) end 
    end
 
    -- various time-steppers. See gkyl docs for formulas for various
@@ -356,7 +371,7 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
       local tm = Time.clock()
-      copy1(2, 1)
+      copy1(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested 
@@ -374,8 +389,8 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       local tm = Time.clock()
-      combine2(1.0/2.0, 1, 1.0/2.0, 3, 2)
-      copy1(2, 1)
+      combine(2, 1.0/2.0, 1, 1.0/2.0, 3)
+      copy1(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
@@ -392,15 +407,15 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(3.0/4.0, 1, 1.0/4.0, 3, 2)
+      combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 2, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/3.0, 1, 2.0/3.0, 3, 2)
-      copy1(2, 1)
+      combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
+      copy1(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
@@ -413,28 +428,28 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/2.0, 1, 1.0/2.0, 2, 3)
+      combine(3, 1.0/2.0, 1, 1.0/2.0, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 2
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 3, 4)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/2.0, 3, 1.0/2.0, 4, 2)
+      combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine3(2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3, 4)
+      combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 4
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 4, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/2.0, 4, 1.0/2.0, 3, 1)
+      combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
