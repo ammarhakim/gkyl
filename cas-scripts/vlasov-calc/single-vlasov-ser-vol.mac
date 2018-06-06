@@ -1,0 +1,12 @@
+load("vlasov-calc/single-vlasov-vol")$
+load(stringproc)$
+
+for c : 3 thru 3 do (
+  for v : c thru 3 do (
+   fname : sconcat("~/max-out/VlasovSer", c, "x", v, "v", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("VlasovVol", c, "x", v, "v", "Ser"),
+   calcVlasovVolUpdater(fh, funcName, c, v, "Ser"),
+   close(fh)
+  )
+);
