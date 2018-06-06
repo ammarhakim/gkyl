@@ -1,7 +1,7 @@
 load("vlasov-calc/single-vlasov-vol")$
 load(stringproc)$
 
-for c : 3 thru 3 do (
+for c : 2 thru 2 do (
   for v : c thru 3 do (
    fname : sconcat("~/max-out/VlasovMax", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
