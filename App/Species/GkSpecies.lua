@@ -125,7 +125,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
          equation = self.dAdtGk,
          zeroFluxDirections = {self.cdim+1},
          updateDirections = {self.cdim+1},
-         clearOut = false,   -- continue accumulating into out field
+         clearOut = false,   -- continue accumulating into output field
          onlyIncrement = false,  -- finish taking timestep
       }
    end
@@ -403,6 +403,11 @@ end
 
 function GkSpecies:solverSurfTime()
    return self.gkEqn.totalSurfTime
+end
+function GkSpecies:totalSolverTime()
+   local timer = self.solver.totalTime
+   if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
+   return timer
 end
 
 function GkSpecies:Maxwellian(xn, n0, T0, vd)
