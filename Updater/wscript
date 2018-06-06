@@ -9,7 +9,7 @@ def build(bld):
     bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
 
-    primMomentsCalcData/VmLBOconstNuPrimMomentsSer1x1v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer1x1v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp

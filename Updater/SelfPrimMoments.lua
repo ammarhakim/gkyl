@@ -11,23 +11,26 @@
 local UpdaterBase     = require "Updater.Base"
 local Lin             = require "Lib.Linalg"
 local Proto           = require "Lib.Proto"
-local PrimMomentsDecl = require "Updater.primMomentsCalcData.selfPrimMomentsModDecl"
+local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
 
 -- Moments updater object.
-local selfPrimMoments = Proto(UpdaterBase)
+local SelfPrimMoments = Proto(UpdaterBase)
 
-function selfPrimMoments:init(tbl)
-   selfPrimMoments.super.init(self, tbl) -- setup base object.
+function SelfPrimMoments:init(tbl)
+   SelfPrimMoments.super.init(self, tbl) -- setup base object.
 
    self._onGrid = assert(
-      tbl.onGrid, "Updater.selfPrimMoments: Must provide grid object using 'onGrid'.")
+      tbl.onGrid, "Updater.SelfPrimMoments: Must provide grid object using 'onGrid'.")
+
+   local phaseGrid = assert(
+      tbl.phaseGrid, "Updater.SelfPrimMoments: Must provide phase grid object using 'phaseGrid'.")
 
    local phaseBasis = assert(
-      tbl.phaseBasis, "Updater.selfPrimMoments: Must provide the phase basis object using 'phaseBasis'.")
+      tbl.phaseBasis, "Updater.SelfPrimMoments: Must provide the phase basis object using 'phaseBasis'.")
 
    local confBasis = assert(
-      tbl.confBasis, "Updater.selfPrimMoments: Must provide the configuration basis object using 'confBasis'.")
+      tbl.confBasis, "Updater.SelfPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
    -- dimension of spaces.
    self._pDim = phaseBasis:ndim()
@@ -46,14 +49,25 @@ function selfPrimMoments:init(tbl)
 
    local id, polyOrder = confBasis:id(), confBasis:polyOrder()
 
-   self._selfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(id, self._cDim, self._vDim, polyOrder)
+   -- Extract vLower and vUpper for corrections to u and vtSq
+   -- that preserve momentum and energy conservation.
+   self._vLower = Lin.Vec(self._vDim)
+   self._vUpper = Lin.Vec(self._vDim)
+   for d = 1, self._vDim do
+      -- Pass absolute value of vLower because kernel already
+      -- evaluates v*f at -1 (see Maxima scripts).
+      self._vLower[d] = math.abs(phaseGrid:lower(self._cDim + d))
+      self._vUpper[d] = phaseGrid:upper(self._cDim + d) 
+   end
+
+   self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(id, self._cDim, self._vDim, polyOrder)
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 
 end
 
 -- advance method
-function selfPrimMoments:_advance(tCurr, dt, inFld, outFld)
+function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
 
    local uOut    = outFld[1]
@@ -82,10 +96,10 @@ function selfPrimMoments:_advance(tCurr, dt, inFld, outFld)
    -- obtain f at edges of velocity domain.
    local phaseIdx     = {}
    local phaseRange   = fIn:localRange()
-   local lV, uV = {}, {}
+   local vLowerIdx, vUpperIdx = {}, {}
    for d = 1, self._vDim do
-      lV[d] = phaseRange:lower(self._cDim + d)
-      uV[d] = phaseRange:upper(self._cDim + d)
+      vLowerIdx[d]  = phaseRange:lower(self._cDim + d)
+      vUpperIdxV[d] = phaseRange:upper(self._cDim + d)
    end
 
    local fvmin = Lin.Vec(self._numBasisP*self._vDim)
@@ -105,18 +119,18 @@ function selfPrimMoments:_advance(tCurr, dt, inFld, outFld)
       -- function for LBO to be momentum and energy conserving.
       for d = 1, self._cDim do phaseIdx[d] = confIdx[d] end
 
-      for d = 1, self._vDim do phaseIdx[d + self._cDim] = lV[d] end
+      for d = 1, self._vDim do phaseIdx[d + self._cDim] = vLowerIdx[d] end
       fIn:fill(phaseIndexer(phaseIdx), fInItr)
-      fvmin = fInItr:data()
+      for k = 1, self._numBasisP do fvmin[k] = fInItr[k] end
 
-      for d = 1, self._vDim do phaseIdx[d + self._cDim] = uV[d] end
+      for d = 1, self._vDim do phaseIdx[d + self._cDim] = vUpperIdx[d] end
       fIn:fill(phaseIndexer(phaseIdx), fInItr)
-      fvmax = fInItr:data()
+      for k = 1, self._numBasisP do fvmax[k] = fInItr[k] end
 
-      self._selfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), fvmin, fvmax, uOutItr:data(), vtSqOutItr:data())
+      self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), fvmin:data(), fvmax:data(), self._vLower:data(), self._vUpper:data(), uOutItr:data(), vtSqOutItr:data())
    end
 
    return true, GKYL_MAX_DOUBLE
 end
 
-return selfPrimMoments
+return SelfPrimMoments

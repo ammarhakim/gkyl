@@ -1,9 +1,9 @@
-#include <math.h>
-#include <VmLBOprimMomentsModDecl.h>
-
-using namespace Eigen;
-
-void VmLBOconstNuPrimMoments1x1vSer_P1(const double *m0, const double *m1, const double *m2, const double *fvmin, const double *fvmax, double *u, double *vtSq) 
+#include <math.h> 
+#include <PrimMomentsModDecl.h> 
+ 
+using namespace Eigen; 
+ 
+void SelfPrimMoments1x1vSer_P1(const double *m0, const double *m1, const double *m2, const double *fvmin, const double *fvmax, const double *vmin, const double *vmax, double *u, double *vtSq) 
 { 
   // m0,m1,m2:     moments of the distribution function. 
   // fvmax, fvmin: distribution function at the velocity boundaries. 
@@ -49,8 +49,8 @@ void VmLBOconstNuPrimMoments1x1vSer_P1(const double *m0, const double *m1, const
  
   // ....... M0-(v*f)|^(+vmax)_(-vmax) .......... // 
   double m0c[2]; 
-  m0c[0] = 1.224744871391589*fvmin[2]-1.224744871391589*fvmax[2]+m0[0]-0.7071067811865475*fvmin[0]-0.7071067811865475*fvmax[0]; 
-  m0c[1] = 1.224744871391589*fvmin[3]-1.224744871391589*fvmax[3]+m0[1]-0.7071067811865475*fvmin[1]-0.7071067811865475*fvmax[1]; 
+  m0c[0] = vmin[0]*(1.224744871391589*fvmin[2]-0.7071067811865475*fvmin[0])+vmax[0]*((-1.224744871391589*fvmax[2])-0.7071067811865475*fvmax[0])+m0[0]; 
+  m0c[1] = vmin[0]*(1.224744871391589*fvmin[3]-0.7071067811865475*fvmin[1])+vmax[0]*((-1.224744871391589*fvmax[3])-0.7071067811865475*fvmax[1])+m0[1]; 
  
   // ....... Compute vtSq through weak division thEnergyDens/m0c .......... // 
   AEM(0,0) = 0.7071067811865475*m0c[0]; 
