@@ -558,7 +558,9 @@ end
 function KineticSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
-      if self.intMomentCalc then self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments }) end
+      if self.intMomentCalc then
+	 self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
+      end
 
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
@@ -601,6 +603,13 @@ function KineticSpecies:write(tm)
       end
       self.distIoFrame = self.distIoFrame+1
    end
+end
+
+function KineticSpecies:writeRestart(tm)
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame)
+   -- (the final "false" prevents flushing of data after write)
+   self.integratedMoments:write(
+      string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
 end
 
 -- timers

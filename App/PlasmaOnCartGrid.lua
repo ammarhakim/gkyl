@@ -469,7 +469,7 @@ local function buildApplication(self, tbl)
       local restartTrigger = LinearTrigger(tStart, tEnd, math.floor(1/restartFrameEvery))
       local nRestart = 0
       -- function to check if restart frame should happen
-      local function ifWriteRestart(t)
+      local function checkWriteRestart(t)
 	 if restartTrigger(t) then
 	    if nRestart > 1 then return true end
 	 end
@@ -494,15 +494,15 @@ local function buildApplication(self, tbl)
       -- main simulation loop
       while true do
 	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
-
+	 -- call time-stepper
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
-
+	 -- check status and determine what to do next
 	 if status then
 	    writeLogMessage(tCurr, myDt)
-	    writeData(tCurr+myDt)
-	    if ifWriteRestart(tCurr+myDt) then
+	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
-	    end
+	    end	    
+	    writeData(tCurr+myDt)
 	    
 	    tCurr = tCurr + myDt
 	    myDt = math.min(dtSuggested, maxDt)
