@@ -96,7 +96,11 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
 
    -- no update in mu direction (last velocity direction if present)
    local upd = {}
-   for d = 1, self.cdim + 1 do upd[d] = d end
+   if hasApar then -- if electromagnetic only update conf dir surface terms on first step
+      for d = 1, self.cdim do upd[d] = d end
+   else
+      for d = 1, self.cdim + 1 do upd[d] = d end
+   end
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
@@ -109,20 +113,21 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
       onlyIncrement = hasApar, 
    }
    if hasApar then 
-      -- set up solver that adds on the term involving dApar/dt
-      self.dAdtGk = Gk.dAdtGk {
+      -- set up solver that adds on volume term involving dApar/dt and the entire vpar surface term
+      self.gkEqnStep2 = Gk.GkEqStep2 {
          onGrid = self.grid,
          phaseBasis = self.basis,
          confBasis = self.confBasis,
          charge = self.charge,
          mass = self.mass,
+         Bvars = geo.bmagVars,
       }
       -- note that the surface update for this term only involves the vpar direction
       self.solverStep2 = Updater.HyperDisCont {
          onGrid = self.grid,
          basis = self.basis,
          cfl = self.cfl,
-         equation = self.dAdtGk,
+         equation = self.gkEqnStep2,
          zeroFluxDirections = {self.cdim+1},
          updateDirections = {self.cdim+1},
          clearOut = false,   -- continue accumulating into output field
