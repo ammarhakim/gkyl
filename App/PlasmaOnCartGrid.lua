@@ -468,19 +468,23 @@ local function buildApplication(self, tbl)
    return function(self)
       log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
       local tStart, tEnd = tStart, tbl.tEnd
+
+      -- sanity check: don't run if not needed
+      if tStart >= tEnd then return end
+      
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
-      local frame = 1
       local step = 1
       local tCurr = tStart
       local myDt = initDt
       local maxDt = tbl.maximumDt and tbl.maximumDt or GKYL_MAX_DOUBLE -- max time-step
 
       -- triggers for 10% and 1% loggers
-      local logTrigger = LinearTrigger(tStart, tEnd, 10)
-      local logTrigger1p = LinearTrigger(tStart, tEnd, 100)
+      local logTrigger = LinearTrigger(0, tEnd, 10)
+      local logTrigger1p = LinearTrigger(0, tEnd, 100)
       local tenth = 0
-
-      local tmSimStart = Time.clock()      
+      if tStart > 0 then
+	 tenth = math.floor(tStart/tEnd*10)
+      end
 
       -- triggers for restarts
       local restartTrigger = LinearTrigger(tStart, tEnd, math.floor(1/restartFrameEvery))
@@ -495,11 +499,20 @@ local function buildApplication(self, tbl)
       end
 
       local p1c = 0
+      if tStart > 0 then
+	 p1c = math.floor(tStart/tEnd*100) % 10
+      end
+
+      local logCount = 0 -- this is needed to avoid initial log message
       -- for writing out log messages
-      local function writeLogMessage(tCurr, myDt)
+      local function writeLogMessage(tCurr)
 	 if logTrigger(tCurr) then
-	    log (string.format(
-		    " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
+	    if logCount > 0 then
+	       log (string.format(
+		       " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
+	    else
+	       logCount = logCount+1
+	    end
 	    tenth = tenth+1
 	 end
 	 if logTrigger1p(tCurr) then
@@ -508,14 +521,14 @@ local function buildApplication(self, tbl)
 	 end
       end
 
+      local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
-	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
 	 -- call time-stepper
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
 	 -- check status and determine what to do next
 	 if status then
-	    writeLogMessage(tCurr, myDt)
+	    writeLogMessage(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
 	    end	    
@@ -532,7 +545,6 @@ local function buildApplication(self, tbl)
 	    myDt = dtSuggested
 	 end
       end
-      writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
 
       -- compute time spent in various parts of code

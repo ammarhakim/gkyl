@@ -301,7 +301,9 @@ function MaxwellField:writeRestart(tm)
 end
 
 function MaxwellField:readRestart()
-   return 0.0
+   local tm, fr = self.fieldIo:read(self.em[1], "field_restart.bp")
+   self.ioFrame = fr
+   self.emEnergy:read("fieldEnergy_restart.bp", tm)
 end
 
 function MaxwellField:rkStepperFields()

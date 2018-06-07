@@ -439,7 +439,7 @@ function test_12()
    field:clear(10.25)
 
    -- write field
-   field:write("CartFieldTest_field.bp")
+   field:write("CartFieldTest_field.bp", 2.5, 50)
 
    local fieldIn = DataStruct.Field {
       onGrid = grid,
@@ -448,8 +448,11 @@ function test_12()
    }
    fieldIn:clear(0.0)
 
-   fieldIn:read("CartFieldTest_field.bp")
+   local tm, fr = fieldIn:read("CartFieldTest_field.bp")
 
+   assert_equal(2.5, tm, "Checking time-stamp")
+   assert_equal(50, fr, "Checking frame")
+   
    -- check if fields are identical
    local indexer = field:genIndexer()
    for idx in field:localRangeIter() do
