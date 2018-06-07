@@ -10,6 +10,11 @@ def build(bld):
     FiveMomentSrcImpl.cpp
 
     primMomentsCalcData/SelfPrimMomentsSer1x1v.cpp
+    primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x1v.cpp
+    primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x2v.cpp
+    primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x3v.cpp
+    primMomentsCalcData/CrossPrimMoments_VmLBO_Ser2x2v.cpp
+    primMomentsCalcData/CrossPrimMoments_VmLBO_Ser2x3v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp

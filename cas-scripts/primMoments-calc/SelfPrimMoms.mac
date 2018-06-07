@@ -133,6 +133,11 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     printf(fh, "  // ....... Get kinetic energy density via weak dot product u.m1 .......... // ~%"),
     printf(fh, "  double kinEnergyDens[~a]; ~%", NC),
+    printf(fh, "  for (unsigned short int k=0; k<~a; k++) ~%", NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    kinEnergyDens[k] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
 
     printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
     printf(fh, "  { ~%"),
@@ -171,14 +176,14 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCExprsCollect1(m0c,m0_c-(vmax_c[1]*fvmax_c-vmin_c[1]*fvmin_c),clst),
     printf(fh, " ~%"), 
 
-    /*........... Calculate vtSq u through weak division of thEnergyDens by m0c .............*/
+    /*........... Calculate vtSq through weak division of thEnergyDens by m0c .............*/
     /* Expand moments in configuration space basis. */
     m0c_e : doExpand1(m0c, bC),
     thEnergyDens_e : doExpand1(thEnergyDens, bC),
     /* Array of expansion coefficients. */
     m0c_c : makelist(m0c[i],i,0,NC-1),
     thEnergyDens_c : makelist(thEnergyDens[i],i,0,NC-1),
-    /* Expand u function and create a list of expansion coefficients. */
+    /* Expand vtSq function and create a list of expansion coefficients. */
     vtSq_e : doExpand1(vtSq,bC),
     vtSq_c : makelist(vtSq[i],i,0,NC-1),
 
