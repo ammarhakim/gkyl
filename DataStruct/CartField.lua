@@ -408,6 +408,9 @@ local function Field_meta_ctor(elct)
       write = function (self, fName, tmStamp, frNum)
 	 self._adiosIo:write(self, fName, tmStamp, frNum)
       end,
+      read = function (self, fName) --> time-stamp, frame-number
+	 return self._adiosIo:read(self, fName)
+      end,
       sync = function (self, syncPeriodicDirs)
          syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs, true)
 	 self._field_sync(self)

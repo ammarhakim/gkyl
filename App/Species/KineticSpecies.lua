@@ -612,6 +612,10 @@ function KineticSpecies:writeRestart(tm)
       string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
 end
 
+function KineticSpecies:readRestart()
+   return 0.0
+end
+
 -- timers
 function KineticSpecies:totalSolverTime()
    return self.solver.totalTime

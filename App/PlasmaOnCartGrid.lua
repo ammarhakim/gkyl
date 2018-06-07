@@ -263,7 +263,24 @@ local function buildApplication(self, tbl)
       field:writeRestart(tCurr)
    end
 
-   writeData(0.0) -- write initial conditions
+   -- function to read from restart frame
+   local function readRestart() --> time at which restart was written
+      local rTime = 0.0
+      for _, s in pairs(species) do
+	 rTime = s:readRestart()
+      end
+      field:readRestart()
+      return rTime
+   end
+
+   local tStart = 0.0 -- by default start at t=0
+   if GKYL_COMMAND == "restart" then
+      -- give everyone a chance to adjust ICs based on restart frame
+      -- and adjust tStart accordingly
+      tStart = readRestart()
+   else
+      writeData(0.0) -- write initial conditions
+   end
 
    -- determine if field equations are elliptic 
    local ellipticFieldEqn = false
@@ -450,7 +467,7 @@ local function buildApplication(self, tbl)
    -- return function that runs main simulation loop
    return function(self)
       log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
-      local tStart, tEnd = 0, tbl.tEnd
+      local tStart, tEnd = tStart, tbl.tEnd
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
       local frame = 1
       local step = 1
@@ -560,7 +577,7 @@ function App:init(tbl)
 end
 
 function App:run()
-   if GKYL_COMMAND == "run" then
+   if GKYL_COMMAND == "run" or GKYL_COMMAND == "restart" then
       return self:_runApplication()
    elseif GKYL_COMMAND == "init" then
       return function (...) end

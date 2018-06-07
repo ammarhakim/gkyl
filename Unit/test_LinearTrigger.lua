@@ -48,7 +48,7 @@ function test_1()
 end
 
 function test_2()
-   trig = LinearTrigger(0.0, 1.5, 22)
+   local trig = LinearTrigger(0.0, 1.5, 22)
 
    local nsteps = 25
    local dt = 1.5/nsteps
@@ -62,8 +62,14 @@ function test_2()
    assert_equal(23, count, "Checking if count is correct")
 end
 
+function test_3()
+   local trig = LinearTrigger(0.0, 10.0, 10)
+   assert_equal(true, trig(0.1), "Checking trigger")
+end
+
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
