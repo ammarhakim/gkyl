@@ -416,10 +416,46 @@ function GkField:forwardEulerStep2(tCurr, dt, potCurr, species, potNew)
         end
       end
       -- dApar/dt solve
-      mys2, mydt2 = self.dApardtSlvr:advance(tCurr, dt, {self.currentDens, nil, self.massWeight}, {potCurr.dApardt}) 
+      local dApardt = potCurr.dApardt
+      mys2, mydt2 = self.dApardtSlvr:advance(tCurr, dt, {self.currentDens, nil, self.massWeight}, {dApardt}) 
+      
+      -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
+      -- this ensures that dApar/dt is in the same space as dPhi/dz
+      if self.ndim == 1 or self.ndim == 3 then -- only have z direction in 1d or 3d (2d is assumed to be x,y)
+         local polyOrder = self.basis:polyOrder()
+         local localRange = dApardt:localRange()
+         local indexer = dApardt:genIndexer()
+         local ptr = dApardt:get(1)
+
+         -- loop over all cells
+         for idx in localRange:colMajorIter() do
+            self.grid:setIndex(idx)
+            
+            dApardt:fill(indexer(idx), ptr)
+            if self.ndim == 1 then
+               ptr:data()[polyOrder] = 0.0
+            else -- ndim == 3
+               if polyOrder == 1 then
+                  ptr:data()[3] = 0.0
+                  ptr:data()[5] = 0.0
+                  ptr:data()[6] = 0.0
+                  ptr:data()[7] = 0.0
+               elseif polyOrder == 2 then
+                  ptr:data()[9] = 0.0
+                  ptr:data()[13] = 0.0
+                  ptr:data()[14] = 0.0
+                  ptr:data()[15] = 0.0
+                  ptr:data()[16] = 0.0
+                  ptr:data()[17] = 0.0
+                  ptr:data()[18] = 0.0
+                  ptr:data()[19] = 0.0
+               end
+            end
+         end
+      end
 
       -- advance Apar
-      potNew.apar:combine(1.0, potCurr.apar, dt, potCurr.dApardt)
+      potNew.apar:combine(1.0, potCurr.apar, dt, dApardt)
 
       return mys and mys2, math.min(mydt,mydt2)
    else
