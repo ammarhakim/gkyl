@@ -153,6 +153,7 @@ for i : 1 thru pmax do (
   alpha_expd : subst(surfVar=-1, alpha_expd),
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
   alpha0expr : fullratsimp(innerProd(surfIntVars, 1, alpha_expd, subst(surfVar=-1, bP[1]))),
+  /*alpha0expr : expand(fullratsimp(subst(cellCenter, alpha_expd))),*/
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
   printf(fh, "  double alpha0 = std::abs(~a); ~%~%", float(subst([wv^2=wv2,q_^2=q2], alpha0expr))),
 
@@ -193,7 +194,8 @@ for i : 1 thru pmax do (
   /* return alpha0 so that we can find global value */
   printf(fh, "return alpha0; ~%"),
   
-  printf(fh, "} ~%")
+  printf(fh, "} ~%"),
+  flush_output(fh)
 ));
 
 calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := block([],
@@ -204,7 +206,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := bl
 
 for c : 1 thru 1 do (
 v:2,
-pmax:1,
+pmax:2,
 if c=1 then (v:1, pmax:2),
 fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),

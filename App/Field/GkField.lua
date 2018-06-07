@@ -376,7 +376,7 @@ end
 function GkField:accumulateCurrent(dt, current, em)
 end
 
-function GkField:forwardEuler(tCurr, dt, potCurr, species, potFut)
+function GkField:forwardEuler(tCurr, dt, potCurr, species, potNew)
    if self.evolve or tCurr == 0.0 then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
@@ -390,16 +390,16 @@ function GkField:forwardEuler(tCurr, dt, potCurr, species, potFut)
       return mys and mys2, math.min(mydt,mydt2)
    else
       -- just copy stuff over
-      potFut.phi:copy(potCurr.phi)
+      potNew.phi:copy(potCurr.phi)
       if self.isElectromagnetic then 
-         potFut.apar:copy(potCurr.apar) 
-         potFut.dApardt:copy(potCurr.dApardt) 
+         potNew.apar:copy(potCurr.apar) 
+         potNew.dApardt:copy(potCurr.dApardt) 
       end
       return true, GKYL_MAX_DOUBLE
    end
 end
 
-function GkField:forwardEulerStep2(tCurr, dt, potCurr, species, potFut)
+function GkField:forwardEulerStep2(tCurr, dt, potCurr, species, potNew)
    if self.evolve then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
@@ -419,7 +419,7 @@ function GkField:forwardEulerStep2(tCurr, dt, potCurr, species, potFut)
       mys2, mydt2 = self.dApardtSlvr:advance(tCurr, dt, {self.currentDens, nil, self.massWeight}, {potCurr.dApardt}) 
 
       -- advance Apar
-      potFut.apar:combine(1.0, potCurr.apar, dt, potCurr.dApardt)
+      potNew.apar:combine(1.0, potCurr.apar, dt, potCurr.dApardt)
 
       return mys and mys2, math.min(mydt,mydt2)
    else

@@ -297,7 +297,7 @@ double EmGyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_
   double Ghat[4]; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = std::abs(-(0.5*(2.449489742783178*Phi[1]*dfac_x+1.414213562373095*dApardt[0])*q_)/m_); 
+  double alpha0 = std::abs((-(1.224744871391589*Phi[1]*dfac_x*q_)/m_)-(0.7071067811865475*dApardt[0]*q_)/m_); 
 
   double amax = 0.0; 
   bool upwind = false; 
@@ -338,7 +338,7 @@ double EmGyrokineticSurf1x1vSer_Vpar_P2_Bvars_0(const double q_, const double m_
   double Ghat[8]; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = std::abs(-(0.5*(2.449489742783178*Phi[1]*dfac_x+1.414213562373095*dApardt[0])*q_)/m_); 
+  double alpha0 = std::abs((-(1.224744871391589*Phi[1]*dfac_x*q_)/m_)+(0.7905694150420947*dApardt[2]*q_)/m_-(0.7071067811865475*dApardt[0]*q_)/m_); 
 
   double amax = 0.0; 
   bool upwind = false; 
@@ -677,7 +677,7 @@ double EmGyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_
   double Ghat[4]; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = std::abs(-(0.5*(2.449489742783178*Phi[1]*dfac_x+1.414213562373095*dApardt[0])*q_)/m_); 
+  double alpha0 = std::abs((-(1.224744871391589*Phi[1]*dfac_x*q_)/m_)-(0.7071067811865475*dApardt[0]*q_)/m_); 
 
   double amax = 0.0; 
   bool upwind = false; 
@@ -718,7 +718,7 @@ double EmGyrokineticSurf1x1vSer_Vpar_P2_Bvars_1(const double q_, const double m_
   double Ghat[8]; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = std::abs(-(0.5*(2.449489742783178*Phi[1]*dfac_x+1.414213562373095*dApardt[0])*q_)/m_); 
+  double alpha0 = std::abs((-(1.224744871391589*Phi[1]*dfac_x*q_)/m_)+(0.7905694150420947*dApardt[2]*q_)/m_-(0.7071067811865475*dApardt[0]*q_)/m_); 
 
   double amax = 0.0; 
   bool upwind = false; 
