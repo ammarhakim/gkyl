@@ -304,6 +304,20 @@ function MaxwellField:rkStepperFields()
    return self.em
 end
 
+-- for RK timestepping
+function MaxwellField:copyRk(outIdx, aIdx)
+   self.em[outIdx]:copy(self.em[aIdx])
+end
+-- for RK timestepping
+function MaxwellField:combineRk(outIdx, a, aIdx, ...)
+   local args = {...} -- package up rest of args as table
+   local nFlds = #args/2
+   self.em[outIdx]:combine(a, self.em[aIdx])
+   for i = 1, nFlds do -- accumulate rest of the fields
+      self.em[outIdx]:accumulate(args[2*i-1], self.em[args[2*i]])
+   end	 
+end
+
 function MaxwellField:accumulateCurrent(dt, current, em)
    if current == nil then return end
 

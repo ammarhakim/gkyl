@@ -1,6 +1,6 @@
 local Proto = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
-local GkEq = require "Eq.Gyrokinetic"
+local Gk = require "Eq.Gyrokinetic"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
 local Time = require "Lib.Time"
@@ -82,7 +82,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
    end
 
    -- create updater to advance solution by one time-step
-   self.gkEqn = GkEq {
+   self.gkEqn = Gk.GkEq {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
@@ -96,7 +96,11 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
 
    -- no update in mu direction (last velocity direction if present)
    local upd = {}
-   for d = 1, self.cdim + 1 do upd[d] = d end
+   if hasApar then -- if electromagnetic only update conf dir surface terms on first step
+      for d = 1, self.cdim do upd[d] = d end
+   else
+      for d = 1, self.cdim + 1 do upd[d] = d end
+   end
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
@@ -105,7 +109,31 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
       equation = self.gkEqn,
       zeroFluxDirections = {self.cdim+1},
       updateDirections = upd,
+      -- if electromagnetic, only compute RHS increment so that RHS can be used in dAdt solve
+      onlyIncrement = hasApar, 
    }
+   if hasApar then 
+      -- set up solver that adds on volume term involving dApar/dt and the entire vpar surface term
+      self.gkEqnStep2 = Gk.GkEqStep2 {
+         onGrid = self.grid,
+         phaseBasis = self.basis,
+         confBasis = self.confBasis,
+         charge = self.charge,
+         mass = self.mass,
+         Bvars = geo.bmagVars,
+      }
+      -- note that the surface update for this term only involves the vpar direction
+      self.solverStep2 = Updater.HyperDisCont {
+         onGrid = self.grid,
+         basis = self.basis,
+         cfl = self.cfl,
+         equation = self.gkEqnStep2,
+         zeroFluxDirections = {self.cdim+1},
+         updateDirections = {self.cdim+1},
+         clearOut = false,   -- continue accumulating into output field
+         onlyIncrement = false,  -- finish taking timestep
+      }
+   end
 
    -- account for factor of mass in definition of mu
    -- note that factor of 2*pi from gyrophase integration handled in GkMoment calculations
@@ -159,6 +187,19 @@ function GkSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
         -- if there is a source, add it to the RHS
         fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
       end
+      return status, dtSuggested
+   else
+      fOut:copy(fIn) -- just copy stuff over
+      return true, GKYL_MAX_DOUBLE
+   end
+end
+
+function GkSpecies:forwardEulerStep2(tCurr, dt, fIn, emIn, fOut)
+   if self.evolve then
+      local em = emIn[1]
+      local emFunc = emIn[2]
+      local status, dtSuggested
+      status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
       return status, dtSuggested
    else
       fOut:copy(fIn) -- just copy stuff over
@@ -307,13 +348,14 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function GkSpecies:calcCouplingMoments(tCurr, dt, fIn)
+function GkSpecies:calcCouplingMoments(tCurr, dt, fInDens, fInUpar)
+   if fInUpar == nil then fInUpar = fInDens end
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.dens })
-      self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.upar })
+      self.numDensityCalc:advance(tCurr, dt, {fInDens}, { self.dens })
+      self.momDensityCalc:advance(tCurr, dt, {fInUpar}, { self.upar })
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
@@ -340,6 +382,10 @@ function GkSpecies:getDens()
    return self.dens
 end
 
+function GkSpecies:getBackgroundDens()
+   return self.n0
+end
+
 function GkSpecies:getUpar()
    return self.upar
 end
@@ -362,6 +408,11 @@ end
 
 function GkSpecies:solverSurfTime()
    return self.gkEqn.totalSurfTime
+end
+function GkSpecies:totalSolverTime()
+   local timer = self.solver.totalTime
+   if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
+   return timer
 end
 
 function GkSpecies:Maxwellian(xn, n0, T0, vd)

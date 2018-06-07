@@ -555,6 +555,10 @@ function KineticSpecies:calcDiagnosticMoments()
    end
 end
 
+function KineticSpecies:isEvolving()
+   return self.evolve
+end
+
 function KineticSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
