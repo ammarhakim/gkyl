@@ -21,8 +21,8 @@ for ci : 1 thru 3 do (
       printf(fh, "~%"), 
 
       /* Primitive moments for cross-collision Vlasov LBO terms. */
-      printf(fh, "void LBOCrossPrimMoments_Vmei_~ax~avSer_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, pi),
-      printf(fh, "void LBOCrossPrimMoments_Vmie_~ax~avSer_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, pi),
+      printf(fh, "void CrossPrimMoments_VmeiLBO_~ax~avSer_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, pi),
+      printf(fh, "void CrossPrimMoments_VmieLBO_~ax~avSer_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, pi),
       printf(fh, "~%") 
 
     )
