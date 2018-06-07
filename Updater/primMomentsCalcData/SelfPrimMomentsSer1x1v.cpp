@@ -33,6 +33,11 @@ void SelfPrimMoments1x1vSer_P1(const double *m0, const double *m1, const double 
  
   // ....... Get kinetic energy density via weak dot product u.m1 .......... // 
   double kinEnergyDens[2]; 
+  for (unsigned short int k=0; k<2; k++) 
+  { 
+    kinEnergyDens[k] = 0.0; 
+  } 
+ 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 2*vd; 
