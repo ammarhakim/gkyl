@@ -197,7 +197,7 @@ main(int argc, char **argv) {
     showUsage();
     return finish(1);
   }
-  f.close();  
+  f.close();
 
 // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();

@@ -425,6 +425,41 @@ function test_11()
    
 end
 
+function test_12()
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   field:clear(10.25)
+
+   -- write field
+   field:write("CartFieldTest_field.bp")
+
+   local fieldIn = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   fieldIn:clear(0.0)
+
+   fieldIn:read("CartFieldTest_field.bp")
+
+   -- check if fields are identical
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr, fitrIn = field:get(indexer(idx)), fieldIn:get(indexer(idx))
+      for k = 1, field:numComponents() do
+	 assert_equal(fitr[k], fitrIn[k], "Checking if field read correctly")
+      end
+   end
+end
+
 test_1()
 test_2()
 test_3()
@@ -436,6 +471,7 @@ test_8()
 test_9()
 test_10()
 test_11()
+test_12()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

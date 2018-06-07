@@ -164,8 +164,7 @@ end
 
 -- Read field from file.
 -- fName: file name
--- returns time-stamp, frame number
-function AdiosCartFieldIo:read(field, fName)
+function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
    local comm =  Mpi.getComm(field:grid():commSet().nodeComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
