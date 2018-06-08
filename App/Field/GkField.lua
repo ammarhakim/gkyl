@@ -138,16 +138,18 @@ end
 -- solve for initial fields self-consistently 
 -- from initial distribution function
 function GkField:initField(species)
+   -- solve for initial phi
    self:forwardEuler(0, 1.0, self.potentials[1], species, self.potentials[1])
-   if self.dApardtInitFunc then
-      local project = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.dApardtInitFunc,
-         projectOnGhosts = true
-      }
-      project:advance(0.0, 0.0, {}, {self.potentials[1].dApardt})
-   elseif self.isElectromagnetic then
+
+   if self.isElectromagnetic then
+      -- solve for initial Apar
+      self.currentDens:clear(0.0)
+      for nm, s in pairs(species) do
+         self.currentDens:accumulate(s:getCharge(), s:getUpar())
+      end
+      self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {self.potentials[1].apar})
+
+      -- clear dApar/dt ... will be solved for before being used
       self.potentials[1].dApardt:clear(0.0)
    end
 end
@@ -258,25 +260,27 @@ function GkField:createSolver(species)
         zContinuous = not self.discontinuousPhi,
       }
       if self.isElectromagnetic then 
-        --if ndim==1 then
-        --   laplacianWeight = 0.0
-        --   modifierConstant = 1.0/self.mu0
-        --else
-        --   laplacianWeight = 1.0/self.mu0
-        --   modifierConstant = 0.0
-        --end
-        --self.aparSlvr = Updater.FemPoisson {
-        --  onGrid = self.grid,
-        --  basis = self.basis,
-        --  bcLeft = self.aparBcLeft,
-        --  bcRight = self.aparBcRight,
-        --  bcBottom = self.aparBcBottom,
-        --  bcTop = self.aparBcTop,
-        --  periodicDirs = self.periodicDirs,
-        --  laplacianWeight = laplacianWeight,
-        --  modifierConstant = modifierConstant,
-        --  zContinuous = not self.discontinuousApar,
-        --}
+        -- NOTE: aparSlvr only used to solve for initial Apar
+        -- at all other times Apar is timestepped using dApar/dt
+        if ndim==1 then
+           laplacianWeight = 0.0
+           modifierConstant = 1.0/self.mu0
+        else
+           laplacianWeight = 1.0/self.mu0
+           modifierConstant = 0.0
+        end
+        self.aparSlvr = Updater.FemPoisson {
+          onGrid = self.grid,
+          basis = self.basis,
+          bcLeft = self.aparBcLeft,
+          bcRight = self.aparBcRight,
+          bcBottom = self.aparBcBottom,
+          bcTop = self.aparBcTop,
+          periodicDirs = self.periodicDirs,
+          laplacianWeight = laplacianWeight,
+          modifierConstant = modifierConstant,
+          zContinuous = not self.discontinuousApar,
+        }
 
         if ndim==1 then
            laplacianWeight = 0.0
