@@ -257,9 +257,30 @@ function FluidSpecies:rkStepperFields()
    return self.moments
 end
 
-function FluidSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
+-- for RK timestepping 
+function FluidSpecies:copyRk(outIdx, aIdx)
+   self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
+end
+-- for RK timestepping 
+function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
+   local args = {...} -- package up rest of args as table
+   local nFlds = #args/2
+   self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
+   for i = 1, nFlds do -- accumulate rest of the fields
+      self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+   end	 
+end
+
+function FluidSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
+   local fIn = self:rkStepperFields()[inIdx]
+   local fOut = self:rkStepperFields()[outIdx]
+
    if self.evolve then
-      return self.solver:advance(tCurr, dt, {fIn, emIn}, {fOut})
+      local em = emIn[1]:rkStepperFields()[inIdx]
+      local myStatus, myDt = self.solver:advance(tCurr, dt, {fIn, em}, {fOut})
+      -- apply BCs
+      self:applyBc(tCurr, dt, fOut)
+      return myStatus, myDt
    else
       fOut:copy(fIn) -- just copy stuff over
       return true, GKYL_MAX_DOUBLE

@@ -139,19 +139,22 @@ end
 -- from initial distribution function
 function GkField:initField(species)
    -- solve for initial phi
-   self:forwardEuler(0, 1.0, self.potentials[1], species, self.potentials[1])
+   self:forwardEuler(0, 1.0, species, 1, 1)
 
    if self.isElectromagnetic then
       -- solve for initial Apar
       self.currentDens:clear(0.0)
       for nm, s in pairs(species) do
-         self.currentDens:accumulate(s:getCharge(), s:getUpar())
+         self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
       end
       self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {self.potentials[1].apar})
 
       -- clear dApar/dt ... will be solved for before being used
       self.potentials[1].dApardt:clear(0.0)
    end
+
+   -- apply BCs 
+   self:applyBc(0, 0, self.potentials[1])
 end
 
 function GkField:rkStepperFields()
@@ -160,18 +163,18 @@ end
 
 -- for RK timestepping for non-elliptic fields (e.g. only apar)
 function GkField:copyRk(outIdx, aIdx)
-   if self.isElectromagnetic then 
-      self.potentials[outIdx].apar:copy(self.potentials[aIdx].apar)
+   if self.isElectromagnetic and self:rkStepperFields()[aIdx] then 
+      self:rkStepperFields()[outIdx].apar:copy(self:rkStepperFields()[aIdx].apar)
    end
 end
 -- for RK timestepping for non-elliptic fields (e.g. only apar)
 function GkField:combineRk(outIdx, a, aIdx, ...)
-   if self.isElectromagnetic then
+   if self.isElectromagnetic and self:rkStepperFields()[aIdx] then
       local args = {...} -- package up rest of args as table
       local nFlds = #args/2
-      self.potentials[outIdx].apar:combine(a, self.potentials[aIdx].apar)
+      self:rkStepperFields()[outIdx].apar:combine(a, self:rkStepperFields()[aIdx].apar)
       for i = 1, nFlds do -- accumulate rest of the fields
-         self.potentials[outIdx].apar:accumulate(args[2*i-1], self.potentials[args[2*i]].apar)
+         self:rkStepperFields()[outIdx].apar:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]].apar)
       end	 
    end
 end
@@ -380,17 +383,25 @@ end
 function GkField:accumulateCurrent(dt, current, em)
 end
 
-function GkField:forwardEuler(tCurr, dt, potCurr, species, potNew)
+function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
+   local potCurr = self:rkStepperFields()[inIdx]
+   local potNew = self:rkStepperFields()[outIdx]
+
    if self.evolve or tCurr == 0.0 then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do
-         self.chargeDens:accumulate(s:getCharge(), s:getDens())
+         self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
       -- phi solve (elliptic, so update potCurr.phi)
       local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potCurr.phi})
 
+      -- apply BCs
+      local tmStart = Time.clock()
+      potCurr.phi:sync(true)
+      self.bcTime = self.bcTime + (Time.clock()-tmStart)
+ 
       return mys and mys2, math.min(mydt,mydt2)
    else
       -- just copy stuff over
@@ -403,7 +414,10 @@ function GkField:forwardEuler(tCurr, dt, potCurr, species, potNew)
    end
 end
 
-function GkField:forwardEulerStep2(tCurr, dt, potCurr, species, potNew)
+function GkField:forwardEulerStep2(tCurr, dt, species, inIdx, outIdx)
+   local potCurr = self:rkStepperFields()[inIdx]
+   local potNew = self:rkStepperFields()[outIdx]
+
    if self.evolve then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
@@ -415,8 +429,9 @@ function GkField:forwardEulerStep2(tCurr, dt, potCurr, species, potNew)
       end
       for nm, s in pairs(species) do
         if s:isEvolving() then 
-           self.massWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getDens())
-           self.currentDens:accumulate(s:getCharge(), s:getUpar())
+           self.massWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+           -- taking momDensity at outIdx gives momentum moment of df/dt
+           self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
         end
       end
       -- dApar/dt solve
@@ -461,13 +476,19 @@ function GkField:forwardEulerStep2(tCurr, dt, potCurr, species, potNew)
       -- advance Apar
       potNew.apar:combine(1.0, potCurr.apar, dt, dApardt)
 
+      -- apply BCs
+      local tmStart = Time.clock()
+      dApardt:sync(true)
+      potNew.apar:sync(true)
+      self.bcTime = self.bcTime + (Time.clock()-tmStart)
+
       return mys and mys2, math.min(mydt,mydt2)
    else
       return true, GKYL_MAX_DOUBLE
    end
 end
 
--- boundary conditions handled by solver. this just updates ghosts.
+-- NOTE: global boundary conditions handled by solver. this just updates interproc ghosts.
 function GkField:applyBc(tCurr, dt, potIn)
    local tmStart = Time.clock()
    potIn.phi:sync(true)
@@ -696,6 +717,9 @@ function GkGeometry:initField()
    self.geo.bdriftX:sync(false)
    self.geo.bdriftY:sync(false)
    self.geo.phiWall:sync(false)
+
+   -- apply BCs
+   self:applyBc(0, 0, self.geo)
 end
 
 function GkGeometry:write(tm)
@@ -716,7 +740,7 @@ function GkGeometry:rkStepperFields()
    return { self.geo, self.geo, self.geo, self.geo }
 end
 
-function GkGeometry:forwardEuler(tCurr, dt, momIn, geoIn, geoOut)
+function GkGeometry:forwardEuler(tCurr, dt)
    if self.evolve then 
       self.setPhiWall:advance(tCurr, dt, {}, self.geo.phiWall)
    end 
@@ -725,7 +749,7 @@ end
 
 function GkGeometry:applyBc(tCurr, dt, geoIn)
    if self.evolve then 
-      self.geo.phiWall:sync(false)
+      geoIn.phiWall:sync(false)
    end
 end
 
