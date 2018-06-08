@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 -- system libraries
+local EqBase = require "Eq.EqBase"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local VlasovModDecl = require "Eq.vlasovData.VlasovModDecl"
@@ -21,7 +22,7 @@ local function rescaleEmField(qbym, emIn, emOut)
 end
 
 -- Vlasov equation on a rectangular mesh
-local Vlasov = Proto()
+local Vlasov = Proto(EqBase)
 
 -- ctor
 function Vlasov:init(tbl)

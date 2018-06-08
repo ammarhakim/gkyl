@@ -11,12 +11,13 @@ local Proto        = require "Lib.Proto"
 local VmLBOModDecl = require "Eq.lboData.VmLBOModDecl"
 local ffi          = require "ffi"
 local xsys         = require "xsys"
+local EqBase       = require "Eq.EqBase"
 
 -- for incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
 -- Vlasov Lenard-Bernstein equation on a rectangular mesh.
-local VmLBO = Proto()
+local VmLBO = Proto(EqBase)
 
 -- ctor
 function VmLBO:init(tbl)

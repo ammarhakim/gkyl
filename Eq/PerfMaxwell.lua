@@ -9,6 +9,7 @@
 
 -- system libraries
 local BoundaryCondition = require "Updater.BoundaryCondition"
+local EqBase = require "Eq.EqBase"
 local MaxwellModDecl = require "Eq.maxwellData.MaxwellModDecl"
 local Proto = require "Lib.Proto"
 local ffi = require "ffi"
@@ -45,7 +46,7 @@ end
 local qFluctuations = loadstring( qFluctuationsTempl {} )()
 
 -- Perfectly hyperbolic Maxwell equations
-local PerfMaxwell = Proto()
+local PerfMaxwell = Proto(EqBase)
 
 -- ctor
 function PerfMaxwell:init(tbl)
