@@ -11,9 +11,10 @@ local Proto = require "Lib.Proto"
 local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 local ffi = require "ffi"
 local xsys = require "xsys"
+local EqBase = require "Eq.EqBase"
 
 -- ConstDiffusion equation on a rectangular mesh
-local ConstDiffusion = Proto()
+local ConstDiffusion = Proto(EqBase)
 
 -- ctor
 function ConstDiffusion:init(tbl)

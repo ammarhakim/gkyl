@@ -5,12 +5,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local EqBase = require "Eq.EqBase"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local Proto = require "Lib.Proto"
-local xsys = require "xsys"
 local Time = require "Lib.Time"
+local xsys = require "xsys"
 
-local Gyrokinetic = Proto()
+local Gyrokinetic = Proto(EqBase)
 
 -- ctor
 function Gyrokinetic:init(tbl)
