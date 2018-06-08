@@ -27,7 +27,8 @@ function AdiabaticSpecies:createSolver(hasE, hasB)
 end
 
 -- nothing to calculate, just copy
-function AdiabaticSpecies:calcCouplingMoments(tCurr, dt, fIn)
+function AdiabaticSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
+   local fIn = self:rkStepperFields()[rkIdx]
    self.couplingMoments:copy(fIn)
 end
 
@@ -36,8 +37,12 @@ function AdiabaticSpecies:fluidMoments()
 end
 
 -- for interfacing with GkField
-function AdiabaticSpecies:getDens()
-   return self.couplingMoments
+function AdiabaticSpecies:getNumDensity(rkIdx)
+   if rkIdx == nil then return self.couplingMoments 
+   else 
+      self.couplingMoments:copy(self:rkStepperFields()[rkIdx])
+      return self.couplingMoments
+   end
 end
 
 function AdiabaticSpecies:temp()

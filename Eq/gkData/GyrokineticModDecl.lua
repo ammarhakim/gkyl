@@ -52,6 +52,11 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
    end
 end
 
+function _M.selectStep2Vol(basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("EmGyrokineticStep2Vol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   return ffi.C[funcNm]
+end
+
 function _M.selectSheathDeltaPhi(basisNm, CDIM, polyOrder)
    local funcNm = string.format("calcSheathDeltaPhi%dx%s_P%d", CDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]

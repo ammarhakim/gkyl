@@ -31,6 +31,8 @@ function SpeciesBase:intMomCalcTime() end
 function SpeciesBase:totalBcTime() end
 function SpeciesBase:getCharge() end
 function SpeciesBase:getMass() end
+function SpeciesBase:copyRk() end
+function SpeciesBase:combineRk() end
 
 return SpeciesBase
 
