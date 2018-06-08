@@ -174,7 +174,14 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
 		  dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
-	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs) 
+	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+	    end
+	    if self._zeroFluxFlags[dir] then
+	       -- we need to give equations a chance to apply partial
+	       -- surface updates even when the zeroFlux BCs have been
+	       -- applied
+	       self._equation:boundarySurfTerm(
+		  dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
 	    end
 	 end
       end
