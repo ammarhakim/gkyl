@@ -27,10 +27,8 @@
 #endif
 
 
-#ifdef HAVE_MPI_H
 # include <mpi.h>
 # include <GkMpiFuncs.h>
-#endif
 
 #ifdef HAVE_ADIOS_H
 # include <adios.h>
@@ -66,11 +64,9 @@ int finish(int err) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   if (err != 0) {
-    adios_finalize(rank);
     MPI_Abort(MPI_COMM_WORLD, err);
   }
   else {
-    adios_finalize(rank);
     MPI_Finalize();
   }
 
@@ -186,7 +182,6 @@ main(int argc, char **argv) {
 #endif
 
   MPI_Init(&argc, &argv);
-  adios_init_noxml(MPI_COMM_WORLD);
   
   Logger logger;
 

@@ -137,7 +137,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData)
    flushData = xsys.pickBool(flushData, true) -- default flush data on write
 
    -- setup ADIOS for IO
-   --Adios.init_noxml(comm[0])
+   Adios.init_noxml(comm[0])
 
    -- create group and set I/O method
    local grpId = Adios.declare_group("DynVector", "", Adios.flag_no)
@@ -176,9 +176,9 @@ function DynVector:write(outNm, tmStamp, frNum, flushData)
    Adios.write(fd, "Data", self._ioBuff:data())
    
    Adios.close(fd)
-   --Adios.finalize(rank)
+   Adios.finalize(rank)
 
-    -- clear data for next round of IO
+   -- clear data for next round of IO
    if flushData then self:clear() end
 end
 

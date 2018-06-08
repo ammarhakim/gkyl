@@ -614,7 +614,7 @@ end
 
 function KineticSpecies:readRestart()
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
-   self.ioFrame = fr -- reset internal frame counter
+   self.distIoFrame = fr -- reset internal frame counter
    local _, dfr = self.integratedMoments:read(
       string.format("%s_intMom_restart.bp", self.name))
    self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
