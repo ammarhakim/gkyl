@@ -141,8 +141,7 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     self.dApardt:fill(self.dApardtIdxr(idx), self.dApardtPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), f:data(), out:data())
    else 
      res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
@@ -181,4 +180,111 @@ function Gyrokinetic:calcSheathPartialReflection(w, dv, edgeVal, vcut, f, fhat)
    return self._calcSheathPartialReflection(w, dv, edgeVal, vcut, f:data(), fhat:data())
 end
 
-return Gyrokinetic
+local GyrokineticStep2 = Proto()
+-- ctor
+function GyrokineticStep2:init(tbl)
+   -- get grid and basis
+   self._grid = assert(tbl.onGrid, "GyrokineticStep2: must specify a grid")
+   self._basis = assert(tbl.phaseBasis, "GyrokineticStep2: must specify a phaseBasis")
+   self._confBasis = assert(tbl.confBasis, "GyrokineticStep2: must specify confBasis")
+
+   self._ndim = self._grid:ndim()
+   local charge = assert(tbl.charge, "GyrokineticStep2: must specify charge using 'charge' ")
+   local mass = assert(tbl.mass, "GyrokineticStep2: must specify mass using 'mass' ")
+   self.charge = charge
+   self.mass = mass
+
+   self._ndim = self._basis:ndim()
+   self._cdim = self._confBasis:ndim()
+   self._vdim = self._ndim - self._cdim
+
+   self.Bvars = tbl.Bvars
+
+   local nm, p = self._basis:id(), self._basis:polyOrder()
+   self._volTerm = GyrokineticModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p)
+   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, true, self.Bvars)
+
+   self._isFirst = true
+
+   self.phiPtr = nil
+   self.bmagPtr = nil
+   self.bdriftXPtr = nil
+   self.bdriftYPtr = nil
+   self.aparPtr = nil
+   self.dApardtPtr = nil
+
+   self.phiIdxr = nil
+   self.bmagIdxr = nil
+   self.bdriftXIdxr = nil
+   self.bdriftYIdxr = nil
+   self.aparIdxr = nil
+   self.dApardtIdxr = nil
+   
+end
+
+function GyrokineticStep2:setAuxFields(auxFields)
+   local potentials = auxFields[1] -- first auxField is Field object
+   local geo = auxFields[2] -- second auxField is FuncField object
+
+   -- get phi, Apar, and dApar/dt
+   self.phi = potentials.phi
+   self.apar = potentials.apar
+   self.dApardt = potentials.dApardt
+
+   -- get magnetic geometry fields
+   self.bmag = geo.bmag
+   self.bmagInv = geo.bmagInv
+   self.bdriftX = geo.bdriftX
+   self.bdriftY = geo.bdriftY
+
+   if self._isFirst then
+      -- allocate pointers and indexers to field objects
+
+      -- potentials
+      self.phiPtr = self.phi:get(1)
+      self.phiIdxr = self.phi:genIndexer()
+      self.aparPtr = self.apar:get(1)
+      self.dApardtPtr = self.dApardt:get(1)
+      self.aparIdxr = self.apar:genIndexer()
+      self.dApardtIdxr = self.dApardt:genIndexer()
+
+      -- geometry
+      self.bmagPtr = self.bmag:get(1)
+      self.bmagInvPtr = self.bmagInv:get(1)
+      self.bdriftXPtr = self.bdriftX:get(1)
+      self.bdriftYPtr = self.bdriftY:get(1)
+      self.bmagIdxr = self.bmag:genIndexer()
+      self.bmagInvIdxr = self.bmagInv:genIndexer()
+      self.bdriftXIdxr = self.bdriftX:genIndexer()
+      self.bdriftYIdxr = self.bdriftY:genIndexer()
+
+      self._isFirst = false -- no longer first time
+   end
+end
+
+-- Volume integral term for use in DG scheme
+function GyrokineticStep2:volTerm(w, dx, idx, f, out)
+   self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
+   self.dApardt:fill(self.dApardtIdxr(idx), self.dApardtPtr)
+   return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.dApardtPtr:data(), f:data(), out:data())
+end
+
+-- Surface integral term for use in DG scheme 
+-- NOTE: only vpar direction for this term
+-- Surface integral term for use in DG scheme
+function GyrokineticStep2:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+   local tmStart = Time.clock()
+   self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+   self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
+   self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
+   self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
+   self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
+   self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
+   self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
+
+   local res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+
+   return res
+end
+
+return {GkEq = Gyrokinetic, GkEqStep2 = GyrokineticStep2} 
