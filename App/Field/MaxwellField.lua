@@ -310,6 +310,22 @@ function MaxwellField:rkStepperFields()
    return self.em
 end
 
+-- for RK timestepping
+function MaxwellField:copyRk(outIdx, aIdx)
+   if self:rkStepperFields()[aIdx] then self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx]) end
+end
+-- for RK timestepping
+function MaxwellField:combineRk(outIdx, a, aIdx, ...)
+   if self:rkStepperFields()[aIdx] then 
+      local args = {...} -- package up rest of args as table
+      local nFlds = #args/2
+      self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
+      for i = 1, nFlds do -- accumulate rest of the fields
+         self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+      end	 
+   end
+end
+
 function MaxwellField:accumulateCurrent(dt, current, em)
    if current == nil then return end
 
@@ -329,7 +345,7 @@ function MaxwellField:accumulateCurrent(dt, current, em)
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
-function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
+function MaxwellField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
    if self._isFirst then
       -- create field for total current density. need to do this here because
       -- field object does not know about vdim
@@ -345,6 +361,8 @@ function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
       self._isFirst = false
    end
 
+   local emIn = self:rkStepperFields()[inIdx]
+   local emOut = self:rkStepperFields()[outIdx]
    if self.evolve then
       local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
       if self.currentDens then -- no currents for source-free Maxwell
@@ -354,6 +372,10 @@ function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
 	 end
 	 self:accumulateCurrent(dt, self.currentDens, emOut)
       end
+      
+      -- apply BCs
+      self:applyBc(tCurr, dt, emOut)
+
       return mys, mydt
    else
       emOut:copy(emIn) -- just copy stuff over
@@ -480,7 +502,8 @@ function FuncMaxwellField:rkStepperFields()
    return { self.em, self.em, self.em, self.em }
 end
 
-function FuncMaxwellField:forwardEuler(tCurr, dt, momIn, emIn, emOut)
+function FuncMaxwellField:forwardEuler(tCurr, dt)
+   local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, dt, {}, {emOut})
    end

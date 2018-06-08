@@ -100,10 +100,13 @@ function VlasovSpecies:createSolver(hasE, hasB)
    end
 end
 
-function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
+function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
+   local fIn = self:rkStepperFields()[inIdx]
+   local fOut = self:rkStepperFields()[outIdx]
+
    -- accumulate functional Maxwell fields (if needed)
-   local emField = emIn[1]
-   local emFuncField = emIn[2]
+   local emField = emIn[1]:rkStepperFields()[inIdx]
+   local emFuncField = emIn[2]:rkStepperFields()[1]
    local totalEmField = nil
    if emFuncField then
       if emField then
@@ -141,9 +144,11 @@ function VlasovSpecies:forwardEuler(tCurr, dt, fIn, emIn, species, fOut)
 	 status = status and collStatus
 	 dtSuggested = math.min(dtSuggested, collDt)
       end
-      
-      return status, dtSuggested
    end
+
+   -- apply BCs
+   self:applyBc(tCurr, dt, fOut)
+
    return status, dtSuggested
 end
 
@@ -245,8 +250,9 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function VlasovSpecies:calcCouplingMoments(tCurr, dt, fIn)
+function VlasovSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    -- compute moments needed in coupling to fields and collisions
+   local fIn = self:rkStepperFields()[rkIdx]
    self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
    self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
    self.ptclEnergyCalc:advance(tCurr, dt, {fIn}, { self.ptclEnergy })
@@ -256,11 +262,21 @@ function VlasovSpecies:fluidMoments()
    return { self.numDensity, self.momDensity, self.ptclEnergy }
 end
 
-function VlasovSpecies:getNumDensity()
+function VlasovSpecies:getNumDensity(rkIdx)
+   -- if no rkIdx specified, assume numDensity has already been calculated
+   if rkIdx == nil then return self.numDensity end 
+
+   local fIn = self:rkStepperFields()[rkIdx]
+   self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
    return self.numDensity
 end
 
-function VlasovSpecies:getMomDensity()
+function VlasovSpecies:getMomDensity(rkIdx)
+   -- if no rkIdx specified, assume momDensity has already been calculated
+   if rkIdx == nil then return self.momDensity end 
+
+   local fIn = self:rkStepperFields()[rkIdx]
+   self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
    return self.momDensity
 end
 
