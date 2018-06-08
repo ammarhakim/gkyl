@@ -129,7 +129,7 @@ local ffi     = require 'ffi'
 local cblas_h = require 'sci._cblas_h'
 
 ffi.cdef(cblas_h)
-local blas = ffi.load('libopenblas')
+--local blas = ffi.load('libopenblas')
 
 local complex_a1 = ffi.typeof('complex[1]')
 local compflo_a1 = ffi.typeof('complex float[1]')

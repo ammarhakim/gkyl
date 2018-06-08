@@ -22,6 +22,7 @@ function SpeciesBase:initDist() end
 function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
+function SpeciesBase:readRestart() return 0.0 end
 function SpeciesBase:forwardEuler(tCurr, dt, fIn, emIn, fOut) end
 function SpeciesBase:applyBc(tCurr, dt, fld) end
 function SpeciesBase:totalSolverTime() end

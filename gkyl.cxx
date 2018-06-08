@@ -27,10 +27,8 @@
 #endif
 
 
-#ifdef HAVE_MPI_H
 # include <mpi.h>
 # include <GkMpiFuncs.h>
-#endif
 
 #ifdef HAVE_ADIOS_H
 # include <adios.h>
@@ -62,12 +60,16 @@ class Logger {
 
 // Finish simulation
 int finish(int err) {
-#ifdef HAVE_MPI_H
-  if (err != 0)
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (err != 0) {
     MPI_Abort(MPI_COMM_WORLD, err);
-  else 
+  }
+  else {
     MPI_Finalize();
-#endif
+  }
+
   return err;
 }
 
@@ -178,10 +180,9 @@ main(int argc, char **argv) {
 #elif defined(__GNUC__) || defined(__GNUG__)
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);  
 #endif
-  
-#ifdef HAVE_MPI_H
+
   MPI_Init(&argc, &argv);
-#endif
+  
   Logger logger;
 
   if ((argc != 2) && (argc !=3)) {
@@ -197,7 +198,7 @@ main(int argc, char **argv) {
     showUsage();
     return finish(1);
   }
-  f.close();  
+  f.close();
 
 // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
