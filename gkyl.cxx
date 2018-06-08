@@ -62,12 +62,18 @@ class Logger {
 
 // Finish simulation
 int finish(int err) {
-#ifdef HAVE_MPI_H
-  if (err != 0)
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (err != 0) {
+    adios_finalize(rank);
     MPI_Abort(MPI_COMM_WORLD, err);
-  else 
+  }
+  else {
+    adios_finalize(rank);
     MPI_Finalize();
-#endif
+  }
+
   return err;
 }
 
@@ -178,10 +184,10 @@ main(int argc, char **argv) {
 #elif defined(__GNUC__) || defined(__GNUG__)
   _MM_SET_FLUSH_ZERO_MODE(_MM_FLUSH_ZERO_ON);  
 #endif
-  
-#ifdef HAVE_MPI_H
+
   MPI_Init(&argc, &argv);
-#endif
+  adios_init_noxml(MPI_COMM_WORLD);
+  
   Logger logger;
 
   if ((argc != 2) && (argc !=3)) {

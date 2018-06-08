@@ -487,7 +487,7 @@ local function buildApplication(self, tbl)
       end
 
       -- triggers for restarts
-      local restartTrigger = LinearTrigger(tStart, tEnd, math.floor(1/restartFrameEvery))
+      local restartTrigger = LinearTrigger(0.0, tEnd, math.floor(1/restartFrameEvery))
       local nRestart = 0
       -- function to check if restart frame should happen
       local function checkWriteRestart(t)

@@ -113,7 +113,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum)
    local rank = Mpi.Comm_rank(comm)
 
    -- setup ADIOS for IO
-   Adios.init_noxml(comm)
+   --Adios.init_noxml(comm)
    --Adios.set_max_buffer_size(16) -- 16 MB chunks	 
 
    -- setup group and set I/O method
@@ -159,7 +159,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum)
    Adios.write(fd, "CartGridField", self._outBuff:data())
    Adios.close(fd)
    
-   Adios.finalize(rank)      
+   --Adios.finalize(rank)      
 end
 
 -- Read field from file.
@@ -199,7 +199,7 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
    local rank = Mpi.Comm_rank(comm)
 
    -- setup ADIOS for IO
-   Adios.init_noxml(comm)
+   --Adios.init_noxml(comm)
    --Adios.set_max_buffer_size(16) -- 16 MB chunks	 
 
    -- setup group and set I/O method
@@ -244,7 +244,7 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
    -- copy output buffer into field
    field:_copy_to_field_region(field:localRange(), self._outBuff)
    
-   Adios.finalize(rank)
+   --Adios.finalize(rank)
 
    return tmStampBuff[0], frNumBuff[0]
 end
