@@ -64,6 +64,7 @@ function test_5()
    local trig = LinearTrigger(0.0, 50.0, 10)
    assert_equal(true, trig(0.0), "Checking trigger")
    assert_equal(false, trig(0.01), "Checking trigger")
+   assert_equal(true, trig(50.01), "Checking trigger")
 end
 
 test_1()
