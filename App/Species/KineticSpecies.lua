@@ -612,6 +612,15 @@ function KineticSpecies:writeRestart(tm)
       string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
 end
 
+function KineticSpecies:readRestart()
+   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
+   self.distIoFrame = fr -- reset internal frame counter
+   local _, dfr = self.integratedMoments:read(
+      string.format("%s_intMom_restart.bp", self.name))
+   self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
+   return tm
+end
+
 -- timers
 function KineticSpecies:totalSolverTime()
    return self.solver.totalTime

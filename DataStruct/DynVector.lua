@@ -178,7 +178,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData)
    Adios.close(fd)
    Adios.finalize(rank)
 
-    -- clear data for next round of IO
+   -- clear data for next round of IO
    if flushData then self:clear() end
 end
 
