@@ -9,9 +9,28 @@ local ffi = require "ffi"
 local Unit = require "Unit"
 local Grid = require "Grid"
 local DataStruct = require "DataStruct"
+local Mpi = require "Comm.Mpi"
+
+local xsys = require "xsys"
+local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, copy, fill, sizeof, typeof, metatype")
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
+
+function log(msg)
+   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   if rank == 0 then
+      print(msg)
+   end
+end
+
+function allReduceOneInt(localv)
+   local sendbuf, recvbuf = new("int[1]"), new("int[1]")
+   sendbuf[0] = localv
+   Mpi.Allreduce(sendbuf, recvbuf, 1, Mpi.INT, Mpi.SUM, Mpi.COMM_WORLD)
+   return recvbuf[0]
+end
 
 function test_1()
    local dynVec = DataStruct.DynVector { numComponents = 3 }
@@ -93,9 +112,12 @@ test_2()
 test_2r()
 test_3()
 
-if stats.fail > 0 then
-   print(string.format("\nPASSED %d tests", stats.pass))
-   print(string.format("**** FAILED %d tests", stats.fail))
+totalFail = allReduceOneInt(stats.fail)
+totalPass = allReduceOneInt(stats.pass)
+
+if totalFail > 0 then
+   log(string.format("\nPASSED %d tests", totalPass))   
+   log(string.format("**** FAILED %d tests", totalFail))
 else
-   print(string.format("PASSED ALL %d tests!", stats.pass))
+   log(string.format("PASSED ALL %d tests!", totalPass))
 end
