@@ -249,6 +249,7 @@ local function buildApplication(self, tbl)
    local function writeRestart(tCurr)
       for _, s in pairs(species) do s:writeRestart(tCurr) end
       field:writeRestart(tCurr)
+      funcField:writeRestart(tCurr)
    end
 
    -- function to read from restart frame
@@ -258,6 +259,7 @@ local function buildApplication(self, tbl)
 	 rTime = s:readRestart()
       end
       field:readRestart()
+      funcField:readRestart()
       return rTime
    end
 

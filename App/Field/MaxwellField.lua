@@ -485,17 +485,26 @@ end
 function FuncMaxwellField:write(tm)
    if self.evolve then
       if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
       end
       self.ioFrame = self.ioFrame+1
    end
+end
+
+function FuncMaxwellField:writeRestart(tm)
+   self.fieldIo:write(self.em, "func_field_restart.bp", tm, self.ioFrame)
+end
+
+function FuncMaxwellField:readRestart()
+   local tm, fr = self.fieldIo:read(self.em, "func_field_restart.bp")
+   self.ioFrame = fr
 end
 
 function FuncMaxwellField:rkStepperFields()

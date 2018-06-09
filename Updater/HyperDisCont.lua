@@ -129,7 +129,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       qOut:clear(0.0) -- clear output field before computing vol/surf increments
    end
    -- accumulate contributions from volume and surface integrals
-   for _, dir in ipairs(self._updateDirs) do
+  for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
