@@ -635,6 +635,10 @@ end
 
 function KineticSpecies:readRestart()
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
+
+   self:applyBc(tm, 0.0, self.distf[1])
+   self.distf[1]:sync() -- must get all ghost-cell data correct   
+   
    self.distIoFrame = fr -- reset internal frame counter
    local _, dfr = self.integratedMoments:read(
       string.format("%s_intMom_restart.bp", self.name))

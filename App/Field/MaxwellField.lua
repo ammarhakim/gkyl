@@ -302,6 +302,9 @@ end
 
 function MaxwellField:readRestart()
    local tm, fr = self.fieldIo:read(self.em[1], "field_restart.bp")
+   self:applyBc(tm, 0.0, self.em[1])
+   self.em[1]:sync() -- must get all ghost-cell data correct
+     
    self.ioFrame = fr
    self.emEnergy:read("fieldEnergy_restart.bp", tm)
 end
@@ -504,6 +507,8 @@ end
 
 function FuncMaxwellField:readRestart()
    local tm, fr = self.fieldIo:read(self.em, "func_field_restart.bp")
+   self.em:sync() -- must get all ghost-cell data correct
+   
    self.ioFrame = fr
 end
 
