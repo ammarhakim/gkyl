@@ -11,6 +11,7 @@ def build(bld):
 
     lboData/VmLBOconstNuSer1x1v.cpp
     lboData/VmLBOconstNuSurfSer1x1v.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x1v.cpp
     lboData/VmLBOconstNuSer1x2v.cpp
     lboData/VmLBOconstNuSurfSer1x2v.cpp
     lboData/VmLBOconstNuSer1x3v.cpp

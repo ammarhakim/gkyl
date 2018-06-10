@@ -7,6 +7,16 @@
 /* To avoid the expensive symbolic matrix inversion in
    Maxima we use Eigen to solve the system. */
 
+/* This string indicates which formulas do we want to use
+   to compute cross species primitive moments. The options are
+     - "Shi":       the approach in Eric Shi's PhD thesis (2017).
+     - "JunoLimit": Formulas derived by Jimmy Juno in the m_i>>m_e
+                    and m_e*T_i<< m_i*T_e limits.
+     - "JunoFull":  Formulas derived by Jimmy Juno without taking
+                    the above limit. */
+
+CrossPrimMomDef : "Shi"$
+
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$

@@ -15,6 +15,8 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
+varsV : [vx, vy, vz]$
+
 writeCExprsB(lhs, rhs) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
@@ -69,6 +71,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "void ~a_P~a(const double *m0, const double *m1, const double *m2, const double *fvmin, const double *fvmax, const double *vmin, const double *vmax, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // m0,m1,m2:     moments of the distribution function. ~%"),
     printf(fh, "  // fvmax, fvmin: distribution function at the velocity boundaries. ~%"),
+    printf(fh, "  // vmax, vmin:   maximum and minimum velocity of the velocity grid. ~%"),
     printf(fh, "  // u:            velocity. ~%"),
     printf(fh, "  // vtSq:         squared thermal speed, sqrt(T/m). ~%"),
     printf(fh, " ~%"),
@@ -160,7 +163,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     /*........... M0 shifted by correction due to finite velocity grid .............*/
-    printf(fh, "  // ....... M0-(v*f)|^(+vmax)_(-vmax) .......... // ~%"),
+    printf(fh, "  // ....... M0-\sum_i \int dS_i (v_i*f)|^(vmax_i)_(vmin_i) .......... // ~%"),
     printf(fh, "  double m0c[~a]; ~%", NC),
 
     fvmin_e : doExpand1(fvmin,bP),
@@ -169,11 +172,27 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     vmin_c : makelist(vmin[i],i,0,vdim-1),
     vmax_c : makelist(vmax[i],i,0,vdim-1),
 
-    fvmin_c : calcInnerProdList(varsC,1,bC,subst(vx=-1,vx*fvmin_e)),
-    fvmax_c : calcInnerProdList(varsC,1,bC,subst(vx=1,vx*fvmax_e)),
+    m0c_c : (
+      m0c_c : m0_c,
+      for vd : 1 thru vdim do (
+        vv : varsV[vd],
+        surfVars : delete(vv,varsP),
+
+        fvmin_c : calcInnerProdList(surfVars,1,bC,subst(vv=-1,vv*fvmin_e)),
+        fvmax_c : calcInnerProdList(surfVars,1,bC,subst(vv=1,vv*fvmax_e)),
+
+        /* fvmin and fvmax will be a vector with the expansion coefficients
+           at the velocity boundaries in each direction. */
+        fvmin_c : subst(makelist(fvmin[i]=fvmin[(vd-1)*NP+i],i,0,NP-1),fvmin_c),
+        fvmax_c : subst(makelist(fvmax[i]=fvmax[(vd-1)*NP+i],i,0,NP-1),fvmax_c),
+
+        m0c_c : m0c_c - (vmax_c[vd]*fvmax_c-vmin_c[vd]*fvmin_c) 
+      ),
+      m0c_c
+    ),
 
     clst : append(vmin_c,vmax_c),
-    writeCExprsCollect1(m0c,m0_c-(vmax_c[1]*fvmax_c-vmin_c[1]*fvmin_c),clst),
+    writeCExprsCollect1(m0c,m0c_c,clst),
     printf(fh, " ~%"), 
 
     /*........... Calculate vtSq through weak division of thEnergyDens by m0c .............*/
