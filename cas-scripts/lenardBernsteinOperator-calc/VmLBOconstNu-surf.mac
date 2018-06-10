@@ -8,7 +8,8 @@ fpprec : 24$
    two integrations by parts for the diffusive term and
    a constant collisionality nu. */
 
-cvars : [X, Y, Z]$
+cvars : [x, y, z]$
+cVars : [X, Y, Z]$
 varsV : [vx, vy, vz]$
 vvars : [VX, VY, VZ]$
 ux    : [nuUx, nuUy, nuUz]$
