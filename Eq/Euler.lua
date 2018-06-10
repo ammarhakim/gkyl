@@ -7,7 +7,6 @@
 
 -- system libraries
 local BoundaryCondition = require "Updater.BoundaryCondition"
-local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local ffi = require "ffi"
 local xsys = require "xsys"

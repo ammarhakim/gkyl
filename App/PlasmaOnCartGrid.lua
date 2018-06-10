@@ -199,8 +199,6 @@ local function buildApplication(self, tbl)
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
    if field == nil then field = Field.NoField {} end
-   -- store fields from EM field for RK time-stepper
-   local emRkFields = field:rkStepperFields()
 
    -- initialize funcField, which is sometimes needed to initialize species
    local funcField = nil
@@ -214,18 +212,13 @@ local function buildApplication(self, tbl)
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
    if funcField == nil then funcField = Field.NoField {} end
-   -- store fields from funcField for RK time-stepper
-   local emRkFuncFields = funcField:rkStepperFields()
    funcField:createSolver()
    funcField:initField()
-   funcField:applyBc(0, 0, emRkFuncFields[1])
    
    -- initialize species solvers and diagnostics
-   local speciesRkFields = { }
    for nm, s in pairs(species) do
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
-      speciesRkFields[nm] = s:rkStepperFields()
       s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
       s:initDist()
       s:createDiagnostics()
@@ -233,23 +226,18 @@ local function buildApplication(self, tbl)
 
    -- initialize field (sometimes requires species to have been initialized)
    for nm, s in pairs(species) do
-      s:calcCouplingMoments(0, 0, speciesRkFields[nm][1])
+      s:calcCouplingMoments(0, 0, 1)
    end
    field:createSolver(species)
    field:initField(species)
-   field:applyBc(0, 0, emRkFields[1])
 
    -- apply species BCs 
    for nm, s in pairs(species) do
       -- this is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver
-      s:forwardEuler(0, 0, speciesRkFields[nm][1],
-		     {emRkFields[1], emRkFuncFields[1]},
-		     species, speciesRkFields[nm][2])
+      s:forwardEuler(0, 0, species, {field, funcField}, 1, 2)
       -- restore initial condition
       s:initDist()
-      -- apply BCs
-      s:applyBc(0, 0, speciesRkFields[nm][1])
    end
 
    -- function to write data to file
@@ -263,13 +251,32 @@ local function buildApplication(self, tbl)
    local function writeRestart(tCurr)
       for _, s in pairs(species) do s:writeRestart(tCurr) end
       field:writeRestart(tCurr)
+      funcField:writeRestart(tCurr)
    end
 
-   writeData(0.0) -- write initial conditions
+   -- function to read from restart frame
+   local function readRestart() --> time at which restart was written
+      local rTime = 0.0
+      for _, s in pairs(species) do
+	 rTime = s:readRestart()
+      end
+      field:readRestart()
+      funcField:readRestart()
+      return rTime
+   end
 
-   -- determine if field equations are elliptic 
-   local ellipticFieldEqn = false
-   if field.isElliptic ~= nil then ellipticFieldEqn = field.isElliptic end
+   local tStart = 0.0 -- by default start at t=0
+   if GKYL_COMMAND == "restart" then
+      -- give everyone a chance to adjust ICs based on restart frame
+      -- and adjust tStart accordingly
+      tStart = readRestart()
+   else
+      writeData(0.0) -- write initial conditions
+   end
+
+   -- determine whether we need two steps in forwardEuler
+   local step2 = false
+   if field.step2 ~= nil then step2 = field.step2 end
 
    -- function to take a single forward-euler time-step
    local function forwardEuler(tCurr, dt, inIdx, outIdx)
@@ -279,71 +286,58 @@ local function buildApplication(self, tbl)
       for nm, s in pairs(species) do
 	 -- compute moments needed in coupling with fields and
 	 -- collisions (the species should update internal datastructures). 
-         s:calcCouplingMoments(tCurr, dt, speciesRkFields[nm][inIdx])
+         s:calcCouplingMoments(tCurr, dt, inIdx)
       end
-      if ellipticFieldEqn then
-        -- if field equation is elliptic, calculate field 
-        -- that is self-consistent with speciesRkFields[inIdx] 
-        -- to use in species update
-        local myStatus, myDtSuggested = field:forwardEuler(
-           tCurr, dt, emRkFields[inIdx], species, emRkFields[inIdx])
-        field:applyBc(tCurr, dt, emRkFields[inIdx])
-        status = status and myStatus
-        dtSuggested = math.min(dtSuggested, myDtSuggested)
-      else
-        -- otherwise evolve field inIdx -> outIdx
-        local myStatus, myDtSuggested = field:forwardEuler(
-           tCurr, dt, emRkFields[inIdx], species, emRkFields[outIdx])
-        field:applyBc(tCurr, dt, emRkFields[outIdx])
-        status = status and myStatus
-        dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
+      -- note that this can be either an elliptic solve, which updates inIdx
+      -- or a hyperbolic solve, which updates outIdx, or a combination of both
+      local myStatus, myDtSuggested = field:forwardEuler(tCurr, dt, species, inIdx, outIdx)
+      status = status and myStatus
+      dtSuggested = math.min(dtSuggested, myDtSuggested)
 
       -- compute functional field (if any)
-      funcField:forwardEuler(tCurr, dt, nil, nil, emRkFuncFields[1])
+      funcField:forwardEuler(tCurr, dt)
       
       -- update species
       for nm, s in pairs(species) do
-	 local myStatus, myDtSuggested = s:forwardEuler(
-	    tCurr, dt, speciesRkFields[nm][inIdx],
-	    {emRkFields[inIdx], emRkFuncFields[1]}, species,
-	    speciesRkFields[nm][outIdx])
+         local myStatus, myDtSuggested = s:forwardEuler(tCurr, dt, species, {field, funcField}, inIdx, outIdx)
 
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
 
-	 s:applyBc(tCurr, dt, speciesRkFields[nm][outIdx])
+      -- some systems (e.g. EM GK) require a second step to complete the forward Euler
+      if step2 then      
+         -- update EM field.. step 2 (if necessary). 
+         -- note: no calcCouplingMoments call because field:forwardEulerStep2 either reuses already calculated moments, 
+         --       or other moments are calculated in field:forwardEulerStep2
+         local myStatus, myDtSuggested = field:forwardEulerStep2(tCurr, dt, species, inIdx, outIdx)
+         status = status and myStatus
+         dtSuggested = math.min(dtSuggested, myDtSuggested)
+
+         -- update species.. step 2 (if necessary)
+         for nm, s in pairs(species) do
+            local myStatus, myDtSuggested = s:forwardEulerStep2(tCurr, dt, species, {field, funcField}, inIdx, outIdx)
+
+            status = status and myStatus
+            dtSuggested = math.min(dtSuggested, myDtSuggested)
+         end
       end
 
       return status, dtSuggested
    end
 
    -- various functions to copy/increment fields
-   local function copy1(aIdx, outIdx)
-      for nm, _ in pairs(species) do
-	 speciesRkFields[nm][outIdx]:copy(speciesRkFields[nm][aIdx])
+   local function copy(outIdx, aIdx)
+      for nm, s in pairs(species) do
+         s:copyRk(outIdx, aIdx)
       end
-      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
-	 emRkFields[outIdx]:copy(emRkFields[aIdx])
-      end
+      field:copyRk(outIdx, aIdx)
    end
-   local function combine2(a, aIdx, b, bIdx, outIdx)
-      for nm, _ in pairs(species) do
-	 speciesRkFields[nm][outIdx]:combine(a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx])
+   local function combine(outIdx, a, aIdx, ...)
+      for nm, s in pairs(species) do
+         s:combineRk(outIdx, a, aIdx, ...)
       end
-      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
-	 emRkFields[outIdx]:combine(a, emRkFields[aIdx], b, emRkFields[bIdx])
-      end
-   end
-   local function combine3(a, aIdx, b, bIdx, c, cIdx, outIdx)
-      for nm, _ in pairs(species) do
-	 speciesRkFields[nm][outIdx]:combine(
-	    a, speciesRkFields[nm][aIdx], b, speciesRkFields[nm][bIdx], c, speciesRkFields[nm][cIdx])
-      end
-      if emRkFields[aIdx] and not ellipticFieldEqn then -- only increment EM fields if there are any
-	 emRkFields[outIdx]:combine(
-	    a, emRkFields[aIdx], b, emRkFields[bIdx], c, emRkFields[cIdx])
-      end
+      field:combineRk(outIdx, a, aIdx, ...)
    end
 
    -- various time-steppers. See gkyl docs for formulas for various
@@ -358,7 +352,7 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
       local tm = Time.clock()
-      copy1(2, 1)
+      copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested 
@@ -376,8 +370,8 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       local tm = Time.clock()
-      combine2(1.0/2.0, 1, 1.0/2.0, 3, 2)
-      copy1(2, 1)
+      combine(2, 1.0/2.0, 1, 1.0/2.0, 3)
+      copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
@@ -394,15 +388,15 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(3.0/4.0, 1, 1.0/4.0, 3, 2)
+      combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 2, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/3.0, 1, 2.0/3.0, 3, 2)
-      copy1(2, 1)
+      combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
+      copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
@@ -415,28 +409,28 @@ local function buildApplication(self, tbl)
       status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/2.0, 1, 1.0/2.0, 2, 3)
+      combine(3, 1.0/2.0, 1, 1.0/2.0, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 2
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 3, 4)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/2.0, 3, 1.0/2.0, 4, 2)
+      combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
       status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine3(2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3, 4)
+      combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 4
       status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 4, 3)
       if status == false then return status, dtSuggested end
       tm = Time.clock()
-      combine2(1.0/2.0, 4, 1.0/2.0, 3, 1)
+      combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       return status, dtSuggested
@@ -452,23 +446,27 @@ local function buildApplication(self, tbl)
    -- return function that runs main simulation loop
    return function(self)
       log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
-      local tStart, tEnd = 0, tbl.tEnd
+      local tStart, tEnd = tStart, tbl.tEnd
+
+      -- sanity check: don't run if not needed
+      if tStart >= tEnd then return end
+      
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
-      local frame = 1
       local step = 1
       local tCurr = tStart
       local myDt = initDt
       local maxDt = tbl.maximumDt and tbl.maximumDt or GKYL_MAX_DOUBLE -- max time-step
 
       -- triggers for 10% and 1% loggers
-      local logTrigger = LinearTrigger(tStart, tEnd, 10)
-      local logTrigger1p = LinearTrigger(tStart, tEnd, 100)
+      local logTrigger = LinearTrigger(0, tEnd, 10)
+      local logTrigger1p = LinearTrigger(0, tEnd, 100)
       local tenth = 0
-
-      local tmSimStart = Time.clock()      
+      if tStart > 0 then
+	 tenth = math.floor(tStart/tEnd*10)
+      end
 
       -- triggers for restarts
-      local restartTrigger = LinearTrigger(tStart, tEnd, math.floor(1/restartFrameEvery))
+      local restartTrigger = LinearTrigger(0.0, tEnd, math.floor(1/restartFrameEvery))
       local nRestart = 0
       -- function to check if restart frame should happen
       local function checkWriteRestart(t)
@@ -480,11 +478,20 @@ local function buildApplication(self, tbl)
       end
 
       local p1c = 0
+      if tStart > 0 then
+	 p1c = math.floor(tStart/tEnd*100) % 10
+      end
+
+      local logCount = 0 -- this is needed to avoid initial log message
       -- for writing out log messages
-      local function writeLogMessage(tCurr, myDt)
+      local function writeLogMessage(tCurr)
 	 if logTrigger(tCurr) then
-	    log (string.format(
-		    " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
+	    if logCount > 0 then
+	       log (string.format(
+		       " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
+	    else
+	       logCount = logCount+1
+	    end
 	    tenth = tenth+1
 	 end
 	 if logTrigger1p(tCurr) then
@@ -493,14 +500,14 @@ local function buildApplication(self, tbl)
 	 end
       end
 
+      local tmSimStart = Time.clock()
       -- main simulation loop
       while true do
-	 if tCurr+myDt > tEnd then myDt = tEnd-tCurr end
 	 -- call time-stepper
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
 	 -- check status and determine what to do next
 	 if status then
-	    writeLogMessage(tCurr, myDt)
+	    writeLogMessage(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
 	    end	    
@@ -517,7 +524,6 @@ local function buildApplication(self, tbl)
 	    myDt = dtSuggested
 	 end
       end
-      writeLogMessage(tCurr, myDt)
       local tmSimEnd = Time.clock()
 
       -- compute time spent in various parts of code
@@ -562,7 +568,7 @@ function App:init(tbl)
 end
 
 function App:run()
-   if GKYL_COMMAND == "run" then
+   if GKYL_COMMAND == "run" or GKYL_COMMAND == "restart" then
       return self:_runApplication()
    elseif GKYL_COMMAND == "init" then
       return function (...) end

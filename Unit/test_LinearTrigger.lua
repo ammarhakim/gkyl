@@ -47,23 +47,30 @@ function test_1()
    assert_equal(false, trig(1.01), "Checking linear trigger 1.01")
 end
 
-function test_2()
-   trig = LinearTrigger(0.0, 1.5, 22)
+function test_3()
+   local trig = LinearTrigger(0.0, 10.0, 10)
+   assert_equal(true, trig(0.1), "Checking trigger")
+end
 
-   local nsteps = 25
-   local dt = 1.5/nsteps
+function test_4()
+   local trig = LinearTrigger(0.0, 50.0, 10)
+   assert_equal(true, trig(5.01), "Checking trigger")
+   assert_equal(false, trig(5.02), "Checking trigger")
+   assert_equal(true, trig(10.02), "Checking trigger")
+   assert_equal(false, trig(10.03), "Checking trigger")
+end
 
-   local count = 0
-   for s = 1, nsteps+1 do
-      if trig(s*dt) then
-	 count = count + 1
-      end
-   end
-   assert_equal(23, count, "Checking if count is correct")
+function test_5()
+   local trig = LinearTrigger(0.0, 50.0, 10)
+   assert_equal(true, trig(0.0), "Checking trigger")
+   assert_equal(false, trig(0.01), "Checking trigger")
+   assert_equal(true, trig(50.01), "Checking trigger")
 end
 
 test_1()
-test_2()
+test_3()
+test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

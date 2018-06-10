@@ -11,12 +11,13 @@ local Proto        = require "Lib.Proto"
 local VmLBOModDecl = require "Eq.lboData.VmLBOModDecl"
 local ffi          = require "ffi"
 local xsys         = require "xsys"
+local EqBase       = require "Eq.EqBase"
 
 -- for incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
 -- Vlasov Lenard-Bernstein equation on a rectangular mesh.
-local VmLBO = Proto()
+local VmLBO = Proto(EqBase)
 
 -- ctor
 function VmLBO:init(tbl)
@@ -38,18 +39,20 @@ function VmLBO:init(tbl)
    if self._inNu then
       self._volUpdate  = VmLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._boundarySurfUpdate = VmLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    else
       self._volUpdate  = VmLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._boundarySurfUpdate = VmLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
-   -- flow speed field object and pointers to cell values.
-   self._flowU = nil
-   -- thermal speed squared field object and pointers to cell values.
-   self._vthSq = nil
+   -- bulk velocity times collisionality field object and pointers to cell values.
+   self._uNu = nil
+   -- thermal speed squared times collisionality field object and pointers to cell values.
+   self._vthSqNu = nil
    -- (these will be set on the first call to setAuxFields() method).
-   self._flowUPtr, self._flowUIdxr = nil, nil
-   self._vthSqPtr, self._vthSqIdxr = nil, nil
+   self._uNuPtr, self._uNuIdxr = nil, nil
+   self._vthSqNuPtr, self._vthSqNuIdxr = nil, nil
 
    if not self._inNu then
      self._nu = nil
@@ -94,13 +97,13 @@ end
 
 -- Volume integral term for use in DG scheme.
 function VmLBO:volTerm(w, dx, idx, q, out)
-   self._flowU:fill(self._flowUIdxr(idx), self._flowUPtr) -- get pointer to flowU field.
-   self._vthSq:fill(self._vthSqIdxr(idx), self._vthSqPtr) -- get pointer to vthSq field.
+   self._uNu:fill(self._uNuIdxr(idx), self._uNuPtr) -- get pointer to uNu field.
+   self._vthSqNu:fill(self._vthSqNuIdxr(idx), self._vthSqNuPtr) -- get pointer to vthSqNu field.
    if self._inNu then
-     cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._flowUPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
+     cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
    else
      self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- get pointer to nu field.
-     cflFreq = self._volUpdate(w:data(), dx:data(), self._nuPtr:data(), self._flowUPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
+     cflFreq = self._volUpdate(w:data(), dx:data(), self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
    end
    return cflFreq
 end
@@ -108,37 +111,56 @@ end
 -- Surface integral term for use in DG scheme.
 function VmLBO:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
-   -- set pointer to flowU and vthSq fields.
-   self._flowU:fill(self._flowUIdxr(idxl), self._flowUPtr) -- get pointer to flowU field.
-   self._vthSq:fill(self._vthSqIdxr(idxl), self._vthSqPtr) -- get pointer to vthSq field.
+   -- set pointer to uNu and vthSqNu fields.
+   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
+   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
    if dir > self._cdim then
      if self._inNu then
        vMuMidMax = self._surfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._flowUPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      else
        self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
        vMuMidMax = self._surfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), self._nuPtr:data(), maxs, self._flowUPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          wl:data(), wr:data(), dxl:data(), dxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+     end
+   end
+   return vMuMidMax
+end
+
+-- Contribution from surface integral term at the boundaries for use in DG scheme.
+function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+   local vMuMidMax = 0.0
+   -- set pointer to uNu and vthSqNu fields.
+   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
+   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
+   if dir > self._cdim then
+     if self._inNu then
+       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+     else
+       self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
+       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
 end
 
 function VmLBO:setAuxFields(auxFields)
-   -- single aux field that has the full flowU field.
-   self._flowU = auxFields[1]
-   self._vthSq = auxFields[2]
+   -- single aux field that has the full uNu field.
+   self._uNu     = auxFields[1]
+   self._vthSqNu = auxFields[2]
    if not self._inNu then
      self._nu  = auxFields[3]
    end
 
    if self._isFirst then
       -- allocate pointers to field object.
-      self._flowUPtr  = self._flowU:get(1)
-      self._flowUIdxr = self._flowU:genIndexer()
+      self._uNuPtr  = self._uNu:get(1)
+      self._uNuIdxr = self._uNu:genIndexer()
 
-      self._vthSqPtr  = self._vthSq:get(1)
-      self._vthSqIdxr = self._vthSq:genIndexer()
+      self._vthSqNuPtr  = self._vthSqNu:get(1)
+      self._vthSqNuIdxr = self._vthSqNu:genIndexer()
 
       if not self._inNu then
          self._nuPtr     = self._nu:get(1)
@@ -159,6 +181,9 @@ function VmLBO:volUpdate()
 end
 function VmLBO:surfUpdate()
    return self._surfUpdate
+end
+function VmLBO:boundarySurfUpdate()
+   return self._boundarySurfUpdate
 end
 
 return VmLBO

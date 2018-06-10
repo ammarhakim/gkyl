@@ -136,7 +136,6 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
       Bfld:fill(BfldIndexer(idx), BfldItr)
       uOut:fill(uOutIndexer(idx), uOutItr)
 
-      -- self._BinOpCalc(AfldItr:data(), BfldItr:data(), Bfld:numComponents(), nCompEq, uOutItr:data())
       self._BinOpCalc(AfldItr:data(), BfldItr:data(), nComp, nCompEq, uOutItr:data())
    end
 

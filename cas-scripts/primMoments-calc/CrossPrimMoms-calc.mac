@@ -1,0 +1,29 @@
+load("primMoments-calc/CrossPrimMoms-VmLBO")$
+load(stringproc)$
+
+/* Maximum polynomial order to generate kernels for */
+inMaxPolyOrder : 4$
+
+for c : 1 thru 2 do (
+  for v : c thru 3 do (
+    disp(printf(false,"Creating CrossPrimMoments VmLBO-~ax~av",c,v)),
+    fname : sconcat("~/max-out/CrossPrimMoments_VmLBO_Ser", c, "x", v, "v", ".cpp"),
+    fh : openw(fname),
+
+    printf(fh, "#include <math.h> ~%"),
+    printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+    printf(fh, " ~%"),
+    printf(fh, "using namespace Eigen; ~%"),
+    printf(fh, " ~%"),
+
+    funcName : sconcat("CrossPrimMoments_VmeiLBO_", c, "x", v, "v", "Ser"),
+    calcCrossPrimMomsVmLBOei(fh, funcName, c, v, "Ser", inMaxPolyOrder),
+
+    funcName : sconcat("CrossPrimMoments_VmieLBO_", c, "x", v, "v", "Ser"),
+    calcCrossPrimMomsVmLBOie(fh, funcName, c, v, "Ser", inMaxPolyOrder),
+
+    close(fh)
+  )
+);
+
+

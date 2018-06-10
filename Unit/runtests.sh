@@ -90,6 +90,11 @@ cmd="$GKYL test_DynVector.lua"
 echo "${ctext}${cmd}${reset}"
 $cmd
 
+# DynVector (parallel)
+cmd="MPIEXEC -n 2 $GKYL test_DynVector.lua"
+echo "${ctext}${cmd}${reset}"
+$cmd
+
 # Euler
 cmd="$GKYL test_Euler.lua"
 echo "${ctext}${cmd}${reset}"

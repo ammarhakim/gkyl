@@ -1,16 +1,16 @@
-load("modal-basis");
-load("out-scripts");
+load("modal-basis")$
+load("out-scripts")$
 load(stringproc)$
 fpprec : 24$
 
-wc : [wx, wy, wz, wv, wm];
-wc2 : [wx2, wy2, wz2, wv2, wm2];
-derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m];
-derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2];
-gkvsub:[vx=vpar,vy=mu];
+wc : [wx, wy, wz, wv, wm]$
+wc2 : [wx2, wy2, wz2, wv2, wm2]$
+derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m]$
+derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2]$
+gkvsub:[vx=vpar,vy=mu]$
 
-let (wv^2, wv2);
-let (dfac_v^2, dfac_v2);
+let (wv^2, wv2)$
+let (dfac_v^2, dfac_v2)$
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
@@ -22,10 +22,10 @@ doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, leng
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 /* set up some vector calculus functions */
-load("vect");
-fgrad(f):= ev(express(grad(f)),diff)*derivfacsC;
+load("vect")$
+fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
-gkPB(f,g):=1/m_*Bstar_by_Bmag_expd.(fgrad(f)*dfac_v*diff(g,vpar)-fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
+gkPB(f,g):=1/m_*Bstar_by_Bmag_expd.(fgrad(f)*dfac_v*diff(g,vpar)-fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
 
 calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, pmax, emflag, bvarslist) := block([],
 kill(varsC, varsP, basisC, basisP),
@@ -98,9 +98,8 @@ for i : 1 thru pmax do (
   /* expand Phi */
   Phi_expd:doExpand1(Phi,bC),
   if emflag then (
-    /* expand Apar */
+    /* expand Apar and dApar/dt */
     Apar_expd:doExpand1(Apar,bC),
-    /* expand dApar/dt */
     dAdt_expd:doExpand1(dApardt,bC)
     /* NOTE: even though Apar and dApar/dt are allowed
        to be discontinuous in the parallel (z) direction,
@@ -187,7 +186,7 @@ for i : 1 thru pmax do (
   printf(fh, "  } ~%"),
   printf(fh, "  return std::abs(alpha0); ~%"),
   printf(fh, "} ~%")
-));
+))$
 
 calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := block([],
   lastdir : cdim+vdim-1,
@@ -195,7 +194,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := bl
   for dir : 1 thru lastdir do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) )
 )$
 
-for c : 1 thru 3 do (
+for c : 1 thru 1 do (
 v:2,
 pmax:1,
 if c=1 then v:1,
@@ -203,15 +202,15 @@ fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 if c=1 then bvarslist : [[0], [1]],
-if c=2 then bvarslist : [[0], [1], [2], [1,2]],
-if c=3 then bvarslist : [[0], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]],
+if c=2 then bvarslist : [[0], [1]/*, [2], [1,2]*/],
+if c=3 then bvarslist : [[0], [1]/*, [2], [3], [1,2], [1,3], [2,3], [1,2,3]*/],
 for b : 1 thru length(bvarslist) do (
 funcName : sconcat("GyrokineticSurf", c, "x", v, "v", "Ser"),
-calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b])/*,
+calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b]),
 funcName : sconcat("EmGyrokineticSurf", c, "x", v, "v", "Ser"),
-calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])*/
+calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
 ),
 close(fh)
-);
+)$
 
 

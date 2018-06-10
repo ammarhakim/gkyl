@@ -8,8 +8,9 @@
 local Proto = require "Lib.Proto"
 local DataStruct = require "DataStruct"
 local ConfToPhase = require "Updater.ConfToPhase"
+local EqBase = require "Eq.EqBase"
 
-local Hamiltonian = Proto()
+local Hamiltonian = Proto(EqBase)
 
 -- ctor
 function Hamiltonian:init(tbl)
