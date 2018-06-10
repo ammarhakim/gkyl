@@ -7,7 +7,7 @@ var : [z1, z2]$
 fh : openw("~/max-out/ModalMaxOrderBasis2d.lua");
 printf(fh, "local _M = {} ~%");
 
-for i : 1 thru 9 do (
+for i : 1 thru 7 do (
   printf(fh, "_M[~a] = function (z, b) ~%", i),
   printf(fh, "   local z1, z2 = z[1], z[2] ~%", i),
   basis : gsOrthoNorm(var, makeMaxOrderBasis(var, i)),

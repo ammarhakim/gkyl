@@ -1,7 +1,7 @@
 load("basis-precalc/basis-pre-calc");
 
-writeBasisToFile(1, 1, 9, makeMaxOrderBasis, "~/max-out/basisMax1x1v.lisp")$
-writeBasisToFile(1, 2, 7, makeMaxOrderBasis, "~/max-out/basisMax1x2v.lisp")$
+writeBasisToFile(1, 1, 7, makeMaxOrderBasis, "~/max-out/basisMax1x1v.lisp")$
+writeBasisToFile(1, 2, 6, makeMaxOrderBasis, "~/max-out/basisMax1x2v.lisp")$
 
 writeBasisToFile(1, 3, 5, makeMaxOrderBasis, "~/max-out/basisMax1x3v.lisp")$
 writeBasisToFile(2, 2, 5, makeMaxOrderBasis, "~/max-out/basisMax2x2v.lisp")$

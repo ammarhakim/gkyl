@@ -1,0 +1,19 @@
+load("modal-basis");
+load("out-scripts");
+fpprec : 24$
+
+var : [z1, z2]$
+
+fh : openw("~/max-out/ModalTensorBasis2d.lua");
+printf(fh, "local _M = {} ~%");
+
+for i : 1 thru 4 do (
+  printf(fh, "_M[~a] = function (z, b) ~%", i),
+  printf(fh, "   local z1, z2 = z[1], z[2] ~%", i),
+  basis : gsOrthoNorm(var, makeTensorBasis(var, i)),
+  writeBasis(fh, float(basis)),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);
