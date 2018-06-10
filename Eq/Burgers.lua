@@ -7,9 +7,10 @@
 
 -- Gkyl libraries
 local Proto = require "Lib.Proto"
+local EqBase = require "Eq.EqBase"
 
 -- Burgers equation
-local Burgers = Proto()
+local Burgers = Proto(EqBase)
 
 -- constructor
 function Burgers:init(tbl)

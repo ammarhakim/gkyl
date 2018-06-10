@@ -178,17 +178,16 @@ function DynVector:write(outNm, tmStamp, frNum, flushData)
    Adios.close(fd)
    Adios.finalize(rank)
 
-    -- clear data for next round of IO
+   -- clear data for next round of IO
    if flushData then self:clear() end
 end
 
 -- returns time-stamp and frame number
 function DynVector:read(fName)
-   local comm = self._ioComm
-   local rank = Mpi.Comm_rank(Mpi.COMM_WORLD)
+   local comm = Mpi.COMM_WORLD -- need to read from all processors
 
    local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- concatenate prefix
-   local reader = AdiosReader.Reader(fullNm, comm[0])
+   local reader = AdiosReader.Reader(fullNm, comm)
 
    -- read time and frame info
    local tm = reader:getVar("time"):read()

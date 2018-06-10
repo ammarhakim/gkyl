@@ -358,6 +358,54 @@ function test_7(comm)
    assert_equal(grid:localRange():volume(), totalCount, "Checking if total count is correct")
 end
 
+function test_8(comm)
+   local nz = Mpi.Comm_size(comm)
+   if nz ~= 2 then
+      log("Not running test_8 as numProcs not exactly 2")
+      return
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {2, 1} }
+   
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0},
+      upper = {1.0, 1.0},
+      cells = {10, 10},
+      decomposition = decomp,
+   }
+   local field = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   field:clear(10.25)
+
+   -- write field
+   field:write("CartFieldTest_field_p2.bp", 2.5, 50)
+
+   local fieldIn = DataStruct.Field {
+      onGrid = grid,
+      numComponents = 3,
+      ghost = {1, 2},
+   }
+   fieldIn:clear(0.0)
+
+   local tm, fr = fieldIn:read("CartFieldTest_field_p2.bp")
+
+   assert_equal(2.5, tm, "Checking time-stamp")
+   assert_equal(50, fr, "Checking frame")
+   
+   -- check if fields are identical
+   local indexer = field:genIndexer()
+   for idx in field:localRangeIter() do
+      local fitr, fitrIn = field:get(indexer(idx)), fieldIn:get(indexer(idx))
+      for k = 1, field:numComponents() do
+	 assert_equal(fitr[k], fitrIn[k], "Checking if field read correctly")
+      end
+   end
+end
+
+
 comm = Mpi.COMM_WORLD
 test_1(comm)
 test_2(comm)
@@ -366,6 +414,7 @@ test_4(comm)
 test_5(comm)
 test_6(comm)
 test_7(comm)
+test_8(comm)
 
 totalFail = allReduceOneInt(stats.fail)
 totalPass = allReduceOneInt(stats.pass)

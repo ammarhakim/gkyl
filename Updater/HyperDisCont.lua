@@ -129,7 +129,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       qOut:clear(0.0) -- clear output field before computing vol/surf increments
    end
    -- accumulate contributions from volume and surface integrals
-   for _, dir in ipairs(self._updateDirs) do
+  for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
@@ -174,7 +174,15 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
 		  dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
-	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs) 
+	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+            else
+	       if self._zeroFluxFlags[dir] then
+	          -- we need to give equations a chance to apply partial
+	          -- surface updates even when the zeroFlux BCs have been
+	          -- applied
+	          self._equation:boundarySurfTerm(
+		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
+               end
 	    end
 	 end
       end

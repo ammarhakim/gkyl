@@ -36,7 +36,8 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
 end
 
 -- nothing to calculate, just copy
-function IncompEulerSpecies:calcCouplingMoments(tCurr, dt, fIn)
+function IncompEulerSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
+   local fIn = self:rkStepperFields()[rkIdx]
    self.couplingMoments:copy(fIn)
 end
 
@@ -45,8 +46,12 @@ function IncompEulerSpecies:fluidMoments()
 end
 
 -- for interfacing with GkField
-function IncompEulerSpecies:getDens()
-   return self.couplingMoments
+function IncompEulerSpecies:getNumDensity(rkIdx)
+   if rkIdx == nil then return self.couplingMoments 
+   else 
+      self.couplingMoments:copy(self:rkStepperFields()[rkIdx])
+      return self.couplingMoments
+   end
 end
 
 return IncompEulerSpecies

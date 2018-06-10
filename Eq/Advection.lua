@@ -8,9 +8,10 @@
 -- system libraries
 local ffi = require "ffi"
 local Proto = require "Lib.Proto"
+local EqBase = require "Eq.EqBase"
 
 -- Constant velocity advection equation in upto NDIM=6
-local Advection = Proto()
+local Advection = Proto(EqBase)
 
 -- constructor
 function Advection:init(tbl)

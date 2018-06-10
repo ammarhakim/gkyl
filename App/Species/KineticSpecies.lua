@@ -477,6 +477,9 @@ function KineticSpecies:initDist()
          self:modifyDensity(self.fSource, self.sourceDensityFunc)
       end
    end
+
+   -- apply BCs
+   self:applyBc(0.0, 1.0, self.distf[1])
 end
 
 function KineticSpecies:modifyDensity(f, trueDensFunc)
@@ -510,6 +513,20 @@ end
 
 function KineticSpecies:rkStepperFields()
    return self.distf
+end
+
+-- for RK timestepping 
+function KineticSpecies:copyRk(outIdx, aIdx)
+   self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
+end
+-- for RK timestepping 
+function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
+   local args = {...} -- package up rest of args as table
+   local nFlds = #args/2
+   self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
+   for i = 1, nFlds do -- accumulate rest of the fields
+      self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+   end	 
 end
 
 function KineticSpecies:applyBc(tCurr, dt, fIn)
@@ -555,6 +572,10 @@ function KineticSpecies:calcDiagnosticMoments()
       self.diagnosticMomentUpdaters[i]:advance(
 	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
    end
+end
+
+function KineticSpecies:isEvolving()
+   return self.evolve
 end
 
 function KineticSpecies:write(tm)
@@ -612,6 +633,19 @@ function KineticSpecies:writeRestart(tm)
    -- (the final "false" prevents flushing of data after write)
    self.integratedMoments:write(
       string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
+end
+
+function KineticSpecies:readRestart()
+   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
+
+   self:applyBc(tm, 0.0, self.distf[1])
+   self.distf[1]:sync() -- must get all ghost-cell data correct   
+   
+   self.distIoFrame = fr -- reset internal frame counter
+   local _, dfr = self.integratedMoments:read(
+      string.format("%s_intMom_restart.bp", self.name))
+   self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
+   return tm
 end
 
 -- timers

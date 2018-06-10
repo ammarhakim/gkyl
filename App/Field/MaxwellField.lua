@@ -300,8 +300,33 @@ function MaxwellField:writeRestart(tm)
    self.emEnergy:write("fieldEnergy_restart.bp", tm, self.ioFrame, false)
 end
 
+function MaxwellField:readRestart()
+   local tm, fr = self.fieldIo:read(self.em[1], "field_restart.bp")
+   self:applyBc(tm, 0.0, self.em[1])
+   self.em[1]:sync() -- must get all ghost-cell data correct
+     
+   self.ioFrame = fr
+   self.emEnergy:read("fieldEnergy_restart.bp", tm)
+end
+
 function MaxwellField:rkStepperFields()
    return self.em
+end
+
+-- for RK timestepping
+function MaxwellField:copyRk(outIdx, aIdx)
+   if self:rkStepperFields()[aIdx] then self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx]) end
+end
+-- for RK timestepping
+function MaxwellField:combineRk(outIdx, a, aIdx, ...)
+   if self:rkStepperFields()[aIdx] then 
+      local args = {...} -- package up rest of args as table
+      local nFlds = #args/2
+      self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
+      for i = 1, nFlds do -- accumulate rest of the fields
+         self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+      end	 
+   end
 end
 
 function MaxwellField:accumulateCurrent(dt, current, em)
@@ -323,7 +348,7 @@ function MaxwellField:accumulateCurrent(dt, current, em)
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
-function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
+function MaxwellField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
    if self._isFirst then
       -- create field for total current density. need to do this here because
       -- field object does not know about vdim
@@ -339,6 +364,8 @@ function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
       self._isFirst = false
    end
 
+   local emIn = self:rkStepperFields()[inIdx]
+   local emOut = self:rkStepperFields()[outIdx]
    if self.evolve then
       local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
       if self.currentDens then -- no currents for source-free Maxwell
@@ -348,6 +375,10 @@ function MaxwellField:forwardEuler(tCurr, dt, emIn, species, emOut)
 	 end
 	 self:accumulateCurrent(dt, self.currentDens, emOut)
       end
+      
+      -- apply BCs
+      self:applyBc(tCurr, dt, emOut)
+
       return mys, mydt
    else
       emOut:copy(emIn) -- just copy stuff over
@@ -457,24 +488,36 @@ end
 function FuncMaxwellField:write(tm)
    if self.evolve then
       if self.ioTrigger(tm) then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1
       end
    else
       -- if not evolving species, don't write anything except initial conditions
       if self.ioFrame == 0 then
-	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm)
+	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
       end
       self.ioFrame = self.ioFrame+1
    end
+end
+
+function FuncMaxwellField:writeRestart(tm)
+   self.fieldIo:write(self.em, "func_field_restart.bp", tm, self.ioFrame)
+end
+
+function FuncMaxwellField:readRestart()
+   local tm, fr = self.fieldIo:read(self.em, "func_field_restart.bp")
+   self.em:sync() -- must get all ghost-cell data correct
+   
+   self.ioFrame = fr
 end
 
 function FuncMaxwellField:rkStepperFields()
    return { self.em, self.em, self.em, self.em }
 end
 
-function FuncMaxwellField:forwardEuler(tCurr, dt, momIn, emIn, emOut)
+function FuncMaxwellField:forwardEuler(tCurr, dt)
+   local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, dt, {}, {emOut})
    end

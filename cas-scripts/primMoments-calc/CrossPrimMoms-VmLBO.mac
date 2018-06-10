@@ -1,0 +1,319 @@
+/* Generate kernels for the updater that computes the primitive
+   moments u_ei, u_ie, vtSq_ei and vtSq_ie used in the cross
+   collision term, given the number density and primitive moments
+   of the electrons and ions. Weak division and multiplication
+   are employed. */
+
+/* To avoid the expensive symbolic matrix inversion in
+   Maxima we use Eigen to solve the system. */
+
+/* This string indicates which formulas do we want to use
+   to compute cross species primitive moments. The options are
+     - "Shi":       the approach in Eric Shi's PhD thesis (2017).
+     - "JunoLimit": Formulas derived by Jimmy Juno in the m_i>>m_e
+                    and m_e*T_i<< m_i*T_e limits.
+     - "JunoFull":  Formulas derived by Jimmy Juno without taking
+                    the above limit. */
+
+CrossPrimMomDef : "Shi"$
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+writeCExprsB(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", ssubst(")","]",ssubst("(","[",string(lhs[i]))), expr[i])
+  )
+)$
+
+writeEVExprs(lhs, rhs) := block([expr],
+  len   : length(rhs),
+  digs  : slength(string(len)),
+  start : len*2+(len-1)+2*len+1,
+  for k : 1 thru len do (
+    start : start+slength(string(k-1))
+  ),
+  printf(fh, "  ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+)$
+
+writeCExprs1woUsq(lhs,rhs) := block([expr,sexpr],
+  expr : float(expand(rhs)),
+  for i : 1 thru NC do (
+    /* this craziness about sexpr is because maxima can't unfold
+       x^2 into x*x, which is what we need in C++. So instead we
+       search and replace these things in the strings to be
+       printed out. */
+    sexpr : (
+      sexpr : string(expr[i]),
+      for k : 0 thru NC-1 do (
+        if (k=0) then (
+          oldsi : "ui[a0]^2",
+          newsi : "ui[a0]*ui[a0]",
+          oldse : "ue[a0]^2",
+          newse : "ue[a0]*ue[a0]"
+        ) else (
+          oldsi : ssubst(string(k),"k","ui[a0+k]^2"),
+          newsi : ssubst(string(k),"k","ui[a0+k]*ui[a0+k]"),
+          oldse : ssubst(string(k),"k","ue[a0+k]^2"),
+          newse : ssubst(string(k),"k","ue[a0+k]*ue[a0+k]") ),
+        sexpr : ssubst(newsi,oldsi,sexpr),
+        sexpr : ssubst(newse,oldse,sexpr)
+      ),
+      sexpr
+    ),
+    printf(fh, "    ~a += ~a; ~%", lhs[i-1], sexpr)
+  )
+)$
+
+calcCrossPrimMomsVmLBOei(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    bP : basisP[polyOrder],
+    NP  : length(bP),
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uei, double *vtSqei) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // mRat:           mass ratio = m_i/m_e. ~%"),
+    printf(fh, "  // ne, ue, vtSqe:  electron number density, bulk flow velocity and T_e/m_e. ~%"),
+    printf(fh, "  // ni, ui, vtSqi:  ion number density, bulk flow velocity and T_e/m_e. ~%"),
+    printf(fh, "  // u_ei:           bulk flow velocity for electron-ion collision term in electron equation. ~%"),
+    printf(fh, "  // vtSq_ei:        squared thermal speed, T_ei/m_e, for electron-ion collision term in electron equation. ~%"),
+    printf(fh, " ~%"),
+
+    /*........... First compute ni/ne through weak division .............*/
+    /* Expand moments in configuration space basis. */
+    ni_e : doExpand1(ni, bC),
+    ne_e : doExpand1(ne, bC),
+    /* Array of expansion coefficients. */
+    ne_c : makelist(ne[i],i,0,NC-1),
+    ni_c : makelist(ni[i],i,0,NC-1),
+    /* Expand u function and create a list of expansion coefficients. */
+    nRat_e : doExpand1(nRat,bC),
+    nRat_c : makelist(nRat[i],i,0,NC-1),
+
+    eq : calcInnerProdList(varsC,nRat_e,bC,ne_e),
+
+    E : fullratsimp(coefmatrix(eq,nRat_c)),
+    /* Flatten E for WriteCExprsB. */
+    Eflat : list_matrix_entries(E),
+
+    /* Make a list of the LHS matrix assignments. */
+    /* Note: Eigen defaults to Column-major order. */
+    Ef [i,j] := AEM[i,j],
+    Elhs : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)),
+
+    printf(fh, "  // Declare Eigen matrix and vectors for weak division. ~%"),
+    printf(fh, "  Eigen::MatrixXd AEM(~a,~a); ~%", NC, NC),
+    printf(fh, "  Eigen::VectorXd bEV(~a); ~%", NC),
+    printf(fh, "  Eigen::VectorXd xEV(~a); ~%", NC),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // ....... Compute density ratio through weak division ni/ne .......... // ~%"),
+    printf(fh, "  double nRat[~a]; ~%", NC),
+    printf(fh, " ~%"),
+
+    writeCExprsB(Elhs,Eflat),
+    printf(fh, " ~%"),
+
+/*    printf(fh, "    Eigen::Map<const VectorXd> bEV(B+0,~a); ~%", NC), */
+/*  Something like this is only needed if the bEV vector is pre-initialized during init. */
+/*    printf(fh, "    ::new (&bEV) Eigen::Map<const VectorXd>(B,~a); ~%", NC), */
+    writeEVExprs(bEV,ni_c),
+    printf(fh, " ~%"),
+
+    printf(fh, "  xEV = AEM.colPivHouseholderQr().solve(bEV); ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  Eigen::Map<VectorXd>(nRat,~a,1) = xEV; ~%", NC, NC),
+    printf(fh, " ~%"),
+
+    /*.............. Get the relative bulk flow velocity ....................*/
+    ui_e : doExpand1(ui,bC),
+    ue_e : doExpand1(ue,bC),
+    /* Support multiple components by changing the indices in ui_e and ue_e. */
+    ui_e : psubst(makelist(ui[i]=ui[a0+i],i,0,NC-1),ui_e),
+    ue_e : psubst(makelist(ue[i]=ue[a0+i],i,0,NC-1),ue_e),
+
+    uei_e : calcInnerProdList(varsC,1,bC,nRat_e*ui_e+(1-nRat_e)*ue_e),
+
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    expr : float(expand(uei_e)),
+    for i : 1 thru NC do (
+      printf(fh, "    ~a = ~a; ~%", uei[i-1], expr[i])
+    ),
+    printf(fh, " ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /* ............. Compute (ue-ui)^2 via a weak dot product ........,.... */
+    ueMui_e : psubst(makelist(ue[i]=ue[a0+i],i,0,NC-1),ue_e) - psubst(makelist(ui[i]=ui[a0+i],i,0,NC-1),ui_e),
+    ueMui_c : psubst(makelist(ue[i]=ue[a0+i],i,0,NC-1),ue_c) - psubst(makelist(ui[i]=ui[a0+i],i,0,NC-1),ui_c),
+
+    prod : calcInnerProdList(varsC,ueMui_e,bC,ueMui_e),
+
+    printf(fh, "  // ..... Get the relative speed squared (ue-ui)^2 ..... // ~%"),
+    printf(fh, "  double uRelSq[~a]; ~%", NC),
+    printf(fh, "  for (unsigned short int k=0; k<~a; k++) ~%", NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    uRelSq[k] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    writeCExprs1woUsq(uRelSq,prod),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*....................... Calculate vtSq_ei ............................*/
+    printf(fh, "  double rmRat = 1.0/mRat; ~%"),
+    /* Expand vtSq function and create a list of expansion coefficients. */
+    vtSqe_e : doExpand1(vtSqe,bC),
+    vtSqe_c : makelist(vtSqe[i],i,0,NC-1),
+    vtSqi_e : doExpand1(vtSqi,bC),
+    vtSqi_c : makelist(vtSqi[i],i,0,NC-1),
+    uRelSq_e : doExpand1(uRelSq,bC),
+
+    vtSqei_e : calcInnerProdList(varsC,1,bC,vtSqe_e+nRat_e*(2*(vtSqi_e-rmRat*vtSqe_e)+uRelSq_e/2)),
+
+    writeCExprsCollect1(vtSqei,vtSqei_e,[rmRat]),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcCrossPrimMomsVmLBOie(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    bP : basisP[polyOrder],
+    NP  : length(bP),
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uei, double *vtSqie) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // mRat:           mass ratio = m_i/m_e. ~%"),
+    printf(fh, "  // ne, ue, vtSqe:  electron number density, bulk flow velocity and T_e/m_e. ~%"),
+    printf(fh, "  // ni, ui, vtSqi:  ion number density, bulk flow velocity and T_e/m_e. ~%"),
+    printf(fh, "  // u_ie:           bulk flow velocity for ion-electron collision term in ion equation. ~%"),
+    printf(fh, "  // vtSq_ie:        squared thermal speed, T_ie/m_i, for ion-electron collision term in ion equation. ~%"),
+    printf(fh, " ~%"),
+
+    /*........... First compute ni/ne through weak division .............*/
+    /* Expand moments in configuration space basis. */
+    ni_e : doExpand1(ni, bC),
+    ne_e : doExpand1(ne, bC),
+    /* Array of expansion coefficients. */
+    ne_c : makelist(ne[i],i,0,NC-1),
+    ni_c : makelist(ni[i],i,0,NC-1),
+    /* Expand u function and create a list of expansion coefficients. */
+    nRat_e : doExpand1(nRat,bC),
+    nRat_c : makelist(nRat[i],i,0,NC-1),
+
+    eq : calcInnerProdList(varsC,nRat_e,bC,ne_e),
+
+    E : fullratsimp(coefmatrix(eq,nRat_c)),
+    /* Flatten E for WriteCExprsB. */
+    Eflat : list_matrix_entries(E),
+
+    /* Make a list of the LHS matrix assignments. */
+    /* Note: Eigen defaults to Column-major order. */
+    Ef [i,j] := AEM[i,j],
+    Elhs : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)),
+
+    printf(fh, "  // Declare Eigen matrix and vectors for weak division. ~%"),
+    printf(fh, "  Eigen::MatrixXd AEM(~a,~a); ~%", NC, NC),
+    printf(fh, "  Eigen::VectorXd bEV(~a); ~%", NC),
+    printf(fh, "  Eigen::VectorXd xEV(~a); ~%", NC),
+    printf(fh, " ~%"),
+
+    printf(fh, "  // ....... Compute density ratio through weak division ni/ne .......... // ~%"),
+    printf(fh, "  double nRat[~a]; ~%", NC),
+    printf(fh, " ~%"),
+
+    writeCExprsB(Elhs,Eflat),
+    printf(fh, " ~%"),
+
+/*    printf(fh, "    Eigen::Map<const VectorXd> bEV(B+0,~a); ~%", NC), */
+/*  Something like this is only needed if the bEV vector is pre-initialized during init. */
+/*    printf(fh, "    ::new (&bEV) Eigen::Map<const VectorXd>(B,~a); ~%", NC), */
+    writeEVExprs(bEV,ni_c),
+    printf(fh, " ~%"),
+
+    printf(fh, "  xEV = AEM.colPivHouseholderQr().solve(bEV); ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  Eigen::Map<VectorXd>(nRat,~a,1) = xEV; ~%", NC, NC),
+    printf(fh, " ~%"),
+
+    /*.............. Get the relative bulk flow velocity ....................*/
+    ui_e : doExpand1(ui,bC),
+    ue_e : doExpand1(ue,bC),
+    /* Support multiple components by changing the indices in ui_e and ue_e. */
+    ui_e : psubst(makelist(ui[i]=ui[a0+i],i,0,NC-1),ui_e),
+    ue_e : psubst(makelist(ue[i]=ue[a0+i],i,0,NC-1),ue_e),
+
+    uei_e : calcInnerProdList(varsC,1,bC,nRat_e*ue_e+(1-nRat_e)*ui_e),
+
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    expr : float(expand(uei_e)),
+    for i : 1 thru NC do (
+      printf(fh, "    ~a = ~a; ~%", uei[i-1], expr[i])
+    ),
+    printf(fh, " ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /* ............. Compute (ue-ui)^2 via a weak dot product ........,.... */
+    ueMui_e : psubst(makelist(ue[i]=ue[a0+i],i,0,NC-1),ue_e) - psubst(makelist(ui[i]=ui[a0+i],i,0,NC-1),ui_e),
+
+    prod : calcInnerProdList(varsC,ueMui_e,bC,ueMui_e),
+
+    printf(fh, "  // ..... Get the relative speed squared (ue-ui)^2 ..... // ~%"),
+    printf(fh, "  double uRelSq[~a]; ~%", NC),
+    printf(fh, "  for (unsigned short int k=0; k<~a; k++) ~%", NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    uRelSq[k] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    writeCExprs1woUsq(uRelSq,prod),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*....................... Calculate vtSq_ei ............................*/
+    printf(fh, "  double rmRat = 1.0/mRat; ~%"),
+    /* Expand vtSq function and create a list of expansion coefficients. */
+    vtSqe_e : doExpand1(vtSqe,bC),
+    vtSqi_e : doExpand1(vtSqi,bC),
+    uRelSq_e : doExpand1(uRelSq,bC),
+
+    vtSqie_e : calcInnerProdList(varsC,1,bC,2*rmRat*nRat_e*vtSqe_e+(1-2*nRat_e)*vtSqi_e-nRat_e*uRelSq_e/6),
+
+    writeCExprsCollect1(vtSqie,vtSqie_e,[rmRat]),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+

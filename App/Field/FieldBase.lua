@@ -33,12 +33,15 @@ function NoField:createDiagnostics() end
 function NoField:initField() end
 function NoField:write(tm) end
 function NoField:writeRestart(tm) end
+function NoField:readRestart() return 0.0 end
 function NoField:rkStepperFields() return {} end
 function NoField:forwardEuler(tCurr, dt, momIn, emIn, emOut) return true, GKYL_MAX_DOUBLE end
 function NoField:applyBc(tCurr, dt, emIn) end
 function NoField:totalSolverTime() return 0.0 end
 function NoField:totalBcTime() return 0.0 end
 function NoField:energyCalcTime() return 0.0 end
+function NoField:copyRk() end
+function NoField:combineRk() end
 
 return {FieldBase = FieldBase, FuncFieldBase = FuncFieldBase, NoField = NoField}
 

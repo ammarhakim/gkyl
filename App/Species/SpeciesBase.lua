@@ -22,6 +22,7 @@ function SpeciesBase:initDist() end
 function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
+function SpeciesBase:readRestart() return 0.0 end
 function SpeciesBase:forwardEuler(tCurr, dt, fIn, emIn, fOut) end
 function SpeciesBase:applyBc(tCurr, dt, fld) end
 function SpeciesBase:totalSolverTime() end
@@ -30,6 +31,8 @@ function SpeciesBase:intMomCalcTime() end
 function SpeciesBase:totalBcTime() end
 function SpeciesBase:getCharge() end
 function SpeciesBase:getMass() end
+function SpeciesBase:copyRk() end
+function SpeciesBase:combineRk() end
 
 return SpeciesBase
 
