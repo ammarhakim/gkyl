@@ -50,7 +50,7 @@ function SelfPrimMoments:init(tbl)
    local id, polyOrder = confBasis:id(), confBasis:polyOrder()
 
    -- Extract vLower and vUpper for corrections to u and vtSq
-   -- that preserve momentum and energy conservation.
+   -- that conserve momentum and energy.
    self._vLower = Lin.Vec(self._vDim)
    self._vUpper = Lin.Vec(self._vDim)
    for d = 1, self._vDim do
@@ -99,7 +99,7 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
    local vLowerIdx, vUpperIdx = {}, {}
    for d = 1, self._vDim do
       vLowerIdx[d]  = phaseRange:lower(self._cDim + d)
-      vUpperIdxV[d] = phaseRange:upper(self._cDim + d)
+      vUpperIdx[d] = phaseRange:upper(self._cDim + d)
    end
 
    local fvmin = Lin.Vec(self._numBasisP*self._vDim)

@@ -59,5 +59,37 @@ function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder)
    end
 end
 
+-- select functions to compute boundary surface terms (output is a table of functions)
+function _M.selectBoundarySurf(basisNm, CDIM, VDIM, polyOrder)
+   if VDIM == 1 then
+      local funcNmX = string.format("VmLBOBoundarySurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], nullFunc, nullFunc }
+   elseif VDIM == 2 then
+      local funcNmX = string.format("VmLBOBoundarySurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VmLBOBoundarySurf%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
+   elseif VDIM == 3 then
+      local funcNmX = string.format("VmLBOBoundarySurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VmLBOBoundarySurf%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmZ = string.format("VmLBOBoundarySurf%dx%dv%s_VZ_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+   end
+end
+function _M.selectConstNuBoundarySurf(basisNm, CDIM, VDIM, polyOrder)
+   if VDIM == 1 then
+      local funcNmX = string.format("VmLBOconstNuBoundarySurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], nullFunc, nullFunc }
+   elseif VDIM == 2 then
+      local funcNmX = string.format("VmLBOconstNuBoundarySurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VmLBOconstNuBoundarySurf%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
+   elseif VDIM == 3 then
+      local funcNmX = string.format("VmLBOconstNuBoundarySurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("VmLBOconstNuBoundarySurf%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmZ = string.format("VmLBOconstNuBoundarySurf%dx%dv%s_VZ_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmZ] }
+   end
+end
+
 
 return _M
