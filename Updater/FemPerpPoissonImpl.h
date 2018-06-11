@@ -43,9 +43,12 @@ extern "C" {
 // C wrappers for interfacing with FemPerpPoisson class
   void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
   void delete_FemPerpPoisson(FemPerpPoisson* f);
+  void makeGlobalStiff(FemPerpPoisson* f, double *stiffWeight, double *massWeight, int idx, int idy);
+  void finishGlobalStiff(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc(FemPerpPoisson* f);
   void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm);
+  void allgatherGlobalStiff(FemPerpPoisson* f, MPI_Comm comm);
   void getSolution(FemPerpPoisson* f, double* localSolPtr, int idx, int idy);
   void getNodalSolution(FemPerpPoisson* f, double* localSolPtr, int idx, int idy);
 }
@@ -61,6 +64,9 @@ class FemPerpPoisson
   void createGlobalSrc(double* ptr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc();
   void allreduceGlobalSrc(MPI_Comm comm);
+  void allgatherGlobalStiff(MPI_Comm comm);
+  void makeGlobalPerpStiffnessMatrix(double *stiffWeight, double *massWeight, int idx, int idy);
+  void finishGlobalPerpStiffnessMatrix();
   void solve();
   void getSolution(double* ptr, int idx, int idy);
   void getNodalSolution(double* ptr, int idx, int idy);
@@ -75,8 +81,9 @@ class FemPerpPoisson
   bool allPeriodic;
   bool adjustSource;
   double cornerval;
-  MPI_Datatype MPI_vector_t;
+  MPI_Datatype MPI_triplet_t;
   MPI_Op MPI_vectorSum_op;
+  std::vector<Eigen::Triplet<double> > stiffTripletList;
   /** Eigen sparse matrix to store stiffness matrix */
   Eigen::SparseMatrix<double,Eigen::ColMajor> stiffMat, stiffMat_z0;
   /** Eigen vectors for source and dirichlet modifications to source*/
@@ -86,18 +93,17 @@ class FemPerpPoisson
   /** Eigen solver method */
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver, solver_z0;
   Eigen::MatrixXd localMassModToNod, localNodToMod, localModToNod;
+  bool analyzed_; // flag so that stiffness matrix only analyzed once
   
   int getNumPerpGlobalNodes(int nx, int ny, int ndim, int p, bool periodicFlgs[2]);
   int getNumLocalNodes(int ndim, int p);
   
   void setupBoundaryIndices(bcdata_t bc[2][2], int ndim, int polyOrder);
-  void makeGlobalPerpStiffnessMatrix(
-     Eigen::SparseMatrix<double,Eigen::ColMajor>& stiffMat,
-     Eigen::VectorXd& sourceModVec,
-     int ndim, int polyOrder, bcdata_t bc[2][2]);
   void getPerpStiffnessMatrix(Eigen::MatrixXd& localStiff, int ndim, int p, double dx, double dy);
+  void getPerpStiffnessMatrix(Eigen::MatrixXd& localStiff, double *w, int ndim, int p, double dx, double dy);
   void getNodToModMatrix(Eigen::MatrixXd& localNodToMod, int ndim, int p);
   void getMassMatrix(Eigen::MatrixXd& localMass, int ndim, int p);
+  void getMassMatrix(Eigen::MatrixXd& localMass, double *w, int ndim, int p);
   void getPerpLocalToGlobalInteriorBLRT(std::vector<int>& lgMap, int idx, int idy, int nx, int ny, int ndim, int p, bool periodicFlgs[2]);
   
   /**
