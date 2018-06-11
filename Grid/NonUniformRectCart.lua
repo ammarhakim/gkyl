@@ -16,7 +16,7 @@ local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local RectCart = require "Grid.RectCart"
 
--- NonUniformRectCartGrid ----------------------------------------------------------------------
+-- NonUniformRectCartGrid ------------------------------------------------------
 --
 -- Stores the nodal coordinates of each node in 1D vectors. The
 -- methods names are the same as the uniform cartesian grid object to
