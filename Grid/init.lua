@@ -5,11 +5,14 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local CartGrid = require "Grid.CartGrid"
+local RectCart = require "Grid.RectCart"
+local NonUniformRectCart = require "Grid.NonUniformRectCart"
+local MappedCart = require "Grid.MappedCart"
 
 return {
-   RectCart = CartGrid.RectCart,
-   NonUniformRectCart = CartGrid.NonUniformRectCart,
+   RectCart = RectCart,
+   NonUniformRectCart = NonUniformRectCart,
+   MappedCart = MappedCart,
 }
   
 
