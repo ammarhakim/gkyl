@@ -21,6 +21,9 @@ def build(bld):
     lboData/VmLBOconstNuSer2x2v.cpp
     lboData/VmLBOconstNuSurfSer2x2v.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x2v.cpp
+    lboData/VmLBOconstNuSer2x3v.cpp
+    lboData/VmLBOconstNuSurfSer2x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfSer2x3v.cpp
 
     constDiffusionData/ConstDiffusionSer1x.cpp
     constDiffusionData/ConstDiffusionSer2x.cpp

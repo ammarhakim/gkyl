@@ -80,6 +80,11 @@ cmd="$MPIEXEC -n 4 $GKYL test_CartGridPar.lua"
 echo "${ctext}${cmd}${reset}"
 $cmd
 
+# MappedGrid
+cmd="$GKYL test_MappedGrid.lua"
+echo "${ctext}${cmd}${reset}"
+$cmd
+
 # DistFuncMomentCalc
 cmd="$GKYL test_DistFuncMomentCalc.lua"
 echo "${ctext}${cmd}${reset}"
