@@ -65,16 +65,20 @@ function MappedCart:mapc2p(xc)
 end
 
 function MappedCart:calcMetric_1d(xc)
+   local d1 = Lin.Vec(1)
+   self._coordDiff[1](xc, d1)
+
+   local g = Lin.Vec(1)
+   g[1] = d1[1]^2
+   return g
 end
 
 function MappedCart:calcMetric_2d(xc)
    local d1, d2 = Lin.Vec(2), Lin.Vec(2)
-
    self._coordDiff[1](xc, d1)
    self._coordDiff[2](xc, d2)
 
    local g = Lin.Vec(3)
-   -- metric tensor
    g[1] = d1[1]^2 + d2[1]^2 -- g_11
    g[2] = d1[1]*d1[2] + d2[1]*d2[2] -- g_12 = g_21
    g[3] = d1[2]^2 + d2[2]^2 -- g_22
@@ -83,6 +87,20 @@ function MappedCart:calcMetric_2d(xc)
 end
 
 function MappedCart:calcMetric_3d(xc)
+   local d1, d2, d3 = Lin.Vec(3), Lin.Vec(3), Lin.Vec(3)
+   self._coordDiff[1](xc, d1)
+   self._coordDiff[2](xc, d2)
+   self._coordDiff[3](xc, d3)
+
+   local g = Lin.Vec(6)
+   g[1] = d1[1]^2 + d2[1]^2 + d3[1]^2 -- g_11
+   g[2] = d1[1]*d1[2] + d2[1]*d2[2] + d3[1]*d3[2]  -- g_12 = g_21
+   g[3] = d1[1]*d1[3] + d2[1]*d2[3] + d3[1]*d3[3]  -- g_13 = g_31
+   g[4] = d1[2]^2 + d2[2]^2 + d3[2]^2 -- g_22
+   g[5] = d1[2]*d1[3] + d2[2]*d2[3] + d3[2]*d3[3]  -- g_23 = g_32
+   g[6] = d1[3]^2 + d2[2]^2 + d3[3]^2 -- g_33
+
+   return g   
 end
 
 -- Computes metric tensor
