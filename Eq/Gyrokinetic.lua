@@ -180,7 +180,7 @@ function Gyrokinetic:calcSheathPartialReflection(w, dv, edgeVal, vcut, f, fhat)
    return self._calcSheathPartialReflection(w, dv, edgeVal, vcut, f:data(), fhat:data())
 end
 
-local GyrokineticStep2 = Proto()
+local GyrokineticStep2 = Proto(EqBase)
 -- ctor
 function GyrokineticStep2:init(tbl)
    -- get grid and basis

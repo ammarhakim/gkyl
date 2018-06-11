@@ -736,6 +736,9 @@ function GkGeometry:write(tm)
    self.ioFrame = self.ioFrame+1
 end
 
+function GkGeometry:writeRestart(tm)
+end
+
 function GkGeometry:rkStepperFields()
    return { self.geo, self.geo, self.geo, self.geo }
 end
