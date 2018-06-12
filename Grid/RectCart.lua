@@ -110,6 +110,7 @@ function RectCart:init(tbl)
 end
 
 -- member functions
+function RectCart:id() return "uniform" end
 function RectCart:commSet() return self._commSet end 
 function RectCart:isShared() return self._isShared end
 function RectCart:subGridId() return self._block end

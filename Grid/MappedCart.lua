@@ -63,6 +63,8 @@ function MappedCart:init(tbl)
    self._xc = Lin.Vec(self:ndim())
 end
 
+function MappedCart:id() return "mapped" end
+
 function MappedCart:mapc2p(xc)
    return self._mapc2p(xc)
 end
@@ -137,7 +139,7 @@ function MappedCart:cellCenter(xp)
 end
 
 function MappedCart:write(fName)
-   -- create a grid over nodes and a field to nodal store coordinates
+   -- create a grid over nodes and a field to store nodal coordinates
    local cells, lower, upper = {}, {}, {}
    for d = 1, self:ndim() do
       cells[d] = self:numCells(d)+1 -- one more layer of nodes than cells

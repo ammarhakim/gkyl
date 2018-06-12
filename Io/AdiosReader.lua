@@ -111,13 +111,18 @@ function AdiosAttr:init(fd, aName, aid)
    self.name = aName
    local atype, asize, adata = Adios.get_attr_byid(fd, aid)
    local type_size = Adios.type_size(atype, adata)
+   self._values = { }
 
    local tmap = getTypeStringMap(atype)
-   local v = ffi.cast(tmap[2], adata) -- cast to proper type
 
-   self._values = { }
-   for i = 1, asize/type_size do
-      self._values[i] = v[i-1]
+   if tmap[1] ~= "string" then
+      local v = ffi.cast(tmap[2], adata) -- cast to proper type
+      for i = 1, asize/type_size do
+	 self._values[i] = v[i-1]
+      end
+   else
+      -- for string attribute we need to cast it to Lua string object
+      self._values[1] = ffi.string(adata)
    end
    
    ffi.C.free(adata)
