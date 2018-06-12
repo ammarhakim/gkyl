@@ -123,11 +123,11 @@ end
 -- instead of returning it
 function MappedCart:_mapc2p_vec(xc, xp)
    if self:ndim() == 1 then
-      xp[1] = self._mapc2p(self._xc)
+      xp[1] = self._mapc2p(xc)
    elseif self:ndim() == 2 then
-      xp[1], xp[2] = self._mapc2p(self._xc)
+      xp[1], xp[2] = self._mapc2p(xc)
    elseif self:ndim() == 3 then
-      xp[1], xp[2], xp[3] = self._mapc2p(self._xc)
+      xp[1], xp[2], xp[3] = self._mapc2p(xc)
    end   
 end
 
