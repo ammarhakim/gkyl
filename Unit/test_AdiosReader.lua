@@ -37,7 +37,7 @@ function test_1(comm)
 
    local time = reader:getVar("time")
    assert_equal("time", time.name, "Checking time ")
-   assert_equal(50.0, time:read(), "Checking time-value")
+   assert_equal(50.001874949619, time:read(), "Checking time-value")
    assert_equal("double", time.type, "Checking time-type")
 
    local frame = reader:getVar("frame")
@@ -53,6 +53,8 @@ function test_1(comm)
    assert_equal(true, reader:hasAttr("numCells"), "Num cells")
    assert_equal(true, reader:hasAttr("lowerBounds"), "lower bounds")
    assert_equal(true, reader:hasAttr("upperBounds"), "upper bounds")
+   assert_equal(true, reader:hasAttr("grid"), "grid")
+   assert_equal(true, reader:hasAttr("type"), "type")
    assert_equal(false, reader:hasAttr("Nothing"), "checking 'Nothing'")
 
    -- read attributes
@@ -67,6 +69,12 @@ function test_1(comm)
    local upperBounds = reader:getAttr("upperBounds"):read()
    assert_equal(2*math.pi, upperBounds[1], "Upper bound in X")
    assert_equal(6, upperBounds[2], "Upper bound in y")
+
+   local gtype = reader:getAttr("type"):read()
+   assert_equal("uniform", gtype[1], "Grid type")
+
+   local gfile = reader:getAttr("grid"):read()
+   assert_equal("grid", gfile[1], "Grid file name")
 
    reader:close()
 end

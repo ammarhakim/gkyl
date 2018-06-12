@@ -121,6 +121,9 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum)
    Adios.select_method(grpId, self._method, "", "")
 
    -- field attributes
+   Adios.define_attribute_byvalue(grpId, "type", "", Adios.string, 1, field:grid():id())
+   Adios.define_attribute_byvalue(grpId, "grid", "", Adios.string, 1, "grid")
+   
    local cells = new("int[?]", ndim)
    for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
    Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)

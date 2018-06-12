@@ -24,6 +24,7 @@ function test_1()
    grid:setIndex(idx)
    
    assert_equal(2, grid:ndim(), "Checking NDIM")
+   assert_equal("uniform", grid:id(), "Checking ID")
 
    assert_equal(10, grid:numCells(1), "Checking numCells")
    assert_equal(20, grid:numCells(2), "Checking numCells")
