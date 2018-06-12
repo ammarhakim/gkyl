@@ -58,13 +58,16 @@ function MappedCart:init(tbl)
       ),      
    }
 
+   -- stuff for use in various methods
+   self._xc = Lin.Vec(self:ndim())
 end
 
 function MappedCart:mapc2p(xc)
    return self._mapc2p(xc)
 end
 
-function MappedCart:calcMetric_1d(xc)
+-- internal methods, not to be used directly by user
+function MappedCart:_calcMetric_1d(xc)
    local d1 = Lin.Vec(1)
    self._coordDiff[1](xc, d1)
 
@@ -72,8 +75,7 @@ function MappedCart:calcMetric_1d(xc)
    g[1] = d1[1]^2
    return g
 end
-
-function MappedCart:calcMetric_2d(xc)
+function MappedCart:_calcMetric_2d(xc)
    local d1, d2 = Lin.Vec(2), Lin.Vec(2)
    self._coordDiff[1](xc, d1)
    self._coordDiff[2](xc, d2)
@@ -85,8 +87,7 @@ function MappedCart:calcMetric_2d(xc)
 
    return g
 end
-
-function MappedCart:calcMetric_3d(xc)
+function MappedCart:_calcMetric_3d(xc)
    local d1, d2, d3 = Lin.Vec(3), Lin.Vec(3), Lin.Vec(3)
    self._coordDiff[1](xc, d1)
    self._coordDiff[2](xc, d2)
@@ -107,14 +108,29 @@ end
 function MappedCart:calcMetric(xc)
    local ndim = self:ndim()
    if ndim == 1 then
-      return self:calcMetric_1d(xc)
+      return self:_calcMetric_1d(xc)
    elseif ndim == 2 then
-      return self:calcMetric_2d(xc)
+      return self:_calcMetric_2d(xc)
    elseif ndim == 3 then
-      return self:calcMetric_3d(xc)
+      return self:_calcMetric_3d(xc)
    else
       assert(false, "MappedCart does not support more than 3 dimensions!")
    end
+end
+
+function MappedCart:cellCenter(xp)
+   self.super.cellCenter(self, self._xc)
+   if self:ndim() == 1 then
+      xp[1] = self._mapc2p(self._xc)
+   elseif self:ndim() == 2 then
+      xp[1], xp[2] = self._mapc2p(self._xc)
+   elseif self:ndim() == 3 then
+      xp[1], xp[2], xp[3] = self._mapc2p(self._xc)
+   end
+end
+
+function MappedCart:write(fName)
+   
 end
 
 return MappedCart

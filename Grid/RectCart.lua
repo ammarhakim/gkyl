@@ -146,4 +146,8 @@ end
 function RectCart:cellVolume() return self._vol end
 function RectCart:gridVolume() return self._gridVol end
 
+function RectCart:write(fName)
+   -- nothing to write
+end
+
 return RectCart
