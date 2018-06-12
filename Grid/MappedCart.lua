@@ -10,6 +10,7 @@
 local ffi = require "ffi"
 
 -- Gkyl libraries
+local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
@@ -118,19 +119,62 @@ function MappedCart:calcMetric(xc)
    end
 end
 
-function MappedCart:cellCenter(xp)
-   self.super.cellCenter(self, self._xc)
+-- internal function to copy physical coordinates into a vector
+-- instead of returning it
+function MappedCart:_mapc2p_vec(xc, xp)
    if self:ndim() == 1 then
       xp[1] = self._mapc2p(self._xc)
    elseif self:ndim() == 2 then
       xp[1], xp[2] = self._mapc2p(self._xc)
    elseif self:ndim() == 3 then
       xp[1], xp[2], xp[3] = self._mapc2p(self._xc)
-   end
+   end   
+end
+
+function MappedCart:cellCenter(xp)
+   self.super.cellCenter(self, self._xc)
+   self:_mapc2p_vec(self._xc, xp)
 end
 
 function MappedCart:write(fName)
-   
+   -- create a grid over nodes and a field to nodal store coordinates
+   local cells, lower, upper = {}, {}, {}
+   for d = 1, self:ndim() do
+      cells[d] = self:numCells(d)+1 -- one more layer of nodes than cells
+      -- this ensures cell-center of nodal grid lie at nodes of
+      -- original grid
+      lower[d] = self:lower(d) - 0.5*self:dx(d)
+      upper[d] = self:upper(d) + 0.5*self:dx(d)
+   end
+   -- WILL NEED TO MAKE THIS WORK IN PARALLEL .. EVENTUALLY
+   local grid = RectCart {
+      lower = lower,
+      upper = upper,
+      cells = cells,
+   }
+   local nodalCoords = DataStruct.Field {
+      onGrid = grid,
+      numComponents = self:ndim(),
+   }
+
+   local xnc, xnp = Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
+   -- now loop over grid and store nodal coordinates
+   local localRange = nodalCoords:localRange()
+   local indexer = nodalCoords:genIndexer()
+   for idx in localRange:colMajorIter() do
+      grid:setIndex(idx)
+
+      grid:cellCenter(xnc) -- nodal coordinate in computational space
+      self:_mapc2p_vec(xnc, xnp) -- nodal coordinate in physical space
+      
+      local nitr = nodalCoords:get(indexer(idx))
+      for d = 1, self:ndim() do
+	 nitr[d] = xnp[d]
+      end
+   end
+
+   -- now write out nodal coordinates to file
+   nodalCoords:write(fName)
 end
 
 return MappedCart
