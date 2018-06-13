@@ -43,16 +43,37 @@ function test_1()
    assert_equal(0.75, xp[1], "Checking mapping [1]")
    assert_equal(0.75, xp[2], "Checking mapping [2]")
 
+   assert_equal(3, grid:numMetricElems(), "Checking size of metric")
+   
+   local g = Lin.Vec(grid:numMetricElems())
    -- compute metric quantities
-   local g = grid:calcMetric({0.5, 0.5})
+   grid:calcMetric({0.5, 0.5}, g)
    
    assert_equal(1.0, g[1], "Checking metric [1,1]")
    assert_equal(0.0, g[2], "Checking metric [1,2]")
    assert_equal(1.0, g[3], "Checking metric [2,2]")
 end
 
+function test_2()
+   -- lat-long coordinates on surface of unit sphere: first coordinate
+   -- is lattitude and second longitude
+   local grid = Grid.MappedCart {
+      lower = {10*math.pi/180, 0.0},
+      upper = {170*math.pi/180, 2*math.pi},
+      cells = {64, 64},
+      -- map computational to physical space
+      mapc2p = function(xc)
+	 local theta, phi = xc[1], xc[2] -- lattitude, longitude
+	 return math.sin(theta)*math.cos(phi), math.sin(theta)*math.sin(phi), math.cos(theta)
+      end
+   }
+
+   assert_equal(3, grid:rdim(), "Checking rdim")
+end
+
 -- Run tests
 test_1()
+test_2()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
