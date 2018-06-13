@@ -93,7 +93,7 @@ function MappedCart:_calcMetric_2d_r3(xc, g)
    local d1, d2, d3 = self._d1, self._d2, self._d3
    self._coordDiff[1](xc, d1)
    self._coordDiff[2](xc, d2)
-   self._coordDiff[2](xc, d3)
+   self._coordDiff[3](xc, d3)
 
    g[1] = d1[1]^2 + d2[1]^2 + d3[1]^2 -- g_11
    g[2] = d1[1]*d1[2] + d2[1]*d2[2] + d3[1]*d3[2] -- g_12 = g_21
