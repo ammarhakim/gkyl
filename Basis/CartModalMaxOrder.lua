@@ -41,26 +41,28 @@ function CartModalMaxOrder:init(tbl)
    self._ndim = assert(tbl.ndim, "Basis.CartModalMaxOrder: Must specify dimension using 'ndim'")
    self._polyOrder = assert(tbl.polyOrder, "Basis.CartModalMaxOrder: Must specify polynonial order with 'polyOrder'")
 
-   if (self._polyOrder < 0) or (self._polyOrder > 4) then
-      assert(false, "Polynomial order must be between 0 and 4")
-   end
-
    self._numBasis = numBasis(self._ndim, self._polyOrder)
    self._numSurfBasis = numBasis(self._ndim-1, self._polyOrder)
 
    local _m = nil -- to store module with evaluation code
    -- get handle to function to compute basis functions at specified coordinates   
    if (self._ndim == 1) then
+      assert(self._polyOrder <= 7, "For 1D polynomial order must be either 1, 2, 3, 4, 5, 6, or 7")
       _m = require "Basis._data.ModalBasis1d"
    elseif (self._ndim == 2) then
+      assert(self._polyOrder <= 7, "For 2D polynomial order must be either 1, 2, 3, 4, 5, 6, or 7")
       _m = require "Basis._data.ModalMaxOrderBasis2d"
    elseif (self._ndim == 3) then
+      assert(self._polyOrder <= 6, "For 3D polynomial order must be either 1, 2, 3, 4, 5, or 6")
       _m = require "Basis._data.ModalMaxOrderBasis3d"
    elseif (self._ndim == 4) then
+      assert(self._polyOrder <= 5, "For 4D polynomial order must be either 1, 2, 3, 4, or 5")
       _m = require "Basis._data.ModalMaxOrderBasis4d"
    elseif (self._ndim == 5) then
+      assert(self._polyOrder <= 4, "For 5D polynomial order must be either 1, 2, 3, or 4")
       _m = require "Basis._data.ModalMaxOrderBasis5d"
    elseif (self._ndim == 6) then
+      assert(self._polyOrder <= 3, "For 6D polynomial order must be either 1, 2, or 3")
       _m = require "Basis._data.ModalMaxOrderBasis6d"
    end
 

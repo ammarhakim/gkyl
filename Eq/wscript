@@ -63,6 +63,11 @@ def build(bld):
     vlasovData/VlasovStreamSer2x3v.cpp
     vlasovData/VlasovStreamSer3x3v.cpp
 
+    vlasovData/VlasovStreamTensor1x1v.cpp
+    vlasovData/VlasovStreamTensor1x2v.cpp
+    vlasovData/VlasovStreamTensor1x3v.cpp
+    vlasovData/VlasovStreamTensor2x2v.cpp
+
     vlasovData/VlasovSurfStreamMax1x1v.cpp
     vlasovData/VlasovSurfStreamMax1x2v.cpp
     vlasovData/VlasovSurfStreamMax1x3v.cpp
@@ -77,19 +82,29 @@ def build(bld):
     vlasovData/VlasovSurfStreamSer2x3v.cpp
     vlasovData/VlasovSurfStreamSer3x3v.cpp
 
-    vlasovData/VlasovElcMagMax1x1v.cpp
-    vlasovData/VlasovElcMagMax1x2v.cpp
-    vlasovData/VlasovElcMagMax1x3v.cpp
-    vlasovData/VlasovElcMagMax2x2v.cpp
-    vlasovData/VlasovElcMagMax2x3v.cpp
-    vlasovData/VlasovElcMagMax3x3v.cpp
+    vlasovData/VlasovSurfStreamTensor1x1v.cpp
+    vlasovData/VlasovSurfStreamTensor1x2v.cpp
+    vlasovData/VlasovSurfStreamTensor1x3v.cpp
+    vlasovData/VlasovSurfStreamTensor2x2v.cpp
 
-    vlasovData/VlasovElcMagSer1x1v.cpp
-    vlasovData/VlasovElcMagSer1x2v.cpp
-    vlasovData/VlasovElcMagSer1x3v.cpp
-    vlasovData/VlasovElcMagSer2x2v.cpp
-    vlasovData/VlasovElcMagSer2x3v.cpp
-    vlasovData/VlasovElcMagSer3x3v.cpp
+    vlasovData/VlasovMax1x1v.cpp
+    vlasovData/VlasovMax1x2v.cpp
+    vlasovData/VlasovMax1x3v.cpp
+    vlasovData/VlasovMax2x2v.cpp
+    vlasovData/VlasovMax2x3v.cpp
+    vlasovData/VlasovMax3x3v.cpp
+
+    vlasovData/VlasovSer1x1v.cpp
+    vlasovData/VlasovSer1x2v.cpp
+    vlasovData/VlasovSer1x3v.cpp
+    vlasovData/VlasovSer2x2v.cpp
+    vlasovData/VlasovSer2x3v.cpp
+    vlasovData/VlasovSer3x3v.cpp
+
+    vlasovData/VlasovTensor1x1v.cpp
+    vlasovData/VlasovTensor1x2v.cpp
+    vlasovData/VlasovTensor1x3v.cpp
+    vlasovData/VlasovTensor2x2v.cpp
 
     vlasovData/VlasovSurfElcMagMax1x1v.cpp
     vlasovData/VlasovSurfElcMagMax1x2v.cpp
@@ -104,6 +119,11 @@ def build(bld):
     vlasovData/VlasovSurfElcMagSer2x2v.cpp
     vlasovData/VlasovSurfElcMagSer2x3v.cpp
     vlasovData/VlasovSurfElcMagSer3x3v.cpp
+
+    vlasovData/VlasovSurfElcMagTensor1x1v.cpp
+    vlasovData/VlasovSurfElcMagTensor1x2v.cpp
+    vlasovData/VlasovSurfElcMagTensor1x3v.cpp
+    vlasovData/VlasovSurfElcMagTensor2x2v.cpp
 
     vlasovData/VlasovIncr.cpp
 
