@@ -31,12 +31,14 @@ def build(bld):
     momentCalcData/DistFuncMomentCalcMax1x3v.cpp
     momentCalcData/DistFuncMomentCalcMax2x2v.cpp
     momentCalcData/DistFuncMomentCalcMax2x3v.cpp
+    momentCalcData/DistFuncMomentCalcMax3x3v.cpp
 
     momentCalcData/DistFuncMomentCalcSer1x1v.cpp
     momentCalcData/DistFuncMomentCalcSer1x2v.cpp
     momentCalcData/DistFuncMomentCalcSer1x3v.cpp
     momentCalcData/DistFuncMomentCalcSer2x2v.cpp
     momentCalcData/DistFuncMomentCalcSer2x3v.cpp
+    momentCalcData/DistFuncMomentCalcSer3x3v.cpp
 
     momentCalcData/DistFuncGkMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncGkMomentCalcMax1x2v.cpp
@@ -53,12 +55,14 @@ def build(bld):
     momentCalcData/DistFuncIntegratedMomentCalcSer1x3v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer2x2v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcSer2x3v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcSer3x3v.cpp
 
     momentCalcData/DistFuncIntegratedMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcMax1x2v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcMax1x3v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcMax2x2v.cpp
     momentCalcData/DistFuncIntegratedMomentCalcMax2x3v.cpp
+    momentCalcData/DistFuncIntegratedMomentCalcMax3x3v.cpp
 
     CartFieldIntegratedQuantCalcImpl.cpp
 
