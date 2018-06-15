@@ -9,6 +9,10 @@ def build(bld):
     bld.objects(source = r"""
     TenMomentImpl.cpp
 
+    lboData/GkLBOconstNuSer1x1v.cpp
+    lboData/GkLBOconstNuSurfSer1x1v.cpp
+    lboData/GkLBOconstNuBoundarySurfSer1x1v.cpp
+    
     lboData/VmLBOconstNuSer1x1v.cpp
     lboData/VmLBOconstNuSurfSer1x1v.cpp
     lboData/VmLBOconstNuBoundarySurfSer1x1v.cpp
