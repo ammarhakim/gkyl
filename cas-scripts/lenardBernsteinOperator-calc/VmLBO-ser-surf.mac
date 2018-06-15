@@ -1,10 +1,10 @@
 load("lenardBernsteinOperator-calc/VmLBOconstNu-surf")$
 load(stringproc)$
 
-polyOrderMax : 3$
+polyOrderMax : 1$
 
-for c : 1 thru 2 do (
-  for v : c thru 3 do (
+for c : 1 thru 1 do (
+  for v : c thru 1 do (
    disp(printf(false,"Creating surface VmLBOconstNu ~ax~av",c,v)),
    fname : sconcat("~/max-out/VmLBOconstNuSurfSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
@@ -16,7 +16,7 @@ for c : 1 thru 2 do (
 
 /* boundarySurf kernels compute surface contribution that we
    do not want to zero-out at the boundary of velocity domain. */
-
+/*
 for c : 1 thru 2 do (
   for v : c thru 3 do (
    disp(printf(false,"Creating boundary surface VmLBOconstNu ~ax~av",c,v)),
@@ -27,4 +27,5 @@ for c : 1 thru 2 do (
    close(fh)
   )
 );
+*/
 
