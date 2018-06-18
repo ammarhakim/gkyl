@@ -13,9 +13,9 @@ gunzip eigen-3.3.4.tar.gz
 tar -xvf eigen-3.3.4.tar
 
 mkdir -p $GKYLSOFT/eigen3/include/eigen3
-mv eigen-eigen*/Eigen $GKYLSOFT/eigen3/include/eigen3
-mv eigen-eigen*/signature_of_eigen3_matrix_library $GKYLSOFT/eigen3/include/eigen3
-mv eigen-eigen*/unsupported $GKYLSOFT/eigen3/include/eigen3
+mv -f eigen-eigen*/Eigen $GKYLSOFT/eigen3/include/eigen3
+mv -f eigen-eigen*/signature_of_eigen3_matrix_library $GKYLSOFT/eigen3/include/eigen3
+mv -f eigen-eigen*/unsupported $GKYLSOFT/eigen3/include/eigen3
 
 rm -rf eigen-3.3.4.tar* eigen-eigen-*
 
