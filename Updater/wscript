@@ -10,11 +10,19 @@ def build(bld):
     FiveMomentSrcImpl.cpp
 
     primMomentsCalcData/SelfPrimMomentsSer1x1v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer1x2v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer1x3v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer2x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x1v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x3v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser2x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser2x3v.cpp
+
+    primMomentsCalcData/SelfPrimMomentsMax1x1v.cpp
+    primMomentsCalcData/SelfPrimMomentsMax1x2v.cpp
+    primMomentsCalcData/SelfPrimMomentsMax1x3v.cpp
+    primMomentsCalcData/SelfPrimMomentsMax2x2v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
@@ -25,6 +33,16 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x2v.cpp
     binOpCalcData/CartFieldBinOpSer2x3v.cpp
     binOpCalcData/CartFieldBinOpSer3x2v.cpp
+
+    binOpCalcData/CartFieldBinOpMax1x.cpp
+    binOpCalcData/CartFieldBinOpMax2x.cpp
+    binOpCalcData/CartFieldBinOpMax3x.cpp
+    binOpCalcData/CartFieldBinOpMax1x1v.cpp
+    binOpCalcData/CartFieldBinOpMax1x2v.cpp
+    binOpCalcData/CartFieldBinOpMax1x3v.cpp
+    binOpCalcData/CartFieldBinOpMax2x2v.cpp
+    binOpCalcData/CartFieldBinOpMax2x3v.cpp
+    binOpCalcData/CartFieldBinOpMax3x2v.cpp
 
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp

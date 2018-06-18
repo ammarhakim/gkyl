@@ -1,0 +1,88 @@
+/* Generate kernels to that evaluate f and v*f at the boundaries
+   and integrate it (the integral is global).
+   This is used to correct u and vtSq in the primMoments updater. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+VarsV : [VX, VY, VZ]$
+
+/* These variables make it possible for the function
+   calcBoundaryIntegral to generate the code for both
+   the function that evaluates the surface integral of
+   f|^(vmax)_(vmin) and that of vf|^(vmax)_(vmin). */
+wVar    : [ [1,1,1] , varsV]$
+Fsuffix : [F, vF]$
+Bfac    : [ [1,1] , [vmax,vmin] ]$ 
+
+
+calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    bP : basisP[polyOrder],
+    NP : length(bP),
+    NC : length(bC),
+
+    vv       : varsV[dir],
+    surfVars : delete(vv,varsP),
+
+    /* Expand the distribution function in the cells at the
+       boundaries of the velocity domain. */
+    fvmin_e : doExpand1(fvmin,bP),
+    fvmax_e : doExpand1(fvmax,bP),
+
+    /* Quantity to be integrated over velocity boundary surface.
+       It is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin). */
+    mB_e : Bfac[wInd][1]*subst(vv=1,wVar[wInd][dir]*fvmax_e)
+          -Bfac[wInd][2]*subst(vv=-1,wVar[wInd][dir]*fvmin_e),
+
+    /* This is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin) integrated
+       over the velocity boundary surface, and projected onto the
+       configuration space basis function. */
+    fB_c : calcInnerProdList(surfVars,1,bC,mB_e),
+
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_~a_~a_P~a(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder),
+    printf(fh, "  // vmax, vmin:         maximum and minimum velocity of the velocity grid. ~%"),
+    printf(fh, "  // dxv[~a]:             cell length in each direciton. ~%", cdim+vdim),
+    printf(fh, "  // fvmax[~a], fvmin[~a]: distribution function at the velocity boundaries. ~%", NP, NP),
+    printf(fh, "  // out:                \int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). ~%"),
+    printf(fh, " ~%"),
+
+    dv       : makelist(dxv[cdim+i], i, 0, vdim-1),
+    dvSurf   : delete(dxv[cdim+dir-1],dv),
+    surfExpr : float(prod(dvSurf[i],i,1,vdim-1)),
+
+    /* Surface integral above was done in [-1,1] computational space. Surface
+       factor needs to be multiplied to obtain result from physical grid. */
+    printf(fh, "  const double dS = ~a*~a; ~%", float(1/(2^(vdim-1))), surfExpr),
+    printf(fh, " ~%"),
+
+    if (wInd=1) then ( 
+       expr : float(expand(dS*fB_c)),
+       for i : 1 thru length(expr) do (
+         if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", out[(dir-1)*NC+i-1], expr[i])
+       )
+    ) else (
+       writeCIncrExprs1(out, dS*fB_c)
+    ),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcSurfIntegralCorrections(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
+  for dir : 1 thru vdim do (
+    calcBoundaryIntegral(1, dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+    calcBoundaryIntegral(2, dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+  )
+)$

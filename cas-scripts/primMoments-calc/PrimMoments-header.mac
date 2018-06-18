@@ -1,6 +1,8 @@
 fh : openw("~/max-out/PrimMomentsModDecl.h")$
 
-polyOrderMax : 4$
+polyOrderMax : 3$
+
+VarsC : [X, Y, Z]$
 
 printf(fh, "#ifndef PRIM_MOMENTS_MOD_DECL_H ~%")$
 printf(fh, "#define PRIM_MOMENTS_MOD_DECL_H ~%")$
@@ -12,23 +14,36 @@ printf(fh, " ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
 
-for ci : 1 thru 3 do (
-  for vi : ci thru 3 do (
-    for pi : 1 thru polyOrderMax do (
+bName        : ["Ser","Max"]$
 
-      /* Primitive moments for self-collision terms. */
-      printf(fh, "void SelfPrimMoments~ax~avSer_P~a(const double *m0, const double *m1, const double *m2, const double *fvmin, const double *fvmax, const double *vmin, const double *vmax, double *u, double *vtSq); ~%", ci, vi, pi),
-      printf(fh, "~%"), 
-
-      /* Primitive moments for cross-collision Vlasov LBO terms. */
-      printf(fh, "void CrossPrimMoments_VmeiLBO_~ax~avSer_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, pi),
-      printf(fh, "void CrossPrimMoments_VmieLBO_~ax~avSer_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, pi),
-      printf(fh, "~%") 
-
-    )
-  ),
-  printf(fh, "~%")
-)$
+for bInd : 1 thru length(bName) do (
+  for ci : 1 thru 3 do (
+    for vi : ci thru 3 do (
+      for pi : 1 thru polyOrderMax do (
+  
+        /* Primitive moments for self-collision terms. */
+        printf(fh, "void SelfPrimMoments~ax~av~a_P~a(const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "~%"), 
+  
+        /* Corrections to primitive moments from finite velocity grids. */
+        for si : 1 thru vi do (
+          printf(fh, "void BoundaryIntegral~ax~av~a_F_V~a_P~a(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out); ~%", ci, vi, bName[bInd], VarsC[si], pi),
+          printf(fh, "~%"),
+  
+          printf(fh, "void BoundaryIntegral~ax~av~a_vF_V~a_P~a(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out); ~%", ci, vi, bName[bInd], VarsC[si], pi),
+          printf(fh, "~%")
+        ),
+  
+        /* Primitive moments for cross-collision Vlasov LBO terms. */
+        printf(fh, "void CrossPrimMoments_VmeiLBO_~ax~av~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "void CrossPrimMoments_VmieLBO_~ax~av~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "~%") 
+  
+      )
+    ),
+    printf(fh, "~%")
+  )
+);
 
 printf(fh, "} ~%")$
 
