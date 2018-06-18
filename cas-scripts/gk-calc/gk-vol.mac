@@ -202,7 +202,7 @@ for i : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
-for c : 1 thru 1 do (
+for c : 1 thru 3 do (
 v:2,
 pmax:1,
 if c=1 then (v:1, pmax:2),
