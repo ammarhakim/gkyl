@@ -20,6 +20,30 @@ function _M.selectSelfPrimMomentsCalc(basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
+-- selfPrimMoments also need kernels to compute certain integrals along velocity boundaries.
+function _M.selectBoundaryFintegral(dir, basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = ""
+   if dir == 1 then 
+      funcNm = string.format("BoundaryIntegral%dx%dv%s_F_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   elseif dir == 2 then 
+      funcNm = string.format("BoundaryIntegral%dx%dv%s_F_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   elseif dir == 3 then 
+      funcNm = string.format("BoundaryIntegral%dx%dv%s_F_VZ_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   end
+   return ffi.C[funcNm]
+end
+function _M.selectBoundaryVFintegral(dir, basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = ""
+   if dir == 1 then 
+     funcNm = string.format("BoundaryIntegral%dx%dv%s_vF_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   elseif dir == 2 then 
+     funcNm = string.format("BoundaryIntegral%dx%dv%s_vF_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   elseif dir == 3 then 
+     funcNm = string.format("BoundaryIntegral%dx%dv%s_vF_VZ_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   end
+   return ffi.C[funcNm]
+end
+
 -- select kernel function to compute the cross primitive moments. 
 function _M.selectCrossPrimMomentsCalc(collOp, collide, basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("CrossPrimMoments_%s%s_%dx%dv%s_P%d", collide, operator, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
