@@ -198,6 +198,14 @@ build_luarocks() {
 echo "Installations will be in  $PREFIX"
 
 build_openmpi
+if [ "$MPICC" = "" ] 
+then
+    MPICC=$PREFIX/openmpi-3.0.0/bin/mpicc
+fi
+if [ "$MPICXX" = "" ] 
+then
+    MPICXX=$PREFIX/openmpi-3.0.0/bin/mpicxx
+fi
 build_luajit
 build_luarocks
 build_adios
