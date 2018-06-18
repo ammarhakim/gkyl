@@ -552,6 +552,9 @@ function GkGeometry:fullInit(appTbl)
    self.bmagFunc = tbl.bmag
    assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
 
+   -- for s-alpha geometry
+   self.salpha = tbl.salpha
+
    -- wall potential for sheath BCs
    self.phiWallFunc = tbl.phiWall
    if self.phiWallFunc then assert(type(self.phiWallFunc)=="function", "GkGeometry: phiWall must be a function (t, xn)") end
@@ -575,7 +578,7 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- 1/B
+   -- bmagInv ~ 1/B
    self.geo.bmagInv = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
@@ -583,14 +586,32 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- functions for magnetic drifts ~ 1/B*curl(bhat) 
+   -- bhat.grad z
+   self.geo.gradpar = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
+   -- functions for magnetic drifts 
+   -- bdriftX = 1/B*curl(bhat).grad x
    self.geo.bdriftX = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
+   -- bdriftY = 1/B*curl(bhat).grad y
    self.geo.bdriftY = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
+   -- jacobian of coordinate transformation
+   self.geo.jacobGeo = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
@@ -629,6 +650,17 @@ function GkGeometry:createSolver()
       ones[dir] = 1 -- reset so we can check other vars
    end
    if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+
+   if self.salpha then
+      local salpha = self.salpha
+      self.bmagFunc = function (t, xn)
+         local x, y, z = xn[1], xn[2], xn[3]
+         return salpha.B0/(1 + salpha.eps0*math.cos(z))
+      end
+      self.bmagInvFunc = function (t, xn)
+         return 1/self.bmagFunc(t, xn)
+      end
+   end
 
    -- calculate 1/B function
    self.bmagInvFunc = function (t, xn)
