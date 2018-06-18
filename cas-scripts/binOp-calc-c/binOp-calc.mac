@@ -1,0 +1,114 @@
+/* Generate kernels that perform binary operations between
+   two fields. Currently two operations are supported:
+     1) Weak division by a scalar function.
+     2) Weak multiplication.
+   This script calls the functions calcBinOp for various
+   combinations of configuration and velocity space, and
+   indicates the maximum polyOrder to generate code for. */
+load("binOp-calc-c/binOp-division-calc")$
+load("binOp-calc-c/binOp-multiplication-calc")$
+load("binOp-calc-c/binOp-dotProduct-calc")$
+load(stringproc)$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+minVdim_Ser : 1$
+maxCdim_Ser : 2$
+maxVdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+minVdim_Max : 1$
+maxCdim_Max : 2$
+maxVdim_Max : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+minVdim      : [minVdim_Ser, minVdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  /* Generate kernels for operations between two fields defined on
+     spaces with same dimensions (1D, 2D, 3D). */
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+  
+    disp(printf(false,sconcat("Creating ~ax", bName[bInd]),c)),
+  
+    printf(fh, "#include <math.h> ~%"),
+    printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
+    printf(fh, " ~%"),
+    printf(fh, "using namespace Eigen; ~%"),
+    printf(fh, " ~%"),
+    
+    funcName : sconcat("CartFieldBinOpMultiply", c, "x", bName[bInd]),
+    calcBinOpMultiplyS(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
+    
+    funcName : sconcat("CartFieldBinOpDivide", c, "x", bName[bInd]),
+    calcBinOpDivideS(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
+   
+    funcName : sconcat("CartFieldBinOpDotProduct", c, "x", bName[bInd]),
+    calcBinOpDotProduct(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
+   
+    close(fh)
+  ),
+  
+  /* Kernels for operations between two fields defined on
+     spaces with different dimensions, mostly for operations between
+     a configuration space field and a phase space field. */
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "v",".cpp"),
+      fh : openw(fname),
+  
+      disp(printf(false,sconcat("Creating ~ax~av ", bName[bInd]),c,v)),
+  
+      printf(fh, "#include <math.h> ~%"),
+      printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
+      printf(fh, " ~%"),
+      printf(fh, "using namespace Eigen; ~%"),
+      printf(fh, " ~%"),
+     
+      funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]),
+      calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]), 
+  
+      funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd]),
+      calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]),
+  
+      close(fh)
+    )
+  ),
+  
+  
+  /* Generate the 3x2v case (mostly for gyrokinetics). */
+  c : 3,
+  v : 2,
+  disp(printf(false,sconcat("Creating ~ax~av", bName[bInd]),c,v)),
+  
+  fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "v", ".cpp"),
+  fh : openw(fname),
+  
+  printf(fh, "#include <math.h> ~%"),
+  printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
+  printf(fh, " ~%"),
+  printf(fh, "using namespace Eigen; ~%"),
+  printf(fh, " ~%"),
+  
+  funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]),
+  calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]),
+     
+  funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd]),
+  calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]),
+  
+  close(fh) 
+)$
+
