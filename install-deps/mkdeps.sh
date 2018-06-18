@@ -141,6 +141,18 @@ do
    shift
 done
 
+# if mpicc doesn't work (because it doesn't exist or it's not in path), try to use installed openmpi version
+if ! [ -x "$(command -v $MPICC)" ]
+then
+    MPICC=$PREFIX/openmpi-3.0.0/bin/mpicc
+    MPICXX=$PREFIX/openmpi-3.0.0/bin/mpicxx
+fi
+# if mpicc still doesn't work, force to install openmpi
+if ! [ -x "$(command -v $MPICC)" ] 
+then
+    BUILD_OPENMPI="yes"
+fi
+
 # Write out build options for scripts to use
 cat <<EOF1 > build-opts.sh
 # Generated automatically! Do not edit
@@ -164,7 +176,7 @@ build_openmpi() {
 }
 
 build_eigen() {
-    if [ "$BUILD_EIGEN" = "yes" ]
+    if [[ "$BUILD_EIGEN" = "yes" || ! -f $PREFIX/eigen3/include/eigen3/Eigen/Core ]]
     then
 	echo "Building EIGEN"
 	./build-eigen.sh
@@ -172,7 +184,7 @@ build_eigen() {
 }
 
 build_luajit() {
-    if [ "$BUILD_LUAJIT" = "yes" ]
+    if [[ "$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp ]]
     then    
 	echo "Building LuaJIT"
 	./build-luajit-beta3.sh
@@ -180,7 +192,7 @@ build_luajit() {
 }
 
 build_adios() {
-    if [ "$BUILD_ADIOS" = "yes" ]
+    if [[ "$BUILD_ADIOS" = "yes" || ! -f $PREFIX/adios/include/adios.h ]]
     then    
 	echo "Building ADIOS"
 	./build-adios.sh
@@ -195,17 +207,9 @@ build_luarocks() {
     fi
 }
 
-echo "Installations will be in  $PREFIX"
+echo "Installations will be in $PREFIX"
 
 build_openmpi
-if [ "$MPICC" = "" ] 
-then
-    MPICC=$PREFIX/openmpi-3.0.0/bin/mpicc
-fi
-if [ "$MPICXX" = "" ] 
-then
-    MPICXX=$PREFIX/openmpi-3.0.0/bin/mpicxx
-fi
 build_luajit
 build_luarocks
 build_adios
