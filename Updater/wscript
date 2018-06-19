@@ -13,6 +13,7 @@ def build(bld):
     primMomentsCalcData/SelfPrimMomentsSer1x2v.cpp
     primMomentsCalcData/SelfPrimMomentsSer1x3v.cpp
     primMomentsCalcData/SelfPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer2x3v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x1v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x3v.cpp
@@ -23,6 +24,7 @@ def build(bld):
     primMomentsCalcData/SelfPrimMomentsMax1x2v.cpp
     primMomentsCalcData/SelfPrimMomentsMax1x3v.cpp
     primMomentsCalcData/SelfPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/SelfPrimMomentsMax2x3v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
