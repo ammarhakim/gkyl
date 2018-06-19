@@ -88,6 +88,14 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis = self.confBasis,
       moment = "M2",
    }
+   -- create updater to compute M0, M1i, M2 moments sequentially
+   -- this is used in calcCouplingMoments to reduce overhead and multiplications
+   self.FiveMomentsCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "FiveMoments",
+   }
 
    -- create updater to evaluate source 
    if self.sourceFunc then 
@@ -255,9 +263,7 @@ end
 function VlasovSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    -- compute moments needed in coupling to fields and collisions
    local fIn = self:rkStepperFields()[rkIdx]
-   self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
-   self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
-   self.ptclEnergyCalc:advance(tCurr, dt, {fIn}, { self.ptclEnergy })
+   self.FiveMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
 end
 
 function VlasovSpecies:fluidMoments()
