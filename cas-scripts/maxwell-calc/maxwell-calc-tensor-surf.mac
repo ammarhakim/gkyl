@@ -1,0 +1,10 @@
+load("maxwell-calc/maxwell-calc-surf")$
+load(stringproc)$
+
+for c : 1 thru 2 do (
+   fname : sconcat("~/max-out/MaxwellSurfTensor", c, "x", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("MaxwellSurf", c, "x", "Tensor"),
+   calcMaxwellSurfUpdater(fh, funcName, c, "Tensor"),
+   close(fh)
+);

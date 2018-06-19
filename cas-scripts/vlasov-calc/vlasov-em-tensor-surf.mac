@@ -1,0 +1,12 @@
+load("vlasov-calc/vlasov-em-glf-surf")$
+load(stringproc)$
+
+for c : 1 thru 1 do (
+  for v : c thru 1 do (
+   fname : sconcat("~/max-out/VlasovSurfElcMagTensor", c, "x", v, "v", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("VlasovSurfElcMag", c, "x", v, "v", "Tensor"),
+   calcVlasovSurfUpdater(fh, funcName, c, v, "Tensor"),
+   close(fh)
+  )
+);
