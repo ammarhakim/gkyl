@@ -103,6 +103,9 @@ createTopLevelDefs(int argc, char **argv) {
           << execPath << "/../lib/lib?.so;"
           << execPath << "/../lib/lib?.dylib;"
           << "\"";
+
+  // add full-path to executable to top-level
+  varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
   
 #ifdef HAVE_MPI_H
   varDefs << "GKYL_HAVE_MPI = true" << std::endl;

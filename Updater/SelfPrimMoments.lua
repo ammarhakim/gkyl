@@ -77,8 +77,7 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
    local uOut    = outFld[1]
    local vtSqOut = outFld[2]
 
-   local m0fld, m1fld, m2fld, fIn
-   m0fld, m1fld, m2fld, fIn = inFld[1], inFld[2], inFld[3], inFld[4]
+   local m0fld, m1fld, m2fld, fIn = inFld[1], inFld[2], inFld[3], inFld[4]
 
    local confRange  = m0fld:localRange()
    if self.onGhosts then confRange = m0fld:localExtRange() end
