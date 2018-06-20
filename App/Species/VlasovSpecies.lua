@@ -144,9 +144,8 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    -- perform the collision update
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-	 local collStatus, collDt = c:forwardEuler(tCurr, dt,
-						   fIn, species,
-						   fOut)
+	 local collStatus, collDt = c:forwardEuler(
+	    tCurr, dt, fIn, species, fOut)
 	 -- the full 'species' list is needed for the cross-species
 	 -- collisions
 	 status = status and collStatus
