@@ -14,22 +14,22 @@ local Proto = require "Lib.Proto"
 local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
 local xsys = require "xsys"
 
--- function to check if moment name is correct
-local function isMomentNameGood(nm)
+-- Moments updater object
+local DistFuncMomentCalc = Proto(UpdaterBase)
+
+function DistFuncMomentCalc:isMomentNameGood(nm)
    if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" or nm == "M3i" or nm == "FiveMoments" then
       return true
    end
    return false
 end
-local function isGkMomentNameGood(nm)
+
+function DistFuncMomentCalc:isGkMomentNameGood(nm)
    if nm == "GkDens" or nm == "GkUpar" or nm == "GkPpar" or nm == "GkPperp" or nm == "GkQpar" or nm == "GkQperp" then
       return true
    end
    return false
 end
-
--- Moments updater object
-local DistFuncMomentCalc = Proto(UpdaterBase)
 
 function DistFuncMomentCalc:init(tbl)
    DistFuncMomentCalc.super.init(self, tbl) -- setup base object
@@ -61,9 +61,9 @@ function DistFuncMomentCalc:init(tbl)
    if mom == "FiveMoments" then self._fivemoments = true end
 
    -- function to compute specified moment
-   if isMomentNameGood(mom) then
+   if self:isMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
-   elseif isGkMomentNameGood(mom) then
+   elseif self:isGkMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectGkMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
    else
       print("DistFuncMomentCalc: Requested moment is", mom)
