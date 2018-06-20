@@ -61,24 +61,42 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
       -- save bmagFunc for later...
       self.bmagFunc = geo.bmagFunc
       -- if vdim>1, get jacobian=bmag from geo, and multiply it by init functions for f0 and f
-      self.jacobianFunc = self.bmagFunc
-      if self.jacobianFunc and self.vdim > 1 then
+      self.jacobPhaseFunc = self.bmagFunc
+      self.jacobGeoFunc = geo.jacobGeoFunc
+      if self.jacobPhaseFunc and self.vdim > 1 then
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
-            local J = self.jacobianFunc(t,xn)
+            local J = self.jacobPhaseFunc(t,xn)
             local f = initFuncWithoutJacobian(t,xn)
             return J*f
          end
          if self.initBackgroundFunc then
             local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
             self.initBackgroundFunc = function(t,xn)
-               local J = self.jacobianFunc(t,xn)
+               local J = self.jacobPhaseFunc(t,xn)
+               local f0 = initBackgroundFuncWithoutJacobian(t,xn)
+               return J*f0
+            end
+         end
+      end
+      if self.jacobGeoFunc then
+         local initFuncWithoutJacobian = self.initFunc
+         self.initFunc = function (t, xn)
+            local J = self.jacobGeoFunc(t,xn)
+            local f = initFuncWithoutJacobian(t,xn)
+            return J*f
+         end
+         if self.initBackgroundFunc then
+            local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
+            self.initBackgroundFunc = function(t,xn)
+               local J = self.jacobGeoFunc(t,xn)
                local f0 = initBackgroundFuncWithoutJacobian(t,xn)
                return J*f0
             end
          end
       end
       self.B0 = geo.B0
+      self.bmag = assert(geo.geo.bmag, "nil bmag")
    end
 
    -- create updater to advance solution by one time-step
@@ -134,42 +152,36 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
          onlyIncrement = false,  -- finish taking timestep
       }
    end
-
-   -- account for factor of mass in definition of mu
-   -- note that factor of 2*pi from gyrophase integration handled in GkMoment calculations
-   self.momfac = 1/self.mass
-   -- except in 1v there is no mu, so no factor of mass and also remove the factor of 2*pi... 
-   if self.vdim == 1 then self.momfac = 1 / (2*math.pi) end
    
    -- create updaters to compute various moments
    self.numDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
-      moment = "GkDens",
-      momfac = self.momfac,
+      moment = "GkM0",
+      gkfacs = {self.mass, self.bmag},
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
-      moment = "GkUpar",
-      momfac = self.momfac,
+      moment = "GkM1",
+      gkfacs = {self.mass, self.bmag},
    }
-   self.calcPpar = Updater.DistFuncMomentCalc {
+   self.ptclEnergyParCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
-      moment = "GkPpar",
-      momfac = self.momfac*self.mass,
+      moment = "GkM2par",
+      gkfacs = {self.mass, self.bmag},
    }
    if self.vdim > 1 then
-      self.calcPperp = Updater.DistFuncMomentCalc {
+      self.ptclEnergyPerpCalc = Updater.DistFuncMomentCalc {
          onGrid = self.grid,
          phaseBasis = self.basis,
          confBasis = self.confBasis,
-         moment = "GkPperp",
-         momfac = self.momfac,
+         moment = "GkM2perp",
+         gkfacs = {self.mass, self.bmag},
       }
    end
    self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
@@ -233,7 +245,7 @@ function GkSpecies:createDiagnostics()
    self.diagnosticMomentFields = { }
    self.diagnosticMomentUpdaters = { } 
    -- allocate space to store moments and create moment updater
-   for i, mom in ipairs(self.diagnosticMoments) do
+   for i, mom in pairs(self.diagnosticMoments) do
       if isMomentNameGood(mom) then
          self.diagnosticMomentFields[i] = DataStruct.Field {
             onGrid = self.confGrid,
@@ -245,7 +257,7 @@ function GkSpecies:createDiagnostics()
             phaseBasis = self.basis,
             confBasis = self.confBasis,
             moment = mom,
-            momfac = self.momfac,
+            gkfacs = {self.mass, self.bmag},
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -372,18 +384,6 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
-end
-
-function GkSpecies:calcDiagnosticMoments()
-   -- if there is a background distribution f0, we will output only
-   -- perturbed moments by subtracting off background
-   if self.f0 then self.distf[1]:accumulate(-1, self.f0) end
-   local numMoms = #self.diagnosticMoments
-   for i = 1, numMoms do
-      self.diagnosticMomentUpdaters[i]:advance(
-	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
-   end
-   if self.f0 then self.distf[1]:accumulate(1, self.f0) end
 end
 
 function GkSpecies:fluidMoments()

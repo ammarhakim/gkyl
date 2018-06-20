@@ -58,23 +58,6 @@ function Gyrokinetic:init(tbl)
    end
 
    self._isFirst = true
-   self.phiPtr = nil
-   self.bmagPtr = nil
-   self.bdriftXPtr = nil
-   self.bdriftYPtr = nil
-   self.phiWallPtr = nil
-   self.phiIdxr = nil
-   self.bmagIdxr = nil
-   self.bdriftXIdxr = nil
-   self.bdriftYIdxr = nil
-   self.phiWallIdxr = nil
-   if self._isElectromagnetic then
-      -- for electromagnetic terms
-      self.aparPtr = nil
-      self.dApardtPtr = nil
-      self.aparIdxr = nil
-      self.dApardtIdxr = nil
-   end
 
    -- timers
    self.totalVolTime = 0.0
@@ -97,6 +80,7 @@ function Gyrokinetic:setAuxFields(auxFields)
    -- get magnetic geometry fields
    self.bmag = geo.bmag
    self.bmagInv = geo.bmagInv
+   self.gradpar = geo.gradpar
    self.bdriftX = geo.bdriftX
    self.bdriftY = geo.bdriftY
    self.phiWall = geo.phiWall  -- for sheath BCs
@@ -117,11 +101,13 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- geometry
       self.bmagPtr = self.bmag:get(1)
       self.bmagInvPtr = self.bmagInv:get(1)
+      self.gradparPtr = self.gradpar:get(1)
       self.bdriftXPtr = self.bdriftX:get(1)
       self.bdriftYPtr = self.bdriftY:get(1)
       self.phiWallPtr = self.phiWall:get(1)
       self.bmagIdxr = self.bmag:genIndexer()
       self.bmagInvIdxr = self.bmagInv:genIndexer()
+      self.gradparIdxr = self.gradpar:genIndexer()
       self.bdriftXIdxr = self.bdriftX:genIndexer()
       self.bdriftYIdxr = self.bdriftY:genIndexer()
       self.phiWallIdxr = self.phiWall:genIndexer()
@@ -136,6 +122,7 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
+   self.gradpar:fill(self.gradparIdxr(idx), self.gradparPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idx), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
    local res
@@ -155,6 +142,7 @@ function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, o
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
+   self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
    local res
@@ -205,21 +193,6 @@ function GyrokineticStep2:init(tbl)
    self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, true, self.Bvars)
 
    self._isFirst = true
-
-   self.phiPtr = nil
-   self.bmagPtr = nil
-   self.bdriftXPtr = nil
-   self.bdriftYPtr = nil
-   self.aparPtr = nil
-   self.dApardtPtr = nil
-
-   self.phiIdxr = nil
-   self.bmagIdxr = nil
-   self.bdriftXIdxr = nil
-   self.bdriftYIdxr = nil
-   self.aparIdxr = nil
-   self.dApardtIdxr = nil
-   
 end
 
 function GyrokineticStep2:setAuxFields(auxFields)
@@ -234,6 +207,7 @@ function GyrokineticStep2:setAuxFields(auxFields)
    -- get magnetic geometry fields
    self.bmag = geo.bmag
    self.bmagInv = geo.bmagInv
+   self.gradpar = geo.gradpar
    self.bdriftX = geo.bdriftX
    self.bdriftY = geo.bdriftY
 
@@ -251,10 +225,12 @@ function GyrokineticStep2:setAuxFields(auxFields)
       -- geometry
       self.bmagPtr = self.bmag:get(1)
       self.bmagInvPtr = self.bmagInv:get(1)
+      self.gradparPtr = self.gradpar:get(1)
       self.bdriftXPtr = self.bdriftX:get(1)
       self.bdriftYPtr = self.bdriftY:get(1)
       self.bmagIdxr = self.bmag:genIndexer()
       self.bmagInvIdxr = self.bmagInv:genIndexer()
+      self.gradparIdxr = self.gradpar:genIndexer()
       self.bdriftXIdxr = self.bdriftX:genIndexer()
       self.bdriftYIdxr = self.bdriftY:genIndexer()
 
@@ -271,12 +247,12 @@ end
 
 -- Surface integral term for use in DG scheme 
 -- NOTE: only vpar direction for this term
--- Surface integral term for use in DG scheme
 function GyrokineticStep2:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
+   self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
    self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
