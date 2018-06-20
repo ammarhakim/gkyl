@@ -25,7 +25,7 @@ function DistFuncMomentCalc:isMomentNameGood(nm)
 end
 
 function DistFuncMomentCalc:isGkMomentNameGood(nm)
-   if nm == "GkDens" or nm == "GkUpar" or nm == "GkPpar" or nm == "GkPperp" or nm == "GkQpar" or nm == "GkQperp" then
+   if nm == "GkM0" or nm == "GkM1" or nm == "GkM2par" or nm == "GkM2perp" or nm == "GkM2" or nm == "GkM3par" or nm == "GkM3perp" or nm == "GkThreeMoments" then
       return true
    end
    return false
@@ -58,13 +58,18 @@ function DistFuncMomentCalc:init(tbl)
    local mom = assert(
       tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
-   if mom == "FiveMoments" then self._fivemoments = true end
+   if mom == "FiveMoments" or mom == "GkThreeMoments" then self._fivemoments = true end
 
    -- function to compute specified moment
+   self._isGK = false
    if self:isMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
    elseif self:isGkMomentNameGood(mom) then
       self._momCalcFun = MomDecl.selectGkMomCalc(mom, id, self._cDim, self._vDim, polyOrder)
+      self._isGK = true
+      assert(tbl.gkfacs, [[DistFuncMomentCalc: must provide a gkfacs table 
+                        containing the species mass and the background magnetic field
+                        to calculate a Gk moment]])
    else
       print("DistFuncMomentCalc: Requested moment is", mom)
       assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i, FiveMoments")
@@ -72,6 +77,12 @@ function DistFuncMomentCalc:init(tbl)
  
    self.momfac = 1.0
    if tbl.momfac then self.momfac = tbl.momfac end
+   if tbl.gkfacs then 
+      self.mass = tbl.gkfacs[1]
+      self.bmag = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")
+      self.bmagIndexer = self.bmag:genIndexer()
+      self.bmagItr = self.bmag:get(1)
+   end
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 
@@ -126,7 +137,17 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
       
       distf:fill(distfIndexer(idx), distfItr)
       mom1:fill(mom1Indexer(idx), mom1Itr)
-      if self._fivemoments then 
+      if self._isGK then
+         self.bmag:fill(self.bmagIndexer(idx), self.bmagItr)
+         if self._fivemoments then
+            mom2:fill(mom2Indexer(idx), mom2Itr)
+            mom3:fill(mom3Indexer(idx), mom3Itr)
+            self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
+                             mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+         else
+            self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
+         end
+      elseif self._fivemoments then 
          mom2:fill(mom2Indexer(idx), mom2Itr)
          mom3:fill(mom3Indexer(idx), mom3Itr)
          self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())

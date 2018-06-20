@@ -19,38 +19,42 @@ let(dv3^3, dv3_cu)$
 
 volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
 vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
+pmax : 2$
 
 /* Density */
-/* Dens = < f > */
-calcDens(fh, funcNm, cdim, vdim, basisFun) := block([],
+/* M0 = < f > */
+calcM0(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 4 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
-  printf(fh, "void ~a_Dens_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  printf(fh, "void ~a_M0_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
   fl : doExpand1(f, bP),
   M : calcInnerProdList(varsP, 1, bC, fl),
-  writeCIncrExprs1(out, volFact*M),
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
 
   printf(fh, "} ~%")
 ))$
 
-/* Parallel Momentum */
-/* Upar = < v_par f > */
-calcUpar(fh, funcNm, cdim, vdim, basisFun) := block([],
+/* Parallel Momentum Density */
+/* M1 = < v_par f > */
+calcM1(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 4 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
-  printf(fh, "void ~a_Upar_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  printf(fh, "void ~a_M1_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+
   for i : 1 thru vdim do (
     printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
   ),
@@ -60,23 +64,24 @@ for p : 1 thru 4 do (
   M : calcInnerProdList(varsP, vTrans[1], bC, fl),
   M : map(letsimp, M),
   
-  writeCIncrExprs1(out, volFact*M),
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
 
   printf(fh, "} ~%")
 ))$
 
-/* Parallel Pressure */
-/* Ppar = < v_par^2 f > */
-calcPpar(fh, funcNm, cdim, vdim, basisFun) := block([],
+/* Parallel Particle Energy */
+/* M2par = < v_par^2 f > */
+calcM2par(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 4 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
-  printf(fh, "void ~a_Ppar_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  printf(fh, "void ~a_M2par_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
   for i : 1 thru vdim do (
     printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
     printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
@@ -87,49 +92,101 @@ for p : 1 thru 4 do (
   M : calcInnerProdList(varsP, vTrans[1]*vTrans[1], bC, fl),
   M : map(letsimp, M),
   
-  writeCIncrExprs1(out, volFact*M),
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
 
   printf(fh, "} ~%")
 ))$
 
-/* Perpendicular Pressure */
-/* Pperp = < mu f > */
-calcPperp(fh, funcNm, cdim, vdim, basisFun) := block([],
+/* Perpendicular Particle Energy */
+/* M2perp = < mu/m B f > */
+calcM2perp(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 4 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
-  printf(fh, "void ~a_Pperp_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  printf(fh, "void ~a_M2perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
   for i : 1 thru vdim do (
     printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
   ),
 
   fl : doExpand1(f, bP),
+  bmag_expd : doExpand1(Bmag, bC),
 
-  M : calcInnerProdList(varsP, vTrans[2], bC, fl),
+  Mtemp : calcInnerProdList(varsP, vTrans[2], bC, fl),
+  Mtemp : map(letsimp, Mtemp),
+
+  printf(fh, "  double tmp[~a]; ~%", length(bC)),
+  
+  writeCExprs1(tmp, Mtemp),
+  tmp_expd : doExpand1(tmp, bC),
+
+  M : fullratsimp(innerProd(varsC, bC, bmag_expd, tmp_expd)),
+
+  writeCIncrExprsNoExpand1(out, volFact/m_*expand(M)),
+
+  printf(fh, "} ~%")
+))$
+
+/* Total Particle Energy */
+/* M2 = < v_par^2 + 2 mu/m B f > */
+calcM2(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_M2_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+  ),
+
+  fl : doExpand1(f, bP),
+  bmag_expd : doExpand1(Bmag, bC),
+
+  M : calcInnerProdList(varsP, vTrans[1]*vTrans[1], bC, fl),
   M : map(letsimp, M),
   
-  writeCIncrExprs1(out, volFact*M),
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
+
+  if vdim > 1 then (
+    Mtemp : calcInnerProdList(varsP, vTrans[2], bC, fl),
+    Mtemp : map(letsimp, Mtemp),
+
+    printf(fh, "  double tmp[~a]; ~%", length(bC)),
+    
+    writeCExprs1(tmp, Mtemp),
+    tmp_expd : doExpand1(tmp, bC),
+    M : fullratsimp(innerProd(varsC, bC, bmag_expd, tmp_expd)),
+
+    writeCIncrExprsNoExpand1(out, 2*volFact/m_*expand(M))
+  ),
 
   printf(fh, "} ~%")
 ))$
 
 /* Parallel Heat Flux */
-/* Qpar = < v_par^3 f > */
-calcQpar(fh, funcNm, cdim, vdim, basisFun) := block([],
+/* M3par = < v_par^3 f > */
+calcM3par(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 4 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
-  printf(fh, "void ~a_Qpar_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  printf(fh, "void ~a_M3par_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
   for i : 1 thru vdim do (
     printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
     printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i),
@@ -141,44 +198,103 @@ for p : 1 thru 4 do (
   M : calcInnerProdList(varsP, vTrans[1]*vTrans[1]*vTrans[1], bC, fl),
   M : map(letsimp, M),
   
-  writeCIncrExprs1(out, volFact*M),
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
 
   printf(fh, "} ~%")
 ))$
 
 /* Perpendicular Heat Flux */
-/* Qperp = < v_par mu f > */
-calcQperp(fh, funcNm, cdim, vdim, basisFun) := block([],
+/* M3perp = < v_par mu/m B f > */
+calcM3perp(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 4 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
-  printf(fh, "void ~a_Qperp_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = 2.0*M_PI*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  printf(fh, "void ~a_M3perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
   for i : 1 thru vdim do (
     printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
   ),
 
   fl : doExpand1(f, bP),
+  bmag_expd : doExpand1(Bmag, bC),
 
-  M : calcInnerProdList(varsP, vTrans[1]*vTrans[2], bC, fl),
+  M : calcInnerProdList(varsP, vTrans[1]*vTrans[2]*bmag_expd, bC, fl),
   M : map(letsimp, M),
   
-  writeCIncrExprs1(out, volFact*M),
+  writeCIncrExprsNoExpand1(out, volFact/m_*expand(M)),
 
   printf(fh, "} ~%")
 ))$
 
+/* Simultaneously calculate M0, M1, and M2 */
+calcThreeMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_ThreeMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+  ),
+
+  fl : doExpand1(f, bP),
+  bmag_expd : doExpand1(Bmag, bC),
+
+  energy : vTrans[1]*vTrans[1],
+  if vdim > 1 then energy : energy + 2*vTrans[2]/m_*bmag_expd,
+
+  M0 : calcInnerProdList(varsP, 1, bC, fl),
+  M0 : map(letsimp, M0),
+  
+  writeCIncrExprsNoExpand1(outM0, volFact*M0),
+
+  M1 : calcInnerProdList(varsP, vTrans[1], bC, fl),
+  M1 : map(letsimp, M1),
+  
+  writeCIncrExprsNoExpand1(outM1, volFact*M1),
+
+  M2par : calcInnerProdList(varsP, vTrans[1]*vTrans[1], bC, fl),
+  M2par : map(letsimp, M2par),
+  
+  writeCIncrExprsNoExpand1(outM2, volFact*expand(M2par)),
+
+  if vdim > 1 then (
+    Mtemp : calcInnerProdList(varsP, vTrans[2], bC, fl),
+    Mtemp : map(letsimp, Mtemp),
+
+    printf(fh, "  double tmp[~a]; ~%", length(bC)),
+    
+    writeCExprs1(tmp, Mtemp),
+    tmp_expd : doExpand1(tmp, bC),
+    M2perp : fullratsimp(innerProd(varsC, bC, bmag_expd, tmp_expd)),
+
+    writeCIncrExprsNoExpand1(outM2, 2*volFact/m_*expand(M2perp))
+  ),
+
+  printf(fh, "} ~%")
+))$
+
+
 calcGkMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
   printf(fh, "#include <math.h> ~%"),
   printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
-  calcDens(fh, funcNm, cdim, vdim, basisFun),
-  calcUpar(fh, funcNm, cdim, vdim, basisFun),
-  calcPpar(fh, funcNm, cdim, vdim, basisFun),
-  if vdim > 1 then calcPperp(fh, funcNm, cdim, vdim, basisFun),
-  calcQpar(fh, funcNm, cdim, vdim, basisFun),
-  if vdim > 1 then calcQperp(fh, funcNm, cdim, vdim, basisFun)
+  calcM0(fh, funcNm, cdim, vdim, basisFun),
+  calcM1(fh, funcNm, cdim, vdim, basisFun),
+  calcM2(fh, funcNm, cdim, vdim, basisFun),
+  calcM2par(fh, funcNm, cdim, vdim, basisFun),
+  if vdim > 1 then calcM2perp(fh, funcNm, cdim, vdim, basisFun),
+  calcM3par(fh, funcNm, cdim, vdim, basisFun),
+  if vdim > 1 then calcM3perp(fh, funcNm, cdim, vdim, basisFun),
+  calcThreeMoments(fh, funcNm, cdim, vdim, basisFun)
 )$

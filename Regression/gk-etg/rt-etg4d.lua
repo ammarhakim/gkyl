@@ -1,5 +1,5 @@
 -- 4D GK ETG linear instability calculation
--- using 'pgkyl -f etg4d_elecEnergy_ growth' should give growth rate ~ 7.3e6 
+-- using 'pgkyl -f etg4d_elecEnergy_ growth' should approximately give growth rate printed at end of run
 --
 -- Plasma ------------------------------------------------------------------------
 local Plasma = require "App.PlasmaOnCartGrid"
@@ -13,35 +13,38 @@ me = Constants.ELECTRON_MASS
 mi = 2.014*Constants.PROTON_MASS -- (deuterium ions)
 Te0 = 2072*eV 
 Ti0 = 2072*eV 
-B0 = 1.91   -- [T]
-R0 = 1.313  -- [m]
-a  = 0.4701 -- [m]
+B0 = 1.91   -- magnetic field strength on axis [T]
+R0 = 1.313  -- major radius of magnetic axis [m]
+a  = 0.4701 -- minor radius [m]
 n0 = 4.992*10^(19) -- [1/m^3]
 -- derived parameters
-R       = R0 + 0.5*a
-vte  	= math.sqrt(Te0/me)
-c_s     = math.sqrt(Te0/mi)
+r0       = 0.5*a -- minor radius of center of flux tube
+R        = R0 + r0 -- major radius of center of flux tube
+vte  	 = math.sqrt(Te0/me)
+c_s      = math.sqrt(Te0/mi)
 omega_ci = math.abs(qi*B0/mi)
 omega_ce = math.abs(qe*B0/me)
-rho_s   = c_s/omega_ci
-rho_e   = vte/omega_ce
-deltaR  = 32*rho_e
-L_T     = R/10
-ky_min  = 2*math.pi/deltaR
+rho_s    = c_s/omega_ci
+rho_e    = vte/omega_ce
+dr       = 32*rho_e
+L_T      = R0/10 -- should this be R0 instead?
+ky_min   = 2*math.pi/dr
+omegade  = ky_min*rho_e*vte/R0
 -- velocity grid parameters
 N_VPAR, N_MU = 16, 8
 VPAR_UPPER = math.min(4, 2.5*math.sqrt(N_VPAR/4))*vte
 VPAR_LOWER = -VPAR_UPPER
 MU_LOWER = 0
-MU_UPPER = math.min(16, 4*math.sqrt(N_MU/2))*me*vte*vte/B0
+MU_UPPER = math.min(16, 4*math.sqrt(N_MU/2))*me*vte*vte/B0/2
+print(VPAR_UPPER/vte, MU_UPPER/(me*vte*vte/B0/2))
 
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 1e-6, -- end time
+   tEnd = .5e-6, -- end time
    nFrame = 1, -- number of output frames
-   lower = {R, -deltaR/2}, -- configuration space lower left
-   upper = {R+deltaR, deltaR/2}, -- configuration space upper right
+   lower = {r0 - dr/2, -dr/2}, -- configuration space lower left
+   upper = {r0 + dr/2,  dr/2}, -- configuration space upper right
    cells = {1, 8}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
@@ -71,7 +74,7 @@ plasmaApp = Plasma.App {
               end,
               temperature = function (t, xn)
                  local x = xn[1]
-                 return Te0*(1-(x-R)/L_T)
+                 return Te0*(1-(x-r0)/L_T)
               end,
              },
       init = {"maxwellian",
@@ -82,12 +85,12 @@ plasmaApp = Plasma.App {
               end,
               temperature = function (t, xn)
                  local x = xn[1]
-                 return Te0*(1-(x-R)/L_T)
+                 return Te0*(1-(x-r0)/L_T)
               end,
              },
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkDens"}, 
+      diagnosticMoments = {"GkM0", "GkM2", perturbed = false}, 
    },
 
    -- adiabatic ions
@@ -112,7 +115,7 @@ plasmaApp = Plasma.App {
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
-         return B0*R/x
+         return B0*R0/(R0 + x)
       end,
       -- geometry is not time-dependent
       evolve = false,
@@ -120,3 +123,4 @@ plasmaApp = Plasma.App {
 }
 -- run application
 plasmaApp:run()
+print("expected growth rate = 3.01078*omega_de = ", 3.01078*omegade)

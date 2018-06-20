@@ -88,11 +88,16 @@ function KineticSpecies:fullInit(appTbl)
    self.distIoFrame = 0 -- frame number for distrubution fucntion
    self.diagIoFrame = 0 -- frame number for diagnostcia
 
+   -- write perturbed moments by subtracting background before moment calc.. false by default
+   self.perturbedMoments = false
    -- read in which diagnostic moments to compute on output
    self.diagnosticMoments = { }
    if tbl.diagnosticMoments then
       for i, nm in ipairs(tbl.diagnosticMoments) do
-	 self.diagnosticMoments[i] = nm
+         if i == "perturbed" and nm == true then self.perturbedMoments = true
+         elseif type(i) == "number" then
+	    self.diagnosticMoments[i] = nm
+         end
       end
    end
 
@@ -168,6 +173,7 @@ function KineticSpecies:fullInit(appTbl)
       assert(self.initBackgroundFunc, [[KineticSpecies: must specify an initial
         background distribution with 'initBackground' in order to use fluctuation-only BCs]]) 
    end
+
 
    self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
    self.bcx, self.bcy, self.bcz = { }, { }, { }
@@ -565,11 +571,13 @@ function KineticSpecies:createDiagnostics()
 end
 
 function KineticSpecies:calcDiagnosticMoments()
+   if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(-1, self.f0) end
    local numMoms = #self.diagnosticMoments
    for i = 1, numMoms do
       self.diagnosticMomentUpdaters[i]:advance(
 	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
    end
+   if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(1, self.f0) end
 end
 
 function KineticSpecies:isEvolving()
