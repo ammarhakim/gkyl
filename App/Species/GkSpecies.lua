@@ -227,10 +227,7 @@ function GkSpecies:createDiagnostics()
    
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
-      if nm == "GkDens" or nm == "GkUpar" or nm == "GkPpar" or nm == "GkPperp" then
-         return true
-      end
-      return false
+      return Updater.DistFuncMomentCalc:isGkMomentNameGood(nm)
    end
 
    self.diagnosticMomentFields = { }
