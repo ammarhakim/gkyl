@@ -50,7 +50,7 @@ function VmLBOCollisions:setSpeciesName(nm)
 end
 
 function VmLBOCollisions:setCfl(cfl)
-   self.cfl = cfl/3.0 -- what should this be? - AHH
+   self.cfl = cfl -- what should this be? - AHH
 end
 function VmLBOCollisions:setConfBasis(basis)
    self.confBasis = basis
@@ -87,17 +87,6 @@ function VmLBOCollisions:createSolver()
       numComponents = self.confBasis:numBasis(),
       ghost         = {1, 1},
    }
-   -- Magnitude of kinetic energy density vector.
-   self.kinEnergyDensM = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-   }
-   self.thEnergyDens = DataStruct.Field {
-      onGrid        = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
-      ghost         = {1, 1},
-   }
 
    -- Zero-flux BCs in the velocity dimensions.
    local zfd = { }
@@ -120,31 +109,12 @@ function VmLBOCollisions:createSolver()
       updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
-
-   -- Also need weak binary operations for primitive moments.
-   -- Weak division of two configuration space fields.
-   self.confDiv = Updater.CartFieldBinOp {
+   self.primMomSelf = Updater.SelfPrimMoments {
       onGrid     = self.confGrid,
-      weakBasis  = self.confBasis,
-      operation  = "Divide",
+      phaseGrid  = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
+      confBasis  = self.confBasis,
    }
-   -- Dot product of two configuration space vector fields.
-   self.confDotProduct = Updater.CartFieldBinOp {
-      onGrid     = self.confGrid,
-      weakBasis  = self.confBasis,
-      operation  = "DotProduct",
-   }
-end
-
--- Computes primitive moments velocity and vth=sqrt(T/m) from zeroth,
--- first and second moments.
-function VmLBOCollisions:calcPrimMoments(mom0, mom1, mom2)
-   self.confDiv:advance(0, 0, {mom0, mom1}, {self.velocity})
-   self.confDotProduct:advance(0, 0, {self.velocity, mom1},
-			       {self.kinEnergyDensM})
-   self.thEnergyDens:combine(1.0/self.vdim, mom2,
-				-1.0/self.vdim, self.kinEnergyDensM)
-   self.confDiv:advance(0, 0, {mom0, self.thEnergyDens}, {self.vthSq})
 end
 
 function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
@@ -153,8 +123,17 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 
    if self.selfCollisions then
       local tmEvalMomStart = Time.clock()
-      self:calcPrimMoments(selfMom[1], selfMom[2], selfMom[3])
+      -- Compute primitive moments velocity and vthSq=T/m from zeroth,
+      -- first and second moments, and distribution function.
+      self.primMomSelf:advance(0.0, 0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
+                                         {self.velocity,self.vthSq})
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
+
+      -- LBO actually takes the product nu*velocity and nu*vthSq.
+      -- For now just scale, but if nu is spatially dependent use
+      -- binOp.Multiply.
+      self.velocity:scale(self.collFreq)
+      self.vthSq:scale(self.collFreq)
       
       -- compute increment from collisions and accumulate it into output
       local tmpStatus, tmpDt = self.collisionSlvr:advance(

@@ -32,12 +32,16 @@ function SelfPrimMoments:init(tbl)
    local confBasis = assert(
       tbl.confBasis, "Updater.SelfPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
-   -- dimension of spaces.
+   -- dimension of phase space.
    self._pDim = phaseBasis:ndim()
+   -- Basis name and polynomial order.
+   self._basisID   = confBasis:id()
+   self._polyOrder = confBasis:polyOrder()
+
    -- ensure sanity.
-   assert(phaseBasis:polyOrder() == confBasis:polyOrder(),
+   assert(phaseBasis:polyOrder() == self._polyOrder,
           "Polynomial orders of phase and conf basis must match.")
-   assert(phaseBasis:id() == confBasis:id(),
+   assert(phaseBasis:id() == self._basisID,
           "Type of phase and conf basis must match.")
    -- determine configuration and velocity space dims.
    self._cDim = confBasis:ndim()
@@ -46,9 +50,6 @@ function SelfPrimMoments:init(tbl)
    -- Number of basis functions. Used to compute number of vector components.
    self._numBasisP = phaseBasis:numBasis()
    self._numBasisC = confBasis:numBasis()
-
-   self._basisID = confBasis:id()
-   local polyOrder = confBasis:polyOrder()
 
    -- Extract vLower and vUpper for corrections to u and vtSq
    -- that conserve momentum and energy.
@@ -61,7 +62,7 @@ function SelfPrimMoments:init(tbl)
       self._vUpper[d] = self._phaseGrid:upper(self._cDim + d) 
    end
 
-   self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._basisID, self._cDim, self._vDim, polyOrder)
+   self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._basisID, self._cDim, self._vDim, self._polyOrder)
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
    
@@ -134,8 +135,8 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
       end
 
       for vDir = 1, self._vDim do
-         self._uCorrection = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._basisID, self._cDim, self._vDim, polyOrder)
-         self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._basisID, self._cDim, self._vDim, polyOrder)
+         self._uCorrection = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._basisID, self._cDim, self._vDim, self._polyOrder)
+         self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._basisID, self._cDim, self._vDim, self._polyOrder)
 
          if self._isFirst then
             self._perpRange[vDir] = phaseRange
