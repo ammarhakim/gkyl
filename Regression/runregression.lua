@@ -33,10 +33,12 @@ local function dirtree(dir)
    return coroutine.wrap(function() yieldtree(dir) end)
 end
 
+-- runs a single lua test
 local function runLuaTest(test)
    print(string.format("Running Lua %s", test))
 end
 
+-- runs a single shell-script test
 local function runShellTest(test)
    print(string.format("Running shell test %s", test))
 end
