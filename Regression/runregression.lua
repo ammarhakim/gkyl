@@ -7,7 +7,14 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-require "lfs"
+local lfs = require "lfs"
+local Time = require "Lib.Time"
+local date = require "xsys.date"
+local Logger = require "Lib.Logger"
+
+local log = Logger {
+   logToFile = true
+}
 
 -- Walks down a directory tree recursively: returns a coroutine that
 -- yields directory, file-name and attribute object
@@ -35,17 +42,21 @@ end
 
 -- runs a single lua test
 local function runLuaTest(test)
-   local runCmd = string.format("%s %s", GKYL_EXEC, test)
-   print(runCmd)
+   log(string.format("Running test %s ...\n", test))
+
+   local tmStart = Time.clock()
+
+   local runCmd = string.format("%s %s", GKYL_EXEC, test)      
    local f = io.popen(runCmd, "r")
    for l in f:lines() do
-      print(l)
+      -- silent output
    end
+   log(string.format("... completed in %s sec\n\n", Time.clock()-tmStart))
 end
 
 -- runs a single shell-script test
 local function runShellTest(test)
-   print(string.format("Running shell test %s", test))
+   log(string.format("Running shell test %s\n", test))
 end
 
 -- check if a file is a Lua-based regression test
@@ -73,6 +84,10 @@ end
 
 -- run all tests
 local function runAll()
+   log("Starting Gkyl regression tests ...\n")
+   log(date(false):fmt() .. "\n\n")
+   local tmStart = Time.clock()
+   
    for dir, fn, attr in dirtree(".") do
       if isLuaRegressionTest(fn) then
 	 runLuaTest(dir .. "/" .. fn)
@@ -80,6 +95,9 @@ local function runAll()
 	 runShellTest(dir .. "/" .. fn)
       end
    end
+
+   log(string.format("Completed regression tests in %g secs\n", Time.clock()-tmStart))
+   log(date(false):fmt() .. "\n")
 end
 
 runAll()
