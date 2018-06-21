@@ -35,7 +35,12 @@ end
 
 -- runs a single lua test
 local function runLuaTest(test)
-   print(string.format("Running Lua %s", test))
+   local runCmd = string.format("%s %s", GKYL_EXEC, test)
+   print(runCmd)
+   local f = io.popen(runCmd, "r")
+   for l in f:lines() do
+      print(l)
+   end
 end
 
 -- runs a single shell-script test
