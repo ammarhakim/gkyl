@@ -19,11 +19,10 @@ plasmaApp = Plasma.App {
    nFrame = 1, -- number of output frames
    lower = {-math.pi/knumber}, -- configuration space lower left
    upper = {math.pi/knumber}, -- configuration space upper right
-   cells = {64}, -- configuration space cells
+   cells = {16}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
-   cflFrac = 1.0,
 
    -- decomposition for configuration space
    decompCuts = {1}, -- cuts in each configuration direction
@@ -39,7 +38,7 @@ plasmaApp = Plasma.App {
       -- velocity space grid
       lower = {-6.0},
       upper = {6.0},
-      cells = {128},
+      cells = {32},
       decompCuts = {1},
       -- initial conditions
       -- specify background so that we can plot perturbed distribution and moments
@@ -64,7 +63,7 @@ plasmaApp = Plasma.App {
               end,
              },
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkDens"},
+      diagnosticMoments = {"GkM0", "GkM2", perturbed = false},
    },
 
    adiabaticElectron = Plasma.AdiabaticSpecies {

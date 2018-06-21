@@ -8,6 +8,7 @@
 local Unit = require "Unit"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
+local math = require("sci.math").generic
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats

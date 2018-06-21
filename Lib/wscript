@@ -6,5 +6,7 @@
 import os
 
 def build(bld):
-    bld.objects(source = 'whereami.c',
-                use = "LUAJIT", includes = '.', target = 'lib')
+    bld.objects(source = r"""
+    whereami.c
+    lfs.c""",
+    use = "LUAJIT", includes = '.', target = 'lib')

@@ -550,7 +550,10 @@ function GkGeometry:fullInit(appTbl)
    
    -- get function to initialize background magnetic field
    self.bmagFunc = tbl.bmag
-   assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
+   --assert(self.bmagFunc and type(self.bmagFunc)=="function", "GkGeometry: must specify background magnetic field function with 'bmag'")
+
+   -- for s-alpha geometry
+   self.salpha = tbl.salpha
 
    -- wall potential for sheath BCs
    self.phiWallFunc = tbl.phiWall
@@ -575,7 +578,7 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- 1/B
+   -- bmagInv ~ 1/B
    self.geo.bmagInv = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
@@ -583,14 +586,32 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- functions for magnetic drifts ~ 1/B*curl(bhat) 
+   -- bhat.grad z
+   self.geo.gradpar = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
+   -- functions for magnetic drifts 
+   -- bdriftX = 1/B*curl(bhat).grad x
    self.geo.bdriftX = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
+   -- bdriftY = 1/B*curl(bhat).grad y
    self.geo.bdriftY = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
+   -- jacobian of coordinate transformation
+   self.geo.jacobGeo = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
@@ -613,49 +634,70 @@ function GkGeometry:alloc()
 end
 
 function GkGeometry:createSolver()
-   -- determine which variables bmag depends on by checking if setting a variable to nan results in nan
-   local ones = {}
-   for dir = 1, self.ndim do
-      ones[dir] = 1
-   end
-   self.bmagVars = {}
-   for dir = 1, self.ndim do
-      ones[dir] = 0/0 -- set this var to nan 
-      -- test if result is nan.. nan is the only value that doesn't equal itself
-      if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then 
-        -- if result is nan, bmag must depend on this var
-        table.insert(self.bmagVars, dir) 
-      end
-      ones[dir] = 1 -- reset so we can check other vars
-   end
-   if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
 
-   -- calculate 1/B function
-   self.bmagInvFunc = function (t, xn)
-      return 1/self.bmagFunc(t,xn)
-   end
-   -- calculate magnetic drift functions
-   if self.ndim > 1 then
-      local function bgrad(xn)
-         local function bmagUnpack(...)
-            local xn = {...}
-            return self.bmagFunc(0, xn)
+   if self.salpha then
+      local salpha = self.salpha
+      self.bmagFunc = function (t, xn)
+         local x, y, z
+         if self.ndim == 1 then z = xn[1]
+         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
+         else x, y, z = xn[1], xn[2], xn[3]
          end
-         local deriv = diff.derivativef(bmagUnpack, #xn)
-         xntable = {}
-         for i = 1, #xn do
-           xntable[i] = xn[i]
-         end
-         local f, dx, dy, dz = deriv(unpack(xntable))
-         return dx, dy, dz
+         return salpha.B0*salpha.R0/(salpha.R0 + x*math.cos(z))
+      end
+      self.bmagInvFunc = function (t, xn)
+         return 1/self.bmagFunc(t, xn)
+      end
+      self.jacobGeoFunc = function (t, xn)
+         if self.ndim == 2 then return 1 else return salpha.q*salpha.R0 end
       end
       self.bdriftXFunc = function (t, xn)
-         local bgradX, bgradY, bgradZ = bgrad(xn)
-         return -bgradY/self.bmagFunc(t,xn)^2
+         local x, y, z
+         if self.ndim == 1 then z = xn[1]
+         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
+         else x, y, z = xn[1], xn[2], xn[3]
+         end
+         return -math.sin(z)/(salpha.B0*salpha.R0)
       end
       self.bdriftYFunc = function (t, xn)
-         local bgradX, bgradY, bgradZ = bgrad(xn)
-         return bgradX/self.bmagFunc(t,xn)^2
+         local x, y, z
+         if self.ndim == 1 then z = xn[1]
+         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
+         else x, y, z = xn[1], xn[2], xn[3]
+         end
+         return -(math.cos(z) + salpha.shat*z*math.sin(z))/(salpha.B0*salpha.R0)
+      end
+      self.gradparFunc = function (t, xn)
+         return 1/(salpha.q*salpha.R0)
+      end
+   else
+      -- calculate 1/B function
+      self.bmagInvFunc = function (t, xn)
+         return 1/self.bmagFunc(t,xn)
+      end
+      -- calculate magnetic drift functions
+      if self.ndim > 1 then
+         local function bgrad(xn)
+            local function bmagUnpack(...)
+               local xn = {...}
+               return self.bmagFunc(0, xn)
+            end
+            local deriv = diff.derivativef(bmagUnpack, #xn)
+            xntable = {}
+            for i = 1, #xn do
+              xntable[i] = xn[i]
+            end
+            local f, dx, dy, dz = deriv(unpack(xntable))
+            return dx, dy, dz
+         end
+         self.bdriftXFunc = function (t, xn)
+            local bgradX, bgradY, bgradZ = bgrad(xn)
+            return -bgradY/self.bmagFunc(t,xn)^2
+         end
+         self.bdriftYFunc = function (t, xn)
+            local bgradX, bgradY, bgradZ = bgrad(xn)
+            return bgradX/self.bmagFunc(t,xn)^2
+         end
       end
    end
 
@@ -672,6 +714,22 @@ function GkGeometry:createSolver()
       projectOnGhosts = true,
       evaluate = self.bmagInvFunc
    }
+   if self.gradparFunc then 
+      self.setGradpar = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.gradparFunc
+      }
+   end
+   if self.jacobGeoFunc then 
+      self.setJacobGeo = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.jacobGeoFunc
+      }
+   end
    if self.bdriftXFunc then 
       self.setBdriftX = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -696,6 +754,23 @@ function GkGeometry:createSolver()
          evaluate = self.phiWallFunc
       }
    end
+
+   -- determine which variables bmag depends on by checking if setting a variable to nan results in nan
+   local ones = {}
+   for dir = 1, self.ndim do
+      ones[dir] = 1
+   end
+   self.bmagVars = {}
+   for dir = 1, self.ndim do
+      ones[dir] = 0/0 -- set this var to nan 
+      -- test if result is nan.. nan is the only value that doesn't equal itself
+      if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then 
+        -- if result is nan, bmag must depend on this var
+        table.insert(self.bmagVars, dir) 
+      end
+      ones[dir] = 1 -- reset so we can check other vars
+   end
+   if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
 end
 
 function GkGeometry:createDiagnostics()
@@ -704,6 +779,10 @@ end
 function GkGeometry:initField()
    self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
    self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
+   if self.setGradpar then self.setGradpar:advance(0.0, 0.0, {}, {self.geo.gradpar})
+   else self.geo.gradpar:clear(1.0) end
+   if self.setJacobGeo then self.setJacobGeo:advance(0.0, 0.0, {}, {self.geo.jacobGeo})
+   else self.geo.jacobGeo:clear(1.0) end
    if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
    else self.geo.bdriftX:clear(0.0) end
    if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})
@@ -714,6 +793,8 @@ function GkGeometry:initField()
    -- these fields initialized with syncPeriodicDirs = false
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
+   self.geo.gradpar:sync(false)
+   self.geo.jacobGeo:sync(false)
    self.geo.bdriftX:sync(false)
    self.geo.bdriftY:sync(false)
    self.geo.phiWall:sync(false)

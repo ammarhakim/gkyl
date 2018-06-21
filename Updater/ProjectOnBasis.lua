@@ -134,7 +134,7 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
       -- precompute value of function at each ordinate
       for mu = 1, numOrd do
 	 self._compToPhys(self._ordinates[mu], dx, xc, xmu) -- compute coordinate
-	 self._evalFunc(tCurr, xmu, self._evaluate, fv[mu]) 
+	 self._evalFunc(tCurr, xmu, self._evaluate, fv[mu])
       end
 
       qOut:fill(indexer(idx), fItr)

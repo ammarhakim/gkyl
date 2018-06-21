@@ -88,6 +88,14 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis = self.confBasis,
       moment = "M2",
    }
+   -- create updater to compute M0, M1i, M2 moments sequentially
+   -- this is used in calcCouplingMoments to reduce overhead and multiplications
+   self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "FiveMoments",
+   }
 
    -- create updater to evaluate source 
    if self.sourceFunc then 
@@ -136,9 +144,8 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    -- perform the collision update
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-	 local collStatus, collDt = c:forwardEuler(tCurr, dt,
-						   fIn, species,
-						   fOut)
+	 local collStatus, collDt = c:forwardEuler(
+	    tCurr, dt, fIn, species, fOut)
 	 -- the full 'species' list is needed for the cross-species
 	 -- collisions
 	 status = status and collStatus
@@ -162,10 +169,7 @@ function VlasovSpecies:createDiagnostics()
 
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
-      if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" or nm == "M3i" then
-         return true
-      end
-      return false
+      return Updater.DistFuncMomentCalc:isMomentNameGood(nm)
    end
 
    local numComp = {}
@@ -255,9 +259,7 @@ end
 function VlasovSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    -- compute moments needed in coupling to fields and collisions
    local fIn = self:rkStepperFields()[rkIdx]
-   self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
-   self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
-   self.ptclEnergyCalc:advance(tCurr, dt, {fIn}, { self.ptclEnergy })
+   self.fiveMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
 end
 
 function VlasovSpecies:fluidMoments()
@@ -283,7 +285,8 @@ function VlasovSpecies:getMomDensity(rkIdx)
 end
 
 function VlasovSpecies:momCalcTime()
-   local tm = self.momDensityCalc.totalTime + self.numDensityCalc.totalTime + self.ptclEnergyCalc.totalTime
+   local tm = self.momDensityCalc.totalTime + self.numDensityCalc.totalTime
+      + self.ptclEnergyCalc.totalTime + self.fiveMomentsCalc.totalTime
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end

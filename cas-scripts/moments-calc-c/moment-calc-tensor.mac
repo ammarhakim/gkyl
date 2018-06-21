@@ -1,0 +1,12 @@
+load("moments-calc-c/moment-calc")$
+load(stringproc)$
+
+for c : 1 thru 1 do (
+  for v : c thru 2 do (
+   fname : sconcat("~/max-out/DistFuncMomentCalcTensor", c, "x", v, "v", ".cpp"),
+   fh : openw(fname),
+   funcName : sconcat("MomentCalc", c, "x", v, "v", "Tensor"),
+   calcMoments(fh, funcName, c, v, "Tensor"),
+   close(fh)
+  )
+);

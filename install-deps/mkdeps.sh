@@ -9,11 +9,12 @@ CXX=g++
 MPICC=mpicc
 MPICXX=mpicxx
 
-BUILD_LUAJIT=yes
-BUILD_LUAROCKS=no
-BUILD_ADIOS=no
-BUILD_OPENMPI=no
-BUILD_EIGEN=no
+# by default, don't build anything. will check later to see if things should be installed.
+BUILD_LUAJIT=
+BUILD_LUAROCKS=
+BUILD_ADIOS=
+BUILD_OPENMPI=
+BUILD_EIGEN=
 
 # ----------------------------------------------------------------------------
 # FUNCTION DEFINITIONS
@@ -26,7 +27,8 @@ cat <<EOF
 
 ./mkdeps.sh CC=cc CXX=cxx MPICC=mpicc MPICXX=mpicxx
 
-Build Gkyl dependencies. By default, only LuaJIT is built.
+Build Gkyl dependencies. By default, only builds libraries that Gkyl 
+needs that haven't yet been built or can't be found.
 
 CC 
 CXX
@@ -39,14 +41,20 @@ MPICXX                      C, C++, MPI C and MPI C++ compilers to use
                             Default is $HOME/gkylsoft
 
 The following flags specify which libraries to build. By default, only
-LuaJIT is built. If you build libraries that depend on MPI please
-specify the MPI C and C++ compilers to use.
+builds libraries that haven't yet been built or can't be found. 
+If you build libraries that depend on MPI please specify the MPI C 
+and C++ compilers to use.
 
---build-luajit              [yes] Should we build LuaJIT?
---build-luarocks            [no] Should we build Luarocks?
---build-adios               [no] Should we build ADIOS?
---build-openmpi             [no] Should we build OpenMPI?
---build-eigen               [no] Should we build Eigen?
+--build-luajit              Should we build LuaJIT?
+--build-luarocks            Should we build Luarocks?
+--build-adios               Should we build ADIOS?
+--build-openmpi             Should we build OpenMPI?
+--build-eigen               Should we build Eigen?
+
+The behavior of the flags for library xxx is as follows:
+--build-xxx=no              Don't build xxx, even if it can't be found in PREFIXDIR
+--build-xxx=yes             Build xxx, no matter what
+[no flag specified]         Build xxx only if it can't be found in PREFIXDIR (default)
 EOF
 }
 
@@ -141,6 +149,18 @@ do
    shift
 done
 
+# if mpicc doesn't work (because it doesn't exist or it's not in path), try to use installed openmpi version
+if ! [ -x "$(command -v $MPICC)" ]
+then
+    MPICC=$PREFIX/openmpi-3.0.0/bin/mpicc
+    MPICXX=$PREFIX/openmpi-3.0.0/bin/mpicxx
+fi
+# if mpicc still doesn't work, force to install openmpi
+if ! [ -x "$(command -v $MPICC)" ] 
+then
+    BUILD_OPENMPI="yes"
+fi
+
 # Write out build options for scripts to use
 cat <<EOF1 > build-opts.sh
 # Generated automatically! Do not edit
@@ -164,7 +184,7 @@ build_openmpi() {
 }
 
 build_eigen() {
-    if [ "$BUILD_EIGEN" = "yes" ]
+    if [[ ! "$BUILD_EIGEN" = "no" && ("$BUILD_EIGEN" = "yes" || ! -f $PREFIX/eigen3/include/eigen3/Eigen/Core) ]]
     then
 	echo "Building EIGEN"
 	./build-eigen.sh
@@ -172,7 +192,7 @@ build_eigen() {
 }
 
 build_luajit() {
-    if [ "$BUILD_LUAJIT" = "yes" ]
+    if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
     then    
 	echo "Building LuaJIT"
 	./build-luajit-beta3.sh
@@ -180,7 +200,7 @@ build_luajit() {
 }
 
 build_adios() {
-    if [ "$BUILD_ADIOS" = "yes" ]
+    if [[ ! "$BUILD_ADIOS" = "no" && ("$BUILD_ADIOS" = "yes" || ! -f $PREFIX/adios/include/adios.h) ]]
     then    
 	echo "Building ADIOS"
 	./build-adios.sh
@@ -195,7 +215,7 @@ build_luarocks() {
     fi
 }
 
-echo "Installations will be in  $PREFIX"
+echo "Installations will be in $PREFIX"
 
 build_openmpi
 build_luajit
