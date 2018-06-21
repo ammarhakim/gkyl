@@ -25,8 +25,7 @@ function GkSpecies:alloc(nRkDup)
    -- to field and collisions)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocMoment()
-   self.ppar = self:allocMoment()
-   self.pperp = self:allocMoment()
+   self.ptclEnergy = self:allocMoment()
 end
 
 function GkSpecies:allocMomCouplingFields()
@@ -168,22 +167,21 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
       moment = "GkM1",
       gkfacs = {self.mass, self.bmag},
    }
-   self.ptclEnergyParCalc = Updater.DistFuncMomentCalc {
+   self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
-      moment = "GkM2par",
+      moment = "GkM2",
       gkfacs = {self.mass, self.bmag},
    }
-   if self.vdim > 1 then
-      self.ptclEnergyPerpCalc = Updater.DistFuncMomentCalc {
-         onGrid = self.grid,
-         phaseBasis = self.basis,
-         confBasis = self.confBasis,
-         moment = "GkM2perp",
-         gkfacs = {self.mass, self.bmag},
-      }
-   end
+   self.threeMomentsCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "GkThreeMoments",
+      gkfacs = {self.mass, self.bmag},
+   }
+   
    self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
 
    self.tmCouplingMom = 0.0 -- for timer 
@@ -378,8 +376,11 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
-      self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
-      self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
+      if self.collisions then 
+         self.threeMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+      else
+         self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
+      end
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
@@ -387,7 +388,7 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
 end
 
 function GkSpecies:fluidMoments()
-   return { self.numDensity, self.momDensity, self.ppar, self.pperp } 
+   return { self.numDensity, self.momDensity, self.ptclEnergy } 
 end
 
 function GkSpecies:getNumDensity(rkIdx)
