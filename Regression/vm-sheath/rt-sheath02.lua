@@ -28,13 +28,12 @@ sim = Plasma.App {
    logToFile = false,
 
    tEnd = 100/omega_pe, -- end time
-   nFrame = 10, -- number of output frames
+   nFrame = 1, -- number of output frames
    lower = {0.0*lambda_D}, -- configuration space lower left
    upper = {128.0*lambda_D}, -- configuration space upper right
-   cells = {128}, -- configuration space cells
+   cells = {64}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 2, -- polynomial order
-   cflFrac = 1.0, -- CFL "fraction". Usually 1.0
    timeStepper = "rk3s4", -- one of "rk2" or "rk3"
 
    -- decomposition for configuration space

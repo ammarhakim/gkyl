@@ -9,21 +9,41 @@ def build(bld):
     bld.objects(source = r"""
     TenMomentImpl.cpp
 
+    lboData/GkLBOconstNuSer1x1v.cpp
+    lboData/GkLBOconstNuSurfSer1x1v.cpp
+    lboData/GkLBOconstNuBoundarySurfSer1x1v.cpp
+    
     lboData/VmLBOconstNuSer1x1v.cpp
-    lboData/VmLBOconstNuSurfSer1x1v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer1x1v.cpp
     lboData/VmLBOconstNuSer1x2v.cpp
-    lboData/VmLBOconstNuSurfSer1x2v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer1x2v.cpp
     lboData/VmLBOconstNuSer1x3v.cpp
-    lboData/VmLBOconstNuSurfSer1x3v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer1x3v.cpp
     lboData/VmLBOconstNuSer2x2v.cpp
-    lboData/VmLBOconstNuSurfSer2x2v.cpp
-    lboData/VmLBOconstNuBoundarySurfSer2x2v.cpp
     lboData/VmLBOconstNuSer2x3v.cpp
+    lboData/VmLBOconstNuSurfSer1x1v.cpp
+    lboData/VmLBOconstNuSurfSer1x2v.cpp
+    lboData/VmLBOconstNuSurfSer1x3v.cpp
+    lboData/VmLBOconstNuSurfSer2x2v.cpp
     lboData/VmLBOconstNuSurfSer2x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x1v.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x2v.cpp
+    lboData/VmLBOconstNuBoundarySurfSer1x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfSer2x2v.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x3v.cpp
+
+    lboData/VmLBOconstNuMax1x1v.cpp
+    lboData/VmLBOconstNuMax1x2v.cpp
+    lboData/VmLBOconstNuMax1x3v.cpp
+    lboData/VmLBOconstNuMax2x2v.cpp
+    lboData/VmLBOconstNuMax2x3v.cpp
+    lboData/VmLBOconstNuSurfMax1x1v.cpp
+    lboData/VmLBOconstNuSurfMax1x2v.cpp
+    lboData/VmLBOconstNuSurfMax1x3v.cpp
+    lboData/VmLBOconstNuSurfMax2x2v.cpp
+    lboData/VmLBOconstNuSurfMax2x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x1v.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x2v.cpp
+    lboData/VmLBOconstNuBoundarySurfMax1x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfMax2x2v.cpp
+    lboData/VmLBOconstNuBoundarySurfMax2x3v.cpp
 
     constDiffusionData/ConstDiffusionSer1x.cpp
     constDiffusionData/ConstDiffusionSer2x.cpp

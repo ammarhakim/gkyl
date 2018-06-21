@@ -40,6 +40,7 @@
 #endif
 
 // Gkyl includes
+#include <lfs.h>
 #include <whereami.h>
 
 // A simple logger for parallel simulations
@@ -102,6 +103,9 @@ createTopLevelDefs(int argc, char **argv) {
           << execPath << "/../lib/lib?.so;"
           << execPath << "/../lib/lib?.dylib;"
           << "\"";
+
+  // add full-path to executable to top-level
+  varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
   
 #ifdef HAVE_MPI_H
   varDefs << "GKYL_HAVE_MPI = true" << std::endl;
@@ -211,6 +215,7 @@ main(int argc, char **argv) {
   }
   lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
   luaL_openlibs(L);  // open standard libraries
+  luaopen_lfs(L); // open lue file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
   
   std::string topDefs = createTopLevelDefs(argc, argv);

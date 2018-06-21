@@ -10,6 +10,9 @@ local Unit = require "Unit"
 local xsys = require "xsys"
 local Grid = require "Grid"
 local DataStruct = require "DataStruct"
+local Grid = require "Grid"
+local math = require("sci.math").generic
+local Lin = require "Lib.Linalg"
 
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
@@ -22,6 +25,16 @@ ffi.cdef [[
   double calcSum(int n, double *v);
   double addValues(loc_t *v);
   void setValues(int n, int ix, double *v);
+
+  typedef struct Adder Adder;
+  void *new_Adder(int n);
+  int add_Adder(Adder* a, int x);
+  int sub_Adder(Adder* a, int x);
+  int setFuncPointer_Adder(Adder *a, int (*v)(int));
+  int incr_Adder(Adder *a, int x);
+
+  void setMetricFuncPointer_Adder(Adder *a, void (*gfunc)(double *xc, double *g));
+  void printg_Adder(Adder *a, double r, double t);
 ]]
 
 ffi.cdef [[
@@ -72,9 +85,49 @@ function test_3()
    end
 end
 
+function test_4()
+   local adder = ffi.C.new_Adder(10)
+   assert_equal(14, ffi.C.add_Adder(adder, 4), "Testing value returned")
+   assert_equal(6, ffi.C.sub_Adder(adder, 4), "Testing value returned")
+
+   local function val(x) return 3*x-1 end
+   
+   ffi.C.setFuncPointer_Adder(adder, val)
+   assert_equal(39, ffi.C.incr_Adder(adder, 10), "Func pointer test")
+end
+
+function test_5()
+   local grid = Grid.MappedCart {
+      lower = {1.0, 0.0},
+      upper = {2.0, 2*math.pi},
+      cells = {64, 64},
+      -- map computational to physical space
+      mapc2p = function(xc)
+	 local r, theta = xc[1], xc[2]
+	 return r*math.cos(theta), r*math.sin(theta)
+      end
+   }
+
+   local adder = ffi.C.new_Adder(10)
+
+   local myXc, myG = Lin.Vec(2), Lin.Vec(3)
+   local function gfunc(xc, g)
+      myXc[1], myXc[2] = xc[1], xc[2]
+      grid:calcMetric(myXc, myG)
+      g[1], g[2], g[3] = myG[1], myG[2], myG[3]
+   end
+
+   ffi.C.setMetricFuncPointer_Adder(adder, gfunc)
+
+   ffi.C.printg_Adder(adder, 1.5, math.pi)
+   
+end
+
 test_1()
 test_2()
 test_3()
+test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

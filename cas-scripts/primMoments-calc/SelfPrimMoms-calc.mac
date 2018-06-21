@@ -1,24 +1,56 @@
 load("primMoments-calc/SelfPrimMoms")$
+load("primMoments-calc/BoundaryEval")$
 load(stringproc)$
 
 /* Maximum polynomial order to generate kernels for */
-inMaxPolyOrder : 1$
+inMaxPolyOrder : 3$
 
-for c : 1 thru 2 do (
-  for v : c thru 2 do (
-    disp(printf(false,"Creating SelfPrimMoments ~ax~av",c,v)),
-    fname : sconcat("~/max-out/SelfPrimMomentsSer", c, "x", v, "v", ".cpp"),
-    fh : openw(fname),
+/* ...... USER INPUTS........ */
 
-    printf(fh, "#include <math.h> ~%"),
-    printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
-    printf(fh, " ~%"),
-    printf(fh, "using namespace Eigen; ~%"),
-    printf(fh, " ~%"),
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+maxCdim_Ser : 2$
+minVdim_Ser : 1$    /* but see v loop below. */
+maxVdim_Ser : 2$
 
-    funcName : sconcat("SelfPrimMoments", c, "x", v, "v", "Ser"),
-    calcSelfPrimMoms(fh, funcName, c, v, "Ser", inMaxPolyOrder),
-    close(fh)
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+maxCdim_Max : 2$
+minVdim_Max : 1$    /* but see v loop below. */
+maxVdim_Max : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+minVdim      : [minVdim_Ser, minVdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      disp(printf(false,sconcat("Creating SelfPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/SelfPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+  
+      printf(fh, "#include <math.h> ~%"),
+      printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+      printf(fh, " ~%"),
+      printf(fh, "using namespace Eigen; ~%"),
+      printf(fh, " ~%"),
+  
+      funcName : sconcat("SelfPrimMoments", c, "x", v, "v", bName[bInd]),
+      calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+  
+      funcName : sconcat("BoundaryIntegral", c, "x", v, "v", bName[bInd]),
+      calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+  
+      close(fh)
+    )
   )
 );
 

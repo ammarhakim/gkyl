@@ -15,3 +15,7 @@ Unit/*.bp
 */*.bp
 *.swp
 *.log
+.DS_Store
+Basis/.DS_Store
+Eq/.DS_Store
+cas-scripts/.DS_Store
