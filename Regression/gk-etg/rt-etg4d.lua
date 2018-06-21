@@ -36,7 +36,7 @@ VPAR_UPPER = math.min(4, 2.5*math.sqrt(N_VPAR/4))*vte
 VPAR_LOWER = -VPAR_UPPER
 MU_LOWER = 0
 MU_UPPER = math.min(16, 4*math.sqrt(N_MU/2))*me*vte*vte/B0/2
-print(VPAR_UPPER/vte, MU_UPPER/(me*vte*vte/B0/2))
+--print(VPAR_UPPER/vte, MU_UPPER/(me*vte*vte/B0/2))
 
 plasmaApp = Plasma.App {
    logToFile = true,
@@ -123,4 +123,4 @@ plasmaApp = Plasma.App {
 }
 -- run application
 plasmaApp:run()
-print("expected growth rate = 3.01078*omega_de = ", 3.01078*omegade)
+--print("expected growth rate = 3.01078*omega_de = ", 3.01078*omegade)
