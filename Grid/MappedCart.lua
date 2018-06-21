@@ -63,12 +63,6 @@ end
 function MappedCart:id() return "mapped" end
 function MappedCart:rdim() return self._rdim end
 
-local _numMetricElems = { 1, 3, 6 }
--- size of vector to store metric elements
-function MappedCart:numMetricElems()
-   return _numMetricElems[self:ndim()]
-end
-
 function MappedCart:mapc2p(xc)
    return self._mapc2p(xc)
 end

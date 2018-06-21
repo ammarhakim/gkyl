@@ -151,4 +151,22 @@ function RectCart:write(fName)
    -- nothing to write
 end
 
+local _numMetricElems = { 1, 3, 6 }
+-- size of vector to store metric elements
+function RectCart:numMetricElems()
+   return _numMetricElems[self:ndim()]
+end
+
+function RectCart:calcMetric(xc, gOut)
+   if ndim == 1 then
+      gOut[1] = 1.0
+   elseif ndim == 1 then
+      gOut[1], gOut[2], gOut[3] = 1.0, 0.0, 1.0
+   elseif ndim == 3 then
+      gOut[1], gOut[2], gOut[3], gOut[4], gOut[5], gOut[6] = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
+   else
+      assert(false, "RectCart:calcMetric does not support more than 3 dimensions!")
+   end
+end
+
 return RectCart
