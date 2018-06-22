@@ -97,12 +97,12 @@ createTopLevelDefs(int argc, char **argv) {
   varDefs << "package.path = package.path .. \";"
           << execPath << "/?.lua;"
           << execPath << "/Lib/?.lua;" // we need add Lib to allow using external libraries
-          << execPath << "/?/init.lua" << "\"";
+          << execPath << "/?/init.lua" << "\"" << std::endl;
 
   varDefs << "package.cpath = package.cpath .. \";"
           << execPath << "/../lib/lib?.so;"
           << execPath << "/../lib/lib?.dylib;"
-          << "\"";
+          << "\"" << std::endl;
 
   // add full-path to executable to top-level
   varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
@@ -142,11 +142,13 @@ createTopLevelDefs(int argc, char **argv) {
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
-  // check what command was specified
-  std::string cmd("run");
-  if (argc == 3) cmd = argv[2];
-  varDefs << "GKYL_COMMAND = '" << cmd << "'" << std::endl;
+  varDefs << "GKYL_COMMANDS = {}" << std::endl;
+  // just append list of commands 
+  for (unsigned i=2; i<argc; ++i)
+    varDefs << "GKYL_COMMANDS[" << i-1 << "] = \"" << argv[i]  << "\"" << std::endl;
 
+  //std::cout << varDefs.str() << std::endl;
+    
   return varDefs.str();
 }
 
@@ -164,12 +166,9 @@ void
 showUsage() {
   Logger logger;
   
-  logger.log("Usage: gkyl LUA-SCRIPT <cmd>");
-  logger.log(" <cmd> is optional and must be one of:");
-  logger.log(" run:     [default] Run the simulation");
-  logger.log(" init:    Initialize the simulation without running it");
-  logger.log(" restart: Restart the simulation");
-  logger.log("Not all Apps support these commands, and others may support more.\n");
+  logger.log("Usage: gkyl LUA-SCRIPT <cmd> ...");
+  logger.log(" List of <cmd> is optional");
+  logger.log("See particular App documentation for supported commands.\n");
 }
 
 int
@@ -189,7 +188,7 @@ main(int argc, char **argv) {
   
   Logger logger;
 
-  if ((argc != 2) && (argc !=3)) {
+  if (argc < 2) {
     showUsage();
     return finish(0);
   }
