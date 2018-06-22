@@ -264,7 +264,7 @@ local function buildApplication(self, tbl)
    end
 
    local tStart = 0.0 -- by default start at t=0
-   if GKYL_COMMAND == "restart" then
+   if GKYL_COMMANDS[1] == "restart" then
       -- give everyone a chance to adjust ICs based on restart frame
       -- and adjust tStart accordingly
       tStart = readRestart()
@@ -566,9 +566,13 @@ function App:init(tbl)
 end
 
 function App:run()
-   if GKYL_COMMAND == "run" or GKYL_COMMAND == "restart" then
+   -- by default command is "run"
+   if #GKYL_COMMANDS == 0 then GKYL_COMMANDS[1] = "run" end
+
+   -- take action
+   if GKYL_COMMANDS[1] == "run" or GKYL_COMMANDS[1] == "restart" then
       return self:_runApplication()
-   elseif GKYL_COMMAND == "init" then
+   elseif GKYL_COMMANDS[1] == "init" then
       return function (...) end
    end
 end
