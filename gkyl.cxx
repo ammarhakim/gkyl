@@ -203,7 +203,7 @@ main(int argc, char **argv) {
   }
   f.close();
 
-// initialize LuaJIT and load libraries
+  // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
   if (L==NULL) {
     // NOTE: we need to use cerr and not 'logger' when something goes
