@@ -40,8 +40,8 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     /* Quantity to be integrated over velocity boundary surface.
        It is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin). */
-    mB_e : Bfac[wInd][1]*subst(vv=1,wVar[wInd][dir]*fvmax_e)
-          -Bfac[wInd][2]*subst(vv=-1,wVar[wInd][dir]*fvmin_e),
+    mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
+          -Bfac[wInd][2]*subst(vv=-1,fvmin_e),
 
     /* This is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin) integrated
        over the velocity boundary surface, and projected onto the
@@ -49,7 +49,8 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
     fB_c : calcInnerProdList(surfVars,1,bC,mB_e),
 
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_~a_~a_P~a(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder),
+    printf(fh, "void ~a_~a_~a_P~a(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder),
+    printf(fh, "  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. ~%"),
     printf(fh, "  // vmax, vmin:         maximum and minimum velocity of the velocity grid. ~%"),
     printf(fh, "  // dxv[~a]:             cell length in each direciton. ~%", cdim+vdim),
     printf(fh, "  // fvmax[~a], fvmin[~a]: distribution function at the velocity boundaries. ~%", NP, NP),
@@ -66,12 +67,17 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
     printf(fh, " ~%"),
 
     if (wInd=1) then ( 
-       expr : float(expand(dS*fB_c)),
+       expr : float(expand(intFac*dS*fB_c)),
        for i : 1 thru length(expr) do (
-         if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", out[(dir-1)*NC+i-1], expr[i])
+         if expr[i] # 0.0 then (
+           param : cons(expr[i], [intFac]),
+           e : apply(collectterms, param),
+           printf(fh, "  ~a += ~a; ~%", out[(dir-1)*NC+i-1], e)
+         )
        )
     ) else (
-       writeCIncrExprs1(out, dS*fB_c)
+       /*writeCIncrExprs1(out, dS*fB_c)*/
+       writeCIncrExprsCollect1(out, intFac*dS*fB_c,[intFac])
     ),
     printf(fh, " ~%"),
 
