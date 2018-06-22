@@ -1,0 +1,106 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels for the volume term
+   contribution from Lenard Bernstein operator to the
+   Vlasov equation using two integrations by parts for
+   the diffusive term. */
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+vvars : [vpar, mu]$
+gkvsub: [vx=vpar,vy=mu]$
+
+calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  printf(fh, "#include <GkLBOModDecl.h> ~%"),
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+    load(modNm),
+    vid : vidx(cdim,vdim),
+    varsP : subst(gkvsub, varsP),
+
+    /* Polynomial basis and its derivatives. */
+    bP : subst(gkvsub, basisP[polyOrder]),
+    bC : basisC[polyOrder],
+    NP : length(bP),
+    NC : length(bC),
+
+    /* Expand distribution function f in phase basis. */
+    f_e    : doExpand1(f, bP),
+    /* Expand flow speed u and thermal speed squared in configuration basis. */
+    nuU_e    : doExpand1(nuU, bC),
+    nuVtSq_e : doExpand1(nuVtSq, bC),
+
+    /* To allow for multiple components change the cofficient indices in Ae and Be. */
+    nuU_e : psubst(makelist(nuU[i]=nuU[a0+i],i,0,NC-1),nuU_e),
+
+    /* w-u part of the drag term. */
+    drBar_e : doExpand1(drBar,bC),
+    drBar_e : psubst(makelist(drBar[i]=drBar[a0+i],i,0,NC-1),drBar_e),
+    
+    /* Volume increment. */
+    dir : 1, 
+    cv : vvars[dir],
+    incr : (-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
+           +rdv2[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
+           +rdvSq4[dir-1]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e),
+    
+    /* mu contribution */
+    if vdim = 2 then (
+	cv : vvars[vdim],
+	dr : dxv[vid[vdim]]*cv + subst(a0=NC*(vdim-1),drBar_e),
+        incr : incr + (-2*nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
+              +2*rdv2[vdim-1]*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e))
+              +2*rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e*cv,diff(bP,cv,2),f_e)
+	      -2*rdvSq4[vdim-1]*mufac*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,nuVtSq_e*drBar_e/nu,diff(bP,cv,2),f_e))
+	      +2*rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv),f_e))
+    ),
+    
+    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output ~%"),
+    cid : cidx(cdim),
+    printf(fh, "  double rdv2[~a]; ~%", vdim),
+    printf(fh, "  double rdvSq4[~a]; ~%", vdim),
+    for dir : 1 thru vdim do (
+      printf(fh, "  rdv2[~a] = 2.0/dxv[~a]; ~%", dir-1, vid[dir]),
+      printf(fh, "  rdvSq4[~a] = 4.0/(dxv[~a]*dxv[~a]); ~%", dir-1, vid[dir], vid[dir])
+    ),
+    printf(fh, "~%"),
+
+    /* Compute the nu*wxl-nuU drift part separately. */
+    printf(fh, "  double drBar[~a]; ~%", NC*vdim),
+    /* -nu*(w-u) part of the drag term. */
+    for dir : 1 thru vdim do (
+    	if dir = 1 then (
+	   drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-nu*w[vid[dir]]+nuU_e))
+	)
+	else (
+	   drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-nu*w[vid[dir]]))
+	),
+	for i : 1 thru NC do (
+            printf(fh, "  ~a = ~a; ~%", drBar[NC*(dir-1)+i-1], float(expand(drBar_c[i])))
+       	)
+    ),
+    printf(fh, "~%"),
+  
+    clst : append(makelist(rdv2[i],i,0,vdim-1),makelist(rdvSq4[i],i,0,vdim-1)),
+    writeCIncrExprsCollect1(out, incr, clst),
+    printf(fh, "~%"),
+
+    if vdim = 1 then (
+      printf(fh, "return nu*rdvSq4[0]*0.5; ~%")
+    ),
+    if vdim = 2 then (
+      printf(fh, "return nu*(rdvSq4[0]+rdvSq4[1])*0.5; ~%")
+    ),
+    printf(fh, "~%"),
+  
+    printf(fh, "} ~%")
+));
+
