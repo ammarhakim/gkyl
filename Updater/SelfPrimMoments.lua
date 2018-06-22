@@ -14,6 +14,14 @@ local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
 
+-- function to check if operator option is correct
+local function isOperatorGood(nm)
+   if nm == "VmLBO" or nm == "GkLBO" then
+      return true
+   end
+   return false
+end
+
 -- Moments updater object.
 local SelfPrimMoments = Proto(UpdaterBase)
 
@@ -31,6 +39,9 @@ function SelfPrimMoments:init(tbl)
 
    local confBasis = assert(
       tbl.confBasis, "Updater.SelfPrimMoments: Must provide the configuration basis object using 'confBasis'.")
+
+   local operator = assert(
+      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (VmLBO or GkLBO for now) using 'operator'.")
 
    -- dimension of phase space.
    self._pDim = phaseBasis:ndim()
@@ -58,11 +69,38 @@ function SelfPrimMoments:init(tbl)
    for d = 1, self._vDim do
       -- Pass absolute value of vLower because kernel already
       -- evaluates v*f at -1 (see Maxima scripts).
-      self._vLower[d] = math.abs(self._phaseGrid:lower(self._cDim + d))
+      self._vLower[d] = self._phaseGrid:lower(self._cDim + d)
       self._vUpper[d] = self._phaseGrid:upper(self._cDim + d) 
    end
 
-   self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._basisID, self._cDim, self._vDim, self._polyOrder)
+   -- 2*pi/m or 4*pi/m factor for Gk. This prevents the need for
+   -- separate kernels for Gk.
+   self._intFac       = Lin.Vec(self._vDim)
+   self._physVdim     = self._vDim
+   local vCorrections = self._vDim
+   if isOperatorGood(operator) then
+     if operator == "GkLBO" then
+        self._isGkLBO   = true
+        local mass = assert(
+           tbl.mass, "Updater.SelfPrimMoments: Must provide species mass using 'mass'.")
+        self._intFac[1] = 2.0*math.pi/mass
+        self._intFac[2] = 4.0*math.pi/mass
+        if self._vDim > 1 then -- A (vpar,mu) simulation has 3 physical velocity dimensions.
+           self._physVdim = 3
+           vCorrections = 1
+        end
+     else -- VmLBO
+        self._isGkLBO = false
+        for d = 1,self._vDim do 
+          self._intFac[d] = 1.0
+        end
+     end
+   else
+      assert(false, string.format(
+                "SelfPrimMoments: Operator option must be 'VmLBO' or 'GkLBO'. Requested %s instead.", operator))
+   end
+
+   self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._basisID, self._cDim, vCorrections, self._polyOrder)
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
    
@@ -160,17 +198,18 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
             for k = 1, self._numBasisP do fvmax[k] = fInItr[k] end
 
             -- BEWARE: This assumes that dxv is the same at vmin and vmax. So do correction kernels.
-            -- They also assume vmin<0. See self._vLower above.
             self._phaseGrid:setIndex(phaseIdx)
             for d = 1, self._pDim do dxv[d] = self._phaseGrid:dx(d) end
 
-            self._uCorrection(self._vLower[vDir], self._vUpper[vDir], dxv:data(), fvmin:data(), fvmax:data(), cMomB:data())
+            if (not self._isGkLBO) or (self._isGkLBO and vDir==1) then
+               self._uCorrection(self._intFac[vDir], self._vLower[vDir], self._vUpper[vDir], dxv:data(), fvmin:data(), fvmax:data(), cMomB:data())
+            end
 
-            self._vtSqCorrection(self._vLower[vDir], self._vUpper[vDir], dxv:data(), fvmin:data(), fvmax:data(), cEnergyB:data())
+            self._vtSqCorrection(self._intFac[vDir], self._vLower[vDir], self._vUpper[vDir], dxv:data(), fvmin:data(), fvmax:data(), cEnergyB:data())
          end
       end
 
-      self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
+      self._SelfPrimMomentsCalc(self._physVdim, m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
 
    end
    self._isFirst = false
