@@ -10,8 +10,11 @@ def build(bld):
     TenMomentImpl.cpp
 
     lboData/GkLBOconstNuSer1x1v.cpp
+    lboData/GkLBOconstNuSer1x2v.cpp
     lboData/GkLBOconstNuSurfSer1x1v.cpp
+    lboData/GkLBOconstNuSurfSer1x2v.cpp
     lboData/GkLBOconstNuBoundarySurfSer1x1v.cpp
+    lboData/GkLBOconstNuBoundarySurfSer1x2v.cpp
     
     lboData/VmLBOconstNuSer1x1v.cpp
     lboData/VmLBOconstNuSer1x2v.cpp
