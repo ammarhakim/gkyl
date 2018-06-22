@@ -27,7 +27,7 @@ function VmLBO:init(tbl)
    self._confBasis  = assert(
       tbl.confBasis, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'confBasis'")
    
-   assert(tbl.nu, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'nu'")
+   assert(tbl.nu, "Eq.VmLBO: Must specify collisionality using 'nu'")
    self._inNu = Lin.Vec(1)
    self._inNu = tbl.nu
 

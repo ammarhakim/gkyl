@@ -2,15 +2,12 @@ load("primMoments-calc/SelfPrimMoms")$
 load("primMoments-calc/BoundaryEval")$
 load(stringproc)$
 
-/* Maximum polynomial order to generate kernels for */
-inMaxPolyOrder : 3$
-
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
-maxCdim_Ser : 2$
+maxCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
 maxVdim_Ser : 2$
 
@@ -18,8 +15,8 @@ maxVdim_Ser : 2$
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 maxCdim_Max : 2$
-minVdim_Max : 1$    /* but see v loop below. */
-maxVdim_Max : 2$
+minVdim_Max : 0$    /* but see v loop below. */
+maxVdim_Max : 0$
 
 /* ...... END OF USER INPUTS........ */
 

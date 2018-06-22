@@ -51,7 +51,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     NC  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(const int pVdim, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // m0,m1,m2: moments of the distribution function. ~%"),
     printf(fh, "  // cM, cE: vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. ~%"),
     printf(fh, "  // u:        velocity. ~%"),
@@ -144,7 +144,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
   
     /*........... Matrix block from correction to vtSq .............*/
-    eq : calcInnerProdList(varsC,vtSq_e,bC,vdim*m0_e-cE_e),
+    eq : calcInnerProdList(varsC,vtSq_e,bC,pVdim*m0_e-cE_e),
     E  : fullratsimp(coefmatrix(eq,vtSq_c)),
     /* Flatten E for WriteCExprsB. */
     Eflat : list_matrix_entries(E),
