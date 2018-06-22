@@ -51,7 +51,7 @@ local function runLuaTest(test)
    for l in f:lines() do
       -- silent output
    end
-   log(string.format("... completed in %s sec\n\n", Time.clock()-tmStart))
+   log(string.format("... completed in %g sec\n\n", Time.clock()-tmStart))
 end
 
 -- runs a single shell-script test
