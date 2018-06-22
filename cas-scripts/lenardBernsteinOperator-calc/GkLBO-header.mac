@@ -1,0 +1,34 @@
+cVars : [X, Y, Z]$
+vVars : [Vpar, Mu]$
+
+polyOrderMax : 2$
+
+fh : openw("~/max-out/GkLBOModDecl.h")$
+
+printf(fh, "#ifndef GKLBO_MOD_DELC_H ~%")$
+printf(fh, "#define GKLBO_MOD_DELC_H ~%")$
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "extern \"C\" { ~%")$
+
+/* Serendipity basis. */
+for ci : 1 thru 3 do (
+  for vi : 1 thru 2 do (
+    for pi : 1 thru polyOrderMax do (
+      printf(fh, "double GkLBOconstNuVol~ax~avSerP~a(const double *w, const double *dxv, const double mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out); ~%", ci, vi, pi),
+      for si : 1 thru vi do (
+        printf(fh, "double GkLBOconstNuSurf~ax~avSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi),
+        printf(fh, "double GkLBOconstNuBoundarySurf~ax~avSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi)
+      ),
+      printf(fh, "~%")
+    ),
+    printf(fh, "~%")
+  )
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$
