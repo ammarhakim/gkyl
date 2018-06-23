@@ -41,7 +41,7 @@ local function fillWithMappedNodeCoords(lower, upper, ncell, mapFunc, vcoords)
 end
 
 local NonUniformRectCart = Proto(RectCart) -- extends RectCart
--- ctor
+
 function NonUniformRectCart:init(tbl)
    NonUniformRectCart.super.init(self, tbl)
 

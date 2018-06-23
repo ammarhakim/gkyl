@@ -57,13 +57,16 @@ local DynVector = Proto()
 
 -- Constructor for DynVector
 function DynVector:init(tbl)
-   self._numComponents = tbl.numComponents and tbl.numComponents or 1 -- default numComponents=1
+   self._numComponents = tbl.numComponents and tbl.numComponents or 1
 
-   -- We store 1 extra element than requested to allow for 1-based indexing of returned values
-   local allocator = Alloc.createAllocator(string.format("double[%d]", self._numComponents+1))
-   self._timeMesh = Alloc.Double() -- time-mesh
-   self._data = allocator() -- data
-   self._tmpData = new(string.format("double[%d]", self._numComponents+1)) -- temp storage for single entry
+   -- We store 1 extra element than requested to allow for 1-based
+   -- indexing of returned values
+   local allocator = Alloc.createAllocator(
+      string.format("double[%d]", self._numComponents+1))
+   self._timeMesh = Alloc.Double()
+   self._data = allocator()
+    -- temp storage for single entry
+   self._tmpData = new(string.format("double[%d]", self._numComponents+1))
 
    -- construct various functions from template representations
    self._copyToTempData = loadstring( copyTempl {NCOMP=self._numComponents} )()
@@ -95,7 +98,6 @@ function DynVector:removeLast()
    local v = self._data:popLast()
    return tm, v
 end
-
 
 function DynVector:clear()
    self._data:clear()
@@ -157,9 +159,7 @@ function DynVector:write(outNm, tmStamp, frNum, flushData)
    Adios.define_var(
       grpId, "Data", "", Adios.double, localDatSz, "", "")
 
-   local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm -- concatenate prefix
-
-   -- open file to write out group
+   local fullNm = GKYL_OUT_PREFIX .. "_" .. outNm
    local fd = Adios.open("DynVector", fullNm, "w", comm[0])
 
    -- write data
@@ -186,19 +186,17 @@ end
 function DynVector:read(fName)
    local comm = Mpi.COMM_WORLD -- need to read from all processors
 
-   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- concatenate prefix
+   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName
    local reader = AdiosReader.Reader(fullNm, comm)
 
-   -- read time and frame info
    local tm = reader:getVar("time"):read()
    local frame = reader:getVar("frame"):read()
 
-   -- read time-mesh and data
    local timeMesh = reader:getVar("TimeMesh"):read()
    local data = reader:getVar("Data"):read()
 
    -- copy over time-mesh and data
-   local nVal = data:size()/self._numComponents   
+   local nVal = data:size()/self._numComponents
    self._timeMesh:expand(nVal)
    for i = 1, self._timeMesh:size() do
       self._timeMesh[i] = timeMesh[i]

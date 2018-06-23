@@ -40,20 +40,16 @@ local RectCart = Proto()
 
 function RectCart:init(tbl)
    local cells = tbl.cells
-   self._ndim = #cells -- dimensions
-   -- default grid extents
+   self._ndim = #cells
    local lo = tbl.lower and tbl.lower or {0.0, 0.0, 0.0, 0.0, 0.0, 0.0}
    local up = tbl.upper and tbl.upper or {1.0, 1.0, 1.0, 1.0, 1.0, 1.0}
 
-   -- periodic directions
    self._periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
-   -- construct table to indicate if directions are periodic  (default no directions are periodic)
    self._isDirPeriodic = {false, false, false, false, false, false}
    for _, dir in ipairs(self._periodicDirs) do
       self._isDirPeriodic[dir] = true
    end
 
-   -- set stuff up
    self._lower = Lin.Vec(self._ndim)
    self._upper = Lin.Vec(self._ndim)
    self._dx = Lin.Vec(self._ndim)
@@ -78,11 +74,12 @@ function RectCart:init(tbl)
    self._globalRange = Range.Range(l, u)   
    self._localRange = Range.Range(l, u)
    self._block = 1 -- block number for use in parallel communications
-   self._isShared = false -- is grid shared
+   self._isShared = false
    
    local decomp = tbl.decomposition and tbl.decomposition or nil  -- decomposition
    if decomp then
-      assert(decomp:ndim() == self._ndim, "Decomposition dimensions must be same as grid dimensions!")
+      assert(decomp:ndim() == self._ndim,
+	     "Decomposition dimensions must be same as grid dimensions!")
 
       self._isShared = decomp:isShared()
       -- in parallel, we need to adjust local range      
@@ -94,7 +91,8 @@ function RectCart:init(tbl)
       self._localRange:copy(localRange)
       self._cuts = {}
       for i = 1, self._ndim do 
-        assert(decomp:cuts(i) <= self._numCells[i], "Cannot have more decomposition cuts than cells in any dimension!")
+	 assert(decomp:cuts(i) <= self._numCells[i],
+		"Cannot have more decomposition cuts than cells in any dimension!")
         self._cuts[i] = decomp:cuts(i) 
       end
    else
@@ -159,10 +157,12 @@ end
 
 function RectCart:calcMetric(xc, gOut)
    if ndim == 1 then
-      gOut[1] = 1.0
+      gOut[1] = 1.0 -- g_11
    elseif ndim == 1 then
+      -- g_11, g_12, g_22
       gOut[1], gOut[2], gOut[3] = 1.0, 0.0, 1.0
    elseif ndim == 3 then
+      -- g_11, g_12, g_13, g_22, g_23, g_33
       gOut[1], gOut[2], gOut[3], gOut[4], gOut[5], gOut[6] = 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
    else
       assert(false, "RectCart:calcMetric does not support more than 3 dimensions!")
