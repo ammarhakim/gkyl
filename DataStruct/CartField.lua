@@ -301,9 +301,12 @@ local function Field_meta_ctor(elct)
 	 ffi.C.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,      
       _accumulateOneFld = function(self, fact, fld)
-	 assert(field_compatible(self, fld), "CartField:accumulate/combine: Can only accumulate/combine compatible fields")
-	 assert(type(fact) == "number", "CartField:accumulate/combine: Factor not a number")
-         assert(self:layout() == fld:layout(), "CartField:accumulate/combine: Fields should have same layout for sums to make sense")
+	 assert(field_compatible(self, fld),
+		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
+	 assert(type(fact) == "number",
+		"CartField:accumulate/combine: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
 	 ffi.C.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
@@ -326,7 +329,7 @@ local function Field_meta_ctor(elct)
 	    self:_assign(c1, fld1) -- assign first field
 	    for i = 1, nFlds do -- accumulate rest of the fields
 	       self:_accumulateOneFld(args[2*i-1], args[2*i])
-	    end	 
+	    end
 	 end or
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:combine: Combine only works on numeric fields")
@@ -452,7 +455,6 @@ local function Field_meta_ctor(elct)
 	 if not Mpi.Is_comm_valid(comm) then
 	    return -- no need to do anything if communicator is not valid
 	 end
-	 
 	 -- immediately return if nothing to sync
 	 if self._lowerGhost == 0 and self._upperGhost == 0 then return end
 
@@ -540,14 +542,16 @@ local function Field_meta_ctor(elct)
 		     local loBuff = self._recvLowerPerData[dir]
 		     local sz = loBuff:size()
 		     --print(string.format("Recv request %d <- %d. Tag %d", myId, upId, loTag))
-		     recvLowerReq[dir] = Mpi.Irecv(loBuff:data(), sz*elcCommSize, elctCommType, upId-1, loTag, comm)
+		     recvLowerReq[dir] = Mpi.Irecv(
+			loBuff:data(), sz*elcCommSize, elctCommType, upId-1, loTag, comm)
 		  end
 		  if myId == upId then
 		     local upTag = basePerTag+dir
 		     local upBuff = self._recvUpperPerData[dir]
 		     local sz = upBuff:size()
 		     --print(string.format("Recv request %d <- %d. Tag %d", myId, loId, upTag))
-		     recvUpperReq[dir] = Mpi.Irecv(upBuff:data(), sz*elcCommSize, elctCommType, loId-1, upTag, comm)
+		     recvUpperReq[dir] = Mpi.Irecv(
+			upBuff:data(), sz*elcCommSize, elctCommType, loId-1, upTag, comm)
 		  end
 	       end
 	    end

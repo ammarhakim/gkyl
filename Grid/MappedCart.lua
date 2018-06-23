@@ -24,7 +24,6 @@ local MappedCart = Proto(RectCart) -- extends RectCart
 function MappedCart:init(tbl)
    MappedCart.super.init(self, tbl)
 
-   -- store pointer to mapping function
    self._mapc2p = tbl.mapc2p
 
    -- determine how many values mapc2p returns
@@ -164,7 +163,7 @@ function MappedCart:write(fName)
    }
 
    local xnc, xnp = Lin.Vec(self:ndim()), Lin.Vec(self._rdim)
-   -- now loop over grid and store nodal coordinates
+
    local localRange = nodalCoords:localRange()
    local indexer = nodalCoords:genIndexer()
    for idx in localRange:colMajorIter() do
@@ -178,7 +177,6 @@ function MappedCart:write(fName)
 	 nitr[d] = xnp[d]
       end
    end
-   -- now write out nodal coordinates to file
    nodalCoords:write(fName)
 end
 
