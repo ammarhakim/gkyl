@@ -21,7 +21,7 @@ end
 
 -- create logger
 local function makeLogger(tbl)
-   local writeRank = 0 -- default write rank is 0
+   local writeRank = 0
    if tbl.writeRank then writeRank = tbl.writeRank end
 
    local fName
@@ -31,20 +31,17 @@ local function makeLogger(tbl)
       fName = GKYL_OUT_PREFIX .. "_" .. writeRank .. ".log"
    end
    
-   -- get hold of communicator if specified or use MPI_COMM_WORLD
    local comm = tbl.comm and tbl.comm or Mpi.COMM_WORLD
-   local rank = Mpi.Comm_rank(comm) -- local rank
+   local rank = Mpi.Comm_rank(comm)
 
-   local outStreams = {} -- list of streams to which logs are written
+   local outStreams = {}
    if writeRank == rank then
-      outStreams[1] = io.stdout -- always write to console
-      -- open log file if needed
+      outStreams[1] = io.stdout
       if tbl.logToFile then
 	 outStreams[2] = io.open(fName, "w")
       end
    end
 
-   -- return function to do logging
    return function (msg)
       writeToFile(outStreams, msg)
    end
