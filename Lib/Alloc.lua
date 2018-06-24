@@ -15,7 +15,6 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 local _totalAlloc = 0
 local function totalAlloc() return _totalAlloc end
 
--- Declare malloc/free functions from C library
 ffi.cdef [[
   void* malloc(size_t size);
   void* calloc(size_t nitems, size_t size);
@@ -23,7 +22,6 @@ ffi.cdef [[
   void free(void *ptr);
 ]]
 
--- Wrapper around core memory functions
 local function malloc(sz)
    local d = ffi.C.malloc(sz)
    assert(d, "Alloc.malloc: Unable to allocate memory!")
@@ -113,17 +111,14 @@ local function Alloc_meta_ctor(elct)
 	 return self._size
       end,
       expand = function (self, nSize)
-	 -- don't do anything if requested size is less than capacity
 	 if nSize < self._capacity then
 	    self._size = nSize
-	    return 
+	 else
+	    local adjBytes, adjNum = calcAdjustedSize(nSize)
+	    self._data = realloc(self._data, adjBytes)
+	    self._capacity = adjNum
+	    self._size = nSize
 	 end
-
-	 -- reallocate memory
-	 local adjBytes, adjNum = calcAdjustedSize(nSize)
-	 self._data = realloc(self._data, adjBytes)
-	 self._capacity = adjNum
-	 self._size = nSize
       end,
       clear = function(self)
 	 local adjBytes, adjNum = calcAdjustedSize(0) -- single block
