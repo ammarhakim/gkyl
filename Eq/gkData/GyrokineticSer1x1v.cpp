@@ -253,15 +253,15 @@ double EmGyrokineticVol1x1vSerP2_Bvars_1(const double q_, const double m_, const
   cflFreq += fabs(0.5*alphav[0]-0.5590169943749475*alphav[4])*dvInv; 
   return cflFreq; 
 } 
-double EmGyrokineticStep2Vol1x1vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *dApardt, const double *f, double *out) 
+double EmGyrokineticStep2Vol1x1vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out) 
 { 
   double dvInv = 1.0/dxv[1]; 
   double dfac_v = 2.0/dxv[1]; 
   out[2] += -(1.224744871391589*(dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
   out[3] += -(0.2449489742783178*(4.47213595499958*dApardt[1]*f[4]+5.0*dApardt[0]*f[1]+5.0*f[0]*dApardt[1])*dfac_v*q_)/m_; 
-  return fabs(-(0.5*Bmag[0]*dApardt[0]*q_)/m_)*dvInv; 
+  return fabs(-(0.7071067811865475*dApardt[0]*q_)/m_)*dvInv; 
 } 
-double EmGyrokineticStep2Vol1x1vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *dApardt, const double *f, double *out) 
+double EmGyrokineticStep2Vol1x1vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out) 
 { 
   double dvInv = 1.0/dxv[1]; 
   double dfac_v = 2.0/dxv[1]; 
@@ -270,5 +270,5 @@ double EmGyrokineticStep2Vol1x1vSerP2(const double q_, const double m_, const do
   out[5] += -(0.7071067811865475*(3.872983346207417*dApardt[2]*f[6]+3.872983346207417*dApardt[1]*f[3]+3.872983346207417*dApardt[0]*f[2])*dfac_v*q_)/m_; 
   out[6] += -(0.07824607964359516*(10.0*dApardt[2]*f[4]+15.65247584249853*dApardt[0]*f[4]+15.65247584249853*f[0]*dApardt[2]+14.0*dApardt[1]*f[1])*dfac_v*q_)/m_; 
   out[7] += -(0.1414213562373095*(17.32050807568877*dApardt[1]*f[6]+17.32050807568877*dApardt[2]*f[3]+19.36491673103708*dApardt[0]*f[3]+19.36491673103708*dApardt[1]*f[2])*dfac_v*q_)/m_; 
-  return fabs((0.125*((-5.0*Bmag[2]*dApardt[2]*q_)+4.47213595499958*Bmag[0]*dApardt[2]*q_+4.47213595499958*dApardt[0]*Bmag[2]*q_-4.0*Bmag[0]*dApardt[0]*q_))/m_)*dvInv; 
+  return fabs((0.3535533905932737*(2.23606797749979*dApardt[2]*q_-2.0*dApardt[0]*q_))/m_)*dvInv; 
 } 

@@ -1,16 +1,16 @@
-load("modal-basis");
-load("out-scripts");
+load("modal-basis")$
+load("out-scripts")$
 load(stringproc)$
 fpprec : 24$
 
-wc : [wx, wy, wz, wv, wm];
-wc2 : [wx2, wy2, wz2, wv2, wm2];
-derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m];
-derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2];
-gkvsub:[vx=vpar,vy=mu];
+wc : [wx, wy, wz, wv, wm]$
+wc2 : [wx2, wy2, wz2, wv2, wm2]$
+derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m]$
+derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2]$
+gkvsub:[vx=vpar,vy=mu]$
 
-let (wv^2, wv2);
-let (dfac_v^2, dfac_v2);
+let (wv^2, wv2)$
+let (dfac_v^2, dfac_v2)$
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
@@ -22,12 +22,12 @@ doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, leng
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 /* set up some vector calculus functions */
-load("vect");
-fgrad(f):= ev(express(grad(f)),diff)*derivfacsC;
+load("vect")$
+fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
-gkPB(f,g):=1/m_*Bstar_by_Bmag_expd.(fgrad(f)*dfac_v*diff(g,vpar)-fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x));
+gkPB(f,g):=1/m_*Bstar_by_Bmag_expd.(fgrad(f)*dfac_v*diff(g,vpar)-fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
 
-calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, pmax,emflag, bvarslist) := block([],
+calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, pmax,emflag, bvarslist, pureUpwind) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
@@ -139,9 +139,9 @@ for i : 1 thru pmax do (
   /* expand BstarY/Bmag = ( m/q vpar + Apar ) BdriftY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
   BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftY_expd,
   /* make vApar = -bhatXgrad(Apar) vector */
-  if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
-  if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd] + vApar_expd,
-  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd] + vApar_expd,
+  if cdim = 1 then vApar_expd : [0], 
+  if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x],
+  if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0], 
 
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [1],
@@ -158,62 +158,117 @@ for i : 1 thru pmax do (
   alpha0expr : fullratsimp(innerProd(surfIntVars, 1, alpha_expd, subst(surfVar=-1, bP[1]))),
   /*alpha0expr : expand(fullratsimp(subst(cellCenter, alpha_expd))),*/
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
-  printf(fh, "  double alpha0 = std::abs(~a); ~%~%", float(subst([wv^2=wv2,q_^2=q2], alpha0expr))),
+  printf(fh, "  double alpha0 = ~a; ~%~%", float(subst([wv^2=wv2,q_^2=q2], alpha0expr))),
 
-  /* determine whether to use local or global value for penalty amax */
-  printf(fh, "  double amax = 0.0; ~%"),
-  printf(fh, "  bool upwind = false; ~%"), 
-  printf(fh, "  if(upwind) ~%"),
-  printf(fh, "    amax = alpha0; ~%"),
-  printf(fh, "  else ~%"),
-  printf(fh, "    amax = amax_in; ~%~%"),
+  /* note: always use pureUpwind for p=1 */
+  if pureUpwind or i=1 then (
+    /* project full alpha expression onto basis and print to c variable alpha */
+    printf(fh, "  double alpha[~a]; ~%", length(bP)),
+    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)),
+    writeCExprs1(alpha, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], expand(float(facsum(alpha_k,derivfac))))),
+    alphaNoZero_k : doMakeExprLst(alpha_k, alpha),
+    alpha_expd : doExpandLst(alphaNoZero_k, bP),
 
-  /* calculate lax penalty flux expression */
-  /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
-  flux_expd : fullratsimp(alpha_expd/2*(subst(surfVar=1, fL_expd)+subst(surfVar=-1, fR_expd))-amax/2*(subst(surfVar=-1, fR_expd)-subst(surfVar=1, fL_expd))),
-  /* project flux expression onto basis functions */
-  flux_k : subst([wv^2=wv2,dfac_v^2=dfac_v2,q_^2=q2],calcInnerProdList(varsP, 1, bP, flux_expd)),
-  /* print fluxl list to c array Ghat */
-  writeCExprsCollect1(Ghat, flux_k, [derivfac,alpha0]),
-  printf(fh, "~%"),
-  /* these functions drop components of Ghat that are zero from list Ghatl */
-  glst1 : doMakeExprLst(flux_k, Ghat),
-  Ghat_k : doExpandLst(glst1, bP),
+    printf(fh, "  if (alpha0>0) { ~%"),
+    fhat : subst(surfVar=1, fL_expd),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
+    incr_r : facsum(fullratsimp(t),dxv),
+    writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
+    printf(fh, "~%"),
+    incr_s : makelist(incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outr, incr_s),  
+    printf(fh, "~%"),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=1, bP), fhat),
+    incr_l : -t,
+    signs : fullratsimp(incr_l/incr_r),
+    incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outl, incr_s),
+    
+    printf(fh, "  } else { ~%"),
+    fhat : subst(surfVar=-1, fR_expd),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
+    incr_r : facsum(fullratsimp(t),dxv),
+    writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
+    printf(fh, "~%"),
+    incr_s : makelist(incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outr, incr_s),  
+    printf(fh, "~%"),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=1, bP), fhat),
+    incr_l : -t,
+    signs : fullratsimp(incr_l/incr_r),
+    incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outl, incr_s),
+    printf(fh, "  } ~%"),
+    printf(fh, "  return std::abs(alpha0); ~%"),
+    printf(fh, "} ~%"),
+    flush_output(fh)
+  ) else (
+    /* determine whether to use local or global value for penalty amax */
+    printf(fh, "  double amax = 0.0; ~%"),
+    printf(fh, "  bool upwind = false; ~%"), 
+    printf(fh, "  if(upwind) ~%"),
+    printf(fh, "    amax = std::abs(alpha0); ~%"),
+    printf(fh, "  else ~%"),
+    printf(fh, "    amax = amax_in; ~%~%"),
 
-  /* evaluate contribution to right boundary (surfVar=-1) */
-  t : surfac*innerProd(surfIntVars, 1, subst(surfVar=-1, bP), subst(surfVar=-1,Ghat_k)),
-  incr_r : facsum(fullratsimp(t),dxv),
-  writeCExprsNoExpand1(incr, incr_r),
-  printf(fh, "~%"),
-  incr_s : makelist(incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outr, incr_s),  
-  printf(fh, "~%"),
-  /* contribution to left boundary (surfVar=1) is same except for signs */
-  t : surfac*innerProd(surfIntVars, 1, subst(surfVar=1, bP), subst(surfVar=1, Ghat_k)),
-  incr_l : -t,
-  signs : fullratsimp(incr_l/incr_r),
-  incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
-  writeCIncrExprsNoExpand1(outl, incr_s),
-  /* return alpha0 so that we can find global value */
-  printf(fh, "return alpha0; ~%"),
-  
-  printf(fh, "} ~%"),
-  flush_output(fh)
-));
+    /* calculate lax penalty flux expression */
+    /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
+    flux_expd : fullratsimp(alpha_expd/2*(subst(surfVar=1, fL_expd)+subst(surfVar=-1, fR_expd))-amax/2*(subst(surfVar=-1, fR_expd)-subst(surfVar=1, fL_expd))),
+    /* project flux expression onto basis functions */
+    flux_k : subst([wv^2=wv2,dfac_v^2=dfac_v2,q_^2=q2],calcInnerProdList(varsP, 1, bP, flux_expd)),
+    /* print fluxl list to c array Ghat */
+    writeCExprsCollect1(Ghat, flux_k, [derivfac,alpha0]),
+    printf(fh, "~%"),
+    /* these functions drop components of Ghat that are zero from list Ghatl */
+    glst1 : doMakeExprLst(flux_k, Ghat),
+    Ghat_k : doExpandLst(glst1, bP),
+
+    /* evaluate contribution to right boundary (surfVar=-1) */
+    t : surfac*innerProd(surfIntVars, 1, subst(surfVar=-1, bP), subst(surfVar=-1,Ghat_k)),
+    incr_r : facsum(fullratsimp(t),dxv),
+    writeCExprsNoExpand1(incr, incr_r),
+    printf(fh, "~%"),
+    incr_s : makelist(incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outr, incr_s),  
+    printf(fh, "~%"),
+    /* contribution to left boundary (surfVar=1) is same except for signs */
+    t : surfac*innerProd(surfIntVars, 1, subst(surfVar=1, bP), subst(surfVar=1, Ghat_k)),
+    incr_l : -t,
+    signs : fullratsimp(incr_l/incr_r),
+    incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outl, incr_s),
+    /* return alpha0 so that we can find global value */
+    printf(fh, "return std::abs(alpha0); ~%"),
+    
+    printf(fh, "} ~%"),
+    flush_output(fh)
+  )
+))$
 
 calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := block([],
   lastdir : cdim+vdim-1,
   if vdim=1 then lastdir: cdim+vdim,
-  for dir : 1 thru lastdir do ( calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) )
+  for dir : 1 thru lastdir do ( 
+    /* pure upwind in z direction */
+    if (dir=cdim and cdim#2) then (
+      pureUpwind : true
+    ) else (
+      pureUpwind : false
+    ),
+    calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist, pureUpwind) 
+  )
 )$
 
 for c : 1 thru 3 do (
 v:2,
-pmax:2,
+pmax:1,
 if c=1 then (v:1, pmax:2),
 fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
+/* possible combinations of variable dependence of background magnetic field,
+   with 0 = const, 1 = x, 2 = y, 3 = z.
+   note that we assume axisymmetry, which means B cannot depend on y */
 if c=1 then bvarslist : [[0], [1]],
 if c=2 then bvarslist : [[0], [1]],
 if c=3 then bvarslist : [[0], [1], [3], [1,3]],
@@ -224,6 +279,6 @@ funcName : sconcat("EmGyrokineticSurf", c, "x", v, "v", "Ser"),
 calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
 ),
 close(fh)
-);
+)$
 
 
