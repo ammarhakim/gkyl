@@ -157,6 +157,13 @@ for i : 1 thru pmax do (
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
   printf(fh, "  double alpha0 = ~a;~%~%", float(subst([wv^2=wv2, q_^2=q2], alpha0))),
 
+  /* project full alpha expression onto basis and print to c variable alpha */
+  printf(fh, "  double alpha[~a]; ~%", length(bP)),
+  alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)),
+  writeCExprs1(alpha, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], expand(float(facsum(alpha_k,derivfac))))),
+  alphaNoZero_k : doMakeExprLst(alpha_k, alpha),
+  alpha_expd : doExpandLst(alphaNoZero_k, bP),
+
   printf(fh, "  if (alpha0>0) { ~%"),
   fhat : subst(surfVar=1, fL_expd),
   t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
@@ -188,7 +195,8 @@ for i : 1 thru pmax do (
   writeCIncrExprsNoExpand1(outl, incr_s),
   printf(fh, "  } ~%"),
   printf(fh, "  return std::abs(alpha0); ~%"),
-  printf(fh, "} ~%")
+  printf(fh, "} ~%"),
+  flush_output(fh)
 ))$
 
 calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := block([],
@@ -205,8 +213,8 @@ fname : sconcat("~/max-out/GyrokineticSurfSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 if c=1 then bvarslist : [[0], [1]],
-if c=2 then bvarslist : [[0], [1]/*, [2], [1,2]*/],
-if c=3 then bvarslist : [[0], [1]/*, [2], [3], [1,2], [1,3], [2,3], [1,2,3]*/],
+if c=2 then bvarslist : [[0], [1]],
+if c=3 then bvarslist : [[0], [1], [3], [1,3]],
 for b : 1 thru length(bvarslist) do (
 funcName : sconcat("GyrokineticSurf", c, "x", v, "v", "Ser"),
 calcGKSurfUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b]),
