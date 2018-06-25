@@ -84,8 +84,8 @@ function SelfPrimMoments:init(tbl)
         local mass = assert(
            tbl.mass, "Updater.SelfPrimMoments: Must provide species mass using 'mass'.")
         self._intFac[1] = 2.0*math.pi/mass
-        self._intFac[2] = 4.0*math.pi/mass
         if self._vDim > 1 then -- A (vpar,mu) simulation has 3 physical velocity dimensions.
+           self._intFac[2] = 4.0*math.pi/mass
            self._physVdim = 3
            vCorrections = 1
         end
