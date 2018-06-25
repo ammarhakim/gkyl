@@ -13,36 +13,23 @@ local argparse = require "Lib.argparse"
 local date = require "xsys.date"
 local lfs = require "lfs"
 
-local parser = argparse()
-   :name("runregression")
-   :require_command(false)
-   :description [[
-Run Gkyl regression tests. Regression tests are run and results
-are compared to "accepted" results. For meaningful testing you
-first need to configure the regression testing system and
-generate accepted results. This can be done using the "config"
-and "create" commands. Obviously, this should be done
-only once.
-
-When adding new tests it is that developer's responsibility to
-ensure that the results produced are correct. Obviously, others
-may not be able to determine just looking at output that the
-results make sense.
-]]
-
--- add options, flags and commands to CLI parser
-parser:flag("-d --dont-compare", "Don't compare with accepted results")
-parser:option("-r --run-only", "Only run specified test")
-
--- configure system
-local conf = parser:command("config", "Configure regression tests")
-conf:option("-p --prefix", "Location to store accepted results")
-conf:option("-m --mpi-exec", "Full path to MPI executable")
-
--- create accepted results
-parser:command("create", "Create accepted results")
-
 local log = Logger { logToFile = true }
+
+-- configure paths
+local function configure(prefix, mpiExec)
+   local mpiAttr = lfs.attributes(mpiExec)
+   print(mpiAttr.permissions)
+
+   -- write information in config file
+   local fn = io.open("runregression.config.lua", "w")
+   
+   fn:write("return {\n")
+   fn:write(string.format("mpiExec = \"%s\",\n", mpiExec))
+   fn:write(string.format("prefix = \"%s\",\n", prefix))
+   fn:write("}")
+   
+   fn:close()
+end
 
 -- Walks down a directory tree recursively: returns a coroutine that
 -- yields directory, file-name and attribute object
@@ -55,7 +42,7 @@ local function dirtree(dir)
    local function yieldtree(dir)
       for fn in lfs.dir(dir) do
 	 if fn ~= "." and fn ~= ".." then
-	    fullNm = dir .. "/" .. fn
+	    local fullNm = dir .. "/" .. fn
 	    local attr = lfs.attributes(fullNm)
 	    coroutine.yield(dir, fn, attr)
 	    if attr.mode == "directory" then
@@ -80,7 +67,6 @@ local function runLuaTest(test)
       -- silent output
    end
    log(string.format("... completed in %g sec\n\n", Time.clock()-tmStart))
-   
    
 end
 
@@ -114,7 +100,60 @@ local function runAll()
    log(date(false):fmt() .. "\n")
 end
 
+local function show(args)
+   for v in pairs(args) do
+      print(v, args[v])
+   end
+end
+
+-- functions to handle various commands
+local function config_action(args, name)
+   local prefix = args.config_prefix and args.config_prefix or
+      os.getenv("HOME") .. "/gkylsoft/gkyl-results"
+   local mpiexec = args.config_mpiexec and  args.config_mpiexec or
+      os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec"
+
+   configure(prefix, mpiexec)
+end
+
+-- Create CLI parser to handle commands and options
+local parser = argparse()
+   :name("runregression")
+   :require_command(false)
+   :description [[
+Run Gkyl regression tests. Regression tests are run and results are
+compared to "accepted" results. For meaningful testing you first need
+to configure the regression testing system and generate accepted
+results. This can be done using the "config" and "run create"
+commands. Obviously, this should be done only once.
+
+When adding new tests it is that developer's responsibility to
+ensure that the results produced are correct. Obviously, others
+may not be able to determine just looking at output that the
+results make sense.
+]]
+
+-- config command
+local c_conf = parser:command("config", "Configure regression tests")
+   :action(config_action)
+
+c_conf:option("-p --prefix", "Location to store accepted results")
+   :target("config_prefix")
+c_conf:option("-m --mpiexec", "Full path to MPI executable")
+   :target("config_mpiexec")
+
+-- run tests
+local c_run = parser:command("run")
+   :description("Run regression tests.")
+   :require_command(false)
+
+c_run:option("-r --run-only", "Only run this test")
+
+-- check against accepted results
+c_run:command("check", "Check results")
+
+-- create accepted results
+c_run:command("create", "Create accepted results")
+
 -- parse command-line args
 local args = parser:parse(GKYL_COMMANDS)
-
-runAll()
