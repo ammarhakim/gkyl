@@ -211,7 +211,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
     incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=1, g)),
+    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1, g)),
 
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
@@ -279,49 +279,47 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  double incr1[~a]; ~%", NP),
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
-    printf(fh, "  double incr2[~a]; ~%", NP),
+    printf(fh, "  double incr2_r[~a]; ~%", NP),
     clst : makelist(nuVtSq[i],i,0,NC-1), 
-    writeCExprsCollect1c(incr2, incr_r2, clst),
+    writeCExprsCollect1c(incr2_r, incr_r2, clst),
+    printf(fh, "~%"),
+    printf(fh, "  double incr2_l[~a]; ~%", NP), 
+    writeCExprsCollect1c(incr2_l, incr_l2, clst),
     printf(fh, "~%"),
   
-    incr_s1 : makelist(incr1[i-1], i, 1, NP),
-    incr_s2 : makelist(incr2[i-1], i, 1, NP),
+    incr_s1   : makelist(incr1[i-1], i, 1, NP),
+    incr_s2_r : makelist(incr2_r[i-1], i, 1, NP),
+    incr_s2_l : makelist(incr2_l[i-1], i, 1, NP),
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru NP do (
       if (incr_r1[i] = 0) then
         incr_s1[i] : 0,
       if (incr_r2[i] = 0) then
-        incr_s2[i] : 0
+        incr_s2_r[i] : 0
     ), 
     /* Write out contribution right cell. */
-    writeCIncrExprs1(outr, rdv2r*incr_s1+rdvSq4r*incr_s2), 
+    writeCIncrExprs1(outr, rdv2r*incr_s1+rdvSq4r*incr_s2_r), 
     printf(fh, "~%"),
-  
+
+    /* Write out contribution to left cell. */
+    /* First change signs to incr_s1. */
     signs1 : makelist(1,i,1,NP),
-    signs2 : makelist(1,i,1,NP),
     for i : 1 thru NP do (
         if (incr_r1[i] = 0) then
           false
         else
-          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i]),
-        if (incr_r2[i] = 0) then
-          false
-        else
-          signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
+          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i])
     ),
     incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NP),
-    incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
-    /* Don't do coefficients where the increment is zero */
+    /* Don't do coefficients where the increment is zero. */
     for i : 1 thru NP do (
       if (incr_r1[i] = 0) then
-        incr_s1[i] : 0
+        incr_s1[i] : 0,
+      if (incr_l2[i] = 0) then
+        incr_s2_l[i] : 0
     ), 
-    for i : 1 thru NP do (
-      if (incr_r2[i] = 0) then
-        incr_s2[i] : 0
-    ), 
-    /* Write out contribution to left cell. */
-    writeCIncrExprs1(outl, rdv2l*incr_s1+rdvSq4l*incr_s2), 
+    
+    writeCIncrExprs1(outl, rdv2l*incr_s1+rdvSq4l*incr_s2_l), 
     printf(fh, "~%"),
 
     printf(fh, "  const double vMuMid = ~a; ~%", vMuMid),
