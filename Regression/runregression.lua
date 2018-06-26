@@ -16,6 +16,17 @@ local lume = require "Lib.lume"
 
 local log = Logger { logToFile = true }
 
+local configVals = nil 
+
+local function requireConfig()
+   local f = loadfile("runregression.config.lua")
+   if not f then
+      log("Regression tests not configured! Run config command first\n")
+      os.exit(1)
+   end
+   return f()
+end
+
 -- configure paths
 local function configure(prefix, mpiExec)
    local mpiAttr = lfs.attributes(mpiExec)
@@ -62,7 +73,6 @@ local function dirtree(dir)
 	 end
       end
    end
-
    return coroutine.wrap(function() yieldtree(dir) end)
 end
 
@@ -97,18 +107,8 @@ local function show(args)
    end
 end
 
--- function to handle "config" command
-local function config_action(args, name)
-   local prefix = args.config_prefix and args.config_prefix or
-      os.getenv("HOME") .. "/gkylsoft"
-   local mpiexec = args.config_mpiexec and  args.config_mpiexec or
-      os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec"
-
-   configure(prefix, mpiexec)
-end
-
--- function to handle "run" command
-local function run_action(args, name)
+-- list of regression tests
+local function list_tests(args)
    local luaRegTests, shellRegTests = {}, {}
 
    local function addTest(fn)
@@ -124,6 +124,35 @@ local function run_action(args, name)
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
+
+   return luaRegTests, shellRegTests
+end
+
+-- function to handle "config" command
+local function config_action(args, name)
+   local prefix = args.config_prefix and args.config_prefix or
+      os.getenv("HOME") .. "/gkylsoft"
+   local mpiexec = args.config_mpiexec and  args.config_mpiexec or
+      os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec"
+
+   configure(prefix, mpiexec)
+end
+
+-- function to handle "list" command
+local function list_action(args, name)
+   local luaRegTests, shellRegTests = list_tests(args)
+
+   local tmStart = Time.clock()
+   lume.each(luaRegTests, print)
+   lume.each(shellRegTests, print)
+end
+
+-- function to handle "run" command
+local function run_action(args, name)
+   -- global configure parameters
+   local configVals = requireConfig()
+   
+   local luaRegTests, shellRegTests = list_tests(args)
 
    log("Running regression tests ...\n\n")
    local tmStart = Time.clock()
@@ -159,7 +188,7 @@ may not be able to determine just looking at output that the
 results make sense.
 ]]
 
--- config command
+-- "config" command
 local c_conf = parser:command("config", "Configure regression tests")
    :action(config_action)
 
@@ -168,7 +197,11 @@ c_conf:option("-p --prefix", "Location to store accepted results")
 c_conf:option("-m --mpiexec", "Full path to MPI executable")
    :target("config_mpiexec")
 
--- run tests
+-- "list" command
+local c_list = parser:command("list", "List all regression tests")
+   :action(list_action)
+
+-- "run" tests
 local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
