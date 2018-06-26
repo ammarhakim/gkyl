@@ -2,7 +2,7 @@
 --
 -- Walks down directory tree and runs all Lua and shell files with
 -- prefix "rt-" through gkyl.
--- 
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -12,22 +12,33 @@ local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
 local date = require "xsys.date"
 local lfs = require "lfs"
+local lume = require "Lib.lume"
 
 local log = Logger { logToFile = true }
 
 -- configure paths
 local function configure(prefix, mpiExec)
    local mpiAttr = lfs.attributes(mpiExec)
-   print(mpiAttr.permissions)
+
+   if mpiAttr and mpiAttr.mode == "file" and string.sub(mpiAttr.permissions, 3, 3) == "x" then
+      log(string.format("Setting MPIEXEC to %s ...\n", mpiExec))
+   else
+      assert(false, string.format("MPI launch binary %s not found or is not an executable!", mpiExec))
+   end
+
+   local prefixAttr = lfs.attributes(prefix)
+   if prefixAttr and prefixAttr.mode == "directory" then
+      log(string.format("Will write accepted results to %s/gkyl-results ...\n", prefix))
+   else
+      assert(false, string.format("Prefix %s is not a directory!", prefix))
+   end
 
    -- write information in config file
    local fn = io.open("runregression.config.lua", "w")
-   
    fn:write("return {\n")
    fn:write(string.format("mpiExec = \"%s\",\n", mpiExec))
-   fn:write(string.format("prefix = \"%s\",\n", prefix))
+   fn:write(string.format("results_dir = \"%s/gkyl-results\",\n", prefix))
    fn:write("}")
-   
    fn:close()
 end
 
@@ -63,11 +74,9 @@ local function runLuaTest(test)
 
    local runCmd = string.format("%s %s", GKYL_EXEC, test)
    local f = io.popen(runCmd, "r")
-   for l in f:lines() do
-      -- silent output
+   for _ in f:lines() do
    end
    log(string.format("... completed in %g sec\n\n", Time.clock()-tmStart))
-   
 end
 
 -- runs a single shell-script test
@@ -76,28 +85,10 @@ local function runShellTest(test)
 end
 
 local function isLuaRegressionTest(fn)
-   return string.find(fn, "^rt%-.-%.lua$") ~= nil 
+   return string.find(fn, "/rt%-[^/]-%.lua$") ~= nil 
 end
 local function isShellRegressionTest(fn)
-   return string.find(fn, "^rt%-.-%.sh$") ~= nil
-end
-
--- run all tests
-local function runAll()
-   log("Starting Gkyl regression tests ...\n")
-   log(date(false):fmt() .. "\n\n")
-   local tmStart = Time.clock()
-   
-   for dir, fn, attr in dirtree(".") do
-      if isLuaRegressionTest(fn) then
-	 runLuaTest(dir .. "/" .. fn)
-      elseif isShellRegressionTest(fn) then
-	 runShellTest(dir .. "/" .. fn)
-      end
-   end
-
-   log(string.format("Completed regression tests in %g secs\n", Time.clock()-tmStart))
-   log(date(false):fmt() .. "\n")
+   return string.find(fn, "/rt%-[^/]-%.sh$") ~= nil
 end
 
 local function show(args)
@@ -106,20 +97,55 @@ local function show(args)
    end
 end
 
--- functions to handle various commands
+-- function to handle "config" command
 local function config_action(args, name)
    local prefix = args.config_prefix and args.config_prefix or
-      os.getenv("HOME") .. "/gkylsoft/gkyl-results"
+      os.getenv("HOME") .. "/gkylsoft"
    local mpiexec = args.config_mpiexec and  args.config_mpiexec or
       os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec"
 
    configure(prefix, mpiexec)
 end
 
+-- function to handle "run" command
+local function run_action(args, name)
+   local luaRegTests, shellRegTests = {}, {}
+
+   local function addTest(fn)
+      if isLuaRegressionTest(fn) then
+	 table.insert(luaRegTests, fn)
+      elseif isShellRegressionTest(fn) then
+	 table.insert(shellRegTests, fn)
+      end
+   end
+
+   if args.run_only then
+      addTest(args.run_only)
+   else
+      for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
+   end
+
+   log("Running regression tests ...\n\n")
+   local tmStart = Time.clock()
+   lume.each(luaRegTests, runLuaTest)
+   lume.each(shellRegTests, runShellTest)
+   log(string.format("All tests completed in %g secs\n", Time.clock()-tmStart))
+end
+
+-- function to handle "check" action
+local function check_action(args, name)
+   print("Inside check_action")
+end
+
+-- function to handle "create" action
+local function create_action(args, name)
+   print("Inside create_action")
+end
+
 -- Create CLI parser to handle commands and options
 local parser = argparse()
    :name("runregression")
-   :require_command(false)
+   :require_command(true)
    :description [[
 Run Gkyl regression tests. Regression tests are run and results are
 compared to "accepted" results. For meaningful testing you first need
@@ -146,14 +172,17 @@ c_conf:option("-m --mpiexec", "Full path to MPI executable")
 local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
+   :action(run_action)
 
 c_run:option("-r --run-only", "Only run this test")
 
 -- check against accepted results
 c_run:command("check", "Check results")
+   :action(check_action)
 
 -- create accepted results
 c_run:command("create", "Create accepted results")
+   :action(create_action)
 
--- parse command-line args
+-- parse command-line args (functionality encoded in command actions)
 local args = parser:parse(GKYL_COMMANDS)
