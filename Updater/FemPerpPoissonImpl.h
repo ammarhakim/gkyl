@@ -99,11 +99,6 @@ class FemPerpPoisson
   int getNumLocalNodes(int ndim, int p);
   
   void setupBoundaryIndices(bcdata_t bc[2][2], int ndim, int polyOrder);
-  void getPerpStiffnessMatrix(Eigen::MatrixXd& localStiff, int ndim, int p, double dx, double dy);
-  void getPerpStiffnessMatrix(Eigen::MatrixXd& localStiff, double *w, int ndim, int p, double dx, double dy);
-  void getNodToModMatrix(Eigen::MatrixXd& localNodToMod, int ndim, int p);
-  void getMassMatrix(Eigen::MatrixXd& localMass, int ndim, int p);
-  void getMassMatrix(Eigen::MatrixXd& localMass, double *w, int ndim, int p);
   void getPerpLocalToGlobalInteriorBLRT(std::vector<int>& lgMap, int idx, int idy, int nx, int ny, int ndim, int p, bool periodicFlgs[2]);
   
   /**

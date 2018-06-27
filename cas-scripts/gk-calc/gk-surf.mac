@@ -249,7 +249,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := bl
   lastdir : cdim+vdim-1,
   if vdim=1 then lastdir: cdim+vdim,
   for dir : 1 thru lastdir do ( 
-    /* pure upwind in z direction */
+    /* always pure upwind in z direction */
     if (dir=cdim and cdim#2) then (
       pureUpwind : true
     ) else (
