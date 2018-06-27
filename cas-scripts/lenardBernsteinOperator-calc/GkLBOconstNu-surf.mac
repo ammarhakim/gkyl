@@ -172,13 +172,23 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     )
     else (
     	gdiff : nuVtSq_e*mufac*dr*hsol[2]
-	/*gdiff : 2*mufac*nuVtSq_e*dxvl[vid1[dir]]*vv*hsol[2]*/
     ),
-
+    Gdiff_c : calcInnerProdList(varsP,1,bP,gdiff),
+    /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
+    ** but that could result in references to elements of Gdiff in Ghat
+    ** which have value zero. Instead do the following: */
+    glst1   : doMakeExprLst(Gdiff_c, Gdiff),
+    Gdiff_e : doExpandLst(glst1, bP),
+    /* Because f's in hsol are index-1, we need to switch to
+    ** 0-indexed for C++. */
+    subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
+    Gdiff_c : psubst(subList,Gdiff_c),
+    
     /* Calculate Ghat projected on the phase basis. */
     Ghat_eP : (1/2)*(subst(vv=1,drD)*fhat_avg-fhat_jump),
     Ghat_c  : calcInnerProdList(varsP,1,bP,Ghat_eP)
-             +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg)),
+             +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg))
+	     +rdv*calcInnerProdList(varsP,1,bP,Gdiff_e),
 
     /* Ghat_c (coefficients of Ghat) is what gets written. From here
     ** on we can simply refer to Ghat. */
@@ -191,27 +201,22 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
          g : nuVtSq_e*hsol[1]
     )
     else (
-    	 g : mufac*nuVtSq_e*dr*hsol[1]
-	 /*g : 2*mufac*nuVtSq_e*dxvl[vid1[dir]]*vv*hsol[1]*/
+    	 g : mufac*nuVtSq_e*subst(vv=1,dr)*hsol[1]
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
     incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-    incr_r2 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), subst(vv=-1, gdiff)),
-    incr_r3 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1, g)),
+    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), g),
 
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
-    incr_l2 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), subst(vv=1, gdiff)),
-    incr_l3 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1, g)),
+    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), g),
 
     /* Because f's in hsol are index-1, we need to switch to
     ** 0-indexed for C++. */
     incr_l2 : psubst(subList,incr_l2),
     incr_r2 : psubst(subList,incr_r2),
-    incr_l3 : psubst(subList,incr_l3),
-    incr_r3 : psubst(subList,incr_r3),
 
     printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. ~%"),
@@ -247,14 +252,14 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCExprs1(drBar,drBar_c),
     printf(fh, "~%"),
 
-    /* /* Compute the diffusive part of Ghat separately. */
+    /* Compute the diffusive part of Ghat separately. */
     printf(fh, "  double Gdiff[~a]; ~%", NP),
     /* This one yields less compact expressions: writeCExprs1(Gdiff,Gdiff_c), */
     clst : makelist(nuVtSq[i],i,0,NC-1),
     writeCExprsCollect1c(Gdiff, Gdiff_c, clst),
-    printf(fh, "~%"), */
+    printf(fh, "~%"),
 
-    /* Declare and zero out Ghat. (Gdiff no longer appears in Ghat) */
+    /* Declare and zero out Ghat. */
     printf(fh, "  double Ghat[~a]; ~%", NP),
     printf(fh, "  for(unsigned short int i=0; i<~a; ++i){ ~%", NP),
     printf(fh, "    Ghat[i]=0.0; ~%", 0),
@@ -270,59 +275,49 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  double incr1[~a]; ~%", NP),
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
-    printf(fh, "  double incr2_r[~a]; ~%", NP),
+    printf(fh, "  double incr2[~a]; ~%", NP),
     clst : makelist(nuVtSq[i],i,0,NC-1), 
-    writeCExprsCollect1c(incr2_r, incr_r2, clst),
-    printf(fh, "~%"),
-    printf(fh, "  double incr2_l[~a]; ~%", NP), 
-    writeCExprsCollect1c(incr2_l, incr_l2, clst),
-    printf(fh, "~%"),
-    printf(fh, "  double incr3_r[~a]; ~%", NP),
-    /*clst : makelist(nuVtSq[i],i,0,NC-1), DO I NEED THIS? */
-    writeCExprsCollect1c(incr3_r, incr_r3, clst),
-    printf(fh, "~%"),
-    printf(fh, "  double incr3_l[~a]; ~%", NP), 
-    writeCExprsCollect1c(incr3_l, incr_l3, clst),
+    writeCExprsCollect1c(incr2, incr_r2, clst),
     printf(fh, "~%"),
   
-    incr_s1   : makelist(incr1[i-1], i, 1, NP),
-    incr_s2_r : makelist(incr2_r[i-1], i, 1, NP),
-    incr_s2_l : makelist(incr2_l[i-1], i, 1, NP),
-    incr_s3_r : makelist(incr3_r[i-1], i, 1, NP),
-    incr_s3_l : makelist(incr3_l[i-1], i, 1, NP),
+    incr_s1 : makelist(incr1[i-1], i, 1, NP),
+    incr_s2 : makelist(incr2[i-1], i, 1, NP),
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru NP do (
       if (incr_r1[i] = 0) then
         incr_s1[i] : 0,
       if (incr_r2[i] = 0) then
-        incr_s2_r[i] : 0,
-      if (incr_r3[i] = 0) then
-        incr_s3_r[i] : 0
-    ), 
+        incr_s2[i] : 0
+    ),
     /* Write out contribution right cell. */
-    writeCIncrExprs1(outr, rdv2r*incr_s1+0.5*rdvSq4r*incr_s2_r+rdvSq4r*incr_s3_r), 
+    writeCIncrExprs1(outr, rdv2r*incr_s1+rdvSq4r*incr_s2), 
     printf(fh, "~%"),
 
-    /* Write out contribution to left cell. */
-    /* First change signs to incr_s1. */
     signs1 : makelist(1,i,1,NP),
+    signs2 : makelist(1,i,1,NP),
     for i : 1 thru NP do (
         if (incr_r1[i] = 0) then
           false
         else
-          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i])
+          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i]),
+        if (incr_r2[i] = 0) then
+          false
+        else
+          signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
     ),
     incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NP),
-    /* Don't do coefficients where the increment is zero. */
+    incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
+    /* Don't do coefficients where the increment is zero */
     for i : 1 thru NP do (
-      if (incr_l2[i] = 0) then
-        incr_s2_l[i] : 0,
-      if (incr_l3[i] = 0) then
-        incr_s3_l[i] : 0
+      if (incr_r1[i] = 0) then
+        incr_s1[i] : 0
     ), 
-    
-    writeCIncrExprs1(outl, rdv2l*incr_s1+0.5*rdvSq4l*incr_s2_l+rdvSq4l*incr_s3_l), 
-    printf(fh, "~%"),
+    for i : 1 thru NP do (
+      if (incr_r2[i] = 0) then
+        incr_s2[i] : 0
+    ), 
+    /* Write out contribution to left cell. */
+    writeCIncrExprs1(outl, rdv2l*incr_s1+rdvSq4l*incr_s2), 
 
     printf(fh, "  const double vMuMid = ~a; ~%", vMuMid),
     printf(fh, "  return std::abs(vMuMid); ~%"),
@@ -368,17 +363,18 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     )
     else (
     	/* Define drift term. */
-    	dr  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
-	gl  : mufac*nuVtSq_e*dr*fl_e,
-    	gr  : mufac*nuVtSq_e*dr*fr_e
+    	dr_l  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
+	gl  : 0, /*mufac*nuVtSq_e*dr_l*fl_e,*/
+	dr_r  : dxvr[vid1[dir]]*vv + 2*wr[vid1[dir]],
+    	gr  : 0 /*mufac*nuVtSq_e*dr*fr_e*/
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
-    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1,gr)),
+    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=1, bPp), subst(vv=1,gr)),
 
     /* Increments to the left cell (some dimensional factors missing). */
-    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1,gl)),
+    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=-1, bPp), subst(vv=-1,gl)),
 
     printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.~%"),
