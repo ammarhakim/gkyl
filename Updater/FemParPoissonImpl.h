@@ -91,9 +91,6 @@ class FemParPoisson
      Eigen::SparseMatrix<double,Eigen::ColMajor>& stiffMat,
      Eigen::VectorXd& sourceModVec,
      int ndim, int polyOrder, bcdataPar_t bc[2]);
-  void getParStiffnessMatrix(Eigen::MatrixXd& localStiff, int ndim, int p, double dz);
-  void getNodToModMatrix(Eigen::MatrixXd& localNodToMod, int ndim, int p);
-  void getMassMatrix(Eigen::MatrixXd& localMass, int ndim, int p);
   void getParLocalToGlobalInteriorBoundary(std::vector<int>& lgMap, int idz, int nz, int ndim, int p, bool periodicFlg);
 };
 
