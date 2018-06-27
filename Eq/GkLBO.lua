@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Vlasov Lenard-Bernstein operator equation on a rectangular mesh.
+-- Gyrokinetic Lenard-Bernstein operator equation on a rectangular mesh.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -16,7 +16,7 @@ local EqBase       = require "Eq.EqBase"
 -- for incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
--- Vlasov Lenard-Bernstein equation on a rectangular mesh.
+-- Gyrokinetic Lenard-Bernstein equation on a rectangular mesh.
 local GkLBO = Proto(EqBase)
 
 -- ctor
@@ -83,7 +83,7 @@ function GkLBO:flux(dir, qIn, fOut)
    assert(false, "GkLBO:flux: NYI!")
 end
 
--- Riemann problem for Vlasov LBO equation.
+-- Riemann problem for Gk LBO equation.
 function GkLBO:rp(dir, delta, ql, qr, waves, s)
    assert(false, "GkLBO:rp: NYI!")
 end

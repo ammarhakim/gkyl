@@ -48,7 +48,7 @@ writeCIncrExprs1s(lhs, rhs) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then printf(fh, "    ~a += ~a; ~%", lhs[i-1], expr[i])
-  )
+   )
 )$
 
 calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
@@ -149,8 +149,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     	drBar_e : doExpand1(drBar,bC)
     )
     else (
-    	dr  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
-    
+    	dr  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],   
 	/* Separate out the 2*nu*wl part to simplify assignment of Ghat. */
     	drD : nu*dxvl[vid1[dir]]*vv,
     	drBar_c : calcInnerProdList(varsC,1,bC,2*nu*wl[vid1[dir]]),
@@ -173,26 +172,13 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     )
     else (
     	gdiff : nuVtSq_e*mufac*dr*hsol[2]
-
+	/*gdiff : 2*mufac*nuVtSq_e*dxvl[vid1[dir]]*vv*hsol[2]*/
     ),
-
-    /*Gdiff_c : calcInnerProdList(varsP,1,bP,gdiff),
-    /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
-    ** but that could result in references to elements of Gdiff in Ghat
-    ** which have value zero. Instead do the following: */
-    glst1   : doMakeExprLst(Gdiff_c, Gdiff),
-    Gdiff_e : doExpandLst(glst1, bP),
-    /* Because f's in hsol are index-1, we need to switch to
-    ** 0-indexed for C++. */
-    subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
-    Gdiff_c : psubst(subList,Gdiff_c),*/
 
     /* Calculate Ghat projected on the phase basis. */
     Ghat_eP : (1/2)*(subst(vv=1,drD)*fhat_avg-fhat_jump),
     Ghat_c  : calcInnerProdList(varsP,1,bP,Ghat_eP)
              +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg)),
-             /*+rdv*calcInnerProdList(varsP,1,bP,Gdiff_e),*/
-            
 
     /* Ghat_c (coefficients of Ghat) is what gets written. From here
     ** on we can simply refer to Ghat. */
@@ -206,6 +192,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     )
     else (
     	 g : mufac*nuVtSq_e*dr*hsol[1]
+	 /*g : 2*mufac*nuVtSq_e*dxvl[vid1[dir]]*vv*hsol[1]*/
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
@@ -334,7 +321,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         incr_s3_l[i] : 0
     ), 
     
-    writeCIncrExprs1(outl, rdv2l*incr_s1+0.5*rdvSq4l*incr_s2_l++rdvSq4l*incr_s3_l), 
+    writeCIncrExprs1(outl, rdv2l*incr_s1+0.5*rdvSq4l*incr_s2_l+rdvSq4l*incr_s3_l), 
     printf(fh, "~%"),
 
     printf(fh, "  const double vMuMid = ~a; ~%", vMuMid),
