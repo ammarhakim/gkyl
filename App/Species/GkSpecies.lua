@@ -55,6 +55,10 @@ function GkSpecies:initDist()
 end
 
 function GkSpecies:createSolver(hasPhi, hasApar, geo)
+   -- run the KineticSpecies 'createSolver()' to initialize the
+   -- collisions solver
+   GkSpecies.super.createSolver(self)
+
    -- set up jacobian
    if geo then
       -- save bmagFunc for later...
