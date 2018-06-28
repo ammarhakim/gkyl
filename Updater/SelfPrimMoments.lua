@@ -76,6 +76,9 @@ function SelfPrimMoments:init(tbl)
    -- 2*pi/m or 4*pi/m factor for Gk. This prevents the need for
    -- separate kernels for Gk.
    self._intFac       = Lin.Vec(self._vDim)
+   for d = 1,self._vDim do 
+     self._intFac[d] = 1.0
+   end
    self._physVdim     = self._vDim
    local vCorrections = self._vDim
    if isOperatorGood(operator) then
@@ -83,17 +86,14 @@ function SelfPrimMoments:init(tbl)
         self._isGkLBO   = true
         local mass = assert(
            tbl.mass, "Updater.SelfPrimMoments: Must provide species mass using 'mass'.")
-        self._intFac[1] = 2.0*math.pi/mass
-        self._intFac[2] = 4.0*math.pi/mass
         if self._vDim > 1 then -- A (vpar,mu) simulation has 3 physical velocity dimensions.
+           self._intFac[1] = 2.0*math.pi/mass
+           self._intFac[2] = 4.0*math.pi/mass
            self._physVdim = 3
            vCorrections = 1
         end
      else -- VmLBO
         self._isGkLBO = false
-        for d = 1,self._vDim do 
-          self._intFac[d] = 1.0
-        end
      end
    else
       assert(false, string.format(

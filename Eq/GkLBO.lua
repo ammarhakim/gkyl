@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Vlasov Lenard-Bernstein operator equation on a rectangular mesh.
+-- Gyrokinetic Lenard-Bernstein operator equation on a rectangular mesh.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -16,7 +16,7 @@ local EqBase       = require "Eq.EqBase"
 -- for incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
--- Vlasov Lenard-Bernstein equation on a rectangular mesh.
+-- Gyrokinetic Lenard-Bernstein equation on a rectangular mesh.
 local GkLBO = Proto(EqBase)
 
 -- ctor
@@ -83,7 +83,7 @@ function GkLBO:flux(dir, qIn, fOut)
    assert(false, "GkLBO:flux: NYI!")
 end
 
--- Riemann problem for Vlasov LBO equation.
+-- Riemann problem for Gk LBO equation.
 function GkLBO:rp(dir, delta, ql, qr, waves, s)
    assert(false, "GkLBO:rp: NYI!")
 end
@@ -137,16 +137,16 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
    -- set pointer to uNu and vthSqNu fields.
    self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
    self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
-   -- if dir > self._cdim then
-   --   if self._inNu then
-   --     vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-   --        wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-   --   else
-   --     self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
-   --     vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-   --        wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-   --   end
-   --end
+   if dir > self._cdim then
+     if self._inNu then
+       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+     else
+       self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
+       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+     end
+   end
    return vMuMidMax
 end
 

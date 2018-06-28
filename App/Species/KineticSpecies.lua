@@ -481,9 +481,6 @@ function KineticSpecies:initDist()
          self:modifyDensity(self.fSource, self.sourceDensityFunc)
       end
    end
-
-   -- apply BCs
-   self:applyBc(0.0, 1.0, self.distf[1])
 end
 
 function KineticSpecies:modifyDensity(f, trueDensFunc)

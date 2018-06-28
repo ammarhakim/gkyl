@@ -27,7 +27,7 @@ omega_ce = math.abs(qe*B0/me)
 rho_s    = c_s/omega_ci
 rho_e    = vte/omega_ce
 dr       = 32*rho_e
-L_T      = R0/10 -- should this be R0 instead?
+L_T      = R/10 
 ky_min   = 2*math.pi/dr
 omegade  = ky_min*rho_e*vte/R0
 -- velocity grid parameters
@@ -35,8 +35,7 @@ N_VPAR, N_MU = 16, 8
 VPAR_UPPER = math.min(4, 2.5*math.sqrt(N_VPAR/4))*vte
 VPAR_LOWER = -VPAR_UPPER
 MU_LOWER = 0
-MU_UPPER = math.min(16, 4*math.sqrt(N_MU/2))*me*vte*vte/B0/2
---print(VPAR_UPPER/vte, MU_UPPER/(me*vte*vte/B0/2))
+MU_UPPER = math.min(16, 4*math.sqrt(N_MU/2))*me*vte*vte/B0
 
 plasmaApp = Plasma.App {
    logToFile = true,

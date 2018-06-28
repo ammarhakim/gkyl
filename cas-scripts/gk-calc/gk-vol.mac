@@ -15,6 +15,9 @@ let (dfac_v^2, dfac_v2)$
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
 /* set up some vector calculus functions */
 load("vect")$
 fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
@@ -123,43 +126,45 @@ for i : 1 thru pmax do (
   if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd] + vApar_expd,
   if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd] + vApar_expd,
 
-  /* calculate alpha.grad(bP) = {bP, H} = GK poisson bracket of basis functions and Hamiltonian */
-  gkPB_basis : fullratsimp(gkPB(bP, H_expd)),
-
-  /* calculate volume term, which is inner product
-     < f alpha.grad(bP) > = < f {bP, H} > */
-  gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, gkPB_basis)),
-
-  /* write C increment expressions for volume term */
-  writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
-
   /* calculate cflFeq = sum_d alpha_d / dxv[d] */
   printf(fh, "  double cflFreq = 0.0; ~%"), 
-  for d : 1 thru cdim do (
-    /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    /* also include factor of jacobian = Bmag */
-    alpha_expd : Bmag_expd*gkPB(wC[d] + varsP[d]/derivfacsC[d], H_expd),
-    /* take cell center value */
-    alpha0 : subst(cellCenter, alpha_expd),
-    /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d])
-  ),
+  
   /* note: no contribution from mu */
-  for d : cdim+1 thru cdim+1 do (
-    /* calculate phase space velocity alpha_d = {vpar, H} = dvpar/dt */
-    /* also include factor of jacobian = Bmag */
-    alpha_expd : Bmag_expd*gkPB(wV[d-cdim] + varsP[d]/derivfacsV[d-cdim], H_expd),
-    /* take cell center value */
+  for d : 1 thru cdim+1 do (
+    if d>cdim then (
+      wD : wV[d-cdim],
+      derivfacsD : derivfacsV[d-cdim]
+    ) 
+    else (
+      wD : wC[d],
+      derivfacsD : derivfacsC[d]
+    ),
+    /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
+    alpha_expd : gkPB(wD + varsP[d]/derivfacsD, H_expd),
+
+    /* project alpha on basis and write to array */
+    printf(fh, "  double alpha~a[~a]; ~%", label[d], length(bP)),
+    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)),
+    alphalabel : eval_string(sconcat(alpha, label[d])),
+    writeCExprs1(alphalabel, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], expand(float(facsum(alpha_k,derivfac))))),
+    
+    alphaNoZero_k : doMakeExprLst(alpha_k, alphalabel),
+    alpha_expd : doExpandLst(alphaNoZero_k, bP),
+    gkVolTerm_k : fullratsimp(innerProd(varsP, derivfacsD*diff(bP, varsP[d]), f_expd, alpha_expd)),
+    writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
+
+    /* take cell center value of alpha */
     alpha0 : subst(cellCenter, alpha_expd),
     /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d])
+    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d]),
+    flush_output(fh)
   ),
 
   printf(fh, "  return cflFreq; ~%"),
   printf(fh, "} ~%")
 ))$
 
-calcGKstep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
+calcGKStep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
@@ -178,13 +183,11 @@ for i : 1 thru pmax do (
   varsP : subst(gkvsub, varsP),
   numC : length(bC),
 
-  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, i),
+  printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, i),
 
   printf(fh, "  double dvInv = 1.0/dxv[~a]; ~%", cdim),
   printf(fh, "  double dfac_v = 2.0/dxv[~a]; ~%", cdim),
 
-  /* expand background magnetic field Bmag */
-  Bmag_expd:doExpand1(Bmag,bC),
   /* expand dApar/dt */
   dAdt_expd:doExpand1(dApardt,bC),
 
@@ -196,8 +199,7 @@ for i : 1 thru pmax do (
   writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
 
   /* calculate phase space velocity (only in vpar direction for this term) alpha_v = - q/m dApar/dt */
-  /* also include factor of jacobian = Bmag */
-  alpha_expd : -q_/m_*Bmag_expd*dAdt_expd,
+  alpha_expd : -q_/m_*dAdt_expd,
   /* take cell center value */
   alpha0 : subst(cellCenter, alpha_expd),
   /* return cflFreq = alpha/dv */
@@ -212,9 +214,12 @@ if c=1 then (v:1, pmax:2),
 fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "v", ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
+/* possible combinations of variable dependence of background magnetic field,
+   with 0 = const, 1 = x, 2 = y, 3 = z.
+   note that we assume axisymmetry, which means B cannot depend on y */
 if c=1 then bvarslist : [[0], [1]],
-if c=2 then bvarslist : [[0], [1]/*, [2], [1,2]*/],
-if c=3 then bvarslist : [[0], [1]/*, [2], [3], [1,2], [1,3], [2,3], [1,2,3]*/],
+if c=2 then bvarslist : [[0], [1]],
+if c=3 then bvarslist : [[0], [1], [3], [1,3]],
 for b : 1 thru length(bvarslist) do (
 funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b]),
@@ -222,6 +227,6 @@ funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
 ),
 funcName : sconcat("EmGyrokineticStep2Vol", c, "x", v, "v", "Ser"),
-calcGKstep2VolUpdater(fh, funcName, c, v, "Ser", pmax),
+calcGKStep2VolUpdater(fh, funcName, c, v, "Ser", pmax),
 close(fh)
 )$

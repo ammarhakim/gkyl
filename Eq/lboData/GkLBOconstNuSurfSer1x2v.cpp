@@ -87,7 +87,6 @@ double GkLBOconstNuSurf1x2vSer_Vpar_P1(const double *wl, const double *wr, const
   outl[5] += -1.0*incr1[5]*rdv2l; 
   outl[6] += incr1[6]*rdv2l-1.0*incr2[6]*rdvSq4l; 
   outl[7] += incr1[7]*rdv2l-1.0*incr2[7]*rdvSq4l; 
-
   const double vMuMid = wl[1]-(0.7071067811865475*nuU[0])/nu; 
   return std::abs(vMuMid); 
 } 
@@ -256,7 +255,6 @@ double GkLBOconstNuSurf1x2vSer_Vpar_P2(const double *wl, const double *wr, const
   outl[17] += incr1[17]*rdv2l-1.0*incr2[17]*rdvSq4l; 
   outl[18] += incr2[18]*rdvSq4l-1.0*incr1[18]*rdv2l; 
   outl[19] += incr1[19]*rdv2l-1.0*incr2[19]*rdvSq4l; 
-
   const double vMuMid = (0.7905694150420947*nuU[2])/nu-(0.7071067811865475*nuU[0])/nu+wl[1]; 
   return std::abs(vMuMid); 
 } 
@@ -355,7 +353,6 @@ double GkLBOconstNuSurf1x2vSer_Mu_P1(const double *wl, const double *wr, const d
   outl[5] += incr1[5]*rdv2l-1.0*incr2[5]*rdvSq4l; 
   outl[6] += incr1[6]*rdv2l-1.0*incr2[6]*rdvSq4l; 
   outl[7] += incr1[7]*rdv2l-1.0*incr2[7]*rdvSq4l; 
-
   const double vMuMid = 2.0*wl[2]; 
   return std::abs(vMuMid); 
 } 
@@ -538,7 +535,6 @@ double GkLBOconstNuSurf1x2vSer_Mu_P2(const double *wl, const double *wr, const d
   outl[17] += incr1[17]*rdv2l-1.0*incr2[17]*rdvSq4l; 
   outl[18] += incr1[18]*rdv2l-1.0*incr2[18]*rdvSq4l; 
   outl[19] += incr2[19]*rdvSq4l-1.0*incr1[19]*rdv2l; 
-
   const double vMuMid = 2.0*wl[2]; 
   return std::abs(vMuMid); 
 } 
