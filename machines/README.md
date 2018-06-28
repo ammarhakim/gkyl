@@ -4,13 +4,13 @@ gkyl is supported on:
 mkdeps.[machine].sh 
 configure.[machine].sh
 
-These scripts must be run from within the machines (this) directory.
-Both scripts should should only need to be run once, after which gkyl
-can be built with the usual
+These scripts can be run from either within the machines (this) directory
+or the main gkyl directory. Both scripts should should only need to be run 
+once, after which gkyl can be built with the usual
 
 ./waf build install
 
-from the main (..) directory.
+from the main gkyl directory.
 
 To develop a build on an unsupported machine, copy the mkdeps and
 configure scripts from an existing machine, and make the following

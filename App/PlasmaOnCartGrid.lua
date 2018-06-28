@@ -236,6 +236,7 @@ local function buildApplication(self, tbl)
       s:forwardEuler(0, 0, species, {field, funcField}, 1, 2)
       -- restore initial condition
       s:initDist()
+      s:applyBc(0, 0, s:rkStepperFields()[1])
    end
 
    -- function to write data to file

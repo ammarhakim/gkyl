@@ -128,9 +128,9 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), f:data(), out:data())
    else 
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
@@ -149,9 +149,9 @@ function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, o
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
      self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
-     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    else 
-     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
@@ -242,7 +242,7 @@ end
 function GyrokineticStep2:volTerm(w, dx, idx, f, out)
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.dApardt:fill(self.dApardtIdxr(idx), self.dApardtPtr)
-   return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.dApardtPtr:data(), f:data(), out:data())
+   return self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.dApardtPtr:data(), f:data(), out:data())
 end
 
 -- Surface integral term for use in DG scheme 
@@ -258,7 +258,7 @@ function GyrokineticStep2:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, 
    self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
 
-   local res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   local res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
 
    return res
 end

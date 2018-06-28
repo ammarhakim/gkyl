@@ -54,12 +54,11 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* mu contribution */
     if vdim = 2 then (
 	cv : vvars[vdim],
-	dr : dxv[vid[vdim]]*cv + subst(a0=NC*(vdim-1),drBar_e),
-        incr : incr + (-2*nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
-              +2*rdv2[vdim-1]*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e))
-              +2*rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e*cv,diff(bP,cv,2),f_e)
-	      -2*rdvSq4[vdim-1]*mufac*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,nuVtSq_e*drBar_e/nu,diff(bP,cv,2),f_e))
-	      +2*rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv),f_e))
+        incr : incr + 2*(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
+              +rdv2[vdim-1]*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e))
+              +rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e*cv,diff(bP,cv,2),f_e)
+	      -rdvSq4[vdim-1]*mufac*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,nuVtSq_e*drBar_e/nu,diff(bP,cv,2),f_e))
+	      +rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv),f_e))
     ),
     
     printf(fh, "double ~aP~a(const double *w, const double *dxv, const double mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),

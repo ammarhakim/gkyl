@@ -84,7 +84,7 @@ class FemPerpPoisson
   /** Eigen vector for solution */
   Eigen::VectorXd x;
   /** Eigen solver method */
-  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver, solver_z0;
+  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
   Eigen::MatrixXd localMassModToNod, localNodToMod, localModToNod;
   
   int getNumPerpGlobalNodes(int nx, int ny, int ndim, int p, bool periodicFlgs[2]);

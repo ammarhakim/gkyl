@@ -61,7 +61,6 @@ double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double *wl, const double *wr, const
   outl[1] += -1.0*incr1[1]*rdv2l; 
   outl[2] += incr1[2]*rdv2l-1.0*incr2[2]*rdvSq4l; 
   outl[3] += incr1[3]*rdv2l-1.0*incr2[3]*rdvSq4l; 
-
   const double vMuMid = wl[1]-(0.7071067811865475*nuU[0])/nu; 
   return std::abs(vMuMid); 
 } 
@@ -153,7 +152,6 @@ double GkLBOconstNuSurf1x1vSer_Vpar_P2(const double *wl, const double *wr, const
   outl[5] += incr2[5]*rdvSq4l-1.0*incr1[5]*rdv2l; 
   outl[6] += incr1[6]*rdv2l-1.0*incr2[6]*rdvSq4l; 
   outl[7] += incr2[7]*rdvSq4l-1.0*incr1[7]*rdv2l; 
-
   const double vMuMid = (0.7905694150420947*nuU[2])/nu-(0.7071067811865475*nuU[0])/nu+wl[1]; 
   return std::abs(vMuMid); 
 } 

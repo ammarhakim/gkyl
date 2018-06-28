@@ -721,6 +721,13 @@ function GkGeometry:createSolver()
          projectOnGhosts = true,
          evaluate = self.gradparFunc
       }
+   else
+      self.setGradpar = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 1 end
+      }
    end
    if self.jacobGeoFunc then 
       self.setJacobGeo = Updater.ProjectOnBasis {
@@ -728,6 +735,13 @@ function GkGeometry:createSolver()
          basis = self.basis,
          projectOnGhosts = true,
          evaluate = self.jacobGeoFunc
+      }
+   else 
+      self.setJacobGeo = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 1 end
       }
    end
    if self.bdriftXFunc then 
@@ -780,9 +794,9 @@ function GkGeometry:initField()
    self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
    self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
    if self.setGradpar then self.setGradpar:advance(0.0, 0.0, {}, {self.geo.gradpar})
-   else self.geo.gradpar:clear(1.0) end
+   else self.geo.gradpar:clear(0.0) end
    if self.setJacobGeo then self.setJacobGeo:advance(0.0, 0.0, {}, {self.geo.jacobGeo})
-   else self.geo.jacobGeo:clear(1.0) end
+   else self.geo.jacobGeo:clear(0.0) end
    if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
    else self.geo.bdriftX:clear(0.0) end
    if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})

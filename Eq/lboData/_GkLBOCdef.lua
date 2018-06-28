@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Lua wrapper for various C functions used in the Vlasov Lenard Bernstein solver.
+-- Lua wrapper for various C functions used in the GK Lenard Bernstein solver.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------

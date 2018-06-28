@@ -7,7 +7,7 @@ local Plasma = require "App.PlasmaOnCartGrid"
 TiTe = 1.0
 knumber = 0.5
 XL, XU = -math.pi/knumber, math.pi/knumber
-Ti0 = 1.0
+Ti0 = 0.75
 Te0 = Ti0/TiTe
 ni0, ne0 = 1.0, 1.0
 B0 = 1.0
@@ -21,8 +21,9 @@ plasmaApp = Plasma.App {
    upper = {math.pi/knumber}, -- configuration space upper right
    cells = {16}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 2, -- polynomial order
+   polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
+   cflFrac = 1.0,
 
    -- decomposition for configuration space
    decompCuts = {1}, -- cuts in each configuration direction
