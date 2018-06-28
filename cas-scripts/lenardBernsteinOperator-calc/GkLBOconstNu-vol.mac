@@ -37,28 +37,29 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     nuU_e    : doExpand1(nuU, bC),
     nuVtSq_e : doExpand1(nuVtSq, bC),
 
-    /* To allow for multiple components change the cofficient indices in Ae and Be. */
-    nuU_e : psubst(makelist(nuU[i]=nuU[a0+i],i,0,NC-1),nuU_e),
+    /* Zero index for cpp */
+    nuU_e : psubst(makelist(nuU[i]=nuU[i],i,0,NC-1),nuU_e),
 
     /* w-u part of the drag term. */
     drBar_e : doExpand1(drBar,bC),
     drBar_e : psubst(makelist(drBar[i]=drBar[a0+i],i,0,NC-1),drBar_e),
     
     /* Volume increment. */
-    dir : 1, 
-    cv : vvars[dir],
+    /* vpar contribution */
+    cv : vvars[1],
     incr : (-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
-           +rdv2[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
-           +rdvSq4[dir-1]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e),
+           +rdv2[0]*subst(a0=0,calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
+           +rdvSq4[0]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e),
     
-    /* mu contribution */
+    /* mu contribution. Last 3 terms from 2nd int by parts */
     if vdim = 2 then (
-	cv : vvars[vdim],
+	cv : vvars[2],
         incr : incr + 2*(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
-              +rdv2[vdim-1]*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e))
-              +rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e*cv,diff(bP,cv,2),f_e)
-	      -rdvSq4[vdim-1]*mufac*subst(a0=NC*(vdim-1),calcInnerProdList(varsP,nuVtSq_e*drBar_e/nu,diff(bP,cv,2),f_e))
-	      +rdv2[vdim-1]*mufac*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv),f_e))
+              +rdv2[1]*subst(a0=NC,calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e))
+              +rdv2[1]*mufac*calcInnerProdList(varsP,nuVtSq_e*cv,diff(bP,cv,2),f_e)
+	      -rdvSq4[1]*mufac*subst(a0=NC,calcInnerProdList(varsP,nuVtSq_e*drBar_e/nu,
+	       diff(bP,cv,2),f_e))
+	      +rdv2[1]*mufac*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv),f_e))
     ),
     
     printf(fh, "double ~aP~a(const double *w, const double *dxv, const double mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
@@ -77,13 +78,13 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* -nu*(w-u) part of the drag term. */
     for dir : 1 thru vdim do (
     	if dir = 1 then (
-	   drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-nu*w[vid[dir]]+nuU_e))
+	   drBar_c : calcInnerProdList(varsC,1,bC,-nu*w[vid[dir]]+nuU_e)
 	)
 	else (
-	   drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-nu*w[vid[dir]]))
+	   drBar_c : calcInnerProdList(varsC,1,bC,-nu*w[vid[dir]])
 	),
 	for i : 1 thru NC do (
-            printf(fh, "  ~a = ~a; ~%", drBar[NC*(dir-1)+i-1], float(expand(drBar_c[i])))
+           printf(fh, "  ~a = ~a; ~%", drBar[NC*(dir-1)+i-1], float(expand(drBar_c[i])))
        	)
     ),
     printf(fh, "~%"),
