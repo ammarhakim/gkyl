@@ -1,7 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Walks down directory tree and runs all Lua and shell files with
--- prefix "rt-" through gkyl.
+-- Runs regression tests and compares with accepted results.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -16,15 +15,18 @@ local lume = require "Lib.lume"
 
 local log = Logger { logToFile = true }
 
-local configVals = nil 
+-- global value to store config information
+local configVals = nil
 
-local function requireConfig()
+-- loads configuration file
+local function loadConfigure()
    local f = loadfile("runregression.config.lua")
    if not f then
       log("Regression tests not configured! Run config command first\n")
       os.exit(1)
    end
-   return f()
+   configVals = f()
+   return configVals
 end
 
 -- configure paths
@@ -141,34 +143,47 @@ end
 -- function to handle "list" command
 local function list_action(args, name)
    local luaRegTests, shellRegTests = list_tests(args)
-
-   local tmStart = Time.clock()
    lume.each(luaRegTests, print)
    lume.each(shellRegTests, print)
 end
 
+-- function to handle "create" sub-command of "run"
+local function create_action(test)
+   -- check if top-level directory was created
+   local attrs = lfs.attributes(configVals.results_dir)
+   if not attrs then
+      assert(lfs.mkdir(configVals.results_dir), string.format(
+		"Unable to create results directory %s!", configVals.results_dir))
+   end
+end
+
+-- function to handle "check" sub-command of "run"
+local function check_action(test)
+   print(string.format("Inside check for %s", test))
+end
+
 -- function to handle "run" command
 local function run_action(args, name)
-   -- global configure parameters
-   local configVals = requireConfig()
-   
+   loadConfigure()
    local luaRegTests, shellRegTests = list_tests(args)
+
+   -- default post-run is to do nothing
+   local postRun = function(f) end
+   if args.create then
+      postRun = create_action
+   elseif args.check then
+      postRun = check_action
+   end
 
    log("Running regression tests ...\n\n")
    local tmStart = Time.clock()
-   lume.each(luaRegTests, runLuaTest)
-   lume.each(shellRegTests, runShellTest)
+   
+   lume.each(
+      luaRegTests, function (f) runLuaTest(f); postRun(f) end)
+   lume.each(
+      shellRegTests, function (f) runShellTest(f); postRun(f) end)
+   
    log(string.format("All tests completed in %g secs\n", Time.clock()-tmStart))
-end
-
--- function to handle "check" action
-local function check_action(args, name)
-   print("Inside check_action")
-end
-
--- function to handle "create" action
-local function create_action(args, name)
-   print("Inside create_action")
 end
 
 -- Create CLI parser to handle commands and options
@@ -181,6 +196,9 @@ compared to "accepted" results. For meaningful testing you first need
 to configure the regression testing system and generate accepted
 results. This can be done using the "config" and "run create"
 commands. Obviously, this should be done only once.
+
+Once accepted results are created or obtained from elsewhere, 
+regression testing can be  done using "run check" command.
 
 When adding new tests it is that developer's responsibility to
 ensure that the results produced are correct. Obviously, others
@@ -211,11 +229,9 @@ c_run:option("-r --run-only", "Only run this test")
 
 -- check against accepted results
 c_run:command("check", "Check results")
-   :action(check_action)
 
 -- create accepted results
 c_run:command("create", "Create accepted results")
-   :action(create_action)
 
 -- parse command-line args (functionality encoded in command actions)
 local args = parser:parse(GKYL_COMMANDS)
