@@ -5,13 +5,13 @@ fpprec : 24$
 
 /* This script generates the kernels for the volume term
    contribution from Lenard Bernstein operator to the
-   Vlasov equation using two integrations by parts for
+   gyrokinetic equation using two integrations by parts for
    the diffusive term. */
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-vvars : [vpar, mu]$
+varsV : [vpar, mu]$
 gkvsub: [vx=vpar,vy=mu]$
 
 calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
@@ -23,6 +23,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
     load(modNm),
     vid : vidx(cdim,vdim),
+    /* Rename independent variables in bases. */
     varsP : subst(gkvsub, varsP),
 
     /* Polynomial basis and its derivatives. */
@@ -37,23 +38,20 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     nuU_e    : doExpand1(nuU, bC),
     nuVtSq_e : doExpand1(nuVtSq, bC),
 
-    /* Zero index for cpp */
-    nuU_e : psubst(makelist(nuU[i]=nuU[i],i,0,NC-1),nuU_e),
-
-    /* w-u part of the drag term. */
+    /* -nu*w+u part of the drag term. */
     drBar_e : doExpand1(drBar,bC),
     drBar_e : psubst(makelist(drBar[i]=drBar[a0+i],i,0,NC-1),drBar_e),
     
     /* Volume increment. */
     /* vpar contribution */
-    cv : vvars[1],
+    cv : varsV[1],
     incr : (-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
            +rdv2[0]*subst(a0=0,calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
            +rdvSq4[0]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e),
     
     /* mu contribution. Last 3 terms from 2nd int by parts */
     if vdim = 2 then (
-	cv : vvars[2],
+	cv : varsV[2],
         incr : incr + 2*(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
               +rdv2[1]*subst(a0=NC,calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e))
               +rdv2[1]*mufac*calcInnerProdList(varsP,nuVtSq_e*cv,diff(bP,cv,2),f_e)
@@ -73,7 +71,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     printf(fh, "~%"),
 
-    /* Compute the nu*wxl-nuU drift part separately. */
+    /* Compute the nu*wx-nuU drift part separately. */
     printf(fh, "  double drBar[~a]; ~%", NC*vdim),
     /* -nu*(w-u) part of the drag term. */
     for dir : 1 thru vdim do (

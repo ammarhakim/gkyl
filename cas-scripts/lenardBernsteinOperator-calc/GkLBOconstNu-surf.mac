@@ -145,16 +145,15 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         dr  : (1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]]-nuU_e/nu,
 	/* Separate out the nu*wl-nuU part to simplify assignment of Ghat. */
     	drD  : nu*(1/2)*dxvl[vid1[dir]]*vv,
-    	drBar_c : calcInnerProdList(varsC,1,bC,nu*wl[vid1[dir]]-nuU_e),
-    	drBar_e : doExpand1(drBar,bC)
+    	drBar_c : calcInnerProdList(varsC,1,bC,nu*wl[vid1[dir]]-nuU_e)
     )
     else (
     	dr  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],   
 	/* Separate out the 2*nu*wl part to simplify assignment of Ghat. */
     	drD : nu*dxvl[vid1[dir]]*vv,
-    	drBar_c : calcInnerProdList(varsC,1,bC,2*nu*wl[vid1[dir]]),
-    	drBar_e : doExpand1(drBar,bC)
+    	drBar_c : calcInnerProdList(varsC,1,bC,2*nu*wl[vid1[dir]])
     ),
+    drBar_e : doExpand1(drBar,bC),
 
 
     /* vMuMid is the value returned and from which vMuMidMax is computed. */
@@ -168,12 +167,11 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Separate out diffusion part of Ghat to simplify Ghat assignment.
     ** Leave the rdv factor out for later multiplication. */
     if dir = 1 then (
-        gdiff : nuVtSq_e*hsol[2]
+        Gdiff_c : calcInnerProdList(varsP,1,bP,nuVtSq_e*hsol[2])
     )
     else (
-    	gdiff : nuVtSq_e*mufac*dr*hsol[2]
+        Gdiff_c : calcInnerProdList(varsP,1,bP,nuVtSq_e*mufac*dr*hsol[2])
     ),
-    Gdiff_c : calcInnerProdList(varsP,1,bP,gdiff),
     /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
     ** but that could result in references to elements of Gdiff in Ghat
     ** which have value zero. Instead do the following: */
@@ -335,17 +333,17 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     load(modNm),
 
     /* Variables. */
-    vid  : vidx(cdim,vdim),
-    vid1 : vidx1(cdim,vdim),
-    vv   : vvars[dir],
-    varsP : subst(gkvsub, varsP),
+    vid      : vidx(cdim,vdim),
+    vid1     : vidx1(cdim,vdim),
+    vv       : vvars[dir],
+    varsP    : subst(gkvsub, varsP),
     surfVars : delete(vv,varsP),
 
     /* Polynomial basis and its derivatives. */
-    bP : subst(gkvsub, basisP[polyOrder]),
-    bC : basisC[polyOrder],	
-    NP : length(bP),
-    NC : length(bC),
+    bP  : subst(gkvsub, basisP[polyOrder]),
+    bC  : basisC[polyOrder],	
+    NP  : length(bP),
+    NC  : length(bC),
     bPp : diff(bP,vv),
 
     /* First compute the contribution coming from the second
@@ -366,15 +364,15 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     	dr_l  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
 	gl  : mufac*nuVtSq_e*dr_l*fl_e,
 	dr_r  : dxvr[vid1[dir]]*vv + 2*wr[vid1[dir]],
-    	gr  : mufac*nuVtSq_e*dr*fr_e
+    	gr  : mufac*nuVtSq_e*dr_r*fr_e
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
-    incr_r2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1,gr)),
+    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1,gr)),
 
     /* Increments to the left cell (some dimensional factors missing). */
-    incr_l2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1,gl)),
+    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1,gl)),
 
     printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.~%"),
