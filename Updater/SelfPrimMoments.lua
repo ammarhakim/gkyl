@@ -73,11 +73,11 @@ function SelfPrimMoments:init(tbl)
       self._vUpper[d] = self._phaseGrid:upper(self._cDim + d) 
    end
 
-   -- 2*pi/m or 4*pi/m factor for Gk. This prevents the need for
-   -- separate kernels for Gk.
+   -- If vDim>1, intFac=2*pi/m or 4*pi/m for Gk. This prevents 
+   -- the need for separate kernels for Gk.
    self._intFac       = Lin.Vec(self._vDim)
    for d = 1,self._vDim do 
-     self._intFac[d] = 1.0
+     self._intFac[d]  = 1.0
    end
    self._physVdim     = self._vDim
    local vCorrections = self._vDim
@@ -89,8 +89,8 @@ function SelfPrimMoments:init(tbl)
         if self._vDim > 1 then -- A (vpar,mu) simulation has 3 physical velocity dimensions.
            self._intFac[1] = 2.0*math.pi/mass
            self._intFac[2] = 4.0*math.pi/mass
-           self._physVdim = 3
-           vCorrections = 1
+           self._physVdim  = 3
+           vCorrections    = 1
         end
      else -- VmLBO
         self._isGkLBO = false
