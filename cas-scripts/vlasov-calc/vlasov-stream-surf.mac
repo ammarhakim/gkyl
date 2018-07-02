@@ -16,7 +16,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for i : 1 thru 3 do (
+for i : 1 thru 6 do (
   bP : basisP[i],
   printf(fh, "void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. fl/fr: Distribution function in left/right cells ~%"),
