@@ -6,6 +6,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
@@ -46,7 +47,7 @@ local function configure(prefix, mpiExec)
       assert(false, string.format("Prefix %s is not a directory!", prefix))
    end
 
-   -- write information in config file
+   -- write information into config file
    local fn = io.open("runregression.config.lua", "w")
    fn:write("return {\n")
    fn:write(string.format("mpiExec = \"%s\",\n", mpiExec))
@@ -78,17 +79,33 @@ local function dirtree(dir)
    return coroutine.wrap(function() yieldtree(dir) end)
 end
 
+-- creates directories if they don't exist
+local function mkdir(path)
+   local sep, pStr = package.config:sub(1,1), "/"
+   for dir in path:gmatch("[^" .. sep .. "]+") do
+      pStr = pStr .. dir .. sep
+      lfs.mkdir(pStr)
+   end
+end
+
+-- copies all files with specified extension to target directory
+local function copyAllFiles(srcPath, ext, destPath)
+   -- for now using os.execute to run the "cp" command. Perhaps this
+   -- is not the best way to do this and one might want to use a more
+   -- Lua-ish way
+   local cp = "cp " .. srcPath .. "_*." .. ext .. " " .. destPath
+   os.execute(cp)
+end
+
 -- runs a single lua test
 local function runLuaTest(test)
-   log(string.format("Running test %s ...\n", test))
+   log(string.format("\nRunning test %s ...\n", test))
 
    local tmStart = Time.clock()
-
    local runCmd = string.format("%s %s", GKYL_EXEC, test)
    local f = io.popen(runCmd, "r")
-   for _ in f:lines() do
-   end
-   log(string.format("... completed in %g sec\n\n", Time.clock()-tmStart))
+   for _ in f:lines() do end -- silent output
+   log(string.format("... completed in %g sec\n", Time.clock()-tmStart))
 end
 
 -- runs a single shell-script test
@@ -101,12 +118,6 @@ local function isLuaRegressionTest(fn)
 end
 local function isShellRegressionTest(fn)
    return string.find(fn, "/rt%-[^/]-%.sh$") ~= nil
-end
-
-local function show(args)
-   for v in pairs(args) do
-      print(v, args[v])
-   end
 end
 
 -- list of regression tests
@@ -126,7 +137,6 @@ local function list_tests(args)
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
-
    return luaRegTests, shellRegTests
 end
 
@@ -149,17 +159,84 @@ end
 
 -- function to handle "create" sub-command of "run"
 local function create_action(test)
-   -- check if top-level directory was created
-   local attrs = lfs.attributes(configVals.results_dir)
-   if not attrs then
-      assert(lfs.mkdir(configVals.results_dir), string.format(
-		"Unable to create results directory %s!", configVals.results_dir))
+   log(string.format("... creating accepted results for %s ...\n", test))
+   local fullResultsDir = configVals.results_dir .. "/"
+      .. string.sub(test, 3, -5)
+   mkdir(fullResultsDir) -- recursively create all dirs as needed
+   local srcPath = string.sub(test, 1, -5)
+   copyAllFiles(srcPath, "bp", fullResultsDir)
+end
+
+-- function to compare floats (NOT SURE IF THIS IS BEST WAY TO DO
+-- THINGS)
+local function check_equal_numeric(expected, actual)
+   if math.abs(actual) < 1e-15 then
+      if math.abs(expected-actual) > 5e-15 then
+	 return false
+      end
+   else
+      if math.abs(1-expected/actual) > 5e-14 then
+	 return false
+      end
    end
+   return true
+end
+
+-- function to compare files
+local function compareFiles(f1, f2)
+   local r1, r2 = AdiosReader.Reader(f1), AdiosReader.Reader(f2)
+
+   if r1:hasVar("CartGridField") and r2:hasVar("CartGridField") then
+      -- compare CartField
+      local d1, d2 = r1:getVar("CartGridField"):read(), r2:getVar("CartGridField"):read()
+
+      if d1:size() ~= d2:size() then return false end
+      for i = 1, d1:size() do
+	 if check_equal_numeric(d1[i], d2[i]) == false then
+	    return false
+	 end
+      end
+   elseif r1:hasVar("TimeMesh") and r2:hasVar("TimeMesh") then
+      -- Compare DynVector
+      local d1, d2 = r1:getVar("Data"):read(), r2:getVar("Data"):read()
+      if d1:size() ~= d2:size() then return false end
+      for i = 1, d1:size() do
+	 if check_equal_numeric(d1[i], d2[i]) == false then
+	    return false
+	 end
+      end
+   else
+      -- skip file 
+   end
+   return true
 end
 
 -- function to handle "check" sub-command of "run"
 local function check_action(test)
-   print(string.format("Inside check for %s", test))
+   local fullResultsDir = configVals.results_dir .. "/"
+      .. string.sub(test, 3, -5)
+
+   local vloc = string.find(test, "/rt%-[^/]-%.lua$")
+   local outDirName = string.sub(test, 1, vloc)
+   local testPrefix = string.gsub(
+      string.sub(test, 3, -5), "(%W)", "%%%1")
+
+   local passed = true
+   for fn in lfs.dir(outDirName) do
+      local fullNm = outDirName .. fn
+      local attr = lfs.attributes(fullNm)
+      if attr.mode == "file" then
+	 if string.find(fullNm, testPrefix) and string.sub(fullNm, -3, -1) == ".bp" then
+	    local acceptedFileNm = fullResultsDir .. "/" .. string.sub(fullNm, vloc+1, -1)
+	    passed = passed and compareFiles(acceptedFileNm, fullNm)
+	 end
+      end
+   end
+   if passed then
+      log("... passed.\n")
+   else
+      log("... FAILED!\n")
+   end
 end
 
 -- function to handle "run" command
@@ -167,7 +244,7 @@ local function run_action(args, name)
    loadConfigure()
    local luaRegTests, shellRegTests = list_tests(args)
 
-   -- default post-run is to do nothing
+   -- function to run after simulation is finisihed
    local postRun = function(f) end
    if args.create then
       postRun = create_action
