@@ -4,8 +4,8 @@ vvars : [Vpar, Mu]$
 printPrototypes() := block([], 
 pmax:2,
 for ci : 1 thru 3 do (
-  vi : 2,
-  if ci=1 then vi:1,
+for vi: 1 thru 2 do (
+if ci=1 or (ci>1 and vi=2) then (
   if ci=1 then bvarslist : [[0], [1]],
   if ci=2 then bvarslist : [[0], [1]],
   if ci=3 then bvarslist : [[0], [1], [3], [1,3]],
@@ -28,7 +28,7 @@ for ci : 1 thru 3 do (
       printf(fh, "~%")      
     ),
     printf(fh, "~%")
-))
+))))
 )$
 
 fh : openw("~/max-out/GyrokineticModDecl.h")$
