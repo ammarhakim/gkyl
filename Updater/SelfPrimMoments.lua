@@ -41,7 +41,7 @@ function SelfPrimMoments:init(tbl)
       tbl.confBasis, "Updater.SelfPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
    local operator = assert(
-      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (VmLBO or GkLBO for now) using 'operator'.")
+      tbl.operator, "Updater.SelfPrimMoments: Must specify the collision operator (VmLBO or GkLBO for now) using 'operator'.")
 
    -- dimension of phase space.
    self._pDim = phaseBasis:ndim()

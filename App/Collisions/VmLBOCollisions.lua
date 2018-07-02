@@ -114,6 +114,7 @@ function VmLBOCollisions:createSolver()
       phaseGrid  = self.phaseGrid,
       phaseBasis = self.phaseBasis,
       confBasis  = self.confBasis,
+      operator = "VmLBO",
    }
 end
 
