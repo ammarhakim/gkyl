@@ -284,7 +284,6 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    -- this is checked when bc is created.
 
    -- need to figure out if we are on lower or upper domain edge
-   --local global = fOut:globalRange()
    local edgeVal
    local globalRange = self.grid:globalRange()
    if idxIn[dir] == globalRange:lower(dir) then 
