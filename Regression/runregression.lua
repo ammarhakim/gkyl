@@ -208,6 +208,9 @@ local function compareFiles(f1, f2)
    else
       -- skip file 
    end
+
+   r1:close(); r2:close()
+   
    return true
 end
 
