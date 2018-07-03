@@ -184,6 +184,10 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
+   if not lfs.attributes(f1) or not lfs.attributes(f2) then
+      return false
+   end
+   
    local r1, r2 = AdiosReader.Reader(f1), AdiosReader.Reader(f2)
 
    if r1:hasVar("CartGridField") and r2:hasVar("CartGridField") then
@@ -217,7 +221,7 @@ end
 -- function to handle "check" sub-command of "run"
 local function check_action(test)
    local fullResultsDir = configVals.results_dir .. "/"
-      .. string.sub(test, 3, -5)
+      .. string.sub(test, 3, -5) -- remove the initial ./ and last .lua
 
    local vloc = string.find(test, "/rt%-[^/]-%.lua$")
    local outDirName = string.sub(test, 1, vloc)
