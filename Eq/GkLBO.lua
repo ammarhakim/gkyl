@@ -139,12 +139,12 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
    self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
    if dir > self._cdim then
      if self._inNu then
-     --   vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-     --      wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     -- else
-     --   self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
-     --   vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-     --      wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+     else
+       self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
+       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
