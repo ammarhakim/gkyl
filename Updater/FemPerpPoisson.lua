@@ -248,7 +248,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
          else 
            src:fill(srcIndexer(idx, idy, idz), srcPtr) 
          end
-         ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume())
+         ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
        end
      end
 
