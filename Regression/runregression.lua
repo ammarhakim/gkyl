@@ -10,7 +10,6 @@ local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
-local date = require "xsys.date"
 local lfs = require "lfs"
 local lume = require "Lib.lume"
 
@@ -114,7 +113,7 @@ local function runShellTest(test)
 end
 
 local function isLuaRegressionTest(fn)
-   return string.find(fn, "/rt%-[^/]-%.lua$") ~= nil 
+   return string.find(fn, "/rt%-[^/]-%.lua$") ~= nil
 end
 local function isShellRegressionTest(fn)
    return string.find(fn, "/rt%-[^/]-%.sh$") ~= nil
@@ -161,7 +160,7 @@ end
 local function create_action(test)
    log(string.format("... creating accepted results for %s ...\n", test))
    local fullResultsDir = configVals.results_dir .. "/"
-      .. string.sub(test, 3, -5)
+      .. string.sub(test, 3, -5) -- remove the initial ./ and last .lua
    mkdir(fullResultsDir) -- recursively create all dirs as needed
    local srcPath = string.sub(test, 1, -5)
    copyAllFiles(srcPath, "bp", fullResultsDir)
@@ -209,8 +208,6 @@ local function compareFiles(f1, f2)
 	    return false
 	 end
       end
-   else
-      -- skip file 
    end
 
    r1:close(); r2:close()
@@ -261,12 +258,12 @@ local function run_action(args, name)
 
    log("Running regression tests ...\n\n")
    local tmStart = Time.clock()
-   
+
    lume.each(
       luaRegTests, function (f) runLuaTest(f); postRun(f) end)
    lume.each(
       shellRegTests, function (f) runShellTest(f); postRun(f) end)
-   
+
    log(string.format("All tests completed in %g secs\n", Time.clock()-tmStart))
 end
 
@@ -281,7 +278,7 @@ to configure the regression testing system and generate accepted
 results. This can be done using the "config" and "run create"
 commands. Obviously, this should be done only once.
 
-Once accepted results are created or obtained from elsewhere, 
+Once accepted results are created or obtained from elsewhere,
 regression testing can be  done using "run check" command.
 
 When adding new tests it is that developer's responsibility to
@@ -300,7 +297,7 @@ c_conf:option("-m --mpiexec", "Full path to MPI executable")
    :target("config_mpiexec")
 
 -- "list" command
-local c_list = parser:command("list", "List all regression tests")
+parser:command("list", "List all regression tests")
    :action(list_action)
 
 -- "run" tests
@@ -318,4 +315,4 @@ c_run:command("check", "Check results")
 c_run:command("create", "Create accepted results")
 
 -- parse command-line args (functionality encoded in command actions)
-local args = parser:parse(GKYL_COMMANDS)
+local _ = parser:parse(GKYL_COMMANDS)
