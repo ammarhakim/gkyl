@@ -215,6 +215,8 @@ function GkField:createSolver(species)
          end
       end
    end
+   -- if polarization weight still not set, assume it is 1
+   if self.polarizationWeight == 0.0 then self.polarizationWeight = 1.0 end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
    if self.adiabatic then

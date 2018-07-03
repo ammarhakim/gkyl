@@ -1,7 +1,7 @@
-load("pb-calc/canonical-upwind-surf")$
+load("pb-calc/canonical-surf")$
 load(stringproc)$
 
-pmax : 1$
+pmax : 2$
 for c : 1 thru 1 do (
    v : c,
    fname : sconcat("~/max-out/CanonicalSurfSer", c, "x", v, "v", ".cpp"),
