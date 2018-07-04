@@ -10,14 +10,13 @@ plasmaApp = Plasma.App {
    nFrame = 1, -- number of output frames
    lower = {0, 0}, -- configuration space lower left
    upper = {L, L}, -- configuration space upper right
-   cells = {32,32}, -- configuration space cells
+   cells = {32, 32}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
-   cfl = 0.2,
 
    -- decomposition for configuration space
-   decompCuts = {1,1}, -- cuts in each configuration direction
+   decompCuts = {1, 1}, -- cuts in each configuration direction
    useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
