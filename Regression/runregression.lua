@@ -160,7 +160,7 @@ end
 local function create_action(test)
    log(string.format("... creating accepted results for %s ...\n", test))
    local fullResultsDir = configVals.results_dir .. "/"
-      .. string.sub(test, 3, -5) -- remove the initial ./ and last .lua
+      .. string.sub(test, 1, -5) -- remove the initial ./ and last .lua
    mkdir(fullResultsDir) -- recursively create all dirs as needed
    local srcPath = string.sub(test, 1, -5)
    copyAllFiles(srcPath, "bp", fullResultsDir)
@@ -218,7 +218,7 @@ end
 -- function to handle "check" sub-command of "run"
 local function check_action(test)
    local fullResultsDir = configVals.results_dir .. "/"
-      .. string.sub(test, 3, -5) -- remove the initial ./ and last .lua
+      .. string.sub(test, 1, -5) -- remove the initial ./ and last .lua
 
    local vloc = string.find(test, "/rt%-[^/]-%.lua$")
    local outDirName = string.sub(test, 1, vloc)
