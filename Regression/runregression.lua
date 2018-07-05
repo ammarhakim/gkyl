@@ -15,6 +15,10 @@ local lume = require "Lib.lume"
 
 local log = Logger { logToFile = true }
 
+-- total passed/failed tests
+local numFailedTests = 0
+local numPassedTests = 0
+
 -- global value to store config information
 local configVals = nil
 
@@ -237,8 +241,10 @@ local function check_action(test)
       end
    end
    if passed then
+      numPassedTests = numPassedTests+1
       log("... passed.\n")
    else
+      numFailedTests = numFailedTests+1
       log("... FAILED!\n")
    end
 end
@@ -316,3 +322,10 @@ c_run:command("create", "Create accepted results")
 
 -- parse command-line args (functionality encoded in command actions)
 local _ = parser:parse(GKYL_COMMANDS)
+
+if numPassedTests > 0 then
+   log(string.format("\nTotal tests passed: %d\n", numPassedTests))
+end
+if numFailedTests > 0 then
+   log(string.format("Total tests FAILED: %d\n", numFailedTests))
+end
