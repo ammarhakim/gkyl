@@ -139,6 +139,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     fjump_e : doExpand1(fjump, bP),
     /* Expand the mean flow speed in the configuration basis. */
     nuU_e : doExpand1(nuU,bC),
+    /* Expand inverse of Bmag */
+    BmagInv_e : doExpand1(BmagInv,bC),
 
     /* Calculate the drift. */
     if dir = 1 then (
@@ -170,7 +172,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         Gdiff_c : calcInnerProdList(varsP,1,bP,nuVtSq_e*hsol[2])
     )
     else (
-        Gdiff_c : calcInnerProdList(varsP,1,bP,nuVtSq_e*mufac*dr*hsol[2])
+        Gdiff_c : calcInnerProdList(varsP,1,bP,m_*BmagInv_e*nuVtSq_e*dr*hsol[2])
     ),
     /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
     ** but that could result in references to elements of Gdiff in Ghat
@@ -199,7 +201,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
          g : nuVtSq_e*hsol[1]
     )
     else (
-    	 g : mufac*nuVtSq_e*subst(vv=1,dr)*hsol[1]
+    	 g : m_*BmagInv_e*nuVtSq_e*subst(vv=1,dr)*hsol[1]
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
@@ -216,12 +218,13 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     incr_l2 : psubst(subList,incr_l2),
     incr_r2 : psubst(subList,incr_r2),
 
-    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
+    printf(fh, "double ~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. ~%"),
     printf(fh, "  // nu:         constant collisionality. ~%"),
     printf(fh, "  // vMuMidMax:  maximum midpoint value of v-u. ~%"),
     printf(fh, "  // nuU[~a*~a]: bulk velocity (in ~a directions) times nu. ~%", vdim, NC, vdim),
     printf(fh, "  // nuVtSq[~a]: thermal speed squared times nu. ~%", NC),
+    printf(fh, "  // BmagInv[~a]:  reciprocal of Bmag ~%", NC),
     printf(fh, "  // fl/fr:      Distribution function in left/right cells ~%"),
     printf(fh, "  // outl/outr:  Incremented distribution function in left/right cells ~%"),
     printf(fh, "  double rdv = 1.0/dxvl[~a]; ~%", vid1[dir]),
@@ -253,6 +256,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Compute the diffusive part of Ghat separately. */
     printf(fh, "  double Gdiff[~a]; ~%", NP),
     /* This one yields less compact expressions: writeCExprs1(Gdiff,Gdiff_c), */
+    /* Change indices of BmagInv and include in clst */
     clst : makelist(nuVtSq[i],i,0,NC-1),
     writeCExprsCollect1c(Gdiff, Gdiff_c, clst),
     printf(fh, "~%"),
@@ -274,6 +278,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
     printf(fh, "  double incr2[~a]; ~%", NP),
+    /* Change indices of BmagInv and include in clst */
     clst : makelist(nuVtSq[i],i,0,NC-1), 
     writeCExprsCollect1c(incr2, incr_r2, clst),
     printf(fh, "~%"),
@@ -349,6 +354,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     /* First compute the contribution coming from the second
     ** differentiation by parts to left and right cells. */
     nuVtSq_e : doExpand1(nuVtSq,bC),
+    BmagInv_e  : doExpand1(BmagInv,bC),
 
     /* Function expanded in basis. */
     fl_e : doExpand1(fl, bP),
@@ -362,9 +368,9 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     else (
     	/* Define drift term. */
     	dr_l  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
-	gl  : mufac*nuVtSq_e*dr_l*fl_e,
+	gl  : m_*BmagInv_e*nuVtSq_e*dr_l*fl_e,
 	dr_r  : dxvr[vid1[dir]]*vv + 2*wr[vid1[dir]],
-    	gr  : mufac*nuVtSq_e*dr_r*fr_e
+    	gr  : m_*BmagInv_e*nuVtSq_e*dr_r*fr_e
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
@@ -374,12 +380,13 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1,gl)),
 
-    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
+    printf(fh, "double ~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.~%"),
     printf(fh, "  // nu:         constant collisionality. ~%"),
     printf(fh, "  // vMuMidMax:  maximum midpoint value of v-u. ~%"),
     printf(fh, "  // nuU[~a*~a]: bulk velocity (in ~a directions) times nu. ~%", vdim, NC, vdim),
     printf(fh, "  // nuVtSq[~a]: thermal speed squared times nu. ~%", NC),
+    printf(fh, "  // BmagInv[~a]: inverse of Bmag ~%", NC),
     printf(fh, "  // fl/fr:      Distribution function in left/right cells ~%"),
     printf(fh, "  // outl/outr:  Incremented distribution function in left/right cells ~%"),
     printf(fh, "  double rdvSq4l = 4.0/(dxvl[~a]*dxvl[~a]); ~%", vid1[dir], vid1[dir]),
