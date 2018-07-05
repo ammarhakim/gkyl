@@ -46,6 +46,7 @@ end
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
 function MaxwellField:init(tbl)
+   MaxwellField.super.init(self, tbl)
    self.tbl = tbl
 end
 
@@ -420,6 +421,7 @@ local FuncMaxwellField = Proto(FieldBase.FuncFieldBase)
 
 -- methods for no field object
 function FuncMaxwellField:init(tbl)
+   FuncMaxwellField.super.init(self, tbl)
    self.tbl = tbl
 end
 
