@@ -1,11 +1,12 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.
   // nu:         constant collisionality. 
   // vMuMidMax:  maximum midpoint value of v-u. 
   // nuU[1*2]: bulk velocity (in 1 directions) times nu. 
   // nuVtSq[2]: thermal speed squared times nu. 
+  // BmagInv[2]: inverse of Bmag 
   // fl/fr:      Distribution function in left/right cells 
   // outl/outr:  Incremented distribution function in left/right cells 
   double rdvSq4l = 4.0/(dxvl[1]*dxvl[1]); 
@@ -31,13 +32,14 @@ double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P1(const double *wl, const double *w
   }
   return 0.0; 
 } 
-double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P2(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.
   // nu:         constant collisionality. 
   // vMuMidMax:  maximum midpoint value of v-u. 
   // nuU[1*3]: bulk velocity (in 1 directions) times nu. 
   // nuVtSq[3]: thermal speed squared times nu. 
+  // BmagInv[3]: inverse of Bmag 
   // fl/fr:      Distribution function in left/right cells 
   // outl/outr:  Incremented distribution function in left/right cells 
   double rdvSq4l = 4.0/(dxvl[1]*dxvl[1]); 
