@@ -26,6 +26,7 @@ local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
 local VoronovIonization = require "Updater.VoronovIonization"
 local WavePropagation = require "Updater.WavePropagation"
+local MappedPoisson = require "Updater.MappedPoisson"
 
 return {
    Bc = Bc,
