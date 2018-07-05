@@ -13,7 +13,7 @@ local _ = require "Eq.vlasovData._VlasovCdef"
 local function nullFunc(...) end
 
 -- map of basis function name -> function encoding
-local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
+local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
 
 local _M = {}
 
@@ -42,7 +42,7 @@ end
 
 -- select function to compute volume EM field acceleration terms
 function _M.selectVolElcMag(basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("VlasovVolElcMag%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcNm = string.format("VlasovVol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 
