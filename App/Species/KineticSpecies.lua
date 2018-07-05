@@ -203,7 +203,7 @@ function KineticSpecies:fullInit(appTbl)
    self.boundaryConditions = { } -- list of Bcs to apply
 
    self.bcTime = 0.0 -- timer for BCs
-
+   self.integratedMomentsTime = 0.0 -- timer for integrated moments
    -- Collisions/Sources
    self.collisions = {}
    for nm, val in pairs(tbl) do
@@ -593,8 +593,11 @@ end
 
 function KineticSpecies:write(tm)
    if self.evolve then
+      local tmStart = Time.clock()
       -- compute integrated diagnostics
       self:calcDiagnosticIntegratedMoments(tm)
+      -- time computation of integrated moments
+      self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
@@ -657,9 +660,11 @@ function KineticSpecies:readRestart()
    self.distf[1]:sync() -- must get all ghost-cell data correct   
    
    self.distIoFrame = fr -- reset internal frame counter
-   local _, dfr = self.integratedMoments:read(
-      string.format("%s_intMom_restart.bp", self.name))
-   self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
+   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+      local _, dfr = self.diagnosticIntegratedMomentFields[i]:read(
+         string.format("%s_%s_restart.bp", self.name, mom))
+      self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
+   end
    return tm
 end
 
@@ -671,7 +676,7 @@ function KineticSpecies:totalBcTime()
    return self.bcTime
 end
 function KineticSpecies:intMomCalcTime()
-   if self.intMomentCalc then return self.intMomentCalc.totalTime else return 0 end
+   return self.integratedMomentsTime
 end
 
 return KineticSpecies
