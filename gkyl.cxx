@@ -26,7 +26,6 @@
 # include <xmmintrin.h>
 #endif
 
-
 # include <mpi.h>
 # include <GkMpiFuncs.h>
 
