@@ -3,6 +3,7 @@ local KineticSpecies = require "App.Species.KineticSpecies"
 local VlasovEq = require "Eq.Vlasov"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
+local Time = require "Lib.Time"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
@@ -32,6 +33,12 @@ function VlasovSpecies:alloc(nRkDup)
 
    -- allocate field to accumulate funcField if any
    self.totalEmField = self:allocVectorMoment(8) -- 8 components of EM field
+
+   -- allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii)
+   self.flow = self:allocVectorMoment(self.vdim)
+   self.kineticEnergyDensity = self:allocMoment()
+   self.thermalEnergyDensity = self:allocMoment()
+
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -97,6 +104,19 @@ function VlasovSpecies:createSolver(hasE, hasB)
       moment = "FiveMoments",
    }
 
+   -- Updaters for the primitive moments
+   -- These will be used to compute n*u^2 and n*T for computing integrated moments
+   self.confDiv = Updater.CartFieldBinOp {
+      onGrid = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+   }
+   self.confDotProduct = Updater.CartFieldBinOp {
+      onGrid = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "DotProduct",
+   }
+
    -- create updater to evaluate source 
    if self.sourceFunc then 
       self.evalSource = Updater.ProjectOnBasis {
@@ -106,6 +126,8 @@ function VlasovSpecies:createSolver(hasE, hasB)
          projectOnGhosts = true
       }
    end
+
+   self.tmCouplingMom = 0.0 -- for timer 
 end
 
 function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
@@ -161,11 +183,48 @@ end
 
 function VlasovSpecies:createDiagnostics()
    -- create updater to compute volume-integrated moments
-   self.intMomentCalc = Updater.DistFuncIntegratedMomentCalc {
-      onGrid = self.grid,
-      phaseBasis = self.basis,
-      confBasis = self.confBasis,
-   }
+   -- function to check if integrated moment name is correct
+   local function isIntegratedMomentNameGood(nm)
+      if nm == "intM0" or nm == "intM1i" or nm == "intM2Flow" or nm == "intM2Thermal" or nm == "intL2" then
+         return true
+      end
+      return false
+   end
+
+   local numCompInt = {}
+   numCompInt["intM0"] = 1
+   numCompInt["intM1i"] = self.vdim
+   numCompInt["intM2Flow"] = 1
+   numCompInt["intM2Thermal"] = 1
+   numCompInt["intL2"] = 1
+
+   self.diagnosticIntegratedMomentFields = { }
+   self.diagnosticIntegratedMomentUpdaters = { } 
+   -- allocate space to store moments and create moment updater
+   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+      if isIntegratedMomentNameGood(mom) then
+         self.diagnosticIntegratedMomentFields[i] = DataStruct.DynVector {
+            numComponents = numCompInt[mom],
+         }
+         if mom == "intL2" then
+            self.diagnosticIntegratedMomentUpdaters[i] = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.grid,
+               basis = self.basis,
+               numComponents = numCompInt[mom],
+               quantity = "V2"
+            }
+         else
+            self.diagnosticIntegratedMomentUpdaters[i] = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.confGrid,
+               basis = self.confBasis,
+               numComponents = numCompInt[mom],
+               quantity = "V"
+            }
+         end
+      else
+         assert(false, string.format("Integrated Moment %s not valid", mom))
+      end
+   end
 
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
@@ -257,9 +316,51 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
 end
 
 function VlasovSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
+
+   local tmStart = Time.clock()
    -- compute moments needed in coupling to fields and collisions
    local fIn = self:rkStepperFields()[rkIdx]
+   if self.collisions then 
+      self.fiveMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+   else
+      self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
+   end
+   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+
+end
+
+-- function to compute n, u, nu^2, and nT for use in integrated moment routine
+function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
+   -- first compute M0, M1i, M2
+   local fIn = self:rkStepperFields()[1]
    self.fiveMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+
+   -- compute n*u^2 from n*u and n
+   self.confDiv:advance(0., 0., {self.numDensity, self.momDensity}, {self.flow})
+   self.confDotProduct:advance(0., 0., {self.flow, self.momDensity}, {self.kineticEnergyDensity})
+
+   -- compute VDIM*n*T from M2 and kinetic energy density
+   self.thermalEnergyDensity:combine(1.0, self.ptclEnergy, -1.0, self.kineticEnergyDensity)
+
+   local numMoms = #self.diagnosticIntegratedMoments   
+   for i = 1, numMoms do
+      if self.diagnosticIntegratedMoments[i] == "intM0" then
+         self.diagnosticIntegratedMomentUpdaters[i]:advance(
+   	    tCurr, 0.0, {self.numDensity}, {self.diagnosticIntegratedMomentFields[i]})
+      elseif self.diagnosticIntegratedMoments[i] == "intM1i" then
+         self.diagnosticIntegratedMomentUpdaters[i]:advance(
+   	    tCurr, 0.0, {self.momDensity}, {self.diagnosticIntegratedMomentFields[i]})
+      elseif self.diagnosticIntegratedMoments[i] == "intM2Flow" then
+         self.diagnosticIntegratedMomentUpdaters[i]:advance(
+   	    tCurr, 0.0, {self.kineticEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
+      elseif self.diagnosticIntegratedMoments[i] == "intM2Thermal" then
+         self.diagnosticIntegratedMomentUpdaters[i]:advance(
+   	    tCurr, 0.0, {self.thermalEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
+      elseif self.diagnosticIntegratedMoments[i] == "intL2" then
+         self.diagnosticIntegratedMomentUpdaters[i]:advance(
+   	    tCurr, 0.0, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[i]})
+      end
+   end
 end
 
 function VlasovSpecies:fluidMoments()
@@ -270,8 +371,13 @@ function VlasovSpecies:getNumDensity(rkIdx)
    -- if no rkIdx specified, assume numDensity has already been calculated
    if rkIdx == nil then return self.numDensity end 
 
+   local tmStart = Time.clock()
+
    local fIn = self:rkStepperFields()[rkIdx]
    self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
+
+   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+
    return self.numDensity
 end
 
@@ -279,14 +385,18 @@ function VlasovSpecies:getMomDensity(rkIdx)
    -- if no rkIdx specified, assume momDensity has already been calculated
    if rkIdx == nil then return self.momDensity end 
 
+   local tmStart = Time.clock()
+
    local fIn = self:rkStepperFields()[rkIdx]
    self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
+
+   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+
    return self.momDensity
 end
 
 function VlasovSpecies:momCalcTime()
-   local tm = self.momDensityCalc.totalTime + self.numDensityCalc.totalTime
-      + self.ptclEnergyCalc.totalTime + self.fiveMomentsCalc.totalTime
+   local tm = self.tmCouplingMom
    for i, mom in ipairs(self.diagnosticMoments) do
       tm = tm + self.diagnosticMomentUpdaters[i].totalTime
    end
