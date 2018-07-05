@@ -24,6 +24,7 @@ local GkField = Proto(FieldBase.FieldBase)
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
 function GkField:init(tbl)
+   GkField.super.init(self, tbl)
    self.tbl = tbl
 end
 
@@ -528,6 +529,7 @@ local GkGeometry = Proto(FieldBase.FuncFieldBase)
 
 -- methods for no field object
 function GkGeometry:init(tbl)
+   GkGeometry.super.init(self, tbl)
    self.tbl = tbl
 end
 
