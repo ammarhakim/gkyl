@@ -42,8 +42,10 @@ function Vlasov:init(tbl)
    self._vdim = self._pdim-self._cdim
 
    -- functions to perform streaming updates
-   self._volStreamUpdate = VlasovModDecl.selectVolStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-   self._surfStreamUpdate = VlasovModDecl.selectSurfStream(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   self._volStreamUpdate = VlasovModDecl.selectVolStream(
+      self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+   self._surfStreamUpdate = VlasovModDecl.selectSurfStream(
+      self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
 
    -- check if we have a electric and magnetic field
    local hasElcField = xsys.pickBool(tbl.hasElectricField, true)
@@ -154,7 +156,8 @@ function Vlasov:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, 
 	    self._emAccel[self._gravAccelIdx] = self._emAccel[self._gravAccelIdx]+self._gravAccelCoeff
 	 end	 
 	 amax = self._surfForceUpdate[dir-self._cdim](
-	    wl:data(), wr:data(), dxl:data(), dxr:data(), maxs, self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	    wl:data(), wr:data(), dxl:data(), dxr:data(), maxs,
+	    self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return amax

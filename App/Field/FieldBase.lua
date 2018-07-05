@@ -10,7 +10,14 @@ local Proto = require "Lib.Proto"
 
 -- empty shell field base classes
 local FieldBase = Proto()
+function FieldBase:init(tbl)
+   self.isElliptic = false
+end
+
 local FuncFieldBase = Proto()
+function FuncFieldBase:init(tbl)
+   self.isElliptic = false
+end
 
 -- NoField ---------------------------------------------------------------------
 --
@@ -20,7 +27,9 @@ local FuncFieldBase = Proto()
 local NoField = Proto(FieldBase)
 
 -- methods for no field object
-function NoField:init(tbl) end
+function NoField:init(tbl)
+   NoField.super.init(tbl)
+end
 function NoField:fullInit(tbl) end
 function NoField:hasEB() return false, false end
 function NoField:setCfl() end

@@ -104,6 +104,8 @@ def build(bld):
     confToPhaseData/ConfToPhaseSer3x2v.cpp
     confToPhaseData/ConfToPhaseSer3x3v.cpp
 
+    MappedPoissonImpl.cpp
+
 
     """,
     includes = '. primMomentsCalcData binOpCalcData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')

@@ -28,6 +28,8 @@ local function createBasis(nm, ndim, polyOrder)
       return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
    elseif nm == "maximal-order" then
       return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
+   elseif nm == "tensor" then
+      return Basis.CartModalTensor { ndim = ndim, polyOrder = polyOrder }
    end
 end
 
@@ -101,8 +103,13 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
 
-   -- for storing integrated moments
-   self.integratedMoments = DataStruct.DynVector { numComponents = 5 }
+   -- read in which integrated diagnostic moments to compute on output
+   self.diagnosticIntegratedMoments = { }
+   if tbl.diagnosticIntegratedMoments then
+      for i, nm in ipairs(tbl.diagnosticIntegratedMoments) do
+         self.diagnosticIntegratedMoments[i] = nm
+      end
+   end
 
    -- get a random seed for random initial conditions
    if tbl.randomseed then
@@ -577,6 +584,9 @@ function KineticSpecies:calcDiagnosticMoments()
    if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(1, self.f0) end
 end
 
+function KineticSpecies:calcDiagnosticIntegratedMoments()
+end
+
 function KineticSpecies:isEvolving()
    return self.evolve
 end
@@ -584,9 +594,7 @@ end
 function KineticSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
-      if self.intMomentCalc then
-	 self.intMomentCalc:advance(tm, 0.0, { self.distf[1] }, { self.integratedMoments })
-      end
+      self:calcDiagnosticIntegratedMoments(tm)
 
       -- only write stuff if triggered
       if self.distIoTrigger(tm) then
@@ -611,8 +619,10 @@ function KineticSpecies:write(tm)
             self.diagnosticMomentFields[i]:write(
                string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
          end
-         self.integratedMoments:write(
-            string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+         for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+            self.diagnosticIntegratedMomentFields[i]:write(
+               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
+         end
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
@@ -634,8 +644,10 @@ end
 function KineticSpecies:writeRestart(tm)
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame)
    -- (the final "false" prevents flushing of data after write)
-   self.integratedMoments:write(
-      string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
+   for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+      self.diagnosticIntegratedMomentFields[i]:write(
+         string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
+   end
 end
 
 function KineticSpecies:readRestart()
