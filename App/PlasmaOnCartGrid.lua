@@ -171,7 +171,10 @@ local function buildApplication(self, tbl)
       fld:setBasis(confBasis)
       fld:setGrid(grid)
       do
-	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
+	 if fld.isElliptic then
+	    local myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+	 end
 	 cflMin = math.min(cflMin, myCfl)
 	 fld:setCfl(myCfl)
       end
