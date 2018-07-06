@@ -7,7 +7,7 @@ var : [z1]$
 fh : openw("~/max-out/ModalBasisFlipSign1d.lua");
 printf(fh, "local _M = {} ~%");
 
-for i : 1 thru 4 do (
+for i : 1 thru 7 do (
   basis : gsOrthoNorm(var, makeSerendipBasis(var, i)),
   printf(fh, "_M[~a] = function (dir, f, out) ~%", i),
   for j : 1 thru 1 do (

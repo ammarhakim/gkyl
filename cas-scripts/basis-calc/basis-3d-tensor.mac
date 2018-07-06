@@ -1,0 +1,19 @@
+load("modal-basis");
+load("out-scripts");
+fpprec : 24$
+
+var : [z1, z2, z3]$
+
+fh : openw("~/max-out/ModalTensorBasis3d.lua");
+printf(fh, "local _M = {} ~%");
+
+for i : 1 thru 3 do (
+  printf(fh, "_M[~a] = function (z, b) ~%", i),
+  printf(fh, "   local z1, z2, z3 = z[1], z[2], z[3] ~%", i),
+  basis : gsOrthoNorm(var, makeTensorBasis(var, i)),
+  writeBasis(fh, float(basis)),
+  printf(fh, "end ~%")
+);
+
+printf(fh, "return _M ~%");
+close(fh);
