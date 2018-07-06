@@ -87,8 +87,16 @@ function KineticSpecies:fullInit(appTbl)
       self.diagIoTrigger = LinearTrigger(0, appTbl.tEnd, appTbl.nFrame)
    end
 
-   self.distIoFrame = 0 -- frame number for distrubution fucntion
-   self.diagIoFrame = 0 -- frame number for diagnostcia
+   -- create trigger for how frequently to compute integrated moments
+   self.calcIntQuantFlag = false
+   if appTbl.calcIntQuantEvery then
+      self.calcIntQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
+   else
+      self.calcIntQuantFlag = true
+   end
+
+   self.distIoFrame = 0 -- frame number for distribution function
+   self.diagIoFrame = 0 -- frame number for diagnostics
 
    -- write perturbed moments by subtracting background before moment calc.. false by default
    self.perturbedMoments = false
@@ -595,7 +603,13 @@ function KineticSpecies:write(tm)
    if self.evolve then
       local tmStart = Time.clock()
       -- compute integrated diagnostics
-      self:calcDiagnosticIntegratedMoments(tm)
+      if self.calcIntQuantFlag == false then
+         if self.calcIntQuantTrigger(tm) then
+            self:calcDiagnosticIntegratedMoments(tm)
+         end
+      else
+         self:calcDiagnosticIntegratedMoments(tm)
+      end
       -- time computation of integrated moments
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
