@@ -108,6 +108,15 @@ function MaxwellField:fullInit(appTbl)
    self.emEnergy = DataStruct.DynVector { numComponents = 8 }
 
    self.tmCurrentAccum = 0.0 -- time spent in current accumulate
+   self.integratedEMTime = 0.0 -- time spent integrating EM fields
+
+   -- create trigger for how frequently to compute integrated EM fields
+   self.calcIntEMQuantFlag = false
+   if appTbl.calcIntQuantEvery then
+      self.calcIntEMQuantTrigger = LinearTrigger(0, appTbl.tEnd,  math.floor(1/appTbl.calcIntQuantEvery))
+   else
+      self.calcIntEMQuantFlag = true
+   end
 
    self._isFirst = true
 end
@@ -277,8 +286,17 @@ end
 
 function MaxwellField:write(tm)
    if self.evolve then
+      local tmStart = Time.clock()
       -- compute EM energy integrated over domain
-      self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
+      if self.calcIntEMQuantFlag == false then
+         if self.calcIntEMQuantTrigger(tm) then
+            self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
+         end
+      else
+         self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
+      end
+      -- time computation of integrated moments
+      self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
       
       if self.ioTrigger(tm) then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -409,7 +427,7 @@ function MaxwellField:totalBcTime()
 end
 
 function MaxwellField:energyCalcTime()
-   return self.emEnergyCalc.totalTime
+   return self.integratedEMTime
 end
 
 -- FuncMaxwellField ---------------------------------------------------------------------
