@@ -82,8 +82,8 @@ for p : 1 thru pmax do (
 
   writeCExprsWithZerosNoExpand1(u, fullratsimp(subst(powersimp, u_k))),
   writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
-  printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(u, uhat, ~a, 1, c); ~%", cdim, basisFun, p, length(bC)),
-  printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(c, f, ~a, 0, fhat); ~%", cdim, vdim, basisFun, p, length(bP)),
+  printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(u, uhat, 1, 1, c); ~%", cdim, basisFun, p),
+  printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(c, f, 1, 1, fhat); ~%", cdim, vdim, basisFun, p),
 
   printf(fh, "} ~%~%"),
 
