@@ -144,9 +144,11 @@ def build(bld):
     pbData/CanonicalDisContSurfSer1x1v.cpp
 
     gkData/GyrokineticSer1x1v.cpp
+    gkData/GyrokineticSer1x2v.cpp
     gkData/GyrokineticSer2x2v.cpp
     gkData/GyrokineticSer3x2v.cpp
     gkData/GyrokineticSurfSer1x1v.cpp
+    gkData/GyrokineticSurfSer1x2v.cpp
     gkData/GyrokineticSurfSer2x2v.cpp
     gkData/GyrokineticSurfSer3x2v.cpp
     gkData/GkSheathFuncsSer.cpp

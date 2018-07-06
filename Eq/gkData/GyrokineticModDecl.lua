@@ -32,7 +32,7 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
    for k, v in ipairs(Bvars) do
       bvarString = bvarString .. "_" .. v
    end
-   if CDIM == 1 and VDIM == 1 then
+   if CDIM == 1 and VDIM <= 2 then
       local funcNmX = string.format("%sGyrokineticSurf%dx%dv%s_X_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmVpar = string.format("%sGyrokineticSurf%dx%dv%s_Vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX..bvarString], ffi.C[funcNmVpar..bvarString] }
