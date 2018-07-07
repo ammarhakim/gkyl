@@ -1,11 +1,18 @@
+-- Gkyl ------------------------------------------------------------------------
+--
+-- Updater to solve Poisson equations on a logically rectangular grid
+--
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
 local ffi = require("ffi")
 local Proto = require("Lib.Proto")
 local UpdaterBase = require("Updater.Base")
 local Lin = require("Lib.Linalg")
-local Range = require("Lib.Range")
 
+-- Updater to solve Poisson equations on a logically rectangular grid
 local MappedPoisson = Proto(UpdaterBase)
-
 
 --set up C/Lua interface
 ffi.cdef[[
@@ -38,16 +45,17 @@ function MappedPoisson:init(tbl)
 
   --set up metric function
   local myXc, myG = Lin.Vec(2), Lin.Vec(3)
-  function gfunc(xc, g)
+  local function gfunc(xc, g)
     myXc[1], myXc[2] = xc[1], xc[2]
     self._grid:calcMetric(myXc, myG)
     g[1], g[2], g[3] = myG[1], myG[2], myG[3]
   end
 
   --global idx/y so that accessible to solver
-  idx = self._grid:numCells(1)
-  idy = self._grid:numCells(2)
+  local idx = self._grid:numCells(1)
+  local idy = self._grid:numCells(2)
 
+  local xbctu, xbctl, ybctu, ybctl
   --reformat periodic boundary condition inputs
   if (self._perDirs ~= nil) then
     if (self._perDirs[1] == 1 or self._perDirs[2] == 1) then
@@ -60,6 +68,7 @@ function MappedPoisson:init(tbl)
     end
   end
 
+  local xbcl, xbcu
   --reformat dirichlet boundary condition inputs
   if (self._left ~= nil) then --left side (x)
     if (self._left.T == "D") then
@@ -85,6 +94,7 @@ function MappedPoisson:init(tbl)
     xbcu = 0
   end
 
+  local ybcl, ybcu
   if (self._bottom ~= nil) then --bottom side (y)
     if (self._bottom.T == "D") then
       ybctl = 0
@@ -116,13 +126,13 @@ function MappedPoisson:init(tbl)
   assert(ybctl ~= nil, "Error: Top BC not specified")
 
   --initialize function pointer
-  point = ffi.C.new_MapPoisson(idx, idy, self._grid:lower(1), self._grid:lower(2),
+  self.point = ffi.C.new_MapPoisson(idx, idy, self._grid:lower(1), self._grid:lower(2),
       self._grid:upper(1), self._grid:upper(2), xbctl, ybctl, xbctu, ybctu, xbcu,
       xbcl, ybcu, ybcl);
   --set up metric function for c
-  ffi.C.setMetricFuncPointer_MapPoisson(point, gfunc)
+  ffi.C.setMetricFuncPointer_MapPoisson(self.point, gfunc)
   --set up factorization wth pointer
-  lap = ffi.C.wrap_factorize(point)
+  ffi.C.wrap_factorize(self.point)
 end
 
 
@@ -141,12 +151,12 @@ function MappedPoisson:advance(tCurr, dt, inFld, outFld)
     for i = localRange:lower(1), localRange:upper(1) do
 	     grid:setIndex({i,j})
 	     local sitr = source:get(indexer(i,j))
-	     ffi.C.wrap_getSrcvalatIJ(point, i-1, j-1, sitr[1])
+	     ffi.C.wrap_getSrcvalatIJ(self.point, i-1, j-1, sitr[1])
     end
   end
 
   --solve the problem
-  ffi.C.wrap_phisolve(point)
+  ffi.C.wrap_phisolve(self.point)
 
   --copy solution into output field
   localRange = phipot:localRange()
@@ -154,7 +164,7 @@ function MappedPoisson:advance(tCurr, dt, inFld, outFld)
     for i = localRange:lower(1), localRange:upper(1) do
       grid:setIndex({i,j})
       local pitr = phipot:get(indexer(i,j))
-      pitr[1] = ffi.C.wrap_getSolvalatIJ(point, i-1, j-1)
+      pitr[1] = ffi.C.wrap_getSolvalatIJ(self.point, i-1, j-1)
     end
   end
 
