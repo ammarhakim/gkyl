@@ -10,7 +10,7 @@ local VlasovSpecies = Proto(KineticSpecies)
 -- add constants to object indicate various supported boundary conditions
 local SP_BC_ABSORB = 1
 local SP_BC_REFLECT = 3
-local SP_BC_REFLECT_QM = 4
+local SP_BC_EXTERN = 4
 local SP_BC_COPY = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy
 local SP_BC_OPEN = SP_BC_COPY
@@ -19,7 +19,7 @@ VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 VlasovSpecies.bcCopy = SP_BC_COPY -- copy stuff
 VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
-VlasovSpecies.bcReflectQM = SP_BC_REFLECT_QM -- specular reflection with < 1 probability
+VlasovSpecies.bcExternal = SP_BC_EXTERN -- load external BC file
 
 function VlasovSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -39,6 +39,12 @@ function VlasovSpecies:alloc(nRkDup)
    self.kineticEnergyDensity = self:allocMoment()
    self.thermalEnergyDensity = self:allocMoment()
 
+end
+
+function VlasovSpecies:fullInit(appTbl)
+   VlasovSpecies.super.fullInit(self, appTbl)
+   
+   self.externalBC = self.tbl.externalBC
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -267,17 +273,14 @@ function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
-function VlasovSpecies:bcReflectQMFunc(dir, tm, idxIn, fIn, fOut)
+function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "flip"
-   self.basis:flipSign(dir, fIn, fOut)
-   self.basis:flipSign(dir+self.cdim, fOut, fOut)
-
-   local wallFunction = require "wall"
+   local wallFunction = require(self.externalBC)
    local velIdx = {}
    for d = 1, self.vdim do
       velIdx[d] = idxIn[self.cdim + d]
    end
-   wallFunction[1](velIdx, fOut, fOut)
+   wallFunction[1](velIdx, fIn, fOut)
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
@@ -286,7 +289,7 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcCopyFunc(...) return self:bcCopyFunc(...) end
    local function bcOpenFunc(...) return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
-   local function bcReflectQMFunc(...) return self:bcReflectQMFunc(...) end
+   local function bcExternFunc(...) return self:bcExternFunc(...) end
 
    local vdir = dir + self.cdim
 
@@ -306,10 +309,10 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
 				      { bcReflectFunc }, "flip"))
-   elseif bcType == SP_BC_REFLECT_QM then
+   elseif bcType == SP_BC_EXTERN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcReflectQMFunc }, "flip"))
+				      { bcExternFunc }, "flip"))
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end
