@@ -132,6 +132,21 @@ stiffPerpNod:float(expand(ratsimp(ratsimp(invert(modToNod)).stiffPerpMod.ratsimp
 return(stiffPerpNod)
 )$
 
+/* calculate weighted nodal perpendicular stiffness matrix (cdim=2,3 only) */
+calcStiffPerpMetric(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
+load(modNm),
+basis : basisC[p],
+wxx_expd : doExpand1(w, basis)*doExpand1(gxx, basis),
+wxy_expd : doExpand1(w, basis)*doExpand1(gxy, basis),
+wyy_expd : doExpand1(w, basis)*doExpand1(gyy, basis),
+modToNod : calcModToNod(cdim, p),
+stiffPerpMod:dfacx2*calcWeightedStiffMatrix(x,varsC,wxx_expd,basis)+dfacy2*calcWeightedStiffMatrix(y,varsC,wyy_expd,basis)+dfacxy*calcWeightedStiffMatrixCross(x,y,varsC,wxy_expd,basis),
+stiffPerpNod:float(expand(ratsimp(ratsimp(invert(modToNod)).stiffPerpMod.ratsimp(invert(transpose(modToNod)))))),
+return(stiffPerpNod)
+)$
+
 /* calculate weighted nodal parallel stiffness matrix (cdim=1,3 only) */
 calcStiffPar(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
@@ -188,6 +203,7 @@ printf(fh, "~a~%", prototype),
 printf(fh, "{~%"),
 if printDfacsPerp then (
 printf(fh, "  double dfacx2 = 4.0/(dx*dx);~%"),
+printf(fh, "  double dfacxy = 4.0/(dx*dy);~%"),
 printf(fh, "  double dfacy2 = 4.0/(dy*dy);~%")
 ),
 if printDfacsPar then (
@@ -274,6 +290,10 @@ printf(header, "~a;~%", prototype)$
 /* write getPerpStiffnessMatrix C function */
 prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder, double dx, double dy)"$
 writeCMatFunc(prototype, calcStiffPerp, [2,3], true, false)$
+printf(header, "~a;~%", prototype)$
+/* write getPerpStiffnessMatrix C function with metric */
+prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, double *gxx, double *gxy, double *gyy, int ndim, int polyOrder, double dx, double dy)"$
+writeCMatFunc(prototype, calcStiffPerpMetric, [2,3], true, false)$
 printf(header, "~a;~%", prototype)$
 /* write getPerpStiffnessMatrix (unweighted) C function */
 prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder, double dx, double dy)"$
