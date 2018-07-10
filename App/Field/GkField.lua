@@ -233,7 +233,6 @@ function GkField:createSolver(species)
    end
 
    if self.adiabatic then 
-      --laplacianWeight = 0.0
       modifierConstant = modifierConstant + self.adiabSpec:qneutFac() 
    end
        
