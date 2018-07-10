@@ -237,8 +237,6 @@ local function buildApplication(self, tbl)
       -- this is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver
       s:forwardEuler(0, 0, species, {field, funcField}, 1, 2)
-      -- restore initial condition
-      s:initDist()
       s:applyBc(0, 0, s:rkStepperFields()[1])
    end
 
