@@ -189,6 +189,7 @@ function KineticSpecies:fullInit(appTbl)
         background distribution with 'initBackground' in order to use fluctuation-only BCs]]) 
    end
 
+   self.zeroFluxDirections = {}
 
    self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
    self.bcx, self.bcy, self.bcz = { }, { }, { }
