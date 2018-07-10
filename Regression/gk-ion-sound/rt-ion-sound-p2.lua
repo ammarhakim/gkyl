@@ -81,7 +81,7 @@ plasmaApp = Plasma.App {
    -- field solver
    field = Plasma.GkField {
       evolve = true, -- evolve field?
-      kperp2 = 1.0,
+      kperp2 = 0.0,
    },
 
    -- magnetic geometry 
