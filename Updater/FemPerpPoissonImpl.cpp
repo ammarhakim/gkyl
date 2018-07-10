@@ -122,7 +122,7 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
     std::string outName = "poisson-nodtomod"; 
     outName += std::to_string(ndim) + "d";
     saveMarket(localNodToMod, outName);
-    outName = "poisson-modtonod"; // wrong
+    outName = "poisson-modtonod"; 
     outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod, outName);
     outName = "poisson-massmodtonod";
