@@ -12,10 +12,12 @@ local SP_BC_ABSORB = 1
 local SP_BC_OPEN = 2
 local SP_BC_REFLECT = 3
 local SP_BC_SHEATH = 4
+local SP_BC_ZEROFLUX = 5
 GkSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 GkSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 GkSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 GkSpecies.bcSheath = SP_BC_SHEATH -- specular reflection
+GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX -- zero flux
 
 function GkSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -122,13 +124,16 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
    else
       for d = 1, self.cdim + 1 do upd[d] = d end
    end
+   -- zero flux in vpar and mu
+   table.insert(self.zeroFluxDirections, self.cdim+1)
+   table.insert(self.zeroFluxDirections, self.cdim+2)
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
       basis = self.basis,
       cfl = self.cfl,
       equation = self.gkEqn,
-      zeroFluxDirections = {self.cdim+1},
+      zeroFluxDirections = self.zeroFluxDirections,
       updateDirections = upd,
       -- if electromagnetic, only compute RHS increment so that RHS can be used in dAdt solve
       onlyIncrement = hasApar, 
@@ -149,7 +154,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
          basis = self.basis,
          cfl = self.cfl,
          equation = self.gkEqnStep2,
-         zeroFluxDirections = {self.cdim+1},
+         zeroFluxDirections = self.zeroFluxDirections,
          updateDirections = {self.cdim+1},
          clearOut = false,   -- continue accumulating into output field
          onlyIncrement = false,  -- finish taking timestep
@@ -367,6 +372,8 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       self.fhatSheathIdxr = self.fhatSheath:genIndexer()
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
       self.hasSheathBcs = true
+   elseif bcType == SP_BC_ZEROFLUX then
+      table.insert(self.zeroFluxDirections, dir)
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end
