@@ -220,109 +220,92 @@ function GkField:createSolver(species)
    if self.polarizationWeight == 0.0 then self.polarizationWeight = 1.0 end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
-   if self.adiabatic then
-      -- if adiabatic, we don't solve the Poisson equation, but
-      -- we do need to project the discontinuous charge densities
-      -- onto a continuous basis to set phi. 
-      self.phiSlvr = Updater.FemPoisson {
+   -- set up Poisson solvers
+   local laplacianWeight, modifierConstant
+ 
+   if self.ndim==1 then
+      assert(self.kperp2, "GkField: must specify kperp2 for ndim=1")
+      laplacianWeight = 0.0 -- {0.0}
+      modifierConstant = self.kperp2*self.polarizationWeight -- {self.kperp2}
+   else 
+      laplacianWeight = -self.polarizationWeight -- {1.0, 1.0, 0.0}
+      modifierConstant = 0.0 -- {0.0, 0.0, 1.0}
+   end
+
+   if self.adiabatic then 
+      --laplacianWeight = 0.0
+      modifierConstant = modifierConstant + self.adiabSpec:qneutFac() 
+   end
+       
+   self.phiSlvr = Updater.FemPoisson {
+     onGrid = self.grid,
+     basis = self.basis,
+     bcLeft = self.phiBcLeft,
+     bcRight = self.phiBcRight,
+     bcBottom = self.phiBcBottom,
+     bcTop = self.phiBcTop,
+     periodicDirs = self.periodicDirs,
+     laplacianWeight = laplacianWeight,
+     modifierConstant = modifierConstant,
+     zContinuous = not self.discontinuousPhi,
+   }
+   if self.isElectromagnetic then 
+     -- NOTE: aparSlvr only used to solve for initial Apar
+     -- at all other times Apar is timestepped using dApar/dt
+     if ndim==1 then
+        laplacianWeight = 0.0
+        modifierConstant = 1.0/self.mu0
+     else
+        laplacianWeight = 1.0/self.mu0
+        modifierConstant = 0.0
+     end
+     self.aparSlvr = Updater.FemPoisson {
+       onGrid = self.grid,
+       basis = self.basis,
+       bcLeft = self.aparBcLeft,
+       bcRight = self.aparBcRight,
+       bcBottom = self.aparBcBottom,
+       bcTop = self.aparBcTop,
+       periodicDirs = self.periodicDirs,
+       laplacianWeight = laplacianWeight,
+       modifierConstant = modifierConstant,
+       zContinuous = not self.discontinuousApar,
+     }
+
+     if ndim==1 then
+        laplacianWeight = 0.0
+        modifierConstant = 1.0
+     else
+        laplacianWeight = -1.0/self.mu0
+        modifierConstant = 1.0
+     end
+     self.dApardtSlvr = Updater.FemPoisson {
+       onGrid = self.grid,
+       basis = self.basis,
+       bcLeft = self.aparBcLeft,
+       bcRight = self.aparBcRight,
+       bcBottom = self.aparBcBottom,
+       bcTop = self.aparBcTop,
+       periodicDirs = self.periodicDirs,
+       laplacianWeight = laplacianWeight,
+       modifierConstant = modifierConstant,
+       zContinuous = not self.discontinuousApar,
+     }
+
+     -- set up constant dummy field
+     self.unitWeight = DataStruct.Field {
+          onGrid = self.grid,
+          numComponents = self.basis:numBasis(),
+          ghost = {1, 1},
+     }
+     local initUnit = Updater.ProjectOnBasis {
         onGrid = self.grid,
         basis = self.basis,
-        bcLeft = self.phiBcLeft,
-        bcRight = self.phiBcRight,
-        bcBottom = self.phiBcBottom,
-        bcTop = self.phiBcTop,
-        bcBack = self.phiBcBack,
-        bcFront = self.phiBcFront,
-        periodicDirs = self.periodicDirs,
-        laplacianWeight = 0.0, 
-        modifierConstant = self.adiabSpec:qneutFac(), -- = n0*q^2/T
-        zContinuous = not self.discontinuousPhi,
-      }
-   else
-      local ndim = self.ndim
-      local laplacianWeight, modifierConstant
-      assert(self.polarizationWeight, "GkField: must specify polarizationWeight = ni*mi/B^2 for non-adiabatic field")
-      if ndim==1 then  -- z
-        assert(self.kperp2, "GkField: must specify kperp2 for non-adiabatic field with ndim=1")
-        laplacianWeight = 0.0 -- {0.0}
-        modifierConstant = self.kperp2*self.polarizationWeight -- {self.kperp2}
-      elseif ndim==2 then  -- x,y
-        laplacianWeight = self.polarizationWeight -- {1.0, 1.0}
-        modifierConstant = 0.0 --  {0.0, 0.0}
-      else -- x,y,z
-        laplacianWeight = self.polarizationWeight -- {1.0, 1.0, 0.0}
-        modifierConstant = 0.0 -- {0.0, 0.0, 1.0}
-      end
-      self.phiSlvr = Updater.FemPoisson {
-        onGrid = self.grid,
-        basis = self.basis,
-        bcLeft = self.phiBcLeft,
-        bcRight = self.phiBcRight,
-        bcBottom = self.phiBcBottom,
-        bcTop = self.phiBcTop,
-        periodicDirs = self.periodicDirs,
-        laplacianWeight = laplacianWeight,
-        modifierConstant = modifierConstant,
-        zContinuous = not self.discontinuousPhi,
-      }
-      if self.isElectromagnetic then 
-        -- NOTE: aparSlvr only used to solve for initial Apar
-        -- at all other times Apar is timestepped using dApar/dt
-        if ndim==1 then
-           laplacianWeight = 0.0
-           modifierConstant = 1.0/self.mu0
-        else
-           laplacianWeight = 1.0/self.mu0
-           modifierConstant = 0.0
-        end
-        self.aparSlvr = Updater.FemPoisson {
-          onGrid = self.grid,
-          basis = self.basis,
-          bcLeft = self.aparBcLeft,
-          bcRight = self.aparBcRight,
-          bcBottom = self.aparBcBottom,
-          bcTop = self.aparBcTop,
-          periodicDirs = self.periodicDirs,
-          laplacianWeight = laplacianWeight,
-          modifierConstant = modifierConstant,
-          zContinuous = not self.discontinuousApar,
-        }
-
-        if ndim==1 then
-           laplacianWeight = 0.0
-           modifierConstant = 1.0
-        else
-           laplacianWeight = 1.0/self.mu0
-           modifierConstant = 1.0
-        end
-        self.dApardtSlvr = Updater.FemPoisson {
-          onGrid = self.grid,
-          basis = self.basis,
-          bcLeft = self.aparBcLeft,
-          bcRight = self.aparBcRight,
-          bcBottom = self.aparBcBottom,
-          bcTop = self.aparBcTop,
-          periodicDirs = self.periodicDirs,
-          laplacianWeight = laplacianWeight,
-          modifierConstant = modifierConstant,
-          zContinuous = not self.discontinuousApar,
-        }
-
-        -- set up constant dummy field
-        self.unitWeight = DataStruct.Field {
-             onGrid = self.grid,
-             numComponents = self.basis:numBasis(),
-             ghost = {1, 1},
-        }
-        local initUnit = Updater.ProjectOnBasis {
-           onGrid = self.grid,
-           basis = self.basis,
-           evaluate = function (t,xn)
-                         return 1.0
-                      end
-        }
-        initUnit:advance(0.,0.,{},{self.unitWeight})
-      end
+        evaluate = function (t,xn)
+                      return 1.0
+                   end
+     }
+     initUnit:advance(0.,0.,{},{self.unitWeight})
    end
 
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
