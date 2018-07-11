@@ -99,10 +99,10 @@ function FemParPoisson:init(tbl)
 
    -- make sure BCs are specified consistently
    if self._periodic == false and not (self._bc[0].isSet and self._bc[1].isSet) then
-     -- use neumann by default (usually doing discont-to-cont projection)
+     -- if not periodic, use neumann by default (usually doing discont-to-cont projection)
      self._bc[0] = getBcData({ T = "N", V = 0.0 })
      self._bc[1] = getBcData({ T = "N", V = 0.0 })
-   else
+   elseif self._periodic then
      assert(not (self._bc[0].isSet or self._bc[1].isSet), "Cannot specify BCs if direction is periodic")
    end
 
@@ -210,7 +210,7 @@ function FemParPoisson:_advance(tCurr, dt, inFld, outFld)
          else
            src:fill(srcIndexer(idx, idy, idz), srcPtr)
          end
-         ffi.C.createParGlobalSrc(self._poisson, srcPtr:data(), idz-1, intSrcVol[1]/grid:gridVolume())
+         ffi.C.createParGlobalSrc(self._poisson, srcPtr:data(), idz-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^ndim)
        end
 
        if GKYL_HAVE_MPI and Mpi.Comm_size(self._xycomm)>1 then
