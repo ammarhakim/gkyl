@@ -174,7 +174,7 @@ function FemPerpPoisson:init(tbl)
    self.zContinuous = xsys.pickBool(tbl.zContinuous, false)
    self.zDiscontToCont = nil
    if self._ndim == 3 and self.zContinuous then
-     self.zDisContToCont = FemParPoisson {
+     self.zDiscontToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
        laplacianWeight = 0.0,
@@ -275,7 +275,9 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    end 
 
    -- optionally make continuous in z
-   if self.zDiscontToCont then self.zDiscontToCont:advance(tCurr, dt, {sol}, {sol}) end
+   if self.zDiscontToCont then 
+      self.zDiscontToCont:advance(tCurr, dt, {sol}, {sol}) 
+   end
 
    return true, GKYL_MAX_DOUBLE
 end
