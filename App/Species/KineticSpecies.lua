@@ -625,6 +625,9 @@ function KineticSpecies:write(tm)
             self.distIo:write(self.distf[1], string.format("%s_f1_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
             self.distf[1]:accumulate(1, self.f0)
          end
+         if tm == 0.0 and self.fSource then
+            self.distIo:write(self.fSource, string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame)
+         end
 	 self.distIoFrame = self.distIoFrame+1
       end
 
