@@ -64,15 +64,15 @@ double xbcl_, double ybcu_, double ybcl_);
     //create blocks
     blkstor blkrow(int j);
     //coefficients
-    double cij(double xc, double yc);
-    double cimj(double xc, double yc);
-    double cimjp(double xc, double yc);
-    double cijp(double xc, double yc);
-    double cipjp(double xc, double yc);
-    double cipj(double xc, double yc);
-    double cipjm(double xc, double yc);
-    double cijm(double xc, double yc);
-    double cimjm(double xc, double yc);
+    double cij(double xc, double yc, int i, int j);
+    double cimj(double xc, double yc, int i, int j);
+    double cimjp(double xc, double yc, int i, int j);
+    double cijp(double xc, double yc, int i, int j);
+    double cipjp(double xc, double yc, int i, int j);
+    double cipj(double xc, double yc, int i, int j);
+    double cipjm(double xc, double yc, int i, int j);
+    double cijm(double xc, double yc, int i, int j);
+    double cimjm(double xc, double yc, int i, int j);
     //metric calculator
     void (*gfunc)(double *, double *);
     //convert between gfunc output to eigen vector
@@ -92,7 +92,7 @@ double xbcl_, double ybcu_, double ybcl_);
     Eigen::MatrixXd xca;
     Eigen::MatrixXd yca;
     //solver type
-    Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
+    Eigen::SparseLU<Eigen::SparseMatrix<double> > solver;
     //source array
     Eigen::VectorXd jsource;
     //solution array

@@ -57,17 +57,17 @@ blkstor MapPoisson::blkrow(int j)
 
   for (int i = 0; i < nx; i++){
    //center block
-    blkj(i,i+1) = MapPoisson::cij(xca(i,j),yca(i,j));
-    blkj(i,i) = MapPoisson::cimj(xca(i,j),yca(i,j));
-    blkj(i,i+2) = MapPoisson::cipj(xca(i,j),yca(i,j));
+    blkj(i,i+1) = MapPoisson::cij(xca(i,j),yca(i,j),i,j);
+    blkj(i,i) = MapPoisson::cimj(xca(i,j),yca(i,j),i,j);
+    blkj(i,i+2) = MapPoisson::cipj(xca(i,j),yca(i,j),i,j);
    //upper block (upper in logical space)
-    blkjp(i,i+1) = MapPoisson::cijp(xca(i,j),yca(i,j));
-    blkjp(i,i) = MapPoisson::cimjp(xca(i,j),yca(i,j));
-    blkjp(i,i+2) = MapPoisson::cipjp(xca(i,j),yca(i,j));
+    blkjp(i,i+1) = MapPoisson::cijp(xca(i,j),yca(i,j),i,j);
+    blkjp(i,i) = MapPoisson::cimjp(xca(i,j),yca(i,j),i,j);
+    blkjp(i,i+2) = MapPoisson::cipjp(xca(i,j),yca(i,j),i,j);
    //lower block (lower in logical space)
-    blkjm(i,i+1) = MapPoisson::cijm(xca(i,j),yca(i,j));
-    blkjm(i,i) = MapPoisson::cimjm(xca(i,j),yca(i,j));
-    blkjm(i,i+2) = MapPoisson::cipjm(xca(i,j),yca(i,j));
+    blkjm(i,i+1) = MapPoisson::cijm(xca(i,j),yca(i,j),i,j);
+    blkjm(i,i) = MapPoisson::cimjm(xca(i,j),yca(i,j),i,j);
+    blkjm(i,i+2) = MapPoisson::cipjm(xca(i,j),yca(i,j),i,j);
   }
 
  // edit blocks according to xbcs
@@ -259,7 +259,7 @@ void MapPoisson::laplace()
     }
   }
 
-  SparseMatrix<double, RowMajor> lhstrip(nx*ny,nx*ny);
+  SparseMatrix<double, ColMajor> lhstrip(nx*ny,nx*ny);
   lhstrip.setFromTriplets(trips.begin(), trips.end());
 
   //deal with underdefinition (neumann/periodic) by elim last row, rep last w/ 1
@@ -305,47 +305,12 @@ VectorXd MapPoisson::srcconv()
 
   //BC Part (currently set up for x dir bcs):
   int k = 0;
-  if (xbctypel == 0){  //x dirichlet lower
-    for (int j = 0; j < ny; j++){
-      for (int i = 0; i < nx; i++){
-        if (i == 0){//lower bound
-          rhst(k)+= -(MapPoisson::cimj(xca(i,j),yca(i,j))+MapPoisson::cimjm(xca(i,j),yca(i,j))
-                    +MapPoisson::cimjp(xca(i,j),yca(i,j)))*2*xbcl;
-        }
-        k = k+1;
-      }
-    }
-  }
-
-  k = 0;
-  if (xbctypeu == 0){  //x dirichlet upper
-    for (int j = 0; j < ny; j++){
-      for (int i = 0; i < nx; i++){
-        if (i == nx-1){//upper bound
-          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j))+MapPoisson::cipjm(xca(i,j),yca(i,j))
-                    +MapPoisson::cipjp(xca(i,j),yca(i,j)))*2*xbcu;
-        }
-        k = k+1;
-      }
-    }
-  }
-
-  k = 0;
   if (ybctypel == 0){  //y dirichlet lower
     for (int j = 0; j < ny; j++){
       for (int i = 0; i < nx; i++){
-        if (j == 0 and i != 0 and i != nx-1){//lower bound
-          rhst(k)+= -(MapPoisson::cijm(xca(i,j),yca(i,j))+MapPoisson::cimjm(xca(i,j),yca(i,j))
-                      +MapPoisson::cipjm(xca(i,j),yca(i,j)))*2*ybcl;
-        } else if (j == 0 and i ==0 and xbctypel!= 2){
-          rhst(k)+= -(MapPoisson::cijm(xca(i,j),yca(i,j))
-                      +MapPoisson::cipjm(xca(i,j),yca(i,j)))*2*ybcl;
-        } else if (j == 0 and i == nx-1 and xbctypel != 2){
-          rhst(k)+= -(MapPoisson::cijm(xca(i,j),yca(i,j))
-                    +MapPoisson::cimjm(xca(i,j),yca(i,j)))*2*ybcl;
-        } else if (j == 0 and xbctypel == 2){
-          rhst(k)+= -(MapPoisson::cijm(xca(i,j),yca(i,j))+MapPoisson::cimjm(xca(i,j),yca(i,j))
-                      +MapPoisson::cipjm(xca(i,j),yca(i,j)))*2*ybcl;
+        if (j == 0){//lower bound
+          rhst(k)+= -(MapPoisson::cijm(xca(i,j),yca(i,j),i,j)+MapPoisson::cimjm(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cipjm(xca(i,j),yca(i,j),i,j))*2*ybcl;
         }
         k = k+1;
       }
@@ -356,44 +321,9 @@ VectorXd MapPoisson::srcconv()
   if (ybctypeu == 0){  //y dirichlet upper
     for (int j = 0; j < ny; j++){
       for (int i = 0; i < nx; i++){
-        if (j == ny-1 and i != 0 and i!= nx-1){//upper bound
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))+MapPoisson::cimjp(xca(i,j),yca(i,j))
-                      +MapPoisson::cipjp(xca(i,j),yca(i,j)))*2*ybcu;
-        } else if (j == ny-1 and i ==0 and xbctypel!= 2){
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))
-                      +MapPoisson::cipjp(xca(i,j),yca(i,j)))*2*ybcu;
-        } else if (j == ny-1 and i == nx-1 and xbctypel!= 2){
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))
-                    +MapPoisson::cimjp(xca(i,j),yca(i,j)))*2*ybcu;
-        } else if (j == ny-1 and xbctypel == 2){
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))+MapPoisson::cimjp(xca(i,j),yca(i,j))
-                      +MapPoisson::cipjp(xca(i,j),yca(i,j)))*2*ybcu;
-        }
-        k = k+1;
-      }
-    }
-  }
-
-  k = 0; //x neumann lower
-  if (xbctypel == 1){  //x neumann  -  newton's method used for both x and y
-    for (int j = 0; j < ny; j++){
-      for (int i = 0; i < nx; i++){
-        if (i == 0){//lower bound
-          rhst(k)+= (MapPoisson::cimj(xca(i,j),yca(i,j))+MapPoisson::cimjm(xca(i,j),yca(i,j))
-                    +MapPoisson::cimjp(xca(i,j),yca(i,j)))*xbcl*dxc;
-        }
-        k = k+1;
-      }
-    }
-  }
-
-  k = 0; //x neumann upper
-  if (xbctypeu == 1){  //x neumann  -  newton's method used for both x and y
-    for (int j = 0; j < ny; j++){
-      for (int i = 0; i < nx; i++){
-        if (i == nx-1){//upper bound
-          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j))+MapPoisson::cipjm(xca(i,j),yca(i,j))
-                     +MapPoisson::cipjp(xca(i,j),yca(i,j)))*xbcu*dxc;
+        if (j == ny-1){//upper bound
+          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j),i,j)+MapPoisson::cipjp(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cimjp(xca(i,j),yca(i,j),i,j))*2*ybcu;
         }
         k = k+1;
       }
@@ -401,21 +331,21 @@ VectorXd MapPoisson::srcconv()
   }
 
   k = 0;
-  if (ybctypel == 1){  //y neumann lower
+  if (xbctypel == 0){  //x dirichlet lower
     for (int j = 0; j < ny; j++){
       for (int i = 0; i < nx; i++){
-        if (j == 0 and i != 0 and i != nx-1){//lower bound
-          rhst(k)+= (MapPoisson::cijm(xca(i,j),yca(i,j))+MapPoisson::cimjm(xca(i,j),yca(i,j))
-                    +MapPoisson::cipjm(xca(i,j), yca(i,j)))*ybcl*dyc;
-        } else if (j == 0 and i ==0 and xbctypel!= 2){
-          rhst(k)+= (MapPoisson::cijm(xca(i,j),yca(i,j))
-                    +MapPoisson::cipjm(xca(i,j), yca(i,j)))*ybcl*dyc;
-        } else if (j == 0 and i == nx-1 and xbctypel!= 2){
-          rhst(k)+= (MapPoisson::cijm(xca(i,j),yca(i,j))
-                    +MapPoisson::cimjm(xca(i,j),yca(i,j)))*ybcl*dyc;
-        } else if (j == 0 and xbctypel == 2){
-          rhst(k)+= (MapPoisson::cijm(xca(i,j),yca(i,j))+MapPoisson::cimjm(xca(i,j),yca(i,j))
-                    +MapPoisson::cipjm(xca(i,j), yca(i,j)))*ybcl*dyc;
+        if (i == 0 and j != 0 and j != ny-1){//lower bound
+          rhst(k)+= -(MapPoisson::cimj(xca(i,j),yca(i,j),i,j)+MapPoisson::cimjm(xca(i,j),yca(i,j),i,j)
+                      +MapPoisson::cimjp(xca(i,j),yca(i,j),i,j))*2*xbcl;
+        } else if (i == 0 and j ==0 and ybctypel!= 2){
+          rhst(k)+= -(MapPoisson::cimj(xca(i,j),yca(i,j),i,j)
+                      +MapPoisson::cimjp(xca(i,j),yca(i,j),i,j))*2*xbcl;
+        } else if (i == 0 and j == ny-1 and ybctypel != 2){
+          rhst(k)+= -(MapPoisson::cimj(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cimjm(xca(i,j),yca(i,j),i,j))*2*xbcl;
+        } else if (i == 0 and ybctypel == 2){
+          rhst(k)+= -(MapPoisson::cimj(xca(i,j),yca(i,j),i,j)+MapPoisson::cimjm(xca(i,j),yca(i,j),i,j)
+                      +MapPoisson::cimjp(xca(i,j),yca(i,j),i,j))*2*xbcl;
         }
         k = k+1;
       }
@@ -423,21 +353,91 @@ VectorXd MapPoisson::srcconv()
   }
 
   k = 0;
-  if (ybctypeu == 1){  //y neumann upper
+  if (xbctypeu == 0){  //x dirichlet upper
     for (int j = 0; j < ny; j++){
       for (int i = 0; i < nx; i++){
-        if (j == ny-1 and i != 0 and i!= nx-1){//upper bound
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))+MapPoisson::cimjp(xca(i,j),yca(i,j))
-                    +MapPoisson::cipjp(xca(i,j),yca(i,j)))*ybcu*dyc;
-        } else if (j == ny-1 and i ==0 and xbctypel!= 2){
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))
-                    +MapPoisson::cipjp(xca(i,j),yca(i,j)))*ybcu*dyc;
-        } else if (j == ny-1 and i == nx-1 and xbctypel!= 2){
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))
-                    +MapPoisson::cimjp(xca(i,j),yca(i,j)))*ybcu*dyc;
-        } else if (j == ny-1 and xbctypel == 2){
-          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j))+MapPoisson::cimjp(xca(i,j),yca(i,j))
-                    +MapPoisson::cipjp(xca(i,j),yca(i,j)))*ybcu*dyc;
+        if (i == nx-1 and j != 0 and j!= ny-1){//upper bound
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)+MapPoisson::cipjm(xca(i,j),yca(i,j),i,j)
+                      +MapPoisson::cipjp(xca(i,j),yca(i,j),i,j))*2*xbcu;
+        } else if (i == nx-1 and j ==0 and ybctypel!= 2){
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)
+                      +MapPoisson::cipjp(xca(i,j),yca(i,j),i,j))*2*xbcu;
+        } else if (i == nx-1 and j == ny-1 and ybctypel!= 2){
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cipjm(xca(i,j),yca(i,j),i,j))*2*xbcu;
+        } else if (i == nx-1 and ybctypel == 2){
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)+MapPoisson::cipjm(xca(i,j),yca(i,j),i,j)
+                      +MapPoisson::cipjp(xca(i,j),yca(i,j),i,j))*2*xbcu;
+        }
+        k = k+1;
+      }
+    }
+  }
+
+  k = 0; //y neumann lower
+  if (ybctypel == 1){  //y neumann
+    for (int j = 0; j < ny; j++){
+      for (int i = 0; i < nx; i++){
+        if (j == 0){//lower bound
+          rhst(k)+= (MapPoisson::cijm(xca(i,j),yca(i,j),i,j)+MapPoisson::cipjm(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cimjm(xca(i,j),yca(i,j),i,j))*ybcl*dyc;
+        }
+        k = k+1;
+      }
+    }
+  }
+
+  k = 0; //y neumann upper
+  if (ybctypeu == 1){  //y neumann
+    for (int j = 0; j < ny; j++){
+      for (int i = 0; i < nx; i++){
+        if (j == ny-1){//upper bound
+          rhst(k)+= -(MapPoisson::cijp(xca(i,j),yca(i,j),i,j)+MapPoisson::cimjp(xca(i,j),yca(i,j),i,j)
+                     +MapPoisson::cipjp(xca(i,j),yca(i,j),i,j))*ybcu*dyc;
+        }
+        k = k+1;
+      }
+    }
+  }
+
+  k = 0;
+  if (xbctypel == 1){  //x neumann lower
+    for (int j = 0; j < ny; j++){
+      for (int i = 0; i < nx; i++){
+        if (i == 0 and j != 0 and j != ny-1){//lower bound
+          rhst(k)+= (MapPoisson::cimj(xca(i,j),yca(i,j),i,j)+MapPoisson::cimjm(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cimjp(xca(i,j), yca(i,j),i,j))*xbcl*dxc;
+        } else if (i == 0 and j ==0 and ybctypel!= 2){
+          rhst(k)+= (MapPoisson::cimj(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cimjp(xca(i,j), yca(i,j),i,j))*xbcl*dxc;
+        } else if (i == 0 and j == ny-1 and ybctypel!= 2){
+          rhst(k)+= (MapPoisson::cimj(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cimjm(xca(i,j),yca(i,j),i,j))*xbcl*dxc;
+        } else if (i == 0 and ybctypel == 2){
+          rhst(k)+= (MapPoisson::cimj(xca(i,j),yca(i,j),i,j)+MapPoisson::cimjm(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cimjp(xca(i,j), yca(i,j),i,j))*xbcl*dxc;
+        }
+        k = k+1;
+      }
+    }
+  }
+
+  k = 0;
+  if (xbctypeu == 1){  //x neumann upper
+    for (int j = 0; j < ny; j++){
+      for (int i = 0; i < nx; i++){
+        if (i == nx-1 and j != 0 and j!= ny-1){//upper bound
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)+MapPoisson::cipjp(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cipjm(xca(i,j),yca(i,j),i,j))*xbcu*dxc;
+        } else if (i == nx-1 and j ==0 and ybctypel!= 2){
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cipjp(xca(i,j),yca(i,j),i,j))*xbcu*dxc;
+        } else if (i == nx-1 and j == ny-1 and ybctypel!= 2){
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cipjm(xca(i,j),yca(i,j),i,j))*xbcu*dxc;
+        } else if (i == nx-1 and ybctypel == 2){
+          rhst(k)+= -(MapPoisson::cipj(xca(i,j),yca(i,j),i,j)+MapPoisson::cipjp(xca(i,j),yca(i,j),i,j)
+                    +MapPoisson::cipjm(xca(i,j),yca(i,j),i,j))*xbcu*dxc;
         }
         k = k+1;
       }
@@ -500,7 +500,7 @@ Vector3d MapPoisson::ginv(Vector3d gvec){
 
 //////////////////////////COEFFICIENT CALCULATORS//////////////////////////////
 
-double MapPoisson::cij(double xc, double yc){//cij
+double MapPoisson::cij(double xc, double yc, int i, int j){//cij
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
@@ -516,7 +516,7 @@ double MapPoisson::cij(double xc, double yc){//cij
   return h1+h2+h3+h4;
 }
 
-double MapPoisson::cimj(double xc, double yc){//ci-1,j
+double MapPoisson::cimj(double xc, double yc, int i, int j){//ci-1,j
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
@@ -526,20 +526,70 @@ double MapPoisson::cimj(double xc, double yc){//ci-1,j
   g = MapPoisson::gij(xc,yc-0.5*dxc);
   gi = MapPoisson::ginv(g);
   double h3 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  return h1+h2+h3;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2+h3;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h1+h2+h3;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h1+h2+h3;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1+h2;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h1+h3;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = h1+h2;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = h1+h2;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = h1+h3;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = h1+h3;
+    }
+  } else {
+    coeff = h1+h2+h3;
+  }
+  return coeff;
 }
 
-double MapPoisson::cimjp(double xc, double yc){//ci-1,j+1
+double MapPoisson::cimjp(double xc, double yc, int i, int j){//ci-1,j+1
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc+0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  return h1+h2;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h2;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h1+h2;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1+h2;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h1;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = h2;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = h1+h2;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = 0;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = h1;
+    }
+  } else {
+    coeff = h1+h2;
+  }
+  return coeff;
 }
 
-double MapPoisson::cijp(double xc, double yc){//ci,j+1
+double MapPoisson::cijp(double xc, double yc, int i, int j){//ci,j+1
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
@@ -549,20 +599,70 @@ double MapPoisson::cijp(double xc, double yc){//ci,j+1
   g = MapPoisson::gij(xc+0.5*dxc,yc);
   gi = MapPoisson::ginv(g);
   double h3 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  return h1+h2+h3;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2+h3;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h2+h3;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h1+h2;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1+h2+h3;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h1+h2+h3;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = h2+h3;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = h1+h2;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = h2+h3;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = h1+h2;
+    }
+  } else {
+    coeff = h1+h2+h3;
+  }
+  return coeff;
 }
 
-double MapPoisson::cipjp(double xc, double yc){//ci+1,j+1
+double MapPoisson::cipjp(double xc, double yc, int i, int j){//ci+1,j+1
   Vector3d g = MapPoisson::gij(xc+0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc+0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  return h1+h2;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h1+h2;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h2;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1+h2;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h1;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = h1+h2;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = h2;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = h1;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = 0;
+    }
+  } else {
+    coeff = h1+h2;
+  }
+  return coeff;
 }
 
-double MapPoisson::cipj(double xc, double yc){//ci+1,j
+double MapPoisson::cipj(double xc, double yc, int i, int j){//ci+1,j
   Vector3d g = MapPoisson::gij(xc,yc+0.5*dyc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
@@ -572,20 +672,70 @@ double MapPoisson::cipj(double xc, double yc){//ci+1,j
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h3 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  return h1+h2+h3;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2+h3;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h1+h2+h3;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h1+h2+h3;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1+h2;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h2+h3;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = h1+h2;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = h1+h2;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = h2+h3;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = h2+h3;
+    }
+  } else {
+    coeff = h1+h2+h3;
+  }
+  return coeff;
 }
 
-double MapPoisson::cipjm(double xc, double yc){//ci+1,j-1
+double MapPoisson::cipjm(double xc, double yc, int i, int j){//ci+1,j-1
   Vector3d g = MapPoisson::gij(xc+0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  return h1+h2;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h1+h2;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h2;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h1+h2;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = h1;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = 0;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = h1+h2;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = h2;
+    }
+  } else {
+    coeff = h1+h2;
+  }
+  return coeff;
 }
 
-double MapPoisson::cijm(double xc, double yc){//ci,j-1
+double MapPoisson::cijm(double xc, double yc, int i, int j){//ci,j-1
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
@@ -595,17 +745,67 @@ double MapPoisson::cijm(double xc, double yc){//ci,j-1
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h3 = dxc*sqrt(MapPoisson::gdet(g))*gi(2)/dyc;
-  return h1+h2+h3;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2+h3;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h2+h3;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h1+h3;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1+h2+h3;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h1+h2+h3;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = h2+h3;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = h1+h3;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = h2+h3;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = h1+h3;
+    }
+  } else {
+    coeff = h1+h2+h3;
+  }
+  return coeff;
 }
 
-double MapPoisson::cimjm(double xc, double yc){//ci-1,j-1
+double MapPoisson::cimjm(double xc, double yc, int i, int j){//ci-1,j-1
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  return h1+h2;
+
+  double coeff = 0;
+  if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
+    if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
+      coeff = h1+h2;
+    } else if (j!=0 and j!=ny-1 and i==0){ //left side
+      coeff = h2;
+    } else if (j!=0 and j!=nx-1 and i==nx-1){ //right side
+      coeff = h1+h2;
+    } else if (i!=0 and i!=nx-1 and j==0){ //bottom side
+      coeff = h1;
+    } else if (i!=0 and i!=nx-1 and j==ny-1){ //top side
+      coeff = h1+h2;
+    } else if (j==0 and i==0){ //bottom left corner
+      coeff = 0;
+    } else if (j==0 and i==nx-1){ //bottom right corner
+      coeff = h1;
+    } else if (j==ny-1 and i==0){ //top left corner
+      coeff = h2;
+    } else if (j==ny-1 and i==nx-1){ //top right corner
+      coeff = h1+h2;
+    }
+  } else {
+    coeff = h1+h2;
+  }
+  return coeff;
 }
 
 
