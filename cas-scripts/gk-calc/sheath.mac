@@ -84,7 +84,7 @@ for p : 1 thru pmax do (
   writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
   printf(fh, "  } else {~%"),
   /* first velocity dim is always vpar, and we need to modify the upper integration limit */
-  cutlims[1] : [-2*(vcut-wv)/dv,1],
+  cutlims[1] : [2*(-vcut-wv)/dv,1],
   /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
   uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, wv + vpar/dv, subst(edgesub,f_expd))),
   writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
@@ -92,7 +92,7 @@ for p : 1 thru pmax do (
 
   printf(fh, "  // calculate c = uhat/u ~%"),
   printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(u, uhat, 1, 1, c); ~%", cdim, basisFun, p),
-  printf(fh, "  // calculate fhat = c*f ~%),
+  printf(fh, "  // calculate fhat = c*f ~%"),
   printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(c, f, 1, 1, fhat); ~%", cdim, vdim, basisFun, p),
 
   printf(fh, "} ~%~%"),
