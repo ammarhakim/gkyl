@@ -395,11 +395,15 @@ function App:init(tbl)
    self._runApplication = buildApplication(self, tbl)
 end
 function App:run()
-   if GKYL_COMMAND == "run" then
+   -- by default command is "run"
+   if #GKYL_COMMANDS == 0 then GKYL_COMMANDS[1] = "run" end
+
+   -- take action
+   if GKYL_COMMANDS[1] == "run" or GKYL_COMMANDS[1] == "restart" then
       return self:_runApplication()
-   elseif GKYL_COMMAND == "init" then
+   elseif GKYL_COMMANDS[1] == "init" then
       return function (...) end
-   end
+   end   
 end
 
 -- add to table
