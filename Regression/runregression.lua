@@ -116,11 +116,34 @@ local function runShellTest(test)
    log(string.format("Running shell test %s\n", test))
 end
 
+-- runs a single lua unit test
+local function runLuaUnitTest(test)
+   log(string.format("\nRunning test %s ...\n", test))
+
+   local runCmd = string.format("%s %s", GKYL_EXEC, test)
+   local f = io.popen(runCmd, "r")
+   local outPut = f:read("*a")
+   if string.find(outPut, "FAILED") then
+      log("... FAILED!\n")
+      numFailedTests = numFailedTests+1
+   else
+      numPassedTests = numPassedTests+1
+      log("... passed.\n")
+   end
+end
+
 local function isLuaRegressionTest(fn)
    return string.find(fn, "/rt%-[^/]-%.lua$") ~= nil
 end
 local function isShellRegressionTest(fn)
    return string.find(fn, "/rt%-[^/]-%.sh$") ~= nil
+end
+
+local function isLuaUnitTest(fn)
+   return string.find(fn, "/test_[^/]-%.lua$") ~= nil
+end
+local function isShellUnitTest(fn)
+   return string.find(fn, "/test_[^/]-%.sh$") ~= nil
 end
 
 -- list of regression tests
@@ -141,6 +164,23 @@ local function list_tests(args)
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
    return luaRegTests, shellRegTests
+end
+
+-- list of unit tests
+local function list_unit_tests(args)
+   local luaUnitTests, shellUnitTests = {}, {}
+
+   local function addTest(fn)
+      if isLuaUnitTest(fn) then
+	 table.insert(luaUnitTests, fn)
+      elseif isShellUnitTest(fn) then
+	 table.insert(shellUnitTests, fn)
+      end
+   end
+
+   for dir, fn, _ in dirtree("../Unit") do addTest(dir .. "/" .. fn) end
+
+   return luaUnitTests, shellUnitTests
 end
 
 -- function to handle "config" command
@@ -273,7 +313,27 @@ local function run_action(args, name)
    lume.each(
       shellRegTests, function (f) runShellTest(f); postRun(f) end)
 
-   log(string.format("All tests completed in %g secs\n", Time.clock()-tmStart))
+   log(string.format("All regression tests completed in %g secs\n", Time.clock()-tmStart))
+end
+
+-- function to handle "listunit" command
+local function listunit_action(args, name)
+   local luaUnitTests, shellUnitTests = list_unit_tests(args)
+   lume.each(luaUnitTests, print)
+   lume.each(shellUnitTests, print)
+end
+
+-- function to handle "rununit" command
+local function rununit_action(args, name)
+   loadConfigure()
+   local luaUnitTests, shellUnitTests = list_unit_tests(args)
+
+   log("Running unit tests ...\n\n")
+   local tmStart = Time.clock()
+   lume.each(
+      luaUnitTests, function (f) runLuaUnitTest(f) end)
+
+   log(string.format("All unit tests completed in %g secs\n", Time.clock()-tmStart))
 end
 
 -- Create CLI parser to handle commands and options
@@ -314,7 +374,6 @@ local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
    :action(run_action)
-
 c_run:option("-r --run-only", "Only run this test")
 
 -- check against accepted results
@@ -322,6 +381,16 @@ c_run:command("check", "Check results")
 
 -- create accepted results
 c_run:command("create", "Create accepted results")
+
+-- "listunit" command
+parser:command("listunit", "List all unit tests")
+   :action(listunit_action)
+
+-- "rununit" tests
+local c_rununit = parser:command("rununit")
+   :description("Run unit tests.")
+   :require_command(false)
+   :action(rununit_action)
 
 -- parse command-line args (functionality encoded in command actions)
 local _ = parser:parse(GKYL_COMMANDS)
