@@ -226,6 +226,9 @@ local function check_action(test)
 
    local vloc = string.find(test, "/rt%-[^/]-%.lua$")
    local outDirName = string.sub(test, 1, vloc)
+   -- the very strange looking pattern below puts an escape character
+   -- (i.e. \) before characters that are treated as special by
+   -- pattern matcher
    local testPrefix = string.gsub(
       string.sub(test, 3, -5), "(%W)", "%%%1")
 
