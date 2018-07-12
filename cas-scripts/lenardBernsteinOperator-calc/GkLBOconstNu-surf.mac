@@ -172,7 +172,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         Gdiff_c : calcInnerProdList(varsP,1,bP,nuVtSq_e*hsol[2])
     )
     else (
-        Gdiff_c : calcInnerProdList(varsP,1,bP,m_*BmagInv_e*nuVtSq_e*dr*hsol[2])
+        Gdiff_c : calcInnerProdList(varsP,1,bP,m_*nuVtSq_e*BmagInv_e*dr*hsol[2]) /* *BmagInv_e */
     ),
     /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
     ** but that could result in references to elements of Gdiff in Ghat
@@ -201,7 +201,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
          g : nuVtSq_e*hsol[1]
     )
     else (
-    	 g : m_*BmagInv_e*nuVtSq_e*subst(vv=1,dr)*hsol[1]
+    	 g : m_*BmagInv_e*nuVtSq_e*subst(vv=1,dr)*hsol[1] /* BmagInv_e* */
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
@@ -256,7 +256,6 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Compute the diffusive part of Ghat separately. */
     printf(fh, "  double Gdiff[~a]; ~%", NP),
     /* This one yields less compact expressions: writeCExprs1(Gdiff,Gdiff_c), */
-    /* Change indices of BmagInv and include in clst */
     clst : makelist(nuVtSq[i],i,0,NC-1),
     writeCExprsCollect1c(Gdiff, Gdiff_c, clst),
     printf(fh, "~%"),
@@ -278,7 +277,6 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
     printf(fh, "  double incr2[~a]; ~%", NP),
-    /* Change indices of BmagInv and include in clst */
     clst : makelist(nuVtSq[i],i,0,NC-1), 
     writeCExprsCollect1c(incr2, incr_r2, clst),
     printf(fh, "~%"),
@@ -368,9 +366,9 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     else (
     	/* Define drift term. */
     	dr_l  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
-	gl  : m_*BmagInv_e*nuVtSq_e*dr_l*fl_e,
+	gl  : m_*nuVtSq_e*dr_l*fl_e, /* m_*BmagInv_e*nuVtSq_e*dr_l*fl_e, */
 	dr_r  : dxvr[vid1[dir]]*vv + 2*wr[vid1[dir]],
-    	gr  : m_*BmagInv_e*nuVtSq_e*dr_r*fr_e
+    	gr  : m_*nuVtSq_e*dr_r*fr_e /* m_*BmagInv_e*nuVtSq_e*dr_r*fr_e */
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
