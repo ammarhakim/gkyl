@@ -4,7 +4,7 @@ load(stringproc)$
 /* Maximum polynomial order to generate kernels for */
 inMaxPolyOrder : 2$
 
-for c : 1 thru 2 do (
+for c : 1 thru 1 do (
   for v : c thru 2 do (
     disp(printf(false,"Creating volume GkLBOconstNu ~ax~av",c,v)),
     fname : sconcat("~/max-out/GkLBOconstNuSer", c, "x", v, "v", ".cpp"),

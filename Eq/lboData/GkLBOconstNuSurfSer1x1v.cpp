@@ -1,12 +1,11 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. 
   // nu:         constant collisionality. 
   // vMuMidMax:  maximum midpoint value of v-u. 
   // nuU[1*2]: bulk velocity (in 1 directions) times nu. 
   // nuVtSq[2]: thermal speed squared times nu. 
-  // BmagInv[2]:  reciprocal of Bmag 
   // fl/fr:      Distribution function in left/right cells 
   // outl/outr:  Incremented distribution function in left/right cells 
   double rdv = 1.0/dxvl[1]; 
@@ -65,14 +64,13 @@ double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double *wl, const 
   const double vMuMid = wl[1]-(0.7071067811865475*nuU[0])/nu; 
   return std::abs(vMuMid); 
 } 
-double GkLBOconstNuSurf1x1vSer_Vpar_P2(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x1vSer_Vpar_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. 
   // nu:         constant collisionality. 
   // vMuMidMax:  maximum midpoint value of v-u. 
   // nuU[1*3]: bulk velocity (in 1 directions) times nu. 
   // nuVtSq[3]: thermal speed squared times nu. 
-  // BmagInv[3]:  reciprocal of Bmag 
   // fl/fr:      Distribution function in left/right cells 
   // outl/outr:  Incremented distribution function in left/right cells 
   double rdv = 1.0/dxvl[1]; 
