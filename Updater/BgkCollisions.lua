@@ -23,8 +23,6 @@ local BgkCollisions = Proto(UpdaterBase)
 function BgkCollisions:init(tbl)
    BgkCollisions.super.init(self, tbl) -- setup base object
 
-   self._collFreq = assert(tbl.collFreq,
-			   "Updater.BgkCollisions: Must provide a collision frequency using 'collFreq'")
    self._confGrid = assert(tbl.confGrid,
 			   "Updater.BgkCollisions: Must provide configuration space grid object using 'confGrid'")
    self._confBasis = assert(tbl.confBasis,
@@ -33,6 +31,18 @@ function BgkCollisions:init(tbl)
 			    "Updater.BgkCollisions: Must provide phase space grid object using 'phaseGrid'")
    self._phaseBasis = assert(tbl.phaseBasis,
 			     "Updater.BgkCollisions: Must provide phase space basis object using 'phaseBasis'")
+
+   self.collFreq = tbl.collFreq
+   if not self.collFreq then
+      self.mass = assert(
+	 tbl.mass, "Updater.BgkCollisions: Must specify mass with 'mass' ('collFreq' is not specified, so classical \nu is used instead)")
+      self.charge = assert(
+	 tbl.charge, "Updater.BgkCollisions: Must specify charge with 'charge' ('collFreq' is not specified, so classical \nu is used instead)")
+      self.epsilon0 = assert(
+	 tbl.epsilon0, "Updater.BgkCollisions: Must specify vacuum permitivity with 'epsilon0' ('collFreq' is not specified, so classical \nu is used instead)")
+      self.coulombLog = assert(
+	 tbl.coulombLog, "Updater.BgkCollisions: Must specify Coulomb logaritm with 'coulombLog' ('collFreq' is not specified, so classical \nu is used instead)")
+   end
 
    -- -- Number of quadrature points in each direction
    -- self._N = tbl.numConfQuad and tbl.numConfQuad or self._confBasis:polyOrder() + 1
@@ -91,8 +101,6 @@ end
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
 function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
-   -- local numConfDims = self._confGrid:ndim()
-   -- local numConfBasis = self._confBasis:numBasis()
    local numPhaseDims = self._phaseGrid:ndim()
    local numPhaseBasis = self._phaseBasis:numBasis()
 
@@ -101,11 +109,29 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 		      "BgkCollisions.advance: Must specify an input distribution function field as input[1]")
    local fMaxwell = assert(inFld[2],
 			   "BgkCollisions.advance: Must specify the Maxwellian distribution function field as input[2]")
+   local nuFrac = 1.0
+   if inFld[3] then
+      nuFrac = inFld[3]
+   end
+   local nIn = nil
+   local vth2In = nil 
+   if not self.collFreq then
+      nIn = assert(inFld[4],
+		      "BgkCollisions.advance: Must specify an input number density field as input[4] ('collFreq' is not specified, so classical \nu is used instead)")
+      vth2In = assert(inFld[5],
+		      "BgkCollisions.advance: Must specify an input thermal velocity squared field as input[5] ('collFreq' is not specified, so classical \nu is used instead)")
+   end
+
    local fOut = assert(outFld[1],
 		       "BgkCollisions.advance: Must specify an output field")
    
    local fInItr = fIn:get(1)
    local fMaxwellItr = fMaxwell:get(1)
+   if not self.collFreq then
+      nInItr = nIn:get(1)
+      vth2InItr = vth2In:get(1)
+   end
+
    local fOutItr = fOut:get(1)
 
    -- Get the Ranges to loop over the domain
@@ -113,17 +139,33 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    -- local confIndexer = numDensityIn:genIndexer()
    local phaseRange = fOut:localRange()
    local phaseIndexer = fOut:genIndexer()
-
-   local nu = self._collFreq  -- Collision frequency function
-
+   local confIndexer = nil
+   if not self.collFreq then
+      confIndexer = nIn:genIndexer()
+   end
    -- Phase space loop
+   local confIdx = {}
+   local nu = self.collFreq
    for phaseIdx in phaseRange:colMajorIter() do
       fIn:fill(phaseIndexer(phaseIdx), fInItr)
       fMaxwell:fill(phaseIndexer(phaseIdx), fMaxwellItr)
       fOut:fill(phaseIndexer(phaseIdx), fOutItr)
-
+      if not self.collFreq then
+	 for d = 1, self._confGrid:ndim() do
+	    confIdx[d] = phaseIdx[d]
+	 end
+	 nIn:fill(confIndexer(confIdx), nInItr)
+	 vth2In:fill(confIndexer(confIdx), vth2InItr)
+	 if vth2InItr[0] < 0 then 
+	    nu = 0.0
+	 else 
+	    nu = self.charge^4/(2*math.pi*self.epsilon0^2*self.mass^2) * 
+	       self.coulombLog * nInItr[0] / math.sqrt(vth2InItr[0])^3
+	 end
+      end   
+      
       for k = 1, numPhaseBasis do
-	 fOutItr[k] = fOutItr[k] + dt * nu * -- FIX collision frequency!
+	 fOutItr[k] = fOutItr[k] + dt *  nuFrac * nu * 
 	    (fMaxwellItr[k] - fInItr[k])
       end
    end

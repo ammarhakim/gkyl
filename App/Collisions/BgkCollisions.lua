@@ -33,10 +33,20 @@ function BgkCollisions:fullInit(speciesTbl)
    self.cfl = 0.1 -- some default value
    self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
    self.crossSpecies = tbl.crossSpecies
-   self.collFreq = assert(
-      tbl.collFreq, "Updater.BgkCollisions: Must specify the collision frequency with 'collFreq'")
-   self.beta = assert(
-      tbl.beta, "Updater.BgkCollisions: Must specify the beta from Green with 'beta'")
+   if self.crossSpecies then
+      self.beta = assert(
+	 tbl.beta, "Updater.BgkCollisions: Must specify the beta from Green with 'beta' (cross-species are ON)")
+   end
+
+   self.collFreq = tbl.collFreq
+   if not self.collFreq then 
+      self.mass = speciesTbl.mass
+      self.charge = speciesTbl.charge
+      self.epsilon0 = assert(
+	 tbl.epsilon0, "Updater.BgkCollisions: Must specify vacuum permitivity with 'epsilon0' ('collFreq' is not specified, so classical nu is used instead)")
+      self.coulombLog = assert(
+	 tbl.coulombLog, "Updater.BgkCollisions: Must specify Coulomb logaritm with 'coulombLog' ('collFreq' is not specified, so classical nu is used instead)")
+   end
 end
 
 function BgkCollisions:setName(nm)
@@ -137,6 +147,10 @@ function BgkCollisions:createSolver()
       phaseGrid = self.phaseGrid,
       phaseBasis = self.phaseBasis,
       collFreq = self.collFreq,
+      mass = self.mass,
+      charge = self.charge,
+      epsilon0 = self.epsilon0,
+      coulombLog = self.coulombLog,
    }
 end
 
@@ -156,12 +170,14 @@ function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 
    self:primMoments(selfMom[1], selfMom[2], selfMom[3], 
 		    self.uSelf, self.vth2Self)
+
    if self.selfCollisions then
       self.maxwellian:advance(
 	 tCurr, dt, {selfMom[1], self.uSelf, self.vth2Self},
 	 {self.fMaxwell})
       tmpStatus, tmpDt = self.collisionSlvr:advance(
-	 tCurr, dt, {fIn, self.fMaxwell}, {fOut})
+	 tCurr, dt,
+	 {fIn, self.fMaxwell, 1.0, selfMom[1], self.vth2Self}, {fOut})
       status = status and tmpStatus
       dtSuggested = math.min(dtSuggested, tmpDt)
    end
