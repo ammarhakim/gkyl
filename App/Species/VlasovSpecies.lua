@@ -44,7 +44,10 @@ end
 function VlasovSpecies:fullInit(appTbl)
    VlasovSpecies.super.fullInit(self, appTbl)
    
-   self.externalBC = self.tbl.externalBC
+   local externalBC = self.tbl.externalBC
+   if externalBC then
+      self.wallFunction = require(externalBC)
+   end
 end
 
 function VlasovSpecies:allocMomCouplingFields()
@@ -275,12 +278,11 @@ end
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
    -- requires skinLoop = "flip"
-   local wallFunction = require(self.externalBC)
    local velIdx = {}
    for d = 1, self.vdim do
       velIdx[d] = idxIn[self.cdim + d]
    end
-   wallFunction[1](velIdx, fIn, fOut)
+   self.wallFunction[1](velIdx, fIn, fOut)
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
