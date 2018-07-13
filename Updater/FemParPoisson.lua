@@ -98,8 +98,8 @@ function FemParPoisson:init(tbl)
    end
 
    -- make sure BCs are specified consistently
-   if self._periodic == false and not (self._bc[0].isSet and self._bc[1].isSet) then
-     -- if not periodic, use neumann by default (usually doing discont-to-cont projection)
+   if self._periodic == false and not (self._bc[0].isSet and self._bc[1].isSet) and modifierConstant == 1.0 and laplacianWeight == 0.0 then
+     -- if not periodic, use neumann by default in this case (discont-to-cont projection)
      self._bc[0] = getBcData({ T = "N", V = 0.0 })
      self._bc[1] = getBcData({ T = "N", V = 0.0 })
    elseif self._periodic then
