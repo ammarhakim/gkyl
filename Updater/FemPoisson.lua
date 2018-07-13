@@ -22,6 +22,15 @@ local FemPoisson = Proto(UpdaterBase)
 function FemPoisson:init(tbl)
    FemPoisson.super.init(self, tbl)
 
+   local function contains(table, element)
+     for _, value in pairs(table) do
+       if value == element then
+         return true
+       end
+     end
+     return false
+   end
+
    self.grid = tbl.onGrid
    self.ndim = self.grid:ndim()
    self.basis = tbl.basis
@@ -29,14 +38,44 @@ function FemPoisson:init(tbl)
    self.laplacianWeight = tbl.laplacianWeight
    self.modifierConstant = tbl.modifierConstant
    self.zContinuous = tbl.zContinuous
+   self.periodicDirs = tbl.periodicDirs   
+   self.bcLeft = tbl.bcLeft
+   self.bcRight = tbl.bcRight
+   self.bcTop = tbl.bcTop
+   self.bcBottom = tbl.bcBottom
+   self.bcBack = tbl.bcBack
+   self.bcFront = tbl.bcFront
+
+   -- make sure BCs are specified consistently
+   if contains(self.periodicDirs,1) == false and self.modifierConstant == 1.0 and self.laplacianWeight == 0.0 and self.bcLeft == nil and self.bcRight == nil then
+     -- if not periodic, use neumann by default in this case (discont-to-cont projection)
+     self.bcLeft = { T = "N", V = 0.0 }
+     self.bcRight = { T = "N", V = 0.0 }
+   elseif contains(self.periodicDirs,1) then
+     assert(self.bcLeft == nil and self.bcRight == nil, "Cannot specify BCs if direction is periodic")
+   end
+   if contains(self.periodicDirs,2) == false and self.modifierConstant == 1.0 and self.laplacianWeight == 0.0 and self.bcTop == nil and self.bcBottom == nil then
+     -- if not periodic, use neumann by default in this case (discont-to-cont projection)
+     self.bcTop = { T = "N", V = 0.0 }
+     self.bcBottom = { T = "N", V = 0.0 }
+   elseif contains(self.periodicDirs,2) then
+     assert(self.bcTop == nil and self.bcBottom == nil, "Cannot specify BCs if direction is periodic")
+   end
+   if contains(self.periodicDirs,3) == false and self.modifierConstant == 1.0 and self.laplacianWeight == 0.0 and self.bcBack == nil and self.bcFront == nil then
+     -- if not periodic, use neumann by default in this case (discont-to-cont projection)
+     self.bcBack = { T = "N", V = 0.0 }
+     self.bcFront = { T = "N", V = 0.0 }
+   elseif contains(self.periodicDirs,3) then
+     assert(self.bcBack == nil and self.bcFront == nil, "Cannot specify BCs if direction is periodic")
+   end
   
    self.slvr = nil
    if ndim == 1 then 
       self.slvr = FemParPoisson {
         onGrid = self.grid,
         basis = self.basis,
-        bcBack = tbl.bcBack,
-        bcFront = tbl.bcFront,
+        bcBack = self.bcLeft,
+        bcFront = self.bcRight,
         periodicDirs = tbl.periodicDirs,
         laplacianWeight = self.laplacianWeight,
         modifierConstant = self.modifierConstant,
@@ -66,11 +105,11 @@ function FemPoisson:init(tbl)
       self.slvr = FemPerpPoisson {
         onGrid = self.grid,
         basis = self.basis,
-        bcLeft = tbl.bcLeft,
-        bcRight = tbl.bcRight,
-        bcBottom = tbl.bcBottom,
-        bcTop = tbl.bcTop,
-        periodicDirs = tbl.periodicDirs,
+        bcLeft = self.bcLeft,
+        bcRight = self.bcRight,
+        bcBottom = self.bcBottom,
+        bcTop = self.bcTop,
+        periodicDirs = self.periodicDirs,
         laplacianWeight = self.laplacianWeight, 
         modifierConstant = self.modifierConstant,
       }
@@ -78,11 +117,11 @@ function FemPoisson:init(tbl)
       self.slvr = FemPerpPoisson {
         onGrid = self.grid,
         basis = self.basis,
-        bcLeft = tbl.bcLeft,
-        bcRight = tbl.bcRight,
-        bcBottom = tbl.bcBottom,
-        bcTop = tbl.bcTop,
-        periodicDirs = tbl.periodicDirs,
+        bcLeft = self.bcLeft,
+        bcRight = self.bcRight,
+        bcBottom = self.bcBottom,
+        bcTop = self.bcTop,
+        periodicDirs = self.periodicDirs,
         laplacianWeight = self.laplacianWeight, 
         modifierConstant = self.modifierConstant,
         zContinuous = self.zContinuous,
