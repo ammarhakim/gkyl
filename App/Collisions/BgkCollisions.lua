@@ -39,13 +39,20 @@ function BgkCollisions:fullInit(speciesTbl)
    end
 
    self.collFreq = tbl.collFreq
+   if tbl.nuFrac then
+      self.nuFrac =  tbl.nuFrac
+   else
+      self.nuFrac = 1.0
+   end
    if not self.collFreq then 
       self.mass = speciesTbl.mass
       self.charge = speciesTbl.charge
       self.epsilon0 = assert(
 	 tbl.epsilon0, "Updater.BgkCollisions: Must specify vacuum permitivity with 'epsilon0' ('collFreq' is not specified, so classical nu is used instead)")
-      self.coulombLog = assert(
-	 tbl.coulombLog, "Updater.BgkCollisions: Must specify Coulomb logaritm with 'coulombLog' ('collFreq' is not specified, so classical nu is used instead)")
+      self.elemCharge = assert(
+	 tbl.elemCharge, "Updater.BgkCollisions: Must specify elementary charge with 'elemCharge' ('collFreq' is not specified, so classical nu is used instead)")
+      -- self.coulombLog = assert(
+      -- 	 tbl.coulombLog, "Updater.BgkCollisions: Must specify Coulomb logaritm with 'coulombLog' ('collFreq' is not specified, so classical nu is used instead)")
    end
 end
 
@@ -149,8 +156,9 @@ function BgkCollisions:createSolver()
       collFreq = self.collFreq,
       mass = self.mass,
       charge = self.charge,
+      elemCharge = self.elemCharge,
       epsilon0 = self.epsilon0,
-      coulombLog = self.coulombLog,
+      --coulombLog = self.coulombLog,
    }
 end
 
@@ -177,7 +185,7 @@ function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 	 {self.fMaxwell})
       tmpStatus, tmpDt = self.collisionSlvr:advance(
 	 tCurr, dt,
-	 {fIn, self.fMaxwell, 1.0, selfMom[1], self.vth2Self}, {fOut})
+	 {fIn, self.fMaxwell, self.nuFrac, selfMom[1], self.vth2Self}, {fOut})
       status = status and tmpStatus
       dtSuggested = math.min(dtSuggested, tmpDt)
    end

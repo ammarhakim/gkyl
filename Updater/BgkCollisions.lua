@@ -38,70 +38,20 @@ function BgkCollisions:init(tbl)
 	 tbl.mass, "Updater.BgkCollisions: Must specify mass with 'mass' ('collFreq' is not specified, so classical \nu is used instead)")
       self.charge = assert(
 	 tbl.charge, "Updater.BgkCollisions: Must specify charge with 'charge' ('collFreq' is not specified, so classical \nu is used instead)")
+      self.elemCharge = assert(
+	 tbl.elemCharge, "Updater.BgkCollisions: Must specify elementary charge with 'elemCharge' ('collFreq' is not specified, so classical \nu is used instead)")
       self.epsilon0 = assert(
 	 tbl.epsilon0, "Updater.BgkCollisions: Must specify vacuum permitivity with 'epsilon0' ('collFreq' is not specified, so classical \nu is used instead)")
-      self.coulombLog = assert(
-	 tbl.coulombLog, "Updater.BgkCollisions: Must specify Coulomb logaritm with 'coulombLog' ('collFreq' is not specified, so classical \nu is used instead)")
+      -- self.coulombLog = assert(
+      -- 	 tbl.coulombLog, "Updater.BgkCollisions: Must specify Coulomb logaritm with 'coulombLog' ('collFreq' is not specified, so classical \nu is used instead)")
    end
-
-   -- -- Number of quadrature points in each direction
-   -- self._N = tbl.numConfQuad and tbl.numConfQuad or self._confBasis:polyOrder() + 1
-   -- -- 1D weights and ordinates
-   -- local ordinates = GaussQuadRules.ordinates[self._N]
-   -- local weights = GaussQuadRules.weights[self._N]
-
-   -- local numConfDims = self._confBasis:ndim()
-   -- local l, u = {}, {}
-   -- for d = 1, numConfDims do l[d], u[d] = 1, self._N end
-   -- local quadRange = Range.Range(l, u) -- for looping over quadrature nodes
-   -- local numOrdinates = quadRange:volume() -- number of ordinates
-   -- -- construct weights and ordinates for integration in multiple dimensions
-   -- self._confOrdinates = Lin.Mat(numOrdinates, numConfDims)
-   -- local nodeNum = 1
-   -- for idx in quadRange:colMajorIter() do
-   --    for d = 1, numConfDims do
-   -- 	 self._confOrdinates[nodeNum][d] = ordinates[idx[d]]
-   --    end
-   --    nodeNum = nodeNum + 1
-   -- end
-   -- local numBasis = self._confBasis:numBasis()
-   -- self._confBasisAtOrdinates = Lin.Mat(numOrdinates, numBasis)
-   -- -- pre-compute values of basis functions at quadrature nodes
-   -- for n = 1, numOrdinates do
-   --    self._confBasis:evalBasis(self._confOrdinates[n],
-   -- 				self._confBasisAtOrdinates[n])
-   -- end
-
-   -- numPhaseDims = self._phaseBasis:ndim()
-   -- for d = 1, numPhaseDims do l[d], u[d] = 1, self._N end
-   -- quadRange = Range.Range(l, u) -- for looping over quadrature nodes
-   -- numOrdinates = quadRange:volume() -- number of ordinates
-   -- -- construct weights and ordinates for integration in multiple dimensions
-   -- self._phaseOrdinates = Lin.Mat(numOrdinates, numPhaseDims)
-   -- self._phaseWeights = Lin.Vec(numOrdinates)
-   -- nodeNum = 1
-   -- for idx in quadRange:colMajorIter() do
-   --    self._phaseWeights[nodeNum] = 1.0
-   --    for d = 1, numPhaseDims do
-   -- 	 self._phaseWeights[nodeNum] =
-   -- 	    self._phaseWeights[nodeNum] * weights[idx[d]]
-   -- 	 self._phaseOrdinates[nodeNum][d] = ordinates[idx[d]]
-   --    end
-   --    nodeNum = nodeNum + 1
-   -- end
-   -- numBasis = self._phaseBasis:numBasis()
-   -- self._phaseBasisAtOrdinates = Lin.Mat(numOrdinates, numBasis)
-   -- -- pre-compute values of basis functions at quadrature nodes
-   -- for n = 1, numOrdinates do
-   --    self._phaseBasis:evalBasis(self._phaseOrdinates[n],
-   -- 				 self._phaseBasisAtOrdinates[n])
-   -- end
 end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
 function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    local numPhaseDims = self._phaseGrid:ndim()
+   local numConfDims = self._confGrid:ndim()
    local numPhaseBasis = self._phaseBasis:numBasis()
 
    -- Get the inputs and outputs
@@ -114,7 +64,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
       nuFrac = inFld[3]
    end
    local nIn = nil
-   local vth2In = nil 
+   local vth2In = nil
    if not self.collFreq then
       nIn = assert(inFld[4],
 		      "BgkCollisions.advance: Must specify an input number density field as input[4] ('collFreq' is not specified, so classical \nu is used instead)")
@@ -124,9 +74,11 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 
    local fOut = assert(outFld[1],
 		       "BgkCollisions.advance: Must specify an output field")
-   
+
    local fInItr = fIn:get(1)
    local fMaxwellItr = fMaxwell:get(1)
+   local nInItr = nil
+   local vth2InItr = nil
    if not self.collFreq then
       nInItr = nIn:get(1)
       vth2InItr = vth2In:get(1)
@@ -144,29 +96,37 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
       confIndexer = nIn:genIndexer()
    end
    -- Phase space loop
-   local confIdx = {}
    local nu = self.collFreq
+   local n, vth2 = nil, nil
+   local T, coulombLog = nil, nil
    for phaseIdx in phaseRange:colMajorIter() do
       fIn:fill(phaseIndexer(phaseIdx), fInItr)
       fMaxwell:fill(phaseIndexer(phaseIdx), fMaxwellItr)
       fOut:fill(phaseIndexer(phaseIdx), fOutItr)
       if not self.collFreq then
-	 for d = 1, self._confGrid:ndim() do
-	    confIdx[d] = phaseIdx[d]
-	 end
-	 nIn:fill(confIndexer(confIdx), nInItr)
-	 vth2In:fill(confIndexer(confIdx), vth2InItr)
-	 if vth2InItr[0] < 0 then 
+	 nIn:fill(confIndexer(phaseIdx), nInItr)
+	 vth2In:fill(confIndexer(phaseIdx), vth2InItr)
+	 n = nInItr[1]/2^numConfDims
+	 vth2 = vth2InItr[1]/2^numConfDims
+	 if n <= 0. or vth2 <= 0. then 
 	    nu = 0.0
-	 else 
-	    nu = self.charge^4/(2*math.pi*self.epsilon0^2*self.mass^2) * 
-	       self.coulombLog * nInItr[0] / math.sqrt(vth2InItr[0])^3
+	 else
+	    T = self.mass*vth2/self.elemCharge
+	    if T < 50 then
+	       coulombLog = 23.4-1.15*math.log10(n*1e-6)+3.45*math.log10(T)
+	    else
+	       coulombLog = 25.3-1.15*math.log10(n*1e-6)+2.3*math.log10(T)
+	    end
+	    nu = self.charge^4/(4*math.pi*self.epsilon0^2*self.mass^2) *
+	       coulombLog * n / math.sqrt(vth2)^3
 	 end
-      end   
-      
+      end
+
       for k = 1, numPhaseBasis do
-	 fOutItr[k] = fOutItr[k] + dt *  nuFrac * nu * 
-	    (fMaxwellItr[k] - fInItr[k])
+	 if fMaxwellItr[k] == fMaxwellItr[k] then -- NaN check
+	    fOutItr[k] = fOutItr[k] + dt *  nuFrac * nu *
+	       (fMaxwellItr[k] - fInItr[k])
+	 end
       end
    end
    return true, GKYL_MAX_DOUBLE
