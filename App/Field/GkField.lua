@@ -625,7 +625,7 @@ function GkGeometry:createSolver()
       local salpha = self.salpha
       self.bmagFunc = function (t, xn)
          local x, y, z
-         if self.ndim == 1 then z = xn[1]
+         if self.ndim == 1 then z = xn[1]; x = assert(salpha.r0, "must set salpha.r0 for 1D (local limit) s-alpha cases") 
          elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
          else x, y, z = xn[1], xn[2], xn[3]
          end
