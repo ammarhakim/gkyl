@@ -41,8 +41,11 @@ ffi.cdef[[
   typedef struct FemPerpPoisson FemPerpPoisson;
   FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
   void delete_FemPerpPoisson(FemPerpPoisson* f);
+  void makeGlobalStiff(FemPerpPoisson* f, double *stiffWeight, double *massWeight, int idx, int idy);
+  void finishGlobalStiff(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
   void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm);
+  void allgatherGlobalStiff(FemPerpPoisson* f, MPI_Comm comm);
   void zeroGlobalSrc(FemPerpPoisson* f);
   void solve(FemPerpPoisson* f);
   void getSolution(FemPerpPoisson* f, double* ptr, int idx, int idy);
@@ -155,10 +158,26 @@ function FemPerpPoisson:init(tbl)
    assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
    assert(self._ndim == 2 or self._ndim == 3, "This solver only implemented for 2D or 3D (with no solve in 3rd dimension)")
 
-   self._poisson = ffi.C.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
-                                            self._dx, self._dy, self._isDirPeriodic, 
-                                            self._bc, self._writeMatrix,
-                                            self._laplacianWeight, self._modifierConstant)
+   self._poisson = {}
+   self._first = true
+   self.makeStiff = true
+   -- if constStiff, then assume that stiffness matrix does not change in time, so that we don't have to recompute solver
+   self.constStiff = xsys.pickBool(tbl.constStiff, true)
+
+   -- set up constant dummy field
+   self.unitWeight = DataStruct.Field {
+	onGrid = self._grid,
+	numComponents = self._basis:numBasis(),
+	ghost = {1, 1},
+   }
+   local initUnit = ProjectOnBasis {
+      onGrid = self._grid,
+      basis = self._basis,
+      evaluate = function (t,xn)
+                    return 1.0
+                 end
+   }
+   initUnit:advance(0.,0.,{},{self.unitWeight})
 
    if GKYL_HAVE_MPI then
      -- split communicators in z
@@ -198,6 +217,8 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
 
    local src = assert(inFld[1], "FemPerpPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "FemPerpPoisson.advance: Must specify an output field")
+   local stiffWeight = inFld[2] or self.unitWeight
+   local massWeight = inFld[3] or self.unitWeight
 
    local ndim = self._ndim
 
@@ -217,6 +238,10 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    local srcPtr = src:get(1)
    local solIndexer = sol:indexer() 
    local solPtr = sol:get(1)
+   local stiffWeightIndexer = stiffWeight:indexer() 
+   local stiffWeightPtr = stiffWeight:get(1)
+   local massWeightIndexer = massWeight:indexer() 
+   local massWeightPtr = massWeight:get(1)
 
    local intSrcVol = {0.0}
    -- if all directions periodic need to adjust source so that integral is 0 
@@ -234,8 +259,16 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
 
    -- loop over local z cells
    for idz=local_z_lower, local_z_upper do
+     if self._first then 
+       -- if first time, create poisson C object for each z cell
+       self._poisson[idz] = ffi.C.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
+                                           self._dx, self._dy, self._isDirPeriodic, 
+                                           self._bc, self._writeMatrix,
+                                           self._laplacianWeight, self._modifierConstant)
+     end
+
      -- zero global source
-     ffi.C.zeroGlobalSrc(self._poisson)
+     ffi.C.zeroGlobalSrc(self._poisson[idz])
 
      -- create global source 
      -- globalSrc is an Eigen vector managed in C
@@ -249,16 +282,33 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
            src:fill(srcIndexer(idx, idy, idz), srcPtr) 
          end
          ffi.C.createGlobalSrc(self._poisson, srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
+
+         if self.makeStiff then
+            if ndim==2 then 
+              stiffWeight:fill(stiffWeightIndexer(idx,idy), stiffWeightPtr) 
+              massWeight:fill(massWeightIndexer(idx,idy), massWeightPtr) 
+            else 
+              stiffWeight:fill(stiffWeightIndexer(idx, idy, idz), stiffWeightPtr) 
+              massWeight:fill(massWeightIndexer(idx, idy, idz), massWeightPtr) 
+            end
+            ffi.C.makeGlobalStiff(self._poisson[idz], stiffWeightPtr:data(), massWeightPtr:data(), idx-1, idy-1)
+         end 
        end
      end
 
      if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
        -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
-       ffi.C.allreduceGlobalSrc(self._poisson, Mpi.getComm(self._zcomm))
+       ffi.C.allreduceGlobalSrc(self._poisson[idz], Mpi.getComm(self._zcomm))
+       if self.makeStiff then
+         ffi.C.allgatherGlobalStiff(self._poisson[idz], Mpi.getComm(self._zcomm))
+       end
      end
 
+     if self.makeStiff then
+        ffi.C.finishGlobalStiff(self._poisson[idz])
+     end
      -- solve 
-     ffi.C.solve(self._poisson)
+     ffi.C.solve(self._poisson[idz])
 
      -- remap global nodal solution to local modal solution 
      -- only need to loop over local proc region
@@ -269,10 +319,16 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
          else 
            sol:fill(solIndexer(idx, idy, idz), solPtr) 
          end
-         ffi.C.getSolution(self._poisson, solPtr:data(), idx-1, idy-1)
+         ffi.C.getSolution(self._poisson[idz], solPtr:data(), idx-1, idy-1)
        end
      end
    end 
+
+   self._first = false
+   if self.constStiff then
+     -- if stiffness matrix doesn't change in time, don't remake/recompute stiffness matrix in future 
+     self.makeStiff = false
+   end
 
    -- optionally make continuous in z
    if self.zDiscontToCont then 
