@@ -10,7 +10,7 @@ vlasovApp = Vlasov.App {
    logToFile = true,
 
    tEnd = 40.0, -- end time
-   nFrame = 5, -- number of output frames
+   nFrame = 1, -- number of output frames
    lower = {-math.pi/knumber}, -- configuration space lower left
    upper = {math.pi/knumber}, -- configuration space upper right
    cells = {64}, -- configuration space cells
@@ -45,7 +45,8 @@ vlasovApp = Vlasov.App {
       end,
       evolve = true, -- evolve species?
 
-      diagnosticMoments = { "M0", "M1i", "M2" }
+      diagnosticMoments = { "M0", "M1i", "M2" },
+      diagnosticIntegratedMoments = { "intM0", "intM2Flow" }
    },
 
    -- field solver

@@ -65,6 +65,7 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
    -- clear local values
    for i = 1, #self.localVals do
       self.localVals[i] = 0.0
+      self.globalVals[i] = 0.0
    end
 
    local localRange = field:localRange()   
