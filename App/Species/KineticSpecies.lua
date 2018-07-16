@@ -669,6 +669,10 @@ function KineticSpecies:writeRestart(tm)
       self.diagnosticIntegratedMomentFields[i]:write(
          string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end
+   for i, mom in ipairs(self.diagnosticMoments) do
+      self.diagnosticMomentFields[i]:write(
+	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame)
+   end   
 end
 
 function KineticSpecies:readRestart()
@@ -683,6 +687,13 @@ function KineticSpecies:readRestart()
          string.format("%s_%s_restart.bp", self.name, mom))
       self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
    end
+
+   for i, mom in ipairs(self.diagnosticMoments) do
+      local _, dfr = self.diagnosticMomentFields[i]:read(
+         string.format("%s_%s_restart.bp", self.name, mom))
+      self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
+   end
+   
    return tm
 end
 
