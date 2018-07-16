@@ -10,7 +10,7 @@ vlasovApp = Vlasov.App {
    logToFile = true,
 
    tEnd = 40.0, -- end time
-   nFrame = 1, -- number of output frames
+   nFrame = 5, -- number of output frames
    lower = {-math.pi/knumber}, -- configuration space lower left
    upper = {math.pi/knumber}, -- configuration space upper right
    cells = {64}, -- configuration space cells
