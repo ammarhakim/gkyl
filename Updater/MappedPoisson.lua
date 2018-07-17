@@ -22,7 +22,7 @@ ffi.cdef[[
 int xbctypel_, int ybctypel_, int xbctypeu_, int ybctypeu_, double xbcu_,
 double xbcl_, double ybcu_, double ybcl_);
   //metric function
-  void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xc, double *g));
+  void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, double *g));
   //solver bits
   void wrap_factorize(MapPoisson *d);
   void wrap_phisolve(MapPoisson *d);
@@ -59,12 +59,18 @@ function MappedPoisson:init(tbl)
    --reformat periodic boundary condition inputs
    if (self._perDirs ~= nil) then
       if (self._perDirs[1] == 1 or self._perDirs[2] == 1) then
-	 xbctu = 2
-	 xbctl = 2
+	       xbctu = 2
+	       xbctl = 2
       end
       if (self._perDirs[1] == 2 or self._perDirs[2] == 2) then
-	 ybctu = 2
-	 ybctl = 2
+	       ybctu = 2
+	       ybctl = 2
+      end
+      if (self._perDirs[1] == 3) then --special periodic bc for calhoun _grid
+        xbctu = 2
+        xbctl = 2 --long dimension should be x so that x periodic BCs behave normally
+        ybctu = 3
+        ybctl = 3 --y bcs need to be modified
       end
    end
 
