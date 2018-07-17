@@ -139,7 +139,7 @@ blkstor MapPoisson::blkrow(int j)
 //LAPLACIAN CREATOR (BLOCK ORGANIZER)
 void MapPoisson::laplace()
 {
-  //triplet dtype
+  //triplet dtype               //modify for y bcs (ybctyl/u = 3)
   typedef Triplet<double> T;
   std::vector<T> trips;
 
@@ -183,7 +183,7 @@ void MapPoisson::laplace()
       }
     }
   }
-  if (ybctypel == 1){ //neumannn (extra from slope added on source side)
+  else if (ybctypel == 1){ //neumannn (extra from slope added on source side)
     for (int k = 0; k < nx; k++){
       for (int i = 0; i < nx; i++){
         if (up(k,i)*up(k,i) != 0.0){ //upper block normal
@@ -211,6 +211,21 @@ void MapPoisson::laplace()
       }
     }
   }
+  else if (ybctypel == 3){ //nonsingular sphere map
+    down = down.rowwise().reverse().eval();
+    mid = mid+down;
+    for (int k = 0; k < nx; k++){
+      for (int i = 0; i < nx; i++){
+        if (up(k,i)*up(k,i) != 0.0){
+          trips.push_back(T(k, i+nx, up(k,i)));
+        }
+        if (mid(k,i)*mid(k,i) != 0.0){
+          trips.push_back(T(k, i, mid(k,i)));
+        }
+      }
+    }
+  }
+
 
   threes = MapPoisson::blkrow(ny-1);
   up = threes.upper;
@@ -230,7 +245,7 @@ void MapPoisson::laplace()
       }
     }
   }
-  if (ybctypeu == 1){ //neumannn (extra from slope added on source side)
+  else if (ybctypeu == 1){ //neumannn (extra from slope added on source side)
     for (int k = 0; k < nx; k++){
       for (int i = 0; i < nx; i++){
         if (down(k,i)*down(k,i) != 0.0){ //lower block normal
@@ -249,6 +264,20 @@ void MapPoisson::laplace()
         if (up(k,i)*up(k,i) != 0.0){ //upper in lower left corner
           trips.push_back(T(k+(ny-1)*nx, i, up(k,i)));
         }
+        if (mid(k,i)*mid(k,i) != 0.0){
+          trips.push_back(T(k+(ny-1)*nx, i+(ny-1)*nx, mid(k,i)));
+        }
+        if (down(k,i)*down(k,i) != 0.0){
+          trips.push_back(T(k+(ny-1)*nx, i+(ny-2)*nx, down(k,i)));
+        }
+      }
+    }
+  }
+  else if (ybctypeu == 3){ //nonsingular sphere map
+    up = up.rowwise().reverse().eval();
+    mid = mid+up;
+    for (int k = 0; k < nx; k++){
+      for (int i = 0; i < nx; i++){
         if (mid(k,i)*mid(k,i) != 0.0){
           trips.push_back(T(k+(ny-1)*nx, i+(ny-1)*nx, mid(k,i)));
         }
@@ -468,25 +497,43 @@ VectorXd MapPoisson::srcconv()
 
 
 //metric lua func wrapper
-void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xc, double *g))
+void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, double *gl))
 {
   d->setMetricFuncPointer(gfunc);
 }
 
 //lua metric converter to eigen dtype
 Vector3d MapPoisson::gij(double xc, double yc){
+
   double xcp[3] = {0.0, xc, yc};  //oversized to acct for index difference
   double g[4];
   //c wrapped lua function for metric
   MapPoisson::gfunc(xcp, g);
   Vector3d gconv;
   gconv << g[1], g[2], g[3];
+
+  if ( g[1] != g[1] or g[2] != g[2] or g[3] != g[3]){
+    std::cout << gconv << std::endl;
+    std::cout << "WARNING: CALCULATION WILL FAIL DUE TO NANS IN METRIC" << std::endl;
+  }
+  if (gconv(0)*gconv(2)-gconv(1)*gconv(1) < 0){
+    std::cout << "determinant negative at:" << std::endl;
+    std::cout << xc << "  " << yc << std::endl;
+  }
   return gconv;
 }
 
 //simple 2x2 determinant
 double MapPoisson::gdet(Vector3d gvec){
   double det = gvec(0)*gvec(2)-gvec(1)*gvec(1);
+  if ( det != det ){
+    //std::cout << det << std::endl;
+    std::cout << "WARNING: CALCULATION WILL FAIL DUE TO NANS IN METRIC DETERMINANT" << std::endl;
+  }
+  if ( det < 0 ){
+    //std::cout << det << std::endl;
+    std::cout << "WARNING: CALCULATION WILL FAIL DUE NEGATIVE METRIC DETERMINANT" << std::endl;
+  }
   return det;
 }
 
@@ -495,12 +542,17 @@ Vector3d MapPoisson::ginv(Vector3d gvec){
   double det = gvec(0)*gvec(2)-gvec(1)*gvec(1);
   Vector3d inv;
   inv << gvec(2)/det, -gvec(1)/det, gvec(0)/det;
+  if (inv(0) != inv(0) or inv(1) != inv(1) or inv(2) != inv(2)){
+    //std::cout << inv << std::endl;
+    std::cout << "WARNING: CALCULATION WILL FAIL DUE TO NANS IN INVERSE METRIC" << std::endl;
+  }
   return inv;
 }
 
 //////////////////////////COEFFICIENT CALCULATORS//////////////////////////////
 
 double MapPoisson::cij(double xc, double yc, int i, int j){//cij
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
@@ -510,23 +562,24 @@ double MapPoisson::cij(double xc, double yc, int i, int j){//cij
   g = MapPoisson::gij(xc+0.5*dxc,yc);
   gi = MapPoisson::ginv(g);
   double h3 = -dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
-  g = MapPoisson::gij(xc,yc-0.5*dxc);
+  g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h4 = -dxc*sqrt(MapPoisson::gdet(g))*gi(2)/dyc;
   return h1+h2+h3+h4;
 }
 
 double MapPoisson::cimj(double xc, double yc, int i, int j){//ci-1,j
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
   g = MapPoisson::gij(xc,yc+0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
-  g = MapPoisson::gij(xc,yc-0.5*dxc);
+  g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h3 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-
+  //dirichlet correctiom
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
@@ -555,13 +608,14 @@ double MapPoisson::cimj(double xc, double yc, int i, int j){//ci-1,j
 }
 
 double MapPoisson::cimjp(double xc, double yc, int i, int j){//ci-1,j+1
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc+0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
-
+  //dirichlet correction
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
@@ -590,6 +644,7 @@ double MapPoisson::cimjp(double xc, double yc, int i, int j){//ci-1,j+1
 }
 
 double MapPoisson::cijp(double xc, double yc, int i, int j){//ci,j+1
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
@@ -599,7 +654,7 @@ double MapPoisson::cijp(double xc, double yc, int i, int j){//ci,j+1
   g = MapPoisson::gij(xc+0.5*dxc,yc);
   gi = MapPoisson::ginv(g);
   double h3 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-
+  //dirichlet correction
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
@@ -628,13 +683,14 @@ double MapPoisson::cijp(double xc, double yc, int i, int j){//ci,j+1
 }
 
 double MapPoisson::cipjp(double xc, double yc, int i, int j){//ci+1,j+1
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc+0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc+0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-
+  //dirichlet correction
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
@@ -663,6 +719,7 @@ double MapPoisson::cipjp(double xc, double yc, int i, int j){//ci+1,j+1
 }
 
 double MapPoisson::cipj(double xc, double yc, int i, int j){//ci+1,j
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc,yc+0.5*dyc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
@@ -672,7 +729,7 @@ double MapPoisson::cipj(double xc, double yc, int i, int j){//ci+1,j
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h3 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
-
+  //dirichlet correction
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
@@ -701,13 +758,14 @@ double MapPoisson::cipj(double xc, double yc, int i, int j){//ci+1,j
 }
 
 double MapPoisson::cipjm(double xc, double yc, int i, int j){//ci+1,j-1
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc+0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
-
+  //dirichlet correction
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
@@ -736,6 +794,7 @@ double MapPoisson::cipjm(double xc, double yc, int i, int j){//ci+1,j-1
 }
 
 double MapPoisson::cijm(double xc, double yc, int i, int j){//ci,j-1
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
@@ -745,7 +804,7 @@ double MapPoisson::cijm(double xc, double yc, int i, int j){//ci,j-1
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h3 = dxc*sqrt(MapPoisson::gdet(g))*gi(2)/dyc;
-
+  //dirichlet correction
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal
@@ -774,13 +833,14 @@ double MapPoisson::cijm(double xc, double yc, int i, int j){//ci,j-1
 }
 
 double MapPoisson::cimjm(double xc, double yc, int i, int j){//ci-1,j-1
+  //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.5*dxc,yc);
   Vector3d gi = MapPoisson::ginv(g);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.5*dyc);
   gi = MapPoisson::ginv(g);
   double h2 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
-
+  //dirichlet correction
   double coeff = 0;
   if (xbctypel==0 and xbctypeu==0 and ybctypel==0 and ybctypeu==0){ //currently only imp for all dirich
     if (i!=0 and i!=nx-1 and j!=0 and j!=ny-1){ //normal

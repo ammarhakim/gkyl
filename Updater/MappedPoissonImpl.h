@@ -22,7 +22,7 @@ double xbcl_, double ybcu_, double ybcl_);
   void wrap_factorize(MapPoisson *d);
   void wrap_phisolve(MapPoisson *d);
   //metric wrap from lua to c
-  void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xc, double *g));
+  void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, double *gl));
   //wrap source and solution solvers
   void wrap_getSrcvalatIJ(MapPoisson *d, int i, int j, double sitrij);
   double wrap_getSolvalatIJ(MapPoisson *d, int i, int j);
@@ -48,7 +48,7 @@ double xbcl_, double ybcu_, double ybcl_);
     //solve system
     void phisolve();
     //metric calc pointer
-    void setMetricFuncPointer(void (*gfunc)(double *xc, double *g)) {
+    void setMetricFuncPointer(void (*gfunc)(double *xcl, double *gl)) {
       this->gfunc = gfunc;
     }
     //source updater
