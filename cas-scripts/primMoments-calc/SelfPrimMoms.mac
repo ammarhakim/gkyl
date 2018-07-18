@@ -42,7 +42,12 @@ writeEVExprs(lhs, rhs, vd, nc) := block([expr],
 
 calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   kill(varsC, varsP, basisC, basisP),
-  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  if (cdim > vdim) then (
+    basisVdim : vdim+1
+  ) else (
+    basisVdim : vdim
+  ),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", basisVdim, "v"),
   load(modNm),
   for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
@@ -76,9 +81,9 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     N : NC*(vdim+1),
 
     printf(fh, "  // Declare Eigen matrix and vectors for weak division. ~%"),
-    printf(fh, "  Eigen::MatrixXd BigAEM(~a,~a); ~%", N, N),
-    printf(fh, "  Eigen::VectorXd bEV(~a); ~%", N),
-    printf(fh, "  Eigen::VectorXd xEV(~a); ~%", N),
+    printf(fh, "  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N), 
+    printf(fh, "  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(~a);  ~%", N),
+    printf(fh, "  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(~a);  ~%", N),
     printf(fh, " ~%"),
 
     /* Make a list of the LHS matrix assignments. */
