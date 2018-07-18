@@ -356,6 +356,8 @@ may not be able to determine just looking at output that the
 results make sense.
 ]]
 
+parser:flag("-v --verbose", "Print verbose messages as tests are run")
+
 -- "config" command
 local c_conf = parser:command("config", "Configure regression tests")
    :action(config_action)
