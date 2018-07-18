@@ -28,9 +28,11 @@ typedef struct {
   int8_t gravityDir; /* Direction of gravity force */
   double gravity; /* Gravitational acceleration */
   bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
+  int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
 } FiveMomentSrcData_t;
 
   void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+  void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -47,8 +49,8 @@ local function updateSrcModBoris(self, dt, fPtr, emPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCentered(self, dt, dt1, dt2, fPtr, emPtr)
-   print("updateSrcTimeCentered")
+local function updateSrcTimeCentered(self, dt, fPtr, emPtr)
+   ffi.C.gkylFiveMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr)
 end
 
 -- Five-moment source updater object
@@ -75,6 +77,8 @@ function FiveMomentSrc:init(tbl)
    
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    self._sd.hasPressure = tbl.hasPressure ~= nil and tbl.hasPressure or true
+   
+   self._sd.linSolType = tbl.linSolType and tbl.linSolType or 1
 
    self._fd = ffi.new("FluidData_t[?]", self._sd.nFluids)
    -- store charge and mass for each fluid
