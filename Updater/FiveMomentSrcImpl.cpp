@@ -48,11 +48,11 @@ gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double
   std::vector<double> f2(5), em2(8);
 
   // if fluid equations have pressure, then compute initial KE
-  double keOld = 0.0;
+  double keOld[nFluids] = {0.0};
   if (sd->hasPressure)
   {
     for (unsigned n=0; n<nFluids; ++n)
-      keOld = 0.5*(sq(ff[n][MX]) + sq(ff[n][MY]) + sq(ff[n][MZ]))/ff[n][RHO];
+      keOld[n] = 0.5*(sq(ff[n][MX]) + sq(ff[n][MY]) + sq(ff[n][MZ]))/ff[n][RHO];
   }
 
   // B fields don't change
@@ -129,7 +129,7 @@ gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double
     for (unsigned n=0; n<nFluids; ++n)
     {
       double keNew = 0.5*(sq(ff[n][MX]) + sq(ff[n][MY]) + sq(ff[n][MZ]))/ff[n][RHO];
-      ff[n][ER] += keNew-keOld;
+      ff[n][ER] += keNew-keOld[n];
     }
   }  
 }
