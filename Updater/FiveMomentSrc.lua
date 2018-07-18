@@ -32,7 +32,7 @@ typedef struct {
 } FiveMomentSrcData_t;
 
   void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
-  void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+  void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -49,8 +49,8 @@ local function updateSrcModBoris(self, dt, fPtr, emPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCentered(self, dt, fPtr, emPtr)
-   ffi.C.gkylFiveMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr)
+local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Five-moment source updater object
@@ -109,16 +109,26 @@ function FiveMomentSrc:_advance(tCurr, dt, inFld, outFld)
 	  "Must have exactly " .. nFluids+1 .. " output fields. Provided " .. #inFld .. " instead.")
    local emFld = outFld[#outFld] -- EM field
 
+   local staticEmFld
+   if (self._sd.hasStatic) then
+      staticEmFld = inFld[1] -- static EM field
+   end
+
    -- make list of indexer functions
    local fIdxr = {}
    for i = 1, nFluids do
       fIdxr[i] = outFld[i]:genIndexer()
    end
    local emIdxr = emFld:genIndexer()
+   local staticEmIdxr
+   if (self._sd.hasStatic) then
+      staticEmIdxr = staticEmFld:genIndexer()
+   end
 
    -- allocate stuff to pass to C
    local fDp = ffi.new("double*[?]", nFluids)
    local emDp = ffi.new("double*")
+   local staticEmDp = ffi.new("double*")
 
    local localRange = emFld:localRange()   
    -- loop over local range, updating source in each cell
@@ -128,9 +138,12 @@ function FiveMomentSrc:_advance(tCurr, dt, inFld, outFld)
 	 fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))
       end
       emDp = emFld:getDataPtrAt(emIdxr(idx))
+      if (self._sd.hasStatic) then
+         staticEmDp = emFld:getDataPtrAt(staticEmIdxr(idx))
+      end
 
       -- update sources
-      self._updateSrc(self, dt, fDp, emDp)
+      self._updateSrc(self, dt, fDp, emDp, staticEmDp)
    end
 
    return true, GKYL_MAX_DOUBLE

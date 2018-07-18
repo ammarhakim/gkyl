@@ -135,13 +135,17 @@ gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double
 }
 
 void
-gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em)
+gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
 {
   unsigned nFluids = sd->nFluids;
   double dt1 = 0.5 * dt;
   double dt2 = 0.5 * dt / sd->epsilon0;
   
-  double staticEm[6] = {0.};  // TODO
+  double zeros[6] = {0.};
+  if (!(sd->hasStatic))
+  {
+    staticEm = zeros;
+  }
 
   Eigen::MatrixXd lhs = Eigen::MatrixXd::Constant(3*nFluids+3, 3*nFluids+3, 0.0);
   Eigen::VectorXd rhs(3*nFluids+3);
