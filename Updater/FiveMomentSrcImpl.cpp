@@ -48,7 +48,7 @@ gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double
   std::vector<double> f2(5), em2(8);
 
   // if fluid equations have pressure, then compute initial KE
-  double keOld[nFluids] = {0.0};
+  std::vector<double> keOld(nFluids);
   if (sd->hasPressure)
   {
     for (unsigned n=0; n<nFluids; ++n)
