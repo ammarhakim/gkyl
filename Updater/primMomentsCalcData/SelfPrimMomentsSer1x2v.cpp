@@ -11,9 +11,9 @@ void SelfPrimMoments1x2vSer_P1(const int pVdim, const double *m0, const double *
   // vtSq:     squared thermal speed, sqrt(T/m). 
  
   // Declare Eigen matrix and vectors for weak division. 
-  Eigen::MatrixXd BigAEM(6,6); 
-  Eigen::VectorXd bEV(6); 
-  Eigen::VectorXd xEV(6); 
+  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(6,6); 
+  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(6);  
+  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(6);  
  
   // ....... Block from weak multiply of uX and m0  .......... // 
   BigAEM(0,0) = 0.7071067811865475*m0[0]; 
@@ -80,9 +80,9 @@ void SelfPrimMoments1x2vSer_P2(const int pVdim, const double *m0, const double *
   // vtSq:     squared thermal speed, sqrt(T/m). 
  
   // Declare Eigen matrix and vectors for weak division. 
-  Eigen::MatrixXd BigAEM(9,9); 
-  Eigen::VectorXd bEV(9); 
-  Eigen::VectorXd xEV(9); 
+  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(9,9); 
+  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(9);  
+  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(9);  
  
   // ....... Block from weak multiply of uX and m0  .......... // 
   BigAEM(0,0) = 0.7071067811865475*m0[0]; 
@@ -184,9 +184,9 @@ void SelfPrimMoments1x2vSer_P3(const int pVdim, const double *m0, const double *
   // vtSq:     squared thermal speed, sqrt(T/m). 
  
   // Declare Eigen matrix and vectors for weak division. 
-  Eigen::MatrixXd BigAEM(12,12); 
-  Eigen::VectorXd bEV(12); 
-  Eigen::VectorXd xEV(12); 
+  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(12,12); 
+  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(12);  
+  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(12);  
  
   // ....... Block from weak multiply of uX and m0  .......... // 
   BigAEM(0,0) = 0.7071067811865475*m0[0]; 

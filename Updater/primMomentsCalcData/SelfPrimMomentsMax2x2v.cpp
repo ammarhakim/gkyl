@@ -3,7 +3,7 @@
  
 using namespace Eigen; 
  
-void SelfPrimMoments2x2vMax_P1(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
+void SelfPrimMoments2x2vMax_P1(const int pVdim, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
 { 
   // m0,m1,m2: moments of the distribution function. 
   // cM, cE: vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
@@ -11,9 +11,9 @@ void SelfPrimMoments2x2vMax_P1(const double *m0, const double *m1, const double 
   // vtSq:     squared thermal speed, sqrt(T/m). 
  
   // Declare Eigen matrix and vectors for weak division. 
-  Eigen::MatrixXd BigAEM(9,9); 
-  Eigen::VectorXd bEV(9); 
-  Eigen::VectorXd xEV(9); 
+  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(9,9); 
+  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(9);  
+  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(9);  
  
   // ....... Block from weak multiply of uX and m0  .......... // 
   BigAEM(0,0) = 0.5*m0[0]; 
@@ -70,13 +70,13 @@ void SelfPrimMoments2x2vMax_P1(const double *m0, const double *m1, const double 
   BigAEM(8,5) = 0.5*m1[3]; 
  
   // ....... Block from correction to vtSq .......... // 
-  BigAEM(6,6) = m0[0]-0.5*cE[0]; 
-  BigAEM(6,7) = m0[1]-0.5*cE[1]; 
-  BigAEM(6,8) = m0[2]-0.5*cE[2]; 
-  BigAEM(7,6) = m0[1]-0.5*cE[1]; 
-  BigAEM(7,7) = m0[0]-0.5*cE[0]; 
-  BigAEM(8,6) = m0[2]-0.5*cE[2]; 
-  BigAEM(8,8) = m0[0]-0.5*cE[0]; 
+  BigAEM(6,6) = 0.5*m0[0]*pVdim-0.5*cE[0]; 
+  BigAEM(6,7) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(6,8) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(7,6) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(7,7) = 0.5*m0[0]*pVdim-0.5*cE[0]; 
+  BigAEM(8,6) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(8,8) = 0.5*m0[0]*pVdim-0.5*cE[0]; 
  
   // Set other entries to 0. // 
   BigAEM.block<3,3>(0,3).setZero(); 
@@ -93,7 +93,7 @@ void SelfPrimMoments2x2vMax_P1(const double *m0, const double *m1, const double 
  
 } 
  
-void SelfPrimMoments2x2vMax_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
+void SelfPrimMoments2x2vMax_P2(const int pVdim, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
 { 
   // m0,m1,m2: moments of the distribution function. 
   // cM, cE: vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
@@ -101,9 +101,9 @@ void SelfPrimMoments2x2vMax_P2(const double *m0, const double *m1, const double 
   // vtSq:     squared thermal speed, sqrt(T/m). 
  
   // Declare Eigen matrix and vectors for weak division. 
-  Eigen::MatrixXd BigAEM(18,18); 
-  Eigen::VectorXd bEV(18); 
-  Eigen::VectorXd xEV(18); 
+  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(18,18); 
+  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(18);  
+  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(18);  
  
   // ....... Block from weak multiply of uX and m0  .......... // 
   BigAEM(0,0) = 0.5*m0[0]; 
@@ -298,36 +298,36 @@ void SelfPrimMoments2x2vMax_P2(const double *m0, const double *m1, const double 
   BigAEM(17,11) = 0.31943828249997*m1[11]+0.5*m1[6]; 
  
   // ....... Block from correction to vtSq .......... // 
-  BigAEM(12,12) = m0[0]-0.5*cE[0]; 
-  BigAEM(12,13) = m0[1]-0.5*cE[1]; 
-  BigAEM(12,14) = m0[2]-0.5*cE[2]; 
-  BigAEM(12,15) = m0[3]-0.5*cE[3]; 
-  BigAEM(12,16) = m0[4]-0.5*cE[4]; 
-  BigAEM(12,17) = m0[5]-0.5*cE[5]; 
-  BigAEM(13,12) = m0[1]-0.5*cE[1]; 
-  BigAEM(13,13) = 0.8944271909999159*m0[4]-0.4472135954999579*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(13,14) = m0[3]-0.5*cE[3]; 
-  BigAEM(13,15) = m0[2]-0.5*cE[2]; 
-  BigAEM(13,16) = 0.8944271909999159*m0[1]-0.4472135954999579*cE[1]; 
-  BigAEM(14,12) = m0[2]-0.5*cE[2]; 
-  BigAEM(14,13) = m0[3]-0.5*cE[3]; 
-  BigAEM(14,14) = 0.8944271909999159*m0[5]-0.4472135954999579*cE[5]+m0[0]-0.5*cE[0]; 
-  BigAEM(14,15) = m0[1]-0.5*cE[1]; 
-  BigAEM(14,17) = 0.8944271909999159*m0[2]-0.4472135954999579*cE[2]; 
-  BigAEM(15,12) = m0[3]-0.5*cE[3]; 
-  BigAEM(15,13) = m0[2]-0.5*cE[2]; 
-  BigAEM(15,14) = m0[1]-0.5*cE[1]; 
-  BigAEM(15,15) = 0.8944271909999159*m0[5]-0.4472135954999579*cE[5]+0.8944271909999159*m0[4]-0.4472135954999579*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(15,16) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(15,17) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(16,12) = m0[4]-0.5*cE[4]; 
-  BigAEM(16,13) = 0.8944271909999159*m0[1]-0.4472135954999579*cE[1]; 
-  BigAEM(16,15) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(16,16) = 0.6388765649999399*m0[4]-0.31943828249997*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(17,12) = m0[5]-0.5*cE[5]; 
-  BigAEM(17,14) = 0.8944271909999159*m0[2]-0.4472135954999579*cE[2]; 
-  BigAEM(17,15) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(17,17) = 0.6388765649999399*m0[5]-0.31943828249997*cE[5]+m0[0]-0.5*cE[0]; 
+  BigAEM(12,12) = 0.5*m0[0]*pVdim-0.5*cE[0]; 
+  BigAEM(12,13) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(12,14) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(12,15) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(12,16) = 0.5*m0[4]*pVdim-0.5*cE[4]; 
+  BigAEM(12,17) = 0.5*m0[5]*pVdim-0.5*cE[5]; 
+  BigAEM(13,12) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(13,13) = 0.4472135954999579*m0[4]*pVdim+0.5*m0[0]*pVdim-0.4472135954999579*cE[4]-0.5*cE[0]; 
+  BigAEM(13,14) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(13,15) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(13,16) = 0.4472135954999579*m0[1]*pVdim-0.4472135954999579*cE[1]; 
+  BigAEM(14,12) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(14,13) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(14,14) = 0.4472135954999579*m0[5]*pVdim+0.5*m0[0]*pVdim-0.4472135954999579*cE[5]-0.5*cE[0]; 
+  BigAEM(14,15) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(14,17) = 0.4472135954999579*m0[2]*pVdim-0.4472135954999579*cE[2]; 
+  BigAEM(15,12) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(15,13) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(15,14) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(15,15) = 0.4472135954999579*m0[5]*pVdim+0.4472135954999579*m0[4]*pVdim+0.5*m0[0]*pVdim-0.4472135954999579*cE[5]-0.4472135954999579*cE[4]-0.5*cE[0]; 
+  BigAEM(15,16) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(15,17) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(16,12) = 0.5*m0[4]*pVdim-0.5*cE[4]; 
+  BigAEM(16,13) = 0.4472135954999579*m0[1]*pVdim-0.4472135954999579*cE[1]; 
+  BigAEM(16,15) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(16,16) = 0.31943828249997*m0[4]*pVdim+0.5*m0[0]*pVdim-0.31943828249997*cE[4]-0.5*cE[0]; 
+  BigAEM(17,12) = 0.5*m0[5]*pVdim-0.5*cE[5]; 
+  BigAEM(17,14) = 0.4472135954999579*m0[2]*pVdim-0.4472135954999579*cE[2]; 
+  BigAEM(17,15) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(17,17) = 0.31943828249997*m0[5]*pVdim+0.5*m0[0]*pVdim-0.31943828249997*cE[5]-0.5*cE[0]; 
  
   // Set other entries to 0. // 
   BigAEM.block<6,6>(0,6).setZero(); 
@@ -344,7 +344,7 @@ void SelfPrimMoments2x2vMax_P2(const double *m0, const double *m1, const double 
  
 } 
  
-void SelfPrimMoments2x2vMax_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
+void SelfPrimMoments2x2vMax_P3(const int pVdim, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
 { 
   // m0,m1,m2: moments of the distribution function. 
   // cM, cE: vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
@@ -352,9 +352,9 @@ void SelfPrimMoments2x2vMax_P3(const double *m0, const double *m1, const double 
   // vtSq:     squared thermal speed, sqrt(T/m). 
  
   // Declare Eigen matrix and vectors for weak division. 
-  Eigen::MatrixXd BigAEM(30,30); 
-  Eigen::VectorXd bEV(30); 
-  Eigen::VectorXd xEV(30); 
+  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(30,30); 
+  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(30);  
+  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(30);  
  
   // ....... Block from weak multiply of uX and m0  .......... // 
   BigAEM(0,0) = 0.5*m0[0]; 
@@ -873,90 +873,90 @@ void SelfPrimMoments2x2vMax_P3(const double *m0, const double *m1, const double 
   BigAEM(29,19) = 0.2981423969999719*m1[15]+0.5*m1[10]; 
  
   // ....... Block from correction to vtSq .......... // 
-  BigAEM(20,20) = m0[0]-0.5*cE[0]; 
-  BigAEM(20,21) = m0[1]-0.5*cE[1]; 
-  BigAEM(20,22) = m0[2]-0.5*cE[2]; 
-  BigAEM(20,23) = m0[3]-0.5*cE[3]; 
-  BigAEM(20,24) = m0[4]-0.5*cE[4]; 
-  BigAEM(20,25) = m0[5]-0.5*cE[5]; 
-  BigAEM(20,26) = m0[6]-0.5*cE[6]; 
-  BigAEM(20,27) = m0[7]-0.5*cE[7]; 
-  BigAEM(20,28) = m0[8]-0.5*cE[8]; 
-  BigAEM(20,29) = m0[9]-0.5*cE[9]; 
-  BigAEM(21,20) = m0[1]-0.5*cE[1]; 
-  BigAEM(21,21) = 0.8944271909999159*m0[4]-0.4472135954999579*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(21,22) = m0[3]-0.5*cE[3]; 
-  BigAEM(21,23) = 0.8944271909999161*m0[6]-0.447213595499958*cE[6]+m0[2]-0.5*cE[2]; 
-  BigAEM(21,24) = 0.8783100656536796*m0[8]-0.4391550328268398*cE[8]+0.8944271909999159*m0[1]-0.4472135954999579*cE[1]; 
-  BigAEM(21,25) = 1.0*m0[7]-0.5000000000000001*cE[7]; 
-  BigAEM(21,26) = 0.8944271909999161*m0[3]-0.447213595499958*cE[3]; 
-  BigAEM(21,27) = 1.0*m0[5]-0.5000000000000001*cE[5]; 
-  BigAEM(21,28) = 0.8783100656536796*m0[4]-0.4391550328268398*cE[4]; 
-  BigAEM(22,20) = m0[2]-0.5*cE[2]; 
-  BigAEM(22,21) = m0[3]-0.5*cE[3]; 
-  BigAEM(22,22) = 0.8944271909999159*m0[5]-0.4472135954999579*cE[5]+m0[0]-0.5*cE[0]; 
-  BigAEM(22,23) = 0.8944271909999161*m0[7]-0.447213595499958*cE[7]+m0[1]-0.5*cE[1]; 
-  BigAEM(22,24) = 1.0*m0[6]-0.5000000000000001*cE[6]; 
-  BigAEM(22,25) = 0.8783100656536796*m0[9]-0.4391550328268398*cE[9]+0.8944271909999159*m0[2]-0.4472135954999579*cE[2]; 
-  BigAEM(22,26) = 1.0*m0[4]-0.5000000000000001*cE[4]; 
-  BigAEM(22,27) = 0.8944271909999161*m0[3]-0.447213595499958*cE[3]; 
-  BigAEM(22,29) = 0.8783100656536796*m0[5]-0.4391550328268398*cE[5]; 
-  BigAEM(23,20) = m0[3]-0.5*cE[3]; 
-  BigAEM(23,21) = 0.8944271909999161*m0[6]-0.447213595499958*cE[6]+m0[2]-0.5*cE[2]; 
-  BigAEM(23,22) = 0.8944271909999161*m0[7]-0.447213595499958*cE[7]+m0[1]-0.5*cE[1]; 
-  BigAEM(23,23) = 0.8944271909999159*m0[5]-0.4472135954999579*cE[5]+0.8944271909999159*m0[4]-0.4472135954999579*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(23,24) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(23,25) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(23,26) = 0.8783100656536798*m0[8]-0.4391550328268399*cE[8]+0.8*m0[7]-0.4*cE[7]+0.8944271909999161*m0[1]-0.447213595499958*cE[1]; 
-  BigAEM(23,27) = 0.8783100656536798*m0[9]-0.4391550328268399*cE[9]+0.8*m0[6]-0.4*cE[6]+0.8944271909999161*m0[2]-0.447213595499958*cE[2]; 
-  BigAEM(23,28) = 0.8783100656536798*m0[6]-0.4391550328268399*cE[6]; 
-  BigAEM(23,29) = 0.8783100656536798*m0[7]-0.4391550328268399*cE[7]; 
-  BigAEM(24,20) = m0[4]-0.5*cE[4]; 
-  BigAEM(24,21) = 0.8783100656536796*m0[8]-0.4391550328268398*cE[8]+0.8944271909999159*m0[1]-0.4472135954999579*cE[1]; 
-  BigAEM(24,22) = 1.0*m0[6]-0.5000000000000001*cE[6]; 
-  BigAEM(24,23) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(24,24) = 0.6388765649999399*m0[4]-0.31943828249997*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(24,26) = 0.6388765649999399*m0[6]-0.31943828249997*cE[6]+1.0*m0[2]-0.5000000000000001*cE[2]; 
-  BigAEM(24,27) = 0.8944271909999159*m0[7]-0.4472135954999579*cE[7]; 
-  BigAEM(24,28) = 0.5962847939999438*m0[8]-0.2981423969999719*cE[8]+0.8783100656536796*m0[1]-0.4391550328268398*cE[1]; 
-  BigAEM(25,20) = m0[5]-0.5*cE[5]; 
-  BigAEM(25,21) = 1.0*m0[7]-0.5000000000000001*cE[7]; 
-  BigAEM(25,22) = 0.8783100656536796*m0[9]-0.4391550328268398*cE[9]+0.8944271909999159*m0[2]-0.4472135954999579*cE[2]; 
-  BigAEM(25,23) = 0.8944271909999159*m0[3]-0.4472135954999579*cE[3]; 
-  BigAEM(25,25) = 0.6388765649999399*m0[5]-0.31943828249997*cE[5]+m0[0]-0.5*cE[0]; 
-  BigAEM(25,26) = 0.8944271909999159*m0[6]-0.4472135954999579*cE[6]; 
-  BigAEM(25,27) = 0.6388765649999399*m0[7]-0.31943828249997*cE[7]+1.0*m0[1]-0.5000000000000001*cE[1]; 
-  BigAEM(25,29) = 0.5962847939999438*m0[9]-0.2981423969999719*cE[9]+0.8783100656536796*m0[2]-0.4391550328268398*cE[2]; 
-  BigAEM(26,20) = m0[6]-0.5*cE[6]; 
-  BigAEM(26,21) = 0.8944271909999161*m0[3]-0.447213595499958*cE[3]; 
-  BigAEM(26,22) = 1.0*m0[4]-0.5000000000000001*cE[4]; 
-  BigAEM(26,23) = 0.8783100656536798*m0[8]-0.4391550328268399*cE[8]+0.8*m0[7]-0.4*cE[7]+0.8944271909999161*m0[1]-0.447213595499958*cE[1]; 
-  BigAEM(26,24) = 0.6388765649999399*m0[6]-0.31943828249997*cE[6]+1.0*m0[2]-0.5000000000000001*cE[2]; 
-  BigAEM(26,25) = 0.8944271909999159*m0[6]-0.4472135954999579*cE[6]; 
-  BigAEM(26,26) = 0.8944271909999159*m0[5]-0.4472135954999579*cE[5]+0.6388765649999399*m0[4]-0.31943828249997*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(26,27) = 0.8*m0[3]-0.4*cE[3]; 
-  BigAEM(26,28) = 0.8783100656536798*m0[3]-0.4391550328268399*cE[3]; 
-  BigAEM(27,20) = m0[7]-0.5*cE[7]; 
-  BigAEM(27,21) = 1.0*m0[5]-0.5000000000000001*cE[5]; 
-  BigAEM(27,22) = 0.8944271909999161*m0[3]-0.447213595499958*cE[3]; 
-  BigAEM(27,23) = 0.8783100656536798*m0[9]-0.4391550328268399*cE[9]+0.8*m0[6]-0.4*cE[6]+0.8944271909999161*m0[2]-0.447213595499958*cE[2]; 
-  BigAEM(27,24) = 0.8944271909999159*m0[7]-0.4472135954999579*cE[7]; 
-  BigAEM(27,25) = 0.6388765649999399*m0[7]-0.31943828249997*cE[7]+1.0*m0[1]-0.5000000000000001*cE[1]; 
-  BigAEM(27,26) = 0.8*m0[3]-0.4*cE[3]; 
-  BigAEM(27,27) = 0.6388765649999399*m0[5]-0.31943828249997*cE[5]+0.8944271909999159*m0[4]-0.4472135954999579*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(27,29) = 0.8783100656536798*m0[3]-0.4391550328268399*cE[3]; 
-  BigAEM(28,20) = m0[8]-0.5*cE[8]; 
-  BigAEM(28,21) = 0.8783100656536796*m0[4]-0.4391550328268398*cE[4]; 
-  BigAEM(28,23) = 0.8783100656536798*m0[6]-0.4391550328268399*cE[6]; 
-  BigAEM(28,24) = 0.5962847939999438*m0[8]-0.2981423969999719*cE[8]+0.8783100656536796*m0[1]-0.4391550328268398*cE[1]; 
-  BigAEM(28,26) = 0.8783100656536798*m0[3]-0.4391550328268399*cE[3]; 
-  BigAEM(28,28) = 0.5962847939999438*m0[4]-0.2981423969999719*cE[4]+m0[0]-0.5*cE[0]; 
-  BigAEM(29,20) = m0[9]-0.5*cE[9]; 
-  BigAEM(29,22) = 0.8783100656536796*m0[5]-0.4391550328268398*cE[5]; 
-  BigAEM(29,23) = 0.8783100656536798*m0[7]-0.4391550328268399*cE[7]; 
-  BigAEM(29,25) = 0.5962847939999438*m0[9]-0.2981423969999719*cE[9]+0.8783100656536796*m0[2]-0.4391550328268398*cE[2]; 
-  BigAEM(29,27) = 0.8783100656536798*m0[3]-0.4391550328268399*cE[3]; 
-  BigAEM(29,29) = 0.5962847939999438*m0[5]-0.2981423969999719*cE[5]+m0[0]-0.5*cE[0]; 
+  BigAEM(20,20) = 0.5*m0[0]*pVdim-0.5*cE[0]; 
+  BigAEM(20,21) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(20,22) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(20,23) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(20,24) = 0.5*m0[4]*pVdim-0.5*cE[4]; 
+  BigAEM(20,25) = 0.5*m0[5]*pVdim-0.5*cE[5]; 
+  BigAEM(20,26) = 0.5*m0[6]*pVdim-0.5*cE[6]; 
+  BigAEM(20,27) = 0.5*m0[7]*pVdim-0.5*cE[7]; 
+  BigAEM(20,28) = 0.5*m0[8]*pVdim-0.5*cE[8]; 
+  BigAEM(20,29) = 0.5*m0[9]*pVdim-0.5*cE[9]; 
+  BigAEM(21,20) = 0.5*m0[1]*pVdim-0.5*cE[1]; 
+  BigAEM(21,21) = 0.4472135954999579*m0[4]*pVdim+0.5*m0[0]*pVdim-0.4472135954999579*cE[4]-0.5*cE[0]; 
+  BigAEM(21,22) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(21,23) = 0.447213595499958*m0[6]*pVdim+0.5*m0[2]*pVdim-0.447213595499958*cE[6]-0.5*cE[2]; 
+  BigAEM(21,24) = 0.4391550328268398*m0[8]*pVdim+0.4472135954999579*m0[1]*pVdim-0.4391550328268398*cE[8]-0.4472135954999579*cE[1]; 
+  BigAEM(21,25) = 0.5000000000000001*m0[7]*pVdim-0.5000000000000001*cE[7]; 
+  BigAEM(21,26) = 0.447213595499958*m0[3]*pVdim-0.447213595499958*cE[3]; 
+  BigAEM(21,27) = 0.5000000000000001*m0[5]*pVdim-0.5000000000000001*cE[5]; 
+  BigAEM(21,28) = 0.4391550328268398*m0[4]*pVdim-0.4391550328268398*cE[4]; 
+  BigAEM(22,20) = 0.5*m0[2]*pVdim-0.5*cE[2]; 
+  BigAEM(22,21) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(22,22) = 0.4472135954999579*m0[5]*pVdim+0.5*m0[0]*pVdim-0.4472135954999579*cE[5]-0.5*cE[0]; 
+  BigAEM(22,23) = 0.447213595499958*m0[7]*pVdim+0.5*m0[1]*pVdim-0.447213595499958*cE[7]-0.5*cE[1]; 
+  BigAEM(22,24) = 0.5000000000000001*m0[6]*pVdim-0.5000000000000001*cE[6]; 
+  BigAEM(22,25) = 0.4391550328268398*m0[9]*pVdim+0.4472135954999579*m0[2]*pVdim-0.4391550328268398*cE[9]-0.4472135954999579*cE[2]; 
+  BigAEM(22,26) = 0.5000000000000001*m0[4]*pVdim-0.5000000000000001*cE[4]; 
+  BigAEM(22,27) = 0.447213595499958*m0[3]*pVdim-0.447213595499958*cE[3]; 
+  BigAEM(22,29) = 0.4391550328268398*m0[5]*pVdim-0.4391550328268398*cE[5]; 
+  BigAEM(23,20) = 0.5*m0[3]*pVdim-0.5*cE[3]; 
+  BigAEM(23,21) = 0.447213595499958*m0[6]*pVdim+0.5*m0[2]*pVdim-0.447213595499958*cE[6]-0.5*cE[2]; 
+  BigAEM(23,22) = 0.447213595499958*m0[7]*pVdim+0.5*m0[1]*pVdim-0.447213595499958*cE[7]-0.5*cE[1]; 
+  BigAEM(23,23) = 0.4472135954999579*m0[5]*pVdim+0.4472135954999579*m0[4]*pVdim+0.5*m0[0]*pVdim-0.4472135954999579*cE[5]-0.4472135954999579*cE[4]-0.5*cE[0]; 
+  BigAEM(23,24) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(23,25) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(23,26) = 0.4391550328268399*m0[8]*pVdim+0.4*m0[7]*pVdim+0.447213595499958*m0[1]*pVdim-0.4391550328268399*cE[8]-0.4*cE[7]-0.447213595499958*cE[1]; 
+  BigAEM(23,27) = 0.4391550328268399*m0[9]*pVdim+0.4*m0[6]*pVdim+0.447213595499958*m0[2]*pVdim-0.4391550328268399*cE[9]-0.4*cE[6]-0.447213595499958*cE[2]; 
+  BigAEM(23,28) = 0.4391550328268399*m0[6]*pVdim-0.4391550328268399*cE[6]; 
+  BigAEM(23,29) = 0.4391550328268399*m0[7]*pVdim-0.4391550328268399*cE[7]; 
+  BigAEM(24,20) = 0.5*m0[4]*pVdim-0.5*cE[4]; 
+  BigAEM(24,21) = 0.4391550328268398*m0[8]*pVdim+0.4472135954999579*m0[1]*pVdim-0.4391550328268398*cE[8]-0.4472135954999579*cE[1]; 
+  BigAEM(24,22) = 0.5000000000000001*m0[6]*pVdim-0.5000000000000001*cE[6]; 
+  BigAEM(24,23) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(24,24) = 0.31943828249997*m0[4]*pVdim+0.5*m0[0]*pVdim-0.31943828249997*cE[4]-0.5*cE[0]; 
+  BigAEM(24,26) = 0.31943828249997*m0[6]*pVdim+0.5000000000000001*m0[2]*pVdim-0.31943828249997*cE[6]-0.5000000000000001*cE[2]; 
+  BigAEM(24,27) = 0.4472135954999579*m0[7]*pVdim-0.4472135954999579*cE[7]; 
+  BigAEM(24,28) = 0.2981423969999719*m0[8]*pVdim+0.4391550328268398*m0[1]*pVdim-0.2981423969999719*cE[8]-0.4391550328268398*cE[1]; 
+  BigAEM(25,20) = 0.5*m0[5]*pVdim-0.5*cE[5]; 
+  BigAEM(25,21) = 0.5000000000000001*m0[7]*pVdim-0.5000000000000001*cE[7]; 
+  BigAEM(25,22) = 0.4391550328268398*m0[9]*pVdim+0.4472135954999579*m0[2]*pVdim-0.4391550328268398*cE[9]-0.4472135954999579*cE[2]; 
+  BigAEM(25,23) = 0.4472135954999579*m0[3]*pVdim-0.4472135954999579*cE[3]; 
+  BigAEM(25,25) = 0.31943828249997*m0[5]*pVdim+0.5*m0[0]*pVdim-0.31943828249997*cE[5]-0.5*cE[0]; 
+  BigAEM(25,26) = 0.4472135954999579*m0[6]*pVdim-0.4472135954999579*cE[6]; 
+  BigAEM(25,27) = 0.31943828249997*m0[7]*pVdim+0.5000000000000001*m0[1]*pVdim-0.31943828249997*cE[7]-0.5000000000000001*cE[1]; 
+  BigAEM(25,29) = 0.2981423969999719*m0[9]*pVdim+0.4391550328268398*m0[2]*pVdim-0.2981423969999719*cE[9]-0.4391550328268398*cE[2]; 
+  BigAEM(26,20) = 0.5*m0[6]*pVdim-0.5*cE[6]; 
+  BigAEM(26,21) = 0.447213595499958*m0[3]*pVdim-0.447213595499958*cE[3]; 
+  BigAEM(26,22) = 0.5000000000000001*m0[4]*pVdim-0.5000000000000001*cE[4]; 
+  BigAEM(26,23) = 0.4391550328268399*m0[8]*pVdim+0.4*m0[7]*pVdim+0.447213595499958*m0[1]*pVdim-0.4391550328268399*cE[8]-0.4*cE[7]-0.447213595499958*cE[1]; 
+  BigAEM(26,24) = 0.31943828249997*m0[6]*pVdim+0.5000000000000001*m0[2]*pVdim-0.31943828249997*cE[6]-0.5000000000000001*cE[2]; 
+  BigAEM(26,25) = 0.4472135954999579*m0[6]*pVdim-0.4472135954999579*cE[6]; 
+  BigAEM(26,26) = 0.4472135954999579*m0[5]*pVdim+0.31943828249997*m0[4]*pVdim+0.5*m0[0]*pVdim-0.4472135954999579*cE[5]-0.31943828249997*cE[4]-0.5*cE[0]; 
+  BigAEM(26,27) = 0.4*m0[3]*pVdim-0.4*cE[3]; 
+  BigAEM(26,28) = 0.4391550328268399*m0[3]*pVdim-0.4391550328268399*cE[3]; 
+  BigAEM(27,20) = 0.5*m0[7]*pVdim-0.5*cE[7]; 
+  BigAEM(27,21) = 0.5000000000000001*m0[5]*pVdim-0.5000000000000001*cE[5]; 
+  BigAEM(27,22) = 0.447213595499958*m0[3]*pVdim-0.447213595499958*cE[3]; 
+  BigAEM(27,23) = 0.4391550328268399*m0[9]*pVdim+0.4*m0[6]*pVdim+0.447213595499958*m0[2]*pVdim-0.4391550328268399*cE[9]-0.4*cE[6]-0.447213595499958*cE[2]; 
+  BigAEM(27,24) = 0.4472135954999579*m0[7]*pVdim-0.4472135954999579*cE[7]; 
+  BigAEM(27,25) = 0.31943828249997*m0[7]*pVdim+0.5000000000000001*m0[1]*pVdim-0.31943828249997*cE[7]-0.5000000000000001*cE[1]; 
+  BigAEM(27,26) = 0.4*m0[3]*pVdim-0.4*cE[3]; 
+  BigAEM(27,27) = 0.31943828249997*m0[5]*pVdim+0.4472135954999579*m0[4]*pVdim+0.5*m0[0]*pVdim-0.31943828249997*cE[5]-0.4472135954999579*cE[4]-0.5*cE[0]; 
+  BigAEM(27,29) = 0.4391550328268399*m0[3]*pVdim-0.4391550328268399*cE[3]; 
+  BigAEM(28,20) = 0.5*m0[8]*pVdim-0.5*cE[8]; 
+  BigAEM(28,21) = 0.4391550328268398*m0[4]*pVdim-0.4391550328268398*cE[4]; 
+  BigAEM(28,23) = 0.4391550328268399*m0[6]*pVdim-0.4391550328268399*cE[6]; 
+  BigAEM(28,24) = 0.2981423969999719*m0[8]*pVdim+0.4391550328268398*m0[1]*pVdim-0.2981423969999719*cE[8]-0.4391550328268398*cE[1]; 
+  BigAEM(28,26) = 0.4391550328268399*m0[3]*pVdim-0.4391550328268399*cE[3]; 
+  BigAEM(28,28) = 0.2981423969999719*m0[4]*pVdim+0.5*m0[0]*pVdim-0.2981423969999719*cE[4]-0.5*cE[0]; 
+  BigAEM(29,20) = 0.5*m0[9]*pVdim-0.5*cE[9]; 
+  BigAEM(29,22) = 0.4391550328268398*m0[5]*pVdim-0.4391550328268398*cE[5]; 
+  BigAEM(29,23) = 0.4391550328268399*m0[7]*pVdim-0.4391550328268399*cE[7]; 
+  BigAEM(29,25) = 0.2981423969999719*m0[9]*pVdim+0.4391550328268398*m0[2]*pVdim-0.2981423969999719*cE[9]-0.4391550328268398*cE[2]; 
+  BigAEM(29,27) = 0.4391550328268399*m0[3]*pVdim-0.4391550328268399*cE[3]; 
+  BigAEM(29,29) = 0.2981423969999719*m0[5]*pVdim+0.5*m0[0]*pVdim-0.2981423969999719*cE[5]-0.5*cE[0]; 
  
   // Set other entries to 0. // 
   BigAEM.block<10,10>(0,10).setZero(); 
@@ -973,8 +973,9 @@ void SelfPrimMoments2x2vMax_P3(const double *m0, const double *m1, const double 
  
 } 
  
-void BoundaryIntegral2x2vMax_F_VX_P1(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_F_VX_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[5], fvmin[5]: distribution function at the velocity boundaries. 
@@ -982,14 +983,15 @@ void BoundaryIntegral2x2vMax_F_VX_P1(const double vmin, const double vmax, const
  
   const double dS = 0.5*dxv[3]; 
  
-  out[0] += 1.732050807568877*fvmin[3]*dS+1.732050807568877*fvmax[3]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS; 
-  out[1] += fvmax[1]*dS-1.0*fvmin[1]*dS; 
-  out[2] += fvmax[2]*dS-1.0*fvmin[2]*dS; 
+  out[0] += (1.732050807568877*fvmin[3]*dS+1.732050807568877*fvmax[3]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS)*intFac; 
+  out[1] += (fvmax[1]*dS-1.0*fvmin[1]*dS)*intFac; 
+  out[2] += (fvmax[2]*dS-1.0*fvmin[2]*dS)*intFac; 
  
 } 
  
-void BoundaryIntegral2x2vMax_F_VX_P2(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_F_VX_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[15], fvmin[15]: distribution function at the velocity boundaries. 
@@ -997,17 +999,18 @@ void BoundaryIntegral2x2vMax_F_VX_P2(const double vmin, const double vmax, const
  
   const double dS = 0.5*dxv[3]; 
  
-  out[0] += (-2.23606797749979*fvmin[13]*dS)+2.23606797749979*fvmax[13]*dS+1.732050807568877*fvmin[3]*dS+1.732050807568877*fvmax[3]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS; 
-  out[1] += 1.732050807568877*fvmin[6]*dS+1.732050807568877*fvmax[6]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS; 
-  out[2] += 1.732050807568877*fvmin[7]*dS+1.732050807568877*fvmax[7]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS; 
-  out[3] += fvmax[5]*dS-1.0*fvmin[5]*dS; 
-  out[4] += fvmax[11]*dS-1.0*fvmin[11]*dS; 
-  out[5] += fvmax[12]*dS-1.0*fvmin[12]*dS; 
+  out[0] += ((-2.23606797749979*fvmin[13]*dS)+2.23606797749979*fvmax[13]*dS+1.732050807568877*fvmin[3]*dS+1.732050807568877*fvmax[3]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS)*intFac; 
+  out[1] += (1.732050807568877*fvmin[6]*dS+1.732050807568877*fvmax[6]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS)*intFac; 
+  out[2] += (1.732050807568877*fvmin[7]*dS+1.732050807568877*fvmax[7]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS)*intFac; 
+  out[3] += (fvmax[5]*dS-1.0*fvmin[5]*dS)*intFac; 
+  out[4] += (fvmax[11]*dS-1.0*fvmin[11]*dS)*intFac; 
+  out[5] += (fvmax[12]*dS-1.0*fvmin[12]*dS)*intFac; 
  
 } 
  
-void BoundaryIntegral2x2vMax_F_VX_P3(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_F_VX_P3(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[35], fvmin[35]: distribution function at the velocity boundaries. 
@@ -1015,21 +1018,22 @@ void BoundaryIntegral2x2vMax_F_VX_P3(const double vmin, const double vmax, const
  
   const double dS = 0.5*dxv[3]; 
  
-  out[0] += 2.645751311064591*fvmin[33]*dS+2.645751311064591*fvmax[33]*dS-2.23606797749979*fvmin[13]*dS+2.23606797749979*fvmax[13]*dS+1.732050807568877*fvmin[3]*dS+1.732050807568877*fvmax[3]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS; 
-  out[1] += (-2.23606797749979*fvmin[23]*dS)+2.23606797749979*fvmax[23]*dS+1.732050807568877*fvmin[6]*dS+1.732050807568877*fvmax[6]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS; 
-  out[2] += (-2.23606797749979*fvmin[24]*dS)+2.23606797749979*fvmax[24]*dS+1.732050807568877*fvmin[7]*dS+1.732050807568877*fvmax[7]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS; 
-  out[3] += 1.732050807568877*fvmin[15]*dS+1.732050807568877*fvmax[15]*dS-1.0*fvmin[5]*dS+fvmax[5]*dS; 
-  out[4] += 1.732050807568877*fvmin[21]*dS+1.732050807568877*fvmax[21]*dS-1.0*fvmin[11]*dS+fvmax[11]*dS; 
-  out[5] += 1.732050807568877*fvmin[22]*dS+1.732050807568877*fvmax[22]*dS-1.0*fvmin[12]*dS+fvmax[12]*dS; 
-  out[6] += fvmax[19]*dS-1.0*fvmin[19]*dS; 
-  out[7] += fvmax[20]*dS-1.0*fvmin[20]*dS; 
-  out[8] += fvmax[31]*dS-1.0*fvmin[31]*dS; 
-  out[9] += fvmax[32]*dS-1.0*fvmin[32]*dS; 
+  out[0] += (2.645751311064591*fvmin[33]*dS+2.645751311064591*fvmax[33]*dS-2.23606797749979*fvmin[13]*dS+2.23606797749979*fvmax[13]*dS+1.732050807568877*fvmin[3]*dS+1.732050807568877*fvmax[3]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS)*intFac; 
+  out[1] += ((-2.23606797749979*fvmin[23]*dS)+2.23606797749979*fvmax[23]*dS+1.732050807568877*fvmin[6]*dS+1.732050807568877*fvmax[6]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS)*intFac; 
+  out[2] += ((-2.23606797749979*fvmin[24]*dS)+2.23606797749979*fvmax[24]*dS+1.732050807568877*fvmin[7]*dS+1.732050807568877*fvmax[7]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS)*intFac; 
+  out[3] += (1.732050807568877*fvmin[15]*dS+1.732050807568877*fvmax[15]*dS-1.0*fvmin[5]*dS+fvmax[5]*dS)*intFac; 
+  out[4] += (1.732050807568877*fvmin[21]*dS+1.732050807568877*fvmax[21]*dS-1.0*fvmin[11]*dS+fvmax[11]*dS)*intFac; 
+  out[5] += (1.732050807568877*fvmin[22]*dS+1.732050807568877*fvmax[22]*dS-1.0*fvmin[12]*dS+fvmax[12]*dS)*intFac; 
+  out[6] += (fvmax[19]*dS-1.0*fvmin[19]*dS)*intFac; 
+  out[7] += (fvmax[20]*dS-1.0*fvmin[20]*dS)*intFac; 
+  out[8] += (fvmax[31]*dS-1.0*fvmin[31]*dS)*intFac; 
+  out[9] += (fvmax[32]*dS-1.0*fvmin[32]*dS)*intFac; 
  
 } 
  
-void BoundaryIntegral2x2vMax_vF_VX_P1(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_vF_VX_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[5], fvmin[5]: distribution function at the velocity boundaries. 
@@ -1037,14 +1041,15 @@ void BoundaryIntegral2x2vMax_vF_VX_P1(const double vmin, const double vmax, cons
  
   const double dS = 0.5*dxv[3]; 
  
-  out[0] += (-1.732050807568877*fvmin[3]*dS*vmin)+fvmin[0]*dS*vmin+1.732050807568877*fvmax[3]*dS*vmax+fvmax[0]*dS*vmax; 
-  out[1] += fvmin[1]*dS*vmin+fvmax[1]*dS*vmax; 
-  out[2] += fvmin[2]*dS*vmin+fvmax[2]*dS*vmax; 
+  out[0] += intFac*(1.732050807568877*fvmin[3]*dS*vmin-1.0*fvmin[0]*dS*vmin+1.732050807568877*fvmax[3]*dS*vmax+fvmax[0]*dS*vmax); 
+  out[1] += intFac*(fvmax[1]*dS*vmax-1.0*fvmin[1]*dS*vmin); 
+  out[2] += intFac*(fvmax[2]*dS*vmax-1.0*fvmin[2]*dS*vmin); 
  
 } 
  
-void BoundaryIntegral2x2vMax_vF_VX_P2(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_vF_VX_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[15], fvmin[15]: distribution function at the velocity boundaries. 
@@ -1052,17 +1057,18 @@ void BoundaryIntegral2x2vMax_vF_VX_P2(const double vmin, const double vmax, cons
  
   const double dS = 0.5*dxv[3]; 
  
-  out[0] += 2.23606797749979*fvmin[13]*dS*vmin-1.732050807568877*fvmin[3]*dS*vmin+fvmin[0]*dS*vmin+2.23606797749979*fvmax[13]*dS*vmax+1.732050807568877*fvmax[3]*dS*vmax+fvmax[0]*dS*vmax; 
-  out[1] += (-1.732050807568877*fvmin[6]*dS*vmin)+fvmin[1]*dS*vmin+1.732050807568877*fvmax[6]*dS*vmax+fvmax[1]*dS*vmax; 
-  out[2] += (-1.732050807568877*fvmin[7]*dS*vmin)+fvmin[2]*dS*vmin+1.732050807568877*fvmax[7]*dS*vmax+fvmax[2]*dS*vmax; 
-  out[3] += fvmin[5]*dS*vmin+fvmax[5]*dS*vmax; 
-  out[4] += fvmin[11]*dS*vmin+fvmax[11]*dS*vmax; 
-  out[5] += fvmin[12]*dS*vmin+fvmax[12]*dS*vmax; 
+  out[0] += intFac*((-2.23606797749979*fvmin[13]*dS*vmin)+1.732050807568877*fvmin[3]*dS*vmin-1.0*fvmin[0]*dS*vmin+2.23606797749979*fvmax[13]*dS*vmax+1.732050807568877*fvmax[3]*dS*vmax+fvmax[0]*dS*vmax); 
+  out[1] += intFac*(1.732050807568877*fvmin[6]*dS*vmin-1.0*fvmin[1]*dS*vmin+1.732050807568877*fvmax[6]*dS*vmax+fvmax[1]*dS*vmax); 
+  out[2] += intFac*(1.732050807568877*fvmin[7]*dS*vmin-1.0*fvmin[2]*dS*vmin+1.732050807568877*fvmax[7]*dS*vmax+fvmax[2]*dS*vmax); 
+  out[3] += intFac*(fvmax[5]*dS*vmax-1.0*fvmin[5]*dS*vmin); 
+  out[4] += intFac*(fvmax[11]*dS*vmax-1.0*fvmin[11]*dS*vmin); 
+  out[5] += intFac*(fvmax[12]*dS*vmax-1.0*fvmin[12]*dS*vmin); 
  
 } 
  
-void BoundaryIntegral2x2vMax_vF_VX_P3(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_vF_VX_P3(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[35], fvmin[35]: distribution function at the velocity boundaries. 
@@ -1070,21 +1076,22 @@ void BoundaryIntegral2x2vMax_vF_VX_P3(const double vmin, const double vmax, cons
  
   const double dS = 0.5*dxv[3]; 
  
-  out[0] += (-2.645751311064591*fvmin[33]*dS*vmin)+2.23606797749979*fvmin[13]*dS*vmin-1.732050807568877*fvmin[3]*dS*vmin+fvmin[0]*dS*vmin+2.645751311064591*fvmax[33]*dS*vmax+2.23606797749979*fvmax[13]*dS*vmax+1.732050807568877*fvmax[3]*dS*vmax+fvmax[0]*dS*vmax; 
-  out[1] += 2.23606797749979*fvmin[23]*dS*vmin-1.732050807568877*fvmin[6]*dS*vmin+fvmin[1]*dS*vmin+2.23606797749979*fvmax[23]*dS*vmax+1.732050807568877*fvmax[6]*dS*vmax+fvmax[1]*dS*vmax; 
-  out[2] += 2.23606797749979*fvmin[24]*dS*vmin-1.732050807568877*fvmin[7]*dS*vmin+fvmin[2]*dS*vmin+2.23606797749979*fvmax[24]*dS*vmax+1.732050807568877*fvmax[7]*dS*vmax+fvmax[2]*dS*vmax; 
-  out[3] += (-1.732050807568877*fvmin[15]*dS*vmin)+fvmin[5]*dS*vmin+1.732050807568877*fvmax[15]*dS*vmax+fvmax[5]*dS*vmax; 
-  out[4] += (-1.732050807568877*fvmin[21]*dS*vmin)+fvmin[11]*dS*vmin+1.732050807568877*fvmax[21]*dS*vmax+fvmax[11]*dS*vmax; 
-  out[5] += (-1.732050807568877*fvmin[22]*dS*vmin)+fvmin[12]*dS*vmin+1.732050807568877*fvmax[22]*dS*vmax+fvmax[12]*dS*vmax; 
-  out[6] += fvmin[19]*dS*vmin+fvmax[19]*dS*vmax; 
-  out[7] += fvmin[20]*dS*vmin+fvmax[20]*dS*vmax; 
-  out[8] += fvmin[31]*dS*vmin+fvmax[31]*dS*vmax; 
-  out[9] += fvmin[32]*dS*vmin+fvmax[32]*dS*vmax; 
+  out[0] += intFac*(2.645751311064591*fvmin[33]*dS*vmin-2.23606797749979*fvmin[13]*dS*vmin+1.732050807568877*fvmin[3]*dS*vmin-1.0*fvmin[0]*dS*vmin+2.645751311064591*fvmax[33]*dS*vmax+2.23606797749979*fvmax[13]*dS*vmax+1.732050807568877*fvmax[3]*dS*vmax+fvmax[0]*dS*vmax); 
+  out[1] += intFac*((-2.23606797749979*fvmin[23]*dS*vmin)+1.732050807568877*fvmin[6]*dS*vmin-1.0*fvmin[1]*dS*vmin+2.23606797749979*fvmax[23]*dS*vmax+1.732050807568877*fvmax[6]*dS*vmax+fvmax[1]*dS*vmax); 
+  out[2] += intFac*((-2.23606797749979*fvmin[24]*dS*vmin)+1.732050807568877*fvmin[7]*dS*vmin-1.0*fvmin[2]*dS*vmin+2.23606797749979*fvmax[24]*dS*vmax+1.732050807568877*fvmax[7]*dS*vmax+fvmax[2]*dS*vmax); 
+  out[3] += intFac*(1.732050807568877*fvmin[15]*dS*vmin-1.0*fvmin[5]*dS*vmin+1.732050807568877*fvmax[15]*dS*vmax+fvmax[5]*dS*vmax); 
+  out[4] += intFac*(1.732050807568877*fvmin[21]*dS*vmin-1.0*fvmin[11]*dS*vmin+1.732050807568877*fvmax[21]*dS*vmax+fvmax[11]*dS*vmax); 
+  out[5] += intFac*(1.732050807568877*fvmin[22]*dS*vmin-1.0*fvmin[12]*dS*vmin+1.732050807568877*fvmax[22]*dS*vmax+fvmax[12]*dS*vmax); 
+  out[6] += intFac*(fvmax[19]*dS*vmax-1.0*fvmin[19]*dS*vmin); 
+  out[7] += intFac*(fvmax[20]*dS*vmax-1.0*fvmin[20]*dS*vmin); 
+  out[8] += intFac*(fvmax[31]*dS*vmax-1.0*fvmin[31]*dS*vmin); 
+  out[9] += intFac*(fvmax[32]*dS*vmax-1.0*fvmin[32]*dS*vmin); 
  
 } 
  
-void BoundaryIntegral2x2vMax_F_VY_P1(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_F_VY_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[5], fvmin[5]: distribution function at the velocity boundaries. 
@@ -1092,14 +1099,15 @@ void BoundaryIntegral2x2vMax_F_VY_P1(const double vmin, const double vmax, const
  
   const double dS = 0.5*dxv[2]; 
  
-  out[3] += 1.732050807568877*fvmin[4]*dS+1.732050807568877*fvmax[4]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS; 
-  out[4] += fvmax[1]*dS-1.0*fvmin[1]*dS; 
-  out[5] += fvmax[2]*dS-1.0*fvmin[2]*dS; 
+  out[3] += (1.732050807568877*fvmin[4]*dS+1.732050807568877*fvmax[4]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS)*intFac; 
+  out[4] += (fvmax[1]*dS-1.0*fvmin[1]*dS)*intFac; 
+  out[5] += (fvmax[2]*dS-1.0*fvmin[2]*dS)*intFac; 
  
 } 
  
-void BoundaryIntegral2x2vMax_F_VY_P2(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_F_VY_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[15], fvmin[15]: distribution function at the velocity boundaries. 
@@ -1107,17 +1115,18 @@ void BoundaryIntegral2x2vMax_F_VY_P2(const double vmin, const double vmax, const
  
   const double dS = 0.5*dxv[2]; 
  
-  out[6] += (-2.23606797749979*fvmin[14]*dS)+2.23606797749979*fvmax[14]*dS+1.732050807568877*fvmin[4]*dS+1.732050807568877*fvmax[4]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS; 
-  out[7] += 1.732050807568877*fvmin[8]*dS+1.732050807568877*fvmax[8]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS; 
-  out[8] += 1.732050807568877*fvmin[9]*dS+1.732050807568877*fvmax[9]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS; 
-  out[9] += fvmax[5]*dS-1.0*fvmin[5]*dS; 
-  out[10] += fvmax[11]*dS-1.0*fvmin[11]*dS; 
-  out[11] += fvmax[12]*dS-1.0*fvmin[12]*dS; 
+  out[6] += ((-2.23606797749979*fvmin[14]*dS)+2.23606797749979*fvmax[14]*dS+1.732050807568877*fvmin[4]*dS+1.732050807568877*fvmax[4]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS)*intFac; 
+  out[7] += (1.732050807568877*fvmin[8]*dS+1.732050807568877*fvmax[8]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS)*intFac; 
+  out[8] += (1.732050807568877*fvmin[9]*dS+1.732050807568877*fvmax[9]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS)*intFac; 
+  out[9] += (fvmax[5]*dS-1.0*fvmin[5]*dS)*intFac; 
+  out[10] += (fvmax[11]*dS-1.0*fvmin[11]*dS)*intFac; 
+  out[11] += (fvmax[12]*dS-1.0*fvmin[12]*dS)*intFac; 
  
 } 
  
-void BoundaryIntegral2x2vMax_F_VY_P3(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_F_VY_P3(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[35], fvmin[35]: distribution function at the velocity boundaries. 
@@ -1125,21 +1134,22 @@ void BoundaryIntegral2x2vMax_F_VY_P3(const double vmin, const double vmax, const
  
   const double dS = 0.5*dxv[2]; 
  
-  out[10] += 2.645751311064591*fvmin[34]*dS+2.645751311064591*fvmax[34]*dS-2.23606797749979*fvmin[14]*dS+2.23606797749979*fvmax[14]*dS+1.732050807568877*fvmin[4]*dS+1.732050807568877*fvmax[4]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS; 
-  out[11] += (-2.23606797749979*fvmin[28]*dS)+2.23606797749979*fvmax[28]*dS+1.732050807568877*fvmin[8]*dS+1.732050807568877*fvmax[8]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS; 
-  out[12] += (-2.23606797749979*fvmin[29]*dS)+2.23606797749979*fvmax[29]*dS+1.732050807568877*fvmin[9]*dS+1.732050807568877*fvmax[9]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS; 
-  out[13] += 1.732050807568877*fvmin[16]*dS+1.732050807568877*fvmax[16]*dS-1.0*fvmin[5]*dS+fvmax[5]*dS; 
-  out[14] += 1.732050807568877*fvmin[25]*dS+1.732050807568877*fvmax[25]*dS-1.0*fvmin[11]*dS+fvmax[11]*dS; 
-  out[15] += 1.732050807568877*fvmin[26]*dS+1.732050807568877*fvmax[26]*dS-1.0*fvmin[12]*dS+fvmax[12]*dS; 
-  out[16] += fvmax[19]*dS-1.0*fvmin[19]*dS; 
-  out[17] += fvmax[20]*dS-1.0*fvmin[20]*dS; 
-  out[18] += fvmax[31]*dS-1.0*fvmin[31]*dS; 
-  out[19] += fvmax[32]*dS-1.0*fvmin[32]*dS; 
+  out[10] += (2.645751311064591*fvmin[34]*dS+2.645751311064591*fvmax[34]*dS-2.23606797749979*fvmin[14]*dS+2.23606797749979*fvmax[14]*dS+1.732050807568877*fvmin[4]*dS+1.732050807568877*fvmax[4]*dS-1.0*fvmin[0]*dS+fvmax[0]*dS)*intFac; 
+  out[11] += ((-2.23606797749979*fvmin[28]*dS)+2.23606797749979*fvmax[28]*dS+1.732050807568877*fvmin[8]*dS+1.732050807568877*fvmax[8]*dS-1.0*fvmin[1]*dS+fvmax[1]*dS)*intFac; 
+  out[12] += ((-2.23606797749979*fvmin[29]*dS)+2.23606797749979*fvmax[29]*dS+1.732050807568877*fvmin[9]*dS+1.732050807568877*fvmax[9]*dS-1.0*fvmin[2]*dS+fvmax[2]*dS)*intFac; 
+  out[13] += (1.732050807568877*fvmin[16]*dS+1.732050807568877*fvmax[16]*dS-1.0*fvmin[5]*dS+fvmax[5]*dS)*intFac; 
+  out[14] += (1.732050807568877*fvmin[25]*dS+1.732050807568877*fvmax[25]*dS-1.0*fvmin[11]*dS+fvmax[11]*dS)*intFac; 
+  out[15] += (1.732050807568877*fvmin[26]*dS+1.732050807568877*fvmax[26]*dS-1.0*fvmin[12]*dS+fvmax[12]*dS)*intFac; 
+  out[16] += (fvmax[19]*dS-1.0*fvmin[19]*dS)*intFac; 
+  out[17] += (fvmax[20]*dS-1.0*fvmin[20]*dS)*intFac; 
+  out[18] += (fvmax[31]*dS-1.0*fvmin[31]*dS)*intFac; 
+  out[19] += (fvmax[32]*dS-1.0*fvmin[32]*dS)*intFac; 
  
 } 
  
-void BoundaryIntegral2x2vMax_vF_VY_P1(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_vF_VY_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[5], fvmin[5]: distribution function at the velocity boundaries. 
@@ -1147,14 +1157,15 @@ void BoundaryIntegral2x2vMax_vF_VY_P1(const double vmin, const double vmax, cons
  
   const double dS = 0.5*dxv[2]; 
  
-  out[0] += (-1.732050807568877*fvmin[4]*dS*vmin)+fvmin[0]*dS*vmin+1.732050807568877*fvmax[4]*dS*vmax+fvmax[0]*dS*vmax; 
-  out[1] += fvmin[1]*dS*vmin+fvmax[1]*dS*vmax; 
-  out[2] += fvmin[2]*dS*vmin+fvmax[2]*dS*vmax; 
+  out[0] += intFac*(1.732050807568877*fvmin[4]*dS*vmin-1.0*fvmin[0]*dS*vmin+1.732050807568877*fvmax[4]*dS*vmax+fvmax[0]*dS*vmax); 
+  out[1] += intFac*(fvmax[1]*dS*vmax-1.0*fvmin[1]*dS*vmin); 
+  out[2] += intFac*(fvmax[2]*dS*vmax-1.0*fvmin[2]*dS*vmin); 
  
 } 
  
-void BoundaryIntegral2x2vMax_vF_VY_P2(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_vF_VY_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[15], fvmin[15]: distribution function at the velocity boundaries. 
@@ -1162,17 +1173,18 @@ void BoundaryIntegral2x2vMax_vF_VY_P2(const double vmin, const double vmax, cons
  
   const double dS = 0.5*dxv[2]; 
  
-  out[0] += 2.23606797749979*fvmin[14]*dS*vmin-1.732050807568877*fvmin[4]*dS*vmin+fvmin[0]*dS*vmin+2.23606797749979*fvmax[14]*dS*vmax+1.732050807568877*fvmax[4]*dS*vmax+fvmax[0]*dS*vmax; 
-  out[1] += (-1.732050807568877*fvmin[8]*dS*vmin)+fvmin[1]*dS*vmin+1.732050807568877*fvmax[8]*dS*vmax+fvmax[1]*dS*vmax; 
-  out[2] += (-1.732050807568877*fvmin[9]*dS*vmin)+fvmin[2]*dS*vmin+1.732050807568877*fvmax[9]*dS*vmax+fvmax[2]*dS*vmax; 
-  out[3] += fvmin[5]*dS*vmin+fvmax[5]*dS*vmax; 
-  out[4] += fvmin[11]*dS*vmin+fvmax[11]*dS*vmax; 
-  out[5] += fvmin[12]*dS*vmin+fvmax[12]*dS*vmax; 
+  out[0] += intFac*((-2.23606797749979*fvmin[14]*dS*vmin)+1.732050807568877*fvmin[4]*dS*vmin-1.0*fvmin[0]*dS*vmin+2.23606797749979*fvmax[14]*dS*vmax+1.732050807568877*fvmax[4]*dS*vmax+fvmax[0]*dS*vmax); 
+  out[1] += intFac*(1.732050807568877*fvmin[8]*dS*vmin-1.0*fvmin[1]*dS*vmin+1.732050807568877*fvmax[8]*dS*vmax+fvmax[1]*dS*vmax); 
+  out[2] += intFac*(1.732050807568877*fvmin[9]*dS*vmin-1.0*fvmin[2]*dS*vmin+1.732050807568877*fvmax[9]*dS*vmax+fvmax[2]*dS*vmax); 
+  out[3] += intFac*(fvmax[5]*dS*vmax-1.0*fvmin[5]*dS*vmin); 
+  out[4] += intFac*(fvmax[11]*dS*vmax-1.0*fvmin[11]*dS*vmin); 
+  out[5] += intFac*(fvmax[12]*dS*vmax-1.0*fvmin[12]*dS*vmin); 
  
 } 
  
-void BoundaryIntegral2x2vMax_vF_VY_P3(const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
+void BoundaryIntegral2x2vMax_vF_VY_P3(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
 { 
+  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
   // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
   // dxv[4]:             cell length in each direciton. 
   // fvmax[35], fvmin[35]: distribution function at the velocity boundaries. 
@@ -1180,16 +1192,16 @@ void BoundaryIntegral2x2vMax_vF_VY_P3(const double vmin, const double vmax, cons
  
   const double dS = 0.5*dxv[2]; 
  
-  out[0] += (-2.645751311064591*fvmin[34]*dS*vmin)+2.23606797749979*fvmin[14]*dS*vmin-1.732050807568877*fvmin[4]*dS*vmin+fvmin[0]*dS*vmin+2.645751311064591*fvmax[34]*dS*vmax+2.23606797749979*fvmax[14]*dS*vmax+1.732050807568877*fvmax[4]*dS*vmax+fvmax[0]*dS*vmax; 
-  out[1] += 2.23606797749979*fvmin[28]*dS*vmin-1.732050807568877*fvmin[8]*dS*vmin+fvmin[1]*dS*vmin+2.23606797749979*fvmax[28]*dS*vmax+1.732050807568877*fvmax[8]*dS*vmax+fvmax[1]*dS*vmax; 
-  out[2] += 2.23606797749979*fvmin[29]*dS*vmin-1.732050807568877*fvmin[9]*dS*vmin+fvmin[2]*dS*vmin+2.23606797749979*fvmax[29]*dS*vmax+1.732050807568877*fvmax[9]*dS*vmax+fvmax[2]*dS*vmax; 
-  out[3] += (-1.732050807568877*fvmin[16]*dS*vmin)+fvmin[5]*dS*vmin+1.732050807568877*fvmax[16]*dS*vmax+fvmax[5]*dS*vmax; 
-  out[4] += (-1.732050807568877*fvmin[25]*dS*vmin)+fvmin[11]*dS*vmin+1.732050807568877*fvmax[25]*dS*vmax+fvmax[11]*dS*vmax; 
-  out[5] += (-1.732050807568877*fvmin[26]*dS*vmin)+fvmin[12]*dS*vmin+1.732050807568877*fvmax[26]*dS*vmax+fvmax[12]*dS*vmax; 
-  out[6] += fvmin[19]*dS*vmin+fvmax[19]*dS*vmax; 
-  out[7] += fvmin[20]*dS*vmin+fvmax[20]*dS*vmax; 
-  out[8] += fvmin[31]*dS*vmin+fvmax[31]*dS*vmax; 
-  out[9] += fvmin[32]*dS*vmin+fvmax[32]*dS*vmax; 
+  out[0] += intFac*(2.645751311064591*fvmin[34]*dS*vmin-2.23606797749979*fvmin[14]*dS*vmin+1.732050807568877*fvmin[4]*dS*vmin-1.0*fvmin[0]*dS*vmin+2.645751311064591*fvmax[34]*dS*vmax+2.23606797749979*fvmax[14]*dS*vmax+1.732050807568877*fvmax[4]*dS*vmax+fvmax[0]*dS*vmax); 
+  out[1] += intFac*((-2.23606797749979*fvmin[28]*dS*vmin)+1.732050807568877*fvmin[8]*dS*vmin-1.0*fvmin[1]*dS*vmin+2.23606797749979*fvmax[28]*dS*vmax+1.732050807568877*fvmax[8]*dS*vmax+fvmax[1]*dS*vmax); 
+  out[2] += intFac*((-2.23606797749979*fvmin[29]*dS*vmin)+1.732050807568877*fvmin[9]*dS*vmin-1.0*fvmin[2]*dS*vmin+2.23606797749979*fvmax[29]*dS*vmax+1.732050807568877*fvmax[9]*dS*vmax+fvmax[2]*dS*vmax); 
+  out[3] += intFac*(1.732050807568877*fvmin[16]*dS*vmin-1.0*fvmin[5]*dS*vmin+1.732050807568877*fvmax[16]*dS*vmax+fvmax[5]*dS*vmax); 
+  out[4] += intFac*(1.732050807568877*fvmin[25]*dS*vmin-1.0*fvmin[11]*dS*vmin+1.732050807568877*fvmax[25]*dS*vmax+fvmax[11]*dS*vmax); 
+  out[5] += intFac*(1.732050807568877*fvmin[26]*dS*vmin-1.0*fvmin[12]*dS*vmin+1.732050807568877*fvmax[26]*dS*vmax+fvmax[12]*dS*vmax); 
+  out[6] += intFac*(fvmax[19]*dS*vmax-1.0*fvmin[19]*dS*vmin); 
+  out[7] += intFac*(fvmax[20]*dS*vmax-1.0*fvmin[20]*dS*vmin); 
+  out[8] += intFac*(fvmax[31]*dS*vmax-1.0*fvmin[31]*dS*vmin); 
+  out[9] += intFac*(fvmax[32]*dS*vmax-1.0*fvmin[32]*dS*vmin); 
  
 } 
  

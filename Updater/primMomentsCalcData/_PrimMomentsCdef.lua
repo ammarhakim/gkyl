@@ -127,6 +127,8 @@ void CrossPrimMoments_VmeiLBO_1x3vSer_P3(const double mRat, const double *ne, co
 void CrossPrimMoments_VmieLBO_1x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
 
 
+void SelfPrimMoments2x1vSer_P1(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); 
+
 void SelfPrimMoments2x2vSer_P1(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); 
 
 void BoundaryIntegral2x2vSer_F_VX_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out); 
@@ -139,6 +141,8 @@ void BoundaryIntegral2x2vSer_vF_VY_P1(const double intFac, const double vmin, co
 
 void CrossPrimMoments_VmeiLBO_2x2vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
 void CrossPrimMoments_VmieLBO_2x2vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+
+void SelfPrimMoments2x1vSer_P2(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); 
 
 void SelfPrimMoments2x2vSer_P2(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); 
 
@@ -217,6 +221,8 @@ void BoundaryIntegral2x3vSer_vF_VZ_P3(const double intFac, const double vmin, co
 void CrossPrimMoments_VmeiLBO_2x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
 void CrossPrimMoments_VmieLBO_2x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
 
+
+void SelfPrimMoments3x1vSer_P1(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); 
 
 void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); 
 

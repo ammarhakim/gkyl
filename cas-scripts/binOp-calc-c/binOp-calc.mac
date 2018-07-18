@@ -42,7 +42,7 @@ for bInd : 1 thru length(bName) do (
     fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", ".cpp"),
     fh : openw(fname),
   
-    disp(printf(false,sconcat("Creating ~ax", bName[bInd]),c)),
+    disp(printf(false,sconcat("Creating ~ax ", bName[bInd]),c)),
   
     printf(fh, "#include <math.h> ~%"),
     printf(fh, "#include <CartFieldBinOpModDecl.h> ~%"),
@@ -92,7 +92,7 @@ for bInd : 1 thru length(bName) do (
   /* Generate the 3x2v case (mostly for gyrokinetics). */
   c : 3,
   v : 2,
-  disp(printf(false,sconcat("Creating ~ax~av", bName[bInd]),c,v)),
+  disp(printf(false,sconcat("Creating ~ax~av ", bName[bInd]),c,v)),
   
   fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "v", ".cpp"),
   fh : openw(fname),

@@ -28,11 +28,9 @@ function GkLBO:init(tbl)
       tbl.confBasis, "Eq.GkLBO: Must specify configuration-space basis functions to use using 'confBasis'")
    
    assert(tbl.nu, "Eq.GkLBO: Must specify collision freq using 'nu'")
-   self._inNu = Lin.Vec(1)
    self._inNu = tbl.nu
 
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'")
-   self._inMuFac = Lin.Vec(1)
    self._inMuFac = tbl.mass
 
    self._pdim = self._phaseBasis:ndim()

@@ -12,6 +12,7 @@ def build(bld):
     primMomentsCalcData/SelfPrimMomentsSer1x1v.cpp
     primMomentsCalcData/SelfPrimMomentsSer1x2v.cpp
     primMomentsCalcData/SelfPrimMomentsSer1x3v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer2x1v.cpp
     primMomentsCalcData/SelfPrimMomentsSer2x2v.cpp
     primMomentsCalcData/SelfPrimMomentsSer2x3v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x1v.cpp
