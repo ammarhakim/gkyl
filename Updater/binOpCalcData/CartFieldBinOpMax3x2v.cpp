@@ -149,11 +149,11 @@ void CartFieldBinOpDivide3x2vMax_P1(const double *A, const double *B, const shor
   // out:     output field (same number of components as B). 
  
   // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM(6,6); 
+  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(6,6); 
   // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV(6); 
+  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(6);  
   // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u(6); 
+  Eigen::VectorXd u = Eigen::VectorXd::Zero(6);  
  
   // Fill AEM matrix. 
   AEM(0,0) = 0.3535533905932737*A[0]; 
@@ -189,11 +189,11 @@ void CartFieldBinOpDivide3x2vMax_P2(const double *A, const double *B, const shor
   // out:     output field (same number of components as B). 
  
   // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM(21,21); 
+  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(21,21); 
   // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV(21); 
+  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(21);  
   // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u(21); 
+  Eigen::VectorXd u = Eigen::VectorXd::Zero(21);  
  
   // Fill AEM matrix. 
   AEM(0,0) = 0.3535533905932737*A[0]; 
@@ -322,11 +322,11 @@ void CartFieldBinOpDivide3x2vMax_P3(const double *A, const double *B, const shor
   // out:     output field (same number of components as B). 
  
   // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM(56,56); 
+  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(56,56); 
   // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV(56); 
+  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(56);  
   // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u(56); 
+  Eigen::VectorXd u = Eigen::VectorXd::Zero(56);  
  
   // Fill AEM matrix. 
   AEM(0,0) = 0.3535533905932737*A[0]; 
