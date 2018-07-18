@@ -16,7 +16,7 @@ Ti0 = 2072*eV
 B0 = 1.91   -- magnetic field strength on axis [T]
 R0 = 1.313  -- major radius of magnetic axis [m]
 a  = 0.4701 -- minor radius [m]
-n0 = 4.992*10^(19) -- [1/m^3]
+n0 = 4.992e19 -- [1/m^3]
 -- derived parameters
 r0       = 0.5*a -- minor radius of center of flux tube
 R        = R0 + r0 -- major radius of center of flux tube
