@@ -29,4 +29,37 @@ _M[4] = function (dir, f, out)
    out[5] = f[5] 
    end 
 end 
+_M[5] = function (dir, f, out) 
+   if dir == 1  then 
+   out[1] = f[1] 
+   out[2] = -1.0*f[2] 
+   out[3] = f[3] 
+   out[4] = -1.0*f[4] 
+   out[5] = f[5] 
+   out[6] = -1.0*f[6] 
+   end 
+end 
+_M[6] = function (dir, f, out) 
+   if dir == 1  then 
+   out[1] = f[1] 
+   out[2] = -1.0*f[2] 
+   out[3] = f[3] 
+   out[4] = -1.0*f[4] 
+   out[5] = f[5] 
+   out[6] = -1.0*f[6] 
+   out[7] = f[7] 
+   end 
+end 
+_M[7] = function (dir, f, out) 
+   if dir == 1  then 
+   out[1] = f[1] 
+   out[2] = -1.0*f[2] 
+   out[3] = f[3] 
+   out[4] = -1.0*f[4] 
+   out[5] = f[5] 
+   out[6] = -1.0*f[6] 
+   out[7] = f[7] 
+   out[8] = -1.0*f[8] 
+   end 
+end 
 return _M 
