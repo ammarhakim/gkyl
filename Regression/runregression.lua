@@ -104,6 +104,10 @@ end
 local function runLuaTest(test)
    log(string.format("\nRunning test %s ...\n", test))
 
+   -- before running tests delete all old output
+   local rm = "rm -f " .. string.sub(test, 1, -5) .. "_*.bp"
+   os.execute(rm)
+
    local tmStart = Time.clock()
    local runCmd = string.format("%s %s", GKYL_EXEC, test)
    local f = io.popen(runCmd, "r")

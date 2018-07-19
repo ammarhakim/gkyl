@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Vlasov = require "App.PlasmaOnCartGrid"
+local Plasma = require "App.PlasmaOnCartGrid"
 
 -- Constants
 chargeElc = -1.0
@@ -33,7 +33,7 @@ local function maxwellian2D(n, vx, vy, ux, uy, vth)
    return n/(2*math.pi*vth^2)*math.exp(-v2/(2*vth^2))
 end
 
-vlasovApp = Vlasov.App {
+vlasovApp = Plasma.App {
    logToFile = true,
 
    tEnd = 2*math.pi/B0, -- end time
@@ -53,7 +53,7 @@ vlasovApp = Vlasov.App {
    periodicDirs = {1}, -- periodic directions
 
    -- electrons
-   elc = Vlasov.VlasovMaxwell.Species {
+   elc = Plasma.VlasovMaxwell.Species {
       charge = -1.0, mass = 1.0,
       -- velocity space grid
       lower = {-1.0, -1.0},
@@ -72,7 +72,7 @@ vlasovApp = Vlasov.App {
    },
 
    -- field solver
-   field = Vlasov.VlasovMaxwell.Field {
+   field = Plasma.VlasovMaxwell.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 local x = xn[1]
