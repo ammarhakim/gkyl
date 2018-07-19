@@ -330,7 +330,6 @@ local function buildApplication(self, tbl)
       local step = 1
       local tCurr = tStart
       local myDt = initDt
-      local gcStatFile = io.open("gcMemHist.txt", "w")
 
       local tmSimStart = Time.clock()
       -- main simulation loop
@@ -367,7 +366,6 @@ local function buildApplication(self, tbl)
 	    end
 	 end
 
-	 gcStatFile:write(string.format("%d\n", collectgarbage("count")))
       end -- end of time-step loop
       local tmSimEnd = Time.clock()
 

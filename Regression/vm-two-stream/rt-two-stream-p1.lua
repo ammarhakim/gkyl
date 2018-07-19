@@ -1,12 +1,12 @@
 -- Gkyl ------------------------------------------------------------------------
-local Vlasov = require "App.PlasmaOnCartGrid"
+local Plasma = require "App.PlasmaOnCartGrid"
 
 knumber = 0.5 -- wave-number
 elVTerm = 0.2 -- electron thermal velocity
 vDrift = 1.0 -- drift velocity
 perturbation = 1.0e-6 -- distribution function perturbation
 
-vlasovApp = Vlasov.App {
+vlasovApp = Plasma.App {
    logToFile = true,
 
    tEnd = 40.0, -- end time
@@ -26,7 +26,7 @@ vlasovApp = Vlasov.App {
    periodicDirs = {1}, -- periodic directions
 
    -- electrons
-   elc = Vlasov.VlasovMaxwell.Species {
+   elc = Plasma.VlasovMaxwell.Species {
       charge = -1.0, mass = 1.0,
       -- velocity space grid
       lower = {-6.0},
@@ -50,7 +50,7 @@ vlasovApp = Vlasov.App {
    },
 
    -- field solver
-   field = Vlasov.VlasovMaxwell.Field {
+   field = Plasma.VlasovMaxwell.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 local alpha = perturbation
