@@ -28,6 +28,7 @@ function GkSpecies:alloc(nRkDup)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocMoment()
    self.ptclEnergy = self:allocMoment()
+   self.polarizationWeight = self.allocMoment()
 end
 
 function GkSpecies:allocMomCouplingFields()
@@ -56,18 +57,18 @@ function GkSpecies:initDist()
    --print("Average density is " .. self.n0)
 end
 
-function GkSpecies:createSolver(hasPhi, hasApar, geo)
+function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    -- run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver
    GkSpecies.super.createSolver(self)
 
    -- set up jacobian
-   if geo then
+   if funcField then
       -- save bmagFunc for later...
-      self.bmagFunc = geo.bmagFunc
-      -- if vdim>1, get jacobian=bmag from geo, and multiply it by init functions for f0 and f
+      self.bmagFunc = funcField.bmagFunc
+      -- if vdim>1, get jacobian=bmag from funcField, and multiply it by init functions for f0 and f
       self.jacobPhaseFunc = self.bmagFunc
-      self.jacobGeoFunc = geo.jacobGeoFunc
+      self.jacobGeoFunc = funcField.jacobGeoFunc
       if self.jacobPhaseFunc and self.vdim > 1 then
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
@@ -100,8 +101,8 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
             end
          end
       end
-      self.B0 = geo.B0
-      self.bmag = assert(geo.geo.bmag, "nil bmag")
+      self.B0 = funcField.B0
+      self.bmag = assert(funcField.geo.bmag, "nil bmag")
    end
 
    -- create updater to advance solution by one time-step
@@ -431,8 +432,13 @@ function GkSpecies:getMomDensity(rkIdx)
    return self.momDensity
 end
 
-function GkSpecies:polarizationWeight()
-   return self.n0*self.mass/self.B0^2
+function GkSpecies:polarizationWeight(linearized)
+   if linearized == false then 
+     self.polarizationWeight:combine(self.mass/self.B0^2, self.numDensity)
+     return self.polarizationWeight
+   else 
+     return self.n0*self.mass/self.B0^2
+   end
 end
 
 function GkSpecies:momCalcTime()

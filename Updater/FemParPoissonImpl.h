@@ -39,7 +39,7 @@ extern "C" {
   } bcdataPar_t;
 
 // C wrappers for interfacing with FemParPoisson class
-  void* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool periodicFlg, bcdataPar_t bc[2], bool writeMatrix, double laplacianWeight, double modifierConstant);
+  void* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool periodicFlg, bcdataPar_t bc[2], bool writeMatrix, double laplacianConstant, double modifierConstant);
   void delete_FemParPoisson(FemParPoisson* f);
   void createParGlobalSrc(FemParPoisson* f, double* localSrcPtr, int idz, double intSrcVol);
   void zeroParGlobalSrc(FemParPoisson* f);
@@ -54,7 +54,7 @@ class FemParPoisson
   FemParPoisson(int nz, int ndim, int polyOrder, 
              double dz, bool periodicFlgs,
              bcdataPar_t bc[2], bool writeMatrix,
-             double laplacianWeight, double modifierConstant) ;
+             double laplacianConstant, double modifierConstant) ;
   ~FemParPoisson();
   void createGlobalSrc(double* ptr, int idz, double intSrcVol);
   void zeroGlobalSrc();
@@ -68,7 +68,7 @@ class FemParPoisson
   const double dz;
   const bool z_periodic;
   const bool writeMatrix;
-  const double laplacianWeight, modifierConstant;
+  const double laplacianConstant, modifierConstant;
   bcdataPar_t bc[2], bc1d[2];
   bool adjustSource;
   MPI_Datatype MPI_vector_t;

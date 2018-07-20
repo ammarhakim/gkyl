@@ -31,13 +31,11 @@ void vectorSum(double *in, double *inout, int *len, MPI_Datatype *dptr)
 
 FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_, 
                        double dx_, double dy_, bool periodicFlgs_[2], 
-                       bcdata_t bc_[2][2], bool writeMatrix_,
-                       double laplacianWeight_, double modifierConstant_) 
+                       bcdata_t bc_[2][2], bool writeMatrix_, bool adjustSource_)
   : nx(nx_), ny(ny_), ndim(ndim_), 
     polyOrder(polyOrder_), dx(dx_), dy(dy_), 
     writeMatrix(writeMatrix_),
-    laplacianWeight(laplacianWeight_),
-    modifierConstant(modifierConstant_)
+    adjustSource(adjustSource_)
 {
 //#define DMSG(s) std::cout << s << std::endl;
 #define DMSG(s) ;
@@ -59,8 +57,6 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
 
   allPeriodic = false;
   if(periodicFlgs[0] && periodicFlgs[1]) allPeriodic = true;
-  adjustSource = false;
-  if(allPeriodic && modifierConstant==0.0) adjustSource = true;
   cornerval = 0.0;
 
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
@@ -331,7 +327,7 @@ void FemPerpPoisson::setupBoundaryIndices(bcdata_t bc[2][2], int ndim, int polyO
     
 }
 
-void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(double *stiffWeight, double *massWeight, int idx, int idy)
+void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(double *laplacianWeight, double *modifierWeight, double *gxx, double *gxy, double *gyy, int idx, int idy)
 {
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
   int nlocal = getNumLocalNodes(ndim, polyOrder);
@@ -346,8 +342,8 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(double *stiffWeight, double *
   std::vector<int> lgMap(nlocal);
   stiffTripletList.reserve(nonzeros*nglobal); // estimate number of nonzero elements
 
-  getPerpStiffnessMatrix(localStiff, stiffWeight, ndim, polyOrder, dx, dy);
-  getMassMatrix(localMass, massWeight, ndim, polyOrder);
+  getPerpStiffnessMatrix(localStiff, laplacianWeight, gxx, gxy, gyy, ndim, polyOrder, dx, dy);
+  getMassMatrix(localMass, modifierWeight, ndim, polyOrder);
 
   getPerpLocalToGlobalInteriorBLRT(lgMap,idx,idy,nx,ny,ndim,polyOrder,periodicFlgs);
       
@@ -355,7 +351,7 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(double *stiffWeight, double *
   for (unsigned k=0; k<nlocal; ++k)
   {
     for (unsigned m=0; m<nlocal; ++m) {
-      double val = -laplacianWeight*localStiff(k,m) + modifierConstant*localMass(k,m);
+      double val = -localStiff(k,m) + localMass(k,m);
       unsigned globalIdx_k = lgMap[k];
       unsigned globalIdx_m = lgMap[m];
 
@@ -528,11 +524,11 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
   // this ensures no duplicates, so that entries for these rows are at most equal to 1
   dirichletIdentity.setFromTriplets(identityTripletList.begin(), identityTripletList.end(), take_last);
 
-  if (modifierConstant!=0.0 && laplacianWeight==0.0) {
-    stiffMat+=modifierConstant*dirichletIdentity;
-  } else {
+  //if (modifierConstant!=0.0 && laplacianConstant==0.0) {
+  //  stiffMat+=modifierConstant*dirichletIdentity;
+  //} else {
     stiffMat+=dirichletIdentity;
-  }
+  //}
 
 // create vector of Dirichlet values
   SparseVector<double> dirichletVec(nglobal);
@@ -631,18 +627,6 @@ void FemPerpPoisson::createGlobalSrc(double* localSrcPtr, int idx, int idy, doub
   localSrc[0] = localSrc[0] - intSrcVol;
   
   getPerpLocalToGlobalInteriorBLRT(lgMap,idx,idy,nx,ny,ndim,polyOrder,periodicFlgs);
-
-  //printf("(%d,%d): ", idx,idy);
-  //for(unsigned k=0; k<nlocal; ++k) 
-  //{
-  //  if(k<8)
-  //    printf("%d  ", lgMap[k]);
-  //  else if (k<12)
-  //    printf("%d  ", lgMap[k]-getNumPerpGlobalNodes(nx,ny,2,polyOrder,periodicFlgs));
-  //  else
-  //    printf("%d  ", lgMap[k]-getNumPerpGlobalNodes(nx,ny,2,polyOrder,periodicFlgs)-getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs));
-  //}
-  //printf("\n");
 
 // evaluate local mass matrix times local source
   for (unsigned k=0; k<nlocal; ++k)
@@ -1023,9 +1007,9 @@ int FemPerpPoisson::G2_func(int nx, int ny, int ninterior, int ix, int iy, bool 
 }
 
 // C wrappers for interfacing with FemPerpPoisson class
-extern "C" void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant)
+extern "C" void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, bool adjustSource)
 {
-  FemPerpPoisson *f = new FemPerpPoisson(nx, ny, ndim, polyOrder, dx, dy, periodicFlgs, bc, writeMatrix, laplacianWeight, modifierConstant);
+  FemPerpPoisson *f = new FemPerpPoisson(nx, ny, ndim, polyOrder, dx, dy, periodicFlgs, bc, writeMatrix, adjustSource);
   return reinterpret_cast<void*>(f);
 }
 
@@ -1034,9 +1018,9 @@ extern "C" void delete_FemPerpPoisson(FemPerpPoisson* f)
   delete f;
 }
 
-extern "C" void makeGlobalStiff(FemPerpPoisson* f, double *stiffWeight, double *massWeight, int idx, int idy)
+extern "C" void makeGlobalStiff(FemPerpPoisson* f, double *laplacianWeight, double *modifierWeight, double *gxx, double *gxy, double *gyy, int idx, int idy)
 {
-  f->makeGlobalPerpStiffnessMatrix(stiffWeight, massWeight, idx, idy);
+  f->makeGlobalPerpStiffnessMatrix(laplacianWeight, modifierWeight, gxx, gxy, gyy, idx, idy);
 }
 
 extern "C" void finishGlobalStiff(FemPerpPoisson* f)

@@ -41,9 +41,9 @@ extern "C" {
   } bcdata_t;
 
 // C wrappers for interfacing with FemPerpPoisson class
-  void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
+  void* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, bool adjustSource);
   void delete_FemPerpPoisson(FemPerpPoisson* f);
-  void makeGlobalStiff(FemPerpPoisson* f, double *stiffWeight, double *massWeight, int idx, int idy);
+  void makeGlobalStiff(FemPerpPoisson* f, double *laplacianWeight, double *modifierWeight, double *gxx, double *gxy, double *gyy, int idx, int idy);
   void finishGlobalStiff(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc(FemPerpPoisson* f);
@@ -59,13 +59,13 @@ class FemPerpPoisson
   FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, 
              double dx, double dy, bool periodicFlgs[2],
              bcdata_t bc[2][2], bool writeMatrix,
-             double laplacianWeight, double modifierConstant) ;
+             bool adjustSource);
   ~FemPerpPoisson();
   void createGlobalSrc(double* ptr, int idx, int idy, double intSrcVol);
   void zeroGlobalSrc();
   void allreduceGlobalSrc(MPI_Comm comm);
   void allgatherGlobalStiff(MPI_Comm comm);
-  void makeGlobalPerpStiffnessMatrix(double *stiffWeight, double *massWeight, int idx, int idy);
+  void makeGlobalPerpStiffnessMatrix(double *laplacianWeight, double *modifierWeight, double *gxx, double *gxy, double *gyy, int idx, int idy);
   void finishGlobalPerpStiffnessMatrix();
   void solve();
   void getSolution(double* ptr, int idx, int idy);
@@ -75,7 +75,6 @@ class FemPerpPoisson
   const int nx, ny, ndim, polyOrder;
   const double dx, dy;
   const bool writeMatrix;
-  const double laplacianWeight, modifierConstant;
   bcdata_t bc[2][2], bc2d[2][2], bc2d_z0[2][2];
   bool periodicFlgs[2];
   bool allPeriodic;
@@ -91,6 +90,7 @@ class FemPerpPoisson
   /** Eigen vector for solution */
   Eigen::VectorXd x;
   /** Eigen solver method */
+  //Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
   Eigen::MatrixXd localMassModToNod, localNodToMod, localModToNod;
   bool analyzed_; // flag so that stiffness matrix only analyzed once

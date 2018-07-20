@@ -30,11 +30,11 @@ void vectorSumPar(double *in, double *inout, int *len, MPI_Datatype *dptr)
 FemParPoisson::FemParPoisson(int nz_, int ndim_, int polyOrder_, 
                        double dz_, bool z_periodic_, 
                        bcdataPar_t bc_[2], bool writeMatrix_,
-                       double laplacianWeight_, double modifierConstant_) 
+                       double laplacianConstant_, double modifierConstant_) 
   : nz(nz_), ndim(ndim_), 
     polyOrder(polyOrder_), dz(dz_), z_periodic(z_periodic_),
     writeMatrix(writeMatrix_),
-    laplacianWeight(laplacianWeight_),
+    laplacianConstant(laplacianConstant_),
     modifierConstant(modifierConstant_)
 {
 //#define DMSG(s) std::cout << s << std::endl;
@@ -199,7 +199,7 @@ void FemParPoisson::makeGlobalParStiffnessMatrix(
     for (unsigned k=0; k<nlocal; ++k)
     {
       for (unsigned m=0; m<nlocal; ++m) {
-        double val = -laplacianWeight*localStiff(k,m) + modifierConstant*localMass(k,m);
+        double val = -laplacianConstant*localStiff(k,m) + modifierConstant*localMass(k,m);
         unsigned globalIdx_k = lgMap[k];
         unsigned globalIdx_m = lgMap[m];
 
@@ -267,7 +267,7 @@ void FemParPoisson::makeGlobalParStiffnessMatrix(
   // this ensures no duplicates, so that entries for these rows are at most equal to 1
   dirichletIdentity.setFromTriplets(identityTripletList.begin(), identityTripletList.end(), take_lastPar);
 
-  if (modifierConstant!=0.0 && laplacianWeight==0.0) {
+  if (modifierConstant!=0.0 && laplacianConstant==0.0) {
     stiffMat+=modifierConstant*dirichletIdentity;
   } else {
     stiffMat+=dirichletIdentity;
@@ -655,9 +655,9 @@ void FemParPoisson::getParLocalToGlobalInteriorBoundary(std::vector<int>& lgMap,
 }
 
 // C wrappers for interfacing with FemParPoisson class
-extern "C" void* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool z_periodic, bcdataPar_t bc[2], bool writeMatrix, double laplacianWeight, double modifierConstant)
+extern "C" void* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool z_periodic, bcdataPar_t bc[2], bool writeMatrix, double laplacianConstant, double modifierConstant)
 {
-  FemParPoisson *f = new FemParPoisson(nz, ndim, polyOrder, dz, z_periodic, bc, writeMatrix, laplacianWeight, modifierConstant);
+  FemParPoisson *f = new FemParPoisson(nz, ndim, polyOrder, dz, z_periodic, bc, writeMatrix, laplacianConstant, modifierConstant);
   return reinterpret_cast<void*>(f);
 }
 

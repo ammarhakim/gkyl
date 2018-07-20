@@ -39,9 +39,9 @@ ffi.cdef[[
           int cornerend[3];
       } bcdata_t;
   typedef struct FemPerpPoisson FemPerpPoisson;
-  FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, double laplacianWeight, double modifierConstant);
+  FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, bool adjustSource);
   void delete_FemPerpPoisson(FemPerpPoisson* f);
-  void makeGlobalStiff(FemPerpPoisson* f, double *stiffWeight, double *massWeight, int idx, int idy);
+  void makeGlobalStiff(FemPerpPoisson* f, double *laplacianWeight, double *modifierWeight, double *gxx, double *gxy, double *gyy, int idx, int idy);
   void finishGlobalStiff(FemPerpPoisson* f);
   void createGlobalSrc(FemPerpPoisson* f, double* localSrcPtr, int idx, int idy, double intSrcVol);
   void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm);
@@ -136,18 +136,10 @@ function FemPerpPoisson:init(tbl)
      end
    end
 
-   self._modifierConstant=0.0
-   if tbl.modifierConstant then
-     self._modifierConstant = tbl.modifierConstant
-   end
-
-   self._laplacianWeight=1.0
-   if tbl.laplacianWeight then
-     self._laplacianWeight = tbl.laplacianWeight
-   end
+   self._hasLaplacian = false
+   self._hasModifier = false
 
    self._adjustSource = false
-   if self._allPeriodic and self._modifierConstant == 0.0 then self._adjustSource = true end
 
    self._nx = self._grid:numCells(1)
    self._ny = self._grid:numCells(2)
@@ -179,6 +171,55 @@ function FemPerpPoisson:init(tbl)
    }
    initUnit:advance(0.,0.,{},{self.unitWeight})
 
+   -- set up fields for non-uniform and/or time-dependent laplacian and modifier weights
+   self.laplacianWeight = DataStruct.Field {
+        onGrid = self._grid,
+        numComponents = self._basis:numBasis(),
+        ghost = {1, 1},
+   }
+   self.modifierWeight = DataStruct.Field {
+        onGrid = self._grid,
+        numComponents = self._basis:numBasis(),
+        ghost = {1, 1},
+   }
+   -- initialize these fields to zero
+   self.laplacianWeight:clear(0.0)
+   self.modifierWeight:clear(0.0)
+
+   self._smooth = xsys.pickBool(tbl.smooth, false)
+
+   -- metric coefficient fields
+   self.gxx = DataStruct.Field {
+        onGrid = self._grid,
+        numComponents = self._basis:numBasis(),
+        ghost = {1, 1},
+   }
+   self.gxy = DataStruct.Field {
+        onGrid = self._grid,
+        numComponents = self._basis:numBasis(),
+        ghost = {1, 1},
+   }
+   self.gyy = DataStruct.Field {
+        onGrid = self._grid,
+        numComponents = self._basis:numBasis(),
+        ghost = {1, 1},
+   }
+   if tbl.gxx then 
+     self.gxx:copy(tbl.gxx)
+   else
+     self.gxx:copy(self.unitWeight)
+   end
+   if tbl.gxy then 
+     self.gxy:copy(tbl.gxy)
+   else
+     self.gxy:clear(0.0)
+   end
+   if tbl.gyy then 
+     self.gyy:copy(tbl.gyy)
+   else
+     self.gyy:copy(self.unitWeight)
+   end
+
    if GKYL_HAVE_MPI then
      -- split communicators in z
      local commSet = self._grid:commSet()
@@ -196,9 +237,8 @@ function FemPerpPoisson:init(tbl)
      self.zDiscontToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
-       laplacianWeight = 0.0,
-       modifierConstant = 1.0,
      }
+     self.zDiscontToCont:setModifierWeight(self.unitWeight)
    end
 
    self.dynVec = DataStruct.DynVector { numComponents = 1 }
@@ -217,8 +257,6 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
 
    local src = assert(inFld[1], "FemPerpPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "FemPerpPoisson.advance: Must specify an output field")
-   local stiffWeight = inFld[2] or self.unitWeight
-   local massWeight = inFld[3] or self.unitWeight
 
    local ndim = self._ndim
 
@@ -234,14 +272,32 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    end
 
    -- create indexers and pointers for src and sol
-   local srcIndexer = src:indexer() 
-   local srcPtr = src:get(1)
-   local solIndexer = sol:indexer() 
-   local solPtr = sol:get(1)
-   local stiffWeightIndexer = stiffWeight:indexer() 
-   local stiffWeightPtr = stiffWeight:get(1)
-   local massWeightIndexer = massWeight:indexer() 
-   local massWeightPtr = massWeight:get(1)
+   if self._first then 
+      self.srcIndexer = src:indexer() 
+      self.srcPtr = src:get(1)
+      self.solIndexer = sol:indexer() 
+      self.solPtr = sol:get(1)
+      self.laplacianWeightIndexer = self.laplacianWeight:indexer() 
+      self.laplacianWeightPtr = self.laplacianWeight:get(1)
+      self.modifierWeightIndexer = self.modifierWeight:indexer() 
+      self.modifierWeightPtr = self.modifierWeight:get(1)
+      self.gxxIndexer = self.gxx:indexer()
+      self.gxxPtr = self.gxx:get(1)
+      self.gxyIndexer = self.gxy:indexer()
+      self.gxyPtr = self.gxy:get(1)
+      self.gyyIndexer = self.gyy:indexer()
+      self.gyyPtr = self.gyy:get(1)
+      if self._hasModifier == false and self._hasLaplacian == false then 
+         if self._smooth then 
+           self.modifierWeight:copy(self.unitWeight) 
+           self._hasModifier = true
+         else 
+           self.laplacianWeight:copy(self.unitWeight)
+           self._hasLaplacian = true
+         end
+      end
+      if self._allPeriodic and self._hasModifier == false then self._adjustSource = true end
+   end
 
    local intSrcVol = {0.0}
    -- if all directions periodic need to adjust source so that integral is 0 
@@ -263,8 +319,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
        -- if first time, create poisson C object for each z cell
        self._poisson[idz] = ffi.C.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
                                            self._dx, self._dy, self._isDirPeriodic, 
-                                           self._bc, self._writeMatrix,
-                                           self._laplacianWeight, self._modifierConstant)
+                                           self._bc, self._writeMatrix, self._adjustSource)
      end
 
      -- zero global source
@@ -277,21 +332,27 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
      for idx=localRange:lower(1),localRange:upper(1) do     
        for idy=localRange:lower(2),localRange:upper(2) do
          if ndim==2 then 
-           src:fill(srcIndexer(idx,idy), srcPtr) 
+           src:fill(self.srcIndexer(idx,idy), self.srcPtr) 
          else 
-           src:fill(srcIndexer(idx, idy, idz), srcPtr) 
+           src:fill(self.srcIndexer(idx, idy, idz), self.srcPtr) 
          end
-         ffi.C.createGlobalSrc(self._poisson[idz], srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
+         ffi.C.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
 
          if self.makeStiff then
             if ndim==2 then 
-              stiffWeight:fill(stiffWeightIndexer(idx,idy), stiffWeightPtr) 
-              massWeight:fill(massWeightIndexer(idx,idy), massWeightPtr) 
+              self.laplacianWeight:fill(self.laplacianWeightIndexer(idx,idy), self.laplacianWeightPtr) 
+              self.modifierWeight:fill(self.modifierWeightIndexer(idx,idy), self.modifierWeightPtr) 
+              self.gxx:fill(self.gxxIndexer(idx,idy), self.gxxPtr) 
+              self.gxy:fill(self.gxyIndexer(idx,idy), self.gxyPtr) 
+              self.gyy:fill(self.gyyIndexer(idx,idy), self.gyyPtr) 
             else 
-              stiffWeight:fill(stiffWeightIndexer(idx, idy, idz), stiffWeightPtr) 
-              massWeight:fill(massWeightIndexer(idx, idy, idz), massWeightPtr) 
+              self.laplacianWeight:fill(self.laplacianWeightIndexer(idx, idy, idz), self.laplacianWeightPtr) 
+              self.modifierWeight:fill(self.modifierWeightIndexer(idx, idy, idz), self.modifierWeightPtr) 
+              self.gxx:fill(self.gxxIndexer(idx,idy,idz), self.gxxPtr) 
+              self.gxy:fill(self.gxyIndexer(idx,idy,idz), self.gxyPtr) 
+              self.gyy:fill(self.gyyIndexer(idx,idy,idz), self.gyyPtr) 
             end
-            ffi.C.makeGlobalStiff(self._poisson[idz], stiffWeightPtr:data(), massWeightPtr:data(), idx-1, idy-1)
+            ffi.C.makeGlobalStiff(self._poisson[idz], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(), self.gxxPtr:data(), self.gxyPtr:data(), self.gyyPtr:data(), idx-1, idy-1)
          end 
        end
      end
@@ -315,11 +376,11 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
      for idx=localRange:lower(1),localRange:upper(1) do     
        for idy=localRange:lower(2),localRange:upper(2) do
          if ndim==2 then 
-           sol:fill(solIndexer(idx,idy), solPtr) 
+           sol:fill(self.solIndexer(idx,idy), self.solPtr) 
          else 
-           sol:fill(solIndexer(idx, idy, idz), solPtr) 
+           sol:fill(self.solIndexer(idx, idy, idz), self.solPtr) 
          end
-         ffi.C.getSolution(self._poisson[idz], solPtr:data(), idx-1, idy-1)
+         ffi.C.getSolution(self._poisson[idz], self.solPtr:data(), idx-1, idy-1)
        end
      end
    end 
@@ -340,6 +401,15 @@ end
 
 function FemPerpPoisson:delete()
   ffi.C.delete_FemPerpPoisson(self._poisson)
+end
+
+function FemPerpPoisson:setLaplacianWeight(weight)
+   self._hasLaplacian = true
+   self.laplacianWeight:copy(weight)
+end
+function FemPerpPoisson:setModifierWeight(weight)
+   self._hasModifier = true
+   self.modifierWeight:copy(weight)
 end
 
 return FemPerpPoisson
