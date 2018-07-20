@@ -19,6 +19,7 @@ local Proto = require "Lib.Proto"
 local Species = require "App.Species"
 local Time = require "Lib.Time"
 local date = require "xsys.date"
+local lume = require "Lib.lume"
 local xsys = require "xsys"
 
 -- function to create basis functions
@@ -41,7 +42,7 @@ local function buildApplication(self, tbl)
    -- function to warn user about default values
    local function warnDefault(varVal, varNm, default)
       if varVal then return varVal end
-      log(string.format(" ** WARNING: %s not specified, assuming %s", varNm, tostring(default)))
+      log(string.format(" ** WARNING: %s not specified, assuming %s\n", varNm, tostring(default)))
       return default
    end
 
@@ -53,7 +54,7 @@ local function buildApplication(self, tbl)
    assert(cdim == #tbl.cells, "cells should have exactly " .. cdim .. " entries")
 
    -- basis function name
-   local basisNm = warnDefault(tbl.basis, "basis", "serendipity")
+   local basisNm = tbl.basis and tbl.basis or "serendipity"
    if basisNm ~= "serendipity" and basisNm ~= "maximal-order" then
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
@@ -73,14 +74,15 @@ local function buildApplication(self, tbl)
       assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
    end
 
+   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvSplit" }
    -- time-stepper
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
-   if timeStepperNm ~= "rk1" and timeStepperNm ~= "rk2" and timeStepperNm ~= "rk3" and timeStepperNm ~= "rk3s4" then
+   if not lume.find(goodStepperNames, timeStepperNm) then
       assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified")
    end
 
    -- CFL fractions for various steppers
-   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0 }
+   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0, fvSplit = 1.0 }
 
    local cflFrac = tbl.cflFrac
    -- Compute CFL fraction if not specified
@@ -89,7 +91,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Number of fields needed for each stepper type
-   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4 }
+   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvSplit = 2 }
 
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
@@ -590,23 +592,25 @@ function App:run()
 end
 
 return {
-   AdiabaticSpecies   = Species.AdiabaticSpecies,
-   App                = App,
-   BgkCollisions      = Collisions.BgkCollisions,   
-   VmLBOCollisions    = Collisions.VmLBOCollisions,
-   FuncMaxwellField   = Field.FuncMaxwellField,
-   GkField            = Field.GkField,
-   GkGeometry         = Field.GkGeometry,
-   GkSpecies          = Species.GkSpecies,
+   AdiabaticSpecies = Species.AdiabaticSpecies,
+   App = App,
+   BgkCollisions = Collisions.BgkCollisions,   
+   FuncMaxwellField = Field.FuncMaxwellField,
+   GkField = Field.GkField,
+   GkGeometry = Field.GkGeometry,
+   GkSpecies = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
-   MaxwellField       = Field.MaxwellField,
-   NoField            = Field.NoField,
-   VlasovSpecies      = Species.VlasovSpecies,
-   VoronovIonization  = Collisions.VoronovIonization,
+   MaxwellField = Field.MaxwellField,
+   MomentSpecies = Species.MomentSpecies,
+   NoField = Field.NoField,
+   VlasovSpecies = Species.VlasovSpecies,
+   VmLBOCollisions = Collisions.VmLBOCollisions,
+   VoronovIonization = Collisions.VoronovIonization,
 
    -- valid pre-packaged species-field systems
    Gyrokinetic = {App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
    IncompEuler = {App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField},
    VlasovMaxwell = {App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField},
+   Moments = {App = App, Species = Species.MomentSpecies } 
 }

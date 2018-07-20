@@ -25,7 +25,7 @@ function SpeciesBase:setCfl(cfl) end
 function SpeciesBase:getNdim() end
 function SpeciesBase:createSolver() end
 function SpeciesBase:createDiagnostics() end
-function SpeciesBase:rkStepperFields() end
+function SpeciesBase:rkStepperFields() return { nil } end
 function SpeciesBase:initDist() end
 function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
@@ -33,10 +33,10 @@ function SpeciesBase:writeRestart(tm) end
 function SpeciesBase:readRestart() return 0.0 end
 function SpeciesBase:forwardEuler(tCurr, dt, fIn, emIn, fOut) end
 function SpeciesBase:applyBc(tCurr, dt, fld) end
-function SpeciesBase:totalSolverTime() end
-function SpeciesBase:momCalcTime() end
-function SpeciesBase:intMomCalcTime() end
-function SpeciesBase:totalBcTime() end
+function SpeciesBase:totalSolverTime() return 0.0 end
+function SpeciesBase:momCalcTime() return 0.0 end
+function SpeciesBase:intMomCalcTime() return 0.0 end
+function SpeciesBase:totalBcTime() return 0.0 end
 function SpeciesBase:getCharge() end
 function SpeciesBase:getMass() end
 function SpeciesBase:copyRk() end
