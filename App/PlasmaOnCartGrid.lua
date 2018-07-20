@@ -58,10 +58,14 @@ local function buildApplication(self, tbl)
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
-   local polyOrder = tbl.polyOrder -- polynomial order
+   -- FV methods don't need to specify polyOrder
+   local polyOrder = tbl.polyOrder and tbl.polyOrder or 0 -- polynomial order
 
    -- create basis function for configuration space
-   local confBasis = createBasis(basisNm, cdim, polyOrder)
+   local confBasis = nil
+   if polyOrder > 0 then
+      confBasis = createBasis(basisNm, cdim, polyOrder)
+   end
 
    -- I/O method
    local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
@@ -436,6 +440,12 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
+   -- function to advance solution using FV scheme
+   function timeSteppers.fvSplit(tCurr, dt)
+
+      return true, GKYL_MAX_DOUBLE
+   end
+
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
@@ -596,7 +606,7 @@ return {
    VoronovIonization  = Collisions.VoronovIonization,
 
    -- valid pre-packaged species-field systems
-   Gyrokinetic = {Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
-   IncompEuler = {Species = Species.IncompEulerSpecies, Field = Field.GkField},
-   VlasovMaxwell = {Species = Species.VlasovSpecies, Field = Field.MaxwellField},
+   Gyrokinetic = {App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
+   IncompEuler = {App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField},
+   VlasovMaxwell = {App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField},
 }

@@ -106,7 +106,7 @@ function FiveMomentSrc:_advance(tCurr, dt, inFld, outFld)
    
    -- check if correct number of inputs were provided
    assert(#outFld == nFluids+1,
-	  "Must have exactly " .. nFluids+1 .. " output fields. Provided " .. #inFld .. " instead.")
+	  "Must have exactly " .. nFluids+1 .. " output fields. Provided " .. #outFld .. " instead.")
    local emFld = outFld[#outFld] -- EM field
 
    local staticEmFld

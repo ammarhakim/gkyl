@@ -1,18 +1,26 @@
--- for accessing any species object
-local SpeciesBase = require "App.Species.SpeciesBase"
-local KineticSpecies = require "App.Species.KineticSpecies"
+-- Gkyl ------------------------------------------------------------------------
+--
+-- For accessing species objects
+--    _______     ___
+-- + 6 @ |||| # P ||| +
+--------------------------------------------------------------------------------
+
+local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
 local FluidSpecies = require "App.Species.FluidSpecies"
-local VlasovSpecies = require "App.Species.VlasovSpecies"
 local GkSpecies = require "App.Species.GkSpecies"
 local IncompEulerSpecies = require "App.Species.IncompEulerSpecies"
-local AdiabaticSpecies = require "App.Species.AdiabaticSpecies"
+local KineticSpecies = require "App.Species.KineticSpecies"
+local MomentSpecies = require "App.Species.MomentSpecies"
+local SpeciesBase = require "App.Species.SpeciesBase"
+local VlasovSpecies = require "App.Species.VlasovSpecies"
 
 return {
-  SpeciesBase = SpeciesBase,
-  KineticSpecies = KineticSpecies,
-  VlasovSpecies = VlasovSpecies,
-  GkSpecies = GkSpecies,
-  FluidSpecies = FluidSpecies,
-  IncompEulerSpecies = IncompEulerSpecies,
-  AdiabaticSpecies = AdiabaticSpecies,
+   AdiabaticSpecies = AdiabaticSpecies,
+   FluidSpecies = FluidSpecies,
+   GkSpecies = GkSpecies,
+   IncompEulerSpecies = IncompEulerSpecies,
+   KineticSpecies = KineticSpecies,
+   MomentSpecies = MomentSpecies,
+   SpeciesBase = SpeciesBase,
+   VlasovSpecies = VlasovSpecies,
 }
