@@ -57,12 +57,12 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         w_e  : doExpand(calcInnerProdList(varsC,1,bC,w[vid[2]]),bC),
         incr : incr + 2*(-nu*(calcInnerProdList(varsP,cv,bPp,f_e)
               +rdv2[1]*calcInnerProdList(varsP,w_e,bPp,f_e))
-              +mufac*(rdv2[1]*(calcInnerProdList(varsP,nuVtSq_e*cv,bPpp,f_e)
+              +m_*(rdv2[1]*(calcInnerProdList(varsP,nuVtSq_e*cv,bPpp,f_e)
 	      +calcInnerProdList(varsP,nuVtSq_e,bPp,f_e))
 	      +rdvSq4[1]*calcInnerProdList(varsP,nuVtSq_e*w_e,bPpp,f_e)))
     ),
     
-    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output ~%"),
     cid : cidx(cdim),
     printf(fh, "  double rdv2[~a]; ~%", vdim),
@@ -82,7 +82,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     printf(fh, "~%"),
   
-    clst : append(makelist(rdv2[i],i,0,vdim-1),makelist(rdvSq4[i],i,0,vdim-1),[mufac,nu]),
+    clst : append(makelist(rdv2[i],i,0,vdim-1),makelist(rdvSq4[i],i,0,vdim-1),[m_,nu]),
     writeCIncrExprsCollect1(out, incr, clst),
     printf(fh, "~%"),
 
