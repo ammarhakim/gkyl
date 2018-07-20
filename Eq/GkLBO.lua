@@ -53,6 +53,7 @@ function GkLBO:init(tbl)
    -- thermal speed squared times collisionality field object and pointers to cell values.
    self._vthSqNu = nil
    -- (these will be set on the first call to setAuxFields() method).
+   self._BmagInvPtr, self._BmagInvIdxr = nil, nil
    self._uNuPtr, self._uNuIdxr = nil, nil
    self._vthSqNuPtr, self._vthSqNuIdxr = nil, nil
 
@@ -99,13 +100,14 @@ end
 
 -- Volume integral term for use in DG scheme.
 function GkLBO:volTerm(w, dx, idx, q, out)
+   self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr) -- get pointer to BmagInv field.
    self._uNu:fill(self._uNuIdxr(idx), self._uNuPtr) -- get pointer to uNu field.
    self._vthSqNu:fill(self._vthSqNuIdxr(idx), self._vthSqNuPtr) -- get pointer to vthSqNu field.
    if self._inNu then
-     cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
    else
      self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- get pointer to nu field.
-     cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+     cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
    end
    return cflFreq
 end
@@ -114,16 +116,17 @@ end
 function GkLBO:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- set pointer to uNu and vthSqNu fields.
+   self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- get pointer to BmagInv field.
    self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
    self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
    if dir > self._cdim then
      if self._inNu then
        vMuMidMax = self._surfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      else
        self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
        vMuMidMax = self._surfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
@@ -133,16 +136,17 @@ end
 function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- set pointer to uNu and vthSqNu fields.
+   self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- get pointer to BmagInv field.
    self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
    self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
    if dir > self._cdim then
      if self._inNu then
        vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      else
        self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
        vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
@@ -150,14 +154,18 @@ end
 
 function GkLBO:setAuxFields(auxFields)
    -- single aux field that has the full uNu field.
-   self._uNu     = auxFields[1]
-   self._vthSqNu = auxFields[2]
+   self._BmagInv = auxFields[1]
+   self._uNu     = auxFields[2]
+   self._vthSqNu = auxFields[3]
    if not self._inNu then
-     self._nu  = auxFields[3]
+     self._nu  = auxFields[4]
    end
 
    if self._isFirst then
       -- allocate pointers to field object.
+      self._BmagInvPtr  = self._BmagInv:get(1)
+      self._BmagInvIdxr = self._BmagInv:genIndexer()
+      
       self._uNuPtr  = self._uNu:get(1)
       self._uNuIdxr = self._uNu:genIndexer()
 
