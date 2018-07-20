@@ -31,7 +31,7 @@ function GkLBO:init(tbl)
    self._inNu = tbl.nu
 
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'")
-   self._inMuFac = tbl.mass
+   self._inMass = tbl.mass
 
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
@@ -102,10 +102,10 @@ function GkLBO:volTerm(w, dx, idx, q, out)
    self._uNu:fill(self._uNuIdxr(idx), self._uNuPtr) -- get pointer to uNu field.
    self._vthSqNu:fill(self._vthSqNuIdxr(idx), self._vthSqNuPtr) -- get pointer to vthSqNu field.
    if self._inNu then
-     cflFreq = self._volUpdate(w:data(), dx:data(), self._inMuFac, self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+     cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
    else
      self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- get pointer to nu field.
-     cflFreq = self._volUpdate(w:data(), dx:data(), self._inMuFac, self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+     cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
    end
    return cflFreq
 end
@@ -119,11 +119,11 @@ function GkLBO:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, o
    if dir > self._cdim then
      if self._inNu then
        vMuMidMax = self._surfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), self._inMuFac, self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      else
        self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
        vMuMidMax = self._surfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), self._inMuFac, self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
@@ -138,11 +138,11 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
    if dir > self._cdim then
      if self._inNu then
        vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      else
        self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
        vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inMuFac, self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
