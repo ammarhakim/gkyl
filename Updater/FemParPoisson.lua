@@ -35,7 +35,7 @@ ffi.cdef[[
           int iend;
       } bcdataPar_t;
   typedef struct FemParPoisson FemParPoisson;
-  FemParPoisson* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool periodicFlg, bcdataPar_t bc[2], bool writeMatrix, double laplacianWeight, double modifierConstant);
+  FemParPoisson* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool periodicFlg, bcdataPar_t bc[2], bool writeMatrix, double laplacianConstant, double modifierConstant);
   void delete_FemParPoisson(FemParPoisson* f);
   void createParGlobalSrc(FemParPoisson* f, double* localSrcPtr, int idz, double intSrcVol);
   void allreduceParGlobalSrc(FemParPoisson* f, MPI_Comm comm);
@@ -98,7 +98,7 @@ function FemParPoisson:init(tbl)
    end
 
    -- make sure BCs are specified consistently
-   if self._periodic == false and not (self._bc[0].isSet and self._bc[1].isSet) and modifierConstant == 1.0 and laplacianWeight == 0.0 then
+   if self._periodic == false and not (self._bc[0].isSet and self._bc[1].isSet) and modifierConstant == 1.0 and laplacianConstant == 0.0 then
      -- if not periodic, use neumann by default in this case (discont-to-cont projection)
      self._bc[0] = getBcData({ T = "N", V = 0.0 })
      self._bc[1] = getBcData({ T = "N", V = 0.0 })
@@ -111,9 +111,9 @@ function FemParPoisson:init(tbl)
      self._modifierConstant = tbl.modifierConstant
    end
 
-   self._laplacianWeight=1.0
-   if tbl.laplacianWeight then
-     self._laplacianWeight = tbl.laplacianWeight
+   self._laplacianConstant=1.0
+   if tbl.laplacianConstant then
+     self._laplacianConstant = tbl.laplacianConstant
    end
 
    self._adjustSource = false
@@ -129,7 +129,7 @@ function FemParPoisson:init(tbl)
    self._poisson = ffi.C.new_FemParPoisson(self._nz, self._ndim, self._p, 
                                             self._dz, self._periodic, 
                                             self._bc, self._writeMatrix,
-                                            self._laplacianWeight, self._modifierConstant)
+                                            self._laplacianConstant, self._modifierConstant)
 
    if GKYL_HAVE_MPI then
      -- split communicators in x-y
@@ -241,6 +241,11 @@ end
 
 function FemParPoisson:delete()
   ffi.C.delete_FemParPoisson(self._poisson)
+end
+
+function FemParPoisson:setLaplacianWeight(weight)
+end
+function FemParPoisson:setModifierWeight(weight)
 end
 
 return FemParPoisson

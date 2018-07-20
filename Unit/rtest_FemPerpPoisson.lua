@@ -146,7 +146,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
      bcTop = { T = "D", V = 0.0 },
      -- periodicDirs = {1,2},
      writeStiffnessMatrix = writeMatrix,
-     constStiff = false,
+     constStiff = true,
    }
    local t2 = os.clock()
    io.write("2D Poisson init took ", t2-t1, " s\n")
@@ -253,8 +253,7 @@ function test_smooth2d(nx, ny, p, writeMatrix)
      bcBottom = { T = "N", V = 0.0 },
      bcTop = { T = "N", V = 0.0 },
      -- periodicDirs = {1,2},
-     laplacianWeight = 0.0,
-     modifierConstant = 1.0,
+     smooth = true,
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
@@ -452,8 +451,7 @@ function test_smooth2d_periodic(nx, ny, p, writeMatrix)
      --bcBottom = { T = "N", V = 0.0 },
      --bcTop = { T = "N", V = 0.0 },
      periodicDirs = {1,2},
-     laplacianWeight = 0.0,
-     modifierConstant = 1.0,
+     smooth = true,
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
@@ -545,7 +543,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
      bcTop = { T = "D", V = 0.0 },
      -- periodicDirs = {1,2},
      writeStiffnessMatrix = writeMatrix,
-     constStiff = false,
+     constStiff = true,
    }
    local t2 = os.clock()
    io.write("3D Poisson init took ", t2-t1, " s\n")
@@ -889,18 +887,18 @@ local t1 = os.clock()
 --test_init_allperiodic()
 --test_init_someperiodic()
 --test_init_errorcheck()
---test_solve2d_p1()
---test_solve2d_p2()
---test_smooth2d_p1()
---test_smooth2d_p2()
+test_solve2d_p1()
+test_solve2d_p2()
+test_smooth2d_p1()
+test_smooth2d_p2()
 test_solve3d_p1()
---test_solve3d_p2()
---test_periodic2d_p1()
---test_periodic2d_p2()
---test_smooth_periodic2d_p1()
---test_smooth_periodic2d_p2()
---test_periodic3d_p1()
---test_periodic3d_p2()
+test_solve3d_p2()
+test_periodic2d_p1()
+test_periodic2d_p2()
+test_smooth_periodic2d_p1()
+test_smooth_periodic2d_p2()
+test_periodic3d_p1()
+test_periodic3d_p2()
 local t2 = os.clock()
 
 print()
