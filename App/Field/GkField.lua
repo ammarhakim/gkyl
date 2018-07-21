@@ -639,6 +639,30 @@ function GkGeometry:alloc()
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
+ 
+   -- functions for laplacian
+   -- gxx = |grad x|**2
+   self.geo.gxx = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- gxy = grad x . grad y
+   self.geo.gxy = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- gyy = |grad y|**2
+   self.geo.gyy = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   
 
    -- jacobian of coordinate transformation
    self.geo.jacobGeo = DataStruct.Field {
@@ -699,6 +723,25 @@ function GkGeometry:createSolver()
       end
       self.gradparFunc = function (t, xn)
          return 1/(salpha.q*salpha.R0)
+      end
+      self.gxxFunc = function (t, xn)
+         return 1
+      end
+      self.gxyFunc = function (t, xn)
+         local x, y, z
+         if self.ndim == 1 then z = xn[1]
+         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
+         else x, y, z = xn[1], xn[2], xn[3]
+         end
+         return salpha.shat*z
+      end
+      self.gyyFunc = function (t, xn)
+         local x, y, z
+         if self.ndim == 1 then z = xn[1]
+         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
+         else x, y, z = xn[1], xn[2], xn[3]
+         end
+         return 1 + (salpha.shat*z)^2
       end
    else
       -- calculate 1/B function
@@ -774,6 +817,51 @@ function GkGeometry:createSolver()
          evaluate = function(t, xn) return 1 end
       }
    end
+   if self.gxxFunc then 
+      self.setGxx = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.gxxFunc
+      }
+   else 
+      self.setGxx = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 1 end
+      }
+   end
+   if self.gxyFunc then 
+      self.setGxy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.gxyFunc
+      }
+   else 
+      self.setGxy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 0 end
+      }
+   end
+   if self.gyyFunc then 
+      self.setGyy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.gyyFunc
+      }
+   else 
+      self.setGyy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 1 end
+      }
+   end
    if self.bdriftXFunc then 
       self.setBdriftX = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -827,6 +915,9 @@ function GkGeometry:initField()
    else self.geo.gradpar:clear(0.0) end
    if self.setJacobGeo then self.setJacobGeo:advance(0.0, 0.0, {}, {self.geo.jacobGeo})
    else self.geo.jacobGeo:clear(0.0) end
+   if self.setGxx then self.setGxx:advance(0.0, 0.0, {}, {self.geo.gxx}) end
+   if self.setGxy then self.setGxy:advance(0.0, 0.0, {}, {self.geo.gxy}) end
+   if self.setGyy then self.setGyy:advance(0.0, 0.0, {}, {self.geo.gyy}) end
    if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
    else self.geo.bdriftX:clear(0.0) end
    if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})
@@ -838,6 +929,9 @@ function GkGeometry:initField()
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
    self.geo.gradpar:sync(false)
+   self.geo.gxx:sync(false)
+   self.geo.gxy:sync(false)
+   self.geo.gyy:sync(false)
    self.geo.jacobGeo:sync(false)
    self.geo.bdriftX:sync(false)
    self.geo.bdriftY:sync(false)
