@@ -221,6 +221,12 @@ function GkField:createSolver(species, funcField)
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
    -- set up FEM solver for Poisson equation to solve for phi
+   local gxx, gxy, gyy
+   if funcField.geo then 
+     gxx = funcField.geo.gxx
+     gxy = funcField.geo.gxy
+     gyy = funcField.geo.gyy
+   end
    self.phiSlvr = Updater.FemPoisson {
      onGrid = self.grid,
      basis = self.basis,
@@ -231,9 +237,9 @@ function GkField:createSolver(species, funcField)
      periodicDirs = self.periodicDirs,
      zContinuous = not self.discontinuousPhi,
      constStiff = self.linearizedPolarization,
-     gxx = funcField.geo.gxx,
-     gxy = funcField.geo.gxy,
-     gyy = funcField.geo.gyy,
+     gxx = gxx,
+     gxy = gxy,
+     gyy = gyy,
    }
    -- when using a linearizedPolarization term in Poisson equation,
    -- the weights on the terms are constant scalars
@@ -286,9 +292,9 @@ function GkField:createSolver(species, funcField)
        bcTop = self.aparBcTop,
        periodicDirs = self.periodicDirs,
        zContinuous = not self.discontinuousApar,
-       gxx = funcField.geo.gxx,
-       gxy = funcField.geo.gxy,
-       gyy = funcField.geo.gyy,
+       gxx = gxx,
+       gxy = gxy,
+       gyy = gyy,
      }
      if ndim==1 then
         laplacianConstant = 0.0
@@ -312,9 +318,9 @@ function GkField:createSolver(species, funcField)
        periodicDirs = self.periodicDirs,
        zContinuous = not self.discontinuousApar,
        constStiff = false, 
-       gxx = funcField.geo.gxx,
-       gxy = funcField.geo.gxy,
-       gyy = funcField.geo.gyy,
+       gxx = gxx,
+       gxy = gxy,
+       gyy = gyy,
      }
      if ndim==1 then
         laplacianConstant = 0.0
