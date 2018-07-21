@@ -152,9 +152,7 @@ function FemPerpPoisson:init(tbl)
 
    self._poisson = {}
    self._first = true
-   self.makeStiff = true
-   -- if constStiff, then assume that stiffness matrix does not change in time, so that we don't have to recompute solver
-   self.constStiff = xsys.pickBool(tbl.constStiff, true)
+   self._makeStiff = true
 
    -- set up constant dummy field
    self.unitWeight = DataStruct.Field {
@@ -186,6 +184,8 @@ function FemPerpPoisson:init(tbl)
    self.laplacianWeight:clear(0.0)
    self.modifierWeight:clear(0.0)
 
+   -- when neither laplacianWeight nor modifierWeight are set,
+   -- this option effectively sets laplacian = 0 and modifier = 1
    self._smooth = xsys.pickBool(tbl.smooth, false)
 
    -- metric coefficient fields
@@ -338,7 +338,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
          end
          ffi.C.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
 
-         if self.makeStiff then
+         if self._makeStiff then
             if ndim==2 then 
               self.laplacianWeight:fill(self.laplacianWeightIndexer(idx,idy), self.laplacianWeightPtr) 
               self.modifierWeight:fill(self.modifierWeightIndexer(idx,idy), self.modifierWeightPtr) 
@@ -360,12 +360,12 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
      if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
        -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
        ffi.C.allreduceGlobalSrc(self._poisson[idz], Mpi.getComm(self._zcomm))
-       if self.makeStiff then
+       if self._makeStiff then
          ffi.C.allgatherGlobalStiff(self._poisson[idz], Mpi.getComm(self._zcomm))
        end
      end
 
-     if self.makeStiff then
+     if self._makeStiff then
         ffi.C.finishGlobalStiff(self._poisson[idz])
      end
      -- solve 
@@ -386,10 +386,8 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    end 
 
    self._first = false
-   if self.constStiff then
-     -- if stiffness matrix doesn't change in time, don't remake/recompute stiffness matrix in future 
-     self.makeStiff = false
-   end
+   -- reset makeStiff flag to false, until stiffness matrix changes again
+   self._makeStiff = false
 
    -- optionally make continuous in z
    if self.zDiscontToCont then 
@@ -406,10 +404,14 @@ end
 function FemPerpPoisson:setLaplacianWeight(weight)
    self._hasLaplacian = true
    self.laplacianWeight:copy(weight)
+   -- need to remake stiffness matrix since laplacianWeight has changed
+   self._makeStiff = true
 end
 function FemPerpPoisson:setModifierWeight(weight)
    self._hasModifier = true
    self.modifierWeight:copy(weight)
+   -- need to remake stiffness matrix since modifierWeight has changed
+   self._makeStiff = true
 end
 
 return FemPerpPoisson
