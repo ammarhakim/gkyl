@@ -119,10 +119,8 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
 FemPerpPoisson::~FemPerpPoisson() 
 {
   stiffMat.resize(0,0);
-  stiffMat_z0.resize(0,0);
   globalSrc.resize(0);
   sourceModVec.resize(0);
-  sourceModVec_z0.resize(0);
   x.resize(0);
 }
 
@@ -1045,7 +1043,7 @@ extern "C" void allreduceGlobalSrc(FemPerpPoisson* f, MPI_Comm comm)
 
 extern "C" void allgatherGlobalStiff(FemPerpPoisson* f, MPI_Comm comm)
 {
-  f->allreduceGlobalSrc(comm);
+  f->allgatherGlobalStiff(comm);
 }
 
 extern "C" void solve(FemPerpPoisson* f)

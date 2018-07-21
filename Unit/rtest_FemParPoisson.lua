@@ -128,8 +128,7 @@ function test_smooth1d(nz, p, writeMatrix)
      --bcBack = { T = "N", V = 0.0 },
      --bcFront = { T = "N", V = 0.0 },
      periodicDirs = {1},
-     laplacianConstant = 0.0,
-     modifierConstant = 1.0,
+     smooth = true,
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
@@ -296,8 +295,7 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
      basis = basis,
      bcBack = { T = "N", V = 0.0 },
      bcFront = { T = "N", V = 0.0 },
-     laplacianConstant = 0.0,
-     modifierConstant = 1.0,
+     smooth = true,
      writeStiffnessMatrix = writeMatrix,
    }
    local t2 = os.clock()
