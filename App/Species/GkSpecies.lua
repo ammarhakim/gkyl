@@ -28,7 +28,7 @@ function GkSpecies:alloc(nRkDup)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocMoment()
    self.ptclEnergy = self:allocMoment()
-   self.polarizationWeight = self.allocMoment()
+   self.polarizationWeight = self:allocMoment()
 end
 
 function GkSpecies:allocMomCouplingFields()
@@ -114,7 +114,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       mass = self.mass,
       hasPhi = hasPhi,
       hasApar = hasApar,
-      Bvars = geo.bmagVars,
+      Bvars = funcField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
    }
 
@@ -147,7 +147,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis = self.confBasis,
          charge = self.charge,
          mass = self.mass,
-         Bvars = geo.bmagVars,
+         Bvars = funcField.bmagVars,
       }
       -- note that the surface update for this term only involves the vpar direction
       self.solverStep2 = Updater.HyperDisCont {
@@ -432,7 +432,7 @@ function GkSpecies:getMomDensity(rkIdx)
    return self.momDensity
 end
 
-function GkSpecies:polarizationWeight(linearized)
+function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
      self.polarizationWeight:combine(self.mass/self.B0^2, self.numDensity)
      return self.polarizationWeight

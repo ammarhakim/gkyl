@@ -243,7 +243,7 @@ function GkField:createSolver(species, funcField)
          self.polarizationWeight = 0.0
          for nm, s in pairs(species) do
             if Species.GkSpecies.is(s) then
-               self.polarizationWeight = self.polarizationWeight + s:polarizationWeight()
+               self.polarizationWeight = self.polarizationWeight + s:getPolarizationWeight()
             end
          end
       end
@@ -263,7 +263,7 @@ function GkField:createSolver(species, funcField)
       end
 
       if self.adiabatic then 
-         modifierConstant = modifierConstant + self.adiabSpec:qneutFac() 
+         modifierConstant = modifierConstant + self.adiabSpec:getQneutFac() 
       end
 
       self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
@@ -405,7 +405,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
       if not self.linearizedPolarization then
          self.weight:clear(0.0)
          for nm, s in pairs(species) do
-            self.weight:accumulate(-1.0, s:polarizationWeight(self.linearizedPolarization))
+            self.weight:accumulate(-1.0, s:getPolarizationWeight(self.linearizedPolarization))
          end
          if self.ndim == 1 then
             self.modifierWeight:combine(-self.kperp2, self.weight)
@@ -414,7 +414,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          end
 
          if self.adiabatic then
-            self.modifierWeight:accumulate(self.adiabSpec:qneutFac(self.linearizedPolarization))
+            self.modifierWeight:accumulate(self.adiabSpec:getQneutFac(self.linearizedPolarization))
          end
 
          if self.ndim > 1 then

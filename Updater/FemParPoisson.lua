@@ -110,7 +110,7 @@ function FemParPoisson:init(tbl)
    self._dz = self._grid:dx(self._zdir)
 
    assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
-   assert(self._ndim <= 3, "This solver only implemented for 1D, 2D or 3D (with a solve only in last dimension)")
+   assert(self._ndim == 1 or self._ndim == 3, "This solver only implemented for 1D or 3D (with a solve only in last dimension)")
 
    self._poisson = {}
    self._first = true
