@@ -235,7 +235,7 @@ local function buildApplication(self, tbl)
    for nm, s in pairs(species) do
       s:calcCouplingMoments(0, 0, 1)
    end
-   field:createSolver(species)
+   field:createSolver(species, funcField)
    field:initField(species)
 
    -- apply species BCs 

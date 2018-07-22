@@ -39,11 +39,14 @@ extern "C" {
   } bcdataPar_t;
 
 // C wrappers for interfacing with FemParPoisson class
-  void* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool periodicFlg, bcdataPar_t bc[2], bool writeMatrix, double laplacianWeight, double modifierConstant);
+  void* new_FemParPoisson(int nz, int ndim, int polyOrder, double dz, bool periodicFlg, bcdataPar_t bc[2], bool writeMatrix);
   void delete_FemParPoisson(FemParPoisson* f);
+  void makeParGlobalStiff(FemParPoisson* f, double *laplacianWeight, double *modifierWeight, int idz);
+  void finishParGlobalStiff(FemParPoisson* f);
   void createParGlobalSrc(FemParPoisson* f, double* localSrcPtr, int idz, double intSrcVol);
   void zeroParGlobalSrc(FemParPoisson* f);
   void allreduceParGlobalSrc(FemParPoisson* f, MPI_Comm comm);
+  void allgatherParGlobalStiff(FemParPoisson* f, MPI_Comm comm);
   void getSolutionPar(FemParPoisson* f, double* localSolPtr, int idz);
   void getNodalSolutionPar(FemParPoisson* f, double* localSolPtr, int idz);
 }
@@ -53,12 +56,14 @@ class FemParPoisson
  public:
   FemParPoisson(int nz, int ndim, int polyOrder, 
              double dz, bool periodicFlgs,
-             bcdataPar_t bc[2], bool writeMatrix,
-             double laplacianWeight, double modifierConstant) ;
+             bcdataPar_t bc[2], bool writeMatrix);
   ~FemParPoisson();
   void createGlobalSrc(double* ptr, int idz, double intSrcVol);
   void zeroGlobalSrc();
   void allreduceGlobalSrc(MPI_Comm comm);
+  void allgatherGlobalStiff(MPI_Comm comm);
+  void makeGlobalParStiffnessMatrix(double *laplacianWeight, double *modifierWeight, int idz);
+  void finishGlobalParStiffnessMatrix();
   void solve();
   void getSolution(double* ptr, int idz);
   void getNodalSolution(double* ptr, int idz);
@@ -68,11 +73,10 @@ class FemParPoisson
   const double dz;
   const bool z_periodic;
   const bool writeMatrix;
-  const double laplacianWeight, modifierConstant;
   bcdataPar_t bc[2], bc1d[2];
-  bool adjustSource;
-  MPI_Datatype MPI_vector_t;
+  MPI_Datatype MPI_triplet_t;
   MPI_Op MPI_vectorSum_op;
+  std::vector<Eigen::Triplet<double> > stiffTripletList;
   /** Eigen sparse matrix to store stiffness matrix */
   Eigen::SparseMatrix<double,Eigen::ColMajor> stiffMat;
   /** Eigen vectors for source and dirichlet modifications to source*/
@@ -82,18 +86,12 @@ class FemParPoisson
   /** Eigen solver method */
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
   Eigen::MatrixXd localMassModToNod, localNodToMod, localModToNod;
+  bool analyzed_; // flag so that stiffness matrix only analyzed once
   
   int getNumParGlobalNodes(int nz, int ndim, int p, bool periodicFlg);
   int getNumLocalNodes(int ndim, int p);
   
   void setupBoundaryIndices(bcdataPar_t bc[2], int ndim, int polyOrder);
-  void makeGlobalParStiffnessMatrix(
-     Eigen::SparseMatrix<double,Eigen::ColMajor>& stiffMat,
-     Eigen::VectorXd& sourceModVec,
-     int ndim, int polyOrder, bcdataPar_t bc[2]);
-  void getParStiffnessMatrix(Eigen::MatrixXd& localStiff, int ndim, int p, double dz);
-  void getNodToModMatrix(Eigen::MatrixXd& localNodToMod, int ndim, int p);
-  void getMassMatrix(Eigen::MatrixXd& localMass, int ndim, int p);
   void getParLocalToGlobalInteriorBoundary(std::vector<int>& lgMap, int idz, int nz, int ndim, int p, bool periodicFlg);
 };
 

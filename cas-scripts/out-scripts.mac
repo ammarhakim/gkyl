@@ -119,3 +119,18 @@ writeLuaDecrExprs(rhs) := block([expr],
     if expr[i] # 0.0 then printf(fh, "  ~a = ~a - ~a; ~%", outl[i], outl[i], expr[i])
   )
 )$
+
+writeEigenMatrix(mat) := block([],
+  matsize(A):=[length(A),length(transpose(A))],
+  size : matsize(mat),
+  printf(fh, "mat << "),
+  for i : 1 thru size[1] do (
+    for j : 1 thru size[2] do (
+      printf(fh, "~a", mat[i][j]),
+      if(i=size[1] and j=size[2]) then printf(fh, ";~%")
+      else printf(fh, ",")
+    )
+  )
+)$
+
+

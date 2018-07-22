@@ -69,11 +69,15 @@ function GkField:fullInit(appTbl)
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
    self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
 
-   -- for ndim=1 non-adiabatic only
+   -- for ndim=1 only
    self.kperp2 = tbl.kperp2
 
    -- allow user to specify polarization weight. will be calculated automatically if not specified
    self.polarizationWeight = tbl.polarizationWeight
+
+   -- determine whether to use linearized polarization term in poisson equation, which uses background density in polarization weight
+   -- if not, uses full time-dependent density in polarization weight 
+   self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
 
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
@@ -129,10 +133,36 @@ function GkField:alloc(nRkDup)
             numComponents = self.basis:numBasis(),
             ghost = {1, 1}
    }
-   self.massWeight = DataStruct.Field {
-            onGrid = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost = {1, 1}
+   -- set up constant dummy field
+   self.unitWeight = DataStruct.Field {
+        onGrid = self.grid,
+        numComponents = self.basis:numBasis(),
+        ghost = {1, 1},
+   }
+   local initUnit = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = function (t,xn)
+                    return 1.0
+                 end
+   }
+   initUnit:advance(0.,0.,{},{self.unitWeight})
+
+   -- set up some other fields
+   self.weight = DataStruct.Field {
+        onGrid = self.grid,
+        numComponents = self.basis:numBasis(),
+        ghost = {1, 1},
+   }
+   self.laplacianWeight = DataStruct.Field {
+        onGrid = self.grid,
+        numComponents = self.basis:numBasis(),
+        ghost = {1, 1},
+   }
+   self.modifierWeight = DataStruct.Field {
+        onGrid = self.grid,
+        numComponents = self.basis:numBasis(),
+        ghost = {1, 1},
    }
 end
 
@@ -180,7 +210,7 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function GkField:createSolver(species)
+function GkField:createSolver(species, funcField)
    -- get adiabatic species info
    for nm, s in pairs(species) do
       if Species.AdiabaticSpecies.is(s) then
@@ -190,34 +220,13 @@ function GkField:createSolver(species)
    end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
-   -- if not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2
-   if not self.polarizationWeight then 
-      self.polarizationWeight = 0.0
-      for nm, s in pairs(species) do
-         if Species.GkSpecies.is(s) then
-            self.polarizationWeight = self.polarizationWeight + s:polarizationWeight()
-         end
-      end
+   -- set up FEM solver for Poisson equation to solve for phi
+   local gxx, gxy, gyy
+   if funcField.geo then 
+     gxx = funcField.geo.gxx
+     gxy = funcField.geo.gxy
+     gyy = funcField.geo.gyy
    end
-   -- if not adiabatic, and polarization weight still not set, assume it is 1
-   if self.polarizationWeight == 0.0 and not self.adiabatic then self.polarizationWeight = 1.0 end
-
-   -- set up Poisson solvers
-   local laplacianWeight, modifierConstant
- 
-   if self.ndim==1 then
-      assert(self.kperp2, "GkField: must specify kperp2 for ndim=1")
-      laplacianWeight = 0.0 -- {0.0}
-      modifierConstant = self.kperp2*self.polarizationWeight -- {self.kperp2}
-   else 
-      laplacianWeight = -self.polarizationWeight -- {1.0, 1.0, 0.0}
-      modifierConstant = 0.0 -- {0.0, 0.0, 1.0}
-   end
-
-   if self.adiabatic then 
-      modifierConstant = modifierConstant + self.adiabSpec:qneutFac() 
-   end
-       
    self.phiSlvr = Updater.FemPoisson {
      onGrid = self.grid,
      basis = self.basis,
@@ -226,20 +235,54 @@ function GkField:createSolver(species)
      bcBottom = self.phiBcBottom,
      bcTop = self.phiBcTop,
      periodicDirs = self.periodicDirs,
-     laplacianWeight = laplacianWeight,
-     modifierConstant = modifierConstant,
      zContinuous = not self.discontinuousPhi,
+     constStiff = self.linearizedPolarization,
+     gxx = gxx,
+     gxy = gxy,
+     gyy = gyy,
    }
+   -- when using a linearizedPolarization term in Poisson equation,
+   -- the weights on the terms are constant scalars
+   if self.linearizedPolarization then
+      -- if not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2
+      if not self.polarizationWeight then 
+         self.polarizationWeight = 0.0
+         for nm, s in pairs(species) do
+            if Species.GkSpecies.is(s) then
+               self.polarizationWeight = self.polarizationWeight + s:getPolarizationWeight()
+            end
+         end
+      end
+      -- if not adiabatic, and polarization weight still not set, assume it is 1
+      if self.polarizationWeight == 0.0 and not self.adiabatic then self.polarizationWeight = 1.0 end
+
+      -- set up scalar multipliers on laplacian and modifier terms in Poisson equation
+      local laplacianConstant, modifierConstant
+ 
+      if self.ndim==1 then
+         assert(self.kperp2, "GkField: must specify kperp2 for ndim=1")
+         laplacianConstant = 0.0 
+         modifierConstant = self.kperp2*self.polarizationWeight 
+      else 
+         laplacianConstant = -self.polarizationWeight 
+         modifierConstant = 0.0 
+      end
+
+      if self.adiabatic then 
+         modifierConstant = modifierConstant + self.adiabSpec:getQneutFac() 
+      end
+
+      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
+      self.modifierWeight:combine(modifierConstant, self.unitWeight)
+
+      if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
+      if modifierConstant ~=0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
+   end
+   -- when not using linearizedPolarization, weights are set each step in forwardEuler method
+
    if self.isElectromagnetic then 
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
-     if ndim==1 then
-        laplacianWeight = 0.0
-        modifierConstant = 1.0/self.mu0
-     else
-        laplacianWeight = 1.0/self.mu0
-        modifierConstant = 0.0
-     end
      self.aparSlvr = Updater.FemPoisson {
        onGrid = self.grid,
        basis = self.basis,
@@ -248,18 +291,23 @@ function GkField:createSolver(species)
        bcBottom = self.aparBcBottom,
        bcTop = self.aparBcTop,
        periodicDirs = self.periodicDirs,
-       laplacianWeight = laplacianWeight,
-       modifierConstant = modifierConstant,
        zContinuous = not self.discontinuousApar,
+       gxx = gxx,
+       gxy = gxy,
+       gyy = gyy,
      }
-
      if ndim==1 then
-        laplacianWeight = 0.0
-        modifierConstant = 1.0
+        laplacianConstant = 0.0
+        modifierConstant = self.kperp2/self.mu0
      else
-        laplacianWeight = -1.0/self.mu0
-        modifierConstant = 1.0
+        laplacianConstant = -1.0/self.mu0
+        modifierConstant = 0.0
      end
+     self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
+     self.modifierWeight:combine(modifierConstant, self.unitWeight)
+     if laplacianConstant ~= 0 then self.aparSlvr:setLaplacianWeight(self.laplacianWeight) end
+     if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modifierWeight) end
+
      self.dApardtSlvr = Updater.FemPoisson {
        onGrid = self.grid,
        basis = self.basis,
@@ -268,25 +316,23 @@ function GkField:createSolver(species)
        bcBottom = self.aparBcBottom,
        bcTop = self.aparBcTop,
        periodicDirs = self.periodicDirs,
-       laplacianWeight = laplacianWeight,
-       modifierConstant = modifierConstant,
        zContinuous = not self.discontinuousApar,
+       constStiff = false, 
+       gxx = gxx,
+       gxy = gxy,
+       gyy = gyy,
      }
-
-     -- set up constant dummy field
-     self.unitWeight = DataStruct.Field {
-          onGrid = self.grid,
-          numComponents = self.basis:numBasis(),
-          ghost = {1, 1},
-     }
-     local initUnit = Updater.ProjectOnBasis {
-        onGrid = self.grid,
-        basis = self.basis,
-        evaluate = function (t,xn)
-                      return 1.0
-                   end
-     }
-     initUnit:advance(0.,0.,{},{self.unitWeight})
+     if ndim==1 then
+        laplacianConstant = 0.0
+        modifierConstant = 1.0
+     else
+        laplacianConstant = -1.0/self.mu0
+        modifierConstant = 1.0
+     end
+     self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
+     self.modifierWeight:combine(modifierConstant, self.unitWeight)
+     if laplacianConstant ~= 0 then self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight) end
+     if modifierConstant ~= 0 then self.dApardtSlvr:setModifierWeight(self.modifierWeight) end
    end
 
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
@@ -361,6 +407,27 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
       for nm, s in pairs(species) do
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
+      -- if not using linearized polarization term, set up laplacian weight
+      if not self.linearizedPolarization then
+         self.weight:clear(0.0)
+         for nm, s in pairs(species) do
+            self.weight:accumulate(-1.0, s:getPolarizationWeight(self.linearizedPolarization))
+         end
+         if self.ndim == 1 then
+            self.modifierWeight:combine(-self.kperp2, self.weight)
+         else
+            self.laplacianWeight:copy(self.weight)
+         end
+
+         if self.adiabatic then
+            self.modifierWeight:accumulate(self.adiabSpec:getQneutFac(self.linearizedPolarization))
+         end
+
+         if self.ndim > 1 then
+            self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
+         end
+         self.phiSlvr:setModifierWeight(self.modifierWeight)
+      end
       -- phi solve (elliptic, so update potCurr.phi)
       local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potCurr.phi})
 
@@ -390,20 +457,21 @@ function GkField:forwardEulerStep2(tCurr, dt, species, inIdx, outIdx)
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.currentDens:clear(0.0)
       if self.ndim==1 then 
-         self.massWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+         self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
       else 
-         self.massWeight:clear(0.0)
+         self.modifierWeight:clear(0.0)
       end
       for nm, s in pairs(species) do
         if s:isEvolving() then 
-           self.massWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
            -- taking momDensity at outIdx gives momentum moment of df/dt
            self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
         end
       end
+      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve
       local dApardt = potCurr.dApardt
-      mys2, mydt2 = self.dApardtSlvr:advance(tCurr, dt, {self.currentDens, nil, self.massWeight}, {dApardt}) 
+      mys2, mydt2 = self.dApardtSlvr:advance(tCurr, dt, {self.currentDens}, {dApardt}) 
       
       -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
       -- this ensures that dApar/dt is in the same space as dPhi/dz
@@ -577,6 +645,30 @@ function GkGeometry:alloc()
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
+ 
+   -- functions for laplacian
+   -- gxx = |grad x|**2
+   self.geo.gxx = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- gxy = grad x . grad y
+   self.geo.gxy = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- gyy = |grad y|**2
+   self.geo.gyy = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   
 
    -- jacobian of coordinate transformation
    self.geo.jacobGeo = DataStruct.Field {
@@ -607,7 +699,7 @@ function GkGeometry:createSolver()
       local salpha = self.salpha
       self.bmagFunc = function (t, xn)
          local x, y, z
-         if self.ndim == 1 then z = xn[1]
+         if self.ndim == 1 then z = xn[1]; x = assert(salpha.r0, "must set salpha.r0 for 1D (local limit) s-alpha cases") 
          elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
          else x, y, z = xn[1], xn[2], xn[3]
          end
@@ -637,6 +729,25 @@ function GkGeometry:createSolver()
       end
       self.gradparFunc = function (t, xn)
          return 1/(salpha.q*salpha.R0)
+      end
+      self.gxxFunc = function (t, xn)
+         return 1
+      end
+      self.gxyFunc = function (t, xn)
+         local x, y, z
+         if self.ndim == 1 then z = xn[1]
+         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
+         else x, y, z = xn[1], xn[2], xn[3]
+         end
+         return salpha.shat*z
+      end
+      self.gyyFunc = function (t, xn)
+         local x, y, z
+         if self.ndim == 1 then z = xn[1]
+         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
+         else x, y, z = xn[1], xn[2], xn[3]
+         end
+         return 1 + (salpha.shat*z)^2
       end
    else
       -- calculate 1/B function
@@ -712,6 +823,51 @@ function GkGeometry:createSolver()
          evaluate = function(t, xn) return 1 end
       }
    end
+   if self.gxxFunc then 
+      self.setGxx = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.gxxFunc
+      }
+   else 
+      self.setGxx = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 1 end
+      }
+   end
+   if self.gxyFunc then 
+      self.setGxy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.gxyFunc
+      }
+   else 
+      self.setGxy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 0 end
+      }
+   end
+   if self.gyyFunc then 
+      self.setGyy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = self.gyyFunc
+      }
+   else 
+      self.setGyy = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         projectOnGhosts = true,
+         evaluate = function(t, xn) return 1 end
+      }
+   end
    if self.bdriftXFunc then 
       self.setBdriftX = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -765,6 +921,9 @@ function GkGeometry:initField()
    else self.geo.gradpar:clear(0.0) end
    if self.setJacobGeo then self.setJacobGeo:advance(0.0, 0.0, {}, {self.geo.jacobGeo})
    else self.geo.jacobGeo:clear(0.0) end
+   if self.setGxx then self.setGxx:advance(0.0, 0.0, {}, {self.geo.gxx}) end
+   if self.setGxy then self.setGxy:advance(0.0, 0.0, {}, {self.geo.gxy}) end
+   if self.setGyy then self.setGyy:advance(0.0, 0.0, {}, {self.geo.gyy}) end
    if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
    else self.geo.bdriftX:clear(0.0) end
    if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})
@@ -776,6 +935,9 @@ function GkGeometry:initField()
    self.geo.bmag:sync(false)
    self.geo.bmagInv:sync(false)
    self.geo.gradpar:sync(false)
+   self.geo.gxx:sync(false)
+   self.geo.gxy:sync(false)
+   self.geo.gyy:sync(false)
    self.geo.jacobGeo:sync(false)
    self.geo.bdriftX:sync(false)
    self.geo.bdriftY:sync(false)
