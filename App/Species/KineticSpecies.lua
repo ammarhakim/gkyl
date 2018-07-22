@@ -103,8 +103,9 @@ function KineticSpecies:fullInit(appTbl)
    -- read in which diagnostic moments to compute on output
    self.diagnosticMoments = { }
    if tbl.diagnosticMoments then
-      for i, nm in ipairs(tbl.diagnosticMoments) do
-         if i == "perturbed" and nm == true then self.perturbedMoments = true
+      for i, nm in pairs(tbl.diagnosticMoments) do
+         if i == "perturbed" and nm == true then 
+            self.perturbedMoments = true
          elseif type(i) == "number" then
 	    self.diagnosticMoments[i] = nm
          end
