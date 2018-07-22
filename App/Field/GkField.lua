@@ -181,44 +181,26 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
 end
 
 function GkField:createSolver(species)
-   -- leaving this here for a possible future implementation...
-   --local laplacianWeight = {}
-   --local modifierConstant = {}
-   --if self.adiabatic then
-   --  local fac = self.adiabQneutFac
-   --  for d = 1, self.ndim do 
-   --    laplacianWeight[d] = 0.0
-   --    modifierConstant[d] = fac
-   --  end
-   --else
-   --  if ndim==1 then  -- z
-   --    laplacianWeight = {0.0}
-   --    modifierConstant = {self.kperp2}
-   --  elseif ndim==2 then  -- x,y
-   --    laplacianWeight = {1.0, 1.0}
-   --    modifierConstant = {0.0, 0.0}
-   --  else -- x,y,z
-   --    laplacianWeight = {1.0, 1.0, 0.0}
-   --    modifierConstant = {0.0, 0.0, 1.0}
-   --  end
-   --end
+   -- get adiabatic species info
+   for nm, s in pairs(species) do
+      if Species.AdiabaticSpecies.is(s) then
+         self.adiabatic = true
+         self.adiabSpec = s
+      end
+   end
+   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
-   -- get adiabatic species info and calculate species-dependent 
-   -- weight on polarization term == sum_s m_s n_s / B^2
+   -- if not provided, calculate species-dependent weight on polarization term == sum_s m_s n_s / B^2
    if not self.polarizationWeight then 
       self.polarizationWeight = 0.0
       for nm, s in pairs(species) do
-         if Species.AdiabaticSpecies.is(s) then
-            self.adiabatic = true
-            self.adiabSpec = s
-         elseif Species.GkSpecies.is(s) then
+         if Species.GkSpecies.is(s) then
             self.polarizationWeight = self.polarizationWeight + s:polarizationWeight()
          end
       end
    end
-   -- if polarization weight still not set, assume it is 1
-   if self.polarizationWeight == 0.0 then self.polarizationWeight = 1.0 end
-   assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
+   -- if not adiabatic, and polarization weight still not set, assume it is 1
+   if self.polarizationWeight == 0.0 and not self.adiabatic then self.polarizationWeight = 1.0 end
 
    -- set up Poisson solvers
    local laplacianWeight, modifierConstant
