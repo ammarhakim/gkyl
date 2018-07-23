@@ -12,12 +12,15 @@ def build(bld):
     lboData/GkLBOconstNuSer1x1v.cpp
     lboData/GkLBOconstNuSer1x2v.cpp
     lboData/GkLBOconstNuSer2x2v.cpp
+    lboData/GkLBOconstNuSer3x2v.cpp
     lboData/GkLBOconstNuSurfSer1x1v.cpp
     lboData/GkLBOconstNuSurfSer1x2v.cpp
     lboData/GkLBOconstNuSurfSer2x2v.cpp
+    lboData/GkLBOconstNuSurfSer3x2v.cpp
     lboData/GkLBOconstNuBoundarySurfSer1x1v.cpp
     lboData/GkLBOconstNuBoundarySurfSer1x2v.cpp
     lboData/GkLBOconstNuBoundarySurfSer2x2v.cpp
+    lboData/GkLBOconstNuBoundarySurfSer3x2v.cpp
     
     lboData/VmLBOconstNuSer1x1v.cpp
     lboData/VmLBOconstNuSer1x2v.cpp

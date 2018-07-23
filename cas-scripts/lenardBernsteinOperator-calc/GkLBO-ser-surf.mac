@@ -3,8 +3,8 @@ load(stringproc)$
 
 polyOrderMax : 2$
 
-for c : 1 thru 2 do (
-  for v : c thru 2 do (
+for c : 3 thru 3 do (
+  for v : 2 thru 2 do (
    disp(printf(false,"Creating surface GkLBOconstNu ~ax~av",c,v)),
    fname : sconcat("~/max-out/GkLBOconstNuSurfSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
@@ -17,8 +17,8 @@ for c : 1 thru 2 do (
 /* boundarySurf kernels compute surface contribution that we
    do not want to zero-out at the boundary of velocity domain. */
 
-for c : 1 thru 2 do (
-  for v : c thru 2 do (
+for c : 3 thru 3 do (
+  for v : 2 thru 2 do (
    disp(printf(false,"Creating boundary surface GkLBOconstNu ~ax~av",c,v)),
    fname : sconcat("~/max-out/GkLBOconstNuBoundarySurfSer", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
