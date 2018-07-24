@@ -18,24 +18,25 @@ R0 = 1.313  -- major radius of magnetic axis [m]
 a  = 0.4701 -- minor radius [m]
 n0 = 4.992e19 -- [1/m^3]
 -- derived parameters
-r0       = 0.5*a -- minor radius of center of flux tube
-R        = R0 + r0 -- major radius of center of flux tube
+r0       = 0.5*a -- minor radius of flux tube 
+R        = R0 + r0 -- major radius of flux tube 
+B        = B0*R0/R -- magnetic field strength in flux tube 
 vte  	 = math.sqrt(Te0/me)
 c_s      = math.sqrt(Te0/mi)
-omega_ci = math.abs(qi*B0/mi)
-omega_ce = math.abs(qe*B0/me)
+omega_ci = math.abs(qi*B/mi)
+omega_ce = math.abs(qe*B/me)
 rho_s    = c_s/omega_ci
 rho_e    = vte/omega_ce
 dr       = 32*rho_e
 L_T      = R/10 
 ky_min   = 2*math.pi/dr
-omegade  = ky_min*rho_e*vte/R0
+omegade  = ky_min*rho_e*vte/R
 -- velocity grid parameters
 N_VPAR, N_MU = 16, 8
 VPAR_UPPER = math.min(4, 2.5*math.sqrt(N_VPAR/4))*vte
 VPAR_LOWER = -VPAR_UPPER
 MU_LOWER = 0
-MU_UPPER = math.min(16, 4*math.sqrt(N_MU/2))*me*vte*vte/B0
+MU_UPPER = math.min(16, 8*math.sqrt(N_MU/2))*me*vte*vte/B/2
 
 plasmaApp = Plasma.App {
    logToFile = true,
@@ -89,7 +90,7 @@ plasmaApp = Plasma.App {
              },
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkM0", "GkM2", perturbed = false}, 
+      diagnosticMoments = {"GkM0", perturbed = true}, 
    },
 
    -- adiabatic ions
@@ -122,4 +123,4 @@ plasmaApp = Plasma.App {
 }
 -- run application
 plasmaApp:run()
---print("expected growth rate = 3.01078*omega_de = ", 3.01078*omegade)
+--print("expected growth rate = 2.92349*omega_de = ", 2.92349*omegade)
