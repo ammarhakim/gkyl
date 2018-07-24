@@ -28,6 +28,8 @@ local function createBasis(nm, ndim, polyOrder)
       return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
    elseif nm == "maximal-order" then
       return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
+   elseif nm == "tensor" then
+      return Basis.CartModalTensor { ndim = ndim, polyOrder = polyOrder }
    end
 end
 
