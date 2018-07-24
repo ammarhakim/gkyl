@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuVol1x1vSerP1(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
+double GkLBOconstNuVol1x1vSerP1(const double *w, const double *dxv, const double *mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
 { 
   // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output 
   double rdv2[1]; 
@@ -17,7 +17,7 @@ double GkLBOconstNuVol1x1vSerP1(const double m_, const double *w, const double *
 return nu*rdvSq4[0]*0.5; 
 
 } 
-double GkLBOconstNuVol1x1vSerP2(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
+double GkLBOconstNuVol1x1vSerP2(const double *w, const double *dxv, const double *mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
 { 
   // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output 
   double rdv2[1]; 
