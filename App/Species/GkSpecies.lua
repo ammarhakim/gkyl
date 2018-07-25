@@ -74,7 +74,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    if funcField then
       -- save bmagFunc for later...
       self.bmagFunc = funcField.bmagFunc
-      -- if vdim>1, get jacobian=bmag from funcField, and multiply it by init functions for f0 and f
+      -- if vdim>1, get jacobian=bmag from geo, and multiply it by init functions for f0 and f
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc = funcField.jacobGeoFunc
       if self.jacobPhaseFunc and self.vdim > 1 then
