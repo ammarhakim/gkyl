@@ -321,10 +321,11 @@ void FemParPoisson::allreduceGlobalSrc(MPI_Comm comm)
 }
 void FemParPoisson::allgatherGlobalStiff(MPI_Comm comm)
 {
-  int nglobal = getNumParGlobalNodes(nz, ndim, polyOrder, z_periodic);
   // all gather (concatenate) stiffTripletList
   std::vector<Triplet<double> > stiffTripletListGathered;
-  stiffTripletListGathered.reserve(nglobal*nglobal); 
+  int nprocs;
+  MPI_Comm_size(comm, &nprocs);
+  stiffTripletListGathered.resize(stiffTripletList.size()*nprocs); // this resize is required.. just need to make sure to reserve enough space
   MPI_Allgather(stiffTripletList.data(), stiffTripletList.size(), MPI_triplet_t, stiffTripletListGathered.data(), stiffTripletList.size(), MPI_triplet_t, comm);
   stiffTripletList = stiffTripletListGathered;
 }
