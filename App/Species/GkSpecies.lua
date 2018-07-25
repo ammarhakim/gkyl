@@ -108,7 +108,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, geo)
             end
          end
       end
-      self.B0 = geo.B0
+      if self.cdim == 1 then 
+         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1)})
+      elseif self.cdim == 2 then 
+         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(1)})
+      else
+         self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(1), self.grid:mid(2)})
+      end
       self.bmag = assert(geo.geo.bmag, "nil bmag")
    end
 
