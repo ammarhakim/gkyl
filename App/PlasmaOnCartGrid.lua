@@ -63,10 +63,7 @@ local function buildApplication(self, tbl)
    local polyOrder = tbl.polyOrder and tbl.polyOrder or 0 -- polynomial order
 
    -- create basis function for configuration space
-   local confBasis = nil
-   if polyOrder > 0 then
-      confBasis = createBasis(basisNm, cdim, polyOrder)
-   end
+   local confBasis = createBasis(basisNm, cdim, polyOrder)
 
    -- I/O method
    local ioMethod = tbl.ioMethod and tbl.ioMethod or "MPI"
