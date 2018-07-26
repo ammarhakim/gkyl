@@ -71,7 +71,7 @@ local function buildApplication(self, tbl)
       assert(false, "ioMethod must be one of 'MPI' or 'POSIX'. Provided '" .. ioMethod .. "' instead")
    end
 
-   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvSplit" }
+   local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
    -- time-stepper
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
    if not lume.find(goodStepperNames, timeStepperNm) then
@@ -79,7 +79,7 @@ local function buildApplication(self, tbl)
    end
 
    -- CFL fractions for various steppers
-   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0, fvSplit = 1.0 }
+   local stepperCFLFracs = { rk1 = 1.0, rk2 = 1.0, rk3 = 1.0, rk3s4 = 2.0, fvDimSplit = 1.0 }
 
    local cflFrac = tbl.cflFrac
    -- Compute CFL fraction if not specified
@@ -88,7 +88,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Number of fields needed for each stepper type
-   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvSplit = 2 }
+   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 2 }
 
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
@@ -440,7 +440,8 @@ local function buildApplication(self, tbl)
    end
 
    -- function to advance solution using FV scheme
-   function timeSteppers.fvSplit(tCurr, dt)
+   function timeSteppers.fvDimSplit(tCurr, dt)
+      print("INSIDE timeSteppers.fvDimSplit")
 
       return true, GKYL_MAX_DOUBLE
    end
