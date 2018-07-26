@@ -72,6 +72,7 @@ function FluidSpecies:fullInit(appTbl)
 
    -- default to a single moment
    self.nMoments = 1
+   self.nGhost = 1 -- default is 1 ghost-cell in each direction
 
    self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
    self.bcx, self.bcy, self.bcz = { }, { }, { }
@@ -163,7 +164,7 @@ function FluidSpecies:allocMoment()
    local m = DataStruct.Field {
 	onGrid = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
-	ghost = {1, 1}
+	ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
@@ -171,7 +172,7 @@ function FluidSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
 	onGrid = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
-	ghost = {1, 1}
+	ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
@@ -328,6 +329,22 @@ function FluidSpecies:write(tm)
       end
       self.diagIoFrame = self.diagIoFrame+1
    end
+end
+
+function FluidSpecies:writeRestart(tm)
+   self.momIo:write(
+      self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame)
+   self.integratedMoments:write(
+      string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
+end
+
+function FluidSpecies:readRestart()
+   local tm, fr = self.momIo:read(self.moments[1], string.format("%s_restart.bp", self.name))
+   self.distIoFrame = fr -- reset internal frame counter
+   self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))   
+   
+   self:applyBc(tm, 0.0, self.moments[1])
+   self.moment[1]:sync() -- must get all ghost-cell data correct
 end
 
 -- timers

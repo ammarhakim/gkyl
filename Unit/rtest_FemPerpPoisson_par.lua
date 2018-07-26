@@ -29,8 +29,8 @@ function log(msg)
    end
 end
 
-local decomp2d = DecompRegionCalc.CartProd { cuts = {4, 2}, }
-local decomp3d = DecompRegionCalc.CartProd { cuts = {2, 2, 2}, }
+local decomp2d = DecompRegionCalc.CartProd { cuts = {1, 2}, }
+local decomp3d = DecompRegionCalc.CartProd { cuts = {1, 2, 1}, }
 
 function test_solve2d(nx, ny, p, writeMatrix)
    writeMatrix = writeMatrix or false
@@ -149,7 +149,7 @@ function test_solve2d_periodic(nx, ny, p)
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0,1},
+     periodicDirs = {1,2},
      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()
@@ -370,7 +370,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
    local poisson = Updater.FemPerpPoisson {
      onGrid = grid,
      basis = basis,
-     periodicDirs = {0,1},
+     periodicDirs = {1,2},
      writeStiffnessMatrix = false,
    }
    local t2 = os.clock()

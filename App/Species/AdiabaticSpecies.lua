@@ -32,6 +32,8 @@ function AdiabaticSpecies:createSolver(hasE, hasB)
       gridCenter[d] = (self.grid:upper(d) + self.grid:lower(d))/2
    end
    self._dens0 = self.initFunc(0, gridCenter)
+
+   self.qneutFac = self:allocMoment()
 end
 
 -- nothing to calculate, just copy
@@ -62,8 +64,12 @@ function AdiabaticSpecies:dens0()
 end
 
 -- this is factor on potential in qneut equation
-function AdiabaticSpecies:qneutFac()
-   return self._dens0*self.charge^2/self._temp
+function AdiabaticSpecies:getQneutFac(linearized)
+   if linearized == false then
+      self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
+   else
+      return self._dens0*self.charge^2/self._temp
+   end
 end
 
 return AdiabaticSpecies
