@@ -37,7 +37,7 @@ momentApp = Plasma.App {
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
    cells = {64, 32},
-   timeStepper = "fvSplit",
+   timeStepper = "fvDimSplit",
 
    -- decomposition for configuration space
    decompCuts = {1, 1}, -- cuts in each configuration direction
