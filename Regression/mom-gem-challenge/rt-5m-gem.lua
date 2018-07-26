@@ -1,5 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 local Plasma = require "App.PlasmaOnCartGrid"
+local Euler = require "Eq.Euler"
 
 -- physical parameters
 gasGamma = 5./3.
@@ -47,14 +48,42 @@ momentApp = Plasma.App {
 
    -- electrons
    elc = Plasma.Moments.Species {
-      charge = -1.0, mass = 1.0,
+      charge = elcCharge, mass = elcMass,
+
+      equation = Euler { gasGamma = gasGamma },
       -- initial conditions
       init = function (t, xn)
-	 return 1.0, 0.0, 0.0, 0.0, 1.0
+	 local x, y = xn[1], xn[2]
+	 
+	 local tanh = math.tanh
+	 local cosh = math.cosh
+	 local cos = math.cos
+	 local sin = math.sin
+
+	 local me = elcMass
+	 local mi = ionMass
+	 local qe = elcCharge
+	 local qi = ionCharge
+	 local g1 = gasGamma-1.0
+	 local l = lambda
+	 local TeFrac = 1.0 / (1.0 + TiOverTe)
+	 local TiFrac = 1.0 - TeFrac
+	 local sech2 = (1.0/cosh(y/l))^2
+	 local _2pi = 2.0*math.pi
+
+	 local n = n0*(sech2 + nbOverN0)
+	 local Jz = -(B0/l)*sech2
+	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
+
+	 local rhoe = n*me
+	 local ezmom = (me/qe)*Jz*TeFrac
+	 local ere = n*Ttotal*TeFrac/g1 + 0.5*ezmom*ezmom/rhoe
+	 
+	 return rhoe, 0.0, 0.0, ezmom, ere
       end,
       evolve = true, -- evolve species?
-
    },
+
 }
 -- run application
 momentApp:run()
