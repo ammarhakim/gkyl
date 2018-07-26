@@ -3,13 +3,6 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
-let(wx1^2, wx1_sq)$
-let(wx2^2, wx2_sq)$
-let(wx3^2, wx3_sq)$
-let(dv1^2, dv1_sq)$
-let(dv2^2, dv2_sq)$
-let(dv3^2, dv3_sq)$
-
 let(wx1^3, wx1_cu)$
 let(wx2^3, wx2_cu)$
 let(wx3^3, wx3_cu)$
@@ -17,17 +10,27 @@ let(dv1^3, dv1_cu)$
 let(dv2^3, dv2_cu)$
 let(dv3^3, dv3_cu)$
 
+let(wx1^2, wx1_sq)$
+let(wx2^2, wx2_sq)$
+let(wx3^2, wx3_sq)$
+let(dv1^2, dv1_sq)$
+let(dv2^2, dv2_sq)$
+let(dv3^2, dv3_sq)$
+
 volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
 vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
 wTrans : [wx1, wx2, wx3]$
 dvTrans : [vx*dv1/2, vy*dv2/2, vz*dv3/2]$
+pmax : 1$
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 /* Number density */
 calcM0(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 3 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -46,7 +49,7 @@ calcM1i(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 3 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -75,7 +78,7 @@ calcM2ij(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 3 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -88,14 +91,65 @@ for p : 1 thru 3 do (
 
   fl : doExpand1(f, bP),
 
-  M : (M : [],
-       for d1 : 1 thru vdim do (
-          for d2 : d1 thru vdim do (
-            M : append(M, calcInnerProdList(varsP, vTrans[d1]*vTrans[d2], bC, fl))
-       )),
-  M),
+  if p = 1 then (
+     ctr : 1,
+     M : (M : [],
+          for d1 : 1 thru vdim do (
+             for d2 : d1 thru vdim do (
+               zetaprod : calcInnerProdList(varsP, 1, bP, vTrans[d1]*vTrans[d2]),
+               zetaprod : map(letsimp, zetaprod),
+               printf(fh, "  double zeta~a[~a]; ~%~%", ctr, length(bP)),
+               if ctr = 1 then (
+                  writeCExprsCollect1(zeta1, zetaprod, []),
+                  zetaNoZero : doMakeExprLst(zetaprod, zeta1),
+                  zeta_expd : doExpandLst(zetaNoZero, bP),
+                  M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+               ),
+               if ctr = 2 then (
+                  writeCExprsCollect1(zeta2, zetaprod, []),
+                  zetaNoZero : doMakeExprLst(zetaprod, zeta2),
+                  zeta_expd : doExpandLst(zetaNoZero, bP),
+                  M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+               ),
+               if ctr = 3 then (
+                  writeCExprsCollect1(zeta3, zetaprod, []),
+                  zetaNoZero : doMakeExprLst(zetaprod, zeta3),
+                  zeta_expd : doExpandLst(zetaNoZero, bP),
+                  M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+               ),
+               if ctr = 4 then (
+                  writeCExprsCollect1(zeta4, zetaprod, []),
+                  zetaNoZero : doMakeExprLst(zetaprod, zeta4),
+                  zeta_expd : doExpandLst(zetaNoZero, bP),
+                  M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+               ),
+               if ctr = 5 then (
+                  writeCExprsCollect1(zeta5, zetaprod, []),
+                  zetaNoZero : doMakeExprLst(zetaprod, zeta5),
+                  zeta_expd : doExpandLst(zetaNoZero, bP),
+                  M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+               ),
+               if ctr = 6 then (
+                  writeCExprsCollect1(zeta6, zetaprod, []),
+                  zetaNoZero : doMakeExprLst(zetaprod, zeta6),
+                  zeta_expd : doExpandLst(zetaNoZero, bP),
+                  M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+               ),
+               ctr : ctr + 1
+          )),
+     M)
+  )
+  else (
+     M : (M : [],
+          for d1 : 1 thru vdim do (
+             for d2 : d1 thru vdim do (
+               M : append(M, calcInnerProdList(varsP, vTrans[d1]*vTrans[d2], bC, fl))
+          )),
+     M),
 
-  M : map(letsimp, M),
+     M : map(letsimp, M)
+  ),
+
   clst : [volFact],
   writeCIncrExprsCollect1(out, volFact*M, clst),
 
@@ -107,7 +161,7 @@ calcM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 3 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -120,9 +174,20 @@ for p : 1 thru 3 do (
 
   fl : doExpand1(f, bP),
 
-  M : sum(calcInnerProdList(varsP, vTrans[d]*vTrans[d], bC, fl), d, 1, vdim),
+  if p = 1 then (
+     zetaprod : sum(calcInnerProdList(varsP, 1, bP, vTrans[d]*vTrans[d]), d, 1, vdim),
+     zetaprod : map(letsimp, zetaprod),
+     printf(fh, "  double zeta[~a]; ~%~%", length(bP)),
+     writeCExprsCollect1(zeta, zetaprod, []),
+     zetaNoZero : doMakeExprLst(zetaprod, zeta),
+     zeta_expd : doExpandLst(zetaNoZero, bP),
+     M : calcInnerProdList(varsP, 1, bC, zeta_expd*fl)
+  )
+  else (
+     M : sum(calcInnerProdList(varsP, vTrans[d]*vTrans[d], bC, fl), d, 1, vdim),
+     M : map(letsimp, M)
+  ),
 
-  M : map(letsimp, M),
   clst : [volFact],
   writeCIncrExprsCollect1(out, volFact*M, clst),
 
@@ -134,7 +199,7 @@ calcM3i(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 3 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -148,13 +213,44 @@ for p : 1 thru 3 do (
 
   fl : doExpand1(f, bP),
 
-  M : (M : [],
-       for i : 1 thru vdim do (
-         M : append(M, sum(calcInnerProdList(varsP, vTrans[i]*vTrans[d]*vTrans[d], bC, fl), d, 1, vdim))
-       ),
-  M),
+  if p = 1 or p = 2 then (
+     ctr : 1,
+     M : (M : [],
+          for i : 1 thru vdim do (
+            zetaprod : sum(calcInnerProdList(varsP, 1, bP, vTrans[i]*vTrans[d]*vTrans[d]), d, 1, vdim),
+            zetaprod : map(letsimp, zetaprod),
+            printf(fh, "  double zeta~a[~a]; ~%~%", ctr, length(bP)),
+            if ctr = 1 then (
+               writeCExprsCollect1(zeta1, zetaprod, []),
+               zetaNoZero : doMakeExprLst(zetaprod, zeta1),
+               zeta_expd : doExpandLst(zetaNoZero, bP),
+               M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+            ),
+            if ctr = 2 then (
+               writeCExprsCollect1(zeta2, zetaprod, []),
+               zetaNoZero : doMakeExprLst(zetaprod, zeta2),
+               zeta_expd : doExpandLst(zetaNoZero, bP),
+               M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+            ),
+            if ctr = 3 then (
+               writeCExprsCollect1(zeta3, zetaprod, []),
+               zetaNoZero : doMakeExprLst(zetaprod, zeta3),
+               zeta_expd : doExpandLst(zetaNoZero, bP),
+               M : append(M, calcInnerProdList(varsP, 1, bC, zeta_expd*fl))
+            ),
+            ctr : ctr + 1
+          ),
+     M)
+  )
+  else (
+     M : (M : [],
+          for i : 1 thru vdim do (
+            M : append(M, sum(calcInnerProdList(varsP, vTrans[i]*vTrans[d]*vTrans[d], bC, fl), d, 1, vdim))
+          ),
+     M),
 
-  M : map(letsimp, M),
+     M : map(letsimp, M)
+  ),
   clst : [volFact],
   writeCIncrExprsCollect1(out, volFact*M, clst),
 
@@ -166,7 +262,7 @@ calcFiveMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for p : 1 thru 3 do (
+for p : 1 thru pmax do (
   bP : basisP[p],
   bC : basisC[p],
 
@@ -186,7 +282,18 @@ for p : 1 thru 3 do (
          M1i : append(M1i, calcInnerProdList(varsP, dvTrans[dir], bC, fl))
        ),
   M1i),
-  M2 : sum(calcInnerProdList(varsP, dvTrans[d]*dvTrans[d], bC, fl), d, 1, vdim),
+  if p = 1 then (
+     zetaprod : sum(calcInnerProdList(varsP, 1, bP, vTrans[d]*vTrans[d]), d, 1, vdim),
+     zetaprod : map(letsimp, zetaprod),
+     printf(fh, "  double zeta[~a]; ~%~%", length(bP)),
+     writeCExprsCollect1(zeta, zetaprod, []),
+     zetaNoZero : doMakeExprLst(zetaprod, zeta),
+     zeta_expd : doExpandLst(zetaNoZero, bP),
+     M2 : calcInnerProdList(varsP, 1, bC, zeta_expd*fl)
+  )
+  else (
+     M2 : sum(calcInnerProdList(varsP, dvTrans[d]*dvTrans[d], bC, fl), d, 1, vdim)
+  ),
   writeCExprs1(tempM0, volFact*M0),
 
   printf(fh, "~%"),
@@ -214,7 +321,12 @@ for p : 1 thru 3 do (
   writeCIncrExprs1(outM1i, incr_tempM1i),
   clst : [volFact],
   clst : append(clst, makelist(tempM0[i-1], i, 1, length(bC))),
-  writeCIncrExprsCollect1(outM2, M0M2+volFact*M2, clst),
+  if p = 1 then (
+     writeCIncrExprsCollect1(outM2, volFact*M2, clst)
+  )
+  else (
+     writeCIncrExprsCollect1(outM2, M0M2+volFact*M2, clst)
+  ),
   printf(fh, "} ~%")
 ))$
 
