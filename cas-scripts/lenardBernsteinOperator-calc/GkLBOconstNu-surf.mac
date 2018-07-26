@@ -22,7 +22,7 @@ doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, len
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 load ("scifac")$
-writeCExprsCollect1c(lhs, rhs, clst) := block([expr],
+writeCExprsCollect1c(lhs, rhs) := block([expr],
   expr : float(expand(rhs)), 
   for i : 1 thru length(expr) do (
     if expr[i] # 0.0 then (
@@ -151,7 +151,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Expand the mean flow speed in the configuration basis. */
     nuU_e : doExpand1(nuU,bC),
     /* Expand the reciprocal of Bmag in configuration basis. */
-    mufac_e : doExpand1(mufac,bC),
+    BmagInv_e : doExpand1(BmagInv,bC),
 
     /* Calculate the drift. */
     if dir = 1 then (
@@ -169,7 +169,6 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         drBar_e : doExpand(calcInnerProdList(varsC,1,bC,2*nu*wl[vid1[dir]]), bC)
     ),
 
-
     /* vMuMid is the value returned and from which vMuMidMax is computed. */
     zr     : makelist(varsP[d]=0, d, 1, length(varsP)),
     vMuMid : float(expand(fullratsimp(subst(zr,dr)))),
@@ -178,14 +177,22 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     fhat_avg  : subst(vv=1, favg_e),
     fhat_jump : subst(vv=1, fjump_e),
 
-    /* Separate out diffusion part of Ghat to simplify Ghat assignment.
-    ** Leave the rdv factor out for later multiplication. */
+    /* Factor to multiply hsol terms to simplify output */
     if dir = 1 then (
-        Gdiff_c : calcInnerProdList(varsP,1,bP,nuVtSq_e*hsol[2])
+        alpha_c : calcInnerProdList(varsP,1,bP,nuVtSq_e),
+       	alst : doMakeExprLst(alpha_c, alpha),
+       	alpha_e : doExpandLst(alst, bP)
     )
     else (
-        Gdiff_c : calcInnerProdList(varsP,1,bP,mufac_e*subst(vv=1,dr)*hsol[2])
+    	alpha_c : calcInnerProdList(varsP,1,bP,m_*BmagInv_e*nuVtSq_e*subst(vv=1,dr)),
+       	alst : doMakeExprLst(alpha_c, alpha),
+       	alpha_e : doExpandLst(alst, bP)   
     ),
+
+    /* Separate out diffusion part of Ghat to simplify Ghat assignment.
+    ** Leave the rdv factor out for later multiplication. */
+    Gdiff_c : fullratsimp(calcInnerProdList(varsP,1,bP,alpha_e*hsol[2])),
+
     /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
     ** but that could result in references to elements of Gdiff in Ghat
     ** which have value zero. Instead do the following: */
@@ -198,9 +205,9 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     
     /* Calculate Ghat projected on the phase basis. */
     Ghat_eP : (1/2)*(subst(vv=1,drD)*fhat_avg-fhat_jump),
-    Ghat_c  : calcInnerProdList(varsP,1,bP,Ghat_eP)
+    Ghat_c  : fullratsimp(calcInnerProdList(varsP,1,bP,Ghat_eP)
              +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg))
-	     +rdv*calcInnerProdList(varsP,1,bP,Gdiff_e),
+	     +rdv*calcInnerProdList(varsP,1,bP,Gdiff_e)),
 
     /* Ghat_c (coefficients of Ghat) is what gets written. From here
     ** on we can simply refer to Ghat. */
@@ -209,28 +216,23 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     Ghat_final : subst(vv=1, Ghat_e),
 
     /* Contribution from diffusive term of flux and second integration by parts. */
-    if dir = 1 then (
-         g : nuVtSq_e*hsol[1]
-    )
-    else (
-    	 g : mufac_e*subst(vv=1,dr)*hsol[1]
-    ),
-
+    g : alpha_e*hsol[1],
+	 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
     incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), g),
+    incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), g)),
 
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
-    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), g),
+    incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), g)),
 
     /* Because f's in hsol are index-1, we need to switch to
     ** 0-indexed for C++. */
     incr_l2 : psubst(subList,incr_l2),
     incr_r2 : psubst(subList,incr_r2),
 
-    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
+    printf(fh, "double ~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. ~%"),
     printf(fh, "  // nu:         constant collisionality. ~%"),
     printf(fh, "  // vMuMidMax:  maximum midpoint value of v-u. ~%"),
@@ -266,11 +268,17 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       printf(fh, "~%")
     ),
 
+    /* Write out alpha */
+    printf(fh, "  double alpha[~a]; ~%", NP),
+    clst : makelist(nuVtSq[i],i,0,NC-1),
+    writeCExprsCollect1c(alpha, radcan(alpha_c)),
+    printf(fh, "~%"),
+
     /* Compute the diffusive part of Ghat separately. */
     printf(fh, "  double Gdiff[~a]; ~%", NP),
     /* This one yields less compact expressions: writeCExprs1(Gdiff,Gdiff_c), */
     clst : makelist(nuVtSq[i],i,0,NC-1),
-    writeCExprsCollect1c(Gdiff, Gdiff_c, clst),
+    writeCExprsCollect1c(Gdiff, radcan(Gdiff_c)),
     printf(fh, "~%"),
 
     /* Declare and zero out Ghat. */
@@ -290,8 +298,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
     printf(fh, "  double incr2[~a]; ~%", NP),
-    clst : makelist(nuVtSq[i],i,0,NC-1), 
-    writeCExprsCollect1c(incr2, incr_r2, clst),
+    clst : append(makelist(nuVtSq[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
+    writeCExprsCollect1c(incr2, radcan(incr_r2)),
     printf(fh, "~%"),
   
     incr_s1 : makelist(incr1[i-1], i, 1, NP),
@@ -321,15 +329,16 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NP),
     incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
+    /*incr_s2 : incr_l2,*/
     /* Don't do coefficients where the increment is zero */
     for i : 1 thru NP do (
       if (incr_r1[i] = 0) then
         incr_s1[i] : 0
-    ), 
+    ),
     for i : 1 thru NP do (
       if (incr_r2[i] = 0) then
         incr_s2[i] : 0
-    ), 
+    ),
     /* Write out contribution to left cell. */
     writeCIncrExprs1(outl, rdv2l*incr_s1+rdvSq4l*incr_s2), 
     printf(fh, "~%"),
@@ -348,7 +357,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     /* Load basis of dimensionality requested. */
     modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
     load(modNm),
-
+ 
     /* Variables. */
     vid      : vidx(cdim,vdim),
     vid1     : vidx1(cdim,vdim),
@@ -366,34 +375,45 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     /* First compute the contribution coming from the second
     ** differentiation by parts to left and right cells. */
     nuVtSq_e : doExpand1(nuVtSq,bC),
+    BmagInv_e : doExpand1(BmagInv,bC),
 
     /* Function expanded in basis. */
     fl_e : doExpand1(fl, bP),
     fr_e : doExpand1(fr, bP),
+
+    /* Factor to multiply boundary surf terms to simplify output */
+    if dir = 1 then (
+        alpha_c : calcInnerProdList(varsP,1,bP,nuVtSq_e),
+       	alst : doMakeExprLst(alpha_c, alpha),
+       	alpha_e : doExpandLst(alst, bP)
+    )
+    else (
+    	alpha_c : calcInnerProdList(varsP,1,bP,m_*BmagInv_e*nuVtSq_e),
+       	alst : doMakeExprLst(alpha_c, alpha),
+       	alpha_e : doExpandLst(alst, bP)   
+    ),
     
     /* Contribution from second integration by parts. */
     if dir = 1 then (
-        gl : nuVtSq_e*fl_e,
-        gr : nuVtSq_e*fr_e
+        gl   : alpha_e*fl_e,
+	gr   : alpha_e*fr_e
     )
     else (
-    	/* Expand mufac in config basis. */
-    	mufac_e : doExpand1(mufac,bC),
     	/* Define drift term. */
     	dr_l  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
-	gl    : mufac_e*dr_l*fl_e,
+	gl    : alpha_e*dr_l*fl_e,
 	dr_r  : dxvr[vid1[dir]]*vv + 2*wr[vid1[dir]],
-    	gr    : mufac_e*dr_r*fr_e
+    	gr    :	alpha_e*dr_r*fr_e
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
-    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1,gr)),
+    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), subst(vv=-1, gr)),
 
     /* Increments to the left cell (some dimensional factors missing). */
-    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1,gl)),
+    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1, gl)),
 
-    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
+    printf(fh, "double ~a_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
     printf(fh, "  // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.~%"),
     printf(fh, "  // nu:         constant collisionality. ~%"),
     printf(fh, "  // vMuMidMax:  maximum midpoint value of v-u. ~%"),
@@ -403,6 +423,12 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     printf(fh, "  // outl/outr:  Incremented distribution function in left/right cells ~%"),
     printf(fh, "  double rdvSq4l = 4.0/(dxvl[~a]*dxvl[~a]); ~%", vid1[dir], vid1[dir]),
     printf(fh, "  double rdvSq4r = 4.0/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
+    printf(fh, "~%"),
+
+    /* Write out alpha */
+    printf(fh, "  double alpha[~a]; ~%", NP),
+    clst : makelist(nuVtSq[i],i,0,NC-1),
+    writeCExprsCollect1c(alpha, radcan(alpha_c)),
     printf(fh, "~%"),
 
     /* Write out increments. */

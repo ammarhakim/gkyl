@@ -68,7 +68,7 @@ end
 function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    -- run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver
-   GkSpecies.super.createSolver(self)
+   GkSpecies.super.createSolver(self,funcField)
 
    -- set up jacobian
    if funcField then
@@ -215,24 +215,36 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    local fOut = self:rkStepperFields()[outIdx]
 
-   if self.evolve then
-      local em = emIn[1]:rkStepperFields()[inIdx]
-      local emFunc = emIn[2]:rkStepperFields()[1]
-      local status, dtSuggested
+   local em = emIn[1]:rkStepperFields()[inIdx]
+   local emFunc = emIn[2]:rkStepperFields()[1]
+
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   if self.evolveCollisionless then
       status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
       if self.sourceFunc then
         -- if there is a source, add it to the RHS
         fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
       end
  
-      -- apply BCs
-      self:applyBc(tCurr, dt, fOut)
-
-      return status, dtSuggested
    else
       fOut:copy(fIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
    end
+
+   if self.evolveCollisions then
+      for _, c in pairs(self.collisions) do
+	 local collStatus, collDt = c:forwardEuler(
+	    tCurr, dt, fIn, species, fOut)
+	 -- the full 'species' list is needed for the cross-species
+	 -- collisions
+	 status = status and collStatus
+	 dtSuggested = math.min(dtSuggested, collDt)
+      end
+   end
+
+   -- apply BCs
+   self:applyBc(tCurr, dt, fOut)
+   
+   return status, dtSuggested
 end
 
 function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
@@ -400,7 +412,7 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
-
+      
       if self.collisions then 
          self.threeMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
       else

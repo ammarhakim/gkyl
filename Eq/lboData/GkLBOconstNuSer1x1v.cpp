@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuVol1x1vSerP1(const double *w, const double *dxv, const double *mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
+double GkLBOconstNuVol1x1vSerP1(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
 { 
   // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output 
   double rdv2[1]; 
@@ -7,17 +7,23 @@ double GkLBOconstNuVol1x1vSerP1(const double *w, const double *dxv, const double
   rdv2[0] = 2.0/dxv[1]; 
   rdvSq4[0] = rdv2[0]*rdv2[0]; 
 
-  double drBar[2]; 
-  drBar[0] = nuU[0]-1.414213562373095*w[1]*nu; 
-  drBar[1] = nuU[1]; 
+  double alpha0[4]; 
+  alpha0[0] = 1.414213562373095*rdv2[0]*nuU[0]-2.0*rdv2[0]*w[1]*nu; 
+  alpha0[1] = 1.414213562373095*rdv2[0]*nuU[1]; 
+  alpha0[2] = -1.154700538379252*nu; 
 
-  out[2] += rdv2[0]*(1.224744871391589*f[1]*drBar[1]+1.224744871391589*f[0]*drBar[0])-1.0*f[2]*nu; 
-  out[3] += rdv2[0]*(1.224744871391589*f[0]*drBar[1]+1.224744871391589*drBar[0]*f[1])-1.0*f[3]*nu; 
+  double alpha1[4]; 
+  alpha1[0] = 1.414213562373095*nuVtSq[0]*rdvSq4[0]; 
+  alpha1[1] = 1.414213562373095*rdvSq4[0]*nuVtSq[1]; 
 
-return nu*rdvSq4[0]*0.5; 
+  out[2] += 0.8660254037844386*(alpha0[2]*f[2]+alpha0[1]*f[1]+alpha0[0]*f[0]); 
+  out[3] += 0.8660254037844386*(alpha0[2]*f[3]+alpha0[0]*f[1]+f[0]*alpha0[1]); 
+
+  const double alpha1Mid = 0.5*alpha1[0]; 
+  return alpha1Mid; 
 
 } 
-double GkLBOconstNuVol1x1vSerP2(const double *w, const double *dxv, const double *mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
+double GkLBOconstNuVol1x1vSerP2(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
 { 
   // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output 
   double rdv2[1]; 
@@ -25,17 +31,24 @@ double GkLBOconstNuVol1x1vSerP2(const double *w, const double *dxv, const double
   rdv2[0] = 2.0/dxv[1]; 
   rdvSq4[0] = rdv2[0]*rdv2[0]; 
 
-  double drBar[3]; 
-  drBar[0] = nuU[0]-1.414213562373095*w[1]*nu; 
-  drBar[1] = nuU[1]; 
-  drBar[2] = nuU[2]; 
+  double alpha0[8]; 
+  alpha0[0] = 1.414213562373095*rdv2[0]*nuU[0]-2.0*rdv2[0]*w[1]*nu; 
+  alpha0[1] = 1.414213562373095*rdv2[0]*nuU[1]; 
+  alpha0[2] = -1.154700538379252*nu; 
+  alpha0[4] = 1.414213562373095*rdv2[0]*nuU[2]; 
 
-  out[2] += rdv2[0]*(1.224744871391589*drBar[2]*f[4]+1.224744871391589*f[1]*drBar[1]+1.224744871391589*f[0]*drBar[0])-1.0*f[2]*nu; 
-  out[3] += rdv2[0]*(1.095445115010332*drBar[1]*f[4]+1.095445115010332*f[1]*drBar[2]+1.224744871391589*f[0]*drBar[1]+1.224744871391589*drBar[0]*f[1])-1.0*f[3]*nu; 
-  out[5] += ((-2.0*f[5])-2.23606797749979*f[0])*nu+rdv2[0]*(2.738612787525831*drBar[2]*f[6]+2.738612787525831*drBar[1]*f[3]+2.738612787525831*drBar[0]*f[2])+rdvSq4[0]*(4.743416490252569*nuVtSq[2]*f[4]+4.743416490252569*f[1]*nuVtSq[1]+4.743416490252569*f[0]*nuVtSq[0]); 
-  out[6] += rdv2[0]*(0.7824607964359517*drBar[2]*f[4]+1.224744871391589*drBar[0]*f[4]+1.224744871391589*f[0]*drBar[2]+1.095445115010332*f[1]*drBar[1])-1.0*f[6]*nu; 
-  out[7] += ((-2.0*f[7])-2.23606797749979*f[1])*nu+rdv2[0]*(2.449489742783178*drBar[1]*f[6]+2.449489742783178*drBar[2]*f[3]+2.738612787525831*drBar[0]*f[3]+2.738612787525831*drBar[1]*f[2])+rdvSq4[0]*(4.242640687119286*nuVtSq[1]*f[4]+4.242640687119286*f[1]*nuVtSq[2]+4.743416490252569*f[0]*nuVtSq[1]+4.743416490252569*nuVtSq[0]*f[1]); 
+  double alpha1[8]; 
+  alpha1[0] = 1.414213562373095*nuVtSq[0]*rdvSq4[0]; 
+  alpha1[1] = 1.414213562373095*rdvSq4[0]*nuVtSq[1]; 
+  alpha1[4] = 1.414213562373095*rdvSq4[0]*nuVtSq[2]; 
 
-return nu*rdvSq4[0]*0.5; 
+  out[2] += 0.8660254037844386*(alpha0[4]*f[4]+alpha0[2]*f[2]+alpha0[1]*f[1]+alpha0[0]*f[0]); 
+  out[3] += 0.7745966692414833*(alpha0[1]*f[4]+f[1]*alpha0[4])+0.8660254037844386*(alpha0[2]*f[3]+alpha0[0]*f[1]+f[0]*alpha0[1]); 
+  out[5] += 1.936491673103709*alpha0[4]*f[6]+1.732050807568877*alpha0[2]*f[5]+3.354101966249685*alpha1[4]*f[4]+1.936491673103709*(alpha0[1]*f[3]+alpha0[0]*f[2]+f[0]*alpha0[2])+3.354101966249685*(alpha1[1]*f[1]+alpha1[0]*f[0]); 
+  out[6] += 0.8660254037844386*alpha0[2]*f[6]+0.5532833351724881*alpha0[4]*f[4]+0.8660254037844386*(alpha0[0]*f[4]+f[0]*alpha0[4])+0.7745966692414833*alpha0[1]*f[1]; 
+  out[7] += 1.732050807568877*(alpha0[2]*f[7]+alpha0[1]*f[6])+3.0*(alpha1[1]*f[4]+f[1]*alpha1[4])+1.732050807568877*f[3]*alpha0[4]+1.936491673103709*(alpha0[0]*f[3]+alpha0[1]*f[2]+f[1]*alpha0[2])+3.354101966249685*(alpha1[0]*f[1]+f[0]*alpha1[1]); 
+
+  const double alpha1Mid = 0.5*alpha1[0]-0.5590169943749475*alpha1[4]; 
+  return alpha1Mid; 
 
 } 

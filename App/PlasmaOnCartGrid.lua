@@ -604,6 +604,7 @@ return {
    NoField = Field.NoField,
    VlasovSpecies = Species.VlasovSpecies,
    VmLBOCollisions = Collisions.VmLBOCollisions,
+   GkLBOCollisions = Collisions.GkLBOCollisions,
    VoronovIonization = Collisions.VoronovIonization,
 
    -- valid pre-packaged species-field systems
