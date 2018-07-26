@@ -54,12 +54,6 @@ momentApp = Plasma.App {
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
-	 
-	 local tanh = math.tanh
-	 local cosh = math.cosh
-	 local cos = math.cos
-	 local sin = math.sin
-
 	 local me = elcMass
 	 local mi = ionMass
 	 local qe = elcCharge
@@ -68,7 +62,7 @@ momentApp = Plasma.App {
 	 local l = lambda
 	 local TeFrac = 1.0 / (1.0 + TiOverTe)
 	 local TiFrac = 1.0 - TeFrac
-	 local sech2 = (1.0/cosh(y/l))^2
+	 local sech2 = (1.0/math.cosh(y/l))^2
 	 local _2pi = 2.0*math.pi
 
 	 local n = n0*(sech2 + nbOverN0)

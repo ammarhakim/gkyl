@@ -70,6 +70,7 @@ function FluidSpecies:fullInit(appTbl)
 
    -- default to a single moment
    self.nMoments = 1
+   self.nGhost = 1 -- default is 1 ghost-cell in each direction
 
    self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
    self.bcx, self.bcy, self.bcz = { }, { }, { }
@@ -161,7 +162,7 @@ function FluidSpecies:allocMoment()
    local m = DataStruct.Field {
 	onGrid = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
-	ghost = {1, 1}
+	ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
@@ -169,7 +170,7 @@ function FluidSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
 	onGrid = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
-	ghost = {1, 1}
+	ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
