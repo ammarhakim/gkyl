@@ -29,42 +29,9 @@ function MomentSpecies:fullInit(appTbl)
    self.nGhost = 2 -- we need two ghost-cells
 end
 
-function MomentSpecies:initDist()
-   local fld = self.moments[1]
-   local grid = self.grid
-   local meqn = self.equation:numEquations()
-   local xn = Lin.Vec(fld:ndim())
-   
-   local fItr = fld:get(1)      
-   local indexer = fld:genIndexer()
-   for idx in fld:localExtRangeIter() do
-      grid:setIndex(idx)
-      grid:cellCenter(xn)
-      -- evaluate supplied IC function
-      local v = { self.initFunc(0.0, xn) } -- braces around function put return values in table
-      -- set values in cell
-      fld:fill(indexer(idx), fItr) -- pointer to data in cell
-      for c = 1, meqn do fItr[c] = v[c] end
-   end   
-end
-
 function MomentSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    -- does nothing: perhaps when DG is supported this will need to be
    -- modified
-end
-
-function MomentSpecies:write(tm)
-   if self.evolve then
-      if self.diagIoTrigger(tm) then
-	 self.moments[1]:write(string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-	 self.diagIoFrame = self.diagIoFrame + 1
-      end
-   else
-      if self.diagIoFrame == 0 then
-	 self.moments[1]:write(string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-	 self.diagIoFrame = self.diagIoFrame + 1
-      end
-   end
 end
 
 return MomentSpecies

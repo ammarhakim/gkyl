@@ -329,6 +329,22 @@ function FluidSpecies:write(tm)
    end
 end
 
+function FluidSpecies:writeRestart(tm)
+   self.momIo:write(
+      self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame)
+   self.integratedMoments:write(
+      string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
+end
+
+function FluidSpecies:readRestart()
+   local tm, fr = self.momIo:read(self.moments[1], string.format("%s_restart.bp", self.name))
+   self.distIoFrame = fr -- reset internal frame counter
+   self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))   
+   
+   self:applyBc(tm, 0.0, self.moments[1])
+   self.moment[1]:sync() -- must get all ghost-cell data correct
+end
+
 -- timers
 function FluidSpecies:totalSolverTime()
    if self.solver then

@@ -73,7 +73,8 @@ momentApp = Plasma.App {
 	 local ezmom = (me/qe)*Jz*TeFrac
 	 local ere = n*Ttotal*TeFrac/g1 + 0.5*ezmom*ezmom/rhoe
 	 
-	 return rhoe, 0.0, 0.0, ezmom, ere
+	 --return rhoe, 0.0, 0.0, ezmom, ere
+	 return 1.0, 0.0, 0.0, 2.0, 3.0
       end,
       evolve = true, -- evolve species?
    },

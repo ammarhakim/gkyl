@@ -84,10 +84,16 @@ function ProjectOnBasis:init(tbl)
    local numBasis = self._basis:numBasis()
    self._basisAtOrdinates = Lin.Mat(numOrdinates, numBasis)
    -- pre-compute values of basis functions at quadrature nodes
-   for n = 1, numOrdinates do
-      self._basis:evalBasis(self._ordinates[n], self._basisAtOrdinates[n])
+   if numBasis > 1 then
+      for n = 1, numOrdinates do
+	 self._basis:evalBasis(self._ordinates[n], self._basisAtOrdinates[n])
+      end
+   else
+      for n = 1, numOrdinates do
+	 self._basisAtOrdinates[n][1] = 1.0/2^self._onGrid:ndim()
+      end
    end
-
+      
    -- construct various functions from template representations
    self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
 end
