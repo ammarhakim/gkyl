@@ -14,6 +14,17 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 varsV : [vpar, mu]$
 gkvsub: [vx=vpar,vy=mu]$
 
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+load ("scifac")$
+writeCExprsCollect1c(rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+     if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", out[i-1], gcfac(expr[i]))
+  )
+)$
+
 calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   printf(fh, "#include <GkLBOModDecl.h> ~%"),
   for polyOrder : 1 thru pMax do (
@@ -33,37 +44,48 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     NC : length(bC),
 
     /* Expand distribution function f in phase basis. */
-    f_e    : doExpand1(f, bP),
+    f_e  : doExpand1(f, bP),
     /* Expand flow speed u and thermal speed squared in configuration basis. */
     nuU_e    : doExpand1(nuU, bC),
-    nuVtSq_e : doExpand1(nuVtSq, bC),
-
-    /* -nu*w+u part of the vpar drag term. */
-    drBar_e : doExpand1(drBar,bC),
+    nuVtSq_e : doExpand1(nuVtSq, bC),    
     
     /* Volume increment. */
     /* vpar contribution */
     cv   : varsV[1],
     bPp  : diff(bP,cv),
-    incr : (-nu*calcInnerProdList(varsP,cv,bPp,f_e)
-           +rdv2[0]*calcInnerProdList(varsP,drBar_e,bPp,f_e))
-           +rdvSq4[0]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e),
+    bPpp : diff(bP,cv,2),
+    alpha0_c : calcInnerProdList(varsP,1,bP,-nu*cv + rdv2[0]*(-nu*w[vid[1]] + nuU_e)),
+    alst0 : doMakeExprLst(alpha0_c, alpha0),
+    alpha0_e : doExpandLst(alst0, bP),
+
+    alpha1_c : calcInnerProdList(varsP,rdvSq4[0],bP,nuVtSq_e),
+    alst1 : doMakeExprLst(alpha1_c, alpha1),
+    alpha1_e : doExpandLst(alst1, bP),
+
+    incr : fullratsimp(calcInnerProdList(varsP,alpha0_e,bPp,f_e)
+           +calcInnerProdList(varsP,alpha1_e,bPpp,f_e)),
     
     /* mu contribution. Last 3 terms from 2nd int by parts */
     if vdim = 2 then (
 	cv   : varsV[2],
-        bPp  : diff(bP,cv),
-        bPpp : diff(bP,cv,2),
-	mufac_e : doExpand1(mufac,bC),
-        w_e  : doExpand(calcInnerProdList(varsC,1,bC,w[vid[2]]),bC),
-	incr : incr + 2*(-nu*(calcInnerProdList(varsP,cv,bPp,f_e)
-              +rdv2[1]*calcInnerProdList(varsP,w_e,bPp,f_e))
-              +rdv2[1]*(calcInnerProdList(varsP,mufac_e*cv,bPpp,f_e)
-	      +calcInnerProdList(varsP,mufac_e,bPp,f_e))
-	      +rdvSq4[1]*calcInnerProdList(varsP,mufac_e*w_e,bPpp,f_e))
+	bPp  : diff(bP,cv),
+    	bPpp : diff(bP,cv,2),
+	BmagInv_e : doExpand1(BmagInv,bC),
+
+	mufac0_c : calcInnerProdList(varsP,1,bP,-2*(nu*cv + rdv2[1]*(nu*w[vid[2]] - m_*BmagInv_e*nuVtSq_e))),
+	mlst0 :  doMakeExprLst(mufac0_c, mufac0),
+    	mufac0_e : doExpandLst(mlst0, bP),
+
+	mufac1_c : calcInnerProdList(varsP,1,bP,2*m_*BmagInv_e*nuVtSq_e*(rdv2[1]*cv + rdvSq4[1]*w[vid[2]])),
+	mlst1 :  doMakeExprLst(mufac1_c, mufac1),
+    	mufac1_e : doExpandLst(mlst1, bP),
+	
+	incr : fullratsimp(incr
+              +calcInnerProdList(varsP,mufac0_e,bPp,f_e)
+              +calcInnerProdList(varsP,mufac1_e,bPpp,f_e))
     ),
     
-    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *mufac, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output ~%"),
     cid : cidx(cdim),
     printf(fh, "  double rdv2[~a]; ~%", vdim),
@@ -74,24 +96,41 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     printf(fh, "~%"),
 
-    /* Compute the nu*wx-nuU drift part separately. */
-    printf(fh, "  double drBar[~a]; ~%", NC),
-    /* -nu*(w-u) part of the drag term. */
-    drBar_c : calcInnerProdList(varsC,1,bC,-nu*w[vid[1]]+nuU_e),
-    for i : 1 thru NC do (
-       printf(fh, "  ~a = ~a; ~%", drBar[i-1], float(expand(drBar_c[i])))
-    ),
+    /* Print all alphas */
+    printf(fh, "  double alpha~a[~a]; ~%", 0, length(bP)),
+    clst : [rdv2[0],nu],
+    writeCExprsCollect1(alpha0, alpha0_c, clst),
     printf(fh, "~%"),
-  
-    clst : append(makelist(rdv2[i],i,0,vdim-1),makelist(rdvSq4[i],i,0,vdim-1),[m_,nu]),
-    writeCIncrExprsCollect1(out, incr, clst),
+    printf(fh, "  double alpha~a[~a]; ~%", 1, length(bP)),
+    clst : [rdvSq4[0]],
+    writeCExprsCollect1(alpha1, alpha1_c, clst),
     printf(fh, "~%"),
 
+    if vdim = 2 then (
+        /* Print all mufacs */
+    	printf(fh, "  double mufac~a[~a]; ~%", 0, length(bP)),
+   	writeCExprsCollect1(mufac0, mufac0_c, []),
+	printf(fh, "~%"),
+        printf(fh, "  double mufac~a[~a]; ~%", 1, length(bP)),
+    	writeCExprsCollect1(mufac1, mufac1_c, []),
+	printf(fh, "~%")    
+    ),
+
+    clst : makelist(f[i],i,0,NC-1),
+    writeCExprsCollect1c(radcan(incr)),
+    printf(fh, "~%"),
+
+    /* Return coefficients for CFL condition */
+    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+    alpha1Mid : float(expand(fullratsimp(subst(zr,alpha1_e)))),
+    printf(fh, "  const double alpha1Mid = ~a; ~%", alpha1Mid), 
     if vdim = 1 then (
-      printf(fh, "return nu*rdvSq4[0]*0.5; ~%")
+       printf(fh, "  return alpha1Mid; ~%")
     ),
     if vdim = 2 then (
-      printf(fh, "return nu*(rdvSq4[0]+rdvSq4[1])*0.5; ~%")
+       	mufac1Mid : float(expand(fullratsimp(subst(zr,mufac1_e)))),
+       	printf(fh, "  const double mufac1Mid = ~a; ~%", mufac1Mid),
+       	printf(fh, "  return alpha1Mid + mufac1Mid; ~%")
     ),
     printf(fh, "~%"),
   

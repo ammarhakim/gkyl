@@ -415,10 +415,10 @@ function KineticSpecies:createBCs()
    handleBc(3, self.bcz)
 end
 
-function KineticSpecies:createSolver()
+function KineticSpecies:createSolver(funcField)
    -- create solvers for collisions
    for _, c in pairs(self.collisions) do
-      c:createSolver()
+      c:createSolver(funcField)
    end
 end
 

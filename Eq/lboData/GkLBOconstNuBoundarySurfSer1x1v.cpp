@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P1(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.
   // nu:         constant collisionality. 
@@ -11,20 +11,24 @@ double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P1(const double *wl, const double *w
   double rdvSq4l = 4.0/(dxvl[1]*dxvl[1]); 
   double rdvSq4r = 4.0/(dxvr[1]*dxvr[1]); 
 
+  double alpha[4]; 
+  alpha[0] = 1.414213562373095*nuVtSq[0]; 
+  alpha[1] = 1.414213562373095*nuVtSq[1]; 
+
   if (idxr[1] == 1) {
 
-    outr[2] += (nuVtSq[1]*(0.6123724356957944*fr[1]-1.060660171779821*fr[3])+nuVtSq[0]*(0.6123724356957944*fr[0]-1.060660171779821*fr[2]))*rdvSq4r; 
-    outr[3] += (nuVtSq[0]*(0.6123724356957944*fr[1]-1.060660171779821*fr[3])+nuVtSq[1]*(0.6123724356957944*fr[0]-1.060660171779821*fr[2]))*rdvSq4r; 
+    outr[2] += (0.4330127018922193*(alpha[1]*fr[1]+alpha[0]*fr[0])-0.75*(alpha[1]*fr[3]+alpha[0]*fr[2]))*rdvSq4r; 
+    outr[3] += (0.4330127018922193*(alpha[0]*fr[1]+fr[0]*alpha[1])-0.75*(alpha[0]*fr[3]+alpha[1]*fr[2]))*rdvSq4r; 
 
   } else {
 
-    outl[2] += (nuVtSq[1]*((-1.060660171779821*fl[3])-0.6123724356957944*fl[1])+nuVtSq[0]*((-1.060660171779821*fl[2])-0.6123724356957944*fl[0]))*rdvSq4l; 
-    outl[3] += (nuVtSq[0]*((-1.060660171779821*fl[3])-0.6123724356957944*fl[1])+nuVtSq[1]*((-1.060660171779821*fl[2])-0.6123724356957944*fl[0]))*rdvSq4l; 
+    outl[2] += ((-0.75*(alpha[1]*fl[3]+alpha[0]*fl[2]))-0.4330127018922193*(alpha[1]*fl[1]+alpha[0]*fl[0]))*rdvSq4l; 
+    outl[3] += ((-0.75*(alpha[0]*fl[3]+alpha[1]*fl[2]))-0.4330127018922193*(alpha[0]*fl[1]+fl[0]*alpha[1]))*rdvSq4l; 
 
   }
   return 0.0; 
 } 
-double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P2(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *mufac, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P2(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]:    Cell-center coordinates. dxv[NDIM]: Cell spacing. idx[NDIM]: current grid index.
   // nu:         constant collisionality. 
@@ -36,21 +40,26 @@ double GkLBOconstNuBoundarySurf1x1vSer_Vpar_P2(const double *wl, const double *w
   double rdvSq4l = 4.0/(dxvl[1]*dxvl[1]); 
   double rdvSq4r = 4.0/(dxvr[1]*dxvr[1]); 
 
+  double alpha[8]; 
+  alpha[0] = 1.414213562373095*nuVtSq[0]; 
+  alpha[1] = 1.414213562373095*nuVtSq[1]; 
+  alpha[4] = 1.414213562373095*nuVtSq[2]; 
+
   if (idxr[1] == 1) {
 
-    outr[2] += (nuVtSq[1]*(1.369306393762915*fr[7]-1.060660171779821*fr[3]+0.6123724356957944*fr[1])+nuVtSq[2]*(0.6123724356957944*fr[4]-1.060660171779821*fr[6])+nuVtSq[0]*(1.369306393762915*fr[5]-1.060660171779821*fr[2]+0.6123724356957944*fr[0]))*rdvSq4r; 
-    outr[3] += (nuVtSq[0]*(1.369306393762915*fr[7]-1.060660171779821*fr[3]+0.6123724356957944*fr[1])+nuVtSq[2]*(1.224744871391589*fr[7]-0.9486832980505137*fr[3]+0.5477225575051661*fr[1])+nuVtSq[1]*((-0.9486832980505138*fr[6])+1.369306393762915*fr[5]+0.5477225575051661*fr[4]-1.060660171779821*fr[2]+0.6123724356957944*fr[0]))*rdvSq4r; 
-    outr[5] += (nuVtSq[1]*((-5.303300858899106*fr[7])+4.107919181288745*fr[3]-2.371708245126284*fr[1])+nuVtSq[2]*(4.107919181288745*fr[6]-2.371708245126284*fr[4])+nuVtSq[0]*((-5.303300858899105*fr[5])+4.107919181288745*fr[2]-2.371708245126284*fr[0]))*rdvSq4r; 
-    outr[6] += (nuVtSq[1]*(1.224744871391589*fr[7]-0.9486832980505138*fr[3]+0.5477225575051661*fr[1])+nuVtSq[2]*((-0.6776309271789384*fr[6])+1.369306393762915*fr[5]+0.3912303982179757*fr[4]-1.060660171779821*fr[2]+0.6123724356957944*fr[0])+nuVtSq[0]*(0.6123724356957944*fr[4]-1.060660171779821*fr[6]))*rdvSq4r; 
-    outr[7] += (nuVtSq[2]*((-4.743416490252569*fr[7])+3.674234614174767*fr[3]-2.121320343559642*fr[1])+nuVtSq[0]*((-5.303300858899105*fr[7])+4.107919181288746*fr[3]-2.371708245126284*fr[1])+nuVtSq[1]*(3.674234614174766*fr[6]-5.303300858899106*fr[5]-2.121320343559642*fr[4]+4.107919181288746*fr[2]-2.371708245126284*fr[0]))*rdvSq4r; 
+    outr[2] += (0.9682458365518543*alpha[1]*fr[7]-0.75*alpha[4]*fr[6]+0.9682458365518543*alpha[0]*fr[5]+0.4330127018922193*alpha[4]*fr[4]-0.75*(alpha[1]*fr[3]+alpha[0]*fr[2])+0.4330127018922193*(alpha[1]*fr[1]+alpha[0]*fr[0]))*rdvSq4r; 
+    outr[3] += ((0.8660254037844387*alpha[4]+0.9682458365518543*alpha[0])*fr[7]+alpha[1]*((-0.6708203932499369*fr[6])+0.9682458365518543*fr[5]+0.3872983346207416*fr[4])+(0.3872983346207416*fr[1]-0.6708203932499369*fr[3])*alpha[4]-0.75*(alpha[0]*fr[3]+alpha[1]*fr[2])+0.4330127018922193*(alpha[0]*fr[1]+fr[0]*alpha[1]))*rdvSq4r; 
+    outr[5] += ((-3.75*alpha[1]*fr[7])+2.904737509655563*alpha[4]*fr[6]-3.75*alpha[0]*fr[5]-1.677050983124842*alpha[4]*fr[4]+2.904737509655563*(alpha[1]*fr[3]+alpha[0]*fr[2])-1.677050983124842*(alpha[1]*fr[1]+alpha[0]*fr[0]))*rdvSq4r; 
+    outr[6] += (0.8660254037844386*alpha[1]*fr[7]+((-0.479157423749955*alpha[4])-0.75*alpha[0])*fr[6]+0.9682458365518543*alpha[4]*fr[5]+(0.276641667586244*alpha[4]+0.4330127018922194*alpha[0])*fr[4]+(0.4330127018922194*fr[0]-0.75*fr[2])*alpha[4]+alpha[1]*(0.3872983346207417*fr[1]-0.6708203932499369*fr[3]))*rdvSq4r; 
+    outr[7] += (((-3.354101966249685*alpha[4])-3.75*alpha[0])*fr[7]+alpha[1]*(2.598076211353316*fr[6]-3.75*fr[5]-1.5*fr[4])+(2.598076211353316*fr[3]-1.5*fr[1])*alpha[4]+2.904737509655563*(alpha[0]*fr[3]+alpha[1]*fr[2])-1.677050983124842*(alpha[0]*fr[1]+fr[0]*alpha[1]))*rdvSq4r; 
 
   } else {
 
-    outl[2] += (nuVtSq[1]*((-1.369306393762915*fl[7])-1.060660171779821*fl[3]-0.6123724356957944*fl[1])+nuVtSq[2]*((-1.060660171779821*fl[6])-0.6123724356957944*fl[4])+nuVtSq[0]*((-1.369306393762915*fl[5])-1.060660171779821*fl[2]-0.6123724356957944*fl[0]))*rdvSq4l; 
-    outl[3] += (nuVtSq[2]*((-1.224744871391589*fl[7])-0.9486832980505137*fl[3]-0.5477225575051661*fl[1])+nuVtSq[0]*((-1.369306393762915*fl[7])-1.060660171779821*fl[3]-0.6123724356957944*fl[1])+nuVtSq[1]*((-0.9486832980505138*fl[6])-1.369306393762915*fl[5]-0.5477225575051661*fl[4]-1.060660171779821*fl[2]-0.6123724356957944*fl[0]))*rdvSq4l; 
-    outl[5] += (nuVtSq[1]*((-5.303300858899106*fl[7])-4.107919181288745*fl[3]-2.371708245126284*fl[1])+nuVtSq[2]*((-4.107919181288745*fl[6])-2.371708245126284*fl[4])+nuVtSq[0]*((-5.303300858899105*fl[5])-4.107919181288745*fl[2]-2.371708245126284*fl[0]))*rdvSq4l; 
-    outl[6] += (nuVtSq[1]*((-1.224744871391589*fl[7])-0.9486832980505138*fl[3]-0.5477225575051661*fl[1])+nuVtSq[2]*((-0.6776309271789384*fl[6])-1.369306393762915*fl[5]-0.3912303982179757*fl[4]-1.060660171779821*fl[2]-0.6123724356957944*fl[0])+nuVtSq[0]*((-1.060660171779821*fl[6])-0.6123724356957944*fl[4]))*rdvSq4l; 
-    outl[7] += (nuVtSq[2]*((-4.743416490252569*fl[7])-3.674234614174767*fl[3]-2.121320343559642*fl[1])+nuVtSq[0]*((-5.303300858899105*fl[7])-4.107919181288746*fl[3]-2.371708245126284*fl[1])+nuVtSq[1]*((-3.674234614174766*fl[6])-5.303300858899106*fl[5]-2.121320343559642*fl[4]-4.107919181288746*fl[2]-2.371708245126284*fl[0]))*rdvSq4l; 
+    outl[2] += ((-0.9682458365518543*alpha[1]*fl[7])-0.75*alpha[4]*fl[6]-0.9682458365518543*alpha[0]*fl[5]-0.4330127018922193*alpha[4]*fl[4]-0.75*(alpha[1]*fl[3]+alpha[0]*fl[2])-0.4330127018922193*(alpha[1]*fl[1]+alpha[0]*fl[0]))*rdvSq4l; 
+    outl[3] += (((-0.8660254037844387*alpha[4])-0.9682458365518543*alpha[0])*fl[7]+alpha[1]*((-0.6708203932499369*fl[6])-0.9682458365518543*fl[5]-0.3872983346207416*fl[4])+((-0.6708203932499369*fl[3])-0.3872983346207416*fl[1])*alpha[4]-0.75*(alpha[0]*fl[3]+alpha[1]*fl[2])-0.4330127018922193*(alpha[0]*fl[1]+fl[0]*alpha[1]))*rdvSq4l; 
+    outl[5] += ((-3.75*alpha[1]*fl[7])-2.904737509655563*alpha[4]*fl[6]-3.75*alpha[0]*fl[5]-1.677050983124842*alpha[4]*fl[4]-2.904737509655563*(alpha[1]*fl[3]+alpha[0]*fl[2])-1.677050983124842*(alpha[1]*fl[1]+alpha[0]*fl[0]))*rdvSq4l; 
+    outl[6] += ((-0.8660254037844386*alpha[1]*fl[7])+((-0.479157423749955*alpha[4])-0.75*alpha[0])*fl[6]-0.9682458365518543*alpha[4]*fl[5]+((-0.276641667586244*alpha[4])-0.4330127018922194*alpha[0])*fl[4]+((-0.75*fl[2])-0.4330127018922194*fl[0])*alpha[4]+alpha[1]*((-0.6708203932499369*fl[3])-0.3872983346207417*fl[1]))*rdvSq4l; 
+    outl[7] += (((-3.354101966249685*alpha[4])-3.75*alpha[0])*fl[7]+alpha[1]*((-2.598076211353316*fl[6])-3.75*fl[5]-1.5*fl[4])+((-2.598076211353316*fl[3])-1.5*fl[1])*alpha[4]-2.904737509655563*(alpha[0]*fl[3]+alpha[1]*fl[2])-1.677050983124842*(alpha[0]*fl[1]+fl[0]*alpha[1]))*rdvSq4l; 
 
   }
   return 0.0; 
