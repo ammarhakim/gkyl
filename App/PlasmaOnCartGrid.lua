@@ -443,14 +443,22 @@ local function buildApplication(self, tbl)
    local function updateInDirection(dir, tCurr, dt)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
-      
+
       -- update species
       for nm, s in pairs(species) do
-	 local fields = s:rkStepperFields()
-	 local inpField, outField = fields[fIdx[dir][1]], fields[fIdx[dir][2]]
-	 
-      end      
-      -- update field
+	 local vars = s:rkStepperFields()
+	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
+	 local myStatus, myDtSuggested = s:updateInDirection(dir, tCurr, dt, inp, out)
+	 status =  status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+      do
+	 -- update field
+	 local vars = field:rkStepperFields()
+	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
+	 local myStatus, myDtSuggested = field:updateInDirection(dir, tCurr, dt, inp, out)
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
 
       return status, dtSuggested
    end
@@ -458,7 +466,10 @@ local function buildApplication(self, tbl)
    -- function to advance solution using FV dimensionally split scheme
    function timeSteppers.fvDimSplit(tCurr, dt)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields      
+
+      -- copy in case we need to take this step again
+      copy(3, 1)
 
       -- update solution in each direction
       for d = 1, cdim do
@@ -466,9 +477,13 @@ local function buildApplication(self, tbl)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
-       -- if solution is not already in field[1], copy for use in next time-step
-      if fIdx[cdim][2] == 2 then
-	 field[1]:copy(field[2])
+
+      if not status then
+	 copy(1, 3) -- restore old solution in case of failure
+      else
+	 -- if solution not already in field[1], copy for use in next
+	 -- time-step
+	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
 
       return status, dtSuggested

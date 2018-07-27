@@ -27,11 +27,36 @@ function MomentSpecies:fullInit(appTbl)
    self.equation = self.tbl.equation -- equation system to evolve
    self.nMoments = self.tbl.equation:numEquations()
    self.nGhost = 2 -- we need two ghost-cells
+
+   self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
+   self.hyperSlvr = {} -- list of solvers
+end
+
+function MomentSpecies:createSolver(hasE, hasB)
+   local ndim = self.grid:ndim()
+   for d = 1, ndim do
+      self.hyperSlvr[d] = Updater.WavePropagation {
+	 onGrid = self.grid,
+	 equation = self.equation,
+	 limiter = self.limiter,
+	 cfl = self.cfl,
+	 updateDirections = {d}
+      }
+   end
 end
 
 function MomentSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    -- does nothing: perhaps when DG is supported this will need to be
    -- modified
+end
+
+function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
+   if self.evolve then
+      return self.hyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+   else
+      fOut:copy(fIn)
+      return true, GKYL_MAX_DOUBLE
+   end
 end
 
 return MomentSpecies
