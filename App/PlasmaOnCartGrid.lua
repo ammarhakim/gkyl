@@ -88,7 +88,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Number of fields needed for each stepper type
-   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 2 }
+   local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
 
    -- parallel decomposition stuff
    local decompCuts = tbl.decompCuts
@@ -439,11 +439,39 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
-   -- function to advance solution using FV scheme
-   function timeSteppers.fvDimSplit(tCurr, dt)
-      print("INSIDE timeSteppers.fvDimSplit")
+   -- update solution in specified direction
+   local function updateInDirection(dir, tCurr, dt)
+      local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
+      
+      -- update species
+      for nm, s in pairs(species) do
+	 local fields = s:rkStepperFields()
+	 local inpField, outField = fields[fIdx[dir][1]], fields[fIdx[dir][2]]
+	 
+      end      
+      -- update field
 
-      return true, GKYL_MAX_DOUBLE
+      return status, dtSuggested
+   end
+
+   -- function to advance solution using FV dimensionally split scheme
+   function timeSteppers.fvDimSplit(tCurr, dt)
+      local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
+
+      -- update solution in each direction
+      for d = 1, cdim do
+	 local myStatus, myDtSuggested = updateInDirection(d, tCurr, dt)
+	 status =  status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+       -- if solution is not already in field[1], copy for use in next time-step
+      if fIdx[cdim][2] == 2 then
+	 field[1]:copy(field[2])
+      end
+
+      return status, dtSuggested
    end
 
    local tmEnd = Time.clock()
