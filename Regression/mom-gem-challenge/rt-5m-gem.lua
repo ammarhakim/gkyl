@@ -54,27 +54,18 @@ momentApp = Plasma.App {
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
-	 local me = elcMass
-	 local mi = ionMass
-	 local qe = elcCharge
-	 local qi = ionCharge
-	 local g1 = gasGamma-1.0
-	 local l = lambda
-	 local TeFrac = 1.0 / (1.0 + TiOverTe)
-	 local TiFrac = 1.0 - TeFrac
-	 local sech2 = (1.0/math.cosh(y/l))^2
-	 local _2pi = 2.0*math.pi
 
+	 local TeFrac = 1.0/(1.0 + TiOverTe)
+	 local sech2 = (1.0/math.cosh(y/lambda))^2
 	 local n = n0*(sech2 + nbOverN0)
-	 local Jz = -(B0/l)*sech2
+	 local Jz = -(B0/lambda)*sech2
 	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
-	 local rhoe = n*me
-	 local ezmom = (me/qe)*Jz*TeFrac
-	 local ere = n*Ttotal*TeFrac/g1 + 0.5*ezmom*ezmom/rhoe
+	 local rhoe = n*elcMass
+	 local ezmom = (elcMass/elcCharge)*Jz*TeFrac
+	 local ere = n*Ttotal*TeFrac/(gasGamma-1) + 0.5*ezmom*ezmom/rhoe
 	 
-	 --return rhoe, 0.0, 0.0, ezmom, ere
-	 return 1.0, 0.0, 0.0, 2.0, 3.0
+	 return rhoe, 0.0, 0.0, ezmom, ere
       end,
       evolve = true, -- evolve species?
    },
