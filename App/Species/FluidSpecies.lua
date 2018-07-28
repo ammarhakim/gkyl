@@ -168,6 +168,22 @@ function FluidSpecies:allocMomCouplingFields()
    return {self:allocVectorMoment(self.nMoments)}
 end
 
+function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+   for i = 1, self.nMoments do
+      fOut[i] = fIn[i]
+   end
+end
+
+-- function to construct a BC updater
+function FluidSpecies:makeBcUpdater(dir, edge, bcList)
+   return Updater.Bc {
+      onGrid = self.grid,
+      boundaryConditions = bcList,
+      dir = dir,
+      edge = edge,
+   }
+end
+
 function FluidSpecies:createBCs()
    -- functions to make life easier while reading in BCs to apply
    -- note: appendBoundaryConditions defined in sub-classes

@@ -1,11 +1,11 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Moments = require("App.PlasmaOnCartGrid").Moments
 local Euler = require "Eq.Euler"
 
 gasGamma = 1.4 -- gas adiabatic constant
    
 -- create app
-eulerApp = Plasma.App {
+eulerApp = Moments.App {
    logToFile = true,
 
    tEnd = 0.1, -- end time
@@ -21,7 +21,7 @@ eulerApp = Plasma.App {
    useShared = false, -- if to use shared memory
 
    -- electrons
-   fluid = Plasma.Moments.Species {
+   fluid = Moments.Species {
       charge = 0.0, mass = 1.0,
 
       equation = Euler { gasGamma = gasGamma },
@@ -38,6 +38,8 @@ eulerApp = Plasma.App {
 	 return rho, rho*u, 0.0, 0.0, press/(gasGamma-1) + 0.5*rho*u*u
       end,
       evolve = true, -- evolve species?
+
+      bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy }, -- boundary conditions in X
    },   
 }
 -- run application

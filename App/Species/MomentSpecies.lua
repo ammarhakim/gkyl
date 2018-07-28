@@ -19,6 +19,13 @@ local xsys = require "xsys"
 -- Species object treated as moment equations
 local MomentSpecies = Proto(FluidSpecies)
 
+-- add constants to object indicate various supported boundary conditions
+local SP_BC_OPEN = 1
+local SP_BC_COPY = SP_BC_OPEN
+
+MomentSpecies.bcOpen = SP_BC_OPEN -- open BCs
+MomentSpecies.bcCopy = SP_BC_COPY -- copy BCs
+
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization
 function MomentSpecies:fullInit(appTbl)
@@ -50,6 +57,15 @@ function MomentSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    -- modified
 
    return true, GKYL_MAX_DOUBLE
+end
+
+function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
+   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
+   
+   if bcType == SP_BC_COPY then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, edge, { bcCopyFunc }))
+   end
 end
 
 function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
