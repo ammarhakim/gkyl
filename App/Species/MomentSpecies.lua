@@ -48,15 +48,27 @@ end
 function MomentSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    -- does nothing: perhaps when DG is supported this will need to be
    -- modified
+
+   return true, GKYL_MAX_DOUBLE
 end
 
 function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
-      return self.hyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+      status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+      self:applyBc(tCurr, dt, fOut)
    else
       fOut:copy(fIn)
-      return true, GKYL_MAX_DOUBLE
    end
+   return status, dtSuggested
+end
+
+function MomentSpecies:totalSolverTime()
+   local tm = 0.0
+   for d = 1, self.grid:ndim() do
+      tm = tm + self.hyperSlvr[d].totalTime
+   end
+   return tm
 end
 
 return MomentSpecies

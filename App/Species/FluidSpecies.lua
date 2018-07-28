@@ -26,11 +26,6 @@ local function createBasis(nm, ndim, polyOrder)
    end
 end
 
--- add constants to object indicate various supported boundary conditions
-local SP_BC_ABSORB = 1
-local SP_BC_OPEN = 2
-local SP_BC_REFLECT = 3
-
 -- base class for kinetic species
 local FluidSpecies = Proto(SpeciesBase)
 
@@ -63,7 +58,7 @@ function FluidSpecies:fullInit(appTbl)
    self.diagIoFrame = 0 -- frame number for diagnostics
 
    -- for storing integrated moments
-   self.integratedMoments = DataStruct.DynVector { numComponents = 1 }
+   self.integratedMoments = nil -- allocated in alloc() method
 
    -- store initial condition function
    self.initFunc = tbl.init
@@ -75,30 +70,24 @@ function FluidSpecies:fullInit(appTbl)
    self.hasNonPeriodicBc = false -- to indicate if we have non-periodic BCs
    self.bcx, self.bcy, self.bcz = { }, { }, { }
 
-   -- function to check if BC type is good
-   local function isBcGood(bcType)
-      if bcType == SP_BC_ABSORB or bcType == SP_BC_OPEN or bcType == SP_BC_REFLECT then
-         return true
-      end
-      return false
-   end
-   
    -- read in boundary conditions
+   -- check to see if bc type is good is now done in createBc
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
-      assert(isBcGood(self.bcx[1]) and isBcGood(self.bcx[2]), "FluidSpecies: Incorrect X BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcy then
       self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
-      assert(isBcGood(self.bcy[1]) and isBcGood(self.bcy[2]), "FluidSpecies: Incorrect Y BC type specified!")
       self.hasNonPeriodicBc = true
    end
    if tbl.bcz then
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
-      assert(isBcGood(self.bcz[1]) and isBcGood(self.bcz[2]), "FluidSpecies: Incorrect Z BC type specified!")
       self.hasNonPeriodicBc = true
    end
+
+   self.boundaryConditions = { } -- list of Bcs to apply
+
+   self.bcTime = 0.0 -- timer for BCs
 end
 
 function FluidSpecies:getCharge() return self.charge end
@@ -180,47 +169,17 @@ function FluidSpecies:allocMomCouplingFields()
 end
 
 function FluidSpecies:createBCs()
-   -- function to construct a BC updater
-   local function makeBcUpdater(dir, edge, bcList)
-      return Updater.Bc {
-	 onGrid = self.grid,
-	 boundaryConditions = bcList,
-	 dir = dir,
-	 edge = edge,
-      }
-   end
-
-   -- various functions to apply BCs of different types
-   local function bcAbsorb(dir, tm, xc, fIn, fOut)
-      for i = 1, self.basis:numBasis() do
-	 fOut[i] = 0.0
-      end
-   end
-   local function bcOpen(dir, tm, xc, fIn, fOut)
-      self.basis:flipSign(dir, fIn, fOut)
-   end
-
    -- functions to make life easier while reading in BCs to apply
-   self.boundaryConditions = { } -- list of Bcs to apply
-   local function appendBoundaryConditions(dir, edge, bcType)
-      if bcType == SP_BC_ABSORB then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcAbsorb }))
-      elseif bcType == SP_BC_OPEN then
-	 table.insert(self.boundaryConditions, makeBcUpdater(dir, edge, { bcOpen }))
-      else
-	 assert(false, "FluidSpecies: Unsupported BC type!")
-      end
-   end
-
+   -- note: appendBoundaryConditions defined in sub-classes
    local function handleBc(dir, bc)
       if bc[1] then
-	 appendBoundaryConditions(dir, "lower", bc[1])
+	 self:appendBoundaryConditions(dir, "lower", bc[1])
       end
       if bc[2] then
-	 appendBoundaryConditions(dir, "upper", bc[2])
+	 self:appendBoundaryConditions(dir, "upper", bc[2])
       end
    end
-   
+
    -- add various BCs to list of BCs to apply
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
@@ -240,6 +199,8 @@ function FluidSpecies:alloc(nRkDup)
    }
 
    self.couplingMoments = self:allocVectorMoment(self.nMoments)
+
+   self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
 
    self:createBCs()
 end
