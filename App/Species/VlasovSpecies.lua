@@ -168,9 +168,8 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolveCollisionless then      
-      status, dtSuggested = self.solver:advance(tCurr, dt,
-						{fIn, totalEmField},
-						{fOut})
+      status, dtSuggested = self.solver:advance(
+	 tCurr, dt, {fIn, totalEmField}, {fOut})
       if self.sourceFunc then
         -- if there is a source, add it to the RHS
         local fSource = self.fSource
