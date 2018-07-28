@@ -169,7 +169,7 @@ function FluidSpecies:allocMomCouplingFields()
 end
 
 function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
-   for i = 1, self.nMoments do
+   for i = 1, self.nMoments*self.basis:numBasis() do
       fOut[i] = fIn[i]
    end
 end
