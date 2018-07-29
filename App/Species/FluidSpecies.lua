@@ -149,17 +149,17 @@ end
 
 function FluidSpecies:allocMoment()
    local m = DataStruct.Field {
-	onGrid = self.confGrid,
-	numComponents = self.confBasis:numBasis(),
-	ghost = {self.nGhost, self.nGhost}
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
 function FluidSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
-	onGrid = self.confGrid,
-	numComponents = self.confBasis:numBasis()*dim,
-	ghost = {self.nGhost, self.nGhost}
+      onGrid = self.confGrid,
+      numComponents = self.confBasis:numBasis()*dim,
+      ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
@@ -213,11 +213,8 @@ function FluidSpecies:alloc(nRkDup)
       elemType = self.moments[1]:elemType(),
       method = self.ioMethod,
    }
-
    self.couplingMoments = self:allocVectorMoment(self.nMoments)
-
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
-
    self:createBCs()
 end
 
@@ -280,7 +277,7 @@ function FluidSpecies:createDiagnostics()
       onGrid = self.grid,
       basis = self.basis,
       numComponents = self.nMoments,
-      quantity = "V2"
+      quantity = "V"
    }
 end
 
@@ -325,7 +322,7 @@ end
 -- timers
 function FluidSpecies:totalSolverTime()
    if self.solver then
-     return self.solver.totalTime
+      return self.solver.totalTime
    end
    return 0
 end
