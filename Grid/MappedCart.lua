@@ -24,6 +24,9 @@ local MappedCart = Proto(RectCart) -- extends RectCart
 function MappedCart:init(tbl)
    MappedCart.super.init(self, tbl)
 
+   -- function that maps the computational coordinates to cartesian coordinates
+   -- of the form 
+   -- X, Y, Z = f({xcomp1, xcomp2, xcomp3})
    self._mapc2p = tbl.mapc2p
 
    -- determine how many values mapc2p returns
@@ -106,7 +109,7 @@ function MappedCart:_calcMetric_3d(xc, g)
    g[6] = d1[3]^2 + d2[2]^2 + d3[3]^2 -- g_33
 end
 
--- Computes metric tensor
+-- Computes (covariant) metric tensor g_ij
 function MappedCart:calcMetric(xc, gOut)
    local ndim = self:ndim()
    if ndim == 1 then
@@ -121,6 +124,45 @@ function MappedCart:calcMetric(xc, gOut)
       self:_calcMetric_3d(xc, gOut)
    else
       assert(false, "MappedCart does not support more than 3 dimensions!")
+   end
+end
+
+-- Compute jacobian = det(g_ij)^(1/2)
+function MappedCart:calcJacobian(xc)
+   local g = {}
+   local ndim = self:ndim()
+   self:calcMetric(xc, g)
+   local jacobian
+   if ndim == 1 then 
+      jacobian = 1
+   elseif ndim == 2 then 
+      jacobian = math.sqrt(g[1]*g[3] - g[2]*g[2]) 
+   elseif ndim == 3 then
+      jacobian = math.sqrt(-g[3]^2*g[4] + 2*g[2]*g[3]*g[5] - g[1]*g[5]^2 - g[2]^2*g[6] + g[1]*g[4]*g[6])
+   end
+   return jacobian
+end  
+
+-- Computes contravariant metric tensor g^ij = (g_ij)^-1
+function MappedCart:calcContraMetric(xc, gContraOut)
+   local ndim = self.ndim()
+   local g = {}
+   self:calcMetric(xc, g)
+   if ndim == 1 then 
+      gContraOut[1] = 1/g[1]
+   elseif ndim == 2 then
+      local det = self:calcJacobian(xc)^2
+      gContraOut[1] = g[3]/det   -- g^11
+      gContraOut[2] = -g[2]/det  -- g^12
+      gContraOut[3] = g[1]/det   -- g^22
+   elseif ndim == 3 then
+      local det = self:calcJacobian(xc)^2
+      gContraOut[1] = (g[4]*g[6]-g[5]^2)/det     -- g^11
+      gContraOut[2] = (g[3]*g[5]-g[2]*g[6])/det  -- g^12 = g^21
+      gContraOut[3] = (g[2]*g[5]-g[3]*g[4])/det  -- g^13 = g^31
+      gContraOut[4] = (g[1]*g[6]-g[3]^2)/det     -- g^22
+      gContraOut[5] = (g[2]*g[3]-g[1]*g[5])/det  -- g^23 = g^32
+      gContraOut[6] = (g[1]*g[4]-g[2]^2)/det     -- g^33
    end
 end
 
