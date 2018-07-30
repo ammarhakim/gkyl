@@ -16,8 +16,7 @@ VarsV : [VX, VY, VZ]$
    f|^(vmax)_(vmin) and that of vf|^(vmax)_(vmin). */
 wVar    : [ [1,1,1] , varsV]$
 Fsuffix : [F, vF]$
-Bfac    : [ [1,1] , [vmax,vmin] ]$ 
-
+Bfac    : [ [1,1] , [vmax,vmin] ]$
 
 calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   kill(varsC, varsP, basisC, basisP),
@@ -32,6 +31,7 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     vv       : varsV[dir],
     surfVars : delete(vv,varsP),
+    dv       : makelist(dxv[cdim+i], i, 0, vdim-1),
 
     /* Expand the distribution function in the cells at the
        boundaries of the velocity domain. */
@@ -40,8 +40,16 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     /* Quantity to be integrated over velocity boundary surface.
        It is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin). */
-    mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
-          -Bfac[wInd][2]*subst(vv=-1,fvmin_e),
+    /*if (polyOrder = 1 and wInd = 2) then (
+         mB_e : (BfacP1[wInd][1]-dv[dir]/2)*subst(vv=1,fvmax_e)
+               -(BfacP1[wInd][2]+dv[dir]/2)*subst(vv=-1,fvmin_e)	     
+    )
+    else (
+    	 mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
+               -Bfac[wInd][2]*subst(vv=-1,fvmin_e)
+    ),*/
+     mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
+            -Bfac[wInd][2]*subst(vv=-1,fvmin_e),
 
     /* This is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin) integrated
        over the velocity boundary surface, and projected onto the
@@ -57,7 +65,6 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
     printf(fh, "  // out:                \int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). ~%"),
     printf(fh, " ~%"),
 
-    dv       : makelist(dxv[cdim+i], i, 0, vdim-1),
     dvSurf   : delete(dxv[cdim+dir-1],dv),
     surfExpr : float(prod(dvSurf[i],i,1,vdim-1)),
 

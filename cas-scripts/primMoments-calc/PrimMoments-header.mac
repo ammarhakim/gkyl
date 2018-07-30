@@ -18,7 +18,7 @@ bName        : ["Ser","Max"]$
 
 for bInd : 1 thru length(bName) do (
   for ci : 1 thru 3 do (
-    for vi : ci thru 3 do (
+    for vi : 1 thru 3 do (
       for pi : 1 thru polyOrderMax do (
   
         /* Primitive moments for self-collision terms. */
