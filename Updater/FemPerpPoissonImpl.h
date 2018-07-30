@@ -92,6 +92,7 @@ class FemPerpPoisson
   /** Eigen solver method */
   //Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
+  //Eigen::SparseLU<Eigen::SparseMatrix<double> > solver;
   Eigen::MatrixXd localMassModToNod, localNodToMod, localModToNod;
   bool analyzed_; // flag so that stiffness matrix only analyzed once
   

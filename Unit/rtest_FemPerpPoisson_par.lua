@@ -338,9 +338,9 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    err:combine(1.0, exactSolModal, -1.0, phiModal)
 
-   phiModal:write("phi-solution-3d.bp", 0.0)
-   exactSolModal:write("exact-solution-3d.bp", 0.0)
-   err:write("error-3d.bp", 0.0)
+   --phiModal:write("phi-solution-3d.bp", 0.0)
+   --exactSolModal:write("exact-solution-3d.bp", 0.0)
+   --err:write("error-3d.bp", 0.0)
   
    local calcInt = Updater.CartFieldIntegratedQuantCalc {
      onGrid = grid,

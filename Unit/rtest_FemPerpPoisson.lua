@@ -748,6 +748,163 @@ function test_solve3d_periodic(nx, ny, nz, p)
    
 end
 
+function test_solve3d_periodic_metric(nx, ny, nz, p)
+   print()
+   print("Testing 3D non-Cartesian periodic Poisson solve...")
+   local grid = Grid.RectCart {
+      lower = {0.0, 0.0, 0.0},
+      upper = {2*math.pi, 2*math.pi, 2*math.pi},
+      cells = {nx, ny, nz},
+   }
+   local basis = Basis.CartModalSerendipity { ndim = 3, polyOrder = p }
+   io.write("nx=",nx," ny=", ny, " nz=", nz, " polyOrder=", p, "\n")
+   local t1 = os.clock()
+
+   local gxx = 3.0
+   local gxy = 10.0
+   local gyy = -2.0
+
+   local gxxField = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1},
+   }
+   local gxyField = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1},
+   }
+   local gyyField = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1},
+   }
+   local unitField = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1},
+   }
+   local projectUnit = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = function(t,xn)
+                    local x, y, z = xn[1], xn[2], xn[3]
+                    return z 
+                 end
+   }
+   projectUnit:advance(0.,0.,{},{unitField})
+
+   gxxField:combine(gxx, unitField)
+   gxyField:combine(gxy, unitField)
+   gyyField:combine(gyy, unitField)
+
+   local poisson = Updater.FemPerpPoisson {
+     onGrid = grid,
+     basis = basis,
+     periodicDirs = {1,2},
+     writeStiffnessMatrix = false,
+     gxx = gxxField,
+     gxy = gxyField,
+     gyy = gyyField,
+     zContinuous = true
+   }
+   local t2 = os.clock()
+   io.write("3D periodic Poisson init took ", t2-t1, " s\n")
+   local srcModal = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1},
+   }
+   -- initialization constants
+   local amn = {{0,10,0}, {10,0,0}, {10,0,0}}
+   local bmn = {{0,10,0}, {10,0,0}, {10,0,0}}
+   local initSrcModal = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = function (t,xn)
+                 local x = xn[1]
+                 local y = xn[2]
+                 local z = xn[3]
+                 local t1, t2 = 0.0, 0.0
+                 local f = 0.0
+                 for m = 0,2 do
+                    for n = 0,2 do
+                       t1 = -(amn[m+1][n+1]*z*gxx*m^2 - 2*bmn[m+1][n+1]*z*gxy*m*n + amn[m+1][n+1]*z*gyy*n^2)*math.cos(m*x)*math.cos(n*y)
+                       t2 = -(bmn[m+1][n+1]*z*gxx*m^2 - 2*amn[m+1][n+1]*z*gxy*m*n + bmn[m+1][n+1]*z*gyy*n^2)*math.sin(m*x)*math.sin(n*y)
+                       f = f + (t1+t2)
+                    end
+                 end
+                 return f/50.0
+              end
+   }
+   initSrcModal:advance(0.,0.,{},{srcModal})
+
+   -- calculate exact solution
+   local exactSolModal = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1},
+   }
+   local initfunc = function (t,xn)
+              local x = xn[1]
+              local y = xn[2]
+              local t1, t2 = 0.0, 0.0
+              local f = 0.0
+              for m = 0,2 do
+                 for n = 0,2 do
+                    t1 = amn[m+1][n+1]*math.cos(m*x)*math.cos(n*y)
+                    t2 = bmn[m+1][n+1]*math.sin(m*x)*math.sin(n*y)
+                    f = f + (t1+t2)
+                 end
+              end
+              f = f/50.0
+              return f-.6
+           end
+   local initExactSolModal = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = initfunc,
+   }
+   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+
+   local phiModal = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1}
+   }
+
+   print("Solving...")
+   local t1 = os.clock()
+   poisson:advance(0.,0.,{srcModal},{phiModal})
+   local t2 = os.clock()
+   io.write("3D periodic Poisson solve took total of ", t2-t1, " s\n")
+
+   local err = DataStruct.Field {
+	 onGrid = grid,
+	 numComponents = basis:numBasis(),
+	 ghost = {1, 1, 1}
+   }
+
+   err:combine(1.0, exactSolModal, -1.0, phiModal)
+
+   --phiModal:write("periodic-phi-solution-3d.bp", 0.0)
+   --exactSolModal:write("periodic-exact-solution-3d.bp", 0.0)
+   --err:write("periodic-error-3d.bp", 0.0)
+
+   local calcInt = Updater.CartFieldIntegratedQuantCalc {
+     onGrid = grid,
+     basis = basis,
+     numComponents = 1,
+     quantity = 'V2',
+   }
+   local dynVec = DataStruct.DynVector { numComponents = 1 }
+   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   local tm, lv = dynVec:lastData()
+   io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
+   return math.sqrt(lv[1])
+   
+end
+
 
 function test_solve2d_p1()
   print("--- Testing convergence of 2D solver with p=1 ---")
@@ -881,6 +1038,28 @@ function test_periodic3d_p2()
   print()
 end
 
+function test_periodic3d_metric_p1()
+  print("--- Testing convergence of 3D non-Cartesian periodic solver with p=1 ---")
+  err1 = test_solve3d_periodic_metric(32, 32, 4, 1)
+  err2 = test_solve3d_periodic_metric(64, 64, 4, 1)
+  err3 = test_solve3d_periodic_metric(128, 128, 4, 1)
+  print("Order:", err1/err2/4.0, err2/err3/4.0)
+  assert_close(1.0, err1/err2/4.0, .01)
+  assert_close(1.0, err2/err3/4.0, .01)
+  print()
+end
+
+function test_periodic3d_metric_p2()
+  print("--- Testing convergence of 3D non-Cartesian periodic solver with p=1 ---")
+  err1 = test_solve3d_periodic_metric(32, 32, 4, 2)
+  err2 = test_solve3d_periodic_metric(64, 64, 4, 2)
+  err3 = test_solve3d_periodic_metric(128, 128, 4, 2)
+  print("Order:", err1/err2/4.0, err2/err3/4.0)
+  assert_close(2.0, err1/err2/4.0, .01)
+  assert_close(2.0, err2/err3/4.0, .01)
+  print()
+end
+
 -- run tests
 local t1 = os.clock()
 --test_init_nonperiodic()
@@ -899,6 +1078,7 @@ test_smooth_periodic2d_p1()
 test_smooth_periodic2d_p2()
 test_periodic3d_p1()
 test_periodic3d_p2()
+test_periodic3d_metric_p1()
 local t2 = os.clock()
 
 print()
