@@ -5,18 +5,18 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
-minCdim_Ser : 1$
-maxCdim_Ser : 2$
-minVdim_Ser : 1$    /* but see v loop below. */
-maxVdim_Ser : 3$
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 3$
+maxCdim_Ser : 3$
+minVdim_Ser : 2$    /* but see v loop below. */
+maxVdim_Ser : 2$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
+maxPolyOrder_Max : 1$
 minCdim_Max : 1$
-maxCdim_Max : 2$
+maxCdim_Max : 1$
 minVdim_Max : 1$    /* but see v loop below. */
-maxVdim_Max : 3$
+maxVdim_Max : 1$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -27,8 +27,8 @@ minVdim      : [minVdim_Ser, minVdim_Max]$
 maxCdim      : [maxCdim_Ser, maxCdim_Max]$
 maxVdim      : [maxVdim_Ser, maxVdim_Max]$
 
-/*
-for bInd : 1 thru length(bName) do (
+
+/*for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for v : c thru maxVdim[bInd] do (
       disp(printf(false,sconcat("Creating SelfPrimMoments ~ax~av", bName[bInd]),c,v)),
@@ -50,8 +50,8 @@ for bInd : 1 thru length(bName) do (
       close(fh)
     )
   )
-);
-*/
+);*/
+
 
 /* For gyrokinetic 2x2v and 3x2v effectively solve a linear system
    equivalent to the Vlasov 2x1v and 3x1v, respectively. For now assume
@@ -72,11 +72,9 @@ for bInd : 1 thru length(bName) do (
     funcName : sconcat("SelfPrimMoments", c, "x", v, "v", bName[bInd]),
     calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
   
-/*
     v : 2,
     funcName : sconcat("BoundaryIntegral", c, "x", v, "v", bName[bInd]),
     calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]), 
-*/
   
     close(fh)
   )
