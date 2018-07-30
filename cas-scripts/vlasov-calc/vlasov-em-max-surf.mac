@@ -1,8 +1,8 @@
 load("vlasov-calc/vlasov-em-glf-surf")$
 load(stringproc)$
 
-for c : 3 thru 3 do (
-  for v : c thru 3 do (
+for c : 1 thru 1 do (
+  for v : c thru 2 do (
    fname : sconcat("~/max-out/VlasovSurfElcMagMax", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
    funcName : sconcat("VlasovSurfElcMag", c, "x", v, "v", "Max"),
