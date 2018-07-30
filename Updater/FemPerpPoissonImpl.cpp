@@ -583,6 +583,8 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
 
   DMSG("Finished initializing stiffness matrices");
 
+  stiffMat.makeCompressed();
+
 // compute step: reorder and factorize stiffMat to prepare for solve 
   if(!analyzed_) {
     // only do analyzePattern once, assuming structure of matrix doesn't change
