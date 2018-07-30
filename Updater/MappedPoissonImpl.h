@@ -23,6 +23,8 @@ double xbcl_, double ybcu_, double ybcl_);
   void wrap_phisolve(MapPoisson *d);
   //metric wrap from lua to c
   void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, double *gl));
+  //mapcpp wrap from lua to c
+  void setMapcpp_MapPoisson(MapPoisson *d, void (*mapcpp)(double xc, double yc, double *myxp));
   //wrap source and solution solvers
   void wrap_getSrcvalatIJ(MapPoisson *d, int i, int j, double sitrij);
   double wrap_getSolvalatIJ(MapPoisson *d, int i, int j);
@@ -51,6 +53,10 @@ double xbcl_, double ybcu_, double ybcl_);
     void setMetricFuncPointer(void (*gfunc)(double *xcl, double *gl)) {
       this->gfunc = gfunc;
     }
+    //set mapcpp function pointer
+    void setMapcpp(void (*mapcpp)(double xc, double yc, double *myxp)) {
+      this->mapcpp = mapcpp;
+    }
     //source updater
     void getSrcvalatIJ(int i, int j, double sitrij); //might not be a double
     //solution updater
@@ -75,8 +81,10 @@ double xbcl_, double ybcu_, double ybcl_);
     double cimjm(double xc, double yc, int i, int j);
     //metric calculator
     void (*gfunc)(double *, double *);
+    //mapc2p for special metric
+    void (*mapcpp)(double, double, double *);
     //convert between gfunc output to eigen vector
-    Eigen::Vector3d gij(double xc, double yc);
+    Eigen::Vector3d gij(double xc, double yc, int i, int j);
     //metric inverter
     Eigen::Vector3d ginv(Eigen::Vector3d gmat);
     //metric determinant

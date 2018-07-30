@@ -23,6 +23,8 @@ int xbctypel_, int ybctypel_, int xbctypeu_, int ybctypeu_, double xbcu_,
 double xbcl_, double ybcu_, double ybcl_);
   //metric function
   void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, double *g));
+  //mapc2p for C++ side
+  void setMapcpp_MapPoisson(MapPoisson *d, void (*mapcpp)(double xc, double yc, double *myxp));
   //solver bits
   void wrap_factorize(MapPoisson *d);
   void wrap_phisolve(MapPoisson *d);
@@ -49,6 +51,15 @@ function MappedPoisson:init(tbl)
       myXc[1], myXc[2] = xc[1], xc[2]
       self._grid:calcMetric(myXc, myG)
       g[1], g[2], g[3] = myG[1], myG[2], myG[3]
+   end
+
+   --C++ callable mapc2p function for ruled surface metric calc
+   local myxc = Lin.Vec(2)
+   local function mapcpp(xc, yc, myxp)
+     myxc[1], myxc[2] = xc, yc
+     local xp, yp, zp = self._grid:mapc2p(myxc) --works
+     --local xp, yp = self._grid:mapc2p(myxc)
+     myxp[1], myxp[2], myxp[3] = xp, yp, zp
    end
 
    --global idx/y so that accessible to solver
@@ -137,6 +148,7 @@ function MappedPoisson:init(tbl)
 				     xbcl, ybcu, ybcl);
    --set up metric function for c
    ffi.C.setMetricFuncPointer_MapPoisson(self.point, gfunc)
+   ffi.C.setMapcpp_MapPoisson(self.point, mapcpp)
    --set up factorization wth pointer
    ffi.C.wrap_factorize(self.point)
 end
