@@ -63,6 +63,7 @@ function NonUniformRectCart:init(tbl)
    
    -- compute nodal coordinates
    if tbl.mappings then
+      self.mappings = tbl.mappings
       -- loop over mapping functions, using them to set nodal coordinates
       for d, mapFunc in next, tbl.mappings, nil do
 	 if d > ndim then break end -- break out if too many functions provided
@@ -99,6 +100,13 @@ function NonUniformRectCart:cellVolume()
       v = v*self:dx(d)
    end
    return v
+end
+function NonUniformRectCart:getMappings(dir)
+   if dir == nil then
+      return self.mappings
+   else 
+      return self.mappings[dir]
+   end
 end
 
 return NonUniformRectCart
