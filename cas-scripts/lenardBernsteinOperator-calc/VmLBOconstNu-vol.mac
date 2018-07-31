@@ -13,6 +13,9 @@ vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
 varsV : [vx, vy, vz]$
 
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
 calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   printf(fh, "#include <VmLBOModDecl.h> ~%"),
   for polyOrder : 1 thru pMax do (
@@ -48,8 +51,8 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       for dir : 1 thru vdim do (
         cv : varsV[dir],
         incr : incr+(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
-              +rdv2[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
-              +rdvSq4[dir-1]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e)
+	       +rdv2[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
+               +rdvSq4[dir-1]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e)
       ),
       incr
     ),
@@ -80,14 +83,26 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCIncrExprsCollect1(out, incr, clst),
     printf(fh, "~%"),
 
+    /* Calculate nuVtSq at cell center for CFL condition */
+    nuVtSqP_c : calcInnerProdList(varsP,1,bP,nuVtSq_e),
+    nvlst : doMakeExprLst(nuVtSqP_c, nuVtSqP),
+    nuVtSqP_e : doExpandLst(nvlst, bP),
+
+    printf(fh, "  double nuVtSqP[~a]; ~%", 0, length(bP)),
+    writeCExprsCollect1(nuVtSqP, nuVtSqP_c, []),
+
+    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+    nuVtSqMid : float(expand(fullratsimp(subst(zr,nuVtSqP_e)))),
+    printf(fh, "  const double nuVtSqMid = ~a; ~%", nuVtSqMid),
+    
     if vdim = 1 then (
-      printf(fh, "return nu*rdvSq4[0]*0.5; ~%")
+      printf(fh, "return nuVtSqMid*rdvSq4[0]; ~%")
     ),
     if vdim = 2 then (
-      printf(fh, "return nu*(rdvSq4[0]+rdvSq4[1])*0.5; ~%")
+      printf(fh, "return nuVtSqMid*(rdvSq4[0]+rdvSq4[1]); ~%")
     ),
     if vdim = 3 then (
-      printf(fh, "return nu*(rdvSq4[0]+rdvSq4[1]+rdvSq4[2])*0.5; ~%")
+      printf(fh, "return nuVtSqMid*(rdvSq4[0]+rdvSq4[1]+rdvSq4[2]); ~%")
     ),
     printf(fh, "~%"),
   
