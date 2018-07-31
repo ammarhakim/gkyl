@@ -112,25 +112,6 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- read in information about each species
-   local species = {}
-   for nm, val in pairs(tbl) do
-      if Species.SpeciesBase.is(val) then
-	 val:fullInit(tbl) -- initialize species
-	 species[nm] = val
-	 species[nm]:setName(nm)
-	 species[nm]:setIoMethod(ioMethod)
-      end
-   end
-
-   -- setup each species
-   for _, s in pairs(species) do
-      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts,
-		   periodicDirs, tbl.coordinateMap)
-      s:setConfBasis(confBasis)
-      s:createBasis(basisNm, polyOrder)
-   end
-
    -- configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
@@ -144,7 +125,7 @@ local function buildApplication(self, tbl)
       GridConstructor = Grid.NonUniformRectCart
    end
    -- setup configuration space grid
-   local grid = GridConstructor {
+   local confGrid = GridConstructor {
       lower = tbl.lower,
       upper = tbl.upper,
       cells = tbl.cells,
@@ -153,9 +134,25 @@ local function buildApplication(self, tbl)
       mappings = tbl.coordinateMap,
    }
 
-   -- set conf grid for each species
+   -- read in information about each species
+   local species = {}
+   for nm, val in pairs(tbl) do
+      if Species.SpeciesBase.is(val) then
+	 val:fullInit(tbl) -- initialize species
+	 species[nm] = val
+	 species[nm]:setName(nm)
+	 species[nm]:setIoMethod(ioMethod)
+      end
+   end
+
+   -- set up each species
    for _, s in pairs(species) do
-      s:setConfGrid(grid)
+      -- set up conf grid and basis
+      s:setConfGrid(confGrid)
+      s:setConfBasis(confBasis)
+      -- set up phase grid and basis
+      s:createGrid(confGrid)
+      s:createBasis(basisNm, polyOrder)
       s:alloc(stepperNumFields[timeStepperNm])
    end
 
@@ -172,7 +169,7 @@ local function buildApplication(self, tbl)
       fld:fullInit(tbl) -- complete initialization
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
-      fld:setGrid(grid)
+      fld:setGrid(confGrid)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
 	 if fld.isElliptic then
