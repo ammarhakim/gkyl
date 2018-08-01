@@ -145,7 +145,7 @@ end
 
 -- Computes contravariant metric tensor g^ij = (g_ij)^-1
 function MappedCart:calcContraMetric(xc, gContraOut)
-   local ndim = self.ndim()
+   local ndim = self:ndim()
    local g = {}
    self:calcMetric(xc, g)
    if ndim == 1 then 
