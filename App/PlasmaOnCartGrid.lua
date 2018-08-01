@@ -123,6 +123,8 @@ local function buildApplication(self, tbl)
    local GridConstructor = Grid.RectCart
    if tbl.coordinateMap then
       GridConstructor = Grid.NonUniformRectCart
+   elseif tbl.mapc2p then 
+      GridConstructor = Grid.MappedCart
    end
    -- setup configuration space grid
    local confGrid = GridConstructor {
@@ -132,7 +134,9 @@ local function buildApplication(self, tbl)
       periodicDirs = periodicDirs,
       decomposition = decomp,
       mappings = tbl.coordinateMap,
+      mapc2p = tbl.mapc2p,
    }
+   confGrid:write("grid.bp")
 
    -- read in information about each species
    local species = {}

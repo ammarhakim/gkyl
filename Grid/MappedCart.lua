@@ -62,7 +62,7 @@ function MappedCart:init(tbl)
    self._d1, self._d2, self._d3 = Lin.Vec(self:ndim()), Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
 end
 
-function MappedCart:id() return "mapped" end
+--function MappedCart:id() return "mapped" end
 function MappedCart:rdim() return self._rdim end
 
 function MappedCart:mapc2p(xc)
@@ -145,7 +145,7 @@ end
 
 -- Computes contravariant metric tensor g^ij = (g_ij)^-1
 function MappedCart:calcContraMetric(xc, gContraOut)
-   local ndim = self.ndim()
+   local ndim = self:ndim()
    local g = {}
    self:calcMetric(xc, g)
    if ndim == 1 then 
@@ -178,10 +178,10 @@ function MappedCart:_mapc2p_vec(xc, xp)
    end
 end
 
-function MappedCart:cellCenter(xp)
-   self.super.cellCenter(self, self._xc)
-   self:_mapc2p_vec(self._xc, xp)
-end
+--function MappedCart:cellCenter(xp)
+--   self.super.cellCenter(self, self._xc)
+--   self:_mapc2p_vec(self._xc, xp)
+--end
 
 function MappedCart:write(fName)
    -- create a grid over nodes and a field to store nodal coordinates
