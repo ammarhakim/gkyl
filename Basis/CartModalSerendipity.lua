@@ -89,7 +89,10 @@ function CartModalSerendipity:init(tbl)
       _m = require "Basis._data.ModalSerendipBasisFlipSign6d"
    end
 
-   self._flipSign = _m[self._polyOrder] -- function to flip sign   
+   self._flipSign = function(dir, f, out) out[1] = f[1] end
+   if self._numBasis > 1 then
+      self._flipSign = _m[self._polyOrder] -- function to flip sign
+   end
 end
 
 function CartModalSerendipity:id() return "serendipity" end
