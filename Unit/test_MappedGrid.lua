@@ -96,9 +96,83 @@ function test_2()
    assert_equal(3, grid:rdim(), "Checking rdim")
 end
 
+function test_salpha()
+
+   local R0 = 0.5
+   local r0 = 0.1*R0 -- minor radius of center of flux tube
+   local R = R0 + r0 -- major radius of center of flux tube
+   local dr = 0.01*R0
+   local q0 = 2
+   local shat = 1
+   local grid = Grid.MappedCart {
+      lower = {r0 - dr/2, -dr/2, -math.pi}, -- configuration space lower left
+      upper = {r0 + dr/2,  dr/2, math.pi}, -- configuration space upper right
+      cells = {8, 8, 8}, -- configuration space cells
+         mapc2p = function(xc)
+         local x, y, z = xc[1], xc[2], xc[3]
+         local q = q0*(1+(x-r0)*shat/r0)
+         local X = (R0 + x*math.cos(z))*math.cos(q*z - q0/r0*y)
+         local Y = (R0 + x*math.cos(z))*math.sin(q*z - q0/r0*y)
+         local Z = x*math.sin(z)
+         return X, Y, Z
+      end,
+   }
+   local g = Lin.Vec(grid:numMetricElems())
+   local gContra = Lin.Vec(grid:numMetricElems())
+   -- compute metric quantities
+
+   xc_test = {1.0*r0, 0.0, math.pi/5}
+
+   grid:calcMetric(xc_test, g)
+
+   local g_xx = function(xc) 
+      local x, y, z = xc[1], xc[2], xc[3]
+      return 1 + z^2*(R0 + x*math.cos(z))^2*q0^2/r0^2*shat^2
+   end
+
+   assert_equal(g_xx(xc_test), g[1], "Checking metric g_xx")
+
+   local g_xy = function(xc)
+      local x, y, z = xc[1], xc[2], xc[3]
+      return -q0^2/r0^2*z*(R0 + x*math.cos(z))^2*shat
+   end
+
+   assert_equal(g_xy(xc_test), g[2], "Checking metric g_xy")
+
+   local g_yy = function(xc)
+      local x, y, z = xc[1], xc[2], xc[3]
+      return q0^2/r0^2*(R0 + x*math.cos(z))^2
+   end
+
+   assert_equal(g_yy(xc_test), g[4], "Checking metric g_yy")
+      
+   local g_xz = function(xc)
+      local x, y, z = xc[1], xc[2], xc[3]
+      return z*q0^2/r0*(R0 + x*math.cos(z))^2*shat*(1+(x-r0)*shat/r0)
+   end
+
+   assert_equal(g_xz(xc_test), g[3], "Checking metric g_xz")
+      
+   local g_yz = function(xc)
+      local x, y, z = xc[1], xc[2], xc[3]
+      return -q0^2/r0*(R0 + x*math.cos(z))^2*(1+(x-r0)*shat/r0)
+   end
+
+   assert_equal(g_yz(xc_test), g[5], "Checking metric g_yz")
+      
+   local g_zz = function(xc)
+      local x, y, z = xc[1], xc[2], xc[3]
+      return (R0 + x*math.cos(z))^2*q0^2*(1+(x-r0)*shat/r0)^2+x^2
+   end
+
+   assert_equal(g_zz(xc_test), g[6], "Checking metric g_zz")
+
+end
+
 -- Run tests
 test_1()
 test_2()
+test_salpha()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
