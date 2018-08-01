@@ -4,6 +4,7 @@
 -- Plasma ------------------------------------------------------------------------
 local Plasma = require "App.PlasmaOnCartGrid"
 local Constants = require "Lib.Constants"
+local math = require("sci.math").generic
 
 -- physical parameters
 eV = Constants.ELEMENTARY_CHARGE
@@ -46,6 +47,12 @@ plasmaApp = Plasma.App {
    lower = {r0 - dr/2, -dr/2}, -- configuration space lower left
    upper = {r0 + dr/2,  dr/2}, -- configuration space upper right
    cells = {1, 8}, -- configuration space cells
+   mapc2p = function(xc)
+      local r, y = xc[1], xc[2]
+      local X = r+R0
+      local Y = y
+      return X, Y
+   end,
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
