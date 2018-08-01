@@ -118,6 +118,8 @@ function MaxwellField:fullInit(appTbl)
       self.calcIntEMQuantFlag = true
    end
 
+   self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
+
    self._isFirst = true
 end
 
@@ -130,13 +132,18 @@ function MaxwellField:setBasis(basis) self.basis = basis end
 function MaxwellField:setGrid(grid) self.grid = grid end
 
 function MaxwellField:alloc(nRkDup)
+   local nGhost = 2
+   if self.basis:numBasis() > 1 then
+      nGhost = 1
+   end
+   
    -- allocate fields needed in RK update
    self.em = {}
    for i = 1, nRkDup do
       self.em[i] = DataStruct.Field {
 	 onGrid = self.grid,
 	 numComponents = 8*self.basis:numBasis(),
-	 ghost = {1, 1}
+	 ghost = {nGhost, nGhost}
       }
    end
       
@@ -153,15 +160,31 @@ function MaxwellField:createSolver()
       lightSpeed = self.lightSpeed,
       elcErrorSpeedFactor = self.ce,
       mgnErrorSpeedFactor = self.cb,
-      basis = self.basis,
+      basis = self.basis:numBasis() > 1 and self.basis or nil,
    }
-   
-   self.fieldSlvr = Updater.HyperDisCont {
-      onGrid = self.grid,
-      basis = self.basis,
-      cfl = self.cfl,
-      equation = maxwellEqn
-   }
+
+   self.fieldSlvr, self.fieldHyperSlvr = nil, {}
+   if self.basis:numBasis() > 1 then
+      -- using DG scheme
+      self.fieldSlvr = Updater.HyperDisCont {
+	 onGrid = self.grid,
+	 basis = self.basis,
+	 cfl = self.cfl,
+	 equation = maxwellEqn
+      }
+   else
+      -- using FV scheme
+      local ndim = self.grid:ndim()
+      for d = 1, ndim do
+	 self.fieldHyperSlvr[d] = Updater.WavePropagation {
+	    onGrid = self.grid,
+	    equation = maxwellEqn,
+	    limiter = self.limiter,
+	    cfl = self.cfl,
+	    updateDirections = {d}
+	 }
+      end
+   end
 
    self.emEnergyCalc = Updater.CartFieldIntegratedQuantCalc {
       onGrid = self.grid,
@@ -405,6 +428,17 @@ function MaxwellField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
    end
 end
 
+function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   if self.evolve then
+      status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+      self:applyBc(tCurr, dt, fOut)
+   else
+      fOut:copy(fIn)
+   end
+   return status, dtSuggested   
+end
+
 function MaxwellField:applyBc(tCurr, dt, emIn)
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
@@ -415,7 +449,15 @@ function MaxwellField:applyBc(tCurr, dt, emIn)
 end
    
 function MaxwellField:totalSolverTime()
-   return self.fieldSlvr.totalTime + self.tmCurrentAccum
+   local ftm = 0.0
+   if self.fieldSlvr then
+      ftm = self.fieldSlvr.totalTime
+   else
+      for d = 1, self.grid:ndim() do
+	 ftm = ftm+self.fieldHyperSlvr[d].totalTime
+      end
+   end
+   return ftm + self.tmCurrentAccum
 end
 
 function MaxwellField:totalBcTime()
