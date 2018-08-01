@@ -106,7 +106,7 @@ function MappedCart:_calcMetric_3d(xc, g)
    g[3] = d1[1]*d1[3] + d2[1]*d2[3] + d3[1]*d3[3]  -- g_13 = g_31
    g[4] = d1[2]^2 + d2[2]^2 + d3[2]^2 -- g_22
    g[5] = d1[2]*d1[3] + d2[2]*d2[3] + d3[2]*d3[3]  -- g_23 = g_32
-   g[6] = d1[3]^2 + d2[2]^2 + d3[3]^2 -- g_33
+   g[6] = d1[3]^2 + d2[3]^2 + d3[3]^2 -- g_33
 end
 
 -- Computes (covariant) metric tensor g_ij
