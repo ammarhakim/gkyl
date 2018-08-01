@@ -457,6 +457,7 @@ local function buildApplication(self, tbl)
 	 local vars = field:rkStepperFields()
 	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
 	 local myStatus, myDtSuggested = field:updateInDirection(dir, tCurr, dt, inp, out)
+	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
@@ -654,5 +655,5 @@ return {
    Gyrokinetic = {App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
    IncompEuler = {App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField},
    VlasovMaxwell = {App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField},
-   Moments = {App = App, Species = Species.MomentSpecies } 
+   Moments = {App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField } 
 }

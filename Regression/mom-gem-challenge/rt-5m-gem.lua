@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Moments = require("App.PlasmaOnCartGrid").Moments
 local Euler = require "Eq.Euler"
 
 -- physical parameters
@@ -29,7 +29,7 @@ psi0 = pert*B0
 Lx = 25.6
 Ly = 12.8
 
-momentApp = Plasma.App {
+momentApp = Moments.App {
    logToFile = true,
 
    tEnd = 40.0,
@@ -47,7 +47,7 @@ momentApp = Plasma.App {
    periodicDirs = {1}, -- periodic directions
 
    -- electrons
-   elc = Plasma.Moments.Species {
+   elc = Moments.Species {
       charge = elcCharge, mass = elcMass,
 
       equation = Euler { gasGamma = gasGamma },
@@ -69,6 +69,16 @@ momentApp = Plasma.App {
       end,
       evolve = true, -- evolve species?
    },
+
+   field = Moments.Field {
+      epsilon0 = 1.0, mu0 = 1.0,
+      init = function (t, xn)
+	 local alpha = perturbation
+	 local k = knumber
+	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+      end,
+      evolve = true, -- evolve field?
+   }
 
 }
 -- run application
