@@ -178,10 +178,11 @@ function MappedCart:_mapc2p_vec(xc, xp)
    end
 end
 
---function MappedCart:cellCenter(xp)
---   self.super.cellCenter(self, self._xc)
---   self:_mapc2p_vec(self._xc, xp)
---end
+-- get cell center in physical coordinates
+function MappedCart:cellCenterPhys(xp)
+   self.super.cellCenter(self, self._xc)
+   self:_mapc2p_vec(self._xc, xp)
+end
 
 function MappedCart:write(fName)
    -- create a grid over nodes and a field to store nodal coordinates
