@@ -45,7 +45,7 @@ maxwellApp = Moments.App {
 	 local Bx = E0/c*math.cos(phi)/math.sqrt(2)
 	 local By = -E0/c*math.cos(phi)/math.sqrt(2)
 	 local Bz = 0.0
-	 return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0	 
+	 return Ex, Ey, Ez, Bx, By, Bz
       end,
 
       evolve = true, -- evolve species?

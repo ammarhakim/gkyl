@@ -22,9 +22,11 @@ local MomentSpecies = Proto(FluidSpecies)
 -- add constants to object indicate various supported boundary conditions
 local SP_BC_OPEN = 1
 local SP_BC_COPY = SP_BC_OPEN
+local SP_BC_WALL = 4
 
 MomentSpecies.bcOpen = SP_BC_OPEN -- open BCs
 MomentSpecies.bcCopy = SP_BC_COPY -- copy BCs
+MomentSpecies.bcWall = SP_BC_WALL -- wall BCs
 
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization
@@ -61,10 +63,13 @@ end
 
 function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcCopyFunc(...) return self:bcCopyFunc(...) end
-   
+
    if bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, { bcCopyFunc }))
+   else
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, edge, bcType ))
    end
 end
 
