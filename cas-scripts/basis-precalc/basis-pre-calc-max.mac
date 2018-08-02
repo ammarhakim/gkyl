@@ -1,11 +1,13 @@
 load("basis-precalc/basis-pre-calc");
 
-for c : 1 thru 2 do (
-  for v : c thru 3 do (
-   fname : sconcat("~/max-out/basisMax", c, "x", v, "v", ".lisp"),
-   writeBasisToFile(c, v, 4, makeMaxOrderBasis, fname)
-  )
-)$
+writeBasisToFile(1, 1, 7, makeMaxOrderBasis, "~/max-out/basisMax1x1v.lisp")$
+writeBasisToFile(1, 2, 6, makeMaxOrderBasis, "~/max-out/basisMax1x2v.lisp")$
+
+writeBasisToFile(1, 3, 5, makeMaxOrderBasis, "~/max-out/basisMax1x3v.lisp")$
+writeBasisToFile(2, 2, 5, makeMaxOrderBasis, "~/max-out/basisMax2x2v.lisp")$
+
+writeBasisToFile(2, 3, 4, makeMaxOrderBasis, "~/max-out/basisMax2x3v.lisp")$
 
 writeBasisToFile(3, 2, 4, makeMaxOrderBasis, "~/max-out/basisMax3x2v.lisp")$
-writeBasisToFile(3, 3, 4, makeMaxOrderBasis, "~/max-out/basisMax3x3v.lisp")$
+
+writeBasisToFile(3, 3, 3, makeMaxOrderBasis, "~/max-out/basisMax3x3v.lisp")$
