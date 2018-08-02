@@ -234,6 +234,8 @@ function GkField:createSolver(species, funcField)
      bcRight = self.phiBcRight,
      bcBottom = self.phiBcBottom,
      bcTop = self.phiBcTop,
+     bcBack = self.phiBcBack,
+     bcFront = self.phiBcFront,
      periodicDirs = self.periodicDirs,
      zContinuous = not self.discontinuousPhi,
      constStiff = self.linearizedPolarization,
