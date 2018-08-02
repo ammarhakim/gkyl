@@ -13,11 +13,13 @@ local FieldBase = Proto()
 function FieldBase:init(tbl)
    self.isElliptic = false
 end
+function FieldBase:readRestart() end
 
 local FuncFieldBase = Proto()
 function FuncFieldBase:init(tbl)
    self.isElliptic = false
 end
+function FuncFieldBase:readRestart() end
 
 -- NoField ---------------------------------------------------------------------
 --
