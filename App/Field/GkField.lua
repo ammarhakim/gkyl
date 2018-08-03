@@ -234,6 +234,8 @@ function GkField:createSolver(species, funcField)
      bcRight = self.phiBcRight,
      bcBottom = self.phiBcBottom,
      bcTop = self.phiBcTop,
+     bcBack = self.phiBcBack,
+     bcFront = self.phiBcFront,
      periodicDirs = self.periodicDirs,
      zContinuous = not self.discontinuousPhi,
      constStiff = self.linearizedPolarization,
@@ -614,7 +616,7 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- bmagInv ~ 1/B
+   -- bmagInv = 1/B
    self.geo.bmagInv = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
@@ -622,53 +624,13 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- bhat.grad z
+   -- bhat.grad z = 1/sqrt(g_zz)
    self.geo.gradpar = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
-
-   -- functions for magnetic drifts 
-   -- bdriftX = 1/B*curl(bhat).grad x
-   self.geo.bdriftX = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   -- bdriftY = 1/B*curl(bhat).grad y
-   self.geo.bdriftY = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
- 
-   -- functions for laplacian
-   -- gxx = |grad x|**2
-   self.geo.gxx = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   -- gxy = grad x . grad y
-   self.geo.gxy = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   -- gyy = |grad y|**2
-   self.geo.gyy = DataStruct.Field {
-      onGrid = self.grid,
-      numComponents = self.basis:numBasis(),
-      ghost = {1, 1},
-      syncPeriodicDirs = false
-   }
-   
 
    -- jacobian of coordinate transformation
    self.geo.jacobGeo = DataStruct.Field {
@@ -678,6 +640,52 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
+   -- functions for magnetic drifts 
+   -- geoX = g_xz / ( J B sqrt(g_zz) )
+   self.geo.geoX = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- geoY = g_yz / ( J B sqrt(g_zz) )
+   self.geo.geoY = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- geoZ = sqrt(g_zz) / ( J B )
+   self.geo.geoZ = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+ 
+   -- functions for laplacian
+   -- g^xx = |grad x|**2
+   self.geo.gxx = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- g^xy = grad x . grad y
+   self.geo.gxy = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   -- g^yy = |grad y|**2
+   self.geo.gyy = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   
    -- wall potential for sheath BCs
    self.geo.phiWall = DataStruct.Field {
       onGrid = self.grid,
@@ -695,89 +703,109 @@ end
 
 function GkGeometry:createSolver()
 
-   if self.salpha then
-      local salpha = self.salpha
-      self.bmagFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]; x = assert(salpha.r0, "must set salpha.r0 for 1D (local limit) s-alpha cases") 
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return salpha.B0*salpha.R0/(salpha.R0 + x*math.cos(z))
+   -- get needed metric functions from grid or defaults
+   if self.ndim == 1 then
+      self.g_zzFunc = function (t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         return g[1]
       end
-      self.bmagInvFunc = function (t, xn)
-         return 1/self.bmagFunc(t, xn)
+      self.g_xzFunc = function (t, xn)
+         return 0
       end
-      self.jacobGeoFunc = function (t, xn)
-         if self.ndim == 2 then return 1 else return salpha.q*salpha.R0 end
+      self.g_yzFunc = function (t, xn)
+         return 0
       end
-      self.bdriftXFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return -math.sin(z)/(salpha.B0*salpha.R0)
-      end
-      self.bdriftYFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return -(math.cos(z) + salpha.shat*z*math.sin(z))/(salpha.B0*salpha.R0)
-      end
-      self.gradparFunc = function (t, xn)
-         return 1/(salpha.q*salpha.R0)
-      end
-      self.gxxFunc = function (t, xn)
+      self.gxx_Func = function (t, xn)
          return 1
       end
-      self.gxyFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return salpha.shat*z
+      self.gxy_Func = function (t, xn)
+         return 0
       end
-      self.gyyFunc = function (t, xn)
-         local x, y, z
-         if self.ndim == 1 then z = xn[1]
-         elseif self.ndim == 2 then x, y, z = xn[1], xn[2], 0
-         else x, y, z = xn[1], xn[2], xn[3]
-         end
-         return 1 + (salpha.shat*z)^2
+      self.gyy_Func = function (t, xn)
+         return 1
       end
-   else
-      -- calculate 1/B function
-      self.bmagInvFunc = function (t, xn)
-         return 1/self.bmagFunc(t,xn)
+      self.jacobGeoFunc = function (t, xn)
+         return self.grid:calcJacobian(xn)
       end
-      -- calculate magnetic drift functions
-      if self.ndim > 1 then
-         local function bgrad(xn)
-            local function bmagUnpack(...)
-               local xn = {...}
-               return self.bmagFunc(0, xn)
-            end
-            local deriv = diff.derivativef(bmagUnpack, #xn)
-            xntable = {}
-            for i = 1, #xn do
-              xntable[i] = xn[i]
-            end
-            local f, dx, dy, dz = deriv(unpack(xntable))
-            return dx, dy, dz
-         end
-         self.bdriftXFunc = function (t, xn)
-            local bgradX, bgradY, bgradZ = bgrad(xn)
-            return -bgradY/self.bmagFunc(t,xn)^2
-         end
-         self.bdriftYFunc = function (t, xn)
-            local bgradX, bgradY, bgradZ = bgrad(xn)
-            return bgradX/self.bmagFunc(t,xn)^2
-         end
+   elseif self.ndim == 2 then
+      self.g_zzFunc = function (t, xn)
+         return 1
       end
+      self.g_xzFunc = function (t, xn)
+         return 0
+      end
+      self.g_yzFunc = function (t, xn)
+         return 0
+      end
+      self.gxx_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[1]
+      end
+      self.gxy_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[2]
+      end
+      self.gyy_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[3]
+      end
+      self.jacobGeoFunc = function (t, xn)
+         return self.grid:calcJacobian(xn)
+      end
+   elseif self.ndim == 3 then
+      self.g_zzFunc = function (t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         return g[6]
+      end
+      self.g_xzFunc = function (t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         return g[3]
+      end
+      self.g_yzFunc = function (t, xn)
+         local g = {}
+         self.grid:calcMetric(xn, g)
+         return g[5]
+      end
+      self.gxx_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[1]
+      end
+      self.gxy_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[2]
+      end
+      self.gyy_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[4]
+      end
+      self.jacobGeoFunc = function (t, xn)
+         return self.grid:calcJacobian(xn)
+      end
+   end
+
+   self.bmagInvFunc = function (t, xn)
+      return 1.0/self.bmagFunc(t,xn)
+   end
+   self.gradparFunc = function (t, xn)
+      return 1.0/math.sqrt(self.g_zzFunc(t,xn))
+   end
+   self.geoXFunc = function (t, xn)
+      return self.g_xzFunc(t,xn)/(self.bmagFunc(t,xn)*self.jacobGeoFunc(t,xn)*math.sqrt(self.g_zzFunc(t,xn)))
+   end
+   self.geoYFunc = function (t, xn)
+      return self.g_yzFunc(t,xn)/(self.bmagFunc(t,xn)*self.jacobGeoFunc(t,xn)*math.sqrt(self.g_zzFunc(t,xn)))
+   end
+   self.geoZFunc = function (t, xn)
+      return math.sqrt(self.g_zzFunc(t,xn))/(self.bmagFunc(t,xn)*self.jacobGeoFunc(t,xn))
    end
 
    -- projection updaters
@@ -793,97 +821,54 @@ function GkGeometry:createSolver()
       projectOnGhosts = true,
       evaluate = self.bmagInvFunc
    }
-   if self.gradparFunc then 
-      self.setGradpar = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = self.gradparFunc
-      }
-   else
-      self.setGradpar = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
-      }
-   end
-   if self.jacobGeoFunc then 
-      self.setJacobGeo = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = self.jacobGeoFunc
-      }
-   else 
-      self.setJacobGeo = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
-      }
-   end
-   if self.gxxFunc then 
-      self.setGxx = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = self.gxxFunc
-      }
-   else 
-      self.setGxx = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
-      }
-   end
-   if self.gxyFunc then 
-      self.setGxy = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = self.gxyFunc
-      }
-   else 
-      self.setGxy = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = function(t, xn) return 0 end
-      }
-   end
-   if self.gyyFunc then 
-      self.setGyy = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = self.gyyFunc
-      }
-   else 
-      self.setGyy = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
-      }
-   end
-   if self.bdriftXFunc then 
-      self.setBdriftX = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = self.bdriftXFunc
-      }
-   end
-   if self.bdriftYFunc then
-      self.setBdriftY = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         projectOnGhosts = true,
-         evaluate = self.bdriftYFunc
-      }
-   end
+   self.setGradpar = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.gradparFunc
+   }
+   self.setJacobGeo = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.jacobGeoFunc
+   }
+   self.setGeoX = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.geoXFunc
+   }
+   self.setGeoY = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.geoYFunc
+   }
+   self.setGeoZ = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.geoZFunc
+   }
+   self.setGxx = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.gxx_Func
+   }
+   self.setGxy = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.gxy_Func
+   }
+   self.setGyy = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.gyy_Func
+   }
    if self.phiWallFunc then 
       self.setPhiWall = Updater.ProjectOnBasis {
          onGrid = self.grid,
@@ -917,17 +902,14 @@ end
 function GkGeometry:initField()
    self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
    self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
-   if self.setGradpar then self.setGradpar:advance(0.0, 0.0, {}, {self.geo.gradpar})
-   else self.geo.gradpar:clear(0.0) end
-   if self.setJacobGeo then self.setJacobGeo:advance(0.0, 0.0, {}, {self.geo.jacobGeo})
-   else self.geo.jacobGeo:clear(0.0) end
-   if self.setGxx then self.setGxx:advance(0.0, 0.0, {}, {self.geo.gxx}) end
-   if self.setGxy then self.setGxy:advance(0.0, 0.0, {}, {self.geo.gxy}) end
-   if self.setGyy then self.setGyy:advance(0.0, 0.0, {}, {self.geo.gyy}) end
-   if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
-   else self.geo.bdriftX:clear(0.0) end
-   if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})
-   else self.geo.bdriftY:clear(0.0) end
+   self.setGradpar:advance(0.0, 0.0, {}, {self.geo.gradpar})
+   self.setJacobGeo:advance(0.0, 0.0, {}, {self.geo.jacobGeo})
+   self.setGxx:advance(0.0, 0.0, {}, {self.geo.gxx})
+   self.setGxy:advance(0.0, 0.0, {}, {self.geo.gxy})
+   self.setGyy:advance(0.0, 0.0, {}, {self.geo.gyy})
+   self.setGeoX:advance(0.0, 0.0, {}, {self.geo.geoX})
+   self.setGeoY:advance(0.0, 0.0, {}, {self.geo.geoY})
+   self.setGeoZ:advance(0.0, 0.0, {}, {self.geo.geoZ})
    if self.setPhiWall then self.setPhiWall:advance(0.0, 0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
    -- sync ghost cells. these calls do not enforce periodicity because
@@ -939,24 +921,25 @@ function GkGeometry:initField()
    self.geo.gxy:sync(false)
    self.geo.gyy:sync(false)
    self.geo.jacobGeo:sync(false)
-   self.geo.bdriftX:sync(false)
-   self.geo.bdriftY:sync(false)
+   self.geo.geoX:sync(false)
+   self.geo.geoY:sync(false)
+   self.geo.geoZ:sync(false)
    self.geo.phiWall:sync(false)
-
-   -- apply BCs
-   self:applyBc(0, 0, self.geo)
 end
 
 function GkGeometry:write(tm)
    -- not evolving geometry, so only write geometry at beginning
    if self.ioFrame == 0 then
       self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm, self.ioFrame)
-      if self.setBdriftX then
-	 self.fieldIo:write(self.geo.bdriftX, string.format("bdriftX_%d.bp", self.ioFrame), tm, self.ioFrame)
-      end
-      if self.setBdriftY then
-	 self.fieldIo:write(self.geo.bdriftY, string.format("bdriftY_%d.bp", self.ioFrame), tm, self.ioFrame)
-      end
+      self.fieldIo:write(self.geo.bmagInv, string.format("bmagInv_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.gradpar, string.format("gradpar_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.geoX, string.format("geoX_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.geoY, string.format("geoY_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.geoZ, string.format("geoZ_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.gxx, string.format("gxx_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.gxy, string.format("gxy_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.gyy, string.format("gyy_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.jacobGeo, string.format("jacobGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
    end
    self.ioFrame = self.ioFrame+1
 end

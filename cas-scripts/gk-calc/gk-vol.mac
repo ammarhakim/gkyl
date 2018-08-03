@@ -22,7 +22,7 @@ doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 load("vect")$
 fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
-gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
+gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*geoZ_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x)) + 1/q_*geoY_expd*dfac_x*dfac_z*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x)) - 1/q_*geoX_expd*dfac_y*dfac_z*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y))$
 
 calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax, emflag, bvarslist) := block([],
 kill(varsC, varsP, basisC, basisP),
@@ -43,8 +43,8 @@ for i : 1 thru pmax do (
   varsP : subst(gkvsub, varsP),
   numC : length(bC),
 
-  if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
-  else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
+  if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
+  else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
 
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
   cid : cidx(cdim),
@@ -105,26 +105,22 @@ for i : 1 thru pmax do (
   /* expand distribution function on basis */
   f_expd:doExpand1(f,bP),
 
-  /* expand BstarZ/Bmag = bhat.grad(z) = Gradpar on basis */
-  BstarZ_by_Bmag_expd : subst(Bignorevars, doExpand1(Gradpar, bC)),
+  /* expand geoX, geoY, geoZ on basis */
+  geoX_expd : subst(Bignorevars, doExpand1(geoX, bC)),
+  geoY_expd : subst(Bignorevars, doExpand1(geoY, bC)),
+  geoZ_expd : subst(Bignorevars, doExpand1(geoZ, bC)),
 
-  /* expand BdriftX = 1/B*curl(bhat)*grad(x) on basis */
-  BdriftX_expd : subst(Bignorevars, doExpand1(BdriftX, bC)),
-  /* expand BdriftY = 1/B*curl(bhat)*grad(y) on basis */
-  BdriftY_expd : subst(Bignorevars, doExpand1(BdriftY, bC)),
-  /* expand BstarX/Bmag = ( m/q vpar + Apar ) BdriftX = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
-  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftX_expd,
-  /* expand BstarY/Bmag = ( m/q vpar + Apar ) BdriftY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
-  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftY_expd,
-  /* make vApar = -bhatXgrad(Apar) vector */
-  if cdim = 1 then vApar_expd : [0], 
-  if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x],
-  if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0], 
+  /* expand BstarX/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
+  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z) + geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z),
+  /* expand BstarY/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
+  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(geoZ_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) - geoX_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z)) - geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z),
+  /* expand BstarZ/Bmag = bhat.grad(z) + (m/q vpar + Apar)/B*curl(bhat)*grad(z) = Gradpar + (m/q vpar + Apar)/B*curl(bhat)*grad(z) on basis */
+  BstarZ_by_Bmag_expd : subst(Bignorevars, doExpand1(Gradpar, bC)) - (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) + geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y),
 
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
-  if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd] + vApar_expd,
-  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd] + vApar_expd,
+  if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd],
+  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd],
 
   /* calculate cflFeq = sum_d alpha_d / dxv[d] */
   printf(fh, "  double cflFreq = 0.0; ~%"), 
