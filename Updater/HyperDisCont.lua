@@ -102,6 +102,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local cfla = 0.0 -- actual CFL number used
 
    local localRange = qOut:localRange()
+   local globalRange = qOut:globalRange()
    local qInIdxr, qOutIdxr = qIn:genIndexer(), qOut:genIndexer() -- indexer functions into fields
 
    -- to store grid info
@@ -134,11 +135,15 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
       
-      -- compute loop bounds for zero flux direction (WONT WORK IN
-      -- PARALLEL VELOCITY SPACE DECOMP. NEED TO FIX)
+      -- compute loop bounds for zero flux direction 
       if self._zeroFluxFlags[dir] then
-         dirLoSurfIdx = dirLoIdx+1
-         dirUpSurfIdx = dirUpIdx-1
+         local dirGlobalLoIdx, dirGlobalUpIdx = globalRange:lower(dir), globalRange:upper(dir)+1
+         if dirLoIdx == dirGlobalLoIdx then 
+            dirLoSurfIdx = dirLoIdx+1
+         end
+         if dirUpIdx == dirGlobalUpIdx then 
+            dirUpSurfIdx = dirUpIdx-1
+         end
       end
 
       if self._isFirst then
