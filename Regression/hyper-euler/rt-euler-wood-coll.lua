@@ -30,6 +30,7 @@ eulerApp = Moments.App {
 	 local x = xn[1]
 	 local x1, x2 = 0.1, 0.9 -- location of discontinuities
 	 local pl, pm, pr = 1000.0, 0.01, 100.0 -- pressure in each region
+	 local press = 0.0
 	 if x<x1 then
 	    press = pl
 	 elseif x<x2 then
