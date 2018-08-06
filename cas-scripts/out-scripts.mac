@@ -133,4 +133,16 @@ writeEigenMatrix(mat) := block([],
   )
 )$
 
-
+load ("scifac")$
+writeCExprsCollect1c(rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+     if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", out[i-1], gcfac(expr[i]))
+  )
+)$
+writeCExprsCollect1lhsc(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+     if expr[i] # 0.0 then printf(fh, "  ~a += ~a; ~%", lhs[i-1], gcfac(expr[i]))
+  )
+)$
