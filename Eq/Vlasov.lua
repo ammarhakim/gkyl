@@ -125,6 +125,7 @@ end
 -- Volume integral term for use in DG scheme
 function Vlasov:volTerm(w, dx, idx, q, out)
    -- volume term if has force
+   local cflFreq = 0.0
    if self._hasForceTerm then
       self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
       rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
@@ -134,7 +135,7 @@ function Vlasov:volTerm(w, dx, idx, q, out)
       cflFreq = self._volUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
    else
       -- if no force, only update streaming term
-      local cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
    end
    return cflFreq
 end
