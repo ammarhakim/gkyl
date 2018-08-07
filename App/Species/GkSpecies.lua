@@ -221,11 +221,6 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolveCollisionless then
       status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
-      if self.sourceFunc then
-        -- if there is a source, add it to the RHS
-        fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
-      end
- 
    else
       fOut:copy(fIn) -- just copy stuff over
    end
@@ -239,6 +234,11 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 	 status = status and collStatus
 	 dtSuggested = math.min(dtSuggested, collDt)
       end
+   end
+
+   if self.sourceFunc and self.evolveSources then
+     -- if there is a source, add it to the RHS
+     fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
    end
 
    -- apply BCs
