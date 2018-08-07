@@ -223,6 +223,7 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
       status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
    else
       fOut:copy(fIn) -- just copy stuff over
+      self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
    end
 
    if self.evolveCollisions then
