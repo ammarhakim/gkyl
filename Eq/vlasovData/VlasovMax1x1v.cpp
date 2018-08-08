@@ -14,13 +14,13 @@ double VlasovVol1x1vMaxP1(const double *w, const double *dxv, const double *EM, 
 
   double alpha0[3]; 
 
-  alpha0[0] += 4.0*w0dx0; 
-  alpha0[2] += 1.154700538379252*dv0dx0; 
-
   double alpha1[3]; 
 
-  alpha1[0] += 1.414213562373095*E0[0]*dv10; 
-  alpha1[1] += 1.414213562373095*E0[1]*dv10; 
+  alpha0[0] = 4.0*w0dx0; 
+  alpha0[2] = 1.154700538379252*dv0dx0; 
+
+  alpha1[0] = 1.414213562373095*E0[0]*dv10; 
+  alpha1[1] = 1.414213562373095*E0[1]*dv10; 
   const double amid1 = 0.5*alpha1[0]; 
   out[1] += 0.8660254037844386*(alpha0[2]*f[2]+alpha0[0]*f[0]); 
   out[2] += 0.8660254037844386*(alpha1[1]*f[1]+alpha1[0]*f[0]); 
@@ -41,14 +41,14 @@ double VlasovVol1x1vMaxP2(const double *w, const double *dxv, const double *EM, 
 
   double alpha0[6]; 
 
-  alpha0[0] += 4.0*w0dx0; 
-  alpha0[2] += 1.154700538379252*dv0dx0; 
-
   double alpha1[6]; 
 
-  alpha1[0] += 1.414213562373095*E0[0]*dv10; 
-  alpha1[1] += 1.414213562373095*E0[1]*dv10; 
-  alpha1[4] += 1.414213562373095*E0[2]*dv10; 
+  alpha0[0] = 4.0*w0dx0; 
+  alpha0[2] = 1.154700538379252*dv0dx0; 
+
+  alpha1[0] = 1.414213562373095*E0[0]*dv10; 
+  alpha1[1] = 1.414213562373095*E0[1]*dv10; 
+  alpha1[4] = 1.414213562373095*E0[2]*dv10; 
   const double amid1 = 0.5*alpha1[0]-0.5590169943749475*alpha1[4]; 
   out[1] += 0.8660254037844386*(alpha0[2]*f[2]+alpha0[0]*f[0]); 
   out[2] += 0.8660254037844386*(alpha1[4]*f[4]+alpha1[1]*f[1]+alpha1[0]*f[0]); 
@@ -72,15 +72,15 @@ double VlasovVol1x1vMaxP3(const double *w, const double *dxv, const double *EM, 
 
   double alpha0[10]; 
 
-  alpha0[0] += 4.0*w0dx0; 
-  alpha0[2] += 1.154700538379252*dv0dx0; 
-
   double alpha1[10]; 
 
-  alpha1[0] += 1.414213562373095*E0[0]*dv10; 
-  alpha1[1] += 1.414213562373095*E0[1]*dv10; 
-  alpha1[4] += 1.414213562373095*E0[2]*dv10; 
-  alpha1[8] += 1.414213562373095*E0[3]*dv10; 
+  alpha0[0] = 4.0*w0dx0; 
+  alpha0[2] = 1.154700538379252*dv0dx0; 
+
+  alpha1[0] = 1.414213562373095*E0[0]*dv10; 
+  alpha1[1] = 1.414213562373095*E0[1]*dv10; 
+  alpha1[4] = 1.414213562373095*E0[2]*dv10; 
+  alpha1[8] = 1.414213562373095*E0[3]*dv10; 
   const double amid1 = 0.5*alpha1[0]-0.5590169943749475*alpha1[4]; 
   out[1] += 0.8660254037844386*(alpha0[2]*f[2]+alpha0[0]*f[0]); 
   out[2] += 0.8660254037844386*(alpha1[8]*f[8]+alpha1[4]*f[4]+alpha1[1]*f[1]+alpha1[0]*f[0]); 
