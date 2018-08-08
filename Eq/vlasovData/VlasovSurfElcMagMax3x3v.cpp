@@ -18,9 +18,13 @@ double VlasovSurfElcMag3x3vMax_VX_P1(const double *wl, const double *wr, const d
 
   double Ghat[7]; 
 
+  double alpha[7]; 
+
   for(unsigned int i=0; i<7; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -42,8 +46,6 @@ double VlasovSurfElcMag3x3vMax_VX_P1(const double *wl, const double *wr, const d
   fjump[4] = amax*(-1*fr[4]-fl[4]); 
   fjump[5] = amax*(1*fr[5]-fl[5]); 
   fjump[6] = amax*(1*fr[6]-fl[6]); 
-  double alpha[7]; 
-
   alpha[0] += 2.828427124746191*(B2[0]*wv2+E0[0])-2.828427124746191*B1[0]*wv3; 
   alpha[1] += 2.828427124746191*(B2[1]*wv2+E0[1])-2.828427124746191*B1[1]*wv3; 
   alpha[2] += 2.828427124746191*(B2[2]*wv2+E0[2])-2.828427124746191*B1[2]*wv3; 
@@ -94,9 +96,13 @@ double VlasovSurfElcMag3x3vMax_VX_P2(const double *wl, const double *wr, const d
 
   double Ghat[28]; 
 
+  double alpha[28]; 
+
   for(unsigned int i=0; i<28; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -160,8 +166,6 @@ double VlasovSurfElcMag3x3vMax_VX_P2(const double *wl, const double *wr, const d
   fjump[25] = amax*(1*fr[25]-fl[25]); 
   fjump[26] = amax*(1*fr[26]-fl[26]); 
   fjump[27] = amax*(1*fr[27]-fl[27]); 
-  double alpha[28]; 
-
   alpha[0] += 2.828427124746191*(B2[0]*wv2+E0[0])-2.828427124746191*B1[0]*wv3; 
   alpha[1] += 2.828427124746191*(B2[1]*wv2+E0[1])-2.828427124746191*B1[1]*wv3; 
   alpha[2] += 2.828427124746191*(B2[2]*wv2+E0[2])-2.828427124746191*B1[2]*wv3; 
@@ -281,9 +285,13 @@ double VlasovSurfElcMag3x3vMax_VX_P3(const double *wl, const double *wr, const d
 
   double Ghat[84]; 
 
+  double alpha[84]; 
+
   for(unsigned int i=0; i<84; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -459,8 +467,6 @@ double VlasovSurfElcMag3x3vMax_VX_P3(const double *wl, const double *wr, const d
   fjump[81] = amax*(-1*fr[81]-fl[81]); 
   fjump[82] = amax*(1*fr[82]-fl[82]); 
   fjump[83] = amax*(1*fr[83]-fl[83]); 
-  double alpha[84]; 
-
   alpha[0] += 2.828427124746191*(B2[0]*wv2+E0[0])-2.828427124746191*B1[0]*wv3; 
   alpha[1] += 2.828427124746191*(B2[1]*wv2+E0[1])-2.828427124746191*B1[1]*wv3; 
   alpha[2] += 2.828427124746191*(B2[2]*wv2+E0[2])-2.828427124746191*B1[2]*wv3; 
@@ -749,9 +755,13 @@ double VlasovSurfElcMag3x3vMax_VY_P1(const double *wl, const double *wr, const d
 
   double Ghat[7]; 
 
+  double alpha[7]; 
+
   for(unsigned int i=0; i<7; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -773,8 +783,6 @@ double VlasovSurfElcMag3x3vMax_VY_P1(const double *wl, const double *wr, const d
   fjump[4] = amax*(1*fr[4]-fl[4]); 
   fjump[5] = amax*(-1*fr[5]-fl[5]); 
   fjump[6] = amax*(1*fr[6]-fl[6]); 
-  double alpha[7]; 
-
   alpha[0] += 2.828427124746191*B0[0]*wv3-2.828427124746191*B2[0]*wv1+2.828427124746191*E1[0]; 
   alpha[1] += 2.828427124746191*B0[1]*wv3-2.828427124746191*B2[1]*wv1+2.828427124746191*E1[1]; 
   alpha[2] += 2.828427124746191*B0[2]*wv3-2.828427124746191*B2[2]*wv1+2.828427124746191*E1[2]; 
@@ -825,9 +833,13 @@ double VlasovSurfElcMag3x3vMax_VY_P2(const double *wl, const double *wr, const d
 
   double Ghat[28]; 
 
+  double alpha[28]; 
+
   for(unsigned int i=0; i<28; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -891,8 +903,6 @@ double VlasovSurfElcMag3x3vMax_VY_P2(const double *wl, const double *wr, const d
   fjump[25] = amax*(1*fr[25]-fl[25]); 
   fjump[26] = amax*(1*fr[26]-fl[26]); 
   fjump[27] = amax*(1*fr[27]-fl[27]); 
-  double alpha[28]; 
-
   alpha[0] += 2.828427124746191*B0[0]*wv3-2.828427124746191*B2[0]*wv1+2.828427124746191*E1[0]; 
   alpha[1] += 2.828427124746191*B0[1]*wv3-2.828427124746191*B2[1]*wv1+2.828427124746191*E1[1]; 
   alpha[2] += 2.828427124746191*B0[2]*wv3-2.828427124746191*B2[2]*wv1+2.828427124746191*E1[2]; 
@@ -1012,9 +1022,13 @@ double VlasovSurfElcMag3x3vMax_VY_P3(const double *wl, const double *wr, const d
 
   double Ghat[84]; 
 
+  double alpha[84]; 
+
   for(unsigned int i=0; i<84; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -1190,8 +1204,6 @@ double VlasovSurfElcMag3x3vMax_VY_P3(const double *wl, const double *wr, const d
   fjump[81] = amax*(1*fr[81]-fl[81]); 
   fjump[82] = amax*(-1*fr[82]-fl[82]); 
   fjump[83] = amax*(1*fr[83]-fl[83]); 
-  double alpha[84]; 
-
   alpha[0] += 2.828427124746191*B0[0]*wv3-2.828427124746191*B2[0]*wv1+2.828427124746191*E1[0]; 
   alpha[1] += 2.828427124746191*B0[1]*wv3-2.828427124746191*B2[1]*wv1+2.828427124746191*E1[1]; 
   alpha[2] += 2.828427124746191*B0[2]*wv3-2.828427124746191*B2[2]*wv1+2.828427124746191*E1[2]; 
@@ -1480,9 +1492,13 @@ double VlasovSurfElcMag3x3vMax_VZ_P1(const double *wl, const double *wr, const d
 
   double Ghat[7]; 
 
+  double alpha[7]; 
+
   for(unsigned int i=0; i<7; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -1504,8 +1520,6 @@ double VlasovSurfElcMag3x3vMax_VZ_P1(const double *wl, const double *wr, const d
   fjump[4] = amax*(1*fr[4]-fl[4]); 
   fjump[5] = amax*(1*fr[5]-fl[5]); 
   fjump[6] = amax*(-1*fr[6]-fl[6]); 
-  double alpha[7]; 
-
   alpha[0] += 2.828427124746191*(B1[0]*wv1+E2[0])-2.828427124746191*B0[0]*wv2; 
   alpha[1] += 2.828427124746191*(B1[1]*wv1+E2[1])-2.828427124746191*B0[1]*wv2; 
   alpha[2] += 2.828427124746191*(B1[2]*wv1+E2[2])-2.828427124746191*B0[2]*wv2; 
@@ -1556,9 +1570,13 @@ double VlasovSurfElcMag3x3vMax_VZ_P2(const double *wl, const double *wr, const d
 
   double Ghat[28]; 
 
+  double alpha[28]; 
+
   for(unsigned int i=0; i<28; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -1622,8 +1640,6 @@ double VlasovSurfElcMag3x3vMax_VZ_P2(const double *wl, const double *wr, const d
   fjump[25] = amax*(1*fr[25]-fl[25]); 
   fjump[26] = amax*(1*fr[26]-fl[26]); 
   fjump[27] = amax*(1*fr[27]-fl[27]); 
-  double alpha[28]; 
-
   alpha[0] += 2.828427124746191*(B1[0]*wv1+E2[0])-2.828427124746191*B0[0]*wv2; 
   alpha[1] += 2.828427124746191*(B1[1]*wv1+E2[1])-2.828427124746191*B0[1]*wv2; 
   alpha[2] += 2.828427124746191*(B1[2]*wv1+E2[2])-2.828427124746191*B0[2]*wv2; 
@@ -1743,9 +1759,13 @@ double VlasovSurfElcMag3x3vMax_VZ_P3(const double *wl, const double *wr, const d
 
   double Ghat[84]; 
 
+  double alpha[84]; 
+
   for(unsigned int i=0; i<84; ++i){ 
 
     Ghat[i]=0.0; 
+
+    alpha[i]=0.0; 
 
   }; 
 
@@ -1921,8 +1941,6 @@ double VlasovSurfElcMag3x3vMax_VZ_P3(const double *wl, const double *wr, const d
   fjump[81] = amax*(1*fr[81]-fl[81]); 
   fjump[82] = amax*(1*fr[82]-fl[82]); 
   fjump[83] = amax*(-1*fr[83]-fl[83]); 
-  double alpha[84]; 
-
   alpha[0] += 2.828427124746191*(B1[0]*wv1+E2[0])-2.828427124746191*B0[0]*wv2; 
   alpha[1] += 2.828427124746191*(B1[1]*wv1+E2[1])-2.828427124746191*B0[1]*wv2; 
   alpha[2] += 2.828427124746191*(B1[2]*wv1+E2[2])-2.828427124746191*B0[2]*wv2; 
