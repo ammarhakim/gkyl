@@ -8,8 +8,9 @@
 -- Gkyl modules
 local CartModalMaxOrder = require "Basis.CartModalMaxOrder"
 local CartModalSerendipity = require "Basis.CartModalSerendipity"
+local CartModalTensor = require "Basis.CartModalTensor"
 
 -- system modules
 local xsys = require "xsys"
 
-return xsys.table.union(CartModalMaxOrder, CartModalSerendipity)
+return xsys.table.union(CartModalMaxOrder, CartModalSerendipity, CartModalTensor)
