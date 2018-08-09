@@ -137,7 +137,7 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
 end
 
 -- Surface integral term for use in DG scheme
-function Gyrokinetic:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function Gyrokinetic:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
@@ -247,7 +247,7 @@ end
 
 -- Surface integral term for use in DG scheme 
 -- NOTE: only vpar direction for this term
-function GyrokineticStep2:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function GyrokineticStep2:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)

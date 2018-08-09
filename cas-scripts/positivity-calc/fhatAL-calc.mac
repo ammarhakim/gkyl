@@ -2,7 +2,7 @@ load("modal-basis")$
 load("fem-calc/femMatrices")$
 
 /* returns anti-limited expansion of f evaluated at surfVar=surfVal */
-fhatAL(f,surfVar,surfVal,cdim,vdim,p):=block([limTheta,modNm,basis,vars,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd],
+fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd],
   if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
   else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
   load(modNm),
@@ -16,12 +16,14 @@ fhatAL(f,surfVar,surfVal,cdim,vdim,p):=block([limTheta,modNm,basis,vars,nodes,mo
   /* print r */
   printf(fh,"  double rVal[~a]; ~%",length(r)),
   writeCExprsNoExpand1(rVal,r),
-  fq:fullratsimp(nodesub(avgAndSlope[1])*makelist(limTheta(rVal[i-1],surfVal,cfl),i,1,length(r))),
+  fq:fullratsimp(nodesub(avgAndSlope[1])*makelist(limTheta(rVal[i-1],surfVal,cflVal),i,1,length(r))),
   /* print fq */
   printf(fh,"  double fqVal[~a]; ~%",length(fq)),
+  printf(fh,"  double cflVal = std::abs(~a); ~%", cfl),
   writeCExprsNoExpand1(fqVal,fq),
   modToNod:calcModToNodPhase(cdim,vdim,p),
   fhatAL_k:fullratsimp(modToNod.makelist(fqVal[i-1],i,1,length(fq))),
   fhatAL_expd:fullratsimp(basis.fhatAL_k),
+  flush_output(fh),
   return(fhatAL_expd)
 )$
