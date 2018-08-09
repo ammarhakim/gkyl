@@ -1,6 +1,7 @@
 load("modal-basis")$
 load("out-scripts")$
 load(stringproc)$
+load("positivity-calc/fhatAL-calc")$
 fpprec : 24$
 
 wc : [wx, wy, wz, wv, wm]$
@@ -8,6 +9,7 @@ wc2 : [wx2, wy2, wz2, wv2, wm2]$
 derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m]$
 derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2]$
 gkvsub:[vx=vpar,vy=mu]$
+gkvsubInv:[vpar=vx,mu=vy]$
 
 let (wv^2, wv2)$
 let (dfac_v^2, dfac_v2)$
@@ -75,8 +77,8 @@ for p : 1 thru pmax do (
   /* remove volume contribution from surface variable, which is not integrated */
   surfac : fullratsimp(volfac*dfacSurf),
 
-  if emflag then printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, p, simplode(bvarslist,"_"))
-  else printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, p, simplode(bvarslist,"_")),
+  if emflag then printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, p, simplode(bvarslist,"_"))
+  else printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, p, simplode(bvarslist,"_")),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
 
   for dir : 1 thru cdim+vdim do (
@@ -89,7 +91,6 @@ for p : 1 thru pmax do (
   printf(fh, "  double wv2 = wv*wv; ~%"),
   printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%"),
   printf(fh, "  double q2 = q_*q_; ~%"),
-  printf(fh, "  double Ghat[~a]; ~%", length(bP)),
   printf(fh, "  double incr[~a]; ~%", length(bP)),
 
   /* expand background magnetic field Bmag, assuming it only varies in x */
@@ -173,7 +174,8 @@ for p : 1 thru pmax do (
   )
   else if (pureUpwind or p=1) then (
     printf(fh, "  if (alpha0>0) { ~%"),
-    fhat : subst(surfVar=1, fL_expd),
+    /*fhat : subst(surfVar=1, fL_expd),*/
+    fhat : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, alpha0*dt/dxv[surfDir-1], cdim, vdim, p)),
     t : surfac*innerProd(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
     incr_r : facsum(fullratsimp(t),dxv),
     writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
@@ -188,7 +190,8 @@ for p : 1 thru pmax do (
     writeCIncrExprsNoExpand1(outl, incr_s),
     
     printf(fh, "  } else { ~%"),
-    fhat : subst(surfVar=-1, fR_expd),
+    /*fhat : subst(surfVar=-1, fR_expd),*/
+    fhat : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, alpha0*dt/dxv[surfDir-1], cdim, vdim, i)),
     t : surfac*innerProd(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
     incr_r : facsum(fullratsimp(t),dxv),
     writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
@@ -213,6 +216,7 @@ for p : 1 thru pmax do (
     printf(fh, "    amax = std::abs(alpha0); ~%"),
     printf(fh, "  else ~%"),
     printf(fh, "    amax = amax_in; ~%~%"),
+    printf(fh, "  double Ghat[~a]; ~%", length(bP)),
 
     /* calculate lax penalty flux expression */
     /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
@@ -254,7 +258,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,pmax,emflag, bvarslist) := bl
   for dir : 1 thru lastdir do ( 
     /* always pure upwind in z direction */
     if (dir=cdim and cdim#2) then (
-      pureUpwind : true
+      pureUpwind : false
     ) else (
       pureUpwind : false
     ),

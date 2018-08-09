@@ -58,6 +58,7 @@ function KineticSpecies:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
+   self.evolveSources = xsys.pickBool(tbl.evolveSources, self.evolve) 
    self.confBasis = nil -- Will be set later
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
@@ -121,11 +122,7 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    -- get a random seed for random initial conditions
-   if tbl.randomseed then
-      math.randomseed(tbl.randomseed)
-   else
-      math.randomseed(47*Mpi.Comm_rank(Mpi.COMM_WORLD))
-   end
+   self.randomseed = tbl.randomseed
 
    -- get functions for initial conditions and sources note: need to
    -- wrap these functions so that self can be (optionally) passed as
@@ -449,6 +446,12 @@ function KineticSpecies:alloc(nRkDup)
 end
 
 function KineticSpecies:initDist()
+   if self.randomseed then 
+      math.randomseed(self.randomseed) 
+   else
+      math.randomseed(47*Mpi.Comm_rank(Mpi.COMM_WORLD)+os.time())
+   end
+
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
 
