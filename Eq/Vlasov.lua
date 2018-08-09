@@ -141,7 +141,7 @@ function Vlasov:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme
-function Vlasov:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function Vlasov:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local amax = 0.0
    if dir <= self._cdim then
       -- streaming term (note that surface streaming kernels don't
