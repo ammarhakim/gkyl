@@ -35,6 +35,7 @@ fh : openw("~/max-out/GyrokineticModDecl.h")$
 printf(fh, "#ifndef GYROKINETIC_MOD_DECL_H ~%")$
 printf(fh, "#define GYROKINETIC_MOD_DECL_H ~%")$
 printf(fh, "#include <cmath> ~%")$
+printf(fh, "#include <Positivity.h> ~%"),
 printf(fh, "extern \"C\" { ~%")$
 printPrototypes()$
 printf(fh, "} ~%")$
