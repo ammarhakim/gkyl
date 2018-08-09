@@ -149,9 +149,9 @@ function Gyrokinetic:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, f
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
      self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
-     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, dt, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    else 
-     res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, dt, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
@@ -258,7 +258,7 @@ function GyrokineticStep2:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, 
    self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
 
-   local res = self._surfTerms[dir](self.charge, self.mass, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   local res = self._surfTerms[dir](self.charge, self.mass, dt, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
 
    return res
 end

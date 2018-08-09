@@ -134,4 +134,4 @@ plasmaApp = Plasma.App {
 -- run application
 plasmaApp:run()
 
---print("expected growth rate = ", 2.26579*vte/R)
+print("expected growth rate = ", 2.26579*vte/R)

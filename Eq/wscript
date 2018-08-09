@@ -182,6 +182,8 @@ def build(bld):
     gkData/GyrokineticSurfSer3x2v.cpp
     gkData/GkSheathFuncsSer.cpp
 
+    Positivity.cpp
+
     """,
     target = 'eq', use='EIGEN', includes = '. lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
     )
