@@ -17,10 +17,10 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, con
   alpha[0] = 2.0*wv; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fl[2]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -48,10 +48,10 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, con
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fr[2]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
@@ -152,10 +152,10 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   alpha[0] = -(2.449489742783178*Phi[1]*dfac_x*q_)/m_; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fl[1]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -183,10 +183,10 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fr[1]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
@@ -287,10 +287,10 @@ double EmGyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, c
   alpha[0] = 2.0*wv; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fl[2]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -318,10 +318,10 @@ double EmGyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, c
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fr[2]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
@@ -423,10 +423,10 @@ double EmGyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_
   alpha[1] = -(1.414213562373095*dApardt[1]*q_)/m_; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fl[1]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -454,10 +454,10 @@ double EmGyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fr[1]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
@@ -558,10 +558,10 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, con
   alpha[0] = 2.0*wv; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fl[2]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -589,10 +589,10 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, con
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fr[2]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
@@ -693,10 +693,10 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   alpha[0] = -(2.449489742783178*Phi[1]*dfac_x*q_)/m_; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fl[1]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -724,10 +724,10 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fr[1]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
@@ -828,10 +828,10 @@ double EmGyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, c
   alpha[0] = 2.0*wv; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]-3.0*fl[1])/(fl[2]-1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(fl[2]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(3.464101615137754*EPSILON-1.0*fl[2]+1.732050807568877*fl[0]); 
+  rVal[2] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[1])/(3.464101615137754*EPSILON+fl[2]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fl[2]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -859,10 +859,10 @@ double EmGyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, c
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]-3.0*fr[1])/(fr[2]-1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(fr[2]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[1] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(3.464101615137754*EPSILON-1.0*fr[2]+1.732050807568877*fr[0]); 
+  rVal[2] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[1])/(3.464101615137754*EPSILON+fr[2]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[0]); 
   fqVal[0] = -0.2886751345948129*(fr[2]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
@@ -964,10 +964,10 @@ double EmGyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_
   alpha[1] = -(1.414213562373095*dApardt[1]*q_)/m_; 
   if (alpha0>0) { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
-  rVal[2] = (1.732050807568877*fl[3]-3.0*fl[2])/(fl[1]-1.732050807568877*fl[0]); 
-  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(fl[1]+1.732050807568877*fl[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(3.464101615137754*EPSILON-1.0*fl[1]+1.732050807568877*fl[0]); 
+  rVal[3] = (1.732050807568877*fl[3]+3.0*fl[2])/(3.464101615137754*EPSILON+fl[1]+1.732050807568877*fl[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fl[1]-1.732050807568877*fl[0])*limTheta(rVal[0],1.0,cflVal); 
@@ -995,10 +995,10 @@ double EmGyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_
   outl[3] += incr[3]; 
   } else { 
   double rVal[4];  // rVal=f1/f0 at each node 
-  rVal[0] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
-  rVal[2] = (1.732050807568877*fr[3]-3.0*fr[2])/(fr[1]-1.732050807568877*fr[0]); 
-  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(fr[1]+1.732050807568877*fr[0]); 
+  rVal[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
+  rVal[2] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(3.464101615137754*EPSILON-1.0*fr[1]+1.732050807568877*fr[0]); 
+  rVal[3] = (1.732050807568877*fr[3]+3.0*fr[2])/(3.464101615137754*EPSILON+fr[1]+1.732050807568877*fr[0]); 
   double fqVal[4];  // fqVal = anti-limited f evaluated at each node 
   double cflVal = std::abs((alpha0*dt)/dxv[1]); 
   fqVal[0] = -0.2886751345948129*(fr[1]-1.732050807568877*fr[0])*limTheta(rVal[0],-1.0,cflVal); 
