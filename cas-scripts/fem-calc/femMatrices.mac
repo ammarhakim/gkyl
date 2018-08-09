@@ -7,20 +7,20 @@ load("eigen")$
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-nodes1xp1 : [[-1],[1]]$
-nodes1xp2 : [[-1],[0],[1]]$
-nodes2xp1 : [[-1,-1],[1,-1],[-1,1],[1,1]]$
-nodes2xp2 : [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]$
-nodes3xp1 : [[-1,-1,-1],[1,-1,-1],[-1,1,-1],[1,1,-1],[-1,-1,1],[1,-1,1],[-1,1,1],[1,1,1]]$
-nodes3xp2 : [[-1,-1,-1],[0,-1,-1],[1,-1,-1],[-1,0,-1],[1,0,-1],[-1,1,-1],[0,1,-1],[1,1,-1],
+nodes1xp1 : matrix([-1],[1])$
+nodes1xp2 : matrix([-1],[0],[1])$
+nodes2xp1 : matrix([-1,-1],[1,-1],[-1,1],[1,1])$
+nodes2xp2 : matrix([-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1])$
+nodes3xp1 : matrix([-1,-1,-1],[1,-1,-1],[-1,1,-1],[1,1,-1],[-1,-1,1],[1,-1,1],[-1,1,1],[1,1,1])$
+nodes3xp2 : matrix([-1,-1,-1],[0,-1,-1],[1,-1,-1],[-1,0,-1],[1,0,-1],[-1,1,-1],[0,1,-1],[1,1,-1],
             [-1,-1,0],[1,-1,0],[-1,1,0],[1,1,0],
-            [-1,-1,1],[0,-1,1],[1,-1,1],[-1,0,1],[1,0,1],[-1,1,1],[0,1,1],[1,1,1]]$
-nodes4xp1 : [[-1,-1,-1,-1],[1,-1,-1,-1],[-1,1,-1,-1],[1,1,-1,-1],[-1,-1,1,-1],[1,-1,1,-1],[-1,1,1,-1],[1,1,1,-1],
-             [-1,-1,-1,1],[1,-1,-1,1],[-1,1,-1,1],[1,1,-1,1],[-1,-1,1,1],[1,-1,1,1],[-1,1,1,1],[1,1,1,1]]$
-nodes5xp1 : [[-1,-1,-1,-1,-1],[1,-1,-1,-1,-1],[-1,1,-1,-1,-1],[1,1,-1,-1,-1],[-1,-1,1,-1,-1],[1,-1,1,-1,-1],[-1,1,1,-1,-1],[1,1,1,-1,-1],
+            [-1,-1,1],[0,-1,1],[1,-1,1],[-1,0,1],[1,0,1],[-1,1,1],[0,1,1],[1,1,1])$
+nodes4xp1 : matrix([-1,-1,-1,-1],[1,-1,-1,-1],[-1,1,-1,-1],[1,1,-1,-1],[-1,-1,1,-1],[1,-1,1,-1],[-1,1,1,-1],[1,1,1,-1],
+             [-1,-1,-1,1],[1,-1,-1,1],[-1,1,-1,1],[1,1,-1,1],[-1,-1,1,1],[1,-1,1,1],[-1,1,1,1],[1,1,1,1])$
+nodes5xp1 : matrix([-1,-1,-1,-1,-1],[1,-1,-1,-1,-1],[-1,1,-1,-1,-1],[1,1,-1,-1,-1],[-1,-1,1,-1,-1],[1,-1,1,-1,-1],[-1,1,1,-1,-1],[1,1,1,-1,-1],
              [-1,-1,-1,1,-1],[1,-1,-1,1,-1],[-1,1,-1,1,-1],[1,1,-1,1,-1],[-1,-1,1,1,-1],[1,-1,1,1,-1],[-1,1,1,1,-1],[1,1,1,1,-1],
              [-1,-1,-1,-1,1],[1,-1,-1,-1,1],[-1,1,-1,-1,1],[1,1,-1,-1,1],[-1,-1,1,-1,1],[1,-1,1,-1,1],[-1,1,1,-1,1],[1,1,1,-1,1],
-             [-1,-1,-1,1,1],[1,-1,-1,1,1],[-1,1,-1,1,1],[1,1,-1,1,1],[-1,-1,1,1,1],[1,-1,1,1,1],[-1,1,1,1,1],[1,1,1,1,1]]$
+             [-1,-1,-1,1,1],[1,-1,-1,1,1],[-1,1,-1,1,1],[1,1,-1,1,1],[-1,-1,1,1,1],[1,-1,1,1,1],[-1,1,1,1,1],[1,1,1,1,1])$
 
 /* calculate modal-to-nodal transformation matrix */
 calcModToNod(cdim, p) := block([], 
@@ -59,18 +59,20 @@ return(modToNod)
 )$
 
 /* calculate modal-to-nodal transformation matrix */
-calcModToNodPhase(cdim, vdim, p) := block([], 
+calcModToNodPhase(cdim, vdim, p) := block([basis,modNm,nodes,n,modToNod], 
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
+if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
+else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
 load(modNm),
-basis : basisP[p],
+if vdim=0 then basis : basisC[p]
+else basis : basisP[p],
 nodes : eval_string(sconcat("nodes", cdim+vdim, "xp", p)),
 n : length(nodes),
 if cdim=1 then (
 modToNod : (
   for i:1 thru n do (
   col : subst(nodes[i][1],x,basis),
-  col : subst(nodes[i][2],vx,col),
+  if vdim>=1 then col : subst(nodes[i][2],vx,col),
   if vdim=2 then col : subst(nodes[i][3],vy,col),
   col : columnvector(col),
   if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
@@ -80,7 +82,7 @@ modToNod:(
     for i:1 thru n do (
     col : subst(nodes[i][1],x,basis),
     col : subst(nodes[i][2],y,col),
-    col : subst(nodes[i][3],vx,col),
+    if vdim>=1 then col : subst(nodes[i][3],vx,col),
     if vdim=2 then col : subst(nodes[i][4],vy,col),
     col : columnvector(col),
     if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
@@ -91,7 +93,7 @@ modToNod:(
     col : subst(nodes[i][1],x,basis),
     col : subst(nodes[i][2],y,col),
     col : subst(nodes[i][3],z,col),
-    col : subst(nodes[i][4],vx,col),
+    if vdim>=1 then col : subst(nodes[i][4],vx,col),
     if vdim=2 then col : subst(nodes[i][5],vy,col),
     col : columnvector(col),
     if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
@@ -163,6 +165,21 @@ w_expd : doExpand1(w, basis),
 massMod : calcMassMatrix(varsC, 1, basis),
 modToNod : calcModToNod(cdim, p),
 massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(transpose(modToNod)))))),
+return(massNod)
+)$
+
+/* calculate weighted nodal flux-surface-averaged mass matrix */
+calcMassFSA(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
+load(modNm),
+basis : basisC[p],
+basisFSA:fullratsimp(integrate(integrate(basis*subst(y=0,doExpand1(jacob,basis)),y,-1,1),z,-1,1)),
+w_expd : doExpand1(w, basis),
+massMod : calcMassMatrix2(varsC, w_expd, basis, basisFSA),
+modToNod : calcModToNod(cdim, p),
+massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(transpose(modToNod)))))),
+massNod:massNod/subst([x=0,y=0,z=0],doExpand1(jacob,basis)),
 return(massNod)
 )$
 
