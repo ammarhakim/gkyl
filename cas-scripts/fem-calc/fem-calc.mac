@@ -1,0 +1,118 @@
+load("fem-calc/femMatrices")$
+
+/* write a C++ function that sets up a matrix for various dimensionalities and polynomial orders */
+writeCMatFunc(prototype, func, onlyDims, printDfacsPerp, printDfacsPar) := block([],
+printf(fh, "~a~%", prototype),
+printf(fh, "{~%"),
+if printDfacsPerp then (
+printf(fh, "  double dfacx2 = 4.0/(dx*dx);~%"),
+printf(fh, "  double dfacxy = 4.0/(dx*dy);~%"),
+printf(fh, "  double dfacy2 = 4.0/(dy*dy);~%")
+),
+if printDfacsPar then (
+printf(fh, "  double dfacz2 = 4.0/(dz*dz);~%")
+),
+first : true,
+if member(1, onlyDims) then (
+if first then (
+  printf(fh, "  if(ndim==1) {~%"),
+  first : false
+)
+else printf(fh, "  else if(ndim==1) {~%"),
+printf(fh, "    if(polyOrder == 1)~%"),
+printf(fh, "    {~%"),
+mat : func(1,1),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "    else if (polyOrder == 2)~%"),
+printf(fh, "    {~%"),
+mat : func(1,2),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "  }~%")
+),
+if member(2, onlyDims) then (
+if first then (
+  printf(fh, "  if(ndim==2) {~%"),
+  first : false
+)
+else printf(fh, "  else if(ndim==2) {~%"),
+printf(fh, "    if(polyOrder == 1)~%"),
+printf(fh, "    {~%"),
+mat : func(2,1),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "    else if (polyOrder == 2)~%"),
+printf(fh, "    {~%"),
+mat : func(2,2),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "  }~%")
+),
+if member(3, onlyDims) then (
+if first then (
+  printf(fh, "  if(ndim==3) {~%"),
+  first : false
+)
+else printf(fh, "  else if(ndim==3) {~%"),
+printf(fh, "    if(polyOrder == 1)~%"),
+printf(fh, "    {~%"),
+mat : func(3,1),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "    else if (polyOrder == 2)~%"),
+printf(fh, "    {~%"),
+mat : func(3,2),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "  }~%")
+),
+printf(fh, "}~%~%")
+)$
+
+fh : openw("~/max-out/FemMatrices.cpp")$
+header : openw("~/max-out/FemMatrices.h")$
+printf(header, "#include <Eigen/Core> ~%")$
+printf(fh, "#include <FemMatrices.h> ~%")$
+/* write getMassMatrix C function */
+prototype:"void getMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcMass, [1,2,3], false, false)$
+printf(header, "~a;~%", prototype)$
+/* write getMassMatrix (unweighted) C function */
+prototype:"void getMassMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcUnweightedMass, [1,2,3], false, false)$
+printf(header, "~a;~%", prototype)$
+/* write getMassMatrixFSA C function */
+prototype:"void getMassMatrixFSA(Eigen::MatrixXd& mat, double *w, double *jacob, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcMassFSA, [1,2,3], false, false)$
+printf(header, "~a;~%", prototype)$
+/* write getPerpNodToModMatrix C function */
+prototype:"void getPerpNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcNodToModPerp, [2,3], false, false)$
+printf(header, "~a;~%", prototype)$
+/* write getParNodToModMatrix C function */
+prototype:"void getParNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcNodToModPar, [1,3], false, false)$
+printf(header, "~a;~%", prototype)$
+/* write getPerpStiffnessMatrix C function */
+prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder, double dx, double dy)"$
+writeCMatFunc(prototype, calcStiffPerp, [2,3], true, false)$
+printf(header, "~a;~%", prototype)$
+/* write getPerpStiffnessMatrix (unweighted) C function */
+prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder, double dx, double dy)"$
+writeCMatFunc(prototype, calcUnweightedStiffPerp, [2,3], true, false)$
+printf(header, "~a;~%", prototype)$
+/* write getParStiffnessMatrix C function */
+prototype:"void getParStiffnessMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder, double dz)"$
+writeCMatFunc(prototype, calcStiffPar, [1,3], false, true)$
+printf(header, "~a;~%", prototype)$
+/* write getParStiffnessMatrix (unweighted) C function */
+prototype:"void getParStiffnessMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder, double dz)"$
+writeCMatFunc(prototype, calcUnweightedStiffPar, [1,3], false, true)$
+printf(header, "~a;~%", prototype)$
+/* write getPerpStiffnessMatrix C function with metric */
+prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, double *gxx, double *gxy, double *gyy, int ndim, int polyOrder, double dx, double dy)"$
+writeCMatFunc(prototype, calcStiffPerpMetric, [2,3], true, false)$
+printf(header, "~a;~%", prototype)$
+close(fh)$
+close(header)$
