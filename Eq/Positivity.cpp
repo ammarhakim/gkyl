@@ -1,5 +1,6 @@
 /* define C functions needed for positivity implementation */
 #include <Positivity.h>
+#include <iostream>
 
 double patchFit(double r, double x, double CFL) {
    double val = 0.0;
