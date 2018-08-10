@@ -130,6 +130,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       hasApar = hasApar,
       Bvars = funcField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
+      positivity = self.positivity,
    }
 
    -- no update in mu direction (last velocity direction if present)
@@ -162,6 +163,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          charge = self.charge,
          mass = self.mass,
          Bvars = funcField.bmagVars,
+         positivity = self.positivity,
       }
       -- note that the surface update for this term only involves the vpar direction
       self.solverStep2 = Updater.HyperDisCont {

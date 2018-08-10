@@ -180,6 +180,10 @@ def build(bld):
     gkData/GyrokineticSurfSer1x2v.cpp
     gkData/GyrokineticSurfSer2x2v.cpp
     gkData/GyrokineticSurfSer3x2v.cpp
+    gkData/GyrokineticSurfPositivitySer1x1v.cpp
+    gkData/GyrokineticSurfPositivitySer1x2v.cpp
+    gkData/GyrokineticSurfPositivitySer2x2v.cpp
+    gkData/GyrokineticSurfPositivitySer3x2v.cpp
     gkData/GkSheathFuncsSer.cpp
 
     Positivity.cpp
