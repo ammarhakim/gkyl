@@ -1,6 +1,11 @@
 /* define C functions needed for positivity implementation */
 #include <cmath>
 #include <limits>
+#define NONE 0
+#define LINEAR 1
+#define EXP 2
+#define EXP0 3
+#define PATCHFIT 4
 #define extraType PATCHFIT
 #define EPSILON std::numeric_limits<double>::epsilon()
 
