@@ -17,12 +17,14 @@ extern "C"
 {
   void *new_MapPoisson(int nx_, int ny_, double xl_, double yl_, double xu_, double yu_,
 int xbctypel_, int ybctypel_, int xbctypeu_, int ybctypeu_, double xbcu_,
-double xbcl_, double ybcu_, double ybcl_);
+double xbcl_, double ybcu_, double ybcl_, bool sig_);
   //wrap fboth steps of solver
   void wrap_factorize(MapPoisson *d);
   void wrap_phisolve(MapPoisson *d);
   //metric wrap from lua to c
   void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, double *gl));
+  //differential length functions
+  void setDiffLenPointer_MapPoisson(MapPoisson *d, void (*hfunc)(double *xch, double *h));
   //mapcpp wrap from lua to c
   void setMapcpp_MapPoisson(MapPoisson *d, void (*mapcpp)(double xc, double yc, double *myxp));
   //wrap source and solution solvers
@@ -43,7 +45,7 @@ class MapPoisson {
   public:
     MapPoisson(int nx_, int ny_, double xl_, double yl_, double xu_, double yu_,
 int xbctypel_, int ybctypel_, int xbctypeu_, int ybctypeu_, double xbcu_,
-double xbcl_, double ybcu_, double ybcl_);
+double xbcl_, double ybcu_, double ybcl_, bool sig_);
 
     //factorize laplacian
     void factorize();
@@ -52,6 +54,10 @@ double xbcl_, double ybcu_, double ybcl_);
     //metric calc pointer
     void setMetricFuncPointer(void (*gfunc)(double *xcl, double *gl)) {
       this->gfunc = gfunc;
+    }
+    //diff length pointer
+    void setDiffLenPointer(void (*hfunc)(double *xch, double *h)) {
+      this->hfunc = hfunc;
     }
     //set mapcpp function pointer
     void setMapcpp(void (*mapcpp)(double xc, double yc, double *myxp)) {
@@ -81,12 +87,14 @@ double xbcl_, double ybcu_, double ybcl_);
     double cimjm(double xc, double yc, int i, int j);
     //metric calculator
     void (*gfunc)(double *, double *);
+    //diff length calculator
+    void (*hfunc)(double *, double *);
     //mapc2p for special metric
     void (*mapcpp)(double, double, double *);
     //convert between gfunc output to eigen vector
     Eigen::Vector3d gij(double xc, double yc, int i, int j);
     //metric inverter
-    Eigen::Vector3d ginv(Eigen::Vector3d gmat);
+    Eigen::Vector3d ginv(Eigen::Vector3d gmat, double xc, double yc);
     //metric determinant
     double gdet(Eigen::Vector3d gvec);
 
@@ -105,6 +113,8 @@ double xbcl_, double ybcu_, double ybcl_);
     Eigen::VectorXd jsource;
     //solution array
     Eigen::VectorXd phi;
+    //regular poisson or tensor Poisson
+    bool sigma;
 };
 
 #endif
