@@ -171,6 +171,7 @@ def build(bld):
     pbData/CanonicalSurfSer1x1v.cpp
     pbData/CanonicalSurfSer2x2v.cpp
     pbData/CanonicalDisContSurfSer1x1v.cpp
+    pbData/CanonicalSurfPositivitySer1x1v.cpp
 
     gkData/GyrokineticSer1x1v.cpp
     gkData/GyrokineticSer1x2v.cpp

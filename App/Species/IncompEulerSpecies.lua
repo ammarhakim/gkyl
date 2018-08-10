@@ -25,6 +25,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
    local eqn = IncompEulerEq {
       onGrid = self.grid,
       basis = self.basis,
+      positivity = self.positivity,
    }
 
    self.solver = Updater.HyperDisCont {

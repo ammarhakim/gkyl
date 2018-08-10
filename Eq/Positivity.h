@@ -6,7 +6,6 @@
 #define EXP 2
 #define EXP0 3
 #define PATCHFIT 4
-#define extraType PATCHFIT
 #define EPSILON std::numeric_limits<double>::epsilon()
 
 double patchFit(double r, double x, double CFL);

@@ -88,6 +88,8 @@ function FluidSpecies:fullInit(appTbl)
    self.boundaryConditions = { } -- list of Bcs to apply
 
    self.bcTime = 0.0 -- timer for BCs
+
+   self.positivity = xsys.pickBool(tbl.applyPositivity, false)
 end
 
 function FluidSpecies:getCharge() return self.charge end
