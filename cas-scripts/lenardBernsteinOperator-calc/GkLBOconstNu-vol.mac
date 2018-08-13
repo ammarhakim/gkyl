@@ -122,15 +122,26 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Return coefficients for CFL condition */
     zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+    alpha0Mid : float(expand(fullratsimp(subst(zr,alpha0_e)))),
+    printf(fh, "  const double alpha0Mid = ~a; ~%", alpha0Mid),
     alpha1Mid : float(expand(fullratsimp(subst(zr,alpha1_e)))),
     printf(fh, "  const double alpha1Mid = ~a; ~%", alpha1Mid), 
     if vdim = 1 then (
-       printf(fh, "  return alpha1Mid; ~%")
+       printf(fh, "  return std::abs(alpha0Mid) + alpha1Mid; ~%")
     ),
     if vdim = 2 then (
+       	mufacD_c : calcInnerProdList(varsP,1,bP,-2*(nu*cv + rdv2[1]*(nu*w[vid[2]]))),
+	mlst :  doMakeExprLst(mufacD_c, mufacD),
+    	mufacD_e : doExpandLst(mlst, bP),
+	printf(fh, "  double mufacD[~a]; ~%", length(bP)),
+   	writeCExprsCollect1(mufacD, mufacD_c, []),
+	printf(fh, "~%"),
+
+        mufacDMid : float(expand(fullratsimp(subst(zr,mufacD_e)))),
+    	printf(fh, "  const double mufacDMid = ~a; ~%", mufacDMid),
        	mufac1Mid : float(expand(fullratsimp(subst(zr,mufac1_e)))),
        	printf(fh, "  const double mufac1Mid = ~a; ~%", mufac1Mid),
-       	printf(fh, "  return alpha1Mid + mufac1Mid; ~%")
+       	printf(fh, "  return std::abs(alpha0Mid) + alpha1Mid + std::abs(mufacDMid) + mufac1Mid; ~%")
     ),
     printf(fh, "~%"),
   
