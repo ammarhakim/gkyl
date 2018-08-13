@@ -9,8 +9,12 @@
 -- Gkyl libraries
 local Proto = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
+local ffi = require "ffi"
 
--- Integrated quantities calculator
+ffi.cdef[[
+  double findMinNodalValue(double *fIn, int ndim); 
+]]
+
 local PositivityRescale = Proto(UpdaterBase)
 
 function PositivityRescale:init(tbl)
@@ -67,20 +71,7 @@ function PositivityRescale:_advance(tCurr, dt, inFld, outFld)
       
       local f0 = 1.0/math.sqrt(2.0)^ndim*fInPtr[1] -- cell average
       
-      local fmin = GKYL_MAX_DOUBLE
- 
-      -- evaluate fIn at each node to find minimum
-      for i = 1, numBasis do
-         local bVals = {}
-         -- evaluate basis at node
-         self.basis:evalBasis(self.mu[i], bVals)
-         local fVal = 0.0
-         -- expand fIn at node
-         for j = 1, numBasis do
-            fVal = fVal + fInPtr[j]*bVals[j]
-         end
-         if fVal < fmin then fmin = fVal end
-      end
+      local fmin = ffi.C.findMinNodalValue(fInPtr:data(), ndim)
     
       -- compute scaling factor
       local theta = math.min(1, f0/(f0 - fmin + GKYL_EPSILON))

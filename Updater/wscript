@@ -109,6 +109,7 @@ def build(bld):
 
     MappedPoissonImpl.cpp
 
+    PositivityRescaleImpl.cpp
 
     """,
     includes = '. primMomentsCalcData binOpCalcData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
