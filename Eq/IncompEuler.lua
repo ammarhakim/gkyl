@@ -23,7 +23,7 @@ function IncompEuler:init(tbl)
    assert(ndim == 2, "Incompressible Euler equations only implemented in 2D")
    -- use 1x,1v canonical poisson bracket
    self._volTerm = CanonicalModDecl.selectVol(nm, 1, 1, p)
-   self._surfTerms = CanonicalModDecl.selectSurf(nm, 1, 1, p)
+   self._surfTerms = CanonicalModDecl.selectSurf(nm, 1, 1, p, self._positivity)
 end
 
 function IncompEuler:initHamilTimeIndep()

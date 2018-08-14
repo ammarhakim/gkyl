@@ -146,6 +146,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       hasApar = hasApar,
       Bvars = funcField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
+      positivity = self.positivity,
    }
 
    -- no update in mu direction (last velocity direction if present)
@@ -178,6 +179,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          charge = self.charge,
          mass = self.mass,
          Bvars = funcField.bmagVars,
+         positivity = self.positivity,
       }
       -- note that the surface update for this term only involves the vpar direction
       self.solverStep2 = Updater.HyperDisCont {
@@ -225,6 +227,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
 
    self.tmCouplingMom = 0.0 -- for timer 
+
+   if self.positivity then 
+      self.positivityRescale = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+   end
 end
 
 function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
@@ -257,6 +266,8 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
      -- if there is a source, add it to the RHS
      fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
    end
+
+   if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
 
    -- apply BCs
    self:applyBc(tCurr, dt, fOut)

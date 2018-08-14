@@ -1,5 +1,5 @@
 #include <CanonicalModDecl.h> 
-double CanonicalSurf1x1vSer_X_P1(const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
+double CanonicalSurf1x1vSer_X_P1(const double dt, const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
@@ -39,7 +39,7 @@ double CanonicalSurf1x1vSer_X_P1(const double *w, const double *dxv, const doubl
   outl[3] += incr[3]; 
 return alpha0; 
 } 
-double CanonicalSurf1x1vSer_X_P2(const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
+double CanonicalSurf1x1vSer_X_P2(const double dt, const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
@@ -92,7 +92,7 @@ double CanonicalSurf1x1vSer_X_P2(const double *w, const double *dxv, const doubl
   outl[7] += incr[7]; 
 return alpha0; 
 } 
-double CanonicalSurf1x1vSer_VX_P1(const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
+double CanonicalSurf1x1vSer_VX_P1(const double dt, const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 
@@ -132,7 +132,7 @@ double CanonicalSurf1x1vSer_VX_P1(const double *w, const double *dxv, const doub
   outl[3] += incr[3]; 
 return alpha0; 
 } 
-double CanonicalSurf1x1vSer_VX_P2(const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
+double CanonicalSurf1x1vSer_VX_P2(const double dt, const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells 
 // outl/outr: output distribution function in left/right cells 

@@ -30,7 +30,7 @@ for i : 1 thru pmax do (
   else dirlabel : vvars[dir-cdim],
   zeros : makelist(varsP[d]=0, d, 1, length(varsP)),
 
-  printf(fh, "double ~a_~a_P~a(const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "double ~a_~a_P~a(const double dt, const double *w, const double *dxv, const double amax_in, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
   printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
 

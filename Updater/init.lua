@@ -22,6 +22,7 @@ local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
+local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
@@ -43,6 +44,7 @@ return {
    FiveMomentSrc = FiveMomentSrc,
    HyperDisCont = HyperDisCont,
    MaxwellianOnBasis = MaxwellianOnBasis,
+   PositivityRescale = PositivityRescale,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
    SolidSurface = SolidSurface,

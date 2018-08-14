@@ -21,16 +21,17 @@ function _M.selectVol(basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- select functions to compute surface terms (output is a table of functions)
-function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
+function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, positivity)
+   if positivity then posString = "Positivity" else posString = "" end
    if CDIM == 1 and VDIM == 1 then
-      local funcNmX = string.format("CanonicalSurf%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmVX = string.format("CanonicalSurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("CanonicalSurf%s%dx%dv%s_X_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmVX = string.format("CanonicalSurf%s%dx%dv%s_VX_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmVX] }
    elseif CDIM == 2 and VDIM == 2 then
-      local funcNmX = string.format("CanonicalSurf%dx%dv%s_X_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("CanonicalSurf%dx%dv%s_Y_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmVX = string.format("CanonicalSurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmVY = string.format("CanonicalSurf%dx%dv%s_VY_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("CanonicalSurf%s%dx%dv%s_X_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("CanonicalSurf%s%dx%dv%s_Y_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmVX = string.format("CanonicalSurf%s%dx%dv%s_VX_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmVY = string.format("CanonicalSurf%s%dx%dv%s_VY_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmY], ffi.C[funcNmVX], ffi.C[funcNmVY] }
    else
       assert(false, "Must have CDIM=VDIM<=2 for Hamiltonian equation with canonical poisson bracket!")

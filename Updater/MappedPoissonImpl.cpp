@@ -7,20 +7,20 @@ using namespace Eigen;
 //initialize pointer func
 void* new_MapPoisson(int nx, int ny, double xl, double yl, double xu, double yu,
   int xbctypel, int ybctypel, int xbctypeu, int ybctypeu, double xbcu,
-  double xbcl, double ybcu, double ybcl)
+  double xbcl, double ybcu, double ybcl, bool sig)
 {
   MapPoisson *d = new MapPoisson(nx, ny, xl, yl, xu, yu, xbctypel, ybctypel, xbctypeu,
-    ybctypeu, xbcu, xbcl, ybcu, ybcl);
+    ybctypeu, xbcu, xbcl, ybcu, ybcl, sig);
   return reinterpret_cast<void*>(d);
 }
 
 //constructor
 MapPoisson::MapPoisson(int nx_, int ny_, double xl_, double yl_, double xu_, double yu_,
 int xbctypel_, int ybctypel_, int xbctypeu_, int ybctypeu_, double xbcu_,
-double xbcl_, double ybcu_, double ybcl_)
+double xbcl_, double ybcu_, double ybcl_, bool sig_)
     : nx(nx_), ny(ny_), xl(xl_), yl(yl_), xu(xu_), yu(yu_), xbctypel(xbctypel_),
       ybctypel(ybctypel_), xbctypeu(xbctypeu_), ybctypeu(ybctypeu_), xbcu(xbcu_),
-      xbcl(xbcl_), ybcu(ybcu_), ybcl(ybcl_)
+      xbcl(xbcl_), ybcu(ybcu_), ybcl(ybcl_), sigma(sig_)
 {
 
   dxc = (xu-xl)/nx;
@@ -518,6 +518,12 @@ void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, d
   d->setMetricFuncPointer(gfunc);
 }
 
+//diff length lua func wrapper
+void setDiffLenPointer_MapPoisson(MapPoisson *d, void (*hfunc)(double *xch, double *h))
+{
+  d->setDiffLenPointer(hfunc);
+}
+
 //mapc2p lua func wrapper
 void setMapcpp_MapPoisson(MapPoisson *d, void (*mapcpp)(double xc, double yc, double *myxp))
 {
@@ -549,7 +555,7 @@ Vector3d MapPoisson::gij(double xc, double yc, int i, int j){
   spec = false;  //force use of lua automatic differentiation
 
   //c wrapped lua function for metric
-  if (ybctypel != 3){
+  if (spec == false){
     MapPoisson::gfunc(xcp, g);
 
   } else if (spec){                   //ruled map conversion of metric for special grid
@@ -599,10 +605,8 @@ Vector3d MapPoisson::gij(double xc, double yc, int i, int j){
     double m3 = dxn*dxn + dyn*dyn + dzn*dzn;
 
     g[1] = m1; g[2] = m2; g[3] = m3; g[0] = 0;
-
-  } else{
-    MapPoisson::gfunc(xcp, g);
   }
+
 
   Vector3d gconv;
   gconv << g[1], g[2], g[3];
@@ -633,10 +637,37 @@ double MapPoisson::gdet(Vector3d gvec){
 }
 
 //simple 2x2 inverse
-Vector3d MapPoisson::ginv(Vector3d gvec){
+Vector3d MapPoisson::ginv(Vector3d gvec, double xc, double yc){
   double det = gvec(0)*gvec(2)-gvec(1)*gvec(1);
   Vector3d inv;
   inv << gvec(2)/det, -gvec(1)/det, gvec(0)/det;
+  Vector3d inv2;
+  MatrixXd ginvm(2,2);
+  ginvm << inv(0), inv(1), inv(1), inv(2);
+
+  if (sigma){
+    double xcvecs[3] = {0, xc, yc};  //oversized to acct for index difference
+    double hvec[7];
+    MapPoisson::hfunc(xcvecs, hvec);
+    //xyz conductivity tensor
+    MatrixXd sigs(3,3);
+    sigs(0,0) = 1; sigs(0,1) = 0; sigs(0,2) = 0;
+    sigs(1,0) = 0; sigs(1,1) = 1; sigs(1,2) = 0;
+    sigs(2,0) = 0; sigs(2,1) = 0; sigs(2,2) = 1;
+    //jacobian setup
+    MatrixXd jac(3,2);
+    jac << hvec[1], hvec[4], hvec[2], hvec[5], hvec[3], hvec[6];
+    //tranformed sigma
+    MatrixXd mapsig(2,2);
+    mapsig = jac.transpose()*(sigs*jac);
+    //raise both indices
+    MatrixXd upsig(2,2);
+    upsig = ginvm*(mapsig*ginvm.transpose()); //verify this is correct analytically
+
+    inv2 << upsig(0,0), upsig(0,1), upsig(1,1);// needs to change to length 4 so all included
+    inv = inv2;
+  }
+
   if (inv(0) != inv(0) or inv(1) != inv(1) or inv(2) != inv(2)){
     //std::cout << inv << std::endl;
     std::cout << "WARNING: CALCULATION WILL FAIL DUE TO NANS IN INVERSE METRIC" << std::endl;
@@ -651,16 +682,16 @@ Vector3d MapPoisson::ginv(Vector3d gvec){
 double MapPoisson::cij(double xc, double yc, int i, int j){//cij
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc-0.4999*dxc,yc);
   double h1 = -dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
   g = MapPoisson::gij(xc,yc+0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc+0.4999*dyc);
   double h2 = -dxc*sqrt(MapPoisson::gdet(g))*gi(2)/dyc;
   g = MapPoisson::gij(xc+0.4999*dxc,yc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc+0.4999*dxc,yc);
   double h3 = -dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
   g = MapPoisson::gij(xc,yc-0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc-0.4999*dyc);
   double h4 = -dxc*sqrt(MapPoisson::gdet(g))*gi(2)/dyc;
   return h1+h2+h3+h4;
 }
@@ -668,13 +699,13 @@ double MapPoisson::cij(double xc, double yc, int i, int j){//cij
 double MapPoisson::cimj(double xc, double yc, int i, int j){//ci-1,j
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc-0.4999*dxc,yc);
   double h1 = dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
   g = MapPoisson::gij(xc,yc+0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc+0.4999*dyc);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc-0.4999*dyc);
   double h3 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   //dirichlet correctiom
   double coeff = 0;
@@ -707,10 +738,10 @@ double MapPoisson::cimj(double xc, double yc, int i, int j){//ci-1,j
 double MapPoisson::cimjp(double xc, double yc, int i, int j){//ci-1,j+1
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc-0.4999*dxc,yc);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc+0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc+0.4999*dyc);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   //dirichlet correction
   double coeff = 0;
@@ -743,13 +774,13 @@ double MapPoisson::cimjp(double xc, double yc, int i, int j){//ci-1,j+1
 double MapPoisson::cijp(double xc, double yc, int i, int j){//ci,j+1
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc-0.4999*dxc,yc);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc+0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc+0.4999*dyc);
   double h2 = dxc*sqrt(MapPoisson::gdet(g))*gi(2)/dyc;
   g = MapPoisson::gij(xc+0.4999*dxc,yc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc+0.4999*dxc,yc);
   double h3 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   //dirichlet correction
   double coeff = 0;
@@ -782,10 +813,10 @@ double MapPoisson::cijp(double xc, double yc, int i, int j){//ci,j+1
 double MapPoisson::cipjp(double xc, double yc, int i, int j){//ci+1,j+1
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc+0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc+0.4999*dxc,yc);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc+0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc+0.4999*dyc);
   double h2 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   //dirichlet correction
   double coeff = 0;
@@ -818,13 +849,13 @@ double MapPoisson::cipjp(double xc, double yc, int i, int j){//ci+1,j+1
 double MapPoisson::cipj(double xc, double yc, int i, int j){//ci+1,j
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc,yc+0.4999*dyc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc,yc+0.4999*dyc);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc+0.4999*dxc,yc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc+0.4999*dxc,yc);
   double h2 = dyc*sqrt(MapPoisson::gdet(g))*gi(0)/dxc;
   g = MapPoisson::gij(xc,yc-0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc-0.4999*dyc);
   double h3 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   //dirichlet correction
   double coeff = 0;
@@ -857,10 +888,10 @@ double MapPoisson::cipj(double xc, double yc, int i, int j){//ci+1,j
 double MapPoisson::cipjm(double xc, double yc, int i, int j){//ci+1,j-1
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc+0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc+0.4999*dxc,yc);
   double h1 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc-0.4999*dyc);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   //dirichlet correction
   double coeff = 0;
@@ -893,13 +924,13 @@ double MapPoisson::cipjm(double xc, double yc, int i, int j){//ci+1,j-1
 double MapPoisson::cijm(double xc, double yc, int i, int j){//ci,j-1
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc-0.4999*dxc,yc);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc+0.4999*dxc,yc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc+0.4999*dxc,yc);
   double h2 = -sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc-0.4999*dyc);
   double h3 = dxc*sqrt(MapPoisson::gdet(g))*gi(2)/dyc;
   //dirichlet correction
   double coeff = 0;
@@ -932,10 +963,10 @@ double MapPoisson::cijm(double xc, double yc, int i, int j){//ci,j-1
 double MapPoisson::cimjm(double xc, double yc, int i, int j){//ci-1,j-1
   //calculate coefficients
   Vector3d g = MapPoisson::gij(xc-0.4999*dxc,yc, i, j);
-  Vector3d gi = MapPoisson::ginv(g);
+  Vector3d gi = MapPoisson::ginv(g,xc-0.4999*dxc,yc);
   double h1 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   g = MapPoisson::gij(xc,yc-0.4999*dyc, i, j);
-  gi = MapPoisson::ginv(g);
+  gi = MapPoisson::ginv(g,xc,yc-0.4999*dyc);
   double h2 = sqrt(MapPoisson::gdet(g))*gi(1)/4;
   //dirichlet correction
   double coeff = 0;
@@ -972,18 +1003,6 @@ double MapPoisson::cimjm(double xc, double yc, int i, int j){//ci-1,j-1
 void MapPoisson::factorize()
 {
   MapPoisson::laplace();
-  /*
-  std::ofstream otpt;              //for spying on metrc if needed
-  otpt.open("metric.txt");
-  for (int j = 0; j < ny; j++){
-    for (int i = 0; i < nx; i++){
-      otpt << std::setw(15) << xca(i,j)
-           << std::setw(15) << yca(i,j)
-           << std::setw(15) << MapPoisson::gdet(MapPoisson::gij(xca(i,j), yca(i,j), i, j)) << std::endl;
-    }
-    otpt << std::endl;
-  }
-  otpt.close();*/
 }
 
 
@@ -1000,6 +1019,21 @@ void MapPoisson::phisolve()
     std::cout << "ERROR: SOLVING FAILURE" << std::endl;// solving failed
   }
 
+  std::ofstream otpt;              //for outputting stuff to gnuplot files
+  otpt.open("grid.txt");
+  double xpos[4];
+  double k = 0;
+  for (int j = 0; j < ny; j++){
+    for (int i = 0; i < nx; i++){
+      MapPoisson::mapcpp(xca(i,j), yca(i,j), xpos);
+      otpt << std::setw(15) << xpos[1]
+           << std::setw(15) << xpos[2]
+           << std::setw(15) << xpos[3]
+           << std::setw(15) << phi(k) << std::endl;
+      k = k+1;
+    }
+  }
+  otpt.close();
 }
 
 

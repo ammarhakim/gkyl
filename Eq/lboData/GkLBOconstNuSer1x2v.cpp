@@ -36,9 +36,15 @@ double GkLBOconstNuVol1x2vSerP1(const double m_, const double *w, const double *
   out[6] += 0.6123724356957944*((mufac0[3]+alpha0[2])*f[6]+alpha0[1]*f[5]+mufac0[1]*f[4]+alpha0[0]*f[3]+mufac0[0]*f[2]); 
   out[7] += 0.6123724356957944*((mufac0[3]+alpha0[2])*f[7]+alpha0[0]*f[5]+mufac0[0]*f[4]+alpha0[1]*f[3]+mufac0[1]*f[2]); 
 
+  const double alpha0Mid = 0.3535533905932737*alpha0[0]; 
   const double alpha1Mid = 0.3535533905932737*alpha1[0]; 
+  double mufacD[8]; 
+  mufacD[0] = -5.656854249492382*rdv2[1]*w[2]*nu; 
+  mufacD[3] = -3.265986323710906*nu; 
+
+  const double mufacDMid = 0.3535533905932737*mufacD[0]; 
   const double mufac1Mid = 0.3535533905932737*mufac1[0]; 
-  return alpha1Mid + mufac1Mid; 
+  return std::abs(alpha0Mid) + alpha1Mid + std::abs(mufacDMid) + mufac1Mid; 
 
 } 
 double GkLBOconstNuVol1x2vSerP2(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
@@ -94,8 +100,14 @@ double GkLBOconstNuVol1x2vSerP2(const double m_, const double *w, const double *
   out[18] += 0.6123724356957944*mufac0[3]*f[18]+1.224744871391589*(alpha0[2]*f[18]+alpha0[1]*f[17])+2.121320343559642*alpha1[1]*f[13]+(0.5477225575051661*mufac0[7]+0.6123724356957944*mufac0[0])*f[12]+(1.224744871391589*alpha0[7]+1.369306393762915*alpha0[0])*f[10]+0.6123724356957944*mufac0[1]*f[8]+2.121320343559642*f[5]*alpha1[7]+1.369306393762915*(alpha0[1]*f[6]+alpha0[2]*f[5])+2.371708245126284*(alpha1[0]*f[5]+alpha1[1]*f[3]); 
   out[19] += (1.224744871391589*mufac0[3]+0.6123724356957944*alpha0[2])*f[19]+(2.121320343559642*mufac1[5]+1.224744871391589*mufac0[1])*f[17]+(0.5477225575051661*alpha0[7]+0.6123724356957944*alpha0[0])*f[15]+2.121320343559642*(f[10]*mufac1[13]+mufac1[1]*f[11])+(1.224744871391589*mufac0[7]+2.371708245126284*mufac1[3]+1.369306393762915*mufac0[0])*f[10]+0.6123724356957944*alpha0[1]*f[9]+2.121320343559642*f[4]*mufac1[7]+2.371708245126284*mufac1[5]*f[6]+1.369306393762915*(mufac0[1]*f[6]+mufac0[3]*f[4])+2.371708245126284*(mufac1[0]*f[4]+mufac1[1]*f[2]); 
 
+  const double alpha0Mid = 0.3535533905932737*alpha0[0]-0.3952847075210473*alpha0[7]; 
   const double alpha1Mid = 0.3535533905932737*alpha1[0]-0.3952847075210473*alpha1[7]; 
+  double mufacD[20]; 
+  mufacD[0] = -5.656854249492382*rdv2[1]*w[2]*nu; 
+  mufacD[3] = -3.265986323710906*nu; 
+
+  const double mufacDMid = 0.3535533905932737*mufacD[0]; 
   const double mufac1Mid = 0.3535533905932737*mufac1[0]-0.3952847075210473*mufac1[7]; 
-  return alpha1Mid + mufac1Mid; 
+  return std::abs(alpha0Mid) + alpha1Mid + std::abs(mufacDMid) + mufac1Mid; 
 
 } 
