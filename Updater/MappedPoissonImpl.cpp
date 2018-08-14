@@ -27,6 +27,7 @@ double xbcl_, double ybcu_, double ybcl_, bool sig_)
   dyc = (yu-yl)/ny;
   xca = MatrixXd::Zero(nx, ny);
   yca = MatrixXd::Zero(nx, ny);
+  condarr = MatrixXd::Zero(nx*ny, 9); //9 since sigma is xyz
 
   //create xcomp mesh - should be monotonically increasing
   for (int j = 0; j < ny; j++){
@@ -624,6 +625,7 @@ Vector3d MapPoisson::gij(double xc, double yc, int i, int j){
 
 //simple 2x2 determinant
 double MapPoisson::gdet(Vector3d gvec){
+  //std::cout << condarr << std::endl;
   double det = gvec(0)*gvec(2)-gvec(1)*gvec(1);
   if ( det != det ){
     //std::cout << det << std::endl;
@@ -646,14 +648,19 @@ Vector3d MapPoisson::ginv(Vector3d gvec, double xc, double yc){
   ginvm << inv(0), inv(1), inv(1), inv(2);
 
   if (sigma){
+    //get jacobian indices
     double xcvecs[3] = {0, xc, yc};  //oversized to acct for index difference
     double hvec[7];
     MapPoisson::hfunc(xcvecs, hvec);
+    //recalc i and j
+    int i = (xc-xl-0.5*dxc)/dxc;
+    int j = (yc-yl-0.5*dyc)/dyc;
+    int k = (j)*nx+(i);
     //xyz conductivity tensor
     MatrixXd sigs(3,3);
-    sigs(0,0) = 1; sigs(0,1) = 0; sigs(0,2) = 0;
-    sigs(1,0) = 0; sigs(1,1) = 1; sigs(1,2) = 0;
-    sigs(2,0) = 0; sigs(2,1) = 0; sigs(2,2) = 1;
+    sigs(0,0) = condarr(k,0); sigs(0,1) = condarr(k,1); sigs(0,2) = condarr(k,2);
+    sigs(1,0) = condarr(k,3); sigs(1,1) = condarr(k,4); sigs(1,2) = condarr(k,5);
+    sigs(2,0) = condarr(k,6); sigs(2,1) = condarr(k,7); sigs(2,2) = condarr(k,8);
     //jacobian setup
     MatrixXd jac(3,2);
     jac << hvec[1], hvec[4], hvec[2], hvec[5], hvec[3], hvec[6];
@@ -1018,22 +1025,62 @@ void MapPoisson::phisolve()
   if(solver.info()!=Success) { //check if solving failed
     std::cout << "ERROR: SOLVING FAILURE" << std::endl;// solving failed
   }
-
+  /*
   std::ofstream otpt;              //for outputting stuff to gnuplot files
-  otpt.open("grid.txt");
+  otpt.open("x.txt");
   double xpos[4];
   double k = 0;
   for (int j = 0; j < ny; j++){
     for (int i = 0; i < nx; i++){
       MapPoisson::mapcpp(xca(i,j), yca(i,j), xpos);
-      otpt << std::setw(15) << xpos[1]
-           << std::setw(15) << xpos[2]
-           << std::setw(15) << xpos[3]
-           << std::setw(15) << phi(k) << std::endl;
+      otpt << xpos[1] << ", ";
       k = k+1;
     }
+    otpt << std::endl;
   }
   otpt.close();
+
+  std::ofstream otpt2;              //for outputting stuff to gnuplot files
+  otpt2.open("y.txt");
+  double xpos2[4];
+  k = 0;
+  for (int j = 0; j < ny; j++){
+    for (int i = 0; i < nx; i++){
+      MapPoisson::mapcpp(xca(i,j), yca(i,j), xpos2);
+      otpt2 << xpos2[2] << ", ";
+      k = k+1;
+    }
+    otpt2 << std::endl;
+  }
+  otpt2.close();
+
+  std::ofstream otpt3;              //for outputting stuff to gnuplot files
+  otpt3.open("z.txt");
+  double xpos3[4];
+  k = 0;
+  for (int j = 0; j < ny; j++){
+    for (int i = 0; i < nx; i++){
+      MapPoisson::mapcpp(xca(i,j), yca(i,j), xpos3);
+      otpt3 << xpos3[3] << ", ";
+      k = k+1;
+    }
+    otpt3 << std::endl;
+  }
+  otpt3.close();
+
+  std::ofstream otpt4;              //for outputting stuff to gnuplot files
+  otpt4.open("p.txt");
+  double xpos4[4];
+  k = 0;
+  for (int j = 0; j < ny; j++){
+    for (int i = 0; i < nx; i++){
+      MapPoisson::mapcpp(xca(i,j), yca(i,j), xpos4);
+      otpt4 << phi[k] << ", ";
+      k = k+1;
+    }
+    otpt4 << std::endl;
+  }
+  otpt4.close();*/
 }
 
 
@@ -1056,6 +1103,12 @@ void MapPoisson::getSrcvalatIJ(int i, int j, double sitrij){
   jsource(k) = sitrij;
 }
 
+//conductivity
+void MapPoisson::getConvalatIJ(int i, int j, int k, double citrij){
+  int h = (j)*nx+(i);
+  condarr(h,k) = citrij;
+}
+
 //solution
 double MapPoisson::getSolvalatIJ(int i, int j){
   int k = (j)*nx+(i);
@@ -1065,6 +1118,11 @@ double MapPoisson::getSolvalatIJ(int i, int j){
 //source wrapper
 void wrap_getSrcvalatIJ(MapPoisson *d, int i, int j, double sitrij){
   return d->getSrcvalatIJ(i, j, sitrij);
+}
+
+//conductivity wrapper
+void wrap_getConvalatIJ(MapPoisson *d, int i, int j, int k, double citrij){
+  return d->getConvalatIJ(i, j, k, citrij);
 }
 
 //solution wrapper

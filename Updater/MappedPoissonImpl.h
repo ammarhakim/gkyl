@@ -27,8 +27,9 @@ double xbcl_, double ybcu_, double ybcl_, bool sig_);
   void setDiffLenPointer_MapPoisson(MapPoisson *d, void (*hfunc)(double *xch, double *h));
   //mapcpp wrap from lua to c
   void setMapcpp_MapPoisson(MapPoisson *d, void (*mapcpp)(double xc, double yc, double *myxp));
-  //wrap source and solution solvers
+  //wrap source, cond, and solution solvers
   void wrap_getSrcvalatIJ(MapPoisson *d, int i, int j, double sitrij);
+  void wrap_getConvalatIJ(MapPoisson *d, int i, int j, int k, double citrij);
   double wrap_getSolvalatIJ(MapPoisson *d, int i, int j);
 
   //block storage struct
@@ -64,7 +65,9 @@ double xbcl_, double ybcu_, double ybcl_, bool sig_);
       this->mapcpp = mapcpp;
     }
     //source updater
-    void getSrcvalatIJ(int i, int j, double sitrij); //might not be a double
+    void getSrcvalatIJ(int i, int j, double sitrij);
+    //source updater
+    void getConvalatIJ(int i, int j, int k, double citrij);
     //solution updater
     double getSolvalatIJ(int i, int j);
 
@@ -103,6 +106,8 @@ double xbcl_, double ybcu_, double ybcl_, bool sig_);
     //simulation parameters
     int nx, ny, xbctypeu, xbctypel, ybctypeu, ybctypel;
     double xbcu, xbcl, ybcu, ybcl, xl, yl, xu, yu;
+    //conductivity
+    Eigen::MatrixXd condarr;
     //calculated parametrs
     double dxc, dyc;
     Eigen::MatrixXd xca;

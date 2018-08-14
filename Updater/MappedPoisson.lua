@@ -32,6 +32,7 @@ double xbcl_, double ybcu_, double ybcl_, bool sig_);
   void wrap_phisolve(MapPoisson *d);
   //wrap source and solution solvers
   void wrap_getSrcvalatIJ(MapPoisson *d, int i, int j, double sitrij);
+  void wrap_getConvalatIJ(MapPoisson *d, int i, int j, int k, double citrij);
   double wrap_getSolvalatIJ(MapPoisson *d, int i, int j);
 ]]
 
@@ -47,6 +48,7 @@ function MappedPoisson:init(tbl)
    self._top = tbl.bcTop
    self._bottom = tbl.bcBottom
    self._sigma = tbl.sigma
+   condarr = tbl.conduct[1]
 
    --set up metric function
    local myXc, myG = Lin.Vec(2), Lin.Vec(3)
@@ -163,6 +165,21 @@ function MappedPoisson:init(tbl)
    self.point = ffi.C.new_MapPoisson(idx, idy, self._grid:lower(1), self._grid:lower(2),
 				     self._grid:upper(1), self._grid:upper(2), xbctl, ybctl, xbctu, ybctu, xbcu,
 				     xbcl, ybcu, ybcl, sig);
+   -- send over conductivity
+   if (self._sigma) then
+     local grid = self._grid
+     local localRange = condarr:localRange()
+     local indexer = condarr:indexer()
+     for j = localRange:lower(2), localRange:upper(2) do
+        for i = localRange:lower(1), localRange:upper(1) do
+           grid:setIndex({i,j})
+           local citr = condarr:get(indexer(i,j))
+           for k = 1,9 do
+              ffi.C.wrap_getConvalatIJ(self.point, i-1, j-1, k-1, citr[k])
+           end
+        end
+     end
+   end
    --set up metric function for c
    ffi.C.setMetricFuncPointer_MapPoisson(self.point, gfunc)
    --set up differential length funcs for c
