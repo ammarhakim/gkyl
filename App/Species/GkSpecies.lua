@@ -211,6 +211,13 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
 
    self.tmCouplingMom = 0.0 -- for timer 
+
+   if self.positivity then 
+      self.positivityRescale = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+   end
 end
 
 function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
@@ -243,6 +250,8 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
      -- if there is a source, add it to the RHS
      fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
    end
+
+   if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
 
    -- apply BCs
    self:applyBc(tCurr, dt, fOut)

@@ -19,8 +19,9 @@ double GkLBOconstNuVol1x1vSerP1(const double m_, const double *w, const double *
   out[2] += 0.8660254037844386*(alpha0[2]*f[2]+alpha0[1]*f[1]+alpha0[0]*f[0]); 
   out[3] += 0.8660254037844386*(alpha0[2]*f[3]+alpha0[0]*f[1]+f[0]*alpha0[1]); 
 
+  const double alpha0Mid = 0.5*alpha0[0]; 
   const double alpha1Mid = 0.5*alpha1[0]; 
-  return alpha1Mid; 
+  return std::abs(alpha0Mid) + alpha1Mid; 
 
 } 
 double GkLBOconstNuVol1x1vSerP2(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
@@ -48,7 +49,8 @@ double GkLBOconstNuVol1x1vSerP2(const double m_, const double *w, const double *
   out[6] += 0.8660254037844386*alpha0[2]*f[6]+0.5532833351724881*alpha0[4]*f[4]+0.8660254037844386*(alpha0[0]*f[4]+f[0]*alpha0[4])+0.7745966692414833*alpha0[1]*f[1]; 
   out[7] += 1.732050807568877*(alpha0[2]*f[7]+alpha0[1]*f[6])+3.0*(alpha1[1]*f[4]+f[1]*alpha1[4])+1.732050807568877*f[3]*alpha0[4]+1.936491673103709*(alpha0[0]*f[3]+alpha0[1]*f[2]+f[1]*alpha0[2])+3.354101966249685*(alpha1[0]*f[1]+f[0]*alpha1[1]); 
 
+  const double alpha0Mid = 0.5*alpha0[0]-0.5590169943749475*alpha0[4]; 
   const double alpha1Mid = 0.5*alpha1[0]-0.5590169943749475*alpha1[4]; 
-  return alpha1Mid; 
+  return std::abs(alpha0Mid) + alpha1Mid; 
 
 } 
