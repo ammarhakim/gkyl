@@ -270,7 +270,7 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
 
    -- apply BCs
-   self:applyBc(tCurr, dt, fOut)
+   if not hasApar then self:applyBc(tCurr, dt, fOut) end
    
    return status, dtSuggested
 end

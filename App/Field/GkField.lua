@@ -18,6 +18,7 @@ local Species = require "App.Species"
 local Time = require "Lib.Time"
 local math = require("sci.math").generic
 local diff = require("sci.diff")
+local Constants = require "Lib.Constants"
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -80,7 +81,8 @@ function GkField:fullInit(appTbl)
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
 
    if self.isElectromagnetic then
-      self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
+      self.mu0 = tbl.mu0
+      if self.mu0 == nil then self.mu0 = Constants.MU0 end
       self.dApardtInitFunc = tbl.dApardtInit
    end
 
