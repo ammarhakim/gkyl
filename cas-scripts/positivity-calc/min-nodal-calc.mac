@@ -1,0 +1,38 @@
+load("modal-basis")$
+load("fem-calc/femMatrices")$
+load("scifac")$
+
+fh : openw("~/max-out/PositivityRescaleImpl.cpp")$
+header : openw("~/max-out/PositivityRescaleImpl.h")$
+printf(header, "#include <algorithm> ~%")$
+printf(header, "extern \"C\" { ~%")$
+printf(header, "double findMinNodalValue(double *fIn, int ndim); ~%")$
+printf(header, "}; ~%")$
+printf(fh, "#include <PositivityRescaleImpl.h> ~%")$
+printf(fh, "double findMinNodalValue(double *fIn, int ndim) { ~%")$
+printf(fh, "  double fmin = 0.0; ~%")$
+for d : 1 thru 5 do (
+  if d>3 then modNm : sconcat("basis-precalc/basisSer", d-2, "x2v")
+  else modNm : sconcat("basis-precalc/basisSer", d, "x"),
+  load(modNm),
+  if d>3 then (
+    basis : basisP[1],
+    vars : varsP
+  ) else (
+    basis : basisC[1],
+    vars : varsC
+  ),
+  nodes : eval_string(sconcat("nodes", d, "xp1")),
+  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]/3,j,1,length(vars)),f),i,1,length(nodes)),
+  
+  if d=1 then printf(fh, "  if (ndim == ~a) { ~%", d)
+  else printf(fh, "  else if(ndim == ~a) { ~%", d),
+  printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
+  writeCExprsNoExpand1(fVal, gcfac(nodesub(doExpand1(fIn, basis)))),
+  printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
+  printf(fh, "  } ~%")
+)$
+printf(fh, "  return fmin; ~%")$
+printf(fh, "}~%")$
+close(fh)$
+close(header)$
