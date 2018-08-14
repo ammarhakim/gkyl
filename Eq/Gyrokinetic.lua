@@ -40,6 +40,7 @@ function Gyrokinetic:init(tbl)
 
    assert(tbl.hasPhi==true, "Gyrokinetic: must have an electrostatic potential!")
    self._isElectromagnetic = xsys.pickBool(tbl.hasApar, false)
+   self._positivity = xsys.pickBool(tbl.positivity,false)
 
    self.Bvars = tbl.Bvars
 
@@ -49,7 +50,7 @@ function Gyrokinetic:init(tbl)
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
    self._volTerm = GyrokineticModDecl.selectVol(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars)
-   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self.Bvars)
+   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, self._isElectromagnetic, self._positivity, self.Bvars)
 
    -- for sheath BCs
    if tbl.hasSheathBcs then
@@ -191,11 +192,12 @@ function GyrokineticStep2:init(tbl)
    self._cdim = self._confBasis:ndim()
    self._vdim = self._ndim - self._cdim
 
+   self._positivity = xsys.pickBool(tbl.positivity,false)
    self.Bvars = tbl.Bvars
 
    local nm, p = self._basis:id(), self._basis:polyOrder()
    self._volTerm = GyrokineticModDecl.selectStep2Vol(nm, self._cdim, self._vdim, p)
-   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, true, self.Bvars)
+   self._surfTerms = GyrokineticModDecl.selectSurf(nm, self._cdim, self._vdim, p, true, self._positivity, self.Bvars)
 
    self._isFirst = true
 end

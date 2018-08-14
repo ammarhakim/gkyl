@@ -220,6 +220,8 @@ function KineticSpecies:fullInit(appTbl)
 	 self.collisions[nm]:setName(nm)
       end
    end
+
+   self.positivity = xsys.pickBool(tbl.applyPositivity, false)
 end
 
 function KineticSpecies:getCharge() return self.charge end

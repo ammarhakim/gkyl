@@ -171,6 +171,7 @@ def build(bld):
     pbData/CanonicalSurfSer1x1v.cpp
     pbData/CanonicalSurfSer2x2v.cpp
     pbData/CanonicalDisContSurfSer1x1v.cpp
+    pbData/CanonicalSurfPositivitySer1x1v.cpp
 
     gkData/GyrokineticSer1x1v.cpp
     gkData/GyrokineticSer1x2v.cpp
@@ -180,6 +181,10 @@ def build(bld):
     gkData/GyrokineticSurfSer1x2v.cpp
     gkData/GyrokineticSurfSer2x2v.cpp
     gkData/GyrokineticSurfSer3x2v.cpp
+    gkData/GyrokineticSurfPositivitySer1x1v.cpp
+    gkData/GyrokineticSurfPositivitySer1x2v.cpp
+    gkData/GyrokineticSurfPositivitySer2x2v.cpp
+    gkData/GyrokineticSurfPositivitySer3x2v.cpp
     gkData/GkSheathFuncsSer.cpp
 
     Positivity.cpp

@@ -12,6 +12,7 @@ local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local RectCart = require "Grid.RectCart"
 local diff = require "sci.diff"
+local math = require("sci.math").generic
 
 -- MappedCartGrid --------------------------------------------------------------
 --
@@ -21,6 +22,7 @@ local diff = require "sci.diff"
 
 local MappedCart = Proto(RectCart) -- extends RectCart
 -- ctor
+
 function MappedCart:init(tbl)
    MappedCart.super.init(self, tbl)
 
@@ -127,6 +129,80 @@ function MappedCart:calcMetric(xc, gOut)
    end
 end
 
+
+--mapped cart conversion to theta phi for conductivity tensor
+--[[function MappedCart:mapc2sphere(xcvector)
+   
+    local xp, yp, zp = self:mapc2p(xcvector)
+
+    --calculate theta
+    local th = 0
+    if (xp > 0) then th = math.atan(math.sqrt(xp^2+yp^2)/zp)
+    elseif (zp < 0.0 and math.sqrt(xp^2+yp^2) >= 0.0) then th = math.atan(math.sqrt(xp^2+yp^2)/zp)+math.pi
+    elseif (zp < 0.0 and math.sqrt(xp^2+yp^2) < 0.0) then th = math.atan(math.sqrt(xp^2+yp^2)/zp)-math.pi
+    elseif (zp == 0.0 and math.sqrt(xp^2+yp^2) > 0.0) then th = math.pi/2
+    elseif (zp == 0.0 and math.sqrt(xp^2+yp^2) < 0.0) then th = -math.pi/2 end
+
+
+    --calculate phi
+    local ph = 0
+    if (xp > 0) then ph = math.atan(yp/xp)
+    elseif (xp < 0.0 and yp >= 0.0) then ph = math.atan(yp/xp)+math.pi
+    elseif (xp < 0.0 and yp < 0.0) then ph = math.atan(yp/xp)-math.pi
+    elseif (xp == 0.0 and yp > 0.0) then ph = math.pi/2
+    elseif (xp == 0.0 and yp < 0.0) then ph = -math.pi/2 end
+
+    return th, ph
+end]]
+
+-- calculates gradients for jacobian  ONLY set up for xyz case
+function MappedCart:mapDiff(xv)
+      
+	--compute gradients
+    local grad1 = diff.gradientf(function (xc) local x, _, _ = self:mapc2p(xc) return x end, 2)
+    local dx = Lin.Vec(2)
+    grad1(xv, dx)
+    local grad2 = diff.gradientf(function (xc) local _, y, _ = self:mapc2p(xc) return y end, 2)
+    local dy = Lin.Vec(2)
+    grad2(xv, dy)
+    local grad3 = diff.gradientf(function (xc) local _, _, z = self:mapc2p(xc) return z end, 2)
+    local dz = Lin.Vec(2)
+    grad3(xv, dz)
+
+	--separate derivatives
+    local dxdxc = dx[1]
+    local dydxc = dy[1]
+    local dzdxc = dz[1]
+    local dxdyc = dx[2]
+    local dydyc = dy[2]
+    local dzdyc = dz[2]
+
+    return dxdxc, dydxc, dzdxc, dxdyc, dydyc, dzdyc
+end
+
+-- Computes jacobian components
+function MappedCart:calcDiffLen(xcv, hOut)
+
+    --get derivatives, physical coordinates
+    local dxdxc, dydxc, dzdxc, dxdyc, dydyc, dzdyc = self:mapDiff(xcv)
+    --local x, y, z = self:mapc2p(xcv)
+    --local r = math.sqrt(x^2+y^2+z^2)
+    --local th, ph = self:mapc2sphere(xcv)
+
+    --calc differential lengths
+    --local h1 = math.sqrt((r*math.cos(ph)*math.cos(th)*dtdx-r*math.sin(ph)*math.sin(th)*dpdx)^2 +
+			 --(r*math.sin(ph)*math.sin(th)*dtdx+r*math.cos(ph)*math.sin(th)*dpdx)^2 +
+			 --(r*math.sin(th)*dtdx)^2)
+
+    --local h2 = math.sqrt((r*math.cos(ph)*math.cos(th)*dtdy-r*math.sin(ph)*math.sin(th)*dpdy)^2 +
+			 --(r*math.sin(ph)*math.sin(th)*dtdy+r*math.cos(ph)*math.sin(th)*dpdy)^2 +
+			 --(r*math.sin(th)*dtdy)^2)
+
+    
+    --assign to input vector
+    hOut[1], hOut[2], hOut[3], hOut[4], hOut[5], hOut[6] = dxdxc, dydxc, dzdxc, dxdyc, dydyc, dzdyc
+end
+
 -- Compute jacobian = det(g_ij)^(1/2)
 function MappedCart:calcJacobian(xc)
    local g = {}
@@ -165,6 +241,7 @@ function MappedCart:calcContraMetric(xc, gContraOut)
       gContraOut[6] = (g[1]*g[4]-g[2]^2)/det     -- g^33
    end
 end
+
 
 -- internal function to copy physical coordinates into a vector
 -- instead of returning it

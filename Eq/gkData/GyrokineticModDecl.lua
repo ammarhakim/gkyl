@@ -26,26 +26,27 @@ function _M.selectVol(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
 end
 
 -- select functions to compute surface terms (output is a table of functions)
-function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
+function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positivity, Bvars)
    if isElectromagnetic then emString = "Em" else emString = "" end
+   if positivity then posString = "Positivity" else posString = "" end
    bvarString = "_Bvars"
    for k, v in ipairs(Bvars) do
       bvarString = bvarString .. "_" .. v
    end
    if CDIM == 1 and VDIM <= 2 then
-      local funcNmX = string.format("%sGyrokineticSurf%dx%dv%s_X_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmVpar = string.format("%sGyrokineticSurf%dx%dv%s_Vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("%sGyrokineticSurf%s%dx%dv%s_X_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmVpar = string.format("%sGyrokineticSurf%s%dx%dv%s_Vpar_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX..bvarString], ffi.C[funcNmVpar..bvarString] }
    elseif CDIM == 2 and VDIM == 2 then
-      local funcNmX = string.format("%sGyrokineticSurf%dx%dv%s_X_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("%sGyrokineticSurf%dx%dv%s_Y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmVpar = string.format("%sGyrokineticSurf%dx%dv%s_Vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("%sGyrokineticSurf%s%dx%dv%s_X_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("%sGyrokineticSurf%s%dx%dv%s_Y_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmVpar = string.format("%sGyrokineticSurf%s%dx%dv%s_Vpar_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX..bvarString], ffi.C[funcNmY..bvarString], ffi.C[funcNmVpar..bvarString] }
    elseif CDIM == 3 and VDIM == 2 then
-      local funcNmX = string.format("%sGyrokineticSurf%dx%dv%s_X_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("%sGyrokineticSurf%dx%dv%s_Y_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmZ = string.format("%sGyrokineticSurf%dx%dv%s_Z_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmVpar = string.format("%sGyrokineticSurf%dx%dv%s_Vpar_P%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("%sGyrokineticSurf%s%dx%dv%s_X_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("%sGyrokineticSurf%s%dx%dv%s_Y_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmZ = string.format("%sGyrokineticSurf%s%dx%dv%s_Z_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmVpar = string.format("%sGyrokineticSurf%s%dx%dv%s_Vpar_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX..bvarString], ffi.C[funcNmY..bvarString], ffi.C[funcNmZ..bvarString], ffi.C[funcNmVpar..bvarString] }
    else
       assert(false, "Gyrokinetic equation not implemented for this dimensionality!")
