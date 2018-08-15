@@ -101,6 +101,9 @@ function VoronovIonization:forwardEuler(tCurr, dt, idxIn, outIdx, species)
    return self.collisionSlvr:advance(tCurr, dt, elcMomFields, spOutFields)
 end
 
+function VoronovIonization:write(tm, frame)
+end
+
 function VoronovIonization:totalSolverTime()
    return self.collisionSlvr.totalTime
 end

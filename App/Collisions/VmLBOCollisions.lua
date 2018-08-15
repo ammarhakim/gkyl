@@ -150,6 +150,9 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
    return status, dtSuggested
 end
 
+function VmLBOCollisions:write(tm, frame)
+end
+
 function VmLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.tmEvalMom
 end
