@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Plasma solver on a Cartesian grid. Works in arbitrary CDIM/VDIM
--- (VDIM>=CDIM) with either Vlaosv, gyrokinetic, fuilds and Maxwell,
+-- (VDIM>=CDIM) with either Vlasov, gyrokinetic, fuilds and Maxwell,
 -- Poisson or specified EM fields.
 --
 --    _______     ___

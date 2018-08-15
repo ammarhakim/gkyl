@@ -1,0 +1,72 @@
+/* Adjust distribution function to match moments */
+
+simpsum : true$
+
+load("modal-basis")$
+load("basis-precalc/basisSer2x3v")$
+
+makeLagList(L,n) := makelist(L[i],i,1,n)$
+momInt(f) := innerProd([vx,vy,vz],1,1,f)$
+
+bc : basisC[1]$
+bp : basisP[1]$
+
+vvx : (dvx/2*vx+wx[jx])$
+vvy : (dvy/2*vy+wy[jy])$
+vvz : (dvz/2*vz+wz[jz])$
+
+gl : doExpand(g,bp)$
+m0 : calcInnerProdList(varsC, 1, bc, momInt(gl))$
+m11 : calcInnerProdList(varsC, 1, bc, momInt(vvx*gl))$
+m12 : calcInnerProdList(varsC, 1, bc, momInt(vvy*gl))$
+m13 : calcInnerProdList(varsC, 1, bc, momInt(vvz*gl))$
+m2 : calcInnerProdList(varsC, 1, bc, momInt((vvx^2+vvy^2+vvz^2)*gl))$
+
+gsubList : makelist(g[i]=kron_delta(i,k), i,1,length(bp))$
+
+msum0 : subst(gsubList, m0)$
+msum11 : subst(gsubList, m11)$
+msum12 : subst(gsubList, m12)$
+msum13 : subst(gsubList, m13)$
+msum2 : subst(gsubList, m2)$
+
+L0l : makeLagList(L0, length(bc))$
+L11l : makeLagList(L11, length(bc))$
+L12l : makeLagList(L12, length(bc))$
+L13l : makeLagList(L13, length(bc))$
+L2l : makeLagList(L2, length(bc))$
+
+RHS : msum0.L0l + msum11.L11l + msum12.L12l + msum13.L13l + msum2.L2l$
+RHSk : makelist(g[i]=subst(k=i,RHS),i,1,length(bp))$
+
+makeEq(dm,mom) := makelist(dm[i]=sum(sum(sum(subst(RHSk,mom[i]),jx,1,Nvx),jy,1,Nvy),jz,1,Nvz), i,1,length(bc))$
+
+eq0 : makeEq(dn,m0)$
+eq11 : makeEq(dm1,m11)$
+eq12 : makeEq(dm2,m12)$
+eq13 : makeEq(dm3,m13)$
+eq2 : makeEq(dE,m2)$
+
+eqns : fullratsimp(subst([wx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx,
+                          wy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy,
+			  wz[jz]=-Nvz/2*dvz+(jz-1/2)*dvz],
+         append(eq0,eq11,eq12,eq13,eq2)))$
+sol : linsolve(eqns, append(L0l,L11l,L12l,L13l,L2l))$
+
+deltaF : subst(sol,RHS)$
+deltaFk : subst([dvx=2*Lx/Nvx, dvy=2*Ly/Nvy, dvz=2*Lz/Nvz],
+    makelist(subst(k=i,deltaF),i,1,length(bp)))$
+
+/* Cross check: m0 should be [dn[1],dn[2]], m2 should be [dE[1],dE[2]] */
+gcheckList : append(makelist(g[i]=deltaFk[i],i,1,length(bp)),
+  [wx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, wy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy, wz[jz]=-Nvz/2*dvz+(jz-1/2)*dvz,
+   dvx=2*Lx/Nvx,dvy=2*Ly/Nvy, dvz=2*Lz/Nvz])$
+m0c : fullratsimp(sum(sum(sum(subst(gcheckList,m0),jx,1,Nvx),jy,1,Nvy),jz,1,Nvz))$
+m2c : fullratsimp(sum(sum(sum(subst(gcheckList,m2),jx,1,Nvx),jy,1,Nvy),jz,1,Nvz))$
+
+fh : openw("~/max-out/deltaf.lua")$
+expr : float(fullratsimp(subst(w[j]=w,deltaFk)))$
+for i : 1 thru 4 do (
+  printf(fh, "deltaf[~a] = ~a ~%", i, expr[i])
+)$
+close(fh)$
