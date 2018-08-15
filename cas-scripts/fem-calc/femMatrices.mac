@@ -7,14 +7,20 @@ load("eigen")$
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
-nodes1xp1 : [[-1],[1]]$
-nodes1xp2 : [[-1],[0],[1]]$
-nodes2xp1 : [[-1,-1],[1,-1],[-1,1],[1,1]]$
-nodes2xp2 : [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]]$
-nodes3xp1 : [[-1,-1,-1],[1,-1,-1],[-1,1,-1],[1,1,-1],[-1,-1,1],[1,-1,1],[-1,1,1],[1,1,1]]$
-nodes3xp2 : [[-1,-1,-1],[0,-1,-1],[1,-1,-1],[-1,0,-1],[1,0,-1],[-1,1,-1],[0,1,-1],[1,1,-1],
+nodes1xp1 : matrix([-1],[1])$
+nodes1xp2 : matrix([-1],[0],[1])$
+nodes2xp1 : matrix([-1,-1],[1,-1],[-1,1],[1,1])$
+nodes2xp2 : matrix([-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1])$
+nodes3xp1 : matrix([-1,-1,-1],[1,-1,-1],[-1,1,-1],[1,1,-1],[-1,-1,1],[1,-1,1],[-1,1,1],[1,1,1])$
+nodes3xp2 : matrix([-1,-1,-1],[0,-1,-1],[1,-1,-1],[-1,0,-1],[1,0,-1],[-1,1,-1],[0,1,-1],[1,1,-1],
             [-1,-1,0],[1,-1,0],[-1,1,0],[1,1,0],
-            [-1,-1,1],[0,-1,1],[1,-1,1],[-1,0,1],[1,0,1],[-1,1,1],[0,1,1],[1,1,1]]$
+            [-1,-1,1],[0,-1,1],[1,-1,1],[-1,0,1],[1,0,1],[-1,1,1],[0,1,1],[1,1,1])$
+nodes4xp1 : matrix([-1,-1,-1,-1],[1,-1,-1,-1],[-1,1,-1,-1],[1,1,-1,-1],[-1,-1,1,-1],[1,-1,1,-1],[-1,1,1,-1],[1,1,1,-1],
+             [-1,-1,-1,1],[1,-1,-1,1],[-1,1,-1,1],[1,1,-1,1],[-1,-1,1,1],[1,-1,1,1],[-1,1,1,1],[1,1,1,1])$
+nodes5xp1 : matrix([-1,-1,-1,-1,-1],[1,-1,-1,-1,-1],[-1,1,-1,-1,-1],[1,1,-1,-1,-1],[-1,-1,1,-1,-1],[1,-1,1,-1,-1],[-1,1,1,-1,-1],[1,1,1,-1,-1],
+             [-1,-1,-1,1,-1],[1,-1,-1,1,-1],[-1,1,-1,1,-1],[1,1,-1,1,-1],[-1,-1,1,1,-1],[1,-1,1,1,-1],[-1,1,1,1,-1],[1,1,1,1,-1],
+             [-1,-1,-1,-1,1],[1,-1,-1,-1,1],[-1,1,-1,-1,1],[1,1,-1,-1,1],[-1,-1,1,-1,1],[1,-1,1,-1,1],[-1,1,1,-1,1],[1,1,1,-1,1],
+             [-1,-1,-1,1,1],[1,-1,-1,1,1],[-1,1,-1,1,1],[1,1,-1,1,1],[-1,-1,1,1,1],[1,-1,1,1,1],[-1,1,1,1,1],[1,1,1,1,1])$
 
 /* calculate modal-to-nodal transformation matrix */
 calcModToNod(cdim, p) := block([], 
@@ -45,6 +51,50 @@ modToNod:(
     col : subst(nodes[i][1],x,basis),
     col : subst(nodes[i][2],y,col),
     col : subst(nodes[i][3],z,col),
+    col : columnvector(col),
+    if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
+    ),modToNod)
+),
+return(modToNod)
+)$
+
+/* calculate modal-to-nodal transformation matrix */
+calcModToNodPhase(cdim, vdim, p) := block([basis,modNm,nodes,n,modToNod], 
+kill(varsC, varsP, basisC, basisP),
+if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
+else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
+load(modNm),
+if vdim=0 then basis : basisC[p]
+else basis : basisP[p],
+nodes : eval_string(sconcat("nodes", cdim+vdim, "xp", p)),
+n : length(nodes),
+if cdim=1 then (
+modToNod : (
+  for i:1 thru n do (
+  col : subst(nodes[i][1],x,basis),
+  if vdim>=1 then col : subst(nodes[i][2],vx,col),
+  if vdim=2 then col : subst(nodes[i][3],vy,col),
+  col : columnvector(col),
+  if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
+  ),modToNod)
+) else if cdim=2 then (
+modToNod:(
+    for i:1 thru n do (
+    col : subst(nodes[i][1],x,basis),
+    col : subst(nodes[i][2],y,col),
+    if vdim>=1 then col : subst(nodes[i][3],vx,col),
+    if vdim=2 then col : subst(nodes[i][4],vy,col),
+    col : columnvector(col),
+    if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
+    ),modToNod)
+) else (
+modToNod:(
+    for i:1 thru n do (
+    col : subst(nodes[i][1],x,basis),
+    col : subst(nodes[i][2],y,col),
+    col : subst(nodes[i][3],z,col),
+    if vdim>=1 then col : subst(nodes[i][4],vx,col),
+    if vdim=2 then col : subst(nodes[i][5],vy,col),
     col : columnvector(col),
     if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
     ),modToNod)
@@ -83,6 +133,15 @@ modToNod:(
 nodToMod:float(invert(transpose(modToNod)))
 )$
 
+calcMassMatrix2(vars, w, basis, basis2) := block([n, mass],
+                n : length(basis),
+		mass : (mass : zeromatrix(n,n), for i from 1 thru n
+		         do (for j from 1 thru n
+			   do (mass[i,j] : innerProd(vars, w, basis[i], basis2[j]))),
+			   mass),
+	        return (mass)
+)$
+
 /* calculate weighted nodal mass matrix */
 calcMass(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
@@ -106,6 +165,21 @@ w_expd : doExpand1(w, basis),
 massMod : calcMassMatrix(varsC, 1, basis),
 modToNod : calcModToNod(cdim, p),
 massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(transpose(modToNod)))))),
+return(massNod)
+)$
+
+/* calculate weighted nodal flux-surface-averaged mass matrix */
+calcMassFSA(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
+load(modNm),
+basis : basisC[p],
+basisFSA:fullratsimp(integrate(integrate(basis*subst(y=0,doExpand1(jacob,basis)),y,-1,1),z,-1,1)),
+w_expd : doExpand1(w, basis),
+massMod : calcMassMatrix2(varsC, w_expd, basis, basisFSA),
+modToNod : calcModToNod(cdim, p),
+massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(transpose(modToNod)))))),
+massNod:massNod/subst([x=0,y=0,z=0],doExpand1(jacob,basis)),
 return(massNod)
 )$
 
@@ -214,115 +288,3 @@ stiffParNod:float(expand(ratsimp(ratsimp(invert(modToNod)).stiffParMod.ratsimp(i
 return(stiffParNod)
 )$
 
-/* write a C++ function that sets up a matrix for various dimensionalities and polynomial orders */
-writeCMatFunc(prototype, func, onlyDims, printDfacsPerp, printDfacsPar) := block([],
-printf(fh, "~a~%", prototype),
-printf(fh, "{~%"),
-if printDfacsPerp then (
-printf(fh, "  double dfacx2 = 4.0/(dx*dx);~%"),
-printf(fh, "  double dfacxy = 4.0/(dx*dy);~%"),
-printf(fh, "  double dfacy2 = 4.0/(dy*dy);~%")
-),
-if printDfacsPar then (
-printf(fh, "  double dfacz2 = 4.0/(dz*dz);~%")
-),
-first : true,
-if member(1, onlyDims) then (
-if first then (
-  printf(fh, "  if(ndim==1) {~%"),
-  first : false
-)
-else printf(fh, "  else if(ndim==1) {~%"),
-printf(fh, "    if(polyOrder == 1)~%"),
-printf(fh, "    {~%"),
-mat : func(1,1),
-writeEigenMatrix(mat),
-printf(fh, "    }~%"),
-printf(fh, "    else if (polyOrder == 2)~%"),
-printf(fh, "    {~%"),
-mat : func(1,2),
-writeEigenMatrix(mat),
-printf(fh, "    }~%"),
-printf(fh, "  }~%")
-),
-if member(2, onlyDims) then (
-if first then (
-  printf(fh, "  if(ndim==2) {~%"),
-  first : false
-)
-else printf(fh, "  else if(ndim==2) {~%"),
-printf(fh, "    if(polyOrder == 1)~%"),
-printf(fh, "    {~%"),
-mat : func(2,1),
-writeEigenMatrix(mat),
-printf(fh, "    }~%"),
-printf(fh, "    else if (polyOrder == 2)~%"),
-printf(fh, "    {~%"),
-mat : func(2,2),
-writeEigenMatrix(mat),
-printf(fh, "    }~%"),
-printf(fh, "  }~%")
-),
-if member(3, onlyDims) then (
-if first then (
-  printf(fh, "  if(ndim==3) {~%"),
-  first : false
-)
-else printf(fh, "  else if(ndim==3) {~%"),
-printf(fh, "    if(polyOrder == 1)~%"),
-printf(fh, "    {~%"),
-mat : func(3,1),
-writeEigenMatrix(mat),
-printf(fh, "    }~%"),
-printf(fh, "    else if (polyOrder == 2)~%"),
-printf(fh, "    {~%"),
-mat : func(3,2),
-writeEigenMatrix(mat),
-printf(fh, "    }~%"),
-printf(fh, "  }~%")
-),
-printf(fh, "}~%~%")
-)$
-
-fh : openw("~/max-out/FemMatrices.cpp")$
-header : openw("~/max-out/FemMatrices.h")$
-printf(header, "#include <Eigen/Core> ~%")$
-printf(fh, "#include <FemMatrices.h> ~%")$
-/* write getMassMatrix C function */
-prototype:"void getMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcMass, [1,2,3], false, false)$
-printf(header, "~a;~%", prototype)$
-/* write getMassMatrix (unweighted) C function */
-prototype:"void getMassMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcUnweightedMass, [1,2,3], false, false)$
-printf(header, "~a;~%", prototype)$
-/* write getPerpNodToModMatrix C function */
-prototype:"void getPerpNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcNodToModPerp, [2,3], false, false)$
-printf(header, "~a;~%", prototype)$
-/* write getParNodToModMatrix C function */
-prototype:"void getParNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcNodToModPar, [1,3], false, false)$
-printf(header, "~a;~%", prototype)$
-/* write getPerpStiffnessMatrix C function */
-prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder, double dx, double dy)"$
-writeCMatFunc(prototype, calcStiffPerp, [2,3], true, false)$
-printf(header, "~a;~%", prototype)$
-/* write getPerpStiffnessMatrix (unweighted) C function */
-prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder, double dx, double dy)"$
-writeCMatFunc(prototype, calcUnweightedStiffPerp, [2,3], true, false)$
-printf(header, "~a;~%", prototype)$
-/* write getParStiffnessMatrix C function */
-prototype:"void getParStiffnessMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder, double dz)"$
-writeCMatFunc(prototype, calcStiffPar, [1,3], false, true)$
-printf(header, "~a;~%", prototype)$
-/* write getParStiffnessMatrix (unweighted) C function */
-prototype:"void getParStiffnessMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder, double dz)"$
-writeCMatFunc(prototype, calcUnweightedStiffPar, [1,3], false, true)$
-printf(header, "~a;~%", prototype)$
-/* write getPerpStiffnessMatrix C function with metric */
-prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, double *gxx, double *gxy, double *gyy, int ndim, int polyOrder, double dx, double dy)"$
-writeCMatFunc(prototype, calcStiffPerpMetric, [2,3], true, false)$
-printf(header, "~a;~%", prototype)$
-close(fh)$
-close(header)$

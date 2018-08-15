@@ -1,5 +1,6 @@
 load("modal-basis");
 load("out-scripts");
+load("positivity-calc/fhatAL-calc")$
 fpprec : 24$
 
 varsV : [vx, vy, vz]$
@@ -26,7 +27,7 @@ for i : 1 thru pmax do (
   if dir <= cdim then dirlabel : cvars[dir]
   else dirlabel : vvars[dir-cdim],
 
-  printf(fh, "double ~a_~a_P~a(const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "double ~a_~a_P~a(const double dt, const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
   printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
 
@@ -63,35 +64,38 @@ for i : 1 thru pmax do (
      ),
   subst(sv=-1,alpha)),
   /* get cell-average value to use for upwinding */
-  alpha0 : fullratsimp(innerProd(surfIntVars, 1, alpha_sv, subst(sv=-1, bP[1]))),
+  alpha0Val : fullratsimp(innerProd(surfIntVars, 1, alpha_sv, subst(sv=-1, bP[1]))),
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
-  printf(fh, "  double alpha0 = ~a; ~%~%", float(alpha0)),
+  printf(fh, "  double alpha0 = ~a; ~%~%", float(alpha0Val)),
+  flush_output(fh),
 
   printf(fh, "  if (alpha0>0) { ~%"),
-  fhat : subst(sv=1, fl_L),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
+  if positivity then fhat : fhatAL(fl, sv, 1, alpha0*dt/dxv[dir], cdim, vdim, i)
+  else fhat : subst(sv=1, fl_L),
+  t : surfac*innerProd(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
   incr_r : facsum(fullratsimp(t),dxv),
   writeCExprsNoExpand1(incr, incr_r),
   printf(fh, "~%"),
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
   writeCIncrExprsNoExpand1(outr, incr_s),  
   printf(fh, "~%"),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
+  t : surfac*innerProd(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
   incr_l : -t,
   signs : fullratsimp(incr_l/incr_r),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
   writeCIncrExprsNoExpand1(outl, incr_s),
   
   printf(fh, "  } else { ~%"),
-  fhat : subst(sv=-1, fl_R),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
+  if positivity then fhat : fhatAL(fr, sv, -1, alpha0*dt/dxv[dir], cdim, vdim, i)
+  else fhat : subst(sv=-1, fl_R),
+  t : surfac*innerProd(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
   incr_r : facsum(fullratsimp(t),dxv),
   writeCExprsNoExpand1(incr, incr_r),
   printf(fh, "~%"),
   incr_s : makelist(incr[i-1], i, 1, length(bP)),
   writeCIncrExprsNoExpand1(outr, incr_s),  
   printf(fh, "~%"),
-  t : surfac*calcInnerProdList(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
+  t : surfac*innerProd(surfIntVars, alpha_sv, subst(sv=1, bP), fhat),
   incr_l : -t,
   signs : fullratsimp(incr_l/incr_r),
   incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),

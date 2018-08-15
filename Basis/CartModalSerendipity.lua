@@ -15,11 +15,11 @@ local Proto = require "Lib.Proto"
 
 -- Number of basis function in ndim dimensions with specfied polyOrder
 local function numBasis(ndim, polyOrder)
-   local numBasis_d2 = {4, 8, 12, 17}
-   local numBasis_d3 = {8, 20, 32, 50}
-   local numBasis_d4 = {16, 48, 80, 136}
-   local numBasis_d5 = {32, 112, 192, 352}
-   local numBasis_d6 = {64, 256}
+   local numBasis_d2 = {4, 8, 12}
+   local numBasis_d3 = {8, 20, 32}
+   local numBasis_d4 = {16, 48, 80}
+   local numBasis_d5 = {32, 112}
+   local numBasis_d6 = {64}
 
    local nbasis = 1
    if polyOrder > 0 then
@@ -46,8 +46,8 @@ function CartModalSerendipity:init(tbl)
    self._ndim = assert(tbl.ndim, "Basis.CartModalSerendipity: Must specify dimension using 'ndim'")
    self._polyOrder = assert(tbl.polyOrder, "Basis.CartModalSerendipity: Must specify polynonial order with 'polyOrder'")
 
-   if (self._polyOrder < 0) or (self._polyOrder > 4) then
-      assert(false, "Polynomial order must be between 0 and 4")
+   if (self._polyOrder < 0) or (self._polyOrder > 3) then
+      assert(false, "Polynomial order must be between 0 and 3")
    end
 
    self._numBasis = numBasis(self._ndim, self._polyOrder)
@@ -64,9 +64,10 @@ function CartModalSerendipity:init(tbl)
    elseif (self._ndim == 4) then
       _m = require "Basis._data.ModalSerendipBasis4d"
    elseif (self._ndim == 5) then
+      assert(self._polyOrder <= 2, "For 5D polynomial order must be either 1 or 2")
       _m = require "Basis._data.ModalSerendipBasis5d"
    elseif (self._ndim == 6) then
-      assert(self._polyOrder <= 2, "For 6D polynomial order must be either 1 or 2")
+      assert(self._polyOrder <= 1, "For 6D polynomial order must be 1")
       _m = require "Basis._data.ModalSerendipBasis6d"
 
    end
