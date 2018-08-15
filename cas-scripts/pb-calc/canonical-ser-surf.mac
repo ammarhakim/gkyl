@@ -2,11 +2,15 @@ load("pb-calc/canonical-surf")$
 load(stringproc)$
 
 pmax : 2$
+positivity : false$
 for c : 1 thru 1 do (
    v : c,
-   fname : sconcat("~/max-out/CanonicalSurfSer", c, "x", v, "v", ".cpp"),
+   /* separate file for positivity implementation */
+   if positivity then posString : "Positivity"
+   else posString : "",
+   fname : sconcat("~/max-out/CanonicalSurf", posString, "Ser", c, "x", v, "v", ".cpp"),
    fh : openw(fname),
-   funcName : sconcat("CanonicalSurf", c, "x", v, "v", "Ser"),
+   funcName : sconcat("CanonicalSurf", posString, c, "x", v, "v", "Ser"),
    calcCanonicalPBSurfUpdater(fh, funcName, c, v, "Ser", pmax),
    close(fh)
 );

@@ -20,9 +20,11 @@ ffi.cdef[[
   //constructor
   void *new_MapPoisson(int nx_, int ny_, double xl_, double yl_, double xu_, double yu_,
 int xbctypel_, int ybctypel_, int xbctypeu_, int ybctypeu_, double xbcu_,
-double xbcl_, double ybcu_, double ybcl_);
+double xbcl_, double ybcu_, double ybcl_, bool sig_);
   //metric function
   void setMetricFuncPointer_MapPoisson(MapPoisson *d, void (*gfunc)(double *xcl, double *g));
+  //differential length functions
+  void setDiffLenPointer_MapPoisson(MapPoisson *d, void (*hfunc)(double *xch, double *h));
   //mapc2p for C++ side
   void setMapcpp_MapPoisson(MapPoisson *d, void (*mapcpp)(double xc, double yc, double *myxp));
   //solver bits
@@ -30,6 +32,7 @@ double xbcl_, double ybcu_, double ybcl_);
   void wrap_phisolve(MapPoisson *d);
   //wrap source and solution solvers
   void wrap_getSrcvalatIJ(MapPoisson *d, int i, int j, double sitrij);
+  void wrap_getConvalatIJ(MapPoisson *d, int i, int j, int k, double citrij);
   double wrap_getSolvalatIJ(MapPoisson *d, int i, int j);
 ]]
 
@@ -44,6 +47,8 @@ function MappedPoisson:init(tbl)
    self._right = tbl.bcRight
    self._top = tbl.bcTop
    self._bottom = tbl.bcBottom
+   self._sigma = tbl.sigma
+   condarr = tbl.conduct[1]
 
    --set up metric function
    local myXc, myG = Lin.Vec(2), Lin.Vec(3)
@@ -51,6 +56,14 @@ function MappedPoisson:init(tbl)
       myXc[1], myXc[2] = xc[1], xc[2]
       self._grid:calcMetric(myXc, myG)
       g[1], g[2], g[3] = myG[1], myG[2], myG[3]
+   end
+
+   --set up diff length function
+   local myXch, myH = Lin.Vec(2), Lin.Vec(6)
+   local function hfunc(xc, h)
+      myXch[1], myXch[2] = xc[1], xc[2]
+      self._grid:calcDiffLen(myXch, myH)
+      h[1], h[2], h[3], h[4], h[5], h[6] = myH[1], myH[2], myH[3], myH[4], myH[5], myH[6]
    end
 
    --C++ callable mapc2p function for ruled surface metric calc
@@ -62,9 +75,15 @@ function MappedPoisson:init(tbl)
      myxp[1], myxp[2], myxp[3] = xp, yp, zp
    end
 
-   --global idx/y so that accessible to solver
+   --idx/y thats accessible to solver
    local idx = self._grid:numCells(1)
    local idy = self._grid:numCells(2)
+
+   --check to see if tensor weighted or regular Poisson
+   local sig = false
+   if (self._sigma == true) then
+     sig = true
+   end
 
    local xbctu, xbctl, ybctu, ybctl
    --reformat periodic boundary condition inputs
@@ -145,9 +164,27 @@ function MappedPoisson:init(tbl)
    --initialize function pointer
    self.point = ffi.C.new_MapPoisson(idx, idy, self._grid:lower(1), self._grid:lower(2),
 				     self._grid:upper(1), self._grid:upper(2), xbctl, ybctl, xbctu, ybctu, xbcu,
-				     xbcl, ybcu, ybcl);
+				     xbcl, ybcu, ybcl, sig);
+   -- send over conductivity
+   if (self._sigma) then
+     local grid = self._grid
+     local localRange = condarr:localRange()
+     local indexer = condarr:indexer()
+     for j = localRange:lower(2), localRange:upper(2) do
+        for i = localRange:lower(1), localRange:upper(1) do
+           grid:setIndex({i,j})
+           local citr = condarr:get(indexer(i,j))
+           for k = 1,9 do
+              ffi.C.wrap_getConvalatIJ(self.point, i-1, j-1, k-1, citr[k])
+           end
+        end
+     end
+   end
    --set up metric function for c
    ffi.C.setMetricFuncPointer_MapPoisson(self.point, gfunc)
+   --set up differential length funcs for c
+   ffi.C.setDiffLenPointer_MapPoisson(self.point, hfunc)
+   --set up c callable mapc2p
    ffi.C.setMapcpp_MapPoisson(self.point, mapcpp)
    --set up factorization wth pointer
    ffi.C.wrap_factorize(self.point)
@@ -167,9 +204,9 @@ function MappedPoisson:advance(tCurr, dt, inFld, outFld)
    local indexer = source:indexer()
    for j = localRange:lower(2), localRange:upper(2) do
       for i = localRange:lower(1), localRange:upper(1) do
-	 grid:setIndex({i,j})
-	 local sitr = source:get(indexer(i,j))
-	 ffi.C.wrap_getSrcvalatIJ(self.point, i-1, j-1, sitr[1])
+	        grid:setIndex({i,j})
+	        local sitr = source:get(indexer(i,j))
+	        ffi.C.wrap_getSrcvalatIJ(self.point, i-1, j-1, sitr[1])
       end
    end
 
@@ -180,9 +217,9 @@ function MappedPoisson:advance(tCurr, dt, inFld, outFld)
    localRange = phipot:localRange()
    for j = localRange:lower(2), localRange:upper(2) do
       for i = localRange:lower(1), localRange:upper(1) do
-	 grid:setIndex({i,j})
-	 local pitr = phipot:get(indexer(i,j))
-	 pitr[1] = ffi.C.wrap_getSolvalatIJ(self.point, i-1, j-1)
+	        grid:setIndex({i,j})
+	        local pitr = phipot:get(indexer(i,j))
+	        pitr[1] = ffi.C.wrap_getSolvalatIJ(self.point, i-1, j-1)
       end
    end
 

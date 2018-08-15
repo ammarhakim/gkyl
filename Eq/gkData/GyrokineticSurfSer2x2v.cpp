@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -15,7 +15,7 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, con
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.5*(2.0*BdriftX[0]*m_*wv2+(3.0*BmagInv[0]*Phi[3]-1.732050807568877*BmagInv[0]*Phi[2])*dfac_y*q_))/q_;
+  double alpha0 = (0.5*(2.0*BdriftX[0]*m_*wv2+(3.0*BmagInv[0]*Phi[3]-1.732050807568877*BmagInv[0]*Phi[2])*dfac_y*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (2.0*BdriftX[0]*m_*wv2)/q_+3.0*BmagInv[0]*Phi[3]*dfac_y-1.732050807568877*BmagInv[0]*Phi[2]*dfac_y; 
@@ -125,7 +125,7 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, con
   } 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -141,7 +141,7 @@ double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, con
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_;
+  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (2.0*BdriftY[0]*m_*wv2)/q_-3.0*BmagInv[0]*Phi[3]*dfac_x+1.732050807568877*BmagInv[0]*Phi[1]*dfac_x; 
@@ -251,7 +251,7 @@ double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, con
   } 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -267,7 +267,7 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.5*((1.732050807568877*BdriftY[0]*Phi[2]*dfac_v*dfac_y+1.732050807568877*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*wv-1.732050807568877*BdriftY[0]*Phi[2]*dfac_y-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x))/dfac_v;
+  double alpha0 = -(0.5*((1.732050807568877*BdriftY[0]*Phi[2]*dfac_v*dfac_y+1.732050807568877*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*wv-1.732050807568877*BdriftY[0]*Phi[2]*dfac_y-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x))/dfac_v; 
 
   double alpha[16]; 
   alpha[0] = (-1.732050807568877*BdriftY[0]*Phi[2]*dfac_y*wv)-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x*wv+(1.732050807568877*BdriftY[0]*Phi[2]*dfac_y)/dfac_v+(1.732050807568877*BdriftX[0]*Phi[1]*dfac_x)/dfac_v; 
@@ -378,7 +378,7 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -394,7 +394,7 @@ double EmGyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, c
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.5*(2.0*BdriftX[0]*m_*wv2+((3.464101615137754*Apar[2]-6.0*Apar[3])*dfac_y-1.732050807568877*BdriftX[0]*Apar[1]+Apar[0]*BdriftX[0])*q_*wv+(3.0*BmagInv[0]*Phi[3]-1.732050807568877*BmagInv[0]*Phi[2])*dfac_y*q_))/q_;
+  double alpha0 = (0.5*(2.0*BdriftX[0]*m_*wv2+((3.464101615137754*Apar[2]-6.0*Apar[3])*dfac_y-1.732050807568877*BdriftX[0]*Apar[1]+Apar[0]*BdriftX[0])*q_*wv+(3.0*BmagInv[0]*Phi[3]-1.732050807568877*BmagInv[0]*Phi[2])*dfac_y*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (2.0*BdriftX[0]*m_*wv2)/q_-6.0*Apar[3]*dfac_y*wv+3.464101615137754*Apar[2]*dfac_y*wv-1.732050807568877*BdriftX[0]*Apar[1]*wv+Apar[0]*BdriftX[0]*wv+3.0*BmagInv[0]*Phi[3]*dfac_y-1.732050807568877*BmagInv[0]*Phi[2]*dfac_y; 
@@ -505,7 +505,7 @@ double EmGyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, c
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -521,7 +521,7 @@ double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, c
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+((6.0*Apar[3]-3.464101615137754*Apar[1])*dfac_x-1.732050807568877*BdriftY[0]*Apar[2]+Apar[0]*BdriftY[0])*q_*wv+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_;
+  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+((6.0*Apar[3]-3.464101615137754*Apar[1])*dfac_x-1.732050807568877*BdriftY[0]*Apar[2]+Apar[0]*BdriftY[0])*q_*wv+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (2.0*BdriftY[0]*m_*wv2)/q_+6.0*Apar[3]*dfac_x*wv-3.464101615137754*Apar[1]*dfac_x*wv-1.732050807568877*BdriftY[0]*Apar[2]*wv+Apar[0]*BdriftY[0]*wv-3.0*BmagInv[0]*Phi[3]*dfac_x+1.732050807568877*BmagInv[0]*Phi[1]*dfac_x; 
@@ -632,7 +632,7 @@ double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, c
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -648,7 +648,7 @@ double EmGyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.25*((3.464101615137754*BdriftY[0]*Phi[2]*dfac_v*dfac_y+3.464101615137754*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*m_*wv+(((6.0*Phi[1]*Apar[2]-6.0*Apar[1]*Phi[2])*dfac_v*dfac_x+(1.732050807568877*BdriftY[0]*Apar[1]*Phi[3]+1.732050807568877*Apar[0]*BdriftY[0]*Phi[2])*dfac_v)*dfac_y+(1.732050807568877*BdriftX[0]*Apar[2]*Phi[3]+1.732050807568877*Apar[0]*BdriftX[0]*Phi[1])*dfac_v*dfac_x+4.0*dApardt[0]*dfac_v)*q_+((-3.464101615137754*BdriftY[0]*Phi[2]*dfac_y)-3.464101615137754*BdriftX[0]*Phi[1]*dfac_x)*m_))/(dfac_v*m_);
+  double alpha0 = -(0.25*((3.464101615137754*BdriftY[0]*Phi[2]*dfac_v*dfac_y+3.464101615137754*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*m_*wv+(((6.0*Phi[1]*Apar[2]-6.0*Apar[1]*Phi[2])*dfac_v*dfac_x+(1.732050807568877*BdriftY[0]*Apar[1]*Phi[3]+1.732050807568877*Apar[0]*BdriftY[0]*Phi[2])*dfac_v)*dfac_y+(1.732050807568877*BdriftX[0]*Apar[2]*Phi[3]+1.732050807568877*Apar[0]*BdriftX[0]*Phi[1])*dfac_v*dfac_x+4.0*dApardt[0]*dfac_v)*q_+((-3.464101615137754*BdriftY[0]*Phi[2]*dfac_y)-3.464101615137754*BdriftX[0]*Phi[1]*dfac_x)*m_))/(dfac_v*m_); 
 
   double alpha[16]; 
   alpha[0] = (-1.732050807568877*BdriftY[0]*Phi[2]*dfac_y*wv)-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x*wv+(3.0*Apar[1]*Phi[2]*dfac_x*dfac_y*q_)/m_-(3.0*Phi[1]*Apar[2]*dfac_x*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[1]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[0]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*BdriftX[0]*Apar[2]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*Apar[0]*BdriftX[0]*Phi[1]*dfac_x*q_)/m_-(2.0*dApardt[0]*q_)/m_+(1.732050807568877*BdriftY[0]*Phi[2]*dfac_y)/dfac_v+(1.732050807568877*BdriftX[0]*Phi[1]*dfac_x)/dfac_v; 
@@ -760,7 +760,7 @@ double EmGyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_
   } 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -776,7 +776,7 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, con
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.5*((3.464101615137754*BdriftX[1]-2.0*BdriftX[0])*m_*wv2+((5.196152422706631*BmagInv[1]-3.0*BmagInv[0])*Phi[3]+(1.732050807568877*BmagInv[0]-3.0*BmagInv[1])*Phi[2])*dfac_y*q_))/q_;
+  double alpha0 = -(0.5*((3.464101615137754*BdriftX[1]-2.0*BdriftX[0])*m_*wv2+((5.196152422706631*BmagInv[1]-3.0*BmagInv[0])*Phi[3]+(1.732050807568877*BmagInv[0]-3.0*BmagInv[1])*Phi[2])*dfac_y*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (-(3.464101615137754*BdriftX[1]*m_*wv2)/q_)+(2.0*BdriftX[0]*m_*wv2)/q_-5.196152422706631*BmagInv[1]*Phi[3]*dfac_y+3.0*BmagInv[0]*Phi[3]*dfac_y+3.0*BmagInv[1]*Phi[2]*dfac_y-1.732050807568877*BmagInv[0]*Phi[2]*dfac_y; 
@@ -886,7 +886,7 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, con
   } 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -902,7 +902,7 @@ double GyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, con
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+1.732050807568877*BmagInv[0]*Bmag[1]*dfac_x*wm+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_;
+  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+1.732050807568877*BmagInv[0]*Bmag[1]*dfac_x*wm+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (2.0*BdriftY[0]*m_*wv2)/q_+(1.732050807568877*BmagInv[0]*Bmag[1]*dfac_x*wm)/q_-3.0*BmagInv[0]*Phi[3]*dfac_x+1.732050807568877*BmagInv[0]*Phi[1]*dfac_x; 
@@ -1016,7 +1016,7 @@ double GyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, con
   } 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -1032,7 +1032,7 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.5*((1.732050807568877*BdriftX[0]*Bmag[1]*dfac_v*dfac_x*wm+((1.732050807568877*BdriftY[1]*Phi[3]+1.732050807568877*BdriftY[0]*Phi[2])*dfac_v*dfac_y+1.732050807568877*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*q_)*wv-1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm+(((-1.732050807568877*BdriftY[1]*Phi[3])-1.732050807568877*BdriftY[0]*Phi[2])*dfac_y-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x)*q_))/(dfac_v*q_);
+  double alpha0 = -(0.5*((1.732050807568877*BdriftX[0]*Bmag[1]*dfac_v*dfac_x*wm+((1.732050807568877*BdriftY[1]*Phi[3]+1.732050807568877*BdriftY[0]*Phi[2])*dfac_v*dfac_y+1.732050807568877*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*q_)*wv-1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm+(((-1.732050807568877*BdriftY[1]*Phi[3])-1.732050807568877*BdriftY[0]*Phi[2])*dfac_y-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x)*q_))/(dfac_v*q_); 
 
   double alpha[16]; 
   alpha[0] = (-(1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm*wv)/q_)-1.732050807568877*BdriftY[1]*Phi[3]*dfac_y*wv-1.732050807568877*BdriftY[0]*Phi[2]*dfac_y*wv-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x*wv+(1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm)/(dfac_v*q_)+(1.732050807568877*BdriftY[1]*Phi[3]*dfac_y)/dfac_v+(1.732050807568877*BdriftY[0]*Phi[2]*dfac_y)/dfac_v+(1.732050807568877*BdriftX[0]*Phi[1]*dfac_x)/dfac_v; 
@@ -1146,7 +1146,7 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -1162,7 +1162,7 @@ double EmGyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, c
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.5*((3.464101615137754*BdriftX[1]-2.0*BdriftX[0])*m_*wv2+((6.0*Apar[3]-3.464101615137754*Apar[2])*dfac_y+(1.732050807568877*Apar[0]-3.0*Apar[1])*BdriftX[1]+1.732050807568877*BdriftX[0]*Apar[1]-1.0*Apar[0]*BdriftX[0])*q_*wv+((5.196152422706631*BmagInv[1]-3.0*BmagInv[0])*Phi[3]+(1.732050807568877*BmagInv[0]-3.0*BmagInv[1])*Phi[2])*dfac_y*q_))/q_;
+  double alpha0 = -(0.5*((3.464101615137754*BdriftX[1]-2.0*BdriftX[0])*m_*wv2+((6.0*Apar[3]-3.464101615137754*Apar[2])*dfac_y+(1.732050807568877*Apar[0]-3.0*Apar[1])*BdriftX[1]+1.732050807568877*BdriftX[0]*Apar[1]-1.0*Apar[0]*BdriftX[0])*q_*wv+((5.196152422706631*BmagInv[1]-3.0*BmagInv[0])*Phi[3]+(1.732050807568877*BmagInv[0]-3.0*BmagInv[1])*Phi[2])*dfac_y*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (-(3.464101615137754*BdriftX[1]*m_*wv2)/q_)+(2.0*BdriftX[0]*m_*wv2)/q_-6.0*Apar[3]*dfac_y*wv+3.464101615137754*Apar[2]*dfac_y*wv+3.0*Apar[1]*BdriftX[1]*wv-1.732050807568877*Apar[0]*BdriftX[1]*wv-1.732050807568877*BdriftX[0]*Apar[1]*wv+1.0*Apar[0]*BdriftX[0]*wv-5.196152422706631*BmagInv[1]*Phi[3]*dfac_y+3.0*BmagInv[0]*Phi[3]*dfac_y+3.0*BmagInv[1]*Phi[2]*dfac_y-1.732050807568877*BmagInv[0]*Phi[2]*dfac_y; 
@@ -1273,7 +1273,7 @@ double EmGyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, c
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -1289,7 +1289,7 @@ double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, c
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+((6.0*Apar[3]-3.464101615137754*Apar[1])*dfac_x-1.732050807568877*BdriftY[1]*Apar[3]-1.732050807568877*BdriftY[0]*Apar[2]+Apar[1]*BdriftY[1]+Apar[0]*BdriftY[0])*q_*wv+1.732050807568877*BmagInv[0]*Bmag[1]*dfac_x*wm+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_;
+  double alpha0 = (0.5*(2.0*BdriftY[0]*m_*wv2+((6.0*Apar[3]-3.464101615137754*Apar[1])*dfac_x-1.732050807568877*BdriftY[1]*Apar[3]-1.732050807568877*BdriftY[0]*Apar[2]+Apar[1]*BdriftY[1]+Apar[0]*BdriftY[0])*q_*wv+1.732050807568877*BmagInv[0]*Bmag[1]*dfac_x*wm+(1.732050807568877*BmagInv[0]*Phi[1]-3.0*BmagInv[0]*Phi[3])*dfac_x*q_))/q_; 
 
   double alpha[16]; 
   alpha[0] = (2.0*BdriftY[0]*m_*wv2)/q_+6.0*Apar[3]*dfac_x*wv-3.464101615137754*Apar[1]*dfac_x*wv-1.732050807568877*BdriftY[1]*Apar[3]*wv-1.732050807568877*BdriftY[0]*Apar[2]*wv+Apar[1]*BdriftY[1]*wv+Apar[0]*BdriftY[0]*wv+(1.732050807568877*BmagInv[0]*Bmag[1]*dfac_x*wm)/q_-3.0*BmagInv[0]*Phi[3]*dfac_x+1.732050807568877*BmagInv[0]*Phi[1]*dfac_x; 
@@ -1403,7 +1403,7 @@ double EmGyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, c
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double dt, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -1419,11 +1419,11 @@ double EmGyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_
   double q2 = q_*q_; 
   double incr[16]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.25*((3.464101615137754*BdriftX[0]*Bmag[1]*dfac_v*dfac_x*m_*wm+((3.464101615137754*BdriftY[1]*Phi[3]+3.464101615137754*BdriftY[0]*Phi[2])*dfac_v*dfac_y+3.464101615137754*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*m_*q_)*wv+((6.0*Bmag[1]*Apar[2]*dfac_v*dfac_x*dfac_y+(1.732050807568877*Apar[1]*BdriftX[1]+1.732050807568877*Apar[0]*BdriftX[0])*Bmag[1]*dfac_v*dfac_x)*q_-3.464101615137754*BdriftX[0]*Bmag[1]*dfac_x*m_)*wm+(((-3.464101615137754*BdriftY[1]*Phi[3])-3.464101615137754*BdriftY[0]*Phi[2])*dfac_y-3.464101615137754*BdriftX[0]*Phi[1]*dfac_x)*m_*q_+(((6.0*Phi[1]*Apar[2]-6.0*Apar[1]*Phi[2])*dfac_v*dfac_x+((1.732050807568877*Apar[0]*BdriftY[1]+1.732050807568877*BdriftY[0]*Apar[1])*Phi[3]+(1.732050807568877*Apar[1]*BdriftY[1]+1.732050807568877*Apar[0]*BdriftY[0])*Phi[2])*dfac_v)*dfac_y+((1.732050807568877*BdriftX[1]*Apar[3]+1.732050807568877*BdriftX[0]*Apar[2])*Phi[3]+(1.732050807568877*Apar[1]*BdriftX[1]+1.732050807568877*Apar[0]*BdriftX[0])*Phi[1])*dfac_v*dfac_x+4.0*dApardt[0]*dfac_v)*q2))/(dfac_v*m_*q_);
+  double alpha0 = -(0.25*((3.464101615137754*BdriftX[0]*Bmag[1]*dfac_v*dfac_x*m_*wm+((3.464101615137754*BdriftY[1]*Phi[3]+3.464101615137754*BdriftY[0]*Phi[2])*dfac_v*dfac_y+3.464101615137754*BdriftX[0]*Phi[1]*dfac_v*dfac_x)*m_*q_)*wv+((6.0*Bmag[1]*Apar[2]*dfac_v*dfac_x*dfac_y+(1.732050807568877*Apar[1]*BdriftX[1]+1.732050807568877*Apar[0]*BdriftX[0])*Bmag[1]*dfac_v*dfac_x)*q_-3.464101615137754*BdriftX[0]*Bmag[1]*dfac_x*m_)*wm+(((-3.464101615137754*BdriftY[1]*Phi[3])-3.464101615137754*BdriftY[0]*Phi[2])*dfac_y-3.464101615137754*BdriftX[0]*Phi[1]*dfac_x)*m_*q_+(((6.0*Phi[1]*Apar[2]-6.0*Apar[1]*Phi[2])*dfac_v*dfac_x+((1.732050807568877*Apar[0]*BdriftY[1]+1.732050807568877*BdriftY[0]*Apar[1])*Phi[3]+(1.732050807568877*Apar[1]*BdriftY[1]+1.732050807568877*Apar[0]*BdriftY[0])*Phi[2])*dfac_v)*dfac_y+((1.732050807568877*BdriftX[1]*Apar[3]+1.732050807568877*BdriftX[0]*Apar[2])*Phi[3]+(1.732050807568877*Apar[1]*BdriftX[1]+1.732050807568877*Apar[0]*BdriftX[0])*Phi[1])*dfac_v*dfac_x+4.0*dApardt[0]*dfac_v)*q2))/(dfac_v*m_*q_); 
 
   double alpha[16]; 
-  alpha[0] = (-(1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm*wv)/q_)-1.732050807568877*BdriftY[1]*Phi[3]*dfac_y*wv-1.732050807568877*BdriftY[0]*Phi[2]*dfac_y*wv-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x*wv+(1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm)/(dfac_v*q_)-(3.0*Bmag[1]*Apar[2]*dfac_x*dfac_y*wm)/m_-(0.8660254037844386*Apar[1]*BdriftX[1]*Bmag[1]*dfac_x*wm)/m_-(0.8660254037844386*Apar[0]*BdriftX[0]*Bmag[1]*dfac_x*wm)/m_+(3.0*Apar[1]*Phi[2]*dfac_x*dfac_y*q_)/m_-(3.0*Phi[1]*Apar[2]*dfac_x*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[1]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[1]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*Apar[1]*BdriftY[1]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[0]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*BdriftX[1]*Apar[3]*Phi[3]*dfac_x*q2)/(m_*q_)-(0.8660254037844386*BdriftX[0]*Apar[2]*Phi[3]*dfac_x*q2)/(m_*q_)-(0.8660254037844386*Apar[1]*BdriftX[1]*Phi[1]*dfac_x*q2)/(m_*q_)-(0.8660254037844386*Apar[0]*BdriftX[0]*Phi[1]*dfac_x*q2)/(m_*q_)-(2.0*dApardt[0]*q2)/(m_*q_)+(1.732050807568877*BdriftY[1]*Phi[3]*dfac_y)/dfac_v+(1.732050807568877*BdriftY[0]*Phi[2]*dfac_y)/dfac_v+(1.732050807568877*BdriftX[0]*Phi[1]*dfac_x)/dfac_v; 
-  alpha[1] = (-(1.732050807568877*BdriftX[1]*Bmag[1]*dfac_x*wm*wv)/q_)-1.732050807568877*BdriftY[0]*Phi[3]*dfac_y*wv-1.732050807568877*BdriftY[1]*Phi[2]*dfac_y*wv-1.732050807568877*BdriftX[1]*Phi[1]*dfac_x*wv+(1.732050807568877*BdriftX[1]*Bmag[1]*dfac_x*wm)/(dfac_v*q_)-(3.0*Bmag[1]*Apar[3]*dfac_x*dfac_y*wm)/m_-(0.8660254037844386*Apar[0]*BdriftX[1]*Bmag[1]*dfac_x*wm)/m_-(0.8660254037844386*BdriftX[0]*Apar[1]*Bmag[1]*dfac_x*wm)/m_+(3.0*Apar[1]*Phi[3]*dfac_x*dfac_y*q_)/m_-(3.0*Phi[1]*Apar[3]*dfac_x*dfac_y*q_)/m_-(1.55884572681199*Apar[1]*BdriftY[1]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[0]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[1]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[1]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*BdriftX[0]*Apar[3]*Phi[3]*dfac_x*q2)/(m_*q_)-(0.8660254037844386*BdriftX[1]*Apar[2]*Phi[3]*dfac_x*q2)/(m_*q_)-(0.8660254037844386*Apar[0]*BdriftX[1]*Phi[1]*dfac_x*q2)/(m_*q_)-(0.8660254037844386*BdriftX[0]*Apar[1]*Phi[1]*dfac_x*q2)/(m_*q_)-(2.0*dApardt[1]*q2)/(m_*q_)+(1.732050807568877*BdriftY[0]*Phi[3]*dfac_y)/dfac_v+(1.732050807568877*BdriftY[1]*Phi[2]*dfac_y)/dfac_v+(1.732050807568877*BdriftX[1]*Phi[1]*dfac_x)/dfac_v; 
+  alpha[0] = (-(1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm*wv)/q_)-1.732050807568877*BdriftY[1]*Phi[3]*dfac_y*wv-1.732050807568877*BdriftY[0]*Phi[2]*dfac_y*wv-1.732050807568877*BdriftX[0]*Phi[1]*dfac_x*wv+(1.732050807568877*BdriftX[0]*Bmag[1]*dfac_x*wm)/(dfac_v*q_)-(3.0*Bmag[1]*Apar[2]*dfac_x*dfac_y*wm)/m_-(0.8660254037844386*Apar[1]*BdriftX[1]*Bmag[1]*dfac_x*wm)/m_-(0.8660254037844386*Apar[0]*BdriftX[0]*Bmag[1]*dfac_x*wm)/m_+(3.0*Apar[1]*Phi[2]*dfac_x*dfac_y*q_)/m_-(3.0*Phi[1]*Apar[2]*dfac_x*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[1]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[1]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*Apar[1]*BdriftY[1]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[0]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*BdriftX[1]*Apar[3]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[0]*Apar[2]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*Apar[1]*BdriftX[1]*Phi[1]*dfac_x*q_)/m_-(0.8660254037844386*Apar[0]*BdriftX[0]*Phi[1]*dfac_x*q_)/m_-(2.0*dApardt[0]*q_)/m_+(1.732050807568877*BdriftY[1]*Phi[3]*dfac_y)/dfac_v+(1.732050807568877*BdriftY[0]*Phi[2]*dfac_y)/dfac_v+(1.732050807568877*BdriftX[0]*Phi[1]*dfac_x)/dfac_v; 
+  alpha[1] = (-(1.732050807568877*BdriftX[1]*Bmag[1]*dfac_x*wm*wv)/q_)-1.732050807568877*BdriftY[0]*Phi[3]*dfac_y*wv-1.732050807568877*BdriftY[1]*Phi[2]*dfac_y*wv-1.732050807568877*BdriftX[1]*Phi[1]*dfac_x*wv+(1.732050807568877*BdriftX[1]*Bmag[1]*dfac_x*wm)/(dfac_v*q_)-(3.0*Bmag[1]*Apar[3]*dfac_x*dfac_y*wm)/m_-(0.8660254037844386*Apar[0]*BdriftX[1]*Bmag[1]*dfac_x*wm)/m_-(0.8660254037844386*BdriftX[0]*Apar[1]*Bmag[1]*dfac_x*wm)/m_+(3.0*Apar[1]*Phi[3]*dfac_x*dfac_y*q_)/m_-(3.0*Phi[1]*Apar[3]*dfac_x*dfac_y*q_)/m_-(1.55884572681199*Apar[1]*BdriftY[1]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[0]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftY[1]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[1]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*BdriftX[0]*Apar[3]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[1]*Apar[2]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*Apar[0]*BdriftX[1]*Phi[1]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[0]*Apar[1]*Phi[1]*dfac_x*q_)/m_-(2.0*dApardt[1]*q_)/m_+(1.732050807568877*BdriftY[0]*Phi[3]*dfac_y)/dfac_v+(1.732050807568877*BdriftY[1]*Phi[2]*dfac_y)/dfac_v+(1.732050807568877*BdriftX[1]*Phi[1]*dfac_x)/dfac_v; 
   alpha[2] = (-1.732050807568877*BdriftX[0]*Phi[3]*dfac_x*wv)-(0.8660254037844386*BdriftX[1]*Bmag[1]*Apar[3]*dfac_x*wm)/m_-(0.8660254037844386*BdriftX[0]*Bmag[1]*Apar[2]*dfac_x*wm)/m_-(3.0*Apar[2]*Phi[3]*dfac_x*dfac_y*q_)/m_+(3.0*Phi[2]*Apar[3]*dfac_x*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[3]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[1]*Apar[2]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[1]*Phi[2]*Apar[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[2]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*Apar[1]*BdriftX[1]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*Apar[0]*BdriftX[0]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[1]*Phi[1]*Apar[3]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[0]*Phi[1]*Apar[2]*dfac_x*q_)/m_-(2.0*dApardt[2]*q_)/m_+(1.732050807568877*BdriftX[0]*Phi[3]*dfac_x)/dfac_v; 
   alpha[4] = (-(1.0*BdriftX[0]*Bmag[1]*dfac_x*wv)/(dfac_m*q_))+(1.0*BdriftX[0]*Bmag[1]*dfac_x)/(dfac_m*dfac_v*q_)-(1.732050807568877*Bmag[1]*Apar[2]*dfac_x*dfac_y)/(dfac_m*m_)-(0.5*Apar[1]*BdriftX[1]*Bmag[1]*dfac_x)/(dfac_m*m_)-(0.5*Apar[0]*BdriftX[0]*Bmag[1]*dfac_x)/(dfac_m*m_); 
   alpha[5] = (-1.732050807568877*BdriftX[1]*Phi[3]*dfac_x*wv)-(0.8660254037844386*BdriftX[0]*Bmag[1]*Apar[3]*dfac_x*wm)/m_-(0.8660254037844386*BdriftX[1]*Bmag[1]*Apar[2]*dfac_x*wm)/m_-(1.55884572681199*BdriftY[1]*Apar[3]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Apar[2]*Phi[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[0]*Phi[2]*Apar[3]*dfac_y*q_)/m_-(0.8660254037844386*BdriftY[1]*Apar[2]*Phi[2]*dfac_y*q_)/m_-(0.8660254037844386*Apar[0]*BdriftX[1]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[0]*Apar[1]*Phi[3]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[0]*Phi[1]*Apar[3]*dfac_x*q_)/m_-(0.8660254037844386*BdriftX[1]*Phi[1]*Apar[2]*dfac_x*q_)/m_-(2.0*dApardt[3]*q_)/m_+(1.732050807568877*BdriftX[1]*Phi[3]*dfac_x)/dfac_v; 

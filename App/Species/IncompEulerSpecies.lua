@@ -25,6 +25,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
    local eqn = IncompEulerEq {
       onGrid = self.grid,
       basis = self.basis,
+      positivity = self.positivity,
    }
 
    self.solver = Updater.HyperDisCont {
@@ -33,6 +34,13 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
       cfl = self.cfl,
       equation = eqn,
    }
+
+   if self.positivity then 
+      self.positivityRescale = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+   end
 end
 
 -- nothing to calculate, just copy

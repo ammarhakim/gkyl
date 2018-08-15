@@ -88,6 +88,8 @@ function FluidSpecies:fullInit(appTbl)
    self.boundaryConditions = { } -- list of Bcs to apply
 
    self.bcTime = 0.0 -- timer for BCs
+
+   self.positivity = xsys.pickBool(tbl.applyPositivity, false)
 end
 
 function FluidSpecies:getCharge() return self.charge end
@@ -253,6 +255,9 @@ function FluidSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    if self.evolve then
       local em = emIn[1]:rkStepperFields()[inIdx]
       local myStatus, myDt = self.solver:advance(tCurr, dt, {fIn, em}, {fOut})
+
+      if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
+
       -- apply BCs
       self:applyBc(tCurr, dt, fOut)
       return myStatus, myDt

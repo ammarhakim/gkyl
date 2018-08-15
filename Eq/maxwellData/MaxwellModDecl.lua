@@ -10,7 +10,7 @@ local ffi = require "ffi"
 local _ = require "Eq.maxwellData._MaxwellCdef"
 
 -- map of basis function name -> function encoding
-local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
+local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
 
 local _M = {}
 

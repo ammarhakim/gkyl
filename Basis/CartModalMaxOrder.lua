@@ -41,8 +41,8 @@ function CartModalMaxOrder:init(tbl)
    self._ndim = assert(tbl.ndim, "Basis.CartModalMaxOrder: Must specify dimension using 'ndim'")
    self._polyOrder = assert(tbl.polyOrder, "Basis.CartModalMaxOrder: Must specify polynonial order with 'polyOrder'")
 
-   if (self._polyOrder < 0) or (self._polyOrder > 4) then
-      assert(false, "Polynomial order must be between 0 and 4")
+   if (self._polyOrder < 0) or (self._polyOrder > 3) then
+      assert(false, "Polynomial order must be between 0 and 3")
    end
 
    self._numBasis = numBasis(self._ndim, self._polyOrder)

@@ -170,12 +170,6 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then      
       status, dtSuggested = self.solver:advance(
 	 tCurr, dt, {fIn, totalEmField}, {fOut})
-      if self.sourceFunc then
-        -- if there is a source, add it to the RHS
-        local fSource = self.fSource
-        self.evalSource:advance(tCurr, dt, {}, {fSource})
-        fOut:accumulate(dt, fSource)
-      end
    else
       fOut:copy(fIn) -- just copy stuff over
    end
@@ -189,6 +183,13 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 	 status = status and collStatus
 	 dtSuggested = math.min(dtSuggested, collDt)
       end
+   end
+
+   if self.sourceFunc and self.evolveSources then
+     -- if there is a source, add it to the RHS
+     local fSource = self.fSource
+     self.evalSource:advance(tCurr, dt, {}, {fSource})
+     fOut:accumulate(dt, fSource)
    end
 
    -- apply BCs

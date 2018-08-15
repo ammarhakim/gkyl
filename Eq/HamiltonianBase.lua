@@ -9,6 +9,7 @@ local Proto = require "Lib.Proto"
 local DataStruct = require "DataStruct"
 local ConfToPhase = require "Updater.ConfToPhase"
 local EqBase = require "Eq.EqBase"
+local xsys = require "xsys"
 
 local Hamiltonian = Proto(EqBase)
 
@@ -18,6 +19,7 @@ function Hamiltonian:init(tbl)
    self._grid = assert(tbl.onGrid, "Hamiltonian equation must specify a grid")
    self._basis = assert(tbl.basis or tbl.phaseBasis, "Hamiltonian equation must specify a basis")
    self._confBasis = tbl.confBasis
+   self._positivity = xsys.pickBool(tbl.positivity, false)
 
    self._ndim = self._grid:ndim()
 
@@ -101,13 +103,13 @@ function Hamiltonian:volTerm(w, dx, idx, q, out)
    return self._volTerm(w:data(), dx:data(), self.hamPtr:data(), q:data(), out:data())
 end
 -- Surface integral term for use in DG scheme
-function Hamiltonian:surfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function Hamiltonian:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    self.hamiltonian:fill(self.hamIdxr(idxl), self.hamPtrL)
    self.hamiltonian:fill(self.hamIdxr(idxr), self.hamPtrR)
    if self._hamilDisCont[dir] then 
       self._disContCorrectionSurfTerms[dir](wr:data(), dxr:data(), maxs, self.hamPtrL:data(), self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data()) 
    end
-   return self._surfTerms[dir](wr:data(), dxr:data(), maxs, self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   return self._surfTerms[dir](dt, wr:data(), dxr:data(), maxs, self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
 function Hamiltonian:writeHamiltonian(distIo, tm)

@@ -1,31 +1,7 @@
 cvars : [X, Y, Z]$
 vvars : [VX, VY, VZ]$
 
-fh : openw("~/max-out/CanonicalModDecl.h")$
-
-printf(fh, "#ifndef CANONICAL_MOD_DELC_H ~%")$
-printf(fh, "#define CANONICAL_MOD_DELC_H ~%")$
-printf(fh, "#include <cmath> ~%")$
-
-printf(fh, "extern \"C\" { ~%")$
-
-for ci : 1 thru 2 do (
-  vi : ci,
-    for pi : 1 thru 2 do (
-      printf(fh, "double CanonicalVol~ax~avMaxP~a(const double *w, const double *dxv, const double *H, const double *f, double *out); ~%", ci, vi, pi),
-      for si : 1 thru ci+vi do (
-        if si <= ci then dirlabel : cvars[si]
-        else dirlabel : vvars[si-ci],
-        printf(fh, "double CanonicalSurf~ax~avMax_~a_P~a(const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi),
-        printf(fh, "void CanonicalDisContCorrectionSurf~ax~avMax_~a_P~a(const double *w, const double *dxv, const double amax, const double *Hl, const double *Hr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
-      ),
-      printf(fh, "~%")      
-    ),
-    printf(fh, "~%")
-)$
-
-printf(fh, "~% ~%")$
-
+printPrototypes() := block([],
 for ci : 1 thru 2 do (
   vi : ci,
     for pi : 1 thru 2 do (
@@ -33,17 +9,29 @@ for ci : 1 thru 2 do (
       for si : 1 thru ci+vi do (
         if si <= ci then dirlabel : cvars[si]
         else dirlabel : vvars[si-ci],
-        printf(fh, "double CanonicalSurf~ax~avSer_~a_P~a(const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi),
-        printf(fh, "void CanonicalDisContCorrectionSurf~ax~avSer_~a_P~a(const double *w, const double *dxv, const double amax, const double *Hl, const double *Hr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
+        printf(fh, "double CanonicalSurf~ax~avSer_~a_P~a(const double dt, const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi),
+        printf(fh, "double CanonicalSurfPositivity~ax~avSer_~a_P~a(const double dt, const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi)
       ),
       printf(fh, "~%")      
     ),
     printf(fh, "~%")
-)$
+))$
 
-
+fh : openw("~/max-out/CanonicalModDecl.h")$
+printf(fh, "#ifndef CANONICAL_MOD_DECL_H ~%")$
+printf(fh, "#define CANONICAL_MOD_DECL_H ~%")$
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "#include <Positivity.h> ~%")$
+printf(fh, "extern \"C\" { ~%")$
+printPrototypes()$
 printf(fh, "} ~%")$
-
 printf(fh, "#endif ~%")$
-
 close(fh)$
+
+fh : openw("~/max-out/_CanonicalCdef.lua")$
+printf(fh, "local ffi = require \"ffi\" ~%~%")$
+printf(fh, "ffi.cdef [[~%")$
+printPrototypes()$
+printf(fh, "]]~%")$
+close(fh)$
+

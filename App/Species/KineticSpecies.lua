@@ -58,6 +58,7 @@ function KineticSpecies:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
+   self.evolveSources = xsys.pickBool(tbl.evolveSources, self.evolve) 
    self.confBasis = nil -- Will be set later
 
    assert(#self.lower == self.vdim, "'lower' must have " .. self.vdim .. " entries")
@@ -219,6 +220,8 @@ function KineticSpecies:fullInit(appTbl)
 	 self.collisions[nm]:setName(nm)
       end
    end
+
+   self.positivity = xsys.pickBool(tbl.applyPositivity, false)
 end
 
 function KineticSpecies:getCharge() return self.charge end
