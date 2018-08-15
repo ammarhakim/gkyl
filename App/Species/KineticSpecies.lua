@@ -650,6 +650,13 @@ function KineticSpecies:write(tm)
             self.diagnosticIntegratedMomentFields[i]:write(
                string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
          end
+
+         if self.evolveCollisions then
+            for _, c in pairs(self.collisions) do
+               c:write(tm, self.diagIoFrame)
+            end
+         end
+
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
@@ -666,6 +673,7 @@ function KineticSpecies:write(tm)
       end
       self.distIoFrame = self.distIoFrame+1
    end
+
 end
 
 function KineticSpecies:writeRestart(tm)

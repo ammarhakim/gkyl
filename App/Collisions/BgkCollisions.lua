@@ -226,6 +226,9 @@ function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
    return status, dtSuggested
 end
 
+function BgkCollisions:write(tm, frame)
+end
+
 function BgkCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.maxwellian.totalTime
 end
