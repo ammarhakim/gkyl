@@ -157,8 +157,8 @@ end
 function GkLBOCollisions:write(tm, frame)
    self.uPar:scale(1.0/self.collFreq)
    self.vthSq:scale(1.0/self.collFreq)
-   self.uPar:write(string.format("%s_%s_%d.bp", self.name, "upar", frame), tm, frame)
-   self.vthSq:write(string.format("%s_%s_%d.bp", self.name, "vthsq", frame), tm, frame)
+   self.uPar:write(string.format("%s_%s_%d.bp", self.speciesName, "upar", frame), tm, frame)
+   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthsq", frame), tm, frame)
 end
 
 function GkLBOCollisions:totalTime()
