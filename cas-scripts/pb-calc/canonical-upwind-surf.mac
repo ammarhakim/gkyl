@@ -27,7 +27,7 @@ for i : 1 thru pmax do (
   if dir <= cdim then dirlabel : cvars[dir]
   else dirlabel : vvars[dir-cdim],
 
-  printf(fh, "double ~a_~a_P~a(const double dt, const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "double ~a_~a_P~a(const double cfl, const double *w, const double *dxv, const double amax, const double *H, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
   printf(fh, "// w: Cell-center coordinates. dxv[NDIM]: Cell spacing. H: Hamiltonian, fl/fr: Distribution function in left/right cells ~%"),
   printf(fh, "// outl/outr: output distribution function in left/right cells ~%"),
 
@@ -70,7 +70,7 @@ for i : 1 thru pmax do (
   flush_output(fh),
 
   printf(fh, "  if (alpha0>0) { ~%"),
-  if positivity then fhat : fhatAL(fl, sv, 1, alpha0*dt/dxv[dir], cdim, vdim, i)
+  if positivity then fhat : fhatAL(fl, sv, 1, cfl, cdim, vdim, i)
   else fhat : subst(sv=1, fl_L),
   t : surfac*innerProd(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
   incr_r : facsum(fullratsimp(t),dxv),
@@ -86,7 +86,7 @@ for i : 1 thru pmax do (
   writeCIncrExprsNoExpand1(outl, incr_s),
   
   printf(fh, "  } else { ~%"),
-  if positivity then fhat : fhatAL(fr, sv, -1, alpha0*dt/dxv[dir], cdim, vdim, i)
+  if positivity then fhat : fhatAL(fr, sv, -1, cfl, cdim, vdim, i)
   else fhat : subst(sv=-1, fl_R),
   t : surfac*innerProd(surfIntVars, alpha_sv, subst(sv=-1, bP), fhat),
   incr_r : facsum(fullratsimp(t),dxv),

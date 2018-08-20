@@ -12,9 +12,6 @@ gkvsub:[vx=vpar,vy=mu]$
 let (wv^2, wv2)$
 let (dfac_v^2, dfac_v2)$
 
-cidx(cdim) := makelist(i,i,0,cdim-1)$
-vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
-
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
@@ -26,7 +23,8 @@ gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_e
 
 calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax, emflag, bvarslist) := block([],
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
+else modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
 for i : 1 thru pmax do (
   if cdim = 1 then (
@@ -38,17 +36,17 @@ for i : 1 thru pmax do (
   if cdim = 3 then (
     label:["x", "y", "z", "v", "m"]
   ),
-  bP : subst(gkvsub, basisP[i]),
   bC : basisC[i],
-  varsP : subst(gkvsub, varsP),
+  if vdim=0 then bP : bC
+  else bP : subst(gkvsub, basisP[i]),
+  if vdim=0 then varsP : varsC
+  else varsP : subst(gkvsub, varsP),
   numC : length(bC),
 
   if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
   else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
 
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
-  cid : cidx(cdim),
-  vid : vidx(cdim,vdim),
   volfac : 1,
   cellCenter : makelist(varsP[d]=0, d, 1, length(varsP)),
   /* set up ignorable variables for Bmag */
@@ -66,19 +64,19 @@ for i : 1 thru pmax do (
   wV : makelist(wc[d], d, 4, 5),
 
   for dir : 1 thru cdim+vdim do (
-    printf(fh, "  double d~aInv = 1.0/dxv[~a]; ~%", label[dir], dir-1)
-  ),
-  for dir : 1 thru cdim+vdim do (
     printf(fh, "  double dfac_~a = 2.0/dxv[~a]; ~%", label[dir], dir-1)
   ),
 
   for dir : 1 thru cdim+vdim do (
     printf(fh, "  double w~a = w[~a]; ~%", label[dir], dir-1)
   ),
-  printf(fh, "  double wv2 = wv*wv; ~%"),
-  printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%"),
+  if vdim>0 then (
+    printf(fh, "  double wv2 = wv*wv; ~%"),
+    printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%")
+  ),
   printf(fh, "  double q2 = q_*q_; ~%"),
   printf(fh, "  double m2 = m_*m_; ~%"),
+  flush_output(fh),
 
   /* expand background magnetic field Bmag, assuming it only varies in x */
   Bmag_expd:subst(Bignorevars,doExpand1(Bmag,bC)),
@@ -94,7 +92,8 @@ for i : 1 thru pmax do (
   ),
 
   /* calculate full expansion expression for Hamiltonian. */
-  H_full:1/2*m_*(wv + vpar/dfac_v)^2 + q_*Phi_expd,
+  H_full: q_*Phi_expd,
+  if vdim > 0 then H_full : H_full + 1/2*m_*(wv + vpar/dfac_v)^2,
   if vdim > 1 then H_full : H_full + (wm+mu/dfac_m)*Bmag_expd,
 
   /* project Hamiltonian onto basis functions */
@@ -128,9 +127,13 @@ for i : 1 thru pmax do (
 
   /* calculate cflFeq = sum_d alpha_d / dxv[d] */
   printf(fh, "  double cflFreq = 0.0; ~%"), 
+  printf(fh, "  double alphaM = 0.0; ~%"), 
+  printf(fh, "  double alphaP = 0.0; ~%"), 
   
   /* note: no contribution from mu */
-  for d : 1 thru cdim+1 do (
+  if vdim = 0 then vd : 0
+  else vd : 1,
+  for d : 1 thru cdim+vd do (
     if d>cdim then (
       wD : wV[d-cdim],
       derivfacsD : derivfacsV[d-cdim]
@@ -153,10 +156,16 @@ for i : 1 thru pmax do (
     gkVolTerm_k : fullratsimp(innerProd(varsP, derivfacsD*diff(bP, varsP[d]), f_expd, alpha_expd)),
     writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
 
-    /* take cell center value of alpha */
-    alpha0 : subst(cellCenter, alpha_expd),
-    /* write to increment cflFreq */
-    printf(fh, "  cflFreq += fabs(~a)*d~aInv; ~%", float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha0)), label[d]),
+    /* cfl calculation */
+    /* evaluate alpha at left and right edge, and surface average */
+    alphaM : subst(varsP[d]=-1, alpha_expd),
+    alphaM0 : 0.5*derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaM, subst(varsP[d]=-1, bP[1])),
+    printf(fh, "  alphaM = ~a; ~%", float(alphaM0)),
+    printf(fh, "  if(alphaM<0) cflFreq += -alphaM; ~%"),
+    alphaP : subst(varsP[d]=1, alpha_expd),
+    alphaP0 : 0.5*derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaP, subst(varsP[d]=1, bP[1])),
+    printf(fh, "  alphaP = ~a; ~%", float(alphaP0)),
+    printf(fh, "  if(alphaP>0) cflFreq += alphaP; ~%"),
     flush_output(fh)
   ),
 
@@ -207,6 +216,7 @@ for i : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
+/*
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
@@ -230,4 +240,16 @@ calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
 funcName : sconcat("EmGyrokineticStep2Vol", c, "x", v, "v", "Ser"),
 calcGKStep2VolUpdater(fh, funcName, c, v, "Ser", pmax),
 close(fh)
-)))$
+)))$ */
+
+c:2$
+v:0$
+pmax:2$
+fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "v", ".cpp")$
+fh : openw(fname)$
+printf(fh, "#include <GyrokineticModDecl.h> ~%")$
+bvarslist : [[0]]$
+funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser")$
+calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false, [0])$
+close(fh)$
+

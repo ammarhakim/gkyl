@@ -1,7 +1,7 @@
-load("pb-calc/canonical-surf")$
+load("pb-calc/canonical-upwind-surf")$
 load(stringproc)$
 
-pmax : 2$
+pmax : 1$
 positivity : false$
 for c : 1 thru 1 do (
    v : c,

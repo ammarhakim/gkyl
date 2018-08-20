@@ -18,10 +18,9 @@ fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,node
   printf(fh,"  double rVal[~a];  // rVal=f1/f0 at each node ~%",length(r)),
   writeCExprsNoExpand1(rVal,gcfac(r)),
   flush_output(fh),
-  fq:fullratsimp(nodesub(avgAndSlope[1])*makelist(limTheta(rVal[i-1],surfVal,cflVal),i,1,length(r))),
+  fq:fullratsimp(nodesub(avgAndSlope[1])*makelist(limTheta(rVal[i-1],surfVal,cfl),i,1,length(r))),
   /* print fq */
   printf(fh,"  double fqVal[~a];  // fqVal = anti-limited f evaluated at each node ~%",length(fq)),
-  printf(fh,"  double cflVal = std::abs(~a); ~%", cfl),
   writeCExprsNoExpand1(fqVal,gcfac(fq)),
   flush_output(fh),
   modToNod:calcModToNodPhase(cdim,vdim,p),

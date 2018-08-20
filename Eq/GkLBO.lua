@@ -113,7 +113,7 @@ function GkLBO:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme.
-function GkLBO:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function GkLBO:surfTerm(dir, cfl, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- set pointer to uNu and vthSqNu fields.
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- get pointer to BmagInv field.
