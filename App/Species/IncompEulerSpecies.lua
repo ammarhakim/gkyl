@@ -25,6 +25,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
    local eqn = IncompEulerEq {
       onGrid = self.grid,
       basis = self.basis,
+      charge = self.charge,
       positivity = self.positivity,
    }
 

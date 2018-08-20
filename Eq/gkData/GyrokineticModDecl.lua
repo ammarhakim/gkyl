@@ -48,6 +48,10 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positi
       local funcNmZ = string.format("%sGyrokineticSurf%s%dx%dv%s_Z_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       local funcNmVpar = string.format("%sGyrokineticSurf%s%dx%dv%s_Vpar_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX..bvarString], ffi.C[funcNmY..bvarString], ffi.C[funcNmZ..bvarString], ffi.C[funcNmVpar..bvarString] }
+   elseif CDIM == 2 and VDIM == 0 then 
+      local funcNmX = string.format("%sGyrokineticSurf%s%dx%dv%s_X_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("%sGyrokineticSurf%s%dx%dv%s_Y_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      return { ffi.C[funcNmX..bvarString], ffi.C[funcNmY..bvarString]}
    else
       assert(false, "Gyrokinetic equation not implemented for this dimensionality!")
    end
