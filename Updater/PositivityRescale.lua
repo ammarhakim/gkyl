@@ -45,7 +45,6 @@ function PositivityRescale:init(tbl)
         self.mu[i][#self.mu[i]+1] = nodes[ni+1]
       end
    end
-   print(self.mu[1][1])
 end   
 
 -- advance method
