@@ -15,6 +15,7 @@ for bIdx : 1 thru length(basis) do (
 
       kill(varsC, varsP, basisC, basisP),
       load(sconcat("basis-precalc/basis", basis[bIdx], xIdx, "x", vIdx, "v")),
+      varsV : makelist(varsP[i], i, length(varsC)+1, length(varsP)),
       for polyOrder : 1 thru 1 do (
         /* Load basis and expand the new distribution function g */
         bc : basisC[polyOrder],
