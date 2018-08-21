@@ -28,6 +28,7 @@ local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
 local VoronovIonization = require "Updater.VoronovIonization"
 local WavePropagation = require "Updater.WavePropagation"
+local LagrangeFix = require "Updater.LagrangeFix"
 
 return {
    Bc = Bc,
@@ -51,4 +52,5 @@ return {
    VoronovIonization = VoronovIonization,
    WavePropagation = WavePropagation,
    MappedPoisson = MappedPoisson,
+   LagrangeFix = LagrangeFix,
 }

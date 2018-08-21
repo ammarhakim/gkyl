@@ -48,6 +48,8 @@ def build(bld):
     binOpCalcData/CartFieldBinOpMax2x3v.cpp
     binOpCalcData/CartFieldBinOpMax3x2v.cpp
 
+    lagrangeFixData/lagrangeFixSer1x1v.cpp
+
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp
     momentCalcData/DistFuncMomentCalcMax1x3v.cpp
@@ -112,4 +114,4 @@ def build(bld):
     PositivityRescaleImpl.cpp
 
     """,
-    includes = '. primMomentsCalcData binOpCalcData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+    includes = '. primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
