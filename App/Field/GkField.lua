@@ -81,7 +81,11 @@ function GkField:fullInit(appTbl)
 
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
-      self.dApardtInitFunc = tbl.dApardtInit
+   end
+
+   self.initPhiFunc = tbl.initPhiFunc
+   if self.initPhiFunc and self.evolve then 
+      print("GkField: warning... specifying initPhiFunc will make initial phi inconsistent with f") 
    end
 
    self.bcTime = 0.0 -- timer for BCs
@@ -169,8 +173,18 @@ end
 -- solve for initial fields self-consistently 
 -- from initial distribution function
 function GkField:initField(species)
-   -- solve for initial phi
-   self:forwardEuler(0, 1.0, species, 1, 1)
+   if self.initPhiFunc then
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.initPhiFunc,
+         projectOnGhosts = true
+      }
+      project:advance(0.0, 0.0, {}, {self.potentials[1].phi})
+   else
+      -- solve for initial phi
+      self:forwardEuler(0, 1.0, species, 1, 1)
+   end
 
    if self.isElectromagnetic then
       -- solve for initial Apar
@@ -396,11 +410,12 @@ end
 function GkField:accumulateCurrent(dt, current, em)
 end
 
+-- solve for electrostatic potential phi
 function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
-   if self.evolve or tCurr == 0.0 then
+   if self.evolve or (tCurr == 0.0 and not self.initPhiFunc) then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)

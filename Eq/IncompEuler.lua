@@ -45,7 +45,7 @@ function IncompEuler:init(tbl)
       onGrid = self._grid,
       basis = self._basis,
       evaluate = function (t,xn)
-                    return 1.0
+                    return -1.0 -- sign convention
                  end,
       projectOnGhosts = true,
    }
@@ -73,8 +73,6 @@ end
 function IncompEuler:setAuxFields(auxFields)
    -- get streamfunction, phi
    self.phi = auxFields[1].phi
-   -- sign convention
-   self.phi:scale(-1.0)
    if self._isFirst then
       self.phiPtr = self.phi:get(1)
       self.phiIdxr = self.phi:genIndexer()
