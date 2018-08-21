@@ -117,7 +117,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
 	    else
 	       coulombLog = 25.3-1.15*math.log10(n*1e-6)+2.3*math.log10(T)
 	    end
-	    nu = self.charge^4/(4*math.pi*self.epsilon0^2*self.mass^2) *
+	    nu = self.charge^4/(6*math.sqrt(2)*math.pi^1.5*self.epsilon0^2*self.mass^2) *
 	       coulombLog * n / math.sqrt(vth2)^3
 	 end
       end

@@ -1,0 +1,21 @@
+fh : openw("~/max-out/lagrangeFixDecl.h")$
+
+printf(fh, "#ifndef LAGRANGE_FIX_H ~%")$
+printf(fh, "#define LAGRANGE_FIX_H ~%")$
+printf(fh, "~%")$
+printf(fh, "extern \"C\" { ~%")$
+
+basis : ["Ser","Max"]$
+for bIdx : 1 thru length(basis) do (
+  for xIdx : 1 thru 1 do (
+    for vIdx : 1 thru 1 do (
+      for polyOrder : 1 thru 1 do (  
+        printf(fh, "void lagrangeFix~a~ax~av~ap(const double *dm0, const double *dm1, const double *dm2, double *f, const double vc, const double L, const double Nv); ~%~%", basis[bIdx], xIdx, vIdx, polyOrder)
+      )
+    )
+  )
+);
+
+printf(fh, "} ~%")$
+printf(fh, "#endif ~%")$
+close(fh)$
