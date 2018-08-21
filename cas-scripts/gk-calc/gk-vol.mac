@@ -159,11 +159,11 @@ for i : 1 thru pmax do (
     /* cfl calculation */
     /* evaluate alpha at left and right edge, and surface average */
     alphaM : subst(varsP[d]=-1, alpha_expd),
-    alphaM0 : 0.5*derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaM, subst(varsP[d]=-1, bP[1])),
+    alphaM0 : derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaM, subst(varsP[d]=-1, bP[1]))*bP[1],
     printf(fh, "  alphaM = ~a; ~%", float(alphaM0)),
     printf(fh, "  if(alphaM<0) cflFreq += -alphaM; ~%"),
     alphaP : subst(varsP[d]=1, alpha_expd),
-    alphaP0 : 0.5*derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaP, subst(varsP[d]=1, bP[1])),
+    alphaP0 : derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaP, subst(varsP[d]=1, bP[1]))*bP[1],
     printf(fh, "  alphaP = ~a; ~%", float(alphaP0)),
     printf(fh, "  if(alphaP>0) cflFreq += alphaP; ~%"),
     flush_output(fh)
@@ -216,7 +216,6 @@ for i : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
-/*
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
@@ -240,7 +239,7 @@ calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
 funcName : sconcat("EmGyrokineticStep2Vol", c, "x", v, "v", "Ser"),
 calcGKStep2VolUpdater(fh, funcName, c, v, "Ser", pmax),
 close(fh)
-)))$ */
+)))$
 
 c:2$
 v:0$
