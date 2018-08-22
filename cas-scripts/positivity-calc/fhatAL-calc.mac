@@ -3,16 +3,17 @@ load("fem-calc/femMatrices")$
 load("scifac")$
 
 /* returns anti-limited expansion of f evaluated at surfVar=surfVal */
-fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd],
+fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
   if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
   else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
   load(modNm),
   if vdim=0 then basis : basisC[p]
   else basis : basisP[p],
   if vdim=0 then vars : varsC else vars : varsP,
-  nodes : eval_string(sconcat("nodes", cdim+vdim, "xp", p)),
+  surfIntVars : delete(surfVar, vars),
+  nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p)),
   avgAndSlope:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],doExpand1(f,basis))),
-  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]/3,j,1,length(vars)),f),i,1,length(nodes)),
+  nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]/3,j,1,length(surfIntVars)),f),i,1,length(nodes)),
   r:fullratsimp(nodesub(fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])))),
   /* print r */
   printf(fh,"  double rVal[~a];  // rVal=f1/f0 at each node ~%",length(r)),
@@ -23,13 +24,15 @@ fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,node
   printf(fh,"  double fqVal[~a];  // fqVal = anti-limited f evaluated at each node ~%",length(fq)),
   writeCExprsNoExpand1(fqVal,gcfac(fq)),
   flush_output(fh),
-  modToNod:calcModToNodPhase(cdim,vdim,p),
+  if cdim+vdim-1<=3 then modToNod:calcModToNodPhase(cdim+vdim-1,0,p)
+  else modToNod:calcModToNodPhase(cdim-1,vdim,p),
   fhatAL_k:fullratsimp(modToNod.makelist(fqVal[i-1],i,1,length(fq))),
   fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
   printf(fh,"  double fhatALVal[~a];  // fhatALVal = mode coefficients of anti-limited f ~%",length(fq)),
   writeCExprsNoExpand1(fhatALVal, fhatAL_k),
   flush_output(fh),
-  fhatAL_expd:subst(surfVar=surfVal,fullratsimp(basis.makelist(fhatALVal[i-1],i,1,length(fhatAL_k)))),
+  surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
+  fhatAL_expd:subst(surfVar=surfVal,fullratsimp(surfBasis.makelist(fhatALVal[i-1],i,1,length(fhatAL_k)))),
   flush_output(fh),
   return(fhatAL_expd)
 )$
