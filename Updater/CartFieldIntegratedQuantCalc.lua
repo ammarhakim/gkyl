@@ -39,11 +39,7 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
-   if tbl.quantity == "V" then
-      self.updateFunc = ffi.C.gkylCartFieldIntQuantV
-   elseif tbl.quantity == "V2" then
-      self.updateFunc = ffi.C.gkylCartFieldIntQuantV2
-   end
+   self.updateFunc = ffi.C["gkylCartFieldIntQuant"..tbl.quantity]
 
    -- for use in advance method
    self.dxv = Lin.Vec(self.basis:ndim()) -- cell shape
