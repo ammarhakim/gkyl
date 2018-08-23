@@ -1,21 +1,29 @@
-fh : openw("~/max-out/lagrangeFixDecl.h")$
-
-printf(fh, "#ifndef LAGRANGE_FIX_H ~%")$
-printf(fh, "#define LAGRANGE_FIX_H ~%")$
-printf(fh, "~%")$
-printf(fh, "extern \"C\" { ~%")$
-
+getName(bn, xi, vi, po) := sconcat("void lagrangeFix", bn, xi, "x", vi, "v", po, "p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f);~%~%")$
 basis : ["Ser","Max"]$
+
+fhh : openw("~/max-out/lagrangeFixDecl.h")$
+fhl : openw("~/max-out/_lagrangeFixCdef.lua")$
+
+printf(fhh, "#ifndef LAGRANGE_FIX_H ~%")$
+printf(fhh, "#define LAGRANGE_FIX_H ~%~%")$
+printf(fhh, "extern \"C\" { ~%~%")$
+printf(fhh, "double gkyl_ipow(double base, int exp);~%~%")$
+printf(fhl, "local ffi  = require \"ffi\"~%")$
+printf(fhl, "ffi.cdef [[~%~%")$
+
 for bIdx : 1 thru length(basis) do (
   for xIdx : 1 thru 1 do (
     for vIdx : 1 thru 1 do (
       for polyOrder : 1 thru 1 do (  
-        printf(fh, "void lagrangeFix~a~ax~av~ap(const double *dm0, const double *dm1, const double *dm2, double *f, const double vc, const double L, const double Nv); ~%~%", basis[bIdx], xIdx, vIdx, polyOrder)
+        printf(fhh, getName(basis[bIdx], xIdx, vIdx, polyOrder)),
+        printf(fhl, getName(basis[bIdx], xIdx, vIdx, polyOrder))
       )
     )
   )
 );
 
-printf(fh, "} ~%")$
-printf(fh, "#endif ~%")$
-close(fh)$
+printf(fhh, "} ~%")$
+printf(fhh, "#endif")$
+close(fhh)$
+printf(fhl, "]]")$
+close(fhl)$

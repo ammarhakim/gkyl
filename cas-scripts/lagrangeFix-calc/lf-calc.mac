@@ -2,6 +2,12 @@ load(stringproc)$
 load("modal-basis")$
 simpsum : true$
 
+momSum(mom, varsV):=block([],
+  s : sum(mom, jx, 1, Nvx),
+  if length(varsV) > 1 then s : sum(s, jy, 1, Nvy),
+  if length(varsV) > 2 then s : sum(s, jz, 1, Nvz),
+  s)$
+
 basis : ["Ser", "Max"]$
 for bIdx : 1 thru length(basis) do (
   for xIdx : 1 thru 1 do (
@@ -11,11 +17,21 @@ for bIdx : 1 thru length(basis) do (
       fh : openw(fname),
       printf(fh, "#include <math.h> ~%"),
       printf(fh, "#include <lagrangeFixDecl.h> ~%"),
-      printf(fh, "~%"),
-
+      printf(fh, "#include <gkyl_ipow.h> ~%~%"),
+      
+      /* Load precomputed basis */
       kill(varsC, varsP, basisC, basisP),
       load(sconcat("basis-precalc/basis", basis[bIdx], xIdx, "x", vIdx, "v")),
+      /* Get the velocity fields */
       varsV : makelist(varsP[i], i, length(varsC)+1, length(varsP)),
+      tmp : [dvx, dvy, dvz],
+      dVarsV : makelist(tmp[i], i, 1, length(varsV)),
+      J : dVarsV[1]/2,
+      for i : 2 thru length(dVarsV) do J : J * dVarsV[i]/2,
+      tmp : [vcx[jx], vcy[jy], vcz[jz]],
+      vcs : makelist(tmp[i], i, 1, length(varsV)),
+      vPhys : dVarsV*varsV/2 + vcs,
+
       for polyOrder : 1 thru 1 do (
         /* Load basis and expand the new distribution function g */
         bc : basisC[polyOrder],
@@ -23,9 +39,10 @@ for bIdx : 1 thru length(basis) do (
         gExp : doExpand(g, bp),
         
         /* Get expansion coefficiens of the moments in terms of g */
-        m0 : dv/2 * calcInnerProdList(varsC, 1, bc, integrate(gExp, vx, -1,1)),
-        m1 : dv/2 * calcInnerProdList(varsC, 1, bc, integrate((dv/2*vx + vc[j])*gExp, vx, -1,1)),
-        m2 : dv/2 * calcInnerProdList(varsC, 1, bc, integrate((dv/2*vx + vc[j])^2*gExp, vx, -1,1)),
+        m0 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, 1, gExp)),
+        m1m : makelist(J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, vPhys[i], gExp)), i, 1, length(varsV)),
+        m1 : makelist(m1m[ceiling(i/length(bc))][i-(ceiling(i/length(bc))-1)*length(bc)], i, 1, length(bc)*length(varsV)),
+        m2 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, vPhys.vPhys, gExp)),
         
         /* Taking a derivatives with respect to the expansion
         coefficients simpliefies to kronecker deltas */
@@ -37,7 +54,7 @@ for bIdx : 1 thru length(basis) do (
         /* RHS is obtained by taking derivatices of the "Lagrange
         multiplier terms" */
         lambda0k : makelist(lambda0[i], i, 1, length(bc)),
-        lambda1k : makelist(lambda1[i], i, 1, length(bc)),
+        lambda1k : makelist(lambda1[i], i, 1, length(bc)*length(varsV)),
         lambda2k : makelist(lambda2[i], i, 1, length(bc)),
         RHS : m0Der.lambda0k + m1Der.lambda1k + m2Der.lambda2k,
         /* The system of equations is solved by adding the k expansion
@@ -47,10 +64,11 @@ for bIdx : 1 thru length(basis) do (
         defined formulas for m0, m1, and m2. We do no claim the g[i]
         really equals subst(k=i, RHS). */
         RHSk : makelist(g[i]=subst(k=i, RHS), i, 1, length(bp)),
-        eq0 : makelist(dm0s[i]=sum(subst(RHSk, m0[i]), j, 1, Nv), i, 1, length(bc)),
-        eq1 : makelist(dm1s[i]=sum(subst(RHSk, m1[i]), j, 1, Nv), i, 1, length(bc)),
-        eq2 : makelist(dm2s[i]=sum(subst(RHSk, m2[i]), j, 1, Nv), i, 1, length(bc)),
-        eqns : fullratsimp(subst(vc[j]=-Nv/2*dv+(j-1/2)*dv, append(eq0, eq1, eq2))),
+        eq0 : makelist(dm0s[i]=momSum(subst(RHSk, m0[i]), varsV), i, 1, length(bc)),
+        eq1 : makelist(dm1s[i]=momSum(subst(RHSk, m1[i]), varsV), i, 1, length(bc)*length(varsV)),
+        eq2 : makelist(dm2s[i]=momSum(subst(RHSk, m2[i]), varsV), i, 1, length(bc)),
+        eqns : fullratsimp(subst([vcx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, vcy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy, vcz[jz]=-Nvz/2*dvz+(jz-1/2)*dvz],
+            append(eq0, eq1, eq2))),
         sol : linsolve(eqns, append(lambda0k, lambda1k, lambda2k)),
         
         /* The solution of the system gives the lagrange multipliers;
@@ -58,15 +76,23 @@ for bIdx : 1 thru length(basis) do (
         the corrections of the distribution function, i.e., get g out
         of f */
         deltaF : subst(sol, RHS),
-        deltaFk : subst(dv=L/Nv, makelist(subst(k=i, deltaF), i, 1, length(bp))),
-        expr : float(fullratsimp(subst(vc[j]=vc, deltaFk))),
+        deltaFk : subst([dvx=Lx/Nvx,dvy=Ly/Nvy,dvz=Lz/Nvz],
+          makelist(subst(k=i, deltaF), i, 1, length(bp))),
+        expr : float(fullratsimp( deltaFk )),
+        
+        /* Modification to convert from 1-indexed Maxima to 0-indexed C */
+        printSub : subst([vcx[jx]=vc[0], vcy[jy]=vc[1], vcz[jz]=vc[2], Nvx=Nv[0], Nvy=Nv[1], Nvz=Nv[2], Lx=L[0], Ly=L[1], Lz=L[2]], expr),
+        sList : makelist(dm0s[i]=dm0[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
+        sList : makelist(dm1s[i]=dm1[i-1], i, 1, length(bc)*length(varsV)),
+        printSub : subst(sList, printSub),
+        sList : makelist(dm2s[i]=dm2[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
+        printSub : subst(gkyl_ipow, "^", printSub),
 
-        printf(fh, "void lagrangeFix~a~ax~av~ap(const double *dm0, const double *dm1, const double*dm2, double *f, const double vc, const double L, const double Nv) {~%", basis[bIdx], xIdx, vIdx, polyOrder),
-        printf(fh, "  double *dm0s = dm0 - 1;~%"),
-        printf(fh, "  double *dm1s = dm1 - 1;~%"),
-        printf(fh, "  double *dm2s = dm2 - 1;~%"),  
+        printf(fh, "void lagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], xIdx, vIdx, polyOrder),
         for i : 1 thru length(bp) do (
-          printf(fh, "  f[~a] = f[~a] +  ~a;~%", i-1, i-1, expr[i])
+          printf(fh, "  f[~a] = f[~a] +  ~a;~%", i-1, i-1, printSub[i])
         ),
         printf(fh, "}~%")
       ),
