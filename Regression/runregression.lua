@@ -231,6 +231,7 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
+   --log(string.format("Comparing %s to %s ...\n", f1, f2))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       return false
    end

@@ -1,53 +1,20 @@
 -- Plasma ------------------------------------------------------------------------
 local Plasma = require "App.PlasmaOnCartGrid"
 
-local ux = 1
-local uy = 1
-
-local function gaussian(t, xn)
-   local r2 = (xn[1]-0.5)^2 + (xn[2]-0.5)^2
-   return math.exp(-50*r2)
-end
-local function cylinder(t, xn)
-   local r2 = (xn[1]-0.5)^2 + (xn[2]-0.5)^2
-   if r2 < 0.25^2 then
-      return 1.0
-   end
-   return 1.0e-5
-end
-local function step(t, xn)
-   local r2 = (xn[1]-0.5)^2
-   if r2 < 0.25^2 then
-      return 1.0
-   end
-   return 1.0e-5
-end
-local function squareHat(t, xn)
-   local rx2, ry2 = (xn[1]-0.5)^2, (xn[2]-0.5)^2
-   if rx2 < 0.25^2 and ry2 < 0.25^2 then
-      return 1.0
-   end
-   return 1.0e-5
-end
-local function expTent(t, xn)
-   local r = math.sqrt((xn[1]-0.5)^2 + (xn[2]-0.5)^2)
-   return math.exp(-10*r)
-end
-
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 1.0, -- end time
+   tEnd = 4*math.pi, -- end time
    nFrame = 1, -- number of output frames
    lower = {0, 0}, -- configuration space lower left
    upper = {1.0, 1.0}, -- configuration space upper right
-   cells = {16, 16}, -- configuration space cells
+   cells = {32, 32}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
    
    -- decomposition for configuration space
-   decompCuts = {1,1}, -- cuts in each configuration direction
+   decompCuts = {1, 1}, -- cuts in each configuration direction
    useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
@@ -57,7 +24,12 @@ plasmaApp = Plasma.App {
    fluid = Plasma.IncompEuler.Species {
       charge = 1.0,
       -- initial conditions
-      init = squareHat,
+      init = function (t, xn)
+	 local x, y = xn[1], xn[2]
+	 local x0, y0, r0 = 0.25, 0.5, 0.15
+	 local r = math.min(math.sqrt((x-x0)^2+(y-y0)^2), r0)/r0
+	 return 0.25*(1+math.cos(math.pi*r))
+      end,
       evolve = true, -- evolve species?
       applyPositivity = true,
    },
@@ -68,7 +40,7 @@ plasmaApp = Plasma.App {
       -- u = {dphi/dy, -dphi/dx}
       initPhiFunc = function (t, xn)
          local x, y = xn[1], xn[2]
-         return -uy*x + ux*y 
+         return -0.5*(y^2-y+x^2-x)
       end, 
    },
 }
