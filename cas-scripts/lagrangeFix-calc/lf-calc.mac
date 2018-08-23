@@ -11,13 +11,12 @@ momSum(mom, varsV):=block([],
 basis : ["Ser", "Max"]$
 for bIdx : 1 thru length(basis) do (
   for xIdx : 1 thru 1 do (
-    for vIdx : 1 thru 1 do (
+    for vIdx : 1 thru 2 do (
       /* Prepare the CPP file */
       fname : sconcat("~/max-out/lagrangeFix", basis[bIdx], xIdx, "x", vIdx, "v.cpp"),
       fh : openw(fname),
       printf(fh, "#include <math.h> ~%"),
       printf(fh, "#include <lagrangeFixDecl.h> ~%"),
-      printf(fh, "#include <gkyl_ipow.h> ~%~%"),
       
       /* Load precomputed basis */
       kill(varsC, varsP, basisC, basisP),
