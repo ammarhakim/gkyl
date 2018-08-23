@@ -12,6 +12,7 @@ local Proto = require "Proto"
 local Range = require "Lib.Range"
 local Time = require "Lib.Time"
 local UpdaterBase = require "Updater.Base"
+local ffi = require "ffi"
 
 -- System libraries
 local xsys = require "xsys"
@@ -51,8 +52,12 @@ function LagrangeFix:init(tbl)
 						self.numConfDims,
 						self.numVelDims,
 						self.polyOrder)
-   self.L = self.phaseGrid:upper(self.numConfDims + 1) - 
-      self.phaseGrid:lower(self.numConfDims + 1) 
+
+   self.L = ffi.new("double[3]", {})
+   for d = 1, self.numVelDims do
+      self.L[d-1] = self.phaseGrid:upper(self.numConfDims + d) - 
+	 self.phaseGrid:lower(self.numConfDims + d) 
+   end
 end
 
 ----------------------------------------------------------------------
@@ -79,13 +84,15 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
    local phaseIndexer = f:genIndexer()
    local phaseIdx = {}
    local l, u = {}, {}
+   local Nv = ffi.new("double[3]")
    for d = 1, self.numVelDims do
       l[d] = phaseRange:lower(self.numConfDims + d)
       u[d] = phaseRange:upper(self.numConfDims + d)
+      Nv[d-1] = phaseRange:upper(self.numConfDims + d)
    end
-   local cells = phaseRange:upper(self.numConfDims + 1)
    local velRange = Range.Range(l, u)
    local zc = Lin.Vec(self.numPhaseDims) -- cell center
+   local vc = ffi.new("double[3]") -- cell center
 
    -- The configuration space loop
    for confIdx in confRange:colMajorIter() do
@@ -104,10 +111,13 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
 	 f:fill(phaseIndexer(phaseIdx), fItr)
 	 self.phaseGrid:setIndex(phaseIdx)
 	 self.phaseGrid:cellCenter(zc)
+	 for d = 1, self.numVelDims do
+	    vc[d-1] = zc[d + self.numConfDims]
+	 end
 
 	 self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
-			    fItr:data(),
-			    zc[self.numConfDims+1], self.L, cells)
+			    self.L, Nv, vc,
+			    fItr:data())
       end
    end
    return true, GKYL_MAX_DOUBLE

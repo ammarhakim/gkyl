@@ -2,9 +2,12 @@
 #define LAGRANGE_FIX_H 
 
 extern "C" { 
-void lagrangeFixSer1x1v1p(const double *dm0, const double *dm1, const double *dm2, double *f, const double vc, const double L, const double Nv); 
 
-void lagrangeFixMax1x1v1p(const double *dm0, const double *dm1, const double *dm2, double *f, const double vc, const double L, const double Nv); 
+double gkyl_ipow(double base, int exp);
+
+void lagrangeFixSer1x1v1p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f);
+
+void lagrangeFixMax1x1v1p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f);
 
 } 
-#endif 
+#endif
