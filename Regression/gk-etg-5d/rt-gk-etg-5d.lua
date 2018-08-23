@@ -98,7 +98,7 @@ plasmaApp = Plasma.App {
              },
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkM0", "GkM2"} 
+      diagnosticMoments = {"GkM0", "GkM2"},
    },
 
    -- adiabatic ions
