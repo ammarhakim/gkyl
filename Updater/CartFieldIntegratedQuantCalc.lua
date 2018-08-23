@@ -21,6 +21,8 @@ ffi.cdef [[
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
     void gkylCartFieldIntQuantV2(
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
+    void gkylCartFieldIntQuantAbsV(
+      int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
 ]]
 
 -- Integrated quantities calculator
@@ -39,6 +41,7 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
+   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV", "CartFieldIntegratedQuantCalc: quantity must be one of V, V2 or AbsV")
    self.updateFunc = ffi.C["gkylCartFieldIntQuant"..tbl.quantity]
 
    -- for use in advance method
