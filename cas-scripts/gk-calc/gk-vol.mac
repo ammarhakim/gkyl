@@ -1,6 +1,7 @@
 load("modal-basis")$
 load("out-scripts")$
 load(stringproc)$
+load("scifac")$
 fpprec : 24$
 
 wc : [wx, wy, wz, wv, wm]$
@@ -21,12 +22,11 @@ fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
 gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
 
-calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax, emflag, bvarslist) := block([],
+calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, i, emflag, bvarslist) := block([],
 kill(varsC, varsP, basisC, basisP),
 if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
 else modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
-for i : 1 thru pmax do (
   if cdim = 1 then (
     label:["x", "v", "m"]
   ),
@@ -131,6 +131,7 @@ for i : 1 thru pmax do (
   printf(fh, "  double alphaP = 0.0; ~%"), 
   
   /* note: no contribution from mu */
+  alphaSum_expd : 0,
   if vdim = 0 then vd : 0
   else vd : 1,
   for d : 1 thru cdim+vd do (
@@ -147,37 +148,47 @@ for i : 1 thru pmax do (
 
     /* project alpha on basis and write to array */
     printf(fh, "  double alpha~a[~a]; ~%", label[d], length(bP)),
-    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)),
+    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)*derivfacsD),
     alphalabel : eval_string(sconcat(alpha, label[d])),
-    writeCExprs1(alphalabel, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], expand(float(facsum(alpha_k,derivfac))))),
+    writeCExprsNoExpand1(alphalabel, gcfac(expand(facsum(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], alpha_k),derivfac)))),
+    flush_output(fh),
     
     alphaNoZero_k : doMakeExprLst(alpha_k, alphalabel),
     alpha_expd : doExpandLst(alphaNoZero_k, bP),
-    gkVolTerm_k : fullratsimp(innerProd(varsP, derivfacsD*diff(bP, varsP[d]), f_expd, alpha_expd)),
-    writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
+
+    /* note: factor of derivfacsD already included in alpha_expd */
+    alphaDotGradBasis_expd : alpha_expd*diff(bP, varsP[d]),
+
+    /* accumulate alpha.grad(w) in this direction to the direction-summed alpha.grad(w) */
+    alphaSum_expd : alphaSum_expd + alphaDotGradBasis_expd,
 
     /* cfl calculation */
     /* evaluate alpha at left and right edge, and surface average */
     alphaM : subst(varsP[d]=-1, alpha_expd),
-    alphaM0 : derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaM, subst(varsP[d]=-1, bP[1]))*bP[1],
-    printf(fh, "  alphaM = ~a; ~%", float(alphaM0)),
+    /* note: factor of derivfacsD already included in alpha_expd */
+    alphaM0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaM, subst(varsP[d]=-1, bP[1]))*bP[1]),
+    printf(fh, "  alphaM = ~a; ~%", gcfac(float(alphaM0))),
     printf(fh, "  if(alphaM<0) cflFreq += -alphaM; ~%"),
     alphaP : subst(varsP[d]=1, alpha_expd),
-    alphaP0 : derivfacsD*innerProd(delete(varsP[d],varsP), 1, alphaP, subst(varsP[d]=1, bP[1]))*bP[1],
-    printf(fh, "  alphaP = ~a; ~%", float(alphaP0)),
+    /* note: factor of derivfacsD already included in alpha_expd */
+    alphaP0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaP, subst(varsP[d]=1, bP[1]))*bP[1]),
+    printf(fh, "  alphaP = ~a; ~%", gcfac(float(alphaP0))),
     printf(fh, "  if(alphaP>0) cflFreq += alphaP; ~%"),
     flush_output(fh)
   ),
+  gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, alphaSum_expd)),
+  writeCIncrExprsNoExpand(gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac))))),
+  flush_output(fh),
 
   printf(fh, "  return cflFreq; ~%"),
-  printf(fh, "} ~%")
-))$
+  printf(fh, "} ~%"),
+  flush_output(fh)
+)$
 
-calcGKStep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, pmax) := block([],
+calcGKStep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, i) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
-for i : 1 thru pmax do (
   if cdim = 1 then (
     label:["x", "v", "m"]
   ),
@@ -214,14 +225,18 @@ for i : 1 thru pmax do (
   /* return cflFreq = alpha/dv */
   printf(fh, "  return fabs(~a)*dvInv; ~%", float(letsimp(alpha0))),
   printf(fh, "} ~%")
-))$
+)$
+
+pmax:2$
+em:false$
 
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
-pmax:1,
 if c=1 then (pmax:2),
-fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "v", ".cpp"),
+for p : 1 thru pmax do (
+if em then fname : sconcat("~/max-out/EmGyrokineticSer", c, "x", v, "vP", p, ".cpp")
+else fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "vP", p, ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
 /* possible combinations of variable dependence of background magnetic field,
@@ -231,24 +246,28 @@ if c=1 then bvarslist : [[0], [1]],
 if c=2 then bvarslist : [[0], [1]],
 if c=3 then bvarslist : [[0], [1], [3], [1,3]],
 for b : 1 thru length(bvarslist) do (
-funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
-calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false, bvarslist[b]),
+if em then (
 funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
-calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, true, bvarslist[b])
-),
+calcGKVolUpdater(fh, funcName, c, v, "Ser", p, true, bvarslist[b]),
 funcName : sconcat("EmGyrokineticStep2Vol", c, "x", v, "v", "Ser"),
-calcGKStep2VolUpdater(fh, funcName, c, v, "Ser", pmax),
+calcGKStep2VolUpdater(fh, funcName, c, v, "Ser", p)
+) 
+else (
+funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
+calcGKVolUpdater(fh, funcName, c, v, "Ser", p, false, bvarslist[b])
+)),
 close(fh)
-)))$
+))))$
 
 c:2$
 v:0$
-pmax:2$
-fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "v", ".cpp")$
-fh : openw(fname)$
-printf(fh, "#include <GyrokineticModDecl.h> ~%")$
-bvarslist : [[0]]$
-funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser")$
-calcGKVolUpdater(fh, funcName, c, v, "Ser", pmax, false, [0])$
-close(fh)$
+for p : 1 thru pmax do (
+fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "vP", p, ".cpp"),
+fh : openw(fname),
+printf(fh, "#include <GyrokineticModDecl.h> ~%"),
+bvarslist : [[0]],
+funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
+calcGKVolUpdater(fh, funcName, c, v, "Ser", p, false, [0]),
+close(fh)
+)$
 
