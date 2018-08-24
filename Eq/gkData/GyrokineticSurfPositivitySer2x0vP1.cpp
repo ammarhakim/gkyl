@@ -9,7 +9,7 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = 0.25*(3.0*BmagInv[0]*Phi[3]-1.732050807568877*BmagInv[0]*Phi[2])*dfac_y; 
+  double alpha0 = 0.125*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y; 
 
   double alpha[4]; 
   alpha[0] = -0.8660254037844386*BmagInv[0]*Phi[2]*dfac_y; 
@@ -75,7 +75,7 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -0.25*(3.0*BmagInv[0]*Phi[3]-1.732050807568877*BmagInv[0]*Phi[1])*dfac_x; 
+  double alpha0 = -0.125*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[1])*dfac_x; 
 
   double alpha[4]; 
   alpha[0] = 0.8660254037844386*BmagInv[0]*Phi[1]*dfac_x; 

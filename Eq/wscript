@@ -173,21 +173,29 @@ def build(bld):
     pbData/CanonicalDisContSurfSer1x1v.cpp
     pbData/CanonicalSurfPositivitySer1x1v.cpp
 
-    gkData/GyrokineticSer2x0v.cpp
-    gkData/GyrokineticSer1x1v.cpp
-    gkData/GyrokineticSer1x2v.cpp
-    gkData/GyrokineticSer2x2v.cpp
-    gkData/GyrokineticSer3x2v.cpp
-    gkData/GyrokineticSurfSer2x0v.cpp
-    gkData/GyrokineticSurfSer1x1v.cpp
-    gkData/GyrokineticSurfSer1x2v.cpp
-    gkData/GyrokineticSurfSer2x2v.cpp
-    gkData/GyrokineticSurfSer3x2v.cpp
-    gkData/GyrokineticSurfPositivitySer2x0v.cpp
-    gkData/GyrokineticSurfPositivitySer1x1v.cpp
-    gkData/GyrokineticSurfPositivitySer1x2v.cpp
-    gkData/GyrokineticSurfPositivitySer2x2v.cpp
-    gkData/GyrokineticSurfPositivitySer3x2v.cpp
+    gkData/GyrokineticSer2x0vP1.cpp
+    gkData/GyrokineticSer1x1vP1.cpp
+    gkData/GyrokineticSer1x2vP1.cpp
+    gkData/GyrokineticSer2x2vP1.cpp
+    gkData/GyrokineticSer3x2vP1.cpp
+    gkData/GyrokineticSer2x0vP2.cpp
+    gkData/GyrokineticSer1x1vP2.cpp
+    gkData/GyrokineticSer1x2vP2.cpp
+    gkData/GyrokineticSer2x2vP2.cpp
+    gkData/GyrokineticSurfSer2x0vP1.cpp
+    gkData/GyrokineticSurfSer1x1vP1.cpp
+    gkData/GyrokineticSurfSer1x2vP1.cpp
+    gkData/GyrokineticSurfSer2x2vP1.cpp
+    gkData/GyrokineticSurfSer3x2vP1.cpp
+    gkData/GyrokineticSurfSer2x0vP2.cpp
+    gkData/GyrokineticSurfSer1x1vP2.cpp
+    gkData/GyrokineticSurfSer1x2vP2.cpp
+    gkData/GyrokineticSurfSer2x2vP2.cpp
+    gkData/GyrokineticSurfPositivitySer2x0vP1.cpp
+    gkData/GyrokineticSurfPositivitySer1x1vP1.cpp
+    gkData/GyrokineticSurfPositivitySer1x2vP1.cpp
+    gkData/GyrokineticSurfPositivitySer2x2vP1.cpp
+    gkData/GyrokineticSurfPositivitySer3x2vP1.cpp
     gkData/GkSheathFuncsSer.cpp
 
     Positivity.cpp
@@ -196,3 +204,5 @@ def build(bld):
     target = 'eq', use='EIGEN', includes = '. lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
     )
 
+    #gkData/GyrokineticSer3x2vP2.cpp
+    #gkData/GyrokineticSurfSer3x2vP2.cpp
