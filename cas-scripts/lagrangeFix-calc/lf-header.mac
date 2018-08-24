@@ -14,7 +14,7 @@ printf(fhl, "ffi.cdef [[~%~%")$
 for bIdx : 1 thru length(basis) do (
   for xIdx : 1 thru 1 do (
     for vIdx : 1 thru 2 do (
-      for polyOrder : 1 thru 1 do (  
+      for polyOrder : 1 thru 2 do (  
         printf(fhh, getName(basis[bIdx], xIdx, vIdx, polyOrder)),
         printf(fhl, getName(basis[bIdx], xIdx, vIdx, polyOrder))
       )

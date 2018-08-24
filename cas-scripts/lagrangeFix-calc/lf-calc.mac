@@ -16,7 +16,7 @@ for bIdx : 1 thru length(basis) do (
       fname : sconcat("~/max-out/lagrangeFix", basis[bIdx], xIdx, "x", vIdx, "v.cpp"),
       fh : openw(fname),
       printf(fh, "#include <math.h> ~%"),
-      printf(fh, "#include <lagrangeFixDecl.h> ~%"),
+      printf(fh, "#include <lagrangeFixDecl.h> ~%~%"),
       
       /* Load precomputed basis */
       kill(varsC, varsP, basisC, basisP),
@@ -31,7 +31,7 @@ for bIdx : 1 thru length(basis) do (
       vcs : makelist(tmp[i], i, 1, length(varsV)),
       vPhys : dVarsV*varsV/2 + vcs,
 
-      for polyOrder : 1 thru 1 do (
+      for polyOrder : 1 thru 2 do (
         /* Load basis and expand the new distribution function g */
         bc : basisC[polyOrder],
         bp : basisP[polyOrder],
@@ -93,7 +93,7 @@ for bIdx : 1 thru length(basis) do (
         for i : 1 thru length(bp) do (
           printf(fh, "  f[~a] = f[~a] +  ~a;~%", i-1, i-1, printSub[i])
         ),
-        printf(fh, "}~%")
+        printf(fh, "}~%~%")
       ),
       close(fh)
     )

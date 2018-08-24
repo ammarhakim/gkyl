@@ -82,30 +82,33 @@ end
 function BgkCollisions:createSolver()
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   function createUField()
+   function createConfFieldCompV()
       return DataStruct.Field {
 	 onGrid = self.confGrid,
 	 numComponents = self.confBasis:numBasis()*self.numVelDims,
 	 ghost = {1, 1},
       }
    end
-   self.uSelf = createUField()
+   self.uSelf = createConfFieldCompV()
+   self.dM1 = createConfFieldCompV()
    if self.selfCollisions then
-      self.uOther = createUField()
-      self.uCross = createUField()
+      self.uOther = createConfFieldCompV()
+      self.uCross = createConfFieldCompV()
    end
 
-   function createVth2Field()
+   function createConfFieldComp1()
       return DataStruct.Field {
 	 onGrid = self.confGrid,
 	 numComponents = self.confBasis:numBasis(),
 	 ghost = {1, 1},
       }
    end
-   self.vth2Self = createVth2Field()
+   self.vth2Self = createConfFieldComp1()
+   self.dM2 = createConfFieldComp1()
+   self.dM0 = createConfFieldComp1()
    if self.selfCollisions then
-      self.vth2Other = createVth2Field()
-      self.vth2Cross = createVth2Field()
+      self.vth2Other = createConfFieldComp1()
+      self.vth2Cross = createConfFieldComp1()
    end
 
    -- dummy fields for the primitive moment calculator
@@ -160,6 +163,33 @@ function BgkCollisions:createSolver()
       epsilon0 = self.epsilon0,
       --coulombLog = self.coulombLog,
    }
+
+   self.m0Calc = Updater.DistFuncMomentCalc {
+      onGrid = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
+      confBasis = self.confBasis,
+      moment = "M0",
+   }
+   self.m1Calc = Updater.DistFuncMomentCalc {
+      onGrid = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
+      confBasis = self.confBasis,
+      moment = "M1i",
+   }
+   self.m2Calc = Updater.DistFuncMomentCalc {
+      onGrid = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
+      confBasis = self.confBasis,
+      moment = "M2",
+   }
+
+   self.lagFix = Updater.LagrangeFix {
+      onGrid = self.phaseGrid,
+      phaseGrid = self.phaseGrid,
+      phaseBasis = self.phaseBasis,
+      confGrid = self.confGrid,
+      confBasis = self.confBasis,
+}
 end
 
 function BgkCollisions:primMoments(M0, M1i, M2, u, vth2)
@@ -183,6 +213,18 @@ function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
       self.maxwellian:advance(
 	 tCurr, dt, {selfMom[1], self.uSelf, self.vth2Self},
 	 {self.fMaxwell})
+      self.m0Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM0})
+      self.dM0:scale(-1)
+      self.dM0:accumulate(1, selfMom[1])
+      self.m1Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM1})
+      self.dM1:scale(-1)
+      self.dM1:accumulate(1, selfMom[2])
+      self.m2Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM2})
+      self.dM2:scale(-1)
+      self.dM2:accumulate(1, selfMom[3])
+      self.lagFix:advance(0.0, 0.0, {self.dM0, self.dM1, self.dM2},
+			  {self.fMaxwell})
+
       tmpStatus, tmpDt = self.collisionSlvr:advance(
 	 tCurr, dt,
 	 {fIn, self.fMaxwell, self.nuFrac, selfMom[1], self.vth2Self}, {fOut})
