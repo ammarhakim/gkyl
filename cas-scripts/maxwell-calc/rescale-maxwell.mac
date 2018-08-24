@@ -1,0 +1,37 @@
+assume(c>0)$
+
+V : [Ex, Ey, Ez, Bx, By, Bz]$
+modFlux :[0, r^2*c^2*Bz, -r^2*c^2*By, 0, -Ez/r^2, Ey/r^2, 0]$
+
+flux :[0, c^2*Bz, -c^2*By, 0, -Ez, Ey, 0]$
+
+A : genmatrix(lambda ([i,j], diff(modFlux[i],V[j])), 6, 6)$
+
+[vals, vects] : eigenvectors(A)$
+Rev : (Rev : matrix([]), for i from 1 thru length(vals[1])
+        do (for j from 1 thru vals[2][i]
+          do (Rev : addcol(Rev, transpose(matrix(vects[i][j]))))), Rev)$
+
+Evs : (Evs : [], for i from 1 thru length(vals[1])
+          do (for j from 1 thru vals[2][i]
+            do (Evs : append(Evs, [vals[1][i]]))), Evs)$
+
+R : Rev$
+L : invert(R)$
+EVS : Evs$
+EVP : makelist(max(EVS[i],0),i,1,6)$
+EVM : makelist(min(EVS[i],0),i,1,6)$
+
+dq : transpose([dE[1],dE[2],dE[3],dB[1],dB[2],dB[3]])$
+
+Apdq(dq) := sum(EVP[i]*col(R,i)*row(L,i).dq, i, 1, 6)$
+Amdq(dq) := sum(EVM[i]*col(R,i)*row(L,i).dq, i, 1, 6)$
+
+dqL : transpose([E[1]-EL[1], E[2]-EL[2], E[3]-EL[3], B[1]-BL[1], B[2]-BL[2], B[3]-BL[3]])$
+dqR : transpose([ER[1]-E[1], ER[2]-E[2], ER[3]-E[3], BR[1]-B[1], BR[2]-B[2], BR[3]-B[3]])$
+
+amdq_R : Amdq(dqR)$
+apdq_L : Apdq(dqL)$
+
+incr : fullratsimp(amdq_R + apdq_L)$
+
