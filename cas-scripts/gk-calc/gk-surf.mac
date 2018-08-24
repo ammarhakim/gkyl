@@ -251,22 +251,6 @@ load(modNm),
     GhatNoZero_k : doMakeExprLst(Ghat_k, Ghat),
     Ghat_k : doExpandLst(GhatNoZero_k, bP),
 
-/*
-    /* calculate lax penalty flux expression */
-    /* we evaluate at the boundary by evaluating the f_L (left) value at surfVar=1 and the f_R (right) value at surfVar=-1 */
-    alpha_expd : subst(surfVar=-1, alpha_expd),
-    Ghat_expd : fullratsimp(alpha_expd/2*(subst(surfVar=1, fL_expd)+subst(surfVar=-1, fR_expd))-amax/2*(subst(surfVar=-1, fR_expd)-subst(surfVar=1, fL_expd))),
-    /* project flux expression onto basis functions */
-    Ghat_k : gcfac(fullratsimp(subst([wv^2=wv2,dfac_v^2=dfac_v2,q_^2=q2],calcInnerProdList(varsP, 1, bP, Ghat_expd)))),
-    /* print fluxl list to c array Ghat */
-    writeCExprsNoExpand1(Ghat, Ghat_k),
-    printf(fh, "~%"),
-    flush_output(fh),
-    /* these functions drop components of Ghat that are zero from list Ghatl */
-    GhatNoZero_k : doMakeExprLst(Ghat_k, Ghat),
-    Ghat_k : doExpandLst(GhatNoZero_k, bP),
-*/
-
     /* evaluate contribution to right boundary (surfVar=-1) */
     incr_r : gcfac(fullratsimp(surfac*innerProd(surfIntVars, 1, subst(surfVar=-1, bP), subst(surfVar=-1,Ghat_k)))),
     writeCExprsNoExpand1(incr, incr_r),
