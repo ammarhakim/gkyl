@@ -155,6 +155,9 @@ local function buildApplication(self, tbl)
       mappings = tbl.coordinateMap,
    }
 
+   -- add grid to app object
+   self._confGrid = grid
+
    -- set conf grid for each species
    for _, s in pairs(species) do
       s:setConfGrid(grid)
@@ -621,6 +624,10 @@ local App = Proto()
 
 function App:init(tbl)
    self._runApplication = buildApplication(self, tbl)
+end
+
+function App:getConfGrid()
+   return self._confGrid
 end
 
 function App:run()

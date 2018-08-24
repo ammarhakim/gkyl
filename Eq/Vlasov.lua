@@ -42,7 +42,7 @@ function Vlasov:init(tbl)
    self._vdim = self._pdim-self._cdim
 
    -- functions to perform streaming updates
-   self._volStreamUpdate = VlasovModDecl.selectVolStream(
+   self._volUpdate = VlasovModDecl.selectVolStream(
       self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    self._surfStreamUpdate = VlasovModDecl.selectSurfStream(
       self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
