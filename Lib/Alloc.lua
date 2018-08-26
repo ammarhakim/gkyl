@@ -70,6 +70,8 @@ local function Alloc_meta_ctor(elct)
       isNumberType = true
    elseif ffi.istype(new(elct), new("int")) then
       isNumberType = true
+   elseif ffi.istype(new(elct), new("complex")) then
+      isNumberType = true
    else
       isNumberType = false
       copyElemFunc = function (dst, src) ffi.copy(dst, src, elmSz) end
@@ -214,6 +216,7 @@ return {
    Double = createAllocator("double"),
    Float = createAllocator("float"),
    Int = createAllocator("int"),
+   Complex = createAllocator("complex"),
    malloc = malloc,
    realloc = realloc,
    calloc = calloc,
