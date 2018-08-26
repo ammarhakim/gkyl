@@ -5,6 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local complex = require "sci.complex"
 local ffi = require "ffi"
 local Unit = require "Unit"
 local Alloc = require "Lib.Alloc"
@@ -180,6 +181,18 @@ function test_7()
    end
 end
 
+function test_8()
+   local carr = Alloc.Complex(10)
+
+   for i = 0, carr:size() do
+      carr[i] = complex.new(i, 0.1)
+   end
+
+   for i = 0, carr:size() do
+      assert_equal(math.sqrt(i^2+0.1^2), complex.abs(carr[i]), "Complex amplitude")
+   end   
+end
+
 -- run tests
 test_1()
 test_2()
@@ -189,6 +202,7 @@ test_4()
 test_5()
 test_6()
 test_7()
+test_8()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

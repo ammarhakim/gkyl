@@ -7,4 +7,4 @@ if [ `dirname "$0"` == "." ]
 fi
 export GKYLSOFT='~/gkylsoft'
 cd install-deps
-#./mkdeps.sh CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
+./mkdeps.sh CC=mpicc CXX=mpicxx MPICC=mpicc MPICXX=mpicxx --build-luajit=yes --build-adios=yes --build-eigen=yes --build-openmpi=no
