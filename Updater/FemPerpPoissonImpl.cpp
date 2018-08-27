@@ -50,8 +50,6 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
       if(!bc[i][j].isSet) {
         bc[i][j].type = -1;
       }
-      bc2d[i][j] = bc[i][j];
-      bc2d_z0[i][j] = bc[i][j];
     }
   }
 
@@ -68,9 +66,6 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
 
 // initialize boundary condition indexing
   setupBoundaryIndices(bc, ndim, polyOrder);
-  if(ndim==3 && polyOrder==1) {
-    setupBoundaryIndices(bc2d, 2, polyOrder);
-  } 
 
 // initialize global source vector
   globalSrc = VectorXd(nglobal);
