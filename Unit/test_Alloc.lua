@@ -190,7 +190,7 @@ function test_8()
 
    for i = 0, carr:size() do
       assert_equal(math.sqrt(i^2+0.1^2), complex.abs(carr[i]), "Complex amplitude")
-   end   
+   end
 end
 
 -- run tests
