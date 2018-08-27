@@ -127,7 +127,8 @@ function FemParPoisson:init(tbl)
       basis = self._basis,
       evaluate = function (t,xn)
                     return 1.0
-                 end
+                 end,
+      projectOnGhosts = true
    }
    initUnit:advance(0.,0.,{},{self.unitWeight})
 
