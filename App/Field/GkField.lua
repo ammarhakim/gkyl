@@ -403,6 +403,18 @@ function GkField:write(tm)
 end
 
 function GkField:writeRestart(tm)
+   self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame)
+   -- (the final "false" prevents flushing of data after write)
+   self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false)
+end
+
+function GkField:readRestart(tm)
+   -- this read of restart file of potential is only to get frame
+   -- numbering correct. The forward Euler recomputes the potential
+   -- before updating the hyperbolic part
+   local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
+   self.ioFrame = fr
+   self.phi2:read("phi2_restart.bp", tm)
 end
 
 -- not needed for GK
