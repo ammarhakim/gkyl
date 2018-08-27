@@ -1078,7 +1078,7 @@ test_smooth_periodic2d_p1()
 test_smooth_periodic2d_p2()
 test_periodic3d_p1()
 test_periodic3d_p2()
-test_periodic3d_metric_p1()
+--test_periodic3d_metric_p1()
 local t2 = os.clock()
 
 print()

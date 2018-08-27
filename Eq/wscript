@@ -182,6 +182,7 @@ def build(bld):
     gkData/GyrokineticSer1x1vP2.cpp
     gkData/GyrokineticSer1x2vP2.cpp
     gkData/GyrokineticSer2x2vP2.cpp
+    gkData/GyrokineticSer3x2vP2.cpp
     gkData/GyrokineticSurfSer2x0vP1.cpp
     gkData/GyrokineticSurfSer1x1vP1.cpp
     gkData/GyrokineticSurfSer1x2vP1.cpp
@@ -191,6 +192,7 @@ def build(bld):
     gkData/GyrokineticSurfSer1x1vP2.cpp
     gkData/GyrokineticSurfSer1x2vP2.cpp
     gkData/GyrokineticSurfSer2x2vP2.cpp
+    gkData/GyrokineticSurfSer3x2vP2.cpp
     gkData/GyrokineticSurfPositivitySer2x0vP1.cpp
     gkData/GyrokineticSurfPositivitySer1x1vP1.cpp
     gkData/GyrokineticSurfPositivitySer1x2vP1.cpp
@@ -204,5 +206,3 @@ def build(bld):
     target = 'eq', use='EIGEN', includes = '. lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
     )
 
-    #gkData/GyrokineticSer3x2vP2.cpp
-    #gkData/GyrokineticSurfSer3x2vP2.cpp
