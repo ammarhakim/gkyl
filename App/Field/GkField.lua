@@ -148,7 +148,8 @@ function GkField:alloc(nRkDup)
       basis = self.basis,
       evaluate = function (t,xn)
                     return 1.0
-                 end
+                 end,
+      projectOnGhosts = true,
    }
    initUnit:advance(0.,0.,{},{self.unitWeight})
 
@@ -250,7 +251,6 @@ function GkField:createSolver(species, funcField)
      bcTop = self.phiBcTop,
      periodicDirs = self.periodicDirs,
      zContinuous = not self.discontinuousPhi,
-     constStiff = self.linearizedPolarization,
      gxx = gxx,
      gxy = gxy,
      gyy = gyy,
@@ -331,7 +331,6 @@ function GkField:createSolver(species, funcField)
        bcTop = self.aparBcTop,
        periodicDirs = self.periodicDirs,
        zContinuous = not self.discontinuousApar,
-       constStiff = false, 
        gxx = gxx,
        gxy = gxy,
        gyy = gyy,
@@ -820,7 +819,7 @@ function GkGeometry:createSolver()
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
+         evaluate = function(t, xn) return 1.0 end
       }
    end
    if self.jacobGeoFunc then 
@@ -835,7 +834,7 @@ function GkGeometry:createSolver()
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
+         evaluate = function(t, xn) return 1.0 end
       }
    end
    if self.gxxFunc then 
@@ -850,7 +849,7 @@ function GkGeometry:createSolver()
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
+         evaluate = function(t, xn) return 1.0 end
       }
    end
    if self.gxyFunc then 
@@ -865,7 +864,7 @@ function GkGeometry:createSolver()
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
-         evaluate = function(t, xn) return 0 end
+         evaluate = function(t, xn) return 0.0 end
       }
    end
    if self.gyyFunc then 
@@ -880,7 +879,7 @@ function GkGeometry:createSolver()
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
-         evaluate = function(t, xn) return 1 end
+         evaluate = function(t, xn) return 1.0 end
       }
    end
    if self.bdriftXFunc then 

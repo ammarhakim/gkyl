@@ -56,7 +56,7 @@ plasmaApp = Plasma.App {
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
-   cflFrac = 0.9,
+   cflFrac = 0.5,
 
    -- decomposition for configuration space
    decompCuts = {1, 1, 2}, -- cuts in each configuration direction
@@ -117,6 +117,7 @@ plasmaApp = Plasma.App {
    -- field solver
    field = Plasma.GkField {
       evolve = true, -- evolve fields?
+      --discontinuousPhi = true,
       --polarizationWeight = 0.0,
    },
 
