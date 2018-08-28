@@ -44,7 +44,6 @@ function FemPoisson:init(tbl)
    self.bcBottom = tbl.bcBottom
    self.bcBack = tbl.bcBack
    self.bcFront = tbl.bcFront
-   self.constStiff = xsys.pickBool(tbl.constStiff, true)
    self.gxx = tbl.gxx
    self.gxy = tbl.gxy
    self.gyy = tbl.gyy

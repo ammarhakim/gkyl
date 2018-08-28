@@ -238,8 +238,8 @@ function FemPerpPoisson:init(tbl)
      self.zDiscontToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
+       smooth = true,
      }
-     self.zDiscontToCont:setModifierWeight(self.unitWeight)
    end
 
    self.dynVec = DataStruct.DynVector { numComponents = 1 }
