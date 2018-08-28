@@ -46,7 +46,7 @@ function FluidSpecies:fullInit(appTbl)
    self.mass = tbl.mass and tbl.mass or 1.0
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
-   self.confBasis = nil -- Will be set later
+   self.basis = nil -- Will be set later
 
    -- create triggers to write diagnostics
    if tbl.nDiagnosticFrame then
@@ -111,56 +111,31 @@ function FluidSpecies:setIoMethod(ioMethod)
    self.ioMethod = ioMethod
 end
 function FluidSpecies:setConfBasis(basis)
-   self.confBasis = basis
+   self.basis = basis
 end
 function FluidSpecies:setConfGrid(cgrid)
-   self.confGrid = cgrid
+   self.grid = cgrid
+   self.ndim = self.grid:ndim()
 end
 
-function FluidSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
-   self.cdim = #cCells
-   self.ndim = self.cdim
-
-   -- create decomposition
-   local decompCuts = {}
-   for d = 1, self.cdim do table.insert(decompCuts, cDecompCuts[d]) end
-   self.decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
-      shared = false,
-   }
-
-   -- create computational domain
-   local lower, upper, cells = {}, {}, {}
-   for d = 1, self.cdim do
-      table.insert(lower, cLo[d])
-      table.insert(upper, cUp[d])
-      table.insert(cells, cCells[d])
-   end
-   self.grid = Grid.RectCart {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-      periodicDirs = cPeriodicDirs,
-      decomposition = self.decomp,
-   }
+function FluidSpecies:createGrid(cgrid)
 end
 
 function FluidSpecies:createBasis(nm, polyOrder)
-   self.basis = createBasis(nm, self.ndim, polyOrder)
 end
 
 function FluidSpecies:allocMoment()
    local m = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.confBasis:numBasis(),
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
       ghost = {self.nGhost, self.nGhost}
    }
    return m
 end
 function FluidSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
-      onGrid = self.confGrid,
-      numComponents = self.confBasis:numBasis()*dim,
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis()*dim,
       ghost = {self.nGhost, self.nGhost}
    }
    return m
