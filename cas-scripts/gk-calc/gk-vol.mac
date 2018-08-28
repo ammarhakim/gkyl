@@ -230,11 +230,11 @@ load(modNm),
 pmax:2$
 em:false$
 
-for c : 3 thru 3 do (
+for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
 if c=1 then (pmax:2),
-for p : 2 thru pmax do (
+for p : 1 thru pmax do (
 if em then fname : sconcat("~/max-out/EmGyrokineticSer", c, "x", v, "vP", p, ".cpp")
 else fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "vP", p, ".cpp"),
 fh : openw(fname),
