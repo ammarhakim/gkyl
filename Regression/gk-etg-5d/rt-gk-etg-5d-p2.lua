@@ -52,14 +52,14 @@ plasmaApp = Plasma.App {
    nFrame = 1, -- number of output frames
    lower = {r0 - dr/2, -dr/2, -L_parallel/2}, -- configuration space lower left
    upper = {r0 + dr/2,  dr/2, L_parallel/2}, -- configuration space upper right
-   cells = {1, 4, 4}, -- configuration space cells
+   cells = {2, 4, 4}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
-   cflFrac = 0.5,
+   cflFrac = 1.0,
 
    -- decomposition for configuration space
-   decompCuts = {1, 1, 1}, -- cuts in each configuration direction
+   decompCuts = {1, 2, 1}, -- cuts in each configuration direction
    useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
@@ -117,8 +117,6 @@ plasmaApp = Plasma.App {
    -- field solver
    field = Plasma.GkField {
       evolve = true, -- evolve fields?
-      --discontinuousPhi = true,
-      --polarizationWeight = 0.0,
    },
 
    -- magnetic geometry 
