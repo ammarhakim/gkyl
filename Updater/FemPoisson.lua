@@ -105,6 +105,8 @@ function FemPoisson:init(tbl)
         bcRight = self.bcRight,
         bcBottom = self.bcBottom,
         bcTop = self.bcTop,
+        bcBack = self.bcBack,
+        bcFront = self.bcFront,
         periodicDirs = self.periodicDirs,
         zContinuous = self.zContinuous,
         constStiff = self.constStiff,
