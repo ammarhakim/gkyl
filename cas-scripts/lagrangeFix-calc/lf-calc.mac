@@ -10,17 +10,17 @@ momSum(mom, varsV):=block([],
 
 basis : ["Ser", "Max"]$
 for bIdx : 1 thru length(basis) do (
-  for xIdx : 1 thru 1 do (
-    for vIdx : 1 thru 2 do (
+  for cDim : 1 thru 2 do (
+    for vDim : cDim thru 3 do (
       /* Prepare the CPP file */
-      fname : sconcat("~/max-out/lagrangeFix", basis[bIdx], xIdx, "x", vIdx, "v.cpp"),
+      fname : sconcat("~/max-out/lagrangeFix", basis[bIdx], cDim, "x", vDim, "v.cpp"),
       fh : openw(fname),
       printf(fh, "#include <math.h> ~%"),
       printf(fh, "#include <lagrangeFixDecl.h> ~%~%"),
       
       /* Load precomputed basis */
       kill(varsC, varsP, basisC, basisP),
-      load(sconcat("basis-precalc/basis", basis[bIdx], xIdx, "x", vIdx, "v")),
+      load(sconcat("basis-precalc/basis", basis[bIdx], cDim, "x", vDim, "v")),
       /* Get the velocity fields */
       varsV : makelist(varsP[i], i, length(varsC)+1, length(varsP)),
       tmp : [dvx, dvy, dvz],
@@ -31,7 +31,7 @@ for bIdx : 1 thru length(basis) do (
       vcs : makelist(tmp[i], i, 1, length(varsV)),
       vPhys : dVarsV*varsV/2 + vcs,
 
-      for polyOrder : 1 thru 2 do (
+      for polyOrder : 1 thru 3 do (
         /* Load basis and expand the new distribution function g */
         bc : basisC[polyOrder],
         bp : basisP[polyOrder],
@@ -89,7 +89,7 @@ for bIdx : 1 thru length(basis) do (
         printSub : subst(sList, printSub),
         printSub : subst(gkyl_ipow, "^", printSub),
 
-        printf(fh, "void lagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], xIdx, vIdx, polyOrder),
+        printf(fh, "void lagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
         for i : 1 thru length(bp) do (
           printf(fh, "  f[~a] = f[~a] +  ~a;~%", i-1, i-1, printSub[i])
         ),

@@ -51,6 +51,9 @@ def build(bld):
     lagrangeFixData/gkyl_ipow.cpp
     lagrangeFixData/lagrangeFixSer1x1v.cpp
     lagrangeFixData/lagrangeFixSer1x2v.cpp
+    lagrangeFixData/lagrangeFixSer1x3v.cpp
+    lagrangeFixData/lagrangeFixSer2x2v.cpp
+    lagrangeFixData/lagrangeFixSer2x3v.cpp
 
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp
