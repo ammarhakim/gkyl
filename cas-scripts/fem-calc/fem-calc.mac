@@ -82,6 +82,10 @@ printf(header, "~a;~%", prototype)$
 prototype:"void getMassMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
 writeCMatFunc(prototype, calcUnweightedMass, [1,2,3], false, false)$
 printf(header, "~a;~%", prototype)$
+/* write getModalMassMatrix C function */
+prototype:"void getModalMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcMassModal, [1,2,3], false, false)$
+printf(header, "~a;~%", prototype)$
 /* write getMassMatrixFSA C function */
 prototype:"void getMassMatrixFSA(Eigen::MatrixXd& mat, double *w, double *jacob, int ndim, int polyOrder)"$
 writeCMatFunc(prototype, calcMassFSA, [1,2,3], false, false)$

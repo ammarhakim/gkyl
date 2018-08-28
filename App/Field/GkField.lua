@@ -184,7 +184,7 @@ function GkField:initField(species)
       project:advance(0.0, 0.0, {}, {self.potentials[1].phi})
    else
       -- solve for initial phi
-      self:forwardEuler(0, 1.0, species, 1, 1)
+      self:forwardEuler(0.0, 0.0, species, 1, 1)
    end
 
    if self.isElectromagnetic then
@@ -982,6 +982,9 @@ function GkGeometry:write(tm)
       end
       if self.setBdriftY then
 	 self.fieldIo:write(self.geo.bdriftY, string.format("bdriftY_%d.bp", self.ioFrame), tm, self.ioFrame)
+      end
+      if self.setGradpar then
+	 self.fieldIo:write(self.geo.gradpar, string.format("gradpar_%d.bp", self.ioFrame), tm, self.ioFrame)
       end
    end
    self.ioFrame = self.ioFrame+1

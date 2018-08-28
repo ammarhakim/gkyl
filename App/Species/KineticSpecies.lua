@@ -516,7 +516,7 @@ function KineticSpecies:modifyDensity(f, trueDensFunc)
    }
    projectTrueDens:advance(0, 0, {}, {ntrue})
    local calcDensMod = Updater.CartFieldBinOp {
-      onGrid = self.grid,
+      onGrid = self.confGrid,
       weakBasis = self.confBasis,
       operation = "Divide",
       onGhosts = true,

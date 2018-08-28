@@ -168,6 +168,17 @@ massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(tr
 return(massNod)
 )$
 
+/* calculate weighted modal mass matrix */
+calcMassModal(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
+load(modNm),
+basis : basisC[p],
+w_expd : doExpand1(w, basis),
+massMod : float(expand(fullratsimp(calcMassMatrix(varsC, w_expd, basis)))),
+return(massMod)
+)$
+
 /* calculate weighted nodal flux-surface-averaged mass matrix */
 calcMassFSA(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
