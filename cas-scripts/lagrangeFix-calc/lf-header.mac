@@ -12,11 +12,11 @@ printf(fhl, "local ffi  = require \"ffi\"~%")$
 printf(fhl, "ffi.cdef [[~%~%")$
 
 for bIdx : 1 thru length(basis) do (
-  for xIdx : 1 thru 1 do (
-    for vIdx : 1 thru 2 do (
-      for polyOrder : 1 thru 2 do (  
-        printf(fhh, getName(basis[bIdx], xIdx, vIdx, polyOrder)),
-        printf(fhl, getName(basis[bIdx], xIdx, vIdx, polyOrder))
+  for cDim : 1 thru 2 do (
+    for vDim : cDim thru 3 do (
+      for polyOrder : 1 thru 3 do (  
+        printf(fhh, getName(basis[bIdx], cDim, vDim, polyOrder)),
+        printf(fhl, getName(basis[bIdx], cDim, vDim, polyOrder))
       )
     )
   )
