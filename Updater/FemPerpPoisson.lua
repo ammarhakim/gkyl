@@ -259,6 +259,11 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    local src = assert(inFld[1], "FemPerpPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "FemPerpPoisson.advance: Must specify an output field")
 
+   -- optionally make continuous in z
+   if self.zDiscontToCont then 
+      self.zDiscontToCont:advance(tCurr, dt, {src}, {src}) 
+   end
+
    local ndim = self._ndim
 
    -- create region that is effectively 2d and global in x-y directions
@@ -389,11 +394,6 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
-
-   -- optionally make continuous in z
-   if self.zDiscontToCont then 
-      self.zDiscontToCont:advance(tCurr, dt, {sol}, {sol}) 
-   end
 
    return true, GKYL_MAX_DOUBLE
 end
