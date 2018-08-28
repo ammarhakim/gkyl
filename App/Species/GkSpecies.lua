@@ -80,14 +80,22 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       if self.jacobPhaseFunc and self.vdim > 1 then
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
-            local J = self.jacobPhaseFunc(t,xn)
+            local xconf = {}
+            for d = 1, self.cdim do
+               xconf[d] = xn[d]
+            end
+            local J = self.jacobPhaseFunc(t,xconf)
             local f = initFuncWithoutJacobian(t,xn)
             return J*f
          end
          if self.initBackgroundFunc then
             local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
             self.initBackgroundFunc = function(t,xn)
-               local J = self.jacobPhaseFunc(t,xn)
+               local xconf = {}
+               for d = 1, self.cdim do
+                  xconf[d] = xn[d]
+               end
+               local J = self.jacobPhaseFunc(t,xconf)
                local f0 = initBackgroundFuncWithoutJacobian(t,xn)
                return J*f0
             end
@@ -96,14 +104,22 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       if self.jacobGeoFunc then
          local initFuncWithoutJacobian = self.initFunc
          self.initFunc = function (t, xn)
-            local J = self.jacobGeoFunc(t,xn)
+            local xconf = {}
+            for d = 1, self.cdim do
+               xconf[d] = xn[d]
+            end
+            local J = self.jacobGeoFunc(t,xconf)
             local f = initFuncWithoutJacobian(t,xn)
             return J*f
          end
          if self.initBackgroundFunc then
             local initBackgroundFuncWithoutJacobian = self.initBackgroundFunc
             self.initBackgroundFunc = function(t,xn)
-               local J = self.jacobGeoFunc(t,xn)
+               local xconf = {}
+               for d = 1, self.cdim do
+                  xconf[d] = xn[d]
+               end
+               local J = self.jacobGeoFunc(t,xconf)
                local f0 = initBackgroundFuncWithoutJacobian(t,xn)
                return J*f0
             end
@@ -254,7 +270,7 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
 
    -- apply BCs
-   self:applyBc(tCurr, dt, fOut)
+   if not hasApar then self:applyBc(tCurr, dt, fOut) end
    
    return status, dtSuggested
 end
