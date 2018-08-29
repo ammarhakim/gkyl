@@ -443,6 +443,10 @@ function KineticSpecies:alloc(nRkDup)
       self.fSource = self:allocDistf()
    end
 
+   if self.positivity then
+      self.fPos = self:allocDistf()
+   end
+
    self:createBCs()
 end
 

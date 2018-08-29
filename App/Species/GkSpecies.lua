@@ -151,8 +151,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       equation = self.gkEqn,
       zeroFluxDirections = self.zeroFluxDirections,
       updateDirections = upd,
-      -- if electromagnetic, only compute RHS increment so that RHS can be used in dAdt solve
-      onlyIncrement = hasApar, 
+      onlyIncrement = true, 
    }
    if hasApar then 
       -- set up solver that adds on volume term involving dApar/dt and the entire vpar surface term
@@ -174,7 +173,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections = {self.cdim+1},
          clearOut = false,   -- continue accumulating into output field
-         onlyIncrement = false,  -- finish taking timestep
+         onlyIncrement = true, 
       }
    end
    
@@ -228,8 +227,17 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
+
+
    if self.evolveCollisionless then
-      status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      if self.positivity then 
+         self.positivityRescale:advance(tCurr, dt, {fIn}, {self.fPos}) 
+         status, dtSuggested = self.solver:advance(tCurr, dt, {self.fPos, em, emFunc}, {fOut})
+      else
+         status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      end
+      -- if step2, only compute RHS increment so that RHS can be used in step 2
+      if not self.solverStep2 then fOut:scale(dt); fOut:accumulate(1.0, fIn) end -- fOut = fIn + dt*fOut
    else
       fOut:copy(fIn) -- just copy stuff over
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
@@ -251,8 +259,6 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
      fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
    end
 
-   if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
-
    -- apply BCs
    self:applyBc(tCurr, dt, fOut)
    
@@ -268,6 +274,13 @@ function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
       local emFunc = emIn[2]:rkStepperFields()[1]
       local status, dtSuggested
       status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      if self.positivity then 
+         self.positivityRescale:advance(tCurr, dt, {fIn}, {self.fPos}) 
+         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {self.fPos, em, emFunc}, {fOut})
+      else
+         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      end
+      fOut:scale(dt); fOut:accumulate(1.0, fIn) -- fOut = fIn + dt*fOut
 
       -- apply BCs
       self:applyBc(tCurr, dt, fOut)
