@@ -17,34 +17,250 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   double q2 = q_*q_; 
   double m2 = m_*m_; 
   double cflFreq = 0.0; 
-  double alphaM = 0.0; 
-  double alphaP = 0.0; 
+  double alphaL = 0.0; 
+  double alphaR = 0.0; 
   double alphax[32]; 
   alphax[0] = dfac_x*((2.0*BdriftX[0]*m_*wv2)/q_-1.224744871391589*BmagInv[0]*Phi[2]*dfac_y); 
   alphax[1] = -1.224744871391589*BmagInv[0]*Phi[4]*dfac_x*dfac_y; 
   alphax[3] = -1.224744871391589*BmagInv[0]*Phi[6]*dfac_x*dfac_y; 
   alphax[4] = (1.154700538379252*BdriftX[0]*dfac_x*m_*wv)/(dfac_v*q_); 
   alphax[7] = -1.224744871391589*BmagInv[0]*Phi[7]*dfac_x*dfac_y; 
-  alphaM = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphay[32]; 
   alphay[0] = dfac_y*((2.0*BdriftY[0]*m_*wv2)/q_+1.224744871391589*BmagInv[0]*Phi[1]*dfac_x); 
   alphay[2] = 1.224744871391589*BmagInv[0]*Phi[4]*dfac_x*dfac_y; 
   alphay[3] = 1.224744871391589*BmagInv[0]*Phi[5]*dfac_x*dfac_y; 
   alphay[4] = (1.154700538379252*BdriftY[0]*dfac_y*m_*wv)/(dfac_v*q_); 
   alphay[8] = 1.224744871391589*BmagInv[0]*Phi[7]*dfac_x*dfac_y; 
-  alphaM = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphaz[32]; 
   alphaz[0] = 2.0*Gradpar[0]*dfac_z*wv; 
-  alphaM = 0.0883883476483184*alphaz[0]; 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0883883476483184*alphaz[0]; 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = 0.0883883476483184*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0883883476483184*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.005524271728019897*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.005524271728019897*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphav[32]; 
   alphav[0] = -1.224744871391589*dfac_v*((BdriftY[0]*Phi[2]*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*wv+(Gradpar[0]*Phi[3]*dfac_z*q_)/m_); 
   alphav[1] = -1.224744871391589*dfac_v*(BdriftY[0]*Phi[4]*dfac_y*wv+(Gradpar[0]*Phi[5]*dfac_z*q_)/m_); 
@@ -59,10 +275,82 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   alphav[11] = -0.7071067811865475*(BdriftY[0]*Phi[6]*dfac_y+BdriftX[0]*Phi[5]*dfac_x); 
   alphav[18] = -0.7071067811865475*BdriftY[0]*Phi[7]*dfac_y; 
   alphav[19] = -0.7071067811865475*BdriftX[0]*Phi[7]*dfac_x; 
-  alphaM = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*(alphav[18]+alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18]+alphav[11])-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[11])+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]+alphav[11]+alphav[10]+alphav[9]))+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*(alphav[18]+alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18]+alphav[11])-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[11])+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]+alphav[11]+alphav[10]+alphav[9]))+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]+alphav[11]))+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*(alphav[18]+alphav[11])-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18]+alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]+alphav[11]))+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*(alphav[18]+alphav[11])-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18]+alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   out[1] += 0.3061862178478971*(alphax[7]*f[7]+alphax[4]*f[4]+alphax[3]*f[3]+alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.3061862178478971*(alphay[8]*f[8]+alphay[4]*f[4]+alphay[3]*f[3]+alphay[2]*f[2]+alphay[0]*f[0]); 
   out[3] += 0.3061862178478971*alphaz[0]*f[0]; 
@@ -113,8 +401,8 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   double q2 = q_*q_; 
   double m2 = m_*m_; 
   double cflFreq = 0.0; 
-  double alphaM = 0.0; 
-  double alphaP = 0.0; 
+  double alphaL = 0.0; 
+  double alphaR = 0.0; 
   double alphax[32]; 
   alphax[0] = dfac_x*((2.0*BdriftX[0]*m_*wv2)/q_-1.224744871391589*(BmagInv[1]*Phi[4]+BmagInv[0]*Phi[2])*dfac_y); 
   alphax[1] = dfac_x*((2.0*BdriftX[1]*m_*wv2)/q_-1.224744871391589*(BmagInv[0]*Phi[4]+BmagInv[1]*Phi[2])*dfac_y); 
@@ -122,10 +410,82 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   alphax[4] = (1.154700538379252*BdriftX[0]*dfac_x*m_*wv)/(dfac_v*q_); 
   alphax[7] = -1.224744871391589*(BmagInv[0]*Phi[7]+BmagInv[1]*Phi[6])*dfac_x*dfac_y; 
   alphax[9] = (1.154700538379252*BdriftX[1]*dfac_x*m_*wv)/(dfac_v*q_); 
-  alphaM = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[9])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphay[32]; 
   alphay[0] = dfac_y*((2.0*BdriftY[0]*m_*wv2)/q_+1.224744871391589*BmagInv[0]*dfac_x*((Bmag[1]*wm)/q_+Phi[1])); 
   alphay[1] = dfac_y*((2.0*BdriftY[1]*m_*wv2)/q_+1.224744871391589*BmagInv[1]*dfac_x*((Bmag[1]*wm)/q_+Phi[1])); 
@@ -139,17 +499,161 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   alphay[9] = (1.154700538379252*BdriftY[1]*dfac_y*m_*wv)/(dfac_v*q_); 
   alphay[12] = (0.7071067811865475*Bmag[1]*BmagInv[1]*dfac_x*dfac_y)/(dfac_m*q_); 
   alphay[16] = 1.224744871391589*BmagInv[1]*Phi[7]*dfac_x*dfac_y; 
-  alphaM = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphaz[32]; 
   alphaz[0] = 2.0*Gradpar[0]*dfac_z*wv; 
   alphaz[1] = 2.0*Gradpar[1]*dfac_z*wv; 
-  alphaM = 0.0883883476483184*alphaz[0]; 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0883883476483184*alphaz[0]; 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = 0.0883883476483184*alphaz[0]; 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0883883476483184*alphaz[0]; 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[1]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.0055242717280199*(alphaz[1]+alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphav[32]; 
   alphav[0] = -1.224744871391589*dfac_v*(((BdriftX[0]*Bmag[1]*dfac_x*wm)/q_+(BdriftY[1]*Phi[4]+BdriftY[0]*Phi[2])*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*wv+((Gradpar[1]*Phi[5]+Gradpar[0]*Phi[3])*dfac_z*q2)/(m_*q_)); 
   alphav[1] = -1.224744871391589*dfac_v*(((BdriftX[1]*Bmag[1]*dfac_x*wm)/q_+(BdriftY[0]*Phi[4]+BdriftY[1]*Phi[2])*dfac_y+BdriftX[1]*Phi[1]*dfac_x)*wv+((Gradpar[0]*Phi[5]+Gradpar[1]*Phi[3])*dfac_z*q2)/(m_*q_)); 
@@ -171,10 +675,82 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   alphav[19] = -0.7071067811865475*BdriftX[0]*Phi[7]*dfac_x; 
   alphav[23] = -(0.408248290463863*BdriftX[1]*Bmag[1]*dfac_x)/(dfac_m*q_); 
   alphav[26] = -0.7071067811865475*BdriftX[1]*Phi[7]*dfac_x; 
-  alphaM = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*(alphav[23]+alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*alphav[23]-0.3061862178478971*alphav[19]+0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]))+0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23]+alphav[19]+alphav[18])-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]))+0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23]+alphav[19])-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*(alphav[23]+alphav[19])+0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*alphav[23]-0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23])-0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]+alphav[19]))+0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*(alphav[23]+alphav[19])-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*alphav[23]+0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*(alphav[23]+alphav[19]+alphav[18])-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*alphav[23]+0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23])-0.3061862178478971*alphav[19]+0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]+alphav[19]+alphav[18]+alphav[17]))+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*(alphav[23]+alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*alphav[23]+0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23])-0.3061862178478971*alphav[19]+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]+alphav[19]+alphav[18]))+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23])-0.3061862178478971*(alphav[19]+alphav[18])+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]+alphav[19]))+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*(alphav[23]+alphav[19])-0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*alphav[23]+0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]))+0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23]+alphav[19])-0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*(alphav[23]+alphav[19])+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*alphav[23]-0.3061862178478971*(alphav[19]+alphav[18])+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[26]-0.3061862178478971*(alphav[23]+alphav[19]+alphav[18])+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[26])+0.3061862178478971*alphav[23]-0.3061862178478971*alphav[19]+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[26]+alphav[23]))+0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[26]+alphav[23]+alphav[19]+alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   out[1] += 0.3061862178478971*(alphax[9]*f[9]+alphax[7]*f[7]+alphax[4]*f[4]+alphax[3]*f[3]+alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.3061862178478971*(alphay[16]*f[16]+alphay[12]*f[12]+alphay[9]*f[9]+alphay[8]*f[8]+alphay[7]*f[7]+alphay[6]*f[6]+alphay[5]*f[5]+alphay[4]*f[4]+alphay[3]*f[3]+alphay[2]*f[2]+alphay[1]*f[1]+alphay[0]*f[0]); 
   out[3] += 0.3061862178478971*(alphaz[1]*f[1]+alphaz[0]*f[0]); 
@@ -225,8 +801,8 @@ double GyrokineticVol3x2vSerP1_Bvars_3(const double q_, const double m_, const d
   double q2 = q_*q_; 
   double m2 = m_*m_; 
   double cflFreq = 0.0; 
-  double alphaM = 0.0; 
-  double alphaP = 0.0; 
+  double alphaL = 0.0; 
+  double alphaR = 0.0; 
   double alphax[32]; 
   alphax[0] = dfac_x*((2.0*BdriftX[0]*m_*wv2)/q_-1.224744871391589*(BmagInv[3]*Phi[6]+BmagInv[0]*Phi[2])*dfac_y); 
   alphax[1] = -1.224744871391589*(BmagInv[3]*Phi[7]+BmagInv[0]*Phi[4])*dfac_x*dfac_y; 
@@ -234,10 +810,82 @@ double GyrokineticVol3x2vSerP1_Bvars_3(const double q_, const double m_, const d
   alphax[4] = (1.154700538379252*BdriftX[0]*dfac_x*m_*wv)/(dfac_v*q_); 
   alphax[7] = -1.224744871391589*(BmagInv[0]*Phi[7]+BmagInv[3]*Phi[4])*dfac_x*dfac_y; 
   alphax[11] = (1.154700538379252*BdriftX[3]*dfac_x*m_*wv)/(dfac_v*q_); 
-  alphaM = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]-0.3061862178478971*alphax[7]-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphax[11])-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphax[11]+0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphay[32]; 
   alphay[0] = dfac_y*((2.0*BdriftY[0]*m_*wv2)/q_+1.224744871391589*(BmagInv[3]*Phi[5]+BmagInv[0]*Phi[1])*dfac_x); 
   alphay[2] = 1.224744871391589*(BmagInv[3]*Phi[7]+BmagInv[0]*Phi[4])*dfac_x*dfac_y; 
@@ -245,17 +893,161 @@ double GyrokineticVol3x2vSerP1_Bvars_3(const double q_, const double m_, const d
   alphay[4] = (1.154700538379252*BdriftY[0]*dfac_y*m_*wv)/(dfac_v*q_); 
   alphay[8] = 1.224744871391589*(BmagInv[0]*Phi[7]+BmagInv[3]*Phi[4])*dfac_x*dfac_y; 
   alphay[11] = (1.154700538379252*BdriftY[3]*dfac_y*m_*wv)/(dfac_v*q_); 
-  alphaM = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]-0.3061862178478971*alphay[8]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[11])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[11]+0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphaz[32]; 
   alphaz[0] = 2.0*Gradpar[0]*dfac_z*wv; 
   alphaz[3] = 2.0*Gradpar[3]*dfac_z*wv; 
-  alphaM = -0.0625*(2.449489742783178*alphaz[3]-1.414213562373095*alphaz[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphaz[3]+1.414213562373095*alphaz[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphaz[3]-1.414213562373095*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphaz[3]+1.414213562373095*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphaz[0]-0.3061862178478971*alphaz[3]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphaz[3]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphav[32]; 
   alphav[0] = -1.224744871391589*dfac_v*(((BdriftY[3]*Phi[6]+BdriftY[0]*Phi[2])*dfac_y+(BdriftX[3]*Phi[5]+BdriftX[0]*Phi[1])*dfac_x)*wv+(Gradpar[0]*dfac_z*(Bmag[3]*wm+Phi[3]*q_))/m_); 
   alphav[1] = -1.224744871391589*dfac_v*((BdriftY[3]*Phi[7]+BdriftY[0]*Phi[4])*dfac_y*wv+(Gradpar[0]*Phi[5]*dfac_z*q_)/m_); 
@@ -273,10 +1065,82 @@ double GyrokineticVol3x2vSerP1_Bvars_3(const double q_, const double m_, const d
   alphav[16] = -(1.224744871391589*Gradpar[3]*Phi[7]*dfac_v*dfac_z*q_)/m_; 
   alphav[18] = -0.7071067811865475*(BdriftY[0]*Phi[7]+BdriftY[3]*Phi[4])*dfac_y; 
   alphav[19] = -0.7071067811865475*(BdriftX[0]*Phi[7]+BdriftX[3]*Phi[4])*dfac_x; 
-  alphaM = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]+0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]-0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))-0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])+0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]+0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]-0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])-0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]+0.1767766952966368*alphav[16]-0.1767766952966368*alphav[14]-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))-0.1767766952966368*(alphav[16]+alphav[14])-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[19]+alphav[18]))+0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[19])+0.3061862178478971*alphav[18]-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]-0.1767766952966368*alphav[16]+0.1767766952966368*alphav[14]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[19]+alphav[18])+0.1767766952966368*(alphav[16]+alphav[14])+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   out[1] += 0.3061862178478971*(alphax[11]*f[11]+alphax[7]*f[7]+alphax[4]*f[4]+alphax[3]*f[3]+alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.3061862178478971*(alphay[11]*f[11]+alphay[8]*f[8]+alphay[4]*f[4]+alphay[3]*f[3]+alphay[2]*f[2]+alphay[0]*f[0]); 
   out[3] += 0.3061862178478971*(alphaz[3]*f[3]+alphaz[0]*f[0]); 
@@ -327,8 +1191,8 @@ double GyrokineticVol3x2vSerP1_Bvars_1_3(const double q_, const double m_, const
   double q2 = q_*q_; 
   double m2 = m_*m_; 
   double cflFreq = 0.0; 
-  double alphaM = 0.0; 
-  double alphaP = 0.0; 
+  double alphaL = 0.0; 
+  double alphaR = 0.0; 
   double alphax[32]; 
   alphax[0] = dfac_x*((2.0*BdriftX[0]*m_*wv2)/q_-1.224744871391589*(BmagInv[5]*Phi[7]+BmagInv[3]*Phi[6]+BmagInv[1]*Phi[4]+BmagInv[0]*Phi[2])*dfac_y); 
   alphax[1] = dfac_x*((2.0*BdriftX[1]*m_*wv2)/q_-1.224744871391589*(BmagInv[3]*Phi[7]+BmagInv[5]*Phi[6]+BmagInv[0]*Phi[4]+BmagInv[1]*Phi[2])*dfac_y); 
@@ -338,10 +1202,82 @@ double GyrokineticVol3x2vSerP1_Bvars_1_3(const double q_, const double m_, const
   alphax[9] = (1.154700538379252*BdriftX[1]*dfac_x*m_*wv)/(dfac_v*q_); 
   alphax[11] = (1.154700538379252*BdriftX[3]*dfac_x*m_*wv)/(dfac_v*q_); 
   alphax[18] = (1.154700538379252*BdriftX[5]*dfac_x*m_*wv)/(dfac_v*q_); 
-  alphaM = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphax[1]-1.414213562373095*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphax[1]+1.414213562373095*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphax[18]-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphax[18])+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]-0.3061862178478971*(alphax[9]+alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]-0.3061862178478971*alphax[9]+0.3061862178478971*alphax[7]-0.1767766952966368*alphax[4]+0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphax[18])-0.1767766952966368*alphax[11]+0.3061862178478971*alphax[9]-0.3061862178478971*alphax[7]+0.1767766952966368*alphax[4]-0.1767766952966368*alphax[3]+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphax[18]+0.1767766952966368*alphax[11]+0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphay[32]; 
   alphay[0] = dfac_y*((2.0*BdriftY[0]*m_*wv2)/q_+1.224744871391589*dfac_x*(((BmagInv[3]*Bmag[5]+BmagInv[0]*Bmag[1])*wm)/q_+BmagInv[3]*Phi[5]+BmagInv[0]*Phi[1])); 
   alphay[1] = dfac_y*((2.0*BdriftY[1]*m_*wv2)/q_+1.224744871391589*dfac_x*(((Bmag[5]*BmagInv[5]+Bmag[1]*BmagInv[1])*wm)/q_+BmagInv[5]*Phi[5]+BmagInv[1]*Phi[1])); 
@@ -359,19 +1295,163 @@ double GyrokineticVol3x2vSerP1_Bvars_1_3(const double q_, const double m_, const
   alphay[16] = 1.224744871391589*(BmagInv[1]*Phi[7]+Phi[4]*BmagInv[5])*dfac_x*dfac_y; 
   alphay[18] = (1.154700538379252*BdriftY[5]*dfac_y*m_*wv)/(dfac_v*q_); 
   alphay[21] = (0.7071067811865475*(Bmag[1]*BmagInv[5]+BmagInv[1]*Bmag[5])*dfac_x*dfac_y)/(dfac_m*q_); 
-  alphaM = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphay[2]-1.414213562373095*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphay[2]+1.414213562373095*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))-0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])+0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[11]-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])+0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[11]+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))-0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12])-0.1767766952966368*(alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*(alphay[12]+alphay[11])+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*(alphay[12]+alphay[11])-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12])+0.1767766952966368*(alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12])+0.1767766952966368*(alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*(alphay[12]+alphay[11])-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*(alphay[12]+alphay[11])+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12])-0.1767766952966368*(alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])-0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))+0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[11]+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))+0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[11]-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])-0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))+0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])-0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[11]-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])-0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[11]+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))+0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4])+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12])-0.1767766952966368*(alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*(alphay[12]+alphay[11])+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*alphay[4]-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*(alphay[12]+alphay[11])-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12])+0.1767766952966368*(alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]-0.1767766952966368*alphay[5]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12])+0.1767766952966368*(alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*(alphay[12]+alphay[11])-0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*alphay[21])+0.1767766952966368*alphay[18]-0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*(alphay[12]+alphay[11])+0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*alphay[21]-0.1767766952966368*alphay[18]+0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12])-0.1767766952966368*(alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*alphay[5]-0.1767766952966368*alphay[4]+0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])+0.3061862178478971*alphay[16]-0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))-0.3061862178478971*alphay[16]-0.1767766952966368*alphay[14]+0.1767766952966368*alphay[12]-0.1767766952966368*alphay[11]+0.1767766952966368*alphay[9]-0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4])-0.1767766952966368*alphay[3]+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.1767766952966368*(alphay[21]+alphay[18]))-0.3061862178478971*alphay[16]+0.1767766952966368*alphay[14]-0.1767766952966368*alphay[12]+0.1767766952966368*alphay[11]-0.1767766952966368*alphay[9]+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.1767766952966368*(alphay[21]+alphay[18])+0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[14]+alphay[12]+alphay[11]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphaz[32]; 
   alphaz[0] = 2.0*Gradpar[0]*dfac_z*wv; 
   alphaz[1] = 2.0*Gradpar[1]*dfac_z*wv; 
   alphaz[3] = 2.0*Gradpar[3]*dfac_z*wv; 
   alphaz[7] = 2.0*Gradpar[5]*dfac_z*wv; 
-  alphaM = -0.0625*(2.449489742783178*alphaz[3]-1.414213562373095*alphaz[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphaz[3]+1.414213562373095*alphaz[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphaz[3]-1.414213562373095*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphaz[3]+1.414213562373095*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphaz[7]-0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.1767766952966368*(alphaz[1]+alphaz[0])-0.3061862178478971*(alphaz[7]+alphaz[3])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphaz[7])+0.3061862178478971*alphaz[3]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphaz[7]+alphaz[3])+0.1767766952966368*(alphaz[1]+alphaz[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   double alphav[32]; 
   alphav[0] = -1.224744871391589*dfac_v*((((BdriftX[3]*Bmag[5]+BdriftX[0]*Bmag[1])*dfac_x*wm)/q_+(BdriftY[5]*Phi[7]+BdriftY[3]*Phi[6]+BdriftY[1]*Phi[4]+BdriftY[0]*Phi[2])*dfac_y+(BdriftX[3]*Phi[5]+BdriftX[0]*Phi[1])*dfac_x)*wv+(dfac_z*((Gradpar[1]*Bmag[5]+Gradpar[0]*Bmag[3])*wm+((Gradpar[1]*Phi[5]+Gradpar[0]*Phi[3])*q2)/q_))/m_); 
   alphav[1] = -1.224744871391589*dfac_v*((((BdriftX[5]*Bmag[5]+BdriftX[1]*Bmag[1])*dfac_x*wm)/q_+(BdriftY[3]*Phi[7]+BdriftY[5]*Phi[6]+BdriftY[0]*Phi[4]+BdriftY[1]*Phi[2])*dfac_y+(BdriftX[5]*Phi[5]+BdriftX[1]*Phi[1])*dfac_x)*wv+(dfac_z*((Gradpar[0]*Bmag[5]+Gradpar[1]*Bmag[3])*wm+((Gradpar[0]*Phi[5]+Gradpar[1]*Phi[3])*q2)/q_))/m_); 
@@ -397,10 +1477,82 @@ double GyrokineticVol3x2vSerP1_Bvars_1_3(const double q_, const double m_, const
   alphav[25] = -(0.408248290463863*(BdriftX[0]*Bmag[5]+Bmag[1]*BdriftX[3])*dfac_x)/(dfac_m*q_); 
   alphav[26] = -0.7071067811865475*(BdriftX[1]*Phi[7]+Phi[4]*BdriftX[5])*dfac_x; 
   alphav[29] = -(0.408248290463863*(BdriftX[1]*Bmag[5]+Bmag[1]*BdriftX[5])*dfac_x)/(dfac_m*q_); 
-  alphaM = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
-  if(alphaM<0) cflFreq += -alphaM; 
-  alphaP = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
-  if(alphaP>0) cflFreq += alphaP; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -0.0625*(2.449489742783178*alphav[4]-1.414213562373095*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate surface-averaged alpha on right 
+  alphaR = 0.0625*(2.449489742783178*alphav[4]+1.414213562373095*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26])-0.3061862178478971*(alphav[25]+alphav[23])-0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]+alphav[25]))+0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*(alphav[26]+alphav[25]+alphav[23])-0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*alphav[26]-0.3061862178478971*alphav[25]+0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]))+0.3061862178478971*alphav[25]-0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26]+alphav[25]+alphav[23])-0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*(alphav[26]+alphav[25])-0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*alphav[26]+0.3061862178478971*(alphav[25]+alphav[23])-0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*(alphav[26]+alphav[25]+alphav[23])+0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*alphav[26]+0.3061862178478971*alphav[25]-0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]))+0.3061862178478971*(alphav[25]+alphav[23])+0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26]+alphav[25])-0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*(alphav[26]+alphav[25])+0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18])-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*alphav[26]-0.3061862178478971*(alphav[25]+alphav[23])+0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*alphav[18]+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26])-0.3061862178478971*alphav[25]+0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  alphaL = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]+alphav[25]+alphav[23]))+0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])-0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaL<0) cflFreq += -alphaL; 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]))+0.3061862178478971*(alphav[25]+alphav[23])-0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26]+alphav[25])-0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*(alphav[26]+alphav[25]+alphav[23])-0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*alphav[26]+0.3061862178478971*alphav[25]-0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18])+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26])-0.3061862178478971*alphav[25]+0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18])+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*alphav[6]-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]+alphav[25]+alphav[23]))-0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*(alphav[26]+alphav[25])+0.3061862178478971*alphav[23]+0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*alphav[26]-0.3061862178478971*(alphav[25]+alphav[23])-0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])+0.1767766952966368*alphav[16]-0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6])-0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*(alphav[26]+alphav[25]+alphav[23])+0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*alphav[26]-0.3061862178478971*alphav[25]+0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]-0.3061862178478971*(alphav[11]+alphav[10])+0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*(alphav[3]+alphav[2])+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26])-0.3061862178478971*(alphav[25]+alphav[23])+0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*(alphav[14]+alphav[12])-0.3061862178478971*alphav[11]+0.3061862178478971*alphav[10]-0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*alphav[2]-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]+alphav[25]))+0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18])+0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]-0.1767766952966368*alphav[14]+0.1767766952966368*alphav[12]-0.3061862178478971*alphav[11]+0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]-0.1767766952966368*alphav[3]+0.1767766952966368*(alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*alphav[29])+0.3061862178478971*(alphav[26]+alphav[25])-0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]-0.3061862178478971*(alphav[19]+alphav[18])+0.3061862178478971*alphav[17]+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]+0.3061862178478971*alphav[11]-0.3061862178478971*(alphav[10]+alphav[9])-0.1767766952966368*(alphav[8]+alphav[7])+0.1767766952966368*(alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*(alphav[2]+alphav[1])+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*alphav[29]-0.3061862178478971*alphav[26]+0.3061862178478971*(alphav[25]+alphav[23])+0.1767766952966368*alphav[21]-0.3061862178478971*alphav[19]+0.3061862178478971*alphav[18]-0.3061862178478971*alphav[17]-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*alphav[11]-0.3061862178478971*alphav[10]+0.3061862178478971*alphav[9]-0.1767766952966368*alphav[8]+0.1767766952966368*alphav[7]-0.1767766952966368*alphav[6]+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*alphav[3]-0.1767766952966368*alphav[2]+0.1767766952966368*(alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*((-0.3061862178478971*(alphav[29]+alphav[26]))+0.3061862178478971*alphav[25]-0.3061862178478971*alphav[23]-0.1767766952966368*alphav[21]+0.3061862178478971*alphav[19]-0.3061862178478971*(alphav[18]+alphav[17])-0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*alphav[14]-0.1767766952966368*alphav[12]+0.3061862178478971*(alphav[11]+alphav[10])-0.3061862178478971*alphav[9]+0.1767766952966368*alphav[8]-0.1767766952966368*(alphav[7]+alphav[6])+0.1767766952966368*alphav[5]+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2])-0.1767766952966368*alphav[1]+0.1767766952966368*alphav[0]); 
+  if(alphaR>0) cflFreq += alphaR; 
+  alphaR = 0.03125*(0.3061862178478971*(alphav[29]+alphav[26]+alphav[25]+alphav[23])+0.1767766952966368*alphav[21]+0.3061862178478971*(alphav[19]+alphav[18]+alphav[17])+0.1767766952966368*alphav[16]+0.3061862178478971*alphav[15]+0.1767766952966368*(alphav[14]+alphav[12])+0.3061862178478971*(alphav[11]+alphav[10]+alphav[9])+0.1767766952966368*(alphav[8]+alphav[7]+alphav[6]+alphav[5])+0.3061862178478971*alphav[4]+0.1767766952966368*(alphav[3]+alphav[2]+alphav[1]+alphav[0])); 
+  if(alphaR>0) cflFreq += alphaR; 
+#endif 
+
   out[1] += 0.3061862178478971*(alphax[18]*f[18]+alphax[11]*f[11]+alphax[9]*f[9]+alphax[7]*f[7]+alphax[4]*f[4]+alphax[3]*f[3]+alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.3061862178478971*(alphay[21]*f[21]+alphay[18]*f[18]+alphay[16]*f[16]+alphay[14]*f[14]+alphay[12]*f[12]+alphay[11]*f[11]+alphay[9]*f[9]+alphay[8]*f[8]+alphay[7]*f[7]+alphay[6]*f[6]+alphay[5]*f[5]+alphay[4]*f[4]+alphay[3]*f[3]+alphay[2]*f[2]+alphay[1]*f[1]+alphay[0]*f[0]); 
   out[3] += 0.3061862178478971*(alphaz[7]*f[7]+alphaz[3]*f[3]+alphaz[1]*f[1]+alphaz[0]*f[0]); 
