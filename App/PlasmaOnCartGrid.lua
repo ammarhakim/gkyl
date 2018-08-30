@@ -510,7 +510,7 @@ local function buildApplication(self, tbl)
       -- sanity check: don't run if not needed
       if tStart >= tEnd then return end
       
-      local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
+      local initDt =  tbl.suggestedDt and tbl.suggestedDt or maxDt -- initial time-step
       local step = 1
       local tCurr = tStart
       local myDt = initDt
