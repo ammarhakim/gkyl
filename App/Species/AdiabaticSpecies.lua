@@ -67,6 +67,7 @@ end
 function AdiabaticSpecies:getQneutFac(linearized)
    if linearized == false then
       self.qneutFac:combine(self.charge^2/self._temp, self.couplingMoments)
+      return self.qneutFac
    else
       return self._dens0*self.charge^2/self._temp
    end
