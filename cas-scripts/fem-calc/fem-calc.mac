@@ -118,9 +118,10 @@ printf(header, "~a;~%", prototype)$
 prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, double *gxx, double *gxy, double *gyy, int ndim, int polyOrder, double dx, double dy)"$
 writeCMatFunc(prototype, calcStiffPerpMetric, [2,3], true, false)$
 printf(header, "~a;~%", prototype)$
+*/
 /* write getGyavgMatrix C function */
 prototype:"void getGyavgMatrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcGyavg, [2,3], false, false)$
+writeCMatFunc(prototype, calcGyavg, [1,2,3], false, false)$
 printf(header, "~a;~%", prototype)$
 close(fh)$
 close(header)$
