@@ -139,7 +139,7 @@ calcMassMatrix2(vars, w, basis, basis2) := block([n, mass],
 		mass : (mass : zeromatrix(n,n), 
                 for i from 1 thru n do (
                     for j from 1 thru n do (
-                        mass[i,j] : innerProd(vars, w, basis[i], basis2[j])[1]
+                        mass[i,j] : innerProd(vars, w, basis[i], basis2[j])
                     )
                 ),
                 mass),
@@ -206,13 +206,20 @@ load(modNm),
 bP : basisP[p],
 bC : basisC[p],
 /* rho's have vy (mu) dependence, but we will use the cell center in mu */
-rho1_expd:subst([y=0,vx=0,vy=0],doExpand1(rho1,bP)),
-rho2_expd:subst([y=0,vx=0,vy=0],doExpand1(rho2,bP)),
-rho3_expd:subst([y=0,vx=0,vy=0],doExpand1(rho3,bP)),
+rho1_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho1,bP)),
+rho2_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho2,bP)),
+rho3_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho3,bP)),
+bGy : fullratsimp(integrate(subst([x=x+rho1_expd*cos(alpha),y=y+rho2_expd*cos(alpha)-rho3_expd*sin(alpha)],bC),alpha,0,2*%pi)),
+bGy : fullratsimp(calcInnerProdList(varsC,1,bC,bGy).bC),
+gyavgMod : fullratsimp(calcMassMatrix2(varsC, 1, bC, bGy)),
+subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bC)),
+subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bC)),
+subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bC)),
+gyavgMod:subst(subs1,gyavgMod),
+gyavgMod:subst(subs2,gyavgMod),
+gyavgMod:subst(subs3,gyavgMod),
 modToNod : calcModToNod(cdim, p),
-nodalBasis : ratsimp(invert(modToNod)).bC,
-nodalBasisGy : expand(fullratsimp(integrate(subst([x=x+rho1_expd*cos(alpha),y=y+rho2_expd*cos(alpha)-rho3_expd*sin(alpha)],nodalBasis),alpha,0,2*%pi))),
-gyavgNod : gcfac(expand(float(fullratsimp(calcMassMatrix2(varsC, 1, nodalBasis, nodalBasisGy))))),
+gyavgNod:gcfac(expand(float(fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod))))))),
 return(gyavgNod)
 )$
 
