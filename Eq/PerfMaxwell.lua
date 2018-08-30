@@ -57,6 +57,10 @@ function PerfMaxwell:init(tbl)
    -- if specified, store basis functions
    self._basis = tbl.basis and tbl.basis or nil
 
+   -- tau parameter used for adding extra (less) diffusion to Ampere-Maxwell, while adding less (more) diffusion to Faraday equation
+   -- if no tau parameter is specified, defaults to the speed of light
+   self._tau = tbl.tau and tbl.tau or self._c
+
    -- store pointers to C kernels implementing volume and surface
    -- terms
    self._volTerm, self._surfTerms = nil, nil
@@ -172,7 +176,7 @@ function PerfMaxwell:volTerm(w, dx, idx, q, out)
 end
 -- Surface integral term for use in DG scheme
 function PerfMaxwell:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
-   return self._surfTerms[dir](self._ceqn, wl:data(), wr:data(), dxl:data(), dxr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   return self._surfTerms[dir](self._ceqn, wl:data(), wr:data(), dxl:data(), dxr:data(), self._tau, ql:data(), qr:data(), outl:data(), outr:data())
 end
 
 -- Create and add BCs specific to Maxwell equations
