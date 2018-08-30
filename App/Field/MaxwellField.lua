@@ -67,6 +67,10 @@ function MaxwellField:fullInit(appTbl)
 
    self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
 
+   -- tau parameter used for adding extra (less) diffusion to Ampere-Maxwell, while adding less (more) diffusion to Faraday equation
+   -- if no tau parameter is specified, Eq object defaults to the speed of light
+   self.tau = tbl.tau
+
    -- create triggers to write fields
    if tbl.nFrame then
       self.ioTrigger = LinearTrigger(0, appTbl.tEnd, tbl.nFrame)
