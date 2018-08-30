@@ -437,16 +437,19 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
       if not self.linearizedPolarization then
          self.weight:clear(0.0)
          for nm, s in pairs(species) do
-            self.weight:accumulate(-1.0, s:getPolarizationWeight(self.linearizedPolarization))
+            if Species.GkSpecies.is(s) then
+               self.weight:accumulate(1.0, s:getPolarizationWeight(self.linearizedPolarization))
+            end
          end
          if self.ndim == 1 then
-            self.modifierWeight:combine(-self.kperp2, self.weight)
+            self.modifierWeight:combine(self.kperp2, self.weight)
          else
-            self.laplacianWeight:copy(self.weight)
+            self.modifierWeight:clear(0.0)
+            self.laplacianWeight:combine(-1.0, self.weight)
          end
 
          if self.adiabatic then
-            self.modifierWeight:accumulate(self.adiabSpec:getQneutFac(self.linearizedPolarization))
+            self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFac(self.linearizedPolarization))
          end
 
          if self.ndim > 1 then
