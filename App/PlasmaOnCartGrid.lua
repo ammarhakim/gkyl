@@ -509,12 +509,12 @@ local function buildApplication(self, tbl)
 
       -- sanity check: don't run if not needed
       if tStart >= tEnd then return end
-      
+
+      local maxDt = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or maxDt -- initial time-step
       local step = 1
       local tCurr = tStart
       local myDt = initDt
-      local maxDt = tbl.maximumDt and tbl.maximumDt or GKYL_MAX_DOUBLE -- max time-step
 
       -- triggers for 10% and 1% loggers
       local logTrigger = LinearTrigger(0, tEnd, 10)
