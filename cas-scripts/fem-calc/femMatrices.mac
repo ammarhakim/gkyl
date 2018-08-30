@@ -3,6 +3,7 @@ load("out-scripts")$
 load(stringproc)$
 fpprec : 24$
 load("eigen")$
+load("scifac")$
 
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
@@ -135,10 +136,13 @@ nodToMod:float(invert(transpose(modToNod)))
 
 calcMassMatrix2(vars, w, basis, basis2) := block([n, mass],
                 n : length(basis),
-		mass : (mass : zeromatrix(n,n), for i from 1 thru n
-		         do (for j from 1 thru n
-			   do (mass[i,j] : innerProd(vars, w, basis[i], basis2[j]))),
-			   mass),
+		mass : (mass : zeromatrix(n,n), 
+                for i from 1 thru n do (
+                    for j from 1 thru n do (
+                        mass[i,j] : innerProd(vars, w, basis[i], basis2[j])[1]
+                    )
+                ),
+                mass),
 	        return (mass)
 )$
 
@@ -192,6 +196,24 @@ modToNod : calcModToNod(cdim, p),
 massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(transpose(modToNod)))))),
 massNod:massNod/subst([x=0,y=0,z=0],doExpand1(jacob,basis)),
 return(massNod)
+)$
+
+/* calculate nodal gyroaverage matrix */
+calcGyavg(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
+load(modNm),
+bP : basisP[p],
+bC : basisC[p],
+/* rho's have vy (mu) dependence, but we will use the cell center in mu */
+rho1_expd:subst([y=0,vx=0,vy=0],doExpand1(rho1,bP)),
+rho2_expd:subst([y=0,vx=0,vy=0],doExpand1(rho2,bP)),
+rho3_expd:subst([y=0,vx=0,vy=0],doExpand1(rho3,bP)),
+modToNod : calcModToNod(cdim, p),
+nodalBasis : ratsimp(invert(modToNod)).bC,
+nodalBasisGy : expand(fullratsimp(integrate(subst([x=x+rho1_expd*cos(alpha),y=y+rho2_expd*cos(alpha)-rho3_expd*sin(alpha)],nodalBasis),alpha,0,2*%pi))),
+gyavgNod : gcfac(expand(float(fullratsimp(calcMassMatrix2(varsC, 1, nodalBasis, nodalBasisGy))))),
+return(gyavgNod)
 )$
 
 /* calculate weighted nodal perpendicular stiffness matrix (cdim=2,3 only) */
