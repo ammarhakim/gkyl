@@ -5,6 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local DataStruct = require "DataStruct"
 local EqBase = require "Eq.EqBase"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local Proto = require "Lib.Proto"
@@ -18,20 +19,10 @@ function Gyrokinetic:init(tbl)
    -- get grid and basis
    self._grid = assert(tbl.onGrid, "Gyrokinetic: must specify a grid")
    self._basis = assert(tbl.phaseBasis, "Gyrokinetic: must specify a phaseBasis")
+   self._confGrid = assert(tbl.confGrid, "Gyrokinetic: must specify confGrid")
    self._confBasis = assert(tbl.confBasis, "Gyrokinetic: must specify confBasis")
 
    self._ndim = self._grid:ndim()
-
-   -- set hamiltonian discontinuity direction flags.. CURRENTLY NOT SUPPORTED
-   --self._hamilDisCont = {}
-   --for d = 1, self._ndim do
-   --   self._hamilDisCont[d] = false
-   --end
-   --if tbl.hamilDisContDirs then
-   --   for i, d in ipairs(tbl.hamilDisContDirs) do
-   --      self._hamilDisCont[d] = true
-   --   end
-   --end
 
    local charge = assert(tbl.charge, "Gyrokinetic: must specify charge using 'charge' ")
    local mass = assert(tbl.mass, "Gyrokinetic: must specify mass using 'mass' ")
@@ -58,6 +49,21 @@ function Gyrokinetic:init(tbl)
       self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
    end
 
+   -- for gyroaveraging
+   self.gyavgSlvr = tbl.gyavgSlvr
+   if self.gyavgSlvr then
+      self._gyavg = true
+      self.phiGy = {}
+      local nmu = self._grid:numCells(self._ndim)
+      for i = 1, nmu do
+         self.phiGy[i] = DataStruct.Field {
+            onGrid = self._confGrid,
+            numComponents = self._confBasis:numBasis(),
+            ghost = {1, 1}
+         }
+      end
+   end
+
    self._isFirst = true
 
    -- timers
@@ -71,6 +77,7 @@ function Gyrokinetic:setAuxFields(auxFields)
 
    -- get phi
    self.phi = potentials.phi
+   if self._gyavg then self.gyavgSlvr:advance(0, 0, {self.phi}, {self.phiGy}) end
 
    if self._isElectromagnetic then
       -- get electromagnetic terms
@@ -120,7 +127,12 @@ end
 -- Volume integral term for use in DG scheme
 function Gyrokinetic:volTerm(w, dx, idx, f, out)
    local tmStart = Time.clock()
-   self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   if self._gyavg then 
+      local idmu = idx[self._ndim]
+      self.phiGy[idmu]:fill(self.phiIdxr(idx), self.phiPtr)
+   else
+      self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+   end
    self.bmag:fill(self.bmagIdxr(idx), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idx), self.bmagInvPtr)
    self.gradpar:fill(self.gradparIdxr(idx), self.gradparPtr)
