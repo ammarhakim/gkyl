@@ -98,6 +98,7 @@ def build(bld):
     FemPerpPoissonImpl.cpp
     FemParPoissonImpl.cpp
     FemMatrices.cpp
+    FemGyroaverageImpl.cpp
   
     confToPhaseData/ConfToPhaseMax1x1v.cpp
     confToPhaseData/ConfToPhaseMax1x2v.cpp
