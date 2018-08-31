@@ -807,6 +807,15 @@ function GkGeometry:createSolver()
             return bgradX/self.bmagFunc(t,xn)^2
          end
       end
+      self.gxxFunc = function (t, xn)
+         return 1.0
+      end
+      self.gxyFunc = function (t, xn)
+         return 0.0
+      end
+      self.gyyFunc = function (t, xn)
+         return 1.0
+      end
    end
 
    -- projection updaters

@@ -52,6 +52,7 @@ extern "C" {
   void allgatherGlobalStiffGy(FemGyroaverage* f, MPI_Comm comm);
   void getSolutionGy(FemGyroaverage* f, double* localSolPtr, int idx, int idy);
   void getNodalSolutionGy(FemGyroaverage* f, double* localSolPtr, int idx, int idy);
+  void solveGy(FemGyroaverage* f);
 }
 
 class FemGyroaverage

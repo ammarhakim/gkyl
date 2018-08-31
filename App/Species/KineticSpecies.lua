@@ -222,6 +222,9 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
+   
+   -- for GK only: flag for gyroaveraging
+   self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
 end
 
 function KineticSpecies:getCharge() return self.charge end
