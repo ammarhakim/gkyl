@@ -37,6 +37,12 @@ function GkSpecies:alloc(nRkDup)
    self.momDensity = self:allocMoment()
    self.ptclEnergy = self:allocMoment()
    self.polarizationWeight = self:allocMoment()
+
+   if self.gyavg then
+      self.rho1 = self:allocDistf()
+      self.rho2 = self:allocDistf()
+      self.rho3 = self:allocDistf()
+   end
 end
 
 function GkSpecies:allocMomCouplingFields()
@@ -119,9 +125,58 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       self.bmag = assert(funcField.geo.bmag, "nil bmag")
    end
 
+   if self.gyavg then
+      -- set up geo fields needed for gyroaveraging
+      local rho1Func = function (t, xn)
+         local mu = xn[self.ndim]
+         return math.sqrt(2*mu*self.mass*funcField.gxxFunc(t, xn)/(self.charge^2*funcField.bmagFunc(t, xn)))
+      end
+      local rho2Func = function (t, xn)
+         local mu = xn[self.ndim]
+         return funcField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+      end
+      local rho3Func = function (t, xn)
+         local mu = xn[self.ndim]
+         return math.sqrt(2*mu*self.mass*(funcField.gxxFunc(t,xn)*funcField.gyyFunc(t,xn)-funcField.gxyFunc(t,xn)^2)/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+      end
+      local project1 = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = rho1Func,
+         projectOnGhosts = true
+      }
+      project1:advance(0.0, 0.0, {}, {self.rho1})
+      local project2 = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = rho2Func,
+         projectOnGhosts = true
+      }
+      project2:advance(0.0, 0.0, {}, {self.rho2})
+      local project3 = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = rho3Func,
+         projectOnGhosts = true
+      }
+      project3:advance(0.0, 0.0, {}, {self.rho3})
+
+      -- create solver for gyroaveraging
+      self.gyavgSlvr = Updater.FemGyroaverage {
+         onGrid = self.confGrid,
+         confBasis = self.confBasis,
+         phaseGrid = self.grid,
+         phaseBasis = self.basis,
+         rho1 = self.rho1,
+         rho2 = self.rho2,
+         rho3 = self.rho3,
+      }
+   end
+
    -- create updater to advance solution by one time-step
    self.gkEqn = Gk.GkEq {
       onGrid = self.grid,
+      confGrid = self.confGrid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       charge = self.charge,
@@ -131,6 +186,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       Bvars = funcField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
       positivity = self.positivity,
+      gyavgSlvr = self.gyavgSlvr,
    }
 
    -- no update in mu direction (last velocity direction if present)
