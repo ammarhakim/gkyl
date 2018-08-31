@@ -230,11 +230,12 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 
 
    if self.evolveCollisionless then
+
       if self.positivity then 
          self.positivityRescale:advance(tCurr, dt, {fIn}, {self.fPos}) 
-         status, dtSuggested = self.solver:advance(tCurr, dt, {self.fPos, em, emFunc}, {fOut})
+         status, dtSuggested = self.solver:advance(tCurr, dt, {self.fPos, em, emFunc, emGy}, {fOut})
       else
-         status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+         status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc, emGy}, {fOut})
       end
       -- if step2, only compute RHS increment so that RHS can be used in step 2
       if not self.solverStep2 then fOut:scale(dt); fOut:accumulate(1.0, fIn) end -- fOut = fIn + dt*fOut
