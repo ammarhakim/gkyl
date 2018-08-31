@@ -45,6 +45,7 @@ ffi.cdef[[
   void allgatherGlobalStiffGy(FemGyroaverage* f, MPI_Comm comm);
   void getSolutionGy(FemGyroaverage* f, double* localSolPtr, int idx, int idy);
   void getNodalSolutionGy(FemGyroaverage* f, double* localSolPtr, int idx, int idy);
+  void solveGy(FemGyroaverage* f);
 ]]
 local DIRICHLET = 0
 local NEUMANN = 1
@@ -62,7 +63,7 @@ function FemGyroaverage:init(tbl)
    -- read data from input file
    self._grid = assert(tbl.onGrid, "Updater.FemGyroaverage: Must provide grid object using 'onGrid'")
    self._phaseGrid = assert(tbl.phaseGrid, "Updater.FemGyroaverage: Must provide phaseGrid object using 'phaseGrid'")
-   self._basis = assert(tbl.basis, "Updater.FemGyroaverage: Must specify basis functions to use using 'basis'")
+   self._basis = assert(tbl.confBasis, "Updater.FemGyroaverage: Must specify basis functions to use using 'basis'")
    self._phaseBasis = assert(tbl.phaseBasis, "Updater.FemGyroaverage: Must specify phaseBasis functions to use using 'phaseBasis'")
 
    assert(self._basis:id()=="serendipity", "Updater.FemGyroaverage only implemented for modal serendipity basis")
@@ -72,21 +73,10 @@ function FemGyroaverage:init(tbl)
    self._ndim = self._phaseGrid:ndim()
 
    -- boundary conditions
-   -- extract periodic directions
-   local periodicDirs = {}
-   if tbl.periodicDirs then
-      for i, d in ipairs(tbl.periodicDirs) do
-	 if d<1 or d>self._cdim then
-	    assert(false, "Directions in periodicDirs table should be 1 (for X), or 2 (for Y)")
-	 end
-	 periodicDirs[i] = d
-      end
-   end
    -- set C flags to indicate which directions are periodic (0-based)
    self._isDirPeriodic = ffi.new("bool[2]")
-   self._isDirPeriodic[0] = false
-   self._isDirPeriodic[1] = false
-   for _, d in ipairs(periodicDirs) do self._isDirPeriodic[d-1] = true end
+   self._isDirPeriodic[0] = self._grid:isDirPeriodic(1)
+   self._isDirPeriodic[1] = self._grid:isDirPeriodic(2)
 
    -- set flag to indicate all directions are periodic 
    self._allPeriodic = true
@@ -127,9 +117,11 @@ function FemGyroaverage:init(tbl)
 
    -- make sure BCs are specified consistently
    for dir=0,1 do
-     if self._isDirPeriodic[dir] == false then
-       assert(self._bc[dir][0].isSet and self._bc[dir][1].isSet, "Must specify non-periodic BCs on each side (dir " .. dir .. ")")
-     else
+     if self._isDirPeriodic[dir] == false and not (self._bc[dir][0].isSet and self._bc[dir][1].isSet) then
+       -- if not periodic and no BCs specified, use neumann by default 
+       self._bc[dir][0] = getBcData({ T = "N", V = 0.0 })
+       self._bc[dir][1] = getBcData({ T = "N", V = 0.0 })
+     elseif self._isDirPeriodic[dir] then
        assert(not (self._bc[dir][0].isSet or self._bc[dir][1].isSet), "Cannot specify BCs if direction is periodic")
      end
    end
@@ -224,9 +216,11 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
    local ndim = self._ndim
    local cdim = self._cdim
 
+   assert(#sol == self._phaseGrid:numCells(ndim), "FemGyroaverage.advance: Output field must be a length Nmu array of fields")
+
    -- create region that is effectively 2d and global in x-y directions
-   local perpRange = src:globalRange()
-   local localRange = src:localRange()
+   local perpRange = self.rho1:globalRange()
+   local localRange = self.rho1:localRange()
    local local_mu_lower = localRange:lower(ndim)
    local local_mu_upper = localRange:upper(ndim)
    local local_z_lower = 1
@@ -243,8 +237,8 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
    -- create indexers and pointers for src and sol
    self.srcIndexer = src:indexer() 
    self.srcPtr = src:get(1)
-   self.solIndexer = sol:indexer() 
-   self.solPtr = sol:get(1)
+   self.solIndexer = sol[1]:indexer() 
+   self.solPtr = sol[1]:get(1)
 
    -- create indexers and pointer for other fields that belong to this object and do not change
    if self._first then 
@@ -258,15 +252,17 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
       self.rho3Ptr = self.rho3:get(1)
    end
 
-   -- loop over local mu cells
-   for idmu=local_mu_lower, local_mu_upper do
-     -- loop over local z cells
-     for idz=local_z_lower, local_z_upper do
+   -- loop over local z cells
+   for idz=local_z_lower, local_z_upper do
+     if self._first then
+       self._gyavg[idz] = {}
+     end
+     -- loop over local mu cells
+     for idmu=local_mu_lower, local_mu_upper do
        if self._first then 
          -- if first time, create gyavg C object for each z,mu cell
          self._gyavg[idz][idmu] = ffi.C.new_FemGyroaverage(self._nx, self._ny, self._cdim, self._p, 
-                                             self._dx, self._dy, self._isDirPeriodic, 
-                                             self._bc, self._writeMatrix)
+                                             self._isDirPeriodic, self._bc, self._writeMatrix)
        end
 
        -- zero global source
@@ -324,18 +320,18 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
           ffi.C.finishGlobalStiffGy(self._gyavg[idz][idmu])
        end
        -- solve 
-       ffi.C.solve(self._gyavg[idz][idmu])
+       ffi.C.solveGy(self._gyavg[idz][idmu])
 
        -- remap global nodal solution to local modal solution 
        -- only need to loop over local proc region
        for idx=localRange:lower(1),localRange:upper(1) do     
          for idy=localRange:lower(2),localRange:upper(2) do
            if cdim==2 then 
-             sol[idmu]:fill(self.solIndexer[idmu](idx,idy), self.solPtr) 
+             sol[idmu]:fill(self.solIndexer(idx,idy), self.solPtr) 
            else 
-             sol[idmu]:fill(self.solIndexer[idmu](idx, idy, idz), self.solPtr) 
+             sol[idmu]:fill(self.solIndexer(idx, idy, idz), self.solPtr) 
            end
-           ffi.C.getSolution(self._gyavg[idz][idmu], self.solPtr:data(), idx-1, idy-1)
+           ffi.C.getSolutionGy(self._gyavg[idz][idmu], self.solPtr:data(), idx-1, idy-1)
          end
        end
      end 
