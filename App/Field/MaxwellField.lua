@@ -164,6 +164,7 @@ function MaxwellField:createSolver()
       lightSpeed = self.lightSpeed,
       elcErrorSpeedFactor = self.ce,
       mgnErrorSpeedFactor = self.cb,
+      tau = self.tau,
       basis = self.basis:numBasis() > 1 and self.basis or nil,
    }
 
