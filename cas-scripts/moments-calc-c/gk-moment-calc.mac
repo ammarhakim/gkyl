@@ -19,6 +19,7 @@ let(dv3^3, dv3_cu)$
 
 volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
 vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
+wTrans : [wx1, wx2, wx3]$
 pmax : 2$
 
 /* Density */
@@ -285,6 +286,60 @@ for p : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
+/* Calculate M0, M1i*, and M2* (Five moments) sequentially */
+/* in this case M1i* and M2* are modified moments only meaningful for p=1 */
+calcStarMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru 1 do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_StarMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+  ),
+
+  fl : doExpand1(f, bP),
+  bmag_expd : doExpand1(Bmag, bC),
+
+  energy : vTrans[1]*vTrans[1],
+  if vdim > 1 then energy : energy + 2*vTrans[2]/m_*bmag_expd,
+
+  M0 : calcInnerProdList(varsP, 1, bC, fl),
+  M0 : map(letsimp, M0),
+  
+  writeCIncrExprsNoExpand1(outM0, volFact*M0),
+
+  M1 : calcInnerProdList(varsP, wTrans[1], bC, fl),
+  M1 : map(letsimp, M1),
+  
+  writeCIncrExprsNoExpand1(outM1, volFact*M1),
+
+  M2par : calcInnerProdList(varsP, wTrans[1]*vTrans[1], bC, fl),
+  M2par : map(letsimp, M2par),
+  
+  writeCIncrExprsNoExpand1(outM2, volFact*expand(M2par)),
+
+  if vdim > 1 then (
+    Mtemp : calcInnerProdList(varsP, vTrans[2], bC, fl),
+    Mtemp : map(letsimp, Mtemp),
+
+    printf(fh, "  double tmp[~a]; ~%", length(bC)),
+    
+    writeCExprs1(tmp, Mtemp),
+    tmp_expd : doExpand1(tmp, bC),
+    M2perp : fullratsimp(innerProd(varsC, bC, bmag_expd, tmp_expd)),
+
+    writeCIncrExprsNoExpand1(outM2, 2*volFact/m_*expand(M2perp))
+  ),
+
+  printf(fh, "} ~%")
+))$
 
 calcGkMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
   printf(fh, "#include <math.h> ~%"),
@@ -296,5 +351,6 @@ calcGkMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
   if vdim > 1 then calcM2perp(fh, funcNm, cdim, vdim, basisFun),
   calcM3par(fh, funcNm, cdim, vdim, basisFun),
   if vdim > 1 then calcM3perp(fh, funcNm, cdim, vdim, basisFun),
-  calcThreeMoments(fh, funcNm, cdim, vdim, basisFun)
+  calcThreeMoments(fh, funcNm, cdim, vdim, basisFun),
+  calcStarMoments(fh, funcNm, cdim, vdim, basisFun)
 )$
