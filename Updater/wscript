@@ -69,6 +69,11 @@ def build(bld):
     momentCalcData/DistFuncMomentCalcSer2x3v.cpp
     momentCalcData/DistFuncMomentCalcSer3x3v.cpp
 
+    momentCalcData/DistFuncMomentCalcTensor1x1v.cpp
+    momentCalcData/DistFuncMomentCalcTensor1x2v.cpp
+    momentCalcData/DistFuncMomentCalcTensor1x3v.cpp
+    momentCalcData/DistFuncMomentCalcTensor2x2v.cpp
+
     momentCalcData/DistFuncGkMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncGkMomentCalcMax1x2v.cpp
     momentCalcData/DistFuncGkMomentCalcMax2x2v.cpp
