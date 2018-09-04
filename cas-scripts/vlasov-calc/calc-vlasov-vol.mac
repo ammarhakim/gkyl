@@ -1,4 +1,4 @@
-load("lenardBernsteinOperator-calc/VmLBOconstNu-alpha-vol")$
+load("vlasov-calc/vlasov-maxwell-vol")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions. */
@@ -15,7 +15,7 @@ maxVdim_Ser : 3$
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
-maxCdim_Max : 2$
+maxCdim_Max : 3$
 minVdim_Max : 1$    /* see begining of v loop below though. */
 maxVdim_Max : 3$
 
@@ -38,14 +38,27 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for v : c thru maxVdim[bInd] do (
-      disp(printf(false,sconcat("Creating volume VmLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
-      fname : sconcat("~/max-out/VmLBOconstNu", bName[bInd], c, "x", v, "v", ".cpp"),
+      disp(printf(false,sconcat("Creating volume Vlasov",bName[bInd]," ~ax~av"),c,v)),
+      fname : sconcat("~/max-out/Vlasov", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
-      funcName : sconcat("VmLBOconstNuVol", c, "x", v, "v", bName[bInd]),
-      calcVmLBOconstNuVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      funcName : sconcat("VlasovVol", c, "x", v, "v", bName[bInd]),
+      calcVlasovVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
       close(fh)
     )
   )
 );
 
+load("vlasov-calc/vlasov-stream-vol")$
 
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      disp(printf(false,sconcat("Creating volume VlasovStream",bName[bInd]," ~ax~av"),c,v)),
+      fname : sconcat("~/max-out/VlasovStream", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("VlasovVolStream", c, "x", v, "v", bName[bInd]),
+      calcVlasovStreamVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      close(fh)
+    )
+  )
+);
