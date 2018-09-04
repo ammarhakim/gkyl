@@ -79,6 +79,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       mass = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+      constGravity = self.constGravity,
    }
 
    -- must apply zero-flux BCs in velocity directions

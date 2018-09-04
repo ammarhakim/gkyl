@@ -225,6 +225,9 @@ function KineticSpecies:fullInit(appTbl)
    
    -- for GK only: flag for gyroaveraging
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
+
+   -- gravity table for running Vlasov simulations with constant gravity
+   self.constGravity = tbl.constGravity
 end
 
 function KineticSpecies:getCharge() return self.charge end
