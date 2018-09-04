@@ -1,0 +1,158 @@
+load("modal-basis");
+load("out-scripts");
+load ("scifac")$
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels for the volume term
+   contribution from the Vlasov equation (full EM) */
+
+varsV : [vx, vy, vz]$
+cvars : [X, Y, Z]$
+vvars : [VX, VY, VZ]$
+
+dvdx : [dv0dx0, dv1dx1, dv2dx2]$
+wdx : [w0dx0, w1dx1, w2dx2]$
+dv11 : [dv10, dv11, dv12]$
+Efld : [E0, E1, E2]$
+Bfld : [B0, B1, B2]$
+
+/* Helper function for switching to eta = (v - w)/(dv/2) coordinates */
+vTransSubs : [vvx=vx*dv1/2+wv1, vvy=vy*dv2/2+wv2, vvz=vz*dv3/2+wv3]$
+
+ax(vx, vy, vz, bc) := doExpand1(Efld[1],bc) + vy*doExpand1(Bfld[3],bc) - vz*doExpand1(Bfld[2],bc)$
+ay(vx, vy, vz, bc) := doExpand1(Efld[2],bc) + vz*doExpand1(Bfld[1],bc) - vx*doExpand1(Bfld[3],bc)$
+az(vx, vy, vz, bc) := doExpand1(Efld[3],bc) + vx*doExpand1(Bfld[2],bc) - vy*doExpand1(Bfld[1],bc)$
+
+vzero(vdim) := if vdim = 1 then [vvy=0, vvz=0] elseif vdim = 2 then [vvz=0] else [] $
+
+calcAccel(vdir, vdim, bc) :=
+  if vdir = 1
+    then subst(vTransSubs, subst(vzero(vdim), ax(vvx,vvy,vvz,bc)))
+  elseif vdir = 2
+    then subst(vTransSubs, subst(vzero(vdim), ay(vvx,vvy,vvz,bc)))
+  else
+    subst(vTransSubs, subst(vzero(vdim), az(vvx,vvy,vvz,bc)))$
+
+cidx(cdim) := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+/* Helper functions for expanding in basis functions a quantity we know should be sparse  */
+/* For example, alpha, the phase space flow only depends on a few phase space coordinates */
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+calcVlasovVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  printf(fh, "#include <VlasovModDecl.h> ~%"),
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+    load(modNm),
+
+    /* Polynomial basis and its derivatives. */
+    bP : basisP[polyOrder],
+    bC : basisC[polyOrder],
+    NP : length(bP),
+    NC : length(bC),
+
+    /* specify a point to evaluate alpha at for use in computing CFL */
+    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+
+    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *EM, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. EM/f: Input EM-field/distribution function. out: Incremented output ~%"),
+    cid : cidx(cdim),
+    vid : vidx(cdim,vdim),
+
+    /* common expressions in streaming (v dot grad(f)) term */
+    for dir : 1 thru cdim do (
+        printf(fh, "  double dv~adx~a = dxv[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir]),
+        printf(fh, "  double w~adx~a = w[~a]/dxv[~a]; ~%", dir-1, dir-1, vid[dir], cid[dir])
+    ),
+
+    /* access EM field data */
+    for dir : 1 thru vdim do (
+        printf(fh, "  const double dv1~a = 2/dxv[~a]; ~%", dir-1, vid[dir]),
+        printf(fh, "  const double *E~a = &EM[~a]; ~%", dir-1, NC*(dir-1)),
+        printf(fh, "  const double dv~a = dxv[~a], wv~a = w[~a]; ~%", dir, vid[dir], dir, vid[dir])
+    ),
+    printf(fh, "~%"),
+    /* if vdim = 1, then no magnetic field */
+    if vdim > 1 then (
+        if vdim = 2 then (
+                /* in 2 velocity dimensions, only Bz */
+                printf(fh, "  const double *B~a = &EM[~a]; ~%", 2, NC*2+3*NC)
+            ),
+        if vdim = 3 then (
+            for dir : 1 thru 3 do (
+                printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, NC*(dir-1)+3*NC)
+            )            
+        )
+    ),
+    printf(fh, "~%"),
+
+    /* alpha_mid is our approximation of sum_i max(abs(alpha_i))/dx_i */
+    printf(fh, "  double alpha_mid = 0.0; ~%"),
+
+    /* alpha_cdim = v, alpha_vdim = q/m (E + v x B)              */
+    printf(fh, "  double alpha_cdim[~a]; ~%", cdim*length(bP)),
+    printf(fh, "  double alpha_vdim[~a]; ~%~%", vdim*length(bP)),
+
+    /* Expand distribution function f in phase basis.            */
+    f_e    : doExpand1(f, bP),
+
+    incr_cdim : 0,
+    incr_vdim : 0,
+    /* alpha_cdim = v dot grad(f) */
+    for cdir : 1 thru cdim do (
+        alpha_cdim_e : calcInnerProdList(varsP, 1, bP, 2*wdx[cdir]+dvdx[cdir]*varsV[cdir]),
+        expr : gcfac(float(expand(radcan(alpha_cdim_e)))),
+
+        /* Write out the component of alpha_cdim's phase space expansion */
+        for i : 1 thru NP do (
+            if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alpha_cdim[NP*(cdir-1)+i-1], expr[i])
+        ),
+       printf(fh, "  alpha_mid += std::abs(~a)+~a; ~%", wdx[cdir], 0.5*dvdx[cdir]),
+
+       /* zero out components of alpha which are empty */
+       alpha_cdim_NoZero : doMakeExprLst(alpha_cdim_e, alpha_cdim),
+       alpha_cdim_NoZero_expd : doExpandLst(alpha_cdim_NoZero, bP),
+
+       /* Volume increment from configuration space. */
+       incr_cdim : incr_cdim+subst(a0=NP*(cdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdir]), alpha_cdim_NoZero_expd*f_e))
+    ),
+
+    /* alpha_vdim = q/m (E + v x B) dot grad_v(f) */
+    for vdir : 1 thru vdim do (
+        acc : calcAccel(vdir, vdim, bC),
+        alpha_vdim_e : calcInnerProdList(varsP, 1, bP, dv11[vdir]*acc),
+        expr : gcfac(float(expand(radcan(alpha_vdim_e)))),
+
+        /* Write out the component of alpha_vdim's phase space expansion */
+        for i : 1 thru NP do (
+            if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alpha_vdim[NP*(vdir-1)+i-1], expr[i])
+        ),
+
+        /* zero out components of alpha which are empty */
+        alpha_vdim_NoZero : doMakeExprLst(alpha_vdim_e, alpha_vdim),
+        alpha_vdim_NoZero_expd : doExpandLst(alpha_vdim_NoZero, bP),
+
+        /* evaluate alpha_vdim at zr to approximate max(abs(alpha_vdim))/dv_i */
+        amid : gcfac(float(expand(subst(zr,0.5*subst(a0=NP*(vdir-1),alpha_vdim_NoZero_expd))))),
+        printf(fh, "  alpha_mid += std::abs(~a); ~%", amid),
+
+        /* Volume increment from configuration space. */
+        incr_vdim : incr_vdim+subst(a0=NP*(vdir-1),calcInnerProdList(varsP, 1, diff(bP,varsP[cdim+vdir]), alpha_vdim_NoZero_expd*f_e))
+    ),
+
+    /* write out first attempts to simplify the radicals with radcan, e.g. force sqrt(3)*sqrt(5) = sqrt(15) */
+    /* outscripts loads scifac and uses the aggressive factorization routine "gcfac" */
+    writeCExprsCollect1c(radcan(incr_cdim+incr_vdim)),
+
+    printf(fh, "return alpha_mid; ~%"),
+
+    printf(fh, "~%"),
+  
+    printf(fh, "} ~%")
+));

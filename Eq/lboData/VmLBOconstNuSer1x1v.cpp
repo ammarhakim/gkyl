@@ -2,81 +2,81 @@
 double VmLBOconstNuVol1x1vSerP1(const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
 { 
   // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output 
-  double rdv2[1]; 
-  double rdvSq4[1]; 
-  rdv2[0] = 2.0/dxv[1]; 
-  rdvSq4[0] = 4.0/(dxv[1]*dxv[1]); 
+  const double rdv20 = 2/dxv[1]; 
+  const double rdvSq40 = 4/(dxv[1]*dxv[1]); 
 
-  double drBar[2]; 
-  drBar[0] = nuU[0]-1.414213562373095*w[1]*nu; 
-  drBar[1] = nuU[1]; 
+  double alpha_mid = 0.0; 
+  double alpha_drag[4]; 
+  double alpha_diffusion[4]; 
 
-  out[2] += rdv2[0]*(1.224744871391589*f[1]*drBar[1]+1.224744871391589*f[0]*drBar[0])-1.0*f[2]*nu; 
-  out[3] += rdv2[0]*(1.224744871391589*f[0]*drBar[1]+1.224744871391589*drBar[0]*f[1])-1.0*f[3]*nu; 
-
-  double nuVtSqP[0]; 
-  nuVtSqP[0] = 1.414213562373095*nuVtSq[0]; 
-  nuVtSqP[1] = 1.414213562373095*nuVtSq[1]; 
-  const double nuVtSqMid = 0.5*nuVtSqP[0]; 
-return nuVtSqMid*rdvSq4[0]; 
+  alpha_drag[0] = (1.414213562373095*nuU[0]-2.0*w[1]*nu)*rdv20; 
+  alpha_drag[1] = 1.414213562373095*nuU[1]*rdv20; 
+  alpha_drag[2] = -0.5773502691896258*dxv[1]*nu*rdv20; 
+  alpha_mid += std::abs(0.25*alpha_drag[0]); 
+  alpha_diffusion[0] = 1.414213562373095*nuVtSq[0]; 
+  alpha_diffusion[1] = 1.414213562373095*nuVtSq[1]; 
+  alpha_mid += std::abs(0.125*alpha_diffusion[0]*rdvSq40); 
+  out[2] += 0.8660254037844386*(alpha_drag[2]*f[2]+alpha_drag[1]*f[1]+alpha_drag[0]*f[0]); 
+  out[3] += 0.8660254037844386*(alpha_drag[2]*f[3]+alpha_drag[0]*f[1]+f[0]*alpha_drag[1]); 
+return alpha_mid; 
 
 } 
 double VmLBOconstNuVol1x1vSerP2(const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
 { 
   // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output 
-  double rdv2[1]; 
-  double rdvSq4[1]; 
-  rdv2[0] = 2.0/dxv[1]; 
-  rdvSq4[0] = 4.0/(dxv[1]*dxv[1]); 
+  const double rdv20 = 2/dxv[1]; 
+  const double rdvSq40 = 4/(dxv[1]*dxv[1]); 
 
-  double drBar[3]; 
-  drBar[0] = nuU[0]-1.414213562373095*w[1]*nu; 
-  drBar[1] = nuU[1]; 
-  drBar[2] = nuU[2]; 
+  double alpha_mid = 0.0; 
+  double alpha_drag[8]; 
+  double alpha_diffusion[8]; 
 
-  out[2] += rdv2[0]*(1.224744871391589*drBar[2]*f[4]+1.224744871391589*f[1]*drBar[1]+1.224744871391589*f[0]*drBar[0])-1.0*f[2]*nu; 
-  out[3] += rdv2[0]*(1.095445115010332*drBar[1]*f[4]+1.095445115010332*f[1]*drBar[2]+1.224744871391589*f[0]*drBar[1]+1.224744871391589*drBar[0]*f[1])-1.0*f[3]*nu; 
-  out[5] += (-2.0*f[5]*nu)-2.23606797749979*f[0]*nu+rdv2[0]*(2.738612787525831*drBar[2]*f[6]+2.738612787525831*drBar[1]*f[3]+2.738612787525831*drBar[0]*f[2])+rdvSq4[0]*(4.743416490252569*nuVtSq[2]*f[4]+4.743416490252569*f[1]*nuVtSq[1]+4.743416490252569*f[0]*nuVtSq[0]); 
-  out[6] += rdv2[0]*(0.7824607964359517*drBar[2]*f[4]+1.224744871391589*drBar[0]*f[4]+1.224744871391589*f[0]*drBar[2]+1.095445115010332*f[1]*drBar[1])-1.0*f[6]*nu; 
-  out[7] += (-2.0*f[7]*nu)-2.23606797749979*f[1]*nu+rdv2[0]*(2.449489742783178*drBar[1]*f[6]+2.449489742783178*drBar[2]*f[3]+2.738612787525831*drBar[0]*f[3]+2.738612787525831*drBar[1]*f[2])+rdvSq4[0]*(4.242640687119286*nuVtSq[1]*f[4]+4.242640687119286*f[1]*nuVtSq[2]+4.743416490252569*f[0]*nuVtSq[1]+4.743416490252569*nuVtSq[0]*f[1]); 
-
-  double nuVtSqP[0]; 
-  nuVtSqP[0] = 1.414213562373095*nuVtSq[0]; 
-  nuVtSqP[1] = 1.414213562373095*nuVtSq[1]; 
-  nuVtSqP[4] = 1.414213562373095*nuVtSq[2]; 
-  const double nuVtSqMid = 0.5*nuVtSqP[0]-0.5590169943749475*nuVtSqP[4]; 
-return nuVtSqMid*rdvSq4[0]; 
+  alpha_drag[0] = (1.414213562373095*nuU[0]-2.0*w[1]*nu)*rdv20; 
+  alpha_drag[1] = 1.414213562373095*nuU[1]*rdv20; 
+  alpha_drag[2] = -0.5773502691896258*dxv[1]*nu*rdv20; 
+  alpha_drag[4] = 1.414213562373095*nuU[2]*rdv20; 
+  alpha_mid += std::abs(0.25*alpha_drag[0]-0.2795084971874737*alpha_drag[4]); 
+  alpha_diffusion[0] = 1.414213562373095*nuVtSq[0]; 
+  alpha_diffusion[1] = 1.414213562373095*nuVtSq[1]; 
+  alpha_diffusion[4] = 1.414213562373095*nuVtSq[2]; 
+  alpha_mid += std::abs((0.125*alpha_diffusion[0]-0.1397542485937369*alpha_diffusion[4])*rdvSq40); 
+  out[2] += 0.8660254037844386*(alpha_drag[4]*f[4]+alpha_drag[2]*f[2]+alpha_drag[1]*f[1]+alpha_drag[0]*f[0]); 
+  out[3] += 0.7745966692414833*(alpha_drag[1]*f[4]+f[1]*alpha_drag[4])+0.8660254037844386*(alpha_drag[2]*f[3]+alpha_drag[0]*f[1]+f[0]*alpha_drag[1]); 
+  out[5] += 3.354101966249685*(alpha_diffusion[4]*f[4]+alpha_diffusion[1]*f[1]+alpha_diffusion[0]*f[0])*rdvSq40+1.936491673103709*alpha_drag[4]*f[6]+1.732050807568877*alpha_drag[2]*f[5]+1.936491673103709*(alpha_drag[1]*f[3]+alpha_drag[0]*f[2]+f[0]*alpha_drag[2]); 
+  out[6] += 0.8660254037844386*alpha_drag[2]*f[6]+0.5532833351724881*alpha_drag[4]*f[4]+0.8660254037844386*(alpha_drag[0]*f[4]+f[0]*alpha_drag[4])+0.7745966692414833*alpha_drag[1]*f[1]; 
+  out[7] += (3.0*(alpha_diffusion[1]*f[4]+f[1]*alpha_diffusion[4])+3.354101966249685*(alpha_diffusion[0]*f[1]+f[0]*alpha_diffusion[1]))*rdvSq40+1.732050807568877*(alpha_drag[2]*f[7]+alpha_drag[1]*f[6]+f[3]*alpha_drag[4])+1.936491673103709*(alpha_drag[0]*f[3]+alpha_drag[1]*f[2]+f[1]*alpha_drag[2]); 
+return alpha_mid; 
 
 } 
 double VmLBOconstNuVol1x1vSerP3(const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) 
 { 
   // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output 
-  double rdv2[1]; 
-  double rdvSq4[1]; 
-  rdv2[0] = 2.0/dxv[1]; 
-  rdvSq4[0] = 4.0/(dxv[1]*dxv[1]); 
+  const double rdv20 = 2/dxv[1]; 
+  const double rdvSq40 = 4/(dxv[1]*dxv[1]); 
 
-  double drBar[4]; 
-  drBar[0] = nuU[0]-1.414213562373095*w[1]*nu; 
-  drBar[1] = nuU[1]; 
-  drBar[2] = nuU[2]; 
-  drBar[3] = nuU[3]; 
+  double alpha_mid = 0.0; 
+  double alpha_drag[12]; 
+  double alpha_diffusion[12]; 
 
-  out[2] += rdv2[0]*(1.224744871391589*drBar[3]*f[8]+1.224744871391589*drBar[2]*f[4]+1.224744871391589*f[1]*drBar[1]+1.224744871391589*f[0]*drBar[0])-1.0*f[2]*nu; 
-  out[3] += rdv2[0]*(1.075705748400954*drBar[2]*f[8]+1.075705748400954*drBar[3]*f[4]+1.095445115010332*drBar[1]*f[4]+1.095445115010332*f[1]*drBar[2]+1.224744871391589*f[0]*drBar[1]+1.224744871391589*drBar[0]*f[1])-1.0*f[3]*nu; 
-  out[5] += (-2.0*f[5]*nu)-2.23606797749979*f[0]*nu+rdv2[0]*(2.73861278752583*drBar[3]*f[10]+2.738612787525831*drBar[2]*f[6]+2.738612787525831*drBar[1]*f[3]+2.738612787525831*drBar[0]*f[2])+rdvSq4[0]*(4.743416490252569*nuVtSq[3]*f[8]+4.743416490252569*nuVtSq[2]*f[4]+4.743416490252569*f[1]*nuVtSq[1]+4.743416490252569*f[0]*nuVtSq[0]); 
-  out[6] += rdv2[0]*(0.7302967433402215*drBar[3]*f[8]+1.075705748400954*drBar[1]*f[8]+0.7824607964359517*drBar[2]*f[4]+1.224744871391589*drBar[0]*f[4]+1.075705748400954*f[1]*drBar[3]+1.224744871391589*f[0]*drBar[2]+1.095445115010332*f[1]*drBar[1])-1.0*f[6]*nu; 
-  out[7] += (-2.0*f[7]*nu)-2.23606797749979*f[1]*nu+rdv2[0]*(2.405351177211819*drBar[2]*f[10]+2.405351177211819*drBar[3]*f[6]+2.449489742783178*drBar[1]*f[6]+2.449489742783178*drBar[2]*f[3]+2.738612787525831*drBar[0]*f[3]+2.738612787525831*drBar[1]*f[2])+rdvSq4[0]*(4.16619044897648*nuVtSq[2]*f[8]+4.16619044897648*nuVtSq[3]*f[4]+4.242640687119286*nuVtSq[1]*f[4]+4.242640687119286*f[1]*nuVtSq[2]+4.743416490252569*f[0]*nuVtSq[1]+4.743416490252569*nuVtSq[0]*f[1]); 
-  out[9] += (-3.0*f[9]*nu)-4.58257569495584*f[2]*nu+rdvSq4[0]*(16.20185174601965*nuVtSq[3]*f[10]+16.20185174601965*nuVtSq[2]*f[6]+16.20185174601965*nuVtSq[1]*f[3]+16.20185174601965*nuVtSq[0]*f[2])+rdv2[0]*(1.870828693386971*drBar[3]*f[8]+4.183300132670379*drBar[1]*f[7]+4.183300132670378*drBar[0]*f[5]+1.870828693386971*drBar[2]*f[4]+1.870828693386971*f[1]*drBar[1]+1.870828693386971*f[0]*drBar[0]); 
-  out[10] += rdv2[0]*(0.7302967433402215*drBar[2]*f[8]+1.224744871391589*drBar[0]*f[8]+0.7302967433402215*drBar[3]*f[4]+1.075705748400954*drBar[1]*f[4]+1.224744871391589*f[0]*drBar[3]+1.075705748400954*f[1]*drBar[2])-1.0*f[10]*nu; 
-  out[11] += (-3.0*f[11]*nu)-4.58257569495584*f[3]*nu+rdvSq4[0]*(14.23024947075771*nuVtSq[2]*f[10]+14.2302494707577*nuVtSq[3]*f[6]+14.49137674618944*nuVtSq[1]*f[6]+14.49137674618944*nuVtSq[2]*f[3]+16.20185174601965*nuVtSq[0]*f[3]+16.20185174601965*nuVtSq[1]*f[2])+rdv2[0]*(1.643167672515498*drBar[2]*f[8]+3.741657386773941*drBar[2]*f[7]+4.183300132670377*drBar[0]*f[7]+4.183300132670378*drBar[1]*f[5]+1.643167672515498*drBar[3]*f[4]+1.673320053068151*drBar[1]*f[4]+1.673320053068151*f[1]*drBar[2]+1.870828693386971*f[0]*drBar[1]+1.870828693386971*drBar[0]*f[1]); 
-
-  double nuVtSqP[0]; 
-  nuVtSqP[0] = 1.414213562373095*nuVtSq[0]; 
-  nuVtSqP[1] = 1.414213562373095*nuVtSq[1]; 
-  nuVtSqP[4] = 1.414213562373095*nuVtSq[2]; 
-  nuVtSqP[8] = 1.414213562373095*nuVtSq[3]; 
-  const double nuVtSqMid = 0.5*nuVtSqP[0]-0.5590169943749475*nuVtSqP[4]; 
-return nuVtSqMid*rdvSq4[0]; 
+  alpha_drag[0] = (1.414213562373095*nuU[0]-2.0*w[1]*nu)*rdv20; 
+  alpha_drag[1] = 1.414213562373095*nuU[1]*rdv20; 
+  alpha_drag[2] = -0.5773502691896258*dxv[1]*nu*rdv20; 
+  alpha_drag[4] = 1.414213562373095*nuU[2]*rdv20; 
+  alpha_drag[8] = 1.414213562373095*nuU[3]*rdv20; 
+  alpha_mid += std::abs(0.25*alpha_drag[0]-0.2795084971874737*alpha_drag[4]); 
+  alpha_diffusion[0] = 1.414213562373095*nuVtSq[0]; 
+  alpha_diffusion[1] = 1.414213562373095*nuVtSq[1]; 
+  alpha_diffusion[4] = 1.414213562373095*nuVtSq[2]; 
+  alpha_diffusion[8] = 1.414213562373095*nuVtSq[3]; 
+  alpha_mid += std::abs((0.125*alpha_diffusion[0]-0.1397542485937369*alpha_diffusion[4])*rdvSq40); 
+  out[2] += 0.8660254037844386*(alpha_drag[8]*f[8]+alpha_drag[4]*f[4]+alpha_drag[2]*f[2]+alpha_drag[1]*f[1]+alpha_drag[0]*f[0]); 
+  out[3] += 0.7606388292556648*(alpha_drag[4]*f[8]+f[4]*alpha_drag[8])+0.7745966692414833*(alpha_drag[1]*f[4]+f[1]*alpha_drag[4])+0.8660254037844386*(alpha_drag[2]*f[3]+alpha_drag[0]*f[1]+f[0]*alpha_drag[1]); 
+  out[5] += 3.354101966249685*(alpha_diffusion[8]*f[8]+alpha_diffusion[4]*f[4]+alpha_diffusion[1]*f[1]+alpha_diffusion[0]*f[0])*rdvSq40+1.936491673103709*(alpha_drag[8]*f[10]+alpha_drag[4]*f[6])+1.732050807568877*alpha_drag[2]*f[5]+1.936491673103709*(alpha_drag[1]*f[3]+alpha_drag[0]*f[2]+f[0]*alpha_drag[2]); 
+  out[6] += 0.5163977794943223*alpha_drag[8]*f[8]+0.7606388292556648*(alpha_drag[1]*f[8]+f[1]*alpha_drag[8])+0.8660254037844386*alpha_drag[2]*f[6]+0.5532833351724881*alpha_drag[4]*f[4]+0.8660254037844386*(alpha_drag[0]*f[4]+f[0]*alpha_drag[4])+0.7745966692414833*alpha_drag[1]*f[1]; 
+  out[7] += (2.945941518185896*(alpha_diffusion[4]*f[8]+f[4]*alpha_diffusion[8])+3.0*(alpha_diffusion[1]*f[4]+f[1]*alpha_diffusion[4])+3.354101966249685*(alpha_diffusion[0]*f[1]+f[0]*alpha_diffusion[1]))*rdvSq40+1.700840128541522*(alpha_drag[4]*f[10]+f[6]*alpha_drag[8])+1.732050807568877*(alpha_drag[2]*f[7]+alpha_drag[1]*f[6]+f[3]*alpha_drag[4])+1.936491673103709*(alpha_drag[0]*f[3]+alpha_drag[1]*f[2]+f[1]*alpha_drag[2]); 
+  out[9] += 11.4564392373896*(alpha_diffusion[8]*f[10]+alpha_diffusion[4]*f[6]+alpha_diffusion[1]*f[3]+alpha_diffusion[0]*f[2])*rdvSq40+2.598076211353316*alpha_drag[2]*f[9]+1.322875655532295*alpha_drag[8]*f[8]+2.958039891549809*(alpha_drag[1]*f[7]+alpha_drag[0]*f[5])+1.322875655532295*alpha_drag[4]*f[4]+3.968626966596886*alpha_drag[2]*f[2]+1.322875655532295*(alpha_drag[1]*f[1]+alpha_drag[0]*f[0]); 
+  out[10] += 0.8660254037844386*alpha_drag[2]*f[10]+(0.5163977794943223*alpha_drag[4]+0.8660254037844386*alpha_drag[0])*f[8]+(0.5163977794943223*f[4]+0.8660254037844386*f[0])*alpha_drag[8]+0.7606388292556648*(alpha_drag[1]*f[4]+f[1]*alpha_drag[4]); 
+  out[11] += (10.06230589874905*(alpha_diffusion[4]*f[10]+f[6]*alpha_diffusion[8])+10.2469507659596*(alpha_diffusion[1]*f[6]+f[3]*alpha_diffusion[4])+11.4564392373896*(alpha_diffusion[0]*f[3]+alpha_diffusion[1]*f[2]))*rdvSq40+2.598076211353316*alpha_drag[2]*f[11]+1.161895003862225*(alpha_drag[4]*f[8]+f[4]*alpha_drag[8])+2.645751311064591*alpha_drag[4]*f[7]+2.958039891549809*(alpha_drag[0]*f[7]+alpha_drag[1]*f[5])+1.183215956619923*(alpha_drag[1]*f[4]+f[1]*alpha_drag[4])+3.968626966596886*alpha_drag[2]*f[3]+1.322875655532295*(alpha_drag[0]*f[1]+f[0]*alpha_drag[1]); 
+return alpha_mid; 
 
 } 
