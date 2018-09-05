@@ -34,19 +34,20 @@ extern "C" {
 /** Value to apply */
     double value;
 
-    int istart[3];
-    int iend[3];
-    int cornerstart[3];
-    int cornerend[3];
+    int istart[8];
+    int iend[8];
+    int cornerstart[8];
+    int cornerend[8];
   } bcdata_t;
 
 // C wrappers for interfacing with FemGyroaverage class
-  void* new_FemGyroaverage(int nx, int ny, int ndim, int polyOrder, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix);
+  void* new_FemGyroaverage(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix);
   void delete_FemGyroaverage(FemGyroaverage* f);
   void makeGlobalStiffGy(FemGyroaverage* f, double *modifierWeight, int idx, int idy);
+  void makeGyavg0Matrix(FemGyroaverage* f, double *rho1, double *rho2, double *rho3, int idx);
   void makeGyavgMatrix(FemGyroaverage* f, double *rho1, double *rho2, double *rho3, int idx);
   void finishGlobalStiffGy(FemGyroaverage* f);
-  void createGlobalSrcGy(FemGyroaverage* f, double* localSrcPtr, int idx, int idy);
+  void createGlobalSrcGy(FemGyroaverage* f, double* localSrcPtr, int idx, int idy, int ndimSrc);
   void zeroGlobalSrcGy(FemGyroaverage* f);
   void allreduceGlobalSrcGy(FemGyroaverage* f, MPI_Comm comm);
   void allgatherGlobalStiffGy(FemGyroaverage* f, MPI_Comm comm);
@@ -58,14 +59,16 @@ extern "C" {
 class FemGyroaverage
 {
  public:
-  FemGyroaverage(int nx, int ny, int ndim, int polyOrder, 
+  FemGyroaverage(int nx, int ny, int ndim, int polyOrder, double dx, double dy,
              bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix);
   ~FemGyroaverage();
-  void createGlobalSrcGy(double* ptr, int idx, int idy);
+  void createGlobalSrcGy(double* ptr, int idx, int idy, int ndimSrc);
   void zeroGlobalSrcGy();
   void allreduceGlobalSrcGy(MPI_Comm comm);
   void allgatherGlobalStiffGy(MPI_Comm comm);
   void makeGlobalPerpStiffnessMatrix(double *modifierWeight, int idx, int idy);
+  void padLocalSrc(double* srcIn, std::vector<double> srcOut, int ndimSrc);
+  void makeGyavg0Matrix(double *rho1, double *rho2, double *rho3, int idx);
   void makeGyavgMatrix(double *rho1, double *rho2, double *rho3, int idx);
   void finishGlobalPerpStiffnessMatrix();
   void solveGy();
@@ -74,6 +77,7 @@ class FemGyroaverage
 
  private:
   const int nx, ny, ndim, polyOrder;
+  const double dx, dy;
   const bool writeMatrix;
   bcdata_t bc[2][2];
   bool periodicFlgs[2];
