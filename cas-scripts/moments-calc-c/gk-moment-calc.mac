@@ -42,6 +42,45 @@ for p : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
+/* step 1: integrate over vpar only */
+/* M0_step1 = int dvpar f  */
+calcM0_step1(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : basisP[p],
+  bP_dvpar : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
+
+  printf(fh, "void ~a_M0_step1_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = dxv[~a]/2; ~%", cdim),
+  fl : doExpand1(f, bP),
+  M : calcInnerProdList(varsP, 1, bP_dvpar, fl),
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
+
+  printf(fh, "} ~%")
+))$
+
+/* step 2, integrate over mu only */
+/* M0_step2 = int dmu f  */
+calcM0_step2(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : basisP[p],
+  bP_dvpar : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
+  bC : basisC[p],
+
+  printf(fh, "void ~a_M0_step2_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  printf(fh, "  const double volFact = 2.0*M_PI/m_*dxv[~a]/2; ~%", cdim+1),
+  fl : doExpand1(f, bP_dvpar),
+  M : calcInnerProdList(varsP, 1, bC, fl),
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
+
+  printf(fh, "} ~%")
+))$
+
 /* Parallel Momentum Density */
 /* M1 = < v_par f > */
 calcM1(fh, funcNm, cdim, vdim, basisFun) := block([],
@@ -352,5 +391,9 @@ calcGkMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
   calcM3par(fh, funcNm, cdim, vdim, basisFun),
   if vdim > 1 then calcM3perp(fh, funcNm, cdim, vdim, basisFun),
   calcThreeMoments(fh, funcNm, cdim, vdim, basisFun),
-  calcStarMoments(fh, funcNm, cdim, vdim, basisFun)
+  calcStarMoments(fh, funcNm, cdim, vdim, basisFun),
+  if vdim > 1 then (
+     calcM0_step1(fh, funcNm, cdim, vdim, basisFun),
+     calcM0_step2(fh, funcNm, cdim, vdim, basisFun)
+  )
 )$

@@ -161,8 +161,8 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       }
       project3:advance(0.0, 0.0, {}, {self.rho3})
 
-      -- create solver for gyroaveraging
-      self.gyavgSlvr = Updater.FemGyroaverage {
+      -- create solver for gyroaveraging potentials
+      self.emGyavgSlvr = Updater.FemGyroaverage {
          onGrid = self.confGrid,
          confBasis = self.confBasis,
          phaseGrid = self.grid,
@@ -170,6 +170,19 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          rho1 = self.rho1,
          rho2 = self.rho2,
          rho3 = self.rho3,
+         muOrder0 = true, -- cell-average in mu
+      }
+
+      -- create solver for gyroaveraging distribution function
+      self.distfGyavgSlvr = Updater.FemGyroaverage {
+         onGrid = self.confGrid,
+         confBasis = self.confBasis,
+         phaseGrid = self.grid,
+         phaseBasis = self.basis,
+         rho1 = self.rho1,
+         rho2 = self.rho2,
+         rho3 = self.rho3,
+         integrate = true,
       }
    end
 
@@ -186,7 +199,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       Bvars = funcField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
       positivity = self.positivity,
-      gyavgSlvr = self.gyavgSlvr,
+      gyavgSlvr = self.emGyavgSlvr,
    }
 
    -- no update in mu direction (last velocity direction if present)

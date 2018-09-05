@@ -63,6 +63,7 @@ return(modToNod)
 calcModToNodPhase(cdim, vdim, p) := block([basis,modNm,nodes,n,modToNod], 
 kill(varsC, varsP, basisC, basisP),
 if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
+else if (vdim = 1 and cdim#1) then (modNm : sconcat("basis-precalc/basisSer", cdim-1, "x", 2, "v"), cdim:cdim-1, vdim:2)
 else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
 load(modNm),
 if vdim=0 then basis : basisC[p]
@@ -198,8 +199,8 @@ massNod:massNod/subst([x=0,y=0,z=0],doExpand1(jacob,basis)),
 return(massNod)
 )$
 
-/* calculate nodal gyroaverage matrix */
-calcGyavg(cdim, p) := block([],
+/* calculate nodal gyroaverage matrix, cell-average in mu */
+calcGyavg0(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
 load(modNm),
@@ -209,13 +210,43 @@ bC : basisC[p],
 rho1_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho1,bP)),
 rho2_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho2,bP)),
 rho3_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho3,bP)),
-bGy : fullratsimp(integrate(subst([x=x+rho1_expd*cos(alpha),y=y+rho2_expd*cos(alpha)-rho3_expd*sin(alpha)],bC),alpha,0,2*%pi)),
+printf(fh, "  double dfacx = 2.0/dx; ~%"),
+printf(fh, "  double dfacy = 2.0/dy; ~%"),
+bGy : fullratsimp(integrate(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bC),alpha,0,2*%pi)/(2*%pi)),
 bGy : fullratsimp(calcInnerProdList(varsC,1,bC,bGy).bC),
 gyavgMod : fullratsimp(calcMassMatrix2(varsC, 1, bC, bGy)),
 subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bC)),
 subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bC)),
 subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bC)),
 modToNod : calcModToNod(cdim, p),
+gyavgNod:gcfac(expand(float(fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod))))))),
+gyavgNod:subst(subs1,gyavgNod),
+gyavgNod:subst(subs2,gyavgNod),
+gyavgNod:subst(subs3,gyavgNod),
+return(gyavgNod)
+)$
+
+/* calculate nodal gyroaverage matrix with mu dependence */
+calcGyavg(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
+load(modNm),
+bP : basisP[p],
+bP : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
+varsP : delete(vx, varsP),
+/* rho's have vy (mu) dependence, but we will use the cell center in mu */
+rho1_expd:subst([y^2=1/3,y=0],doExpand1(rho1,bP)),
+rho2_expd:subst([y^2=1/3,y=0],doExpand1(rho2,bP)),
+rho3_expd:subst([y^2=1/3,y=0],doExpand1(rho3,bP)),
+printf(fh, "  double dfacx = 2.0/dx; ~%"),
+printf(fh, "  double dfacy = 2.0/dy; ~%"),
+bGy : fullratsimp(integrate(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bP),alpha,0,2*%pi)/(2*%pi)),
+bGy : fullratsimp(calcInnerProdList(varsP,1,bP,bGy).bP),
+gyavgMod : fullratsimp(calcMassMatrix2(varsP, 1, bP, bGy)),
+subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bP)),
+subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bP)),
+subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bP)),
+modToNod : calcModToNodPhase(cdim, 1, p),
 gyavgNod:gcfac(expand(float(fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod))))))),
 gyavgNod:subst(subs1,gyavgNod),
 gyavgNod:subst(subs2,gyavgNod),

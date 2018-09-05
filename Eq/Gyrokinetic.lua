@@ -78,6 +78,9 @@ function Gyrokinetic:setAuxFields(auxFields)
    -- get phi
    self.phi = potentials.phi
    if self._gyavg then self.gyavgSlvr:advance(0, 0, {self.phi}, {self.phiGy}) end
+   for i=1,self._grid:numCells(self._ndim) do
+      self.phiGy[i]:sync()
+   end
 
    if self._isElectromagnetic then
       -- get electromagnetic terms
@@ -106,6 +109,16 @@ function Gyrokinetic:setAuxFields(auxFields)
          self.dApardtIdxr = self.dApardt:genIndexer()
       end
 
+      -- for gyroaveraging
+      if self._gyavg then
+         self.phiGyPtr = {}
+         self.phiGyIdxr = {}
+         for i=1,self._grid:numCells(self._ndim) do
+            self.phiGyPtr[i] = self.phiGy[i]:get(1)
+            self.phiGyIdxr[i] = self.phiGy[i]:genIndexer()
+         end
+      end
+
       -- geometry
       self.bmagPtr = self.bmag:get(1)
       self.bmagInvPtr = self.bmagInv:get(1)
@@ -129,7 +142,8 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    local tmStart = Time.clock()
    if self._gyavg then 
       local idmu = idx[self._ndim]
-      self.phiGy[idmu]:fill(self.phiIdxr(idx), self.phiPtr)
+      self.phiGy[idmu]:fill(self.phiGyIdxr[idmu](idx), self.phiGyPtr[idmu])
+      self.phiPtr = self.phiGyPtr[idmu]
    else
       self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    end
@@ -152,7 +166,13 @@ end
 -- Surface integral term for use in DG scheme
 function Gyrokinetic:surfTerm(dir, cfl, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
-   self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+   if self._gyavg then 
+      local idmu = idxr[self._ndim]
+      self.phiGy[idmu]:fill(self.phiGyIdxr[idmu](idxr), self.phiGyPtr[idmu])
+      self.phiPtr = self.phiGyPtr[idmu]
+   else
+      self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+   end
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
    self.bmagInv:fill(self.bmagInvIdxr(idxr), self.bmagInvPtr)
    self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
