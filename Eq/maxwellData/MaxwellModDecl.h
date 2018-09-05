@@ -1,5 +1,6 @@
 #ifndef MAXWELL_MOD_DELC_H 
 #define MAXWELL_MOD_DELC_H 
+#include <cmath> 
 extern "C" { 
 typedef struct { double c, chi, gamma; } MaxwellEq_t; 
  

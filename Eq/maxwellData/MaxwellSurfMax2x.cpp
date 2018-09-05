@@ -149,7 +149,7 @@ double MaxwellSurf2xMax_X_P1(const MaxwellEq_t *meq, const double *wl, const dou
   outPsl[2] += -1.0*incr[2]*dxl1; 
 
  
-  return c; 
+  return std::fmax(c, tau); 
 } 
 double MaxwellSurf2xMax_X_P2(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) 
 { 
@@ -373,7 +373,7 @@ double MaxwellSurf2xMax_X_P2(const MaxwellEq_t *meq, const double *wl, const dou
   outPsl[5] += -1.0*incr[5]*dxl1; 
 
  
-  return c; 
+  return std::fmax(c, tau); 
 } 
 double MaxwellSurf2xMax_X_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) 
 { 
@@ -693,7 +693,7 @@ double MaxwellSurf2xMax_X_P3(const MaxwellEq_t *meq, const double *wl, const dou
   outPsl[9] += -1.0*incr[9]*dxl1; 
 
  
-  return c; 
+  return std::fmax(c, tau); 
 } 
 double MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) 
 { 
@@ -845,7 +845,7 @@ double MaxwellSurf2xMax_Y_P1(const MaxwellEq_t *meq, const double *wl, const dou
   outPsl[2] += incr[2]*dxl1; 
 
  
-  return c; 
+  return std::fmax(c, tau); 
 } 
 double MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) 
 { 
@@ -1069,7 +1069,7 @@ double MaxwellSurf2xMax_Y_P2(const MaxwellEq_t *meq, const double *wl, const dou
   outPsl[5] += -1.0*incr[5]*dxl1; 
 
  
-  return c; 
+  return std::fmax(c, tau); 
 } 
 double MaxwellSurf2xMax_Y_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) 
 { 
@@ -1389,5 +1389,5 @@ double MaxwellSurf2xMax_Y_P3(const MaxwellEq_t *meq, const double *wl, const dou
   outPsl[9] += incr[9]*dxl1; 
 
  
-  return c; 
+  return std::fmax(c, tau); 
 } 

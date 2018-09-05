@@ -24,12 +24,12 @@ modFlux : [
  [-tau*c*Bz, c^2*chi*phi, tau*c*Bx, c*Ez/tau, gamma*psi, -c*Ex/tau, chi*Ey, c^2*gamma*By],
  [tau*c*By, -tau*c*Bx, c^2*chi*phi, -c*Ey/tau, c*Ex/tau, gamma*psi, chi*Ez, c^2*gamma*Bz]
 ]$
-pmax : 3$
-calcUpdateInDir(dir, fh, funcNm, cdim, basisFun) := block([],
+
+calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
 kill(varsC, basisC),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
-for p : 1 thru pmax do(
+for p : 1 thru pMax do(
   bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
   
@@ -124,11 +124,11 @@ for p : 1 thru pmax do(
     printf(fh, "~% ~%")
   ),
 
-  printf(fh, "  return c; ~%"),
+  printf(fh, "  return std::fmax(c, tau); ~%"),
   printf(fh, "} ~%")
 ))$
 
-calcMaxwellSurfUpdater(fh, funcNm, cdim, basisFun) := block([],
+calcMaxwellSurfUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
   printf(fh, "#include <MaxwellModDecl.h> ~%"),
-  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun) )
+  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) )
 )$
