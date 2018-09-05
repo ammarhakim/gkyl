@@ -4,7 +4,7 @@ fh : openw("~/max-out/MaxwellModDecl.h")$
 
 printf(fh, "#ifndef MAXWELL_MOD_DELC_H ~%")$
 printf(fh, "#define MAXWELL_MOD_DELC_H ~%")$
-
+printf(fh, "#include <cmath> ~%")$
 printf(fh, "extern \"C\" { ~%")$
 
 printf(fh, "typedef struct { double c, chi, gamma; } MaxwellEq_t; ~% ~%")$
