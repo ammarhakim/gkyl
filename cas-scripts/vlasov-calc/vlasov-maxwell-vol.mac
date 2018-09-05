@@ -5,7 +5,7 @@ load(stringproc)$
 fpprec : 24$
 
 /* This script generates the kernels for the volume term
-   contribution from the Vlasov equation (full EM) */
+   contribution from the Vlasov equation (full EM, both streaming and acceleration) */
 
 varsV : [vx, vy, vz]$
 cvars : [X, Y, Z]$
