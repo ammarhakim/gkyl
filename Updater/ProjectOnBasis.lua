@@ -39,6 +39,10 @@ return function (tCurr, xn, func, fout)
 end
 ]])
 
+ffi.cdef[[
+  void projectF(double* f, double* weights, double* basisAtOrdinates, double* fv, int numVal, int numBasis, int numOrd);
+]]
+
 -- Projection  updater object
 local ProjectOnBasis = Proto(UpdaterBase)
 
@@ -145,19 +149,7 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
 
       qOut:fill(indexer(idx), fItr)
 
-      local offset = 0
-      -- update each component
-      for n = 1, numVal do
-	 -- update each expansion coefficient
-	 for k = 1, numBasis do
-	    fItr[offset+k] = 0.0
-	    -- loop over quadrature points, accumulating contribution to expansion coefficient
-	    for mu = 1, numOrd do
-	       fItr[offset+k] = fItr[offset+k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[mu][n]
-	    end
-	 end
-	 offset = offset+numBasis
-      end
+      ffi.C.projectF(fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
    end
 
    -- set id of output to id of projection basis
