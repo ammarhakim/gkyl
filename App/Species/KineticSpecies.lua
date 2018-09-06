@@ -21,6 +21,8 @@ local xsys = require "xsys"
 local Time = require "Lib.Time"
 local Mpi = require "Comm.Mpi"
 local Collisions = require "App.Collisions"
+local ProjectionBase = require "App.Projection.ProjectionBase"
+local Projection = require "App.Projection.KineticProjection"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -56,7 +58,8 @@ function KineticSpecies:fullInit(appTbl)
    self.vdim = #self.cells -- velocity dimensions
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
-   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
+   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
+					    self.evolve) 
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
    self.evolveSources = xsys.pickBool(tbl.evolveSources, self.evolve) 
    self.confBasis = nil -- Will be set later
@@ -145,22 +148,24 @@ function KineticSpecies:fullInit(appTbl)
          assert(false, "initBackground not correctly specified")
       end
    end
-   assert(tbl.init, "Must specify initial condition with init")
-   if type(tbl.init) == "function" then
-      self.initFunc = function (t, xn)
-         return tbl.init(t, xn, self)
-      end
-   elseif tbl.init[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
-      self.initType = "maxwellian"
-      self.initDensityFunc = assert(tbl.init.density, "maxwellian: must specify density")
-      self.initTemperatureFunc = assert(tbl.init.temperature, "maxwellian: must specify temperature")
-      self.initDriftSpeedFunc = tbl.init.driftSpeed or function (t, xn) return nil end
-      self.initFunc = function(t, xn)
-         return self:Maxwellian(xn, self.initDensityFunc(t, xn), self.initTemperatureFunc(t, xn), self.initDriftSpeedFunc(t, xn))
-      end
-   else 
-      assert(false, "init not correctly specified")
-   end
+
+   -- assert(tbl.init, "Must specify initial condition with init")
+   -- if type(tbl.init) == "function" then
+   --    self.initFunc = function (t, xn)
+   --       return tbl.init(t, xn, self)
+   --    end
+   -- elseif tbl.init[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
+   --    self.initType = "maxwellian"
+   --    self.initDensityFunc = assert(tbl.init.density, "maxwellian: must specify density")
+   --    self.initTemperatureFunc = assert(tbl.init.temperature, "maxwellian: must specify temperature")
+   --    self.initDriftSpeedFunc = tbl.init.driftSpeed or function (t, xn) return nil end
+   --    self.initFunc = function(t, xn)
+   --       return self:Maxwellian(xn, self.initDensityFunc(t, xn), self.initTemperatureFunc(t, xn), self.initDriftSpeedFunc(t, xn))
+   --    end
+   -- else 
+   --    assert(false, "init not correctly specified")
+   -- end
+
    -- source term for RHS (e.g. df/dt = ... + source)
    if tbl.source then 
       if type(tbl.source)=="function" then 
@@ -211,6 +216,7 @@ function KineticSpecies:fullInit(appTbl)
 
    self.bcTime = 0.0 -- timer for BCs
    self.integratedMomentsTime = 0.0 -- timer for integrated moments
+
    -- Collisions/Sources
    self.collisions = {}
    for nm, val in pairs(tbl) do
@@ -219,6 +225,37 @@ function KineticSpecies:fullInit(appTbl)
 	 self.collisions[nm] = val
 	 self.collisions[nm]:setName(nm)
       end
+   end
+
+   -- Initialization
+   self.inits = {}
+   for nm, val in pairs(tbl) do
+      if ProjectionBase.is(val) then
+	 self.inits[nm] = val
+	 self.inits[nm]:setName(nm)
+      end
+   end
+   -- it is possible to use the keyword 'init' to specify a function
+   -- directly without using the Projection object
+   if type(tbl.init) == "function" then
+      self.inits["init"] = Projection.FunctionProjection {
+	 function (t, zn)
+	    return tbl.init(t, zn, self)
+	 end,
+      }
+      self.inits["init"]:setName("init")
+   elseif tbl.init[1] == "maxwellian" then -- >>> LEGACY CODE
+      self.inits["init"] = Projection.MaxwellianProjection {
+	 density = tbl.init.density,
+	 drift = tbl.init.driftSpeed,
+	 temperature = tbl.init.temperature,
+	 scaleM0 = true,
+	 lagFixM012 = false,
+      }
+      self.inits["init"]:setName("init")
+   end -- <<<
+   if not self.inits then
+       assert(false, "KineticSpecies: No initialization data provided")
    end
 
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
@@ -245,7 +282,6 @@ function KineticSpecies:setName(nm)
    for _, c in pairs(self.collisions) do
       c:setSpeciesName(nm)
    end
-
 end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
@@ -466,17 +502,23 @@ function KineticSpecies:initDist()
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
 
-   local project = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = self.initFunc,
-      projectOnGhosts = true
-   }
-   project:advance(0.0, 0.0, {}, {self.distf[1]})
+   
+   -- local project = Updater.ProjectOnBasis {
+   --    onGrid = self.grid,
+   --    basis = self.basis,
+   --    evaluate = self.initFunc,
+   --    projectOnGhosts = true
+   -- }
+   -- project:advance(0.0, 0.0, {}, {self.distf[1]})
 
    -- if maxwellian initial conditions, modify to ensure correct density
-   if self.initType == "maxwellian" then
-      self:modifyDensity(self.distf[1], self.initDensityFunc)
+   --if self.initType == "maxwellian" then
+   --   self:modifyDensity(self.distf[1], self.initDensityFunc)
+   --end
+   for _, i in pairs(self.inits) do
+      i:fullInit(self)
+      i:set(0.0, self.distf[2])
+      self.distf[1]:accumulate(1.0, self.distf[2])
    end
 
    if self.initBackgroundFunc then
