@@ -77,9 +77,11 @@ function Gyrokinetic:setAuxFields(auxFields)
 
    -- get phi
    self.phi = potentials.phi
-   if self._gyavg then self.gyavgSlvr:advance(0, 0, {self.phi}, {self.phiGy}) end
-   for i=1,self._grid:numCells(self._ndim) do
-      self.phiGy[i]:sync()
+   if self._gyavg then 
+      self.gyavgSlvr:advance(0, 0, {self.phi}, {self.phiGy}) 
+      for i=1,self._grid:numCells(self._ndim) do
+         self.phiGy[i]:sync()
+      end
    end
 
    if self._isElectromagnetic then
