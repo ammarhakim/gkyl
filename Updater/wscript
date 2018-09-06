@@ -124,5 +124,7 @@ def build(bld):
 
     PositivityRescaleImpl.cpp
 
+    ProjectOnBasisImpl.cpp
+
     """,
     includes = '. primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
