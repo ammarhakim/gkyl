@@ -14,6 +14,8 @@ local lfs = require "lfs"
 local lume = require "Lib.lume"
 
 local log = Logger { logToFile = true }
+local verboseLog = function (msg) end -- default no messages are written
+local verboseLogger = function (msg) log(msg) end
 
 -- total passed/failed tests
 local numFailedTests = 0
@@ -23,13 +25,19 @@ local numPassedTests = 0
 local configVals = nil
 
 -- loads configuration file
-local function loadConfigure()
+local function loadConfigure(args)
    local f = loadfile("runregression.config.lua")
    if not f then
       log("Regression tests not configured! Run config command first\n")
       os.exit(1)
    end
    configVals = f()
+
+   if args.verbose then
+      -- set verbose logger
+      verboseLog = verboseLogger
+   end
+   
    return configVals
 end
 
@@ -218,11 +226,11 @@ end
 -- THINGS)
 local function check_equal_numeric(expected, actual)
    if math.abs(actual) < 1e-15 then
-      if math.abs(expected-actual) > 5e-15 then
+      if math.abs(expected-actual) > 1e-12 then
 	 return false
       end
    else
-      if math.abs(1-expected/actual) > 5e-14 then
+      if math.abs(1-expected/actual) > 1e-12 then
 	 return false
       end
    end
@@ -231,8 +239,10 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   --log(string.format("Comparing %s to %s ...\n", f1, f2))
+   verboseLog(string.format("Comparing %s to %s ...\n", f1, f2))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
+      verboseLog(string.format(
+		    " ... files %s and/or %s do not exist!", f1, f2))
       return false
    end
    
@@ -245,6 +255,7 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
+	    verboseLog(string.format(" ... comparing %g %g (diff %g) failed ...\n", d1[i], d2[i], d1[i]-d2[i]))
 	    return false
 	 end
       end
@@ -254,6 +265,7 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
+	    verboseLog(string.format(" ... comparing %g %g (diff %g) failed ...\n", d1[i], d2[i], d1[i]-d2[i]))
 	    return false
 	 end
       end
@@ -273,9 +285,11 @@ local function check_action(test)
    local outDirName = string.sub(test, 1, vloc)
    -- the very strange looking pattern below puts an escape character
    -- (i.e. \) before characters that are treated as special by
-   -- pattern matcher
+   -- pattern matcher. (The final underscore is needed to avoid the
+   -- regression system getting confused with other tests that have
+   -- the same prefix)
    local testPrefix = string.gsub(
-      string.sub(test, 3, -5), "(%W)", "%%%1")
+      string.sub(test, 3, -5), "(%W)", "%%%1") .. "_"
 
    local passed = true
    for fn in lfs.dir(outDirName) do
@@ -299,7 +313,7 @@ end
 
 -- function to handle "run" command
 local function run_action(args, name)
-   loadConfigure()
+   loadConfigure(args)
    local luaRegTests, shellRegTests = list_tests(args)
 
    -- function to run after simulation is finisihed
