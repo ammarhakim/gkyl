@@ -657,11 +657,25 @@ Vector3d MapPoisson::ginv(Vector3d gvec, double xc, double yc){
     int j = (yc-yl-0.5*dyc)/dyc;
     int k = (j)*nx+(i);
     //xyz conductivity tensor
-    MatrixXd sigs(3,3);
-    sigs(0,0) = condarr(k,0); sigs(0,1) = condarr(k,1); sigs(0,2) = condarr(k,2);
-    sigs(1,0) = condarr(k,3); sigs(1,1) = condarr(k,4); sigs(1,2) = condarr(k,5);
-    sigs(2,0) = condarr(k,6); sigs(2,1) = condarr(k,7); sigs(2,2) = condarr(k,8);
-    //jacobian setup
+    MatrixXd sig0(3,3);
+    sig0(0,0) = condarr(k,0); sig0(0,1) = condarr(k,1); sig0(0,2) = condarr(k,2);
+    sig0(1,0) = condarr(k,3); sig0(1,1) = condarr(k,4); sig0(1,2) = condarr(k,5);
+    sig0(2,0) = condarr(k,6); sig0(2,1) = condarr(k,7); sig0(2,2) = condarr(k,8);
+    //jacobia th-x    MOST RECENT EDITS
+    //calc values needed
+    double xpjac[4];
+    MapPoisson:mapcpp(xc, yc, xpjac);
+    double x = xpjac[1]; double y = xpjac[2]; double z = xpjac[3];
+    double r = sqrt(x*x+y*y+z*z);
+    //setup jacobian for theta - x
+    MatrixXd jac0(3,3);
+    jac0(0,0) = x/r; jac0(0,1) = y/r; jac0(0,2) = z/r;
+    jac0(1,0) = z*x/(r*r*r*sqrt(1-z*z/(r*r))); jac0(1,1) = z*y/(r*r*r*sqrt(1-z*z/(r*r)));
+    jac0(1,2) = -sqrt(x*x+y*y)/(r*r);
+    jac0(2,0) = -y/(x*x+y*y); jac0(2,1) = x/(x*x+y*y); jac0(2,2) = 0;
+    //get conductivity in xyz
+    MatrixXd sigs = jac0.transpose()*(sig0*jac0);
+    //jacobian x-xc setup
     MatrixXd jac(3,2);
     jac << hvec[1], hvec[4], hvec[2], hvec[5], hvec[3], hvec[6];
     //tranformed sigma
