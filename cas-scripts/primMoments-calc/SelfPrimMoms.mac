@@ -40,6 +40,13 @@ writeEVExprs(lhs, rhs, vd, nc) := block([expr],
   printf(fh, "  ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
 )$
 
+writeCExprs1s(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    printf(fh, "    ~a = ~a; ~%", lhs[i-1], expr[i])
+  )
+)$
+
 calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   kill(varsC, varsP, basisC, basisP),
   if (cdim > vdim) then (
@@ -63,11 +70,49 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  // vtSq:     squared thermal speed, sqrt(T/m). ~%"),
     printf(fh, " ~%"),
 
+    /* In order to avoid dividing by very small, negative or zero densities
+       use the cell average m0 when m0<0 at one of the corners. */
+    printf(fh, "  // If a corner value is below zero, use cell average m0.~%"),
+    printf(fh, "  bool m0Avg = false;~%"),
+    for v1 : -1 step 2 thru 1 do (
+      cornerA : subst(varsC[1]=v1,doExpand1(m0,bC)),
+      if cdim > 1 then (
+        for v2 : -1 step 2 thru 1 do (
+          cornerA : subst(varsC[2]=v2,cornerA),
+          if cdim > 2 then (
+            for v3 : -1 step 2 thru 1 do (
+              cornerA : subst(varsC[3]=v3,cornerA),
+              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+              printf(fh, "    m0Avg = true;~%"),
+              printf(fh, "  }~%")
+            )
+          ) else (
+            printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+            printf(fh, "    m0Avg = true;~%"),
+            printf(fh, "  }~%")
+          )
+        )
+      ) else (
+        printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+        printf(fh, "    m0Avg = true;~%"),
+        printf(fh, "  }~%")
+      )
+    ),
+    printf(fh, " ~%"),
+
+    printf(fh, "  double m0s[~a]; ~%", NC),
+    printf(fh, "  if (m0Avg) { ~%"),
+    writeCExprs1s(m0s,append([m0[0]],makelist(0.0,i,1,NC-1))),
+    printf(fh, "  } else { ~%"),
+    writeCExprs1s(m0s,makelist(m0[i],i,0,NC-1)),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
     /* Expand moments in configuration space basis. */
-    m0_e : doExpand1(m0, bC),
+    m0_e : doExpand1(m0s, bC),
     m2_e : doExpand1(m2, bC),
     /* Array of expansion coefficients. */
-    m0_c : makelist(m0[i],i,0,NC-1),
+    m0_c : makelist(m0s[i],i,0,NC-1),
     m2_c : makelist(m2[i],i,0,NC-1),
     /* Equivalently for  vtSq .*/
     vtSq_e : doExpand1(vtSq,bC),
