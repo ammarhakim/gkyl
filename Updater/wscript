@@ -16,6 +16,7 @@ def build(bld):
     primMomentsCalcData/SelfPrimMomentsSer2x2v.cpp
     primMomentsCalcData/SelfPrimMomentsSer2x3v.cpp
     primMomentsCalcData/SelfPrimMomentsSer3x1v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer3x3v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x1v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x3v.cpp
@@ -27,6 +28,7 @@ def build(bld):
     primMomentsCalcData/SelfPrimMomentsMax1x3v.cpp
     primMomentsCalcData/SelfPrimMomentsMax2x2v.cpp
     primMomentsCalcData/SelfPrimMomentsMax2x3v.cpp
+    primMomentsCalcData/SelfPrimMomentsMax3x3v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
@@ -37,6 +39,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x2v.cpp
     binOpCalcData/CartFieldBinOpSer2x3v.cpp
     binOpCalcData/CartFieldBinOpSer3x2v.cpp
+    binOpCalcData/CartFieldBinOpSer3x3v.cpp
 
     binOpCalcData/CartFieldBinOpMax1x.cpp
     binOpCalcData/CartFieldBinOpMax2x.cpp
@@ -47,6 +50,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpMax2x2v.cpp
     binOpCalcData/CartFieldBinOpMax2x3v.cpp
     binOpCalcData/CartFieldBinOpMax3x2v.cpp
+    binOpCalcData/CartFieldBinOpMax3x3v.cpp
 
     lagrangeFixData/gkyl_ipow.cpp
     lagrangeFixData/lagrangeFixSer1x1v.cpp
