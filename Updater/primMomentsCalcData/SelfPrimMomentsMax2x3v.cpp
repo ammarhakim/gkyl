@@ -26,14 +26,40 @@ void SelfPrimMoments2x3vMax_P1(const int pVdim, const double *m0, const double *
   }
  
   double m0s[3]; 
+  double m1s[9]; 
+  double m2s[3]; 
   if (m0Avg) { 
     m0s[0] = m0[0]; 
     m0s[1] = 0.0; 
     m0s[2] = 0.0; 
+    m1s[0] = m1[0]; 
+    m1s[1] = 0.0; 
+    m1s[2] = 0.0; 
+    m1s[3] = m1[3]; 
+    m1s[4] = 0.0; 
+    m1s[5] = 0.0; 
+    m1s[6] = m1[6]; 
+    m1s[7] = 0.0; 
+    m1s[8] = 0.0; 
+    m2s[0] = m2[0]; 
+    m2s[1] = 0.0; 
+    m2s[2] = 0.0; 
   } else { 
     m0s[0] = m0[0]; 
     m0s[1] = m0[1]; 
     m0s[2] = m0[2]; 
+    m1s[0] = m1[0]; 
+    m1s[1] = m1[1]; 
+    m1s[2] = m1[2]; 
+    m1s[3] = m1[3]; 
+    m1s[4] = m1[4]; 
+    m1s[5] = m1[5]; 
+    m1s[6] = m1[6]; 
+    m1s[7] = m1[7]; 
+    m1s[8] = m1[8]; 
+    m2s[0] = m2[0]; 
+    m2s[1] = m2[1]; 
+    m2s[2] = m2[2]; 
   } 
  
   // Declare Eigen matrix and vectors for weak division. 
@@ -60,13 +86,13 @@ void SelfPrimMoments2x3vMax_P1(const int pVdim, const double *m0, const double *
   BigAEM(2,11) = -0.5*cM[0]; 
  
   // ....... Block from weak multiply of uX and m1X  .......... // 
-  BigAEM(9,0) = 0.5*m1[0]; 
-  BigAEM(9,1) = 0.5*m1[1]; 
-  BigAEM(9,2) = 0.5*m1[2]; 
-  BigAEM(10,0) = 0.5*m1[1]; 
-  BigAEM(10,1) = 0.5*m1[0]; 
-  BigAEM(11,0) = 0.5*m1[2]; 
-  BigAEM(11,2) = 0.5*m1[0]; 
+  BigAEM(9,0) = 0.5*m1s[0]; 
+  BigAEM(9,1) = 0.5*m1s[1]; 
+  BigAEM(9,2) = 0.5*m1s[2]; 
+  BigAEM(10,0) = 0.5*m1s[1]; 
+  BigAEM(10,1) = 0.5*m1s[0]; 
+  BigAEM(11,0) = 0.5*m1s[2]; 
+  BigAEM(11,2) = 0.5*m1s[0]; 
  
   // ....... Block from weak multiply of uY and m0  .......... // 
   BigAEM(3,3) = 0.5*m0s[0]; 
@@ -87,13 +113,13 @@ void SelfPrimMoments2x3vMax_P1(const int pVdim, const double *m0, const double *
   BigAEM(5,11) = -0.5*cM[3]; 
  
   // ....... Block from weak multiply of uY and m1Y  .......... // 
-  BigAEM(9,3) = 0.5*m1[3]; 
-  BigAEM(9,4) = 0.5*m1[4]; 
-  BigAEM(9,5) = 0.5*m1[5]; 
-  BigAEM(10,3) = 0.5*m1[4]; 
-  BigAEM(10,4) = 0.5*m1[3]; 
-  BigAEM(11,3) = 0.5*m1[5]; 
-  BigAEM(11,5) = 0.5*m1[3]; 
+  BigAEM(9,3) = 0.5*m1s[3]; 
+  BigAEM(9,4) = 0.5*m1s[4]; 
+  BigAEM(9,5) = 0.5*m1s[5]; 
+  BigAEM(10,3) = 0.5*m1s[4]; 
+  BigAEM(10,4) = 0.5*m1s[3]; 
+  BigAEM(11,3) = 0.5*m1s[5]; 
+  BigAEM(11,5) = 0.5*m1s[3]; 
  
   // ....... Block from weak multiply of uZ and m0  .......... // 
   BigAEM(6,6) = 0.5*m0s[0]; 
@@ -114,13 +140,13 @@ void SelfPrimMoments2x3vMax_P1(const int pVdim, const double *m0, const double *
   BigAEM(8,11) = -0.5*cM[6]; 
  
   // ....... Block from weak multiply of uZ and m1Z  .......... // 
-  BigAEM(9,6) = 0.5*m1[6]; 
-  BigAEM(9,7) = 0.5*m1[7]; 
-  BigAEM(9,8) = 0.5*m1[8]; 
-  BigAEM(10,6) = 0.5*m1[7]; 
-  BigAEM(10,7) = 0.5*m1[6]; 
-  BigAEM(11,6) = 0.5*m1[8]; 
-  BigAEM(11,8) = 0.5*m1[6]; 
+  BigAEM(9,6) = 0.5*m1s[6]; 
+  BigAEM(9,7) = 0.5*m1s[7]; 
+  BigAEM(9,8) = 0.5*m1s[8]; 
+  BigAEM(10,6) = 0.5*m1s[7]; 
+  BigAEM(10,7) = 0.5*m1s[6]; 
+  BigAEM(11,6) = 0.5*m1s[8]; 
+  BigAEM(11,8) = 0.5*m1s[6]; 
  
   // ....... Block from correction to vtSq .......... // 
   BigAEM(9,9) = 0.5*m0s[0]*pVdim-0.5*cE[0]; 
@@ -138,7 +164,7 @@ void SelfPrimMoments2x3vMax_P1(const int pVdim, const double *m0, const double *
   BigAEM.block<3,3>(6,3).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
-  bEV << m1[0],m1[1],m1[2],m1[3],m1[4],m1[5],m1[6],m1[7],m1[8],m2[0],m2[1],m2[2]; 
+  bEV << m1s[0],m1s[1],m1s[2],m1s[3],m1s[4],m1s[5],m1s[6],m1s[7],m1s[8],m2s[0],m2s[1],m2s[2]; 
  
   xEV = BigAEM.colPivHouseholderQr().solve(bEV); 
  
@@ -171,6 +197,8 @@ void SelfPrimMoments2x3vMax_P2(const int pVdim, const double *m0, const double *
   }
  
   double m0s[6]; 
+  double m1s[18]; 
+  double m2s[6]; 
   if (m0Avg) { 
     m0s[0] = m0[0]; 
     m0s[1] = 0.0; 
@@ -178,6 +206,30 @@ void SelfPrimMoments2x3vMax_P2(const int pVdim, const double *m0, const double *
     m0s[3] = 0.0; 
     m0s[4] = 0.0; 
     m0s[5] = 0.0; 
+    m1s[0] = m1[0]; 
+    m1s[1] = 0.0; 
+    m1s[2] = 0.0; 
+    m1s[3] = 0.0; 
+    m1s[4] = 0.0; 
+    m1s[5] = 0.0; 
+    m1s[6] = m1[6]; 
+    m1s[7] = 0.0; 
+    m1s[8] = 0.0; 
+    m1s[9] = 0.0; 
+    m1s[10] = 0.0; 
+    m1s[11] = 0.0; 
+    m1s[12] = m1[12]; 
+    m1s[13] = 0.0; 
+    m1s[14] = 0.0; 
+    m1s[15] = 0.0; 
+    m1s[16] = 0.0; 
+    m1s[17] = 0.0; 
+    m2s[0] = m2[0]; 
+    m2s[1] = 0.0; 
+    m2s[2] = 0.0; 
+    m2s[3] = 0.0; 
+    m2s[4] = 0.0; 
+    m2s[5] = 0.0; 
   } else { 
     m0s[0] = m0[0]; 
     m0s[1] = m0[1]; 
@@ -185,6 +237,30 @@ void SelfPrimMoments2x3vMax_P2(const int pVdim, const double *m0, const double *
     m0s[3] = m0[3]; 
     m0s[4] = m0[4]; 
     m0s[5] = m0[5]; 
+    m1s[0] = m1[0]; 
+    m1s[1] = m1[1]; 
+    m1s[2] = m1[2]; 
+    m1s[3] = m1[3]; 
+    m1s[4] = m1[4]; 
+    m1s[5] = m1[5]; 
+    m1s[6] = m1[6]; 
+    m1s[7] = m1[7]; 
+    m1s[8] = m1[8]; 
+    m1s[9] = m1[9]; 
+    m1s[10] = m1[10]; 
+    m1s[11] = m1[11]; 
+    m1s[12] = m1[12]; 
+    m1s[13] = m1[13]; 
+    m1s[14] = m1[14]; 
+    m1s[15] = m1[15]; 
+    m1s[16] = m1[16]; 
+    m1s[17] = m1[17]; 
+    m2s[0] = m2[0]; 
+    m2s[1] = m2[1]; 
+    m2s[2] = m2[2]; 
+    m2s[3] = m2[3]; 
+    m2s[4] = m2[4]; 
+    m2s[5] = m2[5]; 
   } 
  
   // Declare Eigen matrix and vectors for weak division. 
@@ -257,36 +333,36 @@ void SelfPrimMoments2x3vMax_P2(const int pVdim, const double *m0, const double *
   BigAEM(5,23) = (-0.31943828249997*cM[5])-0.5*cM[0]; 
  
   // ....... Block from weak multiply of uX and m1X  .......... // 
-  BigAEM(18,0) = 0.5*m1[0]; 
-  BigAEM(18,1) = 0.5*m1[1]; 
-  BigAEM(18,2) = 0.5*m1[2]; 
-  BigAEM(18,3) = 0.5*m1[3]; 
-  BigAEM(18,4) = 0.5*m1[4]; 
-  BigAEM(18,5) = 0.5*m1[5]; 
-  BigAEM(19,0) = 0.5*m1[1]; 
-  BigAEM(19,1) = 0.4472135954999579*m1[4]+0.5*m1[0]; 
-  BigAEM(19,2) = 0.5*m1[3]; 
-  BigAEM(19,3) = 0.5*m1[2]; 
-  BigAEM(19,4) = 0.4472135954999579*m1[1]; 
-  BigAEM(20,0) = 0.5*m1[2]; 
-  BigAEM(20,1) = 0.5*m1[3]; 
-  BigAEM(20,2) = 0.4472135954999579*m1[5]+0.5*m1[0]; 
-  BigAEM(20,3) = 0.5*m1[1]; 
-  BigAEM(20,5) = 0.4472135954999579*m1[2]; 
-  BigAEM(21,0) = 0.5*m1[3]; 
-  BigAEM(21,1) = 0.5*m1[2]; 
-  BigAEM(21,2) = 0.5*m1[1]; 
-  BigAEM(21,3) = 0.4472135954999579*m1[5]+0.4472135954999579*m1[4]+0.5*m1[0]; 
-  BigAEM(21,4) = 0.4472135954999579*m1[3]; 
-  BigAEM(21,5) = 0.4472135954999579*m1[3]; 
-  BigAEM(22,0) = 0.5*m1[4]; 
-  BigAEM(22,1) = 0.4472135954999579*m1[1]; 
-  BigAEM(22,3) = 0.4472135954999579*m1[3]; 
-  BigAEM(22,4) = 0.31943828249997*m1[4]+0.5*m1[0]; 
-  BigAEM(23,0) = 0.5*m1[5]; 
-  BigAEM(23,2) = 0.4472135954999579*m1[2]; 
-  BigAEM(23,3) = 0.4472135954999579*m1[3]; 
-  BigAEM(23,5) = 0.31943828249997*m1[5]+0.5*m1[0]; 
+  BigAEM(18,0) = 0.5*m1s[0]; 
+  BigAEM(18,1) = 0.5*m1s[1]; 
+  BigAEM(18,2) = 0.5*m1s[2]; 
+  BigAEM(18,3) = 0.5*m1s[3]; 
+  BigAEM(18,4) = 0.5*m1s[4]; 
+  BigAEM(18,5) = 0.5*m1s[5]; 
+  BigAEM(19,0) = 0.5*m1s[1]; 
+  BigAEM(19,1) = 0.4472135954999579*m1s[4]+0.5*m1s[0]; 
+  BigAEM(19,2) = 0.5*m1s[3]; 
+  BigAEM(19,3) = 0.5*m1s[2]; 
+  BigAEM(19,4) = 0.4472135954999579*m1s[1]; 
+  BigAEM(20,0) = 0.5*m1s[2]; 
+  BigAEM(20,1) = 0.5*m1s[3]; 
+  BigAEM(20,2) = 0.4472135954999579*m1s[5]+0.5*m1s[0]; 
+  BigAEM(20,3) = 0.5*m1s[1]; 
+  BigAEM(20,5) = 0.4472135954999579*m1s[2]; 
+  BigAEM(21,0) = 0.5*m1s[3]; 
+  BigAEM(21,1) = 0.5*m1s[2]; 
+  BigAEM(21,2) = 0.5*m1s[1]; 
+  BigAEM(21,3) = 0.4472135954999579*m1s[5]+0.4472135954999579*m1s[4]+0.5*m1s[0]; 
+  BigAEM(21,4) = 0.4472135954999579*m1s[3]; 
+  BigAEM(21,5) = 0.4472135954999579*m1s[3]; 
+  BigAEM(22,0) = 0.5*m1s[4]; 
+  BigAEM(22,1) = 0.4472135954999579*m1s[1]; 
+  BigAEM(22,3) = 0.4472135954999579*m1s[3]; 
+  BigAEM(22,4) = 0.31943828249997*m1s[4]+0.5*m1s[0]; 
+  BigAEM(23,0) = 0.5*m1s[5]; 
+  BigAEM(23,2) = 0.4472135954999579*m1s[2]; 
+  BigAEM(23,3) = 0.4472135954999579*m1s[3]; 
+  BigAEM(23,5) = 0.31943828249997*m1s[5]+0.5*m1s[0]; 
  
   // ....... Block from weak multiply of uY and m0  .......... // 
   BigAEM(6,6) = 0.5*m0s[0]; 
@@ -353,36 +429,36 @@ void SelfPrimMoments2x3vMax_P2(const int pVdim, const double *m0, const double *
   BigAEM(11,23) = (-0.31943828249997*cM[11])-0.5*cM[6]; 
  
   // ....... Block from weak multiply of uY and m1Y  .......... // 
-  BigAEM(18,6) = 0.5*m1[6]; 
-  BigAEM(18,7) = 0.5*m1[7]; 
-  BigAEM(18,8) = 0.5*m1[8]; 
-  BigAEM(18,9) = 0.5*m1[9]; 
-  BigAEM(18,10) = 0.5*m1[10]; 
-  BigAEM(18,11) = 0.5*m1[11]; 
-  BigAEM(19,6) = 0.5*m1[7]; 
-  BigAEM(19,7) = 0.4472135954999579*m1[10]+0.5*m1[6]; 
-  BigAEM(19,8) = 0.5*m1[9]; 
-  BigAEM(19,9) = 0.5*m1[8]; 
-  BigAEM(19,10) = 0.4472135954999579*m1[7]; 
-  BigAEM(20,6) = 0.5*m1[8]; 
-  BigAEM(20,7) = 0.5*m1[9]; 
-  BigAEM(20,8) = 0.4472135954999579*m1[11]+0.5*m1[6]; 
-  BigAEM(20,9) = 0.5*m1[7]; 
-  BigAEM(20,11) = 0.4472135954999579*m1[8]; 
-  BigAEM(21,6) = 0.5*m1[9]; 
-  BigAEM(21,7) = 0.5*m1[8]; 
-  BigAEM(21,8) = 0.5*m1[7]; 
-  BigAEM(21,9) = 0.4472135954999579*m1[11]+0.4472135954999579*m1[10]+0.5*m1[6]; 
-  BigAEM(21,10) = 0.4472135954999579*m1[9]; 
-  BigAEM(21,11) = 0.4472135954999579*m1[9]; 
-  BigAEM(22,6) = 0.5*m1[10]; 
-  BigAEM(22,7) = 0.4472135954999579*m1[7]; 
-  BigAEM(22,9) = 0.4472135954999579*m1[9]; 
-  BigAEM(22,10) = 0.31943828249997*m1[10]+0.5*m1[6]; 
-  BigAEM(23,6) = 0.5*m1[11]; 
-  BigAEM(23,8) = 0.4472135954999579*m1[8]; 
-  BigAEM(23,9) = 0.4472135954999579*m1[9]; 
-  BigAEM(23,11) = 0.31943828249997*m1[11]+0.5*m1[6]; 
+  BigAEM(18,6) = 0.5*m1s[6]; 
+  BigAEM(18,7) = 0.5*m1s[7]; 
+  BigAEM(18,8) = 0.5*m1s[8]; 
+  BigAEM(18,9) = 0.5*m1s[9]; 
+  BigAEM(18,10) = 0.5*m1s[10]; 
+  BigAEM(18,11) = 0.5*m1s[11]; 
+  BigAEM(19,6) = 0.5*m1s[7]; 
+  BigAEM(19,7) = 0.4472135954999579*m1s[10]+0.5*m1s[6]; 
+  BigAEM(19,8) = 0.5*m1s[9]; 
+  BigAEM(19,9) = 0.5*m1s[8]; 
+  BigAEM(19,10) = 0.4472135954999579*m1s[7]; 
+  BigAEM(20,6) = 0.5*m1s[8]; 
+  BigAEM(20,7) = 0.5*m1s[9]; 
+  BigAEM(20,8) = 0.4472135954999579*m1s[11]+0.5*m1s[6]; 
+  BigAEM(20,9) = 0.5*m1s[7]; 
+  BigAEM(20,11) = 0.4472135954999579*m1s[8]; 
+  BigAEM(21,6) = 0.5*m1s[9]; 
+  BigAEM(21,7) = 0.5*m1s[8]; 
+  BigAEM(21,8) = 0.5*m1s[7]; 
+  BigAEM(21,9) = 0.4472135954999579*m1s[11]+0.4472135954999579*m1s[10]+0.5*m1s[6]; 
+  BigAEM(21,10) = 0.4472135954999579*m1s[9]; 
+  BigAEM(21,11) = 0.4472135954999579*m1s[9]; 
+  BigAEM(22,6) = 0.5*m1s[10]; 
+  BigAEM(22,7) = 0.4472135954999579*m1s[7]; 
+  BigAEM(22,9) = 0.4472135954999579*m1s[9]; 
+  BigAEM(22,10) = 0.31943828249997*m1s[10]+0.5*m1s[6]; 
+  BigAEM(23,6) = 0.5*m1s[11]; 
+  BigAEM(23,8) = 0.4472135954999579*m1s[8]; 
+  BigAEM(23,9) = 0.4472135954999579*m1s[9]; 
+  BigAEM(23,11) = 0.31943828249997*m1s[11]+0.5*m1s[6]; 
  
   // ....... Block from weak multiply of uZ and m0  .......... // 
   BigAEM(12,12) = 0.5*m0s[0]; 
@@ -449,36 +525,36 @@ void SelfPrimMoments2x3vMax_P2(const int pVdim, const double *m0, const double *
   BigAEM(17,23) = (-0.31943828249997*cM[17])-0.5*cM[12]; 
  
   // ....... Block from weak multiply of uZ and m1Z  .......... // 
-  BigAEM(18,12) = 0.5*m1[12]; 
-  BigAEM(18,13) = 0.5*m1[13]; 
-  BigAEM(18,14) = 0.5*m1[14]; 
-  BigAEM(18,15) = 0.5*m1[15]; 
-  BigAEM(18,16) = 0.5*m1[16]; 
-  BigAEM(18,17) = 0.5*m1[17]; 
-  BigAEM(19,12) = 0.5*m1[13]; 
-  BigAEM(19,13) = 0.4472135954999579*m1[16]+0.5*m1[12]; 
-  BigAEM(19,14) = 0.5*m1[15]; 
-  BigAEM(19,15) = 0.5*m1[14]; 
-  BigAEM(19,16) = 0.4472135954999579*m1[13]; 
-  BigAEM(20,12) = 0.5*m1[14]; 
-  BigAEM(20,13) = 0.5*m1[15]; 
-  BigAEM(20,14) = 0.4472135954999579*m1[17]+0.5*m1[12]; 
-  BigAEM(20,15) = 0.5*m1[13]; 
-  BigAEM(20,17) = 0.4472135954999579*m1[14]; 
-  BigAEM(21,12) = 0.5*m1[15]; 
-  BigAEM(21,13) = 0.5*m1[14]; 
-  BigAEM(21,14) = 0.5*m1[13]; 
-  BigAEM(21,15) = 0.4472135954999579*m1[17]+0.4472135954999579*m1[16]+0.5*m1[12]; 
-  BigAEM(21,16) = 0.4472135954999579*m1[15]; 
-  BigAEM(21,17) = 0.4472135954999579*m1[15]; 
-  BigAEM(22,12) = 0.5*m1[16]; 
-  BigAEM(22,13) = 0.4472135954999579*m1[13]; 
-  BigAEM(22,15) = 0.4472135954999579*m1[15]; 
-  BigAEM(22,16) = 0.31943828249997*m1[16]+0.5*m1[12]; 
-  BigAEM(23,12) = 0.5*m1[17]; 
-  BigAEM(23,14) = 0.4472135954999579*m1[14]; 
-  BigAEM(23,15) = 0.4472135954999579*m1[15]; 
-  BigAEM(23,17) = 0.31943828249997*m1[17]+0.5*m1[12]; 
+  BigAEM(18,12) = 0.5*m1s[12]; 
+  BigAEM(18,13) = 0.5*m1s[13]; 
+  BigAEM(18,14) = 0.5*m1s[14]; 
+  BigAEM(18,15) = 0.5*m1s[15]; 
+  BigAEM(18,16) = 0.5*m1s[16]; 
+  BigAEM(18,17) = 0.5*m1s[17]; 
+  BigAEM(19,12) = 0.5*m1s[13]; 
+  BigAEM(19,13) = 0.4472135954999579*m1s[16]+0.5*m1s[12]; 
+  BigAEM(19,14) = 0.5*m1s[15]; 
+  BigAEM(19,15) = 0.5*m1s[14]; 
+  BigAEM(19,16) = 0.4472135954999579*m1s[13]; 
+  BigAEM(20,12) = 0.5*m1s[14]; 
+  BigAEM(20,13) = 0.5*m1s[15]; 
+  BigAEM(20,14) = 0.4472135954999579*m1s[17]+0.5*m1s[12]; 
+  BigAEM(20,15) = 0.5*m1s[13]; 
+  BigAEM(20,17) = 0.4472135954999579*m1s[14]; 
+  BigAEM(21,12) = 0.5*m1s[15]; 
+  BigAEM(21,13) = 0.5*m1s[14]; 
+  BigAEM(21,14) = 0.5*m1s[13]; 
+  BigAEM(21,15) = 0.4472135954999579*m1s[17]+0.4472135954999579*m1s[16]+0.5*m1s[12]; 
+  BigAEM(21,16) = 0.4472135954999579*m1s[15]; 
+  BigAEM(21,17) = 0.4472135954999579*m1s[15]; 
+  BigAEM(22,12) = 0.5*m1s[16]; 
+  BigAEM(22,13) = 0.4472135954999579*m1s[13]; 
+  BigAEM(22,15) = 0.4472135954999579*m1s[15]; 
+  BigAEM(22,16) = 0.31943828249997*m1s[16]+0.5*m1s[12]; 
+  BigAEM(23,12) = 0.5*m1s[17]; 
+  BigAEM(23,14) = 0.4472135954999579*m1s[14]; 
+  BigAEM(23,15) = 0.4472135954999579*m1s[15]; 
+  BigAEM(23,17) = 0.31943828249997*m1s[17]+0.5*m1s[12]; 
  
   // ....... Block from correction to vtSq .......... // 
   BigAEM(18,18) = 0.5*m0s[0]*pVdim-0.5*cE[0]; 
@@ -519,7 +595,7 @@ void SelfPrimMoments2x3vMax_P2(const int pVdim, const double *m0, const double *
   BigAEM.block<6,6>(12,6).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
-  bEV << m1[0],m1[1],m1[2],m1[3],m1[4],m1[5],m1[6],m1[7],m1[8],m1[9],m1[10],m1[11],m1[12],m1[13],m1[14],m1[15],m1[16],m1[17],m2[0],m2[1],m2[2],m2[3],m2[4],m2[5]; 
+  bEV << m1s[0],m1s[1],m1s[2],m1s[3],m1s[4],m1s[5],m1s[6],m1s[7],m1s[8],m1s[9],m1s[10],m1s[11],m1s[12],m1s[13],m1s[14],m1s[15],m1s[16],m1s[17],m2s[0],m2s[1],m2s[2],m2s[3],m2s[4],m2s[5]; 
  
   xEV = BigAEM.colPivHouseholderQr().solve(bEV); 
  

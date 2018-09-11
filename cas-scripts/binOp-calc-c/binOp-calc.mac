@@ -15,16 +15,16 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
-minVdim_Ser : 3$
-maxCdim_Ser : 1$
-maxVdim_Ser : 3$
+minVdim_Ser : 1$
+maxCdim_Ser : 2$
+maxVdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
-minVdim_Max : 3$
-maxCdim_Max : 1$
-maxVdim_Max : 3$
+minVdim_Max : 1$
+maxCdim_Max : 2$
+maxVdim_Max : 2$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -68,7 +68,7 @@ for bInd : 1 thru length(bName) do (
      spaces with different dimensions, mostly for operations between
      a configuration space field and a phase space field. */
   for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : minVdim[bInd] thru maxVdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
       fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", v, "v",".cpp"),
       fh : openw(fname),
   
