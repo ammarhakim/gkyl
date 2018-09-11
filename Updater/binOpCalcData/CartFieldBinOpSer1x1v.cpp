@@ -99,12 +99,21 @@ void CartFieldBinOpDivide1x1vSer_P1(const double *A, const double *B, const shor
   }
  
   double As[2]; 
+  double Bs[4]; 
   if (avgA) { 
     As[0] = A[0]; 
     As[1] = 0.0; 
+    Bs[0] = B[0]; 
+    Bs[1] = 0.0; 
+    Bs[2] = B[2]; 
+    Bs[3] = 0.0; 
   } else { 
     As[0] = A[0]; 
     As[1] = A[1]; 
+    Bs[0] = B[0]; 
+    Bs[1] = B[1]; 
+    Bs[2] = B[2]; 
+    Bs[3] = B[3]; 
   } 
  
   // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
@@ -121,7 +130,7 @@ void CartFieldBinOpDivide1x1vSer_P1(const double *A, const double *B, const shor
   AEM(0,3) = 0.7071067811865475*As[0]; 
  
   // Fill BEV. 
-  BEV << B[0],B[1],B[2],B[3]; 
+  BEV << Bs[0],Bs[1],Bs[2],Bs[3]; 
  
   // Solve the system of equations. 
   u = AEM.colPivHouseholderQr().solve(BEV); 
@@ -149,14 +158,31 @@ void CartFieldBinOpDivide1x1vSer_P2(const double *A, const double *B, const shor
   }
  
   double As[3]; 
+  double Bs[8]; 
   if (avgA) { 
     As[0] = A[0]; 
     As[1] = 0.0; 
     As[2] = 0.0; 
+    Bs[0] = B[0]; 
+    Bs[1] = 0.0; 
+    Bs[2] = B[2]; 
+    Bs[3] = 0.0; 
+    Bs[4] = 0.0; 
+    Bs[5] = B[5]; 
+    Bs[6] = 0.0; 
+    Bs[7] = 0.0; 
   } else { 
     As[0] = A[0]; 
     As[1] = A[1]; 
     As[2] = A[2]; 
+    Bs[0] = B[0]; 
+    Bs[1] = B[1]; 
+    Bs[2] = B[2]; 
+    Bs[3] = B[3]; 
+    Bs[4] = B[4]; 
+    Bs[5] = B[5]; 
+    Bs[6] = B[6]; 
+    Bs[7] = B[7]; 
   } 
  
   // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
@@ -178,7 +204,7 @@ void CartFieldBinOpDivide1x1vSer_P2(const double *A, const double *B, const shor
   AEM(2,4) = 0.7071067811865475*As[2]; 
  
   // Fill BEV. 
-  BEV << B[0],B[1],B[2],B[3],B[4],B[5],B[6],B[7]; 
+  BEV << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7]; 
  
   // Solve the system of equations. 
   u = AEM.colPivHouseholderQr().solve(BEV); 
@@ -206,16 +232,41 @@ void CartFieldBinOpDivide1x1vSer_P3(const double *A, const double *B, const shor
   }
  
   double As[4]; 
+  double Bs[12]; 
   if (avgA) { 
     As[0] = A[0]; 
     As[1] = 0.0; 
     As[2] = 0.0; 
     As[3] = 0.0; 
+    Bs[0] = B[0]; 
+    Bs[1] = 0.0; 
+    Bs[2] = B[2]; 
+    Bs[3] = 0.0; 
+    Bs[4] = 0.0; 
+    Bs[5] = B[5]; 
+    Bs[6] = 0.0; 
+    Bs[7] = 0.0; 
+    Bs[8] = 0.0; 
+    Bs[9] = B[9]; 
+    Bs[10] = 0.0; 
+    Bs[11] = 0.0; 
   } else { 
     As[0] = A[0]; 
     As[1] = A[1]; 
     As[2] = A[2]; 
     As[3] = A[3]; 
+    Bs[0] = B[0]; 
+    Bs[1] = B[1]; 
+    Bs[2] = B[2]; 
+    Bs[3] = B[3]; 
+    Bs[4] = B[4]; 
+    Bs[5] = B[5]; 
+    Bs[6] = B[6]; 
+    Bs[7] = B[7]; 
+    Bs[8] = B[8]; 
+    Bs[9] = B[9]; 
+    Bs[10] = B[10]; 
+    Bs[11] = B[11]; 
   } 
  
   // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
@@ -244,7 +295,7 @@ void CartFieldBinOpDivide1x1vSer_P3(const double *A, const double *B, const shor
   AEM(3,7) = 0.6210590034081187*As[2]; 
  
   // Fill BEV. 
-  BEV << B[0],B[1],B[2],B[3],B[4],B[5],B[6],B[7],B[8],B[9],B[10],B[11]; 
+  BEV << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8],Bs[9],Bs[10],Bs[11]; 
  
   // Solve the system of equations. 
   u = AEM.colPivHouseholderQr().solve(BEV); 

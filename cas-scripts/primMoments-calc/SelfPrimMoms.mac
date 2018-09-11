@@ -30,7 +30,9 @@ writeCExprsB(lhs, rhs) := block([expr],
 
 writeEVExprs(lhs, rhs, vd, nc) := block([expr],
   len   : length(rhs),
-  start : len*2+(len-1)+2*len+1,
+/*  start : len*2+(len-1)+2*len+1, */
+/*  start : vd*NC*3+NC*2+(len-1)+2*len+1, */
+  start : vd*nc*3+nc*3+(len-1)+2*len+1,
   for k : 1 thru vd*nc do (
     start : start+slength(string(k-1))
   ),
@@ -101,19 +103,30 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     printf(fh, "  double m0s[~a]; ~%", NC),
+    printf(fh, "  double m1s[~a]; ~%", vdim*NC),
+    printf(fh, "  double m2s[~a]; ~%", NC),
     printf(fh, "  if (m0Avg) { ~%"),
     writeCExprs1s(m0s,append([m0[0]],makelist(0.0,i,1,NC-1))),
+    for vd : 1 thru vdim do (
+      expr : float(expand(append([m1[(vd-1)*NC]],makelist(0.0,i,1,NC-1)))),
+      for i : 1 thru length(expr) do (
+        printf(fh, "    ~a = ~a; ~%", m1s[(vd-1)*NC+i-1], expr[i])
+      )
+    ),
+    writeCExprs1s(m2s,append([m2[0]],makelist(0.0,i,1,NC-1))),
     printf(fh, "  } else { ~%"),
     writeCExprs1s(m0s,makelist(m0[i],i,0,NC-1)),
+    writeCExprs1s(m1s,makelist(m1[i],i,0,vdim*NC-1)),
+    writeCExprs1s(m2s,makelist(m2[i],i,0,NC-1)),
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
 
     /* Expand moments in configuration space basis. */
     m0_e : doExpand1(m0s, bC),
-    m2_e : doExpand1(m2, bC),
+    m2_e : doExpand1(m2s, bC),
     /* Array of expansion coefficients. */
     m0_c : makelist(m0s[i],i,0,NC-1),
-    m2_c : makelist(m2[i],i,0,NC-1),
+    m2_c : makelist(m2s[i],i,0,NC-1),
     /* Equivalently for  vtSq .*/
     vtSq_e : doExpand1(vtSq,bC),
     vtSq_c : makelist(vtSq[i],i,0,NC-1),
@@ -138,8 +151,8 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     m1RHS_c : [],
     for vd : 1 thru vdim do (
       /* Expand u function and create a list of expansion coefficients. */
-      m1_e : doExpand1(m1, bC),
-      m1_c : makelist(m1[i],i,0,NC-1),
+      m1_e : doExpand1(m1s, bC),
+      m1_c : makelist(m1s[i],i,0,NC-1),
       u_e  : doExpand1(u,bC),
       u_c  : makelist(u[i],i,0,NC-1),
       cM_e : doExpand1(cM, bC),
@@ -147,8 +160,8 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       /* Use the vd component of u, m1 and cM. */
       u_e : subst(makelist(u[i]=u[(vd-1)*NC+i],i,0,NC-1),u_e),
       u_c : subst(makelist(u[i]=u[(vd-1)*NC+i],i,0,NC-1),u_c),
-      m1_e : subst(makelist(m1[i]=m1[(vd-1)*NC+i],i,0,NC-1),m1_e),
-      m1_c : subst(makelist(m1[i]=m1[(vd-1)*NC+i],i,0,NC-1),m1_c),
+      m1_e : subst(makelist(m1s[i]=m1s[(vd-1)*NC+i],i,0,NC-1),m1_e),
+      m1_c : subst(makelist(m1s[i]=m1s[(vd-1)*NC+i],i,0,NC-1),m1_c),
       cM_e : subst(makelist(cM[i]=cM[(vd-1)*NC+i],i,0,NC-1),cM_e),
       cM_c : subst(makelist(cM[i]=cM[(vd-1)*NC+i],i,0,NC-1),cM_c),
 
