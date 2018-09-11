@@ -166,8 +166,12 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
    func = function (t, zn)
-      return self.density(t, zn, self.species) *
-	 self.drift(t, zn, self.species)[1]
+      local out = {}
+      for i = 1, self.numVelDims do
+	 out[i] = self.density(t, zn, self.species) *
+	    self.drift(t, zn, self.species)[i]
+      end
+      return out
    end
    project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
@@ -180,9 +184,13 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.ptclEnergyCalc:advance(0.0, 0.0, {distf}, {M2})
    func = function (t, zn)
-      return self.density(t, zn, self.species) *
-	 ( self.drift(t, zn, self.species)[1] * self.drift(t, zn, self.species)[1] +
-	 self.temperature(t, zn, self.species) / self.species.mass )
+      local out = 0.0
+      for i = 1, self.numVelDims do
+	 out = out + self.drift(t, zn, self.species)[i] * 
+	    self.drift(t, zn, self.species)[i]
+      end
+      out = self.density(t, zn, self.species) * (out + self.temperature(t, zn, self.species) / self.species.mass )
+      return out
    end
    project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
@@ -204,13 +212,16 @@ function MaxwellianProjection:lagrangeFix(distf)
 end
 
 function MaxwellianProjection:run(t, distf)
+   print(string.format("Start: %s", self.species.name))
    self.project:advance(t, 0.0, {}, {distf})
+   print("Project")
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    end
    if self.exactLagFixM012 then
       self:lagrangeFix(distf)
    end
+   print("Fix")
 end
 
 

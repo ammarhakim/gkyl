@@ -169,7 +169,7 @@ function KineticSpecies:fullInit(appTbl)
       }
    end
    -- >> LEGACY CODE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-   if tbl.init and tbl.init[1] == "maxwellian" then 
+   if type(tbl.init) == "table" and tbl.init[1] == "maxwellian" then 
       self.projections["init"] = Projection.MaxwellianProjection {
 	 density = tbl.init.density,
 	 drift = tbl.init.driftSpeed,
@@ -179,7 +179,7 @@ function KineticSpecies:fullInit(appTbl)
 	 isInit = true,
       }
    end 
-   if tbl.initBackground and tbl.initBackground[1] == "maxwellian" then 
+   if type(tbl.initBackground) == "table" and tbl.initBackground[1] == "maxwellian" then 
       self.projections["initBackground"] = Projection.MaxwellianProjection {
 	 density = tbl.initBackground.density,
 	 drift = tbl.initBackground.driftSpeed,
@@ -190,7 +190,7 @@ function KineticSpecies:fullInit(appTbl)
 	 isBackground = true,
       }
    end 
-   if tbl.initSource and tbl.initSource[1] == "maxwellian" then 
+   if type(tbl.initSource) == "table" and tbl.initSource[1] == "maxwellian" then 
       self.projections["initSource"] = Projection.MaxwellianProjection {
 	 density = tbl.initSource.density,
 	 drift = tbl.initSource.driftSpeed,
@@ -263,10 +263,6 @@ function KineticSpecies:fullInit(appTbl)
    -- end
 
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
-   if self.fluctuationBCs then 
-      assert(self.initBackgroundFunc, [[KineticSpecies: must specify an initial
-        background distribution with 'initBackground' in order to use fluctuation-only BCs]]) 
-   end
 
    self.zeroFluxDirections = {}
 
@@ -575,6 +571,11 @@ function KineticSpecies:initDist()
    if self.f0 and backgroundCnt == 0 then 
       self.f0:copy(self.distf[1])
    end
+
+   if self.fluctuationBCs then 
+      assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
+   end
+
 
    -- local project = Updater.ProjectOnBasis {
    --    onGrid = self.grid,
