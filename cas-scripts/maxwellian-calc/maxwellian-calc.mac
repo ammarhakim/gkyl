@@ -1,0 +1,66 @@
+load(stringproc)$
+load("modal-basis")$
+load("scifac")$
+
+
+basis : ["Ser", "Max"]$
+for bIdx : 1 thru length(basis) do (
+  for cDim : 1 thru 1 do (
+    for vDim : cDim thru 1 do (
+      /* Prepare the CPP file */
+      fname : sconcat("~/max-out/maxwellianProjection", basis[bIdx], cDim, "x", vDim, "v.cpp"),
+      fh : openw(fname),
+      printf(fh, "#include <math.h> ~%"),
+      printf(fh, "#include <maxwellianProjectionDecl.h> ~%~%"),
+      
+      /* Load precomputed basis */
+      kill(varsC, varsP, basisC, basisP),
+      load(sconcat("basis-precalc/basis", basis[bIdx], cDim, "x", vDim, "v")),
+      /* Get the velocity fields */
+      varsV : makelist(varsP[i], i, length(varsC)+1, length(varsP)),
+      /*tmp : [dvx, dvy, dvz],
+      dVarsV : makelist(tmp[i], i, 1, length(varsV)),
+      J : dVarsV[1]/2,
+      for i : 2 thru length(dVarsV) do J : J * dVarsV[i]/2,
+      tmp : [vcx[jx], vcy[jy], vcz[jz]],
+      vcs : makelist(tmp[i], i, 1, length(varsV)),
+      vPhys : dVarsV*varsV/2 + vcs,*/
+      eta : [-1/sqrt(3), 1/sqrt(3)],
+      w : [1, 1],
+
+      for polyOrder : 1 thru 1 do (
+        /* Load basis and expand the new distribution function g */
+        bc : basisC[polyOrder],
+        bp : basisP[polyOrder],
+        
+        nExp : doExpand(ns, bc),
+        uExp : doExpand(us, bc),
+        vth2Exp : doExpand(vth2s, bc),
+        
+        fPhys : nExp/sqrt(2*%pi*vth2Exp) * exp(-(vx-uExp)^2/(2*vth2Exp)),
+        fk : makelist(subst([vx=dvx*vx/2+vxc], bp[k]*fPhys), k, 1, length(bp)),
+        quad : lsum(subst(x=eta[i], w[i]*lsum(subst(vx=eta[j], w[j]*fk), j, [1,2])), i, [1,2]),
+        simp : true,
+        out : combine(quad),
+        out : gcfac(out),
+        out : float(out),
+
+        /* Modification to convert from 1-indexed Maxima to 0-indexed C */
+        sList : makelist(ns[i]=n[i-1], i, 1, length(bc)),
+        printSub : subst(sList, out),
+        sList : makelist(us[i]=u[i-1], i, 1, length(bc)*length(varsV)),
+        printSub : subst(sList, printSub),
+        sList : makelist(vth2s[i]=vth2[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
+        printSub : subst(gkyl_ipow, "^", printSub),
+
+        printf(fh, "void maxwellianProjection~a~ax~av~ap(double *n, double *u, double *vth2, double *vxc, double *dvx, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
+        for i : 1 thru 1 do (
+          printf(fh, "  f[~a] = ~a;~%", i-1, printSub[i])
+        ),
+        printf(fh, "}~%~%")
+      ),
+      close(fh)
+    )
+  )
+);
