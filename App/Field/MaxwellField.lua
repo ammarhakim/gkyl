@@ -135,6 +135,11 @@ function MaxwellField:setIoMethod(ioMethod) self.ioMethod = ioMethod end
 function MaxwellField:setBasis(basis) self.basis = basis end
 function MaxwellField:setGrid(grid) self.grid = grid end
 
+function MaxwellField:getEpsilon0() return self.epsilon0 end
+function MaxwellField:getMu0() return self.mu0 end
+function MaxwellField:getElcErrorSpeedFactor() return self.ce end
+function MaxwellField:getMgnErrorSpeedFactor() return self.cb end
+
 function MaxwellField:alloc(nRkDup)
    local nGhost = 2
    if self.basis:numBasis() > 1 then

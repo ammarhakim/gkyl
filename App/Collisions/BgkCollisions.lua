@@ -82,7 +82,7 @@ end
 function BgkCollisions:createSolver()
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   function createConfFieldCompV()
+   local function createConfFieldCompV()
       return DataStruct.Field {
 	 onGrid = self.confGrid,
 	 numComponents = self.confBasis:numBasis()*self.numVelDims,
@@ -96,7 +96,7 @@ function BgkCollisions:createSolver()
       self.uCross = createConfFieldCompV()
    end
 
-   function createConfFieldComp1()
+   local function createConfFieldComp1()
       return DataStruct.Field {
 	 onGrid = self.confGrid,
 	 numComponents = self.confBasis:numBasis(),

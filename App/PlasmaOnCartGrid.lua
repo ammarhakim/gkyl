@@ -16,6 +16,7 @@ local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Proto = require "Lib.Proto"
+local Sources = require "App.Sources"
 local Species = require "App.Species"
 local Time = require "Lib.Time"
 local date = require "xsys.date"
@@ -133,6 +134,16 @@ local function buildApplication(self, tbl)
       s:createBasis(basisNm, polyOrder)
    end
 
+   -- read in information about each species
+   local sources = {}
+   for nm, val in pairs(tbl) do
+      if Sources.SourceBase.is(val) then
+	 val:fullInit(tbl) -- initialize sources
+	 sources[nm] = val
+	 sources[nm]:setName(nm)
+      end
+   end
+
    -- configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
@@ -163,6 +174,11 @@ local function buildApplication(self, tbl)
       s:setConfGrid(grid)
       s:alloc(stepperNumFields[timeStepperNm])
    end
+
+   -- set conf grid for each source
+   for _, s in pairs(sources) do
+      s:setConfGrid(grid)
+   end   
 
    local cflMin = GKYL_MAX_DOUBLE
    -- compute CFL numbers
@@ -232,6 +248,11 @@ local function buildApplication(self, tbl)
       s:initDist()
       s:createDiagnostics()
    end
+
+   -- initialize source solvers
+   for nm, s in pairs(sources) do
+      s:createSolver(species, field)
+   end   
 
    -- initialize field (sometimes requires species to have been initialized)
    for nm, s in pairs(species) do
@@ -469,6 +490,27 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
+   -- update sources
+   local function updateSource(dataIdx, tCurr, dt)
+      -- make list of species data to operate on
+      local speciesVar = {}
+      for nm, s in pairs(species) do
+	 speciesVar[nm] = s:rkStepperFields()[dataIdx]
+      end
+      -- field data to operate on
+      local fieldVar = field:rkStepperFields()[dataIdx]
+
+      local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      -- update sources
+      for nm, s in pairs(sources) do
+	 local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
+	 status =  status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+
+      return status, dtSuggested
+   end
+
    -- function to advance solution using FV dimensionally split scheme
    function timeSteppers.fvDimSplit(tCurr, dt)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
@@ -477,10 +519,29 @@ local function buildApplication(self, tbl)
       -- copy in case we need to take this step again
       copy(3, 1)
 
+      -- update source by half time-step
+      do
+	 local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+	 status = status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+
       -- update solution in each direction
       for d = 1, cdim do
 	 local myStatus, myDtSuggested = updateInDirection(d, tCurr, dt)
 	 status =  status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+
+      -- update source by half time-step
+      if status then
+	 local myStatus, myDtSuggested
+	 if fIdx[cdim][2] == 2 then
+	    myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
+	 else
+	    myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+	 end
+	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
@@ -491,6 +552,7 @@ local function buildApplication(self, tbl)
 	 -- time-step
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
+      
 
       return status, dtSuggested
    end
@@ -662,8 +724,17 @@ return {
    VoronovIonization = Collisions.VoronovIonization,
 
    -- valid pre-packaged species-field systems
-   Gyrokinetic = {App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
-   IncompEuler = {App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField},
-   VlasovMaxwell = {App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField},
-   Moments = {App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField } 
+   Gyrokinetic = {
+      App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry
+   },
+   IncompEuler = {
+      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
+   },
+   VlasovMaxwell = {
+      App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField
+   },
+   Moments = {
+      App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
+      CollisionlessEmSource = Sources.CollisionlessEmSource
+   } 
 }
