@@ -344,7 +344,7 @@ end
 
 -- function to handle "rununit" command
 local function rununit_action(args, name)
-   loadConfigure()
+   loadConfigure(args)
    local luaUnitTests, shellUnitTests = list_unit_tests(args)
 
    log("Running unit tests ...\n\n")
