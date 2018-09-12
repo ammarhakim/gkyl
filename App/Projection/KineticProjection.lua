@@ -76,18 +76,15 @@ function MaxwellianProjection:fullInit(species)
    self.drift = tbl.drift or function (t, zn) return nil end
    self.temperature = assert(tbl.temperature,
 			     "Maxwellian: must specify 'temperature'")
+
    -- check for constants instead of functions
    if type(self.density) ~= "function" then
       self.density = function (t, zn) return tbl.density end
    end
    if type(self.drift) ~= "function" then
-      if type(tbl.drift) == "number" then
-	 assert(self.numVelDims == 1,
-		string.format("KineticProjection: Number of 'drift' components (1) must correspond to the number of velocity dimensions (%d)", self.numVelDims))
-	 self.drift = function (t, zn) return {tbl.drift} end
+      if type(self.drift) == "number" then
+	  self.drift = function (t, zn) return {tbl.drift} end
       else
-	 assert(#tbl.drift == self.numVelDims,
-		string.format("KineticProjection: Number of 'drift' components (%d) must correspond to the number of velocity dimensions (%d)", #tbl.drift, self.numVelDims))
 	 self.drift = function (t, zn) return tbl.drift end
       end
    end
@@ -166,12 +163,14 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
    func = function (t, zn)
-      local out = {}
-      for i = 1, self.numVelDims do
-	 out[i] = self.density(t, zn, self.species) *
-	    self.drift(t, zn, self.species)[i]
+      local drifts = self.drift(t, zn, self.species)
+      if self.numVelDims == 1 then
+	 return self.density(t, zn, self.species) * drifts[1]
+      elseif self.numVelDims == 2 then
+	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2]
+      else
+	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2], self.density(t, zn, self.species) * drifts[3]
       end
-      return out
    end
    project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
@@ -184,10 +183,10 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.ptclEnergyCalc:advance(0.0, 0.0, {distf}, {M2})
    func = function (t, zn)
+      local drifts = self.drift(t, zn, self.species)
       local out = 0.0
       for i = 1, self.numVelDims do
-	 out = out + self.drift(t, zn, self.species)[i] * 
-	    self.drift(t, zn, self.species)[i]
+	 out = out + drifts[i] * drifts[i]
       end
       out = self.density(t, zn, self.species) * (out + self.temperature(t, zn, self.species) / self.species.mass )
       return out
@@ -203,7 +202,6 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    local lagFix = Updater.LagrangeFix {
       onGrid = self.phaseGrid,
-      phaseGrid = self.phaseGrid,
       phaseBasis = self.phaseBasis,
       confGrid = self.confGrid,
       confBasis = self.confBasis,
@@ -212,16 +210,13 @@ function MaxwellianProjection:lagrangeFix(distf)
 end
 
 function MaxwellianProjection:run(t, distf)
-   print(string.format("Start: %s", self.species.name))
    self.project:advance(t, 0.0, {}, {distf})
-   print("Project")
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    end
    if self.exactLagFixM012 then
       self:lagrangeFix(distf)
    end
-   print("Fix")
 end
 
 
