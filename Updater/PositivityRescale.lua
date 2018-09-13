@@ -54,7 +54,7 @@ function PositivityRescale:_advance(tCurr, dt, inFld, outFld)
       fIn:fill(fInIndexer(idx), fInPtr)
       fOut:fill(fOutIndexer(idx), fOutPtr)
       
-      local f0 = 1.0/math.sqrt(2.0)^ndim*fInPtr[0] -- cell average
+      local f0 = 1.0/math.sqrt(2.0)^ndim*fInPtr[1] -- cell average
       
       local fmin = ffi.C.findMinNodalValue(fInPtr:data(), ndim)
     
@@ -62,8 +62,8 @@ function PositivityRescale:_advance(tCurr, dt, inFld, outFld)
       local theta = math.min(1, f0/(f0 - fmin + GKYL_EPSILON))
 
       -- modify moments. note no change to cell average
-      fOutPtr[0] = fInPtr[0]
-      for i = 1, numBasis-1 do
+      fOutPtr[1] = fInPtr[1]
+      for i = 2, numBasis do
          fOutPtr[i] = fInPtr[i]*theta
       end
    end
