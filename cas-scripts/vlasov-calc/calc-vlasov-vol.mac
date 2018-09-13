@@ -6,10 +6,10 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
-minCdim_Ser : 1$
-maxCdim_Ser : 2$
-minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 3$
+maxCdim_Ser : 3$
+minVdim_Ser : 3$    /* see begining of v loop below though. */
 maxVdim_Ser : 3$
 
 /* Maximal order basis. */

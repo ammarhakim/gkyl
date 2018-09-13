@@ -72,7 +72,7 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* alpha_drag = nu*nabla_v dot ((v - u) f) */
     for vdir : 1 thru vdim do (
-        alpha_drag_e : calcInnerProdList(varsP, 1, bP, -nu*w[vid[vdir]]-0.5*nu*dxv[vid[vdir]]*varsV[vdir]+subst(a0=NP*(vdir-1),nuU_e)),
+        alpha_drag_e : calcInnerProdList(varsP, 1, bP, -nu*w[vid[vdir]]-0.5*nu*dxv[vid[vdir]]*varsV[vdir]+subst(a0=NC*(vdir-1),nuU_e)),
         expr : gcfac(float(expand(radcan(rdv21[vdir]*alpha_drag_e)))),
 
         /* Write out the component of alpha_drag's phase space expansion */
