@@ -75,8 +75,7 @@ function DistFuncMomentCalc:init(tbl)
       assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i, FiveMoments, or StarMoments")
    end
  
-   self.momfac = 1.0
-   if tbl.momfac then self.momfac = tbl.momfac end
+   self.momfac = tbl.momfac or 1.0
    if tbl.gkfacs then 
       self.mass = tbl.gkfacs[1]
       self.bmag = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")

@@ -67,6 +67,25 @@ writeEigenMatrix(mat),
 printf(fh, "    }~%"),
 printf(fh, "  }~%")
 ),
+if member(4, onlyDims) then (
+if first then (
+  printf(fh, "  if(ndim==4) {~%"),
+  first : false
+)
+else printf(fh, "  else if(ndim==4) {~%"),
+printf(fh, "    if(polyOrder == 1)~%"),
+printf(fh, "    {~%"),
+mat : func(4,1),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "    else if (polyOrder == 2)~%"),
+printf(fh, "    {~%"),
+mat : func(4,2),
+writeEigenMatrix(mat),
+printf(fh, "    }~%"),
+printf(fh, "  }~%")
+),
+printf(fh, "  else std::cout << \"~a not implemented for this dimensionality\" << std::endl; ~%", func),
 printf(fh, "}~%~%")
 )$
 
@@ -77,11 +96,11 @@ printf(fh, "#include <FemMatrices.h> ~%")$
 /*
 /* write getMassMatrix C function */
 prototype:"void getMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcMass, [1,2,3], false, false)$
+writeCMatFunc(prototype, calcMass, [1,2,3,4], false, false)$
 printf(header, "~a;~%", prototype)$
 /* write getMassMatrix (unweighted) C function */
 prototype:"void getMassMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcUnweightedMass, [1,2,3], false, false)$
+writeCMatFunc(prototype, calcUnweightedMass, [1,2,3,4], false, false)$
 printf(header, "~a;~%", prototype)$
 /* write getModalMassMatrix C function */
 prototype:"void getModalMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder)"$
@@ -93,7 +112,7 @@ writeCMatFunc(prototype, calcMassFSA, [1,2,3], false, false)$
 printf(header, "~a;~%", prototype)$
 /* write getPerpNodToModMatrix C function */
 prototype:"void getPerpNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcNodToModPerp, [2,3], false, false)$
+writeCMatFunc(prototype, calcNodToModPerp, [2,3,4], false, false)$
 printf(header, "~a;~%", prototype)$
 /* write getParNodToModMatrix C function */
 prototype:"void getParNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder)"$
@@ -122,11 +141,13 @@ printf(header, "~a;~%", prototype)$
 */
 /* write getGyavgMatrix C function */
 prototype:"void getGyavg0Matrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, double dx, double dy, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcGyavg0, [2/*,3*/], false, false)$
+writeCMatFunc(prototype, calcGyavg0_m2n, [2], false, false)$
 printf(header, "~a;~%", prototype)$
 /* write getGyavgMatrix C function */
+/*
 prototype:"void getGyavgMatrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, double dx, double dy, int ndim, int polyOrder)"$
-writeCMatFunc(prototype, calcGyavg, [2/*,3*/], false, false)$
+writeCMatFunc(prototype, calcGyavg_m2n, [3,4], false, false)$
 printf(header, "~a;~%", prototype)$
+*/
 close(fh)$
 close(header)$

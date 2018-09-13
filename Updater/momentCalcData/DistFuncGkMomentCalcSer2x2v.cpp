@@ -367,20 +367,20 @@ void GkMomentCalc2x2vSer_M0_step1_P2(const double *w, const double *dxv, const d
 void GkMomentCalc2x2vSer_M0_step2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]/2; 
-  out[0] += 2.828427124746191*f[0]*volFact; 
-  out[1] += 2.828427124746191*f[1]*volFact; 
-  out[2] += 2.828427124746191*f[2]*volFact; 
-  out[3] += 2.828427124746191*f[4]*volFact; 
+  out[0] += 1.414213562373095*f[0]*volFact; 
+  out[1] += 1.414213562373095*f[1]*volFact; 
+  out[2] += 1.414213562373095*f[2]*volFact; 
+  out[3] += 1.414213562373095*f[4]*volFact; 
 } 
 void GkMomentCalc2x2vSer_M0_step2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]/2; 
-  out[0] += 2.828427124746191*f[0]*volFact; 
-  out[1] += 2.828427124746191*f[1]*volFact; 
-  out[2] += 2.828427124746191*f[2]*volFact; 
-  out[3] += 2.828427124746191*f[4]*volFact; 
-  out[4] += 2.828427124746191*f[7]*volFact; 
-  out[5] += 2.828427124746191*f[8]*volFact; 
-  out[6] += 2.828427124746191*f[11]*volFact; 
-  out[7] += 2.828427124746191*f[12]*volFact; 
+  out[0] += 1.414213562373095*f[0]*volFact; 
+  out[1] += 1.414213562373095*f[1]*volFact; 
+  out[2] += 1.414213562373095*f[2]*volFact; 
+  out[3] += 1.414213562373095*f[4]*volFact; 
+  out[4] += 1.414213562373095*f[7]*volFact; 
+  out[5] += 1.414213562373095*f[8]*volFact; 
+  out[6] += 1.414213562373095*f[11]*volFact; 
+  out[7] += 1.414213562373095*f[12]*volFact; 
 } 

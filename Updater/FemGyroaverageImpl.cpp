@@ -75,7 +75,7 @@ FemGyroaverage::FemGyroaverage(int nx_, int ny_, int ndim_, int polyOrder_, doub
   }
 
 // initialize global source vector
-  globalSrc = VectorXd(nglobal);
+  globalSrc = VectorXd::Zero(nglobal);
 
 // initialize modal-nodal transformation matrices
   localNodToMod = MatrixXd::Zero(nlocal, nlocal);
@@ -843,9 +843,9 @@ void FemGyroaverage::finishGlobalPerpStiffnessMatrix()
 
   if (writeMatrix)
   {
-    std::string outName = "poisson-stiffnessMatrix";
-    outName += std::to_string(ndim) + "d";
-    saveMarket(stiffMat, outName);
+  std::string outName = "poisson-stiffnessMatrix";
+  outName += std::to_string(ndim) + "d";
+  saveMarket(stiffMat, outName);
   }
 }
 
@@ -872,13 +872,13 @@ void FemGyroaverage::makeGyavgMatrix(double *rho1, double *rho2, double *rho3, i
 {
   int nlocal = getNumLocalNodes(ndim, polyOrder);
   MatrixXd localGyavg = MatrixXd::Zero(nlocal, nlocal);
-  getGyavgMatrix(localGyavg, rho1, rho2, rho3, dx, dy, ndim, polyOrder);
-  
+  //getGyavgMatrix(localGyavg, rho1, rho2, rho3, dx, dy, ndim, polyOrder);
+
   localGyavgModToNod[idx] = localGyavg*localModToNod;
 }
 
 // effectively add a dimension to src by padding
-void FemGyroaverage::padLocalSrc(double* srcIn, std::vector<double> srcOut, int ndimSrc)
+void FemGyroaverage::padLocalSrc(double* srcIn, std::vector<double> &srcOut, int ndimSrc)
 {
   if(ndimSrc==2) {
     if(polyOrder==1) {
@@ -896,6 +896,9 @@ void FemGyroaverage::padLocalSrc(double* srcIn, std::vector<double> srcOut, int 
       srcOut[8] = 1.414213562373095*srcIn[5]; 
       srcOut[11] = 1.414213562373095*srcIn[6]; 
       srcOut[12] = 1.414213562373095*srcIn[7]; 
+    }
+    else {
+      std::cout << "padLocalSrc not implemented for this case" << std::endl;
     }
   }
   else if(ndimSrc==3) {
@@ -931,6 +934,12 @@ void FemGyroaverage::padLocalSrc(double* srcIn, std::vector<double> srcOut, int 
       srcOut[33] = 1.414213562373095*srcIn[18]; 
       srcOut[34] = 1.414213562373095*srcIn[19]; 
     }
+    else {
+      std::cout << "padLocalSrc not implemented for this case" << std::endl;
+    }
+  }
+  else {
+    std::cout << "padLocalSrc not implemented for this case" << std::endl;
   }
 }
 
@@ -942,8 +951,9 @@ void FemGyroaverage::createGlobalSrcGy(double* localSrcIn, int idx, int idy, int
   std::vector<int> lgMap(nlocal);
   std::vector<double> localSrc(nlocal,0.0), localGyavgSrc(nlocal,0.0);
 
-  if(ndimSrc != ndim) padLocalSrc(localSrcIn, localSrc, ndimSrc);
-  else {
+  if(ndimSrc != ndim) {
+    padLocalSrc(localSrcIn, localSrc, ndimSrc);
+  } else {
      // copy data from input
      for (unsigned k=0; k<nlocal; ++k)
        localSrc[k] = localSrcIn[k];
@@ -963,9 +973,9 @@ void FemGyroaverage::createGlobalSrcGy(double* localSrcIn, int idx, int idy, int
   }
   if (writeMatrix)
   {
-    std::string outName = "poisson-src-beforeBCs-";
-    outName += std::to_string(ndim) + "d";
-    saveMarket(globalSrc, outName);
+  std::string outName = "poisson-src-beforeBCs-";
+  outName += std::to_string(ndim) + "d";
+  saveMarket(globalSrc, outName);
   }
 }
 
@@ -1044,12 +1054,12 @@ void FemGyroaverage::solveGy()
 
   if (writeMatrix)
   {
-    std::string outName = "poisson-src";
-    outName += std::to_string(ndim) + "d";
-    saveMarket(globalSrc, outName);
+  std::string outName = "poisson-src";
+  outName += std::to_string(ndim) + "d";
+  saveMarket(globalSrc, outName);
   }
  
-  x = Eigen::VectorXd(nglobal);
+  x = VectorXd::Zero(nglobal);
   
 // solve linear system(s)
 // modify non-dirichlet rows of source by subtracting sourceModVec
@@ -1057,9 +1067,9 @@ void FemGyroaverage::solveGy()
 
   if (writeMatrix)
   {
-    std::string outName = "poisson-sol";
-    outName += std::to_string(ndim) + "d";
-    saveMarket(x, outName);
+  std::string outName = "poisson-sol";
+  outName += std::to_string(ndim) + "d";
+  saveMarket(x, outName);
   }
 }
 

@@ -60,7 +60,9 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
   int nlocal = getNumLocalNodes(ndim, polyOrder);
   int nlocal_z = 1;
-  if(ndim==3) nlocal_z += polyOrder;
+  if(ndim==3) nlocal_z = 1 + polyOrder;
+  else if(ndim==4 && polyOrder==1) nlocal_z = 4;
+  else if(ndim==4 && polyOrder==2) nlocal_z = 8;
 
   analyzed_ = false; // flag so that stiffness matrix only analyzed once
 
@@ -583,7 +585,9 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(double *laplacianWeight, doub
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
   int nlocal = getNumLocalNodes(ndim, polyOrder);
   int nlocal_z = 1;
-  if(ndim==3) nlocal_z += polyOrder;
+  if(ndim==3) nlocal_z = 1 + polyOrder;
+  else if(ndim==4 && polyOrder==1) nlocal_z = 4;
+  else if(ndim==4 && polyOrder==2) nlocal_z = 8;
 
   int nonzeros = nlocal*(std::pow(2.0, 1.0*2)+1); // estimate number of nonzeros per row
 
@@ -615,7 +619,9 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
 {
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
   int nlocal_z = 1;
-  if(ndim==3) nlocal_z += polyOrder;
+  if(ndim==3) nlocal_z = 1 + polyOrder;
+  else if(ndim==4 && polyOrder==1) nlocal_z = 4;
+  else if(ndim==4 && polyOrder==2) nlocal_z = 8;
 
 // construct SparseMatrix from triplets
   SparseMatrix<double,RowMajor> stiffMatRowMajor(nglobal, nglobal);
@@ -925,7 +931,9 @@ void FemPerpPoisson::solve()
 {
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
   int nlocal_z = 1;
-  if(ndim==3) nlocal_z += polyOrder;
+  if(ndim==3) nlocal_z = 1 + polyOrder;
+  else if(ndim==4 && polyOrder==1) nlocal_z = 4;
+  else if(ndim==4 && polyOrder==2) nlocal_z = 8;
 // replace dirichlet nodes of global source with dirichlet values
   for (unsigned d=0; d<2; ++d)
   {
@@ -1082,6 +1090,25 @@ int FemPerpPoisson::getNumPerpGlobalNodes(int nx, int ny, int ndim, int polyOrde
       numGlobalNodes += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
     }
   }
+  else if (ndim==4) {
+    if (polyOrder == 1) {
+      // there are two identical w planes: w=-1 and w=1
+      // each w plane has nglobal_3d nodes
+      numGlobalNodes = 2*getNumPerpGlobalNodes(nx,ny,3,polyOrder,periodicFlgs);
+    }
+    else if (polyOrder ==2)
+    {
+      // there are three w planes: w=-1, w=0, and w=1
+
+      // the w=-1 and w=1 planes are identical
+      // each has nglobal_3d nodes with p=2 in the x-y direction
+      numGlobalNodes = 2*getNumPerpGlobalNodes(nx,ny,3,polyOrder,periodicFlgs);
+
+      // also need to add nglobal_3d for w=0 plane, 
+      // which effectively has p=1 in x-y direction
+      numGlobalNodes += getNumPerpGlobalNodes(nx,ny,3,1,periodicFlgs);
+    }
+  }
   return numGlobalNodes;
 }
 
@@ -1095,6 +1122,10 @@ int FemPerpPoisson::getNumLocalNodes(int ndim, int p)
   else if(ndim==3) {
     if(p==1) numNodes = 8;
     else if(p==2) numNodes = 20;
+  }
+  else if(ndim==4) {
+    if(p==1) numNodes = 16;
+    else if(p==2) numNodes = 48;
   }
   return numNodes;
 }
@@ -1187,6 +1218,139 @@ void FemPerpPoisson::getPerpLocalToGlobalInteriorBLRT(std::vector<int>& lgMap, i
       for(int i=12; i<20; i++) {
         lgMap[i] += (offset + offset2);
       }
+    }
+  }
+  else if (ndim==4) {
+    // note: this creates a global mapping in x and y, but not in z.
+    // this should be used only for perpendicular poisson solvers (which do not require continuity in z).
+    // the mapping has a block structure, with each block corresponding to one of the local z nodes.
+    if (polyOrder == 1)
+    {
+      int offset = 0;
+     // w = -1 block
+      // z = -1 block
+      lgMap[0] = offset + F1_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[1] = offset + F1_func(nx,ny,ninterior,ix+1,iy,periodicFlgs); // 1
+      lgMap[2] = offset + F1_func(nx,ny,ninterior,ix,iy+1,periodicFlgs); // 2
+      lgMap[3] = offset + F1_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 3
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+      // z = 1 block
+      // offset = nglobal in 2d for p=1
+      lgMap[4] = offset + F1_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[5] = offset + F1_func(nx,ny,ninterior,ix+1,iy,periodicFlgs); // 1
+      lgMap[6] = offset + F1_func(nx,ny,ninterior,ix,iy+1,periodicFlgs); // 2
+      lgMap[7] = offset + F1_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 3
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+     // w = -1 block
+      // z = -1 block
+      lgMap[8] = offset + F1_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[9] = offset + F1_func(nx,ny,ninterior,ix+1,iy,periodicFlgs); // 1
+      lgMap[10] = offset + F1_func(nx,ny,ninterior,ix,iy+1,periodicFlgs); // 2
+      lgMap[11] = offset + F1_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 3
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+      // z = 1 block
+      // offset = nglobal in 2d for p=1
+      lgMap[12] = offset + F1_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[13] = offset + F1_func(nx,ny,ninterior,ix+1,iy,periodicFlgs); // 1
+      lgMap[14] = offset + F1_func(nx,ny,ninterior,ix,iy+1,periodicFlgs); // 2
+      lgMap[15] = offset + F1_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 3
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+    }
+    else if (polyOrder == 2)
+    {
+      int offset = 0;
+      int ninterior_p1 = (nx-1)*(ny-1);
+     // w = -1 block
+      // z = -1 block
+      lgMap[0] = offset + F2_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[1] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy,periodicFlgs)+1; // 1
+      lgMap[2] = offset + F2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 2
+      lgMap[3] = offset + G2_func(nx,ny,ninterior,ix, iy,periodicFlgs); // 3
+      lgMap[4] = offset + G2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 4
+      lgMap[5] = offset + F2_func(nx,ny,ninterior,ix, iy+1,periodicFlgs); // 5
+      lgMap[6] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy+1,periodicFlgs)+1; // 6
+      lgMap[7] = offset + F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 7
+      // offset += nglobal in 2d for p=2
+      offset += getNumPerpGlobalNodes(nx,ny,2,2,periodicFlgs);
+      // z = 0 block (effectively p=1)
+      lgMap[8] = offset + F1_func(nx,ny,ninterior_p1,ix,iy,periodicFlgs); // 0
+      lgMap[9] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy,periodicFlgs); // 1
+      lgMap[10] = offset + F1_func(nx,ny,ninterior_p1,ix,iy+1,periodicFlgs); // 2
+      lgMap[11] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy+1,periodicFlgs); // 3
+      // offset += nglobal in 2d for p=1
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+      // z = 1 block
+      lgMap[12] = offset + F2_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[13] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy,periodicFlgs)+1; // 1
+      lgMap[14] = offset + F2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 2
+      lgMap[15] = offset + G2_func(nx,ny,ninterior,ix, iy,periodicFlgs); // 3
+      lgMap[16] = offset + G2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 4
+      lgMap[17] = offset + F2_func(nx,ny,ninterior,ix, iy+1,periodicFlgs); // 5
+      lgMap[18] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy+1,periodicFlgs)+1; // 6
+      lgMap[19] = offset + F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 7
+      // offset += nglobal in 2d for p=2
+      offset += getNumPerpGlobalNodes(nx,ny,2,2,periodicFlgs);
+     // w = 0 block (effectively p=1)
+      // z = -1 block
+      lgMap[20] = offset + F1_func(nx,ny,ninterior_p1,ix,iy,periodicFlgs); // 0
+      lgMap[21] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy,periodicFlgs); // 1
+      lgMap[22] = offset + F1_func(nx,ny,ninterior_p1,ix,iy+1,periodicFlgs); // 2
+      lgMap[23] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy+1,periodicFlgs); // 3
+      // offset = nglobal in 2d for p=1
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+      // z = 1 block
+      lgMap[24] = offset + F1_func(nx,ny,ninterior_p1,ix,iy,periodicFlgs); // 0
+      lgMap[25] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy,periodicFlgs); // 1
+      lgMap[26] = offset + F1_func(nx,ny,ninterior_p1,ix,iy+1,periodicFlgs); // 2
+      lgMap[27] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy+1,periodicFlgs); // 3
+      // offset = nglobal in 2d for p=1
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+     // w = 1 block
+      // z = -1 block
+      lgMap[28] = offset + F2_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[29] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy,periodicFlgs)+1; // 1
+      lgMap[30] = offset + F2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 2
+      lgMap[31] = offset + G2_func(nx,ny,ninterior,ix, iy,periodicFlgs); // 3
+      lgMap[32] = offset + G2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 4
+      lgMap[33] = offset + F2_func(nx,ny,ninterior,ix, iy+1,periodicFlgs); // 5
+      lgMap[34] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy+1,periodicFlgs)+1; // 6
+      lgMap[35] = offset + F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 7
+      // offset += nglobal in 2d for p=2
+      offset += getNumPerpGlobalNodes(nx,ny,2,2,periodicFlgs);
+      // z = 0 block (effectively p=1)
+      lgMap[36] = offset + F1_func(nx,ny,ninterior_p1,ix,iy,periodicFlgs); // 0
+      lgMap[37] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy,periodicFlgs); // 1
+      lgMap[38] = offset + F1_func(nx,ny,ninterior_p1,ix,iy+1,periodicFlgs); // 2
+      lgMap[39] = offset + F1_func(nx,ny,ninterior_p1,ix+1,iy+1,periodicFlgs); // 3
+      // offset += nglobal in 2d for p=1
+      offset += getNumPerpGlobalNodes(nx,ny,2,1,periodicFlgs);
+      // z = 1 block
+      lgMap[40] = offset + F2_func(nx,ny,ninterior,ix,iy,periodicFlgs); // 0
+      lgMap[41] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy,periodicFlgs)+1; // 1
+      lgMap[42] = offset + F2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 2
+      lgMap[43] = offset + G2_func(nx,ny,ninterior,ix, iy,periodicFlgs); // 3
+      lgMap[44] = offset + G2_func(nx,ny,ninterior,ix+1, iy,periodicFlgs); // 4
+      lgMap[45] = offset + F2_func(nx,ny,ninterior,ix, iy+1,periodicFlgs); // 5
+      lgMap[46] = offset + ix==0 ? 
+         F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs)-1 : 
+         F2_func(nx,ny,ninterior,ix,iy+1,periodicFlgs)+1; // 6
+      lgMap[47] = offset + F2_func(nx,ny,ninterior,ix+1,iy+1,periodicFlgs); // 7
+      // offset += nglobal in 2d for p=2
+      offset += getNumPerpGlobalNodes(nx,ny,2,2,periodicFlgs);
     }
   }
 }

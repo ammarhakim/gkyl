@@ -8,6 +8,7 @@ load("scifac")$
 doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
+/* serendipity nodes */
 nodes1xp1 : matrix([-1],[1])$
 nodes1xp2 : matrix([-1],[0],[1])$
 nodes2xp1 : matrix([-1,-1],[1,-1],[-1,1],[1,1])$
@@ -18,13 +19,59 @@ nodes3xp2 : matrix([-1,-1,-1],[0,-1,-1],[1,-1,-1],[-1,0,-1],[1,0,-1],[-1,1,-1],[
             [-1,-1,1],[0,-1,1],[1,-1,1],[-1,0,1],[1,0,1],[-1,1,1],[0,1,1],[1,1,1])$
 nodes4xp1 : matrix([-1,-1,-1,-1],[1,-1,-1,-1],[-1,1,-1,-1],[1,1,-1,-1],[-1,-1,1,-1],[1,-1,1,-1],[-1,1,1,-1],[1,1,1,-1],
              [-1,-1,-1,1],[1,-1,-1,1],[-1,1,-1,1],[1,1,-1,1],[-1,-1,1,1],[1,-1,1,1],[-1,1,1,1],[1,1,1,1])$
+nodes4xp2 : matrix([-1,-1,-1,-1],[0,-1,-1,-1],[1,-1,-1,-1],[-1,0,-1,-1],[1,0,-1,-1],[-1,1,-1,-1],[0,1,-1,-1],[1,1,-1,-1],
+            [-1,-1,0,-1],[1,-1,0,-1],[-1,1,0,-1],[1,1,0,-1],
+            [-1,-1,1,-1],[0,-1,1,-1],[1,-1,1,-1],[-1,0,1,-1],[1,0,1,-1],[-1,1,1,-1],[0,1,1,-1],[1,1,1,-1],
+            [-1,-1,-1,0],[1,-1,-1,0],[-1,1,-1,0],[1,1,-1,0],[-1,-1,1,0],[1,-1,1,0],[-1,1,1,0],[1,1,1,0],
+            [-1,-1,-1,1],[0,-1,-1,1],[1,-1,-1,1],[-1,0,-1,1],[1,0,-1,1],[-1,1,-1,1],[0,1,-1,1],[1,1,-1,1],
+            [-1,-1,0,1],[1,-1,0,1],[-1,1,0,1],[1,1,0,1],
+            [-1,-1,1,1],[0,-1,1,1],[1,-1,1,1],[-1,0,1,1],[1,0,1,1],[-1,1,1,1],[0,1,1,1],[1,1,1,1])$
 nodes5xp1 : matrix([-1,-1,-1,-1,-1],[1,-1,-1,-1,-1],[-1,1,-1,-1,-1],[1,1,-1,-1,-1],[-1,-1,1,-1,-1],[1,-1,1,-1,-1],[-1,1,1,-1,-1],[1,1,1,-1,-1],
              [-1,-1,-1,1,-1],[1,-1,-1,1,-1],[-1,1,-1,1,-1],[1,1,-1,1,-1],[-1,-1,1,1,-1],[1,-1,1,1,-1],[-1,1,1,1,-1],[1,1,1,1,-1],
              [-1,-1,-1,-1,1],[1,-1,-1,-1,1],[-1,1,-1,-1,1],[1,1,-1,-1,1],[-1,-1,1,-1,1],[1,-1,1,-1,1],[-1,1,1,-1,1],[1,1,1,-1,1],
              [-1,-1,-1,1,1],[1,-1,-1,1,1],[-1,1,-1,1,1],[1,1,-1,1,1],[-1,-1,1,1,1],[1,-1,1,1,1],[-1,1,1,1,1],[1,1,1,1,1])$
+nodes5xp2 : matrix([-1,-1,-1,-1,-1],[0,-1,-1,-1,-1],[1,-1,-1,-1,-1],[-1,0,-1,-1,-1],[1,0,-1,-1,-1],[-1,1,-1,-1,-1],[0,1,-1,-1,-1],[1,1,-1,-1,-1],
+            [-1,-1,0,-1,-1],[1,-1,0,-1,-1],[-1,1,0,-1,-1],[1,1,0,-1,-1],
+            [-1,-1,1,-1,-1],[0,-1,1,-1,-1],[1,-1,1,-1,-1],[-1,0,1,-1,-1],[1,0,1,-1,-1],[-1,1,1,-1,-1],[0,1,1,-1,-1],[1,1,1,-1,-1],
+            [-1,-1,-1,0,-1],[1,-1,-1,0,-1],[-1,1,-1,0,-1],[1,1,-1,0,-1],[-1,-1,1,0,-1],[1,-1,1,0,-1],[-1,1,1,0,-1],[1,1,1,0,-1],
+            [-1,-1,-1,1,-1],[0,-1,-1,1,-1],[1,-1,-1,1,-1],[-1,0,-1,1,-1],[1,0,-1,1,-1],[-1,1,-1,1,-1],[0,1,-1,1,-1],[1,1,-1,1,-1],
+            [-1,-1,0,1,-1],[1,-1,0,1,-1],[-1,1,0,1,-1],[1,1,0,1,-1],
+            [-1,-1,1,1,-1],[0,-1,1,1,-1],[1,-1,1,1,-1],[-1,0,1,1,-1],[1,0,1,1,-1],[-1,1,1,1,-1],[0,1,1,1,-1],[1,1,1,1,-1],
+            [-1,-1,-1,-1,0],[1,-1,-1,-1,0],[-1,1,-1,-1,0],[1,1,-1,-1,0],[-1,-1,1,-1,0],[1,-1,1,-1,0],[-1,1,1,-1,0],[1,1,1,-1,0],
+            [-1,-1,-1,1,0],[1,-1,-1,1,0],[-1,1,-1,1,0],[1,1,-1,1,0],[-1,-1,1,1,0],[1,-1,1,1,0],[-1,1,1,1,0],[1,1,1,1,0],
+            [-1,-1,-1,-1,1],[0,-1,-1,-1,1],[1,-1,-1,-1,1],[-1,0,-1,-1,1],[1,0,-1,-1,1],[-1,1,-1,-1,1],[0,1,-1,-1,1],[1,1,-1,-1,1],
+            [-1,-1,0,-1,1],[1,-1,0,-1,1],[-1,1,0,-1,1],[1,1,0,-1,1],
+            [-1,-1,1,-1,1],[0,-1,1,-1,1],[1,-1,1,-1,1],[-1,0,1,-1,1],[1,0,1,-1,1],[-1,1,1,-1,1],[0,1,1,-1,1],[1,1,1,-1,1],
+            [-1,-1,-1,0,1],[1,-1,-1,0,1],[-1,1,-1,0,1],[1,1,-1,0,1],[-1,-1,1,0,1],[1,-1,1,0,1],[-1,1,1,0,1],[1,1,1,0,1],
+            [-1,-1,-1,1,1],[0,-1,-1,1,1],[1,-1,-1,1,1],[-1,0,-1,1,1],[1,0,-1,1,1],[-1,1,-1,1,1],[0,1,-1,1,1],[1,1,-1,1,1],
+            [-1,-1,0,1,1],[1,-1,0,1,1],[-1,1,0,1,1],[1,1,0,1,1],
+            [-1,-1,1,1,1],[0,-1,1,1,1],[1,-1,1,1,1],[-1,0,1,1,1],[1,0,1,1,1],[-1,1,1,1,1],[0,1,1,1,1],[1,1,1,1,1])$
+
+/* limits of gyroangle integration for gyroaveraging calculation */
+alphalim1xp1 : matrix([-%pi/2,%pi/2],[%pi/2,3*%pi/2])$
+alphalim1xp2 : matrix([-%pi/2,%pi/2],[0,2*%pi],[%pi/2,3*%pi/2])$
+alphalim2xp1 : matrix([0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2])$
+alphalim2xp2 : matrix([0,%pi/2],[0,%pi],[%pi/2,%pi],[-%pi/2,%pi/2],[%pi/2,3*%pi/2],[3*%pi/2,2*%pi],[%pi,2*%pi],[%pi,3*%pi/2])$
+alphalim3xp1 : matrix([0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2])$
+alphalim3xp2 : matrix([0,%pi/2],[0,%pi],[%pi/2,%pi],[-%pi/2,%pi/2],[%pi/2,3*%pi/2],[3*%pi/2,2*%pi],[%pi,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[0,%pi],[%pi/2,%pi],[-%pi/2,%pi/2],[%pi/2,3*%pi/2],[3*%pi/2,2*%pi],[%pi,2*%pi],[%pi,3*%pi/2])$
+alphalim4xp1 : matrix([0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2])$
+alphalim4xp2 : matrix([0,%pi/2],[0,%pi],[%pi/2,%pi],[-%pi/2,%pi/2],[%pi/2,3*%pi/2],[3*%pi/2,2*%pi],[%pi,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[0,%pi],[%pi/2,%pi],[-%pi/2,%pi/2],[%pi/2,3*%pi/2],[3*%pi/2,2*%pi],[%pi,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[0,%pi],[%pi/2,%pi],[-%pi/2,%pi/2],[%pi/2,3*%pi/2],[3*%pi/2,2*%pi],[%pi,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[%pi/2,%pi],[3*%pi/2,2*%pi],[%pi,3*%pi/2],
+                      [0,%pi/2],[0,%pi],[%pi/2,%pi],[-%pi/2,%pi/2],[%pi/2,3*%pi/2],[3*%pi/2,2*%pi],[%pi,2*%pi],[%pi,3*%pi/2])$
 
 /* calculate modal-to-nodal transformation matrix */
-calcModToNod(cdim, p) := block([], 
+calcModToNod(cdim, p) := block([varsC, varsP, basisC, basisP, basis], 
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
 load(modNm),
@@ -60,7 +107,7 @@ return(modToNod)
 )$
 
 /* calculate modal-to-nodal transformation matrix */
-calcModToNodPhase(cdim, vdim, p) := block([basis,modNm,nodes,n,modToNod], 
+calcModToNodPhase(cdim, vdim, p) := block([basis,modNm,nodes,n,modToNod, varsC, varsP, basisC, basisP], 
 kill(varsC, varsP, basisC, basisP),
 if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
 else if (vdim = 1 and cdim#1) then (modNm : sconcat("basis-precalc/basisSer", cdim-1, "x", 2, "v"), cdim:cdim-1, vdim:2)
@@ -107,10 +154,8 @@ return(modToNod)
 /* calculate nodal-to-modal transformation matrix */
 calcNodToModPerp(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
-load(modNm),
-basis : basisC[p],
-modToNod : calcModToNod(cdim, p),
+if cdim>3 then modToNod : calcModToNodPhase(3, cdim-3, p)
+else modToNod : calcModToNod(cdim, p),
 nodToMod:float(invert(transpose(modToNod)))
 )$
 
@@ -147,15 +192,30 @@ calcMassMatrix2(vars, w, basis, basis2) := block([n, mass],
 	        return (mass)
 )$
 
+calcMassMatrixNod2(vars, w, basis, basis2) := block([n, mass],
+                n : length(basis),
+		mass : (mass : zeromatrix(n,n), 
+                for i from 1 thru n do (
+                    for j from 1 thru n do (
+                        mass[i,j] : innerProd(vars, w, basis[i], basis2[j])[1]
+                    )
+                ),
+                mass),
+	        return (mass)
+)$
+
 /* calculate weighted nodal mass matrix */
 calcMass(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
+if cdim>3 then modNm : sconcat("basis-precalc/basisSer", 2, "x", cdim-2, "v")
+else modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
 load(modNm),
-basis : basisC[p],
+if cdim > 3 then ( basis : basisP[p], vars : varsP)
+else (basis : basisC[p], vars: varsC),
 w_expd : doExpand1(w, basis),
-massMod : calcMassMatrix(varsC, w_expd, basis),
-modToNod : calcModToNod(cdim, p),
+massMod : calcMassMatrix(vars, w_expd, basis),
+if cdim > 3 then modToNod : calcModToNodPhase(3, cdim-3, p)
+else modToNod : calcModToNod(cdim, p),
 massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(transpose(modToNod)))))),
 return(massNod)
 )$
@@ -163,12 +223,14 @@ return(massNod)
 /* calculate unweighted nodal mass matrix */
 calcUnweightedMass(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
+if cdim>3 then modNm : sconcat("basis-precalc/basisSer", 2, "x", cdim-2, "v")
+else modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
 load(modNm),
-basis : basisC[p],
-w_expd : doExpand1(w, basis),
-massMod : calcMassMatrix(varsC, 1, basis),
-modToNod : calcModToNod(cdim, p),
+if cdim > 3 then ( basis : basisP[p], vars : varsP)
+else (basis : basisC[p], vars: varsC),
+massMod : calcMassMatrix(vars, 1, basis),
+if cdim > 3 then modToNod : calcModToNodPhase(3, cdim-3, p)
+else modToNod : calcModToNod(cdim, p),
 massNod:float(expand(ratsimp(ratsimp(invert(modToNod)).massMod.ratsimp(invert(transpose(modToNod)))))),
 return(massNod)
 )$
@@ -200,7 +262,7 @@ return(massNod)
 )$
 
 /* calculate nodal gyroaverage matrix, cell-average in mu */
-calcGyavg0(cdim, p) := block([],
+calcGyavg0_m(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
 load(modNm),
@@ -215,39 +277,191 @@ printf(fh, "  double dfacy = 2.0/dy; ~%"),
 bGy : fullratsimp(integrate(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bC),alpha,0,2*%pi)/(2*%pi)),
 bGy : fullratsimp(calcInnerProdList(varsC,1,bC,bGy).bC),
 gyavgMod : fullratsimp(calcMassMatrix2(varsC, 1, bC, bGy)),
-subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bC)),
-subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bC)),
-subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bC)),
+subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bP)),
+subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bP)),
+subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bP)),
 modToNod : calcModToNod(cdim, p),
-gyavgNod:gcfac(expand(float(fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod))))))),
+gyavgNod:fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod)))),
 gyavgNod:subst(subs1,gyavgNod),
 gyavgNod:subst(subs2,gyavgNod),
 gyavgNod:subst(subs3,gyavgNod),
 return(gyavgNod)
 )$
 
-/* calculate nodal gyroaverage matrix with mu dependence */
-calcGyavg(cdim, p) := block([],
+calcGyavg_m(gdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
+cdim:gdim-1,
 modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
 load(modNm),
 bP : basisP[p],
-bP : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
-varsP : delete(vx, varsP),
-/* rho's have vy (mu) dependence, but we will use the cell center in mu */
-rho1_expd:subst([y^2=1/3,y=0],doExpand1(rho1,bP)),
-rho2_expd:subst([y^2=1/3,y=0],doExpand1(rho2,bP)),
-rho3_expd:subst([y^2=1/3,y=0],doExpand1(rho3,bP)),
+rho1_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho1,bP))),
+rho2_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho2,bP))),
+rho3_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho3,bP))),
+bP_dvx : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
+varsP_dvx : delete(vx, varsP),
 printf(fh, "  double dfacx = 2.0/dx; ~%"),
 printf(fh, "  double dfacy = 2.0/dy; ~%"),
-bGy : fullratsimp(integrate(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bP),alpha,0,2*%pi)/(2*%pi)),
-bGy : fullratsimp(calcInnerProdList(varsP,1,bP,bGy).bP),
-gyavgMod : fullratsimp(calcMassMatrix2(varsP, 1, bP, bGy)),
+bGy : fullratsimp(integrate(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bP_dvx),alpha,0,2*%pi)/(2*%pi)),
+bGy : fullratsimp(calcInnerProdList(varsP_dvx,1,bP_dvx,bGy).bP_dvx),
+gyavgMod : fullratsimp(calcMassMatrix2(varsP_dvx, 1, bP_dvx, bGy)),
 subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bP)),
 subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bP)),
 subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bP)),
 modToNod : calcModToNodPhase(cdim, 1, p),
-gyavgNod:gcfac(expand(float(fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod))))))),
+gyavgNod:fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod)))),
+gyavgNod:subst(subs1,gyavgNod),
+gyavgNod:subst(subs2,gyavgNod),
+gyavgNod:subst(subs3,gyavgNod),
+return(gyavgNod)
+)$
+
+calcGyavg0_m2n(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
+load(modNm),
+bP : basisP[p],
+bC : basisC[p],
+bC_nodal : fullratsimp(invert(calcModToNod(cdim, p)).bC),
+bC_nodal : makelist(bC_nodal[i][1],i,1,length(bC_nodal)),
+/* rho's have vy (mu) dependence, but we will use the cell center in mu */
+rho1_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho1,bP)),
+rho2_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho2,bP)),
+rho3_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho3,bP)),
+printf(fh, "  double dfacx = 2.0/dx; ~%"),
+printf(fh, "  double dfacy = 2.0/dy; ~%"),
+printf(fh, "  double dfacx2 = dfacx*dfacx; ~%"),
+printf(fh, "  double dfacy2 = dfacy*dfacy; ~%"),
+bGy : fullratsimp(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bC)),
+/*bGy : fullratsimp(calcInnerProdList(varsC,1,bC,bGy).bC),*/
+gyavgMod : fullratsimp(calcMassMatrix2(varsC, 1, bC, bGy)),
+subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bP)),
+subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bP)),
+subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bP)),
+modToNod : calcModToNod(cdim, p),
+gyavgNodT:fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod)))),
+alphalim : eval_string(sconcat("alphalim", cdim, "xp", p)),
+for i:1 thru length(bC) do (
+  gyavgNodT[i] : fullratsimp(integrate(gyavgNodT[i],alpha,alphalim[i][1],alphalim[i][2])/(2*%pi))
+),
+gyavgNod : transpose(gyavgNodT),
+massNod : fullratsimp(calcMassMatrix(varsC, 1, bC_nodal)),
+gyavgNod : gyavgNod - subst([dfacx=0,dfacy=0],gyavgNod) + massNod,
+gyavgNod:subst(subs1,gyavgNod),
+gyavgNod:subst(subs2,gyavgNod),
+gyavgNod:subst(subs3,gyavgNod),
+gyavgNod:subst([dfacx^2=dfacx2,dfacy^2=dfacy2],gyavgNod),
+return(gyavgNod)
+)$
+
+calcGyavg_m2n(gdim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+cdim:gdim-1,
+modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
+load(modNm),
+bP : basisP[p],
+rho1_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho1,bP))),
+rho2_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho2,bP))),
+rho3_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho3,bP))),
+bP_dvx : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
+varsP_dvx : delete(vx, varsP),
+printf(fh, "  double dfacx = 2.0/dx; ~%"),
+printf(fh, "  double dfacy = 2.0/dy; ~%"),
+bGy : fullratsimp(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bP_dvx)),
+bGy : fullratsimp(calcInnerProdList(varsP_dvx,1,bP_dvx,bGy).bP_dvx),
+gyavgMod : fullratsimp(calcMassMatrix2(varsP_dvx, 1, bGy, bP_dvx)),
+subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bP)),
+subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bP)),
+subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bP)),
+modToNod : calcModToNodPhase(cdim, 1, p),
+gyavgNodT:fullratsimp(ratsimp(invert(modToNod)).gyavgMod.ratsimp(invert(transpose(modToNod)))),
+alphalim : eval_string(sconcat("alphalim", gdim, "xp", p)),
+for i:1 thru length(bP_dvx) do (
+  gyavgNodT[i] : fullratsimp(integrate(gyavgNodT[i],alpha,alphalim[i][1],alphalim[i][2])/(2*%pi))
+),
+gyavgNod : transpose(gyavgNodT),
+gyavgNod:subst(subs1,gyavgNod),
+gyavgNod:subst(subs2,gyavgNod),
+gyavgNod:subst(subs3,gyavgNod),
+return(gyavgNod)
+)$
+
+calcGyavg0_n(cdim, p) := block([],
+kill(varsC, varsP, basisC, basisP, rho1, rho2, rho3, rho1n, rho2n, rho3n),
+modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
+load(modNm),
+bP : basisP[p],
+bC : basisC[p],
+/* calculate nodal basis */
+bP_nodal : fullratsimp(invert(calcModToNodPhase(cdim, 2, p)).bP),
+bC_nodal : fullratsimp(invert(calcModToNod(cdim, p)).bC),
+bC_nodal : makelist(bC_nodal[i][1],i,1,length(bC_nodal)),
+/* rho's have vy (mu) dependence, but we will use the cell center in mu */
+rho1_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho1,bP)),
+rho2_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho2,bP)),
+rho3_expd:subst([y^2=1/3,y=0,vx^2=1/3,vx=0,vy^2=1/3,vy=0],doExpand1(rho3,bP)),
+printf(fh, "  double dfacx = 2.0/dx; ~%"),
+printf(fh, "  double dfacy = 2.0/dy; ~%"),
+printf(fh, "  double dfacx2 = dfacx*dfacx; ~%"),
+printf(fh, "  double dfacy2 = dfacy*dfacy; ~%"),
+/*if cdim=1 then (
+rho1nod : makelist(subst([x=nodes[i,1]], rho1_expd),i,1,length(bC)),
+rho2nod : makelist(subst([x=nodes[i,1]], rho2_expd),i,1,length(bC)),
+rho3nod : makelist(subst([x=nodes[i,1]], rho3_expd),i,1,length(bC))
+)
+else if cdim=2 then (
+rho1nod : makelist(subst([x=nodes[i,1],y=nodes[i,2]], rho1_expd),i,1,length(bC)),
+rho2nod : makelist(subst([x=nodes[i,1],y=nodes[i,2]], rho2_expd),i,1,length(bC)),
+rho3nod : makelist(subst([x=nodes[i,1],y=nodes[i,2]], rho3_expd),i,1,length(bC))
+)
+else (
+rho1nod : makelist(subst([x=nodes[i,1],y=nodes[i,2],z=nodes[i,3]], rho1_expd),i,1,length(bC)),
+rho2nod : makelist(subst([x=nodes[i,1],y=nodes[i,2],z=nodes[i,3]], rho2_expd),i,1,length(bC)),
+rho3nod : makelist(subst([x=nodes[i,1],y=nodes[i,2],z=nodes[i,3]], rho3_expd),i,1,length(bC))
+),
+printf(fh, "  double rho1n[~a], rho2n[~a], rho3n[~a]; ~%", length(bC), length(bC), length(bC)),
+writeCExprs1(rho1n, rho1nod),
+writeCExprs1(rho2n, rho2nod),
+writeCExprs1(rho3n, rho3nod),*/
+alphalim : eval_string(sconcat("alphalim", cdim, "xp", p)),
+bGy : makelist(fullratsimp(integrate(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bC_nodal[i]),alpha,alphalim[i][1],alphalim[i][2])/(%pi*2)),i,1,length(bC)),
+/*bGy : fullratsimp(calcInnerProdList(varsC,1,bC,bGy).bC),*/
+gyavgNod : fullratsimp(calcMassMatrix2(varsC, 1, bC_nodal, bGy)),
+massNod : fullratsimp(calcMassMatrix(varsC, 1, bC_nodal)),
+gyavgNod : gyavgNod - subst([dfacx=0,dfacy=0],gyavgNod) + massNod,
+subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bP)),
+subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bP)),
+subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bP)),
+gyavgNod:subst(subs1,gyavgNod),
+gyavgNod:subst(subs2,gyavgNod),
+gyavgNod:subst(subs3,gyavgNod),
+gyavgNod:subst([dfacx^2=dfacx2,dfacy^2=dfacy2],gyavgNod),
+return(gyavgNod)
+)$
+
+/* calculate nodal gyroaverage matrix with mu dependence */
+calcGyavg_n(gdim, p) := block([],
+kill(varsC, varsP, basisC, basisP,cdim,modNm,bP,bC),
+cdim:gdim-1,
+modNm : sconcat("basis-precalc/basisSer", cdim, "x", 2, "v"),
+load(modNm),
+bP : basisP[p],
+bC : basisC[p],
+rho1_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho1,bP))),
+rho2_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho2,bP))),
+rho3_expd:fullratsimp(subst([y^2=1/3,y=0,vx^2=1/3,vx=0],doExpand1(rho3,bP))),
+bP_dvx : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
+bP_dvx_nodal : fullratsimp(invert(calcModToNodPhase(cdim, 1, p)).bP_dvx),
+varsP_dvx : delete(vx, varsP),
+printf(fh, "  double dfacx = 2.0/dx; ~%"),
+printf(fh, "  double dfacy = 2.0/dy; ~%"),
+flush_output(fh),
+alphalim : eval_string(sconcat("alphalim", gdim, "xp", p)),
+bGy : makelist(fullratsimp(integrate(subst([x=x+dfacx*rho1_expd*cos(alpha),y=y+dfacy*(rho2_expd*cos(alpha)-rho3_expd*sin(alpha))],bP_dvx_nodal[i]),alpha,alphalim[i][1],alphalim[i][2])/(2*%pi)),i,1,length(bP_dvx)),
+bGy : fullratsimp(calcInnerProdList(varsP_dvx,1,bP_dvx,bGy).bP_dvx),
+gyavgNod : fullratsimp(calcMassMatrixNod2(varsP_dvx, 1, bP_dvx_nodal, bGy)),
+subs1:makelist(rho1[i]^2='rho1[i]*rho1[i],i,0,length(bP)),
+subs2:makelist(rho2[i]^2='rho2[i]*rho2[i],i,0,length(bP)),
+subs3:makelist(rho3[i]^2='rho3[i]*rho3[i],i,0,length(bP)),
 gyavgNod:subst(subs1,gyavgNod),
 gyavgNod:subst(subs2,gyavgNod),
 gyavgNod:subst(subs3,gyavgNod),

@@ -67,7 +67,7 @@ class FemGyroaverage
   void allreduceGlobalSrcGy(MPI_Comm comm);
   void allgatherGlobalStiffGy(MPI_Comm comm);
   void makeGlobalPerpStiffnessMatrix(double *modifierWeight, int idx, int idy);
-  void padLocalSrc(double* srcIn, std::vector<double> srcOut, int ndimSrc);
+  void padLocalSrc(double* srcIn, std::vector<double> &srcOut, int ndimSrc);
   void makeGyavg0Matrix(double *rho1, double *rho2, double *rho3, int idx);
   void makeGyavgMatrix(double *rho1, double *rho2, double *rho3, int idx);
   void finishGlobalPerpStiffnessMatrix();

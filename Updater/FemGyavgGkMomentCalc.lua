@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to gyroaverage a config-space field (e.g. the electrostatic potential phi)
+-- Updater to gyroaverage and integrate a distribution function, resulting in a gyroaveraged moment
 -- Perpendicular directions assumed to be first two configuration-space directions
 --
 --    _______     ___
@@ -15,7 +15,9 @@ local xsys = require "xsys"
 local Basis = require "Basis"
 local Grid = require "Grid"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
+local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
 local DataStruct = require "DataStruct"
+local Lin = require "Lib/Linalg"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
@@ -57,26 +59,59 @@ local DIRICHLET_VARIABLE = 2
 --local mt = {}
 --bcdata = ffi.metatype("bcdata_t", mt)
 
--- FEM Poisson solver updater object
-local FemGyroaverage = Proto(UpdaterBase)
+local function isGkMomentNameGood(nm)
+   if nm == "GkM0" or nm == "GkM1" or nm == "GkM2par" or nm == "GkM2perp" or nm == "GkM2" or nm == "GkM3par" or nm == "GkM3perp" or nm == "GkThreeMoments" or nm == "GkStarMoments" then
+      return true
+   end
+   return false
+end
 
-function FemGyroaverage:init(tbl)
-   FemGyroaverage.super.init(self, tbl)
+-- FEM Poisson solver updater object
+local FemGyavgGkMomentCalc = Proto(UpdaterBase)
+
+function FemGyavgGkMomentCalc:init(tbl)
+   FemGyavgGkMomentCalc.super.init(self, tbl)
 
    -- read data from input file
-   self._grid = assert(tbl.onGrid, "Updater.FemGyroaverage: Must provide grid object using 'onGrid'")
-   self._phaseGrid = assert(tbl.phaseGrid, "Updater.FemGyroaverage: Must provide phaseGrid object using 'phaseGrid'")
-   self._basis = assert(tbl.confBasis, "Updater.FemGyroaverage: Must specify basis functions to use using 'confBasis'")
-   self._phaseBasis = assert(tbl.phaseBasis, "Updater.FemGyroaverage: Must specify phaseBasis functions to use using 'phaseBasis'")
+   self._grid = assert(tbl.onGrid, "Updater.FemGyavgGkMomentCalc: Must provide grid object using 'onGrid'")
+   self._phaseGrid = assert(tbl.phaseGrid, "Updater.FemGyavgGkMomentCalc: Must provide phaseGrid object using 'phaseGrid'")
+   self._basis = assert(tbl.confBasis, "Updater.FemGyavgGkMomentCalc: Must specify basis functions to use using 'confBasis'")
+   self._phaseBasis = assert(tbl.phaseBasis, "Updater.FemGyavgGkMomentCalc: Must specify phaseBasis functions to use using 'phaseBasis'")
 
-   assert(self._basis:id()=="serendipity", "Updater.FemGyroaverage only implemented for modal serendipity basis")
+   assert(self._basis:id()=="serendipity", "Updater.FemGyavgGkMomentCalc only implemented for modal serendipity basis")
 
    assert(self._grid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
    self._cdim = self._grid:ndim()
    self._pdim = self._phaseGrid:ndim()
+   self._vdim = self._pdim - self._cdim
 
-   -- if _muOrder0=true, calculate only cell-averages in mu
-   self._muOrder0 = xsys.pickBool(tbl.muOrder0, true)
+   self._nx = self._grid:numCells(1)
+   self._ny = self._grid:numCells(2)
+   self._p = self._basis:polyOrder()
+   self._dx = self._grid:dx(1)
+   self._dy = self._grid:dx(2)
+
+   assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
+   assert(self._cdim == 2 or self._cdim == 3, "This solver only implemented for 2D or 3D (with no solve in 3rd dimension)")
+   if self._p==2 then assert(self._nx>1 and self._ny>1, "Must use nx>1 and ny>1 for p=2") end
+
+   -- create cdim+1 dimensional grid 
+   local lower, upper, cells = {}, {}, {}
+   for d = 1, self._cdim do
+      table.insert(lower, self._grid:lower(d))
+      table.insert(upper, self._grid:upper(d))
+      table.insert(cells, self._grid:numCells(d))
+   end
+   table.insert(lower, self._phaseGrid:lower(self._pdim))
+   table.insert(upper, self._phaseGrid:upper(self._pdim))
+   table.insert(cells, self._phaseGrid:numCells(self._pdim))
+   self._gyGrid = Grid.RectCart {
+      lower = lower,
+      upper = upper,
+      cells = cells,
+   }
+   -- create basis for gyGrid
+   self._gyBasis = Basis.CartModalSerendipity { ndim = self._cdim+1, polyOrder = self._p }
 
    -- boundary conditions
    -- set C flags to indicate which directions are periodic (0-based)
@@ -132,84 +167,38 @@ function FemGyroaverage:init(tbl)
      end
    end
 
-   self._nx = self._grid:numCells(1)
-   self._ny = self._grid:numCells(2)
-   self._p = self._basis:polyOrder()
-   self._dx = self._grid:dx(1)
-   self._dy = self._grid:dx(2)
-
-   assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
-   assert(self._cdim == 2 or self._cdim == 3, "This solver only implemented for 2D or 3D (with no solve in 3rd dimension)")
-   if self._p==2 then assert(self._nx>1 and self._ny>1, "Must use nx>1 and ny>1 for p=2") end
-
-   -- create cdim+1 dimensional grid 
-   local lower, upper, cells = {}, {}, {}
-   for d = 1, self._cdim do
-      table.insert(lower, self._grid:lower(d))
-      table.insert(upper, self._grid:upper(d))
-      table.insert(cells, self._grid:numCells(d))
-   end
-   table.insert(lower, self._phaseGrid:lower(self._pdim))
-   table.insert(upper, self._phaseGrid:upper(self._pdim))
-   table.insert(cells, self._phaseGrid:numCells(self._pdim))
-   self._gyGrid = Grid.RectCart {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-   }
-   -- create basis for gyGrid
-   self._gyBasis = Basis.CartModalSerendipity { ndim = self._cdim+1, polyOrder = self._p }
-
    self._gyavg = {}
    self._first = true
    self._makeStiff = true
 
+   self.f_dvpar = DataStruct.Field {
+        onGrid = self._gyGrid,
+        numComponents = self._gyBasis:numBasis(),
+        ghost = {1, 1},
+   }
+
    -- set up constant dummy field
-   if self._muOrder0 then
-      self.unitWeight = DataStruct.Field {
-           onGrid = self._grid,
-           numComponents = self._basis:numBasis(),
-           ghost = {1, 1},
-      }
-      local initUnit = ProjectOnBasis {
-         onGrid = self._grid,
-         basis = self._basis,
-         evaluate = function (t,xn)
-                       return 1.0
-                    end,
-         projectOnGhosts = true,
-      }
-      initUnit:advance(0.,0.,{},{self.unitWeight})
+   self.unitWeight = DataStruct.Field {
+	onGrid = self._gyGrid,
+	numComponents = self._gyBasis:numBasis(),
+	ghost = {1, 1},
+   }
+   local initUnit = ProjectOnBasis {
+      onGrid = self._gyGrid,
+      basis = self._gyBasis,
+      evaluate = function (t,xn)
+                    return 1.0
+                 end,
+      projectOnGhosts = true,
+   }
+   initUnit:advance(0.,0.,{},{self.unitWeight})
 
-      -- set up field for non-uniform and/or time-dependent modifier weight
-      self.modifierWeight = DataStruct.Field {
-           onGrid = self._grid,
-           numComponents = self._basis:numBasis(),
-           ghost = {1, 1},
-      }
-   else
-      self.unitWeight = DataStruct.Field {
-           onGrid = self._gyGrid,
-           numComponents = self._gyBasis:numBasis(),
-           ghost = {1, 1},
-      }
-      local initUnit = ProjectOnBasis {
-         onGrid = self._gyGrid,
-         basis = self._gyBasis,
-         evaluate = function (t,xn)
-                       return 1.0
-                    end,
-         projectOnGhosts = true,
-      }
-      initUnit:advance(0.,0.,{},{self.unitWeight})
-
-      -- set up field for non-uniform and/or time-dependent modifier weight
-      self.modifierWeight = DataStruct.Field {
-           onGrid = self._gyGrid,
-           numComponents = self._gyBasis:numBasis(),
-           ghost = {1, 1},
-      }
-   end
+   -- set up field for non-uniform and/or time-dependent modifier weight
+   self.modifierWeight = DataStruct.Field {
+        onGrid = self._gyGrid,
+        numComponents = self._gyBasis:numBasis(),
+        ghost = {1, 1},
+   }
    -- initialize to unity
    self.modifierWeight:copy(self.unitWeight)
 
@@ -229,10 +218,21 @@ function FemGyroaverage:init(tbl)
         numComponents = self._phaseBasis:numBasis(),
         ghost = {1, 1},
    }
-   assert(tbl.rho1 and tbl.rho2 and tbl.rho3, "FemGyroaverage: must specify rho1, rho2, and rho3 coefficient fields")
+   assert(tbl.rho1 and tbl.rho2 and tbl.rho3, "FemGyavgGkMomentCalc: must specify rho1, rho2, and rho3 coefficient fields")
    self.rho1:copy(tbl.rho1)
    self.rho2:copy(tbl.rho2)
    self.rho3:copy(tbl.rho3)
+
+   self.mass = tbl.gkfacs[1]
+   self.bmag = tbl.gkfacs[2]
+   self.bmagIndexer = self.bmag:indexer()
+   self.bmagPtr = self.bmag:get(1)
+
+   local id = self._phaseBasis:id()
+   local mom = tbl.moment or "GkM0"
+   assert(isGkMomentNameGood(mom), "FemGyavgGkMomentCalc: moment name is invalid")
+   self._momCalcStep1 = MomDecl.selectGkMomCalc(mom.."_step1", id, self._cdim, self._vdim, self._p)
+   self._momCalcStep2 = MomDecl.selectGkMomCalc(mom.."_step2", id, self._cdim, self._vdim, self._p)
 
    if GKYL_HAVE_MPI then
      -- split communicators in z
@@ -247,33 +247,30 @@ function FemGyroaverage:init(tbl)
 
    self.dynVec = DataStruct.DynVector { numComponents = 1 }
 
+   self.dxv = Lin.Vec(self._pdim) -- cell shape
+   self.w = Lin.Vec(self._pdim) -- phase-space cell center
+
    return self
 end
 
 -- for testing
-function FemGyroaverage:bcType(dir,side) return self._bc[dir][side].type end
-function FemGyroaverage:bcValue(dir,side) return self._bc[dir][side].value end
+function FemGyavgGkMomentCalc:bcType(dir,side) return self._bc[dir][side].type end
+function FemGyavgGkMomentCalc:bcValue(dir,side) return self._bc[dir][side].value end
 
 ---- advance method
-function FemGyroaverage:_advance(tCurr, dt, inFld, outFld) 
+function FemGyavgGkMomentCalc:_advance(tCurr, dt, inFld, outFld) 
    local grid = self._grid
    local basis = self._basis
 
-   local src = assert(inFld[1], "FemGyroaverage.advance: Must specify an input field")
-   local sol = assert(outFld[1], "FemGyroaverage.advance: Must specify an output field")
+   local distf = assert(inFld[1], "FemGyavgGkMomentCalc.advance: Must specify an input field")
+   local gyMom = assert(outFld[1], "FemGyavgGkMomentCalc.advance: Must specify an output field")
 
    local pdim = self._pdim
    local cdim = self._cdim
-   local ndim -- dimension of FEM solve
-   -- solve either has config-space dimensions (cell-average in mu) or an additional dimension for mu
-   if self._muOrder0 then ndim = cdim else ndim = cdim + 1 end
+   local ndim = self._cdim + 1 -- dimension of FEM solve. additional dimension for mu
 
-   if self._muOrder0 then
-     assert(#sol == self._phaseGrid:numCells(pdim) and sol[1]:ndim()==cdim, "FemGyroaverage.advance: For muOrder0, output field must be a length Nmu array of config-space fields")
-   else 
-     assert((sol[1] or sol):ndim()==cdim+1, "FemGyroaverage.advance: output field must have dimension cdim+1")
-   end
-   assert(src:ndim()==cdim, "FemGyroaverage.advance: input field must have config space dimensions.")
+   assert(distf:ndim()==pdim, "FemGyavgGkMomentCalc.advance: input field must have phase space dimensions.")
+   assert(gyMom:ndim()==cdim, "FemGyavgGkMomentCalc.advance: output field must have dimension cdim")
 
    -- create region that is effectively 2d and global in x-y directions
    local perpRange = self.rho1:globalRange()
@@ -291,11 +288,13 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
      local_z_upper = localRange:upper(3)
    end
 
-   -- create indexers and pointers for src and sol
-   self.srcIndexer = src:indexer() 
-   self.srcPtr = src:get(1)
-   self.solIndexer = (sol[1] or sol):indexer() 
-   self.solPtr = (sol[1] or sol):get(1)
+   -- create indexers and pointers for distf and sol
+   self.f_dvparIndexer = self.f_dvpar:indexer() 
+   self.f_dvparPtr = self.f_dvpar:get(1)
+   self.distfIndexer = distf:indexer() 
+   self.distfPtr = distf:get(1)
+   self.gyMomIndexer = gyMom:indexer() 
+   self.gyMomPtr = gyMom:get(1)
 
    -- create indexers and pointer for other fields that belong to this object and do not change
    if self._first then 
@@ -330,35 +329,51 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
        -- each proc allocates a full globalSrc vector
        -- loop over x and y cells locally to get local contributions to globalSrc
        for idx=localRange:lower(1),localRange:upper(1) do     
-         -- on first time, make Gyavg matrix, which varies only in x and does not vary in time
-         if self._first then
-            -- note: no y or vpar dependence of rho's, so just use idy=idvpar=1
-            if cdim==2 then 
-              self.rho1:fill(self.rho1Indexer(idx,1,1,idmu), self.rho1Ptr) 
-              self.rho2:fill(self.rho2Indexer(idx,1,1,idmu), self.rho2Ptr) 
-              self.rho3:fill(self.rho3Indexer(idx,1,1,idmu), self.rho3Ptr) 
-            else 
-              self.rho1:fill(self.rho1Indexer(idx,1,idz,1,idmu), self.rho1Ptr) 
-              self.rho2:fill(self.rho2Indexer(idx,1,idz,1,idmu), self.rho2Ptr) 
-              self.rho3:fill(self.rho3Indexer(idx,1,idz,1,idmu), self.rho3Ptr) 
-            end
-            if self._muOrder0 then ffi.C.makeGyavg0Matrix(self._gyavg[idz][idmu], self.rho1Ptr:data(), self.rho2Ptr:data(), self.rho3Ptr:data(), idx-1)
-            else ffi.C.makeGyavgMatrix(self._gyavg[idz][idmu], self.rho1Ptr:data(), self.rho2Ptr:data(), self.rho3Ptr:data(), idx-1) end
-         end
-
          for idy=localRange:lower(2),localRange:upper(2) do
-           if cdim==2 then 
-             src:fill(self.srcIndexer(idx,idy), self.srcPtr) 
-           else 
-             src:fill(self.srcIndexer(idx,idy,idz), self.srcPtr) 
+           -- on first time, make Gyavg matrix, which varies only in x and does not vary in time
+           if self._first and idy==localRange:lower(2) then
+              -- note: no vpar dependence of rho's, so just use idvpar=1
+              if cdim==2 then 
+                self.rho1:fill(self.rho1Indexer(idx,idy,1,idmu), self.rho1Ptr) 
+                self.rho2:fill(self.rho2Indexer(idx,idy,1,idmu), self.rho2Ptr) 
+                self.rho3:fill(self.rho3Indexer(idx,idy,1,idmu), self.rho3Ptr) 
+              else 
+                self.rho1:fill(self.rho1Indexer(idx,idy,idz,1,idmu), self.rho1Ptr) 
+                self.rho2:fill(self.rho2Indexer(idx,idy,idz,1,idmu), self.rho2Ptr) 
+                self.rho3:fill(self.rho3Indexer(idx,idy,idz,1,idmu), self.rho3Ptr) 
+              end
+              ffi.C.makeGyavgMatrix(self._gyavg[idz][idmu], self.rho1Ptr:data(), self.rho2Ptr:data(), self.rho3Ptr:data(), idx-1) 
            end
-           ffi.C.createGlobalSrcGy(self._gyavg[idz][idmu], self.srcPtr:data(), idx-1, idy-1, src:ndim())
+
+           -- set pointer for src = int dvpar distf
+           if cdim==2 then 
+             self.f_dvpar:fill(self.f_dvparIndexer(idx,idy,idmu), self.f_dvparPtr)
+             self.bmag:fill(self.bmagIndexer(idx,idy), self.bmagPtr) 
+           else 
+             self.f_dvpar:fill(self.f_dvparIndexer(idx,idy,idz,idmu), self.f_dvparPtr)
+             self.bmag:fill(self.bmagIndexer(idx,idy,idz), self.bmagPtr) 
+           end
+           -- loop over vpar to integrate in vpar
+           for idv=localRange:lower(cdim+1),localRange:upper(cdim+1) do
+             if cdim==2 then 
+               distf:fill(self.distfIndexer(idx,idy,idv,idmu), self.distfPtr) 
+               self._phaseGrid:setIndexes(idx,idy,idv,idmu)
+             else 
+               distf:fill(self.distfIndexer(idx,idy,idz,idv,idmu), self.distfPtr) 
+               self._phaseGrid:setIndexes(idx,idy,idz,idv,idmu)
+             end
+             self._phaseGrid:cellCenter(self.w)
+             for d = 1, self._pdim do self.dxv[d] = self._phaseGrid:dx(d) end
+             self._momCalcStep1(self.w:data(), self.dxv:data(), self.mass, self.bmagPtr:data(), self.distfPtr:data(), self.f_dvparPtr:data())
+           end
+
+           ffi.C.createGlobalSrcGy(self._gyavg[idz][idmu], self.f_dvparPtr:data(), idx-1, idy-1, self.f_dvpar:ndim())
 
            if self._makeStiff then
               if cdim==2 then 
                 self.modifierWeight:fill(self.modifierWeightIndexer(idx,idy,idmu), self.modifierWeightPtr) 
               else 
-                self.modifierWeight:fill(self.modifierWeightIndexer(idx, idy, idz,idmu), self.modifierWeightPtr) 
+                self.modifierWeight:fill(self.modifierWeightIndexer(idx, idy, idz, idmu), self.modifierWeightPtr) 
               end
               ffi.C.makeGlobalStiffGy(self._gyavg[idz][idmu], self.modifierWeightPtr:data(), idx-1, idy-1)
            end 
@@ -381,14 +396,25 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
 
        -- remap global nodal solution to local modal solution 
        -- only need to loop over local proc region
-       for idx=localRange:lower(1),localRange:upper(1) do     
+       for idx=localRange:lower(1),localRange:upper(1) do
          for idy=localRange:lower(2),localRange:upper(2) do
            if cdim==2 then 
-             (sol[idmu] or sol):fill(self.solIndexer(idx,idy,idmu), self.solPtr) 
-           else 
-             (sol[idmu] or sol):fill(self.solIndexer(idx, idy, idz, idmu), self.solPtr) 
+             self.f_dvpar:fill(self.f_dvparIndexer(idx,idy,idmu), self.f_dvparPtr) 
+             gyMom:fill(self.gyMomIndexer(idx, idy), self.gyMomPtr) 
+             self.bmag:fill(self.bmagIndexer(idx,idy), self.bmagPtr) 
+             self._phaseGrid:setIndexes(idx,idy,1,idmu)
+           else
+             self.f_dvpar:fill(self.f_dvparIndexer(idx, idy, idz, idmu), self.f_dvparPtr) 
+             gyMom:fill(self.gyMomIndexer(idx, idy, idz), self.gyMomPtr) 
+             self.bmag:fill(self.bmagIndexer(idx,idy,idz), self.bmagPtr) 
+             self._phaseGrid:setIndexes(idx,idy,idz,1,idmu)
            end
-           ffi.C.getSolutionGy(self._gyavg[idz][idmu], self.solPtr:data(), idx-1, idy-1)
+           ffi.C.getSolutionGy(self._gyavg[idz][idmu], self.f_dvparPtr:data(), idx-1, idy-1)
+
+           -- integrate in mu
+           self._phaseGrid:cellCenter(self.w)
+           for d = 1, self._pdim do self.dxv[d] = self._phaseGrid:dx(d) end
+           self._momCalcStep2(self.w:data(), self.dxv:data(), self.mass, self.bmagPtr:data(), self.f_dvparPtr:data(), self.gyMomPtr:data())
          end
        end
      end 
@@ -401,21 +427,21 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
    return true, GKYL_MAX_DOUBLE
 end
 
-function FemGyroaverage:delete()
-  ffi.C.delete_FemGyroaverage(self._gyavg)
+function FemGyavgGkMomentCalc:delete()
+  ffi.C.delete_FemGyavgGkMomentCalc(self._gyavg)
 end
 
-function FemGyroaverage:setLaplacianWeight(weight)
+function FemGyavgGkMomentCalc:setLaplacianWeight(weight)
    self._hasLaplacian = true
    self.laplacianWeight:copy(weight)
    -- need to remake stiffness matrix since laplacianWeight has changed
    self._makeStiff = true
 end
-function FemGyroaverage:setModifierWeight(weight)
+function FemGyavgGkMomentCalc:setModifierWeight(weight)
    self._hasModifier = true
    self.modifierWeight:copy(weight)
    -- need to remake stiffness matrix since modifierWeight has changed
    self._makeStiff = true
 end
 
-return FemGyroaverage
+return FemGyavgGkMomentCalc
