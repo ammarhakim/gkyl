@@ -174,7 +174,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       }
 
       -- create solver for gyroaveraging distribution function
-      self.distfGyavgSlvr = Updater.FemGyroaverage {
+      self.distfGyavgSlvr = Updater.FemGyavgGkMomentCalc {
          onGrid = self.confGrid,
          confBasis = self.confBasis,
          phaseGrid = self.grid,
@@ -182,7 +182,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          rho1 = self.rho1,
          rho2 = self.rho2,
          rho3 = self.rho3,
-         integrate = true,
       }
    end
 

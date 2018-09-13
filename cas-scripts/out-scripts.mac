@@ -126,7 +126,7 @@ writeEigenMatrix(mat) := block([],
   printf(fh, "mat << "),
   for i : 1 thru size[1] do (
     for j : 1 thru size[2] do (
-      printf(fh, "~a", mat[i][j]),
+      printf(fh, "~a", gcfac(float(expand(mat[i][j])))),
       if(i=size[1] and j=size[2]) then printf(fh, ";~%")
       else printf(fh, ",")
     )

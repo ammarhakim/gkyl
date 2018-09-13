@@ -1,4 +1,5 @@
 #include <Eigen/Core> 
+#include <iostream>
 void getMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder);
 void getMassMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder);
 void getPerpNodToModMatrix(Eigen::MatrixXd& mat, int ndim, int polyOrder);
@@ -11,3 +12,4 @@ void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, double *gxx, double
 void getModalMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder);
 void getGyavg0Matrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, double dx, double dy, int ndim, int polyOrder);
 void getGyavgMatrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, double dx, double dy, int ndim, int polyOrder);
+

@@ -15,6 +15,7 @@ local ConfToPhase = require "Updater.ConfToPhase"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local FemGyroaverage = require "Updater.FemGyroaverage"
+local FemGyavgGkMomentCalc = require "Updater.FemGyavgGkMomentCalc"
 local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
@@ -40,6 +41,7 @@ return {
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
    FemGyroaverage = FemGyroaverage,
+   FemGyavgGkMomentCalc = FemGyavgGkMomentCalc,
    FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,
    FemPoisson = FemPoisson,

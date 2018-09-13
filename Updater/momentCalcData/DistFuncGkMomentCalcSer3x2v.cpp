@@ -663,36 +663,36 @@ void GkMomentCalc3x2vSer_M0_step1_P2(const double *w, const double *dxv, const d
 void GkMomentCalc3x2vSer_M0_step2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[4]/2; 
-  out[0] += 2.828427124746191*f[0]*volFact; 
-  out[1] += 2.828427124746191*f[1]*volFact; 
-  out[2] += 2.828427124746191*f[2]*volFact; 
-  out[3] += 2.828427124746191*f[3]*volFact; 
-  out[4] += 2.828427124746191*f[5]*volFact; 
-  out[5] += 2.828427124746191*f[6]*volFact; 
-  out[6] += 2.828427124746191*f[7]*volFact; 
-  out[7] += 2.828427124746191*f[11]*volFact; 
+  out[0] += 1.414213562373095*f[0]*volFact; 
+  out[1] += 1.414213562373095*f[1]*volFact; 
+  out[2] += 1.414213562373095*f[2]*volFact; 
+  out[3] += 1.414213562373095*f[3]*volFact; 
+  out[4] += 1.414213562373095*f[5]*volFact; 
+  out[5] += 1.414213562373095*f[6]*volFact; 
+  out[6] += 1.414213562373095*f[7]*volFact; 
+  out[7] += 1.414213562373095*f[11]*volFact; 
 } 
 void GkMomentCalc3x2vSer_M0_step2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[4]/2; 
-  out[0] += 2.828427124746191*f[0]*volFact; 
-  out[1] += 2.828427124746191*f[1]*volFact; 
-  out[2] += 2.828427124746191*f[2]*volFact; 
-  out[3] += 2.828427124746191*f[3]*volFact; 
-  out[4] += 2.828427124746191*f[5]*volFact; 
-  out[5] += 2.828427124746191*f[6]*volFact; 
-  out[6] += 2.828427124746191*f[7]*volFact; 
-  out[7] += 2.828427124746191*f[11]*volFact; 
-  out[8] += 2.828427124746191*f[12]*volFact; 
-  out[9] += 2.828427124746191*f[13]*volFact; 
-  out[10] += 2.828427124746191*f[15]*volFact; 
-  out[11] += 2.828427124746191*f[19]*volFact; 
-  out[12] += 2.828427124746191*f[20]*volFact; 
-  out[13] += 2.828427124746191*f[21]*volFact; 
-  out[14] += 2.828427124746191*f[22]*volFact; 
-  out[15] += 2.828427124746191*f[23]*volFact; 
-  out[16] += 2.828427124746191*f[24]*volFact; 
-  out[17] += 2.828427124746191*f[32]*volFact; 
-  out[18] += 2.828427124746191*f[33]*volFact; 
-  out[19] += 2.828427124746191*f[34]*volFact; 
+  out[0] += 1.414213562373095*f[0]*volFact; 
+  out[1] += 1.414213562373095*f[1]*volFact; 
+  out[2] += 1.414213562373095*f[2]*volFact; 
+  out[3] += 1.414213562373095*f[3]*volFact; 
+  out[4] += 1.414213562373095*f[5]*volFact; 
+  out[5] += 1.414213562373095*f[6]*volFact; 
+  out[6] += 1.414213562373095*f[7]*volFact; 
+  out[7] += 1.414213562373095*f[11]*volFact; 
+  out[8] += 1.414213562373095*f[12]*volFact; 
+  out[9] += 1.414213562373095*f[13]*volFact; 
+  out[10] += 1.414213562373095*f[15]*volFact; 
+  out[11] += 1.414213562373095*f[19]*volFact; 
+  out[12] += 1.414213562373095*f[20]*volFact; 
+  out[13] += 1.414213562373095*f[21]*volFact; 
+  out[14] += 1.414213562373095*f[22]*volFact; 
+  out[15] += 1.414213562373095*f[23]*volFact; 
+  out[16] += 1.414213562373095*f[24]*volFact; 
+  out[17] += 1.414213562373095*f[32]*volFact; 
+  out[18] += 1.414213562373095*f[33]*volFact; 
+  out[19] += 1.414213562373095*f[34]*volFact; 
 } 

@@ -905,7 +905,6 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
    
 end
 
-
 function test_solve2d_p1()
   print("--- Testing convergence of 2D solver with p=1 ---")
   err1 = test_solve2d(32, 32, 1)
@@ -1078,7 +1077,7 @@ test_smooth_periodic2d_p1()
 test_smooth_periodic2d_p2()
 test_periodic3d_p1()
 test_periodic3d_p2()
---test_periodic3d_metric_p1()
+test_periodic3d_metric_p1()
 local t2 = os.clock()
 
 print()
