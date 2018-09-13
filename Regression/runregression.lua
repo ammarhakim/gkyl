@@ -105,7 +105,7 @@ local function copyAllFiles(srcPath, ext, destPath)
    -- is not the best way to do this and one might want to use a more
    -- Lua-ish way
    local cp = "cp " .. srcPath .. "_*." .. ext .. " " .. destPath
-   verboseLog(string.format(" ... executing %s ...\n", cp))
+   verboseLog(string.format("... executing %s ...\n", cp))
    os.execute(cp)
 end
 
@@ -221,7 +221,7 @@ local function create_action(test)
    local fullResultsDir = configVals.results_dir .. "/"
       .. string.sub(test, 1, -5) -- remove the initial ./ and last .lua
 
-   verboseLog(string.format("Making directory %s ..\n", fullResultsDir))
+   verboseLog(string.format("... making directory %s ..\n", fullResultsDir))
    mkdir(fullResultsDir) -- recursively create all dirs as needed
    local srcPath = string.sub(test, 1, -5)
    copyAllFiles(srcPath, "bp", fullResultsDir)
