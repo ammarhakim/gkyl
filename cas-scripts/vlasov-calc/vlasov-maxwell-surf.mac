@@ -79,11 +79,11 @@ for i : 1 thru pMax do (
   if vdim > 1 then (
       if vdim = 2 then (
           /* in 2 velocity dimensions, only Bz */
-          printf(fh, "  const double *B~a = &EM[~a]; ~%", 2, NC*2+3*NC)
+          printf(fh, "  const double *B~a = &EM[~a]; ~%", 2, numC*2+3*numC)
       ),
       if vdim = 3 then (
          for dir : 1 thru 3 do (
-            printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, NC*(dir-1)+3*NC)
+            printf(fh, "  const double *B~a = &EM[~a]; ~%", dir-1, numC*(dir-1)+3*numC)
          )            
       )
   ),
