@@ -302,6 +302,7 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 
       if self.positivity then 
          self.positivityRescale:advance(tCurr, dt, {fIn}, {self.fPos}) 
+         self:applyBc(tCurr, dt, self.fPos)
          status, dtSuggested = self.solver:advance(tCurr, dt, {self.fPos, em, emFunc, emGy}, {fOut})
       else
          status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc, emGy}, {fOut})
