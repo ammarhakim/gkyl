@@ -22,6 +22,7 @@ local Time = require "Lib.Time"
 local date = require "xsys.date"
 local lume = require "Lib.lume"
 local xsys = require "xsys"
+local Projection = require "App.Projection"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -724,16 +725,21 @@ return {
    VmLBOCollisions = Collisions.VmLBOCollisions,
    GkLBOCollisions = Collisions.GkLBOCollisions,
    VoronovIonization = Collisions.VoronovIonization,
+   Projection = Projection,
 
    -- valid pre-packaged species-field systems
    Gyrokinetic = {
-      App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry
+      App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
+      FunctionProjection = Projection.KineticProjection.FunctionProjection, 
+      MaxwellianProjection = Projection.KineticProjection.MaxwellianProjection
    },
    IncompEuler = {
       App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
    },
    VlasovMaxwell = {
-      App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField
+      App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField,
+      FunctionProjection = Projection.KineticProjection.FunctionProjection, 
+      MaxwellianProjection = Projection.KineticProjection.MaxwellianProjection
    },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
