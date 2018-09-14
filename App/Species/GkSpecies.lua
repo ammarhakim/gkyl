@@ -280,8 +280,8 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
 
    self.tmCouplingMom = 0.0 -- for timer 
 
-   if self.positivity then 
-      self.positivityRescale = Updater.PositivityRescale {
+   if self.positivityRescale then 
+      self.posRescaler = Updater.PositivityRescale {
          onGrid = self.grid,
          basis = self.basis,
       }
@@ -299,9 +299,8 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 
 
    if self.evolveCollisionless then
-
-      if self.positivity then 
-         self.positivityRescale:advance(tCurr, dt, {fIn}, {self.fPos}) 
+      if self.positivityRescale then 
+         self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
          if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
          status, dtSuggested = self.solver:advance(tCurr, dt, {self.fPos, em, emFunc, emGy}, {fOut})
       else
@@ -345,8 +344,9 @@ function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
       local emFunc = emIn[2]:rkStepperFields()[1]
       local status, dtSuggested
       status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
-      if self.positivity then 
-         self.positivityRescale:advance(tCurr, dt, {fIn}, {self.fPos}) 
+      if self.positivityRescale then 
+         self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
+         if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
          status, dtSuggested = self.solverStep2:advance(tCurr, dt, {self.fPos, em, emFunc}, {fOut})
       else
          status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
@@ -581,7 +581,7 @@ end
 function GkSpecies:totalSolverTime()
    local timer = self.solver.totalTime
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   if self.positivityRescale then timer = timer + self.positivityRescale.totalTime end
+   if self.posRescaler then timer = timer + self.posRescaler.totalTime end
    return timer
 end
 
