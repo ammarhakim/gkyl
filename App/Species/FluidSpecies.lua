@@ -317,11 +317,13 @@ end
 
 function FluidSpecies:readRestart()
    local tm, fr = self.momIo:read(self.moments[1], string.format("%s_restart.bp", self.name))
-   self.distIoFrame = fr -- reset internal frame counter
+   self.diagIoFrame = fr -- reset internal frame counter
    self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))   
    
    self:applyBc(tm, 0.0, self.moments[1])
-   self.moment[1]:sync() -- must get all ghost-cell data correct
+   self.moments[1]:sync() -- must get all ghost-cell data correct
+
+   return tm
 end
 
 -- timers
