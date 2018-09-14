@@ -86,19 +86,19 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
   if (writeMatrix)
   {
     std::string outName = "poisson-nodtomod"; 
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localNodToMod, outName);
     outName = "poisson-modtonod"; 
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod, outName);
     outName = "poisson-massmodtonod";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localMassModToNod, outName);
     outName = "poisson-mass";   
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localMass, outName);
     outName = "poisson-check";   
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod*localNodToMod, outName);
   }
   localMass.resize(0,0);
@@ -851,7 +851,7 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
   if (writeMatrix)
   {
     std::string outName = "poisson-stiffnessMatrix";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(stiffMat, outName);
   }
 }
@@ -898,7 +898,7 @@ void FemPerpPoisson::createGlobalSrc(double* localSrcPtr, int idx, int idy, doub
   if (writeMatrix)
   {
     std::string outName = "poisson-src-beforeBCs-";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(globalSrc, outName);
   }
 }
@@ -978,7 +978,7 @@ void FemPerpPoisson::solve()
   if (writeMatrix)
   {
     std::string outName = "poisson-src";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(globalSrc, outName);
   }
  
@@ -1001,7 +1001,7 @@ void FemPerpPoisson::solve()
   if (writeMatrix)
   {
     std::string outName = "poisson-sol";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(x, outName);
   }
 }

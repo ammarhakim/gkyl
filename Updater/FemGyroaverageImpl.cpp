@@ -90,10 +90,10 @@ FemGyroaverage::FemGyroaverage(int nx_, int ny_, int ndim_, int polyOrder_, doub
   if (writeMatrix)
   {
     std::string outName = "poisson-nodtomod"; 
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localNodToMod, outName);
     outName = "poisson-modtonod"; 
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod, outName);
   }
 
@@ -844,7 +844,7 @@ void FemGyroaverage::finishGlobalPerpStiffnessMatrix()
   if (writeMatrix)
   {
     std::string outName = "poisson-stiffnessMatrix";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(stiffMat, outName);
   }
 }
@@ -964,7 +964,7 @@ void FemGyroaverage::createGlobalSrcGy(double* localSrcIn, int idx, int idy, int
   if (writeMatrix)
   {
     std::string outName = "poisson-src-beforeBCs-";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(globalSrc, outName);
   }
 }
@@ -1045,7 +1045,7 @@ void FemGyroaverage::solveGy()
   if (writeMatrix)
   {
     std::string outName = "poisson-src";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(globalSrc, outName);
   }
  
@@ -1058,7 +1058,7 @@ void FemGyroaverage::solveGy()
   if (writeMatrix)
   {
     std::string outName = "poisson-sol";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(x, outName);
   }
 }
