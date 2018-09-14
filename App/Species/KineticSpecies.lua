@@ -428,6 +428,7 @@ function KineticSpecies:allocDistf()
 	numComponents = self.basis:numBasis(),
 	ghost = {1, 1},
    }
+   f:clear(0.0)
    return f
 end
 function KineticSpecies:allocMoment()
@@ -436,6 +437,7 @@ function KineticSpecies:allocMoment()
 	numComponents = self.confBasis:numBasis(),
 	ghost = {1, 1},
    }
+   m:clear(0.0)
    return m
 end
 function KineticSpecies:allocVectorMoment(dim)
@@ -444,6 +446,7 @@ function KineticSpecies:allocVectorMoment(dim)
 	numComponents = self.confBasis:numBasis()*dim,
 	ghost = {1, 1},
    }
+   m:clear(0.0)
    return m
 end
 
@@ -543,7 +546,7 @@ function KineticSpecies:initDist()
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
 
-   local initCnt, backgroundCnt = 0.0, 0.0
+   local initCnt, backgroundCnt = 0, 0
    for _, pr in pairs(self.projections) do
       pr:fullInit(self)
       pr:run(0.0, self.distf[2])
