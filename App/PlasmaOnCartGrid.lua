@@ -629,10 +629,12 @@ local function buildApplication(self, tbl)
 	 -- check status and determine what to do next
 	 if status then
 	    writeLogMessage(tCurr+myDt)
+	    -- we must write data first before calling writeRestart in
+	    -- order not to mess up numbering of frames on a restart
+	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
 	    end	    
-	    writeData(tCurr+myDt)
 	    
 	    tCurr = tCurr + myDt
 	    myDt = math.min(dtSuggested, maxDt)
