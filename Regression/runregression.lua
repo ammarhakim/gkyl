@@ -244,7 +244,7 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   verboseLog(string.format("Comparing %s to %s ...\n", f1, f2))
+   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))

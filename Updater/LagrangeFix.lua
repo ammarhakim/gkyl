@@ -29,8 +29,7 @@ function LagrangeFix:init(tbl)
 			  "Updater.LagrangeFix: Must provide configuration space grid object using 'confGrid'")
    self.confBasis = assert(tbl.confBasis,
 			   "Updater.LagrangeFix: Must provide configuration space basis object using 'confBasis'")
-   self.phaseGrid = assert(tbl.phaseGrid,
-			   "Updater.LagrangeFix: Must provide phase space grid object using 'phaseGrid'")
+   self.phaseGrid = tbl.onGrid
    self.phaseBasis = assert(tbl.phaseBasis,
 			    "Updater.LagrangeFix: Must provide phase space basis object using 'phaseBasis'")
 
