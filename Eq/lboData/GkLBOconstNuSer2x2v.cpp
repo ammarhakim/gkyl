@@ -53,13 +53,13 @@ double GkLBOconstNuVol2x2vSerP1(const double m_, const double *w, const double *
   out[15] += 0.4330127018922193*((mufac0[4]+alpha0[3])*f[15]+alpha0[0]*f[12]+mufac0[0]*f[11]+alpha0[1]*f[9]+alpha0[2]*f[8]+mufac0[1]*f[7]+mufac0[2]*f[6]+f[3]*mufac0[5]+f[4]*alpha0[5]); 
 
   const double alpha0Mid = 0.25*alpha0[0]; 
-  const double alpha1Mid = 0.25*alpha1[0]; 
+  const double alpha1Mid = 0.75*alpha1[0]; 
   double mufacD[16]; 
   mufacD[0] = -8.0*rdv2[1]*w[3]*nu; 
   mufacD[4] = -4.618802153517007*nu; 
 
   const double mufacDMid = 0.25*mufacD[0]; 
-  const double mufac1Mid = 0.25*mufac1[0]; 
+  const double mufac1Mid = 0.75*mufac1[0]; 
   return std::abs(alpha0Mid) + alpha1Mid + std::abs(mufacDMid) + mufac1Mid; 
 
 } 
@@ -165,13 +165,13 @@ double GkLBOconstNuVol2x2vSerP2(const double m_, const double *w, const double *
   out[47] += (0.8660254037844386*mufac0[4]+0.4330127018922193*alpha0[3])*f[47]+(1.341640786499874*mufac1[35]+0.7745966692414833*mufac0[19]+1.5*mufac1[9]+0.8660254037844386*mufac0[2])*f[45]+(1.341640786499874*mufac1[36]+0.7745966692414833*mufac0[20]+1.5*mufac1[8]+0.8660254037844386*mufac0[1])*f[44]+(0.3872983346207416*(alpha0[12]+alpha0[11])+0.4330127018922193*alpha0[0])*f[41]+(1.5*mufac1[16]+0.8660254037844386*mufac0[5])*f[38]+(1.5*mufac1[16]+0.8660254037844386*mufac0[5])*f[37]+1.5*(f[18]*mufac1[36]+f[17]*mufac1[35])+(1.341640786499874*mufac1[19]+1.5*mufac1[2])*f[33]+(1.341640786499874*mufac1[20]+1.5*mufac1[1])*f[32]+(1.5*(mufac1[26]+mufac1[25])+0.8660254037844386*(mufac0[12]+mufac0[11])+1.677050983124842*mufac1[4]+0.9682458365518543*mufac0[0])*f[31]+(0.3872983346207416*alpha0[20]+0.4330127018922193*alpha0[1])*f[29]+(0.3872983346207416*alpha0[19]+0.4330127018922193*alpha0[2])*f[28]+1.5*(mufac1[5]*(f[22]+f[21])+f[7]*mufac1[20])+0.8660254037844386*f[18]*mufac0[20]+1.5*f[6]*mufac1[19]+0.8660254037844386*f[17]*mufac0[19]+(1.677050983124842*mufac1[8]+0.9682458365518543*mufac0[1])*f[18]+(1.677050983124842*mufac1[9]+0.9682458365518543*mufac0[2])*f[17]+1.677050983124842*f[10]*mufac1[16]+(1.5*(mufac1[12]+mufac1[11])+0.9682458365518543*mufac0[4]+1.677050983124842*mufac1[0])*f[15]+0.4330127018922193*alpha0[5]*f[14]+0.9682458365518543*mufac0[5]*f[10]+1.677050983124842*(mufac1[1]*f[7]+mufac1[2]*f[6]+f[3]*mufac1[5]); 
 
   const double alpha0Mid = (-0.2795084971874737*alpha0[12])-0.2795084971874737*alpha0[11]+0.25*alpha0[0]; 
-  const double alpha1Mid = (-0.2795084971874737*alpha1[12])-0.2795084971874737*alpha1[11]+0.25*alpha1[0]; 
+  const double alpha1Mid = 5*((-0.2795084971874737*alpha1[12])-0.2795084971874737*alpha1[11]+0.25*alpha1[0]); 
   double mufacD[48]; 
   mufacD[0] = -8.0*rdv2[1]*w[3]*nu; 
   mufacD[4] = -4.618802153517007*nu; 
 
   const double mufacDMid = 0.25*mufacD[0]; 
-  const double mufac1Mid = (-0.2795084971874737*mufac1[12])-0.2795084971874737*mufac1[11]+0.25*mufac1[0]; 
+  const double mufac1Mid = 5*((-0.2795084971874737*mufac1[12])-0.2795084971874737*mufac1[11]+0.25*mufac1[0]); 
   return std::abs(alpha0Mid) + alpha1Mid + std::abs(mufacDMid) + mufac1Mid; 
 
 } 
