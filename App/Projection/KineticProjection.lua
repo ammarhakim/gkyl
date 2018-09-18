@@ -188,7 +188,8 @@ function MaxwellianProjection:lagrangeFix(distf)
       for i = 1, self.numVelDims do
 	 out = out + drifts[i] * drifts[i]
       end
-      out = self.density(t, zn, self.species) * (out + self.temperature(t, zn, self.species) / self.species.mass )
+      out = self.density(t, zn, self.species) *
+	 (out + self.numVelDims*self.temperature(t, zn, self.species)/self.species.mass )
       return out
    end
    project = Updater.ProjectOnBasis {
