@@ -12,7 +12,7 @@ app = Plasma.App {
    upper = {1}, -- configuration space upper right
    cells = {nCells}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 1, -- polynomial order
+   polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
 
    -- decomposition for configuration space
