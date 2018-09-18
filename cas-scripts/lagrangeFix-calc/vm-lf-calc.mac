@@ -13,10 +13,10 @@ for bIdx : 1 thru length(basis) do (
   for cDim : 1 thru 2 do (
     for vDim : cDim thru 3 do (
       /* Prepare the CPP file */
-      fname : sconcat("~/max-out/lagrangeFix", basis[bIdx], cDim, "x", vDim, "v.cpp"),
+      fname : sconcat("~/max-out/VmLagrangeFix", basis[bIdx], cDim, "x", vDim, "v.cpp"),
       fh : openw(fname),
       printf(fh, "#include <math.h> ~%"),
-      printf(fh, "#include <lagrangeFixDecl.h> ~%~%"),
+      printf(fh, "#include <VmLagrangeFixDecl.h> ~%~%"),
       
       /* Load precomputed basis */
       kill(varsC, varsP, basisC, basisP),
@@ -89,7 +89,7 @@ for bIdx : 1 thru length(basis) do (
         printSub : subst(sList, printSub),
         printSub : subst(gkyl_ipow, "^", printSub),
 
-        printf(fh, "void lagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
+        printf(fh, "void VmLagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
         for i : 1 thru length(bp) do (
           printf(fh, "  f[~a] = f[~a] +  ~a;~%", i-1, i-1, printSub[i])
         ),
