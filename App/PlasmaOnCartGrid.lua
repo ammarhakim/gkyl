@@ -40,8 +40,14 @@ local function buildApplication(self, tbl)
    local log = Logger {
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
-
+      
    log(date(false):fmt()); log("\n") -- time-stamp for sim start
+   if GKYL_HG_CHANGESET then
+      log(string.format("Gkyl built with %s\n", GKYL_HG_CHANGESET))
+   end
+   if GKYL_BUILD_DATE then
+      log(string.format("Gkyl built on %s\n", GKYL_BUILD_DATE))
+   end
 
    -- function to warn user about default values
    local function warnDefault(varVal, varNm, default)

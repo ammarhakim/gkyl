@@ -49,7 +49,19 @@ def configure(conf):
     # write out configuration info into header
     conf.write_config_header('gkylconfig.h')
 
+
+from waflib import Task
+class HgTip(Task.Task):
+    always_run = True # need to force running every time
+    run_str = r'echo \#define GKYL_HG_CHANGESET  \"`hg tip | grep changeset`\" > ${TGT}'
+
 def build(bld):
+
+    # determine Mercurial version
+    hgTip = HgTip(env=bld.env)
+    hgTip.set_outputs(bld.path.find_or_declare('gkylhgtip.h'))
+    bld.add_to_group(hgTip)
+    
     # recurse down directories and build C++ code
     bld.recurse("Lib") 
     bld.recurse("Comm")
