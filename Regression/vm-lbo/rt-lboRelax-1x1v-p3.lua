@@ -6,35 +6,31 @@ local Plasma = require "App.PlasmaOnCartGrid"
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
 
-polyOrder = 2
-nu        = 0.01                            -- Collision frequency.
-n0        = 1.0                             -- Density.
-u0        = {0.0,0.0}                       -- Flow speed.
-vMin      = -2.0                            -- Min velocity in grid.
-vMax      =  2.0                            -- Max velocity in grid.
-Nx        = {2}                             -- Number of cells in configuration space.
-Nv        = {16,16}                         -- Number of cells in velocity space.
--- The next three are for p1, v\in[-2,2], 2x16, rectangular IC.
-nMr  = 1.0                                  -- Density of Maxwellian and rectangle. 
-uMr  = {0.0,0.0}                            -- Flow speed of Maxwellian and rectangle. 
-vtMr = math.sqrt(0.0208333333+3.333e-11)    -- Thermal speed of Maxwellian and rectangle.
+polyOrder = 3
+n0        = 1.0                               -- Density.
+u0        = 0.0                               -- Flow speed.
+vt        = 1.0/3.0                           -- Thermal speed..
+nu        = 0.01                              -- Collision frequency.
+-- The next three are for p1, v \in [-8vt,8vt], 2x32, rectangular IC.
+nMr  = 0.94621294117+18.6e-13                 -- Density of Maxwellian and rectangle. 
+uMr  = 0.0                                    -- Flow speed of Maxwellian and rectangle. 
+vtMr = math.sqrt(0.099079358892+7.84e-14)     -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
-vt   = math.sqrt(1.0/24.0)                  -- Thermal speed of Maxwellian in bump.
-ab   = 4*math.sqrt(0.1)                     -- Amplitude of bump.
-ub   = {2*math.sqrt(1/3),0.0}               -- Location of bump.
-sb   = 0.12                                 -- Softening factor to avoid divergence.
-vtb  = 1.0/math.sqrt(2.0)                   -- Thermal speed of Maxwellian in bump.
--- These are for p2, v\in[-2,2], 2x16, bump in tail IC. 
-nMb  = 3.360226111+9.499e-13              -- Density of Maxwellian and bump. 
-uMb  = {0.51777890414+8.5e-13,0.0}                 -- Flow speed of Maxwellian and bump. 
-vtMb = math.sqrt(0.23954512341+70e-13)            -- Thermal speed of Maxwellian and bump.
+ab   = math.sqrt(0.1)                         -- Amplitude of bump.
+ub   = 4*math.sqrt(((3*vt/2)^2)/3)            -- Location of bump.
+sb   = 0.12                                   -- Softening factor to avoid divergence.
+vtb  = 1.0                                    -- Thermal speed of Maxwellian in bump.
+-- The next three are for p2, v \in [-8vt,8vt], 2x32, bump in tail IC. 
+nMb  = 1.0993998219+2.61e-11                  -- Density of Maxwellian and bump. 
+uMb  = 0.48715085928+8.185e-13                -- Flow speed of Maxwellian and bump. 
+vtMb = math.sqrt(0.39662987482+5.845e-12)     -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
-local function topHat(x, vx, vy, n, ux, uy, vth)
+local function topHat(x, v, n, u, vth)
    local fOut   = 0.0
-   local v0     = math.sqrt(3.0*(vth^2)/2.0)
-   if (math.abs(vx) <= v0) and (math.abs(vy) <= v0) then
-      fOut = n/((2.0*v0)^2)
+   local v0     = math.sqrt(3.0)*vth
+   if math.abs(v) < v0 then
+      fOut = n/(2.0*v0)
    else
       fOut = 0.0
    end
@@ -42,29 +38,27 @@ local function topHat(x, vx, vy, n, ux, uy, vth)
 end
 
 -- Maxwellian with a Maxwellian bump in the tail.
-local function bumpMaxwell(x,vx,vy,n,ux,uy,vth,bA,bUx,bUy,bS,bVth)
+local function bumpMaxwell(x,vx,n,u,vth,bA,bU,bS,bVth)
    local Pi   = math.pi
-   local vSq  = ((vx-ux)^2+(vy-uy)^2)/((math.sqrt(2.0)*vth)^2)
-   local vbSq = ((vx-ux)^2+(vy-uy)^2)/((math.sqrt(2.0)*bVth)^2)
+   local vSq  = ((vx-u)/(math.sqrt(2.0)*vth))^2
+   local vbSq = ((vx-u)/(math.sqrt(2.0)*bVth))^2
 
-   return (n/(2.0*Pi*(vth^2)))*math.exp(-vSq)
-         +(n/(2.0*Pi*(bVth^2)))*math.exp(-vbSq)*(bA^2)/((vx-bUx)^2+(vy-bUy)^2+bS^2)
+   return (n/math.sqrt(2.0*Pi*vth))*math.exp(-vSq)
+         +(n/math.sqrt(2.0*Pi*bVth))*math.exp(-vbSq)*(bA^2)/((vx-bU)^2+bS^2)
 end
 
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 50,           -- End time.
+   tEnd        = 100,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
-   cells       = {Nx[1]},       -- Configuration space cells.
+   cells       = {2},           -- Configuration space cells.
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
-   -- unnecessary, but linear trigger bug causes multiple write outs at end 
-   -- without small adjustment of time step
-   cflFrac     = 0.95,
+   cflFrac     = 0.9,
 
    -- Decomposition for configuration space.
    decompCuts = {1},            -- Cuts in each configuration direction.
@@ -77,15 +71,15 @@ plasmaApp = Plasma.App {
    square = Plasma.VlasovSpecies {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {vMin,vMin},
-      upper      = {vMax,vMax},
-      cells      = Nv,
-      decompCuts = {1,1},
+      lower      = {-8.0*vt},
+      upper      = {8.0*vt},
+      cells      = {32},
+      decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
-	 local x, vx, vy = xn[1], xn[2], xn[3]
+	 local x, v = xn[1], xn[2]
 
-         return topHat(x, vx, vy, n0, u0[1], u0[2], vt)
+         return topHat(x, v, n0, u0, vt)
       end,
       -- Evolve species?
       evolve = true,
@@ -101,14 +95,14 @@ plasmaApp = Plasma.App {
    -- maxwellSquare = Plasma.VlasovSpecies {
    --    charge = 0.0, mass = 1.0,
    --    -- Velocity space grid.
-   --    lower      = {vMin,vMin},
-   --    upper      = {vMax,vMax},
-   --    cells      = Nv,
-   --    decompCuts = {1,1},
+   --    lower      = {-8.0*vt},
+   --    upper      = {8.0*vt},
+   --    cells      = {32},
+   --    decompCuts = {1},
    --    -- Initial conditions.
    --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
    --       density         = nMr,
-   --       drift           = uMr,
+   --       drift           = {uMr},
    --       temperature     = vtMr^2,
    --       exactScaleM0    = false,
    --       exactLagFixM012 = true,
@@ -119,20 +113,19 @@ plasmaApp = Plasma.App {
    --    diagnosticMoments = { "M0", "M1i", "M2" },
    -- },
 
-
    -- Neutral species with a bump in the tail.
    bump = Plasma.VlasovSpecies {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
-      lower      = {vMin,vMin},
-      upper      = {vMax,vMax},
-      cells      = Nv,
-      decompCuts = {1,1},
+      lower      = {-8.0*vt},
+      upper      = {8.0*vt},
+      cells      = {32},
+      decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
-	 local x, vx, vy = xn[1], xn[2], xn[3]
+	 local x, v = xn[1], xn[2]
 
-         return bumpMaxwell(x,vx,vy,n0,u0[1],u0[2],vt,ab,ub[1],ub[2],sb,vtb)
+         return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
       -- Evolve species?
       evolve = true,
@@ -148,14 +141,14 @@ plasmaApp = Plasma.App {
    -- maxwellBump = Plasma.VlasovSpecies {
    --    charge = 0.0, mass = 1.0,
    --    -- Velocity space grid.
-   --    lower      = {vMin,vMin},
-   --    upper      = {vMax,vMax},
-   --    cells      = Nv,
-   --    decompCuts = {1,1},
+   --    lower      = {-8.0*vt},
+   --    upper      = {8.0*vt},
+   --    cells      = {32},
+   --    decompCuts = {1},
    --    -- Initial conditions.
    --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
    --       density         = nMb,
-   --       drift           = uMb,
+   --       drift           = {uMb},
    --       temperature     = vtMb^2,
    --       exactScaleM0    = false,
    --       exactLagFixM012 = true,

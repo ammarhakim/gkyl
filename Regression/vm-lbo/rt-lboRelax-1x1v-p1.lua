@@ -72,7 +72,7 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = {8.0*vt},
-      cells      = {32},
+      cells      = {48},
       decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
@@ -80,8 +80,6 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      --bcx = { Plasma.VlasovSpecies.bcOpen,
-      --        Plasma.VlasovSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
@@ -92,27 +90,27 @@ plasmaApp = Plasma.App {
       },
    },
 
-   ---- Maxwellian for comparison with rectangular IC.
-   --maxwellSquare = Plasma.VlasovSpecies {
-   --   charge = 0.0, mass = 1.0,
-   --   -- Velocity space grid.
-   --   lower      = {-8.0*vt},
-   --   upper      = {8.0*vt},
-   --   cells      = {32},
-   --   decompCuts = {1},
-   --   -- Initial conditions.
-   --   init = Plasma.VlasovMaxwell.MaxwellianProjection {
-   --      density         = nMr,
-   --      drift           = {uMr},
-   --      temperature     = vtMr^2,
-   --      exactScaleM0    = false,
-   --      exactLagFixM012 = true,
-   --   },
-   --   -- Evolve species?
-   --   evolve = false,
-   --   -- Diagnostic moments.
-   --   diagnosticMoments = { "M0", "M1i", "M2" },
-   --},
+   -- -- Maxwellian for comparison with rectangular IC.
+   -- maxwellSquare = Plasma.VlasovSpecies {
+   --    charge = 0.0, mass = 1.0,
+   --    -- Velocity space grid.
+   --    lower      = {-8.0*vt},
+   --    upper      = {8.0*vt},
+   --    cells      = {48},
+   --    decompCuts = {1},
+   --    -- Initial conditions.
+   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --       density         = nMr,
+   --       drift           = {uMr},
+   --       temperature     = vtMr^2,
+   --       exactScaleM0    = false,
+   --       exactLagFixM012 = true,
+   --    },
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "M0", "M1i", "M2" },
+   -- },
 
    -- Neutral species with a bump in the tail.
    bump = Plasma.VlasovSpecies {
@@ -120,7 +118,7 @@ plasmaApp = Plasma.App {
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = {8.0*vt},
-      cells      = {32},
+      cells      = {48},
       decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
@@ -128,8 +126,6 @@ plasmaApp = Plasma.App {
 
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      --bcx = { Plasma.VlasovSpecies.bcOpen,
-      --        Plasma.VlasovSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
@@ -140,27 +136,27 @@ plasmaApp = Plasma.App {
       },
    },
 
-   ---- Maxwellian for comparison with bump in tail IC.
-   --maxwellBump = Plasma.VlasovSpecies {
-   --   charge = 0.0, mass = 1.0,
-   --   -- Velocity space grid.
-   --   lower      = {-8.0*vt},
-   --   upper      = {8.0*vt},
-   --   cells      = {32},
-   --   decompCuts = {1},
-   --   -- Initial conditions.
-   --   init = Plasma.VlasovMaxwell.MaxwellianProjection {
-   --      density         = nMb,
-   --      drift           = {uMb},
-   --      temperature     = vtMb^2,
-   --      exactScaleM0    = false,
-   --      exactLagFixM012 = true,
-   --   },
-   --   -- Evolve species?
-   --   evolve = false,
-   --   -- Diagnostic moments.
-   --   diagnosticMoments = { "M0", "M1i", "M2" },
-   --},
+   -- -- Maxwellian for comparison with bump in tail IC.
+   -- maxwellBump = Plasma.VlasovSpecies {
+   --    charge = 0.0, mass = 1.0,
+   --    -- Velocity space grid.
+   --    lower      = {-8.0*vt},
+   --    upper      = {8.0*vt},
+   --    cells      = {48},
+   --    decompCuts = {1},
+   --    -- Initial conditions.
+   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --       density         = nMb,
+   --       drift           = {uMb},
+   --       temperature     = vtMb^2,
+   --       exactScaleM0    = false,
+   --       exactLagFixM012 = true,
+   --    },
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "M0", "M1i", "M2" },
+   -- },
 
 }
 -- run application

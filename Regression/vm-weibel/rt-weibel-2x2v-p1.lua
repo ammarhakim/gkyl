@@ -49,7 +49,7 @@ vlasovApp = Plasma.App {
    upper = {2*math.pi/kx, 2*math.pi/ky }, -- configuration space upper right
    cells = {8, 8}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 2, -- polynomial order
+   polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
 
    -- decomposition for configuration space

@@ -19,7 +19,7 @@ nPrs = VDIM*(VDIM+1)/2 -- number of pressure tensor component
 local phaseGrid = Grid.RectCart {
    lower = {-1.0, -1.0, -6.0, -6.0, -6.0},
    upper = {1.0, 1.0, 6.0, 6.0, 6.0},
-   cells = {32, 4, 8, 8, 8},
+   cells = {8, 8, 8, 8, 8},
 }
 local confGrid = Grid.RectCart {
    lower = { phaseGrid:lower(1), phaseGrid:lower(2) },
@@ -91,17 +91,17 @@ ptclEnergyCalc = Updater.DistFuncMomentCalc {
 -- initial condition to apply
 function maxwellian(x,y,vx,vy,vz)
    local Pi = math.pi   
-   local n = 1.0*math.sin(2*Pi*x)
-   local ux = 0.1*math.cos(2*Pi*x)
-   local uy = 0.2*math.sin(2*Pi*x)
-   local uz = 0.1*math.cos(2*Pi*x)
+   local n = 1.0*math.sin(2*Pi*x)*math.sin(2*Pi*y)
+   local ux = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)
+   local uy = 0.2*math.sin(2*Pi*x)*math.sin(2*Pi*y)
+   local uz = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)
 
-   local Txx = 0.75 + 0.25*math.cos(2*Pi*x)
-   local Tyy = 0.75 + 0.25*math.sin(2*Pi*x)
-   local Tzz = 0.75 + 0.1*math.sin(2*Pi*x)
-   local Txy = 0.5 + 0.1*math.sin(2*Pi*x)
-   local Txz = 0.25 + 0.1*math.sin(2*Pi*x)
-   local Tyz = 0.125 + 0.1*math.sin(2*Pi*x)   
+   local Txx = 0.75 + 0.25*math.cos(2*Pi*x)*math.cos(2*Pi*y)
+   local Tyy = 0.75 + 0.25*math.sin(2*Pi*x)*math.sin(2*Pi*y)
+   local Tzz = 0.75 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
+   local Txy = 0.5 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
+   local Txz = 0.25 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
+   local Tyz = 0.125 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
 
    local cx = vx-ux
    local cy = vy-uy
@@ -122,8 +122,11 @@ local project = Updater.ProjectOnBasis {
       return maxwellian(xn[1], xn[2], xn[3], xn[4], xn[5])
    end
 }
+
+local tStart = Time.clock()
 project:advance(0.0, 0.0, {}, {distf})
 distf:write("distf.bp", 0.0)
+local tEnd = Time.clock()
 
 local tStart = Time.clock()
 -- compute moments

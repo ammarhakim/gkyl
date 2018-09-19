@@ -6,7 +6,7 @@ local Plasma = require "App.PlasmaOnCartGrid"
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
 
-polyOrder = 1
+polyOrder = 3
 nu        = 0.01                            -- Collision frequency.
 n0        = 1.0                             -- Density.
 u0        = {0.0,0.0}                       -- Flow speed.
@@ -24,10 +24,10 @@ ab   = 4*math.sqrt(0.1)                     -- Amplitude of bump.
 ub   = {2*math.sqrt(1/3),0.0}               -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0/math.sqrt(2.0)                   -- Thermal speed of Maxwellian in bump.
--- These are for p1, v\in[-2,2], 2x16, bump in tail IC. 
-nMb  = 3.356702993+2.9312e-12               -- Density of Maxwellian and bump. 
-uMb  = {0.51706459056+3.253e-12,0.0}        -- Flow speed of Maxwellian and bump. 
-vtMb = math.sqrt(0.2394147396+8.02e-11)     -- Thermal speed of Maxwellian and bump.
+-- These are for p2, v\in[-2,2], 2x16, bump in tail IC. 
+nMb  = 3.360226111+9.499e-13              -- Density of Maxwellian and bump. 
+uMb  = {0.51777890414+8.5e-13,0.0}                 -- Flow speed of Maxwellian and bump. 
+vtMb = math.sqrt(0.23954512341+70e-13)            -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, vx, vy, n, ux, uy, vth)
@@ -54,7 +54,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 50,           -- End time.
+   tEnd        = 40,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0},         -- Configuration space lower coordinate.
    upper       = {1.0},         -- Configuration space upper coordinate.
@@ -62,6 +62,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity", -- One of "serendipity" or "maximal-order".
    polyOrder   = polyOrder,     -- Polynomial order.
    timeStepper = "rk3",         -- One of "rk2", "rk3" or "rk3s4".
+   cflFrac     = 0.9,
 
    -- Decomposition for configuration space.
    decompCuts = {1},            -- Cuts in each configuration direction.
@@ -94,27 +95,27 @@ plasmaApp = Plasma.App {
       },
    },
 
-  -- -- Maxwellian for comparison with rectangular IC.
-  -- maxwellSquare = Plasma.VlasovSpecies {
-  --    charge = 0.0, mass = 1.0,
-  --    -- Velocity space grid.
-  --    lower      = {vMin,vMin},
-  --    upper      = {vMax,vMax},
-  --    cells      = Nv,
-  --    decompCuts = {1,1},
-  --    -- Initial conditions.
-  --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
-  --       density         = nMr,
-  --       drift           = uMr,
-  --       temperature     = vtMr^2,
-  --       exactScaleM0    = false,
-  --       exactLagFixM012 = true,
-  --    },
-  --    -- Evolve species?
-  --    evolve = false,
-  --    -- Diagnostic moments.
-  --    diagnosticMoments = { "M0", "M1i", "M2" },
-  -- },
+   -- -- Maxwellian for comparison with rectangular IC.
+   -- maxwellSquare = Plasma.VlasovSpecies {
+   --    charge = 0.0, mass = 1.0,
+   --    -- Velocity space grid.
+   --    lower      = {vMin,vMin},
+   --    upper      = {vMax,vMax},
+   --    cells      = Nv,
+   --    decompCuts = {1,1},
+   --    -- Initial conditions.
+   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --       density         = nMr,
+   --       drift           = uMr,
+   --       temperature     = vtMr^2,
+   --       exactScaleM0    = false,
+   --       exactLagFixM012 = true,
+   --    },
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "M0", "M1i", "M2" },
+   -- },
 
 
    -- Neutral species with a bump in the tail.
@@ -141,27 +142,27 @@ plasmaApp = Plasma.App {
       },
    },
 
-  -- -- Maxwellian for comparison with bump in tail IC.
-  -- maxwellBump = Plasma.VlasovSpecies {
-  --    charge = 0.0, mass = 1.0,
-  --    -- Velocity space grid.
-  --    lower      = {vMin,vMin},
-  --    upper      = {vMax,vMax},
-  --    cells      = Nv,
-  --    decompCuts = {1,1},
-  --    -- Initial conditions.
-  --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
-  --       density         = nMb,
-  --       drift           = uMb,
-  --       temperature     = vtMb^2,
-  --       exactScaleM0    = false,
-  --       exactLagFixM012 = true,
-  --    },
-  --    -- Evolve species?
-  --    evolve = false,
-  --    -- Diagnostic moments.
-  --    diagnosticMoments = { "M0", "M1i", "M2" },
-  -- },
+   -- -- Maxwellian for comparison with bump in tail IC.
+   -- maxwellBump = Plasma.VlasovSpecies {
+   --    charge = 0.0, mass = 1.0,
+   --    -- Velocity space grid.
+   --    lower      = {vMin,vMin},
+   --    upper      = {vMax,vMax},
+   --    cells      = Nv,
+   --    decompCuts = {1,1},
+   --    -- Initial conditions.
+   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --       density         = nMb,
+   --       drift           = uMb,
+   --       temperature     = vtMb^2,
+   --       exactScaleM0    = false,
+   --       exactLagFixM012 = true,
+   --    },
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "M0", "M1i", "M2" },
+   -- },
 
 }
 -- run application
