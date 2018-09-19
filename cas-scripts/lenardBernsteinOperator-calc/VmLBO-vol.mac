@@ -9,20 +9,20 @@ load(stringproc)$
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 maxCdim_Ser : 2$
-minVdim_Ser : 1$    /* see begining of v loop below though. */
-maxVdim_Ser : 3$
+minVdim_Ser : 1$    /* see beginning of v loop below though. */
+maxVdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 maxCdim_Max : 2$
 minVdim_Max : 1$    /* see begining of v loop below though. */
-maxVdim_Max : 3$
+maxVdim_Max : 2$
 
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 3$
 minCdim_Tensor : 1$
-maxCdim_Tensor : 1$
+maxCdim_Tensor : 2$
 minVdim_Tensor : 1$    /* see begining of v loop below though. */
 maxVdim_Tensor : 2$
 
