@@ -1,4 +1,4 @@
-#include <lagrangeFixDecl.h> 
+#include <VlasovLagrangeFixDecl.h> 
 
 double gkyl_ipow(double base, int exp) {
   double result = 1;

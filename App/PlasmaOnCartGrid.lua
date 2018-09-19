@@ -731,7 +731,7 @@ return {
    Gyrokinetic = {
       App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
       FunctionProjection = Projection.KineticProjection.FunctionProjection, 
-      MaxwellianProjection = Projection.KineticProjection.MaxwellianProjection,
+      MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
       BgkCollisions = Collisions.BgkCollisions,
       LBOCollisions = Collisions.GkLBOCollisions,
    },
@@ -741,7 +741,7 @@ return {
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField,
       FunctionProjection = Projection.KineticProjection.FunctionProjection, 
-      MaxwellianProjection = Projection.KineticProjection.MaxwellianProjection,
+      MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BgkCollisions = Collisions.BgkCollisions,
       LBOCollisions = Collisions.VmLBOCollisions,
    },
