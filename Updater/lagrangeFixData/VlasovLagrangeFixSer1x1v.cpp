@@ -1,14 +1,14 @@
 #include <math.h> 
-#include <lagrangeFixDecl.h> 
+#include <VlasovLagrangeFixDecl.h> 
 
-void lagrangeFixSer1x1v1p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {
+void VlasovLagrangeFixSer1x1v1p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {
   f[0] = f[0] +  -1.0*((84.85281374238573*dm0[0]*gkyl_ipow(L[0],2)-1018.233764908629*dm2[0])*gkyl_ipow(Nv[0],4)*gkyl_ipow(vc[0],2)+vc[0]*(67.8822509939086*dm1[0]*gkyl_ipow(L[0],2)-67.8822509939086*dm1[0]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],4))+(84.85281374238573*dm2[0]*gkyl_ipow(L[0],2)-12.72792206135786*dm0[0]*gkyl_ipow(L[0],4))*gkyl_ipow(Nv[0],4)+(7.071067811865476*dm0[0]*gkyl_ipow(L[0],4)-84.85281374238573*dm2[0]*gkyl_ipow(L[0],2))*gkyl_ipow(Nv[0],2)+5.656854249492382*dm0[0]*gkyl_ipow(L[0],4))*gkyl_ipow(4.0*gkyl_ipow(L[0],5)*gkyl_ipow(Nv[0],4)-4.0*gkyl_ipow(L[0],5),-1);
   f[1] = f[1] +  -1.0*((84.85281374238573*dm0[1]*gkyl_ipow(L[0],2)-1018.233764908629*dm2[1])*gkyl_ipow(Nv[0],4)*gkyl_ipow(vc[0],2)+vc[0]*(67.8822509939086*dm1[1]*gkyl_ipow(L[0],2)-67.8822509939086*dm1[1]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],4))+(84.85281374238573*dm2[1]*gkyl_ipow(L[0],2)-12.72792206135786*dm0[1]*gkyl_ipow(L[0],4))*gkyl_ipow(Nv[0],4)+(7.071067811865476*dm0[1]*gkyl_ipow(L[0],4)-84.85281374238573*dm2[1]*gkyl_ipow(L[0],2))*gkyl_ipow(Nv[0],2)+5.656854249492382*dm0[1]*gkyl_ipow(L[0],4))*gkyl_ipow(4.0*gkyl_ipow(L[0],5)*gkyl_ipow(Nv[0],4)-4.0*gkyl_ipow(L[0],5),-1);
   f[2] = f[2] +  -1.0*(vc[0]*(30.0*dm0[0]*gkyl_ipow(L[0],2)-360.0*dm2[0])*gkyl_ipow(Nv[0],4)-12.0*dm1[0]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],4)+12.0*dm1[0]*gkyl_ipow(L[0],2))*gkyl_ipow(2.449489742783178*gkyl_ipow(L[0],4)*gkyl_ipow(Nv[0],5)-2.449489742783178*Nv[0]*gkyl_ipow(L[0],4),-1);
   f[3] = f[3] +  -1.0*(vc[0]*(30.0*dm0[1]*gkyl_ipow(L[0],2)-360.0*dm2[1])*gkyl_ipow(Nv[0],4)-12.0*dm1[1]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],4)+12.0*dm1[1]*gkyl_ipow(L[0],2))*gkyl_ipow(2.449489742783178*gkyl_ipow(L[0],4)*gkyl_ipow(Nv[0],5)-2.449489742783178*Nv[0]*gkyl_ipow(L[0],4),-1);
 }
 
-void lagrangeFixSer1x1v2p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {
+void VlasovLagrangeFixSer1x1v2p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {
   f[0] = f[0] +  -0.25*gkyl_ipow(L[0],-5)*gkyl_ipow(Nv[0],-2)*((84.85281374238573*dm0[0]*gkyl_ipow(L[0],2)-1018.233764908629*dm2[0])*gkyl_ipow(Nv[0],2)*gkyl_ipow(vc[0],2)+(84.85281374238573*dm2[0]*gkyl_ipow(L[0],2)-12.72792206135786*dm0[0]*gkyl_ipow(L[0],4))*gkyl_ipow(Nv[0],2)-67.8822509939086*dm1[0]*vc[0]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],2)+7.071067811865476*dm0[0]*gkyl_ipow(L[0],4)-84.85281374238573*dm2[0]*gkyl_ipow(L[0],2));
   f[1] = f[1] +  -0.25*gkyl_ipow(L[0],-5)*gkyl_ipow(Nv[0],-2)*((84.85281374238573*dm0[1]*gkyl_ipow(L[0],2)-1018.233764908629*dm2[1])*gkyl_ipow(Nv[0],2)*gkyl_ipow(vc[0],2)+(84.85281374238573*dm2[1]*gkyl_ipow(L[0],2)-12.72792206135786*dm0[1]*gkyl_ipow(L[0],4))*gkyl_ipow(Nv[0],2)-67.8822509939086*vc[0]*dm1[1]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],2)+7.071067811865476*dm0[1]*gkyl_ipow(L[0],4)-84.85281374238573*dm2[1]*gkyl_ipow(L[0],2));
   f[2] = f[2] +  -0.408248290463863*gkyl_ipow(L[0],-4)*(vc[0]*(30.0*dm0[0]*gkyl_ipow(L[0],2)-360.0*dm2[0])-12.0*dm1[0]*gkyl_ipow(L[0],2))*gkyl_ipow(Nv[0],-1);
@@ -19,7 +19,7 @@ void lagrangeFixSer1x1v2p(double *dm0, double *dm1, double *dm2, double *L, doub
   f[7] = f[7] +  -0.408248290463863*gkyl_ipow(L[0],-3)*(3.872983346207417*dm0[1]*gkyl_ipow(L[0],2)-46.47580015448901*dm2[1])*gkyl_ipow(Nv[0],-2);
 }
 
-void lagrangeFixSer1x1v3p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {
+void VlasovLagrangeFixSer1x1v3p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f) {
   f[0] = f[0] +  -0.25*gkyl_ipow(L[0],-5)*gkyl_ipow(Nv[0],-2)*((84.85281374238573*dm0[0]*gkyl_ipow(L[0],2)-1018.233764908629*dm2[0])*gkyl_ipow(Nv[0],2)*gkyl_ipow(vc[0],2)+(84.85281374238573*dm2[0]*gkyl_ipow(L[0],2)-12.72792206135786*dm0[0]*gkyl_ipow(L[0],4))*gkyl_ipow(Nv[0],2)-67.8822509939086*dm1[0]*vc[0]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],2)+7.071067811865476*dm0[0]*gkyl_ipow(L[0],4)-84.85281374238573*dm2[0]*gkyl_ipow(L[0],2));
   f[1] = f[1] +  -0.25*gkyl_ipow(L[0],-5)*gkyl_ipow(Nv[0],-2)*((84.85281374238573*dm0[1]*gkyl_ipow(L[0],2)-1018.233764908629*dm2[1])*gkyl_ipow(Nv[0],2)*gkyl_ipow(vc[0],2)+(84.85281374238573*dm2[1]*gkyl_ipow(L[0],2)-12.72792206135786*dm0[1]*gkyl_ipow(L[0],4))*gkyl_ipow(Nv[0],2)-67.8822509939086*vc[0]*dm1[1]*gkyl_ipow(L[0],2)*gkyl_ipow(Nv[0],2)+7.071067811865476*dm0[1]*gkyl_ipow(L[0],4)-84.85281374238573*dm2[1]*gkyl_ipow(L[0],2));
   f[2] = f[2] +  -0.408248290463863*gkyl_ipow(L[0],-4)*(vc[0]*(30.0*dm0[0]*gkyl_ipow(L[0],2)-360.0*dm2[0])-12.0*dm1[0]*gkyl_ipow(L[0],2))*gkyl_ipow(Nv[0],-1);

@@ -6,7 +6,6 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local LagrangeFixDecl = require "Updater.lagrangeFixData.lagrangeFixDecl"
 local Lin = require "Lib.Linalg"
 local Proto = require "Proto"
 local Range = require "Lib.Range"
@@ -33,6 +32,10 @@ function LagrangeFix:init(tbl)
    self.phaseBasis = assert(tbl.phaseBasis,
 			    "Updater.LagrangeFix: Must provide phase space basis object using 'phaseBasis'")
 
+   self.mode = assert(tbl.mode,
+		      "Updater.LagrangeFix: Must specify 'mode'; options are: 'Vlasov' and 'Gk' for gyrokinetics")
+   assert(self.mode == 'Vlasov' or self.mode == 'Gk',
+	  "Updater.LagrangeFix: Supported options of 'mode' are: 'Vlasov' and 'Gk' for gyrokinetics")
 
    self.numConfDims = self.confBasis:ndim()
    self.numPhaseDims = self.phaseBasis:ndim()
@@ -46,6 +49,12 @@ function LagrangeFix:init(tbl)
    assert(self.phaseBasis:id() == self.basisID,
           "Polynomial orders of phase and conf basis must match")
 
+   local LagrangeFixDecl = nil
+   if self.mode == 'Vlasov' then
+      LagrangeFixDecl = require "Updater.lagrangeFixData.VlasovLagrangeFixDecl"
+   else
+      LagrangeFixDecl = require "Updater.lagrangeFixData.GkLagrangeFixDecl"
+   end
    self.lagrangeFixFn =
       LagrangeFixDecl.selectLagrangeFixFunction(self.basisID,
 						self.numConfDims,
@@ -64,12 +73,17 @@ end
 function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
    -- Get the inputs and outputs
    local dm0 = assert(inFld[1],
-		      "LagrangeFix.advance: Must specify dm0 as 'inFld[1]")
+		      "LagrangeFix.advance: Must specify dm0 as 'inFld[1]'")
    local dm1 = assert(inFld[2],
-		      "LagrangeFix.advance: Must specify dm1 as 'inFld[2]")
+		      "LagrangeFix.advance: Must specify dm1 as 'inFld[2]'")
    local dm2 = assert(inFld[3],
-		      "LagrangeFix.advance: Must specify dm2 as 'inFld[3]")
+		      "LagrangeFix.advance: Must specify dm2 as 'inFld[3]'")
    local f = assert(outFld[1], "LagrangeFix.advance: Must specify an output distribution function")
+   local B = nil
+   if self.mode == 'gk' then
+      B = assert(inFld[4],
+		 "LagrangeFix.advance: Must specify B as 'inFld[4]'")
+   end
 
    local dm0Itr = dm0:get(1)
    local dm1Itr = dm1:get(1)
@@ -114,9 +128,15 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
 	    vc[d-1] = zc[d + self.numConfDims]
 	 end
 
-	 self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
-			    self.L, Nv, vc,
-			    fItr:data())
+	 if self.mode == 'Vlasov' then
+	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
+			       self.L, Nv, vc,
+			       fItr:data())
+	 else
+	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
+			       B:data(), self.L, Nv, vc,
+			       fItr:data())
+	 end
       end
    end
    return true, GKYL_MAX_DOUBLE
