@@ -191,6 +191,7 @@ function BgkCollisions:createSolver()
       phaseBasis = self.phaseBasis,
       confGrid = self.confGrid,
       confBasis = self.confBasis,
+      mode = 'Vlasov',
 }
 end
 
