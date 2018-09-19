@@ -142,82 +142,12 @@ function MaxwellianProjection:scaleDensity(distf)
    weakMultiplication:advance(0.0, 0.0, {M0mod, distf}, {distf})
 end
 
-function MaxwellianProjection:lagrangeFix(distf)
-   local M0, dM0 = self.species:allocMoment(), self.species:allocMoment()
-   local M1 = self.species:allocVectorMoment(self.numVelDims)
-   local dM1 = self.species:allocVectorMoment(self.numVelDims)
-   local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
-
-   self.species.numDensityCalc:advance(0.0, 0.0, {distf}, {M0})
-   local func = function (t, zn)
-      return self.density(t, zn, self.species)
-   end
-   local project = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      evaluate = func,
-      projectOnGhosts = true,
-   }
-   project:advance(0.0, 0.0, {}, {dM0})
-   dM0:accumulate(-1.0, M0)
-
-   self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
-   func = function (t, zn)
-      local drifts = self.drift(t, zn, self.species)
-      if self.numVelDims == 1 then
-	 return self.density(t, zn, self.species) * drifts[1]
-      elseif self.numVelDims == 2 then
-	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2]
-      else
-	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2], self.density(t, zn, self.species) * drifts[3]
-      end
-   end
-   project = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      evaluate = func,
-      projectOnGhosts = true,
-   }
-   project:advance(0.0, 0.0, {}, {dM1})
-   dM1:accumulate(-1.0, M1)
-
-   self.species.ptclEnergyCalc:advance(0.0, 0.0, {distf}, {M2})
-   func = function (t, zn)
-      local drifts = self.drift(t, zn, self.species)
-      local out = 0.0
-      for i = 1, self.numVelDims do
-	 out = out + drifts[i] * drifts[i]
-      end
-      out = self.density(t, zn, self.species) *
-	 (out + self.numVelDims*self.temperature(t, zn, self.species)/self.species.mass )
-      return out
-   end
-   project = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      evaluate = func,
-      projectOnGhosts = true,
-   }
-   project:advance(0.0, 0.0, {}, {dM2})
-   dM2:accumulate(-1.0, M2)
-
-   local lagFix = Updater.LagrangeFix {
-      onGrid = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
-      confGrid = self.confGrid,
-      confBasis = self.confBasis,
-   }
-   lagFix:advance(0.0, 0.0, {dM0, dM1, dM2}, {distf})
-end
-
 function MaxwellianProjection:run(t, distf)
    self.project:advance(t, 0.0, {}, {distf})
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    end
-   if self.exactLagFixM012 then
-      self:lagrangeFix(distf)
-   end
+   assert(self.exactLagFixM012 == false, "MaxwellianProjection: Specialized version of 'MaxwellianProjection' is required. Use 'VlasovProjection.MaxwellianProjection' or 'GkProjection.MaxwellianProjection'")
 end
 
 

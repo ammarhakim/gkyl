@@ -1,0 +1,28 @@
+getName(bn, xi, vi, po) := sconcat("void GkLagrangeFix", bn, xi, "x", vi, "v", po, "p(double *dm0, double *dm1, double *dm2, double B, double mass, double *L, double *Nv, double *vc, double *f);~%~%")$
+basis : ["Ser","Max"]$
+
+fhh : openw("~/max-out/GkLagrangeFixDecl.h")$
+fhl : openw("~/max-out/_GkLagrangeFixCdef.lua")$
+
+printf(fhh, "#ifndef GK_LAGRANGE_FIX_H ~%")$
+printf(fhh, "#define GK_LAGRANGE_FIX_H ~%~%")$
+printf(fhh, "extern \"C\" { ~%~%")$
+printf(fhl, "local ffi  = require \"ffi\"~%")$
+printf(fhl, "ffi.cdef [[~%~%")$
+
+for bIdx : 1 thru 1 do (
+  for cDim : 1 thru 1 do (
+    for vDim : 2 thru 2 do (
+      for polyOrder : 1 thru 1 do (  
+        printf(fhh, getName(basis[bIdx], cDim, vDim, polyOrder)),
+        printf(fhl, getName(basis[bIdx], cDim, vDim, polyOrder))
+      )
+    )
+  )
+);
+
+printf(fhh, "} ~%")$
+printf(fhh, "#endif")$
+close(fhh)$
+printf(fhl, "]]")$
+close(fhl)$

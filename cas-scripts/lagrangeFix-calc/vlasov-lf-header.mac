@@ -1,11 +1,11 @@
-getName(bn, xi, vi, po) := sconcat("void VmLagrangeFix", bn, xi, "x", vi, "v", po, "p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f);~%~%")$
+getName(bn, xi, vi, po) := sconcat("void VlasovLagrangeFix", bn, xi, "x", vi, "v", po, "p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f);~%~%")$
 basis : ["Ser","Max"]$
 
-fhh : openw("~/max-out/VmLagrangeFixDecl.h")$
-fhl : openw("~/max-out/_VmLagrangeFixCdef.lua")$
+fhh : openw("~/max-out/VlasovLagrangeFixDecl.h")$
+fhl : openw("~/max-out/_VlasovLagrangeFixCdef.lua")$
 
-printf(fhh, "#ifndef VM_LAGRANGE_FIX_H ~%")$
-printf(fhh, "#define VM_LAGRANGE_FIX_H ~%~%")$
+printf(fhh, "#ifndef VLASOV_LAGRANGE_FIX_H ~%")$
+printf(fhh, "#define VLASOV_LAGRANGE_FIX_H ~%~%")$
 printf(fhh, "extern \"C\" { ~%~%")$
 printf(fhh, "double gkyl_ipow(double base, int exp);~%~%")$
 printf(fhl, "local ffi  = require \"ffi\"~%")$
