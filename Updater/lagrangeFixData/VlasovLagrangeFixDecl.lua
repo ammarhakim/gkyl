@@ -7,7 +7,7 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Updater.lagrangeFixData._lagrangeFixCdef"
+local _ = require "Updater.lagrangeFixData._VlasovLagrangeFixCdef"
 
 -- map of basis function name -> function encoding
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
@@ -16,7 +16,7 @@ local _M = {}
 
 -- select kernel function
 function _M.selectLagrangeFixFunction(basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("lagrangeFix%s%dx%dv%dp",
+   local funcNm = string.format("VlasovLagrangeFix%s%dx%dv%dp",
 				basisNmMap[basisNm], CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
