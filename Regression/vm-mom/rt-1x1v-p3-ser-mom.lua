@@ -11,20 +11,20 @@ local Basis = require "Basis"
 local Updater = require "Updater"
 
 
-polyOrder = 2 -- polynomial order
-VDIM = 3 -- velocity dimensions
+polyOrder = 3 -- polynomial order
+VDIM = 1 -- velocity dimensions
 nMom = VDIM -- number of momentum component
 nPrs = VDIM*(VDIM+1)/2 -- number of pressure tensor component
 
 local phaseGrid = Grid.RectCart {
-   lower = {-1.0, -1.0, -6.0, -6.0, -6.0},
-   upper = {1.0, 1.0, 6.0, 6.0, 6.0},
-   cells = {8, 8, 8, 8, 8},
+   lower = {-1.0, -6.0},
+   upper = {1.0, 6.0},
+   cells = {16, 8},
 }
 local confGrid = Grid.RectCart {
-   lower = { phaseGrid:lower(1), phaseGrid:lower(2) },
-   upper = { phaseGrid:upper(1), phaseGrid:upper(2) },
-   cells = { phaseGrid:numCells(1), phaseGrid:numCells(2) },
+   lower = { phaseGrid:lower(1) },
+   upper = { phaseGrid:upper(1) },
+   cells = { phaseGrid:numCells(1) },
 }
 
 -- basis functions
@@ -89,29 +89,14 @@ ptclEnergyCalc = Updater.DistFuncMomentCalc {
 }
 
 -- initial condition to apply
-function maxwellian(x,y,vx,vy,vz)
-   local Pi = math.pi   
-   local n = 1.0*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local ux = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)
-   local uy = 0.2*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local uz = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)
-
-   local Txx = 0.75 + 0.25*math.cos(2*Pi*x)*math.cos(2*Pi*y)
-   local Tyy = 0.75 + 0.25*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Tzz = 0.75 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Txy = 0.5 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Txz = 0.25 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Tyz = 0.125 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-
-   local cx = vx-ux
-   local cy = vy-uy
-   local cz = vz-uz
-
-   local detT = Txx*(Tyy*Tzz-Tyz^2)-Txy*(Txy*Tzz-Txz*Tyz)+Txz*(Txy*Tyz-Txz*Tyy)
-   local u2 = cx*(cx*(Tyy*Tzz-Tyz^2)+cy*(Txz*Tyz-Txy*Tzz)+cz*(Txy*Tyz-Txz*Tyy))+cy*(cx*(Txz*Tyz-Txy*Tzz)+cy*(Txx*Tzz-Txz^2)+cz*(Txy*Txz-Txx*Tyz))+cz*(cx*(Txy*Tyz-Txz*Tyy)+cy*(Txy*Txz-Txx*Tyz)+cz*(Txx*Tyy-Txy^2))
-   u2 = u2/(2*detT)
-
-   return n/(math.pow(2*Pi, VDIM/2)*math.sqrt(detT))*math.exp(-u2)
+function maxwellian(x, vx)
+   local Pi = math.pi
+   local n = 1.0*math.sin(2*Pi*x)
+   local ux = 0.1*math.cos(2*Pi*x)
+   local Txx = 0.75 + 0.25*math.cos(2*Pi*x)
+   
+   local u2 = (vx-ux)^2/(2*Txx)
+   return n/math.sqrt(2*Pi*Txx)*math.exp(-u2)
 end
 
 -- updater to initialize distribution function
@@ -119,14 +104,11 @@ local project = Updater.ProjectOnBasis {
    onGrid = phaseGrid,
    basis = phaseBasis,
    evaluate = function (t, xn)
-      return maxwellian(xn[1], xn[2], xn[3], xn[4], xn[5])
+      return maxwellian(xn[1], xn[2])
    end
 }
-
-local tStart = Time.clock()
 project:advance(0.0, 0.0, {}, {distf})
 distf:write("distf.bp", 0.0)
-local tEnd = Time.clock()
 
 local tStart = Time.clock()
 -- compute moments

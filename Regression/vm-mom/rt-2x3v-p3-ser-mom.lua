@@ -11,7 +11,7 @@ local Basis = require "Basis"
 local Updater = require "Updater"
 
 
-polyOrder = 2 -- polynomial order
+polyOrder = 3 -- polynomial order
 VDIM = 3 -- velocity dimensions
 nMom = VDIM -- number of momentum component
 nPrs = VDIM*(VDIM+1)/2 -- number of pressure tensor component

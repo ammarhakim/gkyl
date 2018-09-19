@@ -54,7 +54,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 100,           -- End time.
+   tEnd        = 10,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0.0,0.0},     -- Configuration space lower coordinate.
    upper       = {1.0,1.0},     -- Configuration space upper coordinate.
@@ -84,8 +84,6 @@ plasmaApp = Plasma.App {
 
          return topHat(x, y, vx, vy, n0, u0[1], u0[2], vt)
       end,
-      --bcx = { Plasma.VlasovSpecies.bcOpen,
-      --        Plasma.VlasovSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
@@ -96,27 +94,27 @@ plasmaApp = Plasma.App {
       },
    },
 
-   -- Maxwellian for comparison with rectangular IC.
-   maxwellSquare = Plasma.VlasovSpecies {
-      charge = 0.0, mass = 1.0,
-      -- Velocity space grid.
-      lower      = {vMin,vMin},
-      upper      = {vMax,vMax},
-      cells      = Nv,
-      decompCuts = {1,1},
-      -- Initial conditions.
-      init = Plasma.VlasovMaxwell.MaxwellianProjection {
-         density         = nMr,
-         drift           = uMr,
-         temperature     = vtMr^2,
-         exactScaleM0    = false,
-         exactLagFixM012 = true,
-      },
-      -- Evolve species?
-      evolve = false,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
-   },
+   -- -- Maxwellian for comparison with rectangular IC.
+   -- maxwellSquare = Plasma.VlasovSpecies {
+   --    charge = 0.0, mass = 1.0,
+   --    -- Velocity space grid.
+   --    lower      = {vMin,vMin},
+   --    upper      = {vMax,vMax},
+   --    cells      = Nv,
+   --    decompCuts = {1,1},
+   --    -- Initial conditions.
+   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --       density         = nMr,
+   --       drift           = uMr,
+   --       temperature     = vtMr^2,
+   --       exactScaleM0    = false,
+   --       exactLagFixM012 = true,
+   --    },
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "M0", "M1i", "M2" },
+   -- },
 
 
    -- Neutral species with a bump in the tail.
@@ -133,8 +131,6 @@ plasmaApp = Plasma.App {
 
          return bumpMaxwell(x,y,vx,vy,n0,u0[1],u0[2],vt,ab,ub[1],ub[2],sb,vtb)
       end,
-      --bcx = { Plasma.VlasovSpecies.bcOpen,
-      --        Plasma.VlasovSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
@@ -145,27 +141,27 @@ plasmaApp = Plasma.App {
       },
    },
 
-   -- Maxwellian for comparison with bump in tail IC.
-   maxwellBump = Plasma.VlasovSpecies {
-      charge = 0.0, mass = 1.0,
-      -- Velocity space grid.
-      lower      = {vMin,vMin},
-      upper      = {vMax,vMax},
-      cells      = Nv,
-      decompCuts = {1,1},
-      -- Initial conditions.
-      init = Plasma.VlasovMaxwell.MaxwellianProjection {
-         density         = nMb,
-         drift           = uMb,
-         temperature     = vtMb^2,
-         exactScaleM0    = false,
-         exactLagFixM012 = true,
-      },
-      -- Evolve species?
-      evolve = false,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
-   },
+   -- -- Maxwellian for comparison with bump in tail IC.
+   -- maxwellBump = Plasma.VlasovSpecies {
+   --    charge = 0.0, mass = 1.0,
+   --    -- Velocity space grid.
+   --    lower      = {vMin,vMin},
+   --    upper      = {vMax,vMax},
+   --    cells      = Nv,
+   --    decompCuts = {1,1},
+   --    -- Initial conditions.
+   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --       density         = nMb,
+   --       drift           = uMb,
+   --       temperature     = vtMb^2,
+   --       exactScaleM0    = false,
+   --       exactLagFixM012 = true,
+   --    },
+   --    -- Evolve species?
+   --    evolve = false,
+   --    -- Diagnostic moments.
+   --    diagnosticMoments = { "M0", "M1i", "M2" },
+   -- },
 
 }
 -- run application

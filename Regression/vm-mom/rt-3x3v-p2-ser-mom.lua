@@ -17,14 +17,14 @@ nMom = VDIM -- number of momentum component
 nPrs = VDIM*(VDIM+1)/2 -- number of pressure tensor component
 
 local phaseGrid = Grid.RectCart {
-   lower = {-1.0, -1.0, -6.0, -6.0, -6.0},
-   upper = {1.0, 1.0, 6.0, 6.0, 6.0},
-   cells = {8, 8, 8, 8, 8},
+   lower = {-1.0, -1.0, -1.0, -6.0, -6.0, -6.0},
+   upper = {1.0, 1.0, 1.0, 6.0, 6.0, 6.0},
+   cells = {8, 8, 8, 8, 8, 8},
 }
 local confGrid = Grid.RectCart {
-   lower = { phaseGrid:lower(1), phaseGrid:lower(2) },
-   upper = { phaseGrid:upper(1), phaseGrid:upper(2) },
-   cells = { phaseGrid:numCells(1), phaseGrid:numCells(2) },
+   lower = { phaseGrid:lower(1), phaseGrid:lower(2) , phaseGrid:lower(3) },
+   upper = { phaseGrid:upper(1), phaseGrid:upper(2) , phaseGrid:upper(3) },
+   cells = { phaseGrid:numCells(1), phaseGrid:numCells(2) , phaseGrid:numCells(3) },
 }
 
 -- basis functions
@@ -89,19 +89,19 @@ ptclEnergyCalc = Updater.DistFuncMomentCalc {
 }
 
 -- initial condition to apply
-function maxwellian(x,y,vx,vy,vz)
+function maxwellian(x,y,z,vx,vy,vz)
    local Pi = math.pi   
-   local n = 1.0*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local ux = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)
-   local uy = 0.2*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local uz = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)
+   local n = 1.0*math.sin(2*Pi*x)*math.sin(2*Pi*y)*math.sin(2*Pi*z)
+   local ux = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)*math.cos(2*Pi*z)
+   local uy = 0.2*math.sin(2*Pi*x)*math.sin(2*Pi*y)*math.sin(2*Pi*z)
+   local uz = 0.1*math.cos(2*Pi*x)*math.cos(2*Pi*y)*math.cos(2*Pi*z)
 
-   local Txx = 0.75 + 0.25*math.cos(2*Pi*x)*math.cos(2*Pi*y)
-   local Tyy = 0.75 + 0.25*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Tzz = 0.75 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Txy = 0.5 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Txz = 0.25 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
-   local Tyz = 0.125 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)
+   local Txx = 0.75 + 0.25*math.cos(2*Pi*x)*math.cos(2*Pi*y)*math.cos(2*Pi*z)
+   local Tyy = 0.75 + 0.25*math.sin(2*Pi*x)*math.sin(2*Pi*y)*math.sin(2*Pi*z)
+   local Tzz = 0.75 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)*math.sin(2*Pi*z)
+   local Txy = 0.5 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)*math.sin(2*Pi*z)
+   local Txz = 0.25 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)*math.sin(2*Pi*z)
+   local Tyz = 0.125 + 0.1*math.sin(2*Pi*x)*math.sin(2*Pi*y)*math.sin(2*Pi*z)
 
    local cx = vx-ux
    local cy = vy-uy
@@ -119,7 +119,7 @@ local project = Updater.ProjectOnBasis {
    onGrid = phaseGrid,
    basis = phaseBasis,
    evaluate = function (t, xn)
-      return maxwellian(xn[1], xn[2], xn[3], xn[4], xn[5])
+      return maxwellian(xn[1], xn[2], xn[3], xn[4], xn[5], xn[6])
    end
 }
 
