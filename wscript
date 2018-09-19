@@ -53,7 +53,7 @@ def configure(conf):
 from waflib import Task
 class HgTip(Task.Task):
     always_run = True # need to force running every time
-    run_str = r'echo \#define GKYL_HG_CHANGESET  \"`hg tip | grep changeset`\" > ${TGT}'
+    run_str = r'echo \#define GKYL_HG_CHANGESET  \"`hg tip | grep changeset:`\" > ${TGT}'
 
 def build(bld):
 
