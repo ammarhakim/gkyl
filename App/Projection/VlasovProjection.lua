@@ -36,7 +36,7 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
    func = function (t, zn)
-      local drifts = self.drift(t, zn, self.species)
+      local drifts = self.driftSpeed(t, zn, self.species)
       if self.numVelDims == 1 then
 	 return self.density(t, zn, self.species) * drifts[1]
       elseif self.numVelDims == 2 then
@@ -56,7 +56,7 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.ptclEnergyCalc:advance(0.0, 0.0, {distf}, {M2})
    func = function (t, zn)
-      local drifts = self.drift(t, zn, self.species)
+      local drifts = self.driftSpeed(t, zn, self.species)
       local out = 0.0
       for i = 1, self.numVelDims do
 	 out = out + drifts[i] * drifts[i]

@@ -35,7 +35,7 @@ app = Plasma.App {
 	    local x = zn[1]
 	    return 0.5*x + 0.5
 	 end,
-	 drift = {1.0, 0.0},
+	 driftSpeed = {1.0, 0.0},
          temperature = function (t, zn)
 	    local x = zn[1]
 	    return 1.0 - 0.5*x
@@ -61,7 +61,7 @@ app = Plasma.App {
 	    local x = zn[1]
 	    return 0.5*x + 0.5
 	 end,
-	 drift = {1.0, 0.0},
+	 driftSpeed = {1.0, 0.0},
          temperature = function (t, zn)
 	    local x = zn[1]
 	    return 1.0 - 0.5*x
@@ -87,7 +87,7 @@ app = Plasma.App {
 	    local x = zn[1]
 	    return 0.5*x + 0.5
 	 end,
-	 drift = {1.0, 0.0},
+	 driftSpeed = {1.0, 0.0},
          temperature = function (t, zn)
 	    local x = zn[1]
 	    return 1.0 - 0.5*x
@@ -110,14 +110,14 @@ app = Plasma.App {
       -- initial conditions
       init1 = Plasma.MaxwellianProjection {
          density = 1.0,
-         drift = {1.0, 0.0},
+         driftSpeed = {1.0, 0.0},
          temperature = 1.0,
          exactScaleM0 = false,
          exactLagFixM012 = true,
       },
       init2 = Plasma.MaxwellianProjection {
          density = 1.0,
-         drift = {-1.0, 0.0},
+         driftSpeed = {-1.0, 0.0},
          temperature = 1.0,
          exactScaleM0 = false,
          exactLagFixM012 = true,
