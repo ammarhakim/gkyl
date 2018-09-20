@@ -48,7 +48,7 @@ vlasovApp = Vlasov.App {
    nFrame = 1, -- number of output frames
    lower = { 0.0 }, -- configuration space lower left
    upper = { 2*math.pi/k0 }, -- configuration space upper right
-   cells = {32}, -- configuration space cells
+   cells = {24}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
@@ -66,7 +66,7 @@ vlasovApp = Vlasov.App {
       -- velocity space grid
       lower = {-1.0, -1.0},
       upper = {1.0, 1.0},
-      cells = {16, 16},
+      cells = {12, 12},
       decompCuts = {1, 1},
       -- initial conditions
       init = function (t, xn)

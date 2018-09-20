@@ -43,7 +43,7 @@ end
 vlasovApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 30.0, -- end time
+   tEnd = 15.0, -- end time
    nFrame = 1, -- number of output frames
    lower = {0, 0}, -- configuration space lower left
    upper = {2*math.pi/kx, 2*math.pi/ky }, -- configuration space upper right
