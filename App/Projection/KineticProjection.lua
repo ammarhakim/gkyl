@@ -73,7 +73,7 @@ function MaxwellianProjection:fullInit(species)
 
    local tbl = self.tbl
    self.density = assert(tbl.density, "Maxwellian: must specify 'density'")
-   self.drift = tbl.drift or function (t, zn) return nil end
+   self.driftSpeed = tbl.driftSpeed or function (t, zn) return nil end
    self.temperature = assert(tbl.temperature,
 			     "Maxwellian: must specify 'temperature'")
 
@@ -81,8 +81,8 @@ function MaxwellianProjection:fullInit(species)
    if type(self.density) ~= "function" then
       self.density = function (t, zn) return tbl.density end
    end
-   if type(self.drift) ~= "function" then
-      self.drift = function (t, zn) return tbl.drift end
+   if type(self.driftSpeed) ~= "function" then
+      self.driftSpeed = function (t, zn) return tbl.driftSpeed end
    end
    if type(self.temperature) ~= "function" then
       self.temperature = function (t, zn) return tbl.temperature end
@@ -91,7 +91,7 @@ function MaxwellianProjection:fullInit(species)
    local func = function (t, zn)
       return species:Maxwellian(zn, self.density(t, zn, species),
 				self.temperature(t, zn, species),
-				self.drift(t, zn, species))
+				self.driftSpeed(t, zn, species))
    end
 
    self.project = Updater.ProjectOnBasis {
