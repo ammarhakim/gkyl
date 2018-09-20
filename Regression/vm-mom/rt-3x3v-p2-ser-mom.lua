@@ -19,7 +19,7 @@ nPrs = VDIM*(VDIM+1)/2 -- number of pressure tensor component
 local phaseGrid = Grid.RectCart {
    lower = {-1.0, -1.0, -1.0, -6.0, -6.0, -6.0},
    upper = {1.0, 1.0, 1.0, 6.0, 6.0, 6.0},
-   cells = {8, 8, 8, 8, 8, 8},
+   cells = {4, 4, 4, 8, 8, 8},
 }
 local confGrid = Grid.RectCart {
    lower = { phaseGrid:lower(1), phaseGrid:lower(2) , phaseGrid:lower(3) },

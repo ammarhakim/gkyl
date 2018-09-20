@@ -13,7 +13,7 @@ u0        = {0.0,0.0}                       -- Flow speed.
 vMin      = -2.0                            -- Min velocity in grid.
 vMax      =  2.0                            -- Max velocity in grid.
 Nx        = {2,2}                           -- Number of cells in configuration space.
-Nv        = {16,16}                         -- Number of cells in velocity space.
+Nv        = {8,8}                           -- Number of cells in velocity space.
 -- The next three are for p1, v\in[-2,2], 2x16, rectangular IC.
 nMr  = 1.0                                  -- Density of Maxwellian and rectangle. 
 uMr  = {0.0,0.0}                            -- Flow speed of Maxwellian and rectangle. 

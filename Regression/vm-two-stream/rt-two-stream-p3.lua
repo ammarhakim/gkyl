@@ -13,7 +13,7 @@ vlasovApp = Plasma.App {
    nFrame = 1, -- number of output frames
    lower = {-math.pi/knumber}, -- configuration space lower left
    upper = {math.pi/knumber}, -- configuration space upper right
-   cells = {64}, -- configuration space cells
+   cells = {24}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 3, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
@@ -32,7 +32,7 @@ vlasovApp = Plasma.App {
       -- velocity space grid
       lower = {-6.0},
       upper = {6.0},
-      cells = {32},
+      cells = {12},
       decompCuts = {1},
       -- initial conditions
       init = function (t, xn)
