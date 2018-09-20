@@ -68,7 +68,7 @@ for bIdx : 1 thru 1 do (
         eq0 : makelist(dm0s[i]=momSum(subst(RHSk, m0[i]), varsV), i, 1, length(bc)),
         eq1 : makelist(dm1s[i]=momSum(subst(RHSk, m1[i]), varsV), i, 1, length(bc)),
         eq2 : makelist(dm2s[i]=momSum(subst(RHSk, m2[i]), varsV), i, 1, length(bc)),
-        eqns : fullratsimp(subst([vcx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, vcy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy],
+        eqns : fullratsimp(subst([vcx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, vcy[jy]=(jy-1/2)*dvy],
             append(eq0, eq1, eq2))),
         sol : linsolve(eqns, append(lambda0k, lambda1k, lambda2k)),
         
