@@ -36,6 +36,9 @@ function LagrangeFix:init(tbl)
 		      "Updater.LagrangeFix: Must specify 'mode'; options are: 'Vlasov' and 'Gk' for gyrokinetics")
    assert(self.mode == 'Vlasov' or self.mode == 'Gk',
 	  "Updater.LagrangeFix: Supported options of 'mode' are: 'Vlasov' and 'Gk' for gyrokinetics")
+   if self.mode == 'Gk' then
+      self.mass = assert(tbl.mass, "Updater.LagrangeFix: Must provide 'mass' when in 'Gk' mode")
+   end
 
    self.numConfDims = self.confBasis:ndim()
    self.numPhaseDims = self.phaseBasis:ndim()
@@ -78,16 +81,20 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
 		      "LagrangeFix.advance: Must specify dm1 as 'inFld[2]'")
    local dm2 = assert(inFld[3],
 		      "LagrangeFix.advance: Must specify dm2 as 'inFld[3]'")
-   local f = assert(outFld[1], "LagrangeFix.advance: Must specify an output distribution function")
    local B = nil
-   if self.mode == 'gk' then
+   if self.mode == 'Gk' then
       B = assert(inFld[4],
 		 "LagrangeFix.advance: Must specify B as 'inFld[4]'")
    end
+   local f = assert(outFld[1], "LagrangeFix.advance: Must specify an output distribution function")
 
    local dm0Itr = dm0:get(1)
    local dm1Itr = dm1:get(1)
    local dm2Itr = dm2:get(1)
+   local BItr = nil
+   if self.mode == 'Gk' then
+      BItr = B:get(1)
+   end
    local fItr = f:get(1)
 
    -- Get the Ranges to loop over the domain
@@ -112,6 +119,9 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
       dm0:fill(confIndexer(confIdx), dm0Itr)
       dm1:fill(confIndexer(confIdx), dm1Itr)
       dm2:fill(confIndexer(confIdx), dm2Itr)
+      if self.mode == 'Gk' then
+	 B:fill(confIndexer(confIdx), BItr)
+      end
 
       -- The velocity space loop
       for velIdx in velRange:colMajorIter() do
@@ -134,7 +144,7 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
 			       fItr:data())
 	 else
 	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
-			       B:data(), self.L, Nv, vc,
+			       BItr:data(), self.mass, self.L, Nv, vc,
 			       fItr:data())
 	 end
       end

@@ -172,7 +172,7 @@ function KineticSpecies:fullInit(appTbl)
    if type(tbl.init) == "table" and tbl.init[1] == "maxwellian" then 
       self.projections["init"] = Projection.GkProjection.MaxwellianProjection {
 	 density = tbl.init.density,
-	 drift = tbl.init.driftSpeed,
+	 driftSpeed = tbl.init.driftSpeed,
 	 temperature = tbl.init.temperature,
 	 exactScaleM0 = true,
 	 exactLagFixM012 = false,
@@ -182,7 +182,7 @@ function KineticSpecies:fullInit(appTbl)
    if type(tbl.initBackground) == "table" and tbl.initBackground[1] == "maxwellian" then 
       self.projections["initBackground"] = Projection.GkProjection.MaxwellianProjection {
 	 density = tbl.initBackground.density,
-	 drift = tbl.initBackground.driftSpeed,
+	 driftSpeed = tbl.initBackground.driftSpeed,
 	 temperature = tbl.initBackground.temperature,
 	 exactScaleM0 = true,
 	 exactLagFixM012 = false,
@@ -193,7 +193,7 @@ function KineticSpecies:fullInit(appTbl)
    if type(tbl.initSource) == "table" and tbl.initSource[1] == "maxwellian" then 
       self.projections["initSource"] = Projection.GkProjection.MaxwellianProjection {
 	 density = tbl.initSource.density,
-	 drift = tbl.initSource.driftSpeed,
+	 driftSpeed = tbl.initSource.driftSpeed,
 	 temperature = tbl.initSource.temperature,
 	 exactScaleM0 = true,
 	 exactLagFixM012 = false,
