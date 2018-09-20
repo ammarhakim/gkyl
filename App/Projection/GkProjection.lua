@@ -17,8 +17,7 @@ local MaxwellianProjection = Proto(MaxwellianProjectionParrent)
 
 function MaxwellianProjection:lagrangeFix(distf)
    local M0, dM0 = self.species:allocMoment(), self.species:allocMoment()
-   local M1 = self.species:allocVectorMoment(self.numVelDims)
-   local dM1 = self.species:allocVectorMoment(self.numVelDims)
+   local M1, dM1 = self.species:allocMoment(), self.species:allocMoment()
    local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
 
    self.species.numDensityCalc:advance(0.0, 0.0, {distf}, {M0})
@@ -36,14 +35,8 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
    func = function (t, zn)
-      local drifts = self.drift(t, zn, self.species)
-      if self.numVelDims == 1 then
-	 return self.density(t, zn, self.species) * drifts[1]
-      elseif self.numVelDims == 2 then
-	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2]
-      else
-	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2], self.density(t, zn, self.species) * drifts[3]
-      end
+      local drifts = self.driftSpeed(t, zn, self.species)
+      return self.density(t, zn, self.species) * drifts[1]
    end
    project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
@@ -54,16 +47,17 @@ function MaxwellianProjection:lagrangeFix(distf)
    project:advance(0.0, 0.0, {}, {dM1})
    dM1:accumulate(-1.0, M1)
 
+
    self.species.ptclEnergyCalc:advance(0.0, 0.0, {distf}, {M2})
    func = function (t, zn)
-      local drifts = self.drift(t, zn, self.species)
-      local out = 0.0
-      for i = 1, self.numVelDims do
-	 out = out + drifts[i] * drifts[i]
+      local drifts = self.driftSpeed(t, zn, self.species)
+      if self.numVelDims == 1 then
+	 return self.density(t, zn, self.species) *
+	    (drifts[1] * drifts[1] + self.temperature(t, zn, self.species) / self.species.mass )
+      else
+	 return self.density(t, zn, self.species) *
+	    (drifts[1] * drifts[1] + 3*self.temperature(t, zn, self.species) / self.species.mass )
       end
-      out = self.density(t, zn, self.species) *
-	 (out + self.numVelDims*self.temperature(t, zn, self.species)/self.species.mass )
-      return out
    end
    project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
@@ -79,9 +73,10 @@ function MaxwellianProjection:lagrangeFix(distf)
       phaseBasis = self.phaseBasis,
       confGrid = self.confGrid,
       confBasis = self.confBasis,
-      mode = 'Vlasov'
+      mode = 'Gk',
+      mass = self.species.mass,
    }
-   lagFix:advance(0.0, 0.0, {dM0, dM1, dM2}, {distf})
+   lagFix:advance(0.0, 0.0, {dM0, dM1, dM2, self.species.bmag}, {distf})
 end
 
 function MaxwellianProjection:run(t, distf)
