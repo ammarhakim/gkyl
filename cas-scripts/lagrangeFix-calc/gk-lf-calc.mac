@@ -32,15 +32,18 @@ for bIdx : 1 thru 1 do (
       vPhys : dVarsV*varsV/2 + vcs,
 
       for polyOrder : 1 thru 1 do (
-        /* Load basis and expand the new distribution function g */
+        /* Load basis and expand the new distribution function g and
+        mab field B */
         bc : basisC[polyOrder],
         bp : basisP[polyOrder],
         gExp : doExpand(g, bp),
+        BExp : doExpand(Bs, bc),
         
         /* Get expansion coefficiens of the moments in terms of g */
-        m0 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, 1, gExp)),
-        m1 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, vPhys[1], gExp)),
-        m2 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, (vPhys[1]*vPhys[1] + vPhys[2]*B/(2*mass)), gExp)),
+        m0 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, 2*%pi/mass, gExp)),
+        m1 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, 2*%pi/mass*vPhys[1], gExp)),
+        m2 : J * calcInnerProdList(varsC, 1, bc,
+          innerProd(varsV, 1, 2*%pi/mass*(vPhys[1]*vPhys[1] + vPhys[2]*2*BExp/mass), gExp)),
         
         /* Taking a derivatives with respect to the expansion
         coefficients simpliefies to kronecker deltas */
@@ -65,7 +68,7 @@ for bIdx : 1 thru 1 do (
         eq0 : makelist(dm0s[i]=momSum(subst(RHSk, m0[i]), varsV), i, 1, length(bc)),
         eq1 : makelist(dm1s[i]=momSum(subst(RHSk, m1[i]), varsV), i, 1, length(bc)),
         eq2 : makelist(dm2s[i]=momSum(subst(RHSk, m2[i]), varsV), i, 1, length(bc)),
-        eqns : fullratsimp(subst([vcx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, vcy[jy]=-Nvy/2*dvy+(jy-1/2)*dvy],
+        eqns : fullratsimp(subst([vcx[jx]=-Nvx/2*dvx+(jx-1/2)*dvx, vcy[jy]=(jy-1/2)*dvy],
             append(eq0, eq1, eq2))),
         sol : linsolve(eqns, append(lambda0k, lambda1k, lambda2k)),
         
@@ -86,11 +89,13 @@ for bIdx : 1 thru 1 do (
         printSub : subst(sList, printSub),
         sList : makelist(dm2s[i]=dm2[i-1], i, 1, length(bc)),
         printSub : subst(sList, printSub),
+        sList : makelist(Bs[i]=B[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
         printSub : subst(gkyl_ipow, "^", printSub),
 
-        printf(fh, "void GkLagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double B, double mass, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
+        printf(fh, "void GkLagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *B, double mass, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
         for i : 1 thru length(bp) do (
-          printf(fh, "  f[~a] = f[~a] +  ~a;~%", i-1, i-1, printSub[i])
+          printf(fh, "  f[~a] = f[~a] +  ~a;~%~%", i-1, i-1, printSub[i])
         ),
         printf(fh, "}~%~%")
       ),
