@@ -105,7 +105,6 @@ createTopLevelDefs(int argc, char **argv) {
           << "\"" << std::endl;
 
   // info about build  
-  // add full-path to executable to top-level
   varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
   varDefs << "GKYL_HG_CHANGESET = \"" << GKYL_HG_CHANGESET << "\"" << std::endl;
   varDefs << "GKYL_BUILD_DATE = \"" << __DATE__ << " " << __TIME__ << "\"" << std::endl;

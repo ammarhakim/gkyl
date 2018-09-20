@@ -586,10 +586,10 @@ function GkSpecies:totalSolverTime()
 end
 
 function GkSpecies:Maxwellian(xn, n0, T0, vd)
-   local vd = vd or 0.0
+   local vd = vd or {0.0}
    local vt2 = T0/self.mass
    local vpar = xn[self.cdim+1]
-   local v2 = (vpar-vd)^2
+   local v2 = (vpar-vd[1])^2
    if self.vdim > 1 then 
      local mu = xn[self.cdim+2]
      v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass

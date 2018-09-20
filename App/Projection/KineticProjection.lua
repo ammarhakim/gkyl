@@ -82,11 +82,7 @@ function MaxwellianProjection:fullInit(species)
       self.density = function (t, zn) return tbl.density end
    end
    if type(self.drift) ~= "function" then
-      if type(self.drift) == "number" then
-	  self.drift = function (t, zn) return {tbl.drift} end
-      else
-	 self.drift = function (t, zn) return tbl.drift end
-      end
+      self.drift = function (t, zn) return tbl.drift end
    end
    if type(self.temperature) ~= "function" then
       self.temperature = function (t, zn) return tbl.temperature end
