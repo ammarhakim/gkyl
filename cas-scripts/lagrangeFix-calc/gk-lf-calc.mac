@@ -10,7 +10,7 @@ momSum(mom, varsV):=block([],
 
 basis : ["Ser", "Max"]$
 for bIdx : 1 thru 1 do (
-  for cDim : 1 thru 2 do (
+  for cDim : 2 thru 2 do (
     for vDim : 2 thru 2 do (
       /* Prepare the CPP file */
       fname : sconcat("~/max-out/GkLagrangeFix", basis[bIdx], cDim, "x", vDim, "v.cpp"),
@@ -30,8 +30,8 @@ for bIdx : 1 thru 1 do (
       tmp : [vcx[jx], vcy[jy]],
       vcs : makelist(tmp[i], i, 1, length(varsV)),
       vPhys : dVarsV*varsV/2 + vcs,
-
-      for polyOrder : 1 thru 1 do (
+      
+      for polyOrder : 1 thru 2 do (
         /* Load basis and expand the new distribution function g and
         mab field B */
         bc : basisC[polyOrder],
@@ -44,8 +44,9 @@ for bIdx : 1 thru 1 do (
         /* Get expansion coefficiens of the moments in terms of g */
         m0 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, volFact, gExp)),
         m1 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, volFact*vPhys[1], gExp)),
-        m2 : J * calcInnerProdList(varsC, 1, bc,
-          innerProd(varsV, 1, volFact*(vPhys[1]*vPhys[1] + vPhys[2]*2*BExp/mass), gExp)),
+        fact : vPhys[1]*vPhys[1],
+        if vDim > 1 then fact : fact + vPhys[2]*2*BExp/mass,
+        m2 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, volFact*fact, gExp)),
         
         /* Taking a derivatives with respect to the expansion
         coefficients simpliefies to kronecker deltas */
