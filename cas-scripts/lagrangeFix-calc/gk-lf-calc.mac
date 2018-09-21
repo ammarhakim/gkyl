@@ -10,7 +10,7 @@ momSum(mom, varsV):=block([],
 
 basis : ["Ser", "Max"]$
 for bIdx : 1 thru 1 do (
-  for cDim : 1 thru 1 do (
+  for cDim : 1 thru 2 do (
     for vDim : 2 thru 2 do (
       /* Prepare the CPP file */
       fname : sconcat("~/max-out/GkLagrangeFix", basis[bIdx], cDim, "x", vDim, "v.cpp"),
@@ -39,11 +39,13 @@ for bIdx : 1 thru 1 do (
         gExp : doExpand(g, bp),
         BExp : doExpand(Bs, bc),
         
+        volFact : 1.0,
+        if vDim > 1 then volFact : 2*%pi/mass,
         /* Get expansion coefficiens of the moments in terms of g */
-        m0 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, 2*%pi/mass, gExp)),
-        m1 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, 2*%pi/mass*vPhys[1], gExp)),
+        m0 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, volFact, gExp)),
+        m1 : J * calcInnerProdList(varsC, 1, bc, innerProd(varsV, 1, volFact*vPhys[1], gExp)),
         m2 : J * calcInnerProdList(varsC, 1, bc,
-          innerProd(varsV, 1, 2*%pi/mass*(vPhys[1]*vPhys[1] + vPhys[2]*2*BExp/mass), gExp)),
+          innerProd(varsV, 1, volFact*(vPhys[1]*vPhys[1] + vPhys[2]*2*BExp/mass), gExp)),
         
         /* Taking a derivatives with respect to the expansion
         coefficients simpliefies to kronecker deltas */
