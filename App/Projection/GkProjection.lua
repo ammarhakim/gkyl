@@ -35,8 +35,8 @@ function MaxwellianProjection:lagrangeFix(distf)
 
    self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
    func = function (t, zn)
-      local drifts = self.driftSpeed(t, zn, self.species)
-      return self.density(t, zn, self.species) * drifts[1]
+      return self.density(t, zn, self.species) *
+	 self.driftSpeed(t, zn, self.species)
    end
    project = Updater.ProjectOnBasis {
       onGrid = self.confGrid,
@@ -53,10 +53,10 @@ function MaxwellianProjection:lagrangeFix(distf)
       local drifts = self.driftSpeed(t, zn, self.species)
       if self.numVelDims == 1 then
 	 return self.density(t, zn, self.species) *
-	    (drifts[1] * drifts[1] + self.temperature(t, zn, self.species) / self.species.mass )
+	    (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + self.temperature(t, zn, self.species)/self.species.mass )
       else
 	 return self.density(t, zn, self.species) *
-	    (drifts[1] * drifts[1] + 3*self.temperature(t, zn, self.species) / self.species.mass )
+	    (self.driftSpeed(t, zn, self.species)*self.driftSpeed(t, zn, self.species) + 3*self.temperature(t, zn, self.species)/self.species.mass )
       end
    end
    project = Updater.ProjectOnBasis {
