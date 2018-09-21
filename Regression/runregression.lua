@@ -36,8 +36,7 @@ local function loadConfigure(args)
    configVals = f()
 
    if args.verbose then
-      -- set verbose logger
-      verboseLog = verboseLogger
+      verboseLog = verboseLogger -- set verbose logger
    end
 
    local g = loadfile("ignoretests.lua")
@@ -146,7 +145,7 @@ local function runLuaUnitTest(test)
    local f = io.popen(runCmd, "r")
    local outPut = f:read("*a")
    if string.find(outPut, "FAILED") then
-      log("... FAILED!\n")
+      log(string.format("... %s FAILED!\n", test))
       numFailedTests = numFailedTests+1
    else
       numPassedTests = numPassedTests+1
@@ -331,7 +330,7 @@ local function check_action(test)
       log("... passed.\n")
    else
       numFailedTests = numFailedTests+1
-      log("... FAILED!\n")
+      log(string.format("... %s FAILED!\n", test))
    end
 end
 
