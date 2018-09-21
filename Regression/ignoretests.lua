@@ -13,4 +13,9 @@ return {
    "./vm-two-stream/rt-two-stream-p3.lua",
    "./vm-weibel/rt-weibel-1x2v-p3.lua",
    "./vm-weibel/rt-weibel-2x2v-p3.lua",
+   "./dg-maxwell/rt-maxwell-2d-plane-p3.lua",
+   "./dg-maxwell/rt-maxwell-1d-plane-p3.lua",
+   "./dg-maxwell/rt-maxwell-2d-reflect-p3.lua",
+   "./dg-maxwell/rt-maxwell-3d-plane-p3.lua",
+   "./vm-lbo/rt-conservation-collisions-1x1v-p3.lua",
 }

@@ -17,7 +17,7 @@ vMax      =  2.0                            -- Max velocity in grid.
 muMin     = 0.0
 muMax     = mass*(vMax^2)/(2*B0)
 Nx        = {2,2}                             -- Number of cells in configuration space.
-Nv        = {16,8}                         -- Number of cells in velocity space.
+Nv        = {8,4}                         -- Number of cells in velocity space.
 -- The next three are for p1, 2x2x16x8, rectangular IC.
 nMr  = 1.00391704                           -- Density of Maxwellian and rectangle. 
 uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
@@ -59,7 +59,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 10,           -- End time.
+   tEnd        = 1,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0,0},         -- Configuration space lower coordinate.
    upper       = {1.0,1.0},         -- Configuration space upper coordinate.
