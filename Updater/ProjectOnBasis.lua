@@ -58,6 +58,14 @@ function ProjectOnBasis:init(tbl)
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
    local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- number of quadrature points in each direction
+
+   -- As of 09/21/2018 it has been determined that ProjectOnBasis for p = 3 simulations behaves "strangely" when numQuad is an even number.
+   -- We do not know why, but numQuad even for p=3 can causes slight (1e-8 to 1e-12) variations when projecting onto basis functions.
+   -- This causes regressions tests to fail, seemingly at random; numQuad = 5 or 7 appears to eliminate this issue across thousands of runs of regressions tests.
+   if self._basis:polyOrder() == 3 then
+      N = 5
+   end
+
    assert(N<=8, "Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
    self._projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
