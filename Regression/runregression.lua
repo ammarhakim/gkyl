@@ -23,6 +23,8 @@ local numPassedTests = 0
 
 -- global value to store config information
 local configVals = nil
+-- global list of tests to ignore
+local ignoreTests = {}
 
 -- loads configuration file
 local function loadConfigure(args)
@@ -36,6 +38,11 @@ local function loadConfigure(args)
    if args.verbose then
       -- set verbose logger
       verboseLog = verboseLogger
+   end
+
+   local g = loadfile("ignoretests.lua")
+   if not args.all then
+      ignoreTests = g()
    end
    
    return configVals
@@ -178,7 +185,15 @@ local function list_tests(args)
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
-   return luaRegTests, shellRegTests
+
+   -- this function is used to filter out tests that should not be
+   -- run. Note the confusing name
+   local function shouldRun(t)
+      if lume.find(ignoreTests, t) then return false end
+      return true
+   end
+   
+   return lume.filter(luaRegTests, shouldRun), shellRegTests
 end
 
 -- list of unit tests
@@ -210,6 +225,8 @@ end
 
 -- function to handle "list" command
 local function list_action(args, name)
+   loadConfigure(args)
+   
    local luaRegTests, shellRegTests = list_tests(args)
    lume.each(luaRegTests, print)
    lume.each(shellRegTests, print)
@@ -260,7 +277,9 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    verboseLog(string.format(" ... comparing %g %g (diff %g) failed ...\n", d1[i], d2[i], d1[i]-d2[i]))
+	    verboseLog(
+	       string.format(" ... comparing %g %g (diff %g) failed. Index %d of %d ...\n",
+			     d1[i], d2[i], d1[i]-d2[i], i, d1:size()))
 	    return false
 	 end
       end
@@ -342,6 +361,8 @@ end
 
 -- function to handle "listunit" command
 local function listunit_action(args, name)
+   loadConfigure(args)
+   
    local luaUnitTests, shellUnitTests = list_unit_tests(args)
    lume.each(luaUnitTests, print)
    lume.each(shellUnitTests, print)
@@ -381,6 +402,7 @@ results make sense.
 ]]
 
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
+parser:flag("-a --all", "Run all tests, even those in ignoretests file")
 
 -- "config" command
 local c_conf = parser:command("config", "Configure regression tests")
