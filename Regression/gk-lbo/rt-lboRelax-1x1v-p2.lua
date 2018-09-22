@@ -161,7 +161,7 @@ plasmaApp = Plasma.App {
 
    -- field solver
    field = Plasma.GkField {
-      evolve = true, -- evolve fields?
+      evolve = false, -- evolve fields?
       kperp2 = 0.0
    },
    

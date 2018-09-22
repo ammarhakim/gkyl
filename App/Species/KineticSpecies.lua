@@ -159,10 +159,10 @@ function KineticSpecies:fullInit(appTbl)
 	 isBackground = true,
       }
    end
-   if type(tbl.initSource) == "function" then
+   if type(tbl.source) == "function" then
       self.projections["initSource"] = Projection.KineticProjection.FunctionProjection {
 	 func = function (t, zn)
-	    return tbl.initSource(t, zn, self)
+	    return tbl.source(t, zn, self)
 	 end,
 	 isInit = false,
 	 isSource = true,
@@ -190,11 +190,11 @@ function KineticSpecies:fullInit(appTbl)
 	 isBackground = true,
       }
    end 
-   if type(tbl.initSource) == "table" and tbl.initSource[1] == "maxwellian" then 
+   if type(tbl.source) == "table" and tbl.source[1] == "maxwellian" then 
       self.projections["initSource"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.initSource.density,
-	 driftSpeed = tbl.initSource.driftSpeed,
-	 temperature = tbl.initSource.temperature,
+	 density = tbl.source.density,
+	 driftSpeed = tbl.source.driftSpeed,
+	 temperature = tbl.source.temperature,
 	 exactScaleM0 = true,
 	 exactLagFixM012 = false,
 	 isInit = false,
@@ -461,16 +461,6 @@ function KineticSpecies:alloc(nRkDup)
       method = self.ioMethod,
    }
 
-   -- background (or initial) distribution
-   -- if self.initBackgroundFunc or not self.evolve then
-   --    self.f0 = self:allocDistf()
-   -- end
-
-   -- -- source 
-   -- if self.sourceFunc then 
-   --    self.fSource = self:allocDistf()
-   -- end
-
    if self.positivity then
       self.fPos = self:allocDistf()
    end
@@ -520,85 +510,7 @@ function KineticSpecies:initDist()
    if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
    end
-
-
-   -- local project = Updater.ProjectOnBasis {
-   --    onGrid = self.grid,
-   --    basis = self.basis,
-   --    evaluate = self.initFunc,
-   --    projectOnGhosts = true
-   -- }
-   -- project:advance(0.0, 0.0, {}, {self.distf[1]})
-
-   -- if maxwellian initial conditions, modify to ensure correct density
-   --if self.initType == "maxwellian" then
-   --   self:modifyDensity(self.distf[1], self.initDensityFunc)
-   --end
-
-   -- if self.initBackgroundFunc then
-   --    local projectBackground = Updater.ProjectOnBasis {
-   --       onGrid = self.grid,
-   --       basis = self.basis,
-   --       evaluate = self.initBackgroundFunc,
-   --       projectOnGhosts = true
-   --    }
-   --    projectBackground:advance(0.0, 0.0, {}, {self.f0})
-   --    self.f0:sync(syncPeriodicDirs)
-   -- elseif not self.evolve then
-   --    -- if not evolving, use initial condition as background
-   --    self.f0:copy(self.distf[1])
-   -- end
-
-   -- -- if maxwellian initial conditions, modify to ensure correct density
-   -- if self.initBackgroundType == "maxwellian" then
-   --    self:modifyDensity(self.f0, self.initBackgroundDensityFunc)
-   -- end
-
-   -- create updater to evaluate source 
-   -- if self.sourceFunc then 
-   --    self.evalSource = Updater.ProjectOnBasis {
-   --       onGrid = self.grid,
-   --       basis = self.basis,
-   --       evaluate = self.sourceFunc,
-   --       projectOnGhosts = true
-   --    }
-   --    self.evalSource:advance(tCurr, dt, {}, {self.fSource})
-
-   --    -- if maxwellian source, modify to ensure correct density
-   --    if self.sourceType == "maxwellian" then
-   --       self:modifyDensity(self.fSource, self.sourceDensityFunc)
-   --    end
-   -- end
 end
-
--- function KineticSpecies:modifyDensity(f, trueDensFunc)
---    local ninit, ntrue, nmod = self:allocMoment(), self:allocMoment(), self:allocMoment()
---    self.numDensityCalc:advance(0, 0, {f}, {ninit})
---    local projectTrueDens = Updater.ProjectOnBasis {
---       onGrid = self.confGrid,
---       basis = self.confBasis,
---       evaluate = trueDensFunc,
---       projectOnGhosts = true,
---    }
---    projectTrueDens:advance(0, 0, {}, {ntrue})
---    local calcDensMod = Updater.CartFieldBinOp {
---       onGrid = self.confGrid,
---       weakBasis = self.confBasis,
---       operation = "Divide",
---       onGhosts = true,
---    }
---    -- calculate nmod = ntrue / ninit
---    calcDensMod:advance(0, 0, {ninit, ntrue}, {nmod})
---    local modDistf = Updater.CartFieldBinOp {
---       onGrid = self.grid,
---       weakBasis = self.basis,
---       fieldBasis = self.confBasis,
---       operation = "Multiply",
---       onGhosts = true,
---    }
---    -- calculate f = nmod * f
---    modDistf:advance(0, 0, {nmod, f}, {f})
--- end
 
 function KineticSpecies:rkStepperFields()
    return self.distf
