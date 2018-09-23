@@ -297,7 +297,6 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
 
-
    if self.evolveCollisionless then
       if self.positivityRescale then 
          self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
@@ -324,8 +323,8 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.sourceFunc and self.evolveSources then
-     -- if there is a source, add it to the RHS
+   if self.fSource and self.evolveSources then
+     -- add source it to the RHS
      fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
    end
 
