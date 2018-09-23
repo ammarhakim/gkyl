@@ -53,6 +53,7 @@ function KineticSpecies:fullInit(appTbl)
    self.cfl =  0.1
    self.charge = tbl.charge and tbl.charge or 1.0
    self.mass = tbl.mass and tbl.mass or 1.0
+   self.n0 = tbl.n0 or n0
    self.lower, self.upper = tbl.lower, tbl.upper
    self.cells = tbl.cells
    self.vdim = #self.cells -- velocity dimensions
@@ -510,6 +511,24 @@ function KineticSpecies:initDist()
    if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
    end
+
+   -- calculate initial density averaged over simulation domain
+   --self.n0 = nil
+   --local dens0 = self:allocMoment()
+   --self.numDensityCalc:advance(0,0, {self.distf[1]}, {dens0})
+   --local data
+   --local dynVec = DataStruct.DynVector { numComponents = 1 }
+   ---- integrate 
+   --local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   --   onGrid = self.confGrid,
+   --   basis = self.confBasis,
+   --   numComponents = 1,
+   --   quantity = "V"
+   --}
+   --calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
+   --_, data = dynVec:lastData()
+   --self.n0 = data[1]/self.confGrid:gridVolume()
+   --print("Average density is " .. self.n0)
 end
 
 function KineticSpecies:rkStepperFields()
@@ -684,6 +703,10 @@ function KineticSpecies:readRestart()
          string.format("%s_%s_restart.bp", self.name, mom))
       self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
    end
+
+   -- iterate triggers
+   self.distIoTrigger(tm)
+   self.diagIoTrigger(tm)
    
    return tm
 end

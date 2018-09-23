@@ -42,7 +42,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd = .5e-6, -- end time
-   nFrame = 1, -- number of output frames
+   nFrame = 2, -- number of output frames
    lower = {r0 - dr/2, -dr/2}, -- configuration space lower left
    upper = {r0 + dr/2,  dr/2}, -- configuration space upper right
    cells = {1, 8}, -- configuration space cells

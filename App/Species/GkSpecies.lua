@@ -36,7 +36,7 @@ function GkSpecies:alloc(nRkDup)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocMoment()
    self.ptclEnergy = self:allocMoment()
-   self.polarizationWeight = self:allocMoment()
+   self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 
    if self.gyavg then
       self.rho1 = self:allocDistf()
@@ -47,28 +47,6 @@ end
 
 function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
-end
-
-function GkSpecies:initDist()
-   GkSpecies.super.initDist(self)
-
-   -- calculate initial density averaged over simulation domain
-   self.n0 = nil
-   local dens0 = self:allocMoment()
-   self.numDensityCalc:advance(0,0, {self.distf[1]}, {dens0})
-   local data
-   local dynVec = DataStruct.DynVector { numComponents = 1 }
-   -- integrate 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      numComponents = 1,
-      quantity = "V"
-   }
-   calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
-   _, data = dynVec:lastData()
-   self.n0 = data[1]/self.confGrid:gridVolume()
-   --print("Average density is " .. self.n0)
 end
 
 function GkSpecies:createSolver(hasPhi, hasApar, funcField)
@@ -286,6 +264,8 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          basis = self.basis,
       }
    end
+
+   assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
 
 function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)

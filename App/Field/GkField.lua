@@ -290,7 +290,7 @@ function GkField:createSolver(species, funcField)
       self.modifierWeight:combine(modifierConstant, self.unitWeight)
 
       if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
-      if modifierConstant ~=0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
+      if modifierConstant ~= 0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
    end
    -- when not using linearizedPolarization, weights are set each step in forwardEuler method
 
@@ -413,8 +413,11 @@ function GkField:readRestart(tm)
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.ioFrame = fr
+   self.ioFrame = fr 
    self.phi2:read("phi2_restart.bp", tm)
+
+   -- iterate triggers
+   self.ioTrigger(tm)
 end
 
 -- not needed for GK
