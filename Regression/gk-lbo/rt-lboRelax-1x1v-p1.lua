@@ -69,7 +69,7 @@ plasmaApp = Plasma.App {
 
    -- Neutral species with a rectangular/square IC.
    square = Plasma.GkSpecies {
-      charge = 0.0, mass = 1.0,
+      charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = {8.0*vt},
@@ -81,41 +81,16 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
-      -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-      -- Collisions.
       coll = Plasma.GkLBOCollisions {
          collFreq = nu,
       },
    },
 
-   -- Maxwellian for comparison with rectangular IC.
-   -- maxwellSquare = Plasma.GkSpecies {
-   --    charge = 0.0, mass = 1.0,
-   --    -- Velocity space grid.
-   --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
-   --    cells      = {32},
-   --    decompCuts = {1},
-   --    -- Initial conditions.
-   --    init = {"maxwellian",
-   --            density = nMr,
-   -- 	      driftSpeed = {uMr},
-   --            temperature = vt2Mr,   
-   --    },
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-   -- },
-   
    -- Neutral species with a bump in the tail.
    bump = Plasma.GkSpecies {
-      charge = 0.0, mass = 1.0,
+      charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = {8.0*vt},
@@ -124,44 +99,19 @@ plasmaApp = Plasma.App {
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
-
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
-      -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-      -- Collisions.
       coll = Plasma.GkLBOCollisions {
          collFreq = nu,
       },
    },
 
-   -- Maxwellian for comparison with bump in tail IC.
-   -- maxwellBump = Plasma.GkSpecies {
-   --    charge = 0.0, mass = 1.0,
-   --    -- Velocity space grid.
-   --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
-   --    cells      = {32},
-   --    decompCuts = {1},
-   --    -- Initial conditions.
-   --    init = {"maxwellian",
-   --            density = nMb,
-   -- 	      driftSpeed = {uMb},
-   --            temperature = vt2Mb,
-   --           }, 
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-   -- },
-
    -- field solver
    field = Plasma.GkField {
       evolve = false, -- evolve fields?
+      initPhiFunc = function (t, xn) return 0.0 end,
       kperp2 = 0.0
    },
    
@@ -172,7 +122,6 @@ plasmaApp = Plasma.App {
          local x = xn[1]
          return B0
       end,
-
       -- geometry is not time-dependent
       evolve = false,
    },

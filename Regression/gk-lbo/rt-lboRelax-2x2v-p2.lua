@@ -102,24 +102,6 @@ plasmaApp = Plasma.App {
       },
    },
 
-   -- maxwellSquare = Plasma.GkSpecies {
-   --    charge = 1.0, mass = 1.0,
-   --    lower      = {vMin,muMin},
-   --    upper      = {vMax,muMax},
-   --    cells      = Nv,
-   --    decompCuts = {1,1},
-   --    -- Initial conditions.
-   --    init = {"maxwellian",
-   --            density = nMr,
-   -- 	      driftSpeed = {uMr},
-   --            temperature = vt2Mr,   
-   --    },
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-   -- },
-
    -- Neutral species with a bump in the tail.
    bump = Plasma.GkSpecies {
       charge = 1.0, mass = mass,
@@ -146,28 +128,10 @@ plasmaApp = Plasma.App {
       },
    },
 
-   -- maxwellBump = Plasma.GkSpecies {
-   -- -- Velocity space grid.
-   --    charge = 1.0, mass = 1.0,
-   --    lower      = {vMin,muMin},
-   --    upper      = {vMax,muMax},
-   --    cells      = Nv,
-   --    decompCuts = {1,1},    
-   --    -- Initial conditions.
-   --    init = {"maxwellian",
-   --            density = nMb,
-   -- 	      driftSpeed = {uMb},
-   --            temperature = vt2Mb,
-   --           }, 
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-   -- },
-
    -- field solver
    field = Plasma.GkField {
-      evolve = true, -- evolve fields?
+      evolve = false, -- evolve fields?
+      initPhiFunc = function (t, xn) return 0.0 end,
    },
    
    -- magnetic geometry 
