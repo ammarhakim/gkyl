@@ -21,11 +21,13 @@ local SP_BC_OPEN = 2
 local SP_BC_REFLECT = 3
 local SP_BC_SHEATH = 4
 local SP_BC_ZEROFLUX = 5
+local SP_BC_COPY = 6
 GkSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 GkSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 GkSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 GkSpecies.bcSheath = SP_BC_SHEATH -- specular reflection
 GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX -- zero flux
+GkSpecies.bcCopy = SP_BC_COPY -- copy stuff
 
 function GkSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -454,6 +456,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcOpenFunc(...) return  self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcSheathFunc(...) return self:bcSheathFunc(...) end
+   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
    
    local vdir = nil
    if dir==self.cdim then 
@@ -476,6 +479,8 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       self.hasSheathBcs = true
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
+   elseif bcType == SP_BC_COPY then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise"))
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end

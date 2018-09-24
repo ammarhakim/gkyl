@@ -740,6 +740,7 @@ return {
       MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
       BgkCollisions = Collisions.BgkCollisions,
       LBOCollisions = Collisions.GkLBOCollisions,
+      AdiabaticSpecies = Species.AdiabaticSpecies,
    },
    IncompEuler = {
       App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
