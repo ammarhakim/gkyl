@@ -59,6 +59,7 @@ def build(bld):
     lagrangeFixData/VlasovLagrangeFixSer2x2v.cpp
     lagrangeFixData/VlasovLagrangeFixSer2x3v.cpp
     lagrangeFixData/GkLagrangeFixSer1x2v.cpp
+    lagrangeFixData/GkLagrangeFixSer2x2v.cpp
 
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp
