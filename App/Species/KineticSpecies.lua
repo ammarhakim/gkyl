@@ -406,6 +406,7 @@ function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir, fIn, fOut)
 end
 function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+   -- requires skinLoop = "pointwise"
    for i = 1, self.basis:numBasis() do
       fOut[i] = fIn[i]
    end
