@@ -31,7 +31,7 @@ for bIdx : 1 thru 1 do (
       vcs : makelist(tmp[i], i, 1, length(varsV)),
       vPhys : dVarsV*varsV/2 + vcs,
       
-      for polyOrder : 1 thru 2 do (
+      for polyOrder : 1 thru 1 do (
         /* Load basis and expand the new distribution function g and
         mab field B */
         bc : basisC[polyOrder],
@@ -79,26 +79,76 @@ for bIdx : 1 thru 1 do (
         they need to be then substituted to the RHS in order to get
         the corrections of the distribution function, i.e., get g out
         of f */
-        deltaF : subst(sol, RHS),
+        printf(fh, "void GkLagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *B, double mass, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
+        printf(fh, "  double lambda0 [~a];~%", length(bc)),
+        printf(fh, "  double lambda1 [~a];~%", length(bc)),
+        printf(fh, "  double lambda2 [~a];~%~%", length(bc)),
+        for idx : 1 thru 3*length(bc) do (
+          outStr : subst([dvx=Lx/Nvx, dvy=Ly/Nvy], sol[idx]),
+          outStr : float(fullratsimp( outStr )),
+          outStr : subst([vcx[jx]=vc[0], vcy[jy]=vc[1], Nvx=Nv[0], Nvy=Nv[1], Lx=L[0], Ly=L[1]], outStr),
+          
+          /* Modification to convert from 1-indexed Maxima to 0-indexed C */
+          sList : makelist(dm0s[i]=dm0[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          
+          sList : makelist(dm1s[i]=dm1[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          
+          sList : makelist(dm2s[i]=dm2[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          
+          sList : makelist(Bs[i]=B[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          
+          sList : makelist(lambda0[i]=lambda0[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          
+          sList : makelist(lambda1[i]=lambda1[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          
+          sList : makelist(lambda2[i]=lambda2[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          
+          outStr : subst(gkyl_ipow, "^", outStr),
+          printf(fh, "  ~a;~%~%", outStr)
+          ),
+
+        /*deltaF : subst(sol, RHS),
         deltaFk : subst([dvx=Lx/Nvx, dvy=Ly/Nvy],
           makelist(subst(k=i, deltaF), i, 1, length(bp))),
-        expr : float(fullratsimp( deltaFk )),
-        
+        expr : float(fullratsimp( deltaFk )),*/
+        expr : subst([dvx=Lx/Nvx, dvy=Ly/Nvy],
+          makelist(subst(k=i, RHS), i, 1, length(bp))),
+        expr : float(fullratsimp( expr )),
         /* Modification to convert from 1-indexed Maxima to 0-indexed C */
         printSub : subst([vcx[jx]=vc[0], vcy[jy]=vc[1], Nvx=Nv[0], Nvy=Nv[1], Lx=L[0], Ly=L[1]], expr),
+        
         sList : makelist(dm0s[i]=dm0[i-1], i, 1, length(bc)),
         printSub : subst(sList, printSub),
+        
         sList : makelist(dm1s[i]=dm1[i-1], i, 1, length(bc)),
         printSub : subst(sList, printSub),
+        
         sList : makelist(dm2s[i]=dm2[i-1], i, 1, length(bc)),
         printSub : subst(sList, printSub),
+        
         sList : makelist(Bs[i]=B[i-1], i, 1, length(bc)),
         printSub : subst(sList, printSub),
+        
+        sList : makelist(lambda0[i]=lambda0[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
+        
+        sList : makelist(lambda1[i]=lambda1[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
+       
+        sList : makelist(lambda2[i]=lambda2[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
+        
+  
         printSub : subst(gkyl_ipow, "^", printSub),
-
-        printf(fh, "void GkLagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *B, double mass, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
         for i : 1 thru length(bp) do (
-          printf(fh, "  f[~a] = f[~a] +  ~a;~%~%", i-1, i-1, printSub[i])
+          printf(fh, "  f[~a] = f[~a] +  ~a;~%", i-1, i-1, printSub[i])
         ),
         printf(fh, "}~%~%")
       ),
