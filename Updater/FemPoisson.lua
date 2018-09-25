@@ -143,4 +143,11 @@ function FemPoisson:setModifierWeight(weight)
    self.slvr:setModifierWeight(weight)
 end
 
+function FemPoisson:getLaplacianWeight()
+   return self.slvr:getLaplacianWeight()
+end
+function FemPoisson:getModifierWeight()
+   return self.slvr:getModifierWeight()
+end
+
 return FemPoisson

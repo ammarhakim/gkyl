@@ -78,6 +78,7 @@ function GkField:fullInit(appTbl)
    -- determine whether to use linearized polarization term in poisson equation, which uses background density in polarization weight
    -- if not, uses full time-dependent density in polarization weight 
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
+   self.scalarPolarization = xsys.pickBool(tbl.scalarPolarization, true)
 
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
@@ -406,6 +407,15 @@ function GkField:writeRestart(tm)
    self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame)
    -- (the final "false" prevents flushing of data after write)
    self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false)
+
+   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame)
+   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame)
+   if self.isElectromagnetic then
+     self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame)
+     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame)
+     self.fieldIo:write(self.dApardtSlvr:getLaplacianWeight(), "laplacianWeightEM_restart.bp", tm, self.ioFrame)
+     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame)
+   end
 end
 
 function GkField:readRestart(tm)
@@ -413,9 +423,23 @@ function GkField:readRestart(tm)
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.ioFrame = fr 
    self.phi2:read("phi2_restart.bp", tm)
 
+   self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
+   self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
+   self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
+   self.phiSlvr:setModifierWeight(self.modifierWeight)
+
+   if self.isElectromagnetic then
+      self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
+      self.fieldIo:read(self.potentials[1].dApardt, "dApardt_restart.bp")
+      self.fieldIo:read(self.laplacianWeight, "laplacianWeightEM_restart.bp")
+      self.fieldIo:read(self.modifierWeight, "modifierWeightEM_restart.bp")
+      self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight)
+      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
+   end
+
+   self.ioFrame = fr 
    -- iterate triggers
    self.ioTrigger(tm)
 end
@@ -437,11 +461,11 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
       -- if not using linearized polarization term, set up laplacian weight
-      if not self.linearizedPolarization then
+      if not self.linearizedPolarization or (tCurr == 0.0 and not self.scalarPolarization) then
          self.weight:clear(0.0)
          for nm, s in pairs(species) do
             if Species.GkSpecies.is(s) then
-               self.weight:accumulate(1.0, s:getPolarizationWeight(self.linearizedPolarization))
+               self.weight:accumulate(1.0, s:getPolarizationWeight(false))
             end
          end
          if self.ndim == 1 then
@@ -452,7 +476,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          end
 
          if self.adiabatic then
-            self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFac(self.linearizedPolarization))
+            self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFac(false))
          end
 
          if self.ndim > 1 then

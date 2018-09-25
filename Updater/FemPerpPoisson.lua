@@ -416,4 +416,12 @@ function FemPerpPoisson:setModifierWeight(weight)
    self._makeStiff = true
 end
 
+function FemPerpPoisson:getLaplacianWeight()
+   return self.laplacianWeight
+end
+function FemPerpPoisson:getModifierWeight()
+   return self.modifierWeight
+end
+
+
 return FemPerpPoisson
