@@ -78,7 +78,7 @@ function GkField:fullInit(appTbl)
    -- determine whether to use linearized polarization term in poisson equation, which uses background density in polarization weight
    -- if not, uses full time-dependent density in polarization weight 
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
-   self.scalarPolarization = xsys.pickBool(tbl.scalarPolarization, true)
+   self.uniformPolarization = xsys.pickBool(tbl.uniformPolarization, true)
 
    if self.isElectromagnetic then
       self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
@@ -461,7 +461,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
       -- if not using linearized polarization term, set up laplacian weight
-      if not self.linearizedPolarization or (tCurr == 0.0 and not self.scalarPolarization) then
+      if not self.linearizedPolarization or (tCurr == 0.0 and not self.uniformPolarization) then
          self.weight:clear(0.0)
          for nm, s in pairs(species) do
             if Species.GkSpecies.is(s) then
