@@ -77,7 +77,7 @@ function MaxwellianProjection:fullInit(species)
 
    local tbl = self.tbl
    self.density = assert(tbl.density, "Maxwellian: must specify 'density'")
-   self.driftSpeed = tbl.driftSpeed or function (t, zn) return nil end
+   self.driftSpeed = tbl.driftSpeed or function (t, zn) return 0.0 end
    self.temperature = assert(tbl.temperature,
 			     "Maxwellian: must specify 'temperature'")
 

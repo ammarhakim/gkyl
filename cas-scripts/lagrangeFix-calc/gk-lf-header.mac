@@ -14,11 +14,15 @@ printf(fhl, "ffi.cdef [[~%~%")$
 for bIdx : 1 thru 1 do (
   for cDim : 1 thru 2 do (
     for vDim : cDim thru 2 do (
-      for polyOrder : 1 thru 1 do (  
+      for polyOrder : 1 thru 2 do (  
         printf(fhh, getName(basis[bIdx], cDim, vDim, polyOrder)),
         printf(fhl, getName(basis[bIdx], cDim, vDim, polyOrder))
       )
     )
+  ),
+  for polyOrder : 1 thru 2 do (  
+    printf(fhh, getName(basis[bIdx], 3, 2, polyOrder)),
+    printf(fhl, getName(basis[bIdx], 3, 2, polyOrder))
   )
 );
 
