@@ -34,9 +34,10 @@ local function sample_double(self)
 end
 
 local kiss99_mt = {
-  __new = function(ct)
-    return ffi.new(ct, tobit(12345), tobit(34221), tobit(12345), tobit(65435))
-  end,  
+   __new = function(ct, s)
+      local seed = s and s or 12345
+      return ffi.new(ct, tobit(seed), tobit(34221), tobit(12345), tobit(65435))
+  end,
   __tostring = function(self)
     return "kiss99 "..sarg(self._s1 , self._s2 ,self._s3 , self._s4)
   end,
@@ -61,10 +62,10 @@ kiss99_mt.__index = kiss99_mt
 local kiss99 = ffi.metatype("struct { int32_t _s1, _s2, _s3, _s4; }", kiss99_mt)
 
 local lfib4_mt = {
-  __new = function(ct)
+  __new = function(ct, s)
     -- Follow Marsaglia initialization.
     local o = ffi.new(ct) -- Zero filled => _i is 0.
-    local r = kiss99()
+    local r = kiss99(s)
     for i=0,255 do o._s[i] = r:_bitsample() end
     return o
   end,  

@@ -45,7 +45,7 @@ plasmaApp = Plasma.App {
    nFrame = 1, -- number of output frames
    lower = {r0 - dr/2, -dr/2}, -- configuration space lower left
    upper = {r0 + dr/2,  dr/2}, -- configuration space upper right
-   cells = {2, 8}, -- configuration space cells
+   cells = {2, 4}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 2, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
@@ -90,7 +90,7 @@ plasmaApp = Plasma.App {
              },
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkM0", perturbed = true}, 
+      diagnosticMoments = {"GkM0"}, 
    },
 
    -- adiabatic ions

@@ -38,6 +38,7 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max]$
 for bInd : 1 thru length(bName) do (
   /* Generate kernels for operations between two fields defined on
      spaces with same dimensions (1D, 2D, 3D). */
+     
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     fname : sconcat("~/max-out/CartFieldBinOp", bName[bInd], c, "x", ".cpp"),
     fh : openw(fname),
@@ -61,6 +62,7 @@ for bInd : 1 thru length(bName) do (
    
     close(fh)
   ),
+  
   
   /* Kernels for operations between two fields defined on
      spaces with different dimensions, mostly for operations between
@@ -86,10 +88,11 @@ for bInd : 1 thru length(bName) do (
   
       close(fh)
     )
-  ),
+  )
   
   
   /* Generate the 3x2v case (mostly for gyrokinetics). */
+/*
   c : 3,
   v : 2,
   disp(printf(false,sconcat("Creating ~ax~av ", bName[bInd]),c,v)),
@@ -109,6 +112,8 @@ for bInd : 1 thru length(bName) do (
   funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd]),
   calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]),
   
-  close(fh) 
+  close(fh)
+*/
+  
 )$
 

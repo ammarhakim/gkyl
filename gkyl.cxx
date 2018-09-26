@@ -6,6 +6,7 @@
 //------------------------------------------------------------------------------
 
 #include <gkylconfig.h>
+#include <gkylhgtip.h>
 
 // library includes
 #include <lua.hpp>
@@ -103,8 +104,10 @@ createTopLevelDefs(int argc, char **argv) {
           << execPath << "/../lib/lib?.dylib;"
           << "\"" << std::endl;
 
-  // add full-path to executable to top-level
+  // info about build  
   varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
+  varDefs << "GKYL_HG_CHANGESET = \"" << GKYL_HG_CHANGESET << "\"" << std::endl;
+  varDefs << "GKYL_BUILD_DATE = \"" << __DATE__ << " " << __TIME__ << "\"" << std::endl;
   
 #ifdef HAVE_MPI_H
   varDefs << "GKYL_HAVE_MPI = true" << std::endl;
@@ -122,7 +125,7 @@ createTopLevelDefs(int argc, char **argv) {
   varDefs << "GKYL_HAVE_EIGEN = true" << std::endl;
 #else
   varDefs << "GKYL_HAVE_EIGEN = false" << std::endl;
-#endif  
+#endif
   
   // numeric limits
   varDefs << "GKYL_MIN_DOUBLE = " << std::numeric_limits<double>::min() << std::endl;

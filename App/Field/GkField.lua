@@ -79,6 +79,7 @@ function GkField:fullInit(appTbl)
    -- determine whether to use linearized polarization term in poisson equation, which uses background density in polarization weight
    -- if not, uses full time-dependent density in polarization weight 
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
+   self.uniformPolarization = xsys.pickBool(tbl.uniformPolarization, true)
 
    if self.isElectromagnetic then
       self.mu0 = tbl.mu0
@@ -91,6 +92,8 @@ function GkField:fullInit(appTbl)
    end
 
    self.bcTime = 0.0 -- timer for BCs
+
+   self._first = true
 end
 
 -- methods for EM field object
@@ -294,7 +297,7 @@ function GkField:createSolver(species, funcField)
       self.modifierWeight:combine(modifierConstant, self.unitWeight)
 
       if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
-      if modifierConstant ~=0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
+      if modifierConstant ~= 0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
    end
    -- when not using linearizedPolarization, weights are set each step in forwardEuler method
 
@@ -410,6 +413,15 @@ function GkField:writeRestart(tm)
    self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame)
    -- (the final "false" prevents flushing of data after write)
    self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false)
+
+   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame)
+   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame)
+   if self.isElectromagnetic then
+     self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame)
+     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame)
+     self.fieldIo:write(self.dApardtSlvr:getLaplacianWeight(), "laplacianWeightEM_restart.bp", tm, self.ioFrame)
+     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame)
+   end
 end
 
 function GkField:readRestart(tm)
@@ -417,8 +429,25 @@ function GkField:readRestart(tm)
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
-   self.ioFrame = fr
    self.phi2:read("phi2_restart.bp", tm)
+
+   self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
+   self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
+   self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
+   if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
+
+   if self.isElectromagnetic then
+      self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
+      self.fieldIo:read(self.potentials[1].dApardt, "dApardt_restart.bp")
+      self.fieldIo:read(self.laplacianWeight, "laplacianWeightEM_restart.bp")
+      self.fieldIo:read(self.modifierWeight, "modifierWeightEM_restart.bp")
+      self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight)
+      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
+   end
+
+   self.ioFrame = fr 
+   -- iterate triggers
+   self.ioTrigger(tm)
 end
 
 -- not needed for GK
@@ -430,7 +459,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
-   if self.evolve or (tCurr == 0.0 and not self.initPhiFunc) then
+   if self.evolve or (self._first and not self.initPhiFunc) then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)
@@ -438,25 +467,28 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
       -- if not using linearized polarization term, set up laplacian weight
-      if not self.linearizedPolarization then
+      if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
          self.weight:clear(0.0)
          for nm, s in pairs(species) do
-            self.weight:accumulate(-1.0, s:getPolarizationWeight(self.linearizedPolarization))
+            if Species.GkSpecies.is(s) then
+               self.weight:accumulate(1.0, s:getPolarizationWeight(false))
+            end
          end
          if self.ndim == 1 then
-            self.modifierWeight:combine(-self.kperp2, self.weight)
+            self.modifierWeight:combine(self.kperp2, self.weight)
          else
-            self.laplacianWeight:copy(self.weight)
+            self.modifierWeight:clear(0.0)
+            self.laplacianWeight:combine(-1.0, self.weight)
          end
 
          if self.adiabatic then
-            self.modifierWeight:accumulate(self.adiabSpec:getQneutFac(self.linearizedPolarization))
+            self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFac(false))
          end
 
          if self.ndim > 1 then
             self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
          end
-         self.phiSlvr:setModifierWeight(self.modifierWeight)
+         if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
       end
       -- phi solve (elliptic, so update potCurr.phi)
       local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potCurr.phi})
@@ -466,6 +498,8 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
       potCurr.phi:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
  
+      self._first = false
+
       return mys and mys2, math.min(mydt,mydt2)
    else
       -- just copy stuff over
@@ -886,6 +920,15 @@ function GkGeometry:createSolver()
       end
       self.jacobGeoFunc = function (t, xn)
          return self.salpha.q0*self.salpha.R0
+      end
+      self.gxxFunc = function (t, xn)
+         return 1.0
+      end
+      self.gxyFunc = function (t, xn)
+         return 0.0
+      end
+      self.gyyFunc = function (t, xn)
+         return 1.0
       end
    end
 

@@ -14,6 +14,8 @@ local lfs = require "lfs"
 local lume = require "Lib.lume"
 
 local log = Logger { logToFile = true }
+local verboseLog = function (msg) end -- default no messages are written
+local verboseLogger = function (msg) log(msg) end
 
 -- total passed/failed tests
 local numFailedTests = 0
@@ -21,15 +23,27 @@ local numPassedTests = 0
 
 -- global value to store config information
 local configVals = nil
+-- global list of tests to ignore
+local ignoreTests = {}
 
 -- loads configuration file
-local function loadConfigure()
+local function loadConfigure(args)
    local f = loadfile("runregression.config.lua")
    if not f then
       log("Regression tests not configured! Run config command first\n")
       os.exit(1)
    end
    configVals = f()
+
+   if args.verbose then
+      verboseLog = verboseLogger -- set verbose logger
+   end
+
+   local g = loadfile("ignoretests.lua")
+   if not args.all then
+      ignoreTests = g()
+   end
+   
    return configVals
 end
 
@@ -97,6 +111,7 @@ local function copyAllFiles(srcPath, ext, destPath)
    -- is not the best way to do this and one might want to use a more
    -- Lua-ish way
    local cp = "cp " .. srcPath .. "_*." .. ext .. " " .. destPath
+   verboseLog(string.format("... executing %s ...\n", cp))
    os.execute(cp)
 end
 
@@ -111,7 +126,9 @@ local function runLuaTest(test)
    local tmStart = Time.clock()
    local runCmd = string.format("%s %s", GKYL_EXEC, test)
    local f = io.popen(runCmd, "r")
-   for _ in f:lines() do end -- silent output
+   for l in f:lines() do
+      verboseLog(l.."\n")
+   end
    log(string.format("... completed in %g sec\n", Time.clock()-tmStart))
 end
 
@@ -128,7 +145,7 @@ local function runLuaUnitTest(test)
    local f = io.popen(runCmd, "r")
    local outPut = f:read("*a")
    if string.find(outPut, "FAILED") then
-      log("... FAILED!\n")
+      log(string.format("... %s FAILED!\n", test))
       numFailedTests = numFailedTests+1
    else
       numPassedTests = numPassedTests+1
@@ -167,7 +184,15 @@ local function list_tests(args)
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
-   return luaRegTests, shellRegTests
+
+   -- this function is used to filter out tests that should not be
+   -- run. Note the confusing name
+   local function shouldRun(t)
+      if lume.find(ignoreTests, t) then return false end
+      return true
+   end
+   
+   return lume.filter(luaRegTests, shouldRun), shellRegTests
 end
 
 -- list of unit tests
@@ -199,6 +224,8 @@ end
 
 -- function to handle "list" command
 local function list_action(args, name)
+   loadConfigure(args)
+   
    local luaRegTests, shellRegTests = list_tests(args)
    lume.each(luaRegTests, print)
    lume.each(shellRegTests, print)
@@ -209,6 +236,8 @@ local function create_action(test)
    log(string.format("... creating accepted results for %s ...\n", test))
    local fullResultsDir = configVals.results_dir .. "/"
       .. string.sub(test, 1, -5) -- remove the initial ./ and last .lua
+
+   verboseLog(string.format("... making directory %s ..\n", fullResultsDir))
    mkdir(fullResultsDir) -- recursively create all dirs as needed
    local srcPath = string.sub(test, 1, -5)
    copyAllFiles(srcPath, "bp", fullResultsDir)
@@ -218,11 +247,11 @@ end
 -- THINGS)
 local function check_equal_numeric(expected, actual)
    if math.abs(actual) < 1e-15 then
-      if math.abs(expected-actual) > 5e-15 then
+      if math.abs(expected-actual) > 1e-12 then
 	 return false
       end
    else
-      if math.abs(1-expected/actual) > 5e-14 then
+      if math.abs(1-expected/actual) > 1e-12 then
 	 return false
       end
    end
@@ -231,8 +260,10 @@ end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   --log(string.format("Comparing %s to %s ...\n", f1, f2))
+   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
+      verboseLog(string.format(
+		    " ... files %s and/or %s do not exist!\n", f1, f2))
       return false
    end
    
@@ -245,6 +276,9 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
+	    verboseLog(
+	       string.format(" ... comparing %g %g (diff %g) failed. Index %d of %d ...\n",
+			     d1[i], d2[i], d1[i]-d2[i], i, d1:size()))
 	    return false
 	 end
       end
@@ -254,6 +288,7 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
+	    verboseLog(string.format(" ... comparing %g %g (diff %g) failed ...\n", d1[i], d2[i], d1[i]-d2[i]))
 	    return false
 	 end
       end
@@ -273,9 +308,11 @@ local function check_action(test)
    local outDirName = string.sub(test, 1, vloc)
    -- the very strange looking pattern below puts an escape character
    -- (i.e. \) before characters that are treated as special by
-   -- pattern matcher
+   -- pattern matcher. (The final underscore is needed to avoid the
+   -- regression system getting confused with other tests that have
+   -- the same prefix)
    local testPrefix = string.gsub(
-      string.sub(test, 3, -5), "(%W)", "%%%1")
+      string.sub(test, 3, -5), "(%W)", "%%%1") .. "_"
 
    local passed = true
    for fn in lfs.dir(outDirName) do
@@ -293,13 +330,13 @@ local function check_action(test)
       log("... passed.\n")
    else
       numFailedTests = numFailedTests+1
-      log("... FAILED!\n")
+      log(string.format("... %s FAILED!\n", test))
    end
 end
 
 -- function to handle "run" command
 local function run_action(args, name)
-   loadConfigure()
+   loadConfigure(args)
    local luaRegTests, shellRegTests = list_tests(args)
 
    -- function to run after simulation is finisihed
@@ -323,6 +360,8 @@ end
 
 -- function to handle "listunit" command
 local function listunit_action(args, name)
+   loadConfigure(args)
+   
    local luaUnitTests, shellUnitTests = list_unit_tests(args)
    lume.each(luaUnitTests, print)
    lume.each(shellUnitTests, print)
@@ -330,7 +369,7 @@ end
 
 -- function to handle "rununit" command
 local function rununit_action(args, name)
-   loadConfigure()
+   loadConfigure(args)
    local luaUnitTests, shellUnitTests = list_unit_tests(args)
 
    log("Running unit tests ...\n\n")
@@ -362,6 +401,7 @@ results make sense.
 ]]
 
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
+parser:flag("-a --all", "Run all tests, even those in ignoretests file")
 
 -- "config" command
 local c_conf = parser:command("config", "Configure regression tests")

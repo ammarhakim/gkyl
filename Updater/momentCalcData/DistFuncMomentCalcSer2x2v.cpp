@@ -527,3 +527,43 @@ void MomentCalc2x2vSer_FiveMoments_P3(const double *w, const double *dxv, const 
   outM2[10] += (0.1666666666666667*f[48]*dv2_sq+0.1666666666666667*f[48]*dv1_sq)*volFact+tempM0[10]*((-1.0*wx2_sq)-1.0*wx1_sq)+2.0*tempM1i[22]*wx2+2.0*tempM1i[10]*wx1; 
   outM2[11] += (0.1666666666666667*f[49]*dv2_sq+0.1666666666666667*f[49]*dv1_sq)*volFact+tempM0[11]*((-1.0*wx2_sq)-1.0*wx1_sq)+2.0*tempM1i[23]*wx2+2.0*tempM1i[11]*wx1; 
 } 
+void MomentCalc2x2vSer_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2) 
+{ 
+  const double volFact = dxv[2]*dxv[3]/4; 
+  const double wx1 = w[2], dv1 = dxv[2]; 
+  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
+  const double wx2 = w[3], dv2 = dxv[3]; 
+  const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
+  double tempM0[4], tempM1i[8]; 
+
+  tempM0[0] = 2.0*f[0]*volFact; 
+  tempM0[1] = 2.0*f[1]*volFact; 
+  tempM0[2] = 2.0*f[2]*volFact; 
+  tempM0[3] = 2.0*f[5]*volFact; 
+
+  tempM1i[0] = 0.5773502691896258*f[3]*dv1*volFact+tempM0[0]*wx1; 
+  tempM1i[1] = 0.5773502691896258*f[6]*dv1*volFact+tempM0[1]*wx1; 
+  tempM1i[2] = 0.5773502691896258*f[7]*dv1*volFact+tempM0[2]*wx1; 
+  tempM1i[3] = 0.5773502691896258*f[11]*dv1*volFact+tempM0[3]*wx1; 
+  tempM1i[4] = 0.5773502691896258*f[4]*dv2*volFact+tempM0[0]*wx2; 
+  tempM1i[5] = 0.5773502691896258*f[8]*dv2*volFact+tempM0[1]*wx2; 
+  tempM1i[6] = 0.5773502691896258*f[9]*dv2*volFact+tempM0[2]*wx2; 
+  tempM1i[7] = 0.5773502691896258*f[12]*dv2*volFact+tempM0[3]*wx2; 
+
+  outM0[0] += tempM0[0]; 
+  outM0[1] += tempM0[1]; 
+  outM0[2] += tempM0[2]; 
+  outM0[3] += tempM0[3]; 
+  outM1i[0] += tempM0[0]*wx1; 
+  outM1i[1] += tempM0[1]*wx1; 
+  outM1i[2] += tempM0[2]*wx1; 
+  outM1i[3] += tempM0[3]*wx1; 
+  outM1i[4] += tempM0[0]*wx2; 
+  outM1i[5] += tempM0[1]*wx2; 
+  outM1i[6] += tempM0[2]*wx2; 
+  outM1i[7] += tempM0[3]*wx2; 
+  outM2[0] += tempM0[0]*((-1.0*wx2_sq)-1.0*wx1_sq)+2.0*tempM1i[4]*wx2+2.0*tempM1i[0]*wx1; 
+  outM2[1] += tempM0[1]*((-1.0*wx2_sq)-1.0*wx1_sq)+2.0*tempM1i[5]*wx2+2.0*tempM1i[1]*wx1; 
+  outM2[2] += tempM0[2]*((-1.0*wx2_sq)-1.0*wx1_sq)+2.0*tempM1i[6]*wx2+2.0*tempM1i[2]*wx1; 
+  outM2[3] += tempM0[3]*((-1.0*wx2_sq)-1.0*wx1_sq)+2.0*tempM1i[7]*wx2+2.0*tempM1i[3]*wx1; 
+} 

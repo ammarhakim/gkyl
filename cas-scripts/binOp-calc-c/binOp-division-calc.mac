@@ -21,7 +21,8 @@ writeEVExprs(lhs, rhs) := block([expr],
   len   : length(rhs),
   digs  : slength(string(len)),
 /*  start : len+(len-1)+5+len*digs+6*(len-1)+digs*(len-1)+1, */
-  start : len+(len-1)+4+5*(len-1)+1,
+/*  start : len+(len-1)+4+5*(len-1)+1, */
+  start : 2*len+(len-1)+4+5*(len-1)+1,
   for k : 1 thru (len-1) do (
     start : start+slength(string(k))
   ),
@@ -32,11 +33,19 @@ writeEVExprsS(lhs, rhs) := block([expr],
   len   : length(rhs),
   digs  : slength(string(len)),
 /*  start : len+(len-1)+5+len*digs+6*(len-1)+digs*(len-1)+1, */
-  start : len+(len-1)+2*len+1,
+/*  start : len+(len-1)+2*len+1, */
+  start : 2*len+(len-1)+2*len+1,
   for k : 1 thru len do (
     start : start+slength(string(k-1))
   ),
   printf(fh, "  ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+)$
+
+writeCExprs1s(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    printf(fh, "    ~a = ~a; ~%", lhs[i-1], expr[i])
+  )
 )$
 
 calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
@@ -56,12 +65,64 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "  // out:     output field (same number of components as B). ~%"),
     printf(fh, " ~%"),
 
+    /* In order to avoid dividing by very small, negative or zero numbers
+       use the cell average of A when A<0 at one of the corners. */
+    printf(fh, "  // If a corner value is below zero, use cell average A.~%"),
+    printf(fh, "  bool avgA = false;~%"),
+    for v1 : -1 step 2 thru 1 do (
+      cornerA : subst(varsC[1]=v1,doExpand1(A,bC)),
+      if cdim > 1 then (
+        for v2 : -1 step 2 thru 1 do (
+          cornerA : subst(varsC[2]=v2,cornerA),
+          if cdim > 2 then (
+            for v3 : -1 step 2 thru 1 do (
+              cornerA : subst(varsC[3]=v3,cornerA),
+              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+              printf(fh, "    avgA = true;~%"),
+              printf(fh, "  }~%")
+            )
+          ) else (
+            printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+            printf(fh, "    avgA = true;~%"),
+            printf(fh, "  }~%")
+          )
+        )
+      ) else (
+        printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+        printf(fh, "    avgA = true;~%"),
+        printf(fh, "  }~%")
+      )
+    ),
+    printf(fh, " ~%"),
+
+    printf(fh, "  unsigned short int b0; ~%"),
+    printf(fh, "  double As[~a]; ~%", N),
+    printf(fh, "  double Bs[~a]; ~%", N*Ncomp),
+    printf(fh, "  if (avgA) { ~%"),
+    writeCExprs1s(As,append([A[0]],makelist(0.0,i,1,N-1))),
+    printf(fh, "    for(unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
+    printf(fh, "    { ~%"),
+    printf(fh, "      b0 = ~a*vd; ~%", N),
+    expr : float(expand(append([B[b0]],makelist(0.0,i,1,N-1)))),
+    for i : 1 thru length(expr) do (
+      printf(fh, "      ~a = ~a; ~%", Bs[b0+i-1], expr[i])
+    ),
+    printf(fh, "    } ~%"),
+    printf(fh, "  } else { ~%"),
+    writeCExprs1s(As,makelist(A[i],i,0,N-1)),
+    printf(fh, "    for(unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
+    printf(fh, "    { ~%"),
+    printf(fh, "      b0 = ~a*vd; ~%", N),
+    for i : 1 thru N do (
+      printf(fh, "      ~a = ~a; ~%", Bs[b0+i-1], B[b0+i-1])
+    ),
+    printf(fh, "    } ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
     /* Expand fields A and B in configuration space basis. */
-    Ae : doExpand1(A, bC),
-    Be : doExpand1(B, bC),
-    /* Array of expansion coefficients. */
-    An : makelist(A[i],i,0,N-1),
-    Bn : makelist(B[i],i,0,N-1),
+    Ae : doExpand1(As, bC),
+    Be : doExpand1(Bs, bC),
     /* Expand u function and create a list of expansion coefficients. */ 
     ue : doExpand1(u,bC),
     un : makelist(u[i],i,0,N-1),
@@ -92,12 +153,12 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, "  for(unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
     printf(fh, "  { ~%"),
 
-    printf(fh, "    unsigned short int b0 = ~a*vd; ~%", N),
+    printf(fh, "    b0 = ~a*vd; ~%", N),
     printf(fh, "    // Fill BEV. ~%"),
 /*    printf(fh, "    Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", N), */
 /*  Something like this is only needed if the BEV vector is pre-initialized during init. */
 /*    printf(fh, "    ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", N), */
-    writeEVExprs(BEV,makelist(B[i],i,b0+0,b0+N-1)),
+    writeEVExprs(BEV,makelist(Bs[i],i,b0+0,b0+N-1)),
     printf(fh, " ~%"),
 
     printf(fh, "    // Solve the system of equations. ~%"),
@@ -119,7 +180,8 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     bP : basisP[polyOrder],
-    N  : length(bP),
+    NC : length(bC),
+    NP : length(bP),
   
     /* Function declaration with input/output variables. */
     printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
@@ -130,12 +192,55 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  // out:     output field (same number of components as B). ~%"),
     printf(fh, " ~%"),
 
+    /* In order to avoid dividing by very small, negative or zero numbers
+       use the cell average of A when A<0 at one of the corners. */
+    printf(fh, "  // If a corner value is below zero, use cell average A.~%"),
+    printf(fh, "  bool avgA = false;~%"),
+    for v1 : -1 step 2 thru 1 do (
+      cornerA : subst(varsC[1]=v1,doExpand1(A,bC)),
+      if cdim > 1 then (
+        for v2 : -1 step 2 thru 1 do (
+          cornerA : subst(varsC[2]=v2,cornerA),
+          if cdim > 2 then (
+            for v3 : -1 step 2 thru 1 do (
+              cornerA : subst(varsC[3]=v3,cornerA),
+              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+              printf(fh, "    avgA = true;~%"),
+              printf(fh, "  }~%")
+            )
+          ) else (
+            printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+            printf(fh, "    avgA = true;~%"),
+            printf(fh, "  }~%")
+          )
+        )
+      ) else (
+        printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+        printf(fh, "    avgA = true;~%"),
+        printf(fh, "  }~%")
+      )
+    ),
+    printf(fh, " ~%"),
+
+    printf(fh, "  double As[~a]; ~%", NC),
+    printf(fh, "  double Bs[~a]; ~%", NP),
+    printf(fh, "  if (avgA) { ~%"),
+    writeCExprs1s(As,append([A[0]],makelist(0.0,i,1,NC-1))),
+    BconfAvg_e : innerProd(varsC,1,doExpand1(B, bP),1)/innerProd(varsC,1,1,1),
+    BconfAvg_c : calcInnerProdList(varsP,1,bP,BconfAvg_e),
+    writeCExprs1s(Bs,BconfAvg_c),
+    printf(fh, "  } else { ~%"),
+    writeCExprs1s(As,makelist(A[i],i,0,NC-1)),
+    writeCExprs1s(Bs,makelist(B[i],i,0,NP-1)),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
     /* Expand fields A and B in configuration space basis. */
-    Ae : doExpand1(A, bC),
-    Be : doExpand1(B, bP),
+    Ae : doExpand1(As, bC),
+    Be : doExpand1(Bs, bP),
     /* Expand u function and create a list of expansion coefficients. */ 
     ue : doExpand1(u,bP),
-    un : makelist(u[i],i,0,N-1),
+    un : makelist(u[i],i,0,NC-1),
 
     eq : calcInnerProdList(varsP,ue,bP,Ae),
   
@@ -146,14 +251,14 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Make a list of the LHS matrix assignments. */
     /* Note: Eigen defaults to Column-major order. */
     Ef [i,j] := AEM[i,j],
-    Elhs : list_matrix_entries(genmatrix(Ef,N-1,N-1,0,0)),
+    Elhs : list_matrix_entries(genmatrix(Ef,NP-1,NP-1,0,0)),
 
     printf(fh, "  // Declare Eigen Matrix with triple basis tensor dotted with B vector. ~%"),
-    printf(fh, "  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N),
+    printf(fh, "  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(~a,~a); ~%", NP, NP),
     printf(fh, "  // Declare Eigen Vector with coefficients of B. ~%"),
-    printf(fh, "  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(~a);  ~%", N),
+    printf(fh, "  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(~a);  ~%", NP),
     printf(fh, "  // Declare vector with solution to system of equations. ~%"),
-    printf(fh, "  Eigen::VectorXd u = Eigen::VectorXd::Zero(~a);  ~%", N),
+    printf(fh, "  Eigen::VectorXd u = Eigen::VectorXd::Zero(~a);  ~%", NP),
     printf(fh, " ~%"),
 
     printf(fh, "  // Fill AEM matrix. ~%"),
@@ -161,10 +266,10 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     printf(fh, "  // Fill BEV. ~%"),
-/*    printf(fh, "  Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", N), */
+/*    printf(fh, "  Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", NP), */
 /*  Something like this is only needed if the BEV vector is pre-initialized during init. */
-/*    printf(fh, "  ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", N), */
-    writeEVExprsS(BEV,makelist(B[i],i,0,N-1)),
+/*    printf(fh, "  ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", NP), */
+    writeEVExprsS(BEV,makelist(Bs[i],i,0,NP-1)),
     printf(fh, " ~%"),
 
     printf(fh, "  // Solve the system of equations. ~%"),
@@ -172,7 +277,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     printf(fh, "  // Copy data from Eigen vector. ~%"),
-    printf(fh, "  Eigen::Map<VectorXd>(out,~a,1) = u; ~%", N),
+    printf(fh, "  Eigen::Map<VectorXd>(out,~a,1) = u; ~%", NP),
     printf(fh, " ~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")

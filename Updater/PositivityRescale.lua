@@ -31,20 +31,6 @@ function PositivityRescale:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
    assert(self.numComponents == 1, "Updater.PositivityRescale only implemented for fields with numComponents = 1")
-
-   -- max allowable slope
-   local rMax = tbl.rMax and tbl.rMax or 3.0
-
-   -- set up nodes in Nd
-   local nodes = {-1.0/rMax, 1.0/rMax}
-   self.mu = {}
-   for i = 1, self.basis:numBasis() do
-      self.mu[i] = {}
-      for d = 1, self.basis:ndim() do
-        local ni = math.floor((i-1)/2^(d-1))%2
-        self.mu[i][#self.mu[i]+1] = nodes[ni+1]
-      end
-   end
 end   
 
 -- advance method

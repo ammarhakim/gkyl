@@ -34,10 +34,10 @@ extern "C" {
 /** Value to apply */
     double value;
 
-    int istart[3];
-    int iend[3];
-    int cornerstart[3];
-    int cornerend[3];
+    int istart[8];
+    int iend[8];
+    int cornerstart[8];
+    int cornerend[8];
   } bcdata_t;
 
 // C wrappers for interfacing with FemPerpPoisson class

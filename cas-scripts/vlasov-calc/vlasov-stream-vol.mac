@@ -16,12 +16,12 @@ calcInnerProdList(vars, w, funcList, f) := fullratsimp(makelist(innerProd(vars, 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-calcVlasovVolUpdater(fh, funcNm, cdim, vdim, basisFun) := block([],
+calcVlasovStreamVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 kill(varsC, varsP, basisC, basisP),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 printf(fh, "#include <VlasovModDecl.h> ~%"),
-for i : 1 thru 3 do (
+for i : 1 thru pMax do (
   bP : basisP[i],
   printf(fh, "double ~aP~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. f: Input distribution function. out: Incremented output ~%"),

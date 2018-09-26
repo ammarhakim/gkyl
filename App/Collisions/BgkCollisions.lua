@@ -54,6 +54,8 @@ function BgkCollisions:fullInit(speciesTbl)
       -- self.coulombLog = assert(
       -- 	 tbl.coulombLog, "Updater.BgkCollisions: Must specify Coulomb logaritm with 'coulombLog' ('collFreq' is not specified, so classical nu is used instead)")
    end
+
+   self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
 end
 
 function BgkCollisions:setName(nm)
@@ -82,7 +84,7 @@ end
 function BgkCollisions:createSolver()
    self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
 
-   function createConfFieldCompV()
+   local function createConfFieldCompV()
       return DataStruct.Field {
 	 onGrid = self.confGrid,
 	 numComponents = self.confBasis:numBasis()*self.numVelDims,
@@ -96,7 +98,7 @@ function BgkCollisions:createSolver()
       self.uCross = createConfFieldCompV()
    end
 
-   function createConfFieldComp1()
+   local function createConfFieldComp1()
       return DataStruct.Field {
 	 onGrid = self.confGrid,
 	 numComponents = self.confBasis:numBasis(),
@@ -189,6 +191,7 @@ function BgkCollisions:createSolver()
       phaseBasis = self.phaseBasis,
       confGrid = self.confGrid,
       confBasis = self.confBasis,
+      mode = 'Vlasov',
 }
 end
 
@@ -213,17 +216,19 @@ function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
       self.maxwellian:advance(
 	 tCurr, dt, {selfMom[1], self.uSelf, self.vth2Self},
 	 {self.fMaxwell})
-      self.m0Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM0})
-      self.dM0:scale(-1)
-      self.dM0:accumulate(1, selfMom[1])
-      self.m1Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM1})
-      self.dM1:scale(-1)
-      self.dM1:accumulate(1, selfMom[2])
-      self.m2Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM2})
-      self.dM2:scale(-1)
-      self.dM2:accumulate(1, selfMom[3])
-      self.lagFix:advance(0.0, 0.0, {self.dM0, self.dM1, self.dM2},
-			  {self.fMaxwell})
+      if self.exactLagFixM012 then
+	 self.m0Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM0})
+	 self.dM0:scale(-1)
+	 self.dM0:accumulate(1, selfMom[1])
+	 self.m1Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM1})
+	 self.dM1:scale(-1)
+	 self.dM1:accumulate(1, selfMom[2])
+	 self.m2Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM2})
+	 self.dM2:scale(-1)
+	 self.dM2:accumulate(1, selfMom[3])
+	 self.lagFix:advance(0.0, 0.0, {self.dM0, self.dM1, self.dM2},
+			     {self.fMaxwell})
+      end
 
       tmpStatus, tmpDt = self.collisionSlvr:advance(
 	 tCurr, dt,

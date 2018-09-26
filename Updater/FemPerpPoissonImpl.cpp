@@ -68,7 +68,7 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
   setupBoundaryIndices(bc, ndim, polyOrder);
 
 // initialize global source vector
-  globalSrc = VectorXd(nglobal);
+  globalSrc = VectorXd::Zero(nglobal);
 
 // initialize modal-nodal transformation matrices
  
@@ -86,19 +86,19 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
   if (writeMatrix)
   {
     std::string outName = "poisson-nodtomod"; 
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localNodToMod, outName);
     outName = "poisson-modtonod"; 
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod, outName);
     outName = "poisson-massmodtonod";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localMassModToNod, outName);
     outName = "poisson-mass";   
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localMass, outName);
     outName = "poisson-check";   
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod*localNodToMod, outName);
   }
   localMass.resize(0,0);
@@ -127,170 +127,428 @@ void FemPerpPoisson::setupBoundaryIndices(bcdata_t bc[2][2], int ndim, int polyO
   std::vector<int> lgMap(nlocal);
   // left boundary
     // get index of start and end of left boundary in global mapping
-    // start
+    // left start
     getPerpLocalToGlobalInteriorBLRT(lgMap,0,0,nx,ny,ndim,polyOrder,periodicFlgs);
     if(polyOrder==1) {
+      // cornerstart = global bottom left corner
       bc[DX][LO].cornerstart[0] = lgMap[0];
-      bc[DX][LO].istart[0] = lgMap[2];
-      if(ndim==3) {  
+      if(ndim>2) {
         bc[DX][LO].cornerstart[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DX][LO].cornerstart[2] = lgMap[8];
+        bc[DX][LO].cornerstart[3] = lgMap[12];
+      }
+
+      // istart = global left edge start
+      bc[DX][LO].istart[0] = lgMap[2];
+      if(ndim>2) {
         bc[DX][LO].istart[1] = lgMap[6];
       }
+      if(ndim>3) {
+        bc[DX][LO].istart[2] = lgMap[10];
+        bc[DX][LO].istart[3] = lgMap[14];
+      }
     }
-    else if(polyOrder==2) {
+    else if (polyOrder==2) {
+      // cornerstart = global bottom left corner
       bc[DX][LO].cornerstart[0] = lgMap[0];
-      bc[DX][LO].istart[0] = lgMap[3];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DX][LO].cornerstart[1] = lgMap[8];
         bc[DX][LO].cornerstart[2] = lgMap[12];
+      }
+      if(ndim>3) {
+        bc[DX][LO].cornerstart[3] = lgMap[20];
+        bc[DX][LO].cornerstart[4] = lgMap[24];
+        bc[DX][LO].cornerstart[5] = lgMap[28];
+        bc[DX][LO].cornerstart[6] = lgMap[36];
+        bc[DX][LO].cornerstart[7] = lgMap[40];
+      }
+
+      // istart = global left edge start
+      bc[DX][LO].istart[0] = lgMap[3];
+      if(ndim>2) {
         bc[DX][LO].istart[1] = lgMap[10];
         bc[DX][LO].istart[2] = lgMap[15];
       }
+      if(ndim>3) {
+        bc[DX][LO].istart[3] = lgMap[22];
+        bc[DX][LO].istart[4] = lgMap[26];
+        bc[DX][LO].istart[5] = lgMap[31];
+        bc[DX][LO].istart[6] = lgMap[38];
+        bc[DX][LO].istart[7] = lgMap[43];
+      }
     }
-    // end
+
+    // left end
     getPerpLocalToGlobalInteriorBLRT(lgMap,0,ny-1,nx,ny,ndim,polyOrder,periodicFlgs);
     if(polyOrder==1) {
+      // cornerend = global top left corner
       bc[DX][LO].cornerend[0] = lgMap[2];
-      bc[DX][LO].iend[0] = lgMap[0];
-      if(ndim==3) {  
+      if(ndim>2) {
         bc[DX][LO].cornerend[1] = lgMap[6];
+      }
+      if(ndim>3) {
+        bc[DX][LO].cornerend[2] = lgMap[10];
+        bc[DX][LO].cornerend[3] = lgMap[14];
+      }
+
+      // iend = global left edge end
+      bc[DX][LO].iend[0] = lgMap[0];
+      if(ndim>2) {
         bc[DX][LO].iend[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DX][LO].iend[2] = lgMap[8];
+        bc[DX][LO].iend[3] = lgMap[12];
       }
     }
     else if(polyOrder==2) {
+      // cornerend = global top left corner
       bc[DX][LO].cornerend[0] = lgMap[5];
-      bc[DX][LO].iend[0] = lgMap[3];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DX][LO].cornerend[1] = lgMap[10];
         bc[DX][LO].cornerend[2] = lgMap[17];
+      }
+      if(ndim>3) {
+        bc[DX][LO].cornerend[3] = lgMap[22];
+        bc[DX][LO].cornerend[4] = lgMap[26];
+        bc[DX][LO].cornerend[5] = lgMap[33];
+        bc[DX][LO].cornerend[6] = lgMap[38];
+        bc[DX][LO].cornerend[7] = lgMap[45];
+      }
+
+      // iend = global left edge end
+      bc[DX][LO].iend[0] = lgMap[3];
+      if(ndim>2) {
         bc[DX][LO].iend[1] = lgMap[8];
         bc[DX][LO].iend[2] = lgMap[15];
+      }
+      if(ndim>3) {
+        bc[DX][LO].iend[3] = lgMap[20];
+        bc[DX][LO].iend[4] = lgMap[24];
+        bc[DX][LO].iend[5] = lgMap[31];
+        bc[DX][LO].iend[6] = lgMap[36];
+        bc[DX][LO].iend[7] = lgMap[43];
       }
     }
   // right boundary
     // get index of start and end of right boundary in global mapping
-    // start
+    // right start
     getPerpLocalToGlobalInteriorBLRT(lgMap,nx,0,nx,ny,ndim,polyOrder,periodicFlgs);
     if(polyOrder==1) {
+      // cornerstart = global bottom right corner
       bc[DX][HI].cornerstart[0] = lgMap[0];
-      bc[DX][HI].istart[0] = lgMap[2];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DX][HI].cornerstart[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DX][HI].cornerstart[2] = lgMap[8];
+        bc[DX][HI].cornerstart[3] = lgMap[12];
+      }
+
+      // istart = global right edge start
+      bc[DX][HI].istart[0] = lgMap[2];
+      if(ndim>2) {
         bc[DX][HI].istart[1] = lgMap[6];
       }
+      if(ndim>3) {
+        bc[DX][HI].istart[2] = lgMap[10];
+        bc[DX][HI].istart[3] = lgMap[14];
+      }
     }
-    else if(polyOrder==2) {
+    else if (polyOrder==2) {
+      // cornerstart = global bottom right corner
       bc[DX][HI].cornerstart[0] = lgMap[0];
-      bc[DX][HI].istart[0] = lgMap[3];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DX][HI].cornerstart[1] = lgMap[8];
         bc[DX][HI].cornerstart[2] = lgMap[12];
+      }
+      if(ndim>3) {
+        bc[DX][HI].cornerstart[3] = lgMap[20];
+        bc[DX][HI].cornerstart[4] = lgMap[24];
+        bc[DX][HI].cornerstart[5] = lgMap[28];
+        bc[DX][HI].cornerstart[6] = lgMap[36];
+        bc[DX][HI].cornerstart[7] = lgMap[40];
+      }
+
+      // istart = global right edge start
+      bc[DX][HI].istart[0] = lgMap[3];
+      if(ndim>2) {
         bc[DX][HI].istart[1] = lgMap[10];
         bc[DX][HI].istart[2] = lgMap[15];
       }
+      if(ndim>3) {
+        bc[DX][HI].istart[3] = lgMap[22];
+        bc[DX][HI].istart[4] = lgMap[26];
+        bc[DX][HI].istart[5] = lgMap[31];
+        bc[DX][HI].istart[6] = lgMap[38];
+        bc[DX][HI].istart[7] = lgMap[43];
+      }
     }
-    // end
+
+    // right end
     getPerpLocalToGlobalInteriorBLRT(lgMap,nx,ny-1,nx,ny,ndim,polyOrder,periodicFlgs);
     if(polyOrder==1) {
+      // cornerend = global top right corner
       bc[DX][HI].cornerend[0] = lgMap[2];
-      bc[DX][HI].iend[0] = lgMap[0];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DX][HI].cornerend[1] = lgMap[6];
+      }
+      if(ndim>3) {
+        bc[DX][HI].cornerend[2] = lgMap[10];
+        bc[DX][HI].cornerend[3] = lgMap[14];
+      }
+
+      // iend = global right edge end
+      bc[DX][HI].iend[0] = lgMap[0];
+      if(ndim>2) {
         bc[DX][HI].iend[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DX][HI].iend[2] = lgMap[8];
+        bc[DX][HI].iend[3] = lgMap[12];
       }
     }
     else if(polyOrder==2) {
+      // cornerend = global top right corner
       bc[DX][HI].cornerend[0] = lgMap[5];
-      bc[DX][HI].iend[0] = lgMap[3];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DX][HI].cornerend[1] = lgMap[10];
         bc[DX][HI].cornerend[2] = lgMap[17];
+      }
+      if(ndim>3) {
+        bc[DX][HI].cornerend[3] = lgMap[22];
+        bc[DX][HI].cornerend[4] = lgMap[26];
+        bc[DX][HI].cornerend[5] = lgMap[33];
+        bc[DX][HI].cornerend[6] = lgMap[38];
+        bc[DX][HI].cornerend[7] = lgMap[45];
+      }
+
+      // iend = global right edge end
+      bc[DX][HI].iend[0] = lgMap[3];
+      if(ndim>2) {
         bc[DX][HI].iend[1] = lgMap[8];
         bc[DX][HI].iend[2] = lgMap[15];
+      }
+      if(ndim>3) {
+        bc[DX][HI].iend[3] = lgMap[20];
+        bc[DX][HI].iend[4] = lgMap[24];
+        bc[DX][HI].iend[5] = lgMap[31];
+        bc[DX][HI].iend[6] = lgMap[36];
+        bc[DX][HI].iend[7] = lgMap[43];
       }
     }
   // bottom boundary
     // get index of start and end of bottom boundary in global mapping
-    // start
+    // bottom start
     getPerpLocalToGlobalInteriorBLRT(lgMap,0,0,nx,ny,ndim,polyOrder,periodicFlgs);
     if(polyOrder==1) {
+      // cornerstart = global bottom left corner
       bc[DY][LO].cornerstart[0] = lgMap[0];
-      bc[DY][LO].istart[0] = lgMap[1];
-      if(ndim==3) { 
+      if(ndim>2) {
         bc[DY][LO].cornerstart[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DY][LO].cornerstart[2] = lgMap[8];
+        bc[DY][LO].cornerstart[3] = lgMap[12];
+      }
+
+      // istart = global bottom edge start
+      bc[DY][LO].istart[0] = lgMap[1];
+      if(ndim>2) {
         bc[DY][LO].istart[1] = lgMap[5];
       }
+      if(ndim>3) {
+        bc[DY][LO].istart[2] = lgMap[9];
+        bc[DY][LO].istart[3] = lgMap[13];
+      }
     }
-    else if(polyOrder==2) {
+    else if (polyOrder==2) {
+      // cornerstart = global bottom left corner
       bc[DY][LO].cornerstart[0] = lgMap[0];
-      bc[DY][LO].istart[0] = lgMap[1];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DY][LO].cornerstart[1] = lgMap[8];
         bc[DY][LO].cornerstart[2] = lgMap[12];
+      }
+      if(ndim>3) {
+        bc[DY][LO].cornerstart[3] = lgMap[20];
+        bc[DY][LO].cornerstart[4] = lgMap[24];
+        bc[DY][LO].cornerstart[5] = lgMap[28];
+        bc[DY][LO].cornerstart[6] = lgMap[36];
+        bc[DY][LO].cornerstart[7] = lgMap[40];
+      }
+
+      // istart = global bottom edge start
+      bc[DY][LO].istart[0] = lgMap[1];
+      if(ndim>2) {
         bc[DY][LO].istart[1] = lgMap[9];
         bc[DY][LO].istart[2] = lgMap[13];
       }
-    }
-    // end
-    getPerpLocalToGlobalInteriorBLRT(lgMap,nx-1,0,nx,ny,ndim,polyOrder,periodicFlgs);
-    if(polyOrder==1) {
-      bc[DY][LO].cornerend[0] = lgMap[1];
-      bc[DY][LO].iend[0] = lgMap[0];
-      if(ndim==3) {
-        bc[DY][LO].cornerend[1] = lgMap[5];
-        bc[DY][LO].iend[1] = lgMap[4];
+      if(ndim>3) {
+        bc[DY][LO].istart[3] = lgMap[21];
+        bc[DY][LO].istart[4] = lgMap[25];
+        bc[DY][LO].istart[5] = lgMap[29];
+        bc[DY][LO].istart[6] = lgMap[37];
+        bc[DY][LO].istart[7] = lgMap[41];
       }
     }
-    else if(polyOrder==2) {
+    // bottom end
+    getPerpLocalToGlobalInteriorBLRT(lgMap,nx-1,0,nx,ny,ndim,polyOrder,periodicFlgs);
+    if(polyOrder==1) {
+      // cornerend = global bottom right corner
+      bc[DY][LO].cornerend[0] = lgMap[1];
+      if(ndim>2) {
+        bc[DY][LO].cornerend[1] = lgMap[5];
+      }
+      if(ndim>3) {
+        bc[DY][LO].cornerend[2] = lgMap[9];
+        bc[DY][LO].cornerend[3] = lgMap[13];
+      }
+
+      // iend = global bottom edge end
+      bc[DY][LO].iend[0] = lgMap[0];
+      if(ndim>2) {
+        bc[DY][LO].iend[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DY][LO].iend[2] = lgMap[8];
+        bc[DY][LO].iend[3] = lgMap[12];
+      }
+    }
+    else if (polyOrder==2) {
+      // cornerend = global bottom right corner
       bc[DY][LO].cornerend[0] = lgMap[2];
-      bc[DY][LO].iend[0] = lgMap[1];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DY][LO].cornerend[1] = lgMap[9];
         bc[DY][LO].cornerend[2] = lgMap[14];
+      }
+      if(ndim>3) {
+        bc[DY][LO].cornerend[3] = lgMap[21];
+        bc[DY][LO].cornerend[4] = lgMap[25];
+        bc[DY][LO].cornerend[5] = lgMap[30];
+        bc[DY][LO].cornerend[6] = lgMap[37];
+        bc[DY][LO].cornerend[7] = lgMap[42];
+      }
+
+      // iend = global bottom edge end
+      bc[DY][LO].iend[0] = lgMap[1];
+      if(ndim>2) {
         bc[DY][LO].iend[1] = lgMap[8];
         bc[DY][LO].iend[2] = lgMap[13];
+      }
+      if(ndim>3) {
+        bc[DY][LO].iend[3] = lgMap[20];
+        bc[DY][LO].iend[4] = lgMap[24];
+        bc[DY][LO].iend[5] = lgMap[29];
+        bc[DY][LO].iend[6] = lgMap[36];
+        bc[DY][LO].iend[7] = lgMap[41];
       }
     }
   // top boundary
     // get index of start and end of top boundary in global mapping
-    // start
+    // top start
     getPerpLocalToGlobalInteriorBLRT(lgMap,0,ny,nx,ny,ndim,polyOrder,periodicFlgs);
     if(polyOrder==1) {
+      // cornerstart = global top left corner
       bc[DY][HI].cornerstart[0] = lgMap[0];
-      bc[DY][HI].istart[0] = lgMap[1];
-      if(ndim==3) {  
+      if(ndim>2) {
         bc[DY][HI].cornerstart[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DY][HI].cornerstart[2] = lgMap[8];
+        bc[DY][HI].cornerstart[3] = lgMap[12];
+      }
+
+      // istart = global top edge start
+      bc[DY][HI].istart[0] = lgMap[1];
+      if(ndim>2) {
         bc[DY][HI].istart[1] = lgMap[5];
       }
+      if(ndim>3) {
+        bc[DY][HI].istart[2] = lgMap[9];
+        bc[DY][HI].istart[3] = lgMap[13];
+      }
     }
-    else if(polyOrder==2) {
+    else if (polyOrder==2) {
+      // cornerstart = global top left corner
       bc[DY][HI].cornerstart[0] = lgMap[0];
-      bc[DY][HI].istart[0] = lgMap[1];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DY][HI].cornerstart[1] = lgMap[8];
         bc[DY][HI].cornerstart[2] = lgMap[12];
+      }
+      if(ndim>3) {
+        bc[DY][HI].cornerstart[3] = lgMap[20];
+        bc[DY][HI].cornerstart[4] = lgMap[24];
+        bc[DY][HI].cornerstart[5] = lgMap[28];
+        bc[DY][HI].cornerstart[6] = lgMap[36];
+        bc[DY][HI].cornerstart[7] = lgMap[40];
+      }
+
+      // istart = global top edge start
+      bc[DY][HI].istart[0] = lgMap[1];
+      if(ndim>2) {
         bc[DY][HI].istart[1] = lgMap[9];
         bc[DY][HI].istart[2] = lgMap[13];
       }
-    }
-    // end
-    getPerpLocalToGlobalInteriorBLRT(lgMap,nx-1,ny,nx,ny,ndim,polyOrder,periodicFlgs);
-    if(polyOrder==1) {
-      bc[DY][HI].cornerend[0] = lgMap[1];
-      bc[DY][HI].iend[0] = lgMap[0];
-      if(ndim==3) {
-        bc[DY][HI].cornerend[1] = lgMap[5];
-        bc[DY][HI].iend[1] = lgMap[4];
+      if(ndim>3) {
+        bc[DY][HI].istart[3] = lgMap[21];
+        bc[DY][HI].istart[4] = lgMap[25];
+        bc[DY][HI].istart[5] = lgMap[29];
+        bc[DY][HI].istart[6] = lgMap[37];
+        bc[DY][HI].istart[7] = lgMap[41];
       }
     }
-    else if(polyOrder==2) {
+    // top end
+    getPerpLocalToGlobalInteriorBLRT(lgMap,nx-1,ny,nx,ny,ndim,polyOrder,periodicFlgs);
+    if(polyOrder==1) {
+      // cornerend = global top right corner
+      bc[DY][HI].cornerend[0] = lgMap[1];
+      if(ndim>2) {
+        bc[DY][HI].cornerend[1] = lgMap[5];
+      }
+      if(ndim>3) {
+        bc[DY][HI].cornerend[2] = lgMap[9];
+        bc[DY][HI].cornerend[3] = lgMap[13];
+      }
+
+      // iend = global top edge end
+      bc[DY][HI].iend[0] = lgMap[0];
+      if(ndim>2) {
+        bc[DY][HI].iend[1] = lgMap[4];
+      }
+      if(ndim>3) {
+        bc[DY][HI].iend[2] = lgMap[8];
+        bc[DY][HI].iend[3] = lgMap[12];
+      }
+    }
+    else if (polyOrder==2) {
+      // cornerend = global top right corner
       bc[DY][HI].cornerend[0] = lgMap[2];
-      bc[DY][HI].iend[0] = lgMap[1];
-      if(ndim==3) {
+      if(ndim>2) {
         bc[DY][HI].cornerend[1] = lgMap[9];
         bc[DY][HI].cornerend[2] = lgMap[14];
+      }
+      if(ndim>3) {
+        bc[DY][HI].cornerend[3] = lgMap[21];
+        bc[DY][HI].cornerend[4] = lgMap[25];
+        bc[DY][HI].cornerend[5] = lgMap[30];
+        bc[DY][HI].cornerend[6] = lgMap[37];
+        bc[DY][HI].cornerend[7] = lgMap[42];
+      }
+
+      // iend = global top edge end
+      bc[DY][HI].iend[0] = lgMap[1];
+      if(ndim>2) {
         bc[DY][HI].iend[1] = lgMap[8];
         bc[DY][HI].iend[2] = lgMap[13];
+      }
+      if(ndim>3) {
+        bc[DY][HI].iend[3] = lgMap[20];
+        bc[DY][HI].iend[4] = lgMap[24];
+        bc[DY][HI].iend[5] = lgMap[29];
+        bc[DY][HI].iend[6] = lgMap[36];
+        bc[DY][HI].iend[7] = lgMap[41];
       }
     }
 
@@ -593,7 +851,7 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
   if (writeMatrix)
   {
     std::string outName = "poisson-stiffnessMatrix";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(stiffMat, outName);
   }
 }
@@ -640,7 +898,7 @@ void FemPerpPoisson::createGlobalSrc(double* localSrcPtr, int idx, int idy, doub
   if (writeMatrix)
   {
     std::string outName = "poisson-src-beforeBCs-";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(globalSrc, outName);
   }
 }
@@ -720,11 +978,11 @@ void FemPerpPoisson::solve()
   if (writeMatrix)
   {
     std::string outName = "poisson-src";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(globalSrc, outName);
   }
  
-  x = Eigen::VectorXd(nglobal);
+  x = VectorXd::Zero(nglobal);
   
 // solve linear system(s)
 // modify non-dirichlet rows of source by subtracting sourceModVec
@@ -743,7 +1001,7 @@ void FemPerpPoisson::solve()
   if (writeMatrix)
   {
     std::string outName = "poisson-sol";
-    outName += std::to_string(ndim) + "d";
+    //outName += std::to_string(ndim) + "d";
     saveMarket(x, outName);
   }
 }

@@ -120,6 +120,10 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum)
    local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
    Adios.select_method(grpId, self._method, "", "")
 
+   -- global attributes for Gkyl build
+   Adios.define_attribute_byvalue(grpId, "changeset", "", Adios.string, 1, GKYL_HG_CHANGESET)
+   Adios.define_attribute_byvalue(grpId, "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
+
    -- field attributes
    Adios.define_attribute_byvalue(grpId, "type", "", Adios.string, 1, field:grid():id())
    local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"

@@ -33,10 +33,10 @@ ffi.cdef[[
 /** Value to apply */
           double value;
 
-          int istart[3];
-          int iend[3];
-          int cornerstart[3];
-          int cornerend[3];
+          int istart[8];
+          int iend[8];
+          int cornerstart[8];
+          int cornerend[8];
       } bcdata_t;
   typedef struct FemPerpPoisson FemPerpPoisson;
   FemPerpPoisson* new_FemPerpPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2], bool writeMatrix, bool adjustSource);
@@ -149,6 +149,7 @@ function FemPerpPoisson:init(tbl)
 
    assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
    assert(self._ndim == 2 or self._ndim == 3, "This solver only implemented for 2D or 3D (with no solve in 3rd dimension)")
+   if self._p==2 then assert(self._nx>1 and self._ny>1, "Must use nx>1 and ny>1 for p=2") end
 
    self._poisson = {}
    self._first = true
@@ -416,5 +417,13 @@ function FemPerpPoisson:setModifierWeight(weight)
    -- need to remake stiffness matrix since modifierWeight has changed
    self._makeStiff = true
 end
+
+function FemPerpPoisson:getLaplacianWeight()
+   return self.laplacianWeight
+end
+function FemPerpPoisson:getModifierWeight()
+   return self.modifierWeight
+end
+
 
 return FemPerpPoisson

@@ -1,0 +1,142 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels for the volume term
+   contribution from Lenard Bernstein operator to the
+   Vlasov equation using two integrations by parts for
+   the diffusive term. */
+
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
+vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+cvars  : [x, y, z]$
+varsV  : [vx, vy, vz]$
+rdv2   : [rdvx2, rdvy2, rdvz2]$
+rdvSq4 : [rdvxSq4, rdvySq4, rdvzSq4]$
+
+/* Helper functions for expanding (in basis functions) a quantity that should be sparse.  */
+/* For example, alpha, the phase space flow only depends on a few phase space coordinates. */
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  printf(fh, "#include <VmLBOModDecl.h> ~%"),
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+    load(modNm),
+
+    /* Polynomial basis and its derivatives. */
+    bP : basisP[polyOrder],
+    bC : basisC[polyOrder],
+    NP : length(bP),
+    NC : length(bC),
+
+    /* Specify a point to evaluate alpha at for use in computing CFL */
+    /* Here we choose to evaluate things in the middle of the cell, where
+       coordinates = 0. */
+    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
+
+    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output ~%"),
+    cid : cidx(cdim),
+    vid : vidx(cdim,vdim),
+
+    for dir : 1 thru vdim do (
+        printf(fh, "  const double rd~a2 = 2/dxv[~a]; ~%", varsV[dir], vid[dir]),
+        printf(fh, "  const double rd~aSq4 = 4/(dxv[~a]*dxv[~a]); ~%", varsV[dir], vid[dir], vid[dir])
+    ),
+    printf(fh, "~%"),
+
+    /* alpha_mid is our approximation of sum_i max(abs(alpha_i))/dx_i */
+    /* for the Lenard-Bernstein operator this is \sum_i max(nu*(v - u))/dv_i + \sum_i max(nu*vtSq)/dv_i^2*/
+    printf(fh, "  double alpha_mid = 0.0; ~%"),
+
+    /* alpha_drag = nu*(v-u), alpha_diffusion = nu*vtSq             */
+    printf(fh, "  double alpha_drag[~a]; ~%", vdim*length(bP)),
+    printf(fh, "  double alpha_diffusion[~a]; ~%~%", length(bP)),
+
+    /* Expand distribution function f in phase basis.            */
+    f_e    : doExpand1(f, bP),
+
+    /* Expand flow speed u and thermal speed squared in configuration basis. */
+    nuU_e    : doExpand1(nuU, bC),
+    nuVtSq_e : doExpand1(nuVtSq, bC),
+
+    /* To allow for multiple components change the cofficient indices in nuU. */
+    nuU_e : psubst(makelist(nuU[i]=nuU[a0+i],i,0,NC-1),nuU_e),
+
+    incr_drag : 0,
+    incr_diffusion : 0,
+
+    /* alpha_drag = rdv2*nu*< (nabla_v psi), (v - u)*f >. */
+    for vdir : 1 thru vdim do (
+
+       alpha_drag_e : calcInnerProdList(varsP, 1, bP, -nu*w[vid[vdir]]-0.5*nu*dxv[vid[vdir]]*varsV[vdir]+subst(a0=NC*(vdir-1),nuU_e)),
+       expr : gcfac(float(expand(radcan(rdv2[vdir]*alpha_drag_e)))),
+
+       /* Write out the component of alpha_drag's phase space expansion. */
+       printf(fh, "  // Expand rdv2*nu*(~a-u~a) in phase basis.~%",varsV[vdir],cvars[vdir]),
+       for i : 1 thru NP do (
+           if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alpha_drag[NP*(vdir-1)+i-1], expr[i])
+       ),
+       printf(fh, "~%"),
+
+       /* Zero out components of alpha which are empty. */
+       alpha_drag_NoZero      : doMakeExprLst(alpha_drag_e, alpha_drag),
+       alpha_drag_NoZero_expd : doExpandLst(alpha_drag_NoZero, bP),
+
+       /* Evaluate alpha_vdim at zr to approximate max(abs(alpha_vdim))/dv_i. */
+       printf(fh, "  // ~a-drag contribution to the midpoint value used for CFL.~%",cvars[vdir]),
+       drag_mid : gcfac(float(expand(subst(zr,0.5*subst(a0=NP*(vdir-1),alpha_drag_NoZero_expd))))),
+       printf(fh, "  alpha_mid += std::abs(~a); ~%", drag_mid),
+       printf(fh, "~%"),
+
+       /* Volume increment from configuration space. */
+       incr_drag : incr_drag+subst(a0=NP*(vdir-1),calcInnerProdList(varsP, 1, diff(bP,varsV[vdir]), alpha_drag_NoZero_expd*f_e))
+    ),
+
+    /* alpha_diffusion = < nabla_v^2 psi, nu*vthSq*f >. */
+    alpha_diffusion_e : calcInnerProdList(varsP, 1, bP, nuVtSq_e),
+    expr : gcfac(float(expand(radcan(alpha_diffusion_e)))),
+
+    /* Write out the components of alpha_diffusion's phase space expansion. */
+    printf(fh, "  // Expand nu*vthSq in phase basis.~%"),
+    for i : 1 thru NP do (
+       if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alpha_diffusion[i-1], expr[i])
+    ),
+    printf(fh, "~%"),
+
+    /* Zero out components of alpha which are empty. */
+    alpha_diffusion_NoZero : doMakeExprLst(alpha_diffusion_e, alpha_diffusion),
+    alpha_diffusion_NoZero_expd : doExpandLst(alpha_diffusion_NoZero, bP),
+    /* Evaluate alpha_vdim at zr to approximate max(abs(alpha_vdim))/dv_i */
+    polyFact : ((polyOrder+1)^2)/(2*polyOrder+1),
+    diffusion_mid : subst(a0=0,gcfac(float(expand(subst(zr,polyFact*alpha_diffusion_NoZero_expd))))),
+
+    printf(fh, "  // Diffusion contribution to the midpoint value used for CFL.~%"),
+    for vdir : 1 thru vdim do (
+       printf(fh, "  alpha_mid += std::abs(~a); ~%", rdvSq4[vdir]*diffusion_mid),
+
+       /* Volume increment from configuration space. */
+       incr_diffusion : incr_diffusion+rdvSq4[vdir]*subst(a0=0,calcInnerProdList(varsP, 1, diff(bP,varsV[vdir],2), alpha_diffusion_NoZero_expd*f_e))
+    ),
+    printf(fh, "~%"),
+    /* Write out first attempts to simplify the radicals with radcan, e.g.
+       force sqrt(3)*sqrt(5) = sqrt(15). */
+    /* Outscripts loads scifac and uses the aggressive factorization routine "gcfac". */
+    printf(fh, "  // Put together updates due to drag and diffusion terms.~%"),
+    writeCExprsCollect1c(radcan(incr_drag+incr_diffusion)),
+    printf(fh, "~%"),
+
+    printf(fh, "  return alpha_mid; ~%"),
+
+    printf(fh, "~%"),
+  
+    printf(fh, "} ~%")
+
+));

@@ -1,0 +1,65 @@
+load("vlasov-calc/vlasov-maxwell-surf")$
+load(stringproc)$
+/* This script calls the functions which calculate the
+   updates from the surface term contributions. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+maxCdim_Ser : 2$
+minVdim_Ser : 1$    /* see begining of v loop below though. */
+maxVdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+maxCdim_Max : 3$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxVdim_Max : 3$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 3$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxVdim_Tensor : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
+
+/* Compute the surface contribution in velocity space from the acceleration term */
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      disp(printf(false,sconcat("Creating surface Vlasov",bName[bInd]," ~ax~av"),c,v)),
+      fname : sconcat("~/max-out/VlasovSurfElcMag", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("VlasovSurfElcMag", c, "x", v, "v", bName[bInd]),
+      calcVlasovSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      close(fh)
+    )
+  )
+);
+
+load("vlasov-calc/vlasov-stream-surf")$
+/* Compute the surface contribution in configuration space from the streaming term */
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      disp(printf(false,sconcat("Creating surface VlasovStream",bName[bInd]," ~ax~av"),c,v)),
+      fname : sconcat("~/max-out/VlasovSurfStream", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("VlasovSurfStream", c, "x", v, "v", bName[bInd]),
+      calcVlasovSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      close(fh)
+    )
+  )
+);

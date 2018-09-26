@@ -1,0 +1,51 @@
+/** Perfectly-Hyperbolic Maxwell equations. Eigensystem and other stuff */
+
+assume(c>0);
+assume(chi>0);
+assume(gamma>0);
+
+VL : [ExL, EyL, EzL, BxL, ByL, BzL, phiL, psiL]$
+VR : [ExR, EyR, EzR, BxR, ByR, BzR, phiR, psiR]$
+
+/* flux used for computation of the numerical flux */
+/* G = 1/2 (F(Q_R) + F(Q_L)) - 1/2 (A^+ \Delta Q_{R,L} - A^- \Delta Q_{R,L}) */
+flux(Ex,Ey,Ez,Bx,By,Bz,phi,psi) := [
+ [c^2*chi*phi, c^2*Bz, -c^2*By, gamma*psi, -Ez, Ey, chi*Ex, c^2*gamma*Bx],
+ [-c^2*Bz, c^2*chi*phi, c^2*Bx, Ez, gamma*psi, -Ex, chi*Ey, c^2*gamma*By],
+ [c^2*By, -c^2*Bx, c^2*chi*phi, -Ey, Ex, gamma*psi, chi*Ez, c^2*gamma*Bz]
+]$
+
+valPlus(x) := if x>0 then 1 else (if x=0 then 1/2 else 0);
+valMinus(x) := if x<0 then 1 else (if x=0 then 1/2 else 0);
+
+Apdq(R,L,EVS,dq) := sum(valPlus(EVS[i])*col(R,i)*row(L,i).dq, i, 1, 8)$
+Amdq(R,L,EVS,dq) := sum(valMinus(EVS[i])*col(R,i)*row(L,i).dq, i, 1, 8)$
+
+/* Compute upwinded flux */
+/* Not the flux (flx) passed to this function is the MODIFIED flux */
+/* The left and right eigenvectors are constructed from the MODIFIED flux */
+/* This is used to construct the fluctuations A^+/- Delta Q_{R,L} */
+calcNumFlux(V, flx, dir) := block([Aij, A, vals, vects, Rev, Lev, Evs, vlSub, vrSub],
+  A : genmatrix(lambda ([i,j], diff(flx[i],V[j])), 8, 8),
+
+  [vals, vects] : eigenvectors(A),
+  Rev : (Rev : matrix([]), for i from 1 thru length(vals[1])
+          do (for j from 1 thru vals[2][i]
+	    do (Rev : addcol(Rev, transpose(matrix(vects[i][j]))))), Rev),
+  Lev : invert (Rev),
+  Evs : (Evs : [], for i from 1 thru length(vals[1])
+          do (for j from 1 thru vals[2][i]
+            do (Evs : append(Evs, [vals[1][i]]))), Evs),
+
+  df : flux(VR[1]-VL[1],VR[2]-VL[2],VR[3]-VL[3],VR[4]-VL[4],VR[5]-VL[5],VR[6]-VL[6],VR[7]-VL[7],VR[8]-VL[8]),
+
+  /* fluctuations A^+/- Delta Q_{R,L} */
+  apdq_I : Apdq(Rev,Lev,Evs,df[dir]),
+  amdq_I : Amdq(Rev,Lev,Evs,df[dir]),
+
+  /* 1/2 (F(Q_R) + F(Q_L)) */  
+  fCent : flux(VR[1]+VL[1],VR[2]+VL[2],VR[3]+VL[3],VR[4]+VL[4],VR[5]+VL[5],VR[6]+VL[6],VR[7]+VL[7],VR[8]+VL[8]),
+
+  /* G = 1/2 (F(Q_R) + F(Q_L)) - 1/2 (A^+ \Delta Q_{R,L} - A^- \Delta Q_{R,L}) */
+  return (1/2*fCent[dir] - 1/2*(apdq_I-amdq_I))
+)$

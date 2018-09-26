@@ -18,8 +18,8 @@ local function numBasis(ndim, polyOrder)
    local numBasis_d2 = {4, 8, 12}
    local numBasis_d3 = {8, 20, 32}
    local numBasis_d4 = {16, 48, 80}
-   local numBasis_d5 = {32, 112}
-   local numBasis_d6 = {64}
+   local numBasis_d5 = {32, 112, 192}
+   local numBasis_d6 = {64, 256}
 
    local nbasis = 1
    if polyOrder > 0 then
@@ -64,10 +64,9 @@ function CartModalSerendipity:init(tbl)
    elseif (self._ndim == 4) then
       _m = require "Basis._data.ModalSerendipBasis4d"
    elseif (self._ndim == 5) then
-      assert(self._polyOrder <= 2, "For 5D polynomial order must be either 1 or 2")
       _m = require "Basis._data.ModalSerendipBasis5d"
    elseif (self._ndim == 6) then
-      assert(self._polyOrder <= 1, "For 6D polynomial order must be 1")
+      assert(self._polyOrder <= 2, "For 6D polynomial order must be either 1 or 2")
       _m = require "Basis._data.ModalSerendipBasis6d"
 
    end
