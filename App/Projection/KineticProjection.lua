@@ -28,7 +28,8 @@ function KineticProjection:fullInit(species)
    self.confBasis = species.confBasis
    self.confGrid = species.confGrid
 
-   self.numVelDims = self.phaseGrid:ndim() - self.confGrid:ndim()
+   self.cdim = self.confGrid:ndim()
+   self.vdim = self.phaseGrid:ndim() - self.confGrid:ndim()
 
    self.isInit = xsys.pickBool(self.tbl.isInit, true)
    self.isBackground = xsys.pickBool(self.tbl.isBackground, false)
@@ -36,6 +37,8 @@ function KineticProjection:fullInit(species)
    if self.isBackground or self.isSource then self.isInit = false end
 
    self.exactScaleM0 = xsys.pickBool(self.tbl.exactScaleM0, true)
+   self.exactScaleM012 = xsys.pickBool(self.tbl.exactScaleM012, false)
+   if self.exactScaleM012 then self.exactScaleM0 = false end
    self.exactLagFixM012 = xsys.pickBool(self.tbl.exactLagFixM012, false)
 end
 
@@ -89,7 +92,7 @@ function MaxwellianProjection:fullInit(species)
       self.temperature = function (t, zn) return tbl.temperature end
    end
 
-   local func = function (t, zn)
+   self.MaxwellianFunc = function (t, zn)
       return species:Maxwellian(zn, self.density(t, zn, species),
 				self.temperature(t, zn, species),
 				self.driftSpeed(t, zn, species))
@@ -98,7 +101,7 @@ function MaxwellianProjection:fullInit(species)
    self.project = Updater.ProjectOnBasis {
       onGrid = self.phaseGrid,
       basis = self.phaseBasis,
-      evaluate = func,
+      evaluate = self.MaxwellianFunc,
       projectOnGhosts = true
    }
 end

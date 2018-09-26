@@ -90,6 +90,8 @@ function GkField:fullInit(appTbl)
    end
 
    self.bcTime = 0.0 -- timer for BCs
+
+   self._first = true
 end
 
 -- methods for EM field object
@@ -428,7 +430,7 @@ function GkField:readRestart(tm)
    self.fieldIo:read(self.laplacianWeight, "laplacianWeight_restart.bp")
    self.fieldIo:read(self.modifierWeight, "modifierWeight_restart.bp")
    self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
-   self.phiSlvr:setModifierWeight(self.modifierWeight)
+   if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
@@ -453,7 +455,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
-   if self.evolve or (tCurr == 0.0 and not self.initPhiFunc) then
+   if self.evolve or (self._first and not self.initPhiFunc) then
       local mys, mys2 = true, true
       local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)
@@ -461,7 +463,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
       end
       -- if not using linearized polarization term, set up laplacian weight
-      if not self.linearizedPolarization or (tCurr == 0.0 and not self.uniformPolarization) then
+      if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
          self.weight:clear(0.0)
          for nm, s in pairs(species) do
             if Species.GkSpecies.is(s) then
@@ -482,7 +484,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          if self.ndim > 1 then
             self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
          end
-         self.phiSlvr:setModifierWeight(self.modifierWeight)
+         if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
       end
       -- phi solve (elliptic, so update potCurr.phi)
       local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potCurr.phi})
@@ -492,6 +494,8 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
       potCurr.phi:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
  
+      self._first = false
+
       return mys and mys2, math.min(mydt,mydt2)
    else
       -- just copy stuff over

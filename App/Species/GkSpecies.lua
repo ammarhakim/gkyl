@@ -248,6 +248,20 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       moment = "GkM2",
       gkfacs = {self.mass, self.bmag},
    }
+   self.M2parCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "GkM2par",
+      gkfacs = {self.mass, self.bmag},
+   }
+   self.M2perpCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "GkM2perp",
+      gkfacs = {self.mass, self.bmag},
+   }
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
