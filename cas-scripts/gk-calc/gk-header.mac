@@ -38,6 +38,9 @@ printf(fh, "#ifndef GYROKINETIC_MOD_DECL_H ~%")$
 printf(fh, "#define GYROKINETIC_MOD_DECL_H ~%")$
 printf(fh, "#include <cmath> ~%")$
 printf(fh, "#include <Positivity.h> ~%")$
+printf(fh, "#define SURFAVG 1 ~%")$
+printf(fh, "#define QUAD 2 ~%")$
+printf(fh, "#define cflType QUAD ~%")$
 printf(fh, "extern \"C\" { ~%")$
 printPrototypes()$
 printf(fh, "} ~%")$

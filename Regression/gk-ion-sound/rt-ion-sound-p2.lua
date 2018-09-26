@@ -9,7 +9,9 @@ knumber = 0.5
 XL, XU = -math.pi/knumber, math.pi/knumber
 Ti0 = 1.0
 Te0 = Ti0/TiTe
-ni0, ne0 = 1.0, 1.0
+n0 = 1.0
+ni0 = n0
+ne0 = n0
 B0 = 1.0
 
 plasmaApp = Plasma.App {

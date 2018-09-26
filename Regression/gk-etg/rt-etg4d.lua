@@ -43,7 +43,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd = .5e-6, -- end time
-   nFrame = 1, -- number of output frames
+   nFrame = 2, -- number of output frames
    lower = {r0 - dr/2, -dr/2}, -- configuration space lower left
    upper = {r0 + dr/2,  dr/2}, -- configuration space upper right
    cells = {1, 8}, -- configuration space cells
@@ -75,29 +75,35 @@ plasmaApp = Plasma.App {
       cells = {N_VPAR, N_MU},
       decompCuts = {1, 1},
       -- initial conditions
-      initBackground = {"maxwellian",
-              density = function (t, xn)
-                 return n0
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 return Te0*(1-(x-r0)/L_T)
-              end,
-             },
-      init = {"maxwellian",
-              density = function (t, xn)
-                 local x, y, vpar, mu = xn[1], xn[2], xn[3], xn[4]
-                 local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
-                 return n0*(1+perturb)
-              end,
-              temperature = function (t, xn)
-                 local x = xn[1]
-                 return Te0*(1-(x-r0)/L_T)
-              end,
-             },
+      initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
+         density = function (t, xn)
+            local x = xn[1]
+            return n0
+         end,
+         driftSpeed = 0.0,
+         temperature = function (t, xn)
+            local x = xn[1]
+            return Te0*(1-(x-r0)/L_T)
+         end,
+         exactScaleM0 = true,
+         isBackground = true,
+      },
+      init = Plasma.Gyrokinetic.MaxwellianProjection {
+         density = function (t, xn)
+            local x, y, z = xn[1], xn[2]
+            local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
+            return n0*(1+perturb)
+         end,
+         driftSpeed = 0.0,
+         temperature = function (t, xn)
+            local x = xn[1]
+            return Te0*(1-(x-r0)/L_T)
+         end,
+         exactScaleM0 = true,
+      },
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
-      diagnosticMoments = {"GkM0", perturbed = true}, 
+      diagnosticMoments = {"GkM0", "GkM2"}, 
    },
 
    -- adiabatic ions

@@ -151,6 +151,10 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 end
 
 function VmLBOCollisions:write(tm, frame)
+   self.velocity:scale(1.0/self.collFreq)
+   self.vthSq:scale(1.0/self.collFreq)
+   self.velocity:write(string.format("%s_%s_%d.bp", self.speciesName, "u", frame), tm, frame)
+   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
 end
 
 function VmLBOCollisions:totalTime()

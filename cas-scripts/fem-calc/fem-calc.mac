@@ -74,6 +74,7 @@ fh : openw("~/max-out/FemMatrices.cpp")$
 header : openw("~/max-out/FemMatrices.h")$
 printf(header, "#include <Eigen/Core> ~%")$
 printf(fh, "#include <FemMatrices.h> ~%")$
+/*
 /* write getMassMatrix C function */
 prototype:"void getMassMatrix(Eigen::MatrixXd& mat, double *w, int ndim, int polyOrder)"$
 writeCMatFunc(prototype, calcMass, [1,2,3], false, false)$
@@ -117,6 +118,15 @@ printf(header, "~a;~%", prototype)$
 /* write getPerpStiffnessMatrix C function with metric */
 prototype:"void getPerpStiffnessMatrix(Eigen::MatrixXd& mat, double *w, double *gxx, double *gxy, double *gyy, int ndim, int polyOrder, double dx, double dy)"$
 writeCMatFunc(prototype, calcStiffPerpMetric, [2,3], true, false)$
+printf(header, "~a;~%", prototype)$
+*/
+/* write getGyavgMatrix C function */
+prototype:"void getGyavg0Matrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, double dx, double dy, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcGyavg0, [2/*,3*/], false, false)$
+printf(header, "~a;~%", prototype)$
+/* write getGyavgMatrix C function */
+prototype:"void getGyavgMatrix(Eigen::MatrixXd& mat, double *rho1, double *rho2, double *rho3, double dx, double dy, int ndim, int polyOrder)"$
+writeCMatFunc(prototype, calcGyavg, [2/*,3*/], false, false)$
 printf(header, "~a;~%", prototype)$
 close(fh)$
 close(header)$

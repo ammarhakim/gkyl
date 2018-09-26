@@ -21,12 +21,12 @@ flux : [
  [-c^2*Bz, c^2*chi*phi, c^2*Bx, Ez, gamma*psi, -Ex, chi*Ey, c^2*gamma*By],
  [c^2*By, -c^2*Bx, c^2*chi*phi, -Ey, Ex, gamma*psi, chi*Ez, c^2*gamma*Bz]
 ]$
-
+pmax : 1$
 calcUpdateInDir(dir, fh, funcNm, cdim, basisFun) := block([],
 kill(varsC, basisC),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
-for p : 1 thru 4 do(
+for p : 1 thru pmax do(
   bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
   
@@ -99,7 +99,7 @@ for p : 1 thru 4 do(
   subListL : subst(cv=1, [ExL=Exll, EyL=Eyll, EzL=Ezll, BxL=Bxll, ByL=Byll, BzL=Bzll, phiL=phll, psiL=psll]),
   subListR : subst(cv=-1, [ExR=Exrl, EyR=Eyrl, EzR=Ezrl, BxR=Bxrl, ByR=Byrl, BzR=Bzrl, phiR=phrl, psiR=psrl]),
   numFlux : subst(append(subListL, subListR), calcNumFlux(V, flux[dir])),
-
+  print(numFlux),
   surfVars : delete(cv,varsC),
 
   clst : [c2, gamma, chi, c2gamma, c2chi],

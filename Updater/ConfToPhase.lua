@@ -68,10 +68,6 @@ function ConfToPhase:_advance(tCurr, dt, inFld, outFld)
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
-   --self._confToPhaseFun(fconf:_localLower(), fconf:_localShape(), fconf:numComponents(),
-   --                     fphase:_localLower(), fphase:_localShape(), fphase:numComponents(), 
-   --                     fact, fconf._data, fphase._data)
-
    local localRange = fphase:localRange()
    local fphaseIndexer = fphase:genIndexer()
    local fconfIndexer = fconf:genIndexer()

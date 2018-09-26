@@ -73,8 +73,9 @@ local function sarg(...)
 end
 
 local mrg_mt = {
-  __new = function(ct, self) -- TODO: Check, either new or copy are broken.
-    return ffi.new(ct, y0, y0, y0, y0, y0, y0)
+   __new = function(ct, s) -- TODO: Check, either new or copy are broken.
+      local seed = s and s or y0
+    return ffi.new(ct, seed, seed, seed, seed, seed, seed)
   end,
   __tostring = function(self)
     local o = self

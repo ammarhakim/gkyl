@@ -39,6 +39,10 @@ return function (tCurr, xn, func, fout)
 end
 ]])
 
+ffi.cdef[[
+  void projectF(double* f, double* weights, double* basisAtOrdinates, double* fv, int numVal, int numBasis, int numOrd);
+]]
+
 -- Projection  updater object
 local ProjectOnBasis = Proto(UpdaterBase)
 
@@ -54,6 +58,14 @@ function ProjectOnBasis:init(tbl)
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
    local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- number of quadrature points in each direction
+
+   -- As of 09/21/2018 it has been determined that ProjectOnBasis for p = 3 simulations behaves "strangely" when numQuad is an even number.
+   -- We do not know why, but numQuad even for p=3 can causes slight (1e-8 to 1e-12) variations when projecting onto basis functions.
+   -- This causes regressions tests to fail, seemingly at random; numQuad = 5 or 7 appears to eliminate this issue across thousands of runs of regressions tests.
+   if self._basis:polyOrder() == 3 then
+      N = 5
+   end
+
    assert(N<=8, "Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
    self._projectOnGhosts = xsys.pickBool(tbl.projectOnGhosts, false)
@@ -145,19 +157,7 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
 
       qOut:fill(indexer(idx), fItr)
 
-      local offset = 0
-      -- update each component
-      for n = 1, numVal do
-	 -- update each expansion coefficient
-	 for k = 1, numBasis do
-	    fItr[offset+k] = 0.0
-	    -- loop over quadrature points, accumulating contribution to expansion coefficient
-	    for mu = 1, numOrd do
-	       fItr[offset+k] = fItr[offset+k] + self._weights[mu]*self._basisAtOrdinates[mu][k]*fv[mu][n]
-	    end
-	 end
-	 offset = offset+numBasis
-      end
+      ffi.C.projectF(fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
    end
 
    -- set id of output to id of projection basis

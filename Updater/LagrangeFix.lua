@@ -6,7 +6,6 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local LagrangeFixDecl = require "Updater.lagrangeFixData.lagrangeFixDecl"
 local Lin = require "Lib.Linalg"
 local Proto = require "Proto"
 local Range = require "Lib.Range"
@@ -29,11 +28,17 @@ function LagrangeFix:init(tbl)
 			  "Updater.LagrangeFix: Must provide configuration space grid object using 'confGrid'")
    self.confBasis = assert(tbl.confBasis,
 			   "Updater.LagrangeFix: Must provide configuration space basis object using 'confBasis'")
-   self.phaseGrid = assert(tbl.phaseGrid,
-			   "Updater.LagrangeFix: Must provide phase space grid object using 'phaseGrid'")
+   self.phaseGrid = tbl.onGrid
    self.phaseBasis = assert(tbl.phaseBasis,
 			    "Updater.LagrangeFix: Must provide phase space basis object using 'phaseBasis'")
 
+   self.mode = assert(tbl.mode,
+		      "Updater.LagrangeFix: Must specify 'mode'; options are: 'Vlasov' and 'Gk' for gyrokinetics")
+   assert(self.mode == 'Vlasov' or self.mode == 'Gk',
+	  "Updater.LagrangeFix: Supported options of 'mode' are: 'Vlasov' and 'Gk' for gyrokinetics")
+   if self.mode == 'Gk' then
+      self.mass = assert(tbl.mass, "Updater.LagrangeFix: Must provide 'mass' when in 'Gk' mode")
+   end
 
    self.numConfDims = self.confBasis:ndim()
    self.numPhaseDims = self.phaseBasis:ndim()
@@ -47,6 +52,12 @@ function LagrangeFix:init(tbl)
    assert(self.phaseBasis:id() == self.basisID,
           "Polynomial orders of phase and conf basis must match")
 
+   local LagrangeFixDecl = nil
+   if self.mode == 'Vlasov' then
+      LagrangeFixDecl = require "Updater.lagrangeFixData.VlasovLagrangeFixDecl"
+   else
+      LagrangeFixDecl = require "Updater.lagrangeFixData.GkLagrangeFixDecl"
+   end
    self.lagrangeFixFn =
       LagrangeFixDecl.selectLagrangeFixFunction(self.basisID,
 						self.numConfDims,
@@ -65,16 +76,25 @@ end
 function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
    -- Get the inputs and outputs
    local dm0 = assert(inFld[1],
-		      "LagrangeFix.advance: Must specify dm0 as 'inFld[1]")
+		      "LagrangeFix.advance: Must specify dm0 as 'inFld[1]'")
    local dm1 = assert(inFld[2],
-		      "LagrangeFix.advance: Must specify dm1 as 'inFld[2]")
+		      "LagrangeFix.advance: Must specify dm1 as 'inFld[2]'")
    local dm2 = assert(inFld[3],
-		      "LagrangeFix.advance: Must specify dm2 as 'inFld[3]")
+		      "LagrangeFix.advance: Must specify dm2 as 'inFld[3]'")
+   local B = nil
+   if self.mode == 'Gk' then
+      B = assert(inFld[4],
+		 "LagrangeFix.advance: Must specify B as 'inFld[4]'")
+   end
    local f = assert(outFld[1], "LagrangeFix.advance: Must specify an output distribution function")
 
    local dm0Itr = dm0:get(1)
    local dm1Itr = dm1:get(1)
    local dm2Itr = dm2:get(1)
+   local BItr = nil
+   if self.mode == 'Gk' then
+      BItr = B:get(1)
+   end
    local fItr = f:get(1)
 
    -- Get the Ranges to loop over the domain
@@ -99,6 +119,9 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
       dm0:fill(confIndexer(confIdx), dm0Itr)
       dm1:fill(confIndexer(confIdx), dm1Itr)
       dm2:fill(confIndexer(confIdx), dm2Itr)
+      if self.mode == 'Gk' then
+	 B:fill(confIndexer(confIdx), BItr)
+      end
 
       -- The velocity space loop
       for velIdx in velRange:colMajorIter() do
@@ -115,9 +138,15 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
 	    vc[d-1] = zc[d + self.numConfDims]
 	 end
 
-	 self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
-			    self.L, Nv, vc,
-			    fItr:data())
+	 if self.mode == 'Vlasov' then
+	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
+			       self.L, Nv, vc,
+			       fItr:data())
+	 else
+	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
+			       BItr:data(), self.mass, self.L, Nv, vc,
+			       fItr:data())
+	 end
       end
    end
    return true, GKYL_MAX_DOUBLE

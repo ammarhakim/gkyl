@@ -43,7 +43,7 @@ end
 vlasovApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 30.0, -- end time
+   tEnd = 15.0, -- end time
    nFrame = 1, -- number of output frames
    lower = {0, 0}, -- configuration space lower left
    upper = {2*math.pi/kx, 2*math.pi/ky }, -- configuration space upper right
@@ -65,7 +65,7 @@ vlasovApp = Plasma.App {
       -- velocity space grid
       lower = {-1.0, -1.0},
       upper = {1.0, 1.0},
-      cells = {10, 10},
+      cells = {8, 8},
       decompCuts = {1, 1},
       -- initial conditions
       init = function (t, xn)

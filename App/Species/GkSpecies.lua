@@ -21,11 +21,13 @@ local SP_BC_OPEN = 2
 local SP_BC_REFLECT = 3
 local SP_BC_SHEATH = 4
 local SP_BC_ZEROFLUX = 5
+local SP_BC_COPY = 6
 GkSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 GkSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 GkSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 GkSpecies.bcSheath = SP_BC_SHEATH -- specular reflection
 GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX -- zero flux
+GkSpecies.bcCopy = SP_BC_COPY -- copy stuff
 
 function GkSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -36,33 +38,17 @@ function GkSpecies:alloc(nRkDup)
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocMoment()
    self.ptclEnergy = self:allocMoment()
-   self.polarizationWeight = self:allocMoment()
+   self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
+
+   if self.gyavg then
+      self.rho1 = self:allocDistf()
+      self.rho2 = self:allocDistf()
+      self.rho3 = self:allocDistf()
+   end
 end
 
 function GkSpecies:allocMomCouplingFields()
    assert(false, "GkSpecies:allocMomCouplingFields should not be called. Field object should allocate its own coupling fields")
-end
-
-function GkSpecies:initDist()
-   GkSpecies.super.initDist(self)
-
-   -- calculate initial density averaged over simulation domain
-   self.n0 = nil
-   local dens0 = self:allocMoment()
-   self.numDensityCalc:advance(0,0, {self.distf[1]}, {dens0})
-   local data
-   local dynVec = DataStruct.DynVector { numComponents = 1 }
-   -- integrate 
-   local calcInt = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      numComponents = 1,
-      quantity = "V"
-   }
-   calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
-   _, data = dynVec:lastData()
-   self.n0 = data[1]/self.confGrid:gridVolume()
-   --print("Average density is " .. self.n0)
 end
 
 function GkSpecies:createSolver(hasPhi, hasApar, funcField)
@@ -135,9 +121,71 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       self.bmag = assert(funcField.geo.bmag, "nil bmag")
    end
 
+   if self.gyavg then
+      -- set up geo fields needed for gyroaveraging
+      local rho1Func = function (t, xn)
+         local mu = xn[self.ndim]
+         return math.sqrt(2*mu*self.mass*funcField.gxxFunc(t, xn)/(self.charge^2*funcField.bmagFunc(t, xn)))
+      end
+      local rho2Func = function (t, xn)
+         local mu = xn[self.ndim]
+         return funcField.gxyFunc(t,xn)*math.sqrt(2*mu*self.mass/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+      end
+      local rho3Func = function (t, xn)
+         local mu = xn[self.ndim]
+         return math.sqrt(2*mu*self.mass*(funcField.gxxFunc(t,xn)*funcField.gyyFunc(t,xn)-funcField.gxyFunc(t,xn)^2)/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
+      end
+      local project1 = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = rho1Func,
+         projectOnGhosts = true
+      }
+      project1:advance(0.0, 0.0, {}, {self.rho1})
+      local project2 = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = rho2Func,
+         projectOnGhosts = true
+      }
+      project2:advance(0.0, 0.0, {}, {self.rho2})
+      local project3 = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = rho3Func,
+         projectOnGhosts = true
+      }
+      project3:advance(0.0, 0.0, {}, {self.rho3})
+
+      -- create solver for gyroaveraging potentials
+      self.emGyavgSlvr = Updater.FemGyroaverage {
+         onGrid = self.confGrid,
+         confBasis = self.confBasis,
+         phaseGrid = self.grid,
+         phaseBasis = self.basis,
+         rho1 = self.rho1,
+         rho2 = self.rho2,
+         rho3 = self.rho3,
+         muOrder0 = true, -- cell-average in mu
+      }
+
+      -- create solver for gyroaveraging distribution function
+      self.distfGyavgSlvr = Updater.FemGyroaverage {
+         onGrid = self.confGrid,
+         confBasis = self.confBasis,
+         phaseGrid = self.grid,
+         phaseBasis = self.basis,
+         rho1 = self.rho1,
+         rho2 = self.rho2,
+         rho3 = self.rho3,
+         integrate = true,
+      }
+   end
+
    -- create updater to advance solution by one time-step
    self.gkEqn = Gk.GkEq {
       onGrid = self.grid,
+      confGrid = self.confGrid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
       charge = self.charge,
@@ -147,6 +195,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       Bvars = funcField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
       positivity = self.positivity,
+      gyavgSlvr = self.emGyavgSlvr,
    }
 
    -- no update in mu direction (last velocity direction if present)
@@ -167,8 +216,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       equation = self.gkEqn,
       zeroFluxDirections = self.zeroFluxDirections,
       updateDirections = upd,
-      -- if electromagnetic, only compute RHS increment so that RHS can be used in dAdt solve
-      onlyIncrement = hasApar, 
+      onlyIncrement = true, 
    }
    if hasApar then 
       -- set up solver that adds on volume term involving dApar/dt and the entire vpar surface term
@@ -190,7 +238,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections = {self.cdim+1},
          clearOut = false,   -- continue accumulating into output field
-         onlyIncrement = false,  -- finish taking timestep
+         onlyIncrement = true, 
       }
    end
    
@@ -216,6 +264,20 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       moment = "GkM2",
       gkfacs = {self.mass, self.bmag},
    }
+   self.M2parCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "GkM2par",
+      gkfacs = {self.mass, self.bmag},
+   }
+   self.M2perpCalc = Updater.DistFuncMomentCalc {
+      onGrid = self.grid,
+      phaseBasis = self.basis,
+      confBasis = self.confBasis,
+      moment = "GkM2perp",
+      gkfacs = {self.mass, self.bmag},
+   }
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
@@ -228,12 +290,14 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
 
    self.tmCouplingMom = 0.0 -- for timer 
 
-   if self.positivity then 
-      self.positivityRescale = Updater.PositivityRescale {
+   if self.positivityRescale then 
+      self.posRescaler = Updater.PositivityRescale {
          onGrid = self.grid,
          basis = self.basis,
       }
    end
+
+   assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
 
 function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
@@ -244,8 +308,17 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
+
    if self.evolveCollisionless then
-      status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      if self.positivityRescale then 
+         self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
+         if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
+         status, dtSuggested = self.solver:advance(tCurr, dt, {self.fPos, em, emFunc, emGy}, {fOut})
+      else
+         status, dtSuggested = self.solver:advance(tCurr, dt, {fIn, em, emFunc, emGy}, {fOut})
+      end
+      -- if step2, only compute RHS increment so that RHS can be used in step 2
+      if not self.solverStep2 then fOut:scale(dt); fOut:accumulate(1.0, fIn) end -- fOut = fIn + dt*fOut
    else
       fOut:copy(fIn) -- just copy stuff over
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
@@ -262,12 +335,10 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.sourceFunc and self.evolveSources then
-     -- if there is a source, add it to the RHS
+   if self.fSource and self.evolveSources then
+     -- add source it to the RHS
      fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
    end
-
-   if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
 
    -- apply BCs
    if not hasApar then self:applyBc(tCurr, dt, fOut) end
@@ -284,6 +355,14 @@ function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
       local emFunc = emIn[2]:rkStepperFields()[1]
       local status, dtSuggested
       status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      if self.positivityRescale then 
+         self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
+         if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
+         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {self.fPos, em, emFunc}, {fOut})
+      else
+         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      end
+      fOut:scale(dt); fOut:accumulate(1.0, fIn) -- fOut = fIn + dt*fOut
 
       -- apply BCs
       self:applyBc(tCurr, dt, fOut)
@@ -407,6 +486,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcOpenFunc(...) return  self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
    local function bcSheathFunc(...) return self:bcSheathFunc(...) end
+   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
    
    local vdir = nil
    if dir==self.cdim then 
@@ -429,6 +509,8 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       self.hasSheathBcs = true
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
+   elseif bcType == SP_BC_COPY then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise"))
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end
@@ -513,7 +595,7 @@ end
 function GkSpecies:totalSolverTime()
    local timer = self.solver.totalTime
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   if self.positivityRescale then timer = timer + self.positivityRescale.totalTime end
+   if self.posRescaler then timer = timer + self.posRescaler.totalTime end
    return timer
 end
 

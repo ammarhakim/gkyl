@@ -79,6 +79,7 @@ function VlasovSpecies:createSolver(hasE, hasB)
       mass = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
+      constGravity = self.constGravity,
    }
 
    -- must apply zero-flux BCs in velocity directions
@@ -424,7 +425,7 @@ function VlasovSpecies:Maxwellian(xn, n0, T0, vdn)
    for d = self.cdim+1, self.cdim+self.vdim do
      v2 = v2 + (xn[d] - vdn[d-self.cdim])^2
    end
-   return n0/math.sqrt(2*math.pi*vt2)^self.cdim*math.exp(-v2/(2*vt2))
+   return n0 / math.sqrt(2*math.pi*vt2)^self.vdim * math.exp(-v2/(2*vt2))
 end
 
 return VlasovSpecies

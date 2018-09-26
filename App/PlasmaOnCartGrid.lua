@@ -16,11 +16,13 @@ local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Proto = require "Lib.Proto"
+local Sources = require "App.Sources"
 local Species = require "App.Species"
 local Time = require "Lib.Time"
 local date = require "xsys.date"
 local lume = require "Lib.lume"
 local xsys = require "xsys"
+local Projection = require "App.Projection"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -38,8 +40,14 @@ local function buildApplication(self, tbl)
    local log = Logger {
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
-
+      
    log(date(false):fmt()); log("\n") -- time-stamp for sim start
+   if GKYL_HG_CHANGESET then
+      log(string.format("Gkyl built with %s\n", GKYL_HG_CHANGESET))
+   end
+   if GKYL_BUILD_DATE then
+      log(string.format("Gkyl built on %s\n", GKYL_BUILD_DATE))
+   end
 
    -- function to warn user about default values
    local function warnDefault(varVal, varNm, default)
@@ -161,6 +169,16 @@ local function buildApplication(self, tbl)
       s:createBasis(basisNm, polyOrder)
    end
 
+   -- read in information about each species
+   local sources = {}
+   for nm, val in pairs(tbl) do
+      if Sources.SourceBase.is(val) then
+	 val:fullInit(tbl) -- initialize sources
+	 sources[nm] = val
+	 sources[nm]:setName(nm)
+      end
+   end
+
    -- configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp)
    local decomp = DecompRegionCalc.CartProd {
@@ -191,6 +209,11 @@ local function buildApplication(self, tbl)
       s:setConfGrid(grid)
       s:alloc(stepperNumFields[timeStepperNm])
    end
+
+   -- set conf grid for each source
+   for _, s in pairs(sources) do
+      s:setConfGrid(grid)
+   end   
 
    local cflMin = GKYL_MAX_DOUBLE
    -- compute CFL numbers
@@ -260,6 +283,11 @@ local function buildApplication(self, tbl)
       s:initDist()
       s:createDiagnostics()
    end
+
+   -- initialize source solvers
+   for nm, s in pairs(sources) do
+      s:createSolver(species, field)
+   end   
 
    -- initialize field (sometimes requires species to have been initialized)
    for nm, s in pairs(species) do
@@ -497,6 +525,27 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
+   -- update sources
+   local function updateSource(dataIdx, tCurr, dt)
+      -- make list of species data to operate on
+      local speciesVar = {}
+      for nm, s in pairs(species) do
+	 speciesVar[nm] = s:rkStepperFields()[dataIdx]
+      end
+      -- field data to operate on
+      local fieldVar = field:rkStepperFields()[dataIdx]
+
+      local status, dtSuggested = true, GKYL_MAX_DOUBLE
+      -- update sources
+      for nm, s in pairs(sources) do
+	 local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
+	 status =  status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+
+      return status, dtSuggested
+   end
+
    -- function to advance solution using FV dimensionally split scheme
    function timeSteppers.fvDimSplit(tCurr, dt)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
@@ -505,10 +554,29 @@ local function buildApplication(self, tbl)
       -- copy in case we need to take this step again
       copy(3, 1)
 
+      -- update source by half time-step
+      do
+	 local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+	 status = status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+
       -- update solution in each direction
       for d = 1, cdim do
 	 local myStatus, myDtSuggested = updateInDirection(d, tCurr, dt)
 	 status =  status and myStatus
+	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+      end
+
+      -- update source by half time-step
+      if status then
+	 local myStatus, myDtSuggested
+	 if fIdx[cdim][2] == 2 then
+	    myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
+	 else
+	    myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
+	 end
+	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
@@ -519,6 +587,7 @@ local function buildApplication(self, tbl)
 	 -- time-step
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
+      
 
       return status, dtSuggested
    end
@@ -537,12 +606,12 @@ local function buildApplication(self, tbl)
 
       -- sanity check: don't run if not needed
       if tStart >= tEnd then return end
-      
-      local initDt =  tbl.suggestedDt and tbl.suggestedDt or tEnd-tStart -- initial time-step
+
+      local maxDt = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
+      local initDt =  tbl.suggestedDt and tbl.suggestedDt or maxDt -- initial time-step
       local step = 1
       local tCurr = tStart
       local myDt = initDt
-      local maxDt = tbl.maximumDt and tbl.maximumDt or GKYL_MAX_DOUBLE -- max time-step
 
       -- triggers for 10% and 1% loggers
       local logTrigger = LinearTrigger(0, tEnd, 10)
@@ -595,10 +664,12 @@ local function buildApplication(self, tbl)
 	 -- check status and determine what to do next
 	 if status then
 	    writeLogMessage(tCurr+myDt)
+	    -- we must write data first before calling writeRestart in
+	    -- order not to mess up numbering of frames on a restart
+	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
 	    end	    
-	    writeData(tCurr+myDt)
 	    
 	    tCurr = tCurr + myDt
 	    myDt = math.min(dtSuggested, maxDt)
@@ -631,18 +702,19 @@ local function buildApplication(self, tbl)
          end
       end
 
-      log(string.format("\nTotal number of time-steps %s\n", step))
-      log(string.format("\nSolver took %g sec (%g s/step)\n", tmSlvr, tmSlvr/step))
-      log(string.format("Solver BCs took %g sec (%g s/step)\n", tmBc, tmBc/step))
-      log(string.format("Field solver took %g sec (%g s/step)\n", field:totalSolverTime(), field:totalSolverTime()/step))
-      log(string.format("Field solver BCs took %g sec (%g s/step)\n", field:totalBcTime(), field:totalBcTime()/step))
-      log(string.format("Function field solver took %g sec (%g s/step)\n", funcField:totalSolverTime(), funcField:totalSolverTime()/step))
-      log(string.format("Moment calculations took %g sec (%g s/step)\n", tmMom, tmMom/step))
-      log(string.format("Integrated moment calculations took %g sec (%g s/step)\n", tmIntMom, tmIntMom/step))
-      log(string.format("Field energy calculations took %g sec (%g s/step)\n", field:energyCalcTime(), field:energyCalcTime()/step))
-      log(string.format("Collision solver(s) took %g sec (%g s/step)\n", tmColl, tmColl/step))
-      log(string.format("Stepper combine/copy took %g sec (%g s/step)\n", stepperTime, stepperTime/step))
-      log(string.format("Main loop completed in %g sec (%g s/step)\n\n", tmSimEnd-tmSimStart, (tmSimEnd-tmSimStart)/step))
+      local tmTotal = tmSimEnd-tmSimStart
+      log(string.format("\nTotal number of time-steps %s\n\n", step))
+      log(string.format("Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+      log(string.format("Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmBc, tmBc/step, 100*tmBc/tmTotal))
+      log(string.format("Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
+      log(string.format("Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
+      log(string.format("Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
+      log(string.format("Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmMom, tmMom/step, 100*tmMom/tmTotal))
+      log(string.format("Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+      log(string.format("Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
+      log(string.format("Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmColl, tmColl/step, 100*tmColl/tmTotal))
+      log(string.format("Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      log(string.format("Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n", tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
 end
@@ -687,10 +759,29 @@ return {
    VmLBOCollisions = Collisions.VmLBOCollisions,
    GkLBOCollisions = Collisions.GkLBOCollisions,
    VoronovIonization = Collisions.VoronovIonization,
+   Projection = Projection,
 
    -- valid pre-packaged species-field systems
-   Gyrokinetic = {App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry},
-   IncompEuler = {App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField},
-   VlasovMaxwell = {App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField},
-   Moments = {App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField } 
+   Gyrokinetic = {
+      App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
+      FunctionProjection = Projection.KineticProjection.FunctionProjection, 
+      MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
+      BgkCollisions = Collisions.BgkCollisions,
+      LBOCollisions = Collisions.GkLBOCollisions,
+      AdiabaticSpecies = Species.AdiabaticSpecies,
+   },
+   IncompEuler = {
+      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
+   },
+   VlasovMaxwell = {
+      App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField,
+      FunctionProjection = Projection.KineticProjection.FunctionProjection, 
+      MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
+      BgkCollisions = Collisions.BgkCollisions,
+      LBOCollisions = Collisions.VmLBOCollisions,
+   },
+   Moments = {
+      App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
+      CollisionlessEmSource = Sources.CollisionlessEmSource
+   } 
 }

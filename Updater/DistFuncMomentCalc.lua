@@ -18,14 +18,14 @@ local xsys = require "xsys"
 local DistFuncMomentCalc = Proto(UpdaterBase)
 
 function DistFuncMomentCalc:isMomentNameGood(nm)
-   if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" or nm == "M3i" or nm == "FiveMoments" then
+   if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" or nm == "M3i" or nm == "FiveMoments" or nm == "StarMoments" then
       return true
    end
    return false
 end
 
 function DistFuncMomentCalc:isGkMomentNameGood(nm)
-   if nm == "GkM0" or nm == "GkM1" or nm == "GkM2par" or nm == "GkM2perp" or nm == "GkM2" or nm == "GkM3par" or nm == "GkM3perp" or nm == "GkThreeMoments" then
+   if nm == "GkM0" or nm == "GkM1" or nm == "GkM2par" or nm == "GkM2perp" or nm == "GkM2" or nm == "GkM3par" or nm == "GkM3perp" or nm == "GkThreeMoments" or nm == "GkStarMoments" then
       return true
    end
    return false
@@ -58,7 +58,7 @@ function DistFuncMomentCalc:init(tbl)
    local mom = assert(
       tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
-   if mom == "FiveMoments" or mom == "GkThreeMoments" then self._fivemoments = true end
+   if mom == "FiveMoments" or mom == "StarMoments" or mom == "GkThreeMoments" or mom == "GkStarMoments" then self._fivemoments = true end
 
    -- function to compute specified moment
    self._isGK = false
@@ -72,7 +72,7 @@ function DistFuncMomentCalc:init(tbl)
                         to calculate a Gk moment]])
    else
       print("DistFuncMomentCalc: Requested moment is", mom)
-      assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i, FiveMoments")
+      assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i, FiveMoments, or StarMoments")
    end
  
    self.momfac = 1.0

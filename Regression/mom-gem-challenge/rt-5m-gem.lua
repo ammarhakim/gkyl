@@ -78,7 +78,12 @@ momentApp = Moments.App {
 	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,
       evolve = true, -- evolve field?
-   }
+   },
+
+   emSource = Moments.CollisionlessEmSource {
+      species = {"elc"},
+      timeStepper = "time-centered",
+   },   
 
 }
 -- run application

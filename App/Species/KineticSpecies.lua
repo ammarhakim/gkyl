@@ -21,6 +21,8 @@ local xsys = require "xsys"
 local Time = require "Lib.Time"
 local Mpi = require "Comm.Mpi"
 local Collisions = require "App.Collisions"
+local ProjectionBase = require "App.Projection.ProjectionBase"
+local Projection = require "App.Projection"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -51,12 +53,14 @@ function KineticSpecies:fullInit(appTbl)
    self.cfl =  0.1
    self.charge = tbl.charge and tbl.charge or 1.0
    self.mass = tbl.mass and tbl.mass or 1.0
+   self.n0 = tbl.n0 or n0
    self.lower, self.upper = tbl.lower, tbl.upper
    self.cells = tbl.cells
    self.vdim = #self.cells -- velocity dimensions
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
-   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless, self.evolve) 
+   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
+					    self.evolve) 
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
    self.evolveSources = xsys.pickBool(tbl.evolveSources, self.evolve) 
    self.confBasis = nil -- Will be set later
@@ -124,68 +128,83 @@ function KineticSpecies:fullInit(appTbl)
    -- get a random seed for random initial conditions
    self.randomseed = tbl.randomseed
 
-   -- get functions for initial conditions and sources note: need to
-   -- wrap these functions so that self can be (optionally) passed as
-   -- last argument
-   -- initial condition functions 
-   if tbl.initBackground then 
-      if type(tbl.initBackground)=="function" then 
-         self.initBackgroundFunc = function (t, xn)
-            return tbl.initBackground(t, xn, self)
-         end
-      elseif tbl.initBackground[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
-         self.initBackgroundType = "maxwellian"
-         self.initBackgroundDensityFunc = assert(tbl.initBackground.density, "maxwellian: must specify density")
-         self.initBackgroundTemperatureFunc = assert(tbl.initBackground.temperature, "maxwellian: must specify temperature")
-         self.initBackgroundDriftSpeedFunc = tbl.initBackground.driftSpeed or function (t, xn) return nil end
-         self.initBackgroundFunc = function(t, xn)
-            return self:Maxwellian(xn, self.initBackgroundDensityFunc(t, xn), self.initBackgroundTemperatureFunc(t, xn), self.initBackgroundDriftSpeedFunc(t,xn))
-         end
-      else 
-         assert(false, "initBackground not correctly specified")
+   -- Initialization
+   self.projections = {}
+   for nm, val in pairs(tbl) do
+      if ProjectionBase.is(val) then
+	 self.projections[nm] = val
       end
    end
-   assert(tbl.init, "Must specify initial condition with init")
-   if type(tbl.init) == "function" then
-      self.initFunc = function (t, xn)
-         return tbl.init(t, xn, self)
-      end
-   elseif tbl.init[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
-      self.initType = "maxwellian"
-      self.initDensityFunc = assert(tbl.init.density, "maxwellian: must specify density")
-      self.initTemperatureFunc = assert(tbl.init.temperature, "maxwellian: must specify temperature")
-      self.initDriftSpeedFunc = tbl.init.driftSpeed or function (t, xn) return nil end
-      self.initFunc = function(t, xn)
-         return self:Maxwellian(xn, self.initDensityFunc(t, xn), self.initTemperatureFunc(t, xn), self.initDriftSpeedFunc(t, xn))
-      end
+   if tbl.sourceTimeDependence then 
+      self.sourceTimeDependence = tbl.sourceTimeDependence 
    else 
-      assert(false, "init not correctly specified")
+      self.sourceTimeDependence = function (t) return 1.0 end 
    end
-   -- source term for RHS (e.g. df/dt = ... + source)
-   if tbl.source then 
-      if type(tbl.source)=="function" then 
-         self.sourceFunc = function (t, xn)
-            return tbl.source(t, xn, self)
-         end
-      elseif tbl.source[1] == "maxwellian" then -- special case for maxwellian, density will be corrected
-         self.sourceType = "maxwellian"
-         self.sourceDensityFunc = assert(tbl.source.density, "maxwellian: must specify density")
-         self.sourceTemperatureFunc = assert(tbl.source.temperature, "maxwellian: must specify temperature")
-         self.sourceDriftSpeedFunc = tbl.source.driftSpeed or function (t, xn) return nil end
-         self.sourceFunc = function(t, xn)
-            return self:Maxwellian(xn, self.sourceDensityFunc(t, xn), self.sourceTemperatureFunc(t, xn), self.sourceDriftSpeedFunc(t, xn))
-         end
-      else 
-         assert(false, "source not correctly specified")
-      end
-      if tbl.sourceTimeDependence then self.sourceTimeDependence = tbl.sourceTimeDependence else self.sourceTimeDependence = function (t) return 1 end end
+   -- it is possible to use the keyword 'init', 'initBackground', and
+   -- 'initSource' to specify a function directly without using a
+   -- Projection object
+   if type(tbl.init) == "function" then
+      self.projections["init"] = Projection.KineticProjection.FunctionProjection {
+	 func = function (t, zn)
+	    return tbl.init(t, zn, self)
+	 end,
+	 isInit = true,
+      }
    end
+   if type(tbl.initBackground) == "function" then
+      self.projections["initBackground"] = Projection.KineticProjection.FunctionProjection {
+	 func = function (t, zn)
+	    return tbl.initBackground(t, zn, self)
+	 end,
+	 isInit = false,
+	 isBackground = true,
+      }
+   end
+   if type(tbl.source) == "function" then
+      self.projections["initSource"] = Projection.KineticProjection.FunctionProjection {
+	 func = function (t, zn)
+	    return tbl.source(t, zn, self)
+	 end,
+	 isInit = false,
+	 isSource = true,
+      }
+   end
+   -- >> LEGACY CODE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+   if type(tbl.init) == "table" and tbl.init[1] == "maxwellian" then 
+      self.projections["init"] = Projection.GkProjection.MaxwellianProjection {
+	 density = tbl.init.density,
+	 driftSpeed = tbl.init.driftSpeed,
+	 temperature = tbl.init.temperature,
+	 exactScaleM0 = true,
+	 exactLagFixM012 = false,
+	 isInit = true,
+      }
+   end 
+   if type(tbl.initBackground) == "table" and tbl.initBackground[1] == "maxwellian" then 
+      self.projections["initBackground"] = Projection.GkProjection.MaxwellianProjection {
+	 density = tbl.initBackground.density,
+	 driftSpeed = tbl.initBackground.driftSpeed,
+	 temperature = tbl.initBackground.temperature,
+	 exactScaleM0 = true,
+	 exactLagFixM012 = false,
+	 isInit = false,
+	 isBackground = true,
+      }
+   end 
+   if type(tbl.source) == "table" and tbl.source[1] == "maxwellian" then 
+      self.projections["initSource"] = Projection.GkProjection.MaxwellianProjection {
+	 density = tbl.source.density,
+	 driftSpeed = tbl.source.driftSpeed,
+	 temperature = tbl.source.temperature,
+	 exactScaleM0 = true,
+	 exactLagFixM012 = false,
+	 isInit = false,
+	 isSource = true,
+      }
+   end 
+   -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
-   if self.fluctuationBCs then 
-      assert(self.initBackgroundFunc, [[KineticSpecies: must specify an initial
-        background distribution with 'initBackground' in order to use fluctuation-only BCs]]) 
-   end
 
    self.zeroFluxDirections = {}
 
@@ -211,6 +230,7 @@ function KineticSpecies:fullInit(appTbl)
 
    self.bcTime = 0.0 -- timer for BCs
    self.integratedMomentsTime = 0.0 -- timer for integrated moments
+
    -- Collisions/Sources
    self.collisions = {}
    for nm, val in pairs(tbl) do
@@ -222,6 +242,13 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
+   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
+   
+   -- for GK only: flag for gyroaveraging
+   self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
+
+   -- gravity table for running Vlasov simulations with constant gravity
+   self.constGravity = tbl.constGravity
 end
 
 function KineticSpecies:getCharge() return self.charge end
@@ -239,7 +266,6 @@ function KineticSpecies:setName(nm)
    for _, c in pairs(self.collisions) do
       c:setSpeciesName(nm)
    end
-
 end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl
@@ -346,6 +372,7 @@ function KineticSpecies:allocDistf()
 	numComponents = self.basis:numBasis(),
 	ghost = {1, 1},
    }
+   f:clear(0.0)
    return f
 end
 function KineticSpecies:allocMoment()
@@ -354,6 +381,7 @@ function KineticSpecies:allocMoment()
 	numComponents = self.confBasis:numBasis(),
 	ghost = {1, 1},
    }
+   m:clear(0.0)
    return m
 end
 function KineticSpecies:allocVectorMoment(dim)
@@ -362,6 +390,7 @@ function KineticSpecies:allocVectorMoment(dim)
 	numComponents = self.confBasis:numBasis()*dim,
 	ghost = {1, 1},
    }
+   m:clear(0.0)
    return m
 end
 
@@ -378,6 +407,7 @@ function KineticSpecies:bcOpenFunc(dir, tm, idxIn, fIn, fOut)
    self.basis:flipSign(dir, fIn, fOut)
 end
 function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+   -- requires skinLoop = "pointwise"
    for i = 1, self.basis:numBasis() do
       fOut[i] = fIn[i]
    end
@@ -434,14 +464,8 @@ function KineticSpecies:alloc(nRkDup)
       method = self.ioMethod,
    }
 
-   -- background (or initial) distribution
-   if self.initBackgroundFunc or not self.evolve then
-      self.f0 = self:allocDistf()
-   end
-
-   -- source 
-   if self.sourceFunc then 
-      self.fSource = self:allocDistf()
+   if self.positivity then
+      self.fPos = self:allocDistf()
    end
 
    self:createBCs()
@@ -457,82 +481,56 @@ function KineticSpecies:initDist()
    local syncPeriodicDirs = true
    if self.fluctuationBCs then syncPeriodicDirs = false end
 
-   local project = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
-      evaluate = self.initFunc,
-      projectOnGhosts = true
-   }
-   project:advance(0.0, 0.0, {}, {self.distf[1]})
-
-   -- if maxwellian initial conditions, modify to ensure correct density
-   if self.initType == "maxwellian" then
-      self:modifyDensity(self.distf[1], self.initDensityFunc)
+   local initCnt, backgroundCnt = 0, 0
+   for _, pr in pairs(self.projections) do
+      pr:fullInit(self)
+      pr:run(0.0, self.distf[2])
+      if pr.isInit then
+	 self.distf[1]:accumulate(1.0, self.distf[2])
+	 initCnt = initCnt + 1
+      end
+      if pr.isBackground then
+	 if not self.f0 then 
+	    self.f0 = self:allocDistf()
+	 end
+	 self.f0:accumulate(1.0, self.distf[2])
+	 self.f0:sync(syncPeriodicDirs)
+	 backgroundCnt = backgroundCnt + 1
+      end
+      if pr.isSource then
+	 if not self.fSource then 
+	    self.fSource = self:allocDistf()
+	 end
+	 self.fSource:accumulate(1.0, self.distf[2])
+      end
    end
-
-   if self.initBackgroundFunc then
-      local projectBackground = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.initBackgroundFunc,
-         projectOnGhosts = true
-      }
-      projectBackground:advance(0.0, 0.0, {}, {self.f0})
-      self.f0:sync(syncPeriodicDirs)
-   elseif not self.evolve then
-      -- if not evolving, use initial condition as background
+   assert(initCnt > 0,
+	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
+   if self.f0 and backgroundCnt == 0 then 
       self.f0:copy(self.distf[1])
    end
 
-   -- if maxwellian initial conditions, modify to ensure correct density
-   if self.initBackgroundType == "maxwellian" then
-      self:modifyDensity(self.f0, self.initBackgroundDensityFunc)
+   if self.fluctuationBCs then 
+      assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
    end
 
-   -- create updater to evaluate source 
-   if self.sourceFunc then 
-      self.evalSource = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.sourceFunc,
-         projectOnGhosts = true
-      }
-      self.evalSource:advance(tCurr, dt, {}, {self.fSource})
-
-      -- if maxwellian source, modify to ensure correct density
-      if self.sourceType == "maxwellian" then
-         self:modifyDensity(self.fSource, self.sourceDensityFunc)
-      end
-   end
-end
-
-function KineticSpecies:modifyDensity(f, trueDensFunc)
-   local ninit, ntrue, nmod = self:allocMoment(), self:allocMoment(), self:allocMoment()
-   self.numDensityCalc:advance(0, 0, {f}, {ninit})
-   local projectTrueDens = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
-      evaluate = trueDensFunc,
-      projectOnGhosts = true,
-   }
-   projectTrueDens:advance(0, 0, {}, {ntrue})
-   local calcDensMod = Updater.CartFieldBinOp {
-      onGrid = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts = true,
-   }
-   -- calculate nmod = ntrue / ninit
-   calcDensMod:advance(0, 0, {ninit, ntrue}, {nmod})
-   local modDistf = Updater.CartFieldBinOp {
-      onGrid = self.grid,
-      weakBasis = self.basis,
-      fieldBasis = self.confBasis,
-      operation = "Multiply",
-      onGhosts = true,
-   }
-   -- calculate f = nmod * f
-   modDistf:advance(0, 0, {nmod, f}, {f})
+   -- calculate initial density averaged over simulation domain
+   --self.n0 = nil
+   --local dens0 = self:allocMoment()
+   --self.numDensityCalc:advance(0,0, {self.distf[1]}, {dens0})
+   --local data
+   --local dynVec = DataStruct.DynVector { numComponents = 1 }
+   ---- integrate 
+   --local calcInt = Updater.CartFieldIntegratedQuantCalc {
+   --   onGrid = self.confGrid,
+   --   basis = self.confBasis,
+   --   numComponents = 1,
+   --   quantity = "V"
+   --}
+   --calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
+   --_, data = dynVec:lastData()
+   --self.n0 = data[1]/self.confGrid:gridVolume()
+   --print("Average density is " .. self.n0)
 end
 
 function KineticSpecies:rkStepperFields()
@@ -693,8 +691,7 @@ end
 function KineticSpecies:readRestart()
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
 
-   self:applyBc(tm, 0.0, self.distf[1])
-   self.distf[1]:sync() -- must get all ghost-cell data correct   
+   self:applyBc(tm, 0.0, self.distf[1]) -- apply BCs and set ghost-cell data
    
    self.distIoFrame = fr -- reset internal frame counter
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
@@ -708,6 +705,10 @@ function KineticSpecies:readRestart()
          string.format("%s_%s_restart.bp", self.name, mom))
       self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
    end
+
+   -- iterate triggers
+   self.distIoTrigger(tm)
+   self.diagIoTrigger(tm)
    
    return tm
 end

@@ -16,6 +16,7 @@ def build(bld):
     primMomentsCalcData/SelfPrimMomentsSer2x2v.cpp
     primMomentsCalcData/SelfPrimMomentsSer2x3v.cpp
     primMomentsCalcData/SelfPrimMomentsSer3x1v.cpp
+    primMomentsCalcData/SelfPrimMomentsSer3x3v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x1v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x3v.cpp
@@ -27,6 +28,7 @@ def build(bld):
     primMomentsCalcData/SelfPrimMomentsMax1x3v.cpp
     primMomentsCalcData/SelfPrimMomentsMax2x2v.cpp
     primMomentsCalcData/SelfPrimMomentsMax2x3v.cpp
+    primMomentsCalcData/SelfPrimMomentsMax3x3v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
@@ -37,6 +39,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x2v.cpp
     binOpCalcData/CartFieldBinOpSer2x3v.cpp
     binOpCalcData/CartFieldBinOpSer3x2v.cpp
+    binOpCalcData/CartFieldBinOpSer3x3v.cpp
 
     binOpCalcData/CartFieldBinOpMax1x.cpp
     binOpCalcData/CartFieldBinOpMax2x.cpp
@@ -47,10 +50,16 @@ def build(bld):
     binOpCalcData/CartFieldBinOpMax2x2v.cpp
     binOpCalcData/CartFieldBinOpMax2x3v.cpp
     binOpCalcData/CartFieldBinOpMax3x2v.cpp
+    binOpCalcData/CartFieldBinOpMax3x3v.cpp
 
     lagrangeFixData/gkyl_ipow.cpp
-    lagrangeFixData/lagrangeFixSer1x1v.cpp
-    lagrangeFixData/lagrangeFixSer1x2v.cpp
+    lagrangeFixData/VlasovLagrangeFixSer1x1v.cpp
+    lagrangeFixData/VlasovLagrangeFixSer1x2v.cpp
+    lagrangeFixData/VlasovLagrangeFixSer1x3v.cpp
+    lagrangeFixData/VlasovLagrangeFixSer2x2v.cpp
+    lagrangeFixData/VlasovLagrangeFixSer2x3v.cpp
+    lagrangeFixData/GkLagrangeFixSer1x2v.cpp
+    lagrangeFixData/GkLagrangeFixSer2x2v.cpp
 
     momentCalcData/DistFuncMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncMomentCalcMax1x2v.cpp
@@ -65,6 +74,11 @@ def build(bld):
     momentCalcData/DistFuncMomentCalcSer2x2v.cpp
     momentCalcData/DistFuncMomentCalcSer2x3v.cpp
     momentCalcData/DistFuncMomentCalcSer3x3v.cpp
+
+    momentCalcData/DistFuncMomentCalcTensor1x1v.cpp
+    momentCalcData/DistFuncMomentCalcTensor1x2v.cpp
+    momentCalcData/DistFuncMomentCalcTensor1x3v.cpp
+    momentCalcData/DistFuncMomentCalcTensor2x2v.cpp
 
     momentCalcData/DistFuncGkMomentCalcMax1x1v.cpp
     momentCalcData/DistFuncGkMomentCalcMax1x2v.cpp
@@ -95,6 +109,7 @@ def build(bld):
     FemPerpPoissonImpl.cpp
     FemParPoissonImpl.cpp
     FemMatrices.cpp
+    FemGyroaverageImpl.cpp
   
     confToPhaseData/ConfToPhaseMax1x1v.cpp
     confToPhaseData/ConfToPhaseMax1x2v.cpp
@@ -114,6 +129,8 @@ def build(bld):
     MappedPoissonImpl.cpp
 
     PositivityRescaleImpl.cpp
+
+    ProjectOnBasisImpl.cpp
 
     """,
     includes = '. primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
