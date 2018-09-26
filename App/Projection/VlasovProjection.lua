@@ -17,8 +17,8 @@ local MaxwellianProjection = Proto(MaxwellianProjectionParrent)
 
 function MaxwellianProjection:lagrangeFix(distf)
    local M0, dM0 = self.species:allocMoment(), self.species:allocMoment()
-   local M1 = self.species:allocVectorMoment(self.numVelDims)
-   local dM1 = self.species:allocVectorMoment(self.numVelDims)
+   local M1 = self.species:allocVectorMoment(self.vdim)
+   local dM1 = self.species:allocVectorMoment(self.vdim)
    local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
 
    self.species.numDensityCalc:advance(0.0, 0.0, {distf}, {M0})
@@ -37,9 +37,9 @@ function MaxwellianProjection:lagrangeFix(distf)
    self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
    func = function (t, zn)
       local drifts = self.driftSpeed(t, zn, self.species)
-      if self.numVelDims == 1 then
+      if self.vdim == 1 then
 	 return self.density(t, zn, self.species) * drifts[1]
-      elseif self.numVelDims == 2 then
+      elseif self.vdim == 2 then
 	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2]
       else
 	 return self.density(t, zn, self.species) * drifts[1], self.density(t, zn, self.species) * drifts[2], self.density(t, zn, self.species) * drifts[3]
@@ -58,11 +58,11 @@ function MaxwellianProjection:lagrangeFix(distf)
    func = function (t, zn)
       local drifts = self.driftSpeed(t, zn, self.species)
       local out = 0.0
-      for i = 1, self.numVelDims do
+      for i = 1, self.vdim do
 	 out = out + drifts[i] * drifts[i]
       end
       out = self.density(t, zn, self.species) *
-	 (out + self.numVelDims*self.temperature(t, zn, self.species)/self.species.mass )
+	 (out + self.vdim*self.temperature(t, zn, self.species)/self.species.mass )
       return out
    end
    project = Updater.ProjectOnBasis {
