@@ -46,6 +46,7 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 
    -- for use in advance method
    self.dxv = Lin.Vec(self.basis:ndim()) -- cell shape
+   self.sharedVals = Lin.Vec(self.numComponents)
    self.localVals = Lin.Vec(self.numComponents)
    self.globalVals = Lin.Vec(self.numComponents)
 end   
@@ -63,13 +64,15 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
 
    -- clear local values
    for i = 1, #self.localVals do
+      self.sharedVals[i] = 0.0
       self.localVals[i] = 0.0
       self.globalVals[i] = 0.0
    end
 
-   local localRange = field:localRange()   
+   local localRange = field:localRange()
+   local localItrFunc, localItrState = field:localRangeIter()  
    -- loop, computing integrated moments in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in localItrFunc, localItrState do
       grid:setIndex(idx)
       for d = 1, ndim do
 	 self.dxv[d] = grid:dx(d)
@@ -78,12 +81,18 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
       field:fill(fieldIndexer(idx), fieldItr)
       -- compute integrated quantities
       self.updateFunc(
-	 ndim, self.numComponents, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.localVals:data())
+	 ndim, self.numComponents, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.sharedVals:data())
    end
 
-   -- all-reduce across processors and push result into dyn-vector
+   -- get ahold of communicators
+   local shmComm = self:getShmComm()
    local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+   -- all-reduce across shared processors and push result into local dyn-vector
+   Mpi.Allreduce(self.sharedVals:data(), self.localVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, shmComm)
+   -- all-reduce across nodes and push result into dyn-vector
+   if Mpi.Is_comm_valid(nodeComm) then
+      Mpi.Allreduce(self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+   end
    vals:appendData(tCurr, self.globalVals)
    
    return true, GKYL_MAX_DOUBLE

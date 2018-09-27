@@ -221,7 +221,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    -- determine largest amax across shared processors
    Mpi.Allreduce(self._maxsShm:data(), self._maxsLocal:data(), ndim, Mpi.DOUBLE, Mpi.MAX, shmComm)
    -- determine largest amax across nodes
-   Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
+   if Mpi.Is_comm_valid(nodeComm) then
+      Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
+   end
 
    -- return failure if time-step was too large
    -- each shared process has its own status and dtSuggested
