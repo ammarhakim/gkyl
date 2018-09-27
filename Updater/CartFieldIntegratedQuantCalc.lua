@@ -46,7 +46,7 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 
    -- for use in advance method
    self.dxv = Lin.Vec(self.basis:ndim()) -- cell shape
-   self.sharedVals = Lin.Vec(self.numComponents)
+   self.shmVals = Lin.Vec(self.numComponents)
    self.localVals = Lin.Vec(self.numComponents)
    self.globalVals = Lin.Vec(self.numComponents)
 end   
@@ -63,8 +63,8 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
    local fieldItr = field:get(1)
 
    -- clear local values
-   for i = 1, #self.localVals do
-      self.sharedVals[i] = 0.0
+   for i = 1, nvals do
+      self.shmVals[i] = 0.0
       self.localVals[i] = 0.0
       self.globalVals[i] = 0.0
    end
@@ -81,19 +81,19 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
       field:fill(fieldIndexer(idx), fieldItr)
       -- compute integrated quantities
       self.updateFunc(
-	 ndim, self.numComponents, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.sharedVals:data())
+	 ndim, self.numComponents, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.shmVals:data())
    end
 
    -- get ahold of communicators
    local shmComm = self:getShmComm()
    local nodeComm = self:getNodeComm()
    -- all-reduce across shared processors and push result into local dyn-vector
-   Mpi.Allreduce(self.sharedVals:data(), self.localVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, shmComm)
+   Mpi.Allreduce(self.shmVals:data(), self.localVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, shmComm)
    -- all-reduce across nodes and push result into dyn-vector
    if Mpi.Is_comm_valid(nodeComm) then
       Mpi.Allreduce(self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+      vals:appendData(tCurr, self.globalVals)
    end
-   vals:appendData(tCurr, self.globalVals)
    
    return true, GKYL_MAX_DOUBLE
 end

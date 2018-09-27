@@ -228,13 +228,13 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    -- return failure if time-step was too large
    -- each shared process has its own status and dtSuggested
    -- Updater Base class handles inter-node communication, Updaters need to handle intra-node (shared) communication
-   self._localStatus[0] = 1
-   self._localDtSuggested[0] = dt*cfl/cfla
+   self._shmStatus[0] = 1
+   self._shmDtSuggested[0] = dt*cfl/cfla
    if cfla > cflm then
-      self._localStatus[0] = 0
-      Mpi.Allreduce(self._localStatus, self._shmStatus, 1, Mpi.INT, Mpi.LAND, shmComm)
-      Mpi.Allreduce(self._localDtSuggested, self._shmDtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, shmComm)
-      return self._shmStatus[0] == 1 and true or false, self._shmDtSuggested[0]
+      self._shmStatus[0] = 0
+      Mpi.Allreduce(self._shmStatus, self._localStatus, 1, Mpi.INT, Mpi.LAND, shmComm)
+      Mpi.Allreduce(self._shmDtSuggested, self._localDtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, shmComm)
+      return self._localStatus[0] == 1 and true or false, self._localDtSuggested[0]
    end   
 
    -- accumulate full solution if not computing increments
@@ -243,9 +243,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    end
 
    self._isFirst = false
-   Mpi.Allreduce(self._localStatus, self._shmStatus, 1, Mpi.INT, Mpi.LAND, shmComm)
-   Mpi.Allreduce(self._localDtSuggested, self._shmDtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, shmComm)
-   return self._shmStatus[0] == 1 and true or false, self._shmDtSuggested[0]
+   Mpi.Allreduce(self._shmStatus, self._localStatus, 1, Mpi.INT, Mpi.LAND, shmComm)
+   Mpi.Allreduce(self._shmDtSuggested, self._localDtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, shmComm)
+   return self._localStatus[0] == 1 and true or false, self._localDtSuggested[0]
 end
 
 return HyperDisCont
