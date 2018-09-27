@@ -35,6 +35,11 @@ function _M:getNodeComm()
    return self._nodeComm
 end
 
+-- return node comm for communications
+function _M:getShmComm()
+   return self._sharedComm
+end
+
 -- This function wraps derived updater's _advance() function and
 -- computes a "totalTime", and also synchronizes the status and
 -- time-step suggestion across processors.
