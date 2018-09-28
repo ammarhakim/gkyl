@@ -12,6 +12,7 @@
 local Alloc = require "Lib.Alloc"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Lin = require "Lib.Linalg"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
@@ -144,6 +145,10 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    end
    local indexer = qOut:genIndexer() 
    local fItr = qOut:get(1)
+
+   -- barrier before shared loop
+   local worldComm = self:getWorldComm()
+   Mpi.Barrier(worldComm)
 
    -- loop, computing projections in each cell
    for idx in localItrFunc, localItrState do

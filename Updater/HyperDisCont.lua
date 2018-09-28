@@ -69,7 +69,7 @@ function HyperDisCont:init(tbl)
 
    -- maximum characteristic velocities for use in pentalty based
    -- fluxes
-   self._maxs, self._maxsOld, self._maxsLocal, self._maxsShm = Lin.Vec(self._ndim), Lin.Vec(self._ndim), Lin.Vec(self._ndim), Lin.Vec(self._ndim)
+   self._maxs, self._maxsOld, self._maxsLocal = Lin.Vec(self._ndim), Lin.Vec(self._ndim), Lin.Vec(self._ndim)
    for d = 1, self._ndim do
       -- very first step the penalty term will be zero. However, in
       -- subsequent steps the maximum speed from the previous step
@@ -85,10 +85,6 @@ function HyperDisCont:init(tbl)
 
    -- get the index of the shared processor
    self._shmIndex = Mpi.Comm_rank(self:getShmComm())+1 -- our local index on SHM comm (one more than rank)
-   
-   -- shared memory and local status and dtSuggested
-   self._localStatus, self._localDtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
-   self._shmStatus, self._shmDtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
 
    return self
 end
@@ -132,18 +128,18 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
    -- get ahold of communicators
    local shmComm = self:getShmComm()
-   local nodeComm = self:getNodeComm()
+   local worldComm = self:getWorldComm()
 
    -- use maximum characteristic speeds from previous step as penalty
    for d = 1, ndim do
       self._maxsOld[d] = self._maxs[d]
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
-      self._maxsShm[d] = 0.0 -- used to get local max value across shared processes
    end
 
    if self._clearOut then
       qOut:clear(0.0) -- clear output field before computing vol/surf increments
    end
+
    -- accumulate contributions from volume and surface integrals
   for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
@@ -173,9 +169,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
       local perpRange = self._perpRange[dir]
 
+      -- barrier before shared loop
+      Mpi.Barrier(worldComm)
+
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`. 
-      -- the column major iterator takes the local start index and size so each shared MPI process knows where it is in the domain 
+      -- the column major iterator takes the local start index and size so each shared MPI process knows where it is in the domain
       for idx in perpRange:colMajorIter(self._localStartIdx[dir], self._localNumBump[dir]) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
@@ -203,7 +202,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
 		  dir, cfla, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
-	       self._maxsShm[dir] = math.max(self._maxsShm[dir], maxs)
+	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then
 	          -- we need to give equations a chance to apply partial
@@ -218,24 +217,11 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       firstDir = false
    end
 
-   -- determine largest amax across shared processors
-   Mpi.Allreduce(self._maxsShm:data(), self._maxsLocal:data(), ndim, Mpi.DOUBLE, Mpi.MAX, shmComm)
-   -- determine largest amax across nodes
-   if Mpi.Is_comm_valid(nodeComm) then
-      Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
-   end
+   -- determine largest amax across all processors
+   Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, worldComm)
 
    -- return failure if time-step was too large
-   -- each shared process has its own status and dtSuggested
-   -- Updater Base class handles inter-node communication, Updaters need to handle intra-node (shared) communication
-   self._shmStatus[0] = 1
-   self._shmDtSuggested[0] = dt*cfl/cfla
-   if cfla > cflm then
-      self._shmStatus[0] = 0
-      Mpi.Allreduce(self._shmStatus, self._localStatus, 1, Mpi.INT, Mpi.LAND, shmComm)
-      Mpi.Allreduce(self._shmDtSuggested, self._localDtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, shmComm)
-      return self._localStatus[0] == 1 and true or false, self._localDtSuggested[0]
-   end   
+   if cfla > cflm then return false, dt*cfl/cfla end   
 
    -- accumulate full solution if not computing increments
    if not self._onlyIncrement then
@@ -243,9 +229,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    end
 
    self._isFirst = false
-   Mpi.Allreduce(self._shmStatus, self._localStatus, 1, Mpi.INT, Mpi.LAND, shmComm)
-   Mpi.Allreduce(self._shmDtSuggested, self._localDtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, shmComm)
-   return self._localStatus[0] == 1 and true or false, self._localDtSuggested[0]
+   return true, dt*cfl/cfla
 end
 
 return HyperDisCont

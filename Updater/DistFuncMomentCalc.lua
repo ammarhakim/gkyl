@@ -12,6 +12,7 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
 local xsys = require "xsys"
 
@@ -143,6 +144,10 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
       self.u[d] = phaseRange:upper(cDim + d)
    end
    local velRange = Range.Range(self.l, self.u)
+
+   -- barrier before shared loop
+   local worldComm = self:getWorldComm()
+   Mpi.Barrier(worldComm)
 
    -- loop, computing moments in each cell
    -- The configuration space loop

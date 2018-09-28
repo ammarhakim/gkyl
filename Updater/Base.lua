@@ -30,6 +30,11 @@ function _M:_advance(tCurr, dt, inFld, outFld)
    assert(true, "_advance method not provided!")
 end
 
+-- return world comm for communications
+function _M:getWorldComm()
+   return self._comm
+end
+
 -- return node comm for communications
 function _M:getNodeComm()
    return self._nodeComm
@@ -50,16 +55,15 @@ function _M:advance(tCurr, dt, inFld, outFld)
    local _status, _dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
-   -- get ahold of node communicator for allreduce across nodes
-   local nodeComm = self._nodeComm
+   -- get ahold of world communicator for allreduce across all processes
+   local worldComm = self._comm
 
    -- reduce across processors ...
    self._myStatus[0] = _status and 1 or 0
    self._myDtSuggested[0] = _dtSuggested
-   if Mpi.Is_comm_valid(nodeComm) then
-      Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, nodeComm)
-      Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, nodeComm)
-   end
+
+   Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, worldComm)
+   Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, worldComm)
 
    return self._status[0] == 1 and true or false, self._dtSuggested[0]
 end
