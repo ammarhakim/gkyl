@@ -22,12 +22,14 @@ local SP_BC_EXTERN = 4
 local SP_BC_COPY = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy
 local SP_BC_OPEN = SP_BC_COPY
+local SP_BC_ZEROFLUX = 6
 
 VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 VlasovSpecies.bcCopy = SP_BC_COPY -- copy stuff
 VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 VlasovSpecies.bcExternal = SP_BC_EXTERN -- load external BC file
+VlasovSpecies.bcZeroFlux = SP_BC_ZEROFLUX
 
 function VlasovSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -84,14 +86,16 @@ function VlasovSpecies:createSolver(hasE, hasB)
 
    -- must apply zero-flux BCs in velocity directions
    local zfd = { }
-   for d = 1, self.vdim do zfd[d] = self.cdim+d end
+   for d = 1, self.vdim do 
+     table.insert(self.zeroFluxDirections, self.cdim+d)
+   end
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
       basis = self.basis,
       cfl = self.cfl,
       equation = vlasovEqn,
-      zeroFluxDirections = zfd,
+      zeroFluxDirections = self.zeroFluxDirections,
    }
 
    -- create updaters to compute various moments
@@ -324,6 +328,8 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
 				      { bcExternFunc }, "flip"))
+   elseif bcType == SP_BC_ZEROFLUX then
+      table.insert(self.zeroFluxDirections, dir)
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end
