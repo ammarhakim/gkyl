@@ -7,16 +7,15 @@ gasGamma = 5./3.
 elcCharge = -1.0
 ionCharge = 1.0
 ionMass = 1.0
-elcMass = ionMass/100.0
+elcMass = ionMass/25.0
 lightSpeed = 1.0
 epsilon0 = 1.0
 mu0 = 1.0
-mgnErrorSpeedFactor = 1.0
 
 n0 = 1.0
 VAe = 0.5
 plasmaBeta = 1.0
-lambda = 0.5
+lambdaOverDi0 = 0.5
 TiOverTe = 5.0
 nbOverN0 = 0.2
 pert = 0.1
@@ -25,15 +24,21 @@ B0 = Valf*math.sqrt(n0*ionMass)
 OmegaCi0 = ionCharge*B0/ionMass
 psi0 = pert*B0
 
+OmegaPe0 = math.sqrt(n0 * elcCharge^2 / (epsilon0 * elcMass))
+de0 = lightSpeed / OmegaPe0
+OmegaPi0 = math.sqrt(n0 * ionCharge^2 / (epsilon0 * ionMass))
+di0 = lightSpeed / OmegaPi0
+lambda = lambdaOverDi0 * di0
+
 -- domain size
-Lx = 25.6
-Ly = 12.8
+Lx = 25.6 * di0
+Ly = 12.8 * di0
 
 momentApp = Moments.App {
    logToFile = true,
 
-   tEnd = 40.0,
-   nFrame = 1,
+   tEnd = 120.0/OmegaCi0,
+   nFrame = 6,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
    cells = {64, 32},
@@ -69,7 +74,6 @@ momentApp = Moments.App {
       end,
       evolve = true, -- evolve species?
       
-   -- bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
    bcy = { Moments.Species.bcReflect, Moments.Species.bcReflect },
    },
 
@@ -96,19 +100,22 @@ momentApp = Moments.App {
       end,
       evolve = true, -- evolve species?
       
-   -- bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
    bcy = { Moments.Species.bcReflect, Moments.Species.bcReflect },
    },
 
    field = Moments.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
-	 local alpha = perturbation
-	 local k = knumber
-	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	 local x, y = xn[1], xn[2]
+
+   local Bxb = B0 * math.tanh(y / lambda) 
+   local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly) 
+   local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
+   local Bz = 0.0
+
+	 return 0.0, 0.0, 0.0, Bx, By, Bz
       end,
       evolve = true, -- evolve field?
-   -- bcx = { Moments.Field.bcCopy, Moments.Field.bcCopy },
    bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
    },
 
