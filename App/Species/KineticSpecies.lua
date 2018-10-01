@@ -104,6 +104,8 @@ function KineticSpecies:fullInit(appTbl)
    self.distIoFrame = 0 -- frame number for distribution function
    self.diagIoFrame = 0 -- frame number for diagnostics
 
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
+
    -- write perturbed moments by subtracting background before moment calc.. false by default
    self.perturbedMoments = false
    -- read in which diagnostic moments to compute on output
@@ -216,14 +218,17 @@ function KineticSpecies:fullInit(appTbl)
    -- check to see if bc type is good is now done in createBc
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+      if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.hasNonPeriodicBc = true
    end
    if tbl.bcy then
       self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+      if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.hasNonPeriodicBc = true
    end
    if tbl.bcz then
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+      if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.hasNonPeriodicBc = true
    end
 
@@ -462,6 +467,7 @@ function KineticSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType = self.distf[1]:elemType(),
       method = self.ioMethod,
+      writeGhost = self.writeGhost
    }
 
    if self.positivity then
@@ -643,7 +649,7 @@ function KineticSpecies:write(tm)
          for i, mom in ipairs(self.diagnosticMoments) do
             -- should one use AdiosIo object for this?
             self.diagnosticMomentFields[i]:write(
-               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
+               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
          end
          for i, mom in ipairs(self.diagnosticIntegratedMoments) do
             self.diagnosticIntegratedMomentFields[i]:write(
@@ -667,7 +673,7 @@ function KineticSpecies:write(tm)
 	 self:calcDiagnosticMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0)
+	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0, self.writeGhost)
 	 end
       end
       self.distIoFrame = self.distIoFrame+1
@@ -676,16 +682,18 @@ function KineticSpecies:write(tm)
 end
 
 function KineticSpecies:writeRestart(tm)
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame)
+   -- (the final "false" prevents writing of ghost cells)
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, false)
+   for i, mom in ipairs(self.diagnosticMoments) do
+      self.diagnosticMomentFields[i]:write(
+	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
+   end   
+
    -- (the final "false" prevents flushing of data after write)
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       self.diagnosticIntegratedMomentFields[i]:write(
          string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end
-   for i, mom in ipairs(self.diagnosticMoments) do
-      self.diagnosticMomentFields[i]:write(
-	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame)
-   end   
 end
 
 function KineticSpecies:readRestart()

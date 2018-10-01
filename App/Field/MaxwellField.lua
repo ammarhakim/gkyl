@@ -180,7 +180,7 @@ function MaxwellField:createSolver()
 	 onGrid = self.grid,
 	 basis = self.basis,
 	 cfl = self.cfl,
-	 equation = maxwellEqn
+	 equation = maxwellEqn,
       }
    else
       -- using FV scheme
@@ -347,7 +347,9 @@ function MaxwellField:write(tm)
 end
 
 function MaxwellField:writeRestart(tm)
-   self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame)
+   -- (the final "false" prevents writing of ghost cells)
+   self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame, false)
+
    -- (the final "false" prevents flushing of data after write)
    self.emEnergy:write("fieldEnergy_restart.bp", tm, self.ioFrame, false)
 end
@@ -357,8 +359,10 @@ function MaxwellField:readRestart()
    self:applyBc(tm, 0.0, self.em[1])
    self.em[1]:sync() -- must get all ghost-cell data correct
      
-   self.ioFrame = fr
    self.emEnergy:read("fieldEnergy_restart.bp", tm)
+   self.ioFrame = fr
+   -- iterate triggers
+   self.ioTrigger(tm)
 end
 
 function MaxwellField:rkStepperFields()

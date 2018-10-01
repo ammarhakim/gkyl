@@ -195,7 +195,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    qOut:fill(qOutIdxr(idxm), qOutM)
 	    qOut:fill(qOutIdxr(idxp), qOutP)
 
-	    if firstDir then
+	    if firstDir and i<=dirUpIdx-1 then
 	       local cflFreq = self._equation:volTerm(xcp, dxp, idxp, qInP, qOutP)
 	       cfla = math.max(cfla, cflFreq*dt)
 	    end
