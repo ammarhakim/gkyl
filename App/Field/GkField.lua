@@ -47,6 +47,8 @@ function GkField:fullInit(appTbl)
 
    self.ioFrame = 0 -- frame number for IO
 
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
+
    -- get boundary condition settings
    -- these will be checked for consistency when the solver is initialized
    if tbl.phiBcLeft then self.phiBcLeft = tbl.phiBcLeft end
@@ -362,6 +364,7 @@ function GkField:createDiagnostics()
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.potentials[1].phi:elemType(),
       method = self.ioMethod,
+      writeGhost = self.writeGhost
    }
 
    self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
@@ -406,18 +409,20 @@ function GkField:write(tm)
 end
 
 function GkField:writeRestart(tm)
-   self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame)
+   -- (the final "false" prevents writing of ghost cells)
+   self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame, false)
+   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame, false)
+   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
+   if self.isElectromagnetic then
+     self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
+     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame, false)
+     self.fieldIo:write(self.dApardtSlvr:getLaplacianWeight(), "laplacianWeightEM_restart.bp", tm, self.ioFrame, false)
+     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame, false)
+   end
+
    -- (the final "false" prevents flushing of data after write)
    self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false)
 
-   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame)
-   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame)
-   if self.isElectromagnetic then
-     self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame)
-     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame)
-     self.fieldIo:write(self.dApardtSlvr:getLaplacianWeight(), "laplacianWeightEM_restart.bp", tm, self.ioFrame)
-     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame)
-   end
 end
 
 function GkField:readRestart(tm)
