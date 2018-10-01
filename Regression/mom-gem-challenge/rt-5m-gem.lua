@@ -68,6 +68,36 @@ momentApp = Moments.App {
 	 return rhoe, 0.0, 0.0, ezmom, ere
       end,
       evolve = true, -- evolve species?
+      
+   -- bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
+   bcy = { Moments.Species.bcReflect, Moments.Species.bcReflect },
+   },
+
+   -- ions
+   ion = Moments.Species {
+      charge = ionCharge, mass = ionMass,
+
+      equation = Euler { gasGamma = gasGamma },
+      -- initial conditions
+      init = function (t, xn)
+	 local x, y = xn[1], xn[2]
+
+	 local TiFrac = TiOverTe/(1.0 + TiOverTe)
+	 local sech2 = (1.0/math.cosh(y/lambda))^2
+	 local n = n0*(sech2 + nbOverN0)
+	 local Jz = -(B0/lambda)*sech2
+	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
+
+	 local rhoi = n*ionMass
+	 local izmom = (ionMass/ionCharge)*Jz*TiFrac
+	 local eri = n*Ttotal*TiFrac/(gasGamma-1) + 0.5*izmom*izmom/rhoi
+	 
+	 return rhoi, 0.0, 0.0, izmom, eri
+      end,
+      evolve = true, -- evolve species?
+      
+   -- bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
+   bcy = { Moments.Species.bcReflect, Moments.Species.bcReflect },
    },
 
    field = Moments.Field {
@@ -78,10 +108,12 @@ momentApp = Moments.App {
 	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,
       evolve = true, -- evolve field?
+   -- bcx = { Moments.Field.bcCopy, Moments.Field.bcCopy },
+   bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
    },
 
    emSource = Moments.CollisionlessEmSource {
-      species = {"elc"},
+      species = {"elc", "ion"},
       timeStepper = "time-centered",
    },   
 
