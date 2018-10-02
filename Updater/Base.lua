@@ -30,9 +30,15 @@ function _M:_advance(tCurr, dt, inFld, outFld)
    assert(true, "_advance method not provided!")
 end
 
--- return node comm for communications
+-- return various comms for communications
 function _M:getNodeComm()
    return self._nodeComm
+end
+function _M:getComm()
+   return self._comm
+end
+function _M:getSharedComm()
+   return self._sharedComm
 end
 
 -- This function wraps derived updater's _advance() function and
@@ -42,12 +48,12 @@ function _M:advance(tCurr, dt, inFld, outFld)
 
    -- Take the time-step, measuring how long it took
    local tmStart = Time.clock()
-   local _status, _dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
+   local status, dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...
-   self._myStatus[0] = _status and 1 or 0
-   self._myDtSuggested[0] = _dtSuggested
+   self._myStatus[0] = status and 1 or 0
+   self._myDtSuggested[0] = dtSuggested
 
    Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)
    Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)

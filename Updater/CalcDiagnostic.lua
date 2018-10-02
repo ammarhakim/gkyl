@@ -47,7 +47,7 @@ function CalcDiagnostic:_advance(tCurr, dt, inFld, outFld)
    -- code will need modification
    local valLocal, val = ffi.new("double[1]"), ffi.new("double[1]")
    valLocal[0] = v
-   Mpi.Allreduce(valLocal, val, 1, Mpi.DOUBLE, Mpi.SUM, self._comm)
+   Mpi.Allreduce(valLocal, val, 1, Mpi.DOUBLE, Mpi.SUM, self:getComm())
    dynOut:appendData(tCurr+dt, { val[0] })
 
    return true, GKYL_MAX_DOUBLE
