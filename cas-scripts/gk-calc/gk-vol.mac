@@ -251,16 +251,59 @@ load(modNm),
   writeCIncrExprsNoExpand(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac)))),
 
   /* calculate phase space velocity (only in vpar direction for this term) alpha_v = - q/m dApar/dt */
-  alpha_expd : -q_/m_*dAdt_expd,
-  /* take cell center value */
-  alpha0 : subst(cellCenter, alpha_expd),
-  /* return cflFreq = alpha/dv */
-  printf(fh, "  return fabs(~a)*dvInv; ~%", float(letsimp(alpha0))),
+  alpha_expd : -q_/m_*dAdt_expd*dfac_v,
+  d : cdim + 1,
+  /* cfl calculation */
+  /* get quadrature nodes on surface */
+  surfIntVars : delete(varsP[d], varsP),
+  if i=1 then quad:1/sqrt(3),
+  if i=2 then quad:sqrt(3/5),
+  nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p)),
+  nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]*quad,j,1,length(surfIntVars)),f),i,1,length(nodes)),
+
+  /* evaluate alpha at left and right edge */
+  alphaL : subst(varsP[d]=-1, alpha_expd),
+  alphaR : subst(varsP[d]=1, alpha_expd),
+
+  /* evaluate cfl by surface averaging */
+  printf(fh, "  double cflFreq = 0.0; ~%"), 
+  printf(fh, "  double alphaL = 0.0; ~%"), 
+  printf(fh, "  double alphaR = 0.0; ~%"), 
+  printf(fh, "#if cflType == SURFAVG ~%"),
+  /* note: factor of derivfacsD already included in alpha_expd */
+  alphaL0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaL, subst(varsP[d]=-1, bP[1]))*bP[1]),
+  printf(fh, "  // evaluate surface-averaged alpha on left ~%"),
+  printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaL0))),
+  printf(fh, "  if(alphaL<0) cflFreq += -alphaL; ~%"),
+  /* note: factor of derivfacsD already included in alpha_expd */
+  alphaR0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaR, subst(varsP[d]=1, bP[1]))*bP[1]),
+  printf(fh, "  // evaluate surface-averaged alpha on right ~%"),
+  printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaR0))),
+  printf(fh, "  if(alphaR>0) cflFreq += alphaR; ~%"),
+  flush_output(fh),
+
+  /* evaluate cfl by evaluating at all surface quadrature points */
+  printf(fh, "#elif cflType == QUAD ~%"),
+  alphaLquad : nodesub(alphaL),
+  alphaRquad : nodesub(alphaR),
+  printf(fh, "  // evaluate alpha at left surface quadrature points ~%"),
+  for i:1 thru length(alphaLquad) do (
+    printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]/2^(cdim+vdim)))),
+    printf(fh, "  if(alphaL<0) cflFreq += -alphaL; ~%")
+  ),
+  printf(fh, "  // evaluate alpha at right surface quadrature points ~%"),
+  for i:1 thru length(alphaRquad) do (
+    printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]/2^(cdim+vdim)))),
+    printf(fh, "  if(alphaR>0) cflFreq += alphaR; ~%")
+  ),
+  printf(fh, "#endif ~%"),
+
+  printf(fh, "  return cflFreq; ~%"),
   printf(fh, "} ~%")
 )$
 
 pmax:1$
-em:false$
+em:true$
 
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
@@ -290,8 +333,9 @@ calcGKVolUpdater(fh, funcName, c, v, "Ser", p, false, bvarslist[b])
 close(fh)
 ))))$
 
-c:2$
-v:0$
+if em=false then (
+c:2,
+v:0,
 for p : 1 thru pmax do (
 fname : sconcat("~/max-out/GyrokineticSer", c, "x", v, "vP", p, ".cpp"),
 fh : openw(fname),
@@ -300,5 +344,6 @@ bvarslist : [[0]],
 funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", p, false, [0]),
 close(fh)
-)$
+)
+)
 
