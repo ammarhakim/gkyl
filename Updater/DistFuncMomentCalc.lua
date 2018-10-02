@@ -12,6 +12,8 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local Mpi = require "Comm.Mpi"
+local Range = require "Lib.Range"
 local xsys = require "xsys"
 
 -- Moments updater object
@@ -89,6 +91,8 @@ function DistFuncMomentCalc:init(tbl)
    -- for use in _advance() method
    self.dxv = Lin.Vec(self._pDim) -- cell shape
    self.w = Lin.Vec(self._pDim) -- phase-space cell center
+   self.phaseIdx = {}
+   self.l, self.u = {}, {}
 end
 
 -- advance method
@@ -103,12 +107,17 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
 
    local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
 
-   local localRange = distf:localRange()
+   local confRange = mom1:localRange()
+   local localItrFunc, localItrState = mom1:localRangeIter() -- get ahold of iterator for local region when using shared memory
+   local phaseRange = distf:localRange()
    if self.onGhosts then -- extend range to config-space ghosts
       for dir = 1, cDim do
-         localRange = localRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+         confRange = confRange:extendDir(dir, mom1:lowerGhost(), mom1:upperGhost())
+         localItrFunc, localItrState = mom1:localExtRangeIter() -- use extended shared memory region if onGhosts is true 
+         phaseRange = phaseRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
       end
    end
+
    local distfIndexer = distf:genIndexer()
    local mom1Indexer = mom1:genIndexer()
    local mom2Indexer, mom3Indexer
@@ -129,32 +138,58 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
       mom2:scale(0.0)
       mom3:scale(0.0)
    end
+
+   for d = 1, vDim do
+      self.l[d] = phaseRange:lower(cDim + d)
+      self.u[d] = phaseRange:upper(cDim + d)
+   end
+   local velRange = Range.Range(self.l, self.u)
+
+   -- barrier before shared loop
+   local worldComm = self:getWorldComm()
+   Mpi.Barrier(worldComm)
+
    -- loop, computing moments in each cell
-   for idx in localRange:colMajorIter() do
-      grid:setIndex(idx)
-      grid:cellCenter(self.w)
-      for d = 1, pDim do self.dxv[d] = grid:dx(d) end
-      
-      distf:fill(distfIndexer(idx), distfItr)
-      mom1:fill(mom1Indexer(idx), mom1Itr)
+   -- The configuration space loop
+   for confIdx in localItrFunc, localItrState do
+      mom1:fill(mom1Indexer(confIdx), mom1Itr)
+      if self._fivemoments then
+         mom2:fill(mom2Indexer(confIdx), mom2Itr)
+         mom3:fill(mom3Indexer(confIdx), mom3Itr)
+      end
       if self._isGK then
-         self.bmag:fill(self.bmagIndexer(idx), self.bmagItr)
-         if self._fivemoments then
-            mom2:fill(mom2Indexer(idx), mom2Itr)
-            mom3:fill(mom3Indexer(idx), mom3Itr)
-            self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
+         self.bmag:fill(self.bmagIndexer(confIdx), self.bmagItr)
+      end
+
+      -- The velocity space loop
+      for velIdx in velRange:colMajorIter() do
+	 -- Construct the phase space index out of the configuration
+	 -- space and velocity space indices
+	 for d = 1, cDim do self.phaseIdx[d] = confIdx[d] end
+	 for d = 1, vDim do self.phaseIdx[d + cDim] = velIdx[d] end
+
+         -- get ahold of the grid, cell center coordinate, and grid spacing
+         grid:setIndex(self.phaseIdx)
+         grid:cellCenter(self.w)
+         for d = 1, pDim do self.dxv[d] = grid:dx(d) end
+
+         distf:fill(distfIndexer(self.phaseIdx), distfItr)
+
+         if self._isGK then
+            if self._fivemoments then
+               self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
                              mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+            else
+               self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
+            end
+         elseif self._fivemoments then 
+            self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
          else
-            self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
+            self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data())
          end
-      elseif self._fivemoments then 
-         mom2:fill(mom2Indexer(idx), mom2Itr)
-         mom3:fill(mom3Indexer(idx), mom3Itr)
-         self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-      else
-         self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data())
       end
    end
+
    if self.momfac ~= 1.0 then mom1:scale(self.momfac) end
    
    return true, GKYL_MAX_DOUBLE
