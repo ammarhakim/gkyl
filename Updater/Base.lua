@@ -30,9 +30,19 @@ function _M:_advance(tCurr, dt, inFld, outFld)
    assert(true, "_advance method not provided!")
 end
 
+-- return world comm for communications
+function _M:getWorldComm()
+   return self._comm
+end
+
 -- return node comm for communications
 function _M:getNodeComm()
    return self._nodeComm
+end
+
+-- return node comm for communications
+function _M:getShmComm()
+   return self._sharedComm
 end
 
 -- This function wraps derived updater's _advance() function and

@@ -8,6 +8,8 @@
 
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
@@ -52,6 +54,11 @@ function Bc:init(tbl)
    end
 
    self._ghost = nil -- store ghost cells
+   self._ghostRangeDecomp = nil -- ghost cell range shared decomposition
+   self._localStartIdx, self._localNumBump = nil, nil -- local start index and bump for shared decomp of ghost range
+
+   -- get the index of the shared processor
+   self._shmIndex = Mpi.Comm_rank(self:getShmComm())+1 -- our local index on SHM comm (one more than rank)
 end
 
 function Bc:getGhostRange(global, globalExt)
@@ -81,12 +88,22 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local vdir = self._vdir
    local global = qOut:globalRange()
 
+   -- get ahold of communicators
+   local shmComm = self:getShmComm()
+   local worldComm = self:getWorldComm()
+
    if self._isFirst then
       -- compute ghost cells first time around only
       local globalExt = qOut:globalExtRange()
       local localExtRange = qOut:localExtRange()
       self._ghost = localExtRange:intersect(
 	 self:getGhostRange(global, globalExt)) -- range spanning ghost cells
+      self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
+         range = self._ghost,
+         numSplit = Mpi.Comm_size(shmComm)
+      }
+      -- store start index and size handled by local SHM-rank for local range
+      self._localStartIdx, self._localNumBump = self._ghostRangeDecomp:colStartIndex(self._shmIndex), self._ghostRangeDecomp:shape(self._shmIndex)
       if self._skinLoop == "integrate" then
 	 self._skin = self:getVelocityRange(qOut:localRange())
       end
@@ -96,7 +113,10 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
    local indexer = qOut:genIndexer()
 
-   for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
+   -- barrier before shared loop
+   Mpi.Barrier(worldComm)
+
+   for idxG in self._ghost:colMajorIter(self._localStartIdx, self._localNumBump) do -- loop, applying BCs
       idxG:copyInto(idxS)
       idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
       if self._skinLoop == "flip" then
