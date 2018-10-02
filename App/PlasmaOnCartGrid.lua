@@ -293,11 +293,12 @@ local function buildApplication(self, tbl)
    -- function to read from restart frame
    local function readRestart() --> time at which restart was written
       local rTime = 0.0
+      -- read fields first, in case needed for species init or BCs
+      field:readRestart()
+      funcField:readRestart()
       for _, s in pairs(species) do
 	 rTime = s:readRestart()
       end
-      field:readRestart()
-      funcField:readRestart()
       return rTime
    end
 

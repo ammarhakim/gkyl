@@ -78,7 +78,7 @@ plasmaApp = Plasma.App {
             local x = xn[1]
             return Te0*(1-(x-r0)/L_T)
          end,
-         exactScaleM0 = true,
+         exactScaleM012 = true,
          isBackground = true,
       },
       init = Plasma.Gyrokinetic.MaxwellianProjection {
@@ -92,7 +92,7 @@ plasmaApp = Plasma.App {
             local x = xn[1]
             return Te0*(1-(x-r0)/L_T)
          end,
-         exactScaleM0 = true,
+         exactScaleM012 = true,
       },
       fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
