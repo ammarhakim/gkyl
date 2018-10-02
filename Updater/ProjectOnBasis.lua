@@ -12,6 +12,7 @@
 local Alloc = require "Lib.Alloc"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
@@ -59,12 +60,14 @@ function ProjectOnBasis:init(tbl)
 
    local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- number of quadrature points in each direction
 
-   -- As of 09/21/2018 it has been determined that ProjectOnBasis for p = 3 simulations behaves "strangely" when numQuad is an even number.
-   -- We do not know why, but numQuad even for p=3 can causes slight (1e-8 to 1e-12) variations when projecting onto basis functions.
-   -- This causes regressions tests to fail, seemingly at random; numQuad = 5 or 7 appears to eliminate this issue across thousands of runs of regressions tests.
-   if self._basis:polyOrder() == 3 then
-      N = 5
-   end
+   -- As of 09/21/2018 it has been determined that ProjectOnBasis for
+   -- p = 3 simulations behaves "strangely" when numQuad is an even
+   -- number.  We do not know why, but numQuad even for p=3 can causes
+   -- slight (1e-8 to 1e-12) variations when projecting onto basis
+   -- functions.  This causes regressions tests to fail, seemingly at
+   -- random; numQuad = 5 or 7 appears to eliminate this issue across
+   -- thousands of runs of regressions tests. (J. Juno 9/2018)
+   if self._basis:polyOrder() == 3 then N = 5 end
 
    assert(N<=8, "Gaussian quadrature only implemented for numQuad<=8 in each dimension")
 
@@ -133,17 +136,25 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    local fv = Lin.Mat(numOrd, numVal) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
-   local localRange
+   local tId = grid:subGridSharedId() -- local thread ID
+   -- construct object to allow looping over only region owned by the
+   -- local SHM thread
+   local localRangeDecomp
    if self._projectOnGhosts then
-      localRange = qOut:localExtRange()
+      localRangeDecomp = LinearDecomp.LinearDecompRange {
+	 range = qOut:localExtRange(), numSplit = grid:numSharedProcs()
+      }
    else
-      localRange = qOut:localRange()
+      localRangeDecomp = LinearDecomp.LinearDecompRange {
+	 range = qOut:localRange(), numSplit = grid:numSharedProcs()
+      }
    end
+   
    local indexer = qOut:genIndexer() 
    local fItr = qOut:get(1)
 
    -- loop, computing projections in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in localRangeDecomp:colMajorIter(tId) do
       grid:setIndex(idx)
       -- get cell shape, cell center coordinates
       for d = 1, ndim do dx[d] = grid:dx(d) end
@@ -156,8 +167,8 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
       end
 
       qOut:fill(indexer(idx), fItr)
-
-      ffi.C.projectF(fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
+      ffi.C.projectF(
+	 fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
    end
 
    -- set id of output to id of projection basis
