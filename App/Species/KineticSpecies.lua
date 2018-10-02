@@ -69,6 +69,8 @@ function KineticSpecies:fullInit(appTbl)
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
    self.coordinateMap = tbl.coordinateMap
 
+   self.useShared = xsys.pickBool(appTbl.useShared, false)
+   
    self.decompCuts = {}
    -- parallel decomposition stuff
    if tbl.decompCuts then
@@ -305,7 +307,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
-      shared = false,
+      useShared = self.useShared,
    }
 
    -- create computational domain

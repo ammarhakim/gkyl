@@ -420,6 +420,9 @@ local function Field_meta_ctor(elct)
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
 	    self._field_periodic_sync(self)
 	 end
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors will not participate in sync()
+	 Mpi.Barrier(self._grid:commSet().comm)
       end,
       setBasisId = function(self, basisId)
          self._basisId = basisId
