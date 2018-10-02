@@ -49,8 +49,8 @@ function _M:advance(tCurr, dt, inFld, outFld)
    self._myStatus[0] = _status and 1 or 0
    self._myDtSuggested[0] = _dtSuggested
 
-   Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._nodeComm)
-   Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._nodeComm)
+   Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)
+   Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
    
    return self._status[0] == 1 and true or false, self._dtSuggested[0]
 end
