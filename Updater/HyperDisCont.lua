@@ -169,9 +169,6 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
       local perpRange = self._perpRange[dir]
 
-      -- barrier before shared loop
-      Mpi.Barrier(worldComm)
-
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`. 
       -- the column major iterator takes the local start index and size so each shared MPI process knows where it is in the domain

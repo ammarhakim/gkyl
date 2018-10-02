@@ -90,7 +90,6 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
 
    -- get ahold of communicators
    local shmComm = self:getShmComm()
-   local worldComm = self:getWorldComm()
 
    if self._isFirst then
       -- compute ghost cells first time around only
@@ -112,9 +111,6 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
    local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
    local indexer = qOut:genIndexer()
-
-   -- barrier before shared loop
-   Mpi.Barrier(worldComm)
 
    for idxG in self._ghost:colMajorIter(self._localStartIdx, self._localNumBump) do -- loop, applying BCs
       idxG:copyInto(idxS)
