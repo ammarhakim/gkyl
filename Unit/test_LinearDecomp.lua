@@ -117,6 +117,27 @@ function test_5()
    end   
 end
 
+function test_6()
+   local r = Range.Range({1, 1}, {10, 10})
+   local linDecomp = LinearDecomp.LinearDecompRange { range = r, numSplit = 10 }
+
+   local count = 0
+   for t = 1, linDecomp:numSplit() do
+      for itr in linDecomp:colMajorIter(t) do
+	 count = count+1
+      end
+   end
+   assert_equal(r:volume(), count, "Checking volume")
+
+   count = 0
+   for t = 1, linDecomp:numSplit() do
+      for itr in linDecomp:rowMajorIter(t) do
+	 count = count+1
+      end
+   end
+   assert_equal(r:volume(), count, "Checking volume")   
+end
+
 -- Run tests
 test_0()
 test_1()
@@ -124,6 +145,7 @@ test_2()
 test_3()
 test_4()
 test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

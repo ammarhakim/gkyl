@@ -50,7 +50,9 @@ function LinearDecomp:shape(n) return self._shape[n] end
 local LinearDecompRange = Proto()
 
 function LinearDecompRange:init(tbl)
-   local r = tbl.range -- range to split   
+   local r = tbl.range -- range to split
+   self.range = r
+
    -- create linear decomp object
    self._linearDecomp = LinearDecomp {
       domSize = r:volume(), numSplit = tbl.numSplit
@@ -72,7 +74,7 @@ function LinearDecompRange:init(tbl)
       local idx = Lin.IntVec(r:ndim())
       rowInvIndexer(self._linearDecomp:lower(d), idx)
       self._rowStartIdx[d] = idx
-   end   
+   end
 end
 
 function LinearDecompRange:domSize() return self._linearDecomp:domSize() end
@@ -82,6 +84,14 @@ function LinearDecompRange:upper(n) return self._linearDecomp:upper(n) end
 function LinearDecompRange:shape(n) return self._linearDecomp:shape(n) end
 function LinearDecompRange:rowStartIndex(n) return self._rowStartIdx[n] end
 function LinearDecompRange:colStartIndex(n) return self._colStartIdx[n] end
+
+function LinearDecompRange:colMajorIter(n)
+   return self.range:colMajorIter(self:colStartIndex(n), self:shape(n))
+end
+
+function LinearDecompRange:rowMajorIter(n)
+   return self.range:rowMajorIter(self:rowStartIndex(n), self:shape(n))
+end
 
 return {
    LinearDecomp = LinearDecomp,
