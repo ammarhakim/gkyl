@@ -196,8 +196,8 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    end
 
    -- determine largest amax across processors
-   local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
+  Mpi.Allreduce(
+     self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
 
    -- return failure if time-step was too large
    if cfla > cflm then return false, dt*cfl/cfla end   

@@ -149,14 +149,13 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
 	 range = qOut:localRange(), numSplit = grid:numSharedProcs()
       }
    end
-   
-   local indexer = qOut:genIndexer() 
+
+   local indexer = qOut:genIndexer()
    local fItr = qOut:get(1)
 
    -- loop, computing projections in each cell
    for idx in localRangeDecomp:colMajorIter(tId) do
       grid:setIndex(idx)
-      -- get cell shape, cell center coordinates
       for d = 1, ndim do dx[d] = grid:dx(d) end
       grid:cellCenter(xc)
 
