@@ -62,14 +62,19 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
    local fieldItr = field:get(1)
 
    -- clear local values
-   for i = 1, #self.localVals do
+   for i = 1, nvals do
       self.localVals[i] = 0.0
       self.globalVals[i] = 0.0
    end
 
-   local localRange = field:localRange()   
+   local localRange = field:localRange()
+   local localItrFunc, localItrState = field:localRangeIter()  
+
+   -- barrier before shared loop
+   local worldComm = self:getWorldComm()
+   Mpi.Barrier(worldComm)
    -- loop, computing integrated moments in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in localItrFunc, localItrState do
       grid:setIndex(idx)
       for d = 1, ndim do
 	 self.dxv[d] = grid:dx(d)
@@ -81,9 +86,8 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
 	 ndim, self.numComponents, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.localVals:data())
    end
 
-   -- all-reduce across processors and push result into dyn-vector
-   local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+   -- all-reduce across all processors with world communicator and push result into dyn-vector
+   Mpi.Allreduce(self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, worldComm)
    vals:appendData(tCurr, self.globalVals)
    
    return true, GKYL_MAX_DOUBLE
