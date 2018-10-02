@@ -112,7 +112,12 @@ function RectCart:id() return "uniform" end
 function RectCart:commSet() return self._commSet end 
 function RectCart:isShared() return self._isShared end
 function RectCart:subGridId() return self._block end
-function RectCart:numSharedProcs() return Mpi.Comm_size(self._commSet.sharedComm) end
+function RectCart:numSharedProcs()
+   return Mpi.Comm_size(self._commSet.sharedComm)
+end
+function RectCart:subGridSharedId()
+   return Mpi.Comm_rank(self._commSet.sharedComm)+1 -- we are 1-indexed while MPI is 0-indexed
+end
 function RectCart:decomposedRange() return self._decomposedRange end
 function RectCart:ndim() return self._ndim end
 function RectCart:lower(dir) return self._lower[dir] end
