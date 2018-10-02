@@ -84,7 +84,7 @@ function DistFuncMomentCalc:init(tbl)
       self.bmagItr = self.bmag:get(1)
    end
 
-   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
 
    -- for use in _advance() method
    self.dxv = Lin.Vec(self._pDim) -- cell shape
