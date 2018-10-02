@@ -145,10 +145,6 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    end
    local velRange = Range.Range(self.l, self.u)
 
-   -- barrier before shared loop
-   local worldComm = self:getWorldComm()
-   Mpi.Barrier(worldComm)
-
    -- loop, computing moments in each cell
    -- The configuration space loop
    for confIdx in localItrFunc, localItrState do
