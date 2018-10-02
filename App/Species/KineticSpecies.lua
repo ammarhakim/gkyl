@@ -70,7 +70,7 @@ function KineticSpecies:fullInit(appTbl)
    self.coordinateMap = tbl.coordinateMap
 
    self.useShared = xsys.pickBool(appTbl.useShared, false)
-   
+
    self.decompCuts = {}
    -- parallel decomposition stuff
    if tbl.decompCuts then

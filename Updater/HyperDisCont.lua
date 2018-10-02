@@ -10,6 +10,7 @@
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
@@ -79,7 +80,12 @@ function HyperDisCont:init(tbl)
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRange = {} -- perp ranges in each direction      
-   
+   self._perpRangeDecomp = {} -- perp ranges decomp in each direction (used for MPI-SHM decomposition)
+   self._localStartIdx, self._localNumBump = {}, {} --local start index and number of entries each shared process controls in the perp range update
+
+   -- get the index of the shared processor
+   self._shmIndex = Mpi.Comm_rank(self:getShmComm())+1 -- our local index on SHM comm (one more than rank)
+
    return self
 end
 
@@ -120,6 +126,10 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    -- directions
    local firstDir = true
 
+   -- get ahold of communicators
+   local shmComm = self:getShmComm()
+   local worldComm = self:getWorldComm()
+
    -- use maximum characteristic speeds from previous step as penalty
    for d = 1, ndim do
       self._maxsOld[d] = self._maxs[d]
@@ -129,6 +139,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    if self._clearOut then
       qOut:clear(0.0) -- clear output field before computing vol/surf increments
    end
+
    -- accumulate contributions from volume and surface integrals
   for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
@@ -148,12 +159,23 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
       if self._isFirst then
 	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
+         self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+	    range = self._perpRange[dir],
+	    numSplit = Mpi.Comm_size(shmComm)
+         }
+         -- store start index and size handled by local SHM-rank for local range
+         self._localStartIdx[dir], self._localNumBump[dir] = self._perpRangeDecomp[dir]:colStartIndex(self._shmIndex), self._perpRangeDecomp[dir]:shape(self._shmIndex)
       end
+
       local perpRange = self._perpRange[dir]
 
+      -- barrier before shared loop
+      Mpi.Barrier(worldComm)
+
       -- outer loop is over directions orthogonal to 'dir' and inner
-      -- loop is over 1D slice in `dir`.
-      for idx in perpRange:colMajorIter() do
+      -- loop is over 1D slice in `dir`. 
+      -- the column major iterator takes the local start index and size so each shared MPI process knows where it is in the domain
+      for idx in perpRange:colMajorIter(self._localStartIdx[dir], self._localNumBump[dir]) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
@@ -195,9 +217,8 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       firstDir = false
    end
 
-   -- determine largest amax across processors
-   local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
+   -- determine largest amax across all processors
+   Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, worldComm)
 
    -- return failure if time-step was too large
    if cfla > cflm then return false, dt*cfl/cfla end   
