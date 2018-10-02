@@ -541,6 +541,46 @@ function test_28()
 
 end
 
+function test_29()
+   local range = Range.Range({1, 1, 1}, {10, 20, 30})
+
+   local extRange1 = range:extendDirs({1}, 1, 2)
+   assert_equal(0, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(12, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDirs({2}, 1, 2)
+   assert_equal(1, extRange1:lower(1), "Checking lower extended")
+   assert_equal(0, extRange1:lower(2), "Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(10, extRange1:upper(1), "Checking upper extended")
+   assert_equal(22, extRange1:upper(2), "Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDirs({3}, 1, 2)
+   assert_equal(1, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(10, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDirs({1,3}, 1, 2)
+   assert_equal(0, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(12, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "Checking upper extended")   
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -570,6 +610,7 @@ test_25()
 test_26()
 test_27()
 test_28()
+test_29()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
