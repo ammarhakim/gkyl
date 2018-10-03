@@ -5,24 +5,26 @@
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
+-- System imports
+local xsys = require "xsys"
 
+-- Gkeyll imports
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
+local Collisions = require "App.Collisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
+local Mpi = require "Comm.Mpi"
+local Projection = require "App.Projection"
+local ProjectionBase = require "App.Projection.ProjectionBase"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local SpeciesBase = require "App.Species.SpeciesBase"
-local Updater = require "Updater"
-local xsys = require "xsys"
 local Time = require "Lib.Time"
-local Mpi = require "Comm.Mpi"
-local Collisions = require "App.Collisions"
-local ProjectionBase = require "App.Projection.ProjectionBase"
-local Projection = require "App.Projection"
+local Updater = require "Updater"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -242,7 +244,7 @@ function KineticSpecies:fullInit(appTbl)
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
-	 val:fullInit(tbl) -- initialize species
+	 val:fullInit(tbl) -- initialize collisions
 	 self.collisions[nm] = val
 	 self.collisions[nm]:setName(nm)
       end
@@ -420,7 +422,8 @@ function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
 end
 
 -- function to construct a BC updater
-function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop)
+function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
+				      hasExtFld)
    return Updater.Bc {
       onGrid = self.grid,
       boundaryConditions = bcList,
@@ -430,6 +433,7 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop)
       skinLoop = skinLoop,
       cdim = self.cdim,
       vdim = self.vdim,
+      hasExtFld = hasExtFld,
    }
 end
 
@@ -510,6 +514,12 @@ function KineticSpecies:initDist()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
       end
+      if pr.isReservoir then
+	 if not self.fReservoir then 
+	    self.fReservoir = self:allocDistf()
+	 end
+	 self.fReservoir:accumulate(1.0, self.distf[2])
+      end
    end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
@@ -573,7 +583,7 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
       -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, dt, {}, {fIn})
+            bc:advance(tCurr, dt, {self.fReservoir}, {fIn})
          end
       end
 
