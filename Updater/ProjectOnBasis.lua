@@ -136,18 +136,15 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    local fv = Lin.Mat(numOrd, numVal) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
-   local tId = grid:subGridSharedId() -- local thread ID
-   -- construct object to allow looping over only region owned by the
-   -- local SHM thread
+   local tId = grid:subGridSharedId() -- local thread ID construct
+   -- object to iterate over only region owned by local SHM thread
    local localRangeDecomp
    if self._projectOnGhosts then
       localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = qOut:localExtRange(), numSplit = grid:numSharedProcs()
-      }
+	 range = qOut:localExtRange(), numSplit = grid:numSharedProcs() }
    else
       localRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = qOut:localRange(), numSplit = grid:numSharedProcs()
-      }
+	 range = qOut:localRange(), numSplit = grid:numSharedProcs() }
    end
 
    local indexer = qOut:genIndexer()
