@@ -41,7 +41,8 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
-   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV", "CartFieldIntegratedQuantCalc: quantity must be one of V, V2 or AbsV")
+   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV",
+	  "CartFieldIntegratedQuantCalc: quantity must be one of V, V2 or AbsV")
    self.updateFunc = ffi.C["gkylCartFieldIntQuant"..tbl.quantity]
 
    -- for use in advance method
