@@ -117,9 +117,9 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
 
    local localRange = distf:localRange()
    if self.onGhosts then -- extend range to config-space ghosts
-      for dir = 1, cDim do
-         localRange = localRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
-      end
+      local cdirs = {}
+      for dir = 1, cDim do cdirs[dir] = dir end
+      localRange = localRange:extendDirs(cdirs, distf:lowerGhost(), distf:upperGhost())
    end
    local distfIndexer = distf:genIndexer()
    local mom1Indexer = mom1:genIndexer()
