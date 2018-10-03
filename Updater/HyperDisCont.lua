@@ -10,6 +10,7 @@
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
@@ -78,7 +79,7 @@ function HyperDisCont:init(tbl)
 
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
-   self._perpRange = {} -- perp ranges in each direction      
+   self._perpRangeDecomp = {} -- perp ranges in each direction      
    
    return self
 end
@@ -147,13 +148,16 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       end
 
       if self._isFirst then
-	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
+	 self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+	    range = localRange:shorten(dir), -- range orthogonal to 'dir'
+	    numSplit = grid:numSharedProcs() }
       end
-      local perpRange = self._perpRange[dir]
+      local perpRangeDecomp = self._perpRangeDecomp[dir]
+      local tId = grid:subGridSharedId() -- local thread ID
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
-      for idx in perpRange:colMajorIter() do
+      for idx in perpRangeDecomp:colMajorIter(tId) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
