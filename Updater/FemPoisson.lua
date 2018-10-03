@@ -82,6 +82,13 @@ function FemPoisson:init(tbl)
         periodicDirs = self.periodicDirs,
         smooth = self.smooth
       }
+      -- set up weak division operator for special case when solve is algebraic
+      self.weakDivide = CartFieldBinOp {
+         onGrid = self.grid,
+         weakBasis = self.basis,
+         operation = "Divide",
+         onGhosts = true,
+      }
    elseif ndim == 2 then
       self.slvr = FemPerpPoisson {
         onGrid = self.grid,
@@ -128,7 +135,7 @@ function FemPoisson:_advance(tCurr, dt, inFld, outFld)
       local src = inFld[1]
       local sol = outFld[1]
 
-      self.weakDivide:advance(0, 0, {self.solver.modifierWeight, src}, {sol})
+      self.weakDivide:advance(0, 0, {self.slvr:getModifierWeight(), src}, {sol})
 
       return true, GKYL_MAX_DOUBLE
    else

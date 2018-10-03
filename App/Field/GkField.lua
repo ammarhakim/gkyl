@@ -300,6 +300,7 @@ function GkField:createSolver(species, funcField)
    -- when not using linearizedPolarization, weights are set each step in forwardEuler method
 
    if self.isElectromagnetic then 
+     local ndim = self.ndim
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
      self.aparSlvr = Updater.FemPoisson {

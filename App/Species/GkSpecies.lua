@@ -340,7 +340,6 @@ function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
       local em = emIn[1]:rkStepperFields()[inIdx]
       local emFunc = emIn[2]:rkStepperFields()[1]
       local status, dtSuggested
-      status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
       if self.positivityRescale then 
          self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
          if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
