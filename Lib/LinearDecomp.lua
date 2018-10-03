@@ -65,15 +65,27 @@ function LinearDecompRange:init(tbl)
    self._colStartIdx = {}
    for d = 1, tbl.numSplit do
       local idx = Lin.IntVec(r:ndim())
-      colInvIndexer(self._linearDecomp:lower(d), idx)
+      -- we need to ensure we don't attempt to find an index into a
+      -- box with zero volume
+      if r:volume() > 0 then
+	 colInvIndexer(self._linearDecomp:lower(d), idx)
+      else
+	 for i = 1, r:ndim() do idx[i] = 0 end
+      end
       self._colStartIdx[d] = idx
    end
 
    self._rowStartIdx = {}
    for d = 1, tbl.numSplit do
       local idx = Lin.IntVec(r:ndim())
-      rowInvIndexer(self._linearDecomp:lower(d), idx)
-      self._rowStartIdx[d] = idx
+      -- we need to ensure we don't attempt to find an index into a
+      -- box with zero volume
+      if r:volume() > 0 then
+	 rowInvIndexer(self._linearDecomp:lower(d), idx)
+	 self._rowStartIdx[d] = idx
+      else
+	 for i = 1, r:ndim() do idx[i] = 0 end
+      end
    end
 end
 

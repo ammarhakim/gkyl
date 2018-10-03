@@ -27,6 +27,7 @@ function test_1()
 
    assert_equal(2, range:shape(1), "Checking shape")
    assert_equal(6, range:shape(2), "Checking shape")
+
 end
 
 function test_2()

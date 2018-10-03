@@ -74,12 +74,12 @@ function test_3()
       assert_equal((d-1)*10+10, linDecomp:upper(d), "Checking upper")
       
       local idx = linDecomp:rowStartIndex(d)
-      assert_equal((d-1)*10+1, idx[1], "Checking index")
+      assert_equal((d-1)*10+1, idx[1], "Checking row index")
    end
 
    for d = 1, linDecomp:numSplit() do
       local idx = linDecomp:colStartIndex(d)
-      assert_equal((d-1)*10+1, idx[1], "Checking index")
+      assert_equal((d-1)*10+1, idx[1], "Checking col index")
    end   
 end
 
@@ -138,6 +138,13 @@ function test_6()
    assert_equal(r:volume(), count, "Checking volume")   
 end
 
+function test_7()
+   local r = Range.Range({32, 0}, {31, 17})
+   assert_equal(0, r:volume(), "Checking volume")
+
+   local linDecomp = LinearDecomp.LinearDecompRange { range = r, numSplit = 1 }
+end
+
 -- Run tests
 test_0()
 test_1()
@@ -146,6 +153,7 @@ test_3()
 test_4()
 test_5()
 test_6()
+test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
