@@ -143,6 +143,9 @@ function test_7()
    assert_equal(0, r:volume(), "Checking volume")
 
    local linDecomp = LinearDecomp.LinearDecompRange { range = r, numSplit = 1 }
+
+   local r1 = Range.Range({1, 1}, {2, 2})
+   local linDecomp1 = LinearDecomp.LinearDecompRange { range = r1, numSplit = 10 }
 end
 
 -- Run tests
