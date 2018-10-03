@@ -61,7 +61,7 @@ function MaxwellField:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
 
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
-   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
+   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
 
    self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- by default there is a magnetic field
 
