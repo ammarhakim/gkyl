@@ -23,6 +23,7 @@ local SP_BC_COPY = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy
 local SP_BC_OPEN = SP_BC_COPY
 local SP_BC_ZEROFLUX = 6
+local SP_BC_RESERVOIR = 7
 
 VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
@@ -30,6 +31,7 @@ VlasovSpecies.bcCopy = SP_BC_COPY -- copy stuff
 VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 VlasovSpecies.bcExternal = SP_BC_EXTERN -- load external BC file
 VlasovSpecies.bcZeroFlux = SP_BC_ZEROFLUX
+VlasovSpecies.bcReservoir = SP_BC_RESERVOIR
 
 function VlasovSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -311,25 +313,29 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    if bcType == SP_BC_ABSORB then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcAbsorbFunc }, "pointwise"))
+				      { bcAbsorbFunc }, "pointwise", false))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise"))
+				      { bcCopyFunc }, "pointwise", false))
    elseif bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise"))
+				      { bcCopyFunc }, "pointwise", false))
    elseif bcType == SP_BC_REFLECT then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcReflectFunc }, "flip"))
+				      { bcReflectFunc }, "flip", false))
    elseif bcType == SP_BC_EXTERN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcExternFunc }, "flip"))
+				      { bcExternFunc }, "flip", false))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
+   elseif bcType == SP_BC_RESERVOIR then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcCopyFunc }, "pointwise", true))
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end
