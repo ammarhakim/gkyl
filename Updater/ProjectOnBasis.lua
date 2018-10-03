@@ -136,7 +136,7 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    local fv = Lin.Mat(numOrd, numVal) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
-   local tId = grid:subGridSharedId() -- local thread ID construct
+   local tId = grid:subGridSharedId() -- local thread ID
    -- object to iterate over only region owned by local SHM thread
    local localRangeDecomp
    if self._projectOnGhosts then
