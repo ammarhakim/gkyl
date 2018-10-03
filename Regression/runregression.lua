@@ -119,15 +119,37 @@ end
 local function runLuaTest(test)
    log(string.format("\nRunning test %s ...\n", test))
 
+   local opts = {}
+   -- open Lua file and check if first line is a command line
+   local f = io.open(test, "r")
+   local line1 = f:read()
+   if string.find(line1, "--!") then
+      local r = string.sub(line1, 4, -1)
+      opts = loadstring("return " .. r)()
+   end
+   f:close()
+
    -- before running tests delete all old output
    local rm = "rm -f " .. string.sub(test, 1, -5) .. "_*.bp"
    os.execute(rm)
 
-   local tmStart = Time.clock()
+   -- construct command to run
    local runCmd = string.format("%s %s", GKYL_EXEC, test)
-   local f = io.popen(runCmd, "r")
-   for l in f:lines() do
-      verboseLog(l.."\n")
+   if opts.numProc then
+      runCmd = string.format("%s -n %d %s %s", configVals.mpiExec, opts.numProc, GKYL_EXEC, test)
+   end
+
+   -- run test
+   local tmStart = Time.clock()
+
+   if opts.numProc then
+      -- skip for now: NEED TO USE MPI_COMM_SPAWN FOR THIS, I THINK!
+      log(string.format("**** NOT RUNNING PARALLEL TEST %s \n", runCmd))
+   else
+      local f = io.popen(runCmd, "r")
+      for l in f:lines() do
+	 verboseLog(l.."\n")
+      end
    end
    log(string.format("... completed in %g sec\n", Time.clock()-tmStart))
 end
