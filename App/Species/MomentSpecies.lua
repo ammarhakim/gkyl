@@ -76,8 +76,8 @@ end
 function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
+      self:applyBc(tCurr, dt, fIn)
       status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
-      self:applyBc(tCurr, dt, fOut)
    else
       fOut:copy(fIn)
    end
