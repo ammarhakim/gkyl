@@ -324,7 +324,7 @@ if em then (
 funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", p, true, bvarslist[b]),
 funcName : sconcat("EmGyrokineticStep2Vol", c, "x", v, "v", "Ser"),
-calcGKStep2VolUpdater(fh, funcName, c, v, "Ser", p)
+if b=1 then calcGKStep2VolUpdater(fh, funcName, c, v, "Ser", p)
 ) 
 else (
 funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
