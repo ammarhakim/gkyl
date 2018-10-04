@@ -279,7 +279,7 @@ local function Field_meta_ctor(elct)
 	 return self._numComponents
       end,
       copy = function (self, fIn)
-	 field_memcpy(self, fIn)
+	 self:_assign(1.0, fIn) --field_memcpy(self, fIn)
       end,
       clear = function (self, val)
 	 self._allocData:fill(val)
