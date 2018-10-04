@@ -115,7 +115,7 @@ local function buildApplication(self, tbl)
    local periodicDirs = {}
    if tbl.periodicDirs then
       for i, d in ipairs(tbl.periodicDirs) do
-	 if d<1 and d>3 then
+	 if d<1 or d>cdim then
 	    assert(false, "Directions in periodicDirs table should be 1 (for X), 2 (for Y) or 3 (for Z)")
 	 end
 	 periodicDirs[i] = d
