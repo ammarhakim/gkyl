@@ -68,6 +68,7 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, { bcCopyFunc }))
    else
+     print("appendBC", bcType)
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, bcType ))
    end
