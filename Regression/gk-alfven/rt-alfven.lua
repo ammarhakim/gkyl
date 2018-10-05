@@ -42,24 +42,6 @@ plasmaApp = Plasma.App {
       cells = {32},
       decompCuts = {1},
       -- initial conditions
-      initBackground = {"maxwellian",
-              density = function (t, xn)
-                 return ne0
-              end,
-              temperature = function (t, xn)
-                 return Te0
-              end,
-             },
-      init = {"maxwellian",
-              density = function (t, xn)
-	         local x, v = xn[1], xn[2]
-                 local k = knumber
-                 return ne0*(1 + alpha*math.cos(k*x))
-              end,
-              temperature = function (t, xn)
-                 return Te0
-              end,
-             },
       initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
          density = function (t, xn)
             local x = xn[1]
