@@ -15,6 +15,8 @@ local FluidSpecies = require "App.Species.FluidSpecies"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
+local Euler = require "Eq.Euler"
+local TenMoment = require "Eq.TenMoment"
 
 -- Species object treated as moment equations
 local MomentSpecies = Proto(FluidSpecies)
@@ -67,9 +69,24 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
    if bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, { bcCopyFunc }))
-   else
+   elseif bcType == SP_BC_WALL then
+     -- FIXME better to define and use self.equation.bcWall
+     local bcWall
+     if self.nMoments == 5 then
+       bcWall = Euler.bcWall
+     elseif self.nMoments == 10 then
+       bcWall = TenMoment.bcWall
+     else
+       assert(false, "MomentSpecies: bcWall not provided by the equation!")
+     end
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, edge, bcWall))
+   elseif type(bcType) == "table" then
+      -- bcType can be literally a list of functions
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, bcType ))
+   else
+	    assert(false, "MomentSpecies: Unsupported BC type!")
    end
 end
 
