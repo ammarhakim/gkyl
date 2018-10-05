@@ -70,7 +70,7 @@ function FiveMomentSrc:init(tbl)
 
    self._sd.epsilon0 = assert(tbl.epsilon0, "Updater.FiveMomentSrc: Must specify 'epsilon0'")
    self._sd.chi_e = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
-   self._sd.chi_m = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
+   self._sd.chi_m = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
 
    self._sd.gravity = tbl.gravity and tbl.gravity or 0.0
    self._sd.gravityDir = tbl.dir and tbl.dir or 1 -- by default gravity acts in X direction
