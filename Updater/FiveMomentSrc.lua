@@ -12,6 +12,9 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 
+local COL_PIV_HOUSEHOLDER_QR = 0;
+local PARTIAL_PIV_LU = 1;
+
 -- system libraries
 local ffi = require "ffi"
 
@@ -78,7 +81,14 @@ function FiveMomentSrc:init(tbl)
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    self._sd.hasPressure = tbl.hasPressure ~= nil and tbl.hasPressure or true
    
-   self._sd.linSolType = tbl.linSolType and tbl.linSolType or 1
+   local linSolType = tbl.linSolType and tbl.linSolType or "partialPivLu"
+   if linSolType == "partialPivLu" then
+      self._sd.linSolType = PARTIAL_PIV_LU
+   elseif linSolType == "colPivHouseholderQr" then
+      self._sd.linSolType = COL_PIV_HOUSEHOLDER_QR
+   else
+     assert(false, string.format("linSolType %s not supported", linSolType))
+   end
 
    self._fd = ffi.new("FluidData_t[?]", self._sd.nFluids)
    -- store charge and mass for each fluid
