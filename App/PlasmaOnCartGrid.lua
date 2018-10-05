@@ -35,6 +35,12 @@ local function createBasis(nm, ndim, polyOrder)
    end
 end
 
+-- function to check if file exists
+local function file_exists(name)
+   local f=io.open(name,"r")
+   if f~=nil then io.close(f) return true else return false end
+end
+
 -- top-level method to build application "run" method
 local function buildApplication(self, tbl)
    local log = Logger {
@@ -630,12 +636,24 @@ local function buildApplication(self, tbl)
       end
 
       local tmSimStart = Time.clock()
+      local first = true
+      local failcount = 0
+      local stopfile = GKYL_OUT_PREFIX .. ".stop"
+
       -- main simulation loop
       while true do
 	 -- call time-stepper
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
+   
+         -- if stopfile exists, break
+         if (file_exists(stopfile)) then
+            os.remove(stopfile) -- clean up
+            break
+         end
+
 	 -- check status and determine what to do next
 	 if status then
+            if first then initDt = dtSuggested; first = false end
 	    writeLogMessage(tCurr+myDt)
 	    -- we must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart
@@ -653,6 +671,13 @@ local function buildApplication(self, tbl)
 	 else
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
+            if (myDt < 1e-3*initDt) then 
+               failcount = failcount + 1
+               if failcount > 20 then
+                  log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
+                  break
+               end
+            end
 	 end
       end
       local tmSimEnd = Time.clock()
