@@ -204,7 +204,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
      self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
 
    -- return failure if time-step was too large
-   if cfla > cflm then return false, dt*cfl/cfla end   
+   if cfla > cflm then return false, dt*cfl/cfla end
 
    -- accumulate full solution if not computing increments
    if not self._onlyIncrement then

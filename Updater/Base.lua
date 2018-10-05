@@ -31,15 +31,9 @@ function _M:_advance(tCurr, dt, inFld, outFld)
 end
 
 -- return various comms for communications
-function _M:getNodeComm()
-   return self._nodeComm
-end
-function _M:getComm()
-   return self._comm
-end
-function _M:getSharedComm()
-   return self._sharedComm
-end
+function _M:getComm()  return self._comm end
+function _M:getNodeComm() return self._nodeComm end
+function _M:getSharedComm() return self._sharedComm end
 
 -- This function wraps derived updater's _advance() function and
 -- computes a "totalTime", and also synchronizes the status and

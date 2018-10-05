@@ -677,17 +677,39 @@ local function buildApplication(self, tbl)
 
       local tmTotal = tmSimEnd-tmSimStart
       log(string.format("\nTotal number of time-steps %s\n\n", step))
-      log(string.format("Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
-      log(string.format("Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmBc, tmBc/step, 100*tmBc/tmTotal))
-      log(string.format("Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
-      log(string.format("Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
-      log(string.format("Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
-      log(string.format("Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmMom, tmMom/step, 100*tmMom/tmTotal))
-      log(string.format("Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
-      log(string.format("Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
-      log(string.format("Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmColl, tmColl/step, 100*tmColl/tmTotal))
-      log(string.format("Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
-      log(string.format("Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n", tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
+      log(string.format(
+	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+      log(string.format(
+	     "Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmBc, tmBc/step, 100*tmBc/tmTotal))
+      log(string.format(
+	     "Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
+      log(string.format(
+	     "Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
+      log(string.format(
+	     "Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
+      log(string.format(
+	     "Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmMom, tmMom/step, 100*tmMom/tmTotal))
+      log(string.format(
+	     "Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+      log(string.format(
+	     "Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
+      log(string.format(
+	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+      log(string.format(
+	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      log(string.format(
+	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
+	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
    end
 end
