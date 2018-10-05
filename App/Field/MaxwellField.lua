@@ -40,6 +40,9 @@ local function isBcGood(bcType)
    if bcType == EM_BC_OPEN or bcType == EM_BC_REFLECT or bcType == EM_BC_SYMMETRY then
       return true
    end
+   if type(bcType) == "table" then
+     return true
+   end
    return false
 end
 
@@ -284,6 +287,9 @@ function MaxwellField:createSolver()
       elseif bcType == EM_BC_SYMMETRY then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, { bcSymmetry }))
+      elseif type(bcType) == "table" then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, bcType))
       else
 	 assert(false, "MaxwellField: Unsupported BC type!")
       end
