@@ -74,7 +74,8 @@ momentApp = Moments.App {
       end,
       evolve = true, -- evolve species?
       
-   bcy = { Moments.Species.bcReflect, Moments.Species.bcReflect },
+   -- bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
+   bcy = { Euler.bcWall, Euler.bcWall },
    },
 
    -- ions
@@ -100,7 +101,8 @@ momentApp = Moments.App {
       end,
       evolve = true, -- evolve species?
       
-   bcy = { Moments.Species.bcReflect, Moments.Species.bcReflect },
+   -- bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
+   bcy = { Euler.bcWall, Euler.bcWall },
    },
 
    field = Moments.Field {
