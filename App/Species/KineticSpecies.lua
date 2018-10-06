@@ -622,7 +622,7 @@ function KineticSpecies:isEvolving()
    return self.evolve
 end
 
-function KineticSpecies:write(tm)
+function KineticSpecies:write(tm, force)
    if self.evolve then
       local tmStart = Time.clock()
       -- compute integrated diagnostics
@@ -637,7 +637,7 @@ function KineticSpecies:write(tm)
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
       -- only write stuff if triggered
-      if self.distIoTrigger(tm) then
+      if self.distIoTrigger(tm) or force then
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
             if tm == 0.0 then
@@ -654,7 +654,7 @@ function KineticSpecies:write(tm)
       end
 
 
-      if self.diagIoTrigger(tm) then
+      if self.diagIoTrigger(tm) or force then
          -- compute moments and write them out
          self:calcDiagnosticMoments()
          for i, mom in ipairs(self.diagnosticMoments) do

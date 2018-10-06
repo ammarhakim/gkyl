@@ -375,7 +375,7 @@ function GkField:createDiagnostics()
    }
 end
 
-function GkField:write(tm)
+function GkField:write(tm, force)
    if self.evolve then
       -- compute integrated quantities over domain
       self.energyCalc:advance(tm, 0.0, { self.potentials[1].phi }, { self.phi2 })
@@ -383,7 +383,7 @@ function GkField:write(tm)
         self.energyCalc:advance(tm, 0.0, { self.potentials[1].apar }, { self.apar2 })
       end
       
-      if self.ioTrigger(tm) then
+      if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)

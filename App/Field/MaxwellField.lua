@@ -323,7 +323,7 @@ function MaxwellField:initField()
    self:applyBc(0.0, 0.0, self.em[1])
 end
 
-function MaxwellField:write(tm)
+function MaxwellField:write(tm, force)
    if self.evolve then
       local tmStart = Time.clock()
       -- compute EM energy integrated over domain
@@ -337,7 +337,7 @@ function MaxwellField:write(tm)
       -- time computation of integrated moments
       self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
       
-      if self.ioTrigger(tm) then
+      if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
@@ -567,9 +567,9 @@ function FuncMaxwellField:initField()
    self:applyBc(0.0, 0.0, self.em)
 end
 
-function FuncMaxwellField:write(tm)
+function FuncMaxwellField:write(tm, force)
    if self.evolve then
-      if self.ioTrigger(tm) then
+      if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1
