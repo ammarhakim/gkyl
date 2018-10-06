@@ -19,6 +19,7 @@ local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
+local TenMomentSrc = require "Updater.TenMomentSrc"
 local HyperDisCont = require "Updater.HyperDisCont"
 local LagrangeFix = require "Updater.LagrangeFix"
 local MappedPoisson = require "Updater.MappedPoisson"
@@ -44,6 +45,7 @@ return {
    FemPerpPoisson = FemPerpPoisson,
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
+   TenMomentSrc = TenMomentSrc,
    HyperDisCont = HyperDisCont,
    LagrangeFix = LagrangeFix,
    MappedPoisson = MappedPoisson,
