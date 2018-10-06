@@ -11,6 +11,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 local Time = require "Lib.Time"
+local BoundaryCondition = require "Updater.BoundaryCondition"
 
 local _M = {}
 
@@ -110,5 +111,11 @@ local tenMoment_mt = {
    }
 }
 local TenMomentObj = metatype(typeof("TenMomentEqn_t"), tenMoment_mt)
+
+local bcWallCopy = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
+local bcWallFlip = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
+local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
+-- add wall BC specific to TenMoment equations
+TenMomentObj.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
 
 return TenMomentObj
