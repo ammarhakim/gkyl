@@ -15,6 +15,7 @@ local Field = require "App.Field"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Sources = require "App.Sources"
 local Species = require "App.Species"
@@ -283,10 +284,10 @@ local function buildApplication(self, tbl)
    end
 
    -- function to write data to file
-   local function writeData(tCurr)
-      for _, s in pairs(species) do s:write(tCurr) end
-      field:write(tCurr)
-      funcField:write(tCurr)
+   local function writeData(tCurr, force)
+      for _, s in pairs(species) do s:write(tCurr, force) end
+      field:write(tCurr, force)
+      funcField:write(tCurr, force)
    end
 
    -- function to write restart frames to file
@@ -647,6 +648,9 @@ local function buildApplication(self, tbl)
    
          -- if stopfile exists, break
          if (file_exists(stopfile)) then
+            writeData(tCurr+myDt, true)
+            writeRestart(tCurr+myDt)
+	    Mpi.Barrier(Mpi.COMM_WORLD)
             os.remove(stopfile) -- clean up
             break
          end
@@ -674,6 +678,7 @@ local function buildApplication(self, tbl)
             if (myDt < 1e-3*initDt) then 
                failcount = failcount + 1
                if failcount > 20 then
+                  writeData(tCurr+myDt, true)
                   log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
                   break
                end
