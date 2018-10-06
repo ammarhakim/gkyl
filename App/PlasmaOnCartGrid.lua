@@ -648,9 +648,9 @@ local function buildApplication(self, tbl)
    
          -- if stopfile exists, break
          if (file_exists(stopfile)) then
+	    Mpi.Barrier(Mpi.COMM_WORLD)
             writeData(tCurr+myDt, true)
             writeRestart(tCurr+myDt)
-	    Mpi.Barrier(Mpi.COMM_WORLD)
             os.remove(stopfile) -- clean up
             break
          end
