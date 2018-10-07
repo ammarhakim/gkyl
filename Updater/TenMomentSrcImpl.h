@@ -1,12 +1,12 @@
 // Gkyl ------------------------------------------------------------------------
 //
-// C++ back-end for five-moment source terms
+// C++ back-end for ten-moment source terms
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#ifndef GK_FIVE_MOMENT_SRC_H
-#define GK_FIVE_MOMENT_SRC_H
+#ifndef GK_TEN_MOMENT_SRC_H
+#define GK_TEN_MOMENT_SRC_H
 
 #include <stdint.h>
 
@@ -31,4 +31,4 @@ extern "C" {
     void gkylTenMomentSrcTimeCentered(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
 }
 
-#endif // GK_FIVE_MOMENT_SRC_H
+#endif // GK_TEN_MOMENT_SRC_H
