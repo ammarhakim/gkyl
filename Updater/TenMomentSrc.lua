@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to update five-moment source terms. This updater allows
+-- Updater to update ten-moment source terms. This updater allows
 -- both explicit and implicit updates.
 --
 --    _______     ___
