@@ -27,6 +27,8 @@ ffi.cdef [[
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
     void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
+    void copyFromField(double *data, double *f, unsigned numComponents, unsigned c);
+    void copyToField(double *f, double *data, unsigned numComponents, unsigned c);
 ]]
 
 -- Local definitions
@@ -435,22 +437,28 @@ local function Field_meta_ctor(elct)
       end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
-	 local c = 1
+	 local c = 0
+         local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
-	    local fitr = self:get(indexer(idx))
-	    for k = 1, self._numComponents do
-	       data[c] = fitr[k]; c = c+1
-	    end
+	    self:fill(indexer(idx), fitr)
+            ffi.C.copyFromField(data:data(), fitr:data(), self._numComponents, c)
+            c = c + self._numComponents
+	    --for k = 1, self._numComponents do
+	    --   data[c] = fitr[k]; c = c+1
+	    --end
 	 end
       end,
       _copy_to_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
-	 local c = 1
+	 local c = 0
+         local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
-	    local fitr = self:get(indexer(idx))
-	    for k = 1, self._numComponents do
-	       fitr[k] = data[c]; c = c+1
-	    end
+	    self:fill(indexer(idx), fitr)
+            ffi.C.copyToField(fitr:data(), data:data(), self._numComponents, c)
+            c = c + self._numComponents
+	    --for k = 1, self._numComponents do
+	    --   fitr[k] = data[c]; c = c+1
+	    --end
 	 end
       end,
       _field_sync = function (self)

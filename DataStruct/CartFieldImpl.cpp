@@ -28,3 +28,16 @@ void gkylCartFieldAbs(unsigned s, unsigned nv, double *out) {
     out[n] = fabs(out[n]);
 }
 
+void copyFromField(double *data, double *f, unsigned numComponents, unsigned c) {
+  for (unsigned k=0; k<numComponents; k++) {
+    data[c] = f[k];
+    c+=1;
+  }
+}
+
+void copyToField(double *f, double *data, unsigned numComponents, unsigned c) {
+  for (unsigned k=0; k<numComponents; k++) {
+    f[k] = data[c];
+    c+=1;
+  }
+}
