@@ -13,6 +13,7 @@ local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
+local xsys = require "xsys"
 
 -- create constructor to store vector of Range objects
 local RangeVec = Lin.new_vec_ct(ffi.typeof("Range_t"))
@@ -87,7 +88,7 @@ function CartProdDecomp:init(tbl)
    for d = 1, #tbl.cuts do ones[d] = 1 end
 
    self._cutsRange = Range.Range(ones, tbl.cuts)
-   self._useShared = tbl.useShared and tbl.useShared or false
+   self._useShared = xsys.pickBool(tbl.useShared, false)
 
    local comm, shmComm = Mpi.COMM_WORLD, nil
    -- create various communicators

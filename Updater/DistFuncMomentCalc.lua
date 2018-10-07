@@ -118,8 +118,9 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
    local localRange = distf:localRange()
    if self.onGhosts then -- extend range to config-space ghosts
       local cdirs = {}
-      for dir = 1, cDim do cdirs[dir] = dir end
-      localRange = localRange:extendDirs(cdirs, distf:lowerGhost(), distf:upperGhost())
+      for dir = 1, cDim do 
+	 localRange = localRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+      end
    end
    local distfIndexer = distf:genIndexer()
    local mom1Indexer = mom1:genIndexer()
@@ -144,8 +145,8 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
 
    -- construct ranges for nested loops
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = localRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
-   local velRange = localRange:selectLast(self._vDim)
+      range = localRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
+   local velRange = localRange:selectLast(vDim)
    local tId = grid:subGridSharedId() -- local thread ID
 
    local idx = Lin.Vec(cDim+vDim)
@@ -163,21 +164,21 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
 	 for d = 1, pDim do self.dxv[d] = grid:dx(d) end
       
 	 distf:fill(distfIndexer(idx), distfItr)
-	 mom1:fill(mom1Indexer(cIdx), mom1Itr)
+	 mom1:fill(mom1Indexer(idx), mom1Itr)
 
 	 if self._isGK then
-	    self.bmag:fill(self.bmagIndexer(cIdx), self.bmagItr)
+	    self.bmag:fill(self.bmagIndexer(idx), self.bmagItr)
 	    if self._fivemoments then
-	       mom2:fill(mom2Indexer(cIdx), mom2Itr)
-	       mom3:fill(mom3Indexer(cIdx), mom3Itr)
+	       mom2:fill(mom2Indexer(idx), mom2Itr)
+	       mom3:fill(mom3Indexer(idx), mom3Itr)
 	       self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
 				mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
 	    else
 	       self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
 	    end
 	 elseif self._fivemoments then 
-	    mom2:fill(mom2Indexer(cIdx), mom2Itr)
-	    mom3:fill(mom3Indexer(cIdx), mom3Itr)
+	    mom2:fill(mom2Indexer(idx), mom2Itr)
+	    mom3:fill(mom3Indexer(idx), mom3Itr)
 	    self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
 	 else
 	    self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data())

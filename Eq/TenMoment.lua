@@ -116,6 +116,6 @@ local bcWallCopy = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
 local bcWallFlip = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
 local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
 -- add wall BC specific to TenMoment equations
-TenMomentObj.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
+--TenMomentObj.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
 
 return TenMomentObj
