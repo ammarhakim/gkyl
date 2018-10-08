@@ -10,15 +10,13 @@
 #include <stdio.h>
 
 void
-gkylTenMomentRelaxRk3(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em)
+gkylTenMomentRelaxRk3(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double myK)
 {
 }
 
 void
-gkylTenMomentRelaxExplicit(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double *staticEm)
+gkylTenMomentRelaxExplicit(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double *staticEm, double myK)
 {
-  double myK = sd->k;
-
   double r = f[0];
   double u = f[1]/r;
   double v = f[2]/r;

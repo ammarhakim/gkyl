@@ -26,22 +26,23 @@ typedef struct {
 
 typedef struct {
   double k;
+  bool hasKField; /* Flag to indicate if there is: k field */
   bool hasEm; /* Flag to indicate if there is: EB field */
   bool hasStatic; /* Flag to indicate if there is: static EB field */
 } TenMomentRelaxData_t;
 
-  void gkylTenMomentRelaxRk3(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em);
-  void gkylTenMomentRelaxExplicit(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double *staticEm);
+  void gkylTenMomentRelaxRk3(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double myK);
+  void gkylTenMomentRelaxExplicit(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double *staticEm, double myK);
 ]]
 
 -- Explicit, SSP RK3 scheme
-local function updateRelaxRk3(self, dt, fPtr, emPtr)
-   ffi.C.gkylTenMomentRelaxRk3(self._sd, self._fd, dt, fPtr, emPtr)
+local function updateRelaxRk3(self, dt, fPtr, emPtr, myK)
+   ffi.C.gkylTenMomentRelaxRk3(self._sd, self._fd, dt, fPtr, emPtr, myK)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateRelaxExplicit(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylTenMomentRelaxExplicit(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateRelaxExplicit(self, dt, fPtr, emPtr, staticEmPtr, myK)
+   ffi.C.gkylTenMomentRelaxExplicit(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, myK)
 end
 
 -- Ten-moment source updater object
@@ -55,6 +56,7 @@ function TenMomentRelax:init(tbl)
    self._sd = ffi.new(ffi.typeof("TenMomentRelaxData_t"))   
 
    self._sd.k = tbl.k ~= nil and tbl.k or 0.
+   self._sd.hasKField = tbl.hasKField ~= nil and tbl.hasKField or false
    self._sd.hasEm = tbl.hasEmField ~= nil and tbl.hasEmField or false
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    
@@ -72,7 +74,8 @@ function TenMomentRelax:init(tbl)
 end
 
 -- advance method
-function TenMomentRelax:_advance(tCurr, dt, inFld, outFld)
+function TenMomentRelax:_advance(tCurr, dt, inFld, outFld,
+   staticEmFld, KFld)
    local grid = self._onGrid
  
    local fFld = outFld[1]
@@ -81,13 +84,13 @@ function TenMomentRelax:_advance(tCurr, dt, inFld, outFld)
    if (self._sd.hasEm) then
       emFld= inFld[1] -- EM field
    end
-   if (self._sd.hasStatic) then
-      staticEmFld = inFld[2] -- static EM field
-   end
 
    local fIdxr = outFld[1]:genIndexer()
    local emIdxr
    local staticEmIdxr
+   if (self._sd.hasKField) then
+      kIdxr = kFld:genIndexer()
+   end
    if (self._sd.hasEm) then
       emIdxr = emFld:genIndexer()
    end
@@ -96,12 +99,18 @@ function TenMomentRelax:_advance(tCurr, dt, inFld, outFld)
    end
 
    local fDp = ffi.new("double*")
+   local kDp = ffi.new("double*")
    local emDp = ffi.new("double*")
    local staticEmDp = ffi.new("double*")
 
    local localRange = fFld:localRange()   
    for idx in localRange:colMajorIter() do
 	    fDp = fFld:getDataPtrAt(fIdxr(idx))
+      local myK = self._sd.k
+      if (self._sd.hasKField) then
+         kDp = kFld:getDataPtrAt(kIdxr(idx))
+         myK = kDp[0]
+      end
       if (self._sd.hasEm) then
          emDp = emFld:getDataPtrAt(emIdxr(idx))
       end
@@ -109,7 +118,7 @@ function TenMomentRelax:_advance(tCurr, dt, inFld, outFld)
          staticEmDp = emFld:getDataPtrAt(staticEmIdxr(idx))
       end
 
-      self._updateRelax(self, dt, fDp, emDp, staticEmDp)
+      self._updateRelax(self, dt, fDp, emDp, staticEmDp, myK)
    end
 
    return true, GKYL_MAX_DOUBLE
