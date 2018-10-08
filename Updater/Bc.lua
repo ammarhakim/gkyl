@@ -5,6 +5,8 @@
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
+-- System libraries
+local xsys = require "xsys"
 
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
@@ -54,6 +56,8 @@ function Bc:init(tbl)
 
    self._tId = self._grid:subGridSharedId() -- local thread ID
    self._ghostRangeDecomp = nil -- will be constructed on first call to advance
+
+   self.hasExtFld = xsys.pickBool(tbl.hasExtFld, false)
 end
 
 function Bc:getGhostRange(global, globalExt)
@@ -69,6 +73,7 @@ end
 function Bc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
+   local qIn = inFld[1]
 
    local dir, edge = self._dir, self._edge
    local vdir = self._vdir
@@ -88,14 +93,20 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    end
 
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
+   if self.hasExtFld then qS = qIn:get(1) end
    local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
    local indexer = qOut:genIndexer()
 
    for idxG in self._ghostRangeDecomp:colMajorIter(self._tId) do -- loop, applying BCs
       idxG:copyInto(idxS)
-      idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
-      if self._skinLoop == "flip" then
-   	 idxS[vdir] = global:upper(vdir) + 1 - idxS[vdir]
+      -- if and in-field is specified the same indexes are used (gS
+      -- points to the ghost layer of the in-field); otherwise, move
+      -- the ghost index to point into the skin layer
+      if not self.hasExtFld then
+	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+	 if self._skinLoop == "flip" then
+	    idxS[vdir] = global:upper(vdir) + 1 - idxS[vdir]
+	 end
       end
       qOut:fill(indexer(idxG), qG) 
       if self._skinLoop == "integrate" then 
@@ -110,7 +121,11 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
             end
          end
       else
-         qOut:fill(indexer(idxS), qS)
+	 if not self.hasExtFld then
+	    qOut:fill(indexer(idxS), qS)
+	 else
+	    qIn:fill(indexer(idxS), qS)
+	 end
          for _, bc in ipairs(self._bcList) do -- loop over each BC
             bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
          end
