@@ -22,8 +22,16 @@ for bInd : 1 thru length(bName) do (
       for pi : 1 thru polyOrderMax do (
   
         /* Primitive moments for self-collision terms. */
-        printf(fh, "void SelfPrimMoments~ax~av~a_P~a(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0B, const double *m1B, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "void SelfPrimMoments~ax~av~a_P~a(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0S, const double *m1S, const double *m0B, const double *m1B, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
         printf(fh, "~%"), 
+
+        /* For piecewise linear compute m0Star moment. */
+        if pi=1 then (
+          for si : 1 thru vi do (
+            printf(fh, "void StarMoments~ax~av~a_V~a(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); ~%", ci, vi, bName[bInd], VarsC[si]),
+            printf(fh, "~%")
+          )
+        ),
   
         /* Corrections to primitive moments from finite velocity grids. */
         for si : 1 thru vi do (

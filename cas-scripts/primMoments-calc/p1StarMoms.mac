@@ -1,0 +1,124 @@
+/* Compute the star moments (M_0^star for now) needed by
+   SelfPrimMoments to compute the flow velocity and thermal
+   speed squared in the piece-wise linear (p=1) case while
+   preserving momentum and energy density. */
+/* IMPORTANT: code below assumes vMin is negative and vMax positive.
+   It also assumes uniform grid (dxvl = dxvr). */
+
+load("modal-basis");
+load("out-scripts");
+fpprec : 24$
+
+polyOrder : 1$ /* This is only for piecewise linear. */
+
+varsV : [vx, vy, vz]$
+vvars : [VX, VY, VZ]$
+
+vidx(cdim,vdim)  := makelist(i,i,cdim+1,cdim+vdim)$
+vidx1(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
+
+calcStarMomDirContr(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  /*... Compute  1D recovery polynomial coefficients into hsol ...*/
+  /* Load 1D basis. */
+  load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+  bC1 : basisC[polyOrder],
+  N1 : length(bC1),
+
+  eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
+
+  /* Construct the 1D recovery polynomial */
+  hOrder : 2*polyOrder+1,
+  /* Left and right (of the boundary) basis sets */
+  pL : eta(-1/2,1,bC1),
+  pR : eta(1/2,1,bC1),
+  /* Recovery polynomial expanded in z */
+  h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
+
+  /* LHS of system of equations arising from weak equivalence relations */
+  eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
+  eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
+  LHS : append(eqL,eqR),
+  A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
+
+  /* RHS is similar to the mass matrix */
+  RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
+
+  /* solve system of equations for coefficients of h */
+  S     : fullratsimp(invert(A) . RHS),
+  hsol1 : makelist(S[i][1],i,1,hOrder+1),
+
+  /*... Recovery polynomial coefficients of requested dimensionality ...*/
+  kill(varsC, basisC),
+  /* Load basis of dimensionality requested. */
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  /* Variables. */
+  vid  : vidx(cdim,vdim),
+  vid1 : vidx1(cdim,vdim),
+  vv   : varsV[dir],
+  surfVars : delete(vv,varsP),
+  dv       : makelist(dxvl[cdim+i], i, 0, vdim-1),
+
+  /* Polynomial basis and its derivatives. */
+  bP : basisP[polyOrder],
+  bC : basisC[polyOrder],
+  NP : length(bP),
+  NC : length(bC),
+  bPp : diff(bP,vv),
+
+  fg : doExpand(f, bP),       /* Function expanded in basis. */
+
+  /* Obtain the left and right function coefficients
+     by projecting the function onto the direction of interest. */
+  hcoeff : calcInnerProdList([vv], 1, subst(x=vv,bC1), fg),
+  fls : subst(makelist(f[i]=fl[i],i,NP), hcoeff),
+  frs : subst(makelist(f[i]=fr[i],i,NP), hcoeff),
+
+  /* Substitute these "left" and "right" function coefficients,
+     which contain variation along other dimensions, into the
+     1D recovery polynomial coefficients computed above. */
+  hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
+
+  /* Write out the full recovery polynomial and its derivative. */
+  h : sum(hsol[i]*vv^(i-1), i, 1, 2*N1),
+  /* Evaluate the recovery polynomial at the discontinuity. */
+  hsol0 : subst(vv=0,h),
+
+  /* Because f's in hsol are index-1, we need to switch to
+     0-indexed for C++. */
+  subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
+  hsol0   : psubst(subList,hsol0),
+
+  /*............. RECOVERY DONE ..............................*/
+
+  printf(fh, "void ~a_~a(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) ~%{ ~%", funcNm, vvars[dir]),
+  printf(fh, "  // intFac:  =1 for VmLBO, =2pi/m for GkLBO. ~%"),
+  printf(fh, "  // w[NDIM]: Cell-center coordinates. ~%"),
+  printf(fh, "  // dxv[~a]:  cell length in each direciton. ~%", cdim+vdim),
+  printf(fh, "  // fl/fr:   Distribution function in left/right cells ~%"),
+  printf(fh, "  // out:     Increment to M_0^\star from this cell surface. ~%"),
+  printf(fh, " ~%"),
+
+  dvSurf   : delete(dxvl[cdim+dir-1],dv),
+  surfExpr : float(prod(dvSurf[i],i,1,vdim-1)),
+
+  /* Surface integral above was done in [-1,1] computational space. Surface
+     factor needs to be multiplied to obtain result from physical grid. */
+  printf(fh, "  const double dS = ~a*intFac*(wr[~a]-wl[~a]); ~%", float(1/(2^(vdim-1)))*surfExpr, vid1[dir], vid1[dir]),
+  printf(fh, " ~%"),
+
+  iM0star : calcInnerProdList(surfVars, 1, bC, hsol0),
+  writeCIncrExprsCollect1(out, dS*iM0star,[dS]),
+  
+  printf(fh, " ~%"),
+  printf(fh, "} ~%"),
+
+  printf(fh, " ~%")
+)$
+
+calcStarMomSurfContributions(fh, funcNm, cdim, vdim, basisFun) := block([],
+  for dir : 1 thru vdim do ( calcStarMomDirContr(dir, fh, funcNm, cdim, vdim, basisFun) )
+)$
