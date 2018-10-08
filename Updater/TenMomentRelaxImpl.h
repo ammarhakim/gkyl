@@ -17,14 +17,15 @@ extern "C" {
 
     typedef struct {
         double k;
+        bool hasKField; /* Flag to indicate if there is: k field */
         bool hasEm; /* Flag to indicate if there is: EB field */
         bool hasStatic; /* Flag to indicate if there is: static EB field */
     } TenMomentRelaxData_t;
 
     /* Use explicit RK3 method */
-    void gkylTenMomentRelaxRk3(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em);
+    void gkylTenMomentRelaxRk3(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double myK);
     /* Use time-centered implicit method */
-    void gkylTenMomentRelaxExplicit(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double *staticEm);
+    void gkylTenMomentRelaxExplicit(TenMomentRelaxData_t *sd, FluidData_t *fd, double dt, double *f, double *em, double *staticEm, double myK);
 }
 
 #endif // GK_TEN_MOMENT_RELAX_H
