@@ -20,6 +20,19 @@ function _M.selectSelfPrimMomentsCalc(basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
+-- With piecewise linear selfPrimMoments needs the m0Star moment.
+function _M.selectStarMoms(dir, basisNm, CDIM, VDIM)
+   local funcNm = ""
+   if dir == 1 then 
+      funcNm = string.format("StarMoments%dx%dv%s_VX", CDIM, VDIM, basisNmMap[basisNm])
+   elseif dir == 2 then 
+      funcNm = string.format("StarMoments%dx%dv%s_VY", CDIM, VDIM, basisNmMap[basisNm])
+   elseif dir == 3 then 
+      funcNm = string.format("StarMoments%dx%dv%s_VZ", CDIM, VDIM, basisNmMap[basisNm])
+   end
+   return ffi.C[funcNm]
+end
+
 -- selfPrimMoments also need kernels to compute certain integrals along velocity boundaries.
 function _M.selectBoundaryFintegral(dir, basisNm, CDIM, VDIM, polyOrder)
    local funcNm = ""

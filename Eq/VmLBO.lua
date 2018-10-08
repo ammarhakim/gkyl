@@ -47,11 +47,11 @@ function VmLBO:init(tbl)
    end
 
    -- bulk velocity times collisionality field object and pointers to cell values.
-   self._uNu = nil
+   self._uNu     = nil
    -- thermal speed squared times collisionality field object and pointers to cell values.
    self._vthSqNu = nil
    -- (these will be set on the first call to setAuxFields() method).
-   self._uNuPtr, self._uNuIdxr = nil, nil
+   self._uNuPtr, self._uNuIdxr         = nil, nil
    self._vthSqNuPtr, self._vthSqNuIdxr = nil, nil
 
    if not self._inNu then

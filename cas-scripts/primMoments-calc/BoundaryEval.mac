@@ -1,6 +1,8 @@
 /* Generate kernels to that evaluate f and v*f at the boundaries
    and integrate it (the integral is global).
    This is used to correct u and vtSq in the primMoments updater. */
+/* IMPORTANT: p=1 code below assumes vMin is negative and vMax positive. 
+   It also assumes uniform grid (dxvl = dxvr). */
 
 load("modal-basis");
 load("out-scripts");
@@ -40,16 +42,14 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     /* Quantity to be integrated over velocity boundary surface.
        It is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin). */
-    /*if (polyOrder = 1 and wInd = 2) then (
-         mB_e : (BfacP1[wInd][1]-dv[dir]/2)*subst(vv=1,fvmax_e)
-               -(BfacP1[wInd][2]+dv[dir]/2)*subst(vv=-1,fvmin_e)	     
+    if (polyOrder=1 and wInd=2) then (
+      mB_e : (Bfac[wInd][1]-dv[dir]/2)*subst(vv=1,fvmax_e)
+            -(Bfac[wInd][2]+dv[dir]/2)*subst(vv=-1,fvmin_e)	     
     )
     else (
-    	 mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
-               -Bfac[wInd][2]*subst(vv=-1,fvmin_e)
-    ),*/
-     mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
-            -Bfac[wInd][2]*subst(vv=-1,fvmin_e),
+      mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
+            -Bfac[wInd][2]*subst(vv=-1,fvmin_e)
+    ),
 
     /* This is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin) integrated
        over the velocity boundary surface, and projected onto the
@@ -70,21 +70,21 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     /* Surface integral above was done in [-1,1] computational space. Surface
        factor needs to be multiplied to obtain result from physical grid. */
-    printf(fh, "  const double dS = ~a*~a; ~%", float(1/(2^(vdim-1))), surfExpr),
+    printf(fh, "  const double dS = ~a*intFac; ~%", float(1/(2^(vdim-1)))*surfExpr),
     printf(fh, " ~%"),
 
     if (wInd=1) then ( 
-       expr : float(expand(intFac*dS*fB_c)),
-       for i : 1 thru length(expr) do (
-         if expr[i] # 0.0 then (
-           param : cons(expr[i], [intFac]),
-           e : apply(collectterms, param),
-           printf(fh, "  ~a += ~a; ~%", out[(dir-1)*NC+i-1], e)
-         )
-       )
+      expr : float(expand(dS*fB_c)),
+      for i : 1 thru length(expr) do (
+        if expr[i] # 0.0 then (
+          param : cons(expr[i], [dS]),
+          e : apply(collectterms, param),
+          printf(fh, "  ~a += ~a; ~%", out[(dir-1)*NC+i-1], e)
+        )
+      )
     ) else (
-       /*writeCIncrExprs1(out, dS*fB_c)*/
-       writeCIncrExprsCollect1(out, intFac*dS*fB_c,[intFac])
+      /*writeCIncrExprs1(out, dS*fB_c)*/
+      writeCIncrExprsCollect1(out, dS*fB_c,[dS])
     ),
     printf(fh, " ~%"),
 
