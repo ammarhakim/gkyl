@@ -447,6 +447,8 @@ function GkField:readRestart(tm)
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
    end
 
+   self:applyBc(0, 0, self.potentials[1])
+
    self.ioFrame = fr 
    -- iterate triggers
    self.ioTrigger(tm)

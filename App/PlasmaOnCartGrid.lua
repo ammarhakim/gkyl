@@ -24,6 +24,7 @@ local date = require "xsys.date"
 local lume = require "Lib.lume"
 local xsys = require "xsys"
 local Projection = require "App.Projection"
+local lfs = require "lfs"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -38,8 +39,7 @@ end
 
 -- function to check if file exists
 local function file_exists(name)
-   local f=io.open(name,"r")
-   if f~=nil then io.close(f) return true else return false end
+   if lfs.attributes(name) then return true else return false end
 end
 
 -- top-level method to build application "run" method
@@ -648,10 +648,8 @@ local function buildApplication(self, tbl)
    
          -- if stopfile exists, break
          if (file_exists(stopfile)) then
-	    Mpi.Barrier(Mpi.COMM_WORLD)
             writeData(tCurr+myDt, true)
             writeRestart(tCurr+myDt)
-            os.remove(stopfile) -- clean up
             break
          end
 
@@ -741,6 +739,8 @@ local function buildApplication(self, tbl)
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
+
+      if file_exists(stopfile) then os.remove(stopfile) end -- clean up
    end
 end
 
