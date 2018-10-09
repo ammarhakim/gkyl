@@ -116,10 +116,10 @@ load(modNm),
   BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftX_expd,
   /* expand BstarY/Bmag = ( m/q vpar + Apar ) BdriftY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
   BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftY_expd,
-  /* make vApar = -bhatXgrad(Apar) vector */
+  /* make vApar = -1/B*bhatXgrad(Apar) vector */
   if cdim = 1 then vApar_expd : [0], 
-  if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x],
-  if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0], 
+  if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x]*BmagInv_expd,
+  if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0]*BmagInv_expd, 
 
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
