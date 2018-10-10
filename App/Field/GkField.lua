@@ -417,7 +417,6 @@ function GkField:writeRestart(tm)
    if self.isElectromagnetic then
      self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
      self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame, false)
-     self.fieldIo:write(self.dApardtSlvr:getLaplacianWeight(), "laplacianWeightEM_restart.bp", tm, self.ioFrame, false)
      self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame, false)
    end
 
@@ -427,7 +426,7 @@ function GkField:writeRestart(tm)
 end
 
 function GkField:readRestart(tm)
-   -- this read of restart file of potential is only to get frame
+   -- this read of restart file of phi is only to get frame
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
@@ -441,9 +440,7 @@ function GkField:readRestart(tm)
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
       self.fieldIo:read(self.potentials[1].dApardt, "dApardt_restart.bp")
-      self.fieldIo:read(self.laplacianWeight, "laplacianWeightEM_restart.bp")
       self.fieldIo:read(self.modifierWeight, "modifierWeightEM_restart.bp")
-      self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight)
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
    end
 
