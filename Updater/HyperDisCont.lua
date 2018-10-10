@@ -155,6 +155,15 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       local perpRangeDecomp = self._perpRangeDecomp[dir]
       local tId = grid:subGridSharedId() -- local thread ID
 
+      -- We need to barrier over here to avoid a thread from looping
+      -- over next direction while other threads are still looping
+      -- over previous directions. The communicator over shared
+      -- processes is uses as these are the ones that can overwrite
+      -- each other. Perhaps there is another way to arrange the loops
+      -- to avoid this explicit barrier, but I don't know it
+      -- yet. (AHH, 10/10/18)
+      Mpi.Barrier(self:getSharedComm())
+
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
       for idx in perpRangeDecomp:colMajorIter(tId) do
