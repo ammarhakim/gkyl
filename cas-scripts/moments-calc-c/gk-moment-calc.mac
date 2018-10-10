@@ -20,7 +20,7 @@ let(dv3^3, dv3_cu)$
 volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
 vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
 wTrans : [wx1, wx2, wx3]$
-pmax : 2$
+pmax : 1$
 
 /* Density */
 /* M0 = < f > */
@@ -129,7 +129,11 @@ for p : 1 thru pmax do (
 
   fl : doExpand1(f, bP),
 
-  M : calcInnerProdList(varsP, vTrans[1]*vTrans[1], bC, fl),
+  /* project vpar^2 onto basis and then re-expand */
+  vpar2_k : innerProd(varsP, 1, bP, vTrans[1]*vTrans[1]),
+  vpar2_expd : vpar2_k.bP,
+
+  M : calcInnerProdList(varsP, vpar2_expd, bC, fl),
   M : map(letsimp, M),
   
   writeCIncrExprsNoExpand1(out, volFact*expand(M)),
@@ -193,7 +197,11 @@ for p : 1 thru pmax do (
   fl : doExpand1(f, bP),
   bmag_expd : doExpand1(Bmag, bC),
 
-  M : calcInnerProdList(varsP, vTrans[1]*vTrans[1], bC, fl),
+  /* project vpar^2 onto basis and then re-expand */
+  vpar2_k : innerProd(varsP, 1, bP, vTrans[1]*vTrans[1]),
+  vpar2_expd : vpar2_k.bP,
+
+  M : calcInnerProdList(varsP, vpar2_expd, bC, fl),
   M : map(letsimp, M),
   
   writeCIncrExprsNoExpand1(out, volFact*expand(M)),
