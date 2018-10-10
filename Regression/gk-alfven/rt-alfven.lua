@@ -138,9 +138,6 @@ plasmaApp = Plasma.App {
       evolve = true, -- evolve field?
       isElectromagnetic = true,
       kperp2 = ky_min^2,
-      mu0 = mu0,
-      discontinuousPhi = false,
-      discontinuousApar = true,
    },
 
    -- magnetic geometry 

@@ -8,6 +8,7 @@
 --------------------------------------------------------------------------------
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local Constants = require "Lib.Constants"
 local DataStruct = require "DataStruct"
 local LinearTrigger = require "LinearTrigger"
 local Proto = require "Lib.Proto"
@@ -83,7 +84,7 @@ function GkField:fullInit(appTbl)
    self.uniformPolarization = xsys.pickBool(tbl.uniformPolarization, true)
 
    if self.isElectromagnetic then
-      self.mu0 = assert(tbl.mu0, "GkField: must specify mu0 for electromagnetic")
+      self.mu0 = tbl.mu0 or Constants.MU0
    end
 
    self.initPhiFunc = tbl.initPhiFunc
