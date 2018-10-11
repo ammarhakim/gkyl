@@ -37,8 +37,8 @@ Ly = 12.8 * di0
 momentApp = Moments.App {
    logToFile = true,
 
-   tEnd = 120.0/OmegaCi0,
-   nFrame = 6,
+   tEnd = 25.0/OmegaCi0,
+   nFrame = 1,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
    cells = {64, 32},
@@ -73,9 +73,7 @@ momentApp = Moments.App {
 	 return rhoe, 0.0, 0.0, ezmom, ere
       end,
       evolve = true, -- evolve species?
-      
-   -- bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
-   bcy = { Euler.bcWall, Euler.bcWall },
+      bcy = { Euler.bcWall, Euler.bcWall },
    },
 
    -- ions
@@ -100,9 +98,7 @@ momentApp = Moments.App {
 	 return rhoi, 0.0, 0.0, izmom, eri
       end,
       evolve = true, -- evolve species?
-      
-   -- bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
-   bcy = { Euler.bcWall, Euler.bcWall },
+      bcy = { Euler.bcWall, Euler.bcWall },
    },
 
    field = Moments.Field {
@@ -110,15 +106,15 @@ momentApp = Moments.App {
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
 
-   local Bxb = B0 * math.tanh(y / lambda) 
-   local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly) 
-   local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
-   local Bz = 0.0
+	 local Bxb = B0 * math.tanh(y / lambda) 
+	 local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly) 
+	 local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
+	 local Bz = 0.0
 
 	 return 0.0, 0.0, 0.0, Bx, By, Bz
       end,
       evolve = true, -- evolve field?
-   bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
+      bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },
    },
 
    emSource = Moments.CollisionlessEmSource {
