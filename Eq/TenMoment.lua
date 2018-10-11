@@ -112,10 +112,19 @@ local tenMoment_mt = {
 }
 local TenMomentObj = metatype(typeof("TenMomentEqn_t"), tenMoment_mt)
 
+-- create a wrapper on Ten-moment eqn object and provide BCs specific
+-- to equations
+local TenMoment = {}
+function TenMoment:new(tbl)
+   local self = setmetatable({}, TenMoment)
+   return TenMomentObj(tbl)
+end
+-- make object callable, and redirect call to the :new method
+setmetatable(TenMoment, { __call = function (self, o) return self.new(self, o) end })
+
 local bcWallCopy = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
 local bcWallFlip = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
 local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
--- add wall BC specific to TenMoment equations
---TenMomentObj.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
+TenMoment.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
 
-return TenMomentObj
+return TenMoment
