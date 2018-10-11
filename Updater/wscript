@@ -54,6 +54,13 @@ def build(bld):
     binOpCalcData/CartFieldBinOpMax3x2v.cpp
     binOpCalcData/CartFieldBinOpMax3x3v.cpp
 
+    binOpCalcData/CartFieldBinOpTensor1x.cpp
+    binOpCalcData/CartFieldBinOpTensor2x.cpp
+    binOpCalcData/CartFieldBinOpTensor1x1v.cpp
+    binOpCalcData/CartFieldBinOpTensor1x2v.cpp
+    binOpCalcData/CartFieldBinOpTensor1x3v.cpp
+    binOpCalcData/CartFieldBinOpTensor2x2v.cpp
+
     lagrangeFixData/gkyl_ipow.cpp
     lagrangeFixData/VlasovLagrangeFixSer1x1v.cpp
     lagrangeFixData/VlasovLagrangeFixSer1x2v.cpp
