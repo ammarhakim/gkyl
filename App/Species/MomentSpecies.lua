@@ -86,7 +86,7 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, bcType ))
    else
-	    assert(false, "MomentSpecies: Unsupported BC type!")
+      assert(false, "MomentSpecies: Unsupported BC type!")
    end
 end
 

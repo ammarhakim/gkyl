@@ -2,7 +2,7 @@
 local Moments = require("App.PlasmaOnCartGrid").Moments
 local Euler = require "Eq.Euler"
 
-gasGamma = 1.4 -- gas adiabatic constant
+gasGamma = 3.0 -- gas adiabatic constant
    
 -- create app
 eulerApp = Moments.App {
@@ -32,8 +32,9 @@ eulerApp = Moments.App {
       
       evolve = true, -- evolve species?
 
-      bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
-      bcy = { Moments.Species.bcCopy, Moments.Species.bcCopy },
+      bcx = { Euler.bcConst(1.0, 0.0, 0.0, 0.0, 1.0/(gasGamma-1)),
+	      Euler.bcConst(0.125, 0.0, 0.0, 0.0, 0.1/(gasGamma-1)) },
+	      
    },   
 }
 -- run application
