@@ -72,7 +72,7 @@ local function buildApplication(self, tbl)
 
    -- basis function name
    local basisNm = tbl.basis and tbl.basis or "serendipity"
-   if basisNm ~= "serendipity" and basisNm ~= "maximal-order" then
+   if basisNm ~= "serendipity" and basisNm ~= "maximal-order" and basisNm ~= "tensor" then
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
