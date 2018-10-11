@@ -36,11 +36,6 @@ function KineticProjection:fullInit(species)
    self.isSource = xsys.pickBool(self.tbl.isSource, false)
    if self.isBackground or self.isSource then self.isInit = false end
    self.isReservoir = xsys.pickBool(self.tbl.isReservoir, false)
-   if self.isReservoir then
-      self.isInit = false
-      self.isBackground = false
-      self.isSource = false
-   end
 
    self.exactScaleM0 = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012 = xsys.pickBool(self.tbl.exactScaleM012, false)
