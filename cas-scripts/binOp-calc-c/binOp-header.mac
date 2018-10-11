@@ -14,7 +14,7 @@ printf(fh, " ~%")$
 
 printf(fh, "extern \"C\" { ~%")$
 
-bName        : ["Ser","Max"]$
+bName        : ["Ser","Max","Tensor"]$
 
 for bInd : 1 thru length(bName) do (
   for ci : 1 thru 3 do (
