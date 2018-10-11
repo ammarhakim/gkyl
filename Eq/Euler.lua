@@ -263,6 +263,7 @@ local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
 local Euler = {}
 function Euler:new(tbl)
    local self = setmetatable({}, Euler)
+   self.gasGamma = tbl.gasGamma
    return EulerObj(tbl)
 end
 -- make object callable, and redirect call to the :new method
@@ -272,5 +273,13 @@ local bcWallCopy = BoundaryCondition.Copy { components = {1, 5} }
 local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
 -- add wall BC specific to Euler equations
 Euler.bcWall = { bcWallCopy, bcWallZeroNormal }
+
+Euler.bcConst = function(rho, rhou, rhov, rhow, Er)
+   local bc = BoundaryCondition.Const {
+      components = {1,2,3,4,5},
+      values = {rho, rhou, rhov, rhow, Er}
+   }
+   return { bc }
+end
 
 return Euler
