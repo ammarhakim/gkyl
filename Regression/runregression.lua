@@ -202,7 +202,12 @@ local function list_tests(args)
    end
 
    if args.run_only then
-      addTest(args.run_only)
+      local a = lfs.attributes(args.run_only)
+      if a.mode == "file" then
+	 addTest(args.run_only)
+      elseif a.mode == "directory" then
+	 for dir, fn, _ in dirtree(args.run_only) do addTest(dir .. "/" .. fn) end
+      end
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
