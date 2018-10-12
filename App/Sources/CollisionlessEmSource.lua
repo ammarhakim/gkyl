@@ -93,7 +93,7 @@ function CollisionlessEmSource:write(tm, frame)
 end
 
 function CollisionlessEmSource:totalTime()
-   return 0.0
+   return self.slvr.totalTime
 end
 
 return CollisionlessEmSource
