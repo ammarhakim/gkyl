@@ -703,6 +703,11 @@ local function buildApplication(self, tbl)
          end
       end
 
+      local tmSrc = 0.0
+      for _, s in pairs(sources) do
+         tmSrc = tmSrc + s:totalTime()
+      end
+
       local tmTotal = tmSimEnd-tmSimStart
       log(string.format("\nTotal number of time-steps %s\n\n", step))
       log(string.format(
@@ -732,6 +737,9 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+      log(string.format(
+	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
