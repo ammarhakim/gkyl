@@ -607,12 +607,18 @@ end
 
 function KineticSpecies:calcDiagnosticMoments()
    if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(-1, self.f0) end
-   local numMoms = #self.diagnosticMoments
-   for i = 1, numMoms do
-      self.diagnosticMomentUpdaters[i]:advance(
-	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
+   for i, mom in pairs(self.diagnosticMoments) do
+      self.diagnosticMomentUpdaters[mom]:advance(
+	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[mom]})
    end
    if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(1, self.f0) end
+end
+
+function KineticSpecies:calcDiagnosticWeakMoments()
+   for i, mom in pairs(self.diagnosticWeakMoments) do
+      self.weakDivision:advance(0.0, 0.0, self.weakMomentOpFields[mom], {self.diagnosticMomentFields[mom]})
+      if self.weakMomentScaleFac[mom] then self.diagnosticMomentFields[mom]:scale(self.weakMomentScaleFac[mom]) end
+   end
 end
 
 function KineticSpecies:calcDiagnosticIntegratedMoments()
@@ -659,7 +665,13 @@ function KineticSpecies:write(tm, force)
          self:calcDiagnosticMoments()
          for i, mom in ipairs(self.diagnosticMoments) do
             -- should one use AdiosIo object for this?
-            self.diagnosticMomentFields[i]:write(
+            self.diagnosticMomentFields[mom]:write(
+               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+         end
+         self:calcDiagnosticWeakMoments()
+         for i, mom in ipairs(self.diagnosticWeakMoments) do
+            -- should one use AdiosIo object for this?
+            self.diagnosticMomentFields[mom]:write(
                string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
          end
          for i, mom in ipairs(self.diagnosticIntegratedMoments) do
@@ -696,7 +708,7 @@ function KineticSpecies:writeRestart(tm)
    -- (the final "false" prevents writing of ghost cells)
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, false)
    for i, mom in ipairs(self.diagnosticMoments) do
-      self.diagnosticMomentFields[i]:write(
+      self.diagnosticMomentFields[mom]:write(
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end   
 
