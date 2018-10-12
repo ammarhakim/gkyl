@@ -119,7 +119,7 @@ momentApp = Moments.App {
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
-      timeStepper = "time-centered",
+      timeStepper = "analytic",
       linSolType = "colPivHouseholderQr",
    },   
 
