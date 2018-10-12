@@ -2,7 +2,7 @@
 --
 -- 
 
-local Vlasov = require "App.VlasovOnCartGrid"
+local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell
 local Constants = require "Lib.Constants"
 
 -- Physical parameters
@@ -39,7 +39,7 @@ vlasovApp = Vlasov.App {
    periodicDirs = {1, 2, 3}, -- periodic directions
 
    -- field solver
-   field = Vlasov.EmField {
+   field = Vlasov.Field {
       epsilon0 = epsilon0, mu0 = mu0,
       elcErrorSpeedFactor = 0,
       mgnErrorSpeedFactor = 0,
