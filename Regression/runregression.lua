@@ -341,6 +341,8 @@ local function check_action(test)
    local testPrefix = string.gsub(
       string.sub(test, 3, -5), "(%W)", "%%%1") .. "_"
 
+   print(fullResultsDir, outDirName)
+
    local passed = true
    for fn in lfs.dir(outDirName) do
       local fullNm = outDirName .. fn
@@ -440,15 +442,16 @@ c_conf:option("-m --mpiexec", "Full path to MPI executable")
    :target("config_mpiexec")
 
 -- "list" command
-parser:command("list", "List all regression tests")
+local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
+c_list:option("-r --run-only", "Only list this test or all tests in this directory")
 
 -- "run" tests
 local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
    :action(run_action)
-c_run:option("-r --run-only", "Only run this test")
+c_run:option("-r --run-only", "Only run this test or all tests in this directory")
 
 -- check against accepted results
 c_run:command("check", "Check results")
