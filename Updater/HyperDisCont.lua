@@ -127,11 +127,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
 
-   if self._clearOut then
-      qOut:clear(0.0) -- clear output field before computing vol/surf increments
-   end
+   local tId = grid:subGridSharedId() -- local thread ID
+
+   -- clear output field before computing vol/surf increments
+   if self._clearOut then qOut:clear(0.0) end
    -- accumulate contributions from volume and surface integrals
-  for _, dir in ipairs(self._updateDirs) do
+   for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
@@ -155,7 +156,6 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	 }
       end
       local perpRangeDecomp = self._perpRangeDecomp[dir]
-      local tId = grid:subGridSharedId() -- local thread ID
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
@@ -202,11 +202,8 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    end
 
    -- determine largest amax across processors
-  Mpi.Allreduce(
-     self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
-
-   -- return failure if time-step was too large
-   if cfla > cflm then return false, dt*cfl/cfla end
+   Mpi.Allreduce(
+      self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
 
    -- accumulate full solution if not computing increments
    if not self._onlyIncrement then
@@ -214,6 +211,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    end
 
    self._isFirst = false
+
+   -- return failure if time-step was too large
+   if cfla > cflm then return false, dt*cfl/cfla end
    return true, dt*cfl/cfla
 end
 

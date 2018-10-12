@@ -341,8 +341,6 @@ local function check_action(test)
    local testPrefix = string.gsub(
       string.sub(test, 3, -5), "(%W)", "%%%1") .. "_"
 
-   print(fullResultsDir, outDirName)
-
    local passed = true
    for fn in lfs.dir(outDirName) do
       local fullNm = outDirName .. fn
