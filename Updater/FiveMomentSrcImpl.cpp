@@ -236,3 +236,114 @@ gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double d
   double crhoc = sd->chi_e*chargeDens/sd->epsilon0;
   em[PHIE] += dt*crhoc;
 }
+
+void
+gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+{
+  // based on Smithe (2007) with corrections
+  unsigned nFluids = sd->nFluids;
+  double epsilon0 = sd->epsilon0;
+  
+  std::vector<double> zeros(6, 0);
+  if (!(sd->hasStatic))
+  {
+    staticEm = zeros.data();
+  }
+
+  std::vector<double> lambda(nFluids);
+  std::vector<double> omega(nFluids);
+  //      std::vector<double> K(3); 
+  //      double wp2 = 0.0;
+  double gamma2 = 0.0;
+  double delta = 0.0;
+  double theta = 0.0; 
+  double bx = (em[BX] + staticEm[BX]);
+  double by = (em[BY] + staticEm[BY]);
+  double bz = (em[BZ] + staticEm[BZ]);
+  Eigen::Vector3d B; 
+  Eigen::Vector3d E;
+  Eigen::Vector3d F(0,0,0); 
+  Eigen::Vector3d K(0,0,0);// the k vector used to update the implicit solution in Smithe(2007)
+  B(0) = bx; B(1) = by; B(2) = bz;
+  E(0) = em[EX]; E(1) = em[EY]; E(2) = em[EZ];
+  double babs = std::sqrt(bx*bx + by*by + bz*bz);
+
+  //------------> fill elements corresponding to each fluid
+  for (unsigned n=0; n<nFluids; ++n)
+  {
+    double *f = ff[n];
+    double qbym = fd[n].charge/fd[n].mass;
+    double qbym2 = sq(qbym);
+
+    lambda[n] = 1.00; //collisional parameter
+    omega[n] = qbym*dt; // omega/B
+    double wp2 = f[RHO]*qbym2/epsilon0*dt*dt;
+    //          wp2 += f[RHO]*qbym2/epsilon0*dt*dt;
+    gamma2 += wp2*qbym2*dt*dt/(1+0.25*qbym2*babs*babs*dt*dt);
+    delta += wp2*qbym*dt/(1+0.25*qbym2*babs*babs*dt*dt);
+    theta += wp2/(1+qbym2*dt*dt/4*babs*babs);
+    Eigen::Vector3d j(f[MX]*qbym, f[MY]*qbym, f[MZ]*qbym);
+    double bdotj = B.dot(j);
+    Eigen::Vector3d bcrossj = B.cross(j);
+
+    K -= dt/2.0 *(1.0 + lambda[n])*(1.0*j + 0.25*omega[n]*omega[n]*B * bdotj - 0.5*omega[n]*bcrossj )/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    F -= dt/2.0*(1/4.0*omega[n]*omega[n]*f[RHO]*qbym2/epsilon0*dt/2.0*B*B.dot(E) + 1/2.0 * f[RHO]*qbym2/epsilon0*dt*E - 1/2.0*omega[n]*f[RHO]*qbym2/epsilon0*dt*B.cross(E)/2.0 )/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+  }
+
+  F = F + E;
+
+  double denom = ((1+theta/4)*(1+theta/4) + delta*delta*babs*babs/64.0) * (1 + theta/4 + gamma2/16*babs*babs);        
+  double coeff_e = ((1+theta/4)*(1+theta/4) + gamma2*babs*babs/16*(1+theta/4));
+  //        double coeff_k = 1.0/denom*0; 
+  double coeff_dot = (1.0/64.0*delta*delta - 1.0/16.0*gamma2*(1+theta/4));
+  double coeff_cross = 0.125*delta*(1 + gamma2*babs*babs/16 + theta/4);
+  Eigen::Vector3d fk = 1.0*F + K/epsilon0; // vector holding sum of K + 2 epsilon0 E used in many calculations
+  //        fk(0) = K[0] + em[EX]*2*epsilon0;
+  //        fk(1) = K[1] + em[EY]*2*epsilon0; 
+  //        fk(2) = K[2] + em[EZ]*2*epsilon0; 
+  em[EX] = (coeff_e*fk[EX] + coeff_dot*B(0)*B.dot(fk) + coeff_cross*(B.cross(fk)(0)) )/denom; 
+  em[EY] = (coeff_e*fk[EY] + coeff_dot*B(1)*B.dot(fk) + coeff_cross*(B.cross(fk)(1)) )/denom; 
+  em[EZ] = (coeff_e*fk[EZ] + coeff_dot*B(2)*B.dot(fk) + coeff_cross*(B.cross(fk)(2)) )/denom; 
+
+  // update the stored E field to E_n+1/2
+  E(0) = (em[EX] + E(0))/2.0;
+  E(1) = (em[EY] + E(1))/2.0;
+  E(2) = (em[EZ] + E(2))/2.0;
+
+  //------------> update solution for fluids
+  double chargeDens = 0.0;
+  for (unsigned n=0; n<nFluids; ++n)
+  {
+    double *f = ff[n];
+    double qbym = fd[n].charge/fd[n].mass;
+    double qbym2 = sq(qbym);
+
+    chargeDens += qbym*f[RHO];
+
+    double keOld = 0.5*(sq(f[MX]) + sq(f[MY]) + sq(f[MZ]))/f[RHO];
+
+    double j_coeff = (lambda[n] - 0.25*omega[n]*omega[n]*babs*babs)/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    double f_coeff = f[RHO]*qbym2/epsilon0*dt/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    
+    double dot_coeff = 0.25*omega[n]*omega[n]/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    double cross_coeff = omega[n]/2.0/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    // update E with the new solution
+    Eigen::Vector3d j(f[MX]*qbym,f[MY]*qbym,f[MZ]*qbym);
+    Eigen::Vector3d jf = (1.0+lambda[n])*j + E*epsilon0*dt*f[RHO]*qbym2/epsilon0; // There is an error in smithe's paper here: F in equation (15) must be multiplied by a factor of wp^2 dt or the units are wrong.
+    Eigen::Vector3d solj = j_coeff*j + f_coeff*E*epsilon0 + dot_coeff*B*B.dot(jf) - cross_coeff*B.cross(jf); 
+
+    f[MX] = solj(0)/qbym;
+    f[MY] = solj(1)/qbym;
+    f[MZ] = solj(2)/qbym;
+
+    if (sd->hasPressure)
+    {
+      double keNew = 0.5*(sq(f[MX]) + sq(f[MY]) + sq(f[MZ]))/f[RHO];
+      f[ER] += keNew-keOld;
+    }
+  }
+
+  //------------> update correction potential
+  double crhoc = sd->chi_e*chargeDens/sd->epsilon0;
+  em[PHIE] += dt*crhoc;
+}
