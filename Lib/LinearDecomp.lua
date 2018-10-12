@@ -100,12 +100,12 @@ function LinearDecompRange:rowStartIndex(n) return self._rowStartIdx[n] end
 function LinearDecompRange:colStartIndex(n) return self._colStartIdx[n] end
 
 function LinearDecompRange:colMajorIter(n)
-   if self.comm then Mpi.Barrier(self.comm) end      
+   if self.comm then Mpi.Barrier(self.comm) end
    return self.range:colMajorIter(self:colStartIndex(n), self:shape(n))
 end
 
 function LinearDecompRange:rowMajorIter(n)
-   if self.comm then Mpi.Barrier(self.comm) end   
+   if self.comm then Mpi.Barrier(self.comm) end
    return self.range:rowMajorIter(self:rowStartIndex(n), self:shape(n))
 end
 
