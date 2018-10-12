@@ -36,6 +36,7 @@ typedef struct {
 
   void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
   void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -54,6 +55,11 @@ end
 -- Use an implicit scheme to update momentum and electric field
 local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
    ffi.C.gkylFiveMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+end
+
+-- Use an implicit scheme to update momentum and electric field
+local function updateSrcAnalytic(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcAnalytic(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Five-moment source updater object
@@ -106,6 +112,8 @@ function FiveMomentSrc:init(tbl)
       self._updateSrc = updateSrcModBoris
    elseif scheme == "time-centered" then
       self._updateSrc = updateSrcTimeCentered
+   elseif scheme == "analytic" then
+      self._updateSrc = updateSrcAnalytic
    end
 end
 
