@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Vlasov = require("App.PlasmasOnCartGrid").VlasovMaxwell
+local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
 -- Constants
 chargeElc = -1.0
