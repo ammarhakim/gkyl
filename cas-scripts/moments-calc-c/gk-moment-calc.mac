@@ -20,7 +20,7 @@ let(dv3^3, dv3_cu)$
 volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
 vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
 wTrans : [wx1, wx2, wx3]$
-pmax : 1$
+pmax : 2$
 
 /* Density */
 /* M0 = < f > */

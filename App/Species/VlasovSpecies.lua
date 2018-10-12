@@ -267,12 +267,12 @@ function VlasovSpecies:createDiagnostics()
    -- allocate space to store moments and create moment updater
    for i, mom in ipairs(self.diagnosticMoments) do
       if isMomentNameGood(mom) then
-         self.diagnosticMomentFields[i] = DataStruct.Field {
+         self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
             ghost = {1, 1}
          }
-         self.diagnosticMomentUpdaters[i] = Updater.DistFuncMomentCalc {
+         self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
             onGrid = self.grid,
             phaseBasis = self.basis,
             confBasis = self.confBasis,
@@ -282,6 +282,8 @@ function VlasovSpecies:createDiagnostics()
          assert(false, string.format("Moment %s not valid", mom))
       end
    end
+
+   self.diagnosticWeakMoments = { }
 end
 
 -- BC functions
@@ -424,7 +426,7 @@ end
 function VlasovSpecies:momCalcTime()
    local tm = self.tmCouplingMom
    for i, mom in ipairs(self.diagnosticMoments) do
-      tm = tm + self.diagnosticMomentUpdaters[i].totalTime
+      tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end
    return tm
 end
