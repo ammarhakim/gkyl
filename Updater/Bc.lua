@@ -99,7 +99,7 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
 
    for idxG in self._ghostRangeDecomp:colMajorIter(self._tId) do -- loop, applying BCs
       idxG:copyInto(idxS)
-      -- if and in-field is specified the same indexes are used (gS
+      -- if an in-field is specified the same indexes are used (gS
       -- points to the ghost layer of the in-field); otherwise, move
       -- the ghost index to point into the skin layer
       if not self.hasExtFld then
@@ -110,13 +110,12 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
       end
       qOut:fill(indexer(idxG), qG) 
       if self._skinLoop == "integrate" then 
-   	 -- clear ghost cells before accumulating
    	 for c = 1, self._numComponents do qG[c] = 0 end
 
          for idx in self._skin:colMajorIter() do
    	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
    	    qOut:fill(indexer(idxS), qS)
-            for _, bc in ipairs(self._bcList) do -- loop over each BC
+            for _, bc in ipairs(self._bcList) do
                bc(dir, tCurr+dt, idxS, qS, qG)
             end
          end
@@ -126,7 +125,7 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
 	 else
 	    qIn:fill(indexer(idxS), qS)
 	 end
-         for _, bc in ipairs(self._bcList) do -- loop over each BC
+         for _, bc in ipairs(self._bcList) do
             bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
          end
       end
