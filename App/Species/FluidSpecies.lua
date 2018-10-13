@@ -89,6 +89,7 @@ function FluidSpecies:fullInit(appTbl)
 
    self.bcTime = 0.0 -- timer for BCs
 
+   self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
 end
 
@@ -126,7 +127,7 @@ function FluidSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
    for d = 1, self.cdim do table.insert(decompCuts, cDecompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
-      shared = false,
+      useShared = self.useShared,
    }
 
    -- create computational domain
