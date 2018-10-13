@@ -40,6 +40,8 @@ function _M:getSharedComm() return self._sharedComm end
 -- time-step suggestion across processors.
 function _M:advance(tCurr, dt, inFld, outFld)
 
+   Mpi.Barrier(self._sharedComm)
+   
    -- Take the time-step, measuring how long it took
    local tmStart = Time.clock()
    local status, dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
