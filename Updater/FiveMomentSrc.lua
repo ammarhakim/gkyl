@@ -148,9 +148,8 @@ function FiveMomentSrc:_advance(tCurr, dt, inFld, outFld)
    local emDp = ffi.new("double*")
    local staticEmDp = ffi.new("double*")
 
-   local localRange = emFld:localRange()   
    -- loop over local range, updating source in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in emFld:localRangeIter() do
       -- set pointers to fluids and field
       for i = 1, nFluids do
 	 fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))
