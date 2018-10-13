@@ -40,6 +40,11 @@ function _M:getSharedComm() return self._sharedComm end
 -- time-step suggestion across processors.
 function _M:advance(tCurr, dt, inFld, outFld)
 
+   -- This barrier is needed to ensure that all "threads" (processes)
+   -- in MPI-SHM comm have caught up with each other with previous
+   -- work before running the _advance method. One needs to be careful
+   -- to ensure threads don’t switch to doing something else before
+   -- the data they need is made ready by other threads
    Mpi.Barrier(self._sharedComm)
    
    -- Take the time-step, measuring how long it took
