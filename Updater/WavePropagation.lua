@@ -14,10 +14,11 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
+local UpdaterBase = require "Updater.Base"
 
 -- system libraries
 local ffi = require "ffi"
@@ -192,7 +193,7 @@ function WavePropagation:init(tbl)
    end
    
    -- store range objects needed in update
-   self._perpRange = {}
+   self._perpRangeDecomp = {}
 
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = meqn} )()
@@ -250,6 +251,8 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
    local q1 = qOut:get(1)
 
+   local tId = grid:subGridSharedId() -- local thread ID
+
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
    for d = 1, self._privData._nUpdateDirs do
@@ -261,13 +264,17 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
 
       if self._isFirst then
-	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
+	 self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+	    range = localRange:shorten(dir), -- range orthogonal to 'dir'
+	    numSplit = grid:numSharedProcs(),
+	    threadComm = self:getSharedComm()
+	 }
       end
-      local perpRange = self._perpRange[dir]
+      local perpRangeDecomp = self._perpRangeDecomp[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`. 
-      for idx in perpRange:colMajorIter() do
+      for idx in perpRangeDecomp:colMajorIter(tId) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
