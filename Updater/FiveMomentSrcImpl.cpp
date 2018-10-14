@@ -347,3 +347,85 @@ gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, d
   double crhoc = sd->chi_e*chargeDens/sd->epsilon0;
   em[PHIE] += dt*crhoc;
 }
+
+void
+gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+{
+  // based on Smithe (2007) with corrections
+  // but using Hakim (2019) notations
+  unsigned nFluids = sd->nFluids;
+  double epsilon0 = sd->epsilon0;
+
+  std::vector<double> zeros(6, 0);
+  if (!(sd->hasStatic))
+  {
+    staticEm = zeros.data();
+  }
+
+  double Bx = (em[BX] + staticEm[BX]);
+  double By = (em[BY] + staticEm[BY]);
+  double Bz = (em[BZ] + staticEm[BZ]);
+  double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
+  Eigen::Vector3d b(Bx / Bmag, By / Bmag, Bz / Bmag);
+
+  double w02 = 0.;
+  double gam2 = 0.;
+  double delta = 0.;
+  Eigen::Vector3d K(0., 0., 0.);
+  std::vector<double> qbym(nFluids); 
+  std::vector<double> Wc_dt(nFluids); 
+  std::vector<double> wp_dt2(nFluids); 
+  for (unsigned n=0; n < nFluids; ++n)
+  {
+    double *f = ff[n];
+    qbym[n] = fd[n].charge / fd[n].mass;
+    Wc_dt[n] = qbym[n] * Bmag * dt;
+    wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
+    double tmp = 1. + sq(Wc_dt[n]) / 4.;
+    w02 += wp_dt2[n] / tmp;
+    gam2 += wp_dt2[n] * sq(Wc_dt[n]) / tmp;
+    delta += wp_dt2[n] * Wc_dt[n] / tmp;
+    Eigen::Vector3d J(f[MX] * qbym[n], f[MY] * qbym[n], f[MZ] * qbym[n]);
+    K -= dt / tmp * (J + sq(Wc_dt[n] / 2.) * b * b.dot(J) - (Wc_dt[n] / 2.) * b.cross(J));
+  }
+  double Delta2 = sq(delta) / (1. + w02 / 4.);
+
+  Eigen::Vector3d F(em[EX] * epsilon0, em[EY] * epsilon0, em[EZ] * epsilon0);
+  Eigen::Vector3d F_halfK = F + 0.5 * K;
+
+  double tmp = 1. / (1. + w02 / 4. + Delta2 / 64.);
+  Eigen::Vector3d Fbar = tmp * (
+      F_halfK 
+      + ((Delta2 / 64. - gam2 / 16.) / (1. + w02 / 4. + gam2 / 16.)) * b * b.dot(F_halfK)
+      + (delta / 8. / (1. + w02 / 4.)) * b.cross(F_halfK)
+      );
+
+  Eigen::Vector3d F_new = 2. * Fbar - F;
+  em[EX] = F_new[0] / epsilon0;
+  em[EY] = F_new[1] / epsilon0;
+  em[EZ] = F_new[2] / epsilon0;
+
+  double chargeDens = 0.0;
+  for (unsigned n = 0; n < nFluids; ++n)
+  {
+    double *f = ff[n];
+    double keOld = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+    Eigen::Vector3d J(f[MX] * qbym[n], f[MY] * qbym[n], f[MZ] * qbym[n]);
+    Eigen::Vector3d Jstar = J + Fbar * (wp_dt2[n] / dt / 2.);
+    Eigen::Vector3d J_new = 2. * (Jstar + sq(Wc_dt[n] / 2.) * b * b.dot(Jstar) - (Wc_dt[n] / 2.) * b.cross(Jstar)) / (1. + sq(Wc_dt[n] / 2.)) - J;
+
+    f[MX] = J_new[0] / qbym[n];
+    f[MY] = J_new[1] / qbym[n];
+    f[MZ] = J_new[2] / qbym[n];
+    if (sd->hasPressure)
+    {
+      double keNew = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+      f[ER] += keNew - keOld;
+    }
+    chargeDens += qbym[n] * f[RHO];
+  } 
+
+  //------------> update correction potential
+  double crhoc = sd->chi_e * chargeDens/sd->epsilon0;
+  em[PHIE] += dt * crhoc;
+}
