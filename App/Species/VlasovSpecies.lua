@@ -174,7 +174,7 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    end
 
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
-   if self.evolveCollisionless then      
+   if self.evolveCollisionless then
       status, dtSuggested = self.solver:advance(
 	 tCurr, dt, {fIn, totalEmField}, {fOut})
    else

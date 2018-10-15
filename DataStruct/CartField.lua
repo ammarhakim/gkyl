@@ -22,13 +22,14 @@ local Range = require "Lib.Range"
 
 -- C interfaces
 ffi.cdef [[
-    // s: start index. nv: number of values to copy
+    // s: start index. nv: number of values
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
     void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
-    void copyFromField(double *data, double *f, unsigned numComponents, unsigned c);
-    void copyToField(double *f, double *data, unsigned numComponents, unsigned c);
+    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
+    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+    void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
 ]]
 
 -- Local definitions
@@ -281,10 +282,10 @@ local function Field_meta_ctor(elct)
 	 return self._numComponents
       end,
       copy = function (self, fIn)
-	 self:_assign(1.0, fIn) --field_memcpy(self, fIn)
+	 self:_assign(1.0, fIn)
       end,
       clear = function (self, val)
-	 self._allocData:fill(val)
+	 ffi.C.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
       end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
@@ -441,11 +442,8 @@ local function Field_meta_ctor(elct)
          local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
-            ffi.C.copyFromField(data:data(), fitr:data(), self._numComponents, c)
+            ffi.C.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, c)
             c = c + self._numComponents
-	    --for k = 1, self._numComponents do
-	    --   data[c] = fitr[k]; c = c+1
-	    --end
 	 end
       end,
       _copy_to_field_region = function (self, rgn, data)
@@ -454,11 +452,8 @@ local function Field_meta_ctor(elct)
          local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
-            ffi.C.copyToField(fitr:data(), data:data(), self._numComponents, c)
+            ffi.C.gkylCopyToField(fitr:data(), data:data(), self._numComponents, c)
             c = c + self._numComponents
-	    --for k = 1, self._numComponents do
-	    --   fitr[k] = data[c]; c = c+1
-	    --end
 	 end
       end,
       _field_sync = function (self)
