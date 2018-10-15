@@ -54,7 +54,6 @@ function Bc:init(tbl)
 	 "Updater.Bc: Must specify the number of components of the field using 'numComps'")
    end
 
-   self._tId = self._grid:subGridSharedId() -- local thread ID
    self._ghostRangeDecomp = nil -- will be constructed on first call to advance
 
    self.hasExtFld = xsys.pickBool(tbl.hasExtFld, false)
@@ -97,7 +96,8 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
    local indexer = qOut:genIndexer()
 
-   for idxG in self._ghostRangeDecomp:colMajorIter(self._tId) do -- loop, applying BCs
+   local tId = self._grid:subGridSharedId() -- local thread ID
+   for idxG in self._ghostRangeDecomp:colMajorIter(tId) do -- loop, applying BCs
       idxG:copyInto(idxS)
       -- if an in-field is specified the same indexes are used (gS
       -- points to the ghost layer of the in-field); otherwise, move
