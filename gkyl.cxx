@@ -82,6 +82,7 @@ findExecPath() {
   int dirname_len;
   wai_getExecutablePath(path, len, &dirname_len);
   path[len] = '\0';
+  free(path);
   return std::string(path, dirname_len);
 }
 
