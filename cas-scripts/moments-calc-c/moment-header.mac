@@ -23,7 +23,7 @@ for ci : 1 thru 3 do (
          if vi > 1 then printf(fh, "void GkMomentCalc~ax~avSer_M3perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); ~%", ci, vi, pi),
          printf(fh, "void GkMomentCalc~ax~avSer_ThreeMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi),
          if pi = 1 then (
-            printf(fh, "void GkMomentCalc~ax~avSer_StarMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); ~%", ci, vi, pi)
+            printf(fh, "void GkMomentCalc~ax~avSer_StarMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi)
          )
       ),
       printf(fh, "void IntMomentCalc~ax~avSer_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),            
@@ -46,7 +46,7 @@ for pi : 1 thru 2 do (
      if vi > 1 then printf(fh, "void GkMomentCalc~ax~avSer_M3perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); ~%", ci, vi, pi),
      printf(fh, "void GkMomentCalc~ax~avSer_ThreeMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi),
      if pi = 1 then (
-        printf(fh, "void GkMomentCalc~ax~avSer_StarMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); ~%", ci, vi, pi)
+        printf(fh, "void GkMomentCalc~ax~avSer_StarMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi)
      )
   ),
   printf(fh, "~%") 
@@ -74,7 +74,7 @@ for ci : 1 thru 3 do (
          printf(fh, "void GkMomentCalc~ax~avMax_M3perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); ~%", ci, vi, pi),
          printf(fh, "void GkMomentCalc~ax~avMax_ThreeMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi),
          if pi = 1 then (
-            printf(fh, "void GkMomentCalc~ax~avMax_StarMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); ~%", ci, vi, pi)
+            printf(fh, "void GkMomentCalc~ax~avMax_StarMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi)
          )
       ),
       printf(fh, "void IntMomentCalc~ax~avMax_P~a(const double *w, const double *dxv, const double *f, double *out); ~%", ci, vi, pi),          
@@ -98,7 +98,7 @@ for pi : 1 thru 2 do (
      if vi > 1 then printf(fh, "void GkMomentCalc~ax~avMax_M3perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); ~%", ci, vi, pi),
      printf(fh, "void GkMomentCalc~ax~avMax_ThreeMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi),
      if pi = 1 then (
-        printf(fh, "void GkMomentCalc~ax~avMax_StarMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); ~%", ci, vi, pi)
+        printf(fh, "void GkMomentCalc~ax~avMax_StarMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); ~%", ci, vi, pi)
      )
   ),
   printf(fh, "~%") 

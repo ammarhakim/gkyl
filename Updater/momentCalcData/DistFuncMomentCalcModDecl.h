@@ -14,7 +14,7 @@ void GkMomentCalc1x1vSer_M2_P1(const double *w, const double *dxv, const double 
 void GkMomentCalc1x1vSer_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc1x1vSer_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x1vSer_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
 
 void MomentCalc1x1vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -55,7 +55,7 @@ void GkMomentCalc1x2vSer_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc1x2vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc1x2vSer_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x2vSer_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
 
 void MomentCalc1x2vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -124,7 +124,7 @@ void GkMomentCalc2x2vSer_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc2x2vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc2x2vSer_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc2x2vSer_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
 
 void MomentCalc2x2vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -212,7 +212,7 @@ void GkMomentCalc3x2vSer_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc3x2vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc3x2vSer_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc3x2vSer_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 
 void GkMomentCalc3x2vSer_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
@@ -238,7 +238,7 @@ void GkMomentCalc1x1vMax_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc1x1vMax_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc1x1vMax_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x1vMax_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
 
 void MomentCalc1x1vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -281,7 +281,7 @@ void GkMomentCalc1x2vMax_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc1x2vMax_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc1x2vMax_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x2vMax_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
 
 void MomentCalc1x2vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -350,7 +350,7 @@ void GkMomentCalc2x2vMax_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc2x2vMax_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc2x2vMax_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc2x2vMax_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
 
 void MomentCalc2x2vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -440,7 +440,7 @@ void GkMomentCalc3x2vMax_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc3x2vMax_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
-void GkMomentCalc3x2vMax_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc3x2vMax_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 
 void GkMomentCalc3x2vMax_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
