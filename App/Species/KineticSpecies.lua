@@ -531,6 +531,9 @@ function KineticSpecies:initDist()
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
    end
 
+   self:applyBc(0, 0, self.distf[1])
+   self.distf[2]:clear(0.0)
+
    -- calculate initial density averaged over simulation domain
    --self.n0 = nil
    --local dens0 = self:allocMoment()
@@ -732,7 +735,7 @@ function KineticSpecies:readRestart()
    end
 
    for i, mom in ipairs(self.diagnosticMoments) do
-      local _, dfr = self.diagnosticMomentFields[i]:read(
+      local _, dfr = self.diagnosticMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
       self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
    end

@@ -269,12 +269,14 @@ function FluidSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 end
 
 function FluidSpecies:applyBc(tCurr, dt, fIn)
-   if self.hasNonPeriodicBc then
-      for _, bc in ipairs(self.boundaryConditions) do
-	 bc:advance(tCurr, dt, {}, {fIn})
+   if self.evolve then
+      if self.hasNonPeriodicBc then
+         for _, bc in ipairs(self.boundaryConditions) do
+            bc:advance(tCurr, dt, {}, {fIn})
+         end
       end
+      fIn:sync()
    end
-   fIn:sync()
 end
 
 function FluidSpecies:createDiagnostics()
