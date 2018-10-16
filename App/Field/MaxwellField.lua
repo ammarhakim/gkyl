@@ -10,6 +10,7 @@ local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local DataStruct = require "DataStruct"
 local FieldBase = require "App.Field.FieldBase"
 local LinearTrigger = require "LinearTrigger"
+local Mpi = require "Comm.Mpi"
 local PerfMaxwell = require "Eq.PerfMaxwell"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
@@ -393,6 +394,9 @@ end
 
 function MaxwellField:accumulateCurrent(dt, current, em)
    if current == nil then return end
+
+   -- Barrier befor doing accumulating current
+   Mpi.Barrier(self.grid:commSet().sharedComm)
 
    local tmStart = Time.clock()
 
