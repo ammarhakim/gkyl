@@ -82,8 +82,9 @@ findExecPath() {
   int dirname_len;
   wai_getExecutablePath(path, len, &dirname_len);
   path[len] = '\0';
+  std::string execPath = std::string(path, dirname_len);
   free(path);
-  return std::string(path, dirname_len);
+  return execPath;
 }
 
 // Create top-level variable definitions
