@@ -309,6 +309,8 @@ function MaxwellField:createSolver()
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
+
+   self.bcTime = 0.0 -- timer for BCs
 end
 
 function MaxwellField:createDiagnostics()
@@ -464,12 +466,14 @@ function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
 end
 
 function MaxwellField:applyBc(tCurr, dt, emIn)
+   local tmStart = Time.clock()
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
 	 bc:advance(tCurr, dt, {}, {emIn})
       end
    end   
    emIn:sync()
+   self.bcTime = self.bcTime + Time.clock()-tmStart
 end
    
 function MaxwellField:totalSolverTime()
@@ -485,11 +489,7 @@ function MaxwellField:totalSolverTime()
 end
 
 function MaxwellField:totalBcTime()
-   local tm = 0.0
-   for _, bc in ipairs(self.boundaryConditions) do
-      tm = tm + bc.totalTime
-   end
-   return tm
+   return self.bcTime
 end
 
 function MaxwellField:energyCalcTime()

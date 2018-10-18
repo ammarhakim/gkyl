@@ -13,9 +13,10 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
+local SpeciesBase = require "App.Species.SpeciesBase"
+local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local SpeciesBase = require "App.Species.SpeciesBase"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -269,6 +270,7 @@ function FluidSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 end
 
 function FluidSpecies:applyBc(tCurr, dt, fIn)
+   local tmStart = Time.clock()
    if self.evolve then
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
@@ -277,6 +279,7 @@ function FluidSpecies:applyBc(tCurr, dt, fIn)
       end
       fIn:sync()
    end
+   self.bcTime = self.bcTime + Time.clock()-tmStart
 end
 
 function FluidSpecies:createDiagnostics()
@@ -337,11 +340,7 @@ function FluidSpecies:totalSolverTime()
    return 0
 end
 function FluidSpecies:totalBcTime()
-   local tm = 0.0
-   for _, bc in ipairs(self.boundaryConditions) do
-      tm = tm + bc.totalTime
-   end
-   return tm
+   return self.bcTime
 end
 function FluidSpecies:momCalcTime()
    return 0
