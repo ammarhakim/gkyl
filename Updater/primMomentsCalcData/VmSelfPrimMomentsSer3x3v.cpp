@@ -1,12 +1,728 @@
-#include <math.h> 
 #include <PrimMomentsModDecl.h> 
  
 using namespace Eigen; 
  
-void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0S, const double *m1S, const double *cM, const double *cE, double *u, double *vtSq) 
+void VmM0Star3x3vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
 { 
-  // m0,m1,m2: moments of the distribution function. 
-  // m0S,m1S:  star moments (only used for piecewise linear). 
+  // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
+  // w[NDIM]: Cell-center coordinates. 
+  // dxv[6]:  cell length in each direciton. 
+  // fl/fr:   Distribution function in left/right cells 
+  // out:     Increment to M_0^star from this cell surface. 
+ 
+  const double dS = 0.25*dxvl[4]*dxvl[5]*(wr[3]-wl[3]); 
+ 
+  out[0] += ((-0.8164965809277261*fr[4])+0.8164965809277261*fl[4]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0])*dS; 
+  out[1] += ((-0.8164965809277261*fr[10])+0.8164965809277261*fl[10]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1])*dS; 
+  out[2] += ((-0.8164965809277261*fr[11])+0.8164965809277261*fl[11]+0.7071067811865475*fr[2]+0.7071067811865475*fl[2])*dS; 
+  out[3] += ((-0.8164965809277261*fr[12])+0.8164965809277261*fl[12]+0.7071067811865475*fr[3]+0.7071067811865475*fl[3])*dS; 
+  out[4] += ((-0.8164965809277261*fr[23])+0.8164965809277261*fl[23]+0.7071067811865475*fr[7]+0.7071067811865475*fl[7])*dS; 
+  out[5] += ((-0.8164965809277261*fr[24])+0.8164965809277261*fl[24]+0.7071067811865475*fr[8]+0.7071067811865475*fl[8])*dS; 
+  out[6] += ((-0.8164965809277261*fr[25])+0.8164965809277261*fl[25]+0.7071067811865475*fr[9]+0.7071067811865475*fl[9])*dS; 
+  out[7] += ((-0.8164965809277261*fr[42])+0.8164965809277261*fl[42]+0.7071067811865475*fr[22]+0.7071067811865475*fl[22])*dS; 
+ 
+} 
+ 
+void VmM0Star3x3vSer_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
+{ 
+  // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
+  // w[NDIM]: Cell-center coordinates. 
+  // dxv[6]:  cell length in each direciton. 
+  // fl/fr:   Distribution function in left/right cells 
+  // out:     Increment to M_0^star from this cell surface. 
+ 
+  const double dS = 0.25*dxvl[3]*dxvl[5]*(wr[4]-wl[4]); 
+ 
+  out[0] += ((-0.8164965809277261*fr[5])+0.8164965809277261*fl[5]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0])*dS; 
+  out[1] += ((-0.8164965809277261*fr[13])+0.8164965809277261*fl[13]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1])*dS; 
+  out[2] += ((-0.8164965809277261*fr[14])+0.8164965809277261*fl[14]+0.7071067811865475*fr[2]+0.7071067811865475*fl[2])*dS; 
+  out[3] += ((-0.8164965809277261*fr[15])+0.8164965809277261*fl[15]+0.7071067811865475*fr[3]+0.7071067811865475*fl[3])*dS; 
+  out[4] += ((-0.8164965809277261*fr[26])+0.8164965809277261*fl[26]+0.7071067811865475*fr[7]+0.7071067811865475*fl[7])*dS; 
+  out[5] += ((-0.8164965809277261*fr[27])+0.8164965809277261*fl[27]+0.7071067811865475*fr[8]+0.7071067811865475*fl[8])*dS; 
+  out[6] += ((-0.8164965809277261*fr[28])+0.8164965809277261*fl[28]+0.7071067811865475*fr[9]+0.7071067811865475*fl[9])*dS; 
+  out[7] += ((-0.8164965809277261*fr[43])+0.8164965809277261*fl[43]+0.7071067811865475*fr[22]+0.7071067811865475*fl[22])*dS; 
+ 
+} 
+ 
+void VmM0Star3x3vSer_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
+{ 
+  // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
+  // w[NDIM]: Cell-center coordinates. 
+  // dxv[6]:  cell length in each direciton. 
+  // fl/fr:   Distribution function in left/right cells 
+  // out:     Increment to M_0^star from this cell surface. 
+ 
+  const double dS = 0.25*dxvl[3]*dxvl[4]*(wr[5]-wl[5]); 
+ 
+  out[0] += ((-0.8164965809277261*fr[6])+0.8164965809277261*fl[6]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0])*dS; 
+  out[1] += ((-0.8164965809277261*fr[17])+0.8164965809277261*fl[17]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1])*dS; 
+  out[2] += ((-0.8164965809277261*fr[18])+0.8164965809277261*fl[18]+0.7071067811865475*fr[2]+0.7071067811865475*fl[2])*dS; 
+  out[3] += ((-0.8164965809277261*fr[19])+0.8164965809277261*fl[19]+0.7071067811865475*fr[3]+0.7071067811865475*fl[3])*dS; 
+  out[4] += ((-0.8164965809277261*fr[32])+0.8164965809277261*fl[32]+0.7071067811865475*fr[7]+0.7071067811865475*fl[7])*dS; 
+  out[5] += ((-0.8164965809277261*fr[33])+0.8164965809277261*fl[33]+0.7071067811865475*fr[8]+0.7071067811865475*fl[8])*dS; 
+  out[6] += ((-0.8164965809277261*fr[34])+0.8164965809277261*fl[34]+0.7071067811865475*fr[9]+0.7071067811865475*fl[9])*dS; 
+  out[7] += ((-0.8164965809277261*fr[47])+0.8164965809277261*fl[47]+0.7071067811865475*fr[22]+0.7071067811865475*fl[22])*dS; 
+ 
+} 
+ 
+void VmM1iM2Star3x3vSer(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2) 
+{ 
+  // w[6]:    Cell-center coordinates. 
+  // dxv[6]:  Cell length in each direciton. 
+  // intFac:  for gyrokinetics (not used in Vm). 
+  // m_:      mass (not used in Vm). 
+  // Bmag[8]: Magnetic field magnitude (not used in Vm). 
+  // f:       Distribution function. 
+  // outM1i:  Contribution to M_1^star from this cell. 
+  // outM2:   Contribution to M_2^star from this cell. 
+ 
+  const double volFact = 0.125*dxv[3]*dxv[4]*dxv[5]; 
+  double wvSq[3]; 
+  wvSq[0]  = w[3]*w[3]; 
+  wvSq[1]  = w[4]*w[4]; 
+  wvSq[2]  = w[5]*w[5]; 
+  double dvSq[3]; 
+  dvSq[0] = dxv[3]*dxv[3]; 
+  dvSq[1] = dxv[4]*dxv[4]; 
+  dvSq[2] = dxv[5]*dxv[5]; 
+  double tempM0[8]; 
+
+  tempM0[0] = 2.828427124746191*f[0]*volFact; 
+  tempM0[1] = 2.828427124746191*f[1]*volFact; 
+  tempM0[2] = 2.828427124746191*f[2]*volFact; 
+  tempM0[3] = 2.828427124746191*f[3]*volFact; 
+  tempM0[4] = 2.828427124746191*f[7]*volFact; 
+  tempM0[5] = 2.828427124746191*f[8]*volFact; 
+  tempM0[6] = 2.828427124746191*f[9]*volFact; 
+  tempM0[7] = 2.828427124746191*f[22]*volFact; 
+
+  outM1i[0] += tempM0[0]*w[3]; 
+  outM1i[1] += tempM0[1]*w[3]; 
+  outM1i[2] += tempM0[2]*w[3]; 
+  outM1i[3] += tempM0[3]*w[3]; 
+  outM1i[4] += w[3]*tempM0[4]; 
+  outM1i[5] += w[3]*tempM0[5]; 
+  outM1i[6] += w[3]*tempM0[6]; 
+  outM1i[7] += w[3]*tempM0[7]; 
+  outM1i[8] += tempM0[0]*w[4]; 
+  outM1i[9] += tempM0[1]*w[4]; 
+  outM1i[10] += tempM0[2]*w[4]; 
+  outM1i[11] += tempM0[3]*w[4]; 
+  outM1i[12] += tempM0[4]*w[4]; 
+  outM1i[13] += w[4]*tempM0[5]; 
+  outM1i[14] += w[4]*tempM0[6]; 
+  outM1i[15] += w[4]*tempM0[7]; 
+  outM1i[16] += tempM0[0]*w[5]; 
+  outM1i[17] += tempM0[1]*w[5]; 
+  outM1i[18] += tempM0[2]*w[5]; 
+  outM1i[19] += tempM0[3]*w[5]; 
+  outM1i[20] += tempM0[4]*w[5]; 
+  outM1i[21] += tempM0[5]*w[5]; 
+  outM1i[22] += w[5]*tempM0[6]; 
+  outM1i[23] += w[5]*tempM0[7]; 
+
+  outM2[0] += (0.8164965809277261*dxv[5]*w[5]*f[6]+0.8164965809277261*dxv[4]*w[4]*f[5]+0.8164965809277261*dxv[3]*w[3]*f[4])*volFact+tempM0[0]*(wvSq[2]+wvSq[1]+wvSq[0]); 
+  outM2[1] += (0.8164965809277261*dxv[5]*w[5]*f[17]+0.8164965809277261*dxv[4]*w[4]*f[13]+0.8164965809277261*dxv[3]*w[3]*f[10])*volFact+tempM0[1]*(wvSq[2]+wvSq[1]+wvSq[0]); 
+  outM2[2] += (0.8164965809277261*dxv[5]*w[5]*f[18]+0.8164965809277261*dxv[4]*w[4]*f[14]+0.8164965809277261*dxv[3]*w[3]*f[11])*volFact+tempM0[2]*(wvSq[2]+wvSq[1]+wvSq[0]); 
+  outM2[3] += (0.8164965809277261*dxv[5]*w[5]*f[19]+0.8164965809277261*dxv[4]*w[4]*f[15]+0.8164965809277261*dxv[3]*w[3]*f[12])*volFact+tempM0[3]*(wvSq[2]+wvSq[1]+wvSq[0]); 
+  outM2[4] += (0.8164965809277261*dxv[5]*w[5]*f[32]+0.8164965809277261*dxv[4]*w[4]*f[26]+0.8164965809277261*dxv[3]*w[3]*f[23])*volFact+tempM0[4]*(wvSq[2]+wvSq[1]+wvSq[0]); 
+  outM2[5] += (0.8164965809277261*dxv[5]*w[5]*f[33]+0.8164965809277261*dxv[4]*w[4]*f[27]+0.8164965809277261*dxv[3]*w[3]*f[24])*volFact+tempM0[5]*(wvSq[2]+wvSq[1]+wvSq[0]); 
+  outM2[6] += (0.8164965809277261*dxv[5]*w[5]*f[34]+0.8164965809277261*dxv[4]*w[4]*f[28]+0.8164965809277261*dxv[3]*w[3]*f[25])*volFact+(wvSq[2]+wvSq[1]+wvSq[0])*tempM0[6]; 
+  outM2[7] += (0.8164965809277261*dxv[5]*w[5]*f[47]+0.8164965809277261*dxv[4]*w[4]*f[43]+0.8164965809277261*dxv[3]*w[3]*f[42])*volFact+(wvSq[2]+wvSq[1]+wvSq[0])*tempM0[7]; 
+ 
+} 
+void VmBoundaryIntegral3x3vSer_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[64]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[4]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[0] += (2.449489742783178*fIn[4]-1.414213562373095*fIn[0])*dS; 
+    out[1] += (2.449489742783178*fIn[10]-1.414213562373095*fIn[1])*dS; 
+    out[2] += (2.449489742783178*fIn[11]-1.414213562373095*fIn[2])*dS; 
+    out[3] += (2.449489742783178*fIn[12]-1.414213562373095*fIn[3])*dS; 
+    out[4] += (2.449489742783178*fIn[23]-1.414213562373095*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[24]-1.414213562373095*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[25]-1.414213562373095*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[42]-1.414213562373095*fIn[22])*dS; 
+ 
+  } else {
+ 
+    out[0] += (2.449489742783178*fIn[4]+1.414213562373095*fIn[0])*dS; 
+    out[1] += (2.449489742783178*fIn[10]+1.414213562373095*fIn[1])*dS; 
+    out[2] += (2.449489742783178*fIn[11]+1.414213562373095*fIn[2])*dS; 
+    out[3] += (2.449489742783178*fIn[12]+1.414213562373095*fIn[3])*dS; 
+    out[4] += (2.449489742783178*fIn[23]+1.414213562373095*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[24]+1.414213562373095*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[25]+1.414213562373095*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[42]+1.414213562373095*fIn[22])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[256]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[4]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[0] += ((-3.16227766016838*fIn[25])+2.449489742783178*fIn[4]-1.414213562373095*fIn[0])*dS; 
+    out[1] += ((-3.16227766016838*fIn[57])+2.449489742783178*fIn[10]-1.414213562373095*fIn[1])*dS; 
+    out[2] += ((-3.16227766016838*fIn[58])+2.449489742783178*fIn[11]-1.414213562373095*fIn[2])*dS; 
+    out[3] += ((-3.16227766016838*fIn[59])+2.449489742783178*fIn[12]-1.414213562373095*fIn[3])*dS; 
+    out[4] += ((-3.16227766016838*fIn[102])+2.449489742783178*fIn[29]-1.414213562373095*fIn[7])*dS; 
+    out[5] += ((-3.16227766016838*fIn[103])+2.449489742783178*fIn[30]-1.414213562373095*fIn[8])*dS; 
+    out[6] += ((-3.16227766016838*fIn[104])+2.449489742783178*fIn[31]-1.414213562373095*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[54]-1.414213562373095*fIn[22])*dS; 
+    out[8] += (2.449489742783178*fIn[55]-1.414213562373095*fIn[23])*dS; 
+    out[9] += (2.449489742783178*fIn[56]-1.414213562373095*fIn[24])*dS; 
+    out[10] += ((-3.16227766016838*fIn[162])+2.449489742783178*fIn[78]-1.414213562373095*fIn[28])*dS; 
+    out[11] += (2.449489742783178*fIn[96]-1.414213562373095*fIn[48])*dS; 
+    out[12] += (2.449489742783178*fIn[97]-1.414213562373095*fIn[49])*dS; 
+    out[13] += (2.449489742783178*fIn[98]-1.414213562373095*fIn[50])*dS; 
+    out[14] += (2.449489742783178*fIn[99]-1.414213562373095*fIn[51])*dS; 
+    out[15] += (2.449489742783178*fIn[100]-1.414213562373095*fIn[52])*dS; 
+    out[16] += (2.449489742783178*fIn[101]-1.414213562373095*fIn[53])*dS; 
+    out[17] += (2.449489742783178*fIn[159]-1.414213562373095*fIn[93])*dS; 
+    out[18] += (2.449489742783178*fIn[160]-1.414213562373095*fIn[94])*dS; 
+    out[19] += (2.449489742783178*fIn[161]-1.414213562373095*fIn[95])*dS; 
+ 
+  } else {
+ 
+    out[0] += (3.16227766016838*fIn[25]+2.449489742783178*fIn[4]+1.414213562373095*fIn[0])*dS; 
+    out[1] += (3.16227766016838*fIn[57]+2.449489742783178*fIn[10]+1.414213562373095*fIn[1])*dS; 
+    out[2] += (3.16227766016838*fIn[58]+2.449489742783178*fIn[11]+1.414213562373095*fIn[2])*dS; 
+    out[3] += (3.16227766016838*fIn[59]+2.449489742783178*fIn[12]+1.414213562373095*fIn[3])*dS; 
+    out[4] += (3.16227766016838*fIn[102]+2.449489742783178*fIn[29]+1.414213562373095*fIn[7])*dS; 
+    out[5] += (3.16227766016838*fIn[103]+2.449489742783178*fIn[30]+1.414213562373095*fIn[8])*dS; 
+    out[6] += (3.16227766016838*fIn[104]+2.449489742783178*fIn[31]+1.414213562373095*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[54]+1.414213562373095*fIn[22])*dS; 
+    out[8] += (2.449489742783178*fIn[55]+1.414213562373095*fIn[23])*dS; 
+    out[9] += (2.449489742783178*fIn[56]+1.414213562373095*fIn[24])*dS; 
+    out[10] += (3.16227766016838*fIn[162]+2.449489742783178*fIn[78]+1.414213562373095*fIn[28])*dS; 
+    out[11] += (2.449489742783178*fIn[96]+1.414213562373095*fIn[48])*dS; 
+    out[12] += (2.449489742783178*fIn[97]+1.414213562373095*fIn[49])*dS; 
+    out[13] += (2.449489742783178*fIn[98]+1.414213562373095*fIn[50])*dS; 
+    out[14] += (2.449489742783178*fIn[99]+1.414213562373095*fIn[51])*dS; 
+    out[15] += (2.449489742783178*fIn[100]+1.414213562373095*fIn[52])*dS; 
+    out[16] += (2.449489742783178*fIn[101]+1.414213562373095*fIn[53])*dS; 
+    out[17] += (2.449489742783178*fIn[159]+1.414213562373095*fIn[93])*dS; 
+    out[18] += (2.449489742783178*fIn[160]+1.414213562373095*fIn[94])*dS; 
+    out[19] += (2.449489742783178*fIn[161]+1.414213562373095*fIn[95])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[64]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[4]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[0] += (2.449489742783178*fIn[4]-1.414213562373095*fIn[0])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[4]-0.7071067811865475*fIn[0]*dxv[3])*dS; 
+    out[1] += (2.449489742783178*fIn[10]-1.414213562373095*fIn[1])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[10]-0.7071067811865475*fIn[1]*dxv[3])*dS; 
+    out[2] += (2.449489742783178*fIn[11]-1.414213562373095*fIn[2])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[11]-0.7071067811865475*fIn[2]*dxv[3])*dS; 
+    out[3] += (2.449489742783178*fIn[12]-1.414213562373095*fIn[3])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[12]-0.7071067811865475*dxv[3]*fIn[3])*dS; 
+    out[4] += (2.449489742783178*fIn[23]-1.414213562373095*fIn[7])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[23]-0.7071067811865475*dxv[3]*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[24]-1.414213562373095*fIn[8])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[24]-0.7071067811865475*dxv[3]*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[25]-1.414213562373095*fIn[9])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[25]-0.7071067811865475*dxv[3]*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[42]-1.414213562373095*fIn[22])*dS*vBoundary+(1.224744871391589*dxv[3]*fIn[42]-0.7071067811865475*dxv[3]*fIn[22])*dS; 
+ 
+  } else {
+ 
+    out[0] += (2.449489742783178*fIn[4]+1.414213562373095*fIn[0])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[4])-0.7071067811865475*fIn[0]*dxv[3])*dS; 
+    out[1] += (2.449489742783178*fIn[10]+1.414213562373095*fIn[1])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[10])-0.7071067811865475*fIn[1]*dxv[3])*dS; 
+    out[2] += (2.449489742783178*fIn[11]+1.414213562373095*fIn[2])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[11])-0.7071067811865475*fIn[2]*dxv[3])*dS; 
+    out[3] += (2.449489742783178*fIn[12]+1.414213562373095*fIn[3])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[12])-0.7071067811865475*dxv[3]*fIn[3])*dS; 
+    out[4] += (2.449489742783178*fIn[23]+1.414213562373095*fIn[7])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[23])-0.7071067811865475*dxv[3]*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[24]+1.414213562373095*fIn[8])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[24])-0.7071067811865475*dxv[3]*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[25]+1.414213562373095*fIn[9])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[25])-0.7071067811865475*dxv[3]*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[42]+1.414213562373095*fIn[22])*dS*vBoundary+((-1.224744871391589*dxv[3]*fIn[42])-0.7071067811865475*dxv[3]*fIn[22])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[256]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[4]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[0] += ((-3.16227766016838*fIn[25])+2.449489742783178*fIn[4]-1.414213562373095*fIn[0])*dS*vBoundary; 
+    out[1] += ((-3.16227766016838*fIn[57])+2.449489742783178*fIn[10]-1.414213562373095*fIn[1])*dS*vBoundary; 
+    out[2] += ((-3.16227766016838*fIn[58])+2.449489742783178*fIn[11]-1.414213562373095*fIn[2])*dS*vBoundary; 
+    out[3] += ((-3.16227766016838*fIn[59])+2.449489742783178*fIn[12]-1.414213562373095*fIn[3])*dS*vBoundary; 
+    out[4] += ((-3.16227766016838*fIn[102])+2.449489742783178*fIn[29]-1.414213562373095*fIn[7])*dS*vBoundary; 
+    out[5] += ((-3.16227766016838*fIn[103])+2.449489742783178*fIn[30]-1.414213562373095*fIn[8])*dS*vBoundary; 
+    out[6] += ((-3.16227766016838*fIn[104])+2.449489742783178*fIn[31]-1.414213562373095*fIn[9])*dS*vBoundary; 
+    out[7] += (2.449489742783178*fIn[54]-1.414213562373095*fIn[22])*dS*vBoundary; 
+    out[8] += (2.449489742783178*fIn[55]-1.414213562373095*fIn[23])*dS*vBoundary; 
+    out[9] += (2.449489742783178*fIn[56]-1.414213562373095*fIn[24])*dS*vBoundary; 
+    out[10] += ((-3.16227766016838*fIn[162])+2.449489742783178*fIn[78]-1.414213562373095*fIn[28])*dS*vBoundary; 
+    out[11] += (2.449489742783178*fIn[96]-1.414213562373095*fIn[48])*dS*vBoundary; 
+    out[12] += (2.449489742783178*fIn[97]-1.414213562373095*fIn[49])*dS*vBoundary; 
+    out[13] += (2.449489742783178*fIn[98]-1.414213562373095*fIn[50])*dS*vBoundary; 
+    out[14] += (2.449489742783178*fIn[99]-1.414213562373095*fIn[51])*dS*vBoundary; 
+    out[15] += (2.449489742783178*fIn[100]-1.414213562373095*fIn[52])*dS*vBoundary; 
+    out[16] += (2.449489742783178*fIn[101]-1.414213562373095*fIn[53])*dS*vBoundary; 
+    out[17] += (2.449489742783178*fIn[159]-1.414213562373095*fIn[93])*dS*vBoundary; 
+    out[18] += (2.449489742783178*fIn[160]-1.414213562373095*fIn[94])*dS*vBoundary; 
+    out[19] += (2.449489742783178*fIn[161]-1.414213562373095*fIn[95])*dS*vBoundary; 
+ 
+  } else {
+ 
+    out[0] += (3.16227766016838*fIn[25]+2.449489742783178*fIn[4]+1.414213562373095*fIn[0])*dS*vBoundary; 
+    out[1] += (3.16227766016838*fIn[57]+2.449489742783178*fIn[10]+1.414213562373095*fIn[1])*dS*vBoundary; 
+    out[2] += (3.16227766016838*fIn[58]+2.449489742783178*fIn[11]+1.414213562373095*fIn[2])*dS*vBoundary; 
+    out[3] += (3.16227766016838*fIn[59]+2.449489742783178*fIn[12]+1.414213562373095*fIn[3])*dS*vBoundary; 
+    out[4] += (3.16227766016838*fIn[102]+2.449489742783178*fIn[29]+1.414213562373095*fIn[7])*dS*vBoundary; 
+    out[5] += (3.16227766016838*fIn[103]+2.449489742783178*fIn[30]+1.414213562373095*fIn[8])*dS*vBoundary; 
+    out[6] += (3.16227766016838*fIn[104]+2.449489742783178*fIn[31]+1.414213562373095*fIn[9])*dS*vBoundary; 
+    out[7] += (2.449489742783178*fIn[54]+1.414213562373095*fIn[22])*dS*vBoundary; 
+    out[8] += (2.449489742783178*fIn[55]+1.414213562373095*fIn[23])*dS*vBoundary; 
+    out[9] += (2.449489742783178*fIn[56]+1.414213562373095*fIn[24])*dS*vBoundary; 
+    out[10] += (3.16227766016838*fIn[162]+2.449489742783178*fIn[78]+1.414213562373095*fIn[28])*dS*vBoundary; 
+    out[11] += (2.449489742783178*fIn[96]+1.414213562373095*fIn[48])*dS*vBoundary; 
+    out[12] += (2.449489742783178*fIn[97]+1.414213562373095*fIn[49])*dS*vBoundary; 
+    out[13] += (2.449489742783178*fIn[98]+1.414213562373095*fIn[50])*dS*vBoundary; 
+    out[14] += (2.449489742783178*fIn[99]+1.414213562373095*fIn[51])*dS*vBoundary; 
+    out[15] += (2.449489742783178*fIn[100]+1.414213562373095*fIn[52])*dS*vBoundary; 
+    out[16] += (2.449489742783178*fIn[101]+1.414213562373095*fIn[53])*dS*vBoundary; 
+    out[17] += (2.449489742783178*fIn[159]+1.414213562373095*fIn[93])*dS*vBoundary; 
+    out[18] += (2.449489742783178*fIn[160]+1.414213562373095*fIn[94])*dS*vBoundary; 
+    out[19] += (2.449489742783178*fIn[161]+1.414213562373095*fIn[95])*dS*vBoundary; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[64]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[8] += (2.449489742783178*fIn[5]-1.414213562373095*fIn[0])*dS; 
+    out[9] += (2.449489742783178*fIn[13]-1.414213562373095*fIn[1])*dS; 
+    out[10] += (2.449489742783178*fIn[14]-1.414213562373095*fIn[2])*dS; 
+    out[11] += (2.449489742783178*fIn[15]-1.414213562373095*fIn[3])*dS; 
+    out[12] += (2.449489742783178*fIn[26]-1.414213562373095*fIn[7])*dS; 
+    out[13] += (2.449489742783178*fIn[27]-1.414213562373095*fIn[8])*dS; 
+    out[14] += (2.449489742783178*fIn[28]-1.414213562373095*fIn[9])*dS; 
+    out[15] += (2.449489742783178*fIn[43]-1.414213562373095*fIn[22])*dS; 
+ 
+  } else {
+ 
+    out[8] += (2.449489742783178*fIn[5]+1.414213562373095*fIn[0])*dS; 
+    out[9] += (2.449489742783178*fIn[13]+1.414213562373095*fIn[1])*dS; 
+    out[10] += (2.449489742783178*fIn[14]+1.414213562373095*fIn[2])*dS; 
+    out[11] += (2.449489742783178*fIn[15]+1.414213562373095*fIn[3])*dS; 
+    out[12] += (2.449489742783178*fIn[26]+1.414213562373095*fIn[7])*dS; 
+    out[13] += (2.449489742783178*fIn[27]+1.414213562373095*fIn[8])*dS; 
+    out[14] += (2.449489742783178*fIn[28]+1.414213562373095*fIn[9])*dS; 
+    out[15] += (2.449489742783178*fIn[43]+1.414213562373095*fIn[22])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[256]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[20] += ((-3.16227766016838*fIn[26])+2.449489742783178*fIn[5]-1.414213562373095*fIn[0])*dS; 
+    out[21] += ((-3.16227766016838*fIn[64])+2.449489742783178*fIn[13]-1.414213562373095*fIn[1])*dS; 
+    out[22] += ((-3.16227766016838*fIn[65])+2.449489742783178*fIn[14]-1.414213562373095*fIn[2])*dS; 
+    out[23] += ((-3.16227766016838*fIn[66])+2.449489742783178*fIn[15]-1.414213562373095*fIn[3])*dS; 
+    out[24] += ((-3.16227766016838*fIn[117])+2.449489742783178*fIn[32]-1.414213562373095*fIn[7])*dS; 
+    out[25] += ((-3.16227766016838*fIn[118])+2.449489742783178*fIn[33]-1.414213562373095*fIn[8])*dS; 
+    out[26] += ((-3.16227766016838*fIn[119])+2.449489742783178*fIn[34]-1.414213562373095*fIn[9])*dS; 
+    out[27] += (2.449489742783178*fIn[60]-1.414213562373095*fIn[22])*dS; 
+    out[28] += (2.449489742783178*fIn[61]-1.414213562373095*fIn[23])*dS; 
+    out[29] += (2.449489742783178*fIn[62]-1.414213562373095*fIn[24])*dS; 
+    out[30] += ((-3.16227766016838*fIn[175])+2.449489742783178*fIn[79]-1.414213562373095*fIn[28])*dS; 
+    out[31] += (2.449489742783178*fIn[105]-1.414213562373095*fIn[48])*dS; 
+    out[32] += (2.449489742783178*fIn[106]-1.414213562373095*fIn[49])*dS; 
+    out[33] += (2.449489742783178*fIn[107]-1.414213562373095*fIn[50])*dS; 
+    out[34] += (2.449489742783178*fIn[108]-1.414213562373095*fIn[51])*dS; 
+    out[35] += (2.449489742783178*fIn[109]-1.414213562373095*fIn[52])*dS; 
+    out[36] += (2.449489742783178*fIn[110]-1.414213562373095*fIn[53])*dS; 
+    out[37] += (2.449489742783178*fIn[163]-1.414213562373095*fIn[93])*dS; 
+    out[38] += (2.449489742783178*fIn[164]-1.414213562373095*fIn[94])*dS; 
+    out[39] += (2.449489742783178*fIn[165]-1.414213562373095*fIn[95])*dS; 
+ 
+  } else {
+ 
+    out[20] += (3.16227766016838*fIn[26]+2.449489742783178*fIn[5]+1.414213562373095*fIn[0])*dS; 
+    out[21] += (3.16227766016838*fIn[64]+2.449489742783178*fIn[13]+1.414213562373095*fIn[1])*dS; 
+    out[22] += (3.16227766016838*fIn[65]+2.449489742783178*fIn[14]+1.414213562373095*fIn[2])*dS; 
+    out[23] += (3.16227766016838*fIn[66]+2.449489742783178*fIn[15]+1.414213562373095*fIn[3])*dS; 
+    out[24] += (3.16227766016838*fIn[117]+2.449489742783178*fIn[32]+1.414213562373095*fIn[7])*dS; 
+    out[25] += (3.16227766016838*fIn[118]+2.449489742783178*fIn[33]+1.414213562373095*fIn[8])*dS; 
+    out[26] += (3.16227766016838*fIn[119]+2.449489742783178*fIn[34]+1.414213562373095*fIn[9])*dS; 
+    out[27] += (2.449489742783178*fIn[60]+1.414213562373095*fIn[22])*dS; 
+    out[28] += (2.449489742783178*fIn[61]+1.414213562373095*fIn[23])*dS; 
+    out[29] += (2.449489742783178*fIn[62]+1.414213562373095*fIn[24])*dS; 
+    out[30] += (3.16227766016838*fIn[175]+2.449489742783178*fIn[79]+1.414213562373095*fIn[28])*dS; 
+    out[31] += (2.449489742783178*fIn[105]+1.414213562373095*fIn[48])*dS; 
+    out[32] += (2.449489742783178*fIn[106]+1.414213562373095*fIn[49])*dS; 
+    out[33] += (2.449489742783178*fIn[107]+1.414213562373095*fIn[50])*dS; 
+    out[34] += (2.449489742783178*fIn[108]+1.414213562373095*fIn[51])*dS; 
+    out[35] += (2.449489742783178*fIn[109]+1.414213562373095*fIn[52])*dS; 
+    out[36] += (2.449489742783178*fIn[110]+1.414213562373095*fIn[53])*dS; 
+    out[37] += (2.449489742783178*fIn[163]+1.414213562373095*fIn[93])*dS; 
+    out[38] += (2.449489742783178*fIn[164]+1.414213562373095*fIn[94])*dS; 
+    out[39] += (2.449489742783178*fIn[165]+1.414213562373095*fIn[95])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[64]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[0] += (2.449489742783178*fIn[5]-1.414213562373095*fIn[0])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[5]-0.7071067811865475*fIn[0]*dxv[4])*dS; 
+    out[1] += (2.449489742783178*fIn[13]-1.414213562373095*fIn[1])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[13]-0.7071067811865475*fIn[1]*dxv[4])*dS; 
+    out[2] += (2.449489742783178*fIn[14]-1.414213562373095*fIn[2])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[14]-0.7071067811865475*fIn[2]*dxv[4])*dS; 
+    out[3] += (2.449489742783178*fIn[15]-1.414213562373095*fIn[3])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[15]-0.7071067811865475*fIn[3]*dxv[4])*dS; 
+    out[4] += (2.449489742783178*fIn[26]-1.414213562373095*fIn[7])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[26]-0.7071067811865475*dxv[4]*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[27]-1.414213562373095*fIn[8])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[27]-0.7071067811865475*dxv[4]*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[28]-1.414213562373095*fIn[9])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[28]-0.7071067811865475*dxv[4]*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[43]-1.414213562373095*fIn[22])*dS*vBoundary+(1.224744871391589*dxv[4]*fIn[43]-0.7071067811865475*dxv[4]*fIn[22])*dS; 
+ 
+  } else {
+ 
+    out[0] += (2.449489742783178*fIn[5]+1.414213562373095*fIn[0])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[5])-0.7071067811865475*fIn[0]*dxv[4])*dS; 
+    out[1] += (2.449489742783178*fIn[13]+1.414213562373095*fIn[1])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[13])-0.7071067811865475*fIn[1]*dxv[4])*dS; 
+    out[2] += (2.449489742783178*fIn[14]+1.414213562373095*fIn[2])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[14])-0.7071067811865475*fIn[2]*dxv[4])*dS; 
+    out[3] += (2.449489742783178*fIn[15]+1.414213562373095*fIn[3])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[15])-0.7071067811865475*fIn[3]*dxv[4])*dS; 
+    out[4] += (2.449489742783178*fIn[26]+1.414213562373095*fIn[7])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[26])-0.7071067811865475*dxv[4]*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[27]+1.414213562373095*fIn[8])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[27])-0.7071067811865475*dxv[4]*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[28]+1.414213562373095*fIn[9])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[28])-0.7071067811865475*dxv[4]*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[43]+1.414213562373095*fIn[22])*dS*vBoundary+((-1.224744871391589*dxv[4]*fIn[43])-0.7071067811865475*dxv[4]*fIn[22])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[256]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[5]; 
+ 
+  if (atLower) {
+ 
+    out[0] += ((-3.16227766016838*fIn[26])+2.449489742783178*fIn[5]-1.414213562373095*fIn[0])*dS*vBoundary; 
+    out[1] += ((-3.16227766016838*fIn[64])+2.449489742783178*fIn[13]-1.414213562373095*fIn[1])*dS*vBoundary; 
+    out[2] += ((-3.16227766016838*fIn[65])+2.449489742783178*fIn[14]-1.414213562373095*fIn[2])*dS*vBoundary; 
+    out[3] += ((-3.16227766016838*fIn[66])+2.449489742783178*fIn[15]-1.414213562373095*fIn[3])*dS*vBoundary; 
+    out[4] += ((-3.16227766016838*fIn[117])+2.449489742783178*fIn[32]-1.414213562373095*fIn[7])*dS*vBoundary; 
+    out[5] += ((-3.16227766016838*fIn[118])+2.449489742783178*fIn[33]-1.414213562373095*fIn[8])*dS*vBoundary; 
+    out[6] += ((-3.16227766016838*fIn[119])+2.449489742783178*fIn[34]-1.414213562373095*fIn[9])*dS*vBoundary; 
+    out[7] += (2.449489742783178*fIn[60]-1.414213562373095*fIn[22])*dS*vBoundary; 
+    out[8] += (2.449489742783178*fIn[61]-1.414213562373095*fIn[23])*dS*vBoundary; 
+    out[9] += (2.449489742783178*fIn[62]-1.414213562373095*fIn[24])*dS*vBoundary; 
+    out[10] += ((-3.16227766016838*fIn[175])+2.449489742783178*fIn[79]-1.414213562373095*fIn[28])*dS*vBoundary; 
+    out[11] += (2.449489742783178*fIn[105]-1.414213562373095*fIn[48])*dS*vBoundary; 
+    out[12] += (2.449489742783178*fIn[106]-1.414213562373095*fIn[49])*dS*vBoundary; 
+    out[13] += (2.449489742783178*fIn[107]-1.414213562373095*fIn[50])*dS*vBoundary; 
+    out[14] += (2.449489742783178*fIn[108]-1.414213562373095*fIn[51])*dS*vBoundary; 
+    out[15] += (2.449489742783178*fIn[109]-1.414213562373095*fIn[52])*dS*vBoundary; 
+    out[16] += (2.449489742783178*fIn[110]-1.414213562373095*fIn[53])*dS*vBoundary; 
+    out[17] += (2.449489742783178*fIn[163]-1.414213562373095*fIn[93])*dS*vBoundary; 
+    out[18] += (2.449489742783178*fIn[164]-1.414213562373095*fIn[94])*dS*vBoundary; 
+    out[19] += (2.449489742783178*fIn[165]-1.414213562373095*fIn[95])*dS*vBoundary; 
+ 
+  } else {
+ 
+    out[0] += (3.16227766016838*fIn[26]+2.449489742783178*fIn[5]+1.414213562373095*fIn[0])*dS*vBoundary; 
+    out[1] += (3.16227766016838*fIn[64]+2.449489742783178*fIn[13]+1.414213562373095*fIn[1])*dS*vBoundary; 
+    out[2] += (3.16227766016838*fIn[65]+2.449489742783178*fIn[14]+1.414213562373095*fIn[2])*dS*vBoundary; 
+    out[3] += (3.16227766016838*fIn[66]+2.449489742783178*fIn[15]+1.414213562373095*fIn[3])*dS*vBoundary; 
+    out[4] += (3.16227766016838*fIn[117]+2.449489742783178*fIn[32]+1.414213562373095*fIn[7])*dS*vBoundary; 
+    out[5] += (3.16227766016838*fIn[118]+2.449489742783178*fIn[33]+1.414213562373095*fIn[8])*dS*vBoundary; 
+    out[6] += (3.16227766016838*fIn[119]+2.449489742783178*fIn[34]+1.414213562373095*fIn[9])*dS*vBoundary; 
+    out[7] += (2.449489742783178*fIn[60]+1.414213562373095*fIn[22])*dS*vBoundary; 
+    out[8] += (2.449489742783178*fIn[61]+1.414213562373095*fIn[23])*dS*vBoundary; 
+    out[9] += (2.449489742783178*fIn[62]+1.414213562373095*fIn[24])*dS*vBoundary; 
+    out[10] += (3.16227766016838*fIn[175]+2.449489742783178*fIn[79]+1.414213562373095*fIn[28])*dS*vBoundary; 
+    out[11] += (2.449489742783178*fIn[105]+1.414213562373095*fIn[48])*dS*vBoundary; 
+    out[12] += (2.449489742783178*fIn[106]+1.414213562373095*fIn[49])*dS*vBoundary; 
+    out[13] += (2.449489742783178*fIn[107]+1.414213562373095*fIn[50])*dS*vBoundary; 
+    out[14] += (2.449489742783178*fIn[108]+1.414213562373095*fIn[51])*dS*vBoundary; 
+    out[15] += (2.449489742783178*fIn[109]+1.414213562373095*fIn[52])*dS*vBoundary; 
+    out[16] += (2.449489742783178*fIn[110]+1.414213562373095*fIn[53])*dS*vBoundary; 
+    out[17] += (2.449489742783178*fIn[163]+1.414213562373095*fIn[93])*dS*vBoundary; 
+    out[18] += (2.449489742783178*fIn[164]+1.414213562373095*fIn[94])*dS*vBoundary; 
+    out[19] += (2.449489742783178*fIn[165]+1.414213562373095*fIn[95])*dS*vBoundary; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[64]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[4]; 
+ 
+  if (atLower) {
+ 
+    out[16] += (2.449489742783178*fIn[6]-1.414213562373095*fIn[0])*dS; 
+    out[17] += (2.449489742783178*fIn[17]-1.414213562373095*fIn[1])*dS; 
+    out[18] += (2.449489742783178*fIn[18]-1.414213562373095*fIn[2])*dS; 
+    out[19] += (2.449489742783178*fIn[19]-1.414213562373095*fIn[3])*dS; 
+    out[20] += (2.449489742783178*fIn[32]-1.414213562373095*fIn[7])*dS; 
+    out[21] += (2.449489742783178*fIn[33]-1.414213562373095*fIn[8])*dS; 
+    out[22] += (2.449489742783178*fIn[34]-1.414213562373095*fIn[9])*dS; 
+    out[23] += (2.449489742783178*fIn[47]-1.414213562373095*fIn[22])*dS; 
+ 
+  } else {
+ 
+    out[16] += (2.449489742783178*fIn[6]+1.414213562373095*fIn[0])*dS; 
+    out[17] += (2.449489742783178*fIn[17]+1.414213562373095*fIn[1])*dS; 
+    out[18] += (2.449489742783178*fIn[18]+1.414213562373095*fIn[2])*dS; 
+    out[19] += (2.449489742783178*fIn[19]+1.414213562373095*fIn[3])*dS; 
+    out[20] += (2.449489742783178*fIn[32]+1.414213562373095*fIn[7])*dS; 
+    out[21] += (2.449489742783178*fIn[33]+1.414213562373095*fIn[8])*dS; 
+    out[22] += (2.449489742783178*fIn[34]+1.414213562373095*fIn[9])*dS; 
+    out[23] += (2.449489742783178*fIn[47]+1.414213562373095*fIn[22])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[256]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[4]; 
+ 
+  if (atLower) {
+ 
+    out[40] += ((-3.16227766016838*fIn[27])+2.449489742783178*fIn[6]-1.414213562373095*fIn[0])*dS; 
+    out[41] += ((-3.16227766016838*fIn[73])+2.449489742783178*fIn[17]-1.414213562373095*fIn[1])*dS; 
+    out[42] += ((-3.16227766016838*fIn[74])+2.449489742783178*fIn[18]-1.414213562373095*fIn[2])*dS; 
+    out[43] += ((-3.16227766016838*fIn[75])+2.449489742783178*fIn[19]-1.414213562373095*fIn[3])*dS; 
+    out[44] += ((-3.16227766016838*fIn[143])+2.449489742783178*fIn[38]-1.414213562373095*fIn[7])*dS; 
+    out[45] += ((-3.16227766016838*fIn[144])+2.449489742783178*fIn[39]-1.414213562373095*fIn[8])*dS; 
+    out[46] += ((-3.16227766016838*fIn[145])+2.449489742783178*fIn[40]-1.414213562373095*fIn[9])*dS; 
+    out[47] += (2.449489742783178*fIn[68]-1.414213562373095*fIn[22])*dS; 
+    out[48] += (2.449489742783178*fIn[69]-1.414213562373095*fIn[23])*dS; 
+    out[49] += (2.449489742783178*fIn[70]-1.414213562373095*fIn[24])*dS; 
+    out[50] += ((-3.16227766016838*fIn[209])+2.449489742783178*fIn[83]-1.414213562373095*fIn[28])*dS; 
+    out[51] += (2.449489742783178*fIn[123]-1.414213562373095*fIn[48])*dS; 
+    out[52] += (2.449489742783178*fIn[124]-1.414213562373095*fIn[49])*dS; 
+    out[53] += (2.449489742783178*fIn[125]-1.414213562373095*fIn[50])*dS; 
+    out[54] += (2.449489742783178*fIn[126]-1.414213562373095*fIn[51])*dS; 
+    out[55] += (2.449489742783178*fIn[127]-1.414213562373095*fIn[52])*dS; 
+    out[56] += (2.449489742783178*fIn[128]-1.414213562373095*fIn[53])*dS; 
+    out[57] += (2.449489742783178*fIn[179]-1.414213562373095*fIn[93])*dS; 
+    out[58] += (2.449489742783178*fIn[180]-1.414213562373095*fIn[94])*dS; 
+    out[59] += (2.449489742783178*fIn[181]-1.414213562373095*fIn[95])*dS; 
+ 
+  } else {
+ 
+    out[40] += (3.16227766016838*fIn[27]+2.449489742783178*fIn[6]+1.414213562373095*fIn[0])*dS; 
+    out[41] += (3.16227766016838*fIn[73]+2.449489742783178*fIn[17]+1.414213562373095*fIn[1])*dS; 
+    out[42] += (3.16227766016838*fIn[74]+2.449489742783178*fIn[18]+1.414213562373095*fIn[2])*dS; 
+    out[43] += (3.16227766016838*fIn[75]+2.449489742783178*fIn[19]+1.414213562373095*fIn[3])*dS; 
+    out[44] += (3.16227766016838*fIn[143]+2.449489742783178*fIn[38]+1.414213562373095*fIn[7])*dS; 
+    out[45] += (3.16227766016838*fIn[144]+2.449489742783178*fIn[39]+1.414213562373095*fIn[8])*dS; 
+    out[46] += (3.16227766016838*fIn[145]+2.449489742783178*fIn[40]+1.414213562373095*fIn[9])*dS; 
+    out[47] += (2.449489742783178*fIn[68]+1.414213562373095*fIn[22])*dS; 
+    out[48] += (2.449489742783178*fIn[69]+1.414213562373095*fIn[23])*dS; 
+    out[49] += (2.449489742783178*fIn[70]+1.414213562373095*fIn[24])*dS; 
+    out[50] += (3.16227766016838*fIn[209]+2.449489742783178*fIn[83]+1.414213562373095*fIn[28])*dS; 
+    out[51] += (2.449489742783178*fIn[123]+1.414213562373095*fIn[48])*dS; 
+    out[52] += (2.449489742783178*fIn[124]+1.414213562373095*fIn[49])*dS; 
+    out[53] += (2.449489742783178*fIn[125]+1.414213562373095*fIn[50])*dS; 
+    out[54] += (2.449489742783178*fIn[126]+1.414213562373095*fIn[51])*dS; 
+    out[55] += (2.449489742783178*fIn[127]+1.414213562373095*fIn[52])*dS; 
+    out[56] += (2.449489742783178*fIn[128]+1.414213562373095*fIn[53])*dS; 
+    out[57] += (2.449489742783178*fIn[179]+1.414213562373095*fIn[93])*dS; 
+    out[58] += (2.449489742783178*fIn[180]+1.414213562373095*fIn[94])*dS; 
+    out[59] += (2.449489742783178*fIn[181]+1.414213562373095*fIn[95])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[64]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[4]; 
+ 
+  if (atLower) {
+ 
+    out[0] += (2.449489742783178*fIn[6]-1.414213562373095*fIn[0])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[6]-0.7071067811865475*fIn[0]*dxv[5])*dS; 
+    out[1] += (2.449489742783178*fIn[17]-1.414213562373095*fIn[1])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[17]-0.7071067811865475*fIn[1]*dxv[5])*dS; 
+    out[2] += (2.449489742783178*fIn[18]-1.414213562373095*fIn[2])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[18]-0.7071067811865475*fIn[2]*dxv[5])*dS; 
+    out[3] += (2.449489742783178*fIn[19]-1.414213562373095*fIn[3])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[19]-0.7071067811865475*fIn[3]*dxv[5])*dS; 
+    out[4] += (2.449489742783178*fIn[32]-1.414213562373095*fIn[7])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[32]-0.7071067811865475*dxv[5]*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[33]-1.414213562373095*fIn[8])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[33]-0.7071067811865475*dxv[5]*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[34]-1.414213562373095*fIn[9])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[34]-0.7071067811865475*dxv[5]*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[47]-1.414213562373095*fIn[22])*dS*vBoundary+(1.224744871391589*dxv[5]*fIn[47]-0.7071067811865475*dxv[5]*fIn[22])*dS; 
+ 
+  } else {
+ 
+    out[0] += (2.449489742783178*fIn[6]+1.414213562373095*fIn[0])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[6])-0.7071067811865475*fIn[0]*dxv[5])*dS; 
+    out[1] += (2.449489742783178*fIn[17]+1.414213562373095*fIn[1])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[17])-0.7071067811865475*fIn[1]*dxv[5])*dS; 
+    out[2] += (2.449489742783178*fIn[18]+1.414213562373095*fIn[2])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[18])-0.7071067811865475*fIn[2]*dxv[5])*dS; 
+    out[3] += (2.449489742783178*fIn[19]+1.414213562373095*fIn[3])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[19])-0.7071067811865475*fIn[3]*dxv[5])*dS; 
+    out[4] += (2.449489742783178*fIn[32]+1.414213562373095*fIn[7])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[32])-0.7071067811865475*dxv[5]*fIn[7])*dS; 
+    out[5] += (2.449489742783178*fIn[33]+1.414213562373095*fIn[8])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[33])-0.7071067811865475*dxv[5]*fIn[8])*dS; 
+    out[6] += (2.449489742783178*fIn[34]+1.414213562373095*fIn[9])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[34])-0.7071067811865475*dxv[5]*fIn[9])*dS; 
+    out[7] += (2.449489742783178*fIn[47]+1.414213562373095*fIn[22])*dS*vBoundary+((-1.224744871391589*dxv[5]*fIn[47])-0.7071067811865475*dxv[5]*fIn[22])*dS; 
+ 
+  }
+ 
+} 
+ 
+void VmBoundaryIntegral3x3vSer_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) 
+{ 
+  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. 
+  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). 
+  // vBoundary: velocity at the boundary of the velocity grid. 
+  // dxv[6]:    cell length in each direciton. 
+  // fIn[256]:    distribution function at velocity boundaries. 
+  // out:       int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
+ 
+  const double dS = 0.25*dxv[3]*dxv[4]; 
+ 
+  if (atLower) {
+ 
+    out[0] += ((-3.16227766016838*fIn[27])+2.449489742783178*fIn[6]-1.414213562373095*fIn[0])*dS*vBoundary; 
+    out[1] += ((-3.16227766016838*fIn[73])+2.449489742783178*fIn[17]-1.414213562373095*fIn[1])*dS*vBoundary; 
+    out[2] += ((-3.16227766016838*fIn[74])+2.449489742783178*fIn[18]-1.414213562373095*fIn[2])*dS*vBoundary; 
+    out[3] += ((-3.16227766016838*fIn[75])+2.449489742783178*fIn[19]-1.414213562373095*fIn[3])*dS*vBoundary; 
+    out[4] += ((-3.16227766016838*fIn[143])+2.449489742783178*fIn[38]-1.414213562373095*fIn[7])*dS*vBoundary; 
+    out[5] += ((-3.16227766016838*fIn[144])+2.449489742783178*fIn[39]-1.414213562373095*fIn[8])*dS*vBoundary; 
+    out[6] += ((-3.16227766016838*fIn[145])+2.449489742783178*fIn[40]-1.414213562373095*fIn[9])*dS*vBoundary; 
+    out[7] += (2.449489742783178*fIn[68]-1.414213562373095*fIn[22])*dS*vBoundary; 
+    out[8] += (2.449489742783178*fIn[69]-1.414213562373095*fIn[23])*dS*vBoundary; 
+    out[9] += (2.449489742783178*fIn[70]-1.414213562373095*fIn[24])*dS*vBoundary; 
+    out[10] += ((-3.16227766016838*fIn[209])+2.449489742783178*fIn[83]-1.414213562373095*fIn[28])*dS*vBoundary; 
+    out[11] += (2.449489742783178*fIn[123]-1.414213562373095*fIn[48])*dS*vBoundary; 
+    out[12] += (2.449489742783178*fIn[124]-1.414213562373095*fIn[49])*dS*vBoundary; 
+    out[13] += (2.449489742783178*fIn[125]-1.414213562373095*fIn[50])*dS*vBoundary; 
+    out[14] += (2.449489742783178*fIn[126]-1.414213562373095*fIn[51])*dS*vBoundary; 
+    out[15] += (2.449489742783178*fIn[127]-1.414213562373095*fIn[52])*dS*vBoundary; 
+    out[16] += (2.449489742783178*fIn[128]-1.414213562373095*fIn[53])*dS*vBoundary; 
+    out[17] += (2.449489742783178*fIn[179]-1.414213562373095*fIn[93])*dS*vBoundary; 
+    out[18] += (2.449489742783178*fIn[180]-1.414213562373095*fIn[94])*dS*vBoundary; 
+    out[19] += (2.449489742783178*fIn[181]-1.414213562373095*fIn[95])*dS*vBoundary; 
+ 
+  } else {
+ 
+    out[0] += (3.16227766016838*fIn[27]+2.449489742783178*fIn[6]+1.414213562373095*fIn[0])*dS*vBoundary; 
+    out[1] += (3.16227766016838*fIn[73]+2.449489742783178*fIn[17]+1.414213562373095*fIn[1])*dS*vBoundary; 
+    out[2] += (3.16227766016838*fIn[74]+2.449489742783178*fIn[18]+1.414213562373095*fIn[2])*dS*vBoundary; 
+    out[3] += (3.16227766016838*fIn[75]+2.449489742783178*fIn[19]+1.414213562373095*fIn[3])*dS*vBoundary; 
+    out[4] += (3.16227766016838*fIn[143]+2.449489742783178*fIn[38]+1.414213562373095*fIn[7])*dS*vBoundary; 
+    out[5] += (3.16227766016838*fIn[144]+2.449489742783178*fIn[39]+1.414213562373095*fIn[8])*dS*vBoundary; 
+    out[6] += (3.16227766016838*fIn[145]+2.449489742783178*fIn[40]+1.414213562373095*fIn[9])*dS*vBoundary; 
+    out[7] += (2.449489742783178*fIn[68]+1.414213562373095*fIn[22])*dS*vBoundary; 
+    out[8] += (2.449489742783178*fIn[69]+1.414213562373095*fIn[23])*dS*vBoundary; 
+    out[9] += (2.449489742783178*fIn[70]+1.414213562373095*fIn[24])*dS*vBoundary; 
+    out[10] += (3.16227766016838*fIn[209]+2.449489742783178*fIn[83]+1.414213562373095*fIn[28])*dS*vBoundary; 
+    out[11] += (2.449489742783178*fIn[123]+1.414213562373095*fIn[48])*dS*vBoundary; 
+    out[12] += (2.449489742783178*fIn[124]+1.414213562373095*fIn[49])*dS*vBoundary; 
+    out[13] += (2.449489742783178*fIn[125]+1.414213562373095*fIn[50])*dS*vBoundary; 
+    out[14] += (2.449489742783178*fIn[126]+1.414213562373095*fIn[51])*dS*vBoundary; 
+    out[15] += (2.449489742783178*fIn[127]+1.414213562373095*fIn[52])*dS*vBoundary; 
+    out[16] += (2.449489742783178*fIn[128]+1.414213562373095*fIn[53])*dS*vBoundary; 
+    out[17] += (2.449489742783178*fIn[179]+1.414213562373095*fIn[93])*dS*vBoundary; 
+    out[18] += (2.449489742783178*fIn[180]+1.414213562373095*fIn[94])*dS*vBoundary; 
+    out[19] += (2.449489742783178*fIn[181]+1.414213562373095*fIn[95])*dS*vBoundary; 
+ 
+  }
+ 
+} 
+ 
+void VmSelfPrimMoments3x3vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq) 
+{ 
+  // m0,m1:       moments of the distribution function. 
+  // m0S,m1S,m1S: star moments (only used for piecewise linear). 
   // cM, cE:   vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
   // u:        velocity. 
   // vtSq:     squared thermal speed, sqrt(T/m). 
@@ -40,9 +756,9 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
  
   double m0r[8]; 
   double m1r[24]; 
-  double m2r[8]; 
   double m0Sr[8]; 
   double m1Sr[24]; 
+  double m2Sr[8]; 
   if (cellAvg) { 
     m0r[0] = m0[0]; 
     m0r[1] = 0.0; 
@@ -76,14 +792,6 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
     m1r[21] = 0.0; 
     m1r[22] = 0.0; 
     m1r[23] = 0.0; 
-    m2r[0] = m2[0]; 
-    m2r[1] = 0.0; 
-    m2r[2] = 0.0; 
-    m2r[3] = 0.0; 
-    m2r[4] = 0.0; 
-    m2r[5] = 0.0; 
-    m2r[6] = 0.0; 
-    m2r[7] = 0.0; 
     m0Sr[0] = m0S[0]; 
     m0Sr[1] = 0.0; 
     m0Sr[2] = 0.0; 
@@ -116,6 +824,14 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
     m1Sr[21] = 0.0; 
     m1Sr[22] = 0.0; 
     m1Sr[23] = 0.0; 
+    m2Sr[0] = m2S[0]; 
+    m2Sr[1] = 0.0; 
+    m2Sr[2] = 0.0; 
+    m2Sr[3] = 0.0; 
+    m2Sr[4] = 0.0; 
+    m2Sr[5] = 0.0; 
+    m2Sr[6] = 0.0; 
+    m2Sr[7] = 0.0; 
   } else { 
     m0r[0] = m0[0]; 
     m0r[1] = m0[1]; 
@@ -149,14 +865,6 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
     m1r[21] = m1[21]; 
     m1r[22] = m1[22]; 
     m1r[23] = m1[23]; 
-    m2r[0] = m2[0]; 
-    m2r[1] = m2[1]; 
-    m2r[2] = m2[2]; 
-    m2r[3] = m2[3]; 
-    m2r[4] = m2[4]; 
-    m2r[5] = m2[5]; 
-    m2r[6] = m2[6]; 
-    m2r[7] = m2[7]; 
     m0Sr[0] = m0S[0]; 
     m0Sr[1] = m0S[1]; 
     m0Sr[2] = m0S[2]; 
@@ -189,6 +897,14 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
     m1Sr[21] = m1S[21]; 
     m1Sr[22] = m1S[22]; 
     m1Sr[23] = m1S[23]; 
+    m2Sr[0] = m2S[0]; 
+    m2Sr[1] = m2S[1]; 
+    m2Sr[2] = m2S[2]; 
+    m2Sr[3] = m2S[3]; 
+    m2Sr[4] = m2S[4]; 
+    m2Sr[5] = m2S[5]; 
+    m2Sr[6] = m2S[6]; 
+    m2Sr[7] = m2S[7]; 
   } 
  
   // Declare Eigen matrix and vectors for weak division. 
@@ -791,70 +1507,70 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
   BigAEM(31,23) = 0.3535533905932737*m1Sr[16]; 
  
   // ....... Block from correction to vtSq .......... // 
-  BigAEM(24,24) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(24,25) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(24,26) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(24,27) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(24,28) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(24,29) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(24,30) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(24,31) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(25,24) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(25,25) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(25,26) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(25,27) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(25,28) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(25,29) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(25,30) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(25,31) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(26,24) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(26,25) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(26,26) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(26,27) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(26,28) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(26,29) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(26,30) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(26,31) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(27,24) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(27,25) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(27,26) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(27,27) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(27,28) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(27,29) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(27,30) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(27,31) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(28,24) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(28,25) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(28,26) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(28,27) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(28,28) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(28,29) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(28,30) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(28,31) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(29,24) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(29,25) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(29,26) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(29,27) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(29,28) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(29,29) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(29,30) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(29,31) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(30,24) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(30,25) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(30,26) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(30,27) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(30,28) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(30,29) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(30,30) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(30,31) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(31,24) = 0.3535533905932737*m0Sr[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(31,25) = 0.3535533905932737*m0Sr[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(31,26) = 0.3535533905932737*m0Sr[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(31,27) = 0.3535533905932737*m0Sr[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(31,28) = 0.3535533905932737*m0Sr[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(31,29) = 0.3535533905932737*m0Sr[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(31,30) = 0.3535533905932737*m0Sr[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(31,31) = 0.3535533905932737*m0Sr[0]*pVdim-0.3535533905932737*cE[0]; 
+  BigAEM(24,24) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
+  BigAEM(24,25) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(24,26) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(24,27) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(24,28) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(24,29) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(24,30) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(24,31) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(25,24) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(25,25) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
+  BigAEM(25,26) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(25,27) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(25,28) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(25,29) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(25,30) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(25,31) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(26,24) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(26,25) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(26,26) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
+  BigAEM(26,27) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(26,28) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(26,29) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(26,30) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(26,31) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(27,24) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(27,25) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(27,26) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(27,27) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
+  BigAEM(27,28) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(27,29) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(27,30) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(27,31) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(28,24) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(28,25) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(28,26) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(28,27) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(28,28) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
+  BigAEM(28,29) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(28,30) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(28,31) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(29,24) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(29,25) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(29,26) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(29,27) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(29,28) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(29,29) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
+  BigAEM(29,30) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(29,31) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(30,24) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(30,25) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(30,26) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(30,27) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(30,28) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(30,29) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(30,30) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
+  BigAEM(30,31) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(31,24) = 0.3535533905932737*m0Sr[7]-0.3535533905932737*cE[7]; 
+  BigAEM(31,25) = 0.3535533905932737*m0Sr[6]-0.3535533905932737*cE[6]; 
+  BigAEM(31,26) = 0.3535533905932737*m0Sr[5]-0.3535533905932737*cE[5]; 
+  BigAEM(31,27) = 0.3535533905932737*m0Sr[4]-0.3535533905932737*cE[4]; 
+  BigAEM(31,28) = 0.3535533905932737*m0Sr[3]-0.3535533905932737*cE[3]; 
+  BigAEM(31,29) = 0.3535533905932737*m0Sr[2]-0.3535533905932737*cE[2]; 
+  BigAEM(31,30) = 0.3535533905932737*m0Sr[1]-0.3535533905932737*cE[1]; 
+  BigAEM(31,31) = 0.3535533905932737*m0Sr[0]-0.3535533905932737*cE[0]; 
  
   // Set other entries to 0. // 
   BigAEM.block<8,16>(0,8).setZero(); 
@@ -863,7 +1579,7 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
   BigAEM.block<8,8>(16,8).setZero(); 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
-  bEV << m1r[0],m1r[1],m1r[2],m1r[3],m1r[4],m1r[5],m1r[6],m1r[7],m1r[8],m1r[9],m1r[10],m1r[11],m1r[12],m1r[13],m1r[14],m1r[15],m1r[16],m1r[17],m1r[18],m1r[19],m1r[20],m1r[21],m1r[22],m1r[23],m2r[0],m2r[1],m2r[2],m2r[3],m2r[4],m2r[5],m2r[6],m2r[7]; 
+  bEV << m1r[0],m1r[1],m1r[2],m1r[3],m1r[4],m1r[5],m1r[6],m1r[7],m1r[8],m1r[9],m1r[10],m1r[11],m1r[12],m1r[13],m1r[14],m1r[15],m1r[16],m1r[17],m1r[18],m1r[19],m1r[20],m1r[21],m1r[22],m1r[23],m2Sr[0],m2Sr[1],m2Sr[2],m2Sr[3],m2Sr[4],m2Sr[5],m2Sr[6],m2Sr[7]; 
  
   xEV = BigAEM.colPivHouseholderQr().solve(bEV); 
  
@@ -873,10 +1589,9 @@ void SelfPrimMoments3x3vSer_P1(const int pVdim, const double *m0, const double *
  
 } 
  
-void SelfPrimMoments3x3vSer_P2(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0S, const double *m1S, const double *cM, const double *cE, double *u, double *vtSq) 
+void VmSelfPrimMoments3x3vSer_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
 { 
   // m0,m1,m2: moments of the distribution function. 
-  // m0S,m1S:  star moments (only used for piecewise linear). 
   // cM, cE:   vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
   // u:        velocity. 
   // vtSq:     squared thermal speed, sqrt(T/m). 
@@ -4523,382 +5238,382 @@ void SelfPrimMoments3x3vSer_P2(const int pVdim, const double *m0, const double *
   BigAEM(79,59) = 0.2258769757263128*m1r[49]+0.3162277660168379*m1r[48]+0.3162277660168379*m1r[47]+0.3535533905932737*m1r[40]; 
  
   // ....... Block from correction to vtSq .......... // 
-  BigAEM(60,60) = 0.3535533905932737*m0r[0]*pVdim-0.3535533905932737*cE[0]; 
-  BigAEM(60,61) = 0.3535533905932737*m0r[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(60,62) = 0.3535533905932737*m0r[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(60,63) = 0.3535533905932737*m0r[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(60,64) = 0.3535533905932737*m0r[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(60,65) = 0.3535533905932737*m0r[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(60,66) = 0.3535533905932737*m0r[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(60,67) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(60,68) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(60,69) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(60,70) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(60,71) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(60,72) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(60,73) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(60,74) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(60,75) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(60,76) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(60,77) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(60,78) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(60,79) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(61,60) = 0.3535533905932737*m0r[1]*pVdim-0.3535533905932737*cE[1]; 
-  BigAEM(61,61) = 0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(61,62) = 0.3535533905932737*m0r[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(61,63) = 0.3535533905932737*m0r[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(61,64) = 0.3162277660168379*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(61,65) = 0.3162277660168379*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(61,66) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(61,67) = 0.3162277660168379*m0r[1]*pVdim-0.3162277660168379*cE[1]; 
-  BigAEM(61,68) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(61,69) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(61,70) = 0.3162277660168379*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.3162277660168379*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(61,71) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(61,72) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(61,73) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(61,74) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(61,75) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(61,76) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(61,77) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(61,78) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(61,79) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(62,60) = 0.3535533905932737*m0r[2]*pVdim-0.3535533905932737*cE[2]; 
-  BigAEM(62,61) = 0.3535533905932737*m0r[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(62,62) = 0.3162277660168379*m0r[8]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[8]-0.3535533905932737*cE[0]; 
-  BigAEM(62,63) = 0.3535533905932737*m0r[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(62,64) = 0.3162277660168379*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(62,65) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(62,66) = 0.3162277660168379*m0r[14]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[14]-0.3535533905932737*cE[3]; 
-  BigAEM(62,67) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(62,68) = 0.3162277660168379*m0r[2]*pVdim-0.3162277660168379*cE[2]; 
-  BigAEM(62,69) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(62,70) = 0.3162277660168379*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.3162277660168379*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(62,71) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(62,72) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(62,73) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(62,74) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(62,75) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(62,76) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(62,77) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(62,78) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(62,79) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(63,60) = 0.3535533905932737*m0r[3]*pVdim-0.3535533905932737*cE[3]; 
-  BigAEM(63,61) = 0.3535533905932737*m0r[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(63,62) = 0.3535533905932737*m0r[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(63,63) = 0.3162277660168379*m0r[9]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.3535533905932737*cE[0]; 
-  BigAEM(63,64) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(63,65) = 0.3162277660168379*m0r[15]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[15]-0.3535533905932737*cE[1]; 
-  BigAEM(63,66) = 0.3162277660168379*m0r[16]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[16]-0.3535533905932737*cE[2]; 
-  BigAEM(63,67) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(63,68) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(63,69) = 0.3162277660168379*m0r[3]*pVdim-0.3162277660168379*cE[3]; 
-  BigAEM(63,70) = 0.3162277660168379*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.3162277660168379*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(63,71) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(63,72) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(63,73) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(63,74) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(63,75) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(63,76) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(63,77) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(63,78) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(63,79) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(64,60) = 0.3535533905932737*m0r[4]*pVdim-0.3535533905932737*cE[4]; 
-  BigAEM(64,61) = 0.3162277660168379*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(64,62) = 0.3162277660168379*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(64,63) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(64,64) = 0.3162277660168379*m0r[8]*pVdim+0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[8]-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(64,65) = 0.3162277660168379*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.3162277660168379*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(64,66) = 0.3162277660168379*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.3162277660168379*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(64,67) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(64,68) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(64,69) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(64,70) = 0.3162277660168379*m0r[14]*pVdim+0.3162277660168379*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[14]-0.3162277660168379*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(64,71) = 0.2828427124746191*m0r[12]*pVdim+0.3162277660168379*m0r[1]*pVdim-0.2828427124746191*cE[12]-0.3162277660168379*cE[1]; 
-  BigAEM(64,72) = 0.2828427124746191*m0r[11]*pVdim+0.3162277660168379*m0r[2]*pVdim-0.2828427124746191*cE[11]-0.3162277660168379*cE[2]; 
-  BigAEM(64,73) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(64,74) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(64,75) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(64,76) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(64,77) = 0.2828427124746191*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.2828427124746191*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(64,78) = 0.2828427124746191*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.2828427124746191*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(64,79) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(65,60) = 0.3535533905932737*m0r[5]*pVdim-0.3535533905932737*cE[5]; 
-  BigAEM(65,61) = 0.3162277660168379*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(65,62) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(65,63) = 0.3162277660168379*m0r[15]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[15]-0.3535533905932737*cE[1]; 
-  BigAEM(65,64) = 0.3162277660168379*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.3162277660168379*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(65,65) = 0.3162277660168379*m0r[9]*pVdim+0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(65,66) = 0.3162277660168379*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.3162277660168379*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(65,67) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(65,68) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(65,69) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(65,70) = 0.3162277660168379*m0r[16]*pVdim+0.3162277660168379*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[16]-0.3162277660168379*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(65,71) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(65,72) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(65,73) = 0.2828427124746191*m0r[15]*pVdim+0.3162277660168379*m0r[1]*pVdim-0.2828427124746191*cE[15]-0.3162277660168379*cE[1]; 
-  BigAEM(65,74) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(65,75) = 0.2828427124746191*m0r[13]*pVdim+0.3162277660168379*m0r[3]*pVdim-0.2828427124746191*cE[13]-0.3162277660168379*cE[3]; 
-  BigAEM(65,76) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(65,77) = 0.2828427124746191*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.2828427124746191*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(65,78) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(65,79) = 0.2828427124746191*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.2828427124746191*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(66,60) = 0.3535533905932737*m0r[6]*pVdim-0.3535533905932737*cE[6]; 
-  BigAEM(66,61) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(66,62) = 0.3162277660168379*m0r[14]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[14]-0.3535533905932737*cE[3]; 
-  BigAEM(66,63) = 0.3162277660168379*m0r[16]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[16]-0.3535533905932737*cE[2]; 
-  BigAEM(66,64) = 0.3162277660168379*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.3162277660168379*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(66,65) = 0.3162277660168379*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.3162277660168379*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(66,66) = 0.3162277660168379*m0r[9]*pVdim+0.3162277660168379*m0r[8]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.3162277660168379*cE[8]-0.3535533905932737*cE[0]; 
-  BigAEM(66,67) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(66,68) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(66,69) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(66,70) = 0.3162277660168379*m0r[15]*pVdim+0.3162277660168379*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[15]-0.3162277660168379*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(66,71) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(66,72) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(66,73) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(66,74) = 0.2828427124746191*m0r[16]*pVdim+0.3162277660168379*m0r[2]*pVdim-0.2828427124746191*cE[16]-0.3162277660168379*cE[2]; 
-  BigAEM(66,75) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(66,76) = 0.2828427124746191*m0r[14]*pVdim+0.3162277660168379*m0r[3]*pVdim-0.2828427124746191*cE[14]-0.3162277660168379*cE[3]; 
-  BigAEM(66,77) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(66,78) = 0.2828427124746191*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.2828427124746191*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(66,79) = 0.2828427124746191*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.2828427124746191*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(67,60) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(67,61) = 0.3162277660168379*m0r[1]*pVdim-0.3162277660168379*cE[1]; 
-  BigAEM(67,62) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(67,63) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(67,64) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(67,65) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(67,66) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(67,67) = 0.2258769757263128*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.2258769757263128*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(67,70) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(67,71) = 0.2258769757263128*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.2258769757263128*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(67,72) = 0.3162277660168379*m0r[12]*pVdim-0.3162277660168379*cE[12]; 
-  BigAEM(67,73) = 0.2258769757263128*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.2258769757263128*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(67,75) = 0.3162277660168379*m0r[15]*pVdim-0.3162277660168379*cE[15]; 
-  BigAEM(67,77) = 0.2258769757263128*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.2258769757263128*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(67,78) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(67,79) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(68,60) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(68,61) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(68,62) = 0.3162277660168379*m0r[2]*pVdim-0.3162277660168379*cE[2]; 
-  BigAEM(68,63) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(68,64) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(68,65) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(68,66) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(68,68) = 0.2258769757263128*m0r[8]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.2258769757263128*cE[8]-0.3535533905932737*cE[0]; 
-  BigAEM(68,70) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(68,71) = 0.3162277660168379*m0r[11]*pVdim-0.3162277660168379*cE[11]; 
-  BigAEM(68,72) = 0.2258769757263128*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.2258769757263128*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(68,74) = 0.2258769757263128*m0r[14]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.2258769757263128*cE[14]-0.3535533905932737*cE[3]; 
-  BigAEM(68,76) = 0.3162277660168379*m0r[16]*pVdim-0.3162277660168379*cE[16]; 
-  BigAEM(68,77) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(68,78) = 0.2258769757263128*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.2258769757263128*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(68,79) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(69,60) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(69,61) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(69,62) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(69,63) = 0.3162277660168379*m0r[3]*pVdim-0.3162277660168379*cE[3]; 
-  BigAEM(69,64) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(69,65) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(69,66) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(69,69) = 0.2258769757263128*m0r[9]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.2258769757263128*cE[9]-0.3535533905932737*cE[0]; 
-  BigAEM(69,70) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(69,73) = 0.3162277660168379*m0r[13]*pVdim-0.3162277660168379*cE[13]; 
-  BigAEM(69,74) = 0.3162277660168379*m0r[14]*pVdim-0.3162277660168379*cE[14]; 
-  BigAEM(69,75) = 0.2258769757263128*m0r[15]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.2258769757263128*cE[15]-0.3535533905932737*cE[1]; 
-  BigAEM(69,76) = 0.2258769757263128*m0r[16]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.2258769757263128*cE[16]-0.3535533905932737*cE[2]; 
-  BigAEM(69,77) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(69,78) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(69,79) = 0.2258769757263128*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.2258769757263128*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(70,60) = 0.3535533905932737*m0r[10]*pVdim-0.3535533905932737*cE[10]; 
-  BigAEM(70,61) = 0.3162277660168379*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.3162277660168379*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(70,62) = 0.3162277660168379*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.3162277660168379*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(70,63) = 0.3162277660168379*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.3162277660168379*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(70,64) = 0.3162277660168379*m0r[14]*pVdim+0.3162277660168379*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[14]-0.3162277660168379*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(70,65) = 0.3162277660168379*m0r[16]*pVdim+0.3162277660168379*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[16]-0.3162277660168379*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(70,66) = 0.3162277660168379*m0r[15]*pVdim+0.3162277660168379*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[15]-0.3162277660168379*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(70,67) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(70,68) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(70,69) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(70,70) = 0.3162277660168379*m0r[9]*pVdim+0.3162277660168379*m0r[8]*pVdim+0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.3162277660168379*cE[8]-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(70,71) = 0.282842712474619*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.282842712474619*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(70,72) = 0.282842712474619*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.282842712474619*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(70,73) = 0.282842712474619*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.282842712474619*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(70,74) = 0.282842712474619*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.282842712474619*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(70,75) = 0.282842712474619*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.282842712474619*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(70,76) = 0.282842712474619*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.282842712474619*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(70,77) = 0.282842712474619*m0r[15]*pVdim+0.282842712474619*m0r[12]*pVdim+0.3162277660168379*m0r[1]*pVdim-0.282842712474619*cE[15]-0.282842712474619*cE[12]-0.3162277660168379*cE[1]; 
-  BigAEM(70,78) = 0.282842712474619*m0r[16]*pVdim+0.282842712474619*m0r[11]*pVdim+0.3162277660168379*m0r[2]*pVdim-0.282842712474619*cE[16]-0.282842712474619*cE[11]-0.3162277660168379*cE[2]; 
-  BigAEM(70,79) = 0.282842712474619*m0r[14]*pVdim+0.282842712474619*m0r[13]*pVdim+0.3162277660168379*m0r[3]*pVdim-0.282842712474619*cE[14]-0.282842712474619*cE[13]-0.3162277660168379*cE[3]; 
-  BigAEM(71,60) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(71,61) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(71,62) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(71,63) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(71,64) = 0.2828427124746191*m0r[12]*pVdim+0.3162277660168379*m0r[1]*pVdim-0.2828427124746191*cE[12]-0.3162277660168379*cE[1]; 
-  BigAEM(71,65) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(71,66) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(71,67) = 0.2258769757263128*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.2258769757263128*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(71,68) = 0.3162277660168379*m0r[11]*pVdim-0.3162277660168379*cE[11]; 
-  BigAEM(71,70) = 0.282842712474619*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.282842712474619*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(71,71) = 0.3162277660168379*m0r[8]*pVdim+0.2258769757263128*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[8]-0.2258769757263128*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(71,72) = 0.2828427124746191*m0r[4]*pVdim-0.2828427124746191*cE[4]; 
-  BigAEM(71,73) = 0.2258769757263128*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.2258769757263128*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(71,74) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(71,75) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(71,77) = 0.3162277660168379*m0r[14]*pVdim+0.2258769757263128*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[14]-0.2258769757263128*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(71,78) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(71,79) = 0.3162277660168379*m0r[15]*pVdim-0.3162277660168379*cE[15]; 
-  BigAEM(72,60) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(72,61) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(72,62) = 0.3162277660168379*m0r[4]*pVdim-0.3162277660168379*cE[4]; 
-  BigAEM(72,63) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(72,64) = 0.2828427124746191*m0r[11]*pVdim+0.3162277660168379*m0r[2]*pVdim-0.2828427124746191*cE[11]-0.3162277660168379*cE[2]; 
-  BigAEM(72,65) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(72,66) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(72,67) = 0.3162277660168379*m0r[12]*pVdim-0.3162277660168379*cE[12]; 
-  BigAEM(72,68) = 0.2258769757263128*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.2258769757263128*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(72,70) = 0.282842712474619*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.282842712474619*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(72,71) = 0.2828427124746191*m0r[4]*pVdim-0.2828427124746191*cE[4]; 
-  BigAEM(72,72) = 0.2258769757263128*m0r[8]*pVdim+0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.2258769757263128*cE[8]-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(72,73) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(72,74) = 0.2258769757263128*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.2258769757263128*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(72,76) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(72,77) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(72,78) = 0.2258769757263128*m0r[14]*pVdim+0.3162277660168379*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.2258769757263128*cE[14]-0.3162277660168379*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(72,79) = 0.3162277660168379*m0r[16]*pVdim-0.3162277660168379*cE[16]; 
-  BigAEM(73,60) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(73,61) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(73,62) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(73,63) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(73,64) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(73,65) = 0.2828427124746191*m0r[15]*pVdim+0.3162277660168379*m0r[1]*pVdim-0.2828427124746191*cE[15]-0.3162277660168379*cE[1]; 
-  BigAEM(73,66) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(73,67) = 0.2258769757263128*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.2258769757263128*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(73,69) = 0.3162277660168379*m0r[13]*pVdim-0.3162277660168379*cE[13]; 
-  BigAEM(73,70) = 0.282842712474619*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.282842712474619*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(73,71) = 0.2258769757263128*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.2258769757263128*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(73,72) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(73,73) = 0.3162277660168379*m0r[9]*pVdim+0.2258769757263128*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.2258769757263128*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(73,75) = 0.2828427124746191*m0r[5]*pVdim-0.2828427124746191*cE[5]; 
-  BigAEM(73,76) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(73,77) = 0.3162277660168379*m0r[16]*pVdim+0.2258769757263128*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[16]-0.2258769757263128*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(73,78) = 0.3162277660168379*m0r[12]*pVdim-0.3162277660168379*cE[12]; 
-  BigAEM(73,79) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(74,60) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(74,61) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(74,62) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(74,63) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(74,64) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(74,65) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(74,66) = 0.2828427124746191*m0r[16]*pVdim+0.3162277660168379*m0r[2]*pVdim-0.2828427124746191*cE[16]-0.3162277660168379*cE[2]; 
-  BigAEM(74,68) = 0.2258769757263128*m0r[14]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.2258769757263128*cE[14]-0.3535533905932737*cE[3]; 
-  BigAEM(74,69) = 0.3162277660168379*m0r[14]*pVdim-0.3162277660168379*cE[14]; 
-  BigAEM(74,70) = 0.282842712474619*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.282842712474619*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(74,71) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(74,72) = 0.2258769757263128*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.2258769757263128*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(74,74) = 0.3162277660168379*m0r[9]*pVdim+0.2258769757263128*m0r[8]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.2258769757263128*cE[8]-0.3535533905932737*cE[0]; 
-  BigAEM(74,75) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(74,76) = 0.2828427124746191*m0r[6]*pVdim-0.2828427124746191*cE[6]; 
-  BigAEM(74,77) = 0.3162277660168379*m0r[11]*pVdim-0.3162277660168379*cE[11]; 
-  BigAEM(74,78) = 0.3162277660168379*m0r[15]*pVdim+0.2258769757263128*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[15]-0.2258769757263128*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(74,79) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(75,60) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(75,61) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(75,62) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(75,63) = 0.3162277660168379*m0r[5]*pVdim-0.3162277660168379*cE[5]; 
-  BigAEM(75,64) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(75,65) = 0.2828427124746191*m0r[13]*pVdim+0.3162277660168379*m0r[3]*pVdim-0.2828427124746191*cE[13]-0.3162277660168379*cE[3]; 
-  BigAEM(75,66) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(75,67) = 0.3162277660168379*m0r[15]*pVdim-0.3162277660168379*cE[15]; 
-  BigAEM(75,69) = 0.2258769757263128*m0r[15]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.2258769757263128*cE[15]-0.3535533905932737*cE[1]; 
-  BigAEM(75,70) = 0.282842712474619*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.282842712474619*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(75,71) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(75,73) = 0.2828427124746191*m0r[5]*pVdim-0.2828427124746191*cE[5]; 
-  BigAEM(75,74) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(75,75) = 0.2258769757263128*m0r[9]*pVdim+0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.2258769757263128*cE[9]-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(75,76) = 0.2258769757263128*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.2258769757263128*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(75,77) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(75,78) = 0.3162277660168379*m0r[14]*pVdim-0.3162277660168379*cE[14]; 
-  BigAEM(75,79) = 0.2258769757263128*m0r[16]*pVdim+0.3162277660168379*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.2258769757263128*cE[16]-0.3162277660168379*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(76,60) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(76,61) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(76,62) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(76,63) = 0.3162277660168379*m0r[6]*pVdim-0.3162277660168379*cE[6]; 
-  BigAEM(76,64) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(76,65) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(76,66) = 0.2828427124746191*m0r[14]*pVdim+0.3162277660168379*m0r[3]*pVdim-0.2828427124746191*cE[14]-0.3162277660168379*cE[3]; 
-  BigAEM(76,68) = 0.3162277660168379*m0r[16]*pVdim-0.3162277660168379*cE[16]; 
-  BigAEM(76,69) = 0.2258769757263128*m0r[16]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.2258769757263128*cE[16]-0.3535533905932737*cE[2]; 
-  BigAEM(76,70) = 0.282842712474619*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.282842712474619*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(76,72) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(76,73) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(76,74) = 0.2828427124746191*m0r[6]*pVdim-0.2828427124746191*cE[6]; 
-  BigAEM(76,75) = 0.2258769757263128*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.2258769757263128*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(76,76) = 0.2258769757263128*m0r[9]*pVdim+0.3162277660168379*m0r[8]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.2258769757263128*cE[9]-0.3162277660168379*cE[8]-0.3535533905932737*cE[0]; 
-  BigAEM(76,77) = 0.3162277660168379*m0r[13]*pVdim-0.3162277660168379*cE[13]; 
-  BigAEM(76,78) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(76,79) = 0.2258769757263128*m0r[15]*pVdim+0.3162277660168379*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.2258769757263128*cE[15]-0.3162277660168379*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(77,60) = 0.3535533905932737*m0r[17]*pVdim-0.3535533905932737*cE[17]; 
-  BigAEM(77,61) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(77,62) = 0.3535533905932737*m0r[13]*pVdim-0.3535533905932737*cE[13]; 
-  BigAEM(77,63) = 0.3535533905932737*m0r[11]*pVdim-0.3535533905932737*cE[11]; 
-  BigAEM(77,64) = 0.2828427124746191*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.2828427124746191*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(77,65) = 0.2828427124746191*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.2828427124746191*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(77,66) = 0.3535533905932737*m0r[7]*pVdim-0.3535533905932737*cE[7]; 
-  BigAEM(77,67) = 0.2258769757263128*m0r[17]*pVdim+0.3535533905932737*m0r[6]*pVdim-0.2258769757263128*cE[17]-0.3535533905932737*cE[6]; 
-  BigAEM(77,68) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(77,69) = 0.3162277660168379*m0r[17]*pVdim-0.3162277660168379*cE[17]; 
-  BigAEM(77,70) = 0.282842712474619*m0r[15]*pVdim+0.282842712474619*m0r[12]*pVdim+0.3162277660168379*m0r[1]*pVdim-0.282842712474619*cE[15]-0.282842712474619*cE[12]-0.3162277660168379*cE[1]; 
-  BigAEM(77,71) = 0.3162277660168379*m0r[14]*pVdim+0.2258769757263128*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.3162277660168379*cE[14]-0.2258769757263128*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(77,72) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(77,73) = 0.3162277660168379*m0r[16]*pVdim+0.2258769757263128*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.3162277660168379*cE[16]-0.2258769757263128*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(77,74) = 0.3162277660168379*m0r[11]*pVdim-0.3162277660168379*cE[11]; 
-  BigAEM(77,75) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(77,76) = 0.3162277660168379*m0r[13]*pVdim-0.3162277660168379*cE[13]; 
-  BigAEM(77,77) = 0.3162277660168379*m0r[9]*pVdim+0.3162277660168379*m0r[8]*pVdim+0.2258769757263128*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.3162277660168379*cE[8]-0.2258769757263128*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(77,78) = 0.2529822128134704*m0r[19]*pVdim+0.2828427124746191*m0r[4]*pVdim-0.2529822128134704*cE[19]-0.2828427124746191*cE[4]; 
-  BigAEM(77,79) = 0.2529822128134704*m0r[18]*pVdim+0.2828427124746191*m0r[5]*pVdim-0.2529822128134704*cE[18]-0.2828427124746191*cE[5]; 
-  BigAEM(78,60) = 0.3535533905932737*m0r[18]*pVdim-0.3535533905932737*cE[18]; 
-  BigAEM(78,61) = 0.3535533905932737*m0r[14]*pVdim-0.3535533905932737*cE[14]; 
-  BigAEM(78,62) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(78,63) = 0.3535533905932737*m0r[12]*pVdim-0.3535533905932737*cE[12]; 
-  BigAEM(78,64) = 0.2828427124746191*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.2828427124746191*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(78,65) = 0.3535533905932737*m0r[8]*pVdim-0.3535533905932737*cE[8]; 
-  BigAEM(78,66) = 0.2828427124746191*m0r[19]*pVdim+0.3162277660168379*m0r[4]*pVdim-0.2828427124746191*cE[19]-0.3162277660168379*cE[4]; 
-  BigAEM(78,67) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(78,68) = 0.2258769757263128*m0r[18]*pVdim+0.3535533905932737*m0r[5]*pVdim-0.2258769757263128*cE[18]-0.3535533905932737*cE[5]; 
-  BigAEM(78,69) = 0.3162277660168379*m0r[18]*pVdim-0.3162277660168379*cE[18]; 
-  BigAEM(78,70) = 0.282842712474619*m0r[16]*pVdim+0.282842712474619*m0r[11]*pVdim+0.3162277660168379*m0r[2]*pVdim-0.282842712474619*cE[16]-0.282842712474619*cE[11]-0.3162277660168379*cE[2]; 
-  BigAEM(78,71) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(78,72) = 0.2258769757263128*m0r[14]*pVdim+0.3162277660168379*m0r[13]*pVdim+0.3535533905932737*m0r[3]*pVdim-0.2258769757263128*cE[14]-0.3162277660168379*cE[13]-0.3535533905932737*cE[3]; 
-  BigAEM(78,73) = 0.3162277660168379*m0r[12]*pVdim-0.3162277660168379*cE[12]; 
-  BigAEM(78,74) = 0.3162277660168379*m0r[15]*pVdim+0.2258769757263128*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.3162277660168379*cE[15]-0.2258769757263128*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(78,75) = 0.3162277660168379*m0r[14]*pVdim-0.3162277660168379*cE[14]; 
-  BigAEM(78,76) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(78,77) = 0.2529822128134704*m0r[19]*pVdim+0.2828427124746191*m0r[4]*pVdim-0.2529822128134704*cE[19]-0.2828427124746191*cE[4]; 
-  BigAEM(78,78) = 0.3162277660168379*m0r[9]*pVdim+0.2258769757263128*m0r[8]*pVdim+0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.3162277660168379*cE[9]-0.2258769757263128*cE[8]-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
-  BigAEM(78,79) = 0.2529822128134704*m0r[17]*pVdim+0.2828427124746191*m0r[6]*pVdim-0.2529822128134704*cE[17]-0.2828427124746191*cE[6]; 
-  BigAEM(79,60) = 0.3535533905932737*m0r[19]*pVdim-0.3535533905932737*cE[19]; 
-  BigAEM(79,61) = 0.3535533905932737*m0r[16]*pVdim-0.3535533905932737*cE[16]; 
-  BigAEM(79,62) = 0.3535533905932737*m0r[15]*pVdim-0.3535533905932737*cE[15]; 
-  BigAEM(79,63) = 0.3162277660168379*m0r[10]*pVdim-0.3162277660168379*cE[10]; 
-  BigAEM(79,64) = 0.3535533905932737*m0r[9]*pVdim-0.3535533905932737*cE[9]; 
-  BigAEM(79,65) = 0.2828427124746191*m0r[17]*pVdim+0.3162277660168379*m0r[6]*pVdim-0.2828427124746191*cE[17]-0.3162277660168379*cE[6]; 
-  BigAEM(79,66) = 0.2828427124746191*m0r[18]*pVdim+0.3162277660168379*m0r[5]*pVdim-0.2828427124746191*cE[18]-0.3162277660168379*cE[5]; 
-  BigAEM(79,67) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(79,68) = 0.3162277660168379*m0r[19]*pVdim-0.3162277660168379*cE[19]; 
-  BigAEM(79,69) = 0.2258769757263128*m0r[19]*pVdim+0.3535533905932737*m0r[4]*pVdim-0.2258769757263128*cE[19]-0.3535533905932737*cE[4]; 
-  BigAEM(79,70) = 0.282842712474619*m0r[14]*pVdim+0.282842712474619*m0r[13]*pVdim+0.3162277660168379*m0r[3]*pVdim-0.282842712474619*cE[14]-0.282842712474619*cE[13]-0.3162277660168379*cE[3]; 
-  BigAEM(79,71) = 0.3162277660168379*m0r[15]*pVdim-0.3162277660168379*cE[15]; 
-  BigAEM(79,72) = 0.3162277660168379*m0r[16]*pVdim-0.3162277660168379*cE[16]; 
-  BigAEM(79,73) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(79,74) = 0.282842712474619*m0r[10]*pVdim-0.282842712474619*cE[10]; 
-  BigAEM(79,75) = 0.2258769757263128*m0r[16]*pVdim+0.3162277660168379*m0r[11]*pVdim+0.3535533905932737*m0r[2]*pVdim-0.2258769757263128*cE[16]-0.3162277660168379*cE[11]-0.3535533905932737*cE[2]; 
-  BigAEM(79,76) = 0.2258769757263128*m0r[15]*pVdim+0.3162277660168379*m0r[12]*pVdim+0.3535533905932737*m0r[1]*pVdim-0.2258769757263128*cE[15]-0.3162277660168379*cE[12]-0.3535533905932737*cE[1]; 
-  BigAEM(79,77) = 0.2529822128134704*m0r[18]*pVdim+0.2828427124746191*m0r[5]*pVdim-0.2529822128134704*cE[18]-0.2828427124746191*cE[5]; 
-  BigAEM(79,78) = 0.2529822128134704*m0r[17]*pVdim+0.2828427124746191*m0r[6]*pVdim-0.2529822128134704*cE[17]-0.2828427124746191*cE[6]; 
-  BigAEM(79,79) = 0.2258769757263128*m0r[9]*pVdim+0.3162277660168379*m0r[8]*pVdim+0.3162277660168379*m0r[7]*pVdim+0.3535533905932737*m0r[0]*pVdim-0.2258769757263128*cE[9]-0.3162277660168379*cE[8]-0.3162277660168379*cE[7]-0.3535533905932737*cE[0]; 
+  BigAEM(60,60) = 1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(60,61) = 1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(60,62) = 1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(60,63) = 1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(60,64) = 1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(60,65) = 1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(60,66) = 1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(60,67) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(60,68) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(60,69) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(60,70) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(60,71) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(60,72) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(60,73) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(60,74) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(60,75) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(60,76) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(60,77) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(60,78) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(60,79) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(61,60) = 1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(61,61) = 0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(61,62) = 1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(61,63) = 1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(61,64) = 0.9486832980505138*m0r[11]-0.3162277660168379*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(61,65) = 0.9486832980505138*m0r[13]-0.3162277660168379*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(61,66) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(61,67) = 0.9486832980505137*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(61,68) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(61,69) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(61,70) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(61,71) = 0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(61,72) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(61,73) = 0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(61,74) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(61,75) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(61,76) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(61,77) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(61,78) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(61,79) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(62,60) = 1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(62,61) = 1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(62,62) = 0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(62,63) = 1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(62,64) = 0.9486832980505138*m0r[12]-0.3162277660168379*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(62,65) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(62,66) = 0.9486832980505138*m0r[14]-0.3162277660168379*cE[14]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(62,67) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(62,68) = 0.9486832980505137*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(62,69) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(62,70) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(62,71) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(62,72) = 0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(62,73) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(62,74) = 0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(62,75) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(62,76) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(62,77) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(62,78) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(62,79) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(63,60) = 1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(63,61) = 1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(63,62) = 1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(63,63) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(63,64) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(63,65) = 0.9486832980505138*m0r[15]-0.3162277660168379*cE[15]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(63,66) = 0.9486832980505138*m0r[16]-0.3162277660168379*cE[16]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(63,67) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(63,68) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(63,69) = 0.9486832980505137*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(63,70) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(63,71) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(63,72) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(63,73) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(63,74) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(63,75) = 0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(63,76) = 0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(63,77) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(63,78) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(63,79) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(64,60) = 1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(64,61) = 0.9486832980505138*m0r[11]-0.3162277660168379*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(64,62) = 0.9486832980505138*m0r[12]-0.3162277660168379*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(64,63) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(64,64) = 0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(64,65) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(64,66) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(64,67) = 0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(64,68) = 0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(64,69) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(64,70) = 0.9486832980505138*m0r[14]-0.3162277660168379*cE[14]+0.9486832980505138*m0r[13]-0.3162277660168379*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(64,71) = 0.848528137423857*m0r[12]-0.2828427124746191*cE[12]+0.9486832980505138*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(64,72) = 0.848528137423857*m0r[11]-0.2828427124746191*cE[11]+0.9486832980505138*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(64,73) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(64,74) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(64,75) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(64,76) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(64,77) = 0.848528137423857*m0r[18]-0.2828427124746191*cE[18]+0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(64,78) = 0.848528137423857*m0r[17]-0.2828427124746191*cE[17]+0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(64,79) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(65,60) = 1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(65,61) = 0.9486832980505138*m0r[13]-0.3162277660168379*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(65,62) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(65,63) = 0.9486832980505138*m0r[15]-0.3162277660168379*cE[15]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(65,64) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(65,65) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(65,66) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(65,67) = 0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(65,68) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(65,69) = 0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(65,70) = 0.9486832980505138*m0r[16]-0.3162277660168379*cE[16]+0.9486832980505138*m0r[11]-0.3162277660168379*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(65,71) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(65,72) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(65,73) = 0.848528137423857*m0r[15]-0.2828427124746191*cE[15]+0.9486832980505138*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(65,74) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(65,75) = 0.848528137423857*m0r[13]-0.2828427124746191*cE[13]+0.9486832980505138*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(65,76) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(65,77) = 0.848528137423857*m0r[19]-0.2828427124746191*cE[19]+0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(65,78) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(65,79) = 0.848528137423857*m0r[17]-0.2828427124746191*cE[17]+0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(66,60) = 1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(66,61) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(66,62) = 0.9486832980505138*m0r[14]-0.3162277660168379*cE[14]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(66,63) = 0.9486832980505138*m0r[16]-0.3162277660168379*cE[16]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(66,64) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(66,65) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(66,66) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(66,67) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(66,68) = 0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(66,69) = 0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(66,70) = 0.9486832980505138*m0r[15]-0.3162277660168379*cE[15]+0.9486832980505138*m0r[12]-0.3162277660168379*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(66,71) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(66,72) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(66,73) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(66,74) = 0.848528137423857*m0r[16]-0.2828427124746191*cE[16]+0.9486832980505138*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(66,75) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(66,76) = 0.848528137423857*m0r[14]-0.2828427124746191*cE[14]+0.9486832980505138*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(66,77) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(66,78) = 0.848528137423857*m0r[19]-0.2828427124746191*cE[19]+0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(66,79) = 0.848528137423857*m0r[18]-0.2828427124746191*cE[18]+0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(67,60) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(67,61) = 0.9486832980505137*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(67,62) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(67,63) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(67,64) = 0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(67,65) = 0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(67,66) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(67,67) = 0.6776309271789384*m0r[7]-0.2258769757263128*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(67,70) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(67,71) = 0.6776309271789384*m0r[11]-0.2258769757263128*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(67,72) = 0.9486832980505137*m0r[12]-0.3162277660168379*cE[12]; 
+  BigAEM(67,73) = 0.6776309271789384*m0r[13]-0.2258769757263128*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(67,75) = 0.9486832980505137*m0r[15]-0.3162277660168379*cE[15]; 
+  BigAEM(67,77) = 0.6776309271789384*m0r[17]-0.2258769757263128*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(67,78) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(67,79) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(68,60) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(68,61) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(68,62) = 0.9486832980505137*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(68,63) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(68,64) = 0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(68,65) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(68,66) = 0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(68,68) = 0.6776309271789384*m0r[8]-0.2258769757263128*cE[8]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(68,70) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(68,71) = 0.9486832980505137*m0r[11]-0.3162277660168379*cE[11]; 
+  BigAEM(68,72) = 0.6776309271789384*m0r[12]-0.2258769757263128*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(68,74) = 0.6776309271789384*m0r[14]-0.2258769757263128*cE[14]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(68,76) = 0.9486832980505137*m0r[16]-0.3162277660168379*cE[16]; 
+  BigAEM(68,77) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(68,78) = 0.6776309271789384*m0r[18]-0.2258769757263128*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(68,79) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(69,60) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(69,61) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(69,62) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(69,63) = 0.9486832980505137*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(69,64) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(69,65) = 0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(69,66) = 0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(69,69) = 0.6776309271789384*m0r[9]-0.2258769757263128*cE[9]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(69,70) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(69,73) = 0.9486832980505137*m0r[13]-0.3162277660168379*cE[13]; 
+  BigAEM(69,74) = 0.9486832980505137*m0r[14]-0.3162277660168379*cE[14]; 
+  BigAEM(69,75) = 0.6776309271789384*m0r[15]-0.2258769757263128*cE[15]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(69,76) = 0.6776309271789384*m0r[16]-0.2258769757263128*cE[16]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(69,77) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(69,78) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(69,79) = 0.6776309271789384*m0r[19]-0.2258769757263128*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(70,60) = 1.060660171779821*m0r[10]-0.3535533905932737*cE[10]; 
+  BigAEM(70,61) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(70,62) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(70,63) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(70,64) = 0.9486832980505138*m0r[14]-0.3162277660168379*cE[14]+0.9486832980505138*m0r[13]-0.3162277660168379*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(70,65) = 0.9486832980505138*m0r[16]-0.3162277660168379*cE[16]+0.9486832980505138*m0r[11]-0.3162277660168379*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(70,66) = 0.9486832980505138*m0r[15]-0.3162277660168379*cE[15]+0.9486832980505138*m0r[12]-0.3162277660168379*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(70,67) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(70,68) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(70,69) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(70,70) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(70,71) = 0.848528137423857*m0r[18]-0.282842712474619*cE[18]+0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(70,72) = 0.848528137423857*m0r[17]-0.282842712474619*cE[17]+0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(70,73) = 0.848528137423857*m0r[19]-0.282842712474619*cE[19]+0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(70,74) = 0.848528137423857*m0r[19]-0.282842712474619*cE[19]+0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(70,75) = 0.848528137423857*m0r[17]-0.282842712474619*cE[17]+0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(70,76) = 0.848528137423857*m0r[18]-0.282842712474619*cE[18]+0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(70,77) = 0.848528137423857*m0r[15]-0.282842712474619*cE[15]+0.848528137423857*m0r[12]-0.282842712474619*cE[12]+0.9486832980505137*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(70,78) = 0.848528137423857*m0r[16]-0.282842712474619*cE[16]+0.848528137423857*m0r[11]-0.282842712474619*cE[11]+0.9486832980505137*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(70,79) = 0.848528137423857*m0r[14]-0.282842712474619*cE[14]+0.848528137423857*m0r[13]-0.282842712474619*cE[13]+0.9486832980505137*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(71,60) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(71,61) = 0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(71,62) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(71,63) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(71,64) = 0.848528137423857*m0r[12]-0.2828427124746191*cE[12]+0.9486832980505138*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(71,65) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(71,66) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(71,67) = 0.6776309271789384*m0r[11]-0.2258769757263128*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(71,68) = 0.9486832980505137*m0r[11]-0.3162277660168379*cE[11]; 
+  BigAEM(71,70) = 0.848528137423857*m0r[18]-0.282842712474619*cE[18]+0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(71,71) = 0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+0.6776309271789384*m0r[7]-0.2258769757263128*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(71,72) = 0.848528137423857*m0r[4]-0.2828427124746191*cE[4]; 
+  BigAEM(71,73) = 0.6776309271789384*m0r[17]-0.2258769757263128*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(71,74) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(71,75) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(71,77) = 0.9486832980505137*m0r[14]-0.3162277660168379*cE[14]+0.6776309271789384*m0r[13]-0.2258769757263128*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(71,78) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(71,79) = 0.9486832980505137*m0r[15]-0.3162277660168379*cE[15]; 
+  BigAEM(72,60) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(72,61) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(72,62) = 0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(72,63) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(72,64) = 0.848528137423857*m0r[11]-0.2828427124746191*cE[11]+0.9486832980505138*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(72,65) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(72,66) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(72,67) = 0.9486832980505137*m0r[12]-0.3162277660168379*cE[12]; 
+  BigAEM(72,68) = 0.6776309271789384*m0r[12]-0.2258769757263128*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(72,70) = 0.848528137423857*m0r[17]-0.282842712474619*cE[17]+0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(72,71) = 0.848528137423857*m0r[4]-0.2828427124746191*cE[4]; 
+  BigAEM(72,72) = 0.6776309271789384*m0r[8]-0.2258769757263128*cE[8]+0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(72,73) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(72,74) = 0.6776309271789384*m0r[18]-0.2258769757263128*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(72,76) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(72,77) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(72,78) = 0.6776309271789384*m0r[14]-0.2258769757263128*cE[14]+0.9486832980505137*m0r[13]-0.3162277660168379*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(72,79) = 0.9486832980505137*m0r[16]-0.3162277660168379*cE[16]; 
+  BigAEM(73,60) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(73,61) = 0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(73,62) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(73,63) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(73,64) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(73,65) = 0.848528137423857*m0r[15]-0.2828427124746191*cE[15]+0.9486832980505138*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(73,66) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(73,67) = 0.6776309271789384*m0r[13]-0.2258769757263128*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(73,69) = 0.9486832980505137*m0r[13]-0.3162277660168379*cE[13]; 
+  BigAEM(73,70) = 0.848528137423857*m0r[19]-0.282842712474619*cE[19]+0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(73,71) = 0.6776309271789384*m0r[17]-0.2258769757263128*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(73,72) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(73,73) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+0.6776309271789384*m0r[7]-0.2258769757263128*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(73,75) = 0.848528137423857*m0r[5]-0.2828427124746191*cE[5]; 
+  BigAEM(73,76) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(73,77) = 0.9486832980505137*m0r[16]-0.3162277660168379*cE[16]+0.6776309271789384*m0r[11]-0.2258769757263128*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(73,78) = 0.9486832980505137*m0r[12]-0.3162277660168379*cE[12]; 
+  BigAEM(73,79) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(74,60) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(74,61) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(74,62) = 0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(74,63) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(74,64) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(74,65) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(74,66) = 0.848528137423857*m0r[16]-0.2828427124746191*cE[16]+0.9486832980505138*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(74,68) = 0.6776309271789384*m0r[14]-0.2258769757263128*cE[14]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(74,69) = 0.9486832980505137*m0r[14]-0.3162277660168379*cE[14]; 
+  BigAEM(74,70) = 0.848528137423857*m0r[19]-0.282842712474619*cE[19]+0.9486832980505138*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(74,71) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(74,72) = 0.6776309271789384*m0r[18]-0.2258769757263128*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(74,74) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+0.6776309271789384*m0r[8]-0.2258769757263128*cE[8]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(74,75) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(74,76) = 0.848528137423857*m0r[6]-0.2828427124746191*cE[6]; 
+  BigAEM(74,77) = 0.9486832980505137*m0r[11]-0.3162277660168379*cE[11]; 
+  BigAEM(74,78) = 0.9486832980505137*m0r[15]-0.3162277660168379*cE[15]+0.6776309271789384*m0r[12]-0.2258769757263128*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(74,79) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(75,60) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(75,61) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(75,62) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(75,63) = 0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(75,64) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(75,65) = 0.848528137423857*m0r[13]-0.2828427124746191*cE[13]+0.9486832980505138*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(75,66) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(75,67) = 0.9486832980505137*m0r[15]-0.3162277660168379*cE[15]; 
+  BigAEM(75,69) = 0.6776309271789384*m0r[15]-0.2258769757263128*cE[15]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(75,70) = 0.848528137423857*m0r[17]-0.282842712474619*cE[17]+0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(75,71) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(75,73) = 0.848528137423857*m0r[5]-0.2828427124746191*cE[5]; 
+  BigAEM(75,74) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(75,75) = 0.6776309271789384*m0r[9]-0.2258769757263128*cE[9]+0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(75,76) = 0.6776309271789384*m0r[19]-0.2258769757263128*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(75,77) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(75,78) = 0.9486832980505137*m0r[14]-0.3162277660168379*cE[14]; 
+  BigAEM(75,79) = 0.6776309271789384*m0r[16]-0.2258769757263128*cE[16]+0.9486832980505137*m0r[11]-0.3162277660168379*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(76,60) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(76,61) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(76,62) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(76,63) = 0.9486832980505138*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(76,64) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(76,65) = 0.9486832980505138*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(76,66) = 0.848528137423857*m0r[14]-0.2828427124746191*cE[14]+0.9486832980505138*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(76,68) = 0.9486832980505137*m0r[16]-0.3162277660168379*cE[16]; 
+  BigAEM(76,69) = 0.6776309271789384*m0r[16]-0.2258769757263128*cE[16]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(76,70) = 0.848528137423857*m0r[18]-0.282842712474619*cE[18]+0.9486832980505138*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(76,72) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(76,73) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(76,74) = 0.848528137423857*m0r[6]-0.2828427124746191*cE[6]; 
+  BigAEM(76,75) = 0.6776309271789384*m0r[19]-0.2258769757263128*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(76,76) = 0.6776309271789384*m0r[9]-0.2258769757263128*cE[9]+0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(76,77) = 0.9486832980505137*m0r[13]-0.3162277660168379*cE[13]; 
+  BigAEM(76,78) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(76,79) = 0.6776309271789384*m0r[15]-0.2258769757263128*cE[15]+0.9486832980505137*m0r[12]-0.3162277660168379*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(77,60) = 1.060660171779821*m0r[17]-0.3535533905932737*cE[17]; 
+  BigAEM(77,61) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(77,62) = 1.060660171779821*m0r[13]-0.3535533905932737*cE[13]; 
+  BigAEM(77,63) = 1.060660171779821*m0r[11]-0.3535533905932737*cE[11]; 
+  BigAEM(77,64) = 0.848528137423857*m0r[18]-0.2828427124746191*cE[18]+0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(77,65) = 0.848528137423857*m0r[19]-0.2828427124746191*cE[19]+0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(77,66) = 1.060660171779821*m0r[7]-0.3535533905932737*cE[7]; 
+  BigAEM(77,67) = 0.6776309271789384*m0r[17]-0.2258769757263128*cE[17]+1.060660171779821*m0r[6]-0.3535533905932737*cE[6]; 
+  BigAEM(77,68) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(77,69) = 0.9486832980505137*m0r[17]-0.3162277660168379*cE[17]; 
+  BigAEM(77,70) = 0.848528137423857*m0r[15]-0.282842712474619*cE[15]+0.848528137423857*m0r[12]-0.282842712474619*cE[12]+0.9486832980505137*m0r[1]-0.3162277660168379*cE[1]; 
+  BigAEM(77,71) = 0.9486832980505137*m0r[14]-0.3162277660168379*cE[14]+0.6776309271789384*m0r[13]-0.2258769757263128*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(77,72) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(77,73) = 0.9486832980505137*m0r[16]-0.3162277660168379*cE[16]+0.6776309271789384*m0r[11]-0.2258769757263128*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(77,74) = 0.9486832980505137*m0r[11]-0.3162277660168379*cE[11]; 
+  BigAEM(77,75) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(77,76) = 0.9486832980505137*m0r[13]-0.3162277660168379*cE[13]; 
+  BigAEM(77,77) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+0.6776309271789384*m0r[7]-0.2258769757263128*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(77,78) = 0.758946638440411*m0r[19]-0.2529822128134704*cE[19]+0.848528137423857*m0r[4]-0.2828427124746191*cE[4]; 
+  BigAEM(77,79) = 0.758946638440411*m0r[18]-0.2529822128134704*cE[18]+0.848528137423857*m0r[5]-0.2828427124746191*cE[5]; 
+  BigAEM(78,60) = 1.060660171779821*m0r[18]-0.3535533905932737*cE[18]; 
+  BigAEM(78,61) = 1.060660171779821*m0r[14]-0.3535533905932737*cE[14]; 
+  BigAEM(78,62) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(78,63) = 1.060660171779821*m0r[12]-0.3535533905932737*cE[12]; 
+  BigAEM(78,64) = 0.848528137423857*m0r[17]-0.2828427124746191*cE[17]+0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(78,65) = 1.060660171779821*m0r[8]-0.3535533905932737*cE[8]; 
+  BigAEM(78,66) = 0.848528137423857*m0r[19]-0.2828427124746191*cE[19]+0.9486832980505137*m0r[4]-0.3162277660168379*cE[4]; 
+  BigAEM(78,67) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(78,68) = 0.6776309271789384*m0r[18]-0.2258769757263128*cE[18]+1.060660171779821*m0r[5]-0.3535533905932737*cE[5]; 
+  BigAEM(78,69) = 0.9486832980505137*m0r[18]-0.3162277660168379*cE[18]; 
+  BigAEM(78,70) = 0.848528137423857*m0r[16]-0.282842712474619*cE[16]+0.848528137423857*m0r[11]-0.282842712474619*cE[11]+0.9486832980505137*m0r[2]-0.3162277660168379*cE[2]; 
+  BigAEM(78,71) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(78,72) = 0.6776309271789384*m0r[14]-0.2258769757263128*cE[14]+0.9486832980505137*m0r[13]-0.3162277660168379*cE[13]+1.060660171779821*m0r[3]-0.3535533905932737*cE[3]; 
+  BigAEM(78,73) = 0.9486832980505137*m0r[12]-0.3162277660168379*cE[12]; 
+  BigAEM(78,74) = 0.9486832980505137*m0r[15]-0.3162277660168379*cE[15]+0.6776309271789384*m0r[12]-0.2258769757263128*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(78,75) = 0.9486832980505137*m0r[14]-0.3162277660168379*cE[14]; 
+  BigAEM(78,76) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(78,77) = 0.758946638440411*m0r[19]-0.2529822128134704*cE[19]+0.848528137423857*m0r[4]-0.2828427124746191*cE[4]; 
+  BigAEM(78,78) = 0.9486832980505137*m0r[9]-0.3162277660168379*cE[9]+0.6776309271789384*m0r[8]-0.2258769757263128*cE[8]+0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
+  BigAEM(78,79) = 0.758946638440411*m0r[17]-0.2529822128134704*cE[17]+0.848528137423857*m0r[6]-0.2828427124746191*cE[6]; 
+  BigAEM(79,60) = 1.060660171779821*m0r[19]-0.3535533905932737*cE[19]; 
+  BigAEM(79,61) = 1.060660171779821*m0r[16]-0.3535533905932737*cE[16]; 
+  BigAEM(79,62) = 1.060660171779821*m0r[15]-0.3535533905932737*cE[15]; 
+  BigAEM(79,63) = 0.9486832980505137*m0r[10]-0.3162277660168379*cE[10]; 
+  BigAEM(79,64) = 1.060660171779821*m0r[9]-0.3535533905932737*cE[9]; 
+  BigAEM(79,65) = 0.848528137423857*m0r[17]-0.2828427124746191*cE[17]+0.9486832980505137*m0r[6]-0.3162277660168379*cE[6]; 
+  BigAEM(79,66) = 0.848528137423857*m0r[18]-0.2828427124746191*cE[18]+0.9486832980505137*m0r[5]-0.3162277660168379*cE[5]; 
+  BigAEM(79,67) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(79,68) = 0.9486832980505137*m0r[19]-0.3162277660168379*cE[19]; 
+  BigAEM(79,69) = 0.6776309271789384*m0r[19]-0.2258769757263128*cE[19]+1.060660171779821*m0r[4]-0.3535533905932737*cE[4]; 
+  BigAEM(79,70) = 0.848528137423857*m0r[14]-0.282842712474619*cE[14]+0.848528137423857*m0r[13]-0.282842712474619*cE[13]+0.9486832980505137*m0r[3]-0.3162277660168379*cE[3]; 
+  BigAEM(79,71) = 0.9486832980505137*m0r[15]-0.3162277660168379*cE[15]; 
+  BigAEM(79,72) = 0.9486832980505137*m0r[16]-0.3162277660168379*cE[16]; 
+  BigAEM(79,73) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(79,74) = 0.848528137423857*m0r[10]-0.282842712474619*cE[10]; 
+  BigAEM(79,75) = 0.6776309271789384*m0r[16]-0.2258769757263128*cE[16]+0.9486832980505137*m0r[11]-0.3162277660168379*cE[11]+1.060660171779821*m0r[2]-0.3535533905932737*cE[2]; 
+  BigAEM(79,76) = 0.6776309271789384*m0r[15]-0.2258769757263128*cE[15]+0.9486832980505137*m0r[12]-0.3162277660168379*cE[12]+1.060660171779821*m0r[1]-0.3535533905932737*cE[1]; 
+  BigAEM(79,77) = 0.758946638440411*m0r[18]-0.2529822128134704*cE[18]+0.848528137423857*m0r[5]-0.2828427124746191*cE[5]; 
+  BigAEM(79,78) = 0.758946638440411*m0r[17]-0.2529822128134704*cE[17]+0.848528137423857*m0r[6]-0.2828427124746191*cE[6]; 
+  BigAEM(79,79) = 0.6776309271789384*m0r[9]-0.2258769757263128*cE[9]+0.9486832980505137*m0r[8]-0.3162277660168379*cE[8]+0.9486832980505137*m0r[7]-0.3162277660168379*cE[7]+1.060660171779821*m0r[0]-0.3535533905932737*cE[0]; 
  
   // Set other entries to 0. // 
   BigAEM.block<20,40>(0,20).setZero(); 
@@ -4914,393 +5629,6 @@ void SelfPrimMoments3x3vSer_P2(const int pVdim, const double *m0, const double *
   Eigen::Map<VectorXd>(u,60,1) = xEV.segment<60>(0); 
  
   Eigen::Map<VectorXd>(vtSq,20,1) = xEV.segment<20>(60); 
- 
-} 
- 
-void StarMoments3x3vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
-{ 
-  // intFac:  =1 for VmLBO, =2pi/m for GkLBO. 
-  // w[NDIM]: Cell-center coordinates. 
-  // dxv[6]:  cell length in each direciton. 
-  // fl/fr:   Distribution function in left/right cells 
-  // out:     Increment to M_0^star from this cell surface. 
- 
-  const double dS = 0.25*dxvl[4]*dxvl[5]*intFac*(wr[3]-wl[3]); 
- 
-  out[0] += ((-0.8164965809277261*fr[4])+0.8164965809277261*fl[4]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0])*dS; 
-  out[1] += ((-0.8164965809277261*fr[10])+0.8164965809277261*fl[10]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1])*dS; 
-  out[2] += ((-0.8164965809277261*fr[11])+0.8164965809277261*fl[11]+0.7071067811865475*fr[2]+0.7071067811865475*fl[2])*dS; 
-  out[3] += ((-0.8164965809277261*fr[12])+0.8164965809277261*fl[12]+0.7071067811865475*fr[3]+0.7071067811865475*fl[3])*dS; 
-  out[4] += ((-0.8164965809277261*fr[23])+0.8164965809277261*fl[23]+0.7071067811865475*fr[7]+0.7071067811865475*fl[7])*dS; 
-  out[5] += ((-0.8164965809277261*fr[24])+0.8164965809277261*fl[24]+0.7071067811865475*fr[8]+0.7071067811865475*fl[8])*dS; 
-  out[6] += ((-0.8164965809277261*fr[25])+0.8164965809277261*fl[25]+0.7071067811865475*fr[9]+0.7071067811865475*fl[9])*dS; 
-  out[7] += ((-0.8164965809277261*fr[42])+0.8164965809277261*fl[42]+0.7071067811865475*fr[22]+0.7071067811865475*fl[22])*dS; 
- 
-} 
- 
-void StarMoments3x3vSer_VY(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
-{ 
-  // intFac:  =1 for VmLBO, =2pi/m for GkLBO. 
-  // w[NDIM]: Cell-center coordinates. 
-  // dxv[6]:  cell length in each direciton. 
-  // fl/fr:   Distribution function in left/right cells 
-  // out:     Increment to M_0^star from this cell surface. 
- 
-  const double dS = 0.25*dxvl[3]*dxvl[5]*intFac*(wr[4]-wl[4]); 
- 
-  out[0] += ((-0.8164965809277261*fr[5])+0.8164965809277261*fl[5]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0])*dS; 
-  out[1] += ((-0.8164965809277261*fr[13])+0.8164965809277261*fl[13]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1])*dS; 
-  out[2] += ((-0.8164965809277261*fr[14])+0.8164965809277261*fl[14]+0.7071067811865475*fr[2]+0.7071067811865475*fl[2])*dS; 
-  out[3] += ((-0.8164965809277261*fr[15])+0.8164965809277261*fl[15]+0.7071067811865475*fr[3]+0.7071067811865475*fl[3])*dS; 
-  out[4] += ((-0.8164965809277261*fr[26])+0.8164965809277261*fl[26]+0.7071067811865475*fr[7]+0.7071067811865475*fl[7])*dS; 
-  out[5] += ((-0.8164965809277261*fr[27])+0.8164965809277261*fl[27]+0.7071067811865475*fr[8]+0.7071067811865475*fl[8])*dS; 
-  out[6] += ((-0.8164965809277261*fr[28])+0.8164965809277261*fl[28]+0.7071067811865475*fr[9]+0.7071067811865475*fl[9])*dS; 
-  out[7] += ((-0.8164965809277261*fr[43])+0.8164965809277261*fl[43]+0.7071067811865475*fr[22]+0.7071067811865475*fl[22])*dS; 
- 
-} 
- 
-void StarMoments3x3vSer_VZ(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
-{ 
-  // intFac:  =1 for VmLBO, =2pi/m for GkLBO. 
-  // w[NDIM]: Cell-center coordinates. 
-  // dxv[6]:  cell length in each direciton. 
-  // fl/fr:   Distribution function in left/right cells 
-  // out:     Increment to M_0^star from this cell surface. 
- 
-  const double dS = 0.25*dxvl[3]*dxvl[4]*intFac*(wr[5]-wl[5]); 
- 
-  out[0] += ((-0.8164965809277261*fr[6])+0.8164965809277261*fl[6]+0.7071067811865475*fr[0]+0.7071067811865475*fl[0])*dS; 
-  out[1] += ((-0.8164965809277261*fr[17])+0.8164965809277261*fl[17]+0.7071067811865475*fr[1]+0.7071067811865475*fl[1])*dS; 
-  out[2] += ((-0.8164965809277261*fr[18])+0.8164965809277261*fl[18]+0.7071067811865475*fr[2]+0.7071067811865475*fl[2])*dS; 
-  out[3] += ((-0.8164965809277261*fr[19])+0.8164965809277261*fl[19]+0.7071067811865475*fr[3]+0.7071067811865475*fl[3])*dS; 
-  out[4] += ((-0.8164965809277261*fr[32])+0.8164965809277261*fl[32]+0.7071067811865475*fr[7]+0.7071067811865475*fl[7])*dS; 
-  out[5] += ((-0.8164965809277261*fr[33])+0.8164965809277261*fl[33]+0.7071067811865475*fr[8]+0.7071067811865475*fl[8])*dS; 
-  out[6] += ((-0.8164965809277261*fr[34])+0.8164965809277261*fl[34]+0.7071067811865475*fr[9]+0.7071067811865475*fl[9])*dS; 
-  out[7] += ((-0.8164965809277261*fr[47])+0.8164965809277261*fl[47]+0.7071067811865475*fr[22]+0.7071067811865475*fl[22])*dS; 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_F_VX_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[64], fvmin[64]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[4]*dxv[5]*intFac; 
- 
-  out[0] += (2.449489742783178*fvmin[4]+2.449489742783178*fvmax[4]-1.414213562373095*fvmin[0]+1.414213562373095*fvmax[0])*dS; 
-  out[1] += (2.449489742783178*fvmin[10]+2.449489742783178*fvmax[10]-1.414213562373095*fvmin[1]+1.414213562373095*fvmax[1])*dS; 
-  out[2] += (2.449489742783178*fvmin[11]+2.449489742783178*fvmax[11]-1.414213562373095*fvmin[2]+1.414213562373095*fvmax[2])*dS; 
-  out[3] += (2.449489742783178*fvmin[12]+2.449489742783178*fvmax[12]-1.414213562373095*fvmin[3]+1.414213562373095*fvmax[3])*dS; 
-  out[4] += (2.449489742783178*fvmin[23]+2.449489742783178*fvmax[23]-1.414213562373095*fvmin[7]+1.414213562373095*fvmax[7])*dS; 
-  out[5] += (2.449489742783178*fvmin[24]+2.449489742783178*fvmax[24]-1.414213562373095*fvmin[8]+1.414213562373095*fvmax[8])*dS; 
-  out[6] += (2.449489742783178*fvmin[25]+2.449489742783178*fvmax[25]-1.414213562373095*fvmin[9]+1.414213562373095*fvmax[9])*dS; 
-  out[7] += (2.449489742783178*fvmin[42]+2.449489742783178*fvmax[42]-1.414213562373095*fvmin[22]+1.414213562373095*fvmax[22])*dS; 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_F_VX_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[256], fvmin[256]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[4]*dxv[5]*intFac; 
- 
-  out[0] += ((-3.16227766016838*fvmin[25])+3.16227766016838*fvmax[25]+2.449489742783178*fvmin[4]+2.449489742783178*fvmax[4]-1.414213562373095*fvmin[0]+1.414213562373095*fvmax[0])*dS; 
-  out[1] += ((-3.16227766016838*fvmin[57])+3.16227766016838*fvmax[57]+2.449489742783178*fvmin[10]+2.449489742783178*fvmax[10]-1.414213562373095*fvmin[1]+1.414213562373095*fvmax[1])*dS; 
-  out[2] += ((-3.16227766016838*fvmin[58])+3.16227766016838*fvmax[58]+2.449489742783178*fvmin[11]+2.449489742783178*fvmax[11]-1.414213562373095*fvmin[2]+1.414213562373095*fvmax[2])*dS; 
-  out[3] += ((-3.16227766016838*fvmin[59])+3.16227766016838*fvmax[59]+2.449489742783178*fvmin[12]+2.449489742783178*fvmax[12]-1.414213562373095*fvmin[3]+1.414213562373095*fvmax[3])*dS; 
-  out[4] += ((-3.16227766016838*fvmin[102])+3.16227766016838*fvmax[102]+2.449489742783178*fvmin[29]+2.449489742783178*fvmax[29]-1.414213562373095*fvmin[7]+1.414213562373095*fvmax[7])*dS; 
-  out[5] += ((-3.16227766016838*fvmin[103])+3.16227766016838*fvmax[103]+2.449489742783178*fvmin[30]+2.449489742783178*fvmax[30]-1.414213562373095*fvmin[8]+1.414213562373095*fvmax[8])*dS; 
-  out[6] += ((-3.16227766016838*fvmin[104])+3.16227766016838*fvmax[104]+2.449489742783178*fvmin[31]+2.449489742783178*fvmax[31]-1.414213562373095*fvmin[9]+1.414213562373095*fvmax[9])*dS; 
-  out[7] += (2.449489742783178*fvmin[54]+2.449489742783178*fvmax[54]-1.414213562373095*fvmin[22]+1.414213562373095*fvmax[22])*dS; 
-  out[8] += (2.449489742783178*fvmin[55]+2.449489742783178*fvmax[55]-1.414213562373095*fvmin[23]+1.414213562373095*fvmax[23])*dS; 
-  out[9] += (2.449489742783178*fvmin[56]+2.449489742783178*fvmax[56]-1.414213562373095*fvmin[24]+1.414213562373095*fvmax[24])*dS; 
-  out[10] += ((-3.16227766016838*fvmin[162])+3.16227766016838*fvmax[162]+2.449489742783178*fvmin[78]+2.449489742783178*fvmax[78]-1.414213562373095*fvmin[28]+1.414213562373095*fvmax[28])*dS; 
-  out[11] += (2.449489742783178*fvmin[96]+2.449489742783178*fvmax[96]-1.414213562373095*fvmin[48]+1.414213562373095*fvmax[48])*dS; 
-  out[12] += (2.449489742783178*fvmin[97]+2.449489742783178*fvmax[97]-1.414213562373095*fvmin[49]+1.414213562373095*fvmax[49])*dS; 
-  out[13] += (2.449489742783178*fvmin[98]+2.449489742783178*fvmax[98]-1.414213562373095*fvmin[50]+1.414213562373095*fvmax[50])*dS; 
-  out[14] += (2.449489742783178*fvmin[99]+2.449489742783178*fvmax[99]-1.414213562373095*fvmin[51]+1.414213562373095*fvmax[51])*dS; 
-  out[15] += (2.449489742783178*fvmin[100]+2.449489742783178*fvmax[100]-1.414213562373095*fvmin[52]+1.414213562373095*fvmax[52])*dS; 
-  out[16] += (2.449489742783178*fvmin[101]+2.449489742783178*fvmax[101]-1.414213562373095*fvmin[53]+1.414213562373095*fvmax[53])*dS; 
-  out[17] += (2.449489742783178*fvmin[159]+2.449489742783178*fvmax[159]-1.414213562373095*fvmin[93]+1.414213562373095*fvmax[93])*dS; 
-  out[18] += (2.449489742783178*fvmin[160]+2.449489742783178*fvmax[160]-1.414213562373095*fvmin[94]+1.414213562373095*fvmax[94])*dS; 
-  out[19] += (2.449489742783178*fvmin[161]+2.449489742783178*fvmax[161]-1.414213562373095*fvmin[95]+1.414213562373095*fvmax[95])*dS; 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_vF_VX_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[64], fvmin[64]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[4]*dxv[5]*intFac; 
- 
-  out[0] += dS*(2.449489742783178*fvmin[4]*vmin-1.414213562373095*fvmin[0]*vmin+2.449489742783178*fvmax[4]*vmax+1.414213562373095*fvmax[0]*vmax+1.224744871391589*dxv[3]*fvmin[4]-1.224744871391589*dxv[3]*fvmax[4]-0.7071067811865475*fvmin[0]*dxv[3]-0.7071067811865475*fvmax[0]*dxv[3]); 
-  out[1] += dS*(2.449489742783178*fvmin[10]*vmin-1.414213562373095*fvmin[1]*vmin+2.449489742783178*fvmax[10]*vmax+1.414213562373095*fvmax[1]*vmax+1.224744871391589*dxv[3]*fvmin[10]-1.224744871391589*dxv[3]*fvmax[10]-0.7071067811865475*fvmin[1]*dxv[3]-0.7071067811865475*fvmax[1]*dxv[3]); 
-  out[2] += dS*(2.449489742783178*fvmin[11]*vmin-1.414213562373095*fvmin[2]*vmin+2.449489742783178*fvmax[11]*vmax+1.414213562373095*fvmax[2]*vmax+1.224744871391589*dxv[3]*fvmin[11]-1.224744871391589*dxv[3]*fvmax[11]-0.7071067811865475*fvmin[2]*dxv[3]-0.7071067811865475*fvmax[2]*dxv[3]); 
-  out[3] += dS*(2.449489742783178*fvmin[12]*vmin-1.414213562373095*fvmin[3]*vmin+2.449489742783178*fvmax[12]*vmax+1.414213562373095*fvmax[3]*vmax+1.224744871391589*dxv[3]*fvmin[12]-1.224744871391589*dxv[3]*fvmax[12]-0.7071067811865475*dxv[3]*fvmin[3]-0.7071067811865475*dxv[3]*fvmax[3]); 
-  out[4] += dS*(2.449489742783178*fvmin[23]*vmin-1.414213562373095*fvmin[7]*vmin+2.449489742783178*fvmax[23]*vmax+1.414213562373095*fvmax[7]*vmax+1.224744871391589*dxv[3]*fvmin[23]-1.224744871391589*dxv[3]*fvmax[23]-0.7071067811865475*dxv[3]*fvmin[7]-0.7071067811865475*dxv[3]*fvmax[7]); 
-  out[5] += dS*(2.449489742783178*fvmin[24]*vmin-1.414213562373095*fvmin[8]*vmin+2.449489742783178*fvmax[24]*vmax+1.414213562373095*fvmax[8]*vmax+1.224744871391589*dxv[3]*fvmin[24]-1.224744871391589*dxv[3]*fvmax[24]-0.7071067811865475*dxv[3]*fvmin[8]-0.7071067811865475*dxv[3]*fvmax[8]); 
-  out[6] += dS*(2.449489742783178*fvmin[25]*vmin-1.414213562373095*fvmin[9]*vmin+2.449489742783178*fvmax[25]*vmax+1.414213562373095*fvmax[9]*vmax+1.224744871391589*dxv[3]*fvmin[25]-1.224744871391589*dxv[3]*fvmax[25]-0.7071067811865475*dxv[3]*fvmin[9]-0.7071067811865475*dxv[3]*fvmax[9]); 
-  out[7] += dS*(2.449489742783178*fvmin[42]*vmin-1.414213562373095*fvmin[22]*vmin+2.449489742783178*fvmax[42]*vmax+1.414213562373095*fvmax[22]*vmax+1.224744871391589*dxv[3]*fvmin[42]-1.224744871391589*dxv[3]*fvmax[42]-0.7071067811865475*dxv[3]*fvmin[22]-0.7071067811865475*dxv[3]*fvmax[22]); 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_vF_VX_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[256], fvmin[256]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[4]*dxv[5]*intFac; 
- 
-  out[0] += dS*((-3.16227766016838*fvmin[25]*vmin)+2.449489742783178*fvmin[4]*vmin-1.414213562373095*fvmin[0]*vmin+3.16227766016838*fvmax[25]*vmax+2.449489742783178*fvmax[4]*vmax+1.414213562373095*fvmax[0]*vmax); 
-  out[1] += dS*((-3.16227766016838*fvmin[57]*vmin)+2.449489742783178*fvmin[10]*vmin-1.414213562373095*fvmin[1]*vmin+3.16227766016838*fvmax[57]*vmax+2.449489742783178*fvmax[10]*vmax+1.414213562373095*fvmax[1]*vmax); 
-  out[2] += dS*((-3.16227766016838*fvmin[58]*vmin)+2.449489742783178*fvmin[11]*vmin-1.414213562373095*fvmin[2]*vmin+3.16227766016838*fvmax[58]*vmax+2.449489742783178*fvmax[11]*vmax+1.414213562373095*fvmax[2]*vmax); 
-  out[3] += dS*((-3.16227766016838*fvmin[59]*vmin)+2.449489742783178*fvmin[12]*vmin-1.414213562373095*fvmin[3]*vmin+3.16227766016838*fvmax[59]*vmax+2.449489742783178*fvmax[12]*vmax+1.414213562373095*fvmax[3]*vmax); 
-  out[4] += dS*((-3.16227766016838*fvmin[102]*vmin)+2.449489742783178*fvmin[29]*vmin-1.414213562373095*fvmin[7]*vmin+3.16227766016838*fvmax[102]*vmax+2.449489742783178*fvmax[29]*vmax+1.414213562373095*fvmax[7]*vmax); 
-  out[5] += dS*((-3.16227766016838*fvmin[103]*vmin)+2.449489742783178*fvmin[30]*vmin-1.414213562373095*fvmin[8]*vmin+3.16227766016838*fvmax[103]*vmax+2.449489742783178*fvmax[30]*vmax+1.414213562373095*fvmax[8]*vmax); 
-  out[6] += dS*((-3.16227766016838*fvmin[104]*vmin)+2.449489742783178*fvmin[31]*vmin-1.414213562373095*fvmin[9]*vmin+3.16227766016838*fvmax[104]*vmax+2.449489742783178*fvmax[31]*vmax+1.414213562373095*fvmax[9]*vmax); 
-  out[7] += dS*(2.449489742783178*fvmin[54]*vmin-1.414213562373095*fvmin[22]*vmin+2.449489742783178*fvmax[54]*vmax+1.414213562373095*fvmax[22]*vmax); 
-  out[8] += dS*(2.449489742783178*fvmin[55]*vmin-1.414213562373095*fvmin[23]*vmin+2.449489742783178*fvmax[55]*vmax+1.414213562373095*fvmax[23]*vmax); 
-  out[9] += dS*(2.449489742783178*fvmin[56]*vmin-1.414213562373095*fvmin[24]*vmin+2.449489742783178*fvmax[56]*vmax+1.414213562373095*fvmax[24]*vmax); 
-  out[10] += dS*((-3.16227766016838*fvmin[162]*vmin)+2.449489742783178*fvmin[78]*vmin-1.414213562373095*fvmin[28]*vmin+3.16227766016838*fvmax[162]*vmax+2.449489742783178*fvmax[78]*vmax+1.414213562373095*fvmax[28]*vmax); 
-  out[11] += dS*(2.449489742783178*fvmin[96]*vmin-1.414213562373095*fvmin[48]*vmin+2.449489742783178*fvmax[96]*vmax+1.414213562373095*fvmax[48]*vmax); 
-  out[12] += dS*(2.449489742783178*fvmin[97]*vmin-1.414213562373095*fvmin[49]*vmin+2.449489742783178*fvmax[97]*vmax+1.414213562373095*fvmax[49]*vmax); 
-  out[13] += dS*(2.449489742783178*fvmin[98]*vmin-1.414213562373095*fvmin[50]*vmin+2.449489742783178*fvmax[98]*vmax+1.414213562373095*fvmax[50]*vmax); 
-  out[14] += dS*(2.449489742783178*fvmin[99]*vmin-1.414213562373095*fvmin[51]*vmin+2.449489742783178*fvmax[99]*vmax+1.414213562373095*fvmax[51]*vmax); 
-  out[15] += dS*(2.449489742783178*fvmin[100]*vmin-1.414213562373095*fvmin[52]*vmin+2.449489742783178*fvmax[100]*vmax+1.414213562373095*fvmax[52]*vmax); 
-  out[16] += dS*(2.449489742783178*fvmin[101]*vmin-1.414213562373095*fvmin[53]*vmin+2.449489742783178*fvmax[101]*vmax+1.414213562373095*fvmax[53]*vmax); 
-  out[17] += dS*(2.449489742783178*fvmin[159]*vmin-1.414213562373095*fvmin[93]*vmin+2.449489742783178*fvmax[159]*vmax+1.414213562373095*fvmax[93]*vmax); 
-  out[18] += dS*(2.449489742783178*fvmin[160]*vmin-1.414213562373095*fvmin[94]*vmin+2.449489742783178*fvmax[160]*vmax+1.414213562373095*fvmax[94]*vmax); 
-  out[19] += dS*(2.449489742783178*fvmin[161]*vmin-1.414213562373095*fvmin[95]*vmin+2.449489742783178*fvmax[161]*vmax+1.414213562373095*fvmax[95]*vmax); 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_F_VY_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[64], fvmin[64]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[5]*intFac; 
- 
-  out[8] += (2.449489742783178*fvmin[5]+2.449489742783178*fvmax[5]-1.414213562373095*fvmin[0]+1.414213562373095*fvmax[0])*dS; 
-  out[9] += (2.449489742783178*fvmin[13]+2.449489742783178*fvmax[13]-1.414213562373095*fvmin[1]+1.414213562373095*fvmax[1])*dS; 
-  out[10] += (2.449489742783178*fvmin[14]+2.449489742783178*fvmax[14]-1.414213562373095*fvmin[2]+1.414213562373095*fvmax[2])*dS; 
-  out[11] += (2.449489742783178*fvmin[15]+2.449489742783178*fvmax[15]-1.414213562373095*fvmin[3]+1.414213562373095*fvmax[3])*dS; 
-  out[12] += (2.449489742783178*fvmin[26]+2.449489742783178*fvmax[26]-1.414213562373095*fvmin[7]+1.414213562373095*fvmax[7])*dS; 
-  out[13] += (2.449489742783178*fvmin[27]+2.449489742783178*fvmax[27]-1.414213562373095*fvmin[8]+1.414213562373095*fvmax[8])*dS; 
-  out[14] += (2.449489742783178*fvmin[28]+2.449489742783178*fvmax[28]-1.414213562373095*fvmin[9]+1.414213562373095*fvmax[9])*dS; 
-  out[15] += (2.449489742783178*fvmin[43]+2.449489742783178*fvmax[43]-1.414213562373095*fvmin[22]+1.414213562373095*fvmax[22])*dS; 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_F_VY_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[256], fvmin[256]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[5]*intFac; 
- 
-  out[20] += ((-3.16227766016838*fvmin[26])+3.16227766016838*fvmax[26]+2.449489742783178*fvmin[5]+2.449489742783178*fvmax[5]-1.414213562373095*fvmin[0]+1.414213562373095*fvmax[0])*dS; 
-  out[21] += ((-3.16227766016838*fvmin[64])+3.16227766016838*fvmax[64]+2.449489742783178*fvmin[13]+2.449489742783178*fvmax[13]-1.414213562373095*fvmin[1]+1.414213562373095*fvmax[1])*dS; 
-  out[22] += ((-3.16227766016838*fvmin[65])+3.16227766016838*fvmax[65]+2.449489742783178*fvmin[14]+2.449489742783178*fvmax[14]-1.414213562373095*fvmin[2]+1.414213562373095*fvmax[2])*dS; 
-  out[23] += ((-3.16227766016838*fvmin[66])+3.16227766016838*fvmax[66]+2.449489742783178*fvmin[15]+2.449489742783178*fvmax[15]-1.414213562373095*fvmin[3]+1.414213562373095*fvmax[3])*dS; 
-  out[24] += ((-3.16227766016838*fvmin[117])+3.16227766016838*fvmax[117]+2.449489742783178*fvmin[32]+2.449489742783178*fvmax[32]-1.414213562373095*fvmin[7]+1.414213562373095*fvmax[7])*dS; 
-  out[25] += ((-3.16227766016838*fvmin[118])+3.16227766016838*fvmax[118]+2.449489742783178*fvmin[33]+2.449489742783178*fvmax[33]-1.414213562373095*fvmin[8]+1.414213562373095*fvmax[8])*dS; 
-  out[26] += ((-3.16227766016838*fvmin[119])+3.16227766016838*fvmax[119]+2.449489742783178*fvmin[34]+2.449489742783178*fvmax[34]-1.414213562373095*fvmin[9]+1.414213562373095*fvmax[9])*dS; 
-  out[27] += (2.449489742783178*fvmin[60]+2.449489742783178*fvmax[60]-1.414213562373095*fvmin[22]+1.414213562373095*fvmax[22])*dS; 
-  out[28] += (2.449489742783178*fvmin[61]+2.449489742783178*fvmax[61]-1.414213562373095*fvmin[23]+1.414213562373095*fvmax[23])*dS; 
-  out[29] += (2.449489742783178*fvmin[62]+2.449489742783178*fvmax[62]-1.414213562373095*fvmin[24]+1.414213562373095*fvmax[24])*dS; 
-  out[30] += ((-3.16227766016838*fvmin[175])+3.16227766016838*fvmax[175]+2.449489742783178*fvmin[79]+2.449489742783178*fvmax[79]-1.414213562373095*fvmin[28]+1.414213562373095*fvmax[28])*dS; 
-  out[31] += (2.449489742783178*fvmin[105]+2.449489742783178*fvmax[105]-1.414213562373095*fvmin[48]+1.414213562373095*fvmax[48])*dS; 
-  out[32] += (2.449489742783178*fvmin[106]+2.449489742783178*fvmax[106]-1.414213562373095*fvmin[49]+1.414213562373095*fvmax[49])*dS; 
-  out[33] += (2.449489742783178*fvmin[107]+2.449489742783178*fvmax[107]-1.414213562373095*fvmin[50]+1.414213562373095*fvmax[50])*dS; 
-  out[34] += (2.449489742783178*fvmin[108]+2.449489742783178*fvmax[108]-1.414213562373095*fvmin[51]+1.414213562373095*fvmax[51])*dS; 
-  out[35] += (2.449489742783178*fvmin[109]+2.449489742783178*fvmax[109]-1.414213562373095*fvmin[52]+1.414213562373095*fvmax[52])*dS; 
-  out[36] += (2.449489742783178*fvmin[110]+2.449489742783178*fvmax[110]-1.414213562373095*fvmin[53]+1.414213562373095*fvmax[53])*dS; 
-  out[37] += (2.449489742783178*fvmin[163]+2.449489742783178*fvmax[163]-1.414213562373095*fvmin[93]+1.414213562373095*fvmax[93])*dS; 
-  out[38] += (2.449489742783178*fvmin[164]+2.449489742783178*fvmax[164]-1.414213562373095*fvmin[94]+1.414213562373095*fvmax[94])*dS; 
-  out[39] += (2.449489742783178*fvmin[165]+2.449489742783178*fvmax[165]-1.414213562373095*fvmin[95]+1.414213562373095*fvmax[95])*dS; 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_vF_VY_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[64], fvmin[64]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[5]*intFac; 
- 
-  out[0] += dS*(2.449489742783178*fvmin[5]*vmin-1.414213562373095*fvmin[0]*vmin+2.449489742783178*fvmax[5]*vmax+1.414213562373095*fvmax[0]*vmax+1.224744871391589*dxv[4]*fvmin[5]-1.224744871391589*dxv[4]*fvmax[5]-0.7071067811865475*fvmin[0]*dxv[4]-0.7071067811865475*fvmax[0]*dxv[4]); 
-  out[1] += dS*(2.449489742783178*fvmin[13]*vmin-1.414213562373095*fvmin[1]*vmin+2.449489742783178*fvmax[13]*vmax+1.414213562373095*fvmax[1]*vmax+1.224744871391589*dxv[4]*fvmin[13]-1.224744871391589*dxv[4]*fvmax[13]-0.7071067811865475*fvmin[1]*dxv[4]-0.7071067811865475*fvmax[1]*dxv[4]); 
-  out[2] += dS*(2.449489742783178*fvmin[14]*vmin-1.414213562373095*fvmin[2]*vmin+2.449489742783178*fvmax[14]*vmax+1.414213562373095*fvmax[2]*vmax+1.224744871391589*dxv[4]*fvmin[14]-1.224744871391589*dxv[4]*fvmax[14]-0.7071067811865475*fvmin[2]*dxv[4]-0.7071067811865475*fvmax[2]*dxv[4]); 
-  out[3] += dS*(2.449489742783178*fvmin[15]*vmin-1.414213562373095*fvmin[3]*vmin+2.449489742783178*fvmax[15]*vmax+1.414213562373095*fvmax[3]*vmax+1.224744871391589*dxv[4]*fvmin[15]-1.224744871391589*dxv[4]*fvmax[15]-0.7071067811865475*fvmin[3]*dxv[4]-0.7071067811865475*fvmax[3]*dxv[4]); 
-  out[4] += dS*(2.449489742783178*fvmin[26]*vmin-1.414213562373095*fvmin[7]*vmin+2.449489742783178*fvmax[26]*vmax+1.414213562373095*fvmax[7]*vmax+1.224744871391589*dxv[4]*fvmin[26]-1.224744871391589*dxv[4]*fvmax[26]-0.7071067811865475*dxv[4]*fvmin[7]-0.7071067811865475*dxv[4]*fvmax[7]); 
-  out[5] += dS*(2.449489742783178*fvmin[27]*vmin-1.414213562373095*fvmin[8]*vmin+2.449489742783178*fvmax[27]*vmax+1.414213562373095*fvmax[8]*vmax+1.224744871391589*dxv[4]*fvmin[27]-1.224744871391589*dxv[4]*fvmax[27]-0.7071067811865475*dxv[4]*fvmin[8]-0.7071067811865475*dxv[4]*fvmax[8]); 
-  out[6] += dS*(2.449489742783178*fvmin[28]*vmin-1.414213562373095*fvmin[9]*vmin+2.449489742783178*fvmax[28]*vmax+1.414213562373095*fvmax[9]*vmax+1.224744871391589*dxv[4]*fvmin[28]-1.224744871391589*dxv[4]*fvmax[28]-0.7071067811865475*dxv[4]*fvmin[9]-0.7071067811865475*dxv[4]*fvmax[9]); 
-  out[7] += dS*(2.449489742783178*fvmin[43]*vmin-1.414213562373095*fvmin[22]*vmin+2.449489742783178*fvmax[43]*vmax+1.414213562373095*fvmax[22]*vmax+1.224744871391589*dxv[4]*fvmin[43]-1.224744871391589*dxv[4]*fvmax[43]-0.7071067811865475*dxv[4]*fvmin[22]-0.7071067811865475*dxv[4]*fvmax[22]); 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_vF_VY_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[256], fvmin[256]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[5]*intFac; 
- 
-  out[0] += dS*((-3.16227766016838*fvmin[26]*vmin)+2.449489742783178*fvmin[5]*vmin-1.414213562373095*fvmin[0]*vmin+3.16227766016838*fvmax[26]*vmax+2.449489742783178*fvmax[5]*vmax+1.414213562373095*fvmax[0]*vmax); 
-  out[1] += dS*((-3.16227766016838*fvmin[64]*vmin)+2.449489742783178*fvmin[13]*vmin-1.414213562373095*fvmin[1]*vmin+3.16227766016838*fvmax[64]*vmax+2.449489742783178*fvmax[13]*vmax+1.414213562373095*fvmax[1]*vmax); 
-  out[2] += dS*((-3.16227766016838*fvmin[65]*vmin)+2.449489742783178*fvmin[14]*vmin-1.414213562373095*fvmin[2]*vmin+3.16227766016838*fvmax[65]*vmax+2.449489742783178*fvmax[14]*vmax+1.414213562373095*fvmax[2]*vmax); 
-  out[3] += dS*((-3.16227766016838*fvmin[66]*vmin)+2.449489742783178*fvmin[15]*vmin-1.414213562373095*fvmin[3]*vmin+3.16227766016838*fvmax[66]*vmax+2.449489742783178*fvmax[15]*vmax+1.414213562373095*fvmax[3]*vmax); 
-  out[4] += dS*((-3.16227766016838*fvmin[117]*vmin)+2.449489742783178*fvmin[32]*vmin-1.414213562373095*fvmin[7]*vmin+3.16227766016838*fvmax[117]*vmax+2.449489742783178*fvmax[32]*vmax+1.414213562373095*fvmax[7]*vmax); 
-  out[5] += dS*((-3.16227766016838*fvmin[118]*vmin)+2.449489742783178*fvmin[33]*vmin-1.414213562373095*fvmin[8]*vmin+3.16227766016838*fvmax[118]*vmax+2.449489742783178*fvmax[33]*vmax+1.414213562373095*fvmax[8]*vmax); 
-  out[6] += dS*((-3.16227766016838*fvmin[119]*vmin)+2.449489742783178*fvmin[34]*vmin-1.414213562373095*fvmin[9]*vmin+3.16227766016838*fvmax[119]*vmax+2.449489742783178*fvmax[34]*vmax+1.414213562373095*fvmax[9]*vmax); 
-  out[7] += dS*(2.449489742783178*fvmin[60]*vmin-1.414213562373095*fvmin[22]*vmin+2.449489742783178*fvmax[60]*vmax+1.414213562373095*fvmax[22]*vmax); 
-  out[8] += dS*(2.449489742783178*fvmin[61]*vmin-1.414213562373095*fvmin[23]*vmin+2.449489742783178*fvmax[61]*vmax+1.414213562373095*fvmax[23]*vmax); 
-  out[9] += dS*(2.449489742783178*fvmin[62]*vmin-1.414213562373095*fvmin[24]*vmin+2.449489742783178*fvmax[62]*vmax+1.414213562373095*fvmax[24]*vmax); 
-  out[10] += dS*((-3.16227766016838*fvmin[175]*vmin)+2.449489742783178*fvmin[79]*vmin-1.414213562373095*fvmin[28]*vmin+3.16227766016838*fvmax[175]*vmax+2.449489742783178*fvmax[79]*vmax+1.414213562373095*fvmax[28]*vmax); 
-  out[11] += dS*(2.449489742783178*fvmin[105]*vmin-1.414213562373095*fvmin[48]*vmin+2.449489742783178*fvmax[105]*vmax+1.414213562373095*fvmax[48]*vmax); 
-  out[12] += dS*(2.449489742783178*fvmin[106]*vmin-1.414213562373095*fvmin[49]*vmin+2.449489742783178*fvmax[106]*vmax+1.414213562373095*fvmax[49]*vmax); 
-  out[13] += dS*(2.449489742783178*fvmin[107]*vmin-1.414213562373095*fvmin[50]*vmin+2.449489742783178*fvmax[107]*vmax+1.414213562373095*fvmax[50]*vmax); 
-  out[14] += dS*(2.449489742783178*fvmin[108]*vmin-1.414213562373095*fvmin[51]*vmin+2.449489742783178*fvmax[108]*vmax+1.414213562373095*fvmax[51]*vmax); 
-  out[15] += dS*(2.449489742783178*fvmin[109]*vmin-1.414213562373095*fvmin[52]*vmin+2.449489742783178*fvmax[109]*vmax+1.414213562373095*fvmax[52]*vmax); 
-  out[16] += dS*(2.449489742783178*fvmin[110]*vmin-1.414213562373095*fvmin[53]*vmin+2.449489742783178*fvmax[110]*vmax+1.414213562373095*fvmax[53]*vmax); 
-  out[17] += dS*(2.449489742783178*fvmin[163]*vmin-1.414213562373095*fvmin[93]*vmin+2.449489742783178*fvmax[163]*vmax+1.414213562373095*fvmax[93]*vmax); 
-  out[18] += dS*(2.449489742783178*fvmin[164]*vmin-1.414213562373095*fvmin[94]*vmin+2.449489742783178*fvmax[164]*vmax+1.414213562373095*fvmax[94]*vmax); 
-  out[19] += dS*(2.449489742783178*fvmin[165]*vmin-1.414213562373095*fvmin[95]*vmin+2.449489742783178*fvmax[165]*vmax+1.414213562373095*fvmax[95]*vmax); 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_F_VZ_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[64], fvmin[64]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[4]*intFac; 
- 
-  out[16] += (2.449489742783178*fvmin[6]+2.449489742783178*fvmax[6]-1.414213562373095*fvmin[0]+1.414213562373095*fvmax[0])*dS; 
-  out[17] += (2.449489742783178*fvmin[17]+2.449489742783178*fvmax[17]-1.414213562373095*fvmin[1]+1.414213562373095*fvmax[1])*dS; 
-  out[18] += (2.449489742783178*fvmin[18]+2.449489742783178*fvmax[18]-1.414213562373095*fvmin[2]+1.414213562373095*fvmax[2])*dS; 
-  out[19] += (2.449489742783178*fvmin[19]+2.449489742783178*fvmax[19]-1.414213562373095*fvmin[3]+1.414213562373095*fvmax[3])*dS; 
-  out[20] += (2.449489742783178*fvmin[32]+2.449489742783178*fvmax[32]-1.414213562373095*fvmin[7]+1.414213562373095*fvmax[7])*dS; 
-  out[21] += (2.449489742783178*fvmin[33]+2.449489742783178*fvmax[33]-1.414213562373095*fvmin[8]+1.414213562373095*fvmax[8])*dS; 
-  out[22] += (2.449489742783178*fvmin[34]+2.449489742783178*fvmax[34]-1.414213562373095*fvmin[9]+1.414213562373095*fvmax[9])*dS; 
-  out[23] += (2.449489742783178*fvmin[47]+2.449489742783178*fvmax[47]-1.414213562373095*fvmin[22]+1.414213562373095*fvmax[22])*dS; 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_F_VZ_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[256], fvmin[256]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[4]*intFac; 
- 
-  out[40] += ((-3.16227766016838*fvmin[27])+3.16227766016838*fvmax[27]+2.449489742783178*fvmin[6]+2.449489742783178*fvmax[6]-1.414213562373095*fvmin[0]+1.414213562373095*fvmax[0])*dS; 
-  out[41] += ((-3.16227766016838*fvmin[73])+3.16227766016838*fvmax[73]+2.449489742783178*fvmin[17]+2.449489742783178*fvmax[17]-1.414213562373095*fvmin[1]+1.414213562373095*fvmax[1])*dS; 
-  out[42] += ((-3.16227766016838*fvmin[74])+3.16227766016838*fvmax[74]+2.449489742783178*fvmin[18]+2.449489742783178*fvmax[18]-1.414213562373095*fvmin[2]+1.414213562373095*fvmax[2])*dS; 
-  out[43] += ((-3.16227766016838*fvmin[75])+3.16227766016838*fvmax[75]+2.449489742783178*fvmin[19]+2.449489742783178*fvmax[19]-1.414213562373095*fvmin[3]+1.414213562373095*fvmax[3])*dS; 
-  out[44] += ((-3.16227766016838*fvmin[143])+3.16227766016838*fvmax[143]+2.449489742783178*fvmin[38]+2.449489742783178*fvmax[38]-1.414213562373095*fvmin[7]+1.414213562373095*fvmax[7])*dS; 
-  out[45] += ((-3.16227766016838*fvmin[144])+3.16227766016838*fvmax[144]+2.449489742783178*fvmin[39]+2.449489742783178*fvmax[39]-1.414213562373095*fvmin[8]+1.414213562373095*fvmax[8])*dS; 
-  out[46] += ((-3.16227766016838*fvmin[145])+3.16227766016838*fvmax[145]+2.449489742783178*fvmin[40]+2.449489742783178*fvmax[40]-1.414213562373095*fvmin[9]+1.414213562373095*fvmax[9])*dS; 
-  out[47] += (2.449489742783178*fvmin[68]+2.449489742783178*fvmax[68]-1.414213562373095*fvmin[22]+1.414213562373095*fvmax[22])*dS; 
-  out[48] += (2.449489742783178*fvmin[69]+2.449489742783178*fvmax[69]-1.414213562373095*fvmin[23]+1.414213562373095*fvmax[23])*dS; 
-  out[49] += (2.449489742783178*fvmin[70]+2.449489742783178*fvmax[70]-1.414213562373095*fvmin[24]+1.414213562373095*fvmax[24])*dS; 
-  out[50] += ((-3.16227766016838*fvmin[209])+3.16227766016838*fvmax[209]+2.449489742783178*fvmin[83]+2.449489742783178*fvmax[83]-1.414213562373095*fvmin[28]+1.414213562373095*fvmax[28])*dS; 
-  out[51] += (2.449489742783178*fvmin[123]+2.449489742783178*fvmax[123]-1.414213562373095*fvmin[48]+1.414213562373095*fvmax[48])*dS; 
-  out[52] += (2.449489742783178*fvmin[124]+2.449489742783178*fvmax[124]-1.414213562373095*fvmin[49]+1.414213562373095*fvmax[49])*dS; 
-  out[53] += (2.449489742783178*fvmin[125]+2.449489742783178*fvmax[125]-1.414213562373095*fvmin[50]+1.414213562373095*fvmax[50])*dS; 
-  out[54] += (2.449489742783178*fvmin[126]+2.449489742783178*fvmax[126]-1.414213562373095*fvmin[51]+1.414213562373095*fvmax[51])*dS; 
-  out[55] += (2.449489742783178*fvmin[127]+2.449489742783178*fvmax[127]-1.414213562373095*fvmin[52]+1.414213562373095*fvmax[52])*dS; 
-  out[56] += (2.449489742783178*fvmin[128]+2.449489742783178*fvmax[128]-1.414213562373095*fvmin[53]+1.414213562373095*fvmax[53])*dS; 
-  out[57] += (2.449489742783178*fvmin[179]+2.449489742783178*fvmax[179]-1.414213562373095*fvmin[93]+1.414213562373095*fvmax[93])*dS; 
-  out[58] += (2.449489742783178*fvmin[180]+2.449489742783178*fvmax[180]-1.414213562373095*fvmin[94]+1.414213562373095*fvmax[94])*dS; 
-  out[59] += (2.449489742783178*fvmin[181]+2.449489742783178*fvmax[181]-1.414213562373095*fvmin[95]+1.414213562373095*fvmax[95])*dS; 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_vF_VZ_P1(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[64], fvmin[64]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[4]*intFac; 
- 
-  out[0] += dS*(2.449489742783178*fvmin[6]*vmin-1.414213562373095*fvmin[0]*vmin+2.449489742783178*fvmax[6]*vmax+1.414213562373095*fvmax[0]*vmax+1.224744871391589*dxv[5]*fvmin[6]-1.224744871391589*dxv[5]*fvmax[6]-0.7071067811865475*fvmin[0]*dxv[5]-0.7071067811865475*fvmax[0]*dxv[5]); 
-  out[1] += dS*(2.449489742783178*fvmin[17]*vmin-1.414213562373095*fvmin[1]*vmin+2.449489742783178*fvmax[17]*vmax+1.414213562373095*fvmax[1]*vmax+1.224744871391589*dxv[5]*fvmin[17]-1.224744871391589*dxv[5]*fvmax[17]-0.7071067811865475*fvmin[1]*dxv[5]-0.7071067811865475*fvmax[1]*dxv[5]); 
-  out[2] += dS*(2.449489742783178*fvmin[18]*vmin-1.414213562373095*fvmin[2]*vmin+2.449489742783178*fvmax[18]*vmax+1.414213562373095*fvmax[2]*vmax+1.224744871391589*dxv[5]*fvmin[18]-1.224744871391589*dxv[5]*fvmax[18]-0.7071067811865475*fvmin[2]*dxv[5]-0.7071067811865475*fvmax[2]*dxv[5]); 
-  out[3] += dS*(2.449489742783178*fvmin[19]*vmin-1.414213562373095*fvmin[3]*vmin+2.449489742783178*fvmax[19]*vmax+1.414213562373095*fvmax[3]*vmax+1.224744871391589*dxv[5]*fvmin[19]-1.224744871391589*dxv[5]*fvmax[19]-0.7071067811865475*fvmin[3]*dxv[5]-0.7071067811865475*fvmax[3]*dxv[5]); 
-  out[4] += dS*(2.449489742783178*fvmin[32]*vmin-1.414213562373095*fvmin[7]*vmin+2.449489742783178*fvmax[32]*vmax+1.414213562373095*fvmax[7]*vmax+1.224744871391589*dxv[5]*fvmin[32]-1.224744871391589*dxv[5]*fvmax[32]-0.7071067811865475*dxv[5]*fvmin[7]-0.7071067811865475*dxv[5]*fvmax[7]); 
-  out[5] += dS*(2.449489742783178*fvmin[33]*vmin-1.414213562373095*fvmin[8]*vmin+2.449489742783178*fvmax[33]*vmax+1.414213562373095*fvmax[8]*vmax+1.224744871391589*dxv[5]*fvmin[33]-1.224744871391589*dxv[5]*fvmax[33]-0.7071067811865475*dxv[5]*fvmin[8]-0.7071067811865475*dxv[5]*fvmax[8]); 
-  out[6] += dS*(2.449489742783178*fvmin[34]*vmin-1.414213562373095*fvmin[9]*vmin+2.449489742783178*fvmax[34]*vmax+1.414213562373095*fvmax[9]*vmax+1.224744871391589*dxv[5]*fvmin[34]-1.224744871391589*dxv[5]*fvmax[34]-0.7071067811865475*dxv[5]*fvmin[9]-0.7071067811865475*dxv[5]*fvmax[9]); 
-  out[7] += dS*(2.449489742783178*fvmin[47]*vmin-1.414213562373095*fvmin[22]*vmin+2.449489742783178*fvmax[47]*vmax+1.414213562373095*fvmax[22]*vmax+1.224744871391589*dxv[5]*fvmin[47]-1.224744871391589*dxv[5]*fvmax[47]-0.7071067811865475*dxv[5]*fvmin[22]-0.7071067811865475*dxv[5]*fvmax[22]); 
- 
-} 
- 
-void BoundaryIntegral3x3vSer_vF_VZ_P2(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) 
-{ 
-  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. 
-  // vmax, vmin:         maximum and minimum velocity of the velocity grid. 
-  // dxv[6]:             cell length in each direciton. 
-  // fvmax[256], fvmin[256]: distribution function at the velocity boundaries. 
-  // out:                int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). 
- 
-  const double dS = 0.25*dxv[3]*dxv[4]*intFac; 
- 
-  out[0] += dS*((-3.16227766016838*fvmin[27]*vmin)+2.449489742783178*fvmin[6]*vmin-1.414213562373095*fvmin[0]*vmin+3.16227766016838*fvmax[27]*vmax+2.449489742783178*fvmax[6]*vmax+1.414213562373095*fvmax[0]*vmax); 
-  out[1] += dS*((-3.16227766016838*fvmin[73]*vmin)+2.449489742783178*fvmin[17]*vmin-1.414213562373095*fvmin[1]*vmin+3.16227766016838*fvmax[73]*vmax+2.449489742783178*fvmax[17]*vmax+1.414213562373095*fvmax[1]*vmax); 
-  out[2] += dS*((-3.16227766016838*fvmin[74]*vmin)+2.449489742783178*fvmin[18]*vmin-1.414213562373095*fvmin[2]*vmin+3.16227766016838*fvmax[74]*vmax+2.449489742783178*fvmax[18]*vmax+1.414213562373095*fvmax[2]*vmax); 
-  out[3] += dS*((-3.16227766016838*fvmin[75]*vmin)+2.449489742783178*fvmin[19]*vmin-1.414213562373095*fvmin[3]*vmin+3.16227766016838*fvmax[75]*vmax+2.449489742783178*fvmax[19]*vmax+1.414213562373095*fvmax[3]*vmax); 
-  out[4] += dS*((-3.16227766016838*fvmin[143]*vmin)+2.449489742783178*fvmin[38]*vmin-1.414213562373095*fvmin[7]*vmin+3.16227766016838*fvmax[143]*vmax+2.449489742783178*fvmax[38]*vmax+1.414213562373095*fvmax[7]*vmax); 
-  out[5] += dS*((-3.16227766016838*fvmin[144]*vmin)+2.449489742783178*fvmin[39]*vmin-1.414213562373095*fvmin[8]*vmin+3.16227766016838*fvmax[144]*vmax+2.449489742783178*fvmax[39]*vmax+1.414213562373095*fvmax[8]*vmax); 
-  out[6] += dS*((-3.16227766016838*fvmin[145]*vmin)+2.449489742783178*fvmin[40]*vmin-1.414213562373095*fvmin[9]*vmin+3.16227766016838*fvmax[145]*vmax+2.449489742783178*fvmax[40]*vmax+1.414213562373095*fvmax[9]*vmax); 
-  out[7] += dS*(2.449489742783178*fvmin[68]*vmin-1.414213562373095*fvmin[22]*vmin+2.449489742783178*fvmax[68]*vmax+1.414213562373095*fvmax[22]*vmax); 
-  out[8] += dS*(2.449489742783178*fvmin[69]*vmin-1.414213562373095*fvmin[23]*vmin+2.449489742783178*fvmax[69]*vmax+1.414213562373095*fvmax[23]*vmax); 
-  out[9] += dS*(2.449489742783178*fvmin[70]*vmin-1.414213562373095*fvmin[24]*vmin+2.449489742783178*fvmax[70]*vmax+1.414213562373095*fvmax[24]*vmax); 
-  out[10] += dS*((-3.16227766016838*fvmin[209]*vmin)+2.449489742783178*fvmin[83]*vmin-1.414213562373095*fvmin[28]*vmin+3.16227766016838*fvmax[209]*vmax+2.449489742783178*fvmax[83]*vmax+1.414213562373095*fvmax[28]*vmax); 
-  out[11] += dS*(2.449489742783178*fvmin[123]*vmin-1.414213562373095*fvmin[48]*vmin+2.449489742783178*fvmax[123]*vmax+1.414213562373095*fvmax[48]*vmax); 
-  out[12] += dS*(2.449489742783178*fvmin[124]*vmin-1.414213562373095*fvmin[49]*vmin+2.449489742783178*fvmax[124]*vmax+1.414213562373095*fvmax[49]*vmax); 
-  out[13] += dS*(2.449489742783178*fvmin[125]*vmin-1.414213562373095*fvmin[50]*vmin+2.449489742783178*fvmax[125]*vmax+1.414213562373095*fvmax[50]*vmax); 
-  out[14] += dS*(2.449489742783178*fvmin[126]*vmin-1.414213562373095*fvmin[51]*vmin+2.449489742783178*fvmax[126]*vmax+1.414213562373095*fvmax[51]*vmax); 
-  out[15] += dS*(2.449489742783178*fvmin[127]*vmin-1.414213562373095*fvmin[52]*vmin+2.449489742783178*fvmax[127]*vmax+1.414213562373095*fvmax[52]*vmax); 
-  out[16] += dS*(2.449489742783178*fvmin[128]*vmin-1.414213562373095*fvmin[53]*vmin+2.449489742783178*fvmax[128]*vmax+1.414213562373095*fvmax[53]*vmax); 
-  out[17] += dS*(2.449489742783178*fvmin[179]*vmin-1.414213562373095*fvmin[93]*vmin+2.449489742783178*fvmax[179]*vmax+1.414213562373095*fvmax[93]*vmax); 
-  out[18] += dS*(2.449489742783178*fvmin[180]*vmin-1.414213562373095*fvmin[94]*vmin+2.449489742783178*fvmax[180]*vmax+1.414213562373095*fvmax[94]*vmax); 
-  out[19] += dS*(2.449489742783178*fvmin[181]*vmin-1.414213562373095*fvmin[95]*vmin+2.449489742783178*fvmax[181]*vmax+1.414213562373095*fvmax[95]*vmax); 
  
 } 
  

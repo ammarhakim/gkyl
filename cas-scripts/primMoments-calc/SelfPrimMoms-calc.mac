@@ -1,6 +1,6 @@
 load("primMoments-calc/SelfPrimMoms")$
 load("primMoments-calc/BoundaryEval")$
-load("primMoments-calc/p1StarMoms")$
+load("primMoments-calc/StarMoms")$
 load(stringproc)$
 
 /* ...... USER INPUTS........ */
@@ -8,16 +8,18 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
-minVdim_Ser : 3$    /* but see v loop below. */
-maxCdim_Ser : 1$
-maxVdim_Ser : 3$
+minVdim_Ser : 1$    /* but see v loop below. */
+maxCdim_Ser : 2$
+maxVdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
-minVdim_Max : 3$    /* but see v loop below. */
-maxCdim_Max : 1$
-maxVdim_Max : 3$
+minVdim_Max : 1$    /* but see v loop below. */
+maxCdim_Max : 2$
+maxVdim_Max : 2$
+
+gkVdims      : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -31,66 +33,64 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
+
+    /* Vlasov primitive moments. */
     for v : c thru maxVdim[bInd] do (
-      disp(printf(false,sconcat("Creating SelfPrimMoments ~ax~av", bName[bInd]),c,v)),
-      fname : sconcat("~/max-out/SelfPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+    
+      disp(printf(false,sconcat("Creating VmSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/VmSelfPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
   
-      printf(fh, "#include <math.h> ~%"),
+      printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+      printf(fh, " ~%"),
+
+      printf(fh, "using namespace Eigen; ~%"),
+      printf(fh, " ~%"),
+  
+      kinSpec : "Vm",
+      calcStarMomContributions(fh, kinSpec, c, v, bName[bInd]),
+
+      funcName : sconcat("VmBoundaryIntegral", c, "x", v, "v", bName[bInd]),
+      calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+  
+      funcName : sconcat("VmSelfPrimMoments", c, "x", v, "v", bName[bInd]),
+      calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+  
+      close(fh)
+    ),
+
+    /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v. However each
+       of these effectively solve a weak linear system of 2 equations.
+       For now assume that gyrokinetics is never run in 2x1v or 3x1v. */
+    for gkV : 1 thru length(gkVdims[c]) do (
+
+      v : gkVdims[c][gkV],
+
+      disp(printf(false,sconcat("Creating GkSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/GkSelfPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+    
       printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
       printf(fh, " ~%"),
       printf(fh, "using namespace Eigen; ~%"),
       printf(fh, " ~%"),
+    
+      kinSpec : "Gk",
+      calcStarMomContributions(fh, kinSpec, c, v, bName[bInd]),
   
-      funcName : sconcat("SelfPrimMoments", c, "x", v, "v", bName[bInd]),
-      calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
-  
-      funcName : sconcat("StarMoments", c, "x", v, "v", bName[bInd]),
-      calcStarMomSurfContributions(fh, funcName, c, v, bName[bInd]),
-
-      funcName : sconcat("BoundaryIntegral", c, "x", v, "v", bName[bInd]),
+      funcName : sconcat("GkBoundaryIntegral", c, "x", v, "v", bName[bInd]),
       calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+  
+      funcName : sconcat("GkSelfPrimMoments", c, "x", v, "v", bName[bInd]),
+      calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
   
       close(fh)
     )
   )
 );
 
-/* For gyrokinetic 2x2v and 3x2v effectively solve a linear system
-   equivalent to the Vlasov 2x1v and 3x1v, respectively. For now assume
-   that gyrokinetics is never run in 2x1v or 3x1v. */
-/*
-for bInd : 1 thru length(bName) do (
-  for c : 2 thru 3 do (
-    v : 1,
-    disp(printf(false,sconcat("Creating SelfPrimMoments ~ax~av", bName[bInd]),c,v)),
-    fname : sconcat("~/max-out/SelfPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
-    fh : openw(fname),
-  
-    printf(fh, "#include <math.h> ~%"),
-    printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
-    printf(fh, " ~%"),
-    printf(fh, "using namespace Eigen; ~%"),
-    printf(fh, " ~%"),
-  
-    funcName : sconcat("SelfPrimMoments", c, "x", v, "v", bName[bInd]),
-    calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
-    funcName : sconcat("StarMoments", c, "x", v, "v", bName[bInd]),
-    v : 2,
-    calcStarMomSurfContributions(fh, funcName, c, v, bName[bInd]),
 
-    /* IMPORTANT: Don't include this in the 2x1v file. Conflict otherwise. */
-    if (c = 3) then (
-      v : 2,
-      funcName : sconcat("BoundaryIntegral", c, "x", v, "v", bName[bInd]),
-      calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd])
-    ),
-
-    close(fh)
-  )
-);
-*/
 
 
 

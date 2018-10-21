@@ -2,11 +2,6 @@
    moments u and vt^2 given the moments and the distribution function.
    Weak division, multiplication and dot products are employed. */
 
-/* At the moment we obtain u through weak division of m1 by m0. This
-   does not conserve momentum in a finite velocity grid. We include
-   the contribution coming from the finite velocity grid in the
-   calculation of vtSq. */
-
 /* To avoid the expensive symbolic matrix inversion in
    Maxima we use Eigen to solve the system. */
 
@@ -28,11 +23,15 @@ writeCExprsB(lhs, rhs) := block([expr],
   )
 )$
 
-writeEVExprs(lhs, rhs, vd, nc) := block([expr],
+writeEVExprs(lhs, rhs, vd, nc, p) := block([expr],
   len   : length(rhs),
 /*  start : len*2+(len-1)+2*len+1, */
 /*  start : vd*NC*3+NC*2+(len-1)+2*len+1, */
-  start : vd*nc*3+nc*3+(len-1)+2*len+1,
+  if (p=1) then (
+    start : vd*nc*3+nc*4+(len-1)+2*len+1
+  ) else (
+    start : vd*nc*3+nc*3+(len-1)+2*len+1
+  ),
   for k : 1 thru vd*nc do (
     start : start+slength(string(k-1))
   ),
@@ -50,24 +49,32 @@ writeCExprs1s(lhs, rhs) := block([expr],
 )$
 
 calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+
   kill(varsC, varsP, basisC, basisP),
-  if (cdim > vdim) then (
-    basisVdim : vdim+1
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  if (sequal(substring(funcNm,1,3),"Vm")) then (
+    udim : vdim
   ) else (
-    basisVdim : vdim
+    udim : 1
   ),
-  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", basisVdim, "v"),
-  load(modNm),
+
   for polyOrder : 1 thru pMax do (
-    bC : basisC[polyOrder],
-    bP : basisP[polyOrder],
+    bC  : basisC[polyOrder],
+    bP  : basisP[polyOrder],
     NP  : length(bP),
     NC  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const int pVdim, const double *m0, const double *m1, const double *m2, const double *m0S, const double *m1S, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "  // m0,m1,m2: moments of the distribution function. ~%"),
-    printf(fh, "  // m0S,m1S:  star moments (only used for piecewise linear). ~%"),
+    if (polyOrder=1) then (
+      printf(fh, "void ~a_P~a(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
+      printf(fh, "  // m0,m1:       moments of the distribution function. ~%"),
+      printf(fh, "  // m0S,m1S,m1S: star moments (only used for piecewise linear). ~%")
+    ) else (
+      printf(fh, "void ~a_P~a(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
+      printf(fh, "  // m0,m1,m2: moments of the distribution function. ~%")
+    ),
     printf(fh, "  // cM, cE:   vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. ~%"),
     printf(fh, "  // u:        velocity. ~%"),
     printf(fh, "  // vtSq:     squared thermal speed, sqrt(T/m). ~%"),
@@ -103,48 +110,67 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     printf(fh, " ~%"),
 
+    /* Declare new buffers where moments and star moments are stored. */
     printf(fh, "  double m0r[~a]; ~%", NC),
-    printf(fh, "  double m1r[~a]; ~%", vdim*NC),
-    printf(fh, "  double m2r[~a]; ~%", NC),
-    if polyOrder=1 then (
+    printf(fh, "  double m1r[~a]; ~%", udim*NC),
+    if (polyOrder=1) then (
       printf(fh, "  double m0Sr[~a]; ~%", NC),
-      printf(fh, "  double m1Sr[~a]; ~%", vdim*NC)
+      printf(fh, "  double m1Sr[~a]; ~%", udim*NC),
+      printf(fh, "  double m2Sr[~a]; ~%", NC)
+    ) else (
+      printf(fh, "  double m2r[~a]; ~%", NC)
     ),
+
     printf(fh, "  if (cellAvg) { ~%"),
+    /* Use the cell average of m0 and m1. */
     writeCExprs1s(m0r,append([m0[0]],makelist(0.0,i,1,NC-1))),
-    for vd : 1 thru vdim do (
+    for vd : 1 thru udim do (
       expr : float(expand(append([m1[(vd-1)*NC]],makelist(0.0,i,1,NC-1)))),
       for i : 1 thru length(expr) do (
         printf(fh, "    ~a = ~a; ~%", m1r[(vd-1)*NC+i-1], expr[i])
       )
     ),
-    writeCExprs1s(m2r,append([m2[0]],makelist(0.0,i,1,NC-1))),
-    if polyOrder=1 then (
+    if (polyOrder=1) then (
+      /* Piecewise linear: use cell average of star moments. */
       writeCExprs1s(m0Sr,append([m0S[0]],makelist(0.0,i,1,NC-1))),
-      for vd : 1 thru vdim do (
+      for vd : 1 thru udim do (
         expr : float(expand(append([m1S[(vd-1)*NC]],makelist(0.0,i,1,NC-1)))),
         for i : 1 thru length(expr) do (
           printf(fh, "    ~a = ~a; ~%", m1Sr[(vd-1)*NC+i-1], expr[i])
         )
-      )
+      ),
+      writeCExprs1s(m2Sr,append([m2S[0]],makelist(0.0,i,1,NC-1)))
+    ) else (
+      /* For higher polynomial order use cell average of 2nd moment. */
+      writeCExprs1s(m2r,append([m2[0]],makelist(0.0,i,1,NC-1)))
     ),
     printf(fh, "  } else { ~%"),
+    /* Use the original expansion polynomial. */
     writeCExprs1s(m0r,makelist(m0[i],i,0,NC-1)),
-    writeCExprs1s(m1r,makelist(m1[i],i,0,vdim*NC-1)),
-    writeCExprs1s(m2r,makelist(m2[i],i,0,NC-1)),
-    if polyOrder=1 then (
+    writeCExprs1s(m1r,makelist(m1[i],i,0,udim*NC-1)),
+    if (polyOrder=1) then (
       writeCExprs1s(m0Sr,makelist(m0S[i],i,0,NC-1)),
-      writeCExprs1s(m1Sr,makelist(m1S[i],i,0,vdim*NC-1))
+      writeCExprs1s(m1Sr,makelist(m1S[i],i,0,udim*NC-1)),
+      writeCExprs1s(m2Sr,makelist(m2S[i],i,0,NC-1))
+    ) else (
+      /* For higher polynomial order use original M2 expansion. */
+      writeCExprs1s(m2r,makelist(m2[i],i,0,NC-1))
     ),
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
 
-    /* Expand moments in configuration space basis. */
+    /* Expansion in configuration space basis and coefficients of m0. */
     m0_e : doExpand1(m0r, bC),
-    m2_e : doExpand1(m2r, bC),
-    /* Array of expansion coefficients. */
     m0_c : makelist(m0r[i],i,0,NC-1),
-    m2_c : makelist(m2r[i],i,0,NC-1),
+    if (polyOrder=1) then (
+      /* Expansion in configuration space basis and coefficients of m2. */
+      m2_e : doExpand1(m2Sr, bC),
+      m2_c : makelist(m2Sr[i],i,0,NC-1)
+    ) else (
+      /* Expansion in configuration space basis and coefficients of m2. */
+      m2_e : doExpand1(m2r, bC),
+      m2_c : makelist(m2r[i],i,0,NC-1)
+    ),
     /* Equivalently for  vtSq .*/
     vtSq_e : doExpand1(vtSq,bC),
     vtSq_c : makelist(vtSq[i],i,0,NC-1),
@@ -154,7 +180,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     cE_c : makelist(cE[i],i,0,NC-1),
 
     /* N is the size of the linear problem. LHS Eigen matrix is NxN. */
-    N : NC*(vdim+1),
+    N : NC*(udim+1),
 
     printf(fh, "  // Declare Eigen matrix and vectors for weak division. ~%"),
     printf(fh, "  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N), 
@@ -167,7 +193,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     Ef [i,j] := BigAEM[i,j],
 
     m1RHS_c : [],
-    for vd : 1 thru vdim do (
+    for vd : 1 thru udim do (
       /* Expand u function and create a list of expansion coefficients. */
       m1_e : doExpand1(m1r, bC),
       m1_c : makelist(m1r[i],i,0,NC-1),
@@ -202,7 +228,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       /* Flatten E for WriteCExprsB. */
       Eflat : list_matrix_entries(E),
   
-      Elhs     : list_matrix_entries(genmatrix(Ef,vd*NC-1,N-1,(vd-1)*NC,(vdim-1)*NC+NC)),
+      Elhs     : list_matrix_entries(genmatrix(Ef,vd*NC-1,N-1,(vd-1)*NC,(udim-1)*NC+NC)),
   
       printf(fh, "  // ....... Block from correction to u~a .......... // ~%", VarsC[vd]),
       writeCExprsB(Elhs,Eflat),
@@ -222,7 +248,7 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       /* Flatten E for WriteCExprsB. */
       Eflat : list_matrix_entries(E),
   
-      Elhs  : list_matrix_entries(genmatrix(Ef,N-1,vd*NC-1,vdim*NC,(vd-1)*NC)),
+      Elhs  : list_matrix_entries(genmatrix(Ef,N-1,vd*NC-1,udim*NC,(vd-1)*NC)),
 
       printf(fh, "  // ....... Block from weak multiply of u~a and m1~a  .......... // ~%", VarsC[vd], VarsC[vd]),
       writeCExprsB(Elhs,Eflat),
@@ -233,30 +259,41 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
   
     /*........... Matrix block from correction to vtSq .............*/
-    if polyOrder=1 then (
-      /* Expand m0S and use the vd component of m1S. */
-      m0S_e : doExpand1(m0Sr, bC),
-
-      eq : calcInnerProdList(varsC,vtSq_e,bC,pVdim*m0S_e-cE_e)
+    if (sequal(substring(funcNm,1,3),"Vm")) then (
+      /* Vlasov-Maxwell. */
+      if polyOrder=1 then (
+        /* Expand m0S and use the vd component of m1S. */
+        m0S_e : doExpand1(m0Sr, bC),
+        eq : calcInnerProdList(varsC,vtSq_e,bC,m0S_e-cE_e)
+      ) else (
+        eq : calcInnerProdList(varsC,vtSq_e,bC,vdim*m0_e-cE_e)
+      )
     ) else (
-      eq : calcInnerProdList(varsC,vtSq_e,bC,pVdim*m0_e-cE_e)
+      /* Gyrokinetics. */
+      if polyOrder=1 then (
+        /* Expand m0S and use the vd component of m1S. */
+        m0S_e : doExpand1(m0Sr, bC),
+        eq : calcInnerProdList(varsC,vtSq_e,bC,2*(vdim-1)*m0_e+m0S_e-cE_e)
+      ) else (
+        eq : calcInnerProdList(varsC,vtSq_e,bC,(2*vdim-1)*m0_e-cE_e)
+      )
     ),
     E  : fullratsimp(coefmatrix(eq,vtSq_c)),
     /* Flatten E for WriteCExprsB. */
     Eflat : list_matrix_entries(E),
   
-    Elhs     : list_matrix_entries(genmatrix(Ef,N-1,N-1,vdim*NC,vdim*NC)),
+    Elhs     : list_matrix_entries(genmatrix(Ef,N-1,N-1,udim*NC,udim*NC)),
   
     printf(fh, "  // ....... Block from correction to vtSq .......... // ~%"),
     writeCExprsB(Elhs,Eflat),
     printf(fh, " ~%"),
 
-    if vdim=2 then (
+    if udim=2 then (
       printf(fh, "  // Set other entries to 0. // ~%"),
       printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,0,NC),
       printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,0),
       printf(fh, " ~%")
-    ) elseif vdim=3 then (
+    ) elseif udim=3 then (
       printf(fh, "  // Set other entries to 0. // ~%"),
       printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,2*NC,0,NC),
       printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",2*NC,NC,NC,0),
@@ -266,16 +303,16 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
 
     printf(fh, "  // ....... RHS vector is composed of m1 and m2 .......... // ~%"),
-    writeEVExprs(bEV,append(m1RHS_c,m2_c), vdim, NC),
+    writeEVExprs(bEV,append(m1RHS_c,m2_c), udim, NC, polyOrder),
     printf(fh, " ~%"),
 
     printf(fh, "  xEV = BigAEM.colPivHouseholderQr().solve(bEV); ~%"),
     printf(fh, " ~%"),
 
-    printf(fh, "  Eigen::Map<VectorXd>(u,~a,1) = xEV.segment<~a>(0); ~%", NC*vdim,NC*vdim),
+    printf(fh, "  Eigen::Map<VectorXd>(u,~a,1) = xEV.segment<~a>(0); ~%", NC*udim,NC*udim),
     printf(fh, " ~%"),
 
-    printf(fh, "  Eigen::Map<VectorXd>(vtSq,~a,1) = xEV.segment<~a>(~a); ~%", NC, NC, NC*vdim),
+    printf(fh, "  Eigen::Map<VectorXd>(vtSq,~a,1) = xEV.segment<~a>(~a); ~%", NC, NC, NC*udim),
     printf(fh, " ~%"),
 
 
