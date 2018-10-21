@@ -102,7 +102,7 @@ plasmaApp = Plasma.App {
    --    -- Initial conditions.
    --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
    --       density         = nMr,
-   --       drift           = {uMr},
+   --       driftSpeed      = {uMr},
    --       temperature     = vtMr^2,
    --       exactScaleM0    = false,
    --       exactLagFixM012 = true,
@@ -148,7 +148,7 @@ plasmaApp = Plasma.App {
    --    -- Initial conditions.
    --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
    --       density         = nMb,
-   --       drift           = {uMb},
+   --       driftSpeed      = {uMb},
    --       temperature     = vtMb^2,
    --       exactScaleM0    = false,
    --       exactLagFixM012 = true,
