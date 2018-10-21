@@ -88,6 +88,8 @@ function GkLBOCollisions:createSolver(funcField)
       ghost         = {1, 1},
    }
    -- Inverse of background magnetic field.
+   self.bmag    = funcField.geo.bmag
+   -- Inverse of background magnetic field.
    self.bmagInv = funcField.geo.bmagInv
       
    -- Zero-flux BCs in the velocity dimensions.
@@ -117,7 +119,7 @@ function GkLBOCollisions:createSolver(funcField)
       phaseGrid  = self.phaseGrid,
       phaseBasis = self.phaseBasis,
       confBasis  = self.confBasis,
-      mass       = self.mass,
+      gkfacs     = {self.mass, self.bmag},
       operator   = "GkLBO",
    }
 end

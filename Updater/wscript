@@ -9,26 +9,31 @@ def build(bld):
     bld.objects(source = r"""
     FiveMomentSrcImpl.cpp
 
-    primMomentsCalcData/SelfPrimMomentsSer1x1v.cpp
-    primMomentsCalcData/SelfPrimMomentsSer1x2v.cpp
-    primMomentsCalcData/SelfPrimMomentsSer1x3v.cpp
-    primMomentsCalcData/SelfPrimMomentsSer2x1v.cpp
-    primMomentsCalcData/SelfPrimMomentsSer2x2v.cpp
-    primMomentsCalcData/SelfPrimMomentsSer2x3v.cpp
-    primMomentsCalcData/SelfPrimMomentsSer3x1v.cpp
-    primMomentsCalcData/SelfPrimMomentsSer3x3v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsSer1x1v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsSer1x2v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsSer1x3v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsSer2x3v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsSer3x3v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsMax1x1v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsMax1x2v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsMax1x3v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsMax2x3v.cpp
+    primMomentsCalcData/VmSelfPrimMomentsMax3x3v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsSer1x1v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsSer1x2v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsSer3x2v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsMax1x1v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsMax1x2v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/GkSelfPrimMomentsMax3x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x1v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser1x3v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser2x2v.cpp
     primMomentsCalcData/CrossPrimMoments_VmLBO_Ser2x3v.cpp
-
-    primMomentsCalcData/SelfPrimMomentsMax1x1v.cpp
-    primMomentsCalcData/SelfPrimMomentsMax1x2v.cpp
-    primMomentsCalcData/SelfPrimMomentsMax1x3v.cpp
-    primMomentsCalcData/SelfPrimMomentsMax2x2v.cpp
-    primMomentsCalcData/SelfPrimMomentsMax2x3v.cpp
-    primMomentsCalcData/SelfPrimMomentsMax3x3v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
