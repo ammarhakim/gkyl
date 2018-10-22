@@ -21,11 +21,11 @@ local DistFuncMomentCalc = Proto(UpdaterBase)
 
 -- Valid moment names for Vlasov and GK equations
 local goodMomNames = {
-   "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments", "StarMoments"
+   "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments"
 }
 local goodGkMomNames = {
    "GkM0", "GkM1", "GkM2par", "GkM2perp", "GkM2", "GkM3par", "GkM3perp",
-   "GkThreeMoments", "GkStarMoments"
+   "GkThreeMoments"
 }
 
 function DistFuncMomentCalc:isMomentNameGood(nm)
@@ -69,7 +69,7 @@ function DistFuncMomentCalc:init(tbl)
    local mom = assert(
       tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
-   if mom == "FiveMoments" or mom == "StarMoments" or mom == "GkThreeMoments" or mom == "GkStarMoments" then
+   if mom == "FiveMoments" or mom == "GkThreeMoments" then
       self._fivemoments = true
    end
 
@@ -84,7 +84,7 @@ function DistFuncMomentCalc:init(tbl)
                         containing the species mass and the background magnetic field
                         to calculate a Gk moment]])
    else
-      assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i, FiveMoments, or StarMoments")
+      assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i or FiveMoments")
    end
  
    self.momfac = 1.0
