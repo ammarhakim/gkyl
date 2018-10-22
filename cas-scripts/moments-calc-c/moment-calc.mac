@@ -218,63 +218,6 @@ for p : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
-/* Calculate M0, M1i*, and M2* (Five moments) sequentially */
-/* in this case M1i* and M2* are modified moments only meaningful for p=1 */
-calcStarMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for p : 1 thru 1 do (
-  bP : basisP[p],
-  bC : basisC[p],
-
-  printf(fh, "void ~a_StarMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
-  for i : 1 thru vdim do (
-    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
-    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
-  ),
-  printf(fh, "  double tempM0[~a], tempM1i[~a]; ~%", length(bC), length(bC)*vdim),
-  printf(fh, "~%"),
-  fl : doExpand1(f, bP),
-
-  M0 : calcInnerProdList(varsP, 1, bC, fl),
-  M1i : (M1i : [],
-       for dir : 1 thru vdim do (
-         M1i : append(M1i, calcInnerProdList(varsP, dvTrans[dir], bC, fl))
-       ),
-  M1i),
-  writeCExprs1(tempM0, volFact*M0),
-
-  printf(fh, "~%"),
-  M0M1i : (M0M1i : [],
-       for dir : 1 thru vdim do (
-         M0M1i : append(M0M1i, makelist(tempM0[i-1]*wTrans[dir], i, 1, length(bC)))
-       ),
-  M0M1i),
-  writeCExprs1(tempM1i, M0M1i+volFact*M1i),
-  printf(fh, "~%"),
-  if vdim = 1 then (
-     M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]-tempM0[i-1]*wTrans[1]*wTrans[1], i, 1, length(bC))
-  ),
-  if vdim = 2 then (
-     M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]+2*tempM1i[i-1+length(bC)]*wTrans[2]-tempM0[i-1]*(wTrans[1]*wTrans[1]+wTrans[2]*wTrans[2]), i, 1, length(bC))
-  ),
-  if vdim = 3 then (
-     M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]+2*tempM1i[i-1+length(bC)]*wTrans[2]+2*tempM1i[i-1+2*length(bC)]*wTrans[3]-tempM0[i-1]*(wTrans[1]*wTrans[1]+wTrans[2]*wTrans[2]+wTrans[3]*wTrans[3]), i, 1, length(bC))
-  ),
-  M2 : map(letsimp, M2),
-  M0M2 : map(letsimp, M0M2),
-  incr_tempM0 : makelist(tempM0[i-1], i, 1, length(bC)),
-  incr_tempM1i : makelist(tempM1i[i-1], i, 1, vdim*length(bC)),
-  writeCIncrExprs1(outM0, incr_tempM0),
-  writeCIncrExprs1(outM1i, M0M1i),
-  clst : [volFact],
-  clst : append(clst, makelist(tempM0[i-1], i, 1, length(bC))),
-  writeCIncrExprsCollect1(outM2, M0M2, clst),
-  printf(fh, "} ~%")
-))$
-
 calcMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
   printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
   calcM0(fh, funcNm, cdim, vdim, basisFun),
@@ -283,5 +226,4 @@ calcMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
   calcM2(fh, funcNm, cdim, vdim, basisFun),
   calcM3i(fh, funcNm, cdim, vdim, basisFun),
   calcFiveMoments(fh, funcNm, cdim, vdim, basisFun),
-  calcStarMoments(fh, funcNm, cdim, vdim, basisFun)
 )$

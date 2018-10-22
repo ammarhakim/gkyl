@@ -328,32 +328,3 @@ void GkMomentCalc3x2vMax_ThreeMoments_P2(const double *w, const double *dxv, con
   outM2[8] += (2.0*(0.2258769757263128*Bmag[8]*tmp[8]+0.3535533905932737*Bmag[0]*tmp[8]+0.3535533905932737*tmp[0]*Bmag[8]+0.3162277660168379*Bmag[6]*tmp[6]+0.3162277660168379*Bmag[4]*tmp[4]+0.3162277660168379*Bmag[2]*tmp[2])*volFact)/m_; 
   outM2[9] += (2.0*(0.2258769757263128*Bmag[9]*tmp[9]+0.3535533905932737*Bmag[0]*tmp[9]+0.3535533905932737*tmp[0]*Bmag[9]+0.3162277660168379*Bmag[6]*tmp[6]+0.3162277660168379*Bmag[5]*tmp[5]+0.3162277660168379*Bmag[3]*tmp[3])*volFact)/m_; 
 } 
-void GkMomentCalc3x2vMax_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) 
-{ 
-  const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
-  const double wx1 = w[3], dv1 = dxv[3]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  const double wx2 = w[4], dv2 = dxv[4]; 
-  const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
-  outM0[0] += 2.0*f[0]*volFact; 
-  outM0[1] += 2.0*f[1]*volFact; 
-  outM0[2] += 2.0*f[2]*volFact; 
-  outM0[3] += 2.0*f[3]*volFact; 
-  outM1[0] += 2.0*f[0]*wx1*volFact; 
-  outM1[1] += 2.0*f[1]*wx1*volFact; 
-  outM1[2] += 2.0*f[2]*wx1*volFact; 
-  outM1[3] += 2.0*f[3]*wx1*volFact; 
-  outM2[0] += (2.0*f[0]*wx1_sq+0.5773502691896258*f[4]*dv1*wx1)*volFact; 
-  outM2[1] += 2.0*f[1]*wx1_sq*volFact; 
-  outM2[2] += 2.0*f[2]*wx1_sq*volFact; 
-  outM2[3] += 2.0*f[3]*wx1_sq*volFact; 
-  double tmp[4]; 
-  tmp[0] = 2.0*f[0]*wx2+0.5773502691896258*f[5]*dv2; 
-  tmp[1] = 2.0*f[1]*wx2; 
-  tmp[2] = 2.0*f[2]*wx2; 
-  tmp[3] = 2.0*f[3]*wx2; 
-  outM2[0] += (2.0*(0.3535533905932737*Bmag[3]*tmp[3]+0.3535533905932737*Bmag[2]*tmp[2]+0.3535533905932737*Bmag[1]*tmp[1]+0.3535533905932737*Bmag[0]*tmp[0])*volFact)/m_; 
-  outM2[1] += (2.0*(0.3535533905932737*Bmag[0]*tmp[1]+0.3535533905932737*tmp[0]*Bmag[1])*volFact)/m_; 
-  outM2[2] += (2.0*(0.3535533905932737*Bmag[0]*tmp[2]+0.3535533905932737*tmp[0]*Bmag[2])*volFact)/m_; 
-  outM2[3] += (2.0*(0.3535533905932737*Bmag[0]*tmp[3]+0.3535533905932737*tmp[0]*Bmag[3])*volFact)/m_; 
-} 

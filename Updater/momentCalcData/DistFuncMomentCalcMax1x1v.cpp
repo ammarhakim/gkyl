@@ -203,23 +203,3 @@ void MomentCalc1x1vMax_FiveMoments_P3(const double *w, const double *dxv, const 
   outM2[2] += 0.1178511301977579*f[4]*dv1_sq*volFact-1.0*tempM0[2]*wx1_sq+2.0*tempM1i[2]*wx1; 
   outM2[3] += 0.1178511301977579*f[8]*dv1_sq*volFact-1.0*tempM0[3]*wx1_sq+2.0*tempM1i[3]*wx1; 
 } 
-void MomentCalc1x1vMax_StarMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2) 
-{ 
-  const double volFact = dxv[1]/2; 
-  const double wx1 = w[1], dv1 = dxv[1]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  double tempM0[2], tempM1i[2]; 
-
-  tempM0[0] = 1.414213562373095*f[0]*volFact; 
-  tempM0[1] = 1.414213562373095*f[1]*volFact; 
-
-  tempM1i[0] = 0.408248290463863*f[2]*dv1*volFact+tempM0[0]*wx1; 
-  tempM1i[1] = tempM0[1]*wx1; 
-
-  outM0[0] += tempM0[0]; 
-  outM0[1] += tempM0[1]; 
-  outM1i[0] += tempM0[0]*wx1; 
-  outM1i[1] += tempM0[1]*wx1; 
-  outM2[0] += 2.0*tempM1i[0]*wx1-1.0*tempM0[0]*wx1_sq; 
-  outM2[1] += 2.0*tempM1i[1]*wx1-1.0*tempM0[1]*wx1_sq; 
-} 
