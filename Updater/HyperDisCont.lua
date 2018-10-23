@@ -10,6 +10,7 @@
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
@@ -78,7 +79,7 @@ function HyperDisCont:init(tbl)
 
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
-   self._perpRange = {} -- perp ranges in each direction      
+   self._perpRangeDecomp = {} -- perp ranges in each direction      
    
    return self
 end
@@ -126,11 +127,12 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       self._maxsLocal[d] = 0.0 -- reset to get new values in this step
    end
 
-   if self._clearOut then
-      qOut:clear(0.0) -- clear output field before computing vol/surf increments
-   end
+   local tId = grid:subGridSharedId() -- local thread ID
+
+   -- clear output field before computing vol/surf increments
+   if self._clearOut then qOut:clear(0.0) end
    -- accumulate contributions from volume and surface integrals
-  for _, dir in ipairs(self._updateDirs) do
+   for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
@@ -147,13 +149,17 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       end
 
       if self._isFirst then
-	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
+	 self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+	    range = localRange:shorten(dir), -- range orthogonal to 'dir'
+	    numSplit = grid:numSharedProcs(),
+	    threadComm = self:getSharedComm()
+	 }
       end
-      local perpRange = self._perpRange[dir]
+      local perpRangeDecomp = self._perpRangeDecomp[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
-      for idx in perpRange:colMajorIter() do
+      for idx in perpRangeDecomp:colMajorIter(tId) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
@@ -173,7 +179,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    qOut:fill(qOutIdxr(idxm), qOutM)
 	    qOut:fill(qOutIdxr(idxp), qOutP)
 
-	    if firstDir then
+	    if firstDir and i<=dirUpIdx-1 then
 	       local cflFreq = self._equation:volTerm(xcp, dxp, idxp, qInP, qOutP)
 	       cfla = math.max(cfla, cflFreq*dt)
 	    end
@@ -196,11 +202,8 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    end
 
    -- determine largest amax across processors
-   local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, nodeComm)
-
-   -- return failure if time-step was too large
-   if cfla > cflm then return false, dt*cfl/cfla end   
+   Mpi.Allreduce(
+      self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
 
    -- accumulate full solution if not computing increments
    if not self._onlyIncrement then
@@ -208,6 +211,9 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    end
 
    self._isFirst = false
+
+   -- return failure if time-step was too large
+   if cfla > cflm then return false, dt*cfl/cfla end
    return true, dt*cfl/cfla
 end
 

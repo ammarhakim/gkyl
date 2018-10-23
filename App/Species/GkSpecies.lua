@@ -271,13 +271,15 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       moment = "GkM2par",
       gkfacs = {self.mass, self.bmag},
    }
-   self.M2perpCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
-      phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkM2perp",
-      gkfacs = {self.mass, self.bmag},
-   }
+   if self.vdim > 1 then
+      self.M2perpCalc = Updater.DistFuncMomentCalc {
+         onGrid = self.grid,
+         phaseBasis = self.basis,
+         confBasis = self.confBasis,
+         moment = "GkM2perp",
+         gkfacs = {self.mass, self.bmag},
+      }
+   end
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
       onGrid = self.grid,
       phaseBasis = self.basis,
@@ -354,7 +356,6 @@ function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
       local em = emIn[1]:rkStepperFields()[inIdx]
       local emFunc = emIn[2]:rkStepperFields()[1]
       local status, dtSuggested
-      status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
       if self.positivityRescale then 
          self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
          if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
@@ -382,26 +383,147 @@ function GkSpecies:createDiagnostics()
    local function isMomentNameGood(nm)
       return Updater.DistFuncMomentCalc:isGkMomentNameGood(nm)
    end
+   local function isMomentNameWeak(nm)
+      return nm == "GkUpar" or nm == "GkTpar" or nm == "GkTperp" or nm == "GkTemp"
+   end
 
    self.diagnosticMomentFields = { }
    self.diagnosticMomentUpdaters = { } 
+   self.diagnosticWeakMoments = { }
+   self.weakMomentOpFields = { }
+   self.weakMomentScaleFac = { }
    -- allocate space to store moments and create moment updater
    for i, mom in pairs(self.diagnosticMoments) do
       if isMomentNameGood(mom) then
-         self.diagnosticMomentFields[i] = DataStruct.Field {
+         self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid = self.confGrid,
             numComponents = self.confBasis:numBasis(),
             ghost = {1, 1}
          }
-         self.diagnosticMomentUpdaters[i] = Updater.DistFuncMomentCalc {
+         self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
             onGrid = self.grid,
             phaseBasis = self.basis,
             confBasis = self.confBasis,
             moment = mom,
             gkfacs = {self.mass, self.bmag},
          }
+      elseif isMomentNameWeak(mom) then
+         -- remove moment name from self.diagnosticMoments list, and add it to self.diagnosticWeakMoments list
+         table.insert(self.diagnosticWeakMoments, mom)
+         self.diagnosticMoments[i] = nil
+
+         self.diagnosticMomentFields[mom] = DataStruct.Field {
+            onGrid = self.confGrid,
+            numComponents = self.confBasis:numBasis(),
+            ghost = {1, 1}
+         }
+
+         -- set up weak division operator
+         self.weakDivision = Updater.CartFieldBinOp {
+            onGrid = self.confGrid,
+            weakBasis = self.confBasis,
+            operation = "Divide",
+            onGhosts = true,
+         }
       else
          assert(false, string.format("Moment %s not valid", mom))
+      end
+   end
+
+   -- make sure we have the updaters needed to calculate all the weak moments
+   for i, mom in pairs(self.diagnosticWeakMoments) do
+      -- all GK weak moments require M0 = density
+      if self.diagnosticMomentUpdaters["GkM0"] == nil then
+         self.diagnosticMomentFields["GkM0"] = DataStruct.Field {
+            onGrid = self.confGrid,
+            numComponents = self.confBasis:numBasis(),
+            ghost = {1, 1}
+         }
+         self.diagnosticMomentUpdaters["GkM0"] = Updater.DistFuncMomentCalc {
+            onGrid = self.grid,
+            phaseBasis = self.basis,
+            confBasis = self.confBasis,
+            moment = "GkM0",
+            gkfacs = {self.mass, self.bmag},
+         }
+         table.insert(self.diagnosticMoments, "GkM0")
+      end
+
+      if mom == "GkUpar" then
+         if self.diagnosticMomentUpdaters["GkM1"] == nil then
+            self.diagnosticMomentFields["GkM1"] = DataStruct.Field {
+               onGrid = self.confGrid,
+               numComponents = self.confBasis:numBasis(),
+               ghost = {1, 1}
+            }
+            self.diagnosticMomentUpdaters["GkM1"] = Updater.DistFuncMomentCalc {
+               onGrid = self.grid,
+               phaseBasis = self.basis,
+               confBasis = self.confBasis,
+               moment = "GkM1",
+               gkfacs = {self.mass, self.bmag},
+            }
+            table.insert(self.diagnosticMoments, "GkM1")
+         end
+
+         self.weakMomentOpFields["GkUpar"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM1"]}
+      elseif mom == "GkTpar" then
+         if self.diagnosticMomentUpdaters["GkM2par"] == nil then
+            self.diagnosticMomentFields["GkM2par"] = DataStruct.Field {
+               onGrid = self.confGrid,
+               numComponents = self.confBasis:numBasis(),
+               ghost = {1, 1}
+            }
+            self.diagnosticMomentUpdaters["GkM2par"] = Updater.DistFuncMomentCalc {
+               onGrid = self.grid,
+               phaseBasis = self.basis,
+               confBasis = self.confBasis,
+               moment = "GkM2par",
+               gkfacs = {self.mass, self.bmag},
+            }
+            table.insert(self.diagnosticMoments, "GkM2par")
+         end
+
+         self.weakMomentOpFields["GkTpar"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2par"]}
+         self.weakMomentScaleFac["GkTpar"] = self.mass
+      elseif mom == "GkTperp" then
+         if self.diagnosticMomentUpdaters["GkM2perp"] == nil then
+            self.diagnosticMomentFields["GkM2perp"] = DataStruct.Field {
+               onGrid = self.confGrid,
+               numComponents = self.confBasis:numBasis(),
+               ghost = {1, 1}
+            }
+            self.diagnosticMomentUpdaters["GkM2perp"] = Updater.DistFuncMomentCalc {
+               onGrid = self.grid,
+               phaseBasis = self.basis,
+               confBasis = self.confBasis,
+               moment = "GkM2perp",
+               gkfacs = {self.mass, self.bmag},
+            }
+            table.insert(self.diagnosticMoments, "GkM2perp")
+         end
+
+         self.weakMomentOpFields["GkTperp"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2perp"]}
+         self.weakMomentScaleFac["GkTperp"] = self.mass
+      elseif mom == "GkTemp" then 
+         if self.diagnosticMomentUpdaters["GkM2"] == nil then
+            self.diagnosticMomentFields["GkM2"] = DataStruct.Field {
+               onGrid = self.confGrid,
+               numComponents = self.confBasis:numBasis(),
+               ghost = {1, 1}
+            }
+            self.diagnosticMomentUpdaters["GkM2"] = Updater.DistFuncMomentCalc {
+               onGrid = self.grid,
+               phaseBasis = self.basis,
+               confBasis = self.confBasis,
+               moment = "GkM2",
+               gkfacs = {self.mass, self.bmag},
+            }
+            table.insert(self.diagnosticMoments, "GkM2")
+         end      
+
+         self.weakMomentOpFields["GkTemp"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2"]}
+         self.weakMomentScaleFac["GkTemp"] = self.mass/3
       end
    end
 end
@@ -580,7 +702,7 @@ end
 function GkSpecies:momCalcTime()
    local tm = self.tmCouplingMom
    for i, mom in ipairs(self.diagnosticMoments) do
-      tm = tm + self.diagnosticMomentUpdaters[i].totalTime
+      tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end
    return tm
 end

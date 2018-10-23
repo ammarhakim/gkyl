@@ -74,12 +74,12 @@ function test_3()
       assert_equal((d-1)*10+10, linDecomp:upper(d), "Checking upper")
       
       local idx = linDecomp:rowStartIndex(d)
-      assert_equal((d-1)*10+1, idx[1], "Checking index")
+      assert_equal((d-1)*10+1, idx[1], "Checking row index")
    end
 
    for d = 1, linDecomp:numSplit() do
       local idx = linDecomp:colStartIndex(d)
-      assert_equal((d-1)*10+1, idx[1], "Checking index")
+      assert_equal((d-1)*10+1, idx[1], "Checking col index")
    end   
 end
 
@@ -117,6 +117,64 @@ function test_5()
    end   
 end
 
+function test_6()
+   local r = Range.Range({1, 1}, {10, 10})
+   local linDecomp = LinearDecomp.LinearDecompRange { range = r, numSplit = 10 }
+
+   local count = 0
+   for t = 1, linDecomp:numSplit() do
+      for itr in linDecomp:colMajorIter(t) do
+	 count = count+1
+      end
+   end
+   assert_equal(r:volume(), count, "Checking volume")
+
+   count = 0
+   for t = 1, linDecomp:numSplit() do
+      for itr in linDecomp:rowMajorIter(t) do
+	 count = count+1
+      end
+   end
+   assert_equal(r:volume(), count, "Checking volume")   
+end
+
+function test_7()
+   local r = Range.Range({32, 0}, {31, 17})
+   assert_equal(0, r:volume(), "Checking volume")
+
+   local linDecomp = LinearDecomp.LinearDecompRange { range = r, numSplit = 1 }
+
+   local r1 = Range.Range({1, 1}, {2, 2})
+   local linDecomp1 = LinearDecomp.LinearDecompRange { range = r1, numSplit = 10 }
+end
+
+function test_8()
+   local r = Range.Range({0}, {5})
+   local linDecomp = LinearDecomp.LinearDecompRange { range = r, numSplit = 10 }
+
+   for t = 1, 6 do
+      assert_equal(1, linDecomp:shape(t), "Checking shape")
+   end
+   for t = 7, 10 do
+      assert_equal(0, linDecomp:shape(t), "Checking shape")
+   end
+
+   for t = 1, 6 do
+      local count = 0
+      for i in linDecomp:colMajorIter(t) do
+	 count = count+1
+      end
+      assert_equal(1, count, "Checking loop size")
+   end
+   for t = 7, 10 do
+      local count = 0
+      for i in linDecomp:colMajorIter(t) do
+	 count = count+1
+      end
+      assert_equal(0, count, "Checking loop size")
+   end   
+end
+
 -- Run tests
 test_0()
 test_1()
@@ -124,6 +182,9 @@ test_2()
 test_3()
 test_4()
 test_5()
+test_6()
+test_7()
+test_8()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

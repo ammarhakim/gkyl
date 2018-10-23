@@ -21,6 +21,13 @@ extern "C" {
     void gkylCartFieldGenAccumulate(unsigned s, unsigned nv, double fact, int ncopy,
       int ncInp, const int *cInp, const double *inp,
       int ncOut, const int *cOut, double *out);
+
+    // copy component data from/to field
+    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
+    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+
+    // assign all elements to specified value
+    void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
 }
 
 #endif // GK_CART_FIELD_H

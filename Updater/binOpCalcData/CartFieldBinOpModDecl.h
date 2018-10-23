@@ -311,5 +311,101 @@ void CartFieldBinOpDivide3x2vMax_P2(const double *A, const double *B, const shor
 
 void CartFieldBinOpDivide3x2vMax_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
 
+void CartFieldBinOpMultiply1xTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1xTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1xTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpMultiply2xTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2xTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpDivide1xTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1xTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1xTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpDivide2xTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide2xTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpDotProduct1xTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDotProduct1xTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDotProduct1xTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpDotProduct2xTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDotProduct2xTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out);  
+
+
+void CartFieldBinOpMultiply1x1vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x1vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x2vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply1x3vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpMultiply2x2vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x2vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply2x3vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpMultiply3x3vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply3x3vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpMultiply3x3vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpDivide1x1vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1x1vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1x1vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1x2vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1x2vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1x2vTensor_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1x3vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide1x3vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+
+void CartFieldBinOpDivide2x2vTensor_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
+void CartFieldBinOpDivide2x2vTensor_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); 
+
 } 
 #endif 

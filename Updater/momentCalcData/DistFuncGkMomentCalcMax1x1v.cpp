@@ -108,15 +108,3 @@ void GkMomentCalc1x1vMax_ThreeMoments_P2(const double *w, const double *dxv, con
   outM2[1] += (1.414213562373095*f[1]*wx1_sq+0.8164965809277261*f[3]*dv1*wx1+0.1178511301977579*f[1]*dv1_sq)*volFact; 
   outM2[2] += (1.414213562373095*f[4]*wx1_sq+0.1178511301977579*f[4]*dv1_sq)*volFact; 
 } 
-void GkMomentCalc1x1vMax_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) 
-{ 
-  const double volFact = dxv[1]/2; 
-  const double wx1 = w[1], dv1 = dxv[1]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  outM0[0] += 1.414213562373095*f[0]*volFact; 
-  outM0[1] += 1.414213562373095*f[1]*volFact; 
-  outM1[0] += 1.414213562373095*f[0]*wx1*volFact; 
-  outM1[1] += 1.414213562373095*f[1]*wx1*volFact; 
-  outM2[0] += (1.414213562373095*f[0]*wx1_sq+0.408248290463863*f[2]*dv1*wx1)*volFact; 
-  outM2[1] += 1.414213562373095*f[1]*wx1_sq*volFact; 
-} 

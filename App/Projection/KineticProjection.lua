@@ -35,6 +35,7 @@ function KineticProjection:fullInit(species)
    self.isBackground = xsys.pickBool(self.tbl.isBackground, false)
    self.isSource = xsys.pickBool(self.tbl.isSource, false)
    if self.isBackground or self.isSource then self.isInit = false end
+   self.isReservoir = xsys.pickBool(self.tbl.isReservoir, false)
 
    self.exactScaleM0 = xsys.pickBool(self.tbl.exactScaleM0, true)
    self.exactScaleM012 = xsys.pickBool(self.tbl.exactScaleM012, false)
@@ -77,7 +78,7 @@ function MaxwellianProjection:fullInit(species)
 
    local tbl = self.tbl
    self.density = assert(tbl.density, "Maxwellian: must specify 'density'")
-   self.driftSpeed = tbl.driftSpeed or function (t, zn) return nil end
+   self.driftSpeed = tbl.driftSpeed or function (t, zn) return 0.0 end
    self.temperature = assert(tbl.temperature,
 			     "Maxwellian: must specify 'temperature'")
 

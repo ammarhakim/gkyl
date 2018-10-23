@@ -119,15 +119,37 @@ end
 local function runLuaTest(test)
    log(string.format("\nRunning test %s ...\n", test))
 
+   local opts = {}
+   -- open Lua file and check if first line is a command line
+   local f = io.open(test, "r")
+   local line1 = f:read()
+   if string.find(line1, "--!") then
+      local r = string.sub(line1, 4, -1)
+      opts = loadstring("return " .. r)()
+   end
+   f:close()
+
    -- before running tests delete all old output
    local rm = "rm -f " .. string.sub(test, 1, -5) .. "_*.bp"
    os.execute(rm)
 
-   local tmStart = Time.clock()
+   -- construct command to run
    local runCmd = string.format("%s %s", GKYL_EXEC, test)
-   local f = io.popen(runCmd, "r")
-   for l in f:lines() do
-      verboseLog(l.."\n")
+   if opts.numProc then
+      runCmd = string.format("%s -n %d %s %s", configVals.mpiExec, opts.numProc, GKYL_EXEC, test)
+   end
+
+   -- run test
+   local tmStart = Time.clock()
+
+   if opts.numProc then
+      -- skip for now: NEED TO USE MPI_COMM_SPAWN FOR THIS, I THINK!
+      log(string.format("**** NOT RUNNING PARALLEL TEST %s \n", runCmd))
+   else
+      local f = io.popen(runCmd, "r")
+      for l in f:lines() do
+	 verboseLog(l.."\n")
+      end
    end
    log(string.format("... completed in %g sec\n", Time.clock()-tmStart))
 end
@@ -180,7 +202,12 @@ local function list_tests(args)
    end
 
    if args.run_only then
-      addTest(args.run_only)
+      local a = lfs.attributes(args.run_only)
+      if a.mode == "file" then
+	 addTest(args.run_only)
+      elseif a.mode == "directory" then
+	 for dir, fn, _ in dirtree(args.run_only) do addTest(dir .. "/" .. fn) end
+      end
    else
       for dir, fn, _ in dirtree(".") do addTest(dir .. "/" .. fn) end
    end
@@ -413,15 +440,16 @@ c_conf:option("-m --mpiexec", "Full path to MPI executable")
    :target("config_mpiexec")
 
 -- "list" command
-parser:command("list", "List all regression tests")
+local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
+c_list:option("-r --run-only", "Only list this test or all tests in this directory")
 
 -- "run" tests
 local c_run = parser:command("run")
    :description("Run regression tests.")
    :require_command(false)
    :action(run_action)
-c_run:option("-r --run-only", "Only run this test")
+c_run:option("-r --run-only", "Only run this test or all tests in this directory")
 
 -- check against accepted results
 c_run:command("check", "Check results")

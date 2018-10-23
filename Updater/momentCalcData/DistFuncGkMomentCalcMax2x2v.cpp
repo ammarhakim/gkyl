@@ -253,27 +253,3 @@ void GkMomentCalc2x2vMax_ThreeMoments_P2(const double *w, const double *dxv, con
   outM2[4] += (2.0*(0.31943828249997*Bmag[4]*tmp[4]+0.5*Bmag[0]*tmp[4]+0.5*tmp[0]*Bmag[4]+0.4472135954999579*Bmag[3]*tmp[3]+0.4472135954999579*Bmag[1]*tmp[1])*volFact)/m_; 
   outM2[5] += (2.0*(0.31943828249997*Bmag[5]*tmp[5]+0.5*Bmag[0]*tmp[5]+0.5*tmp[0]*Bmag[5]+0.4472135954999579*Bmag[3]*tmp[3]+0.4472135954999579*Bmag[2]*tmp[2])*volFact)/m_; 
 } 
-void GkMomentCalc2x2vMax_StarMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) 
-{ 
-  const double volFact = 2.0*M_PI/m_*dxv[2]*dxv[3]/4; 
-  const double wx1 = w[2], dv1 = dxv[2]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  const double wx2 = w[3], dv2 = dxv[3]; 
-  const double wx2_sq = wx2*wx2, dv2_sq = dv2*dv2; 
-  outM0[0] += 2.0*f[0]*volFact; 
-  outM0[1] += 2.0*f[1]*volFact; 
-  outM0[2] += 2.0*f[2]*volFact; 
-  outM1[0] += 2.0*f[0]*wx1*volFact; 
-  outM1[1] += 2.0*f[1]*wx1*volFact; 
-  outM1[2] += 2.0*f[2]*wx1*volFact; 
-  outM2[0] += (2.0*f[0]*wx1_sq+0.5773502691896258*f[3]*dv1*wx1)*volFact; 
-  outM2[1] += 2.0*f[1]*wx1_sq*volFact; 
-  outM2[2] += 2.0*f[2]*wx1_sq*volFact; 
-  double tmp[3]; 
-  tmp[0] = 2.0*f[0]*wx2+0.5773502691896258*f[4]*dv2; 
-  tmp[1] = 2.0*f[1]*wx2; 
-  tmp[2] = 2.0*f[2]*wx2; 
-  outM2[0] += (2.0*(0.5*Bmag[2]*tmp[2]+0.5*Bmag[1]*tmp[1]+0.5*Bmag[0]*tmp[0])*volFact)/m_; 
-  outM2[1] += (2.0*(0.5*Bmag[0]*tmp[1]+0.5*tmp[0]*Bmag[1])*volFact)/m_; 
-  outM2[2] += (2.0*(0.5*Bmag[0]*tmp[2]+0.5*tmp[0]*Bmag[2])*volFact)/m_; 
-} 

@@ -14,25 +14,17 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
-local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
+local UpdaterBase = require "Updater.Base"
 
 -- system libraries
 local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
-
--- Define C types for storing private data for use in updater
-ffi.cdef [[
-typedef struct {
-    int8_t _ndim; /* Solver dimension */
-    double _cfl, _cflm; /* CFL number and maximum-CFL number */
-    int8_t _nUpdateDirs, _updateDirs[6]; /* Number and directions to update */
-} WavePrivateData_t ;
-]]
 
 -- Template for function to compute jump 
 local calcDeltaTempl = xsys.template([[
@@ -167,24 +159,23 @@ function WavePropagation:init(tbl)
    self._equation = assert(tbl.equation, "Updater.WavePropagation: Must provide equation object using 'equation'")
    self._limiterFunc = assert(limiterFunctions[tbl.limiter], "Updater.WavePropagation: Must specify limiter to use")
 
-   -- set private data
-   self._privData = new(typeof("WavePrivateData_t"))
-   self._privData._ndim = self._onGrid:ndim()
-   self._privData._cfl = assert(tbl.cfl, "Updater.WavePropagation: Must specify CFL number using 'cfl'")
-   self._privData._cflm = tbl.cflm and tbl.cflm or 1.1*self._privData._cfl
+   self._ndim = self._onGrid:ndim()
+   self._cfl = assert(tbl.cfl, "Updater.WavePropagation: Must specify CFL number using 'cfl'")
+   self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl
 
-   self._privData._nUpdateDirs = tbl.updateDirections and #tbl.updateDirections or self._privData._ndim
+   self._updateDirs = {} 
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
    for d = 1, #upDirs do
-      self._privData._updateDirs[d] = upDirs[d] -- update directions
+      self._updateDirs[d] = upDirs[d] -- update directions
    end
 
    local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
-   local localRange = tbl.onGrid:localRange()   
+   self._localRange = tbl.onGrid:localRange()
+   local localRange = self._localRange
 
    -- allocate space for storing 1D slice data
    self.wavesSlice, self.speedsSlice, self.fsSlice = {}, {}, {}
-   for d = 1, self._privData._ndim do
+   for d = 1, self._ndim do
       local l, u = localRange:lower(d)-2, localRange:upper(d)+2
       self.wavesSlice[d] = SliceData(l, u, meqn*mwave)
       self.speedsSlice[d] = SliceData(l, u, mwave)
@@ -192,7 +183,7 @@ function WavePropagation:init(tbl)
    end
    
    -- store range objects needed in update
-   self._perpRange = {}
+   self._perpRangeDecomp = {}
 
    -- construct various functions from template representations
    self._calcDelta = loadstring( calcDeltaTempl {MEQN = meqn} )()
@@ -231,11 +222,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 
    local equation = self._equation -- equation to solve
    local meqn, mwave = equation:numEquations(), equation:numWaves()
-   local localRange = qIn:localRange()
+   local localRange = self._localRange
 
    local qInIdxr, qOutIdxr = qIn:genIndexer(), qOut:genIndexer() -- indexer functions into fields
 
-   local cfl, cflm = self._privData._cfl, self._privData._cflm
+   local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
    
    local delta = Lin.Vec(meqn)
@@ -250,10 +241,12 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
    local q1 = qOut:get(1)
 
+   local tId = grid:subGridSharedId() -- local thread ID
+
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
-   for d = 1, self._privData._nUpdateDirs do
-      local dir = self._privData._updateDirs[d]
+   for d = 1, #self._updateDirs do
+      local dir = self._updateDirs[d]
       local dtdx = dt/grid:dx(dir)
 
       local wavesSlice, speedsSlice, fsSlice = self.wavesSlice[dir], self.speedsSlice[dir], self.fsSlice[dir]
@@ -261,13 +254,17 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
 
       if self._isFirst then
-	 self._perpRange[dir] = localRange:shorten(dir) -- range orthogonal to 'dir'
+	 self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+	    range = localRange:shorten(dir), -- range orthogonal to 'dir'
+	    numSplit = grid:numSharedProcs(),
+	    threadComm = self:getSharedComm()
+	 }
       end
-      local perpRange = self._perpRange[dir]
+      local perpRangeDecomp = self._perpRangeDecomp[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`. 
-      for idx in perpRange:colMajorIter() do
+      for idx in perpRangeDecomp:colMajorIter(tId) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges

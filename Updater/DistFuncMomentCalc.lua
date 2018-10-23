@@ -8,24 +8,35 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
-local Proto = require "Lib.Proto"
+local LinearDecomp = require "Lib.LinearDecomp"
 local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local Proto = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
+local lume = require "Lib.lume"
 local xsys = require "xsys"
 
 -- Moments updater object
 local DistFuncMomentCalc = Proto(UpdaterBase)
 
+-- Valid moment names for Vlasov and GK equations
+local goodMomNames = {
+   "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments"
+}
+local goodGkMomNames = {
+   "GkM0", "GkM1", "GkM2par", "GkM2perp", "GkM2", "GkM3par", "GkM3perp",
+   "GkThreeMoments"
+}
+
 function DistFuncMomentCalc:isMomentNameGood(nm)
-   if nm == "M0" or nm == "M1i" or nm == "M2ij" or nm == "M2" or nm == "M3i" or nm == "FiveMoments" or nm == "StarMoments" then
+   if lume.find(goodMomNames, nm) then
       return true
    end
    return false
 end
 
 function DistFuncMomentCalc:isGkMomentNameGood(nm)
-   if nm == "GkM0" or nm == "GkM1" or nm == "GkM2par" or nm == "GkM2perp" or nm == "GkM2" or nm == "GkM3par" or nm == "GkM3perp" or nm == "GkThreeMoments" or nm == "GkStarMoments" then
+   if lume.find(goodGkMomNames, nm) then
       return true
    end
    return false
@@ -58,7 +69,9 @@ function DistFuncMomentCalc:init(tbl)
    local mom = assert(
       tbl.moment, "Updater.DistFuncMomentCalc: Must provide moment to compute using 'moment'.")
 
-   if mom == "FiveMoments" or mom == "StarMoments" or mom == "GkThreeMoments" or mom == "GkStarMoments" then self._fivemoments = true end
+   if mom == "FiveMoments" or mom == "GkThreeMoments" then
+      self._fivemoments = true
+   end
 
    -- function to compute specified moment
    self._isGK = false
@@ -71,20 +84,19 @@ function DistFuncMomentCalc:init(tbl)
                         containing the species mass and the background magnetic field
                         to calculate a Gk moment]])
    else
-      print("DistFuncMomentCalc: Requested moment is", mom)
-      assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i, FiveMoments, or StarMoments")
+      assert(false, "DistFuncMomentCalc: Moments must be one of M0, M1i, M2ij, M2, M3i or FiveMoments")
    end
  
    self.momfac = 1.0
    if tbl.momfac then self.momfac = tbl.momfac end
-   if tbl.gkfacs then 
+   if tbl.gkfacs then
       self.mass = tbl.gkfacs[1]
       self.bmag = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")
       self.bmagIndexer = self.bmag:genIndexer()
       self.bmagItr = self.bmag:get(1)
    end
 
-   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
 
    -- for use in _advance() method
    self.dxv = Lin.Vec(self._pDim) -- cell shape
@@ -105,8 +117,9 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
 
    local localRange = distf:localRange()
    if self.onGhosts then -- extend range to config-space ghosts
-      for dir = 1, cDim do
-         localRange = localRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
+      local cdirs = {}
+      for dir = 1, cDim do 
+	 localRange = localRange:extendDir(dir, distf:lowerGhost(), distf:upperGhost())
       end
    end
    local distfIndexer = distf:genIndexer()
@@ -129,30 +142,47 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
       mom2:scale(0.0)
       mom3:scale(0.0)
    end
-   -- loop, computing moments in each cell
-   for idx in localRange:colMajorIter() do
-      grid:setIndex(idx)
-      grid:cellCenter(self.w)
-      for d = 1, pDim do self.dxv[d] = grid:dx(d) end
+
+   -- construct ranges for nested loops
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = localRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
+   local velRange = localRange:selectLast(vDim)
+   local tId = grid:subGridSharedId() -- local thread ID
+
+   local idx = Lin.Vec(cDim+vDim)
+   -- outer loop is threaded and over configuration space
+   for cIdx in confRangeDecomp:colMajorIter(tId) do
+
+      -- inner loop is over velocity space: no threading to avoid race
+      -- conditions
+      for vIdx in velRange:colMajorIter() do
+	 for d = 1, cDim do idx[d] = cIdx[d] end
+	 for d = 1, vDim do idx[cDim+d] = vIdx[d] end
       
-      distf:fill(distfIndexer(idx), distfItr)
-      mom1:fill(mom1Indexer(idx), mom1Itr)
-      if self._isGK then
-         self.bmag:fill(self.bmagIndexer(idx), self.bmagItr)
-         if self._fivemoments then
-            mom2:fill(mom2Indexer(idx), mom2Itr)
-            mom3:fill(mom3Indexer(idx), mom3Itr)
-            self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
-                             mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-         else
-            self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
-         end
-      elseif self._fivemoments then 
-         mom2:fill(mom2Indexer(idx), mom2Itr)
-         mom3:fill(mom3Indexer(idx), mom3Itr)
-         self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-      else
-         self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data())
+	 grid:setIndex(idx)
+	 grid:cellCenter(self.w)
+	 for d = 1, pDim do self.dxv[d] = grid:dx(d) end
+      
+	 distf:fill(distfIndexer(idx), distfItr)
+	 mom1:fill(mom1Indexer(idx), mom1Itr)
+
+	 if self._isGK then
+	    self.bmag:fill(self.bmagIndexer(idx), self.bmagItr)
+	    if self._fivemoments then
+	       mom2:fill(mom2Indexer(idx), mom2Itr)
+	       mom3:fill(mom3Indexer(idx), mom3Itr)
+	       self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
+				mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+	    else
+	       self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
+	    end
+	 elseif self._fivemoments then 
+	    mom2:fill(mom2Indexer(idx), mom2Itr)
+	    mom3:fill(mom3Indexer(idx), mom3Itr)
+	    self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+	 else
+	    self._momCalcFun(self.w:data(), self.dxv:data(), distfItr:data(), mom1Itr:data())
+	 end
       end
    end
    if self.momfac ~= 1.0 then mom1:scale(self.momfac) end

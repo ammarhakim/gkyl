@@ -138,6 +138,35 @@ local range_mt = {
 	 r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
 	 return r
       end,
+      extendDirs = function (self, dirList, lExt, uExt)
+	 local r = new(rTy)
+	 r._ndim = self:ndim()
+	 for dir = 1, self:ndim() do
+	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir), self:upper(dir)
+	 end
+	 for d = 1, #dirList do
+	    local extDir = dirList[d]
+	    r._lower[extDir-1], r._upper[extDir-1] = self:lower(extDir)-lExt, self:upper(extDir)+uExt
+	 end
+	 return r
+      end,
+      selectFirst = function (self, n)
+	 local r = new(rTy)
+	 r._ndim = n
+	 for dir = 1, n do
+	    r._lower[dir-1], r._upper[dir-1] = self:lower(dir), self:upper(dir)
+	 end
+	 return r	 
+      end,
+      selectLast = function (self, n)
+	 local r = new(rTy)
+	 r._ndim = n
+	 for dir = 1, n do
+	    local i = self:ndim()-n+dir
+	    r._lower[dir-1], r._upper[dir-1] = self:lower(i), self:upper(i)
+	 end
+	 return r	 
+      end,      
       lowerSkin = function (self, dir, nGhost)
 	 local r = new(rTy)
 	 r._ndim = self:ndim()

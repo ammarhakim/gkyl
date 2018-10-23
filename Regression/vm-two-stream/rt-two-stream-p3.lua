@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require "App.VlasovOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
 knumber = 0.5 -- wave-number
 elVTerm = 0.2 -- electron thermal velocity
@@ -50,7 +50,7 @@ vlasovApp = Plasma.App {
    },
 
    -- field solver
-   field = Plasma.EmField {
+   field = Plasma.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 local alpha = perturbation

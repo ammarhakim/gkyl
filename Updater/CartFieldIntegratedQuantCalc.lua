@@ -41,7 +41,8 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
-   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV", "CartFieldIntegratedQuantCalc: quantity must be one of V, V2 or AbsV")
+   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV",
+	  "CartFieldIntegratedQuantCalc: quantity must be one of V, V2 or AbsV")
    self.updateFunc = ffi.C["gkylCartFieldIntQuant"..tbl.quantity]
 
    -- for use in advance method
@@ -67,9 +68,8 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
       self.globalVals[i] = 0.0
    end
 
-   local localRange = field:localRange()   
    -- loop, computing integrated moments in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in field:localRangeIter() do
       grid:setIndex(idx)
       for d = 1, ndim do
 	 self.dxv[d] = grid:dx(d)
@@ -82,8 +82,8 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
    end
 
    -- all-reduce across processors and push result into dyn-vector
-   local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+   Mpi.Allreduce(
+      self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, self:getComm())
    vals:appendData(tCurr, self.globalVals)
    
    return true, GKYL_MAX_DOUBLE

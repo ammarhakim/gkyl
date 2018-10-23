@@ -15,6 +15,7 @@ local Field = require "App.Field"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Sources = require "App.Sources"
 local Species = require "App.Species"
@@ -23,6 +24,7 @@ local date = require "xsys.date"
 local lume = require "Lib.lume"
 local xsys = require "xsys"
 local Projection = require "App.Projection"
+local lfs = require "lfs"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -33,6 +35,11 @@ local function createBasis(nm, ndim, polyOrder)
    elseif nm == "tensor" then
       return Basis.CartModalTensor { ndim = ndim, polyOrder = polyOrder }
    end
+end
+
+-- function to check if file exists
+local function file_exists(name)
+   if lfs.attributes(name) then return true else return false end
 end
 
 -- top-level method to build application "run" method
@@ -65,7 +72,7 @@ local function buildApplication(self, tbl)
 
    -- basis function name
    local basisNm = tbl.basis and tbl.basis or "serendipity"
-   if basisNm ~= "serendipity" and basisNm ~= "maximal-order" then
+   if basisNm ~= "serendipity" and basisNm ~= "maximal-order" and basisNm ~= "tensor" then
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
@@ -115,7 +122,7 @@ local function buildApplication(self, tbl)
    local periodicDirs = {}
    if tbl.periodicDirs then
       for i, d in ipairs(tbl.periodicDirs) do
-	 if d<1 and d>3 then
+	 if d<1 or d>cdim then
 	    assert(false, "Directions in periodicDirs table should be 1 (for X), 2 (for Y) or 3 (for Z)")
 	 end
 	 periodicDirs[i] = d
@@ -305,10 +312,10 @@ local function buildApplication(self, tbl)
    end
 
    -- function to write data to file
-   local function writeData(tCurr)
-      for _, s in pairs(species) do s:write(tCurr) end
-      field:write(tCurr)
-      funcField:write(tCurr)
+   local function writeData(tCurr, force)
+      for _, s in pairs(species) do s:write(tCurr, force) end
+      field:write(tCurr, force)
+      funcField:write(tCurr, force)
    end
 
    -- function to write restart frames to file
@@ -321,11 +328,12 @@ local function buildApplication(self, tbl)
    -- function to read from restart frame
    local function readRestart() --> time at which restart was written
       local rTime = 0.0
+      -- read fields first, in case needed for species init or BCs
+      field:readRestart()
+      funcField:readRestart()
       for _, s in pairs(species) do
 	 rTime = s:readRestart()
       end
-      field:readRestart()
-      funcField:readRestart()
       return rTime
    end
 
@@ -657,12 +665,25 @@ local function buildApplication(self, tbl)
       end
 
       local tmSimStart = Time.clock()
+      local first = true
+      local failcount = 0
+      local stopfile = GKYL_OUT_PREFIX .. ".stop"
+
       -- main simulation loop
       while true do
 	 -- call time-stepper
 	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
+   
+         -- if stopfile exists, break
+         if (file_exists(stopfile)) then
+            writeData(tCurr+myDt, true)
+            writeRestart(tCurr+myDt)
+            break
+         end
+
 	 -- check status and determine what to do next
 	 if status then
+            if first then initDt = dtSuggested; first = false end
 	    writeLogMessage(tCurr+myDt)
 	    -- we must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart
@@ -680,6 +701,14 @@ local function buildApplication(self, tbl)
 	 else
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
+            if (myDt < 1e-3*initDt) then 
+               failcount = failcount + 1
+               if failcount > 20 then
+                  writeData(tCurr+myDt, true)
+                  log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
+                  break
+               end
+            end
 	 end
       end
       local tmSimEnd = Time.clock()
@@ -702,20 +731,52 @@ local function buildApplication(self, tbl)
          end
       end
 
+      local tmSrc = 0.0
+      for _, s in pairs(sources) do
+         tmSrc = tmSrc + s:totalTime()
+      end
+
       local tmTotal = tmSimEnd-tmSimStart
       log(string.format("\nTotal number of time-steps %s\n\n", step))
-      log(string.format("Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
-      log(string.format("Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmBc, tmBc/step, 100*tmBc/tmTotal))
-      log(string.format("Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
-      log(string.format("Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
-      log(string.format("Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
-      log(string.format("Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmMom, tmMom/step, 100*tmMom/tmTotal))
-      log(string.format("Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
-      log(string.format("Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
-      log(string.format("Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", tmColl, tmColl/step, 100*tmColl/tmTotal))
-      log(string.format("Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n", stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
-      log(string.format("Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n", tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
+      log(string.format(
+	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+      log(string.format(
+	     "Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmBc, tmBc/step, 100*tmBc/tmTotal))
+      log(string.format(
+	     "Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
+      log(string.format(
+	     "Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
+      log(string.format(
+	     "Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
+      log(string.format(
+	     "Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmMom, tmMom/step, 100*tmMom/tmTotal))
+      log(string.format(
+	     "Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+      log(string.format(
+	     "Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
+      log(string.format(
+	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+      log(string.format(
+	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
+      log(string.format(
+	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      log(string.format(
+	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
+	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
       log(date(false):fmt()); log("\n") -- time-stamp for sim end
+
+      if file_exists(stopfile) then os.remove(stopfile) end -- clean up
    end
 end
 

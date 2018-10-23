@@ -1,6 +1,7 @@
 /* Generate kernels to that evaluate f and v*f at the boundaries
    and integrate it (the integral is global).
    This is used to correct u and vtSq in the primMoments updater. */
+/* IMPORTANT: p=1 code below assumes vMin is negative and vMax positive. */
 
 load("modal-basis");
 load("out-scripts");
@@ -14,9 +15,19 @@ VarsV : [VX, VY, VZ]$
    calcBoundaryIntegral to generate the code for both
    the function that evaluates the surface integral of
    f|^(vmax)_(vmin) and that of vf|^(vmax)_(vmin). */
-wVar    : [ [1,1,1] , varsV]$
 Fsuffix : [F, vF]$
-Bfac    : [ [1,1] , [vmax,vmin] ]$
+Bfac    : [ 1 , vBoundary ]$
+
+writeCIncrExprsCollect1s(lhs, rhs, clst) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      param : cons(expr[i], clst),
+      e : apply(collectterms, param),
+      printf(fh, "    ~a += ~a; ~%", lhs[i-1], e)
+    )
+  )
+)$
 
 calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   kill(varsC, varsP, basisC, basisP),
@@ -35,34 +46,50 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     /* Expand the distribution function in the cells at the
        boundaries of the velocity domain. */
-    fvmin_e : doExpand1(fvmin,bP),
-    fvmax_e : doExpand1(fvmax,bP),
+    fbIn_e : doExpand1(fIn,bP),
 
     /* Quantity to be integrated over velocity boundary surface.
-       It is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin). */
-    /*if (polyOrder = 1 and wInd = 2) then (
-         mB_e : (BfacP1[wInd][1]-dv[dir]/2)*subst(vv=1,fvmax_e)
-               -(BfacP1[wInd][2]+dv[dir]/2)*subst(vv=-1,fvmin_e)	     
-    )
-    else (
-    	 mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
-               -Bfac[wInd][2]*subst(vv=-1,fvmin_e)
-    ),*/
-     mB_e : Bfac[wInd][1]*subst(vv=1,fvmax_e)
-            -Bfac[wInd][2]*subst(vv=-1,fvmin_e),
+       if atLower=true  this is -f_(vmin) or -(vf)_(vmin),
+       if atLower=false this is f^(vmax) or (vf)^(vmax). */
+    if (sequal(substring(funcNm,1,3),"Vm")) then (
+      /* Vlasov Maxwell. */
+      if (polyOrder=1 and wInd=2) then (
+        mBlo_e : -(Bfac[wInd]+dv[dir]/2)*subst(vv=-1,fbIn_e), 
+        mBup_e :  (Bfac[wInd]-dv[dir]/2)*subst(vv=1,fbIn_e)
+      ) else (
+        mBlo_e : -Bfac[wInd]*subst(vv=-1,fbIn_e),
+        mBup_e :  Bfac[wInd]*subst(vv=1,fbIn_e)
+      )
+    ) else (
+      /* Gyrokinetics. */
+      if (polyOrder=1 and wInd=2 and dir=1) then (
+        mBlo_e : -(Bfac[wInd]+dv[dir]/2)*subst(vv=-1,fbIn_e), 
+        mBup_e :  (Bfac[wInd]-dv[dir]/2)*subst(vv=1,fbIn_e)
+      ) else (
+        mBlo_e : -Bfac[wInd]*subst(vv=-1,fbIn_e),
+        mBup_e :  Bfac[wInd]*subst(vv=1,fbIn_e)
+      )
+    ),
 
-    /* This is f|^(vmax)_(vmin) or vf|^(vmax)_(vmin) integrated
-       over the velocity boundary surface, and projected onto the
-       configuration space basis function. */
-    fB_c : calcInnerProdList(surfVars,1,bC,mB_e),
+    /* if atLower=true this is -f_(vmin) or -(vf)_(vmin),
+       if atLower=false this is f^(vmax) or (vf)^(vmax).
+       integrated over the velocity boundary surface, and
+       projected onto the configuration space basis function. */
+    fBlo_c : calcInnerProdList(surfVars,1,bC,mBlo_e),
+    fBup_c : calcInnerProdList(surfVars,1,bC,mBup_e),
 
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_~a_~a_P~a(const double intFac, const double vmin, const double vmax, const double *dxv, const double *fvmin, const double *fvmax, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder),
-    printf(fh, "  // intFac:             =1 for VmLBO, =2pi/m or 4pi/m for GkLBO. ~%"),
-    printf(fh, "  // vmax, vmin:         maximum and minimum velocity of the velocity grid. ~%"),
-    printf(fh, "  // dxv[~a]:             cell length in each direciton. ~%", cdim+vdim),
-    printf(fh, "  // fvmax[~a], fvmin[~a]: distribution function at the velocity boundaries. ~%", NP, NP),
-    printf(fh, "  // out:                \int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). ~%"),
+    if (sequal(substring(funcNm,1,3),"Vm")) then (
+      printf(fh, "void ~a_~a_~a_P~a(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder)
+    ) else (
+      printf(fh, "void ~a_~a_~a_P~a(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder)
+    ),
+    printf(fh, "  // atLower:   =true(false) if in cell at lower(upper) velocity boundary. ~%"),
+    printf(fh, "  // intFac:    =2pi/m or 4pi/m for GkLBO (not used for Vlasov). ~%"),
+    printf(fh, "  // vBoundary: velocity at the boundary of the velocity grid. ~%"),
+    printf(fh, "  // dxv[~a]:    cell length in each direciton. ~%", cdim+vdim),
+    printf(fh, "  // fIn[~a]:    distribution function at velocity boundaries. ~%", NP),
+    printf(fh, "  // out:       \int dS of f|^(vmax)_(vmin) or vf^(vmax)_(vmin). ~%"),
     printf(fh, " ~%"),
 
     dvSurf   : delete(dxv[cdim+dir-1],dv),
@@ -70,22 +97,45 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     /* Surface integral above was done in [-1,1] computational space. Surface
        factor needs to be multiplied to obtain result from physical grid. */
-    printf(fh, "  const double dS = ~a*~a; ~%", float(1/(2^(vdim-1))), surfExpr),
+    if (sequal(substring(funcNm,1,3),"Vm")) then (
+      printf(fh, "  const double dS = ~a; ~%", float(1/(2^(vdim-1)))*surfExpr)
+    ) else (
+      printf(fh, "  const double dS = ~a*intFac; ~%", float(1/(2^(vdim-1)))*surfExpr)
+    ),
     printf(fh, " ~%"),
 
+    
+    printf(fh, "  if (atLower) {~%"),
+    printf(fh, " ~%"),
     if (wInd=1) then ( 
-       expr : float(expand(intFac*dS*fB_c)),
-       for i : 1 thru length(expr) do (
-         if expr[i] # 0.0 then (
-           param : cons(expr[i], [intFac]),
-           e : apply(collectterms, param),
-           printf(fh, "  ~a += ~a; ~%", out[(dir-1)*NC+i-1], e)
-         )
-       )
+      expr : float(expand(dS*fBlo_c)),
+      for i : 1 thru length(expr) do (
+        if expr[i] # 0.0 then (
+          param : cons(expr[i], [dS,vBoundary]),
+          e : apply(collectterms, param),
+          printf(fh, "    ~a += ~a; ~%", out[(dir-1)*NC+i-1], e)
+        )
+      )
     ) else (
-       /*writeCIncrExprs1(out, dS*fB_c)*/
-       writeCIncrExprsCollect1(out, intFac*dS*fB_c,[intFac])
+      writeCIncrExprsCollect1s(out, dS*fBlo_c,[dS,vBoundary])
     ),
+    printf(fh, " ~%"),
+    printf(fh, "  } else {~%"),
+    printf(fh, " ~%"),
+    if (wInd=1) then ( 
+      expr : float(expand(dS*fBup_c)),
+      for i : 1 thru length(expr) do (
+        if expr[i] # 0.0 then (
+          param : cons(expr[i], [dS,vBoundary]),
+          e : apply(collectterms, param),
+          printf(fh, "    ~a += ~a; ~%", out[(dir-1)*NC+i-1], e)
+        )
+      )
+    ) else (
+      writeCIncrExprsCollect1s(out, dS*fBup_c,[dS,vBoundary])
+    ),
+    printf(fh, " ~%"),
+    printf(fh, "  }~%"),
     printf(fh, " ~%"),
 
     printf(fh, "} ~%"),
@@ -94,8 +144,18 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 )$
 
 calcSurfIntegralCorrections(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
-  for dir : 1 thru vdim do (
-    calcBoundaryIntegral(1, dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
-    calcBoundaryIntegral(2, dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+
+  if (sequal(substring(funcNm,1,3),"Vm")) then (
+    /* Vlasov Maxwell. */
+    for dir : 1 thru vdim do (
+      calcBoundaryIntegral(1, dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+      calcBoundaryIntegral(2, dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+    )
+  ) else (
+    /* Gyrokinetics. */
+    calcBoundaryIntegral(1, 1, fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+    for dir : 1 thru vdim do (
+      calcBoundaryIntegral(2, dir, fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
+    )
   )
 )$

@@ -5,24 +5,26 @@
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
+-- System imports
+local xsys = require "xsys"
 
+-- Gkeyll imports
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
+local Collisions = require "App.Collisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
+local Mpi = require "Comm.Mpi"
+local Projection = require "App.Projection"
+local ProjectionBase = require "App.Projection.ProjectionBase"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local SpeciesBase = require "App.Species.SpeciesBase"
-local Updater = require "Updater"
-local xsys = require "xsys"
 local Time = require "Lib.Time"
-local Mpi = require "Comm.Mpi"
-local Collisions = require "App.Collisions"
-local ProjectionBase = require "App.Projection.ProjectionBase"
-local Projection = require "App.Projection"
+local Updater = require "Updater"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -69,6 +71,8 @@ function KineticSpecies:fullInit(appTbl)
    assert(#self.upper == self.vdim, "'upper' must have " .. self.vdim .. " entries")
    self.coordinateMap = tbl.coordinateMap
 
+   self.useShared = xsys.pickBool(appTbl.useShared, false)
+   
    self.decompCuts = {}
    -- parallel decomposition stuff
    if tbl.decompCuts then
@@ -102,6 +106,8 @@ function KineticSpecies:fullInit(appTbl)
 
    self.distIoFrame = 0 -- frame number for distribution function
    self.diagIoFrame = 0 -- frame number for diagnostics
+
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
 
    -- write perturbed moments by subtracting background before moment calc.. false by default
    self.perturbedMoments = false
@@ -215,14 +221,17 @@ function KineticSpecies:fullInit(appTbl)
    -- check to see if bc type is good is now done in createBc
    if tbl.bcx then
       self.bcx[1], self.bcx[2] = tbl.bcx[1], tbl.bcx[2]
+      if self.bcx[1] == nil or self.bcx[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.hasNonPeriodicBc = true
    end
    if tbl.bcy then
       self.bcy[1], self.bcy[2] = tbl.bcy[1], tbl.bcy[2]
+      if self.bcy[1] == nil or self.bcy[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.hasNonPeriodicBc = true
    end
    if tbl.bcz then
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
+      if self.bcz[1] == nil or self.bcz[2] == nil then assert(false, "KineticSpecies: unsupported BC type") end
       self.hasNonPeriodicBc = true
    end
 
@@ -235,7 +244,7 @@ function KineticSpecies:fullInit(appTbl)
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
-	 val:fullInit(tbl) -- initialize species
+	 val:fullInit(tbl) -- initialize collisions
 	 self.collisions[nm] = val
 	 self.collisions[nm]:setName(nm)
       end
@@ -301,7 +310,7 @@ function KineticSpecies:createGrid(confGridIn)
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
-      shared = false,
+      useShared = self.useShared,
    }
 
    -- create computational domain
@@ -414,7 +423,8 @@ function KineticSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
 end
 
 -- function to construct a BC updater
-function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop)
+function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
+				      hasExtFld)
    return Updater.Bc {
       onGrid = self.grid,
       boundaryConditions = bcList,
@@ -424,6 +434,7 @@ function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop)
       skinLoop = skinLoop,
       cdim = self.cdim,
       vdim = self.vdim,
+      hasExtFld = hasExtFld,
    }
 end
 
@@ -462,6 +473,7 @@ function KineticSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType = self.distf[1]:elemType(),
       method = self.ioMethod,
+      writeGhost = self.writeGhost
    }
 
    if self.positivity then
@@ -503,6 +515,12 @@ function KineticSpecies:initDist()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
       end
+      if pr.isReservoir then
+	 if not self.fReservoir then 
+	    self.fReservoir = self:allocDistf()
+	 end
+	 self.fReservoir:accumulate(1.0, self.distf[2])
+      end
    end
    assert(initCnt > 0,
 	  string.format("KineticSpecies: Species '%s' not initialized!", self.name))
@@ -513,6 +531,9 @@ function KineticSpecies:initDist()
    if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
    end
+
+   self:applyBc(0, 0, self.distf[1])
+   self.distf[2]:clear(0.0)
 
    -- calculate initial density averaged over simulation domain
    --self.n0 = nil
@@ -566,7 +587,7 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
       -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, dt, {}, {fIn})
+            bc:advance(tCurr, dt, {self.fReservoir}, {fIn})
          end
       end
 
@@ -590,12 +611,18 @@ end
 
 function KineticSpecies:calcDiagnosticMoments()
    if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(-1, self.f0) end
-   local numMoms = #self.diagnosticMoments
-   for i = 1, numMoms do
-      self.diagnosticMomentUpdaters[i]:advance(
-	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[i]})
+   for i, mom in pairs(self.diagnosticMoments) do
+      self.diagnosticMomentUpdaters[mom]:advance(
+	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[mom]})
    end
    if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(1, self.f0) end
+end
+
+function KineticSpecies:calcDiagnosticWeakMoments()
+   for i, mom in pairs(self.diagnosticWeakMoments) do
+      self.weakDivision:advance(0.0, 0.0, self.weakMomentOpFields[mom], {self.diagnosticMomentFields[mom]})
+      if self.weakMomentScaleFac[mom] then self.diagnosticMomentFields[mom]:scale(self.weakMomentScaleFac[mom]) end
+   end
 end
 
 function KineticSpecies:calcDiagnosticIntegratedMoments()
@@ -605,7 +632,7 @@ function KineticSpecies:isEvolving()
    return self.evolve
 end
 
-function KineticSpecies:write(tm)
+function KineticSpecies:write(tm, force)
    if self.evolve then
       local tmStart = Time.clock()
       -- compute integrated diagnostics
@@ -620,7 +647,7 @@ function KineticSpecies:write(tm)
       self.integratedMomentsTime = self.integratedMomentsTime + Time.clock() - tmStart
 
       -- only write stuff if triggered
-      if self.distIoTrigger(tm) then
+      if self.distIoTrigger(tm) or force then
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, self.distIoFrame), tm, self.distIoFrame)
          if self.f0 then
             if tm == 0.0 then
@@ -637,13 +664,19 @@ function KineticSpecies:write(tm)
       end
 
 
-      if self.diagIoTrigger(tm) then
+      if self.diagIoTrigger(tm) or force then
          -- compute moments and write them out
          self:calcDiagnosticMoments()
          for i, mom in ipairs(self.diagnosticMoments) do
             -- should one use AdiosIo object for this?
-            self.diagnosticMomentFields[i]:write(
-               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
+            self.diagnosticMomentFields[mom]:write(
+               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+         end
+         self:calcDiagnosticWeakMoments()
+         for i, mom in ipairs(self.diagnosticWeakMoments) do
+            -- should one use AdiosIo object for this?
+            self.diagnosticMomentFields[mom]:write(
+               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
          end
          for i, mom in ipairs(self.diagnosticIntegratedMoments) do
             self.diagnosticIntegratedMomentFields[i]:write(
@@ -667,7 +700,7 @@ function KineticSpecies:write(tm)
 	 self:calcDiagnosticMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0)
+	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0, self.writeGhost)
 	 end
       end
       self.distIoFrame = self.distIoFrame+1
@@ -676,16 +709,18 @@ function KineticSpecies:write(tm)
 end
 
 function KineticSpecies:writeRestart(tm)
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame)
+   -- (the final "false" prevents writing of ghost cells)
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, false)
+   for i, mom in ipairs(self.diagnosticMoments) do
+      self.diagnosticMomentFields[mom]:write(
+	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
+   end   
+
    -- (the final "false" prevents flushing of data after write)
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       self.diagnosticIntegratedMomentFields[i]:write(
          string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end
-   for i, mom in ipairs(self.diagnosticMoments) do
-      self.diagnosticMomentFields[i]:write(
-	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame)
-   end   
 end
 
 function KineticSpecies:readRestart()
@@ -701,7 +736,7 @@ function KineticSpecies:readRestart()
    end
 
    for i, mom in ipairs(self.diagnosticMoments) do
-      local _, dfr = self.diagnosticMomentFields[i]:read(
+      local _, dfr = self.diagnosticMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
       self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
    end

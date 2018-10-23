@@ -57,6 +57,7 @@ plasmaApp = Plasma.App {
    fluid = Plasma.GkSpecies {
       charge = qi,
       mass = mi,
+      n0 = 1,
       -- velocity space grid
       lower = {-4, 0},
       upper = {4, 4},

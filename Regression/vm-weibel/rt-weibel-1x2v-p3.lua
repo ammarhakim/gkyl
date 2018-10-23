@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Vlasov = require "App.VlasovOnCartGrid"
+local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
 -- Constants
 chargeElc = -1.0
@@ -81,7 +81,7 @@ vlasovApp = Vlasov.App {
    },
 
    -- field solver
-   field = Vlasov.EmField {
+   field = Vlasov.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 local x = xn[1]

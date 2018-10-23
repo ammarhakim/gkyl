@@ -11,10 +11,11 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local UpdaterBase = require "Updater.Base"
-local Lin         = require "Lib.Linalg"
-local Proto       = require "Lib.Proto"
 local BinOpDecl   = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
+local Lin         = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Proto       = require "Lib.Proto"
+local UpdaterBase = require "Updater.Base"
 local xsys        = require "xsys"
 
 -- function to check if moment name is correct
@@ -96,8 +97,14 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
 
    -- Either the localRange is the same for Bfld and Afld,
    -- or just use the range of the phase space field,
-   local localBRange  = Bfld:localRange()
-   if self.onGhosts then localBRange = Bfld:localExtRange() end
+   local localBRangeDecomp
+   if self.onGhost then
+      localBRangeDecomp = LinearDecomp.LinearDecompRange {
+	 range = Bfld:localRange(), numSplit = grid:numSharedProcs() }
+   else
+      localBRangeDecomp = LinearDecomp.LinearDecompRange {
+	 range = Bfld:localExtRange(), numSplit = grid:numSharedProcs() }
+   end
 
    local AfldIndexer = Afld:genIndexer()
    local BfldIndexer = Bfld:genIndexer()
@@ -128,8 +135,9 @@ function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
      self._BinOpCalc = self._BinOpCalcD
    end
 
-   -- loop, computing moments in each cell
-   for idx in localBRange:colMajorIter() do
+   local tId = grid:subGridSharedId() -- local thread ID   
+   -- loop, computing binOp in each cell
+   for idx in localBRangeDecomp:colMajorIter(tId) do
       grid:setIndex(idx)
 
       Afld:fill(AfldIndexer(idx), AfldItr)

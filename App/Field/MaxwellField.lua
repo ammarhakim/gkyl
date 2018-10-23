@@ -10,6 +10,7 @@ local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local DataStruct = require "DataStruct"
 local FieldBase = require "App.Field.FieldBase"
 local LinearTrigger = require "LinearTrigger"
+local Mpi = require "Comm.Mpi"
 local PerfMaxwell = require "Eq.PerfMaxwell"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
@@ -40,6 +41,9 @@ local function isBcGood(bcType)
    if bcType == EM_BC_OPEN or bcType == EM_BC_REFLECT or bcType == EM_BC_SYMMETRY then
       return true
    end
+   if type(bcType) == "table" then
+     return true
+   end
    return false
 end
 
@@ -61,7 +65,7 @@ function MaxwellField:fullInit(appTbl)
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
 
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
-   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
+   self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
 
    self.hasMagField = xsys.pickBool(tbl.hasMagneticField, true) -- by default there is a magnetic field
 
@@ -180,7 +184,7 @@ function MaxwellField:createSolver()
 	 onGrid = self.grid,
 	 basis = self.basis,
 	 cfl = self.cfl,
-	 equation = maxwellEqn
+	 equation = maxwellEqn,
       }
    else
       -- using FV scheme
@@ -284,6 +288,9 @@ function MaxwellField:createSolver()
       elseif bcType == EM_BC_SYMMETRY then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, { bcSymmetry }))
+      elseif type(bcType) == "table" then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, bcType))
       else
 	 assert(false, "MaxwellField: Unsupported BC type!")
       end
@@ -302,6 +309,8 @@ function MaxwellField:createSolver()
    handleBc(1, self.bcx)
    handleBc(2, self.bcy)
    handleBc(3, self.bcz)
+
+   self.bcTime = 0.0 -- timer for BCs
 end
 
 function MaxwellField:createDiagnostics()
@@ -317,7 +326,7 @@ function MaxwellField:initField()
    self:applyBc(0.0, 0.0, self.em[1])
 end
 
-function MaxwellField:write(tm)
+function MaxwellField:write(tm, force)
    if self.evolve then
       local tmStart = Time.clock()
       -- compute EM energy integrated over domain
@@ -331,7 +340,7 @@ function MaxwellField:write(tm)
       -- time computation of integrated moments
       self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
       
-      if self.ioTrigger(tm) then
+      if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
@@ -347,7 +356,9 @@ function MaxwellField:write(tm)
 end
 
 function MaxwellField:writeRestart(tm)
-   self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame)
+   -- (the final "false" prevents writing of ghost cells)
+   self.fieldIo:write(self.em[1], "field_restart.bp", tm, self.ioFrame, false)
+
    -- (the final "false" prevents flushing of data after write)
    self.emEnergy:write("fieldEnergy_restart.bp", tm, self.ioFrame, false)
 end
@@ -357,8 +368,10 @@ function MaxwellField:readRestart()
    self:applyBc(tm, 0.0, self.em[1])
    self.em[1]:sync() -- must get all ghost-cell data correct
      
-   self.ioFrame = fr
    self.emEnergy:read("fieldEnergy_restart.bp", tm)
+   self.ioFrame = fr
+   -- iterate triggers
+   self.ioTrigger(tm)
 end
 
 function MaxwellField:rkStepperFields()
@@ -383,6 +396,9 @@ end
 
 function MaxwellField:accumulateCurrent(dt, current, em)
    if current == nil then return end
+
+   -- Barrier befor doing accumulating current
+   Mpi.Barrier(self.grid:commSet().sharedComm)
 
    local tmStart = Time.clock()
 
@@ -441,8 +457,8 @@ end
 function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
+      self:applyBc(tCurr, dt, fIn)
       status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
-      self:applyBc(tCurr, dt, fOut)
    else
       fOut:copy(fIn)
    end
@@ -450,12 +466,14 @@ function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
 end
 
 function MaxwellField:applyBc(tCurr, dt, emIn)
+   local tmStart = Time.clock()
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
 	 bc:advance(tCurr, dt, {}, {emIn})
       end
    end   
    emIn:sync()
+   self.bcTime = self.bcTime + Time.clock()-tmStart
 end
    
 function MaxwellField:totalSolverTime()
@@ -471,11 +489,7 @@ function MaxwellField:totalSolverTime()
 end
 
 function MaxwellField:totalBcTime()
-   local tm = 0.0
-   for _, bc in ipairs(self.boundaryConditions) do
-      tm = tm + bc.totalTime
-   end
-   return tm
+   return self.bcTime
 end
 
 function MaxwellField:energyCalcTime()
@@ -557,9 +571,9 @@ function FuncMaxwellField:initField()
    self:applyBc(0.0, 0.0, self.em)
 end
 
-function FuncMaxwellField:write(tm)
+function FuncMaxwellField:write(tm, force)
    if self.evolve then
-      if self.ioTrigger(tm) then
+      if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
 	 self.ioFrame = self.ioFrame+1

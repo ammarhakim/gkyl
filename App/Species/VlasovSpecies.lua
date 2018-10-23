@@ -22,12 +22,16 @@ local SP_BC_EXTERN = 4
 local SP_BC_COPY = 5
 -- AHH: This was 2 but seems that is unstable. So using plain copy
 local SP_BC_OPEN = SP_BC_COPY
+local SP_BC_ZEROFLUX = 6
+local SP_BC_RESERVOIR = 7
 
 VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
 VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
 VlasovSpecies.bcCopy = SP_BC_COPY -- copy stuff
 VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
 VlasovSpecies.bcExternal = SP_BC_EXTERN -- load external BC file
+VlasovSpecies.bcZeroFlux = SP_BC_ZEROFLUX
+VlasovSpecies.bcReservoir = SP_BC_RESERVOIR
 
 function VlasovSpecies:alloc(nRkDup)
    -- allocate distribution function
@@ -84,14 +88,16 @@ function VlasovSpecies:createSolver(hasE, hasB)
 
    -- must apply zero-flux BCs in velocity directions
    local zfd = { }
-   for d = 1, self.vdim do zfd[d] = self.cdim+d end
+   for d = 1, self.vdim do 
+     table.insert(self.zeroFluxDirections, self.cdim+d)
+   end
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
       basis = self.basis,
       cfl = self.cfl,
       equation = vlasovEqn,
-      zeroFluxDirections = zfd,
+      zeroFluxDirections = self.zeroFluxDirections,
    }
 
    -- create updaters to compute various moments
@@ -168,7 +174,7 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    end
 
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
-   if self.evolveCollisionless then      
+   if self.evolveCollisionless then
       status, dtSuggested = self.solver:advance(
 	 tCurr, dt, {fIn, totalEmField}, {fOut})
    else
@@ -261,12 +267,12 @@ function VlasovSpecies:createDiagnostics()
    -- allocate space to store moments and create moment updater
    for i, mom in ipairs(self.diagnosticMoments) do
       if isMomentNameGood(mom) then
-         self.diagnosticMomentFields[i] = DataStruct.Field {
+         self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
             ghost = {1, 1}
          }
-         self.diagnosticMomentUpdaters[i] = Updater.DistFuncMomentCalc {
+         self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
             onGrid = self.grid,
             phaseBasis = self.basis,
             confBasis = self.confBasis,
@@ -276,6 +282,8 @@ function VlasovSpecies:createDiagnostics()
          assert(false, string.format("Moment %s not valid", mom))
       end
    end
+
+   self.diagnosticWeakMoments = { }
 end
 
 -- BC functions
@@ -307,23 +315,29 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    if bcType == SP_BC_ABSORB then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcAbsorbFunc }, "pointwise"))
+				      { bcAbsorbFunc }, "pointwise", false))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise"))
+				      { bcCopyFunc }, "pointwise", false))
    elseif bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise"))
+				      { bcCopyFunc }, "pointwise", false))
    elseif bcType == SP_BC_REFLECT then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcReflectFunc }, "flip"))
+				      { bcReflectFunc }, "flip", false))
    elseif bcType == SP_BC_EXTERN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcExternFunc }, "flip"))
+				      { bcExternFunc }, "flip", false))
+   elseif bcType == SP_BC_ZEROFLUX then
+      table.insert(self.zeroFluxDirections, dir)
+   elseif bcType == SP_BC_RESERVOIR then
+      table.insert(self.boundaryConditions,
+		   self:makeBcUpdater(dir, vdir, edge,
+				      { bcCopyFunc }, "pointwise", true))
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end
@@ -412,7 +426,7 @@ end
 function VlasovSpecies:momCalcTime()
    local tm = self.tmCouplingMom
    for i, mom in ipairs(self.diagnosticMoments) do
-      tm = tm + self.diagnosticMomentUpdaters[i].totalTime
+      tm = tm + self.diagnosticMomentUpdaters[mom].totalTime
    end
    return tm
 end

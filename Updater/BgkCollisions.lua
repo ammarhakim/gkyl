@@ -67,7 +67,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    local vth2In = nil
    if not self.collFreq then
       nIn = assert(inFld[4],
-		      "BgkCollisions.advance: Must specify an input number density field as input[4] ('collFreq' is not specified, so classical \nu is used instead)")
+		   "BgkCollisions.advance: Must specify an input number density field as input[4] ('collFreq' is not specified, so classical \nu is used instead)")
       vth2In = assert(inFld[5],
 		      "BgkCollisions.advance: Must specify an input thermal velocity squared field as input[5] ('collFreq' is not specified, so classical \nu is used instead)")
    end
@@ -89,7 +89,6 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    -- Get the Ranges to loop over the domain
    -- local confRange = numDensityIn:localRange()
    -- local confIndexer = numDensityIn:genIndexer()
-   local phaseRange = fOut:localRange()
    local phaseIndexer = fOut:genIndexer()
    local confIndexer = nil
    if not self.collFreq then
@@ -99,7 +98,7 @@ function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    local nu = self.collFreq
    local n, vth2 = nil, nil
    local T, coulombLog = nil, nil
-   for phaseIdx in phaseRange:colMajorIter() do
+   for phaseIdx in fOut:localRangeIter() do
       fIn:fill(phaseIndexer(phaseIdx), fInItr)
       fMaxwell:fill(phaseIndexer(phaseIdx), fMaxwellItr)
       fOut:fill(phaseIndexer(phaseIdx), fOutItr)
