@@ -20,8 +20,8 @@ LUAJIT_LIB_DIR=$HOME/gkylsoft/luajit/lib
 LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 
 ## MPI options
-MPICC=$HOME/gkylsoft/openmpi-3.0.0/bin/mpicc
-MPICXX=$HOME/gkylsoft/openmpi-3.0.0/bin/mpicxx
+MPICC=$HOME/gkylsoft/openmpi-3.1.2/bin/mpicc
+MPICXX=$HOME/gkylsoft/openmpi-3.1.2/bin/mpicxx
 ENABLE_MPI="--enable-mpi"
 MPI_INC_DIR=$TACC_IMPI_INC
 MPI_LIB_DIR=$TACC_IMPI_LIB
