@@ -507,7 +507,7 @@ function GkSpecies:createDiagnostics()
          end      
 
          self.weakMomentOpFields["GkTemp"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2"]}
-         self.weakMomentScaleFac["GkTemp"] = self.mass
+         self.weakMomentScaleFac["GkTemp"] = self.mass/3
       end
    end
 end
