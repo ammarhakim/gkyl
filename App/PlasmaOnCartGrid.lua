@@ -780,6 +780,7 @@ return {
    App = App,
    BgkCollisions = Collisions.BgkCollisions,   
    FuncMaxwellField = Field.FuncMaxwellField,
+   FuncVlasovSpecies = Species.FuncVlasovSpecies,
    GkField = Field.GkField,
    GkGeometry = Field.GkGeometry,
    GkSpecies = Species.GkSpecies,
