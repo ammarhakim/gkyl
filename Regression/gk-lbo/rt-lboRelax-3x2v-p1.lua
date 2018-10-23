@@ -59,7 +59,7 @@ end
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 1.0,           -- End time.
+   tEnd        = 0.05,           -- End time.
    nFrame      = 1,             -- Number of frames to write.
    lower       = {0,0,0},       -- Configuration space lower coordinate.
    upper       = {1.0,1.0,1.0}, -- Configuration space upper coordinate.

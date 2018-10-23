@@ -7,6 +7,7 @@
 
 -- gkyl libraries
 local Lin = require "Lib.Linalg"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 
@@ -50,7 +51,10 @@ function LinearDecomp:shape(n) return self._shape[n] end
 local LinearDecompRange = Proto()
 
 function LinearDecompRange:init(tbl)
-   local r = tbl.range -- range to split   
+   local r = tbl.range -- range to split
+   self.range = r
+   self.comm = tbl.threadComm -- thread communicator required to block before loops
+
    -- create linear decomp object
    self._linearDecomp = LinearDecomp {
       domSize = r:volume(), numSplit = tbl.numSplit
@@ -63,16 +67,28 @@ function LinearDecompRange:init(tbl)
    self._colStartIdx = {}
    for d = 1, tbl.numSplit do
       local idx = Lin.IntVec(r:ndim())
-      colInvIndexer(self._linearDecomp:lower(d), idx)
+      -- we need to ensure we don't attempt to find an index into a
+      -- box with zero volume
+      if r:volume() > 0 then
+	 colInvIndexer(self._linearDecomp:lower(d), idx)
+      else
+	 for i = 1, r:ndim() do idx[i] = 0 end
+      end
       self._colStartIdx[d] = idx
    end
 
    self._rowStartIdx = {}
    for d = 1, tbl.numSplit do
       local idx = Lin.IntVec(r:ndim())
-      rowInvIndexer(self._linearDecomp:lower(d), idx)
-      self._rowStartIdx[d] = idx
-   end   
+      -- we need to ensure we don't attempt to find an index into a
+      -- box with zero volume
+      if r:volume() > 0 then
+	 rowInvIndexer(self._linearDecomp:lower(d), idx)
+	 self._rowStartIdx[d] = idx
+      else
+	 for i = 1, r:ndim() do idx[i] = 0 end
+      end
+   end
 end
 
 function LinearDecompRange:domSize() return self._linearDecomp:domSize() end
@@ -82,6 +98,16 @@ function LinearDecompRange:upper(n) return self._linearDecomp:upper(n) end
 function LinearDecompRange:shape(n) return self._linearDecomp:shape(n) end
 function LinearDecompRange:rowStartIndex(n) return self._rowStartIdx[n] end
 function LinearDecompRange:colStartIndex(n) return self._colStartIdx[n] end
+
+function LinearDecompRange:colMajorIter(n)
+   if self.comm then Mpi.Barrier(self.comm) end
+   return self.range:colMajorIter(self:colStartIndex(n), self:shape(n))
+end
+
+function LinearDecompRange:rowMajorIter(n)
+   if self.comm then Mpi.Barrier(self.comm) end
+   return self.range:rowMajorIter(self:rowStartIndex(n), self:shape(n))
+end
 
 return {
    LinearDecomp = LinearDecomp,

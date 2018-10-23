@@ -22,11 +22,14 @@ local Range = require "Lib.Range"
 
 -- C interfaces
 ffi.cdef [[
-    // s: start index. nv: number of values to copy
+    // s: start index. nv: number of values
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
     void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
+    void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
+    void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+    void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
 ]]
 
 -- Local definitions
@@ -279,10 +282,10 @@ local function Field_meta_ctor(elct)
 	 return self._numComponents
       end,
       copy = function (self, fIn)
-	 field_memcpy(self, fIn)
+	 self:_assign(1.0, fIn)
       end,
       clear = function (self, val)
-	 self._allocData:fill(val)
+	 ffi.C.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
       end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
@@ -299,7 +302,7 @@ local function Field_meta_ctor(elct)
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
 	 ffi.C.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
-      end,      
+      end,
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
 		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
@@ -408,18 +411,21 @@ local function Field_meta_ctor(elct)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index
 	 return self._data+loc
       end,
-      write = function (self, fName, tmStamp, frNum)
-	 self._adiosIo:write(self, fName, tmStamp, frNum)
+      write = function (self, fName, tmStamp, frNum, writeGhost)
+	 self._adiosIo:write(self, fName, tmStamp, frNum, writeGhost)
       end,
       read = function (self, fName) --> time-stamp, frame-number
 	 return self._adiosIo:read(self, fName)
       end,
       sync = function (self, syncPeriodicDirs)
-         syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs, true)
+         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs, true)
 	 self._field_sync(self)
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
 	    self._field_periodic_sync(self)
 	 end
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors will not participate in sync()
+	 Mpi.Barrier(self._grid:commSet().comm)
       end,
       setBasisId = function(self, basisId)
          self._basisId = basisId
@@ -432,22 +438,22 @@ local function Field_meta_ctor(elct)
       end,
       _copy_from_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
-	 local c = 1
+	 local c = 0
+         local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
-	    local fitr = self:get(indexer(idx))
-	    for k = 1, self._numComponents do
-	       data[c] = fitr[k]; c = c+1
-	    end
+	    self:fill(indexer(idx), fitr)
+            ffi.C.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, c)
+            c = c + self._numComponents
 	 end
       end,
       _copy_to_field_region = function (self, rgn, data)
 	 local indexer = self:genIndexer()
-	 local c = 1
+	 local c = 0
+         local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
-	    local fitr = self:get(indexer(idx))
-	    for k = 1, self._numComponents do
-	       fitr[k] = data[c]; c = c+1
-	    end
+	    self:fill(indexer(idx), fitr)
+            ffi.C.gkylCopyToField(fitr:data(), data:data(), self._numComponents, c)
+            c = c + self._numComponents
 	 end
       end,
       _field_sync = function (self)

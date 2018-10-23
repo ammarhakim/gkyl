@@ -5,9 +5,12 @@
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
+-- System libraries
+local xsys = require "xsys"
 
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
@@ -51,7 +54,9 @@ function Bc:init(tbl)
 	 "Updater.Bc: Must specify the number of components of the field using 'numComps'")
    end
 
-   self._ghost = nil -- store ghost cells
+   self._ghostRangeDecomp = nil -- will be constructed on first call to advance
+
+   self.hasExtFld = xsys.pickBool(tbl.hasExtFld, false)
 end
 
 function Bc:getGhostRange(global, globalExt)
@@ -64,59 +69,63 @@ function Bc:getGhostRange(global, globalExt)
    return Range.Range(lv, uv)
 end
 
-function Bc:getVelocityRange(localRange)
-   local lv, uv = {}, {}
-   for d = 1, self._vdim do
-      lv[d]= localRange:lower(self._cdim + d)
-      uv[d]= localRange:upper(self._cdim + d)
-   end
-   return Range.Range(lv, uv)
-end
-
 function Bc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
+   local qIn = inFld[1]
 
    local dir, edge = self._dir, self._edge
    local vdir = self._vdir
    local global = qOut:globalRange()
 
    if self._isFirst then
-      -- compute ghost cells first time around only
       local globalExt = qOut:globalExtRange()
       local localExtRange = qOut:localExtRange()
-      self._ghost = localExtRange:intersect(
-	 self:getGhostRange(global, globalExt)) -- range spanning ghost cells
+      local ghostRng = localExtRange:intersect(
+   	 self:getGhostRange(global, globalExt)) -- range spanning ghost cells
       if self._skinLoop == "integrate" then
-	 self._skin = self:getVelocityRange(qOut:localRange())
+   	 self._skin = qOut:localRange():selectLast(self._vdim)
       end
+      -- decompose ghost region into threads
+      self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
+   	 range = ghostRng, numSplit = grid:numSharedProcs() }
    end
 
    local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
+   if self.hasExtFld then qS = qIn:get(1) end
    local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
    local indexer = qOut:genIndexer()
 
-   for idxG in self._ghost:colMajorIter() do -- loop, applying BCs
+   local tId = self._grid:subGridSharedId() -- local thread ID
+   for idxG in self._ghostRangeDecomp:colMajorIter(tId) do -- loop, applying BCs
       idxG:copyInto(idxS)
-      idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
-      if self._skinLoop == "flip" then
-	 idxS[vdir] = global:upper(vdir) + 1 - idxS[vdir]
+      -- if an in-field is specified the same indexes are used (gS
+      -- points to the ghost layer of the in-field); otherwise, move
+      -- the ghost index to point into the skin layer
+      if not self.hasExtFld then
+	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
+	 if self._skinLoop == "flip" then
+	    idxS[vdir] = global:upper(vdir) + 1 - idxS[vdir]
+	 end
       end
       qOut:fill(indexer(idxG), qG) 
       if self._skinLoop == "integrate" then 
-	 -- clear the ghost cells before accumulating
-	 for c = 1, self._numComponents do qG[c] = 0 end
+   	 for c = 1, self._numComponents do qG[c] = 0 end
 
          for idx in self._skin:colMajorIter() do
-	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
-	    qOut:fill(indexer(idxS), qS)
-            for _, bc in ipairs(self._bcList) do -- loop over each BC
+   	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
+   	    qOut:fill(indexer(idxS), qS)
+            for _, bc in ipairs(self._bcList) do
                bc(dir, tCurr+dt, idxS, qS, qG)
             end
          end
       else
-         qOut:fill(indexer(idxS), qS)
-         for _, bc in ipairs(self._bcList) do -- loop over each BC
+	 if not self.hasExtFld then
+	    qOut:fill(indexer(idxS), qS)
+	 else
+	    qIn:fill(indexer(idxS), qS)
+	 end
+         for _, bc in ipairs(self._bcList) do
             bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
          end
       end

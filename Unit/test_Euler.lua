@@ -145,10 +145,16 @@ function test_4()
    end
 end
 
+function test_5()
+   local euler = Euler { gasGamma = 1.4 }
+   local bcConst = Euler:bcConst(1.0, 0.0, 0.0, 0.0, 0.1)
+end
+
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

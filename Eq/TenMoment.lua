@@ -11,6 +11,7 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 local Time = require "Lib.Time"
+local BoundaryCondition = require "Updater.BoundaryCondition"
 
 local _M = {}
 
@@ -111,4 +112,19 @@ local tenMoment_mt = {
 }
 local TenMomentObj = metatype(typeof("TenMomentEqn_t"), tenMoment_mt)
 
-return TenMomentObj
+-- create a wrapper on Ten-moment eqn object and provide BCs specific
+-- to equations
+local TenMoment = {}
+function TenMoment:new(tbl)
+   local self = setmetatable({}, TenMoment)
+   return TenMomentObj(tbl)
+end
+-- make object callable, and redirect call to the :new method
+setmetatable(TenMoment, { __call = function (self, o) return self.new(self, o) end })
+
+local bcWallCopy = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
+local bcWallFlip = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
+local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
+TenMoment.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
+
+return TenMoment

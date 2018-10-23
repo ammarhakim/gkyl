@@ -13,9 +13,10 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
+local SpeciesBase = require "App.Species.SpeciesBase"
+local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local SpeciesBase = require "App.Species.SpeciesBase"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -89,6 +90,7 @@ function FluidSpecies:fullInit(appTbl)
 
    self.bcTime = 0.0 -- timer for BCs
 
+   self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
 end
 
@@ -119,6 +121,31 @@ function FluidSpecies:setConfGrid(cgrid)
 end
 
 function FluidSpecies:createGrid(cgrid)
+   self.cdim = #cCells
+   self.ndim = self.cdim
+
+   -- create decomposition
+   local decompCuts = {}
+   for d = 1, self.cdim do table.insert(decompCuts, cgrid:cuts(d)) end
+   self.decomp = DecompRegionCalc.CartProd {
+      cuts = decompCuts,
+      useShared = self.useShared,
+   }
+
+   -- create computational domain
+   local lower, upper, cells = {}, {}, {}
+   for d = 1, self.cdim do
+      table.insert(lower, cgrid:lower(d))
+      table.insert(upper, cgrid:upper(d))
+      table.insert(cells, cgrid:numCells(d))
+   end
+   self.grid = Grid.RectCart {
+      lower = lower,
+      upper = upper,
+      cells = cells,
+      periodicDirs = cgrid:getPeriodicDirs(),
+      decomposition = self.decomp,
+   }
 end
 
 function FluidSpecies:createBasis(nm, polyOrder)
@@ -243,12 +270,16 @@ function FluidSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 end
 
 function FluidSpecies:applyBc(tCurr, dt, fIn)
-   if self.hasNonPeriodicBc then
-      for _, bc in ipairs(self.boundaryConditions) do
-	 bc:advance(tCurr, dt, {}, {fIn})
+   local tmStart = Time.clock()
+   if self.evolve then
+      if self.hasNonPeriodicBc then
+         for _, bc in ipairs(self.boundaryConditions) do
+            bc:advance(tCurr, dt, {}, {fIn})
+         end
       end
+      fIn:sync()
    end
-   fIn:sync()
+   self.bcTime = self.bcTime + Time.clock()-tmStart
 end
 
 function FluidSpecies:createDiagnostics()
@@ -309,11 +340,7 @@ function FluidSpecies:totalSolverTime()
    return 0
 end
 function FluidSpecies:totalBcTime()
-   local tm = 0.0
-   for _, bc in ipairs(self.boundaryConditions) do
-      tm = tm + bc.totalTime
-   end
-   return tm
+   return self.bcTime
 end
 function FluidSpecies:momCalcTime()
    return 0

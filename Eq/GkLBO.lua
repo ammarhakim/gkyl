@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries.
+-- System libraries.
 local Lin          = require "Lib.Linalg"
 local Proto        = require "Lib.Proto"
 local GkLBOModDecl = require "Eq.lboData.GkLBOModDecl"
@@ -13,13 +13,12 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 
--- for incrementing in updater.
+-- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
 -- Gyrokinetic Lenard-Bernstein equation on a rectangular mesh.
 local GkLBO = Proto(EqBase)
 
--- ctor
 function GkLBO:init(tbl)
 
    self._phaseBasis = assert(
@@ -37,7 +36,7 @@ function GkLBO:init(tbl)
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
 
-   -- functions to perform LBO updates.
+   -- Functions to perform LBO updates.
    if self._inNu then
       self._volUpdate  = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -48,13 +47,13 @@ function GkLBO:init(tbl)
       self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
-   -- bulk velocity times collisionality field object and pointers to cell values.
+   -- Bulk velocity times collisionality field object and pointers to cell values.
    self._uNu = nil
-   -- thermal speed squared times collisionality field object and pointers to cell values.
+   -- Thermal speed squared times collisionality field object and pointers to cell values.
    self._vthSqNu = nil
    -- (these will be set on the first call to setAuxFields() method).
    self._BmagInvPtr, self._BmagInvIdxr = nil, nil
-   self._uNuPtr, self._uNuIdxr = nil, nil
+   self._uNuPtr, self._uNuIdxr         = nil, nil
    self._vthSqNuPtr, self._vthSqNuIdxr = nil, nil
 
    if not self._inNu then

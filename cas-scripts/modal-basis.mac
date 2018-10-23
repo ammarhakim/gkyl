@@ -77,7 +77,7 @@ numSerendipBasis(p,d) := sum(2^(d-j)*binomial(d,j)*binomial(p-j,j),j,0,min(d,flo
 numTensor(p,d) := (p+1)^d$
 
 /* Shift basis to be centered around a give cell-centers and cell sizes */
-rescaleBasis(var, basis, varOut, xc, dx) := block([slst, b],
+shiftBasis(var, basis, varOut, xc, dx) := block([slst, b],
   slst : makelist(var[i] = 2*(varOut[i]-xc[i])/dx[i], i, 1, length(var)),
   b : map(lambda([x], subst(slst,x)), basis),
   return (b)
@@ -85,7 +85,7 @@ rescaleBasis(var, basis, varOut, xc, dx) := block([slst, b],
 
 /* Shift function to [-1,1] */
 shiftFunc(var, func, varOut, xc, dx) := block([slst, b],
-  slst : makelist(varOut[i] = dx[i]/2*var[i]+xc[i], i, 1, length(var)),
+  slst : makelist(var[i] = varOut[i]*dx[i]/2+xc[i], i, 1, length(var)),
   return (subst(slst, func))
   )$
 

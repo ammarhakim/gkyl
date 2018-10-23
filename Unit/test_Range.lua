@@ -27,6 +27,7 @@ function test_1()
 
    assert_equal(2, range:shape(1), "Checking shape")
    assert_equal(6, range:shape(2), "Checking shape")
+
 end
 
 function test_2()
@@ -541,6 +542,65 @@ function test_28()
 
 end
 
+function test_29()
+   local range = Range.Range({1, 1, 1}, {10, 20, 30})
+
+   local extRange1 = range:extendDirs({1}, 1, 2)
+   assert_equal(0, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(12, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDirs({2}, 1, 2)
+   assert_equal(1, extRange1:lower(1), "Checking lower extended")
+   assert_equal(0, extRange1:lower(2), "Checking lower extended")
+   assert_equal(1, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(10, extRange1:upper(1), "Checking upper extended")
+   assert_equal(22, extRange1:upper(2), "Checking upper extended")
+   assert_equal(30, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDirs({3}, 1, 2)
+   assert_equal(1, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(10, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "Checking upper extended")
+
+   extRange1 = range:extendDirs({1,3}, 1, 2)
+   assert_equal(0, extRange1:lower(1), "Checking lower extended")
+   assert_equal(1, extRange1:lower(2), "Checking lower extended")
+   assert_equal(0, extRange1:lower(3), "Checking lower extended")
+
+   assert_equal(12, extRange1:upper(1), "Checking upper extended")
+   assert_equal(20, extRange1:upper(2), "Checking upper extended")
+   assert_equal(32, extRange1:upper(3), "Checking upper extended")   
+end
+
+function test_30()
+   local range = Range.Range({1,1,1,1,1}, {10,20,30,40,50})
+
+   local r1 = range:selectFirst(2)
+
+   assert_equal(2, r1:ndim(), "Checking dimensions")
+   for i = 1, r1:ndim() do
+      assert_equal(range:lower(i), r1:lower(i), "Checking reduced range")
+      assert_equal(range:upper(i), r1:upper(i), "Checking reduced range")
+   end
+
+   local r2 = range:selectLast(3)
+   assert_equal(3, r2:ndim(), "Checking dimensions")
+   for i = 1, r2:ndim() do
+      assert_equal(range:lower(i+2), r2:lower(i), "Checking reduced range")
+      assert_equal(range:upper(i+2), r2:upper(i), "Checking reduced range")
+   end
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -570,7 +630,8 @@ test_25()
 test_26()
 test_27()
 test_28()
-
+test_29()
+test_30()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -5,11 +5,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Unit = require "Unit"
+local AllocShared = require "Lib.AllocShared"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Lin = require "Lib.Linalg"
-local Range = require "Lib.Range"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
+local Range = require "Lib.Range"
+local Unit = require "Unit"
 
 local ffi  = require "ffi"
 local xsys = require "xsys"
@@ -102,10 +104,47 @@ function test_2(comm)
    assert_equal(100, v, "Checking volume of decomposedRgn")   
 end
 
+function test_3(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 4 then
+      log("Test for Split_comm not run as number of procs not exactly 4")
+      return
+   end
+
+   local decomp = DecompRegionCalc.CartProd { cuts = {1, 1}, useShared = true }
+   assert_equal(true, decomp:isShared(), "Checking if decomp is shared")
+
+   local commSet = decomp:commSet()
+   local worldComm = commSet.comm
+   local shmComm = commSet.sharedComm
+   local nodeComm = commSet.nodeComm
+
+   local nvec = 22
+   local vec = AllocShared.Double(shmComm, nvec)
+   vec:fill(10.5)
+
+   local linDecomp = LinearDecomp.LinearDecomp {
+      domSize = nvec, numSplit = Mpi.Comm_size(shmComm) }
+   
+   local sum = 0.0
+   local d = Mpi.Comm_rank(shmComm)+1
+   for i = linDecomp:lower(d), linDecomp:upper(d) do
+      sum = sum + vec[i]
+   end
+
+   -- all-reduce values
+   local mySum, totSum = ffi.new("double[2]"), ffi.new("double[2]")
+   mySum[0] = sum
+   Mpi.Allreduce(mySum, totSum, 1, Mpi.DOUBLE, Mpi.SUM, shmComm)
+
+   assert_equal(nvec*10.5, totSum[0], "Checking totals")
+end
 
 -- Run tests
 test_1(Mpi.COMM_WORLD)
 test_2(Mpi.COMM_WORLD)
+test_3(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

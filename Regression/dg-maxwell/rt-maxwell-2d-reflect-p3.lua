@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Vlasov = require "App.VlasovOnCartGrid"
+local Vlasov = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
 -- Physical parameters
 epsilon0 = 1.0
@@ -24,7 +24,7 @@ vlasovApp = Vlasov.App {
    useShared = false, -- if to use shared memory
 
    -- field solver
-   field = Vlasov.EmField {
+   field = Vlasov.Field {
       epsilon0 = epsilon0, mu0 = mu0,
       elcErrorSpeedFactor = 0,
       mgnErrorSpeedFactor = 0,
@@ -35,8 +35,8 @@ vlasovApp = Vlasov.App {
 	 return 0.0, 0.0, math.exp(-25*rad2), 0.0, 0.0, 0.0
       end,
       evolve = true, -- evolve field?
-      bcx = { Vlasov.EmField.bcReflect, Vlasov.EmField.bcReflect },
-      bcy = { Vlasov.EmField.bcReflect, Vlasov.EmField.bcReflect },
+      bcx = { Vlasov.Field.bcReflect, Vlasov.Field.bcReflect },
+      bcy = { Vlasov.Field.bcReflect, Vlasov.Field.bcReflect },
    },   
    
 }

@@ -31,7 +31,7 @@ for bIdx : 1 thru 1 do (
       vcs : makelist(tmp[i], i, 1, length(varsV)),
       vPhys : dVarsV*varsV/2 + vcs,
       
-      for polyOrder : 1 thru 1 do (
+      for polyOrder : 1 thru 2 do (
         /* Load basis and expand the new distribution function g and
         mab field B */
         bc : basisC[polyOrder],

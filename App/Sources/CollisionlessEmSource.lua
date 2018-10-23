@@ -39,6 +39,7 @@ function CollisionlessEmSource:fullInit(appTbl)
 
    -- (MAKE SURE NAME IS MATCHING ONE IN UPDATERS!!)
    self.timeStepper = tbl.timeStepper -- time-stepper to use
+   self.linSolType = tbl.linSolType
 end
 
 function CollisionlessEmSource:setName(nm)
@@ -69,6 +70,7 @@ function CollisionlessEmSource:createSolver(species, field)
       epsilon0 = field:getEpsilon0(),
       elcErrorSpeedFactor = field:getElcErrorSpeedFactor(),
       mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
+      linSolType = self.linSolType,
       scheme = self.timeStepper,
    }
 end
@@ -91,7 +93,7 @@ function CollisionlessEmSource:write(tm, frame)
 end
 
 function CollisionlessEmSource:totalTime()
-   return 0.0
+   return self.slvr.totalTime
 end
 
 return CollisionlessEmSource

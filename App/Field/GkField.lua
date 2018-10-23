@@ -8,6 +8,7 @@
 --------------------------------------------------------------------------------
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
+local Constants = require "Lib.Constants"
 local DataStruct = require "DataStruct"
 local LinearTrigger = require "LinearTrigger"
 local Proto = require "Lib.Proto"
@@ -48,6 +49,8 @@ function GkField:fullInit(appTbl)
 
    self.ioFrame = 0 -- frame number for IO
 
+   self.writeGhost = xsys.pickBool(appTbl.writeGhost, false)
+
    -- get boundary condition settings
    -- these will be checked for consistency when the solver is initialized
    if tbl.phiBcLeft then self.phiBcLeft = tbl.phiBcLeft end
@@ -82,8 +85,7 @@ function GkField:fullInit(appTbl)
    self.uniformPolarization = xsys.pickBool(tbl.uniformPolarization, true)
 
    if self.isElectromagnetic then
-      self.mu0 = tbl.mu0
-      if self.mu0 == nil then self.mu0 = Constants.MU0 end
+      self.mu0 = tbl.mu0 or Constants.MU0
    end
 
    self.initPhiFunc = tbl.initPhiFunc
@@ -302,6 +304,7 @@ function GkField:createSolver(species, funcField)
    -- when not using linearizedPolarization, weights are set each step in forwardEuler method
 
    if self.isElectromagnetic then 
+     local ndim = self.ndim
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
      self.aparSlvr = Updater.FemPoisson {
@@ -366,6 +369,7 @@ function GkField:createDiagnostics()
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.potentials[1].phi:elemType(),
       method = self.ioMethod,
+      writeGhost = self.writeGhost
    }
 
    self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
@@ -375,7 +379,7 @@ function GkField:createDiagnostics()
    }
 end
 
-function GkField:write(tm)
+function GkField:write(tm, force)
    if self.evolve then
       -- compute integrated quantities over domain
       self.energyCalc:advance(tm, 0.0, { self.potentials[1].phi }, { self.phi2 })
@@ -383,7 +387,7 @@ function GkField:write(tm)
         self.energyCalc:advance(tm, 0.0, { self.potentials[1].apar }, { self.apar2 })
       end
       
-      if self.ioTrigger(tm) then
+      if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.potentials[1].phi, string.format("phi_%d.bp", self.ioFrame), tm, self.ioFrame)
          if self.isElectromagnetic then 
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -410,22 +414,23 @@ function GkField:write(tm)
 end
 
 function GkField:writeRestart(tm)
-   self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame)
+   -- (the final "false" prevents writing of ghost cells)
+   self.fieldIo:write(self.potentials[1].phi, "phi_restart.bp", tm, self.ioFrame, false)
+   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame, false)
+   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
+   if self.isElectromagnetic then
+     self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
+     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame, false)
+     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame, false)
+   end
+
    -- (the final "false" prevents flushing of data after write)
    self.phi2:write("phi2_restart.bp", tm, self.ioFrame, false)
 
-   self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_restart.bp", tm, self.ioFrame)
-   self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame)
-   if self.isElectromagnetic then
-     self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame)
-     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame)
-     self.fieldIo:write(self.dApardtSlvr:getLaplacianWeight(), "laplacianWeightEM_restart.bp", tm, self.ioFrame)
-     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame)
-   end
 end
 
 function GkField:readRestart(tm)
-   -- this read of restart file of potential is only to get frame
+   -- this read of restart file of phi is only to get frame
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part
    local tm, fr = self.fieldIo:read(self.potentials[1].phi, "phi_restart.bp")
@@ -439,11 +444,11 @@ function GkField:readRestart(tm)
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
       self.fieldIo:read(self.potentials[1].dApardt, "dApardt_restart.bp")
-      self.fieldIo:read(self.laplacianWeight, "laplacianWeightEM_restart.bp")
       self.fieldIo:read(self.modifierWeight, "modifierWeightEM_restart.bp")
-      self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight)
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
    end
+
+   self:applyBc(0, 0, self.potentials[1])
 
    self.ioFrame = fr 
    -- iterate triggers

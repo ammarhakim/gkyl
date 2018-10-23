@@ -71,9 +71,8 @@ function DistFuncIntegratedMomentCalc:_advance(tCurr, dt, inFld, outFld)
    self.localMom[4] = 0.0
    self.localMom[5] = 0.0
 
-   local localRange = distf:localRange()   
    -- loop, computing integrated moments in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in distf:localRangeIter() do
       grid:setIndex(idx)
       grid:cellCenter(self.w)
       for d = 1, pDim do self.dxv[d] = grid:dx(d) end
@@ -82,8 +81,8 @@ function DistFuncIntegratedMomentCalc:_advance(tCurr, dt, inFld, outFld)
    end
 
    -- all-reduce across processors and push result into dyn-vector
-   local nodeComm = self:getNodeComm()
-   Mpi.Allreduce(self.localMom:data(), self.globalMom:data(), 5, Mpi.DOUBLE, Mpi.SUM, nodeComm)
+   Mpi.Allreduce(
+      self.localMom:data(), self.globalMom:data(), 5, Mpi.DOUBLE, Mpi.SUM, self:getComm())
    mom:appendData(tCurr, self.globalMom)
    
    return true, GKYL_MAX_DOUBLE

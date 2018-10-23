@@ -12,6 +12,9 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 
+local COL_PIV_HOUSEHOLDER_QR = 0;
+local PARTIAL_PIV_LU = 1;
+
 -- system libraries
 local ffi = require "ffi"
 
@@ -33,6 +36,8 @@ typedef struct {
 
   void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
   void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -53,6 +58,16 @@ local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
    ffi.C.gkylFiveMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
+-- Use an implicit scheme to update momentum and electric field
+local function updateSrcAnalytic(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcAnalytic(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+end
+
+-- Use an implicit scheme to update momentum and electric field
+local function updateSrcAnalytic2(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcAnalytic2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+end
+
 -- Five-moment source updater object
 local FiveMomentSrc = Proto(UpdaterBase)
 
@@ -70,7 +85,7 @@ function FiveMomentSrc:init(tbl)
 
    self._sd.epsilon0 = assert(tbl.epsilon0, "Updater.FiveMomentSrc: Must specify 'epsilon0'")
    self._sd.chi_e = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
-   self._sd.chi_m = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 0.0
+   self._sd.chi_m = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
 
    self._sd.gravity = tbl.gravity and tbl.gravity or 0.0
    self._sd.gravityDir = tbl.dir and tbl.dir or 1 -- by default gravity acts in X direction
@@ -78,7 +93,14 @@ function FiveMomentSrc:init(tbl)
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    self._sd.hasPressure = tbl.hasPressure ~= nil and tbl.hasPressure or true
    
-   self._sd.linSolType = tbl.linSolType and tbl.linSolType or 1
+   local linSolType = tbl.linSolType and tbl.linSolType or "partialPivLu"
+   if linSolType == "partialPivLu" then
+      self._sd.linSolType = PARTIAL_PIV_LU
+   elseif linSolType == "colPivHouseholderQr" then
+      self._sd.linSolType = COL_PIV_HOUSEHOLDER_QR
+   else
+     assert(false, string.format("linSolType %s not supported", linSolType))
+   end
 
    self._fd = ffi.new("FluidData_t[?]", self._sd.nFluids)
    -- store charge and mass for each fluid
@@ -96,6 +118,10 @@ function FiveMomentSrc:init(tbl)
       self._updateSrc = updateSrcModBoris
    elseif scheme == "time-centered" then
       self._updateSrc = updateSrcTimeCentered
+   elseif scheme == "analytic" then
+      self._updateSrc = updateSrcAnalytic
+   elseif scheme == "analytic2" then
+      self._updateSrc = updateSrcAnalytic2
    end
 end
 
@@ -130,9 +156,8 @@ function FiveMomentSrc:_advance(tCurr, dt, inFld, outFld)
    local emDp = ffi.new("double*")
    local staticEmDp = ffi.new("double*")
 
-   local localRange = emFld:localRange()   
    -- loop over local range, updating source in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in emFld:localRangeIter() do
       -- set pointers to fluids and field
       for i = 1, nFluids do
 	 fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))
