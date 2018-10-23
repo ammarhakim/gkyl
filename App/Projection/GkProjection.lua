@@ -80,8 +80,6 @@ function MaxwellianProjection:lagrangeFix(distf)
 end
 
 function MaxwellianProjection:scaleM012(distf)
-   assert(self.vdim == 2, "scaleM012 currently only implemented for vdim=2")
-
    local sp = self.species
    local M0, M2par, M2perp = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
    local M0_e, M2_e = sp:allocMoment(), sp:allocMoment()
@@ -108,24 +106,26 @@ function MaxwellianProjection:scaleM012(distf)
       projectOnGhosts = true
    }
    project2par:advance(0.0, 0.0, {}, {distf2par})
-   local distf2perpFunc = function (t, zn)
-      local mu = zn[self.cdim+2]
-      return mu*sp.bmagFunc(t,zn)/sp.mass*sp:Maxwellian(zn, self.density(t, zn, sp),
-				self.temperature(t, zn, sp),
-				self.driftSpeed(t, zn, sp))
+   if self.vdim > 1 then 
+      local distf2perpFunc = function (t, zn)
+         local mu = zn[self.cdim+2]
+         return mu*sp.bmagFunc(t,zn)/sp.mass*sp:Maxwellian(zn, self.density(t, zn, sp),
+           			self.temperature(t, zn, sp),
+           			self.driftSpeed(t, zn, sp))
+      end
+      local project2perp = Updater.ProjectOnBasis {
+         onGrid = self.phaseGrid,
+         basis = self.phaseBasis,
+         evaluate = distf2perpFunc,
+         projectOnGhosts = true
+      }
+      project2perp:advance(0.0, 0.0, {}, {distf2perp})
    end
-   local project2perp = Updater.ProjectOnBasis {
-      onGrid = self.phaseGrid,
-      basis = self.phaseBasis,
-      evaluate = distf2perpFunc,
-      projectOnGhosts = true
-   }
-   project2perp:advance(0.0, 0.0, {}, {distf2perp})
 
    -- calculate (inexact) moments of initial distribution function
    sp.numDensityCalc:advance(0.0, 0.0, {distf}, {M0})
    sp.M2parCalc:advance(0.0, 0.0, {distf}, {M2par})
-   sp.M2perpCalc:advance(0.0, 0.0, {distf}, {M2perp})
+   if self.vdim > 1 then sp.M2perpCalc:advance(0.0, 0.0, {distf}, {M2perp}) end
 
    -- initialize exact moments
    local M0func = function (t, zn)
@@ -176,36 +176,246 @@ function MaxwellianProjection:scaleM012(distf)
    -- calculate M2par_mod = M2_e / M2par
    weakDivision:advance(0.0, 0.0, {M2par, M2_e}, {M2par_mod})
    -- calculate M2perp_mod = M2_e / M2perp
-   weakDivision:advance(0.0, 0.0, {M2perp, M2_e}, {M2perp_mod})
+   if self.vdim > 1 then weakDivision:advance(0.0, 0.0, {M2perp, M2_e}, {M2perp_mod}) end
    -- calculate M0par_mod = M0_e / M2par
    weakDivision:advance(0.0, 0.0, {M2par, M0_e}, {M0par_mod})
    -- calculate M0par_mod2 = M0 / M2par
    weakDivision:advance(0.0, 0.0, {M2par, M0}, {M0par_mod2})
-   -- calculate M0perp_mod = M0_e / M2perp
-   weakDivision:advance(0.0, 0.0, {M2perp, M0_e}, {M0perp_mod})
-   -- calculate M0perp_mod2 = M0 / M2perp
-   weakDivision:advance(0.0, 0.0, {M2perp, M0}, {M0perp_mod2})
+   if self.vdim > 1 then 
+      -- calculate M0perp_mod = M0_e / M2perp
+      weakDivision:advance(0.0, 0.0, {M2perp, M0_e}, {M0perp_mod})
+      -- calculate M0perp_mod2 = M0 / M2perp
+      weakDivision:advance(0.0, 0.0, {M2perp, M0}, {M0perp_mod2})
+   end
    
    -- calculate M02par_mod = M0par_mod2 * M2par_mod = (M0/M2par)*(M2_e/M2par)
    weakMultiplicationConf:advance(0.0, 0.0, {M0par_mod2, M2par_mod}, {M02par_mod})
    -- calculate M02perp_mod = M0perp_mod2 * M2perp_mod = (M0/M2perp)*(M2perp_e/M2perp)
-   weakMultiplicationConf:advance(0.0, 0.0, {M0perp_mod2, M2perp_mod}, {M02perp_mod})
+   if self.vdim > 1 then weakMultiplicationConf:advance(0.0, 0.0, {M0perp_mod2, M2perp_mod}, {M02perp_mod}) end
 
    -- calculate distf modifiers from combinations of moment modifiers
-   distf0_mod:combine(5/2, M0_mod, -1/2, M2par_mod, -1, M2perp_mod)
+   if self.vdim==1 then 
+      distf0_mod:combine(3/2, M0_mod, -1/2, M2par_mod)
+   else 
+      distf0_mod:combine(5/2, M0_mod, -1/2, M2par_mod, -1, M2perp_mod)
+   end
    distf2par_mod:combine(1, M02par_mod, -1, M0par_mod)
-   distf2perp_mod:combine(1, M02perp_mod, -1, M0perp_mod)
+   if self.vdim > 1 then distf2perp_mod:combine(1, M02perp_mod, -1, M0perp_mod) end
 
    -- calculate distf0 = distf0_mod * distf0
    weakMultiplicationPhase:advance(0.0, 0.0, {distf0_mod, distf0}, {distf0})
    -- calculate distf2par = distf2par_mod * distf2par
    weakMultiplicationPhase:advance(0.0, 0.0, {distf2par_mod, distf2par}, {distf2par})
    -- calculate distf2perp = distf2perp_mod * distf2perp
-   weakMultiplicationPhase:advance(0.0, 0.0, {distf2perp_mod, distf2perp}, {distf2perp})
+   if self.vdim > 1 then weakMultiplicationPhase:advance(0.0, 0.0, {distf2perp_mod, distf2perp}, {distf2perp}) end
 
    -- combine and finish
-   distf:combine(1, distf0, 1, distf2par, 1, distf2perp)
+   distf:combine(1, distf0, 1, distf2par)
+   if self.vdim > 1 then distf:accumulate(1, distf2perp) end
 end
+
+-- this implementation also corrects Upar, still being tested.
+--function MaxwellianProjection:scaleM012(distf)
+--   local sp = self.species
+--
+--   -- initialize maxwellian distribution distf0 = FM, along with 
+--   -- distf_vpar = vpar*FM, distf_vpar2 = vpar^2*FM, and distf_muB = mu*B*FM
+--   local distf0, distf_vpar, distf_vpar2, distf_muB = sp:allocDistf(), sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
+--   distf0:copy(distf)
+--   local distf_vparFunc = function (t, zn)
+--      local vpar = zn[self.cdim+1]
+--      return vpar*sp:Maxwellian(zn, self.density(t, zn, sp),
+--				self.temperature(t, zn, sp),
+--				self.driftSpeed(t, zn, sp))
+--   end
+--   local project_vpar = Updater.ProjectOnBasis {
+--      onGrid = self.phaseGrid,
+--      basis = self.phaseBasis,
+--      evaluate = distf_vparFunc,
+--      projectOnGhosts = true
+--   }
+--   project_vpar:advance(0.0, 0.0, {}, {distf_vpar})
+--   local distf_vpar2Func = function (t, zn)
+--      local vpar = zn[self.cdim+1]
+--      return vpar^2*sp:Maxwellian(zn, self.density(t, zn, sp),
+--				self.temperature(t, zn, sp),
+--				self.driftSpeed(t, zn, sp))
+--   end
+--   local project_vpar2 = Updater.ProjectOnBasis {
+--      onGrid = self.phaseGrid,
+--      basis = self.phaseBasis,
+--      evaluate = distf_vpar2Func,
+--      projectOnGhosts = true
+--   }
+--   project_vpar2:advance(0.0, 0.0, {}, {distf_vpar2})
+--   if self.vdim == 2 then 
+--      local distf_muBFunc = function (t, zn)
+--         local mu = zn[self.cdim+2]
+--         return mu*sp.bmagFunc(t,zn)*sp:Maxwellian(zn, self.density(t, zn, sp),
+--           			self.temperature(t, zn, sp),
+--           			self.driftSpeed(t, zn, sp))
+--      end
+--      local project_muB = Updater.ProjectOnBasis {
+--         onGrid = self.phaseGrid,
+--         basis = self.phaseBasis,
+--         evaluate = distf_muBFunc,
+--         projectOnGhosts = true
+--      }
+--      project_muB:advance(0.0, 0.0, {}, {distf_muB})
+--   end
+--
+--   -- initialize weak multiplication/division operators
+--   local weakDivision = Updater.CartFieldBinOp {
+--      onGrid = self.confGrid,
+--      weakBasis = self.confBasis,
+--      operation = "Divide",
+--      onGhosts = true,
+--   }
+--   local weakMultiplicationConf = Updater.CartFieldBinOp {
+--      onGrid = self.confGrid,
+--      weakBasis = self.confBasis,
+--      operation = "Multiply",
+--      onGhosts = true,
+--   }
+--   local weakMultiplicationPhase = Updater.CartFieldBinOp {
+--      onGrid = self.phaseGrid,
+--      weakBasis = self.phaseBasis,
+--      fieldBasis = self.confBasis,
+--      operation = "Multiply",
+--      onGhosts = true,
+--   }
+--
+--   -- calculate (inexact) moments of initial distribution function
+--   local Dens, M1, M2par, M2perp = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
+--   sp.numDensityCalc:advance(0.0, 0.0, {distf}, {Dens})
+--   sp.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
+--   sp.M2parCalc:advance(0.0, 0.0, {distf}, {M2par})
+--   if self.vdim == 2 then sp.M2perpCalc:advance(0.0, 0.0, {distf}, {M2perp}) end
+--
+--   -- calculate weak moments
+--   local Upar, Upar_sq, Tpar, Tperp = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
+--   -- Upar = M1/Dens
+--   weakDivision:advance(0.0, 0.0, {Dens, M1}, {Upar})
+--   -- Upar^2
+--   weakMultiplicationConf:advance(0.0, 0.0, {Upar, Upar}, {Upar_sq})
+--   -- Tpar = m*(M2par/Dens - M1^2/Dens^2) = m*(M2par/Dens - Upar^2)
+--   weakDivision:advance(0.0, 0.0, {Dens, M2par}, {Tpar})
+--   Tpar:accumulate(-1.0, Upar_sq)
+--   Tpar:scale(sp.mass)
+--   -- Tperp = m*M2perp/Dens
+--   if self.vdim == 2 then
+--      weakDivision:advance(0.0, 0.0, {Dens, M2perp}, {Tperp})
+--      Tperp:scale(sp.mass)
+--   end
+--
+--   -- initialize exact moments
+--   local Dens_e, Upar_e, Temp_e = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
+--   local projectDens = Updater.ProjectOnBasis {
+--      onGrid = self.confGrid,
+--      basis = self.confBasis,
+--      evaluate = function(t, zn) return self.density(t, zn, sp) end,
+--      projectOnGhosts = true,
+--   }
+--   projectDens:advance(0.0, 0.0, {}, {Dens_e})
+--
+--   local projectUpar = Updater.ProjectOnBasis {
+--      onGrid = self.confGrid,
+--      basis = self.confBasis,
+--      evaluate = function(t, zn) return self.driftSpeed(t, zn, sp) end,
+--      projectOnGhosts = true,
+--   }
+--   projectUpar:advance(0.0, 0.0, {}, {Upar_e})
+--
+--   local projectTemp = Updater.ProjectOnBasis {
+--      onGrid = self.confGrid,
+--      basis = self.confBasis,
+--      evaluate = function(t, zn) return self.temperature(t, zn, sp) end,
+--      projectOnGhosts = true,
+--   }
+--   projectTemp:advance(0.0, 0.0, {}, {Temp_e})
+--
+--   local unitField, TparInv, TperpInv = sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
+--   local projectUnity = Updater.ProjectOnBasis {
+--      onGrid = self.confGrid,
+--      basis = self.confBasis,
+--      evaluate = function(t, zn) return 1.0 end,
+--      projectOnGhosts = true,
+--   }
+--   projectUnity:advance(0.0, 0.0, {}, {unitField})
+--
+--   -- calculate TparInv = 1/Tpar
+--   weakDivision:advance(0.0, 0.0, {Tpar, unitField}, {TparInv})
+--   -- calculate TperpInv = 1/Tperp
+--   if self.vdim == 2 then weakDivision:advance(0.0, 0.0, {Tperp, unitField}, {TperpInv}) end
+--
+--   -- calculate modifier terms for correcting Upar, Tpar, and Tperp:
+--   local Dens_mod, Upar_mod, Tpar_mod, Tperp_mod = sp:allocMoment(), sp:allocMoment(), sp:allocMoment(), sp:allocMoment()
+--   local Ppar_mod, Pperp_mod = sp:allocMoment(), sp:allocMoment()
+--   local UparDiff, UparDiff_sq = sp:allocMoment(), sp:allocMoment()
+--   -- calculate Dens_mod = Dens_e / Dens
+--   weakDivision:advance(0.0, 0.0, {Dens, Dens_e}, {Dens_mod})
+--   -- calculate Tpar_mod = Temp_e / Tpar
+--   weakDivision:advance(0.0, 0.0, {Tpar, Temp_e}, {Tpar_mod})
+--   -- calculate Tperp_mod = Temp_e / Tperp
+--   if self.vdim == 2 then weakDivision:advance(0.0, 0.0, {Tperp, Temp_e}, {Tperp_mod}) end
+--
+--   -- calculate Ppar_mod = Dens_e*Temp_e/(Dens*Tpar) = Dens_mod * Tpar_mod
+--   weakMultiplicationConf:advance(0.0, 0.0, {Dens_mod, Tpar_mod}, {Ppar_mod})
+--   -- calculate Pperp_mod = Dens_e*Temp_e/(Dens*Tperp) = Dens_mod * Tperp_mod
+--   if self.vdim == 2 then weakMultiplicationConf:advance(0.0, 0.0, {Dens_mod, Tperp_mod}, {Pperp_mod}) end
+--
+--   -- calculate UparDiff = Upar_e - Upar
+--   UparDiff:combine(1.0, Upar_e, -1.0, Upar)
+--   -- calculate UparDiff_sq = UparDiff^2 = (Upar_e - Upar)^2
+--   weakMultiplicationConf:advance(0.0, 0.0, {UparDiff, UparDiff}, {UparDiff_sq})
+--
+--   -- calculate Upar_mod = m*Dens_e/Dens*(Upar_e-Upar)/Tpar
+--   weakDivision:advance(0.0, 0.0, {Tpar, UparDiff}, {Upar_mod}) -- (Upar_e-Upar)/Tpar
+--   weakMultiplicationConf:advance(0.0, 0.0, {Dens_mod, Upar_mod}, {Upar_mod}) -- Dens_e/Dens*(Upar_e-Upar)/Tpar
+--   Upar_mod:scale(sp.mass)
+--
+--   -- calculate Tpar_mod = Dens_e*Tpar_e/(Dens*Tpar) - Dens_e/Dens + m*Dens_e/Dens*(Upar_e-Upar)^2/Tpar
+--   weakDivision:advance(0.0, 0.0, {Tpar, UparDiff_sq}, {Tpar_mod}) -- (Upar_e-Upar)^2/Tpar
+--   weakMultiplicationConf:advance(0.0, 0.0, {Dens_mod, Tpar_mod}, {Tpar_mod}) -- Dens_e/Dens*(Upar_e-Upar)^2/Tpar
+--   Tpar_mod:combine(1.0, Ppar_mod, -1.0, Dens_mod, sp.mass, Tpar_mod)
+--   
+--   -- calculate Tperp_mod = Dens_e/Dens*Tperp_e/Tperp - Dens_e/Dens
+--   if self.vdim == 2 then Tperp_mod:combine(1.0, Pperp_mod, -1.0, Dens_mod) end
+--
+--   -- calculate weighted maxwellians to correct Upar, Tpar, and Tperp:
+--   local distf_Upar, distf_Tpar, distf_Tperp = sp:allocDistf(), sp:allocDistf(), sp:allocDistf()
+--   -- calculate distf_Upar = (vpar - Upar)*FM
+--   weakMultiplicationPhase:advance(0.0, 0.0, {Upar, distf0}, {distf_Upar}) -- Upar*FM
+--   distf_Upar:combine(1.0, distf_vpar, -1.0, distf_Upar) 
+--
+--   -- calculate distf_Tpar = (m*(vpar - Upar)^2/(2*Tpar) - 1/2)*FM
+--   weakMultiplicationPhase:advance(0.0, 0.0, {Upar, distf0}, {distf_Tpar}) -- Upar*FM
+--   distf_Tpar:combine(1.0, distf_vpar, -.5, distf_Tpar) -- vpar*FM - Upar/2*FM
+--   weakMultiplicationPhase:advance(0.0, 0.0, {Upar, distf_Tpar}, {distf_Tpar}) -- Upar*(vpar*FM - Upar/2*FM)
+--   distf_Tpar:combine(.5, distf_vpar2, -1, distf_Tpar) -- vpar^2/2*FM - Upar*(vpar*FM - Upar/2*FM)
+--   weakMultiplicationPhase:advance(0.0, 0.0, {TparInv, distf_Tpar}, {distf_Tpar}) -- (vpar^2/2*FM - Upar*(vpar*FM - Upar/2*FM))/Tpar
+--   distf_Tpar:combine(sp.mass, distf_Tpar, -.5, distf0)
+--  
+--   -- calculate distf_Tperp = (mu*B/Tperp - 1)*FM
+--   if self.vdim == 2 then 
+--      weakMultiplicationPhase:advance(0.0, 0.0, {TperpInv, distf_muB}, {distf_Tperp}) -- mu*B/Tperp*FM
+--      distf_Tperp:combine(1.0, distf_Tperp, -1.0, distf0)
+--   end
+--
+--   -- multiply weighted maxwellians by modifier terms:
+--   -- calculate distf0 = Dens_mod*distf0
+--   weakMultiplicationPhase:advance(0.0, 0.0, {Dens_mod, distf0}, {distf0})
+--   -- calculate distf_Upar = Upar_mod*distf_Upar
+--   weakMultiplicationPhase:advance(0.0, 0.0, {Upar_mod, distf_Upar}, {distf_Upar})
+--   -- calculate distf_Tpar = Tpar_mod*distf_Tpar
+--   weakMultiplicationPhase:advance(0.0, 0.0, {Tpar_mod, distf_Tpar}, {distf_Tpar})
+--   -- calculate distf_Tperp = Tperp_mod*distf_Tperp
+--   if self.vdim == 2 then weakMultiplicationPhase:advance(0.0, 0.0, {Tperp_mod, distf_Tperp}, {distf_Tperp}) end
+--
+--   -- combine and finish
+--   distf:combine(1, distf0, 1, distf_Upar, distf_Tpar)
+--   if self.vdim == 2 then distf:accumulate(1, distf_Tperp) end
+--end
 
 function MaxwellianProjection:run(t, distf)
    self.project:advance(t, 0.0, {}, {distf})
