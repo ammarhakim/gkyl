@@ -34,7 +34,7 @@ function FuncVlasovSpecies:fullInit(appTbl)
    self.mass = tbl.mass and tbl.mass or 1.0   
 
    self.momDenFunc = tbl.momentumDensity
-   self.vdim = #{ self.momDenFunc(0.0, tbl.lower) }
+   self.vdim = #{ self.momDenFunc(0.0, appTbl.lower) }
 end
 
 function FuncVlasovSpecies:getNdim()
