@@ -12,6 +12,7 @@ local Updater = require "Updater"
 local xsys = require "xsys"
 --local Time = require "Lib.Time"
 
+-- shell class for kinetic projections
 local KineticProjection = Proto(ProjectionBase)
 
 -- this ctor simply stores what is passed to it and defers actual
@@ -43,12 +44,8 @@ function KineticProjection:fullInit(species)
    self.exactLagFixM012 = xsys.pickBool(self.tbl.exactLagFixM012, false)
 end
 
-function KineticProjection:run(t, distf)
-   self.project:advance(t, 0.0, {}, {distf})
-end
-
-
 ----------------------------------------------------------------------
+-- base class for projection of arbitrary function. no re-scaling.
 local FunctionProjection = Proto(KineticProjection)
 
 function FunctionProjection:fullInit(species)
@@ -67,10 +64,15 @@ function FunctionProjection:fullInit(species)
       evaluate = func,
       projectOnGhosts = true
    }
+   self.initFunc = func
 end
 
+function FunctionProjection:run(t, distf)
+   self.project:advance(t, 0.0, {}, {distf})
+end
 
 ----------------------------------------------------------------------
+-- base class for projection of Maxwellian function. option for only density re-scaling.
 local MaxwellianProjection = Proto(KineticProjection)
 
 function MaxwellianProjection:fullInit(species)
@@ -93,7 +95,7 @@ function MaxwellianProjection:fullInit(species)
       self.temperature = function (t, zn) return tbl.temperature end
    end
 
-   self.MaxwellianFunc = function (t, zn)
+   self.initFunc = function (t, zn)
       return species:Maxwellian(zn, self.density(t, zn, species),
 				self.temperature(t, zn, species),
 				self.driftSpeed(t, zn, species))
@@ -102,7 +104,7 @@ function MaxwellianProjection:fullInit(species)
    self.project = Updater.ProjectOnBasis {
       onGrid = self.phaseGrid,
       basis = self.phaseBasis,
-      evaluate = self.MaxwellianFunc,
+      evaluate = self.initFunc,
       projectOnGhosts = true
    }
 end

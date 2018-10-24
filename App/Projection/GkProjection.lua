@@ -1,4 +1,4 @@
--- Gkyl ------------------------------------------------------------------------
+-- yl ------------------------------------------------------------------------
 --
 -- App support code: GkProjection object
 --
@@ -7,13 +7,46 @@
 --------------------------------------------------------------------------------
 
 --local Time = require "Lib.Time"
-local MaxwellianProjectionParrent = require ("App.Projection.KineticProjection").MaxwellianProjection
+local FunctionProjectionParent = require ("App.Projection.KineticProjection").FunctionProjection
+local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
 
+----------------------------------------------------------------------
+-- Gk-specific GkProjection.FunctionProjection includes jacobian factors in initFunc
+local FunctionProjection = Proto(FunctionProjectionParent)
+function FunctionProjection:run(t, distf)
+   if self.species.jacobPhaseFunc and self.vdim > 1 then
+      local initFuncWithoutJacobian = self.initFunc
+      self.initFunc = function (t, xn)
+         local J = self.species.jacobPhaseFunc(t,xn)
+         local f = initFuncWithoutJacobian(t,xn)
+         return J*f
+      end
+   end
+   if self.species.jacobGeoFunc then
+      local initFuncWithoutJacobian = self.initFunc
+      self.initFunc = function (t, xn)
+         local J = self.species.jacobGeoFunc(t,xn)
+         local f = initFuncWithoutJacobian(t,xn)
+         return J*f
+      end
+   end
+   -- note: don't use self.project as this does not have jacobian factors in initFunc
+   local project = Updater.ProjectOnBasis {
+      onGrid = self.phaseGrid,
+      basis = self.phaseBasis,
+      evaluate = self.initFunc,
+      projectOnGhosts = true
+   }
+   project:advance(t, 0.0, {}, {distf})
+end
 
-local MaxwellianProjection = Proto(MaxwellianProjectionParrent)
+----------------------------------------------------------------------
+-- Gk-specific GkProjection.MaxwellianProjection extends MaxwellianProjection base class, including 
+-- adding jacobian factors in initFunc
+local MaxwellianProjection = Proto(MaxwellianProjectionParent)
 
 function MaxwellianProjection:lagrangeFix(distf)
    local M0, dM0 = self.species:allocMoment(), self.species:allocMoment()
@@ -95,9 +128,7 @@ function MaxwellianProjection:scaleM012(distf)
    distf0:copy(distf)
    local distf2parFunc = function (t, zn)
       local vpar = zn[self.cdim+1]
-      return vpar^2/2*sp:Maxwellian(zn, self.density(t, zn, sp),
-				self.temperature(t, zn, sp),
-				self.driftSpeed(t, zn, sp))
+      return vpar^2/2*self.initFunc(t,zn)
    end
    local project2par = Updater.ProjectOnBasis {
       onGrid = self.phaseGrid,
@@ -109,9 +140,7 @@ function MaxwellianProjection:scaleM012(distf)
    if self.vdim > 1 then 
       local distf2perpFunc = function (t, zn)
          local mu = zn[self.cdim+2]
-         return mu*sp.bmagFunc(t,zn)/sp.mass*sp:Maxwellian(zn, self.density(t, zn, sp),
-           			self.temperature(t, zn, sp),
-           			self.driftSpeed(t, zn, sp))
+         return mu*sp.bmagFunc(t,zn)/sp.mass*self.initFunc(t,zn)
       end
       local project2perp = Updater.ProjectOnBasis {
          onGrid = self.phaseGrid,
@@ -224,9 +253,7 @@ end
 --   distf0:copy(distf)
 --   local distf_vparFunc = function (t, zn)
 --      local vpar = zn[self.cdim+1]
---      return vpar*sp:Maxwellian(zn, self.density(t, zn, sp),
---				self.temperature(t, zn, sp),
---				self.driftSpeed(t, zn, sp))
+--      return vpar*self.initFunc(t,zn)
 --   end
 --   local project_vpar = Updater.ProjectOnBasis {
 --      onGrid = self.phaseGrid,
@@ -237,9 +264,7 @@ end
 --   project_vpar:advance(0.0, 0.0, {}, {distf_vpar})
 --   local distf_vpar2Func = function (t, zn)
 --      local vpar = zn[self.cdim+1]
---      return vpar^2*sp:Maxwellian(zn, self.density(t, zn, sp),
---				self.temperature(t, zn, sp),
---				self.driftSpeed(t, zn, sp))
+--      return vpar^2*self.initFunc(t,zn)
 --   end
 --   local project_vpar2 = Updater.ProjectOnBasis {
 --      onGrid = self.phaseGrid,
@@ -251,9 +276,7 @@ end
 --   if self.vdim == 2 then 
 --      local distf_muBFunc = function (t, zn)
 --         local mu = zn[self.cdim+2]
---         return mu*sp.bmagFunc(t,zn)*sp:Maxwellian(zn, self.density(t, zn, sp),
---           			self.temperature(t, zn, sp),
---           			self.driftSpeed(t, zn, sp))
+--         return mu*sp.bmagFunc(t,zn)*self.initFunc(t,zn)
 --      end
 --      local project_muB = Updater.ProjectOnBasis {
 --         onGrid = self.phaseGrid,
@@ -418,7 +441,30 @@ end
 --end
 
 function MaxwellianProjection:run(t, distf)
-   self.project:advance(t, 0.0, {}, {distf})
+   if self.species.jacobPhaseFunc and self.vdim > 1 then
+      local initFuncWithoutJacobian = self.initFunc
+      self.initFunc = function (t, xn)
+         local J = self.species.jacobPhaseFunc(t,xn)
+         local f = initFuncWithoutJacobian(t,xn)
+         return J*f
+      end
+   end
+   if self.species.jacobGeoFunc then
+      local initFuncWithoutJacobian = self.initFunc
+      self.initFunc = function (t, xn)
+         local J = self.species.jacobGeoFunc(t,xn)
+         local f = initFuncWithoutJacobian(t,xn)
+         return J*f
+      end
+   end
+   -- note: don't use self.project as this does not have jacobian factors in initFunc
+   local project = Updater.ProjectOnBasis {
+      onGrid = self.phaseGrid,
+      basis = self.phaseBasis,
+      evaluate = self.initFunc,
+      projectOnGhosts = true
+   }
+   project:advance(t, 0.0, {}, {distf})
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    elseif self.exactScaleM012 then
@@ -432,5 +478,6 @@ end
 
 ----------------------------------------------------------------------
 return {
+   FunctionProjection = FunctionProjection,
    MaxwellianProjection = MaxwellianProjection,
 }
