@@ -203,10 +203,18 @@ def build(bld):
     gkData/EmGyrokineticSer1x2vP1.cpp
     gkData/EmGyrokineticSer2x2vP1.cpp
     gkData/EmGyrokineticSer3x2vP1.cpp
+    gkData/EmGyrokineticSer1x1vP2.cpp
+    gkData/EmGyrokineticSer1x2vP2.cpp
+    gkData/EmGyrokineticSer2x2vP2.cpp
+    gkData/EmGyrokineticSer3x2vP2.cpp
     gkData/EmGyrokineticSurfSer1x1vP1.cpp
     gkData/EmGyrokineticSurfSer1x2vP1.cpp
     gkData/EmGyrokineticSurfSer2x2vP1.cpp
     gkData/EmGyrokineticSurfSer3x2vP1.cpp
+    gkData/EmGyrokineticSurfSer1x1vP2.cpp
+    gkData/EmGyrokineticSurfSer1x2vP2.cpp
+    gkData/EmGyrokineticSurfSer2x2vP2.cpp
+    gkData/EmGyrokineticSurfSer3x2vP2.cpp
     gkData/EmGyrokineticSurfPositivitySer1x1vP1.cpp
     gkData/EmGyrokineticSurfPositivitySer1x2vP1.cpp
     gkData/EmGyrokineticSurfPositivitySer2x2vP1.cpp

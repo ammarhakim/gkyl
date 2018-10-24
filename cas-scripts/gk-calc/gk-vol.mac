@@ -302,7 +302,7 @@ load(modNm),
   printf(fh, "} ~%")
 )$
 
-pmax:1$
+pmax:2$
 em:true$
 
 for c : 1 thru 3 do (
@@ -318,7 +318,7 @@ printf(fh, "#include <GyrokineticModDecl.h> ~%"),
    note that we assume axisymmetry, which means B cannot depend on y */
 if c=1 then bvarslist : [[0], [1]],
 if c=2 then bvarslist : [[0], [1]],
-if c=3 then bvarslist : [[0], [1], [3], [1,3]],
+if c=3 then bvarslist : [[0], [1]/*, [3], [1,3]*/],
 for b : 1 thru length(bvarslist) do (
 if em then (
 funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
