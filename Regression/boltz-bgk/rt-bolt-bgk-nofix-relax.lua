@@ -43,8 +43,7 @@ sim = Plasma.App {
       evolve = true,
       -- diagnostic moments
       diagnosticMoments = { "M0", "M1i" },
-      diagnosticIntegratedMoments = { "intM0", "intM1i",
-				      "intM2Flow", "intM2Thermal" },
+      diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
          -- collisions
       bgk = Plasma.BgkCollisions {
 	 collFreq = 1.0,
