@@ -7,13 +7,19 @@
 --------------------------------------------------------------------------------
 
 --local Time = require "Lib.Time"
-local MaxwellianProjectionParrent = require ("App.Projection.KineticProjection").MaxwellianProjection
+local FunctionProjectionParent = require ("App.Projection.KineticProjection").FunctionProjection
+local MaxwellianProjectionParent = require ("App.Projection.KineticProjection").MaxwellianProjection
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
 
+----------------------------------------------------------------------
+-- Vlasov-specific VlasovProjection.FunctionProjection needs no modifications to FunctionProjection base class
+local FunctionProjection = FunctionProjectionParent
 
-local MaxwellianProjection = Proto(MaxwellianProjectionParrent)
+----------------------------------------------------------------------
+-- Vlasov-specific VlasovProjection.MaxwellianProjection extends MaxwellianProjection base class
+local MaxwellianProjection = Proto(MaxwellianProjectionParent)
 
 function MaxwellianProjection:lagrangeFix(distf)
    local M0, dM0 = self.species:allocMoment(), self.species:allocMoment()
@@ -95,8 +101,8 @@ function MaxwellianProjection:run(t, distf)
    end
 end
 
-
 ----------------------------------------------------------------------
 return {
+   FunctionProjection = FunctionProjection,
    MaxwellianProjection = MaxwellianProjection,
 }

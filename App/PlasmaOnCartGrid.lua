@@ -798,7 +798,7 @@ return {
    -- valid pre-packaged species-field systems
    Gyrokinetic = {
       App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
-      FunctionProjection = Projection.KineticProjection.FunctionProjection, 
+      FunctionProjection = Projection.GkProjection.FunctionProjection, 
       MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
       BgkCollisions = Collisions.BgkCollisions,
       LBOCollisions = Collisions.GkLBOCollisions,
@@ -810,7 +810,7 @@ return {
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
       Field = Field.MaxwellField,
-      FunctionProjection = Projection.KineticProjection.FunctionProjection, 
+      FunctionProjection = Projection.VlasovProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BgkCollisions = Collisions.BgkCollisions,
       LBOCollisions = Collisions.VmLBOCollisions,
