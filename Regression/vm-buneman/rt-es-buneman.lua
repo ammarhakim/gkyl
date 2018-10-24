@@ -8,7 +8,7 @@ vtElc = 0.02
 vDriftIon = 0.0
 vtIon = 0.001
 -- mass ratio
-massRatio = 50.0
+massRatio = 25.0
 
 knumber = 1.0 -- wave-number
 perturbation = 1.0e-6 -- distribution function perturbation
@@ -20,8 +20,8 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 80.0, -- end time
-   nFrame = 20, -- number of output frames
+   tEnd = 60.0, -- end time
+   nFrame = 1, -- number of output frames
    lower = {0.0}, -- configuration space lower left
    upper = {1.0}, -- configuration space upper right
    cells = {16}, -- configuration space cells
