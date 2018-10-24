@@ -1,4 +1,4 @@
-
+load("scifac")$
 writeBasis(fh, basisIn) := block([basis],
   print(basisIn[1]),
   basis : float(expand(basisIn)),
@@ -80,7 +80,7 @@ writeCExprsWithZerosNoExpand1(lhs, rhs) := block([expr],
 writeCExprsNoExpand1(lhs, rhs) := block([expr],
   expr : float(rhs),
   for i : 1 thru length(expr) do (
-    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", lhs[i-1], expr[i])
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", lhs[i-1], gcfac(expr[i]))
   )
 )$
 
@@ -133,7 +133,6 @@ writeEigenMatrix(mat) := block([],
   )
 )$
 
-load ("scifac")$
  writeCExprsCollect1c(rhs) := block([expr],
    expr : float(expand(rhs)),
    for i : 1 thru length(expr) do (
