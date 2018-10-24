@@ -699,7 +699,7 @@ function KineticSpecies:write(tm, force)
 	 self:calcDiagnosticMoments()
 	 for i, mom in ipairs(self.diagnosticMoments) do
 	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[i]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0, self.writeGhost)
+	    self.diagnosticMomentFields[mom]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0, self.writeGhost)
 	 end
       end
       self.distIoFrame = self.distIoFrame+1

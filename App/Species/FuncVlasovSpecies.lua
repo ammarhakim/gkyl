@@ -33,8 +33,8 @@ function FuncVlasovSpecies:fullInit(appTbl)
    self.charge = tbl.charge and tbl.charge or 1.0
    self.mass = tbl.mass and tbl.mass or 1.0   
 
-   self.momDenFuncFunc = tbl.momentumDensity
-   self.vdim = #{ self.momDenFuncFunc(0.0, tbl.lower) }
+   self.momDenFunc = tbl.momentumDensity
+   self.vdim = #{ self.momDenFunc(0.0, tbl.lower) }
 end
 
 function FuncVlasovSpecies:getNdim()
@@ -83,7 +83,7 @@ end
 function FuncVlasovSpecies:createDiagnostics()
 end
 
-function FuncVlasovSpecies:initField()
+function FuncVlasovSpecies:initDist()
    self.momDensitySlvr:advance(0.0, 0.0, {}, {self.momDensity})
 end
 
