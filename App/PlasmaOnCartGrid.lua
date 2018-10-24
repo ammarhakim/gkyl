@@ -808,7 +808,8 @@ return {
       App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
    },
    VlasovMaxwell = {
-      App = App, Species = Species.VlasovSpecies, Field = Field.MaxwellField,
+      App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
+      Field = Field.MaxwellField,
       FunctionProjection = Projection.KineticProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BgkCollisions = Collisions.BgkCollisions,
