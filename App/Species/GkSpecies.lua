@@ -596,11 +596,19 @@ function GkSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
+
+      if self.deltaF then
+        fIn:accumulate(-1.0, self.f0)
+      end
       
       if self.collisions then 
          self.threeMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
       else
          self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
+      end
+
+      if self.deltaF then
+        fIn:accumulate(1.0, self.f0)
       end
 
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
