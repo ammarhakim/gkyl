@@ -33,7 +33,7 @@ NVX = 6
 NVY = 6
 
 tEnd = 5.0e-9
-nFrames = 100
+nFrames = 1
 
 -- compute coordinate of interior last edge
 dx = (xupper-xlower)/NX
