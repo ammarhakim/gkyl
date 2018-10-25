@@ -33,18 +33,18 @@ ky_min   = 2*math.pi/dr
 omegade  = ky_min*rho_e*vte/R
 -- velocity grid parameters
 N_VPAR, N_MU = 16, 8
-VPAR_UPPER = math.min(4, 2.5*math.sqrt(N_VPAR/4))*vte
+VPAR_UPPER = 4*vte
 VPAR_LOWER = -VPAR_UPPER
 MU_LOWER = 0
-MU_UPPER = math.min(16, 8*math.sqrt(N_MU/2))*me*vte*vte/B/2
+MU_UPPER = 16*me*vte*vte/B/2
 
 plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd = .5e-6, -- end time
    nFrame = 2, -- number of output frames
-   lower = {r0 - dr/2, -dr/2}, -- configuration space lower left
-   upper = {r0 + dr/2,  dr/2}, -- configuration space upper right
+   lower = {r0 - 0.001*dr/2, -dr/2}, -- configuration space lower left
+   upper = {r0 + 0.001*dr/2,  dr/2}, -- configuration space upper right
    cells = {1, 8}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
@@ -57,6 +57,7 @@ plasmaApp = Plasma.App {
 
    -- boundary conditions for configuration space
    periodicDirs = {1,2}, -- periodic directions
+   deltaF = true, -- only apply BCs to fluctuations, and use perturbed moments in field solve
 
    -- gyrokinetic electrons
    electron = Plasma.GkSpecies {
@@ -84,7 +85,7 @@ plasmaApp = Plasma.App {
       init = Plasma.Gyrokinetic.MaxwellianProjection {
          density = function (t, xn)
             local x, y, z = xn[1], xn[2]
-            local perturb = 1e-3*rho_e/L_T*math.cos(ky_min*y)
+            local perturb = 1e-8*rho_e/L_T*math.cos(ky_min*y)
             return n0*(1+perturb)
          end,
          driftSpeed = 0.0,
@@ -94,7 +95,6 @@ plasmaApp = Plasma.App {
          end,
          exactScaleM012 = true,
       },
-      fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
    },

@@ -38,8 +38,12 @@ end
 
 -- nothing to calculate, just copy
 function AdiabaticSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
-   local fIn = self:rkStepperFields()[rkIdx]
-   self.couplingMoments:copy(fIn)
+   if self.deltaF then
+      self.couplingMoments:clear(0.0)
+   else
+      local fIn = self:rkStepperFields()[rkIdx]
+      self.couplingMoments:copy(fIn)
+   end
 end
 
 function AdiabaticSpecies:fluidMoments()

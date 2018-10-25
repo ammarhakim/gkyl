@@ -92,6 +92,7 @@ function FluidSpecies:fullInit(appTbl)
 
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
+   self.deltaF = xsys.pickBool(appTbl.deltaF, false)
 end
 
 function FluidSpecies:getCharge() return self.charge end
