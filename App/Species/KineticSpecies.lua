@@ -298,14 +298,15 @@ function KineticSpecies:setConfGrid(grid)
    end
 end
 
-function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
-				   cPeriodicDirs, cMap)
-   self.cdim = #cCells
+function KineticSpecies:createGrid(confGridIn)
+   local confGrid = assert(confGridIn or self.confGrid, "KineticSpecies:createGrid ... must pass in confGrid or call setConfGrid prior to createGrid") 
+ 
+   self.cdim = confGrid:ndim()
    self.ndim = self.cdim+self.vdim
 
    -- create decomposition
    local decompCuts = {}
-   for d = 1, self.cdim do table.insert(decompCuts, cDecompCuts[d]) end
+   for d = 1, self.cdim do table.insert(decompCuts, confGrid:cuts(d)) end
    for d = 1, self.vdim do table.insert(decompCuts, self.decompCuts[d]) end
    self.decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
@@ -315,9 +316,9 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
    -- create computational domain
    local lower, upper, cells = {}, {}, {}
    for d = 1, self.cdim do
-      table.insert(lower, cLo[d])
-      table.insert(upper, cUp[d])
-      table.insert(cells, cCells[d])
+      table.insert(lower, confGrid:lower(d))
+      table.insert(upper, confGrid:upper(d))
+      table.insert(cells, confGrid:numCells(d))
    end
    for d = 1, self.vdim do
       table.insert(lower, self.lower[d])
@@ -328,17 +329,17 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
    local GridConstructor = Grid.RectCart
    local coordinateMap = {} -- table of functions
    -- construct comp -> phys mappings if they exist
-   if self.coordinateMap or cMap then
-      if cMap and self.coordinateMap then
+   if self.coordinateMap or confGrid:getMappings() then
+      if confGrid:getMappings() and self.coordinateMap then
          for d = 1, self.cdim do
-            table.insert(coordinateMap, cMap[d])
+            table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
             table.insert(coordinateMap, self.coordinateMap[d])
          end
-      elseif cMap then
+      elseif confGrid:getMappings() then
          for d = 1, self.cdim do
-            table.insert(coordinateMap, cMap[d])
+            table.insert(coordinateMap, confGrid:getMappings(d))
          end
          for d = 1, self.vdim do
             table.insert(coordinateMap, function (z) return z end)
@@ -357,7 +358,7 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
       lower = lower,
       upper = upper,
       cells = cells,
-      periodicDirs = cPeriodicDirs,
+      periodicDirs = confGrid:getPeriodicDirs(),
       decomposition = self.decomp,
       mappings = coordinateMap,
    }

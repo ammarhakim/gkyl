@@ -295,7 +295,7 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    end
 
    -- apply BCs
-   self:applyBc(tCurr, dt, fOut)
+   if not hasApar then self:applyBc(tCurr, dt, fOut) end
    
    return status, dtSuggested
 end

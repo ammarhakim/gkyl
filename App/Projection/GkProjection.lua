@@ -20,7 +20,11 @@ function FunctionProjection:run(t, distf)
    if self.species.jacobPhaseFunc and self.vdim > 1 then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
-         local J = self.species.jacobPhaseFunc(t,xn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobPhaseFunc(t,xconf)
          local f = initFuncWithoutJacobian(t,xn)
          return J*f
       end
@@ -28,7 +32,11 @@ function FunctionProjection:run(t, distf)
    if self.species.jacobGeoFunc then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
-         local J = self.species.jacobGeoFunc(t,xn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobGeoFunc(t,xconf)
          local f = initFuncWithoutJacobian(t,xn)
          return J*f
       end
@@ -444,7 +452,11 @@ function MaxwellianProjection:run(t, distf)
    if self.species.jacobPhaseFunc and self.vdim > 1 then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
-         local J = self.species.jacobPhaseFunc(t,xn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobPhaseFunc(t,xconf)
          local f = initFuncWithoutJacobian(t,xn)
          return J*f
       end
@@ -452,7 +464,11 @@ function MaxwellianProjection:run(t, distf)
    if self.species.jacobGeoFunc then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
-         local J = self.species.jacobGeoFunc(t,xn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobGeoFunc(t,xconf)
          local f = initFuncWithoutJacobian(t,xn)
          return J*f
       end
