@@ -157,23 +157,29 @@ gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double d
     double qbym = fd[n].charge/fd[n].mass;
     double qbym2 = sq(qbym);
 
-    // eqn. for X-component of current
+    if (fd[n].evolve)
+    {
+      // off-diagonal elements of lhs
+      // eqn. for X-component of current
+      lhs(fidx(n,X), fidx(n,Y)) = -dt1*qbym*(em[BZ]+staticEm[BZ]);
+      lhs(fidx(n,X), fidx(n,Z)) = dt1*qbym*(em[BY]+staticEm[BY]);
+      lhs(fidx(n,X), eidx(X)) = -dt1*qbym2*f[RHO];
+
+      // eqn. for Y-component of current
+      lhs(fidx(n,Y), fidx(n,X)) = dt1*qbym*(em[BZ]+staticEm[BZ]);
+      lhs(fidx(n,Y), fidx(n,Z)) = -dt1*qbym*(em[BX]+staticEm[BX]);
+      lhs(fidx(n,Y), eidx(Y)) = -dt1*qbym2*f[RHO];
+
+      // eqn. for Z-component of current
+      lhs(fidx(n,Z), fidx(n,X)) = -dt1*qbym*(em[BY]+staticEm[BY]);
+      lhs(fidx(n,Z), fidx(n,Y)) = dt1*qbym*(em[BX]+staticEm[BX]);
+      lhs(fidx(n,Z), eidx(Z)) = -dt1*qbym2*f[RHO];
+    }
+
+    // diagonal elements of lhs
     lhs(fidx(n,X), fidx(n,X)) = 1.0;
-    lhs(fidx(n,X), fidx(n,Y)) = -dt1*qbym*(em[BZ]+staticEm[BZ]);
-    lhs(fidx(n,X), fidx(n,Z)) = dt1*qbym*(em[BY]+staticEm[BY]);
-    lhs(fidx(n,X), eidx(X)) = -dt1*qbym2*f[RHO];
-
-    // eqn. for Y-component of current
-    lhs(fidx(n,Y), fidx(n,X)) = dt1*qbym*(em[BZ]+staticEm[BZ]);
     lhs(fidx(n,Y), fidx(n,Y)) = 1.0;
-    lhs(fidx(n,Y), fidx(n,Z)) = -dt1*qbym*(em[BX]+staticEm[BX]);
-    lhs(fidx(n,Y), eidx(Y)) = -dt1*qbym2*f[RHO];
-
-    // eqn. for Z-component of current
-    lhs(fidx(n,Z), fidx(n,X)) = -dt1*qbym*(em[BY]+staticEm[BY]);
-    lhs(fidx(n,Z), fidx(n,Y)) = dt1*qbym*(em[BX]+staticEm[BX]);
     lhs(fidx(n,Z), fidx(n,Z)) = 1.0;
-    lhs(fidx(n,Z), eidx(Z)) = -dt1*qbym2*f[RHO];
 
     // fill corresponding RHS elements
     rhs(fidx(n,X)) = qbym*f[MX];
@@ -368,30 +374,41 @@ gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, 
   double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
   Eigen::Vector3d b(Bx / Bmag, By / Bmag, Bz / Bmag);
 
+  std::vector<double> qbym(nFluids); 
+  std::vector<Eigen::Vector3d> J(nFluids); 
   double w02 = 0.;
   double gam2 = 0.;
   double delta = 0.;
   Eigen::Vector3d K(0., 0., 0.);
-  std::vector<double> qbym(nFluids); 
   std::vector<double> Wc_dt(nFluids); 
   std::vector<double> wp_dt2(nFluids); 
   for (unsigned n=0; n < nFluids; ++n)
   {
-    double *f = ff[n];
     qbym[n] = fd[n].charge / fd[n].mass;
+    double *f = ff[n];
+    J[n][0] = f[MX] * qbym[n];
+    J[n][1] = f[MY] * qbym[n];
+    J[n][2] = f[MZ] * qbym[n];
+    if (!fd[n].evolve)
+      continue;
     Wc_dt[n] = qbym[n] * Bmag * dt;
     wp_dt2[n] = f[RHO] * sq(qbym[n]) / epsilon0 * sq(dt);
     double tmp = 1. + sq(Wc_dt[n]) / 4.;
     w02 += wp_dt2[n] / tmp;
     gam2 += wp_dt2[n] * sq(Wc_dt[n]) / tmp;
     delta += wp_dt2[n] * Wc_dt[n] / tmp;
-    Eigen::Vector3d J(f[MX] * qbym[n], f[MY] * qbym[n], f[MZ] * qbym[n]);
-    K -= dt / tmp * (J + sq(Wc_dt[n] / 2.) * b * b.dot(J) - (Wc_dt[n] / 2.) * b.cross(J));
+    K -= dt / tmp * (J[n] + sq(Wc_dt[n] / 2.) * b * b.dot(J[n]) - (Wc_dt[n] / 2.) * b.cross(J[n]));
   }
   double Delta2 = sq(delta) / (1. + w02 / 4.);
 
   Eigen::Vector3d F(em[EX] * epsilon0, em[EY] * epsilon0, em[EZ] * epsilon0);
   Eigen::Vector3d F_halfK = F + 0.5 * K;
+  for (unsigned n=0; n < nFluids; ++n)
+  {
+    if (fd[n].evolve)
+      continue;
+    F_halfK -= (0.5 * dt) * J[n];
+  }
 
   double tmp = 1. / (1. + w02 / 4. + Delta2 / 64.);
   Eigen::Vector3d Fbar = tmp * (
@@ -409,10 +426,12 @@ gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, 
   for (unsigned n = 0; n < nFluids; ++n)
   {
     double *f = ff[n];
+    chargeDens += qbym[n] * f[RHO];
+    if (!fd[n].evolve)
+      continue;
     double keOld = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
-    Eigen::Vector3d J(f[MX] * qbym[n], f[MY] * qbym[n], f[MZ] * qbym[n]);
-    Eigen::Vector3d Jstar = J + Fbar * (wp_dt2[n] / dt / 2.);
-    Eigen::Vector3d J_new = 2. * (Jstar + sq(Wc_dt[n] / 2.) * b * b.dot(Jstar) - (Wc_dt[n] / 2.) * b.cross(Jstar)) / (1. + sq(Wc_dt[n] / 2.)) - J;
+    Eigen::Vector3d Jstar = J[n] + Fbar * (wp_dt2[n] / dt / 2.);
+    Eigen::Vector3d J_new = 2. * (Jstar + sq(Wc_dt[n] / 2.) * b * b.dot(Jstar) - (Wc_dt[n] / 2.) * b.cross(Jstar)) / (1. + sq(Wc_dt[n] / 2.)) - J[n];
 
     f[MX] = J_new[0] / qbym[n];
     f[MY] = J_new[1] / qbym[n];
@@ -422,7 +441,6 @@ gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, 
       double keNew = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
       f[ER] += keNew - keOld;
     }
-    chargeDens += qbym[n] * f[RHO];
   } 
 
   //------------> update correction potential
