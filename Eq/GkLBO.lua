@@ -27,6 +27,9 @@ function GkLBO:init(tbl)
    self._confBasis  = assert(
       tbl.confBasis, "Eq.GkLBO: Must specify configuration-space basis functions to use using 'confBasis'")
    
+   self._vParMax   = assert(tbl.vParUpper, "Eq.GkLBO: Must specify maximum velocity of vPar grid in 'vParUpper'")
+   self._vParMaxSq = self._vParMax^2
+
    assert(tbl.nu, "Eq.GkLBO: Must specify collision freq using 'nu'")
    self._inNu = tbl.nu
 
@@ -36,6 +39,8 @@ function GkLBO:init(tbl)
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
+
+   self.cellAvFacDnu = 1.0/(self._inNu*math.sqrt(2.0^self._cdim))
 
    -- functions to perform LBO updates.
    if self._inNu then
@@ -54,7 +59,7 @@ function GkLBO:init(tbl)
    self._vthSqNu = nil
    -- (these will be set on the first call to setAuxFields() method).
    self._BmagInvPtr, self._BmagInvIdxr = nil, nil
-   self._uNuPtr, self._uNuIdxr = nil, nil
+   self._uNuPtr, self._uNuIdxr         = nil, nil
    self._vthSqNuPtr, self._vthSqNuIdxr = nil, nil
 
    if not self._inNu then
@@ -100,13 +105,21 @@ end
 
 -- Volume integral term for use in DG scheme.
 function GkLBO:volTerm(w, dx, idx, q, out)
-   self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr) -- get pointer to BmagInv field.
-   self._uNu:fill(self._uNuIdxr(idx), self._uNuPtr) -- get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idx), self._vthSqNuPtr) -- get pointer to vthSqNu field.
+   self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr) -- Get pointer to BmagInv field.
+   self._uNu:fill(self._uNuIdxr(idx), self._uNuPtr)             -- Get pointer to uNu field.
+   self._vthSqNu:fill(self._vthSqNuIdxr(idx), self._vthSqNuPtr) -- Get pointer to vthSqNu field.
    if self._inNu then
-      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+      -- If mean flow and thermal speeds are too high or if thermal
+      -- speed is negative turn the LBO off (do not call kernels).
+      -- Cell average values of uPar and vthSq (mind normalization).
+      local uPar0   = self._uNuPtr[1]*self.cellAvFacDnu
+      local vthSq0  = self._vthSqNuPtr[1]*self.cellAvFacDnu
+      if ((math.abs(uPar0)<self._vParMax) and
+          (vthSq0>0) and (vthSq0<self._vParMaxSq)) then
+         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+      end
    else
-     self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- get pointer to nu field.
+     self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- Get pointer to nu field.
      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
    end
    return cflFreq
@@ -116,18 +129,26 @@ end
 function GkLBO:surfTerm(dir, cfl, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- set pointer to uNu and vthSqNu fields.
-   self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- get pointer to BmagInv field.
-   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
+   self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- Get pointer to BmagInv field.
+   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- Get pointer to uNu field.
+   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- Get pointer to vthSqNu field.
    if dir > self._cdim then
-     if self._inNu then
-       vMuMidMax = self._surfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     else
-       self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
-       vMuMidMax = self._surfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     end
+      if self._inNu then
+         -- If mean flow and thermal speeds are too high or if thermal
+         -- speed is negative turn the LBO off (do not call kernels).
+         -- Cell average values of uPar and vthSq (mind normalization).
+         local uPar0   = self._uNuPtr[1]*self.cellAvFacDnu
+         local vthSq0  = self._vthSqNuPtr[1]*self.cellAvFacDnu
+         if ((math.abs(uPar0)<self._vParMax) and
+             (vthSq0>0) and (vthSq0<self._vParMaxSq)) then
+            vMuMidMax = self._surfUpdate[dir-self._cdim](
+               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+         end
+      else
+         self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- Get pointer to nu field.
+         vMuMidMax = self._surfUpdate[dir-self._cdim](
+            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      end
    end
    return vMuMidMax
 end
@@ -136,18 +157,26 @@ end
 function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- set pointer to uNu and vthSqNu fields.
-   self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- get pointer to BmagInv field.
-   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
+   self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- Get pointer to BmagInv field.
+   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr)             -- Get pointer to uNu field.
+   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- Get pointer to vthSqNu field.
    if dir > self._cdim then
-     if self._inNu then
-       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     else
-       self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
-       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     end
+      if self._inNu then
+         -- If mean flow and thermal speeds are too high or if thermal
+         -- speed is negative turn the LBO off (do not call kernels).
+         -- Cell average values of uPar and vthSq (mind normalization).
+         local uPar0   = self._uNuPtr[1]*self.cellAvFacDnu
+         local vthSq0  = self._vthSqNuPtr[1]*self.cellAvFacDnu
+         if ((math.abs(uPar0)<self._vParMax) and
+             (vthSq0>0) and (vthSq0<self._vParMaxSq)) then
+            vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+         end
+      else
+         self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
+         vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      end
    end
    return vMuMidMax
 end
