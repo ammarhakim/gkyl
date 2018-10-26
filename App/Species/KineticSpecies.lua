@@ -482,6 +482,7 @@ function KineticSpecies:alloc(nRkDup)
    self:createBCs()
 end
 
+-- note: do not call applyBc here. it is called later in initialization sequence.
 function KineticSpecies:initDist()
    if self.randomseed then 
       math.randomseed(self.randomseed) 
@@ -531,7 +532,6 @@ function KineticSpecies:initDist()
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
    end
 
-   self:applyBc(0, 0, self.distf[1])
    self.distf[2]:clear(0.0)
 
    -- calculate initial density averaged over simulation domain

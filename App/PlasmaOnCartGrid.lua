@@ -304,6 +304,9 @@ local function buildApplication(self, tbl)
       field:readRestart()
       funcField:readRestart()
       for _, s in pairs(species) do
+         -- this is a dummy forwardEuler call because some BCs require 
+         -- auxFields to be set, which is controlled by species solver
+         s:forwardEuler(0, 0, species, {field, funcField}, 1, 2)
 	 rTime = s:readRestart()
       end
       return rTime
