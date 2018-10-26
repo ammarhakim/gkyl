@@ -22,6 +22,7 @@ local ffi = require "ffi"
 ffi.cdef [[
 typedef struct {
   double charge, mass; /* Charge and mass */
+  bool evolve;
 } FluidData_t;
 
 typedef struct {
@@ -107,6 +108,8 @@ function FiveMomentSrc:init(tbl)
    for n = 1, self._sd.nFluids do
       self._fd[n-1].charge = tbl.charge[n]
       self._fd[n-1].mass = tbl.mass[n]
+      self._fd[n-1].evolve = tbl.evolve[n]
+      print("fluid", n, "evolve", self._fd[n-1].evolve)
    end
 
    -- scheme is one of "ssp-rk3", "modified-boris"  or "time-centered"

@@ -13,6 +13,7 @@
 extern "C" {
     typedef struct {
         double charge, mass; /* Charge and mass */
+        bool evolve;
     } FluidData_t;
 
     typedef struct {
