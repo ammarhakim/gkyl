@@ -58,7 +58,9 @@ end
 -- we need the app top-level table for proper initialization
 function MaxwellField:fullInit(appTbl)
    local tbl = self.tbl -- previously store table
-   
+  
+   self.tmBc = 0.
+   self.tmHyp = 0.
    self.epsilon0 = tbl.epsilon0
    self.mu0 = tbl.mu0
    self.ioMethod = "MPI"
@@ -457,8 +459,12 @@ end
 function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
+     local t0 = Time.clock()
       self:applyBc(tCurr, dt, fIn)
+      self.tmBc = self.tmBc + Time.clock() - t0
+      t0 = Time.clock()
       status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+      self.tmHyp = self.tmHyp + Time.clock() - t0
    else
       fOut:copy(fIn)
    end
