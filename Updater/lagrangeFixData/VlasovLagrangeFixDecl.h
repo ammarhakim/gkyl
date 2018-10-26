@@ -1,9 +1,9 @@
 #ifndef VLASOV_LAGRANGE_FIX_H 
 #define VLASOV_LAGRANGE_FIX_H 
 
-extern "C" { 
+#include <../../Lib/gkyl_ipow.h>
 
-double gkyl_ipow(double base, int exp);
+extern "C" { 
 
 void VlasovLagrangeFixSer1x1v1p(double *dm0, double *dm1, double *dm2, double *L, double *Nv, double *vc, double *f);
 

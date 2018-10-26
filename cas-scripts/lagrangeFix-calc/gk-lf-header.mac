@@ -6,6 +6,7 @@ fhl : openw("~/max-out/_GkLagrangeFixCdef.lua")$
 
 printf(fhh, "#ifndef GK_LAGRANGE_FIX_H ~%")$
 printf(fhh, "#define GK_LAGRANGE_FIX_H ~%~%")$
+printf(fhh, "#include <../../Lib/gkyl_ipow.h> ~%~%")$
 printf(fhh, "extern \"C\" { ~%~%")$
 printf(fhh, "double gkyl_ipow(double base, int exp);~%~%")$
 printf(fhl, "local ffi  = require \"ffi\"~%")$

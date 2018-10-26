@@ -1,9 +1,9 @@
 #ifndef GK_LAGRANGE_FIX_H 
 #define GK_LAGRANGE_FIX_H 
 
-extern "C" { 
+#include <../../Lib/gkyl_ipow.h>
 
-double gkyl_ipow(double base, int exp);
+extern "C" { 
 
 void GkLagrangeFixSer1x1v1p(double *dm0, double *dm1, double *dm2, double *B, double mass, double *L, double *Nv, double *vc, double *f);
 
