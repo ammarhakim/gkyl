@@ -480,14 +480,11 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
-   local tmFrameHypSpc = 0.
-   local tmFrameHypFld = 0.
    -- update solution in specified direction
    local function updateInDirection(dir, tCurr, dt)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
 
-      local t0 = Time.clock()
       -- update species
       for nm, s in pairs(species) do
 	 local vars = s:rkStepperFields()
@@ -496,9 +493,6 @@ local function buildApplication(self, tbl)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
-      tmFrameHypSpc = tmFrameHypSpc + Time.clock() - t0
-
-      local t0 = Time.clock()
       do
 	 -- update field
 	 local vars = field:rkStepperFields()
@@ -507,7 +501,6 @@ local function buildApplication(self, tbl)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
-      tmFrameHypFld = tmFrameHypFld + Time.clock() - t0
 
       return status, dtSuggested
    end
@@ -534,37 +527,27 @@ local function buildApplication(self, tbl)
    end
 
    -- function to advance solution using FV dimensionally split scheme
-   local tmFrameCpy = 0.
-   local tmFrameSrc = 0.
-   local tmFrameHyp = 0.
    function timeSteppers.fvDimSplit(tCurr, dt)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields      
 
-      local t0 = Time.clock()
       -- copy in case we need to take this step again
       copy(3, 1)
-      tmFrameCpy = tmFrameCpy + Time.clock() - t0
 
-      local t0 = Time.clock()
       -- update source by half time-step
       do
 	 local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
-      tmFrameSrc = tmFrameSrc + Time.clock() - t0
 
-      local t0 = Time.clock()
       -- update solution in each direction
       for d = 1, cdim do
 	 local myStatus, myDtSuggested = updateInDirection(d, tCurr, dt)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
-      tmFrameHyp = tmFrameHyp + Time.clock() - t0
 
-      local t0 = Time.clock()
       -- update source by half time-step
       if status then
 	 local myStatus, myDtSuggested
@@ -576,9 +559,7 @@ local function buildApplication(self, tbl)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
-      tmFrameSrc = tmFrameSrc + Time.clock() - t0
 
-      local t0 = Time.clock()
       if not status then
 	 copy(1, 3) -- restore old solution in case of failure
       else
@@ -586,7 +567,6 @@ local function buildApplication(self, tbl)
 	 -- time-step
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
-      tmFrameCpy = tmFrameCpy + Time.clock() - t0
       
 
       return status, dtSuggested
@@ -644,20 +624,7 @@ local function buildApplication(self, tbl)
 	 if logTrigger(tCurr) then
 	    if logCount > 0 then
 	       log (string.format(
-		       " Step %5d at time %g. Time step %g. Completed %g%s, %d steps\n", step, tCurr, myDt, tenth*10, "%", step))
-	       log (string.format(
-		       " Cpy %g Src %g Hyp %g; HypSpc %g HypFld %g\n", tmFrameCpy, tmFrameSrc, tmFrameHyp, tmFrameHypSpc, tmFrameHypFld))
-	 
-	       log (string.format(
-		       " Field: tmBc %g, tmHyp %g\n", field.tmBc, field.tmHyp))
-         field.tmBc = 0.
-         field.tmHyp = 0.
-
-         tmFrameCpy = 0.
-         tmFrameSrc = 0.
-         tmFrameHyp = 0.
-         tmFrameHypSpc = 0.
-         tmFrameHypFld = 0.
+		       " Step %5d at time %g. Time step %g. Completed %g%s\n", step, tCurr, myDt, tenth*10, "%"))
 	    else
 	       logCount = logCount+1
 	    end
