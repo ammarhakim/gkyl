@@ -56,10 +56,12 @@ end
 function CollisionlessEmSource:createSolver(species, field)
    local numSpecies = #self.speciesList
    local mass, charge = {}, {}
+   local evolve = {}
 
    for i, nm in ipairs(self.speciesList) do
       mass[i] = species[nm]:getMass()
       charge[i] = species[nm]:getCharge()
+      evolve[i] = species[nm]:getEvolve()
    end
 
    self.slvr = Updater.FiveMomentSrc {
@@ -67,6 +69,7 @@ function CollisionlessEmSource:createSolver(species, field)
       numFluids = numSpecies,
       charge = charge,
       mass = mass,
+      evolve = evolve,
       epsilon0 = field:getEpsilon0(),
       elcErrorSpeedFactor = field:getElcErrorSpeedFactor(),
       mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),

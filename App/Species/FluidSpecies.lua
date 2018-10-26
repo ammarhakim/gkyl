@@ -97,6 +97,7 @@ end
 
 function FluidSpecies:getCharge() return self.charge end
 function FluidSpecies:getMass() return self.mass end
+function FluidSpecies:getEvolve() return self.evolve end
 
 function FluidSpecies:getNdim()
    return self.ndim
