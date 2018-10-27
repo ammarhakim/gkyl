@@ -626,7 +626,13 @@ function GkSpecies:getNumDensity(rkIdx)
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
+      if self.deltaF then
+        self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
+      end
       self.numDensityCalc:advance(tCurr, dt, {self:rkStepperFields()[rkIdx]}, { self.numDensity })
+      if self.deltaF then
+        self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
+      end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
@@ -643,7 +649,13 @@ function GkSpecies:getMomDensity(rkIdx)
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
+      if self.deltaF then
+        self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
+      end
       self.momDensityCalc:advance(tCurr, dt, {self:rkStepperFields()[rkIdx]}, { self.momDensity })
+      if self.deltaF then
+        self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
+      end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end

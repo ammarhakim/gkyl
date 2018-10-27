@@ -58,6 +58,8 @@ plasmaApp = Plasma.App {
    -- boundary conditions for configuration space
    periodicDirs = {1,2}, -- periodic directions
 
+   deltaF = true,
+
    -- gyrokinetic electrons
    electron = Plasma.GkSpecies {
       charge = qe,
@@ -88,7 +90,6 @@ plasmaApp = Plasma.App {
                  return Te0*(1-(x-r0)/L_T)
               end,
              },
-      fluctuationBCs = true, -- only apply BCs to fluctuations
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0"}, 
    },

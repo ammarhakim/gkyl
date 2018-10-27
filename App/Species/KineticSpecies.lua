@@ -211,6 +211,8 @@ function KineticSpecies:fullInit(appTbl)
    -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
    self.deltaF = xsys.pickBool(appTbl.deltaF, false)
+   self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
+   if self.deltaF then self.fluctuationBCs = true end
 
    self.zeroFluxDirections = {}
 
@@ -491,7 +493,7 @@ function KineticSpecies:initDist()
    end
 
    local syncPeriodicDirs = true
-   if self.deltaF then syncPeriodicDirs = false end
+   if self.fluctuationBCs then syncPeriodicDirs = false end
 
    local initCnt, backgroundCnt = 0, 0
    for _, pr in pairs(self.projections) do
@@ -528,7 +530,7 @@ function KineticSpecies:initDist()
       self.f0:copy(self.distf[1])
    end
 
-   if self.deltaF then 
+   if self.fluctuationBCs then 
       assert(backgroundCnt > 0, "KineticSpecies: must specify an initial background distribution with 'initBackground' in order to use fluctuation-only BCs") 
    end
 
@@ -578,7 +580,7 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
    if self.evolve then 
       local syncPeriodicDirsTrue = true
 
-      if self.deltaF then
+      if self.fluctuationBCs then
         -- if fluctuation-only BCs, subtract off background before applying BCs
         fIn:accumulate(-1.0, self.f0)
       end
@@ -593,7 +595,7 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
       -- apply periodic BCs (to only fluctuations if fluctuation BCs)
       fIn:sync(syncPeriodicDirsTrue)
 
-      if self.deltaF then
+      if self.fluctuationBCs then
         -- put back together total distribution
         fIn:accumulate(1.0, self.f0)
 
