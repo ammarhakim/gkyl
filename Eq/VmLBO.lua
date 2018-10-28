@@ -25,10 +25,25 @@ function VmLBO:init(tbl)
       tbl.phaseBasis, "Eq.VmLBO: Must specify phase-space basis functions to use using 'phaseBasis'")
    self._confBasis  = assert(
       tbl.confBasis, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'confBasis'")
+   self._vMax       = assert(tbl.vUpper, "Eq.VmLBO: Must specify maximum velocity of v grid in 'vUpper'")
    
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
+
+   self._cNumBasis = self._confBasis:numBasis()
+
+   --  Store the largest velocity in the grid to compare against vthSq.
+   self._vMaxSq = self._vMax[1]
+   for vd = 1,self._vdim do
+      if (self._vMaxSq < self._vMax[vd]) then
+        self._vMaxSq = self._vMax[vd]
+      end
+   end
+   self._vMaxSq = self._vMaxSq^2 
+
+   self.cellAvFac = 1.0/(math.sqrt(2.0^self._cdim))
+
 
    local constNu = tbl.nu
    if constNu then
@@ -102,6 +117,18 @@ function VmLBO:maxSpeed(dir, w, dx, q)
    return 0.0
 end
 
+-- Code used to determine if u and vthSq crossed limits.
+function VmLBO:checkPrimMomCrossings()
+   local noUcrossing = true
+   for vd = 1,self._vdim do
+      if (math.abs(self._uPtr[(vd-1)*self._cNumBasis+1]*self.cellAvFac)>self._vMax[vd]) then
+         noUcrossing = false
+         break
+      end
+   end
+   local vtSq0 = self._vthSqPtr[1]*self.cellAvFac
+   return noUcrossing, vtSq0
+end
 
 -- Volume integral term for use in DG scheme.
 function VmLBO:volTerm(w, dx, idx, q, out)
@@ -112,7 +139,12 @@ function VmLBO:volTerm(w, dx, idx, q, out)
          self._nu:fill(self._nuIdxr(idx), self._nuPtr)    -- Get pointer to nu field.
          self._inNu = self._nuPtr[1]*self._cellAvFac
       end
-      cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
+      -- If mean flow and thermal speeds are too high or if thermal
+      -- speed is negative turn the LBO off (do not call kernels).
+      local uCrossingNotFound, vthSq0 = self:checkPrimMomCrossings()
+      if (uCrossingNotFound and (vthSq0>0) and (vthSq0<self._vMaxSq)) then
+         cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
+      end
    else
       self._nu:fill(self._nuIdxr(idx), self._nuPtr)    -- Get pointer to nu field.
       cflFreq = self._volUpdate(w:data(), dx:data(), self._nuPtr:data(), self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
@@ -132,8 +164,13 @@ function VmLBO:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, out
             self._nu:fill(self._nuIdxr(idxl), self._nuPtr)    -- Get pointer to nu field.
             self._inNu = self._nuPtr[1]*self._cellAvFac
          end
-         vMuMidMax = self._surfUpdate[dir-self._cdim](
-            wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+         -- If mean flow and thermal speeds are too high or if thermal
+         -- speed is negative turn the LBO off (do not call kernels).
+         local uCrossingNotFound, vthSq0 = self:checkPrimMomCrossings()
+         if (uCrossingNotFound and (vthSq0>0) and (vthSq0<self._vMaxSq)) then
+            vMuMidMax = self._surfUpdate[dir-self._cdim](
+               wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+         end
       else
          self._nu:fill(self._nuIdxr(idxl), self._nuPtr)    -- Get pointer to nu field.
          vMuMidMax = self._surfUpdate[dir-self._cdim](
@@ -155,8 +192,13 @@ function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
             self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- Get pointer to nu field.
             self._inNu = self._nuPtr[1]*self._cellAvFac
          end
-         vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-            wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+         -- If mean flow and thermal speeds are too high or if thermal
+         -- speed is negative turn the LBO off (do not call kernels).
+         local uCrossingNotFound, vthSq0 = self:checkPrimMomCrossings()
+         if (uCrossingNotFound and (vthSq0>0) and (vthSq0<self._vMaxSq)) then
+            vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+               wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+         end
       else
          self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- Get pointer to nu field.
          vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
