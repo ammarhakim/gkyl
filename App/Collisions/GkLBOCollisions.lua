@@ -37,9 +37,21 @@ function GkLBOCollisions:fullInit(speciesTbl)
 
    self.cfl = 0.0 -- will be replaced
    self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
-   self.crossSpecies = tbl.crossSpecies
-   self.collFreq = assert(
-      tbl.collFreq, "Updater.GkLBOCollisions: Must specify the collision frequency with 'collFreq'")
+   self.crossSpecies   = tbl.crossSpecies
+
+   local constNu       = tbl.collFreq
+   if constNu then
+      self.varNu       = false    -- Not spatially varying nu.
+      self.collFreq    = constNu
+      self.cellConstNu = true
+   else
+      self.varNu       = true    -- Spatially varying nu.
+      self.normNu      = assert(tbl.normNu, "App.VmLBOCollisions: Must specify 'normNu', collisionality normalized by (T_0^(3/2)/n_0) evaluated somewhere in the simulation.")
+      -- For now only cell-wise constant nu is implemented.
+      -- self.cellConstNu = assert(tbl.useCellAverageNu, "App.VmLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self.cellConstNu = true
+   end
+
    self.mass = speciesTbl.mass
    self.tmEvalMom = 0.0
 end
@@ -104,14 +116,39 @@ function GkLBOCollisions:createSolver(funcField)
       zfd[d] = self.confGrid:ndim() + d
    end
 
-   -- Lenard-Bernestein equation.
-   local gkLBOconstNuCalc = GkLBOconstNuEq {
-      nu         = self.collFreq,
-      phaseBasis = self.phaseBasis,
-      confBasis  = self.confBasis,
-      vParUpper  = self.vParMax,
-      mass       = self.mass,
-   }
+   if self.varNu then
+      -- Collisionality, nu.
+      self.nuFld = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.cNumBasis,
+         ghost         = {1, 1},
+      }
+      -- Updater to compute spatially varying (Spitzer) nu.
+      self.spitzerNu = Updater.SpitzerCollisionality {
+         onGrid           = self.confGrid,
+         confBasis        = self.confBasis,
+         normalizedNu     = self.normNu,
+         mass             = self.mass,
+         useCellAverageNu = self.cellConstNu,
+      }
+      -- Lenard-Bernstein equation.
+      gkLBOconstNuCalc = GkLBOconstNuEq {
+         phaseBasis       = self.phaseBasis,
+         confBasis        = self.confBasis,
+         useCellAverageNu = self.cellConstNu,
+         vParUpper        = self.vParMax,
+         mass             = self.mass,
+      }
+   else
+      -- Lenard-Bernstein equation.
+      gkLBOconstNuCalc = GkLBOconstNuEq {
+         nu         = self.collFreq,
+         phaseBasis = self.phaseBasis,
+         confBasis  = self.confBasis,
+         vParUpper  = self.vParMax,
+         mass       = self.mass,
+      }
+   end
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,
       basis              = self.phaseBasis,
@@ -175,15 +212,18 @@ function GkLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
                     Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
       self.primMomLimitCrossings:appendData(tCurr+dt, self.primMomCrossLimitG)
 
-      -- LBO actually takes the product nu*velocity and nu*vthSq.
-      -- For now just scale, but if nu is spatially dependent use
-      -- binOp.Multiply.
-      self.uPar:scale(self.collFreq)
-      self.vthSq:scale(self.collFreq)
-      
-      -- compute increment from collisions and accumulate it into output
-      local tmpStatus, tmpDt = self.collisionSlvr:advance(
-	 tCurr, dt, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
+      if self.varNu then
+         -- Compute the collisionality.
+         self.spitzerNu:advance(0.0, 0.0, {selfMom[1], self.vthSq},{self.nuFld})
+
+         -- Compute increment from collisions and accumulate it into output.
+         tmpStatus, tmpDt = self.collisionSlvr:advance(
+            tCurr, dt, {fIn, self.bmagInv, self.uPar, self.vthSq, self.nuFld}, {self.collOut})
+      else
+         -- Compute increment from collisions and accumulate it into output.
+         tmpStatus, tmpDt = self.collisionSlvr:advance(
+            tCurr, dt, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
+      end
       status = status and tmpStatus
       dtSuggested = math.min(dtSuggested, tmpDt)
 
@@ -196,8 +236,6 @@ function GkLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 end
 
 function GkLBOCollisions:write(tm, frame)
-   self.uPar:scale(1.0/self.collFreq)
-   self.vthSq:scale(1.0/self.collFreq)
    self.uPar:write(string.format("%s_%s_%d.bp", self.speciesName, "uPar", frame), tm, frame)
    self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
    self.primMomLimitCrossings:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame)

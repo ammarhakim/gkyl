@@ -1,0 +1,48 @@
+load("lenardBernsteinOperator-calc/GkLBOconstNu-vol")$
+load(stringproc)$
+
+/* This script calls the functions which calculate the
+   updates from the GkLBO volume term contributions. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+maxCdim_Ser : 2$
+minVdim_Ser : 1$    /* see beginning of v loop below though. */
+maxVdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+maxCdim_Max : 2$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxVdim_Max : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other basis, just add more columns to arrays below. */
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+
+      disp(printf(false,sconcat("Creating volume GkLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
+      fname : sconcat("~/max-out/GkLBOconstNu", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("GkLBOconstNuVol", c, "x", v, "v", bName[bInd]),
+      calcGkLBOconstNuVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      close(fh)
+
+    )
+  )
+);
+
+
