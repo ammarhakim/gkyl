@@ -29,6 +29,7 @@ local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
+local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local VoronovIonization = require "Updater.VoronovIonization"
 local WavePropagation = require "Updater.WavePropagation"
 
@@ -56,6 +57,7 @@ return {
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
    SolidSurface = SolidSurface,
+   SpitzerCollisionality = SpitzerCollisionality,
    VoronovIonization = VoronovIonization,
    WavePropagation = WavePropagation,
 }

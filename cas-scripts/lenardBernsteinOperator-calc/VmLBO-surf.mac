@@ -1,4 +1,5 @@
 load("lenardBernsteinOperator-calc/VmLBOconstNu-surf")$
+load("lenardBernsteinOperator-calc/VmLBOvarNu-surf")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the surface term contributions. */
@@ -31,25 +32,44 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max]$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
     for v : c thru maxVdim[bInd] do (
+    
      disp(printf(false,sconcat("Creating surface VmLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
      fname : sconcat("~/max-out/VmLBOconstNuSurf", bName[bInd], c, "x", v, "v", ".cpp"),
      fh : openw(fname),
      funcName : sconcat("VmLBOconstNuSurf", c, "x", v, "v", bName[bInd]),
      calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
-     close(fh)
-    )
-  ),
-  
-  /* boundarySurf kernels compute surface contribution that we
-     do not want to zero-out at the boundary of velocity domain. */
-  for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
+     close(fh),
+     
+     /* boundarySurf kernels compute surface contribution that we
+        do not want to zero-out at the boundary of velocity domain. */
      disp(printf(false,sconcat("Creating boundary surface VmLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
      fname : sconcat("~/max-out/VmLBOconstNuBoundarySurf",bName[bInd], c, "x", v, "v", ".cpp"),
      fh : openw(fname),
      funcName : sconcat("VmLBOconstNuBoundarySurf", c, "x", v, "v", bName[bInd]),
      calcVmLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
      close(fh)
+     
+
+/*
+     disp(printf(false,sconcat("Creating surface VmLBOvarNu",bName[bInd]," ~ax~av"),c,v)),
+     fname : sconcat("~/max-out/VmLBOvarNuSurf", bName[bInd], c, "x", v, "v", ".cpp"),
+     fh : openw(fname),
+     funcName : sconcat("VmLBOvarNuSurf", c, "x", v, "v", bName[bInd]),
+     calcVmLBOvarNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+     close(fh),
+*/
+  
+     /* boundarySurf kernels compute surface contribution that we
+        do not want to zero-out at the boundary of velocity domain. */
+/*
+     disp(printf(false,sconcat("Creating boundary surface VmLBOvarNu",bName[bInd]," ~ax~av"),c,v)),
+     fname : sconcat("~/max-out/VmLBOvarNuBoundarySurf",bName[bInd], c, "x", v, "v", ".cpp"),
+     fh : openw(fname),
+     funcName : sconcat("VmLBOvarNuBoundarySurf", c, "x", v, "v", bName[bInd]),
+     calcVmLBOvarNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+     close(fh)
+*/
+
     )
   )
 );

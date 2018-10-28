@@ -35,11 +35,11 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Expand distribution function f in phase basis. */
     f_e    : doExpand1(f, bP),
     /* Expand flow speed u and thermal speed squared in configuration basis. */
-    nuU_e    : doExpand1(nuU, bC),
-    nuVtSq_e : doExpand1(nuVtSq, bC),
+    u_e    : doExpand1(u, bC),
+    vtSq_e : doExpand1(vtSq, bC),
 
     /* To allow for multiple components change the cofficient indices in Ae and Be. */
-    nuU_e : psubst(makelist(nuU[i]=nuU[a0+i],i,0,NC-1),nuU_e),
+    u_e : psubst(makelist(u[i]=u[a0+i],i,0,NC-1),u_e),
 
     /* w-u part of the drag term. */
     drBar_e : doExpand1(drBar,bC),
@@ -52,13 +52,19 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         cv : varsV[dir],
         incr : incr+(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
 	       +rdv2[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
-               +rdvSq4[dir-1]*calcInnerProdList(varsP,nuVtSq_e,diff(bP,cv,2),f_e)
+               +rdvSq4[dir-1]*nu*calcInnerProdList(varsP,vtSq_e,diff(bP,cv,2),f_e)
       ),
       incr
     ),
 
-    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "  // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output ~%"),
+    printf(fh, "double ~aP~a(const double *w, const double *dxv, const double nu, const double *u, const double *vtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // w[~a]:   Cell-center coordinates. ~%", cdim+vdim),
+    printf(fh, "  // dxv[~a]: Cell spacing. ~%", cdim+vdim),
+    printf(fh, "  // nu:     diffusion coefficient (collisionality). ~%"),
+    printf(fh, "  // u:      bulk velocity. ~%"),
+    printf(fh, "  // vtSq:   thermal speed squared. ~%"),
+    printf(fh, "  // f:      Input distribution function. out: Incremented output ~%"),
+    printf(fh, "  // out:    Incremented output ~%"),
     cid : cidx(cdim),
     printf(fh, "  double rdv2[~a]; ~%", vdim),
     printf(fh, "  double rdvSq4[~a]; ~%", vdim),
@@ -68,11 +74,11 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     printf(fh, "~%"),
 
-    /* Compute the nu*wxl-u drift part separately. */
+    /* Compute the nu*(wxl-u) drift part separately. */
     printf(fh, "  double drBar[~a]; ~%", NC*vdim),
-    /* -(nu*w-u) part of the drag term. */
+    /* -nu*(w-u) part of the drag term. */
     for dir : 1 thru vdim do (
-       drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-nu*w[vid[dir]]+nuU_e)),
+       drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-nu*(w[vid[dir]]-u_e))),
        for i : 1 thru NC do (
           printf(fh, "  ~a = ~a; ~%", drBar[NC*(dir-1)+i-1], float(expand(drBar_c[i])))
        )
@@ -83,8 +89,8 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCIncrExprsCollect1(out, incr, clst),
     printf(fh, "~%"),
 
-    /* Calculate nuVtSq at cell center for CFL condition */
-    nuVtSqP_c : calcInnerProdList(varsP,1,bP,nuVtSq_e),
+    /* Calculate nu*vtSq at cell center for CFL condition */
+    nuVtSqP_c : nu*calcInnerProdList(varsP,1,bP,vtSq_e),
     nvlst : doMakeExprLst(nuVtSqP_c, nuVtSqP),
     nuVtSqP_e : doExpandLst(nvlst, bP),
 

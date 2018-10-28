@@ -1,0 +1,39 @@
+cvars : [X, Y, Z]$
+
+polyOrderMax : 3$
+
+fh : openw("~/max-out/SpitzerNuModDecl.h")$
+
+printf(fh, "#ifndef SPITZERNU_MOD_DELC_H ~%")$
+printf(fh, "#define SPITZERNU_MOD_DELC_H ~%")$
+printf(fh, "#include <../../Lib/gkyl_ipow.h> ~%~%")$
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "double gkyl_ipow(double base, int exp);~%~%")$
+
+/* Maximal order basis. */
+for ci : 1 thru 3 do (
+  for pi : 1 thru polyOrderMax do (
+    printf(fh, "void SpitzerNuCellAv~axMax_P~a(const double normNu, const double rmR3d2, const double *m0, const double *vtSq, const double *nu); ~%", ci, pi),
+    printf(fh, "~%")      
+  ),
+  printf(fh, "~%")
+)$
+
+printf(fh, "~% ~%")$
+
+/* Serendipity basis. */
+for ci : 1 thru 3 do (
+  for pi : 1 thru polyOrderMax do (
+    printf(fh, "void SpitzerNuCellAv~axSer_P~a(const double normNu, const double rmR3d2, const double *m0, const double *vtSq, const double *nu); ~%", ci, pi),
+    printf(fh, "~%")      
+  ),
+  printf(fh, "~%")
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

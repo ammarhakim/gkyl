@@ -7,12 +7,12 @@
 --------------------------------------------------------------------------------
 
 local CollisionsBase = require "App.Collisions.CollisionsBase"
-local DataStruct = require "DataStruct"
-local Proto = require "Lib.Proto"
-local Time = require "Lib.Time"
-local Updater = require "Updater"
+local DataStruct     = require "DataStruct"
+local Proto          = require "Lib.Proto"
+local Time           = require "Lib.Time"
+local Updater        = require "Updater"
 local VmLBOconstNuEq = require "Eq.VmLBO"
-local xsys = require "xsys"
+local xsys           = require "xsys"
 
 -- VmLBOCollisions ---------------------------------------------------------------
 --
@@ -31,13 +31,25 @@ end
 -- Actual function for initialization. This indirection is needed as
 -- we need the app top-level table for proper initialization.
 function VmLBOCollisions:fullInit(speciesTbl)
-   local tbl = self.tbl -- previously stored table
+   local tbl = self.tbl -- Previously stored table.
 
-   self.cfl = 0.0 -- will be replaced
-   self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- by default, self collisions are on
-   self.crossSpecies = tbl.crossSpecies
-   self.collFreq = assert(
-      tbl.collFreq, "Updater.VmLBOCollisions: Must specify the collision frequency with 'collFreq'")
+   self.cfl            = 0.0    -- Will be replaced.
+   self.selfCollisions = xsys.pickBool(tbl.selfCollisions, true) -- By default, self collisions are on.
+   self.crossSpecies   = tbl.crossSpecies
+
+   local constNu       = tbl.collFreq
+   if constNu then
+      self.varNu       = false    -- Not spatially varying nu.
+      self.collFreq    = constNu
+      self.cellConstNu = true
+   else
+      self.varNu       = true    -- Spatially varying nu.
+      self.normNu      = assert(tbl.normNu, "App.VmLBOCollisions: Must specify 'normNu', collisionality normalized by (T_0^(3/2)/n_0) evaluated somewhere in the simulation.")
+      self.mass        = speciesTbl.mass
+      -- For now only cell-wise constant nu is implemented.
+      -- self.cellConstNu = assert(tbl.useCellAverageNu, "App.VmLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self.cellConstNu = true
+   end
 
    self.tmEvalMom = 0.0
 end
@@ -94,12 +106,35 @@ function VmLBOCollisions:createSolver()
       zfd[d] = self.confGrid:ndim() + d
    end
 
-   -- Lenard-Bernestein equation.
-   local vmLBOconstNuCalc = VmLBOconstNuEq {
-      nu         = self.collFreq,
-      phaseBasis = self.phaseBasis,
-      confBasis  = self.confBasis,
-   }
+   if self.varNu then
+      -- Collisionality, nu.
+      self.nuFld = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+      }
+      -- Updater to compute spatially varying (Spitzer) nu.
+      self.spitzerNu = Updater.SpitzerCollisionality {
+         onGrid           = self.confGrid,
+         confBasis        = self.confBasis,
+         normalizedNu     = self.normNu,
+         mass             = self.mass,
+         useCellAverageNu = self.cellConstNu,
+      }
+      -- Lenard-Bernstein equation.
+      vmLBOconstNuCalc = VmLBOconstNuEq {
+         phaseBasis       = self.phaseBasis,
+         confBasis        = self.confBasis,
+         useCellAverageNu = self.cellConstNu,
+      }
+   else
+      -- Lenard-Bernstein equation.
+      vmLBOconstNuCalc = VmLBOconstNuEq {
+         nu         = self.collFreq,
+         phaseBasis = self.phaseBasis,
+         confBasis  = self.confBasis,
+      }
+   end
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,
       basis              = self.phaseBasis,
@@ -130,15 +165,19 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
                                          {self.velocity,self.vthSq})
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
-      -- LBO actually takes the product nu*velocity and nu*vthSq.
-      -- For now just scale, but if nu is spatially dependent use
-      -- binOp.Multiply.
-      self.velocity:scale(self.collFreq)
-      self.vthSq:scale(self.collFreq)
-      
-      -- compute increment from collisions and accumulate it into output
-      local tmpStatus, tmpDt = self.collisionSlvr:advance(
-	 tCurr, dt, {fIn, self.velocity, self.vthSq}, {self.collOut})
+      if self.varNu then
+         -- Compute the collisionality.
+         self.spitzerNu:advance(0.0, 0.0, {selfMom[1], self.vthSq},{self.nuFld})
+
+         -- Compute increment from collisions and accumulate it into output.
+         tmpStatus, tmpDt = self.collisionSlvr:advance(
+   	    tCurr, dt, {fIn,self.velocity,self.vthSq,self.nuFld}, {self.collOut})
+      else
+         -- Compute increment from collisions and accumulate it into output.
+         tmpStatus, tmpDt = self.collisionSlvr:advance(
+   	    tCurr, dt, {fIn, self.velocity, self.vthSq}, {self.collOut})
+      end
+
       status = status and tmpStatus
       dtSuggested = math.min(dtSuggested, tmpDt)
 
@@ -151,8 +190,6 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 end
 
 function VmLBOCollisions:write(tm, frame)
-   self.velocity:scale(1.0/self.collFreq)
-   self.vthSq:scale(1.0/self.collFreq)
    self.velocity:write(string.format("%s_%s_%d.bp", self.speciesName, "u", frame), tm, frame)
    self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
 end
