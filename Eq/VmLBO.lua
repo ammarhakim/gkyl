@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries.
+-- System libraries.
 local Lin          = require "Lib.Linalg"
 local Proto        = require "Lib.Proto"
 local VmLBOModDecl = require "Eq.lboData.VmLBOModDecl"
@@ -13,13 +13,12 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 
--- for incrementing in updater.
+-- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
 -- Vlasov Lenard-Bernstein equation on a rectangular mesh.
 local VmLBO = Proto(EqBase)
 
--- ctor
 function VmLBO:init(tbl)
 
    self._phaseBasis = assert(
@@ -27,16 +26,29 @@ function VmLBO:init(tbl)
    self._confBasis  = assert(
       tbl.confBasis, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'confBasis'")
    
-   assert(tbl.nu, "Eq.VmLBO: Must specify collisionality using 'nu'")
-   self._inNu = Lin.Vec(1)
-   self._inNu = tbl.nu
-
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
 
+   local constNu = tbl.nu
+   if constNu then
+      self._varNu       = false    -- Collisionality is spatially constant.
+      self._inNu        = Lin.Vec(1)
+      self._inNu        = constNu
+      self._cellConstNu = true     -- Collisionality is cell-wise constant.
+   else
+      self._cellConstNu = assert(tbl.useCellAverageNu, "Eq.VmLBO: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self._varNu               = true    -- Spatially varying nu.
+      self._nu                  = nil
+      self._nuPtr, self._nuIdxr = nil, nil
+      if self._cellConstNu then    -- Not varying within the cell.
+         self._inNu      = Lin.Vec(1)
+         self._cellAvFac = 1.0/math.sqrt(2.0^self._cdim)
+      end
+   end
+
    -- functions to perform LBO updates.
-   if self._inNu then
+   if self._cellConstNu then
       self._volUpdate  = VmLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = VmLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._boundarySurfUpdate = VmLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -47,17 +59,12 @@ function VmLBO:init(tbl)
    end
 
    -- bulk velocity times collisionality field object and pointers to cell values.
-   self._uNu     = nil
+   self._u     = nil
    -- thermal speed squared times collisionality field object and pointers to cell values.
-   self._vthSqNu = nil
+   self._vthSq = nil
    -- (these will be set on the first call to setAuxFields() method).
-   self._uNuPtr, self._uNuIdxr         = nil, nil
-   self._vthSqNuPtr, self._vthSqNuIdxr = nil, nil
-
-   if not self._inNu then
-     self._nu = nil
-     self._nuPtr, self._nuIdxr = nil, nil
-   end
+   self._uPtr, self._uIdxr         = nil, nil
+   self._vthSqPtr, self._vthSqIdxr = nil, nil
 
    -- flag to indicate if we are being called for first time.
    self._isFirst = true
@@ -95,15 +102,20 @@ function VmLBO:maxSpeed(dir, w, dx, q)
    return 0.0
 end
 
+
 -- Volume integral term for use in DG scheme.
 function VmLBO:volTerm(w, dx, idx, q, out)
-   self._uNu:fill(self._uNuIdxr(idx), self._uNuPtr) -- get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idx), self._vthSqNuPtr) -- get pointer to vthSqNu field.
-   if self._inNu then
-     cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+   self._u:fill(self._uIdxr(idx), self._uPtr)             -- Get pointer to u field.
+   self._vthSq:fill(self._vthSqIdxr(idx), self._vthSqPtr) -- Get pointer to vthSq field.
+   if self._cellConstNu then
+      if self._varNu then
+         self._nu:fill(self._nuIdxr(idx), self._nuPtr)    -- Get pointer to nu field.
+         self._inNu = self._nuPtr[1]*self._cellAvFac
+      end
+      cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
    else
-     self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- get pointer to nu field.
-     cflFreq = self._volUpdate(w:data(), dx:data(), self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+      self._nu:fill(self._nuIdxr(idx), self._nuPtr)    -- Get pointer to nu field.
+      cflFreq = self._volUpdate(w:data(), dx:data(), self._nuPtr:data(), self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
    end
    return cflFreq
 end
@@ -111,18 +123,22 @@ end
 -- Surface integral term for use in DG scheme.
 function VmLBO:surfTerm(dir, dt, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
-   -- set pointer to uNu and vthSqNu fields.
-   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
+   -- Set pointer to u and vthSq fields.
+   self._u:fill(self._uIdxr(idxl), self._uPtr) -- Get pointer to u field.
+   self._vthSq:fill(self._vthSqIdxr(idxl), self._vthSqPtr) -- Get pointer to vthSq field.
    if dir > self._cdim then
-     if self._inNu then
-       vMuMidMax = self._surfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     else
-       self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
-       vMuMidMax = self._surfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     end
+      if self._cellConstNu then
+         if self._varNu then
+            self._nu:fill(self._nuIdxr(idxl), self._nuPtr)    -- Get pointer to nu field.
+            self._inNu = self._nuPtr[1]*self._cellAvFac
+         end
+         vMuMidMax = self._surfUpdate[dir-self._cdim](
+            wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      else
+         self._nu:fill(self._nuIdxr(idxl), self._nuPtr)    -- Get pointer to nu field.
+         vMuMidMax = self._surfUpdate[dir-self._cdim](
+            wl:data(), wr:data(), dxl:data(), dxr:data(), self._nuPtr:data(), maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      end
    end
    return vMuMidMax
 end
@@ -130,44 +146,48 @@ end
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
 function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
-   -- set pointer to uNu and vthSqNu fields.
-   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- get pointer to vthSqNu field.
+   -- Set pointer to u and vthSq fields.
+   self._u:fill(self._uIdxr(idxl), self._uPtr) -- Get pointer to u field.
+   self._vthSq:fill(self._vthSqIdxr(idxl), self._vthSqPtr) -- get pointer to vthSq field.
    if dir > self._cdim then
-     if self._inNu then
-       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
-     else
-       self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
-       vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-          wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      if self._cellConstNu then
+         if self._varNu then
+            self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- Get pointer to nu field.
+            self._inNu = self._nuPtr[1]*self._cellAvFac
+         end
+         vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+            wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+      else
+         self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- Get pointer to nu field.
+         vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
+            wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._nuPtr:data(), maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
      end
    end
    return vMuMidMax
 end
 
 function VmLBO:setAuxFields(auxFields)
-   -- single aux field that has the full uNu field.
-   self._uNu     = auxFields[1]
-   self._vthSqNu = auxFields[2]
-   if not self._inNu then
-     self._nu  = auxFields[3]
+   -- Single aux field that has the full u field.
+   self._u     = auxFields[1]
+   self._vthSq = auxFields[2]
+   if self._varNu then
+      self._nu = auxFields[3]
    end
 
    if self._isFirst then
-      -- allocate pointers to field object.
-      self._uNuPtr  = self._uNu:get(1)
-      self._uNuIdxr = self._uNu:genIndexer()
+      -- Allocate pointers to field object.
+      self._uPtr  = self._u:get(1)
+      self._uIdxr = self._u:genIndexer()
 
-      self._vthSqNuPtr  = self._vthSqNu:get(1)
-      self._vthSqNuIdxr = self._vthSqNu:genIndexer()
+      self._vthSqPtr  = self._vthSq:get(1)
+      self._vthSqIdxr = self._vthSq:genIndexer()
 
-      if not self._inNu then
-         self._nuPtr     = self._nu:get(1)
-         self._nuIdxr    = self._nu:genIndexer()
+      if self._varNu then
+         self._nuPtr  = self._nu:get(1)
+         self._nuIdxr = self._nu:genIndexer()
       end
 
-      self._isFirst    = false -- no longer first time.
+      self._isFirst = false -- No longer first time.
    end
 end
 

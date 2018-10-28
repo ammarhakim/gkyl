@@ -1,4 +1,5 @@
 load("lenardBernsteinOperator-calc/VmLBOconstNu-alpha-vol")$
+load("lenardBernsteinOperator-calc/VmLBOvarNu-vol")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions. */
@@ -43,7 +44,16 @@ for bInd : 1 thru length(bName) do (
       fh : openw(fname),
       funcName : sconcat("VmLBOconstNuVol", c, "x", v, "v", bName[bInd]),
       calcVmLBOconstNuVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      close(fh) 
+
+/*
+      disp(printf(false,sconcat("Creating volume VmLBOvarNu",bName[bInd]," ~ax~av"),c,v)),
+      fname    : sconcat("~/max-out/VmLBOvarNu", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh       : openw(fname),
+      funcName : sconcat("VmLBOvarNuVol", c, "x", v, "v", bName[bInd]),
+      calcVmLBOvarNuVolUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
       close(fh)
+*/
     )
   )
 );

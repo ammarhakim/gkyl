@@ -13,10 +13,10 @@ printf(fh, "extern \"C\" { ~%")$
 for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
     for pi : 1 thru polyOrderMax do (
-      printf(fh, "double VmLBOconstNuVol~ax~avMaxP~a(const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out); ~%", ci, vi, pi),
+      printf(fh, "double VmLBOconstNuVol~ax~avMaxP~a(const double *w, const double *dxv, const double nu, const double *u, const double *vtSq, const double *f, double *out); ~%", ci, vi, pi),
       for si : 1 thru vi do (
-        printf(fh, "double VmLBOconstNuSurf~ax~avMax_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi),
-        printf(fh, "double VmLBOconstNuBoundarySurf~ax~avMax_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
+        printf(fh, "double VmLBOconstNuSurf~ax~avMax_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi),
+        printf(fh, "double VmLBOconstNuBoundarySurf~ax~avMax_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
       ),
       printf(fh, "~%")      
     ),
@@ -30,10 +30,10 @@ printf(fh, "~% ~%")$
 for ci : 1 thru 3 do (
   for vi : ci thru 3 do (
     for pi : 1 thru polyOrderMax do (
-      printf(fh, "double VmLBOconstNuVol~ax~avSerP~a(const double *w, const double *dxv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out); ~%", ci, vi, pi),
+      printf(fh, "double VmLBOconstNuVol~ax~avSerP~a(const double *w, const double *dxv, const double nu, const double *u, const double *vtSq, const double *f, double *out); ~%", ci, vi, pi),
       for si : 1 thru vi do (
-        printf(fh, "double VmLBOconstNuSurf~ax~avSer_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi),
-        printf(fh, "double VmLBOconstNuBoundarySurf~ax~avSer_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nu, const double vMuMidMax, const double *nuU, const double *nuVtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
+        printf(fh, "double VmLBOconstNuSurf~ax~avSer_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi),
+        printf(fh, "double VmLBOconstNuBoundarySurf~ax~avSer_V~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, cvars[si], pi)
       ),
       printf(fh, "~%")
     ),

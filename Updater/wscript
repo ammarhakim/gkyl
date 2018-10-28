@@ -11,6 +11,13 @@ def build(bld):
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
 
+    spitzerNuCalcData/SpitzerNuSer1x.cpp
+    spitzerNuCalcData/SpitzerNuSer2x.cpp
+    spitzerNuCalcData/SpitzerNuSer3x.cpp
+    spitzerNuCalcData/SpitzerNuMax1x.cpp
+    spitzerNuCalcData/SpitzerNuMax2x.cpp
+    spitzerNuCalcData/SpitzerNuMax3x.cpp
+
     primMomentsCalcData/VmSelfPrimMomentsSer1x1v.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x2v.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x3v.cpp
@@ -148,4 +155,4 @@ def build(bld):
     ProjectOnBasisImpl.cpp
 
     """,
-    includes = '. primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+    includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
