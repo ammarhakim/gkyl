@@ -108,6 +108,12 @@ local tenMoment_mt = {
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
 	 ffi.C.gkylTenMomentQFluct(waves:data(), s:data(), amdq:data(), apdq:data())
       end,
+      checkInv = function(self, q)
+         return q[1] > 0. and
+                q[5] - q[2]^2 / q[1] > 0. and
+                q[8] - q[3]^2 / q[1] > 0. and
+                q[10] - q[4]^2 / q[1] > 0.
+      end,
    }
 }
 local TenMomentObj = metatype(typeof("TenMomentEqn_t"), tenMoment_mt)

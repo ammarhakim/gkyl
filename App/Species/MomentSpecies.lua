@@ -15,6 +15,7 @@ local FluidSpecies = require "App.Species.FluidSpecies"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
+local ffi = require "ffi"
 local Euler = require "Eq.Euler"
 local TenMoment = require "Eq.TenMoment"
 
@@ -41,6 +42,17 @@ function MomentSpecies:fullInit(appTbl)
 
    self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
    self.hyperSlvr = {} -- list of solvers
+
+   -- invariant (positivity-preserving) equation system to evolve
+   self.equationInv = self.tbl.equationInv
+   self.hyperSlvrInv = {} -- list of solvers
+   -- always use invariant eqn.
+   self.forceInv = self.tbl.forceInv and (self.equationInv ~= nil)
+   -- use invariant eqn. in next step; could change during run
+   self.tryInv = false
+
+   self._myIsInv = ffi.new("int[2]")
+   self._isInv = ffi.new("int[2]")
 end
 
 function MomentSpecies:createSolver(hasE, hasB)
@@ -53,6 +65,15 @@ function MomentSpecies:createSolver(hasE, hasB)
 	 cfl = self.cfl,
 	 updateDirections = {d}
       }
+      if self.equationInv ~= nil then
+         self.hyperSlvrInv[d] = Updater.WavePropagation {
+            onGrid = self.grid,
+            equation = self.equationInv,
+            limiter = self.limiter,
+            cfl = self.cfl,
+            updateDirections = {d}
+         }
+      end
    end
 end
 
@@ -94,7 +115,14 @@ function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
       self:applyBc(tCurr, dt, fIn)
-      status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+      if self.forceInv or self.tryInv then
+         status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, dt, {fIn}, {fOut})
+         -- if result is OK, do not try to use invariant eqn. in next step
+         self.tryInv = not status
+      else
+         status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+         self.tryInv = status and not self:checkInv(fOut)
+      end
    else
       fOut:copy(fIn)
    end
@@ -107,6 +135,27 @@ function MomentSpecies:totalSolverTime()
       tm = tm + self.hyperSlvr[d].totalTime
    end
    return tm
+end
+
+function MomentSpecies:checkInv(fIn)
+   local fInIndexer = fIn:genIndexer()
+   local fInPtr = fIn:get(1)
+
+   local isInv = true
+   local localRange = fIn:localRange()   
+   for idx in localRange:colMajorIter() do
+      self.grid:setIndex(idx)
+
+      fIn:fill(fInIndexer(idx), fInPtr)
+      if not self.equation:checkInv(fInPtr) then
+        isInv = false
+        break
+      end
+  end
+
+  self._myIsInv[0] = isInv and 1 or 0
+  Mpi.Allreduce(self._myIsInv, self._isInv, 1, Mpi.INT, Mpi.LAND, self.grid:commSet().comm)
+  return self._isInv[0] == 1 and true or false
 end
 
 return MomentSpecies

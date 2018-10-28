@@ -68,14 +68,8 @@ end
               numFluids = 3
                  charge = {qe, qi, qe}
                    mass = {me, mi, me}
-              hasKField = true
                     cfl = 0.9
-                   cflm = 1.1*cfl
                 limiter = "monotonized-centered"
-    elcErrorSpeedFactor = 0.
-    mgnErrorSpeedFactor = 1.
-     elcErrorDampFactor = 0.
-     mgnErrorDampFactor = 0.
 -- i/o control
                    tEnd = 1000e-9
                  tFrame = 1e-9
@@ -191,7 +185,6 @@ momentApp = Moments.App {
 
    elc = Moments.Species {
       charge = qe, mass = me,
-
       equation = Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local x = xn[1]
@@ -204,15 +197,15 @@ momentApp = Moments.App {
           return rho_e, rhovx_e, rhovy_e, rhovz_e, e_e
       end,
       evolve = true, -- evolve species?
+      limiter = limiter,
+      cfl = cfl,
    },
 
    ion = Moments.Species {
       charge = qi, mass = mi,
-
       equation = Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local x = xn[1]
-
          local rho_e, rhovx_e, rhovy_e, rhovz_e, e_e,
             rho_i, rhovx_i, rhovy_i, rhovz_i, e_i,
             rho_g, rhovx_g, rhovy_g, rhovz_g, e_g,
@@ -221,12 +214,13 @@ momentApp = Moments.App {
           return rho_i, rhovx_i, rhovy_i, rhovz_i, e_i
       end,
       evolve = true, -- evolve species?
+      limiter = limiter,
+      cfl = cfl,
    },
 
    -- ghost electrons
    gho = Moments.Species {
       charge = qe, mass = me,
-
       equation = Euler { gasGamma = gasGamma },
       init = function (t, xn)
          local x = xn[1]
@@ -254,6 +248,8 @@ momentApp = Moments.App {
           return Ex, Ey, Ez, Bx, By, Bz, phiE, phiB
       end,
       evolve = true, -- evolve field?
+      limiter = limiter,
+      cfl = cfl,
    },
 
    emSource = Moments.CollisionlessEmSource {
