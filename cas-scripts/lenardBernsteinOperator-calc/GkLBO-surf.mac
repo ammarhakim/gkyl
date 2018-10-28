@@ -1,0 +1,55 @@
+load("lenardBernsteinOperator-calc/GkLBOconstNu-surf")$
+load(stringproc)$
+
+/* This script calls the functions which calculate the
+   updates from the GkLBO surface term contributions. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+minVdim_Ser : 1$
+maxCdim_Ser : 2$
+maxVdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+minVdim_Max : 1$
+maxCdim_Max : 2$
+maxVdim_Max : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+
+     disp(printf(false,sconcat("Creating surface GKLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
+     fname : sconcat("~/max-out/GkLBOconstNuSurf", bName[bInd], c, "x", v, "v", ".cpp"),
+     fh : openw(fname),
+     funcName : sconcat("GkLBOconstNuSurf", c, "x", v, "v", bName[bInd]),
+     calcGkLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+     close(fh),
+
+     /* boundarySurf kernels compute surface contribution that we
+        do not want to zero-out at the boundary of velocity domain. */
+     disp(printf(false,sconcat("Creating boundary surface GkLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
+     fname : sconcat("~/max-out/GkLBOconstNuBoundarySurf", bName[bInd], c, "x", v, "v", ".cpp"),
+     fh : openw(fname),
+     funcName : sconcat("GkLBOconstNuBoundarySurf", c, "x", v, "v", bName[bInd]),
+     calcGkLBOconstNuBoundarySurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+     close(fh)
+
+    )
+  )
+);

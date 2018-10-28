@@ -11,19 +11,20 @@ n0        = 1.0                             -- Density.
 u0        = 0.0                             -- Flow speed.
 vt        = 1.0/3.0                         -- Thermal speed..
 nu        = 0.01                            -- Collision frequency.
+B0        = 1.0                             -- Background magnetic field
 -- The next three are for p1, v \in [-8vt,8vt], 2x32, rectangular IC.
-nMr  = 1.0103629711+1.845e-12               -- Density of Maxwellian and rectangle. 
+nMr  = 1.01036297                           -- Density of Maxwellian and rectangle. 
 uMr  = 0.0                                  -- Flow speed of Maxwellian and rectangle. 
-vtMr = math.sqrt(0.11235161663+1.62551e-12) -- Thermal speed of Maxwellian and rectangle.
+vt2Mr = 0.11235162                          -- Thermal speed of Maxwellian and rectangle.
 -- Large bump on tail of Maxwellian:
 ab   = math.sqrt(0.1)                       -- Amplitude of bump.
 ub   = 4*math.sqrt(((3*vt/2)^2)/3)          -- Location of bump.
 sb   = 0.12                                 -- Softening factor to avoid divergence.
 vtb  = 1.0                                  -- Thermal speed of Maxwellian in bump.
 -- The next three are for p1, v \in [-8vt,8vt], 2x32, bump in tail IC. 
-nMb  = 1.1018707667+5.1e-13                 -- Density of Maxwellian and bump. 
-uMb  = 0.4888097565+27.426e-12              -- Flow speed of Maxwellian and bump. 
-vtMb = math.sqrt(0.39691067156+2.43e-13)    -- Thermal speed of Maxwellian and bump.
+nMb  = 1.10187077                           -- Density of Maxwellian and bump. 
+uMb  = 0.48880976                           -- Flow speed of Maxwellian and bump. 
+vt2Mb = 0.39691067                          -- Thermal speed of Maxwellian and bump.
 
 -- Top hat function without drift (u=0).
 local function topHat(x, v, n, u, vth)
@@ -67,12 +68,12 @@ plasmaApp = Plasma.App {
    periodicDirs = {1},          -- Periodic directions.
 
    -- Neutral species with a rectangular/square IC.
-   square = Plasma.VlasovSpecies {
-      charge = 0.0, mass = 1.0,
+   square = Plasma.GkSpecies {
+      charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = {8.0*vt},
-      cells      = {48},
+      cells      = {32},
       decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
@@ -80,85 +81,52 @@ plasmaApp = Plasma.App {
 
          return topHat(x, v, n0, u0, vt)
       end,
-      -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
-      -- Collisions.
-      coll = Plasma.VmLBOCollisions {
-      --   collFreq = nu,
-         normNu = nu*math.sqrt(0.1018^3)/0.9622,
+      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      coll = Plasma.GkLBOCollisions {
+--         collFreq = nu,
+         normNu = nu*math.sqrt(0.11404^3)/1.01036,
       },
    },
 
-   -- -- Maxwellian for comparison with rectangular IC.
-   -- maxwellSquare = Plasma.VlasovSpecies {
-   --    charge = 0.0, mass = 1.0,
-   --    -- Velocity space grid.
-   --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
-   --    cells      = {48},
-   --    decompCuts = {1},
-   --    -- Initial conditions.
-   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
-   --       density         = nMr,
-   --       driftSpeed      = {uMr},
-   --       temperature     = vtMr^2,
-   --       exactScaleM0    = false,
-   --       exactLagFixM012 = true,
-   --    },
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "M0", "M1i", "M2" },
-   -- },
-
    -- Neutral species with a bump in the tail.
-   bump = Plasma.VlasovSpecies {
-      charge = 0.0, mass = 1.0,
+   bump = Plasma.GkSpecies {
+      charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
       upper      = {8.0*vt},
-      cells      = {48},
+      cells      = {32},
       decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
-
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      -- Evolve species?
       evolve = true,
-      -- Diagnostic moments.
-      diagnosticMoments = { "M0", "M1i", "M2" },
-      -- Collisions.
-      coll = Plasma.VmLBOCollisions {
-      --   collFreq = nu,
-         normNu = nu*math.sqrt(0.3966^3)/1.0993,
+      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      coll = Plasma.GkLBOCollisions {
+--         collFreq = nu,
+         normNu = nu*math.sqrt(0.39677^3)/1.10187,
       },
    },
 
-   -- -- Maxwellian for comparison with bump in tail IC.
-   -- maxwellBump = Plasma.VlasovSpecies {
-   --    charge = 0.0, mass = 1.0,
-   --    -- Velocity space grid.
-   --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
-   --    cells      = {48},
-   --    decompCuts = {1},
-   --    -- Initial conditions.
-   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
-   --       density         = nMb,
-   --       driftSpeed      = {uMb},
-   --       temperature     = vtMb^2,
-   --       exactScaleM0    = false,
-   --       exactLagFixM012 = true,
-   --    },
-   --    -- Evolve species?
-   --    evolve = false,
-   --    -- Diagnostic moments.
-   --    diagnosticMoments = { "M0", "M1i", "M2" },
-   -- },
+   -- field solver
+   field = Plasma.GkField {
+      evolve = false, -- evolve fields?
+      initPhiFunc = function (t, xn) return 0.0 end,
+      kperp2 = 0.0
+   },
+   
+   -- magnetic geometry 
+   funcField = Plasma.GkGeometry {
+      -- background magnetic field
+      bmag = function (t, xn)
+         local x = xn[1]
+         return B0
+      end,
+      -- geometry is not time-dependent
+      evolve = false,
+   },
 
 }
 -- run application

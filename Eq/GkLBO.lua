@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries.
+-- System libraries.
 local Lin          = require "Lib.Linalg"
 local Proto        = require "Lib.Proto"
 local GkLBOModDecl = require "Eq.lboData.GkLBOModDecl"
@@ -13,13 +13,13 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 
--- for incrementing in updater.
+-- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
 
 -- Gyrokinetic Lenard-Bernstein equation on a rectangular mesh.
 local GkLBO = Proto(EqBase)
 
--- ctor
+-- ctor.
 function GkLBO:init(tbl)
 
    self._phaseBasis = assert(
@@ -30,9 +30,6 @@ function GkLBO:init(tbl)
    self._vParMax   = assert(tbl.vParUpper, "Eq.GkLBO: Must specify maximum velocity of vPar grid in 'vParUpper'")
    self._vParMaxSq = self._vParMax^2
 
-   assert(tbl.nu, "Eq.GkLBO: Must specify collision freq using 'nu'")
-   self._inNu = tbl.nu
-
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'")
    self._inMass = tbl.mass
 
@@ -40,10 +37,27 @@ function GkLBO:init(tbl)
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
 
-   self.cellAvFacDnu = 1.0/(self._inNu*math.sqrt(2.0^self._cdim))
+   local constNu = tbl.nu
+   if constNu then
+      self._varNu       = false    -- Collisionality is spatially constant.
+      self._inNu        = Lin.Vec(1)
+      self._inNu        = constNu
+      self._cellConstNu = true     -- Collisionality is cell-wise constant.
+   else
+      self._cellConstNu = assert(tbl.useCellAverageNu, "Eq.VmLBO: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self._varNu               = true    -- Spatially varying nu.
+      self._nu                  = nil
+      self._nuPtr, self._nuIdxr = nil, nil
+      if self._cellConstNu then    -- Not varying within the cell.
+         self._inNu      = Lin.Vec(1)
+      end
+   end
 
-   -- functions to perform LBO updates.
-   if self._inNu then
+   -- To obtain the cell average, multiply the zeroth coefficient by this factor.
+   self._cellAvFac = 1.0/math.sqrt(2.0^self._cdim)
+
+   -- Functions to perform LBO updates.
+   if self._cellConstNu then
       self._volUpdate  = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
       self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
@@ -53,21 +67,16 @@ function GkLBO:init(tbl)
       self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
-   -- bulk velocity times collisionality field object and pointers to cell values.
-   self._uNu = nil
-   -- thermal speed squared times collisionality field object and pointers to cell values.
-   self._vthSqNu = nil
+   -- Bulk velocity field object and pointers to cell values.
+   self._u = nil
+   -- Thermal speed squared field object and pointers to cell values.
+   self._vthSq = nil
    -- (these will be set on the first call to setAuxFields() method).
    self._BmagInvPtr, self._BmagInvIdxr = nil, nil
-   self._uNuPtr, self._uNuIdxr         = nil, nil
-   self._vthSqNuPtr, self._vthSqNuIdxr = nil, nil
+   self._uPtr, self._uIdxr             = nil, nil
+   self._vthSqPtr, self._vthSqIdxr     = nil, nil
 
-   if not self._inNu then
-     self._nu = nil
-     self._nuPtr, self._nuIdxr = nil, nil
-   end
-
-   -- flag to indicate if we are being called for first time.
+   -- Flag to indicate if we are being called for first time.
    self._isFirst = true
 end
 
@@ -106,21 +115,27 @@ end
 -- Volume integral term for use in DG scheme.
 function GkLBO:volTerm(w, dx, idx, q, out)
    self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr) -- Get pointer to BmagInv field.
-   self._uNu:fill(self._uNuIdxr(idx), self._uNuPtr)             -- Get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idx), self._vthSqNuPtr) -- Get pointer to vthSqNu field.
-   if self._inNu then
+   self._u:fill(self._uIdxr(idx), self._uPtr)                   -- Get pointer to u field.
+   self._vthSq:fill(self._vthSqIdxr(idx), self._vthSqPtr)       -- Get pointer to vthSq field.
+   if self._cellConstNu then
+      if self._varNu then
+         self._nu:fill(self._nuIdxr(idx), self._nuPtr)          -- Get pointer to nu field.
+         self._inNu = self._nuPtr[1]*self._cellAvFac
+      end
       -- If mean flow and thermal speeds are too high or if thermal
       -- speed is negative turn the LBO off (do not call kernels).
       -- Cell average values of uPar and vthSq (mind normalization).
-      local uPar0   = self._uNuPtr[1]*self.cellAvFacDnu
-      local vthSq0  = self._vthSqNuPtr[1]*self.cellAvFacDnu
+      local uPar0   = self._uPtr[1]*self._cellAvFac
+      local vthSq0  = self._vthSqPtr[1]*self._cellAvFac
       if ((math.abs(uPar0)<self._vParMax) and
           (vthSq0>0) and (vthSq0<self._vParMaxSq)) then
-         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNu, self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNu, self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
+      else
+         cflFreq = 0.0
       end
    else
-     self._nu:fill(self._nuIdxr(idx), self._nuPtr) -- Get pointer to nu field.
-     cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._nuPtr:data(), self._uNuPtr:data(), self._vthSqNuPtr:data(), q:data(), out:data())
+      self._nu:fill(self._nuIdxr(idx), self._nuPtr)             -- Get pointer to nu field.
+      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._nuPtr:data(), self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
    end
    return cflFreq
 end
@@ -128,26 +143,30 @@ end
 -- Surface integral term for use in DG scheme.
 function GkLBO:surfTerm(dir, cfl, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
-   -- set pointer to uNu and vthSqNu fields.
+   -- set pointer to u and vthSq fields.
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- Get pointer to BmagInv field.
-   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr) -- Get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- Get pointer to vthSqNu field.
+   self._u:fill(self._uIdxr(idxl), self._uPtr)                   -- Get pointer to u field.
+   self._vthSq:fill(self._vthSqIdxr(idxl), self._vthSqPtr)       -- Get pointer to vthSq field.
    if dir > self._cdim then
-      if self._inNu then
+      if self._cellConstNu then
+         if self._varNu then
+            self._nu:fill(self._nuIdxr(idxl), self._nuPtr)       -- Get pointer to nu field.
+            self._inNu = self._nuPtr[1]*self._cellAvFac
+         end
          -- If mean flow and thermal speeds are too high or if thermal
          -- speed is negative turn the LBO off (do not call kernels).
          -- Cell average values of uPar and vthSq (mind normalization).
-         local uPar0   = self._uNuPtr[1]*self.cellAvFacDnu
-         local vthSq0  = self._vthSqNuPtr[1]*self.cellAvFacDnu
+         local uPar0   = self._uPtr[1]*self._cellAvFac
+         local vthSq0  = self._vthSqPtr[1]*self._cellAvFac
          if ((math.abs(uPar0)<self._vParMax) and
              (vthSq0>0) and (vthSq0<self._vParMaxSq)) then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
-               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       else
-         self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- Get pointer to nu field.
+         self._nu:fill(self._nuIdxr(idxl), self._nuPtr)          -- Get pointer to nu field.
          vMuMidMax = self._surfUpdate[dir-self._cdim](
-            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return vMuMidMax
@@ -156,57 +175,61 @@ end
 -- Contribution from surface integral term at the boundaries for use in DG scheme.
 function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
-   -- set pointer to uNu and vthSqNu fields.
+   -- set pointer to u and vthSq fields.
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr) -- Get pointer to BmagInv field.
-   self._uNu:fill(self._uNuIdxr(idxl), self._uNuPtr)             -- Get pointer to uNu field.
-   self._vthSqNu:fill(self._vthSqNuIdxr(idxl), self._vthSqNuPtr) -- Get pointer to vthSqNu field.
+   self._u:fill(self._uIdxr(idxl), self._uPtr)             -- Get pointer to u field.
+   self._vthSq:fill(self._vthSqIdxr(idxl), self._vthSqPtr) -- Get pointer to vthSq field.
    if dir > self._cdim then
-      if self._inNu then
+      if self._cellConstNu then
+         if self._varNu then
+            self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- Get pointer to nu field.
+            self._inNu = self._nuPtr[1]*self._cellAvFac
+         end
          -- If mean flow and thermal speeds are too high or if thermal
          -- speed is negative turn the LBO off (do not call kernels).
          -- Cell average values of uPar and vthSq (mind normalization).
-         local uPar0   = self._uNuPtr[1]*self.cellAvFacDnu
-         local vthSq0  = self._vthSqNuPtr[1]*self.cellAvFacDnu
+         local uPar0   = self._uPtr[1]*self._cellAvFac
+         local vthSq0  = self._vthSqPtr[1]*self._cellAvFac
          if ((math.abs(uPar0)<self._vParMax) and
              (vthSq0>0) and (vthSq0<self._vParMaxSq)) then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNu, maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       else
          self._nu:fill(self._nuIdxr(idxl), self._nuPtr) -- get pointer to nu field.
          vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
-            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uNuPtr:data(), self._vthSqNuPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuPtr:data(), maxs, self._uPtr:data(), self._vthSqPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return vMuMidMax
 end
 
 function GkLBO:setAuxFields(auxFields)
-   -- single aux field that has the full uNu field.
+   -- Single aux field that has the full BmagInv, u, vthSq (and nu) fields.
    self._BmagInv = auxFields[1]
-   self._uNu     = auxFields[2]
-   self._vthSqNu = auxFields[3]
-   if not self._inNu then
-     self._nu  = auxFields[4]
+   self._u       = auxFields[2]
+   self._vthSq   = auxFields[3]
+   if self._varNu then
+     self._nu    = auxFields[4]
    end
 
    if self._isFirst then
-      -- allocate pointers to field object.
+      -- Allocate pointers to field object.
       self._BmagInvPtr  = self._BmagInv:get(1)
       self._BmagInvIdxr = self._BmagInv:genIndexer()
       
-      self._uNuPtr  = self._uNu:get(1)
-      self._uNuIdxr = self._uNu:genIndexer()
+      self._uPtr  = self._u:get(1)
+      self._uIdxr = self._u:genIndexer()
 
-      self._vthSqNuPtr  = self._vthSqNu:get(1)
-      self._vthSqNuIdxr = self._vthSqNu:genIndexer()
+      self._vthSqPtr  = self._vthSq:get(1)
+      self._vthSqIdxr = self._vthSq:genIndexer()
 
-      if not self._inNu then
+      if self._varNu then
          self._nuPtr     = self._nu:get(1)
          self._nuIdxr    = self._nu:genIndexer()
       end
 
-      self._isFirst    = false -- no longer first time.
+      self._isFirst    = false -- No longer first time.
    end
 end
 

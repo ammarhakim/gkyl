@@ -46,19 +46,19 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Expand distribution function f in phase basis. */
     f_e  : doExpand1(f, bP),
     /* Expand flow speed u and thermal speed squared in configuration basis. */
-    nuU_e    : doExpand1(nuU, bC),
-    nuVtSq_e : doExpand1(nuVtSq, bC),    
+    u_e    : doExpand1(u, bC),
+    vtSq_e : doExpand1(vtSq, bC),    
     
     /* Volume increment. */
     /* vpar contribution */
     cv   : varsV[1],
     bPp  : diff(bP,cv),
     bPpp : diff(bP,cv,2),
-    alpha0_c : calcInnerProdList(varsP,1,bP,-nu*cv + rdv2[0]*(-nu*w[vid[1]] + nuU_e)),
+    alpha0_c : calcInnerProdList(varsP,1,bP,-nu*cv + rdv2nu[0]*(-w[vid[1]] + u_e)),
     alst0 : doMakeExprLst(alpha0_c, alpha0),
     alpha0_e : doExpandLst(alst0, bP),
 
-    alpha1_c : calcInnerProdList(varsP,rdvSq4[0],bP,nuVtSq_e),
+    alpha1_c : calcInnerProdList(varsP,rdvSq4nu[0],bP,vtSq_e),
     alst1 : doMakeExprLst(alpha1_c, alpha1),
     alpha1_e : doExpandLst(alst1, bP),
 
@@ -72,11 +72,11 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     	bPpp : diff(bP,cv,2),
 	BmagInv_e : doExpand1(BmagInv,bC),
 
-	mufac0_c : calcInnerProdList(varsP,1,bP,-2*(nu*cv + rdv2[1]*(nu*w[vid[2]] - m_*BmagInv_e*nuVtSq_e))),
+	mufac0_c : calcInnerProdList(varsP,1,bP,-2*(nu*cv + rdv2nu[1]*(w[vid[2]] - m_*BmagInv_e*vtSq_e))),
 	mlst0 :  doMakeExprLst(mufac0_c, mufac0),
     	mufac0_e : doExpandLst(mlst0, bP),
 
-	mufac1_c : calcInnerProdList(varsP,1,bP,2*m_*BmagInv_e*nuVtSq_e*(rdv2[1]*cv + rdvSq4[1]*w[vid[2]])),
+	mufac1_c : calcInnerProdList(varsP,1,bP,2*m_*BmagInv_e*vtSq_e*(rdv2nu[1]*cv + rdvSq4nu[1]*w[vid[2]])),
 	mlst1 :  doMakeExprLst(mufac1_c, mufac1),
     	mufac1_e : doExpandLst(mlst1, bP),
 	
@@ -85,24 +85,31 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
               +calcInnerProdList(varsP,mufac1_e,bPpp,f_e))
     ),
     
-    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *nuU, const double *nuVtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "  // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu: diffusion coefficient (collisionality). nuU: bulk velocity times nu. nuVtSq: thermal speed squared times nu. f: Input distribution function. out: Incremented output ~%"),
+    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *u, const double *vtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // w[~a]:    Cell-center coordinates. ~%", cdim+vdim),
+    printf(fh, "  // dxv[~a]:  Cell spacing. ~%", cdim+vdim),
+    printf(fh, "  // nu:      diffusion coefficient (collisionality). ~%"),
+    printf(fh, "  // u[~a]:    bulk velocity. ~%", NC),
+    printf(fh, "  // vtSq[~a]: thermal speed squared. ~%", NC),
+    printf(fh, "  // f[~a]:    Input distribution function. ~%", NP),
+    printf(fh, "  // out[~a]:  Incremented output ~%", NP),
     cid : cidx(cdim),
-    printf(fh, "  double rdv2[~a]; ~%", vdim),
-    printf(fh, "  double rdvSq4[~a]; ~%", vdim),
+    printf(fh, "  double rdv2nu[~a]; ~%", vdim),
+    printf(fh, "  double rdvSq4nu[~a]; ~%", vdim),
     for dir : 1 thru vdim do (
-      printf(fh, "  rdv2[~a] = 2.0/dxv[~a]; ~%", dir-1, vid[dir]),
-      printf(fh, "  rdvSq4[~a] = rdv2[~a]*rdv2[~a]; ~%", dir-1, dir-1, dir-1)
+      printf(fh, "  rdv2nu[~a] = 2.0/dxv[~a]; ~%", dir-1, vid[dir]),
+      printf(fh, "  rdvSq4nu[~a] = nu*rdv2nu[~a]*rdv2nu[~a]; ~%", dir-1, dir-1, dir-1),
+      printf(fh, "  rdv2nu[~a] = nu*rdv2nu[~a]; ~%", dir-1, dir-1)
     ),
     printf(fh, "~%"),
 
     /* Print all alphas */
     printf(fh, "  double alpha~a[~a]; ~%", 0, length(bP)),
-    clst : [rdv2[0],nu],
+    clst : [rdv2nu[0]],
     writeCExprsCollect1(alpha0, alpha0_c, clst),
     printf(fh, "~%"),
     printf(fh, "  double alpha~a[~a]; ~%", 1, length(bP)),
-    clst : [rdvSq4[0]],
+    clst : [rdvSq4nu[0]],
     writeCExprsCollect1(alpha1, alpha1_c, clst),
     printf(fh, "~%"),
 
@@ -130,7 +137,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
        printf(fh, "  return std::abs(alpha0Mid) + alpha1Mid; ~%")
     ),
     if vdim = 2 then (
-       	mufacD_c : calcInnerProdList(varsP,1,bP,-2*(nu*cv + rdv2[1]*(nu*w[vid[2]]))),
+       	mufacD_c : calcInnerProdList(varsP,1,bP,-2*(nu*cv + rdv2nu[1]*w[vid[2]])),
 	mlst :  doMakeExprLst(mufacD_c, mufacD),
     	mufacD_e : doExpandLst(mlst, bP),
 	printf(fh, "  double mufacD[~a]; ~%", length(bP)),

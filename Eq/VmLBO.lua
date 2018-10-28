@@ -19,6 +19,7 @@ ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOu
 -- Vlasov Lenard-Bernstein equation on a rectangular mesh.
 local VmLBO = Proto(EqBase)
 
+-- ctor.
 function VmLBO:init(tbl)
 
    self._phaseBasis = assert(
@@ -42,9 +43,6 @@ function VmLBO:init(tbl)
    end
    self._vMaxSq = self._vMaxSq^2 
 
-   self.cellAvFac = 1.0/(math.sqrt(2.0^self._cdim))
-
-
    local constNu = tbl.nu
    if constNu then
       self._varNu       = false    -- Collisionality is spatially constant.
@@ -58,9 +56,11 @@ function VmLBO:init(tbl)
       self._nuPtr, self._nuIdxr = nil, nil
       if self._cellConstNu then    -- Not varying within the cell.
          self._inNu      = Lin.Vec(1)
-         self._cellAvFac = 1.0/math.sqrt(2.0^self._cdim)
       end
    end
+
+   -- To obtain the cell average, multiply the zeroth coefficient by this factor.
+   self._cellAvFac = 1.0/(math.sqrt(2.0^self._cdim))
 
    -- functions to perform LBO updates.
    if self._cellConstNu then
@@ -121,12 +121,12 @@ end
 function VmLBO:checkPrimMomCrossings()
    local noUcrossing = true
    for vd = 1,self._vdim do
-      if (math.abs(self._uPtr[(vd-1)*self._cNumBasis+1]*self.cellAvFac)>self._vMax[vd]) then
+      if (math.abs(self._uPtr[(vd-1)*self._cNumBasis+1]*self._cellAvFac)>self._vMax[vd]) then
          noUcrossing = false
          break
       end
    end
-   local vtSq0 = self._vthSqPtr[1]*self.cellAvFac
+   local vtSq0 = self._vthSqPtr[1]*self._cellAvFac
    return noUcrossing, vtSq0
 end
 
@@ -144,6 +144,8 @@ function VmLBO:volTerm(w, dx, idx, q, out)
       local uCrossingNotFound, vthSq0 = self:checkPrimMomCrossings()
       if (uCrossingNotFound and (vthSq0>0) and (vthSq0<self._vMaxSq)) then
          cflFreq = self._volUpdate(w:data(), dx:data(), self._inNu, self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
+      else
+         cflFreq = 0.0
       end
    else
       self._nu:fill(self._nuIdxr(idx), self._nuPtr)    -- Get pointer to nu field.
@@ -209,7 +211,7 @@ function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
 end
 
 function VmLBO:setAuxFields(auxFields)
-   -- Single aux field that has the full u field.
+   -- Single aux field that has the full u, vthSq (and nu) fields.
    self._u     = auxFields[1]
    self._vthSq = auxFields[2]
    if self._varNu then
