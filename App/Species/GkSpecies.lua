@@ -36,7 +36,9 @@ function GkSpecies:alloc(nRkDup)
    -- allocate fields to store coupling moments (for use in coupling
    -- to field and collisions)
    self.numDensity = self:allocMoment()
+   self.numDensityAux = self:allocMoment()
    self.momDensity = self:allocMoment()
+   self.momDensityAux = self:allocMoment()
    self.ptclEnergy = self:allocMoment()
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 
@@ -647,14 +649,14 @@ function GkSpecies:getNumDensity(rkIdx)
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
       end
-      self.numDensityCalc:advance(tCurr, dt, {self:rkStepperFields()[rkIdx]}, { self.numDensity })
+      self.numDensityCalc:advance(tCurr, dt, {self:rkStepperFields()[rkIdx]}, { self.numDensityAux })
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
-   return self.numDensity
+   return self.numDensityAux
 end
 
 function GkSpecies:getBackgroundDens()
@@ -670,14 +672,14 @@ function GkSpecies:getMomDensity(rkIdx)
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
       end
-      self.momDensityCalc:advance(tCurr, dt, {self:rkStepperFields()[rkIdx]}, { self.momDensity })
+      self.momDensityCalc:advance(tCurr, dt, {self:rkStepperFields()[rkIdx]}, { self.momDensityAux })
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
-   return self.momDensity
+   return self.momDensityAux
 end
 
 function GkSpecies:getPolarizationWeight(linearized)
