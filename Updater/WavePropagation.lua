@@ -309,8 +309,8 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
       for idx in perpRangeDecomp:colMajorIter(tId) do
          idx:copyInto(idxp); idx:copyInto(idxm)
 
-         -- fill masks along this direction only once
-         if self._isFirst and self._hasSsBnd then
+         -- fill masks along this direction
+         if self._hasSsBnd then
             for i = localRange:lower(dir)-1, localRange:upper(dir)+2 do -- this loop is over edges
                idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
                self._inOut:fill(inOutIdxr(idxm), inOutL)
