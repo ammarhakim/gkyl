@@ -143,7 +143,7 @@ local createSliceData = function (dtype)
    return metatype(typeof(string.format("struct {int32_t _sz, _stride, _lower; %s *_data; }", dtype)), slice_mt)
 end
 local SliceData = createSliceData("double")
-local SliceDataInt = createSliceData("int") -- FIXME
+local SliceDataInt = createSliceData("int") -- FIXME: use boolean?
 
 -- helper function to zero out contents of SliceData
 local function clearSliceData(sd)
@@ -168,8 +168,7 @@ function WavePropagation:init(tbl)
    self._ndim = self._onGrid:ndim()
    self._cfl = assert(tbl.cfl, "Updater.WavePropagation: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl
-   self._hasSsBnd = tbl.hasSsBnd -- TODO pick bool
-   print("hasSsBnd", self._hasSsBnd)
+   self._hasSsBnd = xsys.pickBool(tbl.hasSsBnd, false)
 
    self._updateDirs = {} 
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
@@ -183,13 +182,21 @@ function WavePropagation:init(tbl)
 
    -- allocate space for storing 1D slice data
    self.wavesSlice, self.speedsSlice, self.fsSlice = {}, {}, {}
-   self.onSsBnd = {}
    for d = 1, self._ndim do
       local l, u = localRange:lower(d)-2, localRange:upper(d)+2
       self.wavesSlice[d] = SliceData(l, u, meqn*mwave)
       self.speedsSlice[d] = SliceData(l, u, mwave)
       self.fsSlice[d] = SliceData(l, u, meqn)
-      self.onSsBnd[d] = SliceDataInt(l, u, 1)
+   end
+
+   -- true if exactly one of left/right cells is outside stair-stepped boundary
+   -- for every Riemann problem edge
+   self.onSsBnd = {}
+   if (self._hasSsBnd) then
+      for d = 1, self._ndim do
+         local l, u = localRange:lower(d)-2, localRange:upper(d)+2
+         self.onSsBnd[d] = SliceDataInt(l, u, 1)
+      end
    end
    
    -- store range objects needed in update
@@ -338,13 +345,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 	 clearSliceData(fsSlice)
 	 for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
        if self._hasSsBnd then
-          -- idxm[dir] = i-1
-          -- self.inOut:fill(inOutIdxr(idxm), inOutL)
-          -- idxp[dir] = i
-          -- self.inOut:fill(inOutIdxr(idxp), inOutR)
-          -- if (isOutside(inOutL) and isOutside(inOutR)) then
-             -- continue
-          -- end
+          -- TODO: skip if both cells are outside the stair-stepped boundary
        end
 	    for mw = 0, mwave-1 do
 	       self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
@@ -357,7 +358,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 	    idxm[dir] = i -- cell index
 	    qOut:fill(qOutIdxr(idxm), q1)
        if self._hasSsBnd then
-          -- skip updating solution
+          -- TODO: skip if cell is outside stair-stepped boundary
        end
 	    self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
 	 end
