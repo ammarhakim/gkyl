@@ -278,6 +278,51 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
    end
 
+   if not self.solverStep2 then -- if step2, wait to do collisions and sources
+      if self.evolveCollisions then
+         for _, c in pairs(self.collisions) do
+            local collStatus, collDt = c:forwardEuler(
+               tCurr, dt, fIn, species, fOut)
+            -- the full 'species' list is needed for the cross-species
+            -- collisions
+            status = status and collStatus
+            dtSuggested = math.min(dtSuggested, collDt)
+         end
+      end
+
+      if self.fSource and self.evolveSources then
+        -- add source it to the RHS
+        fOut:accumulate(dt*self.sourceTimeDependence(tCurr), self.fSource)
+      end
+   end
+
+   -- apply BCs
+   self:applyBc(tCurr, dt, fOut)
+   
+   return status, dtSuggested
+end
+
+function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
+   local fIn = self:rkStepperFields()[inIdx]
+   local fOut = self:rkStepperFields()[outIdx]
+
+   local em = emIn[1]:rkStepperFields()[inIdx]
+   local emFunc = emIn[2]:rkStepperFields()[1]
+   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+
+   if self.evolveCollisionless then
+      if self.positivityRescale then 
+         self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
+         if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
+         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {self.fPos, em, emFunc}, {fOut})
+      else
+         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
+      end
+      fOut:scale(dt); fOut:accumulate(1.0, fIn) -- fOut = fIn + dt*fOut
+   else
+      fOut:copy(fIn) -- just copy stuff over
+   end
+
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
 	 local collStatus, collDt = c:forwardEuler(
@@ -296,35 +341,8 @@ function GkSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
 
    -- apply BCs
    self:applyBc(tCurr, dt, fOut)
-   
+
    return status, dtSuggested
-end
-
-function GkSpecies:forwardEulerStep2(tCurr, dt, species, emIn, inIdx, outIdx)
-   local fIn = self:rkStepperFields()[inIdx]
-   local fOut = self:rkStepperFields()[outIdx]
-
-   if self.evolve then
-      local em = emIn[1]:rkStepperFields()[inIdx]
-      local emFunc = emIn[2]:rkStepperFields()[1]
-      local status, dtSuggested
-      if self.positivityRescale then 
-         self.posRescaler:advance(tCurr, dt, {fIn}, {self.fPos}) 
-         if(tCurr>0.0) then self:applyBc(tCurr, dt, self.fPos) end
-         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {self.fPos, em, emFunc}, {fOut})
-      else
-         status, dtSuggested = self.solverStep2:advance(tCurr, dt, {fIn, em, emFunc}, {fOut})
-      end
-      fOut:scale(dt); fOut:accumulate(1.0, fIn) -- fOut = fIn + dt*fOut
-
-      -- apply BCs
-      self:applyBc(tCurr, dt, fOut)
-
-      return status, dtSuggested
-   else
-      fOut:copy(fIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
-   end
 end
 
 function GkSpecies:createDiagnostics()
