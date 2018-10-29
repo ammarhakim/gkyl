@@ -143,10 +143,10 @@ local createSliceData = function (dtype)
    return metatype(typeof(string.format("struct {int32_t _sz, _stride, _lower; %s *_data; }", dtype)), slice_mt)
 end
 local SliceData = createSliceData("double")
-local SliceDataInt = createSliceData("int") -- FIXME: use boolean?
+local SliceDataBool = createSliceData("bool")
 
 -- helper function to zero out contents of SliceData
-local function clearSliceData(sd)
+local function clearSliceData(sd, dtype)
    fill(sd._data, sd._sz*sizeof("double"))
 end
 
@@ -197,9 +197,9 @@ function WavePropagation:init(tbl)
    if (self._hasSsBnd) then
       for d = 1, self._ndim do
          local l, u = localRange:lower(d)-2, localRange:upper(d)+2
-         self.onSsBnd[d] = SliceDataInt(l, u, 1)
-         self.bothOutSsBnd[d] = SliceDataInt(l, u, 1)
-         self.thisOutSsBnd[d] = SliceDataInt(l, u, 1)
+         self.onSsBnd[d] = SliceDataBool(l, u, 1)
+         self.bothOutSsBnd[d] = SliceDataBool(l, u, 1)
+         self.thisOutSsBnd[d] = SliceDataBool(l, u, 1)
       end
    end
 
@@ -229,7 +229,7 @@ function WavePropagation:limitWaves(lower, upper, wavesSlice, speedsSlice, onSsB
          if wnorm2 > 0 then
             local r = speedsSlice[i][mw-1] > 0 and dotl/wnorm2 or dotr/wnorm2
             local wlimitr
-            if (self._hasSsBnd and onSsBnd[i][0] == 1) then
+            if (self._hasSsBnd and onSsBnd[i][0]) then
                wlimitr = self._limiterFuncZero(r)
             else
                wlimitr = self._limiterFunc(r)
@@ -317,30 +317,17 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
                self._inOut:fill(inOutIdxr(idxp), inOutR)
                local isOutsideL = isOutside(inOutL)
                local isOutsideR = isOutside(inOutR)
-               -- FIXME: use bool?
-               if  (isOutsideL and not isOutsideR) or
-                  (not isOutsideL and isOutsideR) then
-                  onSsBnd[i][0] = 1
-               else
-                  onSsBnd[i][0] = 0
-               end
-               if isOutsideL and isOutsideR then
-                  bothOutSsBnd[i][0] = 1
-               else
-                  bothOutSsBnd[i][0] = 0
-               end
-               if isOutsideL then
-                  thisOutSsBnd[i][0] = 1
-               else
-                  thisOutSsBnd[i][0] = 0
-               end
+               onSsBnd[i][0] =  (isOutsideL and not isOutsideR) or
+                  (not isOutsideL and isOutsideR)
+               bothOutSsBnd[i][0] =  isOutsideL and isOutsideR
+               thisOutSsBnd[i][0] = isOutsideL
             end
          end
 
          for i = dirLoIdx, dirUpIdx do -- this loop is over edges
             idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
-            if not (self._hasSsBnd and bothOutSsBnd[i][0] == 1) then
+            if not (self._hasSsBnd and bothOutSsBnd[i][0]) then
                qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
                self._calcDelta(qInL, qInR, delta) -- jump across interface
 
@@ -367,7 +354,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
          -- compute second order correction fluxes
          clearSliceData(fsSlice)
          for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
-            if not (self._hasSsBnd and bothOutSsBnd[i][0] == 1) then
+            if not (self._hasSsBnd and bothOutSsBnd[i][0]) then
                for mw = 0, mwave-1 do
                   self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
                end
@@ -378,7 +365,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
          -- add them to solution
          for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
             idxm[dir] = i -- cell index
-            if not (self._hasSsBnd and thisOutSsBnd[i][0] == 1) then
+            if not (self._hasSsBnd and thisOutSsBnd[i][0]) then
                qOut:fill(qOutIdxr(idxm), q1)
                self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
             end
