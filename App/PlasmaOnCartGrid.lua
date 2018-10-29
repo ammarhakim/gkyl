@@ -13,6 +13,7 @@ local Collisions = require "App.Collisions"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.Field"
 local Grid = require "Grid"
+local DataStruct = require "DataStruct"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
@@ -251,6 +252,25 @@ local function buildApplication(self, tbl)
    end
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one FuncField object!")
    if funcField == nil then funcField = Field.NoField {} end
+
+   local hasSsBnd = xsys.pickBool(tbl.hasSsBnd, false)
+   local inOut
+   if hasSsBnd then  -- TODO limit this to finite-volume only
+      inOut = DataStruct.Field {
+         onGrid = self._confGrid,
+         numComponents = 1,
+         ghost = {2, 2}
+      }
+   end
+   for _, s in pairs(species) do
+      s._hasSsBnd = hasSsBnd
+      s._inOut = inOut
+   end
+   field._hasSsBnd = hasSsBnd
+   field._inOut = inOut
+   funcField._hasSsBnd = hasSsBnd
+   funcField._inOut = inOut
+
    funcField:createSolver()
    funcField:initField()
    

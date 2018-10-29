@@ -198,7 +198,8 @@ function MaxwellField:createSolver()
 	    limiter = self.limiter,
 	    cfl = self.cfl,
 	    updateDirections = {d},
-       hasSsBnd = self._hasSsBnd
+       hasSsBnd = self._hasSsBnd,
+       inOut = self._inOut
 	 }
       end
    end
