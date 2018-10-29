@@ -53,17 +53,20 @@ function MomentSpecies:fullInit(appTbl)
 
    self._myIsInv = ffi.new("int[2]")
    self._isInv = ffi.new("int[2]")
+
+   self._hasSsBnd = self.tbl.hasSsBnd
 end
 
 function MomentSpecies:createSolver(hasE, hasB)
    local ndim = self.grid:ndim()
    for d = 1, ndim do
       self.hyperSlvr[d] = Updater.WavePropagation {
-	 onGrid = self.grid,
-	 equation = self.equation,
-	 limiter = self.limiter,
-	 cfl = self.cfl,
-	 updateDirections = {d}
+         onGrid = self.grid,
+         equation = self.equation,
+         limiter = self.limiter,
+         cfl = self.cfl,
+         updateDirections = {d},
+         hasSsBnd = self._hasSsBnd
       }
       if self.equationInv ~= nil then
          self.hyperSlvrInv[d] = Updater.WavePropagation {
@@ -71,7 +74,8 @@ function MomentSpecies:createSolver(hasE, hasB)
             equation = self.equationInv,
             limiter = self.limiter,
             cfl = self.cfl,
-            updateDirections = {d}
+            updateDirections = {d},
+            hasSsBnd = self._hasSsBnd
          }
       end
    end

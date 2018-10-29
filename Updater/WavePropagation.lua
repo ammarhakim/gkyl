@@ -124,22 +124,27 @@ end
 -- Helper object for indexing 1D slice data. The slice spans from
 -- [lower, upper] (inclusive) and has `stride` pieces of data stored
 -- at each location.
-local slice_mt = {
-   __new = function (self, lower, upper, stride)
-      local n = upper-lower+1
-      local v = new(self)
-      v._data = Alloc.malloc(typeof("double")*n*stride)
-      v._sz, v._stride, v._lower = n*stride, stride, lower
-      return v
-   end,
-   __index = function (self, k)
-      return self._data+(k-self._lower)*self._stride
-   end,
-   __gc = function (self)
-      Alloc.free(self._data)
-   end,
-}
-local SliceData = metatype(typeof("struct {int32_t _sz, _stride, _lower; double *_data; }"), slice_mt)
+local createSliceData = function (dtype)
+   local slice_mt = {
+      __new = function (self, lower, upper, stride)
+         local n = upper-lower+1
+         local v = new(self)
+         v._data = Alloc.malloc(typeof(dtype)*n*stride)
+         v._sz, v._stride, v._lower = n*stride, stride, lower
+         return v
+      end,
+      __index = function (self, k)
+         return self._data+(k-self._lower)*self._stride
+      end,
+      __gc = function (self)
+         Alloc.free(self._data)
+      end,
+   }
+   return metatype(typeof(string.format("struct {int32_t _sz, _stride, _lower; %s *_data; }", dtype)), slice_mt)
+end
+local SliceData = createSliceData("double")
+local SliceDataInt = createSliceData("int") -- FIXME
+
 -- helper function to zero out contents of SliceData
 local function clearSliceData(sd)
    fill(sd._data, sd._sz*sizeof("double"))
@@ -158,10 +163,13 @@ function WavePropagation:init(tbl)
    self._onGrid = assert(tbl.onGrid, "Updater.WavePropagation: Must provide grid object using 'onGrid'")
    self._equation = assert(tbl.equation, "Updater.WavePropagation: Must provide equation object using 'equation'")
    self._limiterFunc = assert(limiterFunctions[tbl.limiter], "Updater.WavePropagation: Must specify limiter to use")
+   self._limiterFuncZero = limiterFunctions["zero"]
 
    self._ndim = self._onGrid:ndim()
    self._cfl = assert(tbl.cfl, "Updater.WavePropagation: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl
+   self._hasSsBnd = tbl.hasSsBnd -- TODO pick bool
+   print("hasSsBnd", self._hasSsBnd)
 
    self._updateDirs = {} 
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
@@ -175,11 +183,13 @@ function WavePropagation:init(tbl)
 
    -- allocate space for storing 1D slice data
    self.wavesSlice, self.speedsSlice, self.fsSlice = {}, {}, {}
+   self.onSsBnd = {}
    for d = 1, self._ndim do
       local l, u = localRange:lower(d)-2, localRange:upper(d)+2
       self.wavesSlice[d] = SliceData(l, u, meqn*mwave)
       self.speedsSlice[d] = SliceData(l, u, mwave)
       self.fsSlice[d] = SliceData(l, u, meqn)
+      self.onSsBnd[d] = SliceDataInt(l, u, 1)
    end
    
    -- store range objects needed in update
@@ -197,7 +207,7 @@ end
 
 -- Limit waves: this code closely follows the example of CLAWPACK and
 -- my (AHH) thesis code Miniwarpx.
-function WavePropagation:limitWaves(lower, upper, wavesSlice, speedsSlice)
+function WavePropagation:limitWaves(lower, upper, wavesSlice, speedsSlice, onSsBnd)
    local meqn, mwave = self._equation:numEquations(), self._equation:numWaves()
    for mw = 1, mwave do
       local dotr = self._waveDotProd(meqn, wavesSlice[lower-1], wavesSlice[lower], mw)
@@ -207,11 +217,20 @@ function WavePropagation:limitWaves(lower, upper, wavesSlice, speedsSlice)
 	 dotr = self._waveDotProd(meqn, wavesSlice[i], wavesSlice[i+1], mw)
 	 if wnorm2 > 0 then
 	    local r = speedsSlice[i][mw-1] > 0 and dotl/wnorm2 or dotr/wnorm2
-	    local wlimitr = self._limiterFunc(r)
+	    local wlimitr
+       if (self._hasSsBnd and onSsBnd[i][0] == 1) then
+          wlimitr = self._limiterFuncZero(r)
+       else
+          wlimitr = self._limiterFunc(r)
+       end
 	    self._rescaleWave(wlimitr, wavesSlice[i]+(mw-1)*meqn)
 	 end
       end
    end
+end
+
+local isOutside = function (inOutPtr)
+   return inOutPtr[0] < 0.
 end
 
 -- advance method
@@ -241,6 +260,9 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
    local q1 = qOut:get(1)
 
+   -- local inOutL, inOutR = self.inOut:get(1), self.inOut:get(1)
+   local inOutL, inOutR = {}, {}
+
    local tId = grid:subGridSharedId() -- local thread ID
 
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
@@ -250,6 +272,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
       local dtdx = dt/grid:dx(dir)
 
       local wavesSlice, speedsSlice, fsSlice = self.wavesSlice[dir], self.speedsSlice[dir], self.fsSlice[dir]
+      local onSsBnd = self.onSsBnd[dir]
       -- lower/upper bounds in direction 'dir': these are edge indices
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
 
@@ -269,6 +292,25 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 
    	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+
+       if self._hasSsBnd then
+          -- self.inOut:fill(inOutIdxr(idxm), inOutL)
+          -- self.inOut:fill(inOutIdxr(idxp), inOutR)
+          -- local isOutsideL = isOutside(inOutL)
+          -- local isOutsideR = isOutside(inOutR)
+          local isOutsideL = false
+          local isOutsideR = false
+          -- FIXME: use bool?
+          if  (isOutsideL and not isOutsideLR) or
+              (not isOutsideL and isOutsideLR) then
+              onSsBnd[i][0] = 1
+           else
+              onSsBnd[i][0] = 0
+           end
+          if isOutsideL and isOutsideLR then
+             -- continue
+          end
+       end
 	    
 	    qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
 	    self._calcDelta(qInL, qInR, delta) -- jump across interface
@@ -289,12 +331,21 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 	 if cfla > cflm then return false, dt*cfl/cfla end
 
 	 -- limit waves before computing second-order updates
-	 self:limitWaves(localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice)
+	 self:limitWaves(localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice, onSsBnd)
 
 	 local dirLoIdx2, dirUpIdx2 = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
 	 -- compute second order correction fluxes
 	 clearSliceData(fsSlice)
 	 for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
+       if self._hasSsBnd then
+          -- idxm[dir] = i-1
+          -- self.inOut:fill(inOutIdxr(idxm), inOutL)
+          -- idxp[dir] = i
+          -- self.inOut:fill(inOutIdxr(idxp), inOutR)
+          -- if (isOutside(inOutL) and isOutside(inOutR)) then
+             -- continue
+          -- end
+       end
 	    for mw = 0, mwave-1 do
 	       self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
 	    end
@@ -305,6 +356,9 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 	 for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
 	    idxm[dir] = i -- cell index
 	    qOut:fill(qOutIdxr(idxm), q1)
+       if self._hasSsBnd then
+          -- skip updating solution
+       end
 	    self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
 	 end
       end
