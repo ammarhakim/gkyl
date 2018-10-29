@@ -335,8 +335,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
                   thisOutSsBnd[i][0] = 0
                end
             end
-            if (self._hasSsBnd and bothOutSsBnd[i][0] == 1) then
-            else
+            if not (self._hasSsBnd and bothOutSsBnd[i][0] == 1) then
                qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
                self._calcDelta(qInL, qInR, delta) -- jump across interface
 
@@ -363,8 +362,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
          -- compute second order correction fluxes
          clearSliceData(fsSlice)
          for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
-            if self._hasSsBnd and bothOutSsBnd[i][0] == 1 then
-            else
+            if not (self._hasSsBnd and bothOutSsBnd[i][0] == 1) then
                for mw = 0, mwave-1 do
                   self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
                end
@@ -375,8 +373,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
          -- add them to solution
          for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
             idxm[dir] = i -- cell index
-            if self._hasSsBnd and thisOutSsBnd[i][0] == 1 then
-            else
+            if not (self._hasSsBnd and thisOutSsBnd[i][0] == 1) then
                qOut:fill(qOutIdxr(idxm), q1)
                self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
             end
