@@ -309,10 +309,10 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
       for idx in perpRangeDecomp:colMajorIter(tId) do
          idx:copyInto(idxp); idx:copyInto(idxm)
 
-         for i = dirLoIdx, dirUpIdx do -- this loop is over edges
-            idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
-
-            if self._hasSsBnd then
+         -- fill masks along this direction only once
+         if self._isFirst and self._hasSsBnd then
+            for i = localRange:lower(dir)-1, localRange:upper(dir)+2 do -- this loop is over edges
+               idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
                self._inOut:fill(inOutIdxr(idxm), inOutL)
                self._inOut:fill(inOutIdxr(idxp), inOutR)
                local isOutsideL = isOutside(inOutL)
@@ -335,6 +335,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
                   thisOutSsBnd[i][0] = 0
                end
             end
+         end
+
+         for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+            idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+
             if not (self._hasSsBnd and bothOutSsBnd[i][0] == 1) then
                qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
                self._calcDelta(qInL, qInR, delta) -- jump across interface
