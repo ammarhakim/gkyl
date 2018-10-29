@@ -24,75 +24,75 @@ local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, fill, sizeof, typeof, metatype")
+"new, copy, fill, sizeof, typeof, metatype")
 
--- Template for function to compute jump 
+-- Template for function to compute jump
 local calcDeltaTempl = xsys.template([[
 return function (ql, qr, delta)
-|for i = 1, MEQN do
-  delta[${i}] = qr[${i}] - ql[${i}]
-|end
+   |for i = 1, MEQN do
+   delta[${i}] = qr[${i}] - ql[${i}]
+   |end
 end
 ]])
 
 -- Template for function to compute maximum CFL number
 local calcCflaTempl = xsys.template([[
 return function (cfla, dtdx, s)
-  local c = cfla
-|for i = 1, MWAVE do
-  c = math.max(c, dtdx*math.abs(s[${i}]))
-|end
-  return c
+   local c = cfla
+   |for i = 1, MWAVE do
+   c = math.max(c, dtdx*math.abs(s[${i}]))
+   |end
+   return c
 end
 ]])
 
 -- Template for function to compute first-order Gudonov update
 local calcFirstOrderGudTempl = xsys.template([[
 return function (dtdx, ql, qr, amdq, apdq)
-|for i = 1, MEQN do
-  qr[${i}] = qr[${i}] - dtdx*apdq[${i}]
-|end
-|for i = 1, MEQN do
-  ql[${i}] = ql[${i}] - dtdx*amdq[${i}]
-|end
+   |for i = 1, MEQN do
+   qr[${i}] = qr[${i}] - dtdx*apdq[${i}]
+   |end
+   |for i = 1, MEQN do
+   ql[${i}] = ql[${i}] - dtdx*amdq[${i}]
+   |end
 end
 ]])
 
 -- Template for function to compute dot product of waves
 local waveDotProdTempl = xsys.template([[
 return function (meqn, waves, waves1, mw)
-  local mw1 = mw-1
-  return
-|for i = 0, MEQN-2 do
-  waves1[${MEQN}*mw1+${i}]*waves[${MEQN}*mw1+${i}]+
-|end
-  waves1[${MEQN}*mw1+${MEQN-1}]*waves[${MEQN}*mw1+${MEQN-1}]
+   local mw1 = mw-1
+   return
+   |for i = 0, MEQN-2 do
+   waves1[${MEQN}*mw1+${i}]*waves[${MEQN}*mw1+${i}]+
+   |end
+   waves1[${MEQN}*mw1+${MEQN-1}]*waves[${MEQN}*mw1+${MEQN-1}]
 end
 ]])
 
 -- Template for function to rescale waves
 local rescaleWaveTempl = xsys.template([[
 return function (scale, wave)
-|for i = 0, MEQN-1 do
-  wave[${i}] = scale*wave[${i}]
-|end
+   |for i = 0, MEQN-1 do
+   wave[${i}] = scale*wave[${i}]
+   |end
 end
 ]])
 
 local secondOrderFluxTempl = xsys.template([[
 return function (dtdx, s, wave, fs)
-  local sfact = 0.5*math.abs(s)*(1-math.abs(s)*dtdx)
-|for i = 0, MEQN-1 do
-  fs[${i}] = fs[${i}] + sfact*wave[${i}]
-|end
+   local sfact = 0.5*math.abs(s)*(1-math.abs(s)*dtdx)
+   |for i = 0, MEQN-1 do
+   fs[${i}] = fs[${i}] + sfact*wave[${i}]
+   |end
 end
 ]])
 
 local secondOrderUpdateTempl = xsys.template([[
 return function (dtdx, fs, fs1, q)
-| for i = 1, MEQN do
-  q[${i}] = q[${i}] - dtdx*(fs1[${i-1}]-fs[${i-1}])
-| end
+   | for i = 1, MEQN do
+   q[${i}] = q[${i}] - dtdx*(fs1[${i-1}]-fs[${i-1}])
+   | end
 end
 ]])
 
@@ -171,7 +171,7 @@ function WavePropagation:init(tbl)
    self._hasSsBnd = xsys.pickBool(tbl.hasSsBnd, false)
    self._inOut = tbl.inOut
 
-   self._updateDirs = {} 
+   self._updateDirs = {}
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
    for d = 1, #upDirs do
       self._updateDirs[d] = upDirs[d] -- update directions
@@ -199,7 +199,7 @@ function WavePropagation:init(tbl)
          self.onSsBnd[d] = SliceDataInt(l, u, 1)
       end
    end
-   
+
    -- store range objects needed in update
    self._perpRangeDecomp = {}
 
@@ -220,19 +220,19 @@ function WavePropagation:limitWaves(lower, upper, wavesSlice, speedsSlice, onSsB
    for mw = 1, mwave do
       local dotr = self._waveDotProd(meqn, wavesSlice[lower-1], wavesSlice[lower], mw)
       for i = lower, upper do
-	 local dotl = dotr
-	 local wnorm2 = self._waveDotProd(meqn, wavesSlice[i], wavesSlice[i], mw)
-	 dotr = self._waveDotProd(meqn, wavesSlice[i], wavesSlice[i+1], mw)
-	 if wnorm2 > 0 then
-	    local r = speedsSlice[i][mw-1] > 0 and dotl/wnorm2 or dotr/wnorm2
-	    local wlimitr
-       if (self._hasSsBnd and onSsBnd[i][0] == 1) then
-          wlimitr = self._limiterFuncZero(r)
-       else
-          wlimitr = self._limiterFunc(r)
-       end
-	    self._rescaleWave(wlimitr, wavesSlice[i]+(mw-1)*meqn)
-	 end
+         local dotl = dotr
+         local wnorm2 = self._waveDotProd(meqn, wavesSlice[i], wavesSlice[i], mw)
+         dotr = self._waveDotProd(meqn, wavesSlice[i], wavesSlice[i+1], mw)
+         if wnorm2 > 0 then
+            local r = speedsSlice[i][mw-1] > 0 and dotl/wnorm2 or dotr/wnorm2
+            local wlimitr
+            if (self._hasSsBnd and onSsBnd[i][0] == 1) then
+               wlimitr = self._limiterFuncZero(r)
+            else
+               wlimitr = self._limiterFunc(r)
+            end
+            self._rescaleWave(wlimitr, wavesSlice[i]+(mw-1)*meqn)
+         end
       end
    end
 end
@@ -255,7 +255,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
-   
+
    local delta = Lin.Vec(meqn)
    local waves = Lin.Mat(mwave, meqn)
    local s = Lin.Vec(mwave)
@@ -263,7 +263,7 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 
    local idxp, idxm = Lin.IntVec(grid:ndim()), Lin.IntVec(grid:ndim())
 
-    -- pointers to (re)use inside inner loop
+   -- pointers to (re)use inside inner loop
    local qInL, qInR = qIn:get(1), qIn:get(1)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
    local q1 = qOut:get(1)
@@ -289,85 +289,85 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
 
       if self._isFirst then
-	 self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
-	    range = localRange:shorten(dir), -- range orthogonal to 'dir'
-	    numSplit = grid:numSharedProcs(),
-	    threadComm = self:getSharedComm()
-	 }
+         self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+            range = localRange:shorten(dir), -- range orthogonal to 'dir'
+            numSplit = grid:numSharedProcs(),
+            threadComm = self:getSharedComm()
+         }
       end
       local perpRangeDecomp = self._perpRangeDecomp[dir]
 
       -- outer loop is over directions orthogonal to 'dir' and inner
-      -- loop is over 1D slice in `dir`. 
+      -- loop is over 1D slice in `dir`.
       for idx in perpRangeDecomp:colMajorIter(tId) do
-	 idx:copyInto(idxp); idx:copyInto(idxm)
+         idx:copyInto(idxp); idx:copyInto(idxm)
 
-   	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
-	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
+         for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+            idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
-       if self._hasSsBnd then
-          self._inOut:fill(inOutIdxr(idxm), inOutL)
-          self._inOut:fill(inOutIdxr(idxp), inOutR)
-          local isOutsideL = isOutside(inOutL)
-          local isOutsideR = isOutside(inOutR)
-          -- FIXME not really using stair stepped bc yet
-          local isOutsideL = false
-          local isOutsideR = false
-          -- FIXME: use bool?
-          if  (isOutsideL and not isOutsideLR) or
-              (not isOutsideL and isOutsideLR) then
-              onSsBnd[i][0] = 1
-           else
-              onSsBnd[i][0] = 0
-           end
-          if isOutsideL and isOutsideLR then
-             -- continue
-          end
-       end
-	    
-	    qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
-	    self._calcDelta(qInL, qInR, delta) -- jump across interface
+            if self._hasSsBnd then
+               self._inOut:fill(inOutIdxr(idxm), inOutL)
+               self._inOut:fill(inOutIdxr(idxp), inOutR)
+               local isOutsideL = isOutside(inOutL)
+               local isOutsideR = isOutside(inOutR)
+               -- FIXME not really using stair stepped bc yet
+               local isOutsideL = false
+               local isOutsideR = false
+               -- FIXME: use bool?
+               if  (isOutsideL and not isOutsideLR) or
+                  (not isOutsideL and isOutsideLR) then
+                  onSsBnd[i][0] = 1
+               else
+                  onSsBnd[i][0] = 0
+               end
+               if isOutsideL and isOutsideLR then
+                  -- continue
+               end
+            end
 
-	    equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
-	    equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
+            qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
+            self._calcDelta(qInL, qInR, delta) -- jump across interface
 
-	    qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
-	    self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
-	    cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
+            equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
+            equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 
-	    -- copy waves data for use in limiters
-	    copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
-	    copy(speedsSlice[i], s:data(), sizeof("double")*mwave)
-	 end
-	 
-	 -- return if time-step was too large
-	 if cfla > cflm then return false, dt*cfl/cfla end
+            qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
+            self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
+            cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
 
-	 -- limit waves before computing second-order updates
-	 self:limitWaves(localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice, onSsBnd)
+            -- copy waves data for use in limiters
+            copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
+            copy(speedsSlice[i], s:data(), sizeof("double")*mwave)
+         end
 
-	 local dirLoIdx2, dirUpIdx2 = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
-	 -- compute second order correction fluxes
-	 clearSliceData(fsSlice)
-	 for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
-       if self._hasSsBnd then
-          -- TODO: skip if both cells are outside the stair-stepped boundary
-       end
-	    for mw = 0, mwave-1 do
-	       self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
-	    end
-	 end
+         -- return if time-step was too large
+         if cfla > cflm then return false, dt*cfl/cfla end
 
-	 local dirLoIdx3, dirUpIdx3 = localRange:lower(dir), localRange:upper(dir)
-	 -- add them to solution
-	 for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
-	    idxm[dir] = i -- cell index
-	    qOut:fill(qOutIdxr(idxm), q1)
-       if self._hasSsBnd then
-          -- TODO: skip if cell is outside stair-stepped boundary
-       end
-	    self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
-	 end
+         -- limit waves before computing second-order updates
+         self:limitWaves(localRange:lower(dir), localRange:upper(dir)+1, wavesSlice, speedsSlice, onSsBnd)
+
+         local dirLoIdx2, dirUpIdx2 = localRange:lower(dir), localRange:upper(dir)+1 -- one more edge than cells
+         -- compute second order correction fluxes
+         clearSliceData(fsSlice)
+         for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
+            if self._hasSsBnd then
+               -- TODO: skip if both cells are outside the stair-stepped boundary
+            end
+            for mw = 0, mwave-1 do
+               self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
+            end
+         end
+
+         local dirLoIdx3, dirUpIdx3 = localRange:lower(dir), localRange:upper(dir)
+         -- add them to solution
+         for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
+            idxm[dir] = i -- cell index
+            qOut:fill(qOutIdxr(idxm), q1)
+            if self._hasSsBnd then
+               -- TODO: skip if cell is outside stair-stepped boundary
+            end
+            self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
+         end
       end
    end
 
