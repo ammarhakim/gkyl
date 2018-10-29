@@ -85,6 +85,7 @@ function MaxwellField:fullInit(appTbl)
    self.ioFrame = 0 -- frame number for IO
 
    self._hasSsBnd = tbl.hasSsBnd
+   self._inOutFunc = tbl.inOutFunc
 
    -- store initial condition function (this is a wrapper around user
    -- supplied function as we need to add correction potential ICs
@@ -190,6 +191,22 @@ function MaxwellField:createSolver()
       }
    else
       -- using FV scheme
+   if self._hasSsBnd then
+      self._inOut = DataStruct.Field {
+         onGrid = self.grid,
+         numComponents = 1,
+         ghost = {2, 2}
+      }
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self._inOutFunc,
+         projectOnGhosts = true,
+      }
+      project:advance(0.0, 0.0, {}, {self._inOut})
+      self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", self.name), tm, 0)
+   end
+
       local ndim = self.grid:ndim()
       for d = 1, ndim do
 	 self.fieldHyperSlvr[d] = Updater.WavePropagation {
@@ -527,8 +544,6 @@ function FuncMaxwellField:fullInit(appTbl)
    end
 
    self.ioFrame = 0 -- frame number for IO
-
-   self._hasSsBnd = tbl.hasSsBnd
    
    -- store function to compute EM field
    self.emFunc = function (t, xn)

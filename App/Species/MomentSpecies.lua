@@ -54,10 +54,27 @@ function MomentSpecies:fullInit(appTbl)
    self._myIsInv = ffi.new("int[2]")
    self._isInv = ffi.new("int[2]")
 
-   self._hasSsBnd = self.tbl.hasSsBnd
+   self._hasSsBnd = xsys.pickBool(self.tbl.hasSsBnd, false)
+   self._inOutFunc = self.tbl.inOutFunc
 end
 
 function MomentSpecies:createSolver(hasE, hasB)
+   if self._hasSsBnd then
+      self._inOut = DataStruct.Field {
+         onGrid = self.grid,
+         numComponents = 1,
+         ghost = {2, 2}
+      }
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self._inOutFunc,
+         projectOnGhosts = true,
+      }
+      project:advance(0.0, 0.0, {}, {self._inOut})
+      self.momIo:write(self._inOut, string.format("%s_inOut.bp", self.name), tm, 0)
+   end
+
    local ndim = self.grid:ndim()
    for d = 1, ndim do
       self.hyperSlvr[d] = Updater.WavePropagation {

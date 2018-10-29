@@ -169,6 +169,7 @@ function WavePropagation:init(tbl)
    self._cfl = assert(tbl.cfl, "Updater.WavePropagation: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl
    self._hasSsBnd = xsys.pickBool(tbl.hasSsBnd, false)
+   self._inOut = tbl.inOut
 
    self._updateDirs = {} 
    local upDirs = tbl.updateDirections and tbl.updateDirections or {1, 2, 3, 4, 5, 6}
@@ -267,8 +268,12 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
    local q1 = qOut:get(1)
 
-   -- local inOutL, inOutR = self.inOut:get(1), self.inOut:get(1)
-   local inOutL, inOutR = {}, {}
+   local inOutL, inOutR
+   local inOutIdxr
+   if (self._hasSsBnd) then
+      inOutL, inOutR = self._inOut:get(1), self._inOut:get(1)
+      inOutIdxr = self._inOut:genIndexer()
+   end
 
    local tId = grid:subGridSharedId() -- local thread ID
 
@@ -301,10 +306,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
        if self._hasSsBnd then
-          -- self.inOut:fill(inOutIdxr(idxm), inOutL)
-          -- self.inOut:fill(inOutIdxr(idxp), inOutR)
-          -- local isOutsideL = isOutside(inOutL)
-          -- local isOutsideR = isOutside(inOutR)
+          self._inOut:fill(inOutIdxr(idxm), inOutL)
+          self._inOut:fill(inOutIdxr(idxp), inOutR)
+          local isOutsideL = isOutside(inOutL)
+          local isOutsideR = isOutside(inOutR)
+          -- FIXME not really using stair stepped bc yet
           local isOutsideL = false
           local isOutsideR = false
           -- FIXME: use bool?
