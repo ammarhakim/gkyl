@@ -84,6 +84,8 @@ function MaxwellField:fullInit(appTbl)
 
    self.ioFrame = 0 -- frame number for IO
 
+   self._hasSsBnd = tbl.hasSsBnd
+
    -- store initial condition function (this is a wrapper around user
    -- supplied function as we need to add correction potential ICs
    -- here)
@@ -195,7 +197,8 @@ function MaxwellField:createSolver()
 	    equation = maxwellEqn,
 	    limiter = self.limiter,
 	    cfl = self.cfl,
-	    updateDirections = {d}
+	    updateDirections = {d},
+       hasSsBnd = self._hasSsBnd
 	 }
       end
    end
@@ -523,6 +526,8 @@ function FuncMaxwellField:fullInit(appTbl)
    end
 
    self.ioFrame = 0 -- frame number for IO
+
+   self._hasSsBnd = tbl.hasSsBnd
    
    -- store function to compute EM field
    self.emFunc = function (t, xn)
