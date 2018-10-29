@@ -190,13 +190,16 @@ function WavePropagation:init(tbl)
       self.fsSlice[d] = SliceData(l, u, meqn)
    end
 
-   -- true if exactly one of left/right cells is outside stair-stepped boundary
-   -- for every Riemann problem edge
-   self.onSsBnd = {}
+   -- masks for edge/cell locations regarding stari-stepped boundaries
+   self.onSsBnd = {}  -- if exactly one of the edge's left/right cells is outside
+   self.bothOutSsBnd = {} -- if both of the edge's left/right cells are outside
+   self.thisOutSsBnd = {}  -- if this cell is outside
    if (self._hasSsBnd) then
       for d = 1, self._ndim do
          local l, u = localRange:lower(d)-2, localRange:upper(d)+2
          self.onSsBnd[d] = SliceDataInt(l, u, 1)
+         self.bothOutSsBnd[d] = SliceDataInt(l, u, 1)
+         self.thisOutSsBnd[d] = SliceDataInt(l, u, 1)
       end
    end
 
@@ -269,9 +272,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local q1 = qOut:get(1)
 
    local inOutL, inOutR
+   local inOut1
    local inOutIdxr
    if (self._hasSsBnd) then
       inOutL, inOutR = self._inOut:get(1), self._inOut:get(1)
+      inOut1 = self._inOut:get(1)
       inOutIdxr = self._inOut:genIndexer()
    end
 
@@ -285,6 +290,8 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
 
       local wavesSlice, speedsSlice, fsSlice = self.wavesSlice[dir], self.speedsSlice[dir], self.fsSlice[dir]
       local onSsBnd = self.onSsBnd[dir]
+      local bothOutSsBnd = self.bothOutSsBnd[dir]
+      local thisOutSsBnd = self.thisOutSsBnd[dir]
       -- lower/upper bounds in direction 'dir': these are edge indices
       local dirLoIdx, dirUpIdx = localRange:lower(dir)-1, localRange:upper(dir)+2
 
@@ -310,34 +317,40 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
                self._inOut:fill(inOutIdxr(idxp), inOutR)
                local isOutsideL = isOutside(inOutL)
                local isOutsideR = isOutside(inOutR)
-               -- FIXME not really using stair stepped bc yet
-               local isOutsideL = false
-               local isOutsideR = false
                -- FIXME: use bool?
-               if  (isOutsideL and not isOutsideLR) or
-                  (not isOutsideL and isOutsideLR) then
+               if  (isOutsideL and not isOutsideR) or
+                  (not isOutsideL and isOutsideR) then
                   onSsBnd[i][0] = 1
                else
                   onSsBnd[i][0] = 0
                end
-               if isOutsideL and isOutsideLR then
-                  -- continue
+               if isOutsideL and isOutsideR then
+                  bothOutSsBnd[i][0] = 1
+               else
+                  bothOutSsBnd[i][0] = 0
+               end
+               if isOutsideL then
+                  thisOutSsBnd[i][0] = 1
+               else
+                  thisOutSsBnd[i][0] = 0
                end
             end
+            if (self._hasSsBnd and bothOutSsBnd[i][0] == 1) then
+            else
+               qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
+               self._calcDelta(qInL, qInR, delta) -- jump across interface
 
-            qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
-            self._calcDelta(qInL, qInR, delta) -- jump across interface
+               equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
+               equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 
-            equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
-            equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
+               qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
+               self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
+               cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
 
-            qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
-            self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
-            cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
-
-            -- copy waves data for use in limiters
-            copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
-            copy(speedsSlice[i], s:data(), sizeof("double")*mwave)
+               -- copy waves data for use in limiters
+               copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
+               copy(speedsSlice[i], s:data(), sizeof("double")*mwave)
+            end
          end
 
          -- return if time-step was too large
@@ -350,11 +363,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
          -- compute second order correction fluxes
          clearSliceData(fsSlice)
          for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
-            if self._hasSsBnd then
-               -- TODO: skip if both cells are outside the stair-stepped boundary
-            end
-            for mw = 0, mwave-1 do
-               self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
+            if self._hasSsBnd and bothOutSsBnd[i][0] == 1 then
+            else
+               for mw = 0, mwave-1 do
+                  self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
+               end
             end
          end
 
@@ -362,11 +375,11 @@ function WavePropagation:_advance(tCurr, dt, inFld, outFld)
          -- add them to solution
          for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
             idxm[dir] = i -- cell index
-            qOut:fill(qOutIdxr(idxm), q1)
-            if self._hasSsBnd then
-               -- TODO: skip if cell is outside stair-stepped boundary
+            if self._hasSsBnd and thisOutSsBnd[i][0] == 1 then
+            else
+               qOut:fill(qOutIdxr(idxm), q1)
+               self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
             end
-            self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
          end
       end
    end
