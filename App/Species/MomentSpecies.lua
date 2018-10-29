@@ -66,7 +66,8 @@ function MomentSpecies:createSolver(hasE, hasB)
          limiter = self.limiter,
          cfl = self.cfl,
          updateDirections = {d},
-         hasSsBnd = self._hasSsBnd
+         hasSsBnd = self._hasSsBnd,
+         inOut = self._inOut,
       }
       if self.equationInv ~= nil then
          self.hyperSlvrInv[d] = Updater.WavePropagation {
@@ -75,7 +76,8 @@ function MomentSpecies:createSolver(hasE, hasB)
             limiter = self.limiter,
             cfl = self.cfl,
             updateDirections = {d},
-            hasSsBnd = self._hasSsBnd
+            hasSsBnd = self._hasSsBnd,
+            inOut = self._inOut
          }
       end
    end
