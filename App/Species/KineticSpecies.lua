@@ -626,7 +626,41 @@ function KineticSpecies:calcDiagnosticWeakMoments()
    end
 end
 
+-- species-specific
+function KineticSpecies:calcDiagnosticAuxMoments()
+end
+
+-- species-specific
 function KineticSpecies:calcDiagnosticIntegratedMoments()
+end
+
+function KineticSpecies:calcAndWriteDiagnosticMoments()
+    self:calcDiagnosticMoments()
+    for i, mom in ipairs(self.diagnosticMoments) do
+       -- should one use AdiosIo object for this?
+       self.diagnosticMomentFields[mom]:write(
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+    end
+
+    self:calcDiagnosticWeakMoments()
+    for i, mom in ipairs(self.diagnosticWeakMoments) do
+       -- should one use AdiosIo object for this?
+       self.diagnosticMomentFields[mom]:write(
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+    end
+
+    self:calcDiagnosticAuxMoments()
+    for i, mom in ipairs(self.diagnosticAuxMoments) do
+       -- should one use AdiosIo object for this?
+       self.diagnosticMomentFields[mom]:write(
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+    end
+
+    -- write integrated moments
+    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
+       self.diagnosticIntegratedMomentFields[i]:write(
+          string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
+    end
 end
 
 function KineticSpecies:isEvolving()
@@ -667,22 +701,7 @@ function KineticSpecies:write(tm, force)
 
       if self.diagIoTrigger(tm) or force then
          -- compute moments and write them out
-         self:calcDiagnosticMoments()
-         for i, mom in ipairs(self.diagnosticMoments) do
-            -- should one use AdiosIo object for this?
-            self.diagnosticMomentFields[mom]:write(
-               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
-         end
-         self:calcDiagnosticWeakMoments()
-         for i, mom in ipairs(self.diagnosticWeakMoments) do
-            -- should one use AdiosIo object for this?
-            self.diagnosticMomentFields[mom]:write(
-               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
-         end
-         for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-            self.diagnosticIntegratedMomentFields[i]:write(
-               string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
-         end
+         self:calcAndWriteDiagnosticMoments()
 
          if self.evolveCollisions then
             for _, c in pairs(self.collisions) do
@@ -698,11 +717,7 @@ function KineticSpecies:write(tm, force)
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
 	 -- compute moments and write them out
-	 self:calcDiagnosticMoments()
-	 for i, mom in ipairs(self.diagnosticMoments) do
-	    -- should one use AdiosIo object for this?
-	    self.diagnosticMomentFields[mom]:write(string.format("%s_%s_%d.bp", self.name, mom, 0), tm, 0, self.writeGhost)
-	 end
+	 self:calcAndWriteDiagnosticMoments()
       end
       self.distIoFrame = self.distIoFrame+1
    end
