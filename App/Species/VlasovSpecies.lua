@@ -282,6 +282,7 @@ function VlasovSpecies:createDiagnostics()
    end
 
    self.diagnosticWeakMoments = { }
+   self.diagnosticAuxMoments = { }
 end
 
 -- BC functions
