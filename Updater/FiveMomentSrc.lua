@@ -112,7 +112,7 @@ function FiveMomentSrc:init(tbl)
       if (tbl.evolve ~= nil) then
         self._fd[n-1].evolve = tbl.evolve[n]
       else
-        self._fd[n-1].evolve = false
+        self._fd[n-1].evolve = true
       end
    end
 

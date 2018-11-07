@@ -107,6 +107,12 @@ function TenMomentSrc:init(tbl)
    for n = 1, self._sd.nFluids do
       self._fd[n-1].charge = tbl.charge[n]
       self._fd[n-1].mass = tbl.mass[n]
+      -- self._fd[n-1].evolve = tbl.evolve ~= nil and tbl.evolve[n] or true
+      if (tbl.evolve ~= nil) then
+        self._fd[n-1].evolve = tbl.evolve[n]
+      else
+        self._fd[n-1].evolve = true
+      end
    end
 
    -- scheme is one of "ssp-rk3", "modified-boris"  or "time-centered"
