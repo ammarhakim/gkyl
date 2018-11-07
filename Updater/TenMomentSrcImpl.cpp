@@ -7,6 +7,7 @@
 
 #include <TenMomentSrcImpl.h>
 #include <iostream>
+#include <stdio.h>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -201,7 +202,10 @@ gkylTenMomentSrcTimeCentered(TenMomentSrcData_t *sd, FluidData_t *fd, double dt,
 
     // update solution
     for (unsigned i=0; i<6; ++i)
+    {
       prTen[6*n+i] = 2*prSol[i]-prRhs[i];
+      //printf("prSol[%d] = %10g, prRhs[%d] = %10g\n", i, prSol[i], i, prRhs[i]);
+    }
   }
 
   //------------> update solution for fluids
@@ -310,32 +314,8 @@ gkylTenMomentSrcAnalytic(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, dou
   E(1) = (em[EY] + E(1))/2.0;
   E(2) = (em[EZ] + E(2))/2.0;
 
-  //------------> update solution for fluids
-  double chargeDens = 0.0;
-  for (unsigned n=0; n<nFluids; ++n)
-  {
-    double *f = ff[n];
-    double qbym = fd[n].charge/fd[n].mass;
-    double qbym2 = sq(qbym);
-
-    chargeDens += qbym*f[RHO];
-
-    double j_coeff = (lambda[n] - 0.25*omega[n]*omega[n]*babs*babs)/(1.0+0.25*omega[n]*omega[n]*babs*babs);
-    double f_coeff = f[RHO]*qbym2/epsilon0*dt/(1.0+0.25*omega[n]*omega[n]*babs*babs);
-    
-    double dot_coeff = 0.25*omega[n]*omega[n]/(1.0+0.25*omega[n]*omega[n]*babs*babs);
-    double cross_coeff = omega[n]/2.0/(1.0+0.25*omega[n]*omega[n]*babs*babs);
-    // update E with the new solution
-    Eigen::Vector3d j(f[MX]*qbym,f[MY]*qbym,f[MZ]*qbym);
-    Eigen::Vector3d jf = (1.0+lambda[n])*j + E*epsilon0*dt*f[RHO]*qbym2/epsilon0; // There is an error in smithe's paper here: F in equation (15) must be multiplied by a factor of wp^2 dt or the units are wrong.
-    Eigen::Vector3d solj = j_coeff*j + f_coeff*E*epsilon0 + dot_coeff*B*B.dot(jf) - cross_coeff*B.cross(jf); 
-
-    f[MX] = solj(0)/qbym;
-    f[MY] = solj(1)/qbym;
-    f[MZ] = solj(2)/qbym;
-  }
-
   // pressure tensor update
+  std::vector<double> prTen(6*nFluids);
   std::vector<double> prRhs(6);
   std::vector<double> prSol(6);
   double dt1 = 0.5 * dt;
@@ -369,6 +349,7 @@ gkylTenMomentSrcAnalytic(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, dou
     double qb3 = qbym[n] * qb2;
     double qb4 = qbym[n] * qb3;
     double d = 1 + 5*(Bx2 + By2 + Bz2)*dtsq*qb2 + 4*(Bx2 + By2 + Bz2)*(Bx2 + By2 + Bz2)*dt4*qb4;
+  //printf("d=%g, dt4=%g\n", d, dt4);
 
     prSol[0] = (prRhs[0] + 2*dt1*(Bz*prRhs[1] - By*prRhs[2])*qbym[n] + dtsq*(5*Bx2*prRhs[0] + 2*Bx*(By*prRhs[1] + Bz*prRhs[2]) + Bz2*(3*prRhs[0] + 2*prRhs[3]) - 4*By*Bz*prRhs[4] + By2*(3*prRhs[0] + 2*prRhs[5]))*qb2 + 2*dt3*(4*Bx2*(Bz*prRhs[1] - By*prRhs[2]) - (By2 + Bz2)*(-(Bz*prRhs[1]) + By*prRhs[2]) - 3*Bx*(By2*prRhs[4] - Bz2*prRhs[4] + By*Bz*(-prRhs[3] + prRhs[5])))*qb3 + 2*dt4*(2*Bx4*prRhs[0] + 4*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 + Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + (By2 + Bz2)*(Bz2*(prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[5])) + Bx2*(4*By*Bz*prRhs[4] + By2*(3*prRhs[3] + prRhs[5]) + Bz2*(prRhs[3] + 3*prRhs[5])))*qb4)/d;
     prSol[1] =  (prRhs[1] + dt1*(Bx*prRhs[2] + Bz*(-prRhs[0] + prRhs[3]) - By*prRhs[4])*qbym[n] + dtsq*(4*Bx2*prRhs[1] + 4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2] + Bx*(3*Bz*prRhs[4] + By*(prRhs[0] + prRhs[3] - 2*prRhs[5])))*qb2 + dt3*(4*Bx3*prRhs[2] - 2*Bx*(By2 + Bz2)*prRhs[2] + Bz3*(-prRhs[0] + prRhs[3]) - 4*By3*prRhs[4] + 2*By*Bz2*prRhs[4] - By2*Bz*(prRhs[0] - 4*prRhs[3] + 3*prRhs[5]) + Bx2*(2*By*prRhs[4] + Bz*(-4*prRhs[0] + prRhs[3] + 3*prRhs[5])))*qb3 + 2*Bx*By*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d;
@@ -379,15 +360,41 @@ gkylTenMomentSrcAnalytic(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, dou
 
     for (unsigned i=0; i<6; ++i)
     {
-      prSol[i] = 2 * prSol[i] - prRhs[i];
+      prTen[6*n+i] = 2*prSol[i]-prRhs[i];
+      //printf("prSol[%d] = %10g, prRhs[%d] = %10g\n", i, prSol[i], i, prRhs[i]);
     }
+  }
 
-    f[P11] = f[MX] * f[MX] / f[RHO] + prSol[0];
-    f[P12] = f[MX] * f[MY] / f[RHO] + prSol[1];
-    f[P13] = f[MX] * f[MZ] / f[RHO] + prSol[2];
-    f[P22] = f[MY] * f[MY] / f[RHO] + prSol[3];
-    f[P23] = f[MY] * f[MZ] / f[RHO] + prSol[4];
-    f[P33] = f[MZ] * f[MZ] / f[RHO] + prSol[5];
+  //------------> update solution for fluids
+  double chargeDens = 0.0;
+  for (unsigned n=0; n<nFluids; ++n)
+  {
+    double *f = ff[n];
+    double qbym = fd[n].charge/fd[n].mass;
+    double qbym2 = sq(qbym);
+
+    chargeDens += qbym*f[RHO];
+
+    double j_coeff = (lambda[n] - 0.25*omega[n]*omega[n]*babs*babs)/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    double f_coeff = f[RHO]*qbym2/epsilon0*dt/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    
+    double dot_coeff = 0.25*omega[n]*omega[n]/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    double cross_coeff = omega[n]/2.0/(1.0+0.25*omega[n]*omega[n]*babs*babs);
+    // update E with the new solution
+    Eigen::Vector3d j(f[MX]*qbym,f[MY]*qbym,f[MZ]*qbym);
+    Eigen::Vector3d jf = (1.0+lambda[n])*j + E*epsilon0*dt*f[RHO]*qbym2/epsilon0; // There is an error in smithe's paper here: F in equation (15) must be multiplied by a factor of wp^2 dt or the units are wrong.
+    Eigen::Vector3d solj = j_coeff*j + f_coeff*E*epsilon0 + dot_coeff*B*B.dot(jf) - cross_coeff*B.cross(jf); 
+
+    f[MX] = solj(0)/qbym;
+    f[MY] = solj(1)/qbym;
+    f[MZ] = solj(2)/qbym;
+
+    f[P11] = f[MX] * f[MX] / f[RHO] + prTen[6 * n + 0];
+    f[P12] = f[MX] * f[MY] / f[RHO] + prTen[6 * n + 1];
+    f[P13] = f[MX] * f[MZ] / f[RHO] + prTen[6 * n + 2];
+    f[P22] = f[MY] * f[MY] / f[RHO] + prTen[6 * n + 3];
+    f[P23] = f[MY] * f[MZ] / f[RHO] + prTen[6 * n + 4];
+    f[P33] = f[MZ] * f[MZ] / f[RHO] + prTen[6 * n + 5];
   }
 
 
@@ -465,22 +472,8 @@ gkylTenMomentSrcAnalytic2(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, do
   em[EY] = F_new[1] / epsilon0;
   em[EZ] = F_new[2] / epsilon0;
 
-  double chargeDens = 0.0;
-  for (unsigned n = 0; n < nFluids; ++n)
-  {
-    double *f = ff[n];
-    chargeDens += qbym[n] * f[RHO];
-    if (!fd[n].evolve)
-      continue;
-    Eigen::Vector3d Jstar = J[n] + Fbar * (wp_dt2[n] / dt / 2.);
-    Eigen::Vector3d J_new = 2. * (Jstar + sq(Wc_dt[n] / 2.) * b * b.dot(Jstar) - (Wc_dt[n] / 2.) * b.cross(Jstar)) / (1. + sq(Wc_dt[n] / 2.)) - J[n];
-
-    f[MX] = J_new[0] / qbym[n];
-    f[MY] = J_new[1] / qbym[n];
-    f[MZ] = J_new[2] / qbym[n];
-  }
-
   // pressure tensor update
+  std::vector<double> prTen(6*nFluids);
   std::vector<double> prRhs(6);
   std::vector<double> prSol(6);
   double dt1 = 0.5 * dt;
@@ -511,6 +504,7 @@ gkylTenMomentSrcAnalytic2(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, do
     double qb3 = qbym[n] * qb2;
     double qb4 = qbym[n] * qb3;
     double d = 1 + 5*(Bx2 + By2 + Bz2)*dtsq*qb2 + 4*(Bx2 + By2 + Bz2)*(Bx2 + By2 + Bz2)*dt4*qb4;
+  //printf("d=%g, dt4=%g\n", d, dt4);
 
     prSol[0] = (prRhs[0] + 2*dt1*(Bz*prRhs[1] - By*prRhs[2])*qbym[n] + dtsq*(5*Bx2*prRhs[0] + 2*Bx*(By*prRhs[1] + Bz*prRhs[2]) + Bz2*(3*prRhs[0] + 2*prRhs[3]) - 4*By*Bz*prRhs[4] + By2*(3*prRhs[0] + 2*prRhs[5]))*qb2 + 2*dt3*(4*Bx2*(Bz*prRhs[1] - By*prRhs[2]) - (By2 + Bz2)*(-(Bz*prRhs[1]) + By*prRhs[2]) - 3*Bx*(By2*prRhs[4] - Bz2*prRhs[4] + By*Bz*(-prRhs[3] + prRhs[5])))*qb3 + 2*dt4*(2*Bx4*prRhs[0] + 4*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 + Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + (By2 + Bz2)*(Bz2*(prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[5])) + Bx2*(4*By*Bz*prRhs[4] + By2*(3*prRhs[3] + prRhs[5]) + Bz2*(prRhs[3] + 3*prRhs[5])))*qb4)/d;
     prSol[1] =  (prRhs[1] + dt1*(Bx*prRhs[2] + Bz*(-prRhs[0] + prRhs[3]) - By*prRhs[4])*qbym[n] + dtsq*(4*Bx2*prRhs[1] + 4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2] + Bx*(3*Bz*prRhs[4] + By*(prRhs[0] + prRhs[3] - 2*prRhs[5])))*qb2 + dt3*(4*Bx3*prRhs[2] - 2*Bx*(By2 + Bz2)*prRhs[2] + Bz3*(-prRhs[0] + prRhs[3]) - 4*By3*prRhs[4] + 2*By*Bz2*prRhs[4] - By2*Bz*(prRhs[0] - 4*prRhs[3] + 3*prRhs[5]) + Bx2*(2*By*prRhs[4] + Bz*(-4*prRhs[0] + prRhs[3] + 3*prRhs[5])))*qb3 + 2*Bx*By*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d;
@@ -521,15 +515,31 @@ gkylTenMomentSrcAnalytic2(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, do
 
     for (unsigned i=0; i<6; ++i)
     {
-      prSol[i] = 2 * prSol[i] - prRhs[i];
+      prTen[6 * n + i] = 2 * prSol[i] - prRhs[i];
+      //printf("prSol[%d] = %10g, prRhs[%d] = %10g\n", i, prSol[i], i, prRhs[i]);
     }
+  }
 
-    f[P11] = f[MX] * f[MX] / f[RHO] + prSol[0];
-    f[P12] = f[MX] * f[MY] / f[RHO] + prSol[1];
-    f[P13] = f[MX] * f[MZ] / f[RHO] + prSol[2];
-    f[P22] = f[MY] * f[MY] / f[RHO] + prSol[3];
-    f[P23] = f[MY] * f[MZ] / f[RHO] + prSol[4];
-    f[P33] = f[MZ] * f[MZ] / f[RHO] + prSol[5];
+  double chargeDens = 0.0;
+  for (unsigned n = 0; n < nFluids; ++n)
+  {
+    double *f = ff[n];
+    chargeDens += qbym[n] * f[RHO];
+    if (!fd[n].evolve)
+      continue;
+    Eigen::Vector3d Jstar = J[n] + Fbar * (wp_dt2[n] / dt / 2.);
+    Eigen::Vector3d J_new = 2. * (Jstar + sq(Wc_dt[n] / 2.) * b * b.dot(Jstar) - (Wc_dt[n] / 2.) * b.cross(Jstar)) / (1. + sq(Wc_dt[n] / 2.)) - J[n];
+
+    f[MX] = J_new[0] / qbym[n];
+    f[MY] = J_new[1] / qbym[n];
+    f[MZ] = J_new[2] / qbym[n];
+
+    f[P11] = f[MX] * f[MX] / f[RHO] + prTen[6 * n + 0];
+    f[P12] = f[MX] * f[MY] / f[RHO] + prTen[6 * n + 1];
+    f[P13] = f[MX] * f[MZ] / f[RHO] + prTen[6 * n + 2];
+    f[P22] = f[MY] * f[MY] / f[RHO] + prTen[6 * n + 3];
+    f[P23] = f[MY] * f[MZ] / f[RHO] + prTen[6 * n + 4];
+    f[P33] = f[MZ] * f[MZ] / f[RHO] + prTen[6 * n + 5];
   }
 
   //------------> update correction potential
