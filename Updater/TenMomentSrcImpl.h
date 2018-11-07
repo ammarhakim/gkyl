@@ -13,6 +13,7 @@
 extern "C" {
     typedef struct {
         double charge, mass; /* Charge and mass */
+        bool evolve;
     } FluidData_t;
 
     typedef struct {
@@ -29,6 +30,8 @@ extern "C" {
     void gkylTenMomentSrcRk3(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
     /* Method to update fluids and flield using time-centered implicit method */
     void gkylTenMomentSrcTimeCentered(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    void gkylTenMomentSrcAnalytic(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
+    void gkylTenMomentSrcAnalytic2(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
 }
 
 #endif // GK_TEN_MOMENT_SRC_H
