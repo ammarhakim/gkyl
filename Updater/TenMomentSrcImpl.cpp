@@ -7,7 +7,6 @@
 
 #include <TenMomentSrcImpl.h>
 #include <iostream>
-#include <stdio.h>
 #include <vector>
 #include <string>
 #include <cmath>
@@ -204,7 +203,6 @@ gkylTenMomentSrcTimeCentered(TenMomentSrcData_t *sd, FluidData_t *fd, double dt,
     for (unsigned i=0; i<6; ++i)
     {
       prTen[6*n+i] = 2*prSol[i]-prRhs[i];
-      //printf("prSol[%d] = %10g, prRhs[%d] = %10g\n", i, prSol[i], i, prRhs[i]);
     }
   }
 
@@ -349,7 +347,6 @@ gkylTenMomentSrcAnalytic(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, dou
     double qb3 = qbym[n] * qb2;
     double qb4 = qbym[n] * qb3;
     double d = 1 + 5*(Bx2 + By2 + Bz2)*dtsq*qb2 + 4*(Bx2 + By2 + Bz2)*(Bx2 + By2 + Bz2)*dt4*qb4;
-  //printf("d=%g, dt4=%g\n", d, dt4);
 
     prSol[0] = (prRhs[0] + 2*dt1*(Bz*prRhs[1] - By*prRhs[2])*qbym[n] + dtsq*(5*Bx2*prRhs[0] + 2*Bx*(By*prRhs[1] + Bz*prRhs[2]) + Bz2*(3*prRhs[0] + 2*prRhs[3]) - 4*By*Bz*prRhs[4] + By2*(3*prRhs[0] + 2*prRhs[5]))*qb2 + 2*dt3*(4*Bx2*(Bz*prRhs[1] - By*prRhs[2]) - (By2 + Bz2)*(-(Bz*prRhs[1]) + By*prRhs[2]) - 3*Bx*(By2*prRhs[4] - Bz2*prRhs[4] + By*Bz*(-prRhs[3] + prRhs[5])))*qb3 + 2*dt4*(2*Bx4*prRhs[0] + 4*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 + Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + (By2 + Bz2)*(Bz2*(prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[5])) + Bx2*(4*By*Bz*prRhs[4] + By2*(3*prRhs[3] + prRhs[5]) + Bz2*(prRhs[3] + 3*prRhs[5])))*qb4)/d;
     prSol[1] =  (prRhs[1] + dt1*(Bx*prRhs[2] + Bz*(-prRhs[0] + prRhs[3]) - By*prRhs[4])*qbym[n] + dtsq*(4*Bx2*prRhs[1] + 4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2] + Bx*(3*Bz*prRhs[4] + By*(prRhs[0] + prRhs[3] - 2*prRhs[5])))*qb2 + dt3*(4*Bx3*prRhs[2] - 2*Bx*(By2 + Bz2)*prRhs[2] + Bz3*(-prRhs[0] + prRhs[3]) - 4*By3*prRhs[4] + 2*By*Bz2*prRhs[4] - By2*Bz*(prRhs[0] - 4*prRhs[3] + 3*prRhs[5]) + Bx2*(2*By*prRhs[4] + Bz*(-4*prRhs[0] + prRhs[3] + 3*prRhs[5])))*qb3 + 2*Bx*By*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d;
@@ -361,7 +358,6 @@ gkylTenMomentSrcAnalytic(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, dou
     for (unsigned i=0; i<6; ++i)
     {
       prTen[6*n+i] = 2*prSol[i]-prRhs[i];
-      //printf("prSol[%d] = %10g, prRhs[%d] = %10g\n", i, prSol[i], i, prRhs[i]);
     }
   }
 
@@ -504,7 +500,6 @@ gkylTenMomentSrcAnalytic2(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, do
     double qb3 = qbym[n] * qb2;
     double qb4 = qbym[n] * qb3;
     double d = 1 + 5*(Bx2 + By2 + Bz2)*dtsq*qb2 + 4*(Bx2 + By2 + Bz2)*(Bx2 + By2 + Bz2)*dt4*qb4;
-  //printf("d=%g, dt4=%g\n", d, dt4);
 
     prSol[0] = (prRhs[0] + 2*dt1*(Bz*prRhs[1] - By*prRhs[2])*qbym[n] + dtsq*(5*Bx2*prRhs[0] + 2*Bx*(By*prRhs[1] + Bz*prRhs[2]) + Bz2*(3*prRhs[0] + 2*prRhs[3]) - 4*By*Bz*prRhs[4] + By2*(3*prRhs[0] + 2*prRhs[5]))*qb2 + 2*dt3*(4*Bx2*(Bz*prRhs[1] - By*prRhs[2]) - (By2 + Bz2)*(-(Bz*prRhs[1]) + By*prRhs[2]) - 3*Bx*(By2*prRhs[4] - Bz2*prRhs[4] + By*Bz*(-prRhs[3] + prRhs[5])))*qb3 + 2*dt4*(2*Bx4*prRhs[0] + 4*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 + Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + (By2 + Bz2)*(Bz2*(prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[5])) + Bx2*(4*By*Bz*prRhs[4] + By2*(3*prRhs[3] + prRhs[5]) + Bz2*(prRhs[3] + 3*prRhs[5])))*qb4)/d;
     prSol[1] =  (prRhs[1] + dt1*(Bx*prRhs[2] + Bz*(-prRhs[0] + prRhs[3]) - By*prRhs[4])*qbym[n] + dtsq*(4*Bx2*prRhs[1] + 4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2] + Bx*(3*Bz*prRhs[4] + By*(prRhs[0] + prRhs[3] - 2*prRhs[5])))*qb2 + dt3*(4*Bx3*prRhs[2] - 2*Bx*(By2 + Bz2)*prRhs[2] + Bz3*(-prRhs[0] + prRhs[3]) - 4*By3*prRhs[4] + 2*By*Bz2*prRhs[4] - By2*Bz*(prRhs[0] - 4*prRhs[3] + 3*prRhs[5]) + Bx2*(2*By*prRhs[4] + Bz*(-4*prRhs[0] + prRhs[3] + 3*prRhs[5])))*qb3 + 2*Bx*By*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d;
@@ -516,7 +511,6 @@ gkylTenMomentSrcAnalytic2(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, do
     for (unsigned i=0; i<6; ++i)
     {
       prTen[6 * n + i] = 2 * prSol[i] - prRhs[i];
-      //printf("prSol[%d] = %10g, prRhs[%d] = %10g\n", i, prSol[i], i, prRhs[i]);
     }
   }
 

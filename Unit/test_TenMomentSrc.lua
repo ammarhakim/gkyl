@@ -132,7 +132,7 @@ function test_1(scheme, dt)
 end
 
 -- run tests
-for _,scheme in ipairs({"time-centered"}) do
+for _,scheme in ipairs({"time-centered", "analytic", "analytic2"}) do
   for _,dt in ipairs({0.1}) do
      print(string.format("1m source update test, scheme = %s, dt = %g", scheme, dt))
      test_1(scheme, dt)
