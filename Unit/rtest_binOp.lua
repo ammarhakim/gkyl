@@ -12,7 +12,6 @@ local DataStruct     = require "DataStruct"
 local Basis          = require "Basis"
 local Updater        = require "Updater"
 local Lin            = require "Lib.Linalg"
-local CalcDiagnostic = require "Updater.CalcDiagnostic"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close

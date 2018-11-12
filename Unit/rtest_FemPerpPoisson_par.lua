@@ -11,7 +11,6 @@ local DataStruct = require "DataStruct"
 local Basis = require "Basis"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
-local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Mpi = require "Comm.Mpi"
 
