@@ -87,23 +87,29 @@ gkylTenMomentSrcTimeCentered(TenMomentSrcData_t *sd, FluidData_t *fd, double dt,
     double qbym = fd[n].charge/fd[n].mass;
     double qbym2 = sq(qbym);
 
-    // eqn. for X-component of current
+    if (fd[n].evolve)
+    {
+      // off-diagonal elements of lhs
+      // eqn. for X-component of current
+      lhs(fidx(n,X), fidx(n,Y)) = -dt1*qbym*(em[BZ]+staticEm[BZ]);
+      lhs(fidx(n,X), fidx(n,Z)) = dt1*qbym*(em[BY]+staticEm[BY]);
+      lhs(fidx(n,X), eidx(X)) = -dt1*qbym2*f[RHO];
+
+      // eqn. for Y-component of current
+      lhs(fidx(n,Y), fidx(n,X)) = dt1*qbym*(em[BZ]+staticEm[BZ]);
+      lhs(fidx(n,Y), fidx(n,Z)) = -dt1*qbym*(em[BX]+staticEm[BX]);
+      lhs(fidx(n,Y), eidx(Y)) = -dt1*qbym2*f[RHO];
+
+      // eqn. for Z-component of current
+      lhs(fidx(n,Z), fidx(n,X)) = -dt1*qbym*(em[BY]+staticEm[BY]);
+      lhs(fidx(n,Z), fidx(n,Y)) = dt1*qbym*(em[BX]+staticEm[BX]);
+      lhs(fidx(n,Z), eidx(Z)) = -dt1*qbym2*f[RHO];
+    }
+
+    // diagonal elements of lhs
     lhs(fidx(n,X), fidx(n,X)) = 1.0;
-    lhs(fidx(n,X), fidx(n,Y)) = -dt1*qbym*(em[BZ]+staticEm[BZ]);
-    lhs(fidx(n,X), fidx(n,Z)) = dt1*qbym*(em[BY]+staticEm[BY]);
-    lhs(fidx(n,X), eidx(X)) = -dt1*qbym2*f[RHO];
-
-    // eqn. for Y-component of current
-    lhs(fidx(n,Y), fidx(n,X)) = dt1*qbym*(em[BZ]+staticEm[BZ]);
     lhs(fidx(n,Y), fidx(n,Y)) = 1.0;
-    lhs(fidx(n,Y), fidx(n,Z)) = -dt1*qbym*(em[BX]+staticEm[BX]);
-    lhs(fidx(n,Y), eidx(Y)) = -dt1*qbym2*f[RHO];
-
-    // eqn. for Z-component of current
-    lhs(fidx(n,Z), fidx(n,X)) = -dt1*qbym*(em[BY]+staticEm[BY]);
-    lhs(fidx(n,Z), fidx(n,Y)) = dt1*qbym*(em[BX]+staticEm[BX]);
     lhs(fidx(n,Z), fidx(n,Z)) = 1.0;
-    lhs(fidx(n,Z), eidx(Z)) = -dt1*qbym2*f[RHO];
 
     // fill corresponding RHS elements
     rhs(fidx(n,X)) = qbym*f[MX];
@@ -145,41 +151,64 @@ gkylTenMomentSrcTimeCentered(TenMomentSrcData_t *sd, FluidData_t *fd, double dt,
     double qbym = fd[n].charge/fd[n].mass;
 
     // assemble LHS terms
+    if (fd[n].evolve)
+    {
+      prLhs(0,1) = -2*dt1*qbym*Bz;
+      prLhs(0,2) = 2*dt1*qbym*By;
+      prLhs(1,0) = dt1*qbym*Bz;
+      prLhs(1,2) = -dt1*qbym*Bx;
+      prLhs(1,3) = -dt1*qbym*Bz;
+      prLhs(1,4) = dt1*qbym*By;
+      prLhs(2,0) = -dt1*qbym*By;
+      prLhs(2,1) = dt1*qbym*Bx;
+      prLhs(2,4) = -dt1*qbym*Bz;
+      prLhs(2,5) = dt1*qbym*By;
+      prLhs(3,1) = 2*dt1*qbym*Bz;
+      prLhs(3,4) = -2*dt1*qbym*Bx;
+      prLhs(4,1) = -dt1*qbym*By;
+      prLhs(4,2) = dt1*qbym*Bz;
+      prLhs(4,3) = dt1*qbym*Bx;
+      prLhs(4,5) = -dt1*qbym*Bx;
+      prLhs(5,2) = -2*dt1*qbym*By;
+      prLhs(5,4) = 2*dt1*qbym*Bx;
+    } else {
+      prLhs(0,1) = 0.;
+      prLhs(0,2) = 0.;
+      prLhs(1,0) = 0.;
+      prLhs(1,2) = 0.;
+      prLhs(1,3) = 0.;
+      prLhs(1,4) = 0.;
+      prLhs(2,0) = 0.;
+      prLhs(2,1) = 0.;
+      prLhs(2,4) = 0.;
+      prLhs(2,5) = 0.;
+      prLhs(3,1) = 0.;
+      prLhs(3,4) = 0.;
+      prLhs(4,1) = 0.;
+      prLhs(4,2) = 0.;
+      prLhs(4,3) = 0.;
+      prLhs(4,5) = 0.;
+      prLhs(5,2) = 0.;
+      prLhs(5,4) = 0.;
+    }
+    
     prLhs(0,0) = 1;
-    prLhs(0,1) = -2*dt1*qbym*Bz;
-    prLhs(0,2) = 2*dt1*qbym*By;
     prLhs(0,3) = 0;
     prLhs(0,4) = 0;
     prLhs(0,5) = 0;
-    prLhs(1,0) = dt1*qbym*Bz;
     prLhs(1,1) = 1;
-    prLhs(1,2) = -dt1*qbym*Bx;
-    prLhs(1,3) = -dt1*qbym*Bz;
-    prLhs(1,4) = dt1*qbym*By;
     prLhs(1,5) = 0;
-    prLhs(2,0) = -dt1*qbym*By;
-    prLhs(2,1) = dt1*qbym*Bx;
     prLhs(2,2) = 1;
     prLhs(2,3) = 0;
-    prLhs(2,4) = -dt1*qbym*Bz;
-    prLhs(2,5) = dt1*qbym*By;
     prLhs(3,0) = 0;
-    prLhs(3,1) = 2*dt1*qbym*Bz;
     prLhs(3,2) = 0;
     prLhs(3,3) = 1;
-    prLhs(3,4) = -2*dt1*qbym*Bx;
     prLhs(3,5) = 0;
     prLhs(4,0) = 0;
-    prLhs(4,1) = -dt1*qbym*By;
-    prLhs(4,2) = dt1*qbym*Bz;
-    prLhs(4,3) = dt1*qbym*Bx;
     prLhs(4,4) = 1;
-    prLhs(4,5) = -dt1*qbym*Bx;
     prLhs(5,0) = 0;
     prLhs(5,1) = 0;
-    prLhs(5,2) = -2*dt1*qbym*By;
     prLhs(5,3) = 0;
-    prLhs(5,4) = 2*dt1*qbym*Bx;
     prLhs(5,5) = 1;
 
     // RHS matrix
