@@ -383,7 +383,6 @@ local function buildApplication(self, tbl)
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
             dtSuggested = math.min(dtSuggested, s:suggestDt())
-            --if nm == "electron" then dtSuggested = math.min(dtSuggested, s:suggestDt()) end
          end
       else 
          dtSuggested = dt -- from argument list
