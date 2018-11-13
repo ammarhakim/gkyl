@@ -53,13 +53,15 @@ function _M:advance(tCurr, dt, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...
-   self._myStatus[0] = status and 1 or 0
-   self._myDtSuggested[0] = dtSuggested
+   if status ~= nil and dtSuggested ~= nil then 
+      self._myStatus[0] = status and 1 or 0
+      self._myDtSuggested[0] = dtSuggested
 
-   Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)
-   Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
-   
-   return self._status[0] == 1 and true or false, self._dtSuggested[0]
+      Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)
+      Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
+      
+      return self._status[0] == 1 and true or false, self._dtSuggested[0]
+   end
 end
 
 return _M

@@ -221,6 +221,15 @@ function FluidSpecies:alloc(nRkDup)
    }
    self.couplingMoments = self:allocVectorMoment(self.nMoments)
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
+
+   -- array with one component per cell to store cflRate in each cell
+   self.cflRateByCell = DataStruct.Field {
+	onGrid = self.grid,
+	numComponents = 1,
+	ghost = {0, 0},
+   }
+   self.cflRateByCell:clear(0.0)
+
    self:createBCs()
 end
 
@@ -252,31 +261,36 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    end	 
 end
 
-function FluidSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
+function FluidSpecies:suggestDt()
+   return GKYL_MAX_DOUBLE
+end
+
+function FluidSpecies:clearCFL()
+end
+
+function FluidSpecies:advance(tCurr, calcCflFlag, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
-   local fOut = self:rkStepperFields()[outIdx]
+   local fRhsOut = self:rkStepperFields()[outIdx]
 
    if self.evolve then
       local em = emIn[1]:rkStepperFields()[inIdx]
-      local myStatus, myDt = self.solver:advance(tCurr, dt, {fIn, em}, {fOut})
+      self.solver:advance(tCurr, self.cflRateByCell, {fIn, em}, {fRhsOut})
 
-      if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
+      if self.positivity then self.positivityRescale:advance(tCurr, nil, {fRhsOut}, {fRhsOut}) end
 
       -- apply BCs
-      self:applyBc(tCurr, dt, fOut)
-      return myStatus, myDt
+      self:applyBc(tCurr, fRhsOut)
    else
-      fOut:copy(fIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
+      fRhsOut:clear(0.0) -- no RHS
    end
 end
 
-function FluidSpecies:applyBc(tCurr, dt, fIn)
+function FluidSpecies:applyBc(tCurr, fIn)
    local tmStart = Time.clock()
    if self.evolve then
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, dt, {}, {fIn})
+            bc:advance(tCurr, nil, {}, {fIn})
          end
       end
       fIn:sync()

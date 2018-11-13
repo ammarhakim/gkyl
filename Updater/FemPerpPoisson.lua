@@ -253,7 +253,7 @@ function FemPerpPoisson:bcType(dir,side) return self._bc[dir][side].type end
 function FemPerpPoisson:bcValue(dir,side) return self._bc[dir][side].value end
 
 ---- advance method
-function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld) 
+function FemPerpPoisson:_advance(tCurr, cflRateByCell, inFld, outFld) 
    local grid = self._grid
    local basis = self._basis
 
@@ -262,7 +262,7 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
 
    -- optionally make continuous in z
    if self.zDiscontToCont then 
-      self.zDiscontToCont:advance(tCurr, dt, {src}, {src}) 
+      self.zDiscontToCont:advance(tCurr, cflRateByCell, {src}, {src}) 
    end
 
    local ndim = self._ndim
@@ -395,8 +395,6 @@ function FemPerpPoisson:_advance(tCurr, dt, inFld, outFld)
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 function FemPerpPoisson:delete()

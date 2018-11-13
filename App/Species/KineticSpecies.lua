@@ -25,6 +25,7 @@ local Range = require "Lib.Range"
 local SpeciesBase = require "App.Species.SpeciesBase"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
+local ffi = require "ffi"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -481,6 +482,18 @@ function KineticSpecies:alloc(nRkDup)
       self.fPos = self:allocDistf()
    end
 
+   -- array with one component per cell to store cflRate in each cell
+   self.cflRateByCell = DataStruct.Field {
+	onGrid = self.grid,
+	numComponents = 1,
+	ghost = {0, 0},
+   }
+   self.cflRateByCell:clear(0.0)
+   self.cflRatePtr = self.cflRateByCell:get(1)
+   self.cflRateIdxr = self.cflRateByCell:genIndexer()
+   self.cflRate = ffi.new("double[2]")
+   self.cflRateGlobal = ffi.new("double[2]")
+
    self:createBCs()
 end
 
@@ -573,7 +586,28 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    end	 
 end
 
-function KineticSpecies:applyBc(tCurr, dt, fIn)
+function KineticSpecies:suggestDt()
+   -- loop over local region to calculate local max cflRate
+   self.cflRate[0] = 0
+   local tId = self.grid:subGridSharedId() -- local thread ID
+   local localRange = self.cflRateByCell:localRange()
+   for idx in localRange:colMajorIter() do
+      self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
+      self.cflRate[0] = math.max(self.cflRate[0], self.cflRatePtr:data()[0])
+   end
+   -- all reduce to get global max cflRate
+   Mpi.Allreduce(self.cflRate, self.cflRateGlobal, 1, Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
+   -- calculate dt
+   local dt = self.cfl/self.cflRateGlobal[0]
+   return math.min(dt, GKYL_MAX_DOUBLE)
+end
+
+function KineticSpecies:clearCFL()
+   -- clear cflRateByCell for next cfl calculation
+   self.cflRateByCell:clear(0.0)
+end
+
+function KineticSpecies:applyBc(tCurr, fIn)
    -- fIn is total distribution function
    local tmStart = Time.clock()
 
@@ -588,7 +622,7 @@ function KineticSpecies:applyBc(tCurr, dt, fIn)
       -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, dt, {self.fReservoir}, {fIn})
+            bc:advance(tCurr, nil, {self.fReservoir}, {fIn})
          end
       end
 
@@ -634,7 +668,7 @@ end
 function KineticSpecies:calcDiagnosticIntegratedMoments()
 end
 
-function KineticSpecies:calcAndWriteDiagnosticMoments()
+function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     self:calcDiagnosticMoments()
     for i, mom in ipairs(self.diagnosticMoments) do
        -- should one use AdiosIo object for this?
@@ -705,7 +739,7 @@ function KineticSpecies:write(tm, force)
 
       if self.diagIoTrigger(tm) or force then
          -- compute moments and write them out
-         self:calcAndWriteDiagnosticMoments()
+         self:calcAndWriteDiagnosticMoments(tm)
 
          if self.evolveCollisions then
             for _, c in pairs(self.collisions) do
@@ -721,7 +755,7 @@ function KineticSpecies:write(tm, force)
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
 	 -- compute moments and write them out
-	 self:calcAndWriteDiagnosticMoments()
+	 self:calcAndWriteDiagnosticMoments(tm)
       end
       self.distIoFrame = self.distIoFrame+1
    end
@@ -746,7 +780,7 @@ end
 function KineticSpecies:readRestart()
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
 
-   self:applyBc(tm, 0.0, self.distf[1]) -- apply BCs and set ghost-cell data
+   self:applyBc(tm, self.distf[1]) -- apply BCs and set ghost-cell data
    
    self.distIoFrame = fr -- reset internal frame counter
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do

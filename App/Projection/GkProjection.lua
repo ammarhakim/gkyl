@@ -16,7 +16,7 @@ local xsys = require "xsys"
 ----------------------------------------------------------------------
 -- Gk-specific GkProjection.FunctionProjection includes jacobian factors in initFunc
 local FunctionProjection = Proto(FunctionProjectionParent)
-function FunctionProjection:run(t, distf)
+function FunctionProjection:run(tProj, distf)
    if self.species.jacobPhaseFunc and self.vdim > 1 then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
@@ -40,7 +40,7 @@ function FunctionProjection:run(t, distf)
       evaluate = self.initFunc,
       projectOnGhosts = true
    }
-   project:advance(t, 0.0, {}, {distf})
+   project:advance(tProj, 0.0, {}, {distf})
 end
 
 ----------------------------------------------------------------------
@@ -440,7 +440,7 @@ end
 --   if self.vdim == 2 then distf:accumulate(1, distf_Tperp) end
 --end
 
-function MaxwellianProjection:run(t, distf)
+function MaxwellianProjection:run(tProj, distf)
    if self.species.jacobPhaseFunc and self.vdim > 1 then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
@@ -464,7 +464,7 @@ function MaxwellianProjection:run(t, distf)
       evaluate = self.initFunc,
       projectOnGhosts = true
    }
-   project:advance(t, 0.0, {}, {distf})
+   project:advance(tProj, 0.0, {}, {distf})
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    elseif self.exactScaleM012 then

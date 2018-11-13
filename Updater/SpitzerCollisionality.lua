@@ -54,7 +54,7 @@ function SpitzerCollisionality:init(tbl)
 end
 
 -- Advance method.
-function SpitzerCollisionality:_advance(tCurr, dt, inFld, outFld)
+function SpitzerCollisionality:_advance(tCurr, cflRateByCell, inFld, outFld)
    local grid = self._onGrid
 
    local nuOut          = outFld[1]
@@ -81,8 +81,6 @@ function SpitzerCollisionality:_advance(tCurr, dt, inFld, outFld)
 
       self._SpitzerNuCalc(self._normNu, self._rMassR3d2, m0FldItr:data(), vtSqFldItr:data(), nuOutItr:data())
    end
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 return SpitzerCollisionality

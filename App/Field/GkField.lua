@@ -190,7 +190,7 @@ function GkField:initField(species)
       project:advance(0.0, 0.0, {}, {self.potentials[1].phi})
    else
       -- solve for initial phi
-      self:forwardEuler(0.0, 0.0, species, 1, 1)
+      self:advance(0.0, nil, species, 1, 1)
    end
 
    if self.isElectromagnetic then
@@ -199,14 +199,14 @@ function GkField:initField(species)
       for nm, s in pairs(species) do
          self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
       end
-      self.aparSlvr:advance(tCurr, dt, {self.currentDens}, {self.potentials[1].apar})
+      self.aparSlvr:advance(0.0, nil, {self.currentDens}, {self.potentials[1].apar})
 
       -- clear dApar/dt ... will be solved for before being used
       self.potentials[1].dApardt:clear(0.0)
    end
 
    -- apply BCs 
-   self:applyBc(0, 0, self.potentials[1])
+   self:applyBc(0, self.potentials[1])
 end
 
 function GkField:rkStepperFields()
@@ -229,6 +229,12 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
          self:rkStepperFields()[outIdx].apar:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]].apar)
       end	 
    end
+end
+
+function GkField:suggestDt()
+   return GKYL_MAX_DOUBLE
+end
+function GkField:clearCFL()
 end
 
 function GkField:createSolver(species, funcField)
@@ -298,10 +304,11 @@ function GkField:createSolver(species, funcField)
       if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
       if modifierConstant ~= 0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
    end
-   -- when not using linearizedPolarization, weights are set each step in forwardEuler method
+   -- when not using linearizedPolarization, weights are set each step in advance method
 
    if self.isElectromagnetic then 
      local ndim = self.ndim
+     local laplacianConstant, modifierConstant
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
      self.aparSlvr = Updater.FemPoisson {
@@ -426,7 +433,7 @@ function GkField:writeRestart(tm)
 
 end
 
-function GkField:readRestart(tm)
+function GkField:readRestart()
    -- this read of restart file of phi is only to get frame
    -- numbering correct. The forward Euler recomputes the potential
    -- before updating the hyperbolic part
@@ -445,7 +452,7 @@ function GkField:readRestart(tm)
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
    end
 
-   self:applyBc(0, 0, self.potentials[1])
+   self:applyBc(0, self.potentials[1])
 
    self.ioFrame = fr 
    -- iterate triggers
@@ -457,13 +464,11 @@ function GkField:accumulateCurrent(dt, current, em)
 end
 
 -- solve for electrostatic potential phi
-function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
+function GkField:advance(tCurr, calcCflFlag, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
    if self.evolve or (self._first and not self.initPhiFunc) then
-      local mys, mys2 = true, true
-      local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do
          self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
@@ -493,7 +498,7 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
       end
       -- phi solve (elliptic, so update potCurr.phi)
-      local mys, mydt = self.phiSlvr:advance(tCurr, dt, {self.chargeDens}, {potCurr.phi})
+      self.phiSlvr:advance(tCurr, nil, {self.chargeDens}, {potCurr.phi})
 
       -- apply BCs
       local tmStart = Time.clock()
@@ -501,8 +506,6 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
  
       self._first = false
-
-      return mys and mys2, math.min(mydt,mydt2)
    else
       -- just copy stuff over
       potNew.phi:copy(potCurr.phi)
@@ -510,17 +513,14 @@ function GkField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
          potNew.apar:copy(potCurr.apar) 
          potNew.dApardt:copy(potCurr.dApardt) 
       end
-      return true, GKYL_MAX_DOUBLE
    end
 end
 
-function GkField:forwardEulerStep2(tCurr, dt, species, inIdx, outIdx)
+function GkField:advanceStep2(tCurr, calcCflFlag, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
    if self.evolve then
-      local mys, mys2 = true, true
-      local mydt, mydt2 = GKYL_MAX_DOUBLE, GKYL_MAX_DOUBLE
       self.currentDens:clear(0.0)
       if self.ndim==1 then 
          self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
@@ -537,7 +537,7 @@ function GkField:forwardEulerStep2(tCurr, dt, species, inIdx, outIdx)
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve
       local dApardt = potCurr.dApardt
-      mys2, mydt2 = self.dApardtSlvr:advance(tCurr, dt, {self.currentDens}, {dApardt}) 
+      self.dApardtSlvr:advance(tCurr, nil, {self.currentDens}, {dApardt}) 
       
       -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
       -- this ensures that dApar/dt is in the same space as dPhi/dz
@@ -574,23 +574,19 @@ function GkField:forwardEulerStep2(tCurr, dt, species, inIdx, outIdx)
          end
       end
 
-      -- advance Apar
-      potNew.apar:combine(1.0, potCurr.apar, dt, dApardt)
+      -- Apar RHS is just dApar/dt
+      potNew.apar:copy(dApardt)
 
       -- apply BCs
       local tmStart = Time.clock()
       dApardt:sync(true)
       potNew.apar:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
-
-      return mys and mys2, math.min(mydt,mydt2)
-   else
-      return true, GKYL_MAX_DOUBLE
    end
 end
 
 -- NOTE: global boundary conditions handled by solver. this just updates interproc ghosts.
-function GkField:applyBc(tCurr, dt, potIn)
+function GkField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
@@ -824,11 +820,11 @@ function GkGeometry:createSolver()
       if self.ndim > 1 then
          local function bgrad(xn)
             local function bmagUnpack(...)
-               local xn = {...}
-               return self.bmagFunc(0, xn)
+               local xn1 = {...}
+               return self.bmagFunc(0, xn1)
             end
             local deriv = diff.derivativef(bmagUnpack, #xn)
-            xntable = {}
+            local xntable = {}
             for i = 1, #xn do
               xntable[i] = xn[i]
             end
@@ -1019,7 +1015,7 @@ function GkGeometry:initField()
    self.geo.phiWall:sync(false)
 
    -- apply BCs
-   self:applyBc(0, 0, self.geo)
+   self:applyBc(0, self.geo)
 end
 
 function GkGeometry:write(tm)
@@ -1046,14 +1042,13 @@ function GkGeometry:rkStepperFields()
    return { self.geo, self.geo, self.geo, self.geo }
 end
 
-function GkGeometry:forwardEuler(tCurr, dt)
+function GkGeometry:advance(tCurr)
    if self.evolve then 
-      self.setPhiWall:advance(tCurr, dt, {}, self.geo.phiWall)
+      self.setPhiWall:advance(tCurr, nil, {}, self.geo.phiWall)
    end 
-   return true, GKYL_MAX_DOUBLE
 end
 
-function GkGeometry:applyBc(tCurr, dt, geoIn)
+function GkGeometry:applyBc(tCurr, geoIn)
    if self.evolve then 
       geoIn.phiWall:sync(false)
    end

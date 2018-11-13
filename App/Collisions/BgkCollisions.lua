@@ -204,9 +204,7 @@ function BgkCollisions:primMoments(M0, M1i, M2, u, vth2)
    self.confDiv:advance(0., 0., {M0, self._thermEnergyDens}, {vth2})
 end
 
-function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
-   local status, dtSuggested = true, GKYL_MAX_DOUBLE
-   local tmpStatus, tmpDt = true, GKYL_MAX_DOUBLE
+function BgkCollisions:advance(tCurr, cflRateByCell, fIn, species, fRhsOut)
    local selfMom = species[self.speciesName]:fluidMoments()
 
    self:primMoments(selfMom[1], selfMom[2], selfMom[3], 
@@ -214,27 +212,25 @@ function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 
    if self.selfCollisions then
       self.maxwellian:advance(
-	 tCurr, dt, {selfMom[1], self.uSelf, self.vth2Self},
+	 tCurr, nil, {selfMom[1], self.uSelf, self.vth2Self},
 	 {self.fMaxwell})
       if self.exactLagFixM012 then
-	 self.m0Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM0})
+	 self.m0Calc:advance(0.0, nil, {self.fMaxwell}, {self.dM0})
 	 self.dM0:scale(-1)
 	 self.dM0:accumulate(1, selfMom[1])
-	 self.m1Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM1})
+	 self.m1Calc:advance(0.0, nil, {self.fMaxwell}, {self.dM1})
 	 self.dM1:scale(-1)
 	 self.dM1:accumulate(1, selfMom[2])
-	 self.m2Calc:advance(0.0, 0.0, {self.fMaxwell}, {self.dM2})
+	 self.m2Calc:advance(0.0, nil, {self.fMaxwell}, {self.dM2})
 	 self.dM2:scale(-1)
 	 self.dM2:accumulate(1, selfMom[3])
-	 self.lagFix:advance(0.0, 0.0, {self.dM0, self.dM1, self.dM2},
+	 self.lagFix:advance(0.0, nil, {self.dM0, self.dM1, self.dM2},
 			     {self.fMaxwell})
       end
 
-      tmpStatus, tmpDt = self.collisionSlvr:advance(
-	 tCurr, dt,
-	 {fIn, self.fMaxwell, self.nuFrac, selfMom[1], self.vth2Self}, {fOut})
-      status = status and tmpStatus
-      dtSuggested = math.min(dtSuggested, tmpDt)
+      self.collisionSlvr:advance(
+	 tCurr, cflRateByCell,
+	 {fIn, self.fMaxwell, self.nuFrac, selfMom[1], self.vth2Self}, {fRhsOut})
    end
 
    if self.crossSpecies then
@@ -262,15 +258,12 @@ function BgkCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
 	 self.vth2Cross:scale(1.0/(mOther+mSelf))
 
 	 self.maxwellian:advance(
-	    tCurr, dt, {selfMom[1], self.uCross, self.vth2Cross},
+	    tCurr, nil, {selfMom[1], self.uCross, self.vth2Cross},
 	    {self.fMaxwell})
-	 tmpStatus, tmpDt = self.collisionSlvr:advance(
-	    tCurr, dt, {fIn, self.fMaxwell}, {fOut})
-	 status = status and tmpStatus
-	 dtSuggested = math.min(dtSuggested, tmpDt)
+	 self.collisionSlvr:advance(
+	    tCurr, cflRateByCell, {fIn, self.fMaxwell}, {fRhsOut})
       end
    end
-   return status, dtSuggested
 end
 
 function BgkCollisions:write(tm, frame)

@@ -106,7 +106,7 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function VoronovIonization:_advance(tCurr, dt, inFld, outFld)
+function VoronovIonization:_advance(tCurr, cflRateByCell, inFld, outFld)
    local numConfDims = self._confGrid:ndim()
    local numConfBasis = self._confBasis:numBasis()
    local numPhaseDims = self._phaseGrid:ndim()
@@ -251,10 +251,10 @@ function VoronovIonization:_advance(tCurr, dt, inFld, outFld)
 		  self._phaseBasisAtOrdinates[phaseMu][k] * fOrd
 	    end
 	 end
-	 -- Modify the solutions
+	 -- Increment RHSs
 	 for k = 1, numPhaseBasis do
-	    fElcItr[k] = fElcItr[k] + dt * RHS[k]
-	    fNeutOnElcItr[k] = fNeutOnElcItr[k] - dt * RHS[k]
+	    fElcItr[k] = fElcItr[k] + RHS[k]
+	    fNeutOnElcItr[k] = fNeutOnElcItr[k] - RHS[k]
 	 end
       end
 
@@ -283,16 +283,15 @@ function VoronovIonization:_advance(tCurr, dt, inFld, outFld)
 		  self._phaseBasisAtOrdinates[phaseMu][k] * fOrd
 	    end
 	 end
-	 -- Modify the solutions
+	 -- Increment RHSs
 	 for k = 1, numPhaseBasis do
-	    fIonItr[k] = fIonItr[k] + dt * RHS[k]
-	    fNeutOnIonItr[k] = fNeutOnIonItr[k] - dt * RHS[k]
+	    fIonItr[k] = fIonItr[k] + RHS[k]
+	    fNeutOnIonItr[k] = fNeutOnIonItr[k] - RHS[k]
 	 end
       end
       -- self._tmProjectMaxwell = self._tmProjectMaxwell + Time.clock() -
       -- 	 tmProjectMaxwellStart
    end
-   return true, GKYL_MAX_DOUBLE
 end
 
 function VoronovIonization:evalMomTime() return self._tmEvalMom end
