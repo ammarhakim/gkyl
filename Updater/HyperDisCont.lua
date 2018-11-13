@@ -28,11 +28,6 @@ function HyperDisCont:init(tbl)
    self._onGrid = assert(tbl.onGrid, "Updater.HyperDisCont: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.HyperDisCont: Must specify basis functions to use using 'basis'")
 
-   -- by default, compute forward Euler: if onlyIncrement is true,
-   -- then only increments are computed. NOTE: The increments are NOT
-   -- multiplied by dt.
-   self._onlyIncrement = xsys.pickBool(tbl.onlyIncrement, false)
-
    -- by default, clear output field before incrementing with vol/surf updates
    self._clearOut = xsys.pickBool(tbl.clearOut, true)
 
@@ -67,7 +62,7 @@ function HyperDisCont:init(tbl)
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
 
-   -- maximum characteristic velocities for use in pentalty based
+   -- maximum characteristic velocities for use in penalty based
    -- fluxes
    self._maxs, self._maxsOld, self._maxsLocal = Lin.Vec(self._ndim), Lin.Vec(self._ndim), Lin.Vec(self._ndim)
    for d = 1, self._ndim do
@@ -85,11 +80,11 @@ function HyperDisCont:init(tbl)
 end
 
 -- advance method
-function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
+function HyperDisCont:_advance(tCurr, cflRateByCell, inFld, outFld)
    local grid = self._onGrid
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
-   local qOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+   local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
 
    -- pass aux fields to equation object
    for i = 1, #inFld-1 do
@@ -102,9 +97,10 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
 
-   local localRange = qOut:localRange()
-   local globalRange = qOut:globalRange()
-   local qInIdxr, qOutIdxr = qIn:genIndexer(), qOut:genIndexer() -- indexer functions into fields
+   local localRange = qRhsOut:localRange()
+   local globalRange = qRhsOut:globalRange()
+   local qInIdxr, qRhsOutIdxr = qIn:genIndexer(), qRhsOut:genIndexer() -- indexer functions into fields
+   local cflRateByCellIdxr = cflRateByCell:genIndexer()
 
    -- to store grid info
    local dxp, dxm = Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
@@ -113,7 +109,8 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 
    -- pointers for (re)use in update
    local qInM, qInP = qIn:get(1), qIn:get(1)
-   local qOutM, qOutP = qOut:get(1), qOut:get(1)
+   local qRhsOutM, qRhsOutP = qRhsOut:get(1), qRhsOut:get(1)
+   local cflRateByCellPtr = cflRateByCell:get(1)
 
    -- This flag is needed as the volume integral already contains
    -- contributions from all directions. Hence, we must only
@@ -130,7 +127,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    local tId = grid:subGridSharedId() -- local thread ID
 
    -- clear output field before computing vol/surf increments
-   if self._clearOut then qOut:clear(0.0) end
+   if self._clearOut then qRhsOut:clear(0.0) end
    -- accumulate contributions from volume and surface integrals
    for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
@@ -162,7 +159,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
       for idx in perpRangeDecomp:colMajorIter(tId) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
-   	 for i = dirLoIdx, dirUpIdx do -- this loop is over edges
+         for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
 	    grid:setIndex(idxm)
@@ -176,16 +173,17 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	    qIn:fill(qInIdxr(idxm), qInM)
 	    qIn:fill(qInIdxr(idxp), qInP)
 
-	    qOut:fill(qOutIdxr(idxm), qOutM)
-	    qOut:fill(qOutIdxr(idxp), qOutP)
+	    qRhsOut:fill(qRhsOutIdxr(idxm), qRhsOutM)
+	    qRhsOut:fill(qRhsOutIdxr(idxp), qRhsOutP)
 
 	    if firstDir and i<=dirUpIdx-1 then
-	       local cflFreq = self._equation:volTerm(xcp, dxp, idxp, qInP, qOutP)
-	       cfla = math.max(cfla, cflFreq*dt)
+	       local cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
+               cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellPtr)
+               cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + cflRate
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
-		  dir, cfla, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
+		  dir, cfla, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then
@@ -193,7 +191,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
 	          -- surface updates even when the zeroFlux BCs have been
 	          -- applied
 	          self._equation:boundarySurfTerm(
-		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qOutM, qOutP)
+		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
                end
 	    end
 	 end
@@ -205,16 +203,7 @@ function HyperDisCont:_advance(tCurr, dt, inFld, outFld)
    Mpi.Allreduce(
       self._maxsLocal:data(), self._maxs:data(), ndim, Mpi.DOUBLE, Mpi.MAX, self:getComm())
 
-   -- accumulate full solution if not computing increments
-   if not self._onlyIncrement then
-      qOut:scale(dt); qOut:accumulate(1.0, qIn) -- qOut = qIn + dt*qOut
-   end
-
    self._isFirst = false
-
-   -- return failure if time-step was too large
-   if cfla > cflm then return false, dt*cfl/cfla end
-   return true, dt*cfl/cfla
 end
 
 return HyperDisCont

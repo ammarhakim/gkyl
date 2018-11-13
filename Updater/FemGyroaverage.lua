@@ -211,7 +211,7 @@ function FemGyroaverage:bcType(dir,side) return self._bc[dir][side].type end
 function FemGyroaverage:bcValue(dir,side) return self._bc[dir][side].value end
 
 ---- advance method
-function FemGyroaverage:_advance(tCurr, dt, inFld, outFld) 
+function FemGyroaverage:_advance(tCurr, cflRateByCell, inFld, outFld) 
    local grid = self._grid
    local basis = self._basis
 
@@ -361,8 +361,6 @@ function FemGyroaverage:_advance(tCurr, dt, inFld, outFld)
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 function FemGyroaverage:delete()

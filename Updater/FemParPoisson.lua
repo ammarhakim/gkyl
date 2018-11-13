@@ -181,7 +181,7 @@ function FemParPoisson:bcType(side) return self._bc[side].type end
 function FemParPoisson:bcValue(side) return self._bc[side].value end
 
 ---- advance method
-function FemParPoisson:_advance(tCurr, dt, inFld, outFld) 
+function FemParPoisson:_advance(tCurr, cflRateByCell, inFld, outFld) 
    local grid = self._grid
    local basis = self._basis
 
@@ -307,8 +307,6 @@ function FemParPoisson:_advance(tCurr, dt, inFld, outFld)
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 function FemParPoisson:delete()

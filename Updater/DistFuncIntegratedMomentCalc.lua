@@ -56,7 +56,7 @@ function DistFuncIntegratedMomentCalc:init(tbl)
 end
 
 -- advance method
-function DistFuncIntegratedMomentCalc:_advance(tCurr, dt, inFld, outFld)
+function DistFuncIntegratedMomentCalc:_advance(tCurr, cflRateByCell, inFld, outFld)
    local grid = self._onGrid
    local distf, mom = inFld[1], outFld[1]
 
@@ -84,8 +84,6 @@ function DistFuncIntegratedMomentCalc:_advance(tCurr, dt, inFld, outFld)
    Mpi.Allreduce(
       self.localMom:data(), self.globalMom:data(), 5, Mpi.DOUBLE, Mpi.SUM, self:getComm())
    mom:appendData(tCurr, self.globalMom)
-   
-   return true, GKYL_MAX_DOUBLE
 end
 
 return DistFuncIntegratedMomentCalc

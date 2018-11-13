@@ -108,7 +108,7 @@ function SelfPrimMoments:init(tbl)
 end
 
 -- advance method
-function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
+function SelfPrimMoments:_advance(tCurr, cflRateByCell, inFld, outFld)
    local grid = self._onGrid
 
    local uOut           = outFld[1]
@@ -128,6 +128,8 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
    local phaseIndexer   = fIn:genIndexer()
    local fInItr         = fIn:get(1)
 
+   local m0Star, m1Star, m2Star
+   local m2fld, m2fldIndexer, m2fldItr
    if self._polyOrder == 1 then
       m0Star = Lin.Vec(self._numBasisC)
       m1Star = Lin.Vec(self._numBasisC*self._uDim)
@@ -353,8 +355,6 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
 
    end
    self._isFirst = false
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 return SelfPrimMoments

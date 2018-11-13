@@ -73,7 +73,7 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
+function LagrangeFix:_advance(tCurr, cflRateByCell, inFld, outFld)
    -- Get the inputs and outputs
    local dm0 = assert(inFld[1],
 		      "LagrangeFix.advance: Must specify dm0 as 'inFld[1]'")
@@ -149,7 +149,6 @@ function LagrangeFix:_advance(tCurr, dt, inFld, outFld)
 	 end
       end
    end
-   return true, GKYL_MAX_DOUBLE
 end
 
 return LagrangeFix

@@ -72,7 +72,7 @@ function MomentSpecies:createSolver(hasE, hasB)
          projectOnGhosts = true,
       }
       project:advance(0.0, 0.0, {}, {self._inOut})
-      self.momIo:write(self._inOut, string.format("%s_inOut.bp", self.name), tm, 0)
+      self.momIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)
    end
 
    local ndim = self.grid:ndim()
@@ -100,7 +100,7 @@ function MomentSpecies:createSolver(hasE, hasB)
    end
 end
 
-function MomentSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
+function MomentSpecies:advance(tCurr, dt, species, emIn, inIdx, outIdx)
    -- does nothing: perhaps when DG is supported this will need to be
    -- modified
 
@@ -137,7 +137,7 @@ end
 function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
-      self:applyBc(tCurr, dt, fIn)
+      self:applyBc(tCurr, fIn)
       if self.forceInv or self.tryInv then
          status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, dt, {fIn}, {fOut})
          -- if result is OK, do not try to use invariant eqn. in next step

@@ -88,7 +88,8 @@ function VoronovIonization:createSolver(species)
    }
 end
 
-function VoronovIonization:forwardEuler(tCurr, dt, idxIn, outIdx, species)
+-- NRM 11/13/18: this doesn't have the right signature...
+function VoronovIonization:advance(tCurr, cflRateByCell, idxIn, outIdx, species)
    local elcMomFields = species[self.elcNm]:fluidMoments()
    local spOutFields =  {}
    -- for nm, sp in pairs(species) do
@@ -98,7 +99,7 @@ function VoronovIonization:forwardEuler(tCurr, dt, idxIn, outIdx, species)
    spOutFields['ion'] = species[self.ionNm]:rkStepperFields()[outIdx]
    spOutFields['neutOnElc'] = species[self.neutOnElcNm]:rkStepperFields()[outIdx]
    spOutFields['neutOnIon'] = species[self.neutOnIonNm]:rkStepperFields()[outIdx]
-   return self.collisionSlvr:advance(tCurr, dt, elcMomFields, spOutFields)
+   self.collisionSlvr:advance(tCurr, cflRateByCell, elcMomFields, spOutFields)
 end
 
 function VoronovIonization:write(tm, frame)
