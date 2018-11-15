@@ -17,6 +17,7 @@ local SpeciesBase = require "App.Species.SpeciesBase"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
+local ffi = require "ffi"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -229,6 +230,10 @@ function FluidSpecies:alloc(nRkDup)
 	ghost = {0, 0},
    }
    self.cflRateByCell:clear(0.0)
+   self.cflRatePtr = self.cflRateByCell:get(1)
+   self.cflRateIdxr = self.cflRateByCell:genIndexer()
+   self.dt = ffi.new("double[2]")
+   self.dtGlobal = ffi.new("double[2]")
 
    self:createBCs()
 end

@@ -491,8 +491,8 @@ function KineticSpecies:alloc(nRkDup)
    self.cflRateByCell:clear(0.0)
    self.cflRatePtr = self.cflRateByCell:get(1)
    self.cflRateIdxr = self.cflRateByCell:genIndexer()
-   self.cflRate = ffi.new("double[2]")
-   self.cflRateGlobal = ffi.new("double[2]")
+   self.dt = ffi.new("double[2]")
+   self.dtGlobal = ffi.new("double[2]")
 
    self:createBCs()
 end
@@ -587,19 +587,20 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
 end
 
 function KineticSpecies:suggestDt()
-   -- loop over local region to calculate local max cflRate
-   self.cflRate[0] = 0
+   -- loop over local region 
+   self.dt[0] = GKYL_MAX_DOUBLE
    local tId = self.grid:subGridSharedId() -- local thread ID
    local localRange = self.cflRateByCell:localRange()
    for idx in localRange:colMajorIter() do
+      -- calculate local min dt from local cflRates
       self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
-      self.cflRate[0] = math.max(self.cflRate[0], self.cflRatePtr:data()[0])
+      self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
    end
-   -- all reduce to get global max cflRate
-   Mpi.Allreduce(self.cflRate, self.cflRateGlobal, 1, Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
-   -- calculate dt
-   local dt = self.cfl/self.cflRateGlobal[0]
-   return math.min(dt, GKYL_MAX_DOUBLE)
+
+   -- all reduce to get global min dt
+   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, self.grid:commSet().comm)
+
+   return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
 end
 
 function KineticSpecies:clearCFL()

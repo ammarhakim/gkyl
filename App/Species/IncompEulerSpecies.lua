@@ -11,6 +11,7 @@ local FluidSpecies = require "App.Species.FluidSpecies"
 local IncompEulerEq = require "Eq.IncompEuler"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
+local Mpi = require "Comm.Mpi"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
 
@@ -61,6 +62,28 @@ function IncompEulerSpecies:getNumDensity(rkIdx)
       self.couplingMoments:copy(self:rkStepperFields()[rkIdx])
       return self.couplingMoments
    end
+end
+
+function IncompEulerSpecies:suggestDt()
+   -- loop over local region 
+   self.dt[0] = GKYL_MAX_DOUBLE
+   local tId = self.grid:subGridSharedId() -- local thread ID
+   local localRange = self.cflRateByCell:localRange()
+   for idx in localRange:colMajorIter() do
+      -- calculate local min dt from local cflRates
+      self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
+      self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
+   end
+
+   -- all reduce to get global min dt
+   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, self.grid:commSet().comm)
+
+   return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+end
+
+function IncompEulerSpecies:clearCFL()
+   -- clear cflRateByCell for next cfl calculation
+   self.cflRateByCell:clear(0.0)
 end
 
 return IncompEulerSpecies

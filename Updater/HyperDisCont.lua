@@ -175,10 +175,10 @@ function HyperDisCont:_advance(tCurr, cflRateByCell, inFld, outFld)
 
 	    qRhsOut:fill(qRhsOutIdxr(idxm), qRhsOutM)
 	    qRhsOut:fill(qRhsOutIdxr(idxp), qRhsOutP)
+            cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellPtr)
 
 	    if firstDir and i<=dirUpIdx-1 then
 	       local cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
-               cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellPtr)
                cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + cflRate
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
