@@ -344,6 +344,10 @@ local function buildApplication(self, tbl)
       local calcCflFlag = false
       local dtSuggested
       if dt == nil then calcCflFlag = true end
+      field:clearCFL()
+      for nm, s in pairs(species) do
+         s:clearCFL()
+      end
 
       -- update EM field
       for nm, s in pairs(species) do
@@ -387,11 +391,6 @@ local function buildApplication(self, tbl)
       else 
          dtSuggested = dt -- from argument list
       end
-      field:clearCFL()
-      for nm, s in pairs(species) do
-         s:clearCFL()
-      end
-
       -- take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
@@ -661,7 +660,10 @@ local function buildApplication(self, tbl)
 
 	 -- check status and determine what to do next
 	 if status then
-            if first then initDt = dtSuggested; first = false end
+            if first then 
+               log(string.format(" Step 0 at time 0. Time step %g. Completed 0%%\n", myDt))
+               initDt = dtSuggested; first = false
+            end
 	    writeLogMessage(tCurr+myDt)
 	    -- we must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart
