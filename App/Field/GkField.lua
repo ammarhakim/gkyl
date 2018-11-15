@@ -157,7 +157,7 @@ function GkField:alloc(nRkDup)
                  end,
       projectOnGhosts = true,
    }
-   initUnit:advance(0.,0.,{},{self.unitWeight})
+   initUnit:advance(0.,{},{self.unitWeight})
 
    -- set up some other fields
    self.weight = DataStruct.Field {
@@ -187,10 +187,10 @@ function GkField:initField(species)
          evaluate = self.initPhiFunc,
          projectOnGhosts = true
       }
-      project:advance(0.0, 0.0, {}, {self.potentials[1].phi})
+      project:advance(0.0, {}, {self.potentials[1].phi})
    else
       -- solve for initial phi
-      self:advance(0.0, nil, species, 1, 1)
+      self:advance(0.0, species, 1, 1)
    end
 
    if self.isElectromagnetic then
@@ -199,7 +199,7 @@ function GkField:initField(species)
       for nm, s in pairs(species) do
          self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
       end
-      self.aparSlvr:advance(0.0, nil, {self.currentDens}, {self.potentials[1].apar})
+      self.aparSlvr:advance(0.0, {self.currentDens}, {self.potentials[1].apar})
 
       -- clear dApar/dt ... will be solved for before being used
       self.potentials[1].dApardt:clear(0.0)
@@ -386,9 +386,9 @@ end
 function GkField:write(tm, force)
    if self.evolve then
       -- compute integrated quantities over domain
-      self.energyCalc:advance(tm, 0.0, { self.potentials[1].phi }, { self.phi2 })
+      self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.phi2 })
       if self.isElectromagnetic then 
-        self.energyCalc:advance(tm, 0.0, { self.potentials[1].apar }, { self.apar2 })
+        self.energyCalc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
       end
       
       if self.ioTrigger(tm) or force then
@@ -464,7 +464,7 @@ function GkField:accumulateCurrent(dt, current, em)
 end
 
 -- solve for electrostatic potential phi
-function GkField:advance(tCurr, calcCflFlag, species, inIdx, outIdx)
+function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
@@ -498,7 +498,7 @@ function GkField:advance(tCurr, calcCflFlag, species, inIdx, outIdx)
          if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
       end
       -- phi solve (elliptic, so update potCurr.phi)
-      self.phiSlvr:advance(tCurr, nil, {self.chargeDens}, {potCurr.phi})
+      self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phi})
 
       -- apply BCs
       local tmStart = Time.clock()
@@ -516,7 +516,7 @@ function GkField:advance(tCurr, calcCflFlag, species, inIdx, outIdx)
    end
 end
 
-function GkField:advanceStep2(tCurr, calcCflFlag, species, inIdx, outIdx)
+function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
@@ -537,7 +537,7 @@ function GkField:advanceStep2(tCurr, calcCflFlag, species, inIdx, outIdx)
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve
       local dApardt = potCurr.dApardt
-      self.dApardtSlvr:advance(tCurr, nil, {self.currentDens}, {dApardt}) 
+      self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
       
       -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
       -- this ensures that dApar/dt is in the same space as dPhi/dz
@@ -986,20 +986,20 @@ function GkGeometry:createDiagnostics()
 end
 
 function GkGeometry:initField()
-   self.setBmag:advance(0.0, 0.0, {}, {self.geo.bmag})
-   self.setBmagInv:advance(0.0, 0.0, {}, {self.geo.bmagInv})
-   if self.setGradpar then self.setGradpar:advance(0.0, 0.0, {}, {self.geo.gradpar})
+   self.setBmag:advance(0.0, {}, {self.geo.bmag})
+   self.setBmagInv:advance(0.0, {}, {self.geo.bmagInv})
+   if self.setGradpar then self.setGradpar:advance(0.0, {}, {self.geo.gradpar})
    else self.geo.gradpar:clear(0.0) end
-   if self.setJacobGeo then self.setJacobGeo:advance(0.0, 0.0, {}, {self.geo.jacobGeo})
+   if self.setJacobGeo then self.setJacobGeo:advance(0.0, {}, {self.geo.jacobGeo})
    else self.geo.jacobGeo:clear(0.0) end
-   if self.setGxx then self.setGxx:advance(0.0, 0.0, {}, {self.geo.gxx}) end
-   if self.setGxy then self.setGxy:advance(0.0, 0.0, {}, {self.geo.gxy}) end
-   if self.setGyy then self.setGyy:advance(0.0, 0.0, {}, {self.geo.gyy}) end
-   if self.setBdriftX then self.setBdriftX:advance(0.0, 0.0, {}, {self.geo.bdriftX})
+   if self.setGxx then self.setGxx:advance(0.0, {}, {self.geo.gxx}) end
+   if self.setGxy then self.setGxy:advance(0.0, {}, {self.geo.gxy}) end
+   if self.setGyy then self.setGyy:advance(0.0, {}, {self.geo.gyy}) end
+   if self.setBdriftX then self.setBdriftX:advance(0.0, {}, {self.geo.bdriftX})
    else self.geo.bdriftX:clear(0.0) end
-   if self.setBdriftY then self.setBdriftY:advance(0.0, 0.0, {}, {self.geo.bdriftY})
+   if self.setBdriftY then self.setBdriftY:advance(0.0, {}, {self.geo.bdriftY})
    else self.geo.bdriftY:clear(0.0) end
-   if self.setPhiWall then self.setPhiWall:advance(0.0, 0.0, {}, {self.geo.phiWall})
+   if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
@@ -1044,7 +1044,7 @@ end
 
 function GkGeometry:advance(tCurr)
    if self.evolve then 
-      self.setPhiWall:advance(tCurr, nil, {}, self.geo.phiWall)
+      self.setPhiWall:advance(tCurr, {}, self.geo.phiWall)
    end 
 end
 

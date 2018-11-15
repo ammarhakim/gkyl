@@ -112,7 +112,7 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function MaxwellianOnBasis:_advance(tCurr, cflRateByCell, inFld, outFld)
+function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    -- Get the inputs and outputs
    local nIn = assert(inFld[1], "MaxwellianOnBasis.advance: Must specify density 'inFld[1]'")
    local uIn = assert(inFld[2], "MaxwellianOnBasis.advance: Must specify drift speed 'inFld[2]'")

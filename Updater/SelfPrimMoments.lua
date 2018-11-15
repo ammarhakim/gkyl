@@ -108,7 +108,7 @@ function SelfPrimMoments:init(tbl)
 end
 
 -- advance method
-function SelfPrimMoments:_advance(tCurr, cflRateByCell, inFld, outFld)
+function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
    local uOut           = outFld[1]

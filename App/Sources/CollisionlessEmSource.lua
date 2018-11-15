@@ -89,7 +89,8 @@ function CollisionlessEmSource:updateSource(tCurr, dt, speciesVar, fieldVar)
       outVars[i] = speciesVar[nm]
    end
    outVars[#self.speciesList+1] = fieldVar
-   return self.slvr:advance(tCurr, dt, {}, outVars)
+   self.slvr:setupDtAndCflRate(dt, nil)
+   return self.slvr:advance(tCurr, {}, outVars)
 end
 
 function CollisionlessEmSource:write(tm, frame)

@@ -52,7 +52,7 @@ function HamilVlasov:initHamilTimeIndep()
                  end
                     
    }
-   projectKE:advance(0, 0, {}, {self.hamilTimeIndep})
+   projectKE:advance(0, {}, {self.hamilTimeIndep})
 end
 
 function HamilVlasov:setAuxFields(auxFields)

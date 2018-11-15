@@ -23,10 +23,13 @@ function _M:init(tbl)
    self.totalTime = 0.0
    self._myStatus, self._myDtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
    self._status, self._dtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
+
+   self._dt = 0.0
+   self._cflRateByCell = {}
 end
 
 -- must be provided by derived objects
-function _M:_advance(tCurr, dt, inFld, outFld)
+function _M:_advance(tCurr, inFld, outFld)
    assert(true, "_advance method not provided!")
 end
 
@@ -38,7 +41,7 @@ function _M:getSharedComm() return self._sharedComm end
 -- This function wraps derived updater's _advance() function and
 -- computes a "totalTime", and also synchronizes the status and
 -- time-step suggestion across processors.
-function _M:advance(tCurr, dt, inFld, outFld)
+function _M:advance(tCurr, inFld, outFld)
 
    -- This barrier is needed to ensure that all "threads" (processes)
    -- in MPI-SHM comm have caught up with each other with previous
@@ -47,9 +50,9 @@ function _M:advance(tCurr, dt, inFld, outFld)
    -- data they need is made ready by other threads
    Mpi.Barrier(self._sharedComm)
    
-   -- Take the time-step, measuring how long it took
+   -- Advance updater, measuring how long it took
    local tmStart = Time.clock()
-   local status, dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
+   local status, dtSuggested = self:_advance(tCurr, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...
@@ -62,6 +65,12 @@ function _M:advance(tCurr, dt, inFld, outFld)
       
       return self._status[0] == 1 and true or false, self._dtSuggested[0]
    end
+end
+
+-- set up pointers to dt and cflRateByCell
+function _M:setupDtAndCflRate(dt, cflRateByCell)
+   self._dt = dt
+   self._cflRateByCell = cflRateByCell
 end
 
 return _M

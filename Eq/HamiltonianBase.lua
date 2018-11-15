@@ -92,8 +92,8 @@ function Hamiltonian:setHamiltonian(hamilTimeDepIn)
       -- set hamiltonian = hamilTimeIndep
       self.hamiltonian:combine(1.0, self.hamilTimeIndep)
       -- accumulate hamiltonian += hamilTimeDep
-      self.accumulateConfToPhase:advance(0, 0, {1.0, hamilTimeDepIn}, {self.hamiltonian})
-      self.assignConfToPhase:advance(0, 0, {1.0, hamilTimeDepIn}, {self.hamilTimeDep})
+      self.accumulateConfToPhase:advance(0, {1.0, hamilTimeDepIn}, {self.hamiltonian})
+      self.assignConfToPhase:advance(0, {1.0, hamilTimeDepIn}, {self.hamilTimeDep})
    end
 end
 

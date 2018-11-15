@@ -93,6 +93,7 @@ function FluidSpecies:fullInit(appTbl)
 
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
+   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
    self.deltaF = xsys.pickBool(appTbl.deltaF, false)
 end
 
@@ -223,6 +224,10 @@ function FluidSpecies:alloc(nRkDup)
    self.couplingMoments = self:allocVectorMoment(self.nMoments)
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
 
+   if self.positivity then
+      self.fPos = self:allocVectorMoment(self.nMoments)
+   end
+
    -- array with one component per cell to store cflRate in each cell
    self.cflRateByCell = DataStruct.Field {
 	onGrid = self.grid,
@@ -245,7 +250,7 @@ function FluidSpecies:initDist()
       evaluate = self.initFunc,
       projectOnGhosts = true,
    }
-   project:advance(0.0, 0.0, {}, {self.moments[1]})
+   project:advance(0.0, {}, {self.moments[1]})
 end
 
 function FluidSpecies:rkStepperFields()
@@ -273,15 +278,20 @@ end
 function FluidSpecies:clearCFL()
 end
 
-function FluidSpecies:advance(tCurr, calcCflFlag, species, emIn, inIdx, outIdx)
+function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    if self.evolve then
+      self.solver:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      self.solver:advance(tCurr, self.cflRateByCell, {fIn, em}, {fRhsOut})
-
-      if self.positivity then self.positivityRescale:advance(tCurr, nil, {fRhsOut}, {fRhsOut}) end
+      if self.positivityRescale then 
+         self.posRescaler:advance(tCurr, {fIn}, {self.fPos}) 
+         self:applyBc(tCurr, self.fPos)
+         self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
+      else
+         self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
+      end
 
       -- apply BCs
       self:applyBc(tCurr, fRhsOut)
@@ -295,7 +305,7 @@ function FluidSpecies:applyBc(tCurr, fIn)
    if self.evolve then
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, nil, {}, {fIn})
+            bc:advance(tCurr, {}, {fIn})
          end
       end
       fIn:sync()
@@ -316,7 +326,7 @@ end
 function FluidSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
-      self.intMom2Calc:advance(tm, 0.0, { self.moments[1] }, { self.integratedMoments })
+      self.intMom2Calc:advance(tm, { self.moments[1] }, { self.integratedMoments })
       
       -- only write stuff if triggered
       if self.diagIoTrigger(tm) then

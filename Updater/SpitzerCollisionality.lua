@@ -54,7 +54,7 @@ function SpitzerCollisionality:init(tbl)
 end
 
 -- Advance method.
-function SpitzerCollisionality:_advance(tCurr, cflRateByCell, inFld, outFld)
+function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
    local nuOut          = outFld[1]

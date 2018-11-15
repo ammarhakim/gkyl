@@ -170,7 +170,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
                     return t1+t2
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -189,7 +189,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
                     return t1*t2
                  end
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -199,11 +199,11 @@ function test_solve2d(nx, ny, p, writeMatrix)
 
    print("Solving...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("1st 2D Poisson solve took total of ", t2-t1, " s\n")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("2nd 2D Poisson solve took total of ", t2-t1, " s\n")
 
@@ -226,7 +226,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
      quantity = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -278,7 +278,7 @@ function test_smooth2d(nx, ny, p, writeMatrix)
                     return t1+t2
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -288,7 +288,7 @@ function test_smooth2d(nx, ny, p, writeMatrix)
 
    print("Smoothing...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("2D Poisson smooth took total of ", t2-t1, " s\n")
 
@@ -311,7 +311,7 @@ function test_smooth2d(nx, ny, p, writeMatrix)
      quantity = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -362,7 +362,7 @@ function test_solve2d_periodic(nx, ny, p)
                  return f/50.0
               end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -390,7 +390,7 @@ function test_solve2d_periodic(nx, ny, p)
       basis = basis,
       evaluate = initfunc,
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -400,7 +400,7 @@ function test_solve2d_periodic(nx, ny, p)
 
    print("Solving...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("2D periodic Poisson solve took total of ", t2-t1, " s\n")
 
@@ -423,7 +423,7 @@ function test_solve2d_periodic(nx, ny, p)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -481,7 +481,7 @@ function test_smooth2d_periodic(nx, ny, p, writeMatrix)
                  return f/50.0
               end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -491,7 +491,7 @@ function test_smooth2d_periodic(nx, ny, p, writeMatrix)
 
    print("Smoothing...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("2D periodic Poisson smooth took total of ", t2-t1, " s\n")
 
@@ -514,7 +514,7 @@ function test_smooth2d_periodic(nx, ny, p, writeMatrix)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -526,7 +526,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    print()
    print("Testing 3D Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0},
+      lower = {0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -567,7 +567,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
                     return (z+1)*(t1+t2)
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
 	 onGrid = grid,
@@ -590,7 +590,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
                     return (z+1)*t1*t2
                  end
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -600,11 +600,11 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    print("Solving...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("1st 3D Poisson solve took total of ", t2-t1, " s\n")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("2nd 3D Poisson solve took total of ", t2-t1, " s\n")
 
@@ -627,7 +627,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
 
@@ -638,7 +638,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
    print()
    print("Testing 3D periodic Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0},
+      lower = {0.0, 0.0},
       upper = {2*math.pi, 2*math.pi, 2*math.pi},
       cells = {nx, ny, nz},
    }
@@ -679,7 +679,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
                  return f/50.0
               end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -707,7 +707,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
       basis = basis,
       evaluate = initfunc,
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -717,7 +717,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
 
    print("Solving...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("3D periodic Poisson solve took total of ", t2-t1, " s\n")
 
@@ -740,7 +740,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -751,7 +751,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
    print()
    print("Testing 3D non-Cartesian periodic Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0},
+      lower = {0.0, 0.0},
       upper = {2*math.pi, 2*math.pi, 2*math.pi},
       cells = {nx, ny, nz},
    }
@@ -791,7 +791,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
                     return z 
                  end
    }
-   projectUnit:advance(0.,0.,{},{unitField})
+   projectUnit:advance(0.,{},{unitField})
 
    gxxField:combine(gxx, unitField)
    gxyField:combine(gxy, unitField)
@@ -836,7 +836,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
                  return f/50.0
               end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -864,7 +864,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
       basis = basis,
       evaluate = initfunc,
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -874,7 +874,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
 
    print("Solving...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("3D periodic Poisson solve took total of ", t2-t1, " s\n")
 
@@ -897,7 +897,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])

@@ -279,7 +279,7 @@ local function buildApplication(self, tbl)
    for nm, s in pairs(species) do
       -- this is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver
-      s:advance(0, 0, species, {field, funcField}, 1, 2)
+      s:advance(0, species, {field, funcField}, 1, 2)
       s:applyBc(0, s:rkStepperFields()[1])
    end
 
@@ -306,7 +306,7 @@ local function buildApplication(self, tbl)
       for _, s in pairs(species) do
          -- this is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver
-         s:advance(0, 0, species, {field, funcField}, 1, 2)
+         s:advance(0, species, {field, funcField}, 1, 2)
 	 rTime = s:readRestart()
       end
       return rTime
@@ -353,14 +353,14 @@ local function buildApplication(self, tbl)
       end
       -- note that this can be either an elliptic solve, which updates inIdx
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both
-      field:advance(tCurr, calcCflFlag, species, inIdx, outIdx)
+      field:advance(tCurr, species, inIdx, outIdx)
 
       -- compute functional field (if any)
       funcField:advance(tCurr)
       
       -- update species
       for nm, s in pairs(species) do
-         s:advance(tCurr, calcCflFlag, species, {field, funcField}, inIdx, outIdx)
+         s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
       end
 
       -- some systems (e.g. EM GK) require a second step to complete the forward Euler
@@ -368,11 +368,11 @@ local function buildApplication(self, tbl)
          -- update EM field.. step 2 (if necessary). 
          -- note: no calcCouplingMoments call because field:forwardEulerStep2 either reuses already calculated moments, 
          --       or other moments are calculated in field:forwardEulerStep2
-         field:advanceStep2(tCurr, calcCflFlag, species, inIdx, outIdx)
+         field:advanceStep2(tCurr, species, inIdx, outIdx)
 
          -- update species.. step 2 (if necessary)
          for nm, s in pairs(species) do
-            s:advanceStep2(tCurr, calcCflFlag, species, {field, funcField}, inIdx, outIdx)
+            s:advanceStep2(tCurr, species, {field, funcField}, inIdx, outIdx)
          end
       end
 

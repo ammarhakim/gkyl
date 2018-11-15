@@ -96,7 +96,7 @@ function test_2d_m_p2()
 
    -- surface expansions
    local vol = {1.0, 0.5, 0.25, 0.1, 0.1, 0.1}
-   local surf = {0.0, 0.0, 0.0} -- to store surface expansion
+   local surf = {0.0, 0.0} -- to store surface expansion
 end
 
 function test_2d_s_p1()

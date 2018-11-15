@@ -192,7 +192,7 @@ end
 
 
 --solver function
-function MappedPoisson:advance(tCurr, cflRateByCell, inFld, outFld)
+function MappedPoisson:advance(tCurr, inFld, outFld)
 
    --set up input objects
    local grid = self._grid
