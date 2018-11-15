@@ -56,7 +56,7 @@ function DistFuncIntegratedMomentCalc:init(tbl)
 end
 
 -- advance method
-function DistFuncIntegratedMomentCalc:_advance(tCurr, cflRateByCell, inFld, outFld)
+function DistFuncIntegratedMomentCalc:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local distf, mom = inFld[1], outFld[1]
 

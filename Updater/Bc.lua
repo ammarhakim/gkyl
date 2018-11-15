@@ -69,7 +69,7 @@ function Bc:getGhostRange(global, globalExt)
    return Range.Range(lv, uv)
 end
 
-function Bc:_advance(tCurr, cflRateByCell, inFld, outFld)
+function Bc:_advance(tCurr, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
    local qIn = inFld[1]

@@ -71,7 +71,7 @@ function MomentSpecies:createSolver(hasE, hasB)
          evaluate = self._inOutFunc,
          projectOnGhosts = true,
       }
-      project:advance(0.0, 0.0, {}, {self._inOut})
+      project:advance(0.0, {}, {self._inOut})
       self.momIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)
    end
 
@@ -100,7 +100,7 @@ function MomentSpecies:createSolver(hasE, hasB)
    end
 end
 
-function MomentSpecies:advance(tCurr, dt, species, emIn, inIdx, outIdx)
+function MomentSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- does nothing: perhaps when DG is supported this will need to be
    -- modified
 
@@ -139,11 +139,13 @@ function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
    if self.evolve then
       self:applyBc(tCurr, fIn)
       if self.forceInv or self.tryInv then
-         status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, dt, {fIn}, {fOut})
+         self.hyperSlvrInv[dir]:setupDtAndCflRate(dt, nil)
+         status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, {fIn}, {fOut})
          -- if result is OK, do not try to use invariant eqn. in next step
          self.tryInv = not status
       else
-         status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+         self.hyperSlvr[dir]:setupDtAndCflRate(dt, nil)
+         status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
          self.tryInv = status and not self:checkInv(fOut)
       end
    else

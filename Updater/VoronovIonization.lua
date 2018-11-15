@@ -106,7 +106,7 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function VoronovIonization:_advance(tCurr, cflRateByCell, inFld, outFld)
+function VoronovIonization:_advance(tCurr, inFld, outFld)
    local numConfDims = self._confGrid:ndim()
    local numConfBasis = self._confBasis:numBasis()
    local numPhaseDims = self._phaseGrid:ndim()

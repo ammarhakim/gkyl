@@ -34,7 +34,7 @@ function PositivityRescale:init(tbl)
 end   
 
 -- advance method
-function PositivityRescale:_advance(tCurr, cflRateByCell, inFld, outFld)
+function PositivityRescale:_advance(tCurr, inFld, outFld)
    local grid = self.onGrid
    local fIn, fOut = inFld[1], outFld[1]
 

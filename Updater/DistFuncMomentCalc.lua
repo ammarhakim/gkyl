@@ -104,7 +104,7 @@ function DistFuncMomentCalc:init(tbl)
 end
 
 -- advance method
-function DistFuncMomentCalc:_advance(tCurr, cflRateByCell, inFld, outFld)
+function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local distf, mom1 = inFld[1], outFld[1]
    local mom2, mom3

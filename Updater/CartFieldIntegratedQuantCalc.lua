@@ -52,7 +52,7 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 end   
 
 -- advance method
-function CartFieldIntegratedQuantCalc:_advance(tCurr, cflRateByCell, inFld, outFld)
+function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
    local grid = self.onGrid
    local field, vals = inFld[1], outFld[1]
 

@@ -552,7 +552,7 @@ function KineticSpecies:initDist()
    -- calculate initial density averaged over simulation domain
    --self.n0 = nil
    --local dens0 = self:allocMoment()
-   --self.numDensityCalc:advance(0,0, {self.distf[1]}, {dens0})
+   --self.numDensityCalc:advance(0, {self.distf[1]}, {dens0})
    --local data
    --local dynVec = DataStruct.DynVector { numComponents = 1 }
    ---- integrate 
@@ -562,7 +562,7 @@ function KineticSpecies:initDist()
    --   numComponents = 1,
    --   quantity = "V"
    --}
-   --calcInt:advance(0.0, 0.0, {dens0}, {dynVec})
+   --calcInt:advance(0.0, {dens0}, {dynVec})
    --_, data = dynVec:lastData()
    --self.n0 = data[1]/self.confGrid:gridVolume()
    --print("Average density is " .. self.n0)
@@ -623,7 +623,7 @@ function KineticSpecies:applyBc(tCurr, fIn)
       -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, nil, {self.fReservoir}, {fIn})
+            bc:advance(tCurr, {self.fReservoir}, {fIn})
          end
       end
 
@@ -649,14 +649,14 @@ function KineticSpecies:calcDiagnosticMoments()
    if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(-1, self.f0) end
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
-	 0.0, 0.0, {self.distf[1]}, {self.diagnosticMomentFields[mom]})
+	 0.0, {self.distf[1]}, {self.diagnosticMomentFields[mom]})
    end
    if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(1, self.f0) end
 end
 
 function KineticSpecies:calcDiagnosticWeakMoments()
    for i, mom in pairs(self.diagnosticWeakMoments) do
-      self.weakDivision:advance(0.0, 0.0, self.weakMomentOpFields[mom], {self.diagnosticMomentFields[mom]})
+      self.weakDivision:advance(0.0, self.weakMomentOpFields[mom], {self.diagnosticMomentFields[mom]})
       if self.weakMomentScaleFac[mom] then self.diagnosticMomentFields[mom]:scale(self.weakMomentScaleFac[mom]) end
    end
 end

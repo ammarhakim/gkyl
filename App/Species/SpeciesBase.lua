@@ -31,7 +31,7 @@ function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
 function SpeciesBase:readRestart() return 0.0 end
-function SpeciesBase:advance(tCurr, calcCflFlag, fIn, emIn, fRhsOut)
+function SpeciesBase:advance(tCurr, fIn, emIn, fRhsOut)
 end
 function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut)
    return true, GKYL_MAX_DOUBLE

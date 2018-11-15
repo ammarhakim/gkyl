@@ -97,21 +97,21 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          evaluate = rho1Func,
          projectOnGhosts = true
       }
-      project1:advance(0.0, 0.0, {}, {self.rho1})
+      project1:advance(0.0, {}, {self.rho1})
       local project2 = Updater.ProjectOnBasis {
          onGrid = self.grid,
          basis = self.basis,
          evaluate = rho2Func,
          projectOnGhosts = true
       }
-      project2:advance(0.0, 0.0, {}, {self.rho2})
+      project2:advance(0.0, {}, {self.rho2})
       local project3 = Updater.ProjectOnBasis {
          onGrid = self.grid,
          basis = self.basis,
          evaluate = rho3Func,
          projectOnGhosts = true
       }
-      project3:advance(0.0, 0.0, {}, {self.rho3})
+      project3:advance(0.0, {}, {self.rho3})
 
       -- create solver for gyroaveraging potentials
       self.emGyavgSlvr = Updater.FemGyroaverage {
@@ -256,7 +256,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
 
-function GkSpecies:advance(tCurr, calcCflFlag, species, emIn, inIdx, outIdx)
+function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
@@ -264,12 +264,13 @@ function GkSpecies:advance(tCurr, calcCflFlag, species, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
+      self.solver:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       if self.positivityRescale then 
-         self.posRescaler:advance(tCurr, self.cflRateByCell, {fIn}, {self.fPos}) 
+         self.posRescaler:advance(tCurr, {fIn}, {self.fPos}) 
          if(tCurr>0.0) then self:applyBc(tCurr, self.fPos) end
-         self.solver:advance(tCurr, self.cflRateByCell, {self.fPos, em, emFunc, emGy}, {fRhsOut})
+         self.solver:advance(tCurr, {self.fPos, em, emFunc, emGy}, {fRhsOut})
       else
-         self.solver:advance(tCurr, self.cflRateByCell, {fIn, em, emFunc, emGy}, {fRhsOut})
+         self.solver:advance(tCurr, {fIn, em, emFunc, emGy}, {fRhsOut})
       end
    else
       fRhsOut:clear(0.0) -- no RHS
@@ -279,7 +280,8 @@ function GkSpecies:advance(tCurr, calcCflFlag, species, emIn, inIdx, outIdx)
    if not self.solverStep2 then -- if step2, wait to do collisions and sources
       if self.evolveCollisions then
          for _, c in pairs(self.collisions) do
-            c:advance(tCurr, self.cflRateByCell, fIn, species, fRhsOut)
+            c.collisionSlvr:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+            c:advance(tCurr, fIn, species, fRhsOut)
             -- the full 'species' list is needed for the cross-species
             -- collisions
          end
@@ -295,7 +297,7 @@ function GkSpecies:advance(tCurr, calcCflFlag, species, emIn, inIdx, outIdx)
    self:applyBc(tCurr, fRhsOut)
 end
 
-function GkSpecies:advanceStep2(tCurr, calcCflFlag, species, emIn, inIdx, outIdx)
+function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
@@ -303,10 +305,11 @@ function GkSpecies:advanceStep2(tCurr, calcCflFlag, species, emIn, inIdx, outIdx
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
+      self.solverStep2:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       if self.positivityRescale then 
-         self.solverStep2:advance(tCurr, self.cflRateByCell, {self.fPos, em, emFunc}, {fRhsOut})
+         self.solverStep2:advance(tCurr, {self.fPos, em, emFunc}, {fRhsOut})
       else
-         self.solverStep2:advance(tCurr, self.cflRateByCell, {fIn, em, emFunc}, {fRhsOut})
+         self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
       end
    else
       fRhsOut:clear(0.0)  -- no RHS
@@ -314,7 +317,8 @@ function GkSpecies:advanceStep2(tCurr, calcCflFlag, species, emIn, inIdx, outIdx
 
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-	 c:advance(tCurr, self.cflRateByCell, fIn, species, fRhsOut)
+         c.collisionSlvr:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+	 c:advance(tCurr, fIn, species, fRhsOut)
 	 -- the full 'species' list is needed for the cross-species
 	 -- collisions
       end
@@ -488,7 +492,7 @@ function GkSpecies:calcDiagnosticWeakMoments()
    GkSpecies.super.calcDiagnosticWeakMoments(self)
    -- need to subtract m*Upar^2 from GkTemp and GkTpar
    if self.diagnosticWeakMoments["GkTemp"] or self.diagnosticWeakMoments["GkTpar"] then
-      self.weakMultiplication:advance(0.0, 0.0,
+      self.weakMultiplication:advance(0.0,
            {self.diagnosticMomentFields["GkUpar"], self.diagnosticMomentFields["GkUpar"]}, 
            {self.momDensityAux})
    end
@@ -502,13 +506,13 @@ end
 
 function GkSpecies:calcDiagnosticAuxMoments()
    if self.diagnosticMomentFields["GkBeta"] then
-      self.weakMultiplication:advance(0.0, 0.0, 
+      self.weakMultiplication:advance(0.0, 
            {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkTemp"]}, 
            {self.diagnosticMomentFields["GkBeta"]})
-      self.weakMultiplication:advance(0.0, 0.0, 
+      self.weakMultiplication:advance(0.0, 
            {self.diagnosticMomentFields["GkBeta"], self.bmagInv}, 
            {self.diagnosticMomentFields["GkBeta"]})
-      self.weakMultiplication:advance(0.0, 0.0, 
+      self.weakMultiplication:advance(0.0, 
            {self.diagnosticMomentFields["GkBeta"], self.bmagInv}, 
            {self.diagnosticMomentFields["GkBeta"]})
       self.diagnosticMomentFields["GkBeta"]:scale(2*Constants.MU0)
@@ -637,9 +641,9 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
       end
       
       if self.collisions then 
-         self.threeMomentsCalc:advance(tCurr, nil, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+         self.threeMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
       else
-         self.numDensityCalc:advance(tCurr, nil, {fIn}, { self.numDensity })
+         self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
       end
 
       if self.deltaF then
@@ -664,7 +668,7 @@ function GkSpecies:getNumDensity(rkIdx)
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
       end
-      self.numDensityCalc:advance(nil, nil, {self:rkStepperFields()[rkIdx]}, { self.numDensityAux })
+      self.numDensityCalc:advance(nil, {self:rkStepperFields()[rkIdx]}, { self.numDensityAux })
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
       end
@@ -687,7 +691,7 @@ function GkSpecies:getMomDensity(rkIdx)
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
       end
-      self.momDensityCalc:advance(nil, nil, {self:rkStepperFields()[rkIdx]}, { self.momDensityAux })
+      self.momDensityCalc:advance(nil, {self:rkStepperFields()[rkIdx]}, { self.momDensityAux })
       if self.deltaF then
         self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
       end

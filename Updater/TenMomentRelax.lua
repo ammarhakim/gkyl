@@ -74,9 +74,10 @@ function TenMomentRelax:init(tbl)
 end
 
 -- advance method
-function TenMomentRelax:_advance(tCurr, dt, inFld, outFld,
+function TenMomentRelax:_advance(tCurr, inFld, outFld,
    staticEmFld, KFld)
    local grid = self._onGrid
+   local dt = self._dt
  
    local fFld = outFld[1]
    local emFld

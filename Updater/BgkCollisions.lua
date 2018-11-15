@@ -49,7 +49,7 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function BgkCollisions:_advance(tCurr, cflRateByCell, inFld, outFld)
+function BgkCollisions:_advance(tCurr, inFld, outFld)
    local numPhaseDims = self._phaseGrid:ndim()
    local numConfDims = self._confGrid:ndim()
    local numPhaseBasis = self._phaseBasis:numBasis()

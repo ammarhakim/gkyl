@@ -75,13 +75,15 @@ function HyperDisCont:init(tbl)
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRangeDecomp = {} -- perp ranges in each direction      
-   
+
    return self
 end
 
 -- advance method
-function HyperDisCont:_advance(tCurr, cflRateByCell, inFld, outFld)
+function HyperDisCont:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
+   local dt = self._dt
+   local cflRateByCell = self._cflRateByCell
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
    local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
@@ -129,6 +131,7 @@ function HyperDisCont:_advance(tCurr, cflRateByCell, inFld, outFld)
    -- clear output field before computing vol/surf increments
    if self._clearOut then qRhsOut:clear(0.0) end
    -- accumulate contributions from volume and surface integrals
+   local cflRate
    for _, dir in ipairs(self._updateDirs) do
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
@@ -178,12 +181,12 @@ function HyperDisCont:_advance(tCurr, cflRateByCell, inFld, outFld)
             cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellPtr)
 
 	    if firstDir and i<=dirUpIdx-1 then
-	       local cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
+	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
                cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + cflRate
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
-		  dir, cfla, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		  dir, cflRateByCellPtr:data()[0]*dt, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then

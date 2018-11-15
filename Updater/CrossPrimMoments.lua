@@ -104,7 +104,7 @@ function CrossPrimMoments:init(tbl)
 end
 
 -- advance method
-function CrossPrimMoments:_advance(tCurr, cflRateByCell, inFld, outFld)
+function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
    -- Need to allow the cases of ei and ie collisions,

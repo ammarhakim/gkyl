@@ -54,7 +54,7 @@ function test_solve1d(nz, p, writeMatrix)
                     return  1+a*z^2+b*z^4
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -70,7 +70,7 @@ function test_solve1d(nz, p, writeMatrix)
                     return z^2/2+a*z^4/12+b*z^6/30+c0*z+c1
                  end
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -80,7 +80,7 @@ function test_solve1d(nz, p, writeMatrix)
 
    print("Solving...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("1D parallel Poisson solve took total of ", t2-t1, " s\n")
 
@@ -103,7 +103,7 @@ function test_solve1d(nz, p, writeMatrix)
      quantity = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -145,7 +145,7 @@ function test_smooth1d(nz, p, writeMatrix)
                     return math.cos(2*math.pi*2*z)
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -155,7 +155,7 @@ function test_smooth1d(nz, p, writeMatrix)
 
    print("Smoothing...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("1D parallel Poisson smooth took total of ", t2-t1, " s\n")
 
@@ -178,7 +178,7 @@ function test_smooth1d(nz, p, writeMatrix)
      quantity = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -189,7 +189,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    print()
    print("Testing 3D parallel Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0},
+      lower = {0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -222,7 +222,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
                     return  1+a*z^2+b*z^4
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -238,7 +238,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
                     return z^2/2+a*z^4/12+b*z^6/30+c0*z+c1
                  end
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -248,7 +248,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    print("Solving...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    io.write("3D parallel Poisson solve took total of ", t2-t1, " s\n")
 
@@ -271,7 +271,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
      quantity = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])
@@ -282,7 +282,7 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    print()
    print("Testing 3D parallel Poisson smooth...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0},
+      lower = {0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -316,7 +316,7 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
                     return  1+a*z^2+b*z^4
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -327,7 +327,7 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
    phiModal:copy(srcModal)
    print("Smoothing...")
    local t1 = os.clock()
-   poisson:advance(0.,0.,{phiModal},{phiModal})
+   poisson:advance(0.,{phiModal},{phiModal})
    local t2 = os.clock()
    io.write("3D parallel Poisson smooth took total of ", t2-t1, " s\n")
 
@@ -350,7 +350,7 @@ function test_smooth3d(nx, ny, nz, p, writeMatrix)
      quantity = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    io.write("Average RMS error = ", math.sqrt(lv[1]), "\n")
    return math.sqrt(lv[1])

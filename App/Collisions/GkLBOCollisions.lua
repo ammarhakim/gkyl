@@ -177,14 +177,14 @@ function GkLBOCollisions:createSolver(funcField)
    self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
 
-function GkLBOCollisions:advance(tCurr, cflRateByCell, fIn, species, fRhsOut)
+function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom = species[self.speciesName]:fluidMoments()
 
    if self.selfCollisions then
       local tmEvalMomStart = Time.clock()
       -- Compute primitive moments velocity and vthSq=T/m from zeroth,
       -- first and second moments, and distribution function.
-      self.primMomSelf:advance(0.0, 0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
+      self.primMomSelf:advance(0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
                                          {self.uPar,self.vthSq})
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
@@ -213,15 +213,15 @@ function GkLBOCollisions:advance(tCurr, cflRateByCell, fIn, species, fRhsOut)
 
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, nil, {selfMom[1], self.vthSq},{self.nuFld})
+         self.spitzerNu:advance(0.0, {selfMom[1], self.vthSq},{self.nuFld})
 
          -- Compute increment from collisions and accumulate it into output.
          self.collisionSlvr:advance(
-            tCurr, cflRateByCell, {fIn, self.bmagInv, self.uPar, self.vthSq, self.nuFld}, {self.collOut})
+            tCurr, {fIn, self.bmagInv, self.uPar, self.vthSq, self.nuFld}, {self.collOut})
       else
          -- Compute increment from collisions and accumulate it into output.
          self.collisionSlvr:advance(
-            tCurr, cflRateByCell, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
+            tCurr, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
       end
 
       fRhsOut:accumulate(1.0, self.collOut)

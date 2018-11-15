@@ -114,7 +114,7 @@ function ProjectOnBasis:init(tbl)
 end
 
 -- advance method
-function ProjectOnBasis:_advance(tCurr, cflRateByCell, inFld, outFld)
+function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local qOut = assert(outFld[1], "ProjectOnBasis.advance: Must specify an output field")
 

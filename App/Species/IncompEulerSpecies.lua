@@ -38,7 +38,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
    }
 
    if self.positivity then 
-      self.positivityRescale = Updater.PositivityRescale {
+      self.posRescaler = Updater.PositivityRescale {
          onGrid = self.grid,
          basis = self.basis,
       }
