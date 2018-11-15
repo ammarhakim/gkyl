@@ -149,7 +149,7 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
 
    -- These store the corrections to momentum and energy
    -- from the (velocity) boundary surface integrals.
-   local cMomB    = Lin.Vec(self._numBasisC*self._vDim)
+   local cMomB    = Lin.Vec(self._numBasisC*self._uDim)
    local cEnergyB = Lin.Vec(self._numBasisC)
 
    -- Cell index, center and length left and right of a cell-boundary.
@@ -164,6 +164,9 @@ function SelfPrimMoments:_advance(tCurr, dt, inFld, outFld)
       m1fld:fill(m1fldIndexer(confIdx), m1fldItr)
       uOut:fill(uOutIndexer(confIdx), uOutItr)
       vtSqOut:fill(vtSqOutIndexer(confIdx), vtSqOutItr)
+      if (self._isGkLBO) then
+         self.bmag:fill(self.bmagIndexer(confIdx), self.bmagItr)
+      end
 
       -- Compute the corrections to u and vtSq due to 
       -- finite velocity grid to ensure conservation.
