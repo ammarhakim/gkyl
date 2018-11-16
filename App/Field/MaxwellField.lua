@@ -16,6 +16,7 @@ local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
+local ffi = require "ffi"
 
 -- MaxwellField ---------------------------------------------------------------------
 --
@@ -169,6 +170,17 @@ function MaxwellField:alloc(nRkDup)
       method = self.ioMethod,
    }
 
+   -- array with one component per cell to store cflRate in each cell
+   self.cflRateByCell = DataStruct.Field {
+	onGrid = self.grid,
+	numComponents = 1,
+	ghost = {0, 0},
+   }
+   self.cflRateByCell:clear(0.0)
+   self.cflRatePtr = self.cflRateByCell:get(1)
+   self.cflRateIdxr = self.cflRateByCell:genIndexer()
+   self.dt = ffi.new("double[2]")
+   self.dtGlobal = ffi.new("double[2]")
 end
 
 function MaxwellField:createSolver()
@@ -203,8 +215,8 @@ function MaxwellField:createSolver()
          evaluate = self._inOutFunc,
          projectOnGhosts = true,
       }
-      project:advance(0.0, 0.0, {}, {self._inOut})
-      self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", self.name), tm, 0)
+      project:advance(0.0, {}, {self._inOut})
+      self.fieldIo:write(self._inOut, string.format("%s_inOut.bp", self.name), 0, 0)
    end
 
       local ndim = self.grid:ndim()
@@ -343,8 +355,8 @@ function MaxwellField:initField()
       basis = self.basis,
       evaluate = self.initFunc
    }
-   project:advance(0.0, 0.0, {}, {self.em[1]})
-   self:applyBc(0.0, 0.0, self.em[1])
+   project:advance(0.0, {}, {self.em[1]})
+   self:applyBc(0.0, self.em[1])
 end
 
 function MaxwellField:write(tm, force)
@@ -353,10 +365,10 @@ function MaxwellField:write(tm, force)
       -- compute EM energy integrated over domain
       if self.calcIntEMQuantFlag == false then
          if self.calcIntEMQuantTrigger(tm) then
-            self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
+            self.emEnergyCalc:advance(tm, { self.em[1] }, { self.emEnergy })
          end
       else
-         self.emEnergyCalc:advance(tm, 0.0, { self.em[1] }, { self.emEnergy })
+         self.emEnergyCalc:advance(tm, { self.em[1] }, { self.emEnergy })
       end
       -- time computation of integrated moments
       self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
@@ -386,7 +398,7 @@ end
 
 function MaxwellField:readRestart()
    local tm, fr = self.fieldIo:read(self.em[1], "field_restart.bp")
-   self:applyBc(tm, 0.0, self.em[1])
+   self:applyBc(tm, self.em[1])
    self.em[1]:sync() -- must get all ghost-cell data correct
      
    self.emEnergy:read("fieldEnergy_restart.bp", tm)
@@ -415,7 +427,29 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function MaxwellField:accumulateCurrent(dt, current, em)
+function MaxwellField:suggestDt()
+   -- loop over local region 
+   self.dt[0] = GKYL_MAX_DOUBLE
+   local tId = self.grid:subGridSharedId() -- local thread ID
+   local localRange = self.cflRateByCell:localRange()
+   for idx in localRange:colMajorIter() do
+      -- calculate local min dt from local cflRates
+      self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
+      self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
+   end
+
+   -- all reduce to get global min dt
+   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, self.grid:commSet().comm)
+
+   return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
+end
+
+function MaxwellField:clearCFL()
+   -- clear cflRateByCell for next cfl calculation
+   self.cflRateByCell:clear(0.0)
+end
+
+function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
 
    -- Barrier befor doing accumulating current
@@ -424,20 +458,20 @@ function MaxwellField:accumulateCurrent(dt, current, em)
    local tmStart = Time.clock()
 
    -- these many current components are supplied
-   local cItr, eItr = current:get(1), em:get(1)
-   local cIdxr, eIdxr = current:genIndexer(), em:genIndexer()
+   local cItr, eItr = current:get(1), emRhs:get(1)
+   local cIdxr, eIdxr = current:genIndexer(), emRhs:genIndexer()
 
-   for idx in em:localRangeIter() do
+   for idx in emRhs:localRangeIter() do
       current:fill(cIdxr(idx), cItr)
-      em:fill(eIdxr(idx), eItr)
+      emRhs:fill(eIdxr(idx), eItr)
       for i = 1, current:numComponents() do
-   	 eItr[i] = eItr[i]-dt/self.epsilon0*cItr[i]
+         eItr[i] = eItr[i]-1.0/self.epsilon0*cItr[i]
       end
    end
    self.tmCurrentAccum = self.tmCurrentAccum + Time.clock()-tmStart
 end
 
-function MaxwellField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
+function MaxwellField:advance(tCurr, species, inIdx, outIdx)
    if self._isFirst then
       -- create field for total current density. need to do this here because
       -- field object does not know about vdim
@@ -454,43 +488,42 @@ function MaxwellField:forwardEuler(tCurr, dt, species, inIdx, outIdx)
    end
 
    local emIn = self:rkStepperFields()[inIdx]
-   local emOut = self:rkStepperFields()[outIdx]
+   local emRhsOut = self:rkStepperFields()[outIdx]
    if self.evolve then
-      local mys, mydt = self.fieldSlvr:advance(tCurr, dt, {emIn}, {emOut})
+      self.fieldSlvr:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut})
       if self.currentDens then -- no currents for source-free Maxwell
 	 self.currentDens:clear(0.0)
 	 for nm, s in pairs(species) do
 	    self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
 	 end
-	 self:accumulateCurrent(dt, self.currentDens, emOut)
+	 self:accumulateCurrent(self.currentDens, emRhsOut)
       end
       
       -- apply BCs
-      self:applyBc(tCurr, dt, emOut)
-
-      return mys, mydt
+      self:applyBc(tCurr, emRhsOut)
    else
-      emOut:copy(emIn) -- just copy stuff over
-      return true, GKYL_MAX_DOUBLE
+      emRhsOut:clear(0.0) -- no RHS
    end
 end
 
 function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
-      self:applyBc(tCurr, dt, fIn)
-      status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, dt, {fIn}, {fOut})
+      self:applyBc(tCurr, fIn)
+      self.fieldHyperSlvr[dir]:setupDtAndCflRate(dt, nil)
+      status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
    else
       fOut:copy(fIn)
    end
    return status, dtSuggested   
 end
 
-function MaxwellField:applyBc(tCurr, dt, emIn)
+function MaxwellField:applyBc(tCurr, emIn)
    local tmStart = Time.clock()
    if self.hasNonPeriodicBc then
       for _, bc in ipairs(self.boundaryConditions) do
-	 bc:advance(tCurr, dt, {}, {emIn})
+	 bc:advance(tCurr, {}, {emIn})
       end
    end   
    emIn:sync()
@@ -588,8 +621,8 @@ function FuncMaxwellField:createDiagnostics()
 end
 
 function FuncMaxwellField:initField()
-   self.fieldSlvr:advance(0.0, 0.0, {}, {self.em})
-   self:applyBc(0.0, 0.0, self.em)
+   self.fieldSlvr:advance(0.0, {}, {self.em})
+   self:applyBc(0.0, self.em)
 end
 
 function FuncMaxwellField:write(tm, force)
@@ -623,15 +656,14 @@ function FuncMaxwellField:rkStepperFields()
    return { self.em, self.em, self.em, self.em }
 end
 
-function FuncMaxwellField:forwardEuler(tCurr, dt)
+function FuncMaxwellField:advance(tCurr)
    local emOut = self:rkStepperFields()[1]
    if self.evolve then
-      self.fieldSlvr:advance(tCurr, dt, {}, {emOut})
+      self.fieldSlvr:advance(tCurr, {}, {emOut})
    end
-   return true, GKYL_MAX_DOUBLE
 end
 
-function FuncMaxwellField:applyBc(tCurr, dt, emIn)
+function FuncMaxwellField:applyBc(tCurr, emIn)
    emIn:sync()
 end
 

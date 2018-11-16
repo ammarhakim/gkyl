@@ -211,7 +211,7 @@ local function buildApplication(self, tbl)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
 	 if fld.isElliptic then
-	    local myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
+	    myCfl = tbl.cfl and tbl.cfl or cflFrac/(cdim*(2*polyOrder+1))
 	 end
 	 cflMin = math.min(cflMin, myCfl)
 	 fld:setCfl(myCfl)
@@ -270,7 +270,7 @@ local function buildApplication(self, tbl)
 
    -- initialize field (sometimes requires species to have been initialized)
    for nm, s in pairs(species) do
-      s:calcCouplingMoments(0, 0, 1)
+      s:calcCouplingMoments(0.0, 1)
    end
    field:createSolver(species, funcField)
    field:initField(species)
@@ -279,8 +279,8 @@ local function buildApplication(self, tbl)
    for nm, s in pairs(species) do
       -- this is a dummy forwardEuler call because some BCs require 
       -- auxFields to be set, which is controlled by species solver
-      s:forwardEuler(0, 0, species, {field, funcField}, 1, 2)
-      s:applyBc(0, 0, s:rkStepperFields()[1])
+      s:advance(0, species, {field, funcField}, 1, 2)
+      s:applyBc(0, s:rkStepperFields()[1])
    end
 
    -- function to write data to file
@@ -306,7 +306,7 @@ local function buildApplication(self, tbl)
       for _, s in pairs(species) do
          -- this is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver
-         s:forwardEuler(0, 0, species, {field, funcField}, 1, 2)
+         s:advance(0, species, {field, funcField}, 1, 2)
 	 rTime = s:readRestart()
       end
       return rTime
@@ -325,54 +325,6 @@ local function buildApplication(self, tbl)
    local step2 = false
    if field.step2 ~= nil then step2 = field.step2 end
 
-   -- function to take a single forward-euler time-step
-   local function forwardEuler(tCurr, dt, inIdx, outIdx)
-      local status, dtSuggested = true, GKYL_MAX_DOUBLE
-
-      -- update EM field
-      for nm, s in pairs(species) do
-	 -- compute moments needed in coupling with fields and
-	 -- collisions (the species should update internal datastructures). 
-         s:calcCouplingMoments(tCurr, dt, inIdx)
-      end
-      -- note that this can be either an elliptic solve, which updates inIdx
-      -- or a hyperbolic solve, which updates outIdx, or a combination of both
-      local myStatus, myDtSuggested = field:forwardEuler(tCurr, dt, species, inIdx, outIdx)
-      status = status and myStatus
-      dtSuggested = math.min(dtSuggested, myDtSuggested)
-
-      -- compute functional field (if any)
-      funcField:forwardEuler(tCurr, dt)
-      
-      -- update species
-      for nm, s in pairs(species) do
-         local myStatus, myDtSuggested = s:forwardEuler(tCurr, dt, species, {field, funcField}, inIdx, outIdx)
-
-	 status = status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-      end
-
-      -- some systems (e.g. EM GK) require a second step to complete the forward Euler
-      if step2 then      
-         -- update EM field.. step 2 (if necessary). 
-         -- note: no calcCouplingMoments call because field:forwardEulerStep2 either reuses already calculated moments, 
-         --       or other moments are calculated in field:forwardEulerStep2
-         local myStatus, myDtSuggested = field:forwardEulerStep2(tCurr, dt, species, inIdx, outIdx)
-         status = status and myStatus
-         dtSuggested = math.min(dtSuggested, myDtSuggested)
-
-         -- update species.. step 2 (if necessary)
-         for nm, s in pairs(species) do
-            local myStatus, myDtSuggested = s:forwardEulerStep2(tCurr, dt, species, {field, funcField}, inIdx, outIdx)
-
-            status = status and myStatus
-            dtSuggested = math.min(dtSuggested, myDtSuggested)
-         end
-      end
-
-      return status, dtSuggested
-   end
-
    -- various functions to copy/increment fields
    local function copy(outIdx, aIdx)
       for nm, s in pairs(species) do
@@ -387,6 +339,65 @@ local function buildApplication(self, tbl)
       field:combineRk(outIdx, a, aIdx, ...)
    end
 
+   -- function to take a single forward-euler time-step
+   local function forwardEuler(tCurr, dt, inIdx, outIdx)
+      local calcCflFlag = false
+      local dtSuggested
+      if dt == nil then calcCflFlag = true end
+      field:clearCFL()
+      for nm, s in pairs(species) do
+         s:clearCFL()
+      end
+
+      -- update EM field
+      for nm, s in pairs(species) do
+	 -- compute moments needed in coupling with fields and
+	 -- collisions (the species should update internal datastructures). 
+         s:calcCouplingMoments(tCurr, inIdx)
+      end
+      -- note that this can be either an elliptic solve, which updates inIdx
+      -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both
+      field:advance(tCurr, species, inIdx, outIdx)
+
+      -- compute functional field (if any)
+      funcField:advance(tCurr)
+      
+      -- update species
+      for nm, s in pairs(species) do
+         s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
+      end
+
+      -- some systems (e.g. EM GK) require a second step to complete the forward Euler
+      if step2 then      
+         -- update EM field.. step 2 (if necessary). 
+         -- note: no calcCouplingMoments call because field:forwardEulerStep2 either reuses already calculated moments, 
+         --       or other moments are calculated in field:forwardEulerStep2
+         field:advanceStep2(tCurr, species, inIdx, outIdx)
+
+         -- update species.. step 2 (if necessary)
+         for nm, s in pairs(species) do
+            s:advanceStep2(tCurr, species, {field, funcField}, inIdx, outIdx)
+         end
+      end
+
+      if calcCflFlag then
+         dtSuggested = tbl.tEnd - tCurr + 1e-20
+         if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
+         
+         dtSuggested = math.min(dtSuggested, field:suggestDt())
+         for nm, s in pairs(species) do
+            dtSuggested = math.min(dtSuggested, s:suggestDt())
+         end
+      else 
+         dtSuggested = dt -- from argument list
+      end
+      -- take forward Euler step in fields and species
+      -- NOTE: order of these arguments matters... outIdx must come before inIdx
+      combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+
+      return dtSuggested
+   end
+
    -- various time-steppers. See gkyl docs for formulas for various
    -- SSP-RK schemes:
    -- http://gkyl.readthedocs.io/en/latest/dev/ssp-rk.html
@@ -394,93 +405,79 @@ local function buildApplication(self, tbl)
    local stepperTime = 0.0
 
    -- function to advance solution using RK1 scheme (UNSTABLE! Only for testing)
-   function timeSteppers.rk1(tCurr, dt)
-      local status, dtSuggested
-      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
-      if status == false then return status, dtSuggested end
+   function timeSteppers.rk1(tCurr)
+      local dt = forwardEuler(tCurr, nil, 1, 2)
       local tm = Time.clock()
       copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      return status, dtSuggested 
+      return true, dt
    end
 
    -- function to advance solution using SSP-RK2 scheme (mildly
    -- unstable and in general should not be used)
-   function timeSteppers.rk2(tCurr, dt)
-      local status, dtSuggested
+   function timeSteppers.rk2(tCurr)
       -- RK stage 1
-      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
-      if status == false then return status, dtSuggested end
+      local dt = forwardEuler(tCurr, nil, 1, 2)
 
       -- RK stage 2
-      status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
-      if status == false then return status, dtSuggested end
+      forwardEuler(tCurr+dt, dt, 2, 3)
       local tm = Time.clock()
       combine(2, 1.0/2.0, 1, 1.0/2.0, 3)
       copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      return status, dtSuggested
+      return true, dt
    end
 
    -- function to advance solution using SSP-RK3 scheme
-   function timeSteppers.rk3(tCurr, dt)
-      local status, dtSuggested, tm
+   function timeSteppers.rk3(tCurr)
       -- RK stage 1
-      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
-      if status == false then return status, dtSuggested end
+      local dt = forwardEuler(tCurr, nil, 1, 2)
 
       -- RK stage 2
-      status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
-      if status == false then return status, dtSuggested end
-      tm = Time.clock()
+      forwardEuler(tCurr+dt, dt, 2, 3)
+      local tm = Time.clock()
       combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
-      status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 2, 3)
-      if status == false then return status, dtSuggested end
+      forwardEuler(tCurr+dt/2, dt, 2, 3)
       tm = Time.clock()
       combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
       copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      return status, dtSuggested
+      return true, dt
    end
 
    -- function to advance solution using 4-stage SSP-RK3 scheme
-   function timeSteppers.rk3s4(tCurr, dt)
-      local status, dtSuggested, tm
+   function timeSteppers.rk3s4(tCurr)
       -- RK stage 1
-      status, dtSuggested = forwardEuler(tCurr, dt, 1, 2)
-      if status == false then return status, dtSuggested end
-      tm = Time.clock()
+      local dt = forwardEuler(tCurr, nil, 1, 2)
+      local tm = Time.clock()
       combine(3, 1.0/2.0, 1, 1.0/2.0, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 2
-      status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 3, 4)
-      if status == false then return status, dtSuggested end
+      forwardEuler(tCurr+dt/2, dt, 3, 4)
       tm = Time.clock()
       combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 3
-      status, dtSuggested = forwardEuler(tCurr+dt, dt, 2, 3)
-      if status == false then return status, dtSuggested end
+      forwardEuler(tCurr+dt, dt, 2, 3)
       tm = Time.clock()
       combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
       -- RK stage 4
-      status, dtSuggested = forwardEuler(tCurr+dt/2, dt, 4, 3)
-      if status == false then return status, dtSuggested end
+      forwardEuler(tCurr+dt/2, dt, 4, 3)
       tm = Time.clock()
       combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      return status, dtSuggested
+      return true, dt
    end
 
    -- update solution in specified direction
@@ -571,7 +568,6 @@ local function buildApplication(self, tbl)
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
       
-
       return status, dtSuggested
    end
 
@@ -647,8 +643,14 @@ local function buildApplication(self, tbl)
       -- main simulation loop
       while true do
 	 -- call time-stepper
-	 local status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
-   
+         local status, dtSuggested
+         if timeStepperNm == "fvDimSplit" then
+	    status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
+         else
+            status, myDt = timeSteppers[timeStepperNm](tCurr)
+            dtSuggested = myDt
+         end
+    
          -- if stopfile exists, break
          if (file_exists(stopfile)) then
             writeData(tCurr+myDt, true)
@@ -658,7 +660,10 @@ local function buildApplication(self, tbl)
 
 	 -- check status and determine what to do next
 	 if status then
-            if first then initDt = dtSuggested; first = false end
+            if first then 
+               log(string.format(" Step 0 at time 0. Time step %g. Completed 0%%\n", myDt))
+               initDt = dtSuggested; first = false
+            end
 	    writeLogMessage(tCurr+myDt)
 	    -- we must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart

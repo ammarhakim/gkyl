@@ -104,7 +104,7 @@ function DistFuncMomentCalc:init(tbl)
 end
 
 -- advance method
-function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
+function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local distf, mom1 = inFld[1], outFld[1]
    local mom2, mom3
@@ -186,8 +186,6 @@ function DistFuncMomentCalc:_advance(tCurr, dt, inFld, outFld)
       end
    end
    if self.momfac ~= 1.0 then mom1:scale(self.momfac) end
-   
-   return true, GKYL_MAX_DOUBLE
 end
 
 return DistFuncMomentCalc

@@ -132,8 +132,9 @@ function TenMomentSrc:init(tbl)
 end
 
 -- advance method
-function TenMomentSrc:_advance(tCurr, dt, inFld, outFld)
+function TenMomentSrc:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
+   local dt = self._dt
    local nFluids = self._sd.nFluids
    
    -- check if correct number of inputs were provided
