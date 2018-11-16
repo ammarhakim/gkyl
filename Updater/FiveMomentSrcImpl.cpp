@@ -372,7 +372,13 @@ gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, 
   double By = (em[BY] + staticEm[BY]);
   double Bz = (em[BZ] + staticEm[BZ]);
   double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
-  Eigen::Vector3d b(Bx / Bmag, By / Bmag, Bz / Bmag);
+  Eigen::Vector3d b(0., 0., 0.);
+  if (Bmag > 0.)
+  {
+    b[0] = Bx / Bmag;
+    b[1] = By / Bmag;
+    b[2] = Bz / Bmag;
+  }
 
   std::vector<double> qbym(nFluids); 
   std::vector<Eigen::Vector3d> J(nFluids); 
