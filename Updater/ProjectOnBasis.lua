@@ -114,7 +114,7 @@ function ProjectOnBasis:init(tbl)
 end
 
 -- advance method
-function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
+function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local qOut = assert(outFld[1], "ProjectOnBasis.advance: Must specify an output field")
 
@@ -171,7 +171,6 @@ function ProjectOnBasis:_advance(tCurr, dt, inFld, outFld)
    qOut:setBasisId(self._basis:id())
 
    self._isFirst = false
-   return true, GKYL_MAX_DOUBLE
 end
 
 return ProjectOnBasis

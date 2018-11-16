@@ -11,7 +11,6 @@ local DataStruct = require "DataStruct"
 local Basis = require "Basis"
 local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
-local CalcDiagnostic = require "Updater.CalcDiagnostic"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Mpi = require "Comm.Mpi"
 
@@ -77,7 +76,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
                     return t1+t2
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -96,7 +95,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
                     return t1*t2
                  end
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -106,7 +105,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
 
    log(string.format("Solving..."))
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    log(string.format("2D Poisson solve took total of %f s", t2-t1))
 
@@ -129,7 +128,7 @@ function test_solve2d(nx, ny, p, writeMatrix)
      quantity = "V2"
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    log(string.format("Average RMS error = %e", math.sqrt(lv[1])))
    return math.sqrt(lv[1])
@@ -180,7 +179,7 @@ function test_solve2d_periodic(nx, ny, p)
                  return f/50.0
               end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -208,7 +207,7 @@ function test_solve2d_periodic(nx, ny, p)
       basis = basis,
       evaluate = initfunc,
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -218,7 +217,7 @@ function test_solve2d_periodic(nx, ny, p)
 
    log(string.format("Solving..."))
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    log(string.format("2D periodic Poisson solve took total of %f s", t2-t1))
 
@@ -241,7 +240,7 @@ function test_solve2d_periodic(nx, ny, p)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    log(string.format("Average RMS error = %e", math.sqrt(lv[1])))
    return math.sqrt(lv[1])
@@ -252,7 +251,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    local writeMatrix = writeMatrix or false
    log(string.format("\nTesting 3D Poisson solve..."))
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0},
+      lower = {0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
       decomposition = decomp3d,
@@ -293,7 +292,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
                     return (z+1)*(t1+t2)
                  end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
 	 onGrid = grid,
@@ -316,7 +315,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
                     return (z+1)*t1*t2
                  end
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -326,7 +325,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
 
    log(string.format("Solving..."))
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    log(string.format("3D Poisson solve took total of %f s ", t2-t1))
 
@@ -349,7 +348,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    log(string.format("Average RMS error = %e ", math.sqrt(lv[1])))
 
@@ -359,7 +358,7 @@ end
 function test_solve3d_periodic(nx, ny, nz, p)
    log(string.format("\nTesting 3D periodic Poisson solve..."))
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0, 0.0},
+      lower = {0.0, 0.0},
       upper = {2*math.pi, 2*math.pi, 2*math.pi},
       cells = {nx, ny, nz},
       decomposition = decomp3d,
@@ -401,7 +400,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
                  return f/50.0
               end
    }
-   initSrcModal:advance(0.,0.,{},{srcModal})
+   initSrcModal:advance(0.,{},{srcModal})
 
    -- calculate exact solution
    local exactSolModal = DataStruct.Field {
@@ -429,7 +428,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
       basis = basis,
       evaluate = initfunc,
    }
-   initExactSolModal:advance(0.,0.,{},{exactSolModal})
+   initExactSolModal:advance(0.,{},{exactSolModal})
 
    local phiModal = DataStruct.Field {
 	 onGrid = grid,
@@ -439,7 +438,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
 
    log(string.format("Solving..."))
    local t1 = os.clock()
-   poisson:advance(0.,0.,{srcModal},{phiModal})
+   poisson:advance(0.,{srcModal},{phiModal})
    local t2 = os.clock()
    log(string.format("3D periodic Poisson solve took total of %f s ", t2-t1))
 
@@ -462,7 +461,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
      quantity = 'V2',
    }
    local dynVec = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, 0.0, {err}, {dynVec})
+   calcInt:advance(0.0, {err}, {dynVec})
    local tm, lv = dynVec:lastData()
    log(string.format("Average RMS error = %e ", math.sqrt(lv[1])))
    return math.sqrt(lv[1])

@@ -33,7 +33,7 @@ function test_1()
    assert_equal(10, tenMoment:numEquations(), "No of equations")
    assert_equal(5, tenMoment:numWaves(), "No of waves")
 
-   local rho, u, v, w, pxx, pxy, pxz, pyy, pyz, pzz = 1.0, 0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0
+   local rho, u, v, w, pxx, pxy, pxz, pyy, pyz, pzz = 1.0, 0.5, 0.5, 0.5, 1.0, 0.0, 1.0, 0.0, 1.0
    local q = calcq({rho, u, v, w, pxx, pxy, pxz, pyy, pyz, pzz})
    local flux = Lin.Vec(10)
    tenMoment:flux(1, q, flux)
@@ -83,8 +83,8 @@ end
 function test_2()
    local tenMoment = TenMoment { }
 
-   local ql = calcq({1.0, 0.2, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0})
-   local qr = calcq({1.0, 0.1, 0.1, 0.1, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0})
+   local ql = calcq({1.0, 0.2, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0})
+   local qr = calcq({1.0, 0.1, 0.1, 0.1, 2.0, 0.0, 2.0, 0.0, 2.0})
 
    local meqn, mwaves = tenMoment:numEquations(), tenMoment:numWaves()
    
@@ -112,8 +112,8 @@ end
 function test_3()
    local tenMoment = TenMoment { }
 
-   local ql = calcq({1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0})
-   local qr = calcq({2.0, 2.0, 0.1, 2.0, 2.0, 0.0, 0.0, 2.0, 0.0, 2.0})
+   local ql = calcq({1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0})
+   local qr = calcq({2.0, 2.0, 0.1, 2.0, 2.0, 0.0, 2.0, 0.0, 2.0})
 
    local meqn, mwaves = tenMoment:numEquations(), tenMoment:numWaves()
    
@@ -141,8 +141,8 @@ end
 function test_4()
    local tenMoment = TenMoment { }
 
-   local ql = calcq({1.0, 0.0, 0.0, 0.0, 0.5e-4, 0.0, 0.0, 0.5e-4, 0.0, 0.0, 0.5e-4})
-   local qr = calcq({0.125, 0.0, 0.0, 0.0, 0.05e-4, 0.0, 0.0, 0.05e-4, 0.0, 0.0, 0.05e-4})
+   local ql = calcq({1.0, 0.0, 0.0, 0.5e-4, 0.0, 0.5e-4, 0.0, 0.5e-4})
+   local qr = calcq({0.125, 0.0, 0.0, 0.05e-4, 0.0, 0.05e-4, 0.0, 0.05e-4})
 
    local meqn, mwaves = tenMoment:numEquations(), tenMoment:numWaves()
    

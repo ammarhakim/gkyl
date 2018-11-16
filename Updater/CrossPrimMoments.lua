@@ -104,7 +104,7 @@ function CrossPrimMoments:init(tbl)
 end
 
 -- advance method
-function CrossPrimMoments:_advance(tCurr, dt, inFld, outFld)
+function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
    -- Need to allow the cases of ei and ie collisions,
@@ -183,8 +183,6 @@ function CrossPrimMoments:_advance(tCurr, dt, inFld, outFld)
          self._ieCrossPrimMomentsCalc(self._massRat, neFldItr:data(), UeFldItr:data(), vtSqeFldItr:data(), niFldItr:data(), UiFldItr:data(), vtSqiFldItr:data(), UieOutItr:data(), vtSqieOutItr:data())
       end
    end
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 return CrossPrimMoments

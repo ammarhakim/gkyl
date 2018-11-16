@@ -32,6 +32,7 @@ plasmaApp = Plasma.App {
       end,
       evolve = true, -- evolve species?
       applyPositivity = true,
+      positivityRescale = false,
    },
 
    -- field solver
