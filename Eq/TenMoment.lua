@@ -102,17 +102,18 @@ local tenMoment_mt = {
 	 fOut[dp[6]] = v[R]*v[d[U]]*v[d[W]]^2 + v[d[U]]*v[dp[PZZ]] + 2*v[d[W]]*v[dp[PXZ]]
       end,
       isPositive = function (self, q)
-	 return true
+          if isNan(q[1]) or q[1] < 0.0 then return false end
+          local pxx = q[5] - q[2]^2 / q[1]
+          if isNan(pxx) or pxx < 0.0 then return false end
+          local pyy = q[8] - q[3]^2 / q[1]
+          if isNan(pyy) or pyy < 0.0 then return false end
+          local pzz = q[10] - q[4]^2 / q[1]
+          if isNan(pzz) or pzz < 0.0 then return false end
+          return true
       end,
       rp = rp,
       qFluctuations = function (self, dir, ql, qr, waves, s, amdq, apdq)
 	 ffi.C.gkylTenMomentQFluct(waves:data(), s:data(), amdq:data(), apdq:data())
-      end,
-      checkInv = function(self, q)
-         return q[1] > 0. and
-                q[5] - q[2]^2 / q[1] > 0. and
-                q[8] - q[3]^2 / q[1] > 0. and
-                q[10] - q[4]^2 / q[1] > 0.
       end,
    }
 }

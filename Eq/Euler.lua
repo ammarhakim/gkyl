@@ -254,9 +254,6 @@ local euler_mt = {
 	    return qFluctuationsLax(self, dir, ql, qr, waves, s, amdq, apdq)
 	 end
       end,
-      checkInv = function(self, q)
-         return self:pressure(q) > 0. and q[1] > 0.
-      end,
    }
 }
 local EulerObj = ffi.metatype(ffi.typeof("EulerEqn_t"), euler_mt)
