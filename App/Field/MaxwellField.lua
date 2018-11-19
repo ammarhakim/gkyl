@@ -490,7 +490,7 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
    local emIn = self:rkStepperFields()[inIdx]
    local emRhsOut = self:rkStepperFields()[outIdx]
    if self.evolve then
-      self.fieldSlvr:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.fieldSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.fieldSlvr:advance(tCurr, {emIn}, {emRhsOut})
       if self.currentDens then -- no currents for source-free Maxwell
 	 self.currentDens:clear(0.0)
@@ -511,7 +511,7 @@ function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolve then
       self:applyBc(tCurr, fIn)
-      self.fieldHyperSlvr[dir]:setupDtAndCflRate(dt, nil)
+      self.fieldHyperSlvr[dir]:setDtAndCflRate(dt, nil)
       status, dtSuggested = self.fieldHyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
    else
       fOut:copy(fIn)
