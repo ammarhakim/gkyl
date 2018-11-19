@@ -239,6 +239,8 @@ function FemPerpPoisson:init(tbl)
      self.zDiscontToCont = FemParPoisson {
        onGrid = self._grid,
        basis = self._basis,
+       bcBack = tbl.bcBack,
+       bcFront = tbl.bcFront,
        smooth = true,
      }
    end
