@@ -71,6 +71,7 @@ load(modNm),
   for dir : 1 thru cdim+vdim do (
     printf(fh, "  double w~a = w[~a]; ~%", label[dir], dir-1)
   ),
+  printf(fh, "  double dfac_x2 = dfac_x*dfac_x; ~%"),
   if vdim>0 then (
     printf(fh, "  double wv2 = wv*wv; ~%"),
     printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%")
@@ -147,7 +148,7 @@ load(modNm),
     printf(fh, "  double alpha~a[~a]; ~%", label[d], length(bP)),
     alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)*derivfacsD),
     alphalabel : eval_string(sconcat(alpha, label[d])),
-    writeCExprsNoExpand1(alphalabel, gcfac(expand(facsum(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], alpha_k),derivfac)))),
+    writeCExprsNoExpand1(alphalabel, gcfac(expand(facsum(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], alpha_k),derivfac)))),
     flush_output(fh),
     
     alphaNoZero_k : doMakeExprLst(alpha_k, alphalabel),
@@ -299,9 +300,9 @@ load(modNm),
 )$
 
 pmax:2$
-em:true$
+em:false$
 
-for c : 1 thru 3 do (
+for c : 1 thru 1 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
 for p : 1 thru pmax do (

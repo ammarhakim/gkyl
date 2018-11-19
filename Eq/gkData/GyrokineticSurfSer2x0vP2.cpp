@@ -1,19 +1,20 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
   double dfac_y = 2.0/dxv[1]; 
   double wx = w[0]; 
   double wy = w[1]; 
+  double dfac_x2 = dfac_x*dfac_x; 
   double q2 = q_*q_; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -0.125*BmagInv[0]*(3.872983346207417*Phi[6]-3.0*Phi[3]+1.732050807568877*Phi[2])*dfac_y; 
+  double alpha0 = -0.125*geoZ[0]*(3.872983346207417*Phi[6]-3.0*Phi[3]+1.732050807568877*Phi[2])*dfac_y; 
 
   double alpha[3]; 
-  alpha[0] = (-1.369306393762915*BmagInv[0]*Phi[6]*dfac_y)+1.060660171779821*BmagInv[0]*Phi[3]*dfac_y-0.6123724356957944*BmagInv[0]*Phi[2]*dfac_y; 
-  alpha[1] = 2.371708245126284*BmagInv[0]*Phi[7]*dfac_y-1.369306393762915*BmagInv[0]*Phi[5]*dfac_y; 
+  alpha[0] = -0.3535533905932737*geoZ[0]*(3.872983346207417*Phi[6]-3.0*Phi[3]+1.732050807568877*Phi[2])*dfac_y; 
+  alpha[1] = 0.3535533905932737*geoZ[0]*(6.708203932499369*Phi[7]-3.872983346207417*Phi[5])*dfac_y; 
   double amax = 0.0; 
   bool upwind = false; 
   if(upwind) 
@@ -29,9 +30,9 @@ double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, con
 
 //
 // //
-  Ghat[0] = -0.25*((3.16227766016838*fr[4]-3.16227766016838*fl[4]-2.449489742783178*fr[1]-2.449489742783178*fl[1]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*amax-1.414213562373095*alpha[1]*favg[1]-1.414213562373095*alpha[0]*favg[0]); 
-  Ghat[1] = -0.01666666666666667*((47.43416490252569*fr[6]-47.43416490252569*fl[6]-36.74234614174767*fr[3]-36.74234614174767*fl[3]+21.21320343559643*fr[2]-21.21320343559643*fl[2])*amax-18.97366596101028*alpha[1]*favg[2]-21.21320343559643*alpha[0]*favg[1]-21.21320343559643*favg[0]*alpha[1]); 
-  Ghat[2] = 0.05*((12.24744871391589*fr[7]+12.24744871391589*fl[7]-7.071067811865476*fr[5]+7.071067811865476*fl[5])*amax+7.071067811865476*alpha[0]*favg[2]+6.324555320336761*alpha[1]*favg[1]); 
+  Ghat[0] = -0.25*((3.16227766016838*fr[4]-3.16227766016838*fl[4]-2.449489742783178*(fr[1]+fl[1])+1.414213562373095*fr[0]-1.414213562373095*fl[0])*amax-1.414213562373095*(alpha[1]*favg[1]+alpha[0]*favg[0])); 
+  Ghat[1] = -0.01666666666666667*((47.43416490252569*fr[6]-47.43416490252569*fl[6]-36.74234614174767*(fr[3]+fl[3])+21.21320343559643*fr[2]-21.21320343559643*fl[2])*amax-18.97366596101028*alpha[1]*favg[2]-21.21320343559643*(alpha[0]*favg[1]+favg[0]*alpha[1])); 
+  Ghat[2] = 0.05*((12.24744871391589*(fr[7]+fl[7])-7.071067811865476*fr[5]+7.071067811865476*fl[5])*amax+7.071067811865476*alpha[0]*favg[2]+6.324555320336761*alpha[1]*favg[1]); 
   incr[0] = 0.7071067811865475*Ghat[0]*dfac_x; 
   incr[1] = -1.224744871391589*Ghat[0]*dfac_x; 
   incr[2] = 0.7071067811865475*Ghat[1]*dfac_x; 
@@ -60,21 +61,22 @@ double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, con
   outl[7] += incr[7]; 
 return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x0vSer_Y_P2_Bvars_0(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x0vSer_Y_P2_Bvars_0(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
   double dfac_y = 2.0/dxv[1]; 
   double wx = w[0]; 
   double wy = w[1]; 
+  double dfac_x2 = dfac_x*dfac_x; 
   double q2 = q_*q_; 
   double incr[8]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = 0.125*BmagInv[0]*(3.872983346207417*Phi[7]-3.0*Phi[3]+1.732050807568877*Phi[1])*dfac_x; 
+  double alpha0 = 0.125*geoZ[0]*(3.872983346207417*Phi[7]-3.0*Phi[3]+1.732050807568877*Phi[1])*dfac_x; 
 
   double alpha[3]; 
-  alpha[0] = 1.369306393762915*BmagInv[0]*Phi[7]*dfac_x-1.060660171779821*BmagInv[0]*Phi[3]*dfac_x+0.6123724356957944*BmagInv[0]*Phi[1]*dfac_x; 
-  alpha[1] = 1.369306393762915*BmagInv[0]*Phi[4]*dfac_x-2.371708245126284*BmagInv[0]*Phi[6]*dfac_x; 
+  alpha[0] = 0.3535533905932737*geoZ[0]*(3.872983346207417*Phi[7]-3.0*Phi[3]+1.732050807568877*Phi[1])*dfac_x; 
+  alpha[1] = -0.3535533905932737*geoZ[0]*(6.708203932499369*Phi[6]-3.872983346207417*Phi[4])*dfac_x; 
   double amax = 0.0; 
   bool upwind = false; 
   if(upwind) 
@@ -90,9 +92,9 @@ double GyrokineticSurf2x0vSer_Y_P2_Bvars_0(const double q_, const double m_, con
 
 //
 // //
-  Ghat[0] = -0.25*((3.16227766016838*fr[5]-3.16227766016838*fl[5]-2.449489742783178*fr[2]-2.449489742783178*fl[2]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*amax-1.414213562373095*alpha[1]*favg[1]-1.414213562373095*alpha[0]*favg[0]); 
-  Ghat[1] = -0.01666666666666667*((47.43416490252569*fr[7]-47.43416490252569*fl[7]-36.74234614174767*fr[3]-36.74234614174767*fl[3]+21.21320343559643*fr[1]-21.21320343559643*fl[1])*amax-18.97366596101028*alpha[1]*favg[2]-21.21320343559643*alpha[0]*favg[1]-21.21320343559643*favg[0]*alpha[1]); 
-  Ghat[2] = 0.05*((12.24744871391589*fr[6]+12.24744871391589*fl[6]-7.071067811865476*fr[4]+7.071067811865476*fl[4])*amax+7.071067811865476*alpha[0]*favg[2]+6.324555320336761*alpha[1]*favg[1]); 
+  Ghat[0] = -0.25*((3.16227766016838*fr[5]-3.16227766016838*fl[5]-2.449489742783178*(fr[2]+fl[2])+1.414213562373095*fr[0]-1.414213562373095*fl[0])*amax-1.414213562373095*(alpha[1]*favg[1]+alpha[0]*favg[0])); 
+  Ghat[1] = -0.01666666666666667*((47.43416490252569*fr[7]-47.43416490252569*fl[7]-36.74234614174767*(fr[3]+fl[3])+21.21320343559643*fr[1]-21.21320343559643*fl[1])*amax-18.97366596101028*alpha[1]*favg[2]-21.21320343559643*(alpha[0]*favg[1]+favg[0]*alpha[1])); 
+  Ghat[2] = 0.05*((12.24744871391589*(fr[6]+fl[6])-7.071067811865476*fr[4]+7.071067811865476*fl[4])*amax+7.071067811865476*alpha[0]*favg[2]+6.324555320336761*alpha[1]*favg[1]); 
   incr[0] = 0.7071067811865475*Ghat[0]*dfac_y; 
   incr[1] = 0.7071067811865475*Ghat[1]*dfac_y; 
   incr[2] = -1.224744871391589*Ghat[0]*dfac_y; 

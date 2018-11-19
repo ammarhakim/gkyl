@@ -123,7 +123,7 @@ function FluidSpecies:setConfGrid(cgrid)
 end
 
 function FluidSpecies:createGrid(cgrid)
-   self.cdim = #cCells
+   self.cdim = cgrid:ndim()
    self.ndim = self.cdim
 
    -- create decomposition

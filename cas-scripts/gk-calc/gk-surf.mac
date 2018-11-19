@@ -86,6 +86,7 @@ load(modNm),
   for dir : 1 thru cdim+vdim do (
     printf(fh, "  double w~a = w[~a]; ~%", label[dir], dir-1)
   ),
+  printf(fh, "  double dfac_x2 = dfac_x*dfac_x; ~%"),
   if vdim>0 then (
     printf(fh, "  double wv2 = wv*wv; ~%"),
     printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%")
@@ -154,7 +155,7 @@ load(modNm),
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
   alpha0expr : gcfac(fullratsimp(innerProd(surfIntVars, 1, subst(surfVar=-1,alpha_expd), subst(surfVar=-1, bP[1]))*bP[1])),
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
-  printf(fh, "  double alpha0 = ~a; ~%~%", float(subst([wv^2=wv2,q_^2=q2,dfac_v^2=dfac_v2], alpha0expr))),
+  printf(fh, "  double alpha0 = ~a; ~%~%", float(subst([wv^2=wv2,q_^2=q2,dfac_v^2=dfac_v2,dfac_x^2=dfac_x2], alpha0expr))),
   flush_output(fh),
 
   /* generate surface basis */
@@ -164,7 +165,7 @@ load(modNm),
   printf(fh, "  double alpha[~a]; ~%", length(bSurf)),
   alpha_k : fullratsimp(innerProd(surfIntVars, 1, bSurf, subst(surfVar=-1,alpha_expd))),
   flush_output(fh),
-  writeCExprsNoExpand1(alpha, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alpha_k)),
+  writeCExprsNoExpand1(alpha, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2, dfac_x^2=dfac_x2],alpha_k)),
   alphaNoZero_k : doMakeExprLst(alpha_k, alpha),
   alpha_expd : doExpandLst(alphaNoZero_k, bSurf),
   flush_output(fh),
@@ -293,7 +294,7 @@ if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"
 else posString : "",
-for c : 1 thru 3 do (
+for c : 1 thru 1 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
 pmax:2,
