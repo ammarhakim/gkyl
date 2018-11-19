@@ -192,7 +192,7 @@ end
 
 
 --solver function
-function MappedPoisson:advance(tCurr, dt, inFld, outFld)
+function MappedPoisson:advance(tCurr, inFld, outFld)
 
    --set up input objects
    local grid = self._grid
@@ -222,8 +222,6 @@ function MappedPoisson:advance(tCurr, dt, inFld, outFld)
 	        pitr[1] = ffi.C.wrap_getSolvalatIJ(self.point, i-1, j-1)
       end
    end
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 return MappedPoisson

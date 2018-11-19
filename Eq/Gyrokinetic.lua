@@ -78,7 +78,7 @@ function Gyrokinetic:setAuxFields(auxFields)
    -- get phi
    self.phi = potentials.phi
    if self._gyavg then 
-      self.gyavgSlvr:advance(0, 0, {self.phi}, {self.phiGy}) 
+      self.gyavgSlvr:advance(0, {self.phi}, {self.phiGy}) 
       for i=1,self._grid:numCells(self._ndim) do
          self.phiGy[i]:sync()
       end
@@ -161,7 +161,8 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), f:data(), out:data())
+     self.dApardt:fill(self.dApardtIdxr(idx), self.dApardtPtr)
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), f:data(), out:data())
    else 
      res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
