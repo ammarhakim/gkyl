@@ -283,7 +283,7 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    if self.evolve then
-      self.solver:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
       if self.positivityRescale then 
          self.posRescaler:advance(tCurr, {fIn}, {self.fPos}) 
