@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double EmGyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double *f, double *out) 
+double EmGyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double* dApardt, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -49,25 +49,25 @@ double EmGyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const
   alphav[4] = -(6.708203932499369*BmagInv[0]*geoY[0]*Apar[2]*Phi[2]*dfac_v*dfac_x2*q_)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
-  alphaL = 0.25*alphav[0]; 
+  alphaL = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_-1.0*alphav[0]*m_))/m_; 
   if(alphaL<0) cflFreq += -alphaL; 
   // evaluate surface-averaged alpha on right 
-  alphaR = 0.25*alphav[0]; 
+  alphaR = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_-1.0*alphav[0]*m_))/m_; 
   if(alphaR>0) cflFreq += alphaR; 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
-  alphaL = 0.25*(0.4472135954999579*alphav[4]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaL = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]-0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)+0.4472135954999579*alphav[4]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaL<0) cflFreq += -alphaL; 
-  alphaL = 0.25*(0.5*alphav[0]-0.5590169943749475*alphav[4]); 
+  alphaL = 0.25*((-(1.0*(0.7071067811865475*dApardt[0]-0.7905694150420947*dApardt[2])*dfac_v*q_)/m_)-0.5590169943749475*alphav[4]+0.5*alphav[0]); 
   if(alphaL<0) cflFreq += -alphaL; 
-  alphaL = 0.25*(0.4472135954999579*alphav[4]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaL = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]+0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)+0.4472135954999579*alphav[4]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaL<0) cflFreq += -alphaL; 
   // evaluate alpha at right surface quadrature points 
-  alphaR = 0.25*(0.4472135954999579*alphav[4]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaR = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]-0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)+0.4472135954999579*alphav[4]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaR>0) cflFreq += alphaR; 
-  alphaR = 0.25*(0.5*alphav[0]-0.5590169943749475*alphav[4]); 
+  alphaR = 0.25*((-(1.0*(0.7071067811865475*dApardt[0]-0.7905694150420947*dApardt[2])*dfac_v*q_)/m_)-0.5590169943749475*alphav[4]+0.5*alphav[0]); 
   if(alphaR>0) cflFreq += alphaR; 
-  alphaR = 0.25*(0.4472135954999579*alphav[4]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaR = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]+0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)+0.4472135954999579*alphav[4]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaR>0) cflFreq += alphaR; 
 #endif 
 
@@ -89,35 +89,9 @@ double EmGyrokineticStep2Vol1x1vSerP2(const double q_, const double m_, const do
   out[5] += -(0.7071067811865475*(3.872983346207417*dApardt[2]*f[6]+3.872983346207417*dApardt[1]*f[3]+3.872983346207417*dApardt[0]*f[2])*dfac_v*q_)/m_; 
   out[6] += -(0.07824607964359516*(10.0*dApardt[2]*f[4]+15.65247584249853*dApardt[0]*f[4]+15.65247584249853*f[0]*dApardt[2]+14.0*dApardt[1]*f[1])*dfac_v*q_)/m_; 
   out[7] += -(0.1414213562373095*(17.32050807568877*dApardt[1]*f[6]+17.32050807568877*dApardt[2]*f[3]+19.36491673103708*dApardt[0]*f[3]+19.36491673103708*dApardt[1]*f[2])*dfac_v*q_)/m_; 
-  double cflFreq = 0.0; 
-  double alphaL = 0.0; 
-  double alphaR = 0.0; 
-#if cflType == SURFAVG 
-  // evaluate surface-averaged alpha on left 
-  alphaL = -(0.3535533905932737*dApardt[0]*dfac_v*q_)/m_; 
-  if(alphaL<0) cflFreq += -alphaL; 
-  // evaluate surface-averaged alpha on right 
-  alphaR = -(0.3535533905932737*dApardt[0]*dfac_v*q_)/m_; 
-  if(alphaR>0) cflFreq += alphaR; 
-#elif cflType == QUAD 
-  // evaluate alpha at left surface quadrature points 
-  alphaL = -(0.25*(0.6324555320336759*dApardt[2]-0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_; 
-  if(alphaL<0) cflFreq += -alphaL; 
-  alphaL = -(0.25*(0.7071067811865475*dApardt[0]-0.7905694150420947*dApardt[2])*dfac_v*q_)/m_; 
-  if(alphaL<0) cflFreq += -alphaL; 
-  alphaL = -(0.25*(0.6324555320336759*dApardt[2]+0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_; 
-  if(alphaL<0) cflFreq += -alphaL; 
-  // evaluate alpha at right surface quadrature points 
-  alphaR = -(0.25*(0.6324555320336759*dApardt[2]-0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_; 
-  if(alphaR>0) cflFreq += alphaR; 
-  alphaR = -(0.25*(0.7071067811865475*dApardt[0]-0.7905694150420947*dApardt[2])*dfac_v*q_)/m_; 
-  if(alphaR>0) cflFreq += alphaR; 
-  alphaR = -(0.25*(0.6324555320336759*dApardt[2]+0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_; 
-  if(alphaR>0) cflFreq += alphaR; 
-#endif 
-  return cflFreq; 
+  return 0.0; 
 } 
-double EmGyrokineticVol1x1vSerP2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double *f, double *out) 
+double EmGyrokineticVol1x1vSerP2_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double* dApardt, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -174,25 +148,25 @@ double EmGyrokineticVol1x1vSerP2_Bvars_1(const double q_, const double m_, const
   alphav[6] = 3.872983346207417*(((2.857142857142857*Bmag[2]*BmagInv[2]+0.7857142857142857*(2.23606797749979*BmagInv[0]*Bmag[2]+Bmag[1]*BmagInv[1]))*Phi[2]+Phi[1]*(0.1428571428571428*Bmag[1]*BmagInv[2]+0.7857142857142857*BmagInv[1]*Bmag[2]+0.223606797749979*BmagInv[0]*Bmag[1]))*geoY[2]+(0.7857142857142857*(2.23606797749979*geoY[0]*Bmag[2]+Bmag[1]*geoY[1])*BmagInv[2]+(2.571428571428572*BmagInv[1]*geoY[1]+BmagInv[0]*geoY[0])*Bmag[2]+0.4472135954999579*Bmag[1]*(BmagInv[0]*geoY[1]+geoY[0]*BmagInv[1]))*Phi[2]+Phi[1]*((0.7857142857142857*geoY[1]*Bmag[2]+0.223606797749979*geoY[0]*Bmag[1])*BmagInv[2]+BmagInv[1]*(0.4472135954999579*geoY[0]*Bmag[2]+0.2*Bmag[1]*geoY[1])+0.4472135954999579*BmagInv[0]*geoY[1]*Bmag[2]))*dfac_x2; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
-  alphaL = -0.25*(1.732050807568877*alphav[2]-1.0*alphav[0]); 
+  alphaL = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_+(1.732050807568877*alphav[2]-1.0*alphav[0])*m_))/m_; 
   if(alphaL<0) cflFreq += -alphaL; 
   // evaluate surface-averaged alpha on right 
-  alphaR = 0.25*(1.732050807568877*alphav[2]+alphav[0]); 
+  alphaR = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_+((-1.732050807568877*alphav[2])-1.0*alphav[0])*m_))/m_; 
   if(alphaR>0) cflFreq += alphaR; 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
-  alphaL = 0.25*((-0.7745966692414833*alphav[6])+0.4472135954999579*alphav[4]+1.161895003862225*alphav[3]-0.8660254037844386*alphav[2]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaL = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]-0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)-0.7745966692414833*alphav[6]+0.4472135954999579*alphav[4]+1.161895003862225*alphav[3]-0.8660254037844386*alphav[2]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaL<0) cflFreq += -alphaL; 
-  alphaL = 0.25*(0.9682458365518543*alphav[6]-0.5590169943749475*alphav[4]-0.8660254037844386*alphav[2]+0.5*alphav[0]); 
+  alphaL = 0.25*((-(1.0*(0.7071067811865475*dApardt[0]-0.7905694150420947*dApardt[2])*dfac_v*q_)/m_)+0.9682458365518543*alphav[6]-0.5590169943749475*alphav[4]-0.8660254037844386*alphav[2]+0.5*alphav[0]); 
   if(alphaL<0) cflFreq += -alphaL; 
-  alphaL = 0.25*((-0.7745966692414833*alphav[6])+0.4472135954999579*alphav[4]-1.161895003862225*alphav[3]-0.8660254037844386*alphav[2]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaL = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]+0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)-0.7745966692414833*alphav[6]+0.4472135954999579*alphav[4]-1.161895003862225*alphav[3]-0.8660254037844386*alphav[2]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaL<0) cflFreq += -alphaL; 
   // evaluate alpha at right surface quadrature points 
-  alphaR = 0.25*(0.7745966692414833*alphav[6]+0.4472135954999579*alphav[4]-1.161895003862225*alphav[3]+0.8660254037844386*alphav[2]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaR = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]-0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)+0.7745966692414833*alphav[6]+0.4472135954999579*alphav[4]-1.161895003862225*alphav[3]+0.8660254037844386*alphav[2]-0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaR>0) cflFreq += alphaR; 
-  alphaR = 0.25*((-0.9682458365518543*alphav[6])-0.5590169943749475*alphav[4]+0.8660254037844386*alphav[2]+0.5*alphav[0]); 
+  alphaR = 0.25*((-(1.0*(0.7071067811865475*dApardt[0]-0.7905694150420947*dApardt[2])*dfac_v*q_)/m_)-0.9682458365518543*alphav[6]-0.5590169943749475*alphav[4]+0.8660254037844386*alphav[2]+0.5*alphav[0]); 
   if(alphaR>0) cflFreq += alphaR; 
-  alphaR = 0.25*(0.7745966692414833*alphav[6]+0.4472135954999579*alphav[4]+1.161895003862225*alphav[3]+0.8660254037844386*alphav[2]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
+  alphaR = 0.25*((-(1.0*(0.6324555320336759*dApardt[2]+0.9486832980505137*dApardt[1]+0.7071067811865475*dApardt[0])*dfac_v*q_)/m_)+0.7745966692414833*alphav[6]+0.4472135954999579*alphav[4]+1.161895003862225*alphav[3]+0.8660254037844386*alphav[2]+0.6708203932499369*alphav[1]+0.5*alphav[0]); 
   if(alphaR>0) cflFreq += alphaR; 
 #endif 
 

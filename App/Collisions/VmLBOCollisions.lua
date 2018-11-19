@@ -123,6 +123,7 @@ function VmLBOCollisions:createSolver()
       zfd[d] = self.confGrid:ndim() + d
    end
 
+   local vmLBOconstNuCalc
    if self.varNu then
       -- Collisionality, nu.
       self.nuFld = DataStruct.Field {
@@ -159,7 +160,6 @@ function VmLBOCollisions:createSolver()
       basis              = self.phaseBasis,
       cfl                = self.cfl,
       equation           = vmLBOconstNuCalc,
-      onlyIncrement      = true,
       updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
@@ -181,15 +181,14 @@ function VmLBOCollisions:createSolver()
    self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
 
-function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
-   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom = species[self.speciesName]:fluidMoments()
 
    if self.selfCollisions then
       local tmEvalMomStart = Time.clock()
       -- Compute primitive moments velocity and vthSq=T/m from zeroth,
       -- first and second moments, and distribution function.
-      self.primMomSelf:advance(0.0, 0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
+      self.primMomSelf:advance(0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
                                          {self.velocity,self.vthSq})
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
@@ -223,29 +222,24 @@ function VmLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
       --              Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
       --self.primMomLimitCrossings:appendData(tCurr+dt, self.primMomCrossLimitG)
 
-
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, 0.0, {selfMom[1], self.vthSq},{self.nuFld})
+         self.spitzerNu:advance(0.0, {selfMom[1], self.vthSq},{self.nuFld})
 
          -- Compute increment from collisions and accumulate it into output.
-         tmpStatus, tmpDt = self.collisionSlvr:advance(
-   	    tCurr, dt, {fIn,self.velocity,self.vthSq,self.nuFld}, {self.collOut})
+         self.collisionSlvr:advance(
+            tCurr, {fIn,self.velocity,self.vthSq,self.nuFld}, {self.collOut})
       else
          -- Compute increment from collisions and accumulate it into output.
-         tmpStatus, tmpDt = self.collisionSlvr:advance(
-   	    tCurr, dt, {fIn, self.velocity, self.vthSq}, {self.collOut})
+         self.collisionSlvr:advance(
+            tCurr, {fIn, self.velocity, self.vthSq}, {self.collOut})
       end
 
-      status = status and tmpStatus
-      dtSuggested = math.min(dtSuggested, tmpDt)
-
-      fOut:accumulate(dt, self.collOut)
+      fRhsOut:accumulate(1.0, self.collOut)
    end
    if self.crossSpecies then
       -- Insert cross collisions here!
    end
-   return status, dtSuggested
 end
 
 function VmLBOCollisions:write(tm, frame)

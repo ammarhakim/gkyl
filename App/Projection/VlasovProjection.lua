@@ -27,7 +27,7 @@ function MaxwellianProjection:lagrangeFix(distf)
    local dM1 = self.species:allocVectorMoment(self.vdim)
    local M2, dM2 = self.species:allocMoment(), self.species:allocMoment()
 
-   self.species.numDensityCalc:advance(0.0, 0.0, {distf}, {M0})
+   self.species.numDensityCalc:advance(0.0, {distf}, {M0})
    local func = function (t, zn)
       return self.density(t, zn, self.species)
    end
@@ -37,10 +37,10 @@ function MaxwellianProjection:lagrangeFix(distf)
       evaluate = func,
       projectOnGhosts = true,
    }
-   project:advance(0.0, 0.0, {}, {dM0})
+   project:advance(0.0, {}, {dM0})
    dM0:accumulate(-1.0, M0)
 
-   self.species.momDensityCalc:advance(0.0, 0.0, {distf}, {M1})
+   self.species.momDensityCalc:advance(0.0, {distf}, {M1})
    func = function (t, zn)
       local drifts = self.driftSpeed(t, zn, self.species)
       if self.vdim == 1 then
@@ -57,10 +57,10 @@ function MaxwellianProjection:lagrangeFix(distf)
       evaluate = func,
       projectOnGhosts = true,
    }
-   project:advance(0.0, 0.0, {}, {dM1})
+   project:advance(0.0, {}, {dM1})
    dM1:accumulate(-1.0, M1)
 
-   self.species.ptclEnergyCalc:advance(0.0, 0.0, {distf}, {M2})
+   self.species.ptclEnergyCalc:advance(0.0, {distf}, {M2})
    func = function (t, zn)
       local drifts = self.driftSpeed(t, zn, self.species)
       local out = 0.0
@@ -77,7 +77,7 @@ function MaxwellianProjection:lagrangeFix(distf)
       evaluate = func,
       projectOnGhosts = true,
    }
-   project:advance(0.0, 0.0, {}, {dM2})
+   project:advance(0.0, {}, {dM2})
    dM2:accumulate(-1.0, M2)
 
    
@@ -88,11 +88,11 @@ function MaxwellianProjection:lagrangeFix(distf)
       confBasis = self.confBasis,
       mode = 'Vlasov'
    }
-   lagFix:advance(0.0, 0.0, {dM0, dM1, dM2}, {distf})
+   lagFix:advance(0.0, {dM0, dM1, dM2}, {distf})
 end
 
 function MaxwellianProjection:run(t, distf)
-   self.project:advance(t, 0.0, {}, {distf})
+   self.project:advance(t, {}, {distf})
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    end

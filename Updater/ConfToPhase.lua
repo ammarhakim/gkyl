@@ -61,7 +61,7 @@ function ConfToPhase:init(tbl)
 end
 
 -- advance method
-function ConfToPhase:_advance(tCurr, dt, inFld, outFld)
+function ConfToPhase:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local fact, fconf = inFld[1], inFld[2]
    local fphase = outFld[1]
@@ -82,8 +82,6 @@ function ConfToPhase:_advance(tCurr, dt, inFld, outFld)
       fconf:fill(fconfIndexer(idx), fconfItr)
       self._confToPhaseFun(fact, fconfItr:data(), fphaseItr:data())
    end
-   
-   return true, GKYL_MAX_DOUBLE
 end
 
 return ConfToPhase

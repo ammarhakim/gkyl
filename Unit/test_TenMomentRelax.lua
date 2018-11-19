@@ -74,7 +74,8 @@ function test_1(scheme, dt)
 
    print("Before")
    printValues()
-   srcUpdater:advance(0.0, dt, {}, {elcFluid, ionFluid, em})
+   srcUpdater:setDtAndCflRate(dt, nil)
+   srcUpdater:advance(0.0, {}, {elcFluid, ionFluid, em})
    print("After")
    printValues()
 
