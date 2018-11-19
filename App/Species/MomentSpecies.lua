@@ -172,7 +172,7 @@ function MomentSpecies:checkInv(fIn)
       self.grid:setIndex(idx)
 
       fIn:fill(fInIndexer(idx), fInPtr)
-      if not self.equation:checkInv(fInPtr) then
+      if not self.equation:isPositive(fInPtr) then
         isInv = false
         break
       end
