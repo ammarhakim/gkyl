@@ -23,13 +23,10 @@ function _M:init(tbl)
    self.totalTime = 0.0
    self._myStatus, self._myDtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
    self._status, self._dtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
-
-   self._dt = 0.0
-   self._cflRateByCell = {}
 end
 
 -- must be provided by derived objects
-function _M:_advance(tCurr, inFld, outFld)
+function _M:_advance(tCurr, dt, inFld, outFld)
    assert(true, "_advance method not provided!")
 end
 
@@ -41,7 +38,7 @@ function _M:getSharedComm() return self._sharedComm end
 -- This function wraps derived updater's _advance() function and
 -- computes a "totalTime", and also synchronizes the status and
 -- time-step suggestion across processors.
-function _M:advance(tCurr, inFld, outFld)
+function _M:advance(tCurr, dt, inFld, outFld)
 
    -- This barrier is needed to ensure that all "threads" (processes)
    -- in MPI-SHM comm have caught up with each other with previous
@@ -50,27 +47,19 @@ function _M:advance(tCurr, inFld, outFld)
    -- data they need is made ready by other threads
    Mpi.Barrier(self._sharedComm)
    
-   -- Advance updater, measuring how long it took
+   -- Take the time-step, measuring how long it took
    local tmStart = Time.clock()
-   local status, dtSuggested = self:_advance(tCurr, inFld, outFld)
+   local status, dtSuggested = self:_advance(tCurr, dt, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...
-   if status ~= nil and dtSuggested ~= nil then 
-      self._myStatus[0] = status and 1 or 0
-      self._myDtSuggested[0] = dtSuggested
+   self._myStatus[0] = status and 1 or 0
+   self._myDtSuggested[0] = dtSuggested
 
-      Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)
-      Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
-      
-      return self._status[0] == 1 and true or false, self._dtSuggested[0]
-   end
-end
-
--- set up pointers to dt and cflRateByCell
-function _M:setDtAndCflRate(dt, cflRateByCell)
-   self._dt = dt
-   self._cflRateByCell = cflRateByCell
+   Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)
+   Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
+   
+   return self._status[0] == 1 and true or false, self._dtSuggested[0]
 end
 
 return _M

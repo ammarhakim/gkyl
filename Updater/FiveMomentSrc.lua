@@ -133,9 +133,8 @@ function FiveMomentSrc:init(tbl)
 end
 
 -- advance method
-function FiveMomentSrc:_advance(tCurr, inFld, outFld)
+function FiveMomentSrc:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
-   local dt = self._dt
    local nFluids = self._sd.nFluids
    
    -- check if correct number of inputs were provided

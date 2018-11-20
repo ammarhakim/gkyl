@@ -12,6 +12,7 @@ local DataStruct     = require "DataStruct"
 local Basis          = require "Basis"
 local Updater        = require "Updater"
 local Lin            = require "Lib.Linalg"
+local CalcDiagnostic = require "Updater.CalcDiagnostic"
 
 local assert_equal = Unit.assert_equal
 local assert_close = Unit.assert_close
@@ -88,7 +89,7 @@ function test_binOp1x(nx, p, writeMatrix)
                     return math.exp(-x)
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -103,7 +104,7 @@ function test_binOp1x(nx, p, writeMatrix)
                     return (math.exp(-x))*math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    local initMom1Sqi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -112,7 +113,7 @@ function test_binOp1x(nx, p, writeMatrix)
                     return ((math.exp(-x))*math.sin(4.0*2.0*math.pi*x))^2
                  end
    }
-   initMom1Sqi:advance(0.,{},{mom1SqA})
+   initMom1Sqi:advance(0.,0.,{},{mom1SqA})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -126,7 +127,7 @@ function test_binOp1x(nx, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
 
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
@@ -137,7 +138,7 @@ function test_binOp1x(nx, p, writeMatrix)
 
    print("Computing flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A},{Ui})
+   calcUi:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
 
@@ -148,7 +149,7 @@ function test_binOp1x(nx, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA},{mom1})
+   calcMom1:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
 
@@ -159,7 +160,7 @@ function test_binOp1x(nx, p, writeMatrix)
    }
    print("Computing momentum squared...")
    local t1 = os.clock()
-   confDotProduct:advance(0.,{mom1,mom1},{mom1Sq})
+   confDotProduct:advance(0.,0.,{mom1,mom1},{mom1Sq})
    local t2 = os.clock()
    io.write("Mom1Sq computation took total of ", t2-t1, " s\n")
 
@@ -198,17 +199,17 @@ function test_binOp1x(nx, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1]), "\n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
 
    local dynVecMom1Sq = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1Sq}, {dynVecMom1Sq})
+   calcInt:advance(0.0, 0.0, {errMom1Sq}, {dynVecMom1Sq})
    local tmMom1Sq, lvMom1Sq = dynVecMom1Sq:lastData()
    io.write("Average RMS in Mom1Sq error = ", math.sqrt(lvMom1Sq[1]), "\n")
    print()
@@ -321,7 +322,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
 --                    return math.exp(-x)*math.exp(-((y-mu)/(math.sqrt(2)*sig))^2)
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -340,7 +341,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
 --                           math.sin(4.0*2.0*math.pi*x)  
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    local initMom1i2D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -361,7 +362,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
 --                           math.sin(4.0*2.0*math.pi*x)  
                  end
    }
-   initMom1i2D:advance(0.,{},{mom1A2D})
+   initMom1i2D:advance(0.,0.,{},{mom1A2D})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -376,7 +377,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
 --                    return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
    -- Analytic 2D flow velocity.
    local initUi2D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -391,7 +392,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
 --                    return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi2D:advance(0.,{},{UiA2D})
+   initUi2D:advance(0.,0.,{},{UiA2D})
    -- Analytic flow speed squared.
    local initUsq = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -401,7 +402,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
                     return 2.0
                  end
    }
-   initUsq:advance(0.,{},{UsqA})
+   initUsq:advance(0.,0.,{},{UsqA})
    -- Analytic kinetic energy.
    local initKe = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -416,7 +417,7 @@ function test_binOp2x(nx, ny, p, writeMatrix)
                             math.exp(-((y-mu)/(math.sqrt(2)*sig))^2))+0.1 
                  end
    }
-   initKe:advance(0.,{},{KeA})
+   initKe:advance(0.,0.,{},{KeA})
 
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
@@ -427,12 +428,12 @@ function test_binOp2x(nx, ny, p, writeMatrix)
 
    print("Computing flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A},{Ui})
+   calcUi:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
    print("Computing 2D flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A2D},{Ui2D})
+   calcUi:advance(0.,0.,{numDens,mom1A2D},{Ui2D})
    local t2 = os.clock()
    io.write("Ui2D computation took total of ", t2-t1, " s\n")
 
@@ -443,12 +444,12 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA},{mom1})
+   calcMom1:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
    print("Computing 2D momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA2D},{mom12D})
+   calcMom1:advance(0.,0.,{numDens,UiA2D},{mom12D})
    local t2 = os.clock()
    io.write("Mom12D computation took total of ", t2-t1, " s\n")
 
@@ -459,12 +460,12 @@ function test_binOp2x(nx, ny, p, writeMatrix)
    }
    print("Computing speed squared...")
    local t1 = os.clock()
-   confDotProduct:advance(0.,{UiA2D,UiA2D},{Usq})
+   confDotProduct:advance(0.,0.,{UiA2D,UiA2D},{Usq})
    local t2 = os.clock()
    io.write("Usq computation took total of ", t2-t1, " s\n")
    print("Computing kinetic energy...")
    local t1 = os.clock()
-   confDotProduct:advance(0.,{UiA2D,mom1A2D},{Ke})
+   confDotProduct:advance(0.,0.,{UiA2D,mom1A2D},{Ke})
    local t2 = os.clock()
    io.write("Ke computation took total of ", t2-t1, " s\n")
 
@@ -527,12 +528,12 @@ function test_binOp2x(nx, ny, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1]), "\n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
 
@@ -543,21 +544,21 @@ function test_binOp2x(nx, ny, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi2D = DataStruct.DynVector { numComponents = 2 }
-   calcInt2D:advance(0.0, {errU2D}, {dynVecUi2D})
+   calcInt2D:advance(0.0, 0.0, {errU2D}, {dynVecUi2D})
    local tmUi2D, lvUi2D = dynVecUi2D:lastData()
    io.write("Average RMS in Ui2D error = (", math.sqrt(lvUi2D[1]),",", math.sqrt(lvUi2D[2]),") \n")
 
    local dynVecMom12D = DataStruct.DynVector { numComponents = 2 }
-   calcInt2D:advance(0.0, {errMom12D}, {dynVecMom12D})
+   calcInt2D:advance(0.0, 0.0, {errMom12D}, {dynVecMom12D})
    local tmMom12D, lvMom12D = dynVecMom12D:lastData()
    io.write("Average RMS in Mom12D error = (", math.sqrt(lvMom12D[1]),",", math.sqrt(lvMom12D[2]),") \n")
 
    local dynVecUsq = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errUsq}, {dynVecUsq})
+   calcInt:advance(0.0, 0.0, {errUsq}, {dynVecUsq})
    local tmUsq, lvUsq = dynVecUsq:lastData()
    io.write("Average RMS in Usq error = ", math.sqrt(lvUsq[1]), "\n")
    local dynVecKe = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errKe}, {dynVecKe})
+   calcInt:advance(0.0, 0.0, {errKe}, {dynVecKe})
    local tmKe, lvKe = dynVecKe:lastData()
    io.write("Average RMS in Ke error = ", math.sqrt(lvKe[1]), "\n")
    print()
@@ -579,7 +580,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    writeMatrix = writeMatrix or false
    -- Phase-space and config-space grids.
    local confGrid = Grid.RectCart {
-      lower = {0.0, 0.0},
+      lower = {0.0, 0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -671,7 +672,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                     return math.exp(-x)*math.exp(-((y-mu)/(math.sqrt(2)*sig))^2)*(math.tanh(z)+3.0)
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -688,7 +689,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                            math.sin(4.0*2.0*math.pi*x)  
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    local initMom1i3D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -707,7 +708,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                           -math.exp(-x)*math.exp(-((y-mu)/(math.sqrt(2)*sig))^2)*(math.tanh(z)+3.0)
                  end
    }
-   initMom1i3D:advance(0.,{},{mom1A3D})
+   initMom1i3D:advance(0.,0.,{},{mom1A3D})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -721,7 +722,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
    local initUi3D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = basis,
@@ -734,7 +735,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x), 1.0, -1.0
                  end
    }
-   initUi3D:advance(0.,{},{UiA3D})
+   initUi3D:advance(0.,0.,{},{UiA3D})
    -- Analytic squared speed.
    local initUsq = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -746,7 +747,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                     return (math.sin(4.0*2.0*math.pi*x))^2+1.0+1.0
                  end
    }
-   initUsq:advance(0.,{},{UsqA})
+   initUsq:advance(0.,0.,{},{UsqA})
    -- Analytic kinetic energy.
    local initKe = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -761,7 +762,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
                           +math.exp(-x)*math.exp(-((y-mu)/(math.sqrt(2)*sig))^2)*(math.tanh(z)+3.0)
                  end
    }
-   initKe:advance(0.,{},{KeA})
+   initKe:advance(0.,0.,{},{KeA})
 
    -- Compute flow speed.
    local calcUi = Updater.CartFieldBinOp {
@@ -772,12 +773,12 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
 
    print("Computing flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A},{Ui})
+   calcUi:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
    print("Computing 3D flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A3D},{Ui3D})
+   calcUi:advance(0.,0.,{numDens,mom1A3D},{Ui3D})
    local t2 = os.clock()
    io.write("Ui3D computation took total of ", t2-t1, " s\n")
 
@@ -788,12 +789,12 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA},{mom1})
+   calcMom1:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
    print("Computing 3D momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA3D},{mom13D})
+   calcMom1:advance(0.,0.,{numDens,UiA3D},{mom13D})
    local t2 = os.clock()
    io.write("Mom13D computation took total of ", t2-t1, " s\n")
 
@@ -804,12 +805,12 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    }
    print("Computing squared speed...")
    local t1 = os.clock()
-   confDotProduct:advance(0.,{UiA3D,UiA3D},{Usq})
+   confDotProduct:advance(0.,0.,{UiA3D,UiA3D},{Usq})
    local t2 = os.clock()
    io.write("Usq computation took total of ", t2-t1, " s\n")
    print("Computing kinetic energy...")
    local t1 = os.clock()
-   confDotProduct:advance(0.,{UiA3D,mom1A3D},{Ke})
+   confDotProduct:advance(0.,0.,{UiA3D,mom1A3D},{Ke})
    local t2 = os.clock()
    io.write("Ke computation took total of ", t2-t1, " s\n")
 
@@ -872,12 +873,12 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1]), "\n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
 
@@ -888,21 +889,21 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi3D = DataStruct.DynVector { numComponents = 3 }
-   calcInt3D:advance(0.0, {errU3D}, {dynVecUi3D})
+   calcInt3D:advance(0.0, 0.0, {errU3D}, {dynVecUi3D})
    local tmUi3D, lvUi3D = dynVecUi3D:lastData()
    io.write("Average RMS in Ui3D error = (", math.sqrt(lvUi3D[1]),",", math.sqrt(lvUi3D[2]),",", math.sqrt(lvUi3D[3]),") \n")
 
    local dynVecMom13D = DataStruct.DynVector { numComponents = 3 }
-   calcInt3D:advance(0.0, {errMom13D}, {dynVecMom13D})
+   calcInt3D:advance(0.0, 0.0, {errMom13D}, {dynVecMom13D})
    local tmMom13D, lvMom13D = dynVecMom1:lastData()
    io.write("Average RMS in Mom13D error = (", math.sqrt(lvMom13D[1]),",", math.sqrt(lvMom13D[2]),",", math.sqrt(lvMom13D[3]),") \n")
 
    local dynVecUsq = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errUsq}, {dynVecUsq})
+   calcInt:advance(0.0, 0.0, {errUsq}, {dynVecUsq})
    local tmUsq, lvUsq = dynVecUsq:lastData()
    io.write("Average RMS in Usq error = ", math.sqrt(lvUsq[1]), "\n")
    local dynVecKe = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errKe}, {dynVecKe})
+   calcInt:advance(0.0, 0.0, {errKe}, {dynVecKe})
    local tmKe, lvKe = dynVecKe:lastData()
    io.write("Average RMS in Ke error = ", math.sqrt(lvKe[1]), "\n")
 
@@ -995,7 +996,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initDistF:advance(0.,{},{distF})
+   initDistF:advance(0.,0.,{},{distF})
    -- Initialize number density and first moment.
    local initDens = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -1010,7 +1011,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
                     return math.exp(-x)
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1025,7 +1026,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
                     return (math.exp(-x))*math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    -- Analytic numDens*distF.
    local initnDistFA = Updater.ProjectOnBasis {
       onGrid   = phaseGrid,
@@ -1040,7 +1041,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initnDistFA:advance(0.,{},{ndistFA})
+   initnDistFA:advance(0.,0.,{},{ndistFA})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -1054,7 +1055,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
 
    -- Compute flow speed.
    local fldDiv = Updater.CartFieldBinOp {
@@ -1065,7 +1066,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
 
    print("Computing flow speed...")
    local t1 = os.clock()
-   fldDiv:advance(0.,{numDens,mom1A},{Ui})
+   fldDiv:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
 
@@ -1076,7 +1077,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   fldMult:advance(0.,{numDens,UiA},{mom1})
+   fldMult:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
 
@@ -1089,7 +1090,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
    }
    print("Multiply numDens by distF...")
    local t1 = os.clock()
-   pfldMult:advance(0.,{numDens,distF},{ndistF})
+   pfldMult:advance(0.,0.,{numDens,distF},{ndistF})
    local t2 = os.clock()
    io.write("ndistF computation took total of ", t2-t1, " s\n")
 
@@ -1128,7 +1129,7 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
-   calcIntF:advance(0.0, {errF}, {dynVecF})
+   calcIntF:advance(0.0, 0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
@@ -1139,12 +1140,12 @@ function test_binOp1x1v(nx, nv, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1]), "\n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1]), "\n")
    print()
@@ -1256,7 +1257,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initDistF:advance(0.,{},{distF})
+   initDistF:advance(0.,0.,{},{distF})
    -- Initialize number density and first moment.
    local initDens = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -1271,7 +1272,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
                     return math.exp(-x)
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1287,7 +1288,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
 
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    local initMom1i2D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1304,7 +1305,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
 
                  end
    }
-   initMom1i2D:advance(0.,{},{mom1A2D})
+   initMom1i2D:advance(0.,0.,{},{mom1A2D})
    -- Analytic numDens*distF.
    local initnDistFA = Updater.ProjectOnBasis {
       onGrid   = phaseGrid,
@@ -1319,7 +1320,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initnDistFA:advance(0.,{},{ndistFA})
+   initnDistFA:advance(0.,0.,{},{ndistFA})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -1333,7 +1334,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
    local initUi2D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1347,7 +1348,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
                            math.cos(4.0*2.0*math.pi*x)
                  end
    }
-   initUi2D:advance(0.,{},{UiA2D})
+   initUi2D:advance(0.,0.,{},{UiA2D})
 
    -- Multiply distribution function by number density.
    local pfldMult = Updater.CartFieldBinOp {
@@ -1358,7 +1359,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    }
    print("Multiply numDens by distF...")
    local t1 = os.clock()
-   pfldMult:advance(0.,{numDens,distF},{ndistF})
+   pfldMult:advance(0.,0.,{numDens,distF},{ndistF})
    local t2 = os.clock()
    io.write("ndistF computation took total of ", t2-t1, " s\n")
 
@@ -1370,12 +1371,12 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    }
    print("Computing flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A},{Ui})
+   calcUi:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
    print("Computing 2D flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A2D},{Ui2D})
+   calcUi:advance(0.,0.,{numDens,mom1A2D},{Ui2D})
    local t2 = os.clock()
    io.write("Ui2D computation took total of ", t2-t1, " s\n")
 
@@ -1387,12 +1388,12 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA},{mom1})
+   calcMom1:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
    print("Computing 2D momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA2D},{mom12D})
+   calcMom1:advance(0.,0.,{numDens,UiA2D},{mom12D})
    local t2 = os.clock()
    io.write("Mom12D computation took total of ", t2-t1, " s\n")
 
@@ -1443,7 +1444,7 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
-   calcIntF:advance(0.0, {errF}, {dynVecF})
+   calcIntF:advance(0.0, 0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
@@ -1454,12 +1455,12 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1])," \n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
@@ -1470,12 +1471,12 @@ function test_binOp1x2v(nx, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi2D = DataStruct.DynVector { numComponents = 2 }
-   calcInt2D:advance(0.0, {errU2D}, {dynVecUi2D})
+   calcInt2D:advance(0.0, 0.0, {errU2D}, {dynVecUi2D})
    local tmUi2D, lvUi2D = dynVecUi2D:lastData()
    io.write("Average RMS in Ui2D error = (", math.sqrt(lvUi2D[1]),",", math.sqrt(lvUi2D[2]),") \n")
 
    local dynVecMom12D = DataStruct.DynVector { numComponents = 2 }
-   calcInt2D:advance(0.0, {errMom12D}, {dynVecMom12D})
+   calcInt2D:advance(0.0, 0.0, {errMom12D}, {dynVecMom12D})
    local tmMom12D, lvMom12D = dynVecMom12D:lastData()
    io.write("Average RMS in Mom12D error = (", math.sqrt(lvMom12D[1]),",", math.sqrt(lvMom12D[2]),") \n")
    print()
@@ -1495,7 +1496,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    writeMatrix = writeMatrix or false
    -- Phase-space and config-space grids.
    local phaseGrid = Grid.RectCart {
-      lower = {0.0, -1.0, -1.0},
+      lower = {0.0, 0.0, -1.0, -1.0},
       upper = {1.0, 1.0, 1.0, 1.0},
       cells = {nx, ny, nvx, nvy},
    }
@@ -1590,7 +1591,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initDistF:advance(0.,{},{distF})
+   initDistF:advance(0.,0.,{},{distF})
    -- Initialize number density and first moment.
    local initDens = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -1605,7 +1606,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
                     return math.exp(-x)*(2.0+math.tanh(y))
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1621,7 +1622,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
 
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    local initMom1i2D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1638,7 +1639,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
 
                  end
    }
-   initMom1i2D:advance(0.,{},{mom1A2D})
+   initMom1i2D:advance(0.,0.,{},{mom1A2D})
    -- Analytic numDens*distF.
    local initnDistFA = Updater.ProjectOnBasis {
       onGrid   = phaseGrid,
@@ -1656,7 +1657,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initnDistFA:advance(0.,{},{ndistFA})
+   initnDistFA:advance(0.,0.,{},{ndistFA})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -1670,7 +1671,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
    local initUi2D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1684,7 +1685,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
                            math.cos(4.0*2.0*math.pi*x)
                  end
    }
-   initUi2D:advance(0.,{},{UiA2D})
+   initUi2D:advance(0.,0.,{},{UiA2D})
 
    -- Multiply distribution function by number density.
    local pfldMult = Updater.CartFieldBinOp {
@@ -1695,7 +1696,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    }
    print("Multiply numDens by distF...")
    local t1 = os.clock()
-   pfldMult:advance(0.,{numDens,distF},{ndistF})
+   pfldMult:advance(0.,0.,{numDens,distF},{ndistF})
    local t2 = os.clock()
    io.write("ndistF computation took total of ", t2-t1, " s\n")
 
@@ -1707,12 +1708,12 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    }
    print("Computing flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A},{Ui})
+   calcUi:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
    print("Computing 2D flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A2D},{Ui2D})
+   calcUi:advance(0.,0.,{numDens,mom1A2D},{Ui2D})
    local t2 = os.clock()
    io.write("Ui2D computation took total of ", t2-t1, " s\n")
 
@@ -1724,12 +1725,12 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA},{mom1})
+   calcMom1:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
    print("Computing 2D momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA2D},{mom12D})
+   calcMom1:advance(0.,0.,{numDens,UiA2D},{mom12D})
    local t2 = os.clock()
    io.write("Mom12D computation took total of ", t2-t1, " s\n")
 
@@ -1780,7 +1781,7 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
-   calcIntF:advance(0.0, {errF}, {dynVecF})
+   calcIntF:advance(0.0, 0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
@@ -1791,12 +1792,12 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1])," \n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
@@ -1807,12 +1808,12 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi2D = DataStruct.DynVector { numComponents = 2 }
-   calcInt2D:advance(0.0, {errU2D}, {dynVecUi2D})
+   calcInt2D:advance(0.0, 0.0, {errU2D}, {dynVecUi2D})
    local tmUi2D, lvUi2D = dynVecUi2D:lastData()
    io.write("Average RMS in Ui2D error = (", math.sqrt(lvUi2D[1]),",", math.sqrt(lvUi2D[2]),") \n")
 
    local dynVecMom12D = DataStruct.DynVector { numComponents = 2 }
-   calcInt2D:advance(0.0, {errMom12D}, {dynVecMom12D})
+   calcInt2D:advance(0.0, 0.0, {errMom12D}, {dynVecMom12D})
    local tmMom12D, lvMom12D = dynVecMom12D:lastData()
    io.write("Average RMS in Mom12D error = (", math.sqrt(lvMom12D[1]),",", math.sqrt(lvMom12D[2]),") \n")
    print()
@@ -1832,7 +1833,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    writeMatrix = writeMatrix or false
    -- Phase-space and config-space grids.
    local phaseGrid = Grid.RectCart {
-      lower = {0.0, -1.0, -1.0, -1.0},
+      lower = {0.0, 0.0, -1.0, -1.0, -1.0},
       upper = {1.0, 1.0, 1.0, 1.0, 1.0},
       cells = {nx, ny, nvx, nvy, nvz},
    }
@@ -1927,7 +1928,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initDistF:advance(0.,{},{distF})
+   initDistF:advance(0.,0.,{},{distF})
    -- Initialize number density and first moment.
    local initDens = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -1942,7 +1943,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
                     return math.exp(-x)*(2.0+math.tanh(y))
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1958,7 +1959,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
 
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    local initMom1i3D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -1976,7 +1977,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
 
                  end
    }
-   initMom1i3D:advance(0.,{},{mom1A3D})
+   initMom1i3D:advance(0.,0.,{},{mom1A3D})
    -- Analytic numDens*distF.
    local initnDistFA = Updater.ProjectOnBasis {
       onGrid   = phaseGrid,
@@ -1994,7 +1995,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initnDistFA:advance(0.,{},{ndistFA})
+   initnDistFA:advance(0.,0.,{},{ndistFA})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -2008,7 +2009,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
    local initUi3D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -2023,7 +2024,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
                            0.760
                  end
    }
-   initUi3D:advance(0.,{},{UiA3D})
+   initUi3D:advance(0.,0.,{},{UiA3D})
 
    -- Multiply distribution function by number density.
    local pfldMult = Updater.CartFieldBinOp {
@@ -2034,7 +2035,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    }
    print("Multiply numDens by distF...")
    local t1 = os.clock()
-   pfldMult:advance(0.,{numDens,distF},{ndistF})
+   pfldMult:advance(0.,0.,{numDens,distF},{ndistF})
    local t2 = os.clock()
    io.write("ndistF computation took total of ", t2-t1, " s\n")
 
@@ -2046,12 +2047,12 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    }
    print("Computing flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A},{Ui})
+   calcUi:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
    print("Computing 3D flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A3D},{Ui3D})
+   calcUi:advance(0.,0.,{numDens,mom1A3D},{Ui3D})
    local t2 = os.clock()
    io.write("Ui3D computation took total of ", t2-t1, " s\n")
 
@@ -2063,12 +2064,12 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA},{mom1})
+   calcMom1:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
    print("Computing 3D momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA3D},{mom13D})
+   calcMom1:advance(0.,0.,{numDens,UiA3D},{mom13D})
    local t2 = os.clock()
    io.write("Mom13D computation took total of ", t2-t1, " s\n")
 
@@ -2119,7 +2120,7 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
-   calcIntF:advance(0.0, {errF}, {dynVecF})
+   calcIntF:advance(0.0, 0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
@@ -2130,12 +2131,12 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1])," \n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
@@ -2146,12 +2147,12 @@ function test_binOp2x3v(nx, ny, nvx, nvy, nvz, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi3D = DataStruct.DynVector { numComponents = 3 }
-   calcInt3D:advance(0.0, {errU3D}, {dynVecUi3D})
+   calcInt3D:advance(0.0, 0.0, {errU3D}, {dynVecUi3D})
    local tmUi3D, lvUi3D = dynVecUi3D:lastData()
    io.write("Average RMS in Ui3D error = (", math.sqrt(lvUi3D[1]),",", math.sqrt(lvUi3D[2]),",", math.sqrt(lvUi3D[3]),") \n")
 
    local dynVecMom13D = DataStruct.DynVector { numComponents = 3 }
-   calcInt3D:advance(0.0, {errMom13D}, {dynVecMom13D})
+   calcInt3D:advance(0.0, 0.0, {errMom13D}, {dynVecMom13D})
    local tmMom13D, lvMom13D = dynVecMom13D:lastData()
    io.write("Average RMS in Mom13D error = (", math.sqrt(lvMom13D[1]),",", math.sqrt(lvMom13D[2]),",", math.sqrt(lvMom13D[3]),") \n")
    print()
@@ -2172,7 +2173,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    writeMatrix = writeMatrix or false
    -- Phase-space and config-space grids.
    local phaseGrid = Grid.RectCart {
-      lower = {0.0, 0.0, -1.0, -1.0},
+      lower = {0.0, 0.0, 0.0, -1.0, -1.0},
       upper = {1.0, 1.0, 1.0, 1.0, 1.0},
       cells = {nx, ny, nz, nvx, nvy},
    }
@@ -2267,7 +2268,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initDistF:advance(0.,{},{distF})
+   initDistF:advance(0.,0.,{},{distF})
    -- Initialize number density and first moment.
    local initDens = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -2282,7 +2283,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
                     return math.exp(-x)*(2.0+math.tanh(y))*(1.1-z)
                  end
    }
-   initDens:advance(0.,{},{numDens})
+   initDens:advance(0.,0.,{},{numDens})
    local initMom1i = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -2298,7 +2299,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
 
                  end
    }
-   initMom1i:advance(0.,{},{mom1A})
+   initMom1i:advance(0.,0.,{},{mom1A})
    local initMom1i3D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -2316,7 +2317,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
 
                  end
    }
-   initMom1i3D:advance(0.,{},{mom1A3D})
+   initMom1i3D:advance(0.,0.,{},{mom1A3D})
    -- Analytic numDens*distF.
    local initnDistFA = Updater.ProjectOnBasis {
       onGrid   = phaseGrid,
@@ -2334,7 +2335,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
 --                    return math.exp(-x)
                  end
    }
-   initnDistFA:advance(0.,{},{ndistFA})
+   initnDistFA:advance(0.,0.,{},{ndistFA})
    -- Analytic flow speed.
    local initUi = Updater.ProjectOnBasis {
       onGrid   = confGrid,
@@ -2348,7 +2349,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
                     return math.sin(4.0*2.0*math.pi*x)
                  end
    }
-   initUi:advance(0.,{},{UiA})
+   initUi:advance(0.,0.,{},{UiA})
    local initUi3D = Updater.ProjectOnBasis {
       onGrid   = confGrid,
       basis    = confBasis,
@@ -2363,7 +2364,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
                            math.tanh(z)
                  end
    }
-   initUi3D:advance(0.,{},{UiA3D})
+   initUi3D:advance(0.,0.,{},{UiA3D})
 
    -- Multiply distribution function by number density.
    local pfldMult = Updater.CartFieldBinOp {
@@ -2374,7 +2375,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    }
    print("Multiply numDens by distF...")
    local t1 = os.clock()
-   pfldMult:advance(0.,{numDens,distF},{ndistF})
+   pfldMult:advance(0.,0.,{numDens,distF},{ndistF})
    local t2 = os.clock()
    io.write("ndistF computation took total of ", t2-t1, " s\n")
 
@@ -2386,12 +2387,12 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    }
    print("Computing flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A},{Ui})
+   calcUi:advance(0.,0.,{numDens,mom1A},{Ui})
    local t2 = os.clock()
    io.write("Ui computation took total of ", t2-t1, " s\n")
    print("Computing 3D flow speed...")
    local t1 = os.clock()
-   calcUi:advance(0.,{numDens,mom1A3D},{Ui3D})
+   calcUi:advance(0.,0.,{numDens,mom1A3D},{Ui3D})
    local t2 = os.clock()
    io.write("Ui3D computation took total of ", t2-t1, " s\n")
 
@@ -2403,12 +2404,12 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    }
    print("Computing momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA},{mom1})
+   calcMom1:advance(0.,0.,{numDens,UiA},{mom1})
    local t2 = os.clock()
    io.write("Mom1 computation took total of ", t2-t1, " s\n")
    print("Computing 3D momentum...")
    local t1 = os.clock()
-   calcMom1:advance(0.,{numDens,UiA3D},{mom13D})
+   calcMom1:advance(0.,0.,{numDens,UiA3D},{mom13D})
    local t2 = os.clock()
    io.write("Mom13D computation took total of ", t2-t1, " s\n")
 
@@ -2459,7 +2460,7 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecF = DataStruct.DynVector { numComponents = 1 }
-   calcIntF:advance(0.0, {errF}, {dynVecF})
+   calcIntF:advance(0.0, 0.0, {errF}, {dynVecF})
    local tmF, lvF = dynVecF:lastData()
    io.write("Average RMS in F error = ", math.sqrt(lvF[1]), "\n")
 
@@ -2470,12 +2471,12 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errU}, {dynVecUi})
+   calcInt:advance(0.0, 0.0, {errU}, {dynVecUi})
    local tmUi, lvUi = dynVecUi:lastData()
    io.write("Average RMS in Ui error = ", math.sqrt(lvUi[1])," \n")
 
    local dynVecMom1 = DataStruct.DynVector { numComponents = 1 }
-   calcInt:advance(0.0, {errMom1}, {dynVecMom1})
+   calcInt:advance(0.0, 0.0, {errMom1}, {dynVecMom1})
    local tmMom1, lvMom1 = dynVecMom1:lastData()
    io.write("Average RMS in Mom1 error = ", math.sqrt(lvMom1[1])," \n")
 
@@ -2486,12 +2487,12 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
       quantity      = "V2"
    }
    local dynVecUi3D = DataStruct.DynVector { numComponents = 3 }
-   calcInt3D:advance(0.0, {errU3D}, {dynVecUi3D})
+   calcInt3D:advance(0.0, 0.0, {errU3D}, {dynVecUi3D})
    local tmUi3D, lvUi3D = dynVecUi3D:lastData()
    io.write("Average RMS in Ui3D error = (", math.sqrt(lvUi3D[1]),",", math.sqrt(lvUi3D[2]),",", math.sqrt(lvUi3D[3]),") \n")
 
    local dynVecMom13D = DataStruct.DynVector { numComponents = 3 }
-   calcInt3D:advance(0.0, {errMom13D}, {dynVecMom13D})
+   calcInt3D:advance(0.0, 0.0, {errMom13D}, {dynVecMom13D})
    local tmMom13D, lvMom13D = dynVecMom13D:lastData()
    io.write("Average RMS in Mom13D error = (", math.sqrt(lvMom13D[1]),",", math.sqrt(lvMom13D[2]),",", math.sqrt(lvMom13D[3]),") \n")
    print()

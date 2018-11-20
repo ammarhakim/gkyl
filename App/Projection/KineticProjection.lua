@@ -68,7 +68,7 @@ function FunctionProjection:fullInit(species)
 end
 
 function FunctionProjection:run(t, distf)
-   self.project:advance(t, {}, {distf})
+   self.project:advance(t, 0.0, {}, {distf})
 end
 
 ----------------------------------------------------------------------
@@ -113,7 +113,7 @@ function MaxwellianProjection:scaleDensity(distf)
    local M0e, M0 = self.species:allocMoment(), self.species:allocMoment()
    local M0mod = self.species:allocMoment()
 
-   self.species.numDensityCalc:advance(0.0, {distf}, {M0})
+   self.species.numDensityCalc:advance(0.0, 0.0, {distf}, {M0})
    local func = function (t, zn)
       return self.density(t, zn, self.species)
    end
@@ -123,7 +123,7 @@ function MaxwellianProjection:scaleDensity(distf)
       evaluate = func,
       projectOnGhosts = true,
    }
-   project:advance(0.0, {}, {M0e})
+   project:advance(0.0, 0.0, {}, {M0e})
 
    local weakDivision = Updater.CartFieldBinOp {
       onGrid = self.confGrid,
@@ -140,13 +140,13 @@ function MaxwellianProjection:scaleDensity(distf)
    }
 
    -- calculate M0mod = M0e / M0
-   weakDivision:advance(0.0, {M0, M0e}, {M0mod})
+   weakDivision:advance(0.0, 0.0, {M0, M0e}, {M0mod})
    -- calculate distff = M0mod * distf
-   weakMultiplication:advance(0.0, {M0mod, distf}, {distf})
+   weakMultiplication:advance(0.0, 0.0, {M0mod, distf}, {distf})
 end
 
 function MaxwellianProjection:run(t, distf)
-   self.project:advance(t, {}, {distf})
+   self.project:advance(t, 0.0, {}, {distf})
    if self.exactScaleM0 then
       self:scaleDensity(distf)
    end

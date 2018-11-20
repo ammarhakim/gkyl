@@ -84,12 +84,12 @@ function FuncVlasovSpecies:createDiagnostics()
 end
 
 function FuncVlasovSpecies:initDist()
-   self.momDensitySlvr:advance(0.0, {}, {self.momDensity})
+   self.momDensitySlvr:advance(0.0, 0.0, {}, {self.momDensity})
 end
 
-function FuncVlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
+function FuncVlasovSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    if self.evolve then
-      self.momDensitySlvr:advance(tCurr, {}, {self.momDensity})
+      self.momDensitySlvr:advance(tCurr, dt, {}, {self.momDensity})
    end
 end
 

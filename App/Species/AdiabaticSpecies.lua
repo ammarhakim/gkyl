@@ -37,7 +37,7 @@ function AdiabaticSpecies:createSolver(hasE, hasB)
 end
 
 -- nothing to calculate, just copy
-function AdiabaticSpecies:calcCouplingMoments(tCurr, rkIdx)
+function AdiabaticSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
    if self.deltaF then
       self.couplingMoments:clear(0.0)
    else

@@ -49,7 +49,7 @@ end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
-function BgkCollisions:_advance(tCurr, inFld, outFld)
+function BgkCollisions:_advance(tCurr, dt, inFld, outFld)
    local numPhaseDims = self._phaseGrid:ndim()
    local numConfDims = self._confGrid:ndim()
    local numPhaseBasis = self._phaseBasis:numBasis()
@@ -72,7 +72,7 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
 		      "BgkCollisions.advance: Must specify an input thermal velocity squared field as input[5] ('collFreq' is not specified, so classical \nu is used instead)")
    end
 
-   local fRhsOut = assert(outFld[1],
+   local fOut = assert(outFld[1],
 		       "BgkCollisions.advance: Must specify an output field")
 
    local fInItr = fIn:get(1)
@@ -84,12 +84,12 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
       vth2InItr = vth2In:get(1)
    end
 
-   local fRhsOutItr = fRhsOut:get(1)
+   local fOutItr = fOut:get(1)
 
    -- Get the Ranges to loop over the domain
    -- local confRange = numDensityIn:localRange()
    -- local confIndexer = numDensityIn:genIndexer()
-   local phaseIndexer = fRhsOut:genIndexer()
+   local phaseIndexer = fOut:genIndexer()
    local confIndexer = nil
    if not self.collFreq then
       confIndexer = nIn:genIndexer()
@@ -98,10 +98,10 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
    local nu = self.collFreq
    local n, vth2 = nil, nil
    local T, coulombLog = nil, nil
-   for phaseIdx in fRhsOut:localRangeIter() do
+   for phaseIdx in fOut:localRangeIter() do
       fIn:fill(phaseIndexer(phaseIdx), fInItr)
       fMaxwell:fill(phaseIndexer(phaseIdx), fMaxwellItr)
-      fRhsOut:fill(phaseIndexer(phaseIdx), fRhsOutItr)
+      fOut:fill(phaseIndexer(phaseIdx), fOutItr)
       if not self.collFreq then
 	 nIn:fill(confIndexer(phaseIdx), nInItr)
 	 vth2In:fill(confIndexer(phaseIdx), vth2InItr)
@@ -123,11 +123,12 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
 
       for k = 1, numPhaseBasis do
 	 if fMaxwellItr[k] == fMaxwellItr[k] then -- NaN check
-	    fRhsOutItr[k] = fRhsOutItr[k] + nuFrac * nu *
+	    fOutItr[k] = fOutItr[k] + dt *  nuFrac * nu *
 	       (fMaxwellItr[k] - fInItr[k])
 	 end
       end
    end
+   return true, GKYL_MAX_DOUBLE
 end
 
 return BgkCollisions

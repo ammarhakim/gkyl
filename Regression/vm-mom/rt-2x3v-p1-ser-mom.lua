@@ -124,16 +124,16 @@ local project = Updater.ProjectOnBasis {
 }
 
 local tStart = Time.clock()
-project:advance(0.0, {}, {distf})
+project:advance(0.0, 0.0, {}, {distf})
 distf:write("distf.bp", 0.0)
 local tEnd = Time.clock()
 
 local tStart = Time.clock()
 -- compute moments
-numDensityCalc:advance(0.0, {distf}, {numDensity})
-momentumCalc:advance(0.0, {distf}, {momentum})
-pressureTensorCalc:advance(0.0, {distf}, {pressureTensor})
-ptclEnergyCalc:advance(0.0, {distf}, {ptclEnergy})
+numDensityCalc:advance(0.0, 0.0, {distf}, {numDensity})
+momentumCalc:advance(0.0, 0.0, {distf}, {momentum})
+pressureTensorCalc:advance(0.0, 0.0, {distf}, {pressureTensor})
+ptclEnergyCalc:advance(0.0, 0.0, {distf}, {ptclEnergy})
 local tEnd = Time.clock()
 
 -- write data

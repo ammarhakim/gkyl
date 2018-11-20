@@ -245,9 +245,8 @@ local isOutside = function (inOutPtr)
 end
 
 -- advance method
-function WavePropagation:_advance(tCurr, inFld, outFld)
+function WavePropagation:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
-   local dt = self._dt
    local qIn = assert(inFld[1], "WavePropagation.advance: Must-specify an input field")
    local qOut = assert(outFld[1], "WavePropagation.advance: Must-specify an output field")
 
