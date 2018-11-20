@@ -681,15 +681,19 @@ local function buildApplication(self, tbl)
 	 else
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
-            if (myDt < 1e-3*initDt) then 
-               failcount = failcount + 1
-               if failcount > 20 then
-                  writeData(tCurr+myDt, true)
-                  log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
-                  break
-               end
-            end
 	 end
+
+         if (myDt < 1e-3*initDt) then 
+            failcount = failcount + 1
+            log(string.format("WARNING: Timestep dt = %g is below 1e-3*initDt. Fail counter = %d...\n", myDt, failcount))
+            if failcount > 20 then
+               writeData(tCurr+myDt, true)
+               log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
+               break
+            end
+         else
+            failcount = 0
+         end
       end
       local tmSimEnd = Time.clock()
 
