@@ -77,7 +77,7 @@ function CartFieldBinOp:init(tbl)
 end
 
 -- advance method
-function CartFieldBinOp:_advance(tCurr, inFld, outFld)
+function CartFieldBinOp:_advance(tCurr, dt, inFld, outFld)
    local grid = self._onGrid
    -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
    --                              but in the latter Afld must be the scalar).
@@ -146,6 +146,8 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
 
       self._BinOpCalc(AfldItr:data(), BfldItr:data(), nComp, nCompEq, uOutItr:data())
    end
+
+   return true, GKYL_MAX_DOUBLE
 end
 
 return CartFieldBinOp

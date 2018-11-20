@@ -52,7 +52,7 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 end   
 
 -- advance method
-function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
+function CartFieldIntegratedQuantCalc:_advance(tCurr, dt, inFld, outFld)
    local grid = self.onGrid
    local field, vals = inFld[1], outFld[1]
 
@@ -85,6 +85,8 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
    Mpi.Allreduce(
       self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, self:getComm())
    vals:appendData(tCurr, self.globalVals)
+   
+   return true, GKYL_MAX_DOUBLE
 end
 
 return CartFieldIntegratedQuantCalc

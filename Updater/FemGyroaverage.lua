@@ -158,7 +158,7 @@ function FemGyroaverage:init(tbl)
                  end,
       projectOnGhosts = true,
    }
-   initUnit:advance(0.,{},{self.unitWeight})
+   initUnit:advance(0.,0.,{},{self.unitWeight})
 
    -- set up field for non-uniform and/or time-dependent modifier weight
    self.modifierWeight = DataStruct.Field {
@@ -211,7 +211,7 @@ function FemGyroaverage:bcType(dir,side) return self._bc[dir][side].type end
 function FemGyroaverage:bcValue(dir,side) return self._bc[dir][side].value end
 
 ---- advance method
-function FemGyroaverage:_advance(tCurr, inFld, outFld) 
+function FemGyroaverage:_advance(tCurr, dt, inFld, outFld) 
    local grid = self._grid
    local basis = self._basis
 
@@ -361,6 +361,8 @@ function FemGyroaverage:_advance(tCurr, inFld, outFld)
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
+
+   return true, GKYL_MAX_DOUBLE
 end
 
 function FemGyroaverage:delete()

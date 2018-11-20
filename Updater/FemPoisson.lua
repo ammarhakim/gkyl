@@ -129,15 +129,17 @@ end
 
 
 ---- advance method
-function FemPoisson:_advance(tCurr, inFld, outFld) 
+function FemPoisson:_advance(tCurr, dt, inFld, outFld) 
    -- special case where solve is just algebraic
    if self.ndim == 1 and not self.zContinuous and self.slvr._hasLaplacian == false then
       local src = inFld[1]
       local sol = outFld[1]
 
-      self.weakDivide:advance(0, {self.slvr:getModifierWeight(), src}, {sol})
+      self.weakDivide:advance(0, 0, {self.slvr:getModifierWeight(), src}, {sol})
+
+      return true, GKYL_MAX_DOUBLE
    else
-      self.slvr:advance(tCurr, inFld, outFld)
+      return self.slvr:advance(tCurr, dt, inFld, outFld)
    end
 end
 

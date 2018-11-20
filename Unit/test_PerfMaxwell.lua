@@ -20,8 +20,8 @@ function test_1()
       mgnErrorSpeedFactor = 3.0,
    }
 
-   local ql = {1.0, 1.0, 0.0, 1.0, 1.0, 2.0, 4.0}
-   local qr = {0.1, 0.1, 0.0, 2.0, 3.0, 3.0, 3.0}
+   local ql = {1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 2.0, 4.0}
+   local qr = {0.1, 0.1, 0.0, 0.0, 2.0, 3.0, 3.0, 3.0}
 
    local delta = Lin.Vec(8)
    for m = 1, 8 do delta[m] = qr[m]-ql[m] end

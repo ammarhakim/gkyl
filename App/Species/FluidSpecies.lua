@@ -17,7 +17,6 @@ local SpeciesBase = require "App.Species.SpeciesBase"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local ffi = require "ffi"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -93,7 +92,6 @@ function FluidSpecies:fullInit(appTbl)
 
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
    self.deltaF = xsys.pickBool(appTbl.deltaF, false)
 end
 
@@ -223,23 +221,6 @@ function FluidSpecies:alloc(nRkDup)
    }
    self.couplingMoments = self:allocVectorMoment(self.nMoments)
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
-
-   if self.positivity then
-      self.fPos = self:allocVectorMoment(self.nMoments)
-   end
-
-   -- array with one component per cell to store cflRate in each cell
-   self.cflRateByCell = DataStruct.Field {
-	onGrid = self.grid,
-	numComponents = 1,
-	ghost = {0, 0},
-   }
-   self.cflRateByCell:clear(0.0)
-   self.cflRatePtr = self.cflRateByCell:get(1)
-   self.cflRateIdxr = self.cflRateByCell:genIndexer()
-   self.dt = ffi.new("double[2]")
-   self.dtGlobal = ffi.new("double[2]")
-
    self:createBCs()
 end
 
@@ -250,7 +231,7 @@ function FluidSpecies:initDist()
       evaluate = self.initFunc,
       projectOnGhosts = true,
    }
-   project:advance(0.0, {}, {self.moments[1]})
+   project:advance(0.0, 0.0, {}, {self.moments[1]})
 end
 
 function FluidSpecies:rkStepperFields()
@@ -271,41 +252,31 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    end	 
 end
 
-function FluidSpecies:suggestDt()
-   return GKYL_MAX_DOUBLE
-end
-
-function FluidSpecies:clearCFL()
-end
-
-function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+function FluidSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
-   local fRhsOut = self:rkStepperFields()[outIdx]
+   local fOut = self:rkStepperFields()[outIdx]
 
    if self.evolve then
-      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      if self.positivityRescale then 
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos}) 
-         self:applyBc(tCurr, self.fPos)
-         self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
-      else
-         self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
-      end
+      local myStatus, myDt = self.solver:advance(tCurr, dt, {fIn, em}, {fOut})
+
+      if self.positivity then self.positivityRescale:advance(tCurr, dt, {fOut}, {fOut}) end
 
       -- apply BCs
-      self:applyBc(tCurr, fRhsOut)
+      self:applyBc(tCurr, dt, fOut)
+      return myStatus, myDt
    else
-      fRhsOut:clear(0.0) -- no RHS
+      fOut:copy(fIn) -- just copy stuff over
+      return true, GKYL_MAX_DOUBLE
    end
 end
 
-function FluidSpecies:applyBc(tCurr, fIn)
+function FluidSpecies:applyBc(tCurr, dt, fIn)
    local tmStart = Time.clock()
    if self.evolve then
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {fIn})
+            bc:advance(tCurr, dt, {}, {fIn})
          end
       end
       fIn:sync()
@@ -326,7 +297,7 @@ end
 function FluidSpecies:write(tm)
    if self.evolve then
       -- compute integrated diagnostics
-      self.intMom2Calc:advance(tm, { self.moments[1] }, { self.integratedMoments })
+      self.intMom2Calc:advance(tm, 0.0, { self.moments[1] }, { self.integratedMoments })
       
       -- only write stuff if triggered
       if self.diagIoTrigger(tm) then

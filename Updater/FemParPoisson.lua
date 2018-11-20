@@ -130,7 +130,7 @@ function FemParPoisson:init(tbl)
                  end,
       projectOnGhosts = true
    }
-   initUnit:advance(0.,{},{self.unitWeight})
+   initUnit:advance(0.,0.,{},{self.unitWeight})
 
    -- set up fields for non-uniform and/or time-dependent laplacian and modifier weights
    self.laplacianWeight = DataStruct.Field {
@@ -181,7 +181,7 @@ function FemParPoisson:bcType(side) return self._bc[side].type end
 function FemParPoisson:bcValue(side) return self._bc[side].value end
 
 ---- advance method
-function FemParPoisson:_advance(tCurr, inFld, outFld) 
+function FemParPoisson:_advance(tCurr, dt, inFld, outFld) 
    local grid = self._grid
    local basis = self._basis
 
@@ -233,7 +233,7 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
        numComponents = 1,
        quantity = "V",
      }
-     calcInt:advance(0.0, {src}, {self.dynVec})
+     calcInt:advance(0.0, 0.0, {src}, {self.dynVec})
      _, intSrcVol = self.dynVec:lastData()
    end
 
@@ -307,6 +307,8 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
+
+   return true, GKYL_MAX_DOUBLE
 end
 
 function FemParPoisson:delete()

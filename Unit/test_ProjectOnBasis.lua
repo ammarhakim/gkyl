@@ -36,7 +36,7 @@ function test_1d_1()
    }
 
    -- do projection
-   project:advance(0.0, {}, {distf})
+   project:advance(0.0, 0.0, {}, {distf})
 
    local xc = Lin.Vec(1)
    local indexer = distf:indexer()
@@ -73,7 +73,7 @@ function test_1d_2()
    }
 
    -- do projection
-   project:advance(0.0, {}, {distf})
+   project:advance(0.0, 0.0, {}, {distf})
 
    local xc = Lin.Vec(1)
    local indexer = distf:indexer()
@@ -110,7 +110,7 @@ function test_2d()
    }
 
    -- do projection
-   project:advance(0.0, {}, {distf})
+   project:advance(0.0, 0.0, {}, {distf})
 
    local xc = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()
@@ -148,7 +148,7 @@ function test_2d_2()
    }
 
    -- do projection
-   project:advance(0.0, {}, {distf})
+   project:advance(0.0, 0.0, {}, {distf})
 
    local xc = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()

@@ -50,7 +50,7 @@ function test_ser_1x1v()
 	 return 1/(phaseGrid:upper(2)-phaseGrid:lower(2))
       end
    }
-   project:advance(0.0, {}, {distf})
+   project:advance(0.0, 0.0, {}, {distf})
 
    -- moment updater
    local calcNumDensity = Updater.DistFuncMomentCalc {
@@ -59,7 +59,7 @@ function test_ser_1x1v()
       confBasis = confBasis,
       moment = "M0",
    }
-   calcNumDensity:advance(0.0, {distf}, {numDensity})
+   calcNumDensity:advance(0.0, 0.0, {distf}, {numDensity})
 
    local momIdxr = numDensity:genIndexer()
    local nItr = numDensity:get(momIdxr( {1} ))

@@ -124,13 +124,6 @@ function RectCart:lower(dir) return self._lower[dir] end
 function RectCart:mid(dir) return self._lower[dir] + (self._upper[dir]-self._lower[dir])/2 end
 function RectCart:upper(dir) return self._upper[dir] end
 function RectCart:numCells(dir) return self._numCells[dir] end
-function RectCart:totalNumCells()
-   total = 1
-   for d = 1, self._ndim do
-      total = total*self._numCells[d] 
-   end
-   return total
-end
 function RectCart:localRange() return self._localRange end
 function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end

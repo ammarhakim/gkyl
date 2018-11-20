@@ -49,7 +49,7 @@ function IncompEuler:init(tbl)
                  end,
       projectOnGhosts = true,
    }
-   initUnit:advance(0.,{},{self.unitField})
+   initUnit:advance(0.,0.,{},{self.unitField})
 
    self.zeroField = DataStruct.Field {
         onGrid = self._grid,

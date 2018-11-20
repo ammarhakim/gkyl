@@ -114,15 +114,15 @@ local project = Updater.ProjectOnBasis {
       return maxwellian(xn[1], xn[2], xn[3])
    end
 }
-project:advance(0.0, {}, {distf})
+project:advance(0.0, 0.0, {}, {distf})
 distf:write("distf.bp", 0.0)
 
 local tStart = Time.clock()
 -- compute moments
-numDensityCalc:advance(0.0, {distf}, {numDensity})
-momentumCalc:advance(0.0, {distf}, {momentum})
-pressureTensorCalc:advance(0.0, {distf}, {pressureTensor})
-ptclEnergyCalc:advance(0.0, {distf}, {ptclEnergy})
+numDensityCalc:advance(0.0, 0.0, {distf}, {numDensity})
+momentumCalc:advance(0.0, 0.0, {distf}, {momentum})
+pressureTensorCalc:advance(0.0, 0.0, {distf}, {pressureTensor})
+ptclEnergyCalc:advance(0.0, 0.0, {distf}, {ptclEnergy})
 local tEnd = Time.clock()
 
 -- write data
