@@ -193,9 +193,6 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
      self.evalSource:advance(tCurr, {}, {fSource})
      fRhsOut:accumulate(1.0, fSource)
    end
-
-   -- apply BCs
-   self:applyBc(tCurr, fRhsOut)
 end
 
 function VlasovSpecies:createDiagnostics()
