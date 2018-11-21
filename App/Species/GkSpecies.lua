@@ -294,7 +294,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- apply BCs
-   self:applyBc(tCurr, fRhsOut)
+   --self:applyBc(tCurr, fRhsOut)
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
@@ -330,7 +330,7 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    end
 
    -- apply BCs
-   self:applyBc(tCurr, fRhsOut)
+   --self:applyBc(tCurr, fRhsOut)
 end
 
 function GkSpecies:createDiagnostics()
