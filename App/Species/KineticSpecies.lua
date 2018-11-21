@@ -634,7 +634,7 @@ end
 function KineticSpecies:calcDiagnosticIntegratedMoments()
 end
 
-function KineticSpecies:calcAndWriteDiagnosticMoments()
+function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     self:calcDiagnosticMoments()
     for i, mom in ipairs(self.diagnosticMoments) do
        -- should one use AdiosIo object for this?
@@ -705,7 +705,7 @@ function KineticSpecies:write(tm, force)
 
       if self.diagIoTrigger(tm) or force then
          -- compute moments and write them out
-         self:calcAndWriteDiagnosticMoments()
+         self:calcAndWriteDiagnosticMoments(tm)
 
          if self.evolveCollisions then
             for _, c in pairs(self.collisions) do
@@ -721,7 +721,7 @@ function KineticSpecies:write(tm, force)
 	 self.distIo:write(self.distf[1], string.format("%s_%d.bp", self.name, 0), tm, 0)
 
 	 -- compute moments and write them out
-	 self:calcAndWriteDiagnosticMoments()
+	 self:calcAndWriteDiagnosticMoments(tm)
       end
       self.distIoFrame = self.distIoFrame+1
    end
