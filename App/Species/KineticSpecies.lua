@@ -584,6 +584,7 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
+   self:applyBc(nil, self:rkStepperFields()[outIdx])
 end
 
 function KineticSpecies:suggestDt()
