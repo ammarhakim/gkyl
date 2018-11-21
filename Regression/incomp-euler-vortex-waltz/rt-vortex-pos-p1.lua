@@ -1,20 +1,23 @@
 -- Plasma ------------------------------------------------------------------------
 local Plasma = require "App.PlasmaOnCartGrid"
 
+local L = 10.0
+
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 4*math.pi, -- end time
-   nFrame = 1, -- number of output frames
+   tEnd = 100.0, -- end time
+   nFrame = 10, -- number of output frames
    lower = {0, 0}, -- configuration space lower left
-   upper = {1.0, 1.0}, -- configuration space upper right
-   cells = {32, 32}, -- configuration space cells
+   upper = {L, L}, -- configuration space upper right
+   cells = {64,64}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
+   cflFrac = 0.9,
    
    -- decomposition for configuration space
-   decompCuts = {1, 1}, -- cuts in each configuration direction
+   decompCuts = {1,1}, -- cuts in each configuration direction
    useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
@@ -22,13 +25,15 @@ plasmaApp = Plasma.App {
 
    -- electrons
    fluid = Plasma.IncompEuler.Species {
-      charge = 1.0,
+      charge = -1.0,
       -- initial conditions
       init = function (t, xn)
-	 local x, y = xn[1], xn[2]
-	 local x0, y0, r0 = 0.25, 0.5, 0.15
-	 local r = math.min(math.sqrt((x-x0)^2+(y-y0)^2), r0)/r0
-	 return 0.25*(1+math.cos(math.pi*r))
+         local x, y = xn[1], xn[2]
+         local x1, y1 = 3.5, 5.0
+         local x2, y2 = 6.5, 5.0
+         local r1 = (x-x1)^2 + (y-y1)^2
+         local r2 = (x-x2)^2 + (y-y2)^2
+         return math.exp(-r1/0.8^2) + math.exp(-r2/0.8^2) -- 4.0212385953656/L^2
       end,
       evolve = true, -- evolve species?
       applyPositivity = true,
@@ -36,12 +41,7 @@ plasmaApp = Plasma.App {
 
    -- field solver
    field = Plasma.IncompEuler.Field {
-      evolve = false, -- evolve field?
-      -- u = {dphi/dy, -dphi/dx}
-      initPhiFunc = function (t, xn)
-         local x, y = xn[1], xn[2]
-         return -0.5*(y^2-y+x^2-x)
-      end, 
+      evolve = true, -- evolve field?
    },
 }
 -- run application
