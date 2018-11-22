@@ -69,7 +69,7 @@ function Bc:getGhostRange(global, globalExt)
    return Range.Range(lv, uv)
 end
 
-function Bc:_advance(tCurr, dt, inFld, outFld)
+function Bc:_advance(tCurr, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
    local qIn = inFld[1]
@@ -116,7 +116,7 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
    	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
    	    qOut:fill(indexer(idxS), qS)
             for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr+dt, idxS, qS, qG)
+               bc(dir, tCurr, idxS, qS, qG)
             end
          end
       else
@@ -126,13 +126,12 @@ function Bc:_advance(tCurr, dt, inFld, outFld)
 	    qIn:fill(indexer(idxS), qS)
 	 end
          for _, bc in ipairs(self._bcList) do
-            bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
+            bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
          end
       end
    end
 
    self._isFirst = false
-   return true, GKYL_MAX_DOUBLE
 end
 
 return Bc
