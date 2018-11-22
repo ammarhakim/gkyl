@@ -68,7 +68,7 @@ function _M:advance(tCurr, inFld, outFld)
 end
 
 -- set up pointers to dt and cflRateByCell
-function _M:setupDtAndCflRate(dt, cflRateByCell)
+function _M:setDtAndCflRate(dt, cflRateByCell)
    self._dt = dt
    self._cflRateByCell = cflRateByCell
 end

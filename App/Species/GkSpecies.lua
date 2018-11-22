@@ -264,7 +264,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
-      self.solver:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, emGy}, {fRhsOut})
    else
       fRhsOut:clear(0.0) -- no RHS
@@ -274,7 +274,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if not self.solverStep2 then -- if step2, wait to do collisions and sources
       if self.evolveCollisions then
          for _, c in pairs(self.collisions) do
-            c.collisionSlvr:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+            c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
             c:advance(tCurr, fIn, species, fRhsOut)
             -- the full 'species' list is needed for the cross-species
             -- collisions
@@ -296,7 +296,7 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
-      self.solverStep2:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
    else
       fRhsOut:clear(0.0)  -- no RHS
@@ -304,7 +304,7 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-         c.collisionSlvr:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
 	 c:advance(tCurr, fIn, species, fRhsOut)
 	 -- the full 'species' list is needed for the cross-species
 	 -- collisions
