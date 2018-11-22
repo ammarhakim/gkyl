@@ -129,7 +129,7 @@ function test_1(scheme, evolve, dt)
       mgnErrorSpeedFactor = 1,
       scheme = scheme,
    }
-   srcUpdater:setupDtAndCflRate(dt, nil)
+   srcUpdater:setDtAndCflRate(dt, nil)
    srcUpdater:advance(0.0, {}, {elcFluid, ionFluid, em})
    display()
 end

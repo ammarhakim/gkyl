@@ -139,12 +139,12 @@ function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
    if self.evolve then
       self:applyBc(tCurr, fIn)
       if self.forceInv or self.tryInv then
-         self.hyperSlvrInv[dir]:setupDtAndCflRate(dt, nil)
+         self.hyperSlvrInv[dir]:setDtAndCflRate(dt, nil)
          status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, {fIn}, {fOut})
          -- if result is OK, do not try to use invariant eqn. in next step
          self.tryInv = not status
       else
-         self.hyperSlvr[dir]:setupDtAndCflRate(dt, nil)
+         self.hyperSlvr[dir]:setDtAndCflRate(dt, nil)
          status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
          self.tryInv = status and not self:checkInv(fOut)
       end

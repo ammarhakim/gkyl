@@ -172,7 +172,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 
    if self.evolveCollisionless then
-      self.solver:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, totalEmField}, {fRhsOut})
    else
       fRhsOut:clear(0.0) -- no RHS
@@ -180,7 +180,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- perform the collision update
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-         c.collisionSlvr:setupDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
 	 c:advance(tCurr, fIn, species, fRhsOut)
 	 -- the full 'species' list is needed for the cross-species
 	 -- collisions
