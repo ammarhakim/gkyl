@@ -116,6 +116,7 @@ function GkLBOCollisions:createSolver(funcField)
       zfd[d] = self.confGrid:ndim() + d
    end
 
+   local gkLBOconstNuCalc
    if self.varNu then
       -- Collisionality, nu.
       self.nuFld = DataStruct.Field {
@@ -154,7 +155,6 @@ function GkLBOCollisions:createSolver(funcField)
       basis              = self.phaseBasis,
       cfl                = self.cfl,
       equation           = gkLBOconstNuCalc,
-      onlyIncrement      = true,
       updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
@@ -177,15 +177,14 @@ function GkLBOCollisions:createSolver(funcField)
    self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
 
-function GkLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
-   local status, dtSuggested = true, GKYL_MAX_DOUBLE
+function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom = species[self.speciesName]:fluidMoments()
 
    if self.selfCollisions then
       local tmEvalMomStart = Time.clock()
       -- Compute primitive moments velocity and vthSq=T/m from zeroth,
       -- first and second moments, and distribution function.
-      self.primMomSelf:advance(0.0, 0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
+      self.primMomSelf:advance(0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
                                          {self.uPar,self.vthSq})
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
@@ -210,29 +209,26 @@ function GkLBOCollisions:forwardEuler(tCurr, dt, fIn, species, fOut)
       end
       Mpi.Allreduce(self.primMomCrossLimitL:data(), self.primMomCrossLimitG:data(), 1,
                     Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-      self.primMomLimitCrossings:appendData(tCurr+dt, self.primMomCrossLimitG)
+      self.primMomLimitCrossings:appendData(tCurr, self.primMomCrossLimitG)
 
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, 0.0, {selfMom[1], self.vthSq},{self.nuFld})
+         self.spitzerNu:advance(0.0, {selfMom[1], self.vthSq},{self.nuFld})
 
          -- Compute increment from collisions and accumulate it into output.
-         tmpStatus, tmpDt = self.collisionSlvr:advance(
-            tCurr, dt, {fIn, self.bmagInv, self.uPar, self.vthSq, self.nuFld}, {self.collOut})
+         self.collisionSlvr:advance(
+            tCurr, {fIn, self.bmagInv, self.uPar, self.vthSq, self.nuFld}, {self.collOut})
       else
          -- Compute increment from collisions and accumulate it into output.
-         tmpStatus, tmpDt = self.collisionSlvr:advance(
-            tCurr, dt, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
+         self.collisionSlvr:advance(
+            tCurr, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
       end
-      status = status and tmpStatus
-      dtSuggested = math.min(dtSuggested, tmpDt)
 
-      fOut:accumulate(dt, self.collOut)
+      fRhsOut:accumulate(1.0, self.collOut)
    end
    if self.crossSpecies then
       -- Insert cross collisions here!
    end
-   return status, dtSuggested
 end
 
 function GkLBOCollisions:write(tm, frame)

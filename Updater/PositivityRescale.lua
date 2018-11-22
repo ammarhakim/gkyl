@@ -34,7 +34,7 @@ function PositivityRescale:init(tbl)
 end   
 
 -- advance method
-function PositivityRescale:_advance(tCurr, dt, inFld, outFld)
+function PositivityRescale:_advance(tCurr, inFld, outFld)
    local grid = self.onGrid
    local fIn, fOut = inFld[1], outFld[1]
 
@@ -67,8 +67,6 @@ function PositivityRescale:_advance(tCurr, dt, inFld, outFld)
          fOutPtr[i] = fInPtr[i]*theta
       end
    end
-
-   return true, GKYL_MAX_DOUBLE
 end
 
 return PositivityRescale

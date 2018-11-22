@@ -36,13 +36,13 @@ function test_1()
    assert_equal(flux[4], rho*u*w, "Checking flux")
    assert_equal(flux[5], (q[5]+pr)*u, "Checking flux")
 
-   rho , u, v, w, pr = -1.0, 1.0, 0.0, 0.0, 0.1
+   rho , u, v, w, pr = -1.0, 1.0, 0.0, 0.1
    q[1] = rho
    q[2], q[3], q[4] = rho*u, rho*v, rho*w
    q[5] = pr/(euler:gasGamma()-1) + 0.5*rho*(u*u+v*v+w*w)
    assert_equal(false, euler:isPositive(q), "Checking positivity")
 
-   rho , u, v, w, pr = 1.0, 1.0, 0.0, 0.0, -0.1
+   rho , u, v, w, pr = 1.0, 1.0, 0.0, -0.1
    q[1] = rho
    q[2], q[3], q[4] = rho*u, rho*v, rho*w
    q[5] = pr/(euler:gasGamma()-1) + 0.5*rho*(u*u+v*v+w*w)
@@ -61,8 +61,8 @@ end
 function test_2()
    local euler = Euler { gasGamma = 1.4 }
 
-   local ql = calcq(euler:gasGamma(), {1.0, 1.0, 0.0, 0.0, 1.0})
-   local qr = calcq(euler:gasGamma(), {0.1, 1.0, 0.0, 0.0, 1.0})
+   local ql = calcq(euler:gasGamma(), {1.0, 1.0, 0.0, 1.0})
+   local qr = calcq(euler:gasGamma(), {0.1, 1.0, 0.0, 1.0})
 
    local delta = Lin.Vec(5)
    for m = 1, 5 do delta[m] = qr[m]-ql[m] end
@@ -147,7 +147,7 @@ end
 
 function test_5()
    local euler = Euler { gasGamma = 1.4 }
-   local bcConst = Euler:bcConst(1.0, 0.0, 0.0, 0.0, 0.1)
+   local bcConst = Euler:bcConst(1.0, 0.0, 0.0, 0.1)
 end
 
 test_1()

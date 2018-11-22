@@ -152,9 +152,9 @@ function VlasovSpecies:createSolver(hasE, hasB)
    self.tmCouplingMom = 0.0 -- for timer 
 end
 
-function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
+function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
-   local fOut = self:rkStepperFields()[outIdx]
+   local fRhsOut = self:rkStepperFields()[outIdx]
 
    -- accumulate functional Maxwell fields (if needed)
    local emField = emIn[1]:rkStepperFields()[inIdx]
@@ -171,36 +171,31 @@ function VlasovSpecies:forwardEuler(tCurr, dt, species, emIn, inIdx, outIdx)
       totalEmField = emField
    end
 
-   local status, dtSuggested = true, GKYL_MAX_DOUBLE
    if self.evolveCollisionless then
-      status, dtSuggested = self.solver:advance(
-	 tCurr, dt, {fIn, totalEmField}, {fOut})
+      self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.solver:advance(tCurr, {fIn, totalEmField}, {fRhsOut})
    else
-      fOut:copy(fIn) -- just copy stuff over
+      fRhsOut:clear(0.0) -- no RHS
    end
    -- perform the collision update
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
-	 local collStatus, collDt = c:forwardEuler(
-	    tCurr, dt, fIn, species, fOut)
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+	 c:advance(tCurr, fIn, species, fRhsOut)
 	 -- the full 'species' list is needed for the cross-species
 	 -- collisions
-	 status = status and collStatus
-	 dtSuggested = math.min(dtSuggested, collDt)
       end
    end
 
    if self.sourceFunc and self.evolveSources then
      -- if there is a source, add it to the RHS
      local fSource = self.fSource
-     self.evalSource:advance(tCurr, dt, {}, {fSource})
-     fOut:accumulate(dt, fSource)
+     self.evalSource:advance(tCurr, {}, {fSource})
+     fRhsOut:accumulate(1.0, fSource)
    end
 
    -- apply BCs
-   self:applyBc(tCurr, dt, fOut)
-
-   return status, dtSuggested
+   self:applyBc(tCurr, fRhsOut)
 end
 
 function VlasovSpecies:createDiagnostics()
@@ -342,15 +337,15 @@ function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function VlasovSpecies:calcCouplingMoments(tCurr, dt, rkIdx)
+function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
 
    local tmStart = Time.clock()
    -- compute moments needed in coupling to fields and collisions
    local fIn = self:rkStepperFields()[rkIdx]
    if self.collisions then 
-      self.fiveMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+      self.fiveMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
    else
-      self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
+      self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
    end
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
@@ -360,11 +355,11 @@ end
 function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
    -- first compute M0, M1i, M2
    local fIn = self:rkStepperFields()[1]
-   self.fiveMomentsCalc:advance(tCurr, dt, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+   self.fiveMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
 
    -- compute n*u^2 from n*u and n
-   self.confDiv:advance(0., 0., {self.numDensity, self.momDensity}, {self.flow})
-   self.confDotProduct:advance(0., 0., {self.flow, self.momDensity}, {self.kineticEnergyDensity})
+   self.confDiv:advance(0., {self.numDensity, self.momDensity}, {self.flow})
+   self.confDotProduct:advance(0., {self.flow, self.momDensity}, {self.kineticEnergyDensity})
 
    -- compute VDIM*n*T from M2 and kinetic energy density
    self.thermalEnergyDensity:combine(1.0, self.ptclEnergy, -1.0, self.kineticEnergyDensity)
@@ -373,19 +368,19 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
    for i = 1, numMoms do
       if self.diagnosticIntegratedMoments[i] == "intM0" then
          self.diagnosticIntegratedMomentUpdaters[i]:advance(
-   	    tCurr, 0.0, {self.numDensity}, {self.diagnosticIntegratedMomentFields[i]})
+            tCurr, {self.numDensity}, {self.diagnosticIntegratedMomentFields[i]})
       elseif self.diagnosticIntegratedMoments[i] == "intM1i" then
          self.diagnosticIntegratedMomentUpdaters[i]:advance(
-   	    tCurr, 0.0, {self.momDensity}, {self.diagnosticIntegratedMomentFields[i]})
+            tCurr, {self.momDensity}, {self.diagnosticIntegratedMomentFields[i]})
       elseif self.diagnosticIntegratedMoments[i] == "intM2Flow" then
          self.diagnosticIntegratedMomentUpdaters[i]:advance(
-   	    tCurr, 0.0, {self.kineticEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
+            tCurr, {self.kineticEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
       elseif self.diagnosticIntegratedMoments[i] == "intM2Thermal" then
          self.diagnosticIntegratedMomentUpdaters[i]:advance(
-   	    tCurr, 0.0, {self.thermalEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
+            tCurr, {self.thermalEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
       elseif self.diagnosticIntegratedMoments[i] == "intL2" then
          self.diagnosticIntegratedMomentUpdaters[i]:advance(
-   	    tCurr, 0.0, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[i]})
+            tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[i]})
       end
    end
 end
@@ -401,7 +396,7 @@ function VlasovSpecies:getNumDensity(rkIdx)
    local tmStart = Time.clock()
 
    local fIn = self:rkStepperFields()[rkIdx]
-   self.numDensityCalc:advance(tCurr, dt, {fIn}, { self.numDensity })
+   self.numDensityCalc:advance(nil, {fIn}, { self.numDensity })
 
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
@@ -415,7 +410,7 @@ function VlasovSpecies:getMomDensity(rkIdx)
    local tmStart = Time.clock()
 
    local fIn = self:rkStepperFields()[rkIdx]
-   self.momDensityCalc:advance(tCurr, dt, {fIn}, { self.momDensity })
+   self.momDensityCalc:advance(nil, {fIn}, { self.momDensity })
 
    self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
@@ -431,8 +426,8 @@ function VlasovSpecies:momCalcTime()
 end
 
 -- please test this for higher than 1x1v... 
-function VlasovSpecies:Maxwellian(xn, n0, T0, vdn)
-   local vdn = vdn or {0, 0, 0}
+function VlasovSpecies:Maxwellian(xn, n0, T0, vdnIn)
+   local vdn = vdnIn or {0, 0, 0}
    local vt2 = T0/self.mass
    local v2 = 0.0
    for d = self.cdim+1, self.cdim+self.vdim do
