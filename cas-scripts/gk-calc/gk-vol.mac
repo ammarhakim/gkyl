@@ -257,10 +257,10 @@ load(modNm),
   printf(fh, "} ~%")
 )$
 
-pmax:2$
-em:true$
+pmax:1$
+em:false$
 
-for c : 1 thru 2 do (
+for c : 3 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
 for p : 1 thru pmax do (
@@ -273,7 +273,7 @@ printf(fh, "#include <GyrokineticModDecl.h> ~%"),
    note that we assume axisymmetry, which means B cannot depend on y */
 if c=1 then bvarslist : [[0], [1]],
 if c=2 then bvarslist : [[0], [1]],
-if c=3 then bvarslist : [[0], [1]/*, [3], [1,3]*/],
+if c=3 then bvarslist : [[0], [1], [3], [1,3]],
 for b : 1 thru length(bvarslist) do (
 if em then (
 funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
@@ -300,5 +300,4 @@ funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", p, false, [0]),
 close(fh)
 )
-)
-
+)$
