@@ -366,6 +366,12 @@ local function buildApplication(self, tbl)
       end
       field:combineRk(outIdx, a, aIdx, ...)
    end
+   --local function applyBc(tCurr, idx)
+   --   for nm, s in pairs(species) do
+   --      s:applyBc(tCurr, idx)
+   --   end
+   --   field:applyBc(tCurr, idx)
+   --end
 
    -- function to take a single forward-euler time-step
    local function forwardEuler(tCurr, dt, inIdx, outIdx)
@@ -709,15 +715,19 @@ local function buildApplication(self, tbl)
 	 else
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
 	    myDt = dtSuggested
-            if (myDt < 1e-3*initDt) then 
-               failcount = failcount + 1
-               if failcount > 20 then
-                  writeData(tCurr+myDt, true)
-                  log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
-                  break
-               end
-            end
 	 end
+
+         if (myDt < 1e-3*initDt) then 
+            failcount = failcount + 1
+            log(string.format("WARNING: Timestep dt = %g is below 1e-3*initDt. Fail counter = %d...\n", myDt, failcount))
+            if failcount > 20 then
+               writeData(tCurr+myDt, true)
+               log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
+               break
+            end
+         else
+            failcount = 0
+         end
       end
       local tmSimEnd = Time.clock()
 

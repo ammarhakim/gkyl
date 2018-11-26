@@ -425,6 +425,7 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
          self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
       end	 
    end
+   self:applyBc(nil, self:rkStepperFields()[outIdx])
 end
 
 function MaxwellField:suggestDt()
@@ -499,9 +500,6 @@ function MaxwellField:advance(tCurr, species, inIdx, outIdx)
 	 end
 	 self:accumulateCurrent(self.currentDens, emRhsOut)
       end
-      
-      -- apply BCs
-      self:applyBc(tCurr, emRhsOut)
    else
       emRhsOut:clear(0.0) -- no RHS
    end
