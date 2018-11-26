@@ -112,7 +112,8 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    -- pointers for (re)use in update
    local qInM, qInP = qIn:get(1), qIn:get(1)
    local qRhsOutM, qRhsOutP = qRhsOut:get(1), qRhsOut:get(1)
-   local cflRateByCellPtr = cflRateByCell:get(1)
+   local cflRateByCellP = cflRateByCell:get(1)
+   local cflRateByCellM = cflRateByCell:get(1)
 
    -- This flag is needed as the volume integral already contains
    -- contributions from all directions. Hence, we must only
@@ -178,15 +179,17 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
 	    qRhsOut:fill(qRhsOutIdxr(idxm), qRhsOutM)
 	    qRhsOut:fill(qRhsOutIdxr(idxp), qRhsOutP)
-            cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellPtr)
+            cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
+            cflRateByCell:fill(cflRateByCellIdxr(idxm), cflRateByCellM)
 
 	    if firstDir and i<=dirUpIdx-1 then
 	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
-               cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + cflRate
+               cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
+               local cflr = math.max(cflRateByCellM:data()[0], cflRateByCellP:data()[0])
 	       local maxs = self._equation:surfTerm(
-		  dir, cflRateByCellPtr:data()[0]*dt, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		  dir, cflr*dt, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then

@@ -265,13 +265,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      if self.positivityRescale then 
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos}) 
-         if(tCurr>0.0) then self:applyBc(tCurr, self.fPos) end
-         self.solver:advance(tCurr, {self.fPos, em, emFunc, emGy}, {fRhsOut})
-      else
-         self.solver:advance(tCurr, {fIn, em, emFunc, emGy}, {fRhsOut})
-      end
+      self.solver:advance(tCurr, {fIn, em, emFunc, emGy}, {fRhsOut})
    else
       fRhsOut:clear(0.0) -- no RHS
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
@@ -292,9 +286,6 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
         fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
       end
    end
-
-   -- apply BCs
-   self:applyBc(tCurr, fRhsOut)
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
@@ -306,11 +297,7 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      if self.positivityRescale then 
-         self.solverStep2:advance(tCurr, {self.fPos, em, emFunc}, {fRhsOut})
-      else
-         self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
-      end
+      self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
    else
       fRhsOut:clear(0.0)  -- no RHS
    end
@@ -328,9 +315,6 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
      -- add source it to the RHS
      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
-
-   -- apply BCs
-   self:applyBc(tCurr, fRhsOut)
 end
 
 function GkSpecies:createDiagnostics()
