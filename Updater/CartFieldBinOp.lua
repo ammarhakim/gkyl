@@ -98,7 +98,7 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
    -- Either the localRange is the same for Bfld and Afld,
    -- or just use the range of the phase space field,
    local localBRangeDecomp
-   if self.onGhost then
+   if self.onGhosts then
       localBRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = Bfld:localExtRange(), numSplit = grid:numSharedProcs() }
    else
