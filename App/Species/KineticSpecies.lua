@@ -760,6 +760,8 @@ function KineticSpecies:write(tm, force)
             end
          end
 
+         self.cflRateByCell:write(string.format("%s_cflRate_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
