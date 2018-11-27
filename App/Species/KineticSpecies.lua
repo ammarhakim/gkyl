@@ -16,6 +16,7 @@ local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local GaussQuadRules = require "Lib.GaussQuadRules"
 local Grid = require "Grid"
+local LinearDecomp = require "Lib.LinearDecomp"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Mpi = require "Comm.Mpi"
 local Projection = require "App.Projection"
@@ -595,17 +596,21 @@ end
 
 function KineticSpecies:suggestDt()
    -- loop over local region 
+   local grid = self.grid
    self.dt[0] = GKYL_MAX_DOUBLE
-   local tId = self.grid:subGridSharedId() -- local thread ID
+   local tId = grid:subGridSharedId() -- local thread ID
    local localRange = self.cflRateByCell:localRange()
-   for idx in localRange:colMajorIter() do
-      -- calculate local min dt from local cflRates
+   local localRangeDecomp = LinearDecomp.LinearDecompRange {
+	 range = localRange, numSplit = grid:numSharedProcs() }
+
+   for idx in localRangeDecomp:colMajorIter(tId) do
+      -- calculate local min dt from local cflRates on each proc
       self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
       self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
    end
 
    -- all reduce to get global min dt
-   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, self.grid:commSet().comm)
+   Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
 
    return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
 end
