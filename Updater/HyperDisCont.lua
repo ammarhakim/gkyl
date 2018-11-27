@@ -187,7 +187,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
-               local cflr = cflRateByCellP:data()[0]
+               local cflr = math.max(cflRateByCellP:data()[0] or 0.0, cflRateByCellM:data()[0] or 0.0)
 	       local maxs = self._equation:surfTerm(
 		  dir, cflr*dt, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
