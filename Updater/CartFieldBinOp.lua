@@ -100,10 +100,10 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
    local localBRangeDecomp
    if self.onGhost then
       localBRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = Bfld:localRange(), numSplit = grid:numSharedProcs() }
+	 range = Bfld:localExtRange(), numSplit = grid:numSharedProcs() }
    else
       localBRangeDecomp = LinearDecomp.LinearDecompRange {
-	 range = Bfld:localExtRange(), numSplit = grid:numSharedProcs() }
+	 range = Bfld:localRange(), numSplit = grid:numSharedProcs() }
    end
 
    local AfldIndexer = Afld:genIndexer()
