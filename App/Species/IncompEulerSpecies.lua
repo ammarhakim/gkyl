@@ -6,12 +6,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto = require "Lib.Proto"
+local DataStruct = require "DataStruct"
 local FluidSpecies = require "App.Species.FluidSpecies"
 local IncompEulerEq = require "Eq.IncompEuler"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Updater = require "Updater"
-local DataStruct = require "DataStruct"
 local Mpi = require "Comm.Mpi"
+local Proto = require "Lib.Proto"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
 
