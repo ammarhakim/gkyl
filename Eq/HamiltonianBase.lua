@@ -103,13 +103,13 @@ function Hamiltonian:volTerm(w, dx, idx, q, out)
    return self._volTerm(w:data(), dx:data(), self.hamPtr:data(), q:data(), out:data())
 end
 -- Surface integral term for use in DG scheme
-function Hamiltonian:surfTerm(dir, cfl, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function Hamiltonian:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    self.hamiltonian:fill(self.hamIdxr(idxl), self.hamPtrL)
    self.hamiltonian:fill(self.hamIdxr(idxr), self.hamPtrR)
    if self._hamilDisCont[dir] then 
       self._disContCorrectionSurfTerms[dir](wr:data(), dxr:data(), maxs, self.hamPtrL:data(), self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data()) 
    end
-   return self._surfTerms[dir](cfl, wr:data(), dxr:data(), maxs, self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
+   return self._surfTerms[dir](cfll, wr:data(), dxr:data(), maxs, self.hamPtrR:data(), ql:data(), qr:data(), outl:data(), outr:data())
 end
 
 function Hamiltonian:writeHamiltonian(distIo, tm)

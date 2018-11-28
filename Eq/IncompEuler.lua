@@ -93,13 +93,13 @@ function IncompEuler:volTerm(w, dx, idx, f, out)
 end
 
 -- Surface integral term for use in DG scheme
-function IncompEuler:surfTerm(dir, cfl, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function IncompEuler:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.unitField:fill(self.unitIdxr(idxr), self.unitPtr)
    self.zeroField:fill(self.zeroIdxr(idxr), self.zeroPtr)
    local res
-   res = self._surfTerms[dir](self.charge, self.mass, cfl, wr:data(), dxr:data(), maxs, self.unitPtr:data(), self.unitPtr:data(), self.zeroPtr:data(), self.zeroPtr:data(), self.zeroPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.unitPtr:data(), self.unitPtr:data(), self.zeroPtr:data(), self.zeroPtr:data(), self.zeroPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end
