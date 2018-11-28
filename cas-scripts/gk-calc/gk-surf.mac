@@ -75,8 +75,8 @@ load(modNm),
   /* remove volume contribution from surface variable, which is not integrated */
   surfac : fullratsimp(volfac*dfacSurf),
 
-  if emflag then printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_"))
-  else printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_")),
+  if emflag then printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_"))
+  else printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_")),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
 
   for dir : 1 thru cdim+vdim do (
@@ -183,7 +183,7 @@ load(modNm),
   else if pureUpwind or i=1 then (
 
     printf(fh, "  if (alpha0>0) { ~%"),
-    if positivity then fhat : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, cfl, cdim, vdim, i))
+    if positivity then fhat : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, cflL, cdim, vdim, i))
     else fhat : subst(surfVar=1, fL_expd),
     t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
     incr_r : facsum(fullratsimp(t),dxv),
@@ -202,7 +202,7 @@ load(modNm),
     flush_output(fh),
     
     printf(fh, "  } else { ~%"),
-    if positivity then fhat : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, cfl, cdim, vdim, i))
+    if positivity then fhat : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, cflR, cdim, vdim, i))
     else fhat : subst(surfVar=-1, fR_expd),
     t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
     incr_r : facsum(fullratsimp(t),dxv),
@@ -300,7 +300,7 @@ else posString : "",
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
-pmax:2,
+pmax:1,
 if c=1 then (pmax:2),
 if positivity then pmax:1,
 for p:1 thru pmax do (

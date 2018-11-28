@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -18,8 +18,8 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const do
   double alpha0 = (0.125*(2.0*BdriftX[0]*m_*wv2+q_*((BmagInv[0]*(1.732050807568877*Apar[2]-3.0*Apar[3])*dfac_y+BdriftX[0]*(Apar[0]-1.732050807568877*Apar[1]))*wv+BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y)))/q_; 
 
   double alpha[8]; 
-  alpha[0] = (1.414213562373095*BdriftX[0]*m_*wv2)/q_-2.121320343559642*BmagInv[0]*Apar[3]*dfac_y*wv+1.224744871391589*BmagInv[0]*Apar[2]*dfac_y*wv-1.224744871391589*BdriftX[0]*Apar[1]*wv+0.7071067811865475*Apar[0]*BdriftX[0]*wv+2.121320343559642*BmagInv[0]*Phi[3]*dfac_y-1.224744871391589*BmagInv[0]*Phi[2]*dfac_y; 
-  alpha[1] = 0.7071067811865475*BdriftX[0]*Apar[2]*wv-1.224744871391589*BdriftX[0]*Apar[3]*wv; 
+  alpha[0] = (0.7071067811865475*(2.0*BdriftX[0]*m_*wv2+q_*((BmagInv[0]*(1.732050807568877*Apar[2]-3.0*Apar[3])*dfac_y+BdriftX[0]*(Apar[0]-1.732050807568877*Apar[1]))*wv+BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y)))/q_; 
+  alpha[1] = -0.408248290463863*BdriftX[0]*(3.0*Apar[3]-1.732050807568877*Apar[2])*wv; 
   alpha[2] = (0.8164965809277261*BdriftX[0]*m_*wv)/(dfac_v*q_); 
   if (alpha0>0) { 
   double rVal[8];  // rVal=f1/f0 at each node 
@@ -32,14 +32,14 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fl[15]+3.0*((-1.0*fl[13])+fl[12]+fl[11])+5.196152422706631*(fl[5]-1.0*(fl[8]+fl[6]))-9.0*fl[1]))/(20.78460969082652*EPSILON-1.0*fl[14]+1.732050807568877*(fl[10]-1.0*(fl[9]+fl[7]))+3.0*(fl[4]+fl[3]-1.0*fl[2])+5.196152422706631*fl[0]); 
   rVal[7] = (1.732050807568877*fl[15]+3.0*(fl[13]+fl[12]+fl[11])+5.196152422706631*(fl[8]+fl[6]+fl[5])+9.0*fl[1])/(20.78460969082652*EPSILON+fl[14]+1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])+5.196152422706631*fl[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fl[14]-1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*(fl[9]+fl[7]))+3.0*(fl[2]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]-1.0*fl[7])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[2])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]-1.0*fl[7])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[2])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[7]-1.0*(fl[10]+fl[9]))+3.0*(fl[4]-1.0*(fl[3]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*fl[9]+fl[7])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[2]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]+fl[7])+3.0*(fl[2]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fl[14]-1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cflL); 
+  fqVal[1] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*(fl[9]+fl[7]))+3.0*(fl[2]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cflL); 
+  fqVal[2] = 0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]-1.0*fl[7])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[2])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cflL); 
+  fqVal[3] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]-1.0*fl[7])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[2])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cflL); 
+  fqVal[4] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[7]-1.0*(fl[10]+fl[9]))+3.0*(fl[4]-1.0*(fl[3]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cflL); 
+  fqVal[5] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*fl[9]+fl[7])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[2]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cflL); 
+  fqVal[6] = -0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]+fl[7])+3.0*(fl[2]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cflL); 
+  fqVal[7] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cflL); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -110,14 +110,14 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fr[15]+3.0*((-1.0*fr[13])+fr[12]+fr[11])+5.196152422706631*(fr[5]-1.0*(fr[8]+fr[6]))-9.0*fr[1]))/(20.78460969082652*EPSILON-1.0*fr[14]+1.732050807568877*(fr[10]-1.0*(fr[9]+fr[7]))+3.0*(fr[4]+fr[3]-1.0*fr[2])+5.196152422706631*fr[0]); 
   rVal[7] = (1.732050807568877*fr[15]+3.0*(fr[13]+fr[12]+fr[11])+5.196152422706631*(fr[8]+fr[6]+fr[5])+9.0*fr[1])/(20.78460969082652*EPSILON+fr[14]+1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])+5.196152422706631*fr[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fr[14]-1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*(fr[9]+fr[7]))+3.0*(fr[2]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]-1.0*fr[7])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[2])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]-1.0*fr[7])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[2])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[7]-1.0*(fr[10]+fr[9]))+3.0*(fr[4]-1.0*(fr[3]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*fr[9]+fr[7])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[2]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]+fr[7])+3.0*(fr[2]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fr[14]-1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cflR); 
+  fqVal[1] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*(fr[9]+fr[7]))+3.0*(fr[2]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cflR); 
+  fqVal[2] = 0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]-1.0*fr[7])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[2])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cflR); 
+  fqVal[3] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]-1.0*fr[7])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[2])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cflR); 
+  fqVal[4] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[7]-1.0*(fr[10]+fr[9]))+3.0*(fr[4]-1.0*(fr[3]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cflR); 
+  fqVal[5] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*fr[9]+fr[7])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[2]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cflR); 
+  fqVal[6] = -0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]+fr[7])+3.0*(fr[2]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cflR); 
+  fqVal[7] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cflR); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -180,7 +180,7 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_0(const double q_, const do
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -199,8 +199,8 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const do
   double alpha0 = (0.125*(2.0*BdriftY[0]*m_*wv2+q_*((BmagInv[0]*(3.0*Apar[3]-1.732050807568877*Apar[1])*dfac_x+BdriftY[0]*(Apar[0]-1.732050807568877*Apar[2]))*wv+BmagInv[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x)))/q_; 
 
   double alpha[8]; 
-  alpha[0] = (1.414213562373095*BdriftY[0]*m_*wv2)/q_+2.121320343559642*BmagInv[0]*Apar[3]*dfac_x*wv-1.224744871391589*BmagInv[0]*Apar[1]*dfac_x*wv-1.224744871391589*BdriftY[0]*Apar[2]*wv+0.7071067811865475*Apar[0]*BdriftY[0]*wv-2.121320343559642*BmagInv[0]*Phi[3]*dfac_x+1.224744871391589*BmagInv[0]*Phi[1]*dfac_x; 
-  alpha[1] = 0.7071067811865475*BdriftY[0]*Apar[1]*wv-1.224744871391589*BdriftY[0]*Apar[3]*wv; 
+  alpha[0] = (0.7071067811865475*(2.0*BdriftY[0]*m_*wv2+q_*((BmagInv[0]*(3.0*Apar[3]-1.732050807568877*Apar[1])*dfac_x+BdriftY[0]*(Apar[0]-1.732050807568877*Apar[2]))*wv+BmagInv[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x)))/q_; 
+  alpha[1] = -0.408248290463863*BdriftY[0]*(3.0*Apar[3]-1.732050807568877*Apar[1])*wv; 
   alpha[2] = (0.8164965809277261*BdriftY[0]*m_*wv)/(dfac_v*q_); 
   if (alpha0>0) { 
   double rVal[8];  // rVal=f1/f0 at each node 
@@ -213,14 +213,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fl[15]+3.0*((-1.0*fl[14])+fl[12]+fl[11])+5.196152422706631*(fl[5]-1.0*(fl[9]+fl[7]))-9.0*fl[2]))/(20.78460969082652*EPSILON-1.0*fl[13]+1.732050807568877*(fl[10]-1.0*(fl[8]+fl[6]))+3.0*(fl[4]+fl[3]-1.0*fl[1])+5.196152422706631*fl[0]); 
   rVal[7] = (1.732050807568877*fl[15]+3.0*(fl[14]+fl[12]+fl[11])+5.196152422706631*(fl[9]+fl[7]+fl[5])+9.0*fl[2])/(20.78460969082652*EPSILON+fl[13]+1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])+5.196152422706631*fl[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fl[13]-1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*(fl[8]+fl[6]))+3.0*(fl[1]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]-1.0*fl[6])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]-1.0*fl[6])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[6]-1.0*(fl[10]+fl[8]))+3.0*(fl[4]-1.0*(fl[3]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*fl[8]+fl[6])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]+fl[6])+3.0*(fl[1]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fl[13]-1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cflL); 
+  fqVal[1] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*(fl[8]+fl[6]))+3.0*(fl[1]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cflL); 
+  fqVal[2] = 0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]-1.0*fl[6])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cflL); 
+  fqVal[3] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]-1.0*fl[6])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cflL); 
+  fqVal[4] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[6]-1.0*(fl[10]+fl[8]))+3.0*(fl[4]-1.0*(fl[3]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cflL); 
+  fqVal[5] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*fl[8]+fl[6])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cflL); 
+  fqVal[6] = -0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]+fl[6])+3.0*(fl[1]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cflL); 
+  fqVal[7] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cflL); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -291,14 +291,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fr[15]+3.0*((-1.0*fr[14])+fr[12]+fr[11])+5.196152422706631*(fr[5]-1.0*(fr[9]+fr[7]))-9.0*fr[2]))/(20.78460969082652*EPSILON-1.0*fr[13]+1.732050807568877*(fr[10]-1.0*(fr[8]+fr[6]))+3.0*(fr[4]+fr[3]-1.0*fr[1])+5.196152422706631*fr[0]); 
   rVal[7] = (1.732050807568877*fr[15]+3.0*(fr[14]+fr[12]+fr[11])+5.196152422706631*(fr[9]+fr[7]+fr[5])+9.0*fr[2])/(20.78460969082652*EPSILON+fr[13]+1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])+5.196152422706631*fr[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fr[13]-1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*(fr[8]+fr[6]))+3.0*(fr[1]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]-1.0*fr[6])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]-1.0*fr[6])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[6]-1.0*(fr[10]+fr[8]))+3.0*(fr[4]-1.0*(fr[3]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*fr[8]+fr[6])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]+fr[6])+3.0*(fr[1]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fr[13]-1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cflR); 
+  fqVal[1] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*(fr[8]+fr[6]))+3.0*(fr[1]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cflR); 
+  fqVal[2] = 0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]-1.0*fr[6])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cflR); 
+  fqVal[3] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]-1.0*fr[6])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cflR); 
+  fqVal[4] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[6]-1.0*(fr[10]+fr[8]))+3.0*(fr[4]-1.0*(fr[3]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cflR); 
+  fqVal[5] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*fr[8]+fr[6])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cflR); 
+  fqVal[6] = -0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]+fr[6])+3.0*(fr[1]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cflR); 
+  fqVal[7] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cflR); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -361,7 +361,7 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_0(const double q_, const do
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -380,10 +380,10 @@ double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const
   double alpha0 = -(0.0625*(dfac_v*(3.464101615137754*(BdriftY[0]*Phi[2]*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*m_*wv+((3.0*BmagInv[0]*(Phi[1]*Apar[2]-1.0*Apar[1]*Phi[2])*dfac_x+1.732050807568877*BdriftY[0]*(Apar[1]*Phi[3]+Apar[0]*Phi[2]))*dfac_y+1.732050807568877*BdriftX[0]*(Apar[2]*Phi[3]+Apar[0]*Phi[1])*dfac_x+4.0*dApardt[0])*q_)-3.464101615137754*(BdriftY[0]*Phi[2]*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*m_))/(dfac_v*m_); 
 
   double alpha[8]; 
-  alpha[0] = (-1.224744871391589*BdriftY[0]*Phi[2]*dfac_y*wv)-1.224744871391589*BdriftX[0]*Phi[1]*dfac_x*wv+(1.060660171779821*BmagInv[0]*Apar[1]*Phi[2]*dfac_x*dfac_y*q_)/m_-(1.060660171779821*BmagInv[0]*Phi[1]*Apar[2]*dfac_x*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[1]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftY[0]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[2]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*Apar[0]*BdriftX[0]*Phi[1]*dfac_x*q_)/m_-(1.414213562373095*dApardt[0]*q_)/m_+(1.224744871391589*BdriftY[0]*Phi[2]*dfac_y)/dfac_v+(1.224744871391589*BdriftX[0]*Phi[1]*dfac_x)/dfac_v; 
-  alpha[1] = (-1.224744871391589*BdriftY[0]*Phi[3]*dfac_y*wv)+(1.060660171779821*BmagInv[0]*Apar[1]*Phi[3]*dfac_x*dfac_y*q_)/m_-(1.060660171779821*BmagInv[0]*Phi[1]*Apar[3]*dfac_x*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftY[0]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[1]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[3]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[1]*Phi[1]*dfac_x*q_)/m_-(1.414213562373095*dApardt[1]*q_)/m_+(1.224744871391589*BdriftY[0]*Phi[3]*dfac_y)/dfac_v; 
-  alpha[2] = (-1.224744871391589*BdriftX[0]*Phi[3]*dfac_x*wv)-(1.060660171779821*BmagInv[0]*Apar[2]*Phi[3]*dfac_x*dfac_y*q_)/m_+(1.060660171779821*BmagInv[0]*Phi[2]*Apar[3]*dfac_x*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[3]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[2]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftX[0]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Phi[1]*Apar[2]*dfac_x*q_)/m_-(1.414213562373095*dApardt[2]*q_)/m_+(1.224744871391589*BdriftX[0]*Phi[3]*dfac_x)/dfac_v; 
-  alpha[4] = (-(0.6123724356957944*BdriftY[0]*Apar[2]*Phi[3]*dfac_y*q_)/m_)-(0.6123724356957944*BdriftY[0]*Phi[2]*Apar[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[1]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Phi[1]*Apar[3]*dfac_x*q_)/m_-(1.414213562373095*dApardt[3]*q_)/m_; 
+  alpha[0] = -(0.3535533905932737*(dfac_v*(3.464101615137754*(BdriftY[0]*Phi[2]*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*m_*wv+((BmagInv[0]*(3.0*Phi[1]*Apar[2]-3.0*Apar[1]*Phi[2])*dfac_x+1.732050807568877*BdriftY[0]*(Apar[1]*Phi[3]+Apar[0]*Phi[2]))*dfac_y+1.732050807568877*BdriftX[0]*(Apar[2]*Phi[3]+Apar[0]*Phi[1])*dfac_x+4.0*dApardt[0])*q_)-3.464101615137754*(BdriftY[0]*Phi[2]*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*m_))/(dfac_v*m_); 
+  alpha[1] = -(0.3535533905932737*(dfac_v*(3.464101615137754*BdriftY[0]*Phi[3]*dfac_y*m_*wv+((BmagInv[0]*(3.0*Phi[1]*Apar[3]-3.0*Apar[1]*Phi[3])*dfac_x+1.732050807568877*BdriftY[0]*(Apar[0]*Phi[3]+Apar[1]*Phi[2]))*dfac_y+1.732050807568877*BdriftX[0]*(Apar[3]*Phi[3]+Apar[1]*Phi[1])*dfac_x+4.0*dApardt[1])*q_)-3.464101615137754*BdriftY[0]*Phi[3]*dfac_y*m_))/(dfac_v*m_); 
+  alpha[2] = -(0.3535533905932737*(dfac_v*(3.464101615137754*BdriftX[0]*Phi[3]*dfac_x*m_*wv+((BmagInv[0]*(3.0*Apar[2]*Phi[3]-3.0*Phi[2]*Apar[3])*dfac_x+1.732050807568877*BdriftY[0]*(Apar[3]*Phi[3]+Apar[2]*Phi[2]))*dfac_y+1.732050807568877*BdriftX[0]*(Apar[0]*Phi[3]+Phi[1]*Apar[2])*dfac_x+4.0*dApardt[2])*q_)-3.464101615137754*BdriftX[0]*Phi[3]*dfac_x*m_))/(dfac_v*m_); 
+  alpha[4] = -(0.3535533905932737*(1.732050807568877*(BdriftY[0]*(Apar[2]*Phi[3]+Phi[2]*Apar[3])*dfac_y+BdriftX[0]*(Apar[1]*Phi[3]+Phi[1]*Apar[3])*dfac_x)+4.0*dApardt[3])*q_)/m_; 
   if (alpha0>0) { 
   double rVal[8];  // rVal=f1/f0 at each node 
   rVal[0] = -(1.0*(1.732050807568877*fl[15]-3.0*(fl[14]+fl[13]+fl[11])+5.196152422706631*(fl[10]+fl[7]+fl[6])-9.0*fl[3]))/(20.78460969082652*EPSILON-1.0*fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])-3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0]); 
@@ -395,14 +395,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const
   rVal[6] = -(1.0*(1.732050807568877*fl[15]+3.0*((-1.0*fl[14])+fl[13]+fl[11])+5.196152422706631*(fl[6]-1.0*(fl[10]+fl[7]))-9.0*fl[3]))/(20.78460969082652*EPSILON-1.0*fl[12]+1.732050807568877*(fl[9]-1.0*(fl[8]+fl[5]))+3.0*(fl[4]+fl[2]-1.0*fl[1])+5.196152422706631*fl[0]); 
   rVal[7] = (1.732050807568877*fl[15]+3.0*(fl[14]+fl[13]+fl[11])+5.196152422706631*(fl[10]+fl[7]+fl[6])+9.0*fl[3])/(20.78460969082652*EPSILON+fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fl[12]-1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*(fl[8]+fl[5]))+3.0*(fl[1]-1.0*(fl[4]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]-1.0*fl[5])+3.0*((-1.0*fl[4])+fl[2]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]-1.0*fl[5])+3.0*fl[4]-1.0*(3.0*(fl[2]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[5]-1.0*(fl[9]+fl[8]))+3.0*(fl[4]-1.0*(fl[2]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*fl[8]+fl[5])+3.0*(fl[2]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]+fl[5])+3.0*(fl[1]-1.0*(fl[4]+fl[2]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fl[12]-1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cflL); 
+  fqVal[1] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*(fl[8]+fl[5]))+3.0*(fl[1]-1.0*(fl[4]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cflL); 
+  fqVal[2] = 0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]-1.0*fl[5])+3.0*((-1.0*fl[4])+fl[2]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cflL); 
+  fqVal[3] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]-1.0*fl[5])+3.0*fl[4]-1.0*(3.0*(fl[2]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cflL); 
+  fqVal[4] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[5]-1.0*(fl[9]+fl[8]))+3.0*(fl[4]-1.0*(fl[2]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cflL); 
+  fqVal[5] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*fl[8]+fl[5])+3.0*(fl[2]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cflL); 
+  fqVal[6] = -0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]+fl[5])+3.0*(fl[1]-1.0*(fl[4]+fl[2]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cflL); 
+  fqVal[7] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cflL); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -473,14 +473,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const
   rVal[6] = -(1.0*(1.732050807568877*fr[15]+3.0*((-1.0*fr[14])+fr[13]+fr[11])+5.196152422706631*(fr[6]-1.0*(fr[10]+fr[7]))-9.0*fr[3]))/(20.78460969082652*EPSILON-1.0*fr[12]+1.732050807568877*(fr[9]-1.0*(fr[8]+fr[5]))+3.0*(fr[4]+fr[2]-1.0*fr[1])+5.196152422706631*fr[0]); 
   rVal[7] = (1.732050807568877*fr[15]+3.0*(fr[14]+fr[13]+fr[11])+5.196152422706631*(fr[10]+fr[7]+fr[6])+9.0*fr[3])/(20.78460969082652*EPSILON+fr[12]+1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])+5.196152422706631*fr[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fr[12]-1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*(fr[8]+fr[5]))+3.0*(fr[1]-1.0*(fr[4]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]-1.0*fr[5])+3.0*((-1.0*fr[4])+fr[2]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]-1.0*fr[5])+3.0*fr[4]-1.0*(3.0*(fr[2]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[5]-1.0*(fr[9]+fr[8]))+3.0*(fr[4]-1.0*(fr[2]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*fr[8]+fr[5])+3.0*(fr[2]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]+fr[5])+3.0*(fr[1]-1.0*(fr[4]+fr[2]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fr[12]-1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cflR); 
+  fqVal[1] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*(fr[8]+fr[5]))+3.0*(fr[1]-1.0*(fr[4]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cflR); 
+  fqVal[2] = 0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]-1.0*fr[5])+3.0*((-1.0*fr[4])+fr[2]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cflR); 
+  fqVal[3] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]-1.0*fr[5])+3.0*fr[4]-1.0*(3.0*(fr[2]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cflR); 
+  fqVal[4] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[5]-1.0*(fr[9]+fr[8]))+3.0*(fr[4]-1.0*(fr[2]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cflR); 
+  fqVal[5] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*fr[8]+fr[5])+3.0*(fr[2]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cflR); 
+  fqVal[6] = -0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]+fr[5])+3.0*(fr[1]-1.0*(fr[4]+fr[2]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cflR); 
+  fqVal[7] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cflR); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -543,7 +543,7 @@ double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_0(const double q_, const
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -562,9 +562,9 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const do
   double alpha0 = -(0.125*(2.0*(1.732050807568877*BdriftX[1]-1.0*BdriftX[0])*m_*wv2+q_*((((3.0*BmagInv[0]-5.196152422706631*BmagInv[1])*Apar[3]+(3.0*BmagInv[1]-1.732050807568877*BmagInv[0])*Apar[2])*dfac_y+(1.732050807568877*Apar[0]-3.0*Apar[1])*BdriftX[1]+BdriftX[0]*(1.732050807568877*Apar[1]-1.0*Apar[0]))*wv+((5.196152422706631*BmagInv[1]-3.0*BmagInv[0])*Phi[3]+(1.732050807568877*BmagInv[0]-3.0*BmagInv[1])*Phi[2])*dfac_y)))/q_; 
 
   double alpha[8]; 
-  alpha[0] = (-(2.449489742783178*BdriftX[1]*m_*wv2)/q_)+(1.414213562373095*BdriftX[0]*m_*wv2)/q_+3.674234614174766*BmagInv[1]*Apar[3]*dfac_y*wv-2.121320343559642*BmagInv[0]*Apar[3]*dfac_y*wv-2.121320343559642*BmagInv[1]*Apar[2]*dfac_y*wv+1.224744871391589*BmagInv[0]*Apar[2]*dfac_y*wv+2.121320343559642*Apar[1]*BdriftX[1]*wv-1.224744871391589*Apar[0]*BdriftX[1]*wv-1.224744871391589*BdriftX[0]*Apar[1]*wv+0.7071067811865475*Apar[0]*BdriftX[0]*wv-3.674234614174766*BmagInv[1]*Phi[3]*dfac_y+2.121320343559642*BmagInv[0]*Phi[3]*dfac_y+2.121320343559642*BmagInv[1]*Phi[2]*dfac_y-1.224744871391589*BmagInv[0]*Phi[2]*dfac_y; 
-  alpha[1] = 2.121320343559642*BdriftX[1]*Apar[3]*wv-1.224744871391589*BdriftX[0]*Apar[3]*wv-1.224744871391589*BdriftX[1]*Apar[2]*wv+0.7071067811865475*BdriftX[0]*Apar[2]*wv; 
-  alpha[2] = (0.8164965809277261*BdriftX[0]*m_*wv)/(dfac_v*q_)-(1.414213562373095*BdriftX[1]*m_*wv)/(dfac_v*q_); 
+  alpha[0] = -(0.7071067811865475*((3.464101615137754*BdriftX[1]-2.0*BdriftX[0])*m_*wv2+q_*((((3.0*BmagInv[0]-5.196152422706631*BmagInv[1])*Apar[3]+(3.0*BmagInv[1]-1.732050807568877*BmagInv[0])*Apar[2])*dfac_y+(1.732050807568877*Apar[0]-3.0*Apar[1])*BdriftX[1]+BdriftX[0]*(1.732050807568877*Apar[1]-1.0*Apar[0]))*wv+((5.196152422706631*BmagInv[1]-3.0*BmagInv[0])*Phi[3]+(1.732050807568877*BmagInv[0]-3.0*BmagInv[1])*Phi[2])*dfac_y)))/q_; 
+  alpha[1] = 0.408248290463863*((5.196152422706631*BdriftX[1]-3.0*BdriftX[0])*Apar[3]+(1.732050807568877*BdriftX[0]-3.0*BdriftX[1])*Apar[2])*wv; 
+  alpha[2] = -(0.2357022603955158*(6.0*BdriftX[1]-3.464101615137754*BdriftX[0])*m_*wv)/(dfac_v*q_); 
   if (alpha0>0) { 
   double rVal[8];  // rVal=f1/f0 at each node 
   rVal[0] = -(1.0*(1.732050807568877*fl[15]-3.0*(fl[13]+fl[12]+fl[11])+5.196152422706631*(fl[8]+fl[6]+fl[5])-9.0*fl[1]))/(20.78460969082652*EPSILON-1.0*fl[14]+1.732050807568877*(fl[10]+fl[9]+fl[7])-3.0*(fl[4]+fl[3]+fl[2])+5.196152422706631*fl[0]); 
@@ -576,14 +576,14 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fl[15]+3.0*((-1.0*fl[13])+fl[12]+fl[11])+5.196152422706631*(fl[5]-1.0*(fl[8]+fl[6]))-9.0*fl[1]))/(20.78460969082652*EPSILON-1.0*fl[14]+1.732050807568877*(fl[10]-1.0*(fl[9]+fl[7]))+3.0*(fl[4]+fl[3]-1.0*fl[2])+5.196152422706631*fl[0]); 
   rVal[7] = (1.732050807568877*fl[15]+3.0*(fl[13]+fl[12]+fl[11])+5.196152422706631*(fl[8]+fl[6]+fl[5])+9.0*fl[1])/(20.78460969082652*EPSILON+fl[14]+1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])+5.196152422706631*fl[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fl[14]-1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*(fl[9]+fl[7]))+3.0*(fl[2]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]-1.0*fl[7])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[2])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]-1.0*fl[7])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[2])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[7]-1.0*(fl[10]+fl[9]))+3.0*(fl[4]-1.0*(fl[3]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*fl[9]+fl[7])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[2]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]+fl[7])+3.0*(fl[2]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fl[14]-1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cflL); 
+  fqVal[1] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*(fl[9]+fl[7]))+3.0*(fl[2]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cflL); 
+  fqVal[2] = 0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]-1.0*fl[7])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[2])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cflL); 
+  fqVal[3] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]-1.0*fl[7])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[2])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cflL); 
+  fqVal[4] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[7]-1.0*(fl[10]+fl[9]))+3.0*(fl[4]-1.0*(fl[3]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cflL); 
+  fqVal[5] = -0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]-1.0*fl[9]+fl[7])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[2]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cflL); 
+  fqVal[6] = -0.04811252243246882*(fl[14]+1.732050807568877*((-1.0*fl[10])+fl[9]+fl[7])+3.0*(fl[2]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cflL); 
+  fqVal[7] = 0.04811252243246882*(fl[14]+1.732050807568877*(fl[10]+fl[9]+fl[7])+3.0*(fl[4]+fl[3]+fl[2])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cflL); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -654,14 +654,14 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fr[15]+3.0*((-1.0*fr[13])+fr[12]+fr[11])+5.196152422706631*(fr[5]-1.0*(fr[8]+fr[6]))-9.0*fr[1]))/(20.78460969082652*EPSILON-1.0*fr[14]+1.732050807568877*(fr[10]-1.0*(fr[9]+fr[7]))+3.0*(fr[4]+fr[3]-1.0*fr[2])+5.196152422706631*fr[0]); 
   rVal[7] = (1.732050807568877*fr[15]+3.0*(fr[13]+fr[12]+fr[11])+5.196152422706631*(fr[8]+fr[6]+fr[5])+9.0*fr[1])/(20.78460969082652*EPSILON+fr[14]+1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])+5.196152422706631*fr[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fr[14]-1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*(fr[9]+fr[7]))+3.0*(fr[2]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]-1.0*fr[7])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[2])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]-1.0*fr[7])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[2])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[7]-1.0*(fr[10]+fr[9]))+3.0*(fr[4]-1.0*(fr[3]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*fr[9]+fr[7])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[2]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]+fr[7])+3.0*(fr[2]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fr[14]-1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cflR); 
+  fqVal[1] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*(fr[9]+fr[7]))+3.0*(fr[2]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cflR); 
+  fqVal[2] = 0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]-1.0*fr[7])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[2])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cflR); 
+  fqVal[3] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]-1.0*fr[7])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[2])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cflR); 
+  fqVal[4] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[7]-1.0*(fr[10]+fr[9]))+3.0*(fr[4]-1.0*(fr[3]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cflR); 
+  fqVal[5] = -0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]-1.0*fr[9]+fr[7])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[2]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cflR); 
+  fqVal[6] = -0.04811252243246882*(fr[14]+1.732050807568877*((-1.0*fr[10])+fr[9]+fr[7])+3.0*(fr[2]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cflR); 
+  fqVal[7] = 0.04811252243246882*(fr[14]+1.732050807568877*(fr[10]+fr[9]+fr[7])+3.0*(fr[4]+fr[3]+fr[2])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cflR); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -724,7 +724,7 @@ double EmGyrokineticSurfPositivity2x2vSer_X_P1_Bvars_1(const double q_, const do
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -743,8 +743,8 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const do
   double alpha0 = (0.125*(wv*(2.0*BdriftY[0]*m_*wv+(BmagInv[0]*(3.0*Apar[3]-1.732050807568877*Apar[1])*dfac_x-1.732050807568877*(BdriftY[1]*Apar[3]+BdriftY[0]*Apar[2])+Apar[1]*BdriftY[1]+Apar[0]*BdriftY[0])*q_)+BmagInv[0]*dfac_x*(1.732050807568877*Bmag[1]*wm+(1.732050807568877*Phi[1]-3.0*Phi[3])*q_)))/q_; 
 
   double alpha[8]; 
-  alpha[0] = (1.414213562373095*BdriftY[0]*m_*wv2)/q_+2.121320343559642*BmagInv[0]*Apar[3]*dfac_x*wv-1.224744871391589*BmagInv[0]*Apar[1]*dfac_x*wv-1.224744871391589*BdriftY[1]*Apar[3]*wv-1.224744871391589*BdriftY[0]*Apar[2]*wv+0.7071067811865475*Apar[1]*BdriftY[1]*wv+0.7071067811865475*Apar[0]*BdriftY[0]*wv+(1.224744871391589*BmagInv[0]*Bmag[1]*dfac_x*wm)/q_-2.121320343559642*BmagInv[0]*Phi[3]*dfac_x+1.224744871391589*BmagInv[0]*Phi[1]*dfac_x; 
-  alpha[1] = (1.414213562373095*BdriftY[1]*m_*wv2)/q_+2.121320343559642*BmagInv[1]*Apar[3]*dfac_x*wv-1.224744871391589*Apar[1]*BmagInv[1]*dfac_x*wv-1.224744871391589*BdriftY[0]*Apar[3]*wv-1.224744871391589*BdriftY[1]*Apar[2]*wv+0.7071067811865475*Apar[0]*BdriftY[1]*wv+0.7071067811865475*BdriftY[0]*Apar[1]*wv+(1.224744871391589*Bmag[1]*BmagInv[1]*dfac_x*wm)/q_-2.121320343559642*BmagInv[1]*Phi[3]*dfac_x+1.224744871391589*BmagInv[1]*Phi[1]*dfac_x; 
+  alpha[0] = (0.7071067811865475*(2.0*BdriftY[0]*m_*wv2+(BmagInv[0]*(3.0*Apar[3]-1.732050807568877*Apar[1])*dfac_x-1.732050807568877*(BdriftY[1]*Apar[3]+BdriftY[0]*Apar[2])+Apar[1]*BdriftY[1]+Apar[0]*BdriftY[0])*q_*wv+BmagInv[0]*dfac_x*(1.732050807568877*Bmag[1]*wm+(1.732050807568877*Phi[1]-3.0*Phi[3])*q_)))/q_; 
+  alpha[1] = (0.7071067811865475*(2.0*BdriftY[1]*m_*wv2+(BmagInv[1]*(3.0*Apar[3]-1.732050807568877*Apar[1])*dfac_x-1.732050807568877*BdriftY[0]*Apar[3]+BdriftY[1]*(Apar[0]-1.732050807568877*Apar[2])+BdriftY[0]*Apar[1])*q_*wv+BmagInv[1]*dfac_x*(1.732050807568877*Bmag[1]*wm+(1.732050807568877*Phi[1]-3.0*Phi[3])*q_)))/q_; 
   alpha[2] = (0.8164965809277261*BdriftY[0]*m_*wv)/(dfac_v*q_); 
   alpha[3] = (0.7071067811865475*BmagInv[0]*Bmag[1]*dfac_x)/(dfac_m*q_); 
   alpha[4] = (0.8164965809277261*BdriftY[1]*m_*wv)/(dfac_v*q_); 
@@ -760,14 +760,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fl[15]+3.0*((-1.0*fl[14])+fl[12]+fl[11])+5.196152422706631*(fl[5]-1.0*(fl[9]+fl[7]))-9.0*fl[2]))/(20.78460969082652*EPSILON-1.0*fl[13]+1.732050807568877*(fl[10]-1.0*(fl[8]+fl[6]))+3.0*(fl[4]+fl[3]-1.0*fl[1])+5.196152422706631*fl[0]); 
   rVal[7] = (1.732050807568877*fl[15]+3.0*(fl[14]+fl[12]+fl[11])+5.196152422706631*(fl[9]+fl[7]+fl[5])+9.0*fl[2])/(20.78460969082652*EPSILON+fl[13]+1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])+5.196152422706631*fl[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fl[13]-1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*(fl[8]+fl[6]))+3.0*(fl[1]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]-1.0*fl[6])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]-1.0*fl[6])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[6]-1.0*(fl[10]+fl[8]))+3.0*(fl[4]-1.0*(fl[3]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*fl[8]+fl[6])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]+fl[6])+3.0*(fl[1]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fl[13]-1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cflL); 
+  fqVal[1] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*(fl[8]+fl[6]))+3.0*(fl[1]-1.0*(fl[4]+fl[3]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cflL); 
+  fqVal[2] = 0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]-1.0*fl[6])+3.0*((-1.0*fl[4])+fl[3]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cflL); 
+  fqVal[3] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]-1.0*fl[6])+3.0*fl[4]-1.0*(3.0*(fl[3]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cflL); 
+  fqVal[4] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[6]-1.0*(fl[10]+fl[8]))+3.0*(fl[4]-1.0*(fl[3]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cflL); 
+  fqVal[5] = -0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]-1.0*fl[8]+fl[6])+3.0*(fl[3]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cflL); 
+  fqVal[6] = -0.04811252243246882*(fl[13]+1.732050807568877*((-1.0*fl[10])+fl[8]+fl[6])+3.0*(fl[1]-1.0*(fl[4]+fl[3]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cflL); 
+  fqVal[7] = 0.04811252243246882*(fl[13]+1.732050807568877*(fl[10]+fl[8]+fl[6])+3.0*(fl[4]+fl[3]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cflL); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -838,14 +838,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const do
   rVal[6] = -(1.0*(1.732050807568877*fr[15]+3.0*((-1.0*fr[14])+fr[12]+fr[11])+5.196152422706631*(fr[5]-1.0*(fr[9]+fr[7]))-9.0*fr[2]))/(20.78460969082652*EPSILON-1.0*fr[13]+1.732050807568877*(fr[10]-1.0*(fr[8]+fr[6]))+3.0*(fr[4]+fr[3]-1.0*fr[1])+5.196152422706631*fr[0]); 
   rVal[7] = (1.732050807568877*fr[15]+3.0*(fr[14]+fr[12]+fr[11])+5.196152422706631*(fr[9]+fr[7]+fr[5])+9.0*fr[2])/(20.78460969082652*EPSILON+fr[13]+1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])+5.196152422706631*fr[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fr[13]-1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*(fr[8]+fr[6]))+3.0*(fr[1]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]-1.0*fr[6])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]-1.0*fr[6])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[6]-1.0*(fr[10]+fr[8]))+3.0*(fr[4]-1.0*(fr[3]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*fr[8]+fr[6])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]+fr[6])+3.0*(fr[1]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fr[13]-1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cflR); 
+  fqVal[1] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*(fr[8]+fr[6]))+3.0*(fr[1]-1.0*(fr[4]+fr[3]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cflR); 
+  fqVal[2] = 0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]-1.0*fr[6])+3.0*((-1.0*fr[4])+fr[3]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cflR); 
+  fqVal[3] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]-1.0*fr[6])+3.0*fr[4]-1.0*(3.0*(fr[3]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cflR); 
+  fqVal[4] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[6]-1.0*(fr[10]+fr[8]))+3.0*(fr[4]-1.0*(fr[3]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cflR); 
+  fqVal[5] = -0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]-1.0*fr[8]+fr[6])+3.0*(fr[3]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cflR); 
+  fqVal[6] = -0.04811252243246882*(fr[13]+1.732050807568877*((-1.0*fr[10])+fr[8]+fr[6])+3.0*(fr[1]-1.0*(fr[4]+fr[3]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cflR); 
+  fqVal[7] = 0.04811252243246882*(fr[13]+1.732050807568877*(fr[10]+fr[8]+fr[6])+3.0*(fr[4]+fr[3]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cflR); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -908,7 +908,7 @@ double EmGyrokineticSurfPositivity2x2vSer_Y_P1_Bvars_1(const double q_, const do
   } 
   return std::abs(alpha0); 
 } 
-double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double cfl, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
+double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -927,14 +927,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_1(const double q_, const
   double alpha0 = -(0.0625*(3.464101615137754*dfac_v*m_*(BdriftX[0]*Bmag[1]*dfac_x*wm+((BdriftY[1]*Phi[3]+BdriftY[0]*Phi[2])*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*q_)*wv+Bmag[1]*dfac_x*(dfac_v*(3.0*(BmagInv[1]*Apar[3]+BmagInv[0]*Apar[2])*dfac_y+1.732050807568877*(Apar[1]*BdriftX[1]+Apar[0]*BdriftX[0]))*q_-3.464101615137754*BdriftX[0]*m_)*wm+q_*(dfac_v*((1.732050807568877*((Apar[0]*BdriftY[1]+BdriftY[0]*Apar[1])*Phi[3]+(Apar[1]*BdriftY[1]+Apar[0]*BdriftY[0])*Phi[2])-3.0*(BmagInv[1]*(Apar[1]*Phi[3]-1.0*Phi[1]*Apar[3])+BmagInv[0]*(Apar[1]*Phi[2]-1.0*Phi[1]*Apar[2]))*dfac_x)*dfac_y+1.732050807568877*((BdriftX[1]*Apar[3]+BdriftX[0]*Apar[2])*Phi[3]+(Apar[1]*BdriftX[1]+Apar[0]*BdriftX[0])*Phi[1])*dfac_x+4.0*dApardt[0])*q_-3.464101615137754*((BdriftY[1]*Phi[3]+BdriftY[0]*Phi[2])*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*m_)))/(dfac_v*m_*q_); 
 
   double alpha[8]; 
-  alpha[0] = (-(1.224744871391589*BdriftX[0]*Bmag[1]*dfac_x*wm*wv)/q_)-1.224744871391589*BdriftY[1]*Phi[3]*dfac_y*wv-1.224744871391589*BdriftY[0]*Phi[2]*dfac_y*wv-1.224744871391589*BdriftX[0]*Phi[1]*dfac_x*wv+(1.224744871391589*BdriftX[0]*Bmag[1]*dfac_x*wm)/(dfac_v*q_)-(1.060660171779821*Bmag[1]*BmagInv[1]*Apar[3]*dfac_x*dfac_y*wm)/m_-(1.060660171779821*BmagInv[0]*Bmag[1]*Apar[2]*dfac_x*dfac_y*wm)/m_-(0.6123724356957944*Apar[1]*BdriftX[1]*Bmag[1]*dfac_x*wm)/m_-(0.6123724356957944*Apar[0]*BdriftX[0]*Bmag[1]*dfac_x*wm)/m_+(1.060660171779821*Apar[1]*BmagInv[1]*Phi[3]*dfac_x*dfac_y*q_)/m_-(1.060660171779821*BmagInv[1]*Phi[1]*Apar[3]*dfac_x*dfac_y*q_)/m_+(1.060660171779821*BmagInv[0]*Apar[1]*Phi[2]*dfac_x*dfac_y*q_)/m_-(1.060660171779821*BmagInv[0]*Phi[1]*Apar[2]*dfac_x*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftY[1]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[1]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*Apar[1]*BdriftY[1]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftY[0]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*BdriftX[1]*Apar[3]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[2]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*Apar[1]*BdriftX[1]*Phi[1]*dfac_x*q_)/m_-(0.6123724356957944*Apar[0]*BdriftX[0]*Phi[1]*dfac_x*q_)/m_-(1.414213562373095*dApardt[0]*q_)/m_+(1.224744871391589*BdriftY[1]*Phi[3]*dfac_y)/dfac_v+(1.224744871391589*BdriftY[0]*Phi[2]*dfac_y)/dfac_v+(1.224744871391589*BdriftX[0]*Phi[1]*dfac_x)/dfac_v; 
-  alpha[1] = (-(1.224744871391589*BdriftX[1]*Bmag[1]*dfac_x*wm*wv)/q_)-1.224744871391589*BdriftY[0]*Phi[3]*dfac_y*wv-1.224744871391589*BdriftY[1]*Phi[2]*dfac_y*wv-1.224744871391589*BdriftX[1]*Phi[1]*dfac_x*wv+(1.224744871391589*BdriftX[1]*Bmag[1]*dfac_x*wm)/(dfac_v*q_)-(1.060660171779821*BmagInv[0]*Bmag[1]*Apar[3]*dfac_x*dfac_y*wm)/m_-(1.060660171779821*Bmag[1]*BmagInv[1]*Apar[2]*dfac_x*dfac_y*wm)/m_-(0.6123724356957944*Apar[0]*BdriftX[1]*Bmag[1]*dfac_x*wm)/m_-(0.6123724356957944*BdriftX[0]*Apar[1]*Bmag[1]*dfac_x*wm)/m_+(1.060660171779821*BmagInv[0]*Apar[1]*Phi[3]*dfac_x*dfac_y*q_)/m_-(1.060660171779821*BmagInv[0]*Phi[1]*Apar[3]*dfac_x*dfac_y*q_)/m_+(1.060660171779821*Apar[1]*BmagInv[1]*Phi[2]*dfac_x*dfac_y*q_)/m_-(1.060660171779821*BmagInv[1]*Phi[1]*Apar[2]*dfac_x*dfac_y*q_)/m_-(1.10227038425243*Apar[1]*BdriftY[1]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftY[0]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftY[1]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[1]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[3]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[1]*Apar[2]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*Apar[0]*BdriftX[1]*Phi[1]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[1]*Phi[1]*dfac_x*q_)/m_-(1.414213562373095*dApardt[1]*q_)/m_+(1.224744871391589*BdriftY[0]*Phi[3]*dfac_y)/dfac_v+(1.224744871391589*BdriftY[1]*Phi[2]*dfac_y)/dfac_v+(1.224744871391589*BdriftX[1]*Phi[1]*dfac_x)/dfac_v; 
-  alpha[2] = (-1.224744871391589*BdriftX[0]*Phi[3]*dfac_x*wv)-(0.6123724356957944*BdriftX[1]*Bmag[1]*Apar[3]*dfac_x*wm)/m_-(0.6123724356957944*BdriftX[0]*Bmag[1]*Apar[2]*dfac_x*wm)/m_-(1.060660171779821*BmagInv[0]*Apar[2]*Phi[3]*dfac_x*dfac_y*q_)/m_+(1.060660171779821*BmagInv[0]*Phi[2]*Apar[3]*dfac_x*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[3]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[1]*Apar[2]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[1]*Phi[2]*Apar[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[2]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*Apar[1]*BdriftX[1]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*Apar[0]*BdriftX[0]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[1]*Phi[1]*Apar[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Phi[1]*Apar[2]*dfac_x*q_)/m_-(1.414213562373095*dApardt[2]*q_)/m_+(1.224744871391589*BdriftX[0]*Phi[3]*dfac_x)/dfac_v; 
-  alpha[3] = (-(0.7071067811865475*BdriftX[0]*Bmag[1]*dfac_x*wv)/(dfac_m*q_))+(0.7071067811865475*BdriftX[0]*Bmag[1]*dfac_x)/(dfac_m*dfac_v*q_)-(0.6123724356957944*Bmag[1]*BmagInv[1]*Apar[3]*dfac_x*dfac_y)/(dfac_m*m_)-(0.6123724356957944*BmagInv[0]*Bmag[1]*Apar[2]*dfac_x*dfac_y)/(dfac_m*m_)-(0.3535533905932737*Apar[1]*BdriftX[1]*Bmag[1]*dfac_x)/(dfac_m*m_)-(0.3535533905932737*Apar[0]*BdriftX[0]*Bmag[1]*dfac_x)/(dfac_m*m_); 
-  alpha[4] = (-1.224744871391589*BdriftX[1]*Phi[3]*dfac_x*wv)-(0.6123724356957944*BdriftX[0]*Bmag[1]*Apar[3]*dfac_x*wm)/m_-(0.6123724356957944*BdriftX[1]*Bmag[1]*Apar[2]*dfac_x*wm)/m_-(1.060660171779821*BmagInv[1]*Apar[2]*Phi[3]*dfac_x*dfac_y*q_)/m_+(1.060660171779821*BmagInv[1]*Phi[2]*Apar[3]*dfac_x*dfac_y*q_)/m_-(1.10227038425243*BdriftY[1]*Apar[3]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Apar[2]*Phi[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[0]*Phi[2]*Apar[3]*dfac_y*q_)/m_-(0.6123724356957944*BdriftY[1]*Apar[2]*Phi[2]*dfac_y*q_)/m_-(0.6123724356957944*Apar[0]*BdriftX[1]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Apar[1]*Phi[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[0]*Phi[1]*Apar[3]*dfac_x*q_)/m_-(0.6123724356957944*BdriftX[1]*Phi[1]*Apar[2]*dfac_x*q_)/m_-(1.414213562373095*dApardt[3]*q_)/m_+(1.224744871391589*BdriftX[1]*Phi[3]*dfac_x)/dfac_v; 
-  alpha[5] = (-(0.7071067811865475*BdriftX[1]*Bmag[1]*dfac_x*wv)/(dfac_m*q_))+(0.7071067811865475*BdriftX[1]*Bmag[1]*dfac_x)/(dfac_m*dfac_v*q_)-(0.6123724356957944*BmagInv[0]*Bmag[1]*Apar[3]*dfac_x*dfac_y)/(dfac_m*m_)-(0.6123724356957944*Bmag[1]*BmagInv[1]*Apar[2]*dfac_x*dfac_y)/(dfac_m*m_)-(0.3535533905932737*Apar[0]*BdriftX[1]*Bmag[1]*dfac_x)/(dfac_m*m_)-(0.3535533905932737*BdriftX[0]*Apar[1]*Bmag[1]*dfac_x)/(dfac_m*m_); 
-  alpha[6] = (-(0.3535533905932737*BdriftX[1]*Bmag[1]*Apar[3]*dfac_x)/(dfac_m*m_))-(0.3535533905932737*BdriftX[0]*Bmag[1]*Apar[2]*dfac_x)/(dfac_m*m_); 
-  alpha[7] = (-(0.3535533905932737*BdriftX[0]*Bmag[1]*Apar[3]*dfac_x)/(dfac_m*m_))-(0.3535533905932737*BdriftX[1]*Bmag[1]*Apar[2]*dfac_x)/(dfac_m*m_); 
+  alpha[0] = -(0.3535533905932737*(3.464101615137754*dfac_v*m_*(BdriftX[0]*Bmag[1]*dfac_x*wm+((BdriftY[1]*Phi[3]+BdriftY[0]*Phi[2])*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*q_)*wv+Bmag[1]*dfac_x*(dfac_v*(3.0*(BmagInv[1]*Apar[3]+BmagInv[0]*Apar[2])*dfac_y+1.732050807568877*(Apar[1]*BdriftX[1]+Apar[0]*BdriftX[0]))*q_-3.464101615137754*BdriftX[0]*m_)*wm-3.464101615137754*((BdriftY[1]*Phi[3]+BdriftY[0]*Phi[2])*dfac_y+BdriftX[0]*Phi[1]*dfac_x)*m_*q_+dfac_v*(((BmagInv[1]*(3.0*Phi[1]*Apar[3]-3.0*Apar[1]*Phi[3])+BmagInv[0]*(3.0*Phi[1]*Apar[2]-3.0*Apar[1]*Phi[2]))*dfac_x+1.732050807568877*((Apar[0]*BdriftY[1]+BdriftY[0]*Apar[1])*Phi[3]+(Apar[1]*BdriftY[1]+Apar[0]*BdriftY[0])*Phi[2]))*dfac_y+1.732050807568877*((BdriftX[1]*Apar[3]+BdriftX[0]*Apar[2])*Phi[3]+(Apar[1]*BdriftX[1]+Apar[0]*BdriftX[0])*Phi[1])*dfac_x+4.0*dApardt[0])*q2))/(dfac_v*m_*q_); 
+  alpha[1] = -(0.07071067811865474*(17.32050807568877*dfac_v*m_*(BdriftX[1]*Bmag[1]*dfac_x*wm+((BdriftY[0]*Phi[3]+BdriftY[1]*Phi[2])*dfac_y+BdriftX[1]*Phi[1]*dfac_x)*q_)*wv+Bmag[1]*dfac_x*(dfac_v*(15.0*(BmagInv[0]*Apar[3]+BmagInv[1]*Apar[2])*dfac_y+8.660254037844386*(Apar[0]*BdriftX[1]+BdriftX[0]*Apar[1]))*q_-17.32050807568877*BdriftX[1]*m_)*wm-17.32050807568877*((BdriftY[0]*Phi[3]+BdriftY[1]*Phi[2])*dfac_y+BdriftX[1]*Phi[1]*dfac_x)*m_*q_+dfac_v*(((BmagInv[0]*(15.0*Phi[1]*Apar[3]-15.0*Apar[1]*Phi[3])+BmagInv[1]*(15.0*Phi[1]*Apar[2]-15.0*Apar[1]*Phi[2]))*dfac_x+(15.58845726811989*Apar[1]*BdriftY[1]+8.660254037844386*Apar[0]*BdriftY[0])*Phi[3]+8.660254037844386*(Apar[0]*BdriftY[1]+BdriftY[0]*Apar[1])*Phi[2])*dfac_y+8.660254037844386*((BdriftX[0]*Apar[3]+BdriftX[1]*Apar[2])*Phi[3]+(Apar[0]*BdriftX[1]+BdriftX[0]*Apar[1])*Phi[1])*dfac_x+20.0*dApardt[1])*q2))/(dfac_v*m_*q_); 
+  alpha[2] = -(0.3535533905932737*(dfac_v*(dfac_x*(3.464101615137754*BdriftX[0]*Phi[3]*m_*wv+1.732050807568877*Bmag[1]*(BdriftX[1]*Apar[3]+BdriftX[0]*Apar[2])*wm)+((BmagInv[0]*(3.0*Apar[2]*Phi[3]-3.0*Phi[2]*Apar[3])*dfac_x+1.732050807568877*((BdriftY[0]*Apar[3]+BdriftY[1]*Apar[2])*Phi[3]+Phi[2]*(BdriftY[1]*Apar[3]+BdriftY[0]*Apar[2])))*dfac_y+1.732050807568877*((Apar[1]*BdriftX[1]+Apar[0]*BdriftX[0])*Phi[3]+Phi[1]*(BdriftX[1]*Apar[3]+BdriftX[0]*Apar[2]))*dfac_x+4.0*dApardt[2])*q_)-3.464101615137754*BdriftX[0]*Phi[3]*dfac_x*m_))/(dfac_v*m_); 
+  alpha[3] = -(0.3535533905932737*Bmag[1]*dfac_x*(dfac_v*(2.0*BdriftX[0]*m_*wv+(1.732050807568877*(BmagInv[1]*Apar[3]+BmagInv[0]*Apar[2])*dfac_y+Apar[1]*BdriftX[1]+Apar[0]*BdriftX[0])*q_)-2.0*BdriftX[0]*m_))/(dfac_m*dfac_v*m_*q_); 
+  alpha[4] = -(0.07071067811865474*(dfac_v*(dfac_x*(17.32050807568877*BdriftX[1]*Phi[3]*m_*wv+8.660254037844386*Bmag[1]*(BdriftX[0]*Apar[3]+BdriftX[1]*Apar[2])*wm)+((BmagInv[1]*(15.0*Apar[2]*Phi[3]-15.0*Phi[2]*Apar[3])*dfac_x+(15.58845726811989*BdriftY[1]*Apar[3]+8.660254037844386*BdriftY[0]*Apar[2])*Phi[3]+8.660254037844386*Phi[2]*(BdriftY[0]*Apar[3]+BdriftY[1]*Apar[2]))*dfac_y+8.660254037844386*((Apar[0]*BdriftX[1]+BdriftX[0]*Apar[1])*Phi[3]+Phi[1]*(BdriftX[0]*Apar[3]+BdriftX[1]*Apar[2]))*dfac_x+20.0*dApardt[3])*q_)-17.32050807568877*BdriftX[1]*Phi[3]*dfac_x*m_))/(dfac_v*m_); 
+  alpha[5] = -(0.3535533905932737*Bmag[1]*dfac_x*(dfac_v*(2.0*BdriftX[1]*m_*wv+(1.732050807568877*(BmagInv[0]*Apar[3]+BmagInv[1]*Apar[2])*dfac_y+Apar[0]*BdriftX[1]+BdriftX[0]*Apar[1])*q_)-2.0*BdriftX[1]*m_))/(dfac_m*dfac_v*m_*q_); 
+  alpha[6] = -(0.3535533905932737*Bmag[1]*(BdriftX[1]*Apar[3]+BdriftX[0]*Apar[2])*dfac_x)/(dfac_m*m_); 
+  alpha[7] = -(0.3535533905932737*Bmag[1]*(BdriftX[0]*Apar[3]+BdriftX[1]*Apar[2])*dfac_x)/(dfac_m*m_); 
   if (alpha0>0) { 
   double rVal[8];  // rVal=f1/f0 at each node 
   rVal[0] = -(1.0*(1.732050807568877*fl[15]-3.0*(fl[14]+fl[13]+fl[11])+5.196152422706631*(fl[10]+fl[7]+fl[6])-9.0*fl[3]))/(20.78460969082652*EPSILON-1.0*fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])-3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0]); 
@@ -946,14 +946,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_1(const double q_, const
   rVal[6] = -(1.0*(1.732050807568877*fl[15]+3.0*((-1.0*fl[14])+fl[13]+fl[11])+5.196152422706631*(fl[6]-1.0*(fl[10]+fl[7]))-9.0*fl[3]))/(20.78460969082652*EPSILON-1.0*fl[12]+1.732050807568877*(fl[9]-1.0*(fl[8]+fl[5]))+3.0*(fl[4]+fl[2]-1.0*fl[1])+5.196152422706631*fl[0]); 
   rVal[7] = (1.732050807568877*fl[15]+3.0*(fl[14]+fl[13]+fl[11])+5.196152422706631*(fl[10]+fl[7]+fl[6])+9.0*fl[3])/(20.78460969082652*EPSILON+fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fl[12]-1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*(fl[8]+fl[5]))+3.0*(fl[1]-1.0*(fl[4]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]-1.0*fl[5])+3.0*((-1.0*fl[4])+fl[2]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]-1.0*fl[5])+3.0*fl[4]-1.0*(3.0*(fl[2]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[5]-1.0*(fl[9]+fl[8]))+3.0*(fl[4]-1.0*(fl[2]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*fl[8]+fl[5])+3.0*(fl[2]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]+fl[5])+3.0*(fl[1]-1.0*(fl[4]+fl[2]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fl[12]-1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])-5.196152422706631*fl[0])*limTheta(rVal[0],1.0,cflL); 
+  fqVal[1] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*(fl[8]+fl[5]))+3.0*(fl[1]-1.0*(fl[4]+fl[2]))+5.196152422706631*fl[0])*limTheta(rVal[1],1.0,cflL); 
+  fqVal[2] = 0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]-1.0*fl[5])+3.0*((-1.0*fl[4])+fl[2]-1.0*fl[1])+5.196152422706631*fl[0])*limTheta(rVal[2],1.0,cflL); 
+  fqVal[3] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]-1.0*fl[5])+3.0*fl[4]-1.0*(3.0*(fl[2]+fl[1])+5.196152422706631*fl[0]))*limTheta(rVal[3],1.0,cflL); 
+  fqVal[4] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[5]-1.0*(fl[9]+fl[8]))+3.0*(fl[4]-1.0*(fl[2]+fl[1]))+5.196152422706631*fl[0])*limTheta(rVal[4],1.0,cflL); 
+  fqVal[5] = -0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]-1.0*fl[8]+fl[5])+3.0*(fl[2]-1.0*fl[4])-1.0*(3.0*fl[1]+5.196152422706631*fl[0]))*limTheta(rVal[5],1.0,cflL); 
+  fqVal[6] = -0.04811252243246882*(fl[12]+1.732050807568877*((-1.0*fl[9])+fl[8]+fl[5])+3.0*(fl[1]-1.0*(fl[4]+fl[2]))-5.196152422706631*fl[0])*limTheta(rVal[6],1.0,cflL); 
+  fqVal[7] = 0.04811252243246882*(fl[12]+1.732050807568877*(fl[9]+fl[8]+fl[5])+3.0*(fl[4]+fl[2]+fl[1])+5.196152422706631*fl[0])*limTheta(rVal[7],1.0,cflL); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
@@ -1024,14 +1024,14 @@ double EmGyrokineticSurfPositivity2x2vSer_Vpar_P1_Bvars_1(const double q_, const
   rVal[6] = -(1.0*(1.732050807568877*fr[15]+3.0*((-1.0*fr[14])+fr[13]+fr[11])+5.196152422706631*(fr[6]-1.0*(fr[10]+fr[7]))-9.0*fr[3]))/(20.78460969082652*EPSILON-1.0*fr[12]+1.732050807568877*(fr[9]-1.0*(fr[8]+fr[5]))+3.0*(fr[4]+fr[2]-1.0*fr[1])+5.196152422706631*fr[0]); 
   rVal[7] = (1.732050807568877*fr[15]+3.0*(fr[14]+fr[13]+fr[11])+5.196152422706631*(fr[10]+fr[7]+fr[6])+9.0*fr[3])/(20.78460969082652*EPSILON+fr[12]+1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])+5.196152422706631*fr[0]); 
   double fqVal[8];  // fqVal = anti-limited f evaluated at each node 
-  fqVal[0] = -0.04811252243246882*(fr[12]-1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cfl); 
-  fqVal[1] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*(fr[8]+fr[5]))+3.0*(fr[1]-1.0*(fr[4]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cfl); 
-  fqVal[2] = 0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]-1.0*fr[5])+3.0*((-1.0*fr[4])+fr[2]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cfl); 
-  fqVal[3] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]-1.0*fr[5])+3.0*fr[4]-1.0*(3.0*(fr[2]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cfl); 
-  fqVal[4] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[5]-1.0*(fr[9]+fr[8]))+3.0*(fr[4]-1.0*(fr[2]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cfl); 
-  fqVal[5] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*fr[8]+fr[5])+3.0*(fr[2]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cfl); 
-  fqVal[6] = -0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]+fr[5])+3.0*(fr[1]-1.0*(fr[4]+fr[2]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cfl); 
-  fqVal[7] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cfl); 
+  fqVal[0] = -0.04811252243246882*(fr[12]-1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])-5.196152422706631*fr[0])*limTheta(rVal[0],-1.0,cflR); 
+  fqVal[1] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*(fr[8]+fr[5]))+3.0*(fr[1]-1.0*(fr[4]+fr[2]))+5.196152422706631*fr[0])*limTheta(rVal[1],-1.0,cflR); 
+  fqVal[2] = 0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]-1.0*fr[5])+3.0*((-1.0*fr[4])+fr[2]-1.0*fr[1])+5.196152422706631*fr[0])*limTheta(rVal[2],-1.0,cflR); 
+  fqVal[3] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]-1.0*fr[5])+3.0*fr[4]-1.0*(3.0*(fr[2]+fr[1])+5.196152422706631*fr[0]))*limTheta(rVal[3],-1.0,cflR); 
+  fqVal[4] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[5]-1.0*(fr[9]+fr[8]))+3.0*(fr[4]-1.0*(fr[2]+fr[1]))+5.196152422706631*fr[0])*limTheta(rVal[4],-1.0,cflR); 
+  fqVal[5] = -0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]-1.0*fr[8]+fr[5])+3.0*(fr[2]-1.0*fr[4])-1.0*(3.0*fr[1]+5.196152422706631*fr[0]))*limTheta(rVal[5],-1.0,cflR); 
+  fqVal[6] = -0.04811252243246882*(fr[12]+1.732050807568877*((-1.0*fr[9])+fr[8]+fr[5])+3.0*(fr[1]-1.0*(fr[4]+fr[2]))-5.196152422706631*fr[0])*limTheta(rVal[6],-1.0,cflR); 
+  fqVal[7] = 0.04811252243246882*(fr[12]+1.732050807568877*(fr[9]+fr[8]+fr[5])+3.0*(fr[4]+fr[2]+fr[1])+5.196152422706631*fr[0])*limTheta(rVal[7],-1.0,cflR); 
   double fhatALVal[8];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.3535533905932737*(fqVal[7]+fqVal[6]+fqVal[5]+fqVal[4]+fqVal[3]+fqVal[2]+fqVal[1]+fqVal[0]); 
   fhatALVal[1] = 0.6123724356957944*(fqVal[7]-1.0*fqVal[6]+fqVal[5]-1.0*fqVal[4]+fqVal[3]-1.0*fqVal[2]+fqVal[1]-1.0*fqVal[0]); 
