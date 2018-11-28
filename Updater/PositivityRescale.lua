@@ -46,7 +46,7 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
    local fOutIndexer = fOut:genIndexer()
    local fOutPtr = fOut:get(1)
 
-   local localRange = fIn:localRange()   
+   local localRange = fIn:localExtRange()   
    -- loop, computing integrated moments in each cell
    for idx in localRange:colMajorIter() do
       grid:setIndex(idx)
