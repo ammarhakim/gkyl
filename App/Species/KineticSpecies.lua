@@ -262,6 +262,8 @@ function KineticSpecies:fullInit(appTbl)
 
    -- gravity table for running Vlasov simulations with constant gravity
    self.constGravity = tbl.constGravity
+
+   self.tCurr = 0.0
 end
 
 function KineticSpecies:getCharge() return self.charge end
@@ -588,10 +590,10 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
-   if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
-   end
    self:applyBc(nil, self:rkStepperFields()[outIdx])
+   if self.positivityRescale then
+      self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
+   end
 end
 
 function KineticSpecies:suggestDt()
