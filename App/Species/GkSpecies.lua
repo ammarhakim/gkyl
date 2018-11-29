@@ -257,6 +257,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
 end
 
 function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self.tCurr = tCurr
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
