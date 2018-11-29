@@ -55,6 +55,9 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
       fOut:fill(fOutIndexer(idx), fOutPtr)
       
       local f0 = 1.0/math.sqrt(2.0)^ndim*fInPtr[1] -- cell average
+      if f0 < 0 then
+        print("WARNING: negative cell avg ", f0, "in cell", idx[1], idx[2], idx[3], idx[4], idx[5], "tCurr = ", tCurr)
+      end
       
       local fmin = ffi.C.findMinNodalValue(fInPtr:data(), ndim)
     
