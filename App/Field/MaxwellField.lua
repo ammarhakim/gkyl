@@ -89,6 +89,9 @@ function MaxwellField:fullInit(appTbl)
    self._hasSsBnd = tbl.hasSsBnd
    self._inOutFunc = tbl.inOutFunc
 
+   -- no ghost current by default
+   self.useGhostCurrent = xsys.pickBool(tbl.useGhostCurrent, false)
+
    -- store initial condition function (this is a wrapper around user
    -- supplied function as we need to add correction potential ICs
    -- here)
@@ -463,14 +466,28 @@ function MaxwellField:accumulateCurrent(current, emRhs)
 
    local tmStart = Time.clock()
 
-   -- these many current components are supplied
    local cItr, eItr = current:get(1), emRhs:get(1)
    local cIdxr, eIdxr = current:genIndexer(), emRhs:genIndexer()
+
+   -- if we are to use ghost currents, compute mean current first
+   local ghostCurrent = 0.0
+   if self.useGhostCurrent then
+      local nx = self.grid:numCells(1)
+      local localMeanCurrent = ffi.new("double[2]")
+      for idx in emRhs:localRangeIter() do
+	 current:fill(cIdxr(idx), cItr)
+	 localMeanCurrent[0] = localMeanCurrent[0]+cItr[1]
+      end
+      local globalMeanCurrent = ffi.new("double[2]")
+      Mpi.Allreduce(localMeanCurrent, globalMeanCurrent, 1, Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
+      ghostCurrent = globalMeanCurrent[0]/nx
+   end
 
    for idx in emRhs:localRangeIter() do
       current:fill(cIdxr(idx), cItr)
       emRhs:fill(eIdxr(idx), eItr)
-      for i = 1, current:numComponents() do
+      eItr[1] = eItr[1]-1.0/self.epsilon0*(cItr[1]-ghostCurrent)
+      for i = 2, current:numComponents() do
          eItr[i] = eItr[i]-1.0/self.epsilon0*cItr[i]
       end
    end
