@@ -26,6 +26,8 @@ function SpeciesBase:getNdim() return 1 end
 function SpeciesBase:createSolver() end
 function SpeciesBase:createDiagnostics() end
 function SpeciesBase:rkStepperFields() return { nil } end
+function SpeciesBase:suggestDt() end
+function SpeciesBase:clearCFL() end
 function SpeciesBase:initDist() end
 function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
