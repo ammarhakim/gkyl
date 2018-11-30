@@ -55,18 +55,6 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "M0", "M1i", "M2" }
    },
 
-   -- ghost electrons: balances the electrons to cancel initial currents
-   elcGhost = Plasma.FuncSpecies {
-      charge = -1.0, mass = 1.0,
-      -- momentum provided by this species
-      momentumDensity = function (t, xc)
-   	 local n0 = 1.0
-   	 return -n0*vDriftElc
-      end,
-      
-      evolve = false, -- evolve species?
-   },   
-
    -- electrons
    ion = Plasma.Species {
       charge = 1.0, mass = massRatio,
@@ -88,8 +76,8 @@ plasmaApp = Plasma.App {
    -- field solver
    field = Plasma.Field {
       epsilon0 = 1.0, mu0 = 1.0,
+      useGhostCurrent = true,
       init = function (t, xn)
-	 local Ex = -perturbation*math.sin(2*math.pi*knumber*xn[1])/(2*math.pi*knumber)
 	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
       end,
       evolve = true, -- evolve field?
