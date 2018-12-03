@@ -1,5 +1,5 @@
-curl https://www.open-mpi.org/software/ompi/v3.0/downloads/openmpi-3.0.0.tar.gz > openmpi-3.0.0.tar.gz
-gunzip -c openmpi-3.0.0.tar.gz | tar xf -
-cd openmpi-3.0.0
-CFLAGS="-fPIC" ./configure --prefix=$PREFIX --enable-mpi-fortran=none
+curl -L https://download.open-mpi.org/release/open-mpi/v3.1/openmpi-3.1.2.tar.gz > openmpi-3.1.2.tar.gz
+gunzip -c openmpi-3.1.2.tar.gz | tar xf -
+cd openmpi-3.1.2
+./configure --prefix=$PREFIX --enable-mpi-fortran=none CC=$CC CXX=$CXX
 make all install
