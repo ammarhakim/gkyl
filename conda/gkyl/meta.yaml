@@ -1,6 +1,6 @@
 package:
-  name: gkyl
-  version: "0.9.0"
+  name: gkeyll
+  version: "2.0.0"
 
 source:
   path: ../../
@@ -12,15 +12,16 @@ requirements:
   build:
     - luajit
     - adios >=1.13.0
-    - openmpi >=3.0.0
+    - openmpi >=3.1.2
     - eigen3
   run:
     - luajit
     - adios >=1.13.0
-    - openmpi >=3.0.0
+    - openmpi >=3.1.2
     - eigen3
 
 about:
-  home: https://bitbucket.org/ammarhakim/gkyl
-  license: 'Gkyl can be used freely for research at universities, national laboratories and other non-profit institutions'
+  home: https://bitbucket.org/ammarhakim/gkeyll
+  license: 'We follow a open-source but closed development model. Even though read access to the code is available to everyone, write access to the source-code repository is restricted to those who need to modify the code. In practice, this means researchers at PPPL and our partner institutions. In particular, this means that for write access you either need to have jointly funded projects or jointly supervised graduate students with Princeton University/PPPL.
+Gkeyll, Postgkyl and this documentation is copyrighted 2016-2018 by Ammar Hakim.'
   summary: 'Efficient and robust open-source framework for laboratory, geophysical and astrophysical plasma physics'
