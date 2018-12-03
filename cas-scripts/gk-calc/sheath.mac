@@ -71,46 +71,55 @@ for p : 1 thru pmax do (
   intVars : flatten([varsV,varsC]),
   lims : makelist([-1,1],i,1,length(varsP)),
   cutlims : makelist([-1,1],i,1,length(varsP)),
+
+  /* kinetic energy */
+  kE_full : (wv + dv/2*vpar)^2/2,
+  kE_k:fullratsimp(innerProd(varsP, 1, bP, kE_full)),
+  /* expand projected KE on basis */
+  kE_expd:kE_k.bP,
+  vpar_proj : diff(kE_expd, vpar),
   
   /* flux projected onto conf basis evaluated at z surface */
-  u_k:fullratsimp(innerProdGen(intVars,lims,bC, wv + dv/2*vpar, subst(edgesub,f_expd))),
+  u_k:fullratsimp(innerProdGen(intVars,lims,bC, vpar_proj, subst(edgesub,f_expd))),
   writeCExprsWithZerosNoExpand1(u, fullratsimp(subst(powersimp, u_k))),
 
   printf(fh, "  if(wv > 0) {~%"),
   /* first velocity dim is always vpar, and we need to modify the upper integration limit */
   cutlims[1] : [-1,2*(vcut-wv)/dv],
   /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
-  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, wv + dv/2*vpar, subst(edgesub,f_expd))),
+  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, vpar_proj, subst(edgesub,f_expd))),
   writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
   printf(fh, "  } else {~%"),
   /* first velocity dim is always vpar, and we need to modify the upper integration limit */
   cutlims[1] : [2*(-vcut-wv)/dv,1],
   /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
-  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, wv + dv/2*vpar, subst(edgesub,f_expd))),
+  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, vpar_proj, subst(edgesub,f_expd))),
   writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
   printf(fh, "  }~%~%"),
-  printf(fh, "  // account for rare positivity issues ~%"),
-  printf(fh, "  if (u[0]*uhat[0]<0) {~%"),
-  printf(fh, "  if(wv > 0) {~%"),
-  /* first velocity dim is always vpar, and we need to modify the upper integration limit */
-  cutlims[1] : [-1,2*(vcut-wv)/dv],
-  /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
-  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, wv + dv/2*vpar, subst(vpar=wv,subst(edgesub,f_expd)))),
-  writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
-  printf(fh, "  } else {~%"),
-  /* first velocity dim is always vpar, and we need to modify the upper integration limit */
-  cutlims[1] : [2*(-vcut-wv)/dv,1],
-  /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
-  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, wv + dv/2*vpar, subst(vpar=wv,subst(edgesub,f_expd)))),
-  writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
-  printf(fh, "  }~%"),
-  printf(fh, "  } ~%~%"),
-
   printf(fh, "  // calculate c = uhat/u ~%"),
   printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(u, uhat, 1, 1, c); ~%", cdim, basisFun, p),
 
   printf(fh, "  // calculate fhat = c*f ~%"),
   printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(c, f, 1, 1, fhat); ~%", cdim, vdim, basisFun, p),
+
+  printf(fh, "  // account for rare positivity issues ~%"),
+  printf(fh, "  if (fhat[0]<0) {~%"),
+  printf(fh, "    if(wv > 0) {~%"),
+  vleft : wv - dv/2,
+  alpha : (vcut - vleft)/dv,
+  printf(fh, "      double alpha = ~a; ~%", alpha),
+  printf(fh, "      for(int k=0; k<~a; k++) { ~%", length(bP)),
+  printf(fh, "        fhat[k] = alpha*f[k]; ~%"),
+  printf(fh, "      } ~%"),
+  printf(fh, "    } else {~%"),
+  vright : wv + dv/2,
+  alpha : (vright + vcut)/dv,
+  printf(fh, "      double alpha = ~a; ~%", alpha),
+  printf(fh, "      for(int k=0; k<~a; k++) { ~%", length(bP)),
+  printf(fh, "        fhat[k] = alpha*f[k]; ~%"),
+  printf(fh, "      } ~%"),
+  printf(fh, "    } ~%"),
+  printf(fh, "  } ~%~%"),
 
   printf(fh, "} ~%~%"),
 
