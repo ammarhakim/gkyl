@@ -31,6 +31,7 @@ function PositivityRescale:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
    assert(self.numComponents == 1, "Updater.PositivityRescale only implemented for fields with numComponents = 1")
+   self.negCount = 0
 end   
 
 -- advance method
@@ -56,17 +57,23 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
       
       local f0 = 1.0/math.sqrt(2.0)^ndim*fInPtr[1] -- cell average
       if f0 < 0 then
-        if ndim == 1 then
-          print(string.format("WARNING: negative cell avg %e in cell %d, tCurr = %e", f0, idx[1], tCurr))
-        elseif ndim == 2 then
-          print(string.format("WARNING: negative cell avg %e in cell %d %d, tCurr = %e", f0, idx[1], idx[2], tCurr))
-        elseif ndim == 3 then
-          print(string.format("WARNING: negative cell avg %e in cell %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], tCurr))
-        elseif ndim == 4 then
-          print(string.format("WARNING: negative cell avg %e in cell %d %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], tCurr))
-        elseif ndim == 5 then
-          print(string.format("WARNING: negative cell avg %e in cell %d %d %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], idx[5], tCurr))
-        end
+         self.negCount = self.negCount + 1
+         if self.negCount <= 500 then
+            if ndim == 1 then
+              print(string.format("WARNING: negative cell avg %e in cell %d, tCurr = %e", f0, idx[1], tCurr))
+            elseif ndim == 2 then
+              print(string.format("WARNING: negative cell avg %e in cell %d %d, tCurr = %e", f0, idx[1], idx[2], tCurr))
+            elseif ndim == 3 then
+              print(string.format("WARNING: negative cell avg %e in cell %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], tCurr))
+            elseif ndim == 4 then
+              print(string.format("WARNING: negative cell avg %e in cell %d %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], tCurr))
+            elseif ndim == 5 then
+              print(string.format("WARNING: negative cell avg %e in cell %d %d %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], idx[5], tCurr))
+            end
+            if self.negCount == 500 then 
+              print(string.format("Already have had 500 cells with negative cell average. Suppressing further warnings..."))
+            end
+         end
       end
       
       local fmin = ffi.C.findMinNodalValue(fInPtr:data(), ndim)
