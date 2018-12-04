@@ -109,6 +109,43 @@ for p : 1 thru pmax do (
   printf(fh, "} ~%")
 ))$
 
+/* Parallel Momentum Density, but from projected KE = v^2/2 */
+/* M1 = < d/dv_par(v_par^2/2) f > */
+calcM1proj(fh, funcNm, cdim, vdim, basisFun) := block([],
+kill(varsC, varsP, basisC, basisP),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+load(modNm),
+for p : 1 thru pmax do (
+  bP : basisP[p],
+  bC : basisC[p],
+
+  printf(fh, "void ~a_M1proj_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
+  if vdim = 1 then printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim)
+  else printf(fh, "  const double volFact = 2.0*M_PI/m_*~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+
+  for i : 1 thru vdim do (
+    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
+  ),
+
+  fl : doExpand1(f, bP),
+
+  kE_full : (vTrans[1])^2/2,
+  /* project KE = v^2/2 on basis */
+  kE_k:fullratsimp(innerProd(varsP, 1, bP, kE_full)),
+  /* expand projected KE on basis */
+  kE_expd:kE_k.bP,
+  /* calculate vpar_proj = d/dv_par(KE) */
+  vpar_proj : 2/dv1*diff(kE_expd, vx),
+
+  /* use vpar_proj in moment integral */
+  M : calcInnerProdList(varsP, vpar_proj, bC, fl),
+  M : map(letsimp, M),
+  
+  writeCIncrExprsNoExpand1(out, volFact*expand(M)),
+
+  printf(fh, "} ~%")
+))$
+
 /* Parallel Particle Energy */
 /* M2par = < v_par^2 f > */
 calcM2par(fh, funcNm, cdim, vdim, basisFun) := block([],
@@ -338,6 +375,7 @@ calcGkMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
   printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
   calcM0(fh, funcNm, cdim, vdim, basisFun),
   calcM1(fh, funcNm, cdim, vdim, basisFun),
+  calcM1proj(fh, funcNm, cdim, vdim, basisFun),
   calcM2(fh, funcNm, cdim, vdim, basisFun),
   calcM2par(fh, funcNm, cdim, vdim, basisFun),
   if vdim > 1 then calcM2perp(fh, funcNm, cdim, vdim, basisFun),

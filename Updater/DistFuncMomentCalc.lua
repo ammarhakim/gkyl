@@ -24,7 +24,7 @@ local goodMomNames = {
    "M0", "M1i", "M2ij", "M2", "M3i", "FiveMoments"
 }
 local goodGkMomNames = {
-   "GkM0", "GkM1", "GkM2par", "GkM2perp", "GkM2", "GkM3par", "GkM3perp",
+   "GkM0", "GkM1", "GkM1proj", "GkM2par", "GkM2perp", "GkM2", "GkM3par", "GkM3perp",
    "GkThreeMoments"
 }
 

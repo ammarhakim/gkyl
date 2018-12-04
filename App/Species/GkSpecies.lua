@@ -208,7 +208,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
-      moment = "GkM1",
+      moment = "GkM1", -- moment of dH/dv, where H is projected on basis
       gkfacs = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
@@ -303,18 +303,13 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
+      if self.positivityRescale then
+         self.solverStep2:advance(tCurr, {self.fPos, em, emFunc}, {fRhsOut})
+      else
+         self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
+      end
    else
       fRhsOut:clear(0.0)  -- no RHS
-   end
-
-   if self.evolveCollisions then
-      for _, c in pairs(self.collisions) do
-         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-	 c:advance(tCurr, fIn, species, fRhsOut)
-	 -- the full 'species' list is needed for the cross-species
-	 -- collisions
-      end
    end
 
    if self.fSource and self.evolveSources then
