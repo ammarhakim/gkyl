@@ -127,6 +127,49 @@ modToNod:(
 return(modToNod)
 )$
 
+calcModToNodPhaseWithNodes(cdim, vdim, p, nodes) := block([basis,modNm,n,modToNod], 
+kill(varsC, varsP, basisC, basisP),
+if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
+else if (vdim = 1 and cdim#1) then (modNm : sconcat("basis-precalc/basisSer", cdim-1, "x", 2, "v"), cdim:cdim-1, vdim:2)
+else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
+load(modNm),
+if vdim=0 then basis : basisC[p]
+else basis : basisP[p],
+n : length(nodes),
+if cdim=1 then (
+modToNod : (
+  for i:1 thru n do (
+  col : subst(nodes[i][1],x,basis),
+  if vdim>=1 then col : subst(nodes[i][2],vx,col),
+  if vdim=2 then col : subst(nodes[i][3],vy,col),
+  col : columnvector(col),
+  if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
+  ),modToNod)
+) else if cdim=2 then (
+modToNod:(
+    for i:1 thru n do (
+    col : subst(nodes[i][1],x,basis),
+    col : subst(nodes[i][2],y,col),
+    if vdim>=1 then col : subst(nodes[i][3],vx,col),
+    if vdim=2 then col : subst(nodes[i][4],vy,col),
+    col : columnvector(col),
+    if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
+    ),modToNod)
+) else (
+modToNod:(
+    for i:1 thru n do (
+    col : subst(nodes[i][1],x,basis),
+    col : subst(nodes[i][2],y,col),
+    col : subst(nodes[i][3],z,col),
+    if vdim>=1 then col : subst(nodes[i][4],vx,col),
+    if vdim=2 then col : subst(nodes[i][5],vy,col),
+    col : columnvector(col),
+    if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
+    ),modToNod)
+),
+return(modToNod)
+)$
+
 /* calculate nodal-to-modal transformation matrix */
 calcNodToModPerp(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),

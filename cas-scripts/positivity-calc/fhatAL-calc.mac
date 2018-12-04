@@ -3,7 +3,7 @@ load("fem-calc/femMatrices")$
 load("scifac")$
 
 /* returns anti-limited expansion of f evaluated at surfVar=surfVal */
-fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
+fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,varsP,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
   if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
   else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
   load(modNm),
@@ -13,15 +13,17 @@ fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,node
   surfIntVars : delete(surfVar, vars),
   nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p)),
   avgAndSlope:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],doExpand1(f,basis))),
+  /* function to evaluate f at control nodes in all dimensions other than surfVar */
   nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]/3,j,1,length(surfIntVars)),f),i,1,length(nodes)),
+  /* evaluate r=f1/f0 at control nodes */
   r:fullratsimp(nodesub(fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])))),
   /* print r */
-  printf(fh,"  double rVal[~a];  // rVal=f1/f0 at each node ~%",length(r)),
+  printf(fh,"  double rVal[~a];  // rVal=f1/f0 at each control node in dimensions other than ~a ~%",length(r),surfVar),
   writeCExprsNoExpand1(rVal,gcfac(r)),
   flush_output(fh),
   fq:fullratsimp(nodesub(avgAndSlope[1])*makelist(limTheta(rVal[i-1],surfVal,cfl),i,1,length(r))),
   /* print fq */
-  printf(fh,"  double fqVal[~a];  // fqVal = anti-limited f evaluated at each node ~%",length(fq)),
+  printf(fh,"  double fqVal[~a];  // fqVal = anti-limited f evaluated at each control node on ~a surface ~%",length(fq),surfVar),
   writeCExprsNoExpand1(fqVal,gcfac(fq)),
   flush_output(fh),
   if cdim+vdim-1<=3 then modToNod:calcModToNodPhase(cdim+vdim-1,0,p)

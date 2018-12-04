@@ -88,6 +88,7 @@ function FluidSpecies:fullInit(appTbl)
    end
 
    self.boundaryConditions = { } -- list of Bcs to apply
+   self.zeroFluxDirections = {}
 
    self.bcTime = 0.0 -- timer for BCs
 
@@ -174,6 +175,14 @@ end
 
 function FluidSpecies:allocMomCouplingFields()
    return {self:allocVectorMoment(self.nMoments)}
+end
+
+function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
+   -- note that for bcAbsorb there is no operation on fIn,
+   -- so skinLoop (which determines indexing of fIn) does not matter 
+   for i = 1, self.nMoments*self.basis:numBasis() do
+      fOut[i] = 0.0
+   end
 end
 
 function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
@@ -269,10 +278,10 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
+   self:applyBc(nil, self:rkStepperFields()[outIdx])
    if self.positivityRescale then
       self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
    end
-   self:applyBc(nil, self:rkStepperFields()[outIdx])
 end
 
 function FluidSpecies:suggestDt()
