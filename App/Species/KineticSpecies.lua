@@ -591,9 +591,6 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
    self:applyBc(nil, self:rkStepperFields()[outIdx])
-   if self.positivityRescale then
-      self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
-   end
 end
 
 function KineticSpecies:suggestDt()

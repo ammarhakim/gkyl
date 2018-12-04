@@ -279,9 +279,6 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
    self:applyBc(nil, self:rkStepperFields()[outIdx])
-   if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
-   end
 end
 
 function FluidSpecies:suggestDt()
@@ -298,7 +295,12 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolve then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
+      if self.positivityRescale then
+         self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
+         self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
+      else
+         self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
+      end
    else
       fRhsOut:clear(0.0) -- no RHS
    end

@@ -170,7 +170,7 @@ plasmaApp = Plasma.App {
                  end
               end,
       },
-      --coll   = Plasma.GkLBOCollisions { collFreq = nuIon },
+      --coll   = Plasma.GkLBOCollisions { collFreq = nuElc },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
       applyPositivity = true,
