@@ -526,7 +526,7 @@ function test_solve3d(nx, ny, nz, p, writeMatrix)
    print()
    print("Testing 3D Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
+      lower = {0.0, 0.0, 0.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -638,7 +638,7 @@ function test_solve3d_periodic(nx, ny, nz, p)
    print()
    print("Testing 3D periodic Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
+      lower = {0.0, 0.0, 0.0},
       upper = {2*math.pi, 2*math.pi, 2*math.pi},
       cells = {nx, ny, nz},
    }
@@ -751,7 +751,7 @@ function test_solve3d_periodic_metric(nx, ny, nz, p)
    print()
    print("Testing 3D non-Cartesian periodic Poisson solve...")
    local grid = Grid.RectCart {
-      lower = {0.0, 0.0},
+      lower = {0.0, 0.0, 0.0},
       upper = {2*math.pi, 2*math.pi, 2*math.pi},
       cells = {nx, ny, nz},
    }
