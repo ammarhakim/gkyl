@@ -77,7 +77,7 @@ for p : 1 thru pmax do (
   kE_k:fullratsimp(innerProd(varsP, 1, bP, kE_full)),
   /* expand projected KE on basis */
   kE_expd:kE_k.bP,
-  vpar_proj : diff(kE_expd, vpar),
+  vpar_proj : 2/dv*diff(kE_expd, vpar),
   
   /* flux projected onto conf basis evaluated at z surface */
   u_k:fullratsimp(innerProdGen(intVars,lims,bC, vpar_proj, subst(edgesub,f_expd))),
