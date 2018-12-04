@@ -147,9 +147,9 @@ load(modNm),
   if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0]*BmagInv_expd, 
 
   /* make Bstar/Bmag vector */
-  if cdim = 1 then Bstar_by_Bmag_expd : [1],
+  if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
   if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd] + vApar_expd,
-  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, 1] + vApar_expd,
+  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd] + vApar_expd,
 
   /* calculate phase space velocity alpha in direction of surfVar */
   /* we assume alpha.n is continuous across boundary, although H may not be */
@@ -181,11 +181,11 @@ load(modNm),
     flush_output(fh)
   )
   else if pureUpwind or i=1 then (
-
+    printf(fh, "#if upwindType == SURFAVG ~%"),
     printf(fh, "  if (alpha0>0) { ~%"),
-    if positivity then fhat : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, cflL, cdim, vdim, i))
-    else fhat : subst(surfVar=1, fL_expd),
-    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
+    if positivity then fhat_expd : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, cflL, cdim, vdim, i))
+    else fhat_expd : subst(surfVar=1, fL_expd),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat_expd),
     incr_r : facsum(fullratsimp(t),dxv),
     writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
     printf(fh, "~%"),
@@ -194,7 +194,7 @@ load(modNm),
     writeCIncrExprsNoExpand1(outr, incr_s),  
     printf(fh, "~%"),
     flush_output(fh),
-    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=1, bP), fhat),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=1, bP), fhat_expd),
     incr_l : -t,
     signs : fullratsimp(incr_l/incr_r),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
@@ -202,9 +202,9 @@ load(modNm),
     flush_output(fh),
     
     printf(fh, "  } else { ~%"),
-    if positivity then fhat : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, cflR, cdim, vdim, i))
-    else fhat : subst(surfVar=-1, fR_expd),
-    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat),
+    if positivity then fhat_expd : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, cflR, cdim, vdim, i))
+    else fhat_expd : subst(surfVar=-1, fR_expd),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat_expd),
     incr_r : facsum(fullratsimp(t),dxv),
     writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
     printf(fh, "~%"),
@@ -213,15 +213,62 @@ load(modNm),
     writeCIncrExprsNoExpand1(outr, incr_s),  
     printf(fh, "~%"),
     flush_output(fh),
-    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=1, bP), fhat),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=1, bP), fhat_expd),
     incr_l : -t,
     signs : fullratsimp(incr_l/incr_r),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
     writeCIncrExprsNoExpand1(outl, incr_s),
     printf(fh, "  } ~%"),
+
+    printf(fh, "#elif upwindType == QUAD ~%"),
+    printf(fh, "double fupwind[~a];~%", length(bP)),
+    printf(fh, "double fupwindQuad[~a];~%", length(bP)),
+    if i=1 then quad:1/sqrt(3),
+    if i=2 then quad:sqrt(3/5),
+    nodes : eval_string(sconcat("nodes", cdim+vdim, "xp", p))*quad,
+    /* function to evaluate expansion g at quadrature nodes */
+    nodesub(g):=makelist(subst(makelist(varsP[j]=nodes[i][j],j,1,length(varsP)),g),i,1,length(nodes)),
+    /* evaluate fl, fr, and alpha at quadrature nodes */
+    frQ:gcfac(float(nodesub(fR_expd))),
+    /* note: mirror fL in surfVar direction so that we only have to worry about calculations in cell to right of boundary */
+    flQ:gcfac(float(nodesub(subst(surfVar=-surfVar,fL_expd)))), 
+    alphaq:gcfac(float(nodesub(alpha_expd))),
+    /* determine upwinding */
+    for i:1 thru length(alphaq) do (
+    printf(fh, "  if(~a > 0) {~%", alphaq[i]),
+    printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, flQ[i]),
+    printf(fh, "  } else {~%"),
+    printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, frQ[i]),
+    printf(fh, "  }~%")
+    ),
+    if cdim+vdim<=3 then modToNod:calcModToNodPhaseWithNodes(cdim+vdim,0,i,nodes)
+    else modToNod:calcModToNodPhaseWithNodes(cdim,vdim,i,nodes),
+    fupwind_k:fullratsimp(modToNod.makelist(fupwindQuad[i-1],i,1,length(bP))),
+    fupwind_k:gcfac(makelist(fupwind_k[i][1],i,1,length(fupwind_k))),
+    writeCExprsNoExpand1(fupwind, fupwind_k),
+    fupwind_expd:doExpand1(fupwind,bP),
+
+    if positivity then fhat_expd : subst(gkvsub, fhatAL(fupwind, subst(gkvsubInv,surfVar), -1, cflR, cdim, vdim, i))
+    else fhat_expd : subst(surfVar=-1, fupwind_expd),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=-1, bP), fhat_expd),
+    incr_r : facsum(fullratsimp(t),dxv),
+    writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
+    printf(fh, "~%"),
+    flush_output(fh),
+    incr_s : makelist(incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outr, incr_s),  
+    printf(fh, "~%"),
+    flush_output(fh),
+    t : surfac*calcInnerProdList(surfIntVars, alpha_expd, subst(surfVar=1, bP), fhat_expd),
+    incr_l : -t,
+    signs : fullratsimp(incr_l/incr_r),
+    incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+    writeCIncrExprsNoExpand1(outl, incr_s),
+    printf(fh, "#endif~%"),
     printf(fh, "  return std::abs(alpha0); ~%"),
     printf(fh, "} ~%"),
     flush_output(fh)
+    
   ) else (
     /* determine whether to use local or global value for penalty amax */
     printf(fh, "  double amax = 0.0; ~%"),

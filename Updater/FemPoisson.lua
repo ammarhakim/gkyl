@@ -37,7 +37,7 @@ function FemPoisson:init(tbl)
    self.basis = tbl.basis
    local ndim = self.ndim
    self.zContinuous = xsys.pickBool(tbl.zContinuous, true)
-   self.periodicDirs = tbl.periodicDirs   
+   self.periodicDirs = tbl.periodicDirs or {}  
    self.bcLeft = tbl.bcLeft
    self.bcRight = tbl.bcRight
    self.bcTop = tbl.bcTop
