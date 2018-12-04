@@ -45,7 +45,7 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
    local fInPtr = fIn:get(1)
    local fOutIndexer = fOut:genIndexer()
    local fOutPtr = fOut:get(1)
-
+ 
    local localRange = fIn:localExtRange()   
    -- loop, computing integrated moments in each cell
    for idx in localRange:colMajorIter() do
@@ -56,7 +56,17 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
       
       local f0 = 1.0/math.sqrt(2.0)^ndim*fInPtr[1] -- cell average
       if f0 < 0 then
-        print("WARNING: negative cell avg ", f0, "in cell", idx[1], idx[2], idx[3], idx[4], idx[5], "tCurr = ", tCurr)
+        if ndim == 1 then
+          print(string.format("WARNING: negative cell avg %e in cell %d, tCurr = %e", f0, idx[1], tCurr))
+        elseif ndim == 2 then
+          print(string.format("WARNING: negative cell avg %e in cell %d %d, tCurr = %e", f0, idx[1], idx[2], tCurr))
+        elseif ndim == 3 then
+          print(string.format("WARNING: negative cell avg %e in cell %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], tCurr))
+        elseif ndim == 4 then
+          print(string.format("WARNING: negative cell avg %e in cell %d %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], tCurr))
+        elseif ndim == 5 then
+          print(string.format("WARNING: negative cell avg %e in cell %d %d %d %d %d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], idx[5], tCurr))
+        end
       end
       
       local fmin = ffi.C.findMinNodalValue(fInPtr:data(), ndim)
