@@ -16,10 +16,33 @@ local Proto = require "Lib.Proto"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
 
+local SP_BC_ABSORB = 1
+local SP_BC_COPY = 2
+local SP_BC_ZEROFLUX = 3
+IncompEulerSpecies.bcAbsorb = SP_BC_ABSORB -- absorb 
+IncompEulerSpecies.bcCopy = SP_BC_COPY
+IncompEulerSpecies.bcZeroFlux = SP_BC_ZEROFLUX -- zero flux
+
 function IncompEulerSpecies:fullInit(appTbl)
    IncompEulerSpecies.super.fullInit(self, appTbl)
 
    self.nMoments = 1
+end
+
+function IncompEulerSpecies:appendBoundaryConditions(dir, edge, bcType)
+   -- need to wrap member functions so that self is passed
+   local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
+   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
+
+   if bcType == SP_BC_ABSORB then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
+   elseif bcType == SP_BC_COPY then
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise"))
+   elseif bcType == SP_BC_ZEROFLUX then
+      table.insert(self.zeroFluxDirections, dir)
+   else
+      assert(false, "IncompEulerSpecies: Unsupported BC type!")
+   end
 end
 
 function IncompEulerSpecies:createSolver(hasE, hasB)
@@ -36,6 +59,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
       basis = self.basis,
       cfl = self.cfl,
       equation = eqn,
+      zeroFluxDirections = self.zeroFluxDirections,
    }
 
    if self.positivity then 
