@@ -76,6 +76,46 @@ void GkMomentCalc3x2vSer_M1_P2(const double *w, const double *dxv, const double 
   out[18] += volFact*(2.0*f[57]*wx1+0.5773502691896257*f[88]*dv1); 
   out[19] += volFact*(2.0*f[58]*wx1+0.5773502691896257*f[89]*dv1); 
 } 
+void GkMomentCalc3x2vSer_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+{ 
+  const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
+  const double wx1 = w[3], dv1 = dxv[3]; 
+  const double wx2 = w[4], dv2 = dxv[4]; 
+  out[0] += 2.0*f[0]*volFact*wx1; 
+  out[1] += 2.0*f[1]*volFact*wx1; 
+  out[2] += 2.0*f[2]*volFact*wx1; 
+  out[3] += 2.0*f[3]*volFact*wx1; 
+  out[4] += 2.0*f[6]*volFact*wx1; 
+  out[5] += 2.0*f[7]*volFact*wx1; 
+  out[6] += 2.0*f[8]*volFact*wx1; 
+  out[7] += 2.0*f[16]*volFact*wx1; 
+} 
+void GkMomentCalc3x2vSer_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
+{ 
+  const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
+  const double wx1 = w[3], dv1 = dxv[3]; 
+  const double wx2 = w[4], dv2 = dxv[4]; 
+  out[0] += volFact*(2.0*f[0]*wx1+0.5773502691896258*f[4]*dv1); 
+  out[1] += volFact*(2.0*f[1]*wx1+0.5773502691896258*f[9]*dv1); 
+  out[2] += volFact*(2.0*f[2]*wx1+0.5773502691896258*f[10]*dv1); 
+  out[3] += volFact*(2.0*f[3]*wx1+0.5773502691896258*f[11]*dv1); 
+  out[4] += volFact*(2.0*f[6]*wx1+0.5773502691896258*f[22]*dv1); 
+  out[5] += volFact*(2.0*f[7]*wx1+0.5773502691896258*f[23]*dv1); 
+  out[6] += volFact*(2.0*f[8]*wx1+0.5773502691896258*f[24]*dv1); 
+  out[7] += volFact*(2.0*f[16]*wx1+0.5773502691896257*f[37]*dv1); 
+  out[8] += volFact*(2.0*f[17]*wx1+0.5773502691896257*f[38]*dv1); 
+  out[9] += volFact*(2.0*f[18]*wx1+0.5773502691896257*f[39]*dv1); 
+  out[10] += volFact*(2.0*f[21]*wx1+0.5773502691896258*f[51]*dv1); 
+  out[11] += volFact*(2.0*f[31]*wx1+0.5773502691896257*f[59]*dv1); 
+  out[12] += volFact*(2.0*f[32]*wx1+0.5773502691896257*f[60]*dv1); 
+  out[13] += volFact*(2.0*f[33]*wx1+0.5773502691896257*f[61]*dv1); 
+  out[14] += volFact*(2.0*f[34]*wx1+0.5773502691896257*f[62]*dv1); 
+  out[15] += volFact*(2.0*f[35]*wx1+0.5773502691896257*f[63]*dv1); 
+  out[16] += volFact*(2.0*f[36]*wx1+0.5773502691896257*f[64]*dv1); 
+  out[17] += volFact*(2.0*f[56]*wx1+0.5773502691896257*f[87]*dv1); 
+  out[18] += volFact*(2.0*f[57]*wx1+0.5773502691896257*f[88]*dv1); 
+  out[19] += volFact*(2.0*f[58]*wx1+0.5773502691896257*f[89]*dv1); 
+} 
 void GkMomentCalc3x2vSer_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) 
 { 
   const double volFact = 2.0*M_PI/m_*dxv[3]*dxv[4]/4; 
