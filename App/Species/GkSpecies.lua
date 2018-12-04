@@ -264,6 +264,15 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local em = emIn[1]:rkStepperFields()[inIdx]
    local emFunc = emIn[2]:rkStepperFields()[1]
 
+   -- do collisions first so that collisions contribution to cflRate is included in GK positivity
+   if self.evolveCollisions then
+      for _, c in pairs(self.collisions) do
+         c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c:advance(tCurr, fIn, species, fRhsOut)
+         -- the full 'species' list is needed for the cross-species
+         -- collisions
+      end
+   end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       if self.positivityRescale then
@@ -277,16 +286,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
    end
 
-   if not self.solverStep2 then -- if step2, wait to do collisions and sources
-      if self.evolveCollisions then
-         for _, c in pairs(self.collisions) do
-            c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-            c:advance(tCurr, fIn, species, fRhsOut)
-            -- the full 'species' list is needed for the cross-species
-            -- collisions
-         end
-      end
-
+   if not self.solverStep2 then -- if step2, wait to do sources
       if self.fSource and self.evolveSources then
         -- add source it to the RHS
         fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
