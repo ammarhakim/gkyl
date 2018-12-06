@@ -19,32 +19,12 @@ double GyrokineticSurf2x0vSer_X_P1_Bvars_0(const double q_, const double m_, con
   incr[1] = -0.3535533905932737*alpha[0]*(3.0*fl[1]+1.732050807568877*fl[0])*dfac_x; 
   incr[2] = 0.3535533905932737*alpha[0]*(1.732050807568877*fl[3]+fl[2])*dfac_x; 
   incr[3] = -0.3535533905932737*alpha[0]*(3.0*fl[3]+1.732050807568877*fl[2])*dfac_x; 
-
-  outr[0] += incr[0]; 
-  outr[1] += incr[1]; 
-  outr[2] += incr[2]; 
-  outr[3] += incr[3]; 
-
-  outl[0] += -1.0*incr[0]; 
-  outl[1] += incr[1]; 
-  outl[2] += -1.0*incr[2]; 
-  outl[3] += incr[3]; 
   } else { 
   incr[0] = -0.3535533905932737*alpha[0]*(1.732050807568877*fr[1]-1.0*fr[0])*dfac_x; 
   incr[1] = 0.3535533905932737*alpha[0]*(3.0*fr[1]-1.732050807568877*fr[0])*dfac_x; 
   incr[2] = -0.3535533905932737*alpha[0]*(1.732050807568877*fr[3]-1.0*fr[2])*dfac_x; 
   incr[3] = 0.3535533905932737*alpha[0]*(3.0*fr[3]-1.732050807568877*fr[2])*dfac_x; 
 
-  outr[0] += incr[0]; 
-  outr[1] += incr[1]; 
-  outr[2] += incr[2]; 
-  outr[3] += incr[3]; 
-
-  outl[0] += -1.0*incr[0]; 
-  outl[1] += incr[1]; 
-  outl[2] += -1.0*incr[2]; 
-  outl[3] += incr[3]; 
-  } 
 #elif upwindType == QUAD 
 double fupwind[4];
 double fupwindQuad[4];
@@ -77,6 +57,7 @@ double fupwindQuad[4];
   incr[2] = -0.3535533905932737*alpha[0]*(1.732050807568877*fupwind[3]-1.0*fupwind[2])*dfac_x; 
   incr[3] = 0.3535533905932737*alpha[0]*(3.0*fupwind[3]-1.732050807568877*fupwind[2])*dfac_x; 
 
+#endif 
   outr[0] += incr[0]; 
   outr[1] += incr[1]; 
   outr[2] += incr[2]; 
@@ -86,7 +67,6 @@ double fupwindQuad[4];
   outl[1] += incr[1]; 
   outl[2] += -1.0*incr[2]; 
   outl[3] += incr[3]; 
-#endif
   return std::abs(alpha0); 
 } 
 double GyrokineticSurf2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
@@ -109,32 +89,12 @@ double GyrokineticSurf2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, con
   incr[1] = 0.3535533905932737*alpha[0]*(1.732050807568877*fl[3]+fl[1])*dfac_y; 
   incr[2] = -0.3535533905932737*alpha[0]*(3.0*fl[2]+1.732050807568877*fl[0])*dfac_y; 
   incr[3] = -0.3535533905932737*alpha[0]*(3.0*fl[3]+1.732050807568877*fl[1])*dfac_y; 
-
-  outr[0] += incr[0]; 
-  outr[1] += incr[1]; 
-  outr[2] += incr[2]; 
-  outr[3] += incr[3]; 
-
-  outl[0] += -1.0*incr[0]; 
-  outl[1] += -1.0*incr[1]; 
-  outl[2] += incr[2]; 
-  outl[3] += incr[3]; 
   } else { 
   incr[0] = -0.3535533905932737*alpha[0]*(1.732050807568877*fr[2]-1.0*fr[0])*dfac_y; 
   incr[1] = -0.3535533905932737*alpha[0]*(1.732050807568877*fr[3]-1.0*fr[1])*dfac_y; 
   incr[2] = 0.3535533905932737*alpha[0]*(3.0*fr[2]-1.732050807568877*fr[0])*dfac_y; 
   incr[3] = 0.3535533905932737*alpha[0]*(3.0*fr[3]-1.732050807568877*fr[1])*dfac_y; 
 
-  outr[0] += incr[0]; 
-  outr[1] += incr[1]; 
-  outr[2] += incr[2]; 
-  outr[3] += incr[3]; 
-
-  outl[0] += -1.0*incr[0]; 
-  outl[1] += -1.0*incr[1]; 
-  outl[2] += incr[2]; 
-  outl[3] += incr[3]; 
-  } 
 #elif upwindType == QUAD 
 double fupwind[4];
 double fupwindQuad[4];
@@ -167,6 +127,7 @@ double fupwindQuad[4];
   incr[2] = 0.3535533905932737*alpha[0]*(3.0*fupwind[2]-1.732050807568877*fupwind[0])*dfac_y; 
   incr[3] = 0.3535533905932737*alpha[0]*(3.0*fupwind[3]-1.732050807568877*fupwind[1])*dfac_y; 
 
+#endif 
   outr[0] += incr[0]; 
   outr[1] += incr[1]; 
   outr[2] += incr[2]; 
@@ -176,6 +137,5 @@ double fupwindQuad[4];
   outl[1] += -1.0*incr[1]; 
   outl[2] += incr[2]; 
   outl[3] += incr[3]; 
-#endif
   return std::abs(alpha0); 
 } 
