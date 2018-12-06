@@ -208,7 +208,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
-      moment = "GkM1", -- moment of dH/dv, where H is projected on basis
+      moment = "GkM1",
       gkfacs = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
