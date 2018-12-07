@@ -20,17 +20,17 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_0(const double q_, const doub
   // determine upwinding at each surface control node 
   if(0.7071067811865475*alpha[0] > 0) {
   rVal = -(1.0*(3.0*fl[3]-5.196152422706631*fl[1]))/(6.0*EPSILON-1.732050807568877*fl[2]+3.0*fl[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fl[2]-3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fl[2]-3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = -(1.0*(3.0*fr[3]-5.196152422706631*fr[1]))/(6.0*EPSILON-1.732050807568877*fr[2]+3.0*fr[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fr[2]-3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fr[2]-3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   if(0.7071067811865475*alpha[0] > 0) {
   rVal = (3.0*fl[3]+5.196152422706631*fl[1])/(6.0*EPSILON+1.732050807568877*fl[2]+3.0*fl[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fl[2]+3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fl[2]+3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = (3.0*fr[3]+5.196152422706631*fr[1])/(6.0*EPSILON+1.732050807568877*fr[2]+3.0*fr[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fr[2]+3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fr[2]+3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   double fhatALVal[2];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.7071067811865475*(fqVal[1]+fqVal[0]); 
@@ -72,17 +72,17 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_0(const double q_, const d
   // determine upwinding at each surface control node 
   if(0.7071067811865475*alpha[0] > 0) {
   rVal = -(1.0*(3.0*fl[3]-5.196152422706631*fl[2]))/(6.0*EPSILON-1.732050807568877*fl[1]+3.0*fl[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fl[1]-3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fl[1]-3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = -(1.0*(3.0*fr[3]-5.196152422706631*fr[2]))/(6.0*EPSILON-1.732050807568877*fr[1]+3.0*fr[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fr[1]-3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fr[1]-3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   if(0.7071067811865475*alpha[0] > 0) {
   rVal = (3.0*fl[3]+5.196152422706631*fl[2])/(6.0*EPSILON+1.732050807568877*fl[1]+3.0*fl[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fl[1]+3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fl[1]+3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = (3.0*fr[3]+5.196152422706631*fr[2])/(6.0*EPSILON+1.732050807568877*fr[1]+3.0*fr[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fr[1]+3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fr[1]+3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   double fhatALVal[2];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.7071067811865475*(fqVal[1]+fqVal[0]); 
@@ -124,17 +124,17 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_1(const double q_, const doub
   // determine upwinding at each surface control node 
   if(0.7071067811865475*alpha[0] > 0) {
   rVal = -(1.0*(3.0*fl[3]-5.196152422706631*fl[1]))/(6.0*EPSILON-1.732050807568877*fl[2]+3.0*fl[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fl[2]-3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fl[2]-3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = -(1.0*(3.0*fr[3]-5.196152422706631*fr[1]))/(6.0*EPSILON-1.732050807568877*fr[2]+3.0*fr[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fr[2]-3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fr[2]-3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   if(0.7071067811865475*alpha[0] > 0) {
   rVal = (3.0*fl[3]+5.196152422706631*fl[1])/(6.0*EPSILON+1.732050807568877*fl[2]+3.0*fl[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fl[2]+3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fl[2]+3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = (3.0*fr[3]+5.196152422706631*fr[1])/(6.0*EPSILON+1.732050807568877*fr[2]+3.0*fr[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fr[2]+3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fr[2]+3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   double fhatALVal[2];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.7071067811865475*(fqVal[1]+fqVal[0]); 
@@ -177,17 +177,17 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_1(const double q_, const d
   // determine upwinding at each surface control node 
   if(0.7071067811865475*alpha[0]-0.408248290463863*alpha[1] > 0) {
   rVal = -(1.0*(3.0*fl[3]-5.196152422706631*fl[2]))/(6.0*EPSILON-1.732050807568877*fl[1]+3.0*fl[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fl[1]-3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fl[1]-3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = -(1.0*(3.0*fr[3]-5.196152422706631*fr[2]))/(6.0*EPSILON-1.732050807568877*fr[1]+3.0*fr[0]); 
-  fqVal[0] = -0.1666666666666667*(1.732050807568877*fr[1]-3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[0] = fmin(-0.1666666666666667*(1.732050807568877*fr[1]-3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   if(0.408248290463863*alpha[1]+0.7071067811865475*alpha[0] > 0) {
   rVal = (3.0*fl[3]+5.196152422706631*fl[2])/(6.0*EPSILON+1.732050807568877*fl[1]+3.0*fl[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fl[1]+3.0*fl[0])*limTheta(rVal,1.0,cflL); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fl[1]+3.0*fl[0])*limTheta(rVal,1.0,cflL), fl[0]*cflL); 
   } else {
   rVal = (3.0*fr[3]+5.196152422706631*fr[2])/(6.0*EPSILON+1.732050807568877*fr[1]+3.0*fr[0]); 
-  fqVal[1] = 0.1666666666666667*(1.732050807568877*fr[1]+3.0*fr[0])*limTheta(rVal,-1.0,cflR); 
+  fqVal[1] = fmin(0.1666666666666667*(1.732050807568877*fr[1]+3.0*fr[0])*limTheta(rVal,-1.0,cflR), fr[0]*cflR); 
   }
   double fhatALVal[2];  // fhatALVal = mode coefficients of anti-limited f 
   fhatALVal[0] = 0.7071067811865475*(fqVal[1]+fqVal[0]); 
