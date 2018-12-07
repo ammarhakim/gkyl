@@ -11,10 +11,10 @@ fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,vars
   else basis : basisP[p],
   if vdim=0 then vars : varsC else vars : varsP,
   surfIntVars : delete(surfVar, vars),
-  nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p)),
+  nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/3,
   avgAndSlope:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],doExpand1(f,basis))),
   /* function to evaluate f at control nodes in all dimensions other than surfVar */
-  nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]/3,j,1,length(surfIntVars)),f),i,1,length(nodes)),
+  nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
   /* evaluate r=f1/f0 at control nodes */
   r:fullratsimp(nodesub(fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])))),
   /* print r */
@@ -28,7 +28,7 @@ fhatAL(f,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,vars,vars
   flush_output(fh),
   if cdim+vdim-1<=3 then modToNod:calcModToNodPhase(cdim+vdim-1,0,p)
   else modToNod:calcModToNodPhase(cdim-1,vdim,p),
-  fhatAL_k:fullratsimp(modToNod.makelist(fqVal[i-1],i,1,length(fq))),
+  fhatAL_k:fullratsimp(invert(transpose(modToNod)).makelist(fqVal[i-1],i,1,length(fq))),
   fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
   printf(fh,"  double fhatALVal[~a];  // fhatALVal = mode coefficients of anti-limited f ~%",length(fq)),
   writeCExprsNoExpand1(fhatALVal, fhatAL_k),
@@ -48,8 +48,8 @@ fhatALgenUpwind(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):
   if vdim=0 then vars : varsC else vars : varsP,
   surfIntVars : delete(surfVar, vars),
   /* surface control nodes */
-  nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p)),
-  nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]/3,j,1,length(surfIntVars)),f),i,1,length(nodes)),
+  nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/3,
+  nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
   /* evaluate fl, fr, and alpha at surface control nodes */
   /* note flQ and frQ will still have surfVar dependence, so that we can evaluate integrals in that direction below */
   alphaq:nodesub(alphaSurf_expd),
@@ -77,9 +77,9 @@ fhatALgenUpwind(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):
   printf(fh, "  fqVal[~a] = ~a; ~%", i-1, gcfac(float(fq))),
   printf(fh, "  }~%")
   ),
-  if cdim+vdim-1<=3 then modToNod:calcModToNodPhase(cdim+vdim-1,0,p)
-  else modToNod:calcModToNodPhase(cdim-1,vdim,p),
-  fhatAL_k:fullratsimp(modToNod.makelist(fqVal[i-1],i,1,length(nodes))),
+  if cdim+vdim-1<=3 then modToNod:calcModToNodPhaseWithNodes(cdim+vdim-1,0,p,nodes)
+  else modToNod:calcModToNodPhaseWithNodes(cdim-1,vdim,p,nodes),
+  fhatAL_k:fullratsimp(invert(transpose(modToNod)).makelist(fqVal[i-1],i,1,length(nodes))),
   fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
   printf(fh,"  double fhatALVal[~a];  // fhatALVal = mode coefficients of anti-limited f ~%",length(nodes)),
   writeCExprsNoExpand1(fhatALVal, fhatAL_k),
