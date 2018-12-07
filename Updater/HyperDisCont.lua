@@ -133,7 +133,9 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    if self._clearOut then qRhsOut:clear(0.0) end
    -- accumulate contributions from volume and surface integrals
    local cflRate
-   for _, dir in ipairs(self._updateDirs) do
+   -- iterate through updateDirs backwards so that a zero flux dir is first in kinetics
+   for i = #self._updateDirs, 1, -1 do 
+      local dir = self._updateDirs[i]
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
@@ -203,6 +205,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	    end
 	 end
       end
+      if firstDir then cflRateByCell:sync() end
       firstDir = false
    end
 

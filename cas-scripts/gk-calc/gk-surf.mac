@@ -328,8 +328,8 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
   )
 )$
 
-em:true$
-for pos: 1 thru 1 do (
+em:false$
+for pos: 0 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"

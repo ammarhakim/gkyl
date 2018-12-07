@@ -489,7 +489,7 @@ function KineticSpecies:alloc(nRkDup)
    self.cflRateByCell = DataStruct.Field {
 	onGrid = self.grid,
 	numComponents = 1,
-	ghost = {0, 0},
+	ghost = {1, 1},
    }
    self.cflRateByCell:clear(0.0)
    self.cflRatePtr = self.cflRateByCell:get(1)
