@@ -47,8 +47,7 @@ nodes5xp2 : matrix([-1,-1,-1,-1,-1],[0,-1,-1,-1,-1],[1,-1,-1,-1,-1],[-1,0,-1,-1,
             [-1,-1,1,1,1],[0,-1,1,1,1],[1,-1,1,1,1],[-1,0,1,1,1],[1,0,1,1,1],[-1,1,1,1,1],[0,1,1,1,1],[1,1,1,1,1])$
 
 /* calculate modal-to-nodal transformation matrix */
-calcModToNod(cdim, p) := block([], 
-kill(varsC, varsP, basisC, basisP),
+calcModToNod(cdim, p) := block([varsC, varsP, basisC, basisP], 
 modNm : sconcat("basis-precalc/basisSer", cdim, "x"),
 load(modNm),
 basis : basisC[p],
@@ -83,8 +82,7 @@ return(modToNod)
 )$
 
 /* calculate modal-to-nodal transformation matrix */
-calcModToNodPhase(cdim, vdim, p) := block([basis,modNm,nodes,n,modToNod], 
-kill(varsC, varsP, basisC, basisP),
+calcModToNodPhase(cdim, vdim, p) := block([basis,modNm,nodes,n,modToNod,varsC,varsP, basisC, basisP], 
 if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
 else if (vdim = 1 and cdim#1) then (modNm : sconcat("basis-precalc/basisSer", cdim-1, "x", 2, "v"), cdim:cdim-1, vdim:2)
 else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
@@ -127,8 +125,7 @@ modToNod:(
 return(modToNod)
 )$
 
-calcModToNodPhaseWithNodes(cdim, vdim, p, nodes) := block([basis,modNm,n,modToNod], 
-kill(varsC, varsP, basisC, basisP),
+calcModToNodPhaseWithNodes(cdim, vdim, p, nodes) := block([basis,modNm,n,modToNod,varsC, varsP, basisC, basisP],
 if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
 else if (vdim = 1 and cdim#1) then (modNm : sconcat("basis-precalc/basisSer", cdim-1, "x", 2, "v"), cdim:cdim-1, vdim:2)
 else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),

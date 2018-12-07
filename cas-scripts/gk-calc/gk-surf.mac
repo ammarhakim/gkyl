@@ -230,7 +230,7 @@ load(modNm),
       ),
       if cdim+vdim<=3 then modToNod:calcModToNodPhaseWithNodes(cdim+vdim,0,i,nodes)
       else modToNod:calcModToNodPhaseWithNodes(cdim,vdim,i,nodes),
-      fupwind_k:fullratsimp(modToNod.makelist(fupwindQuad[i-1],i,1,length(bP))),
+      fupwind_k:fullratsimp(invert(transpose(modToNod)).makelist(fupwindQuad[i-1],i,1,length(bP))),
       fupwind_k:gcfac(makelist(fupwind_k[i][1],i,1,length(fupwind_k))),
       writeCExprsNoExpand1(fupwind, fupwind_k),
       fupwind_expd:doExpand1(fupwind,bP),
@@ -329,7 +329,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
 )$
 
 em:false$
-for pos: 0 thru 1 do (
+for pos: 1 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"
