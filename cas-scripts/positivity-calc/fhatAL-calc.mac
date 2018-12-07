@@ -67,14 +67,14 @@ fhatALgenUpwind(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):
   r:fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])),
   printf(fh, "  rVal = ~a; ~%", gcfac(float(r))),
   fq:fullratsimp(avgAndSlope[1]*limTheta(rVal,1,cflL)),
-  printf(fh, "  fqVal[~a] = ~a; ~%", i-1, gcfac(float(fq))),
+  printf(fh, "  fqVal[~a] = fmin(~a, fl[0]*~a); ~%", i-1, gcfac(float(fq)), cflL),
   printf(fh, "  } else {~%"),
   /* integrate in surfVar to find avg and slope */
   avgAndSlope:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],frQ[i])),
   r:fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])),
   printf(fh, "  rVal = ~a; ~%", gcfac(float(r))),
   fq:fullratsimp(avgAndSlope[1]*limTheta(rVal,-1,cflR)),
-  printf(fh, "  fqVal[~a] = ~a; ~%", i-1, gcfac(float(fq))),
+  printf(fh, "  fqVal[~a] = fmin(~a, fr[0]*~a); ~%", i-1, gcfac(float(fq)), cflR),
   printf(fh, "  }~%")
   ),
   if cdim+vdim-1<=3 then modToNod:calcModToNodPhaseWithNodes(cdim+vdim-1,0,p,nodes)
