@@ -123,13 +123,13 @@ fhatALgenUpwind2(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   f1d_k:gcfac(float(fullratsimp(innerProd([surfVar],1,basis1d,flSurfQ[i])))),
   printf(fh, "    f0Quad[~a] = ~a; ~%", i-1, f1d_k[1]),
   printf(fh, "    f1Quad[~a] = ~a; ~%", i-1, f1d_k[2]),
-  printf(fh, "    limQuad[~a] = fl[0]/~a; ~%", i-1, cflL),
+  printf(fh, "    limQuad[~a] = fl[0]/~a/~a; ~%", i-1, cflL, float(sqrt(2)^(cdim+vdim))),
   printf(fh, "  } else {~%"),
   /* project in surfVar at each surface quadrature node */
   f1d_k:gcfac(float(fullratsimp(innerProd([surfVar],1,basis1d,frSurfQ[i])))),
   printf(fh, "    f0Quad[~a] = ~a; ~%", i-1, f1d_k[1]),
   printf(fh, "    f1Quad[~a] = ~a; ~%", i-1, f1d_k[2]),
-  printf(fh, "    limQuad[~a] = fr[0]/~a; ~%", i-1, cflR),
+  printf(fh, "    limQuad[~a] = fr[0]/~a/~a; ~%", i-1, cflR, float(sqrt(2)^(cdim+vdim))),
   printf(fh, "  }~%")
   ),
   /* get 1d expansion in surfVar for each surface quadrature node */
@@ -175,7 +175,7 @@ fhatALgenUpwind2(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   printf(fh, "  double fhatALQuad[~a]; ~%", length(qSurfNodes)),
   fhatALSurfQ:nodesub(fhatAL_expd,qSurfNodes),
   for i:1 thru length(qSurfNodes) do (
-    printf(fh, "  fhatALQuad[~a] = fmin(~a, limQuad[~a]); ~%", i-1, gcfac(float(fhatALSurfQ[i])), i-1)
+    printf(fh, "  fhatALQuad[~a] = fmax(0.0, fmin(~a, limQuad[~a])); ~%", i-1, gcfac(float(fhatALSurfQ[i])), i-1)
   ),
   /* get mode coefficients of fhat from quadrature nodal values */
   fhatAL_k:fullratsimp(invert(transpose(modToNodQ)).makelist(fhatALQuad[i-1],i,1,length(qSurfNodes))),
