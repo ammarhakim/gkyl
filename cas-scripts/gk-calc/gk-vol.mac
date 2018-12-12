@@ -195,16 +195,16 @@ load(modNm),
 
     /* evaluate cfl by evaluating at all surface quadrature points */
     printf(fh, "#elif cflType == QUAD ~%"),
-    alphaLquad : nodesub(alphaL),
-    alphaRquad : nodesub(alphaR),
+    alphaLquad : nodesub(alphaL*subst(varsP[d]=-1,bP[1]))*bP[1],
+    alphaRquad : nodesub(alphaR*subst(varsP[d]=1,bP[1]))*bP[1],
     printf(fh, "  // evaluate alpha at left surface quadrature points ~%"),
     for i:1 thru length(alphaLquad) do (
-      printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]/2^(cdim+vdim)))),
+      printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
       printf(fh, "  if(alphaL<0) cflFreq += -alphaL; ~%")
     ),
     printf(fh, "  // evaluate alpha at right surface quadrature points ~%"),
     for i:1 thru length(alphaRquad) do (
-      printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]/2^(cdim+vdim)))),
+      printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]))),
       printf(fh, "  if(alphaR>0) cflFreq += alphaR; ~%")
     ),
     printf(fh, "#endif ~%"),
@@ -260,8 +260,8 @@ load(modNm),
   printf(fh, "} ~%")
 )$
 
-pmax:2$
-em:true$
+pmax:1$
+em:false$
 
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
@@ -303,5 +303,5 @@ funcName : sconcat("GyrokineticVol", c, "x", v, "v", "Ser"),
 calcGKVolUpdater(fh, funcName, c, v, "Ser", p, false, [0]),
 close(fh)
 )
-)
+)$
 

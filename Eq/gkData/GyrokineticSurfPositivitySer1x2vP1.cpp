@@ -24,38 +24,38 @@ double GyrokineticSurfPositivity1x2vSer_X_P1_Bvars_0(const double q_, const doub
   if(0.5*alpha[0] > 0) {
     f0Quad[0] = 0.5*(fl[6]-1.0*(fl[3]+fl[2])+fl[0]); 
     f1Quad[0] = -0.5*(fl[7]-1.0*(fl[5]+fl[4])+fl[1]); 
-    limQuad[0] = fl[0]/cflL; 
+    limQuad[0] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[0] = 0.5*(fr[6]-1.0*(fr[3]+fr[2])+fr[0]); 
     f1Quad[0] = 0.5*(fr[7]-1.0*(fr[5]+fr[4])+fr[1]); 
-    limQuad[0] = fr[0]/cflR; 
+    limQuad[0] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[1] = -0.5*(fl[6]+fl[3]-1.0*(fl[2]+fl[0])); 
     f1Quad[1] = 0.5*(fl[7]+fl[5]-1.0*(fl[4]+fl[1])); 
-    limQuad[1] = fl[0]/cflL; 
+    limQuad[1] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[1] = -0.5*(fr[6]+fr[3]-1.0*(fr[2]+fr[0])); 
     f1Quad[1] = -0.5*(fr[7]+fr[5]-1.0*(fr[4]+fr[1])); 
-    limQuad[1] = fr[0]/cflR; 
+    limQuad[1] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[2] = -0.5*(fl[6]-1.0*fl[3]+fl[2]-1.0*fl[0]); 
     f1Quad[2] = 0.5*(fl[7]-1.0*fl[5]+fl[4]-1.0*fl[1]); 
-    limQuad[2] = fl[0]/cflL; 
+    limQuad[2] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[2] = -0.5*(fr[6]-1.0*fr[3]+fr[2]-1.0*fr[0]); 
     f1Quad[2] = -0.5*(fr[7]-1.0*fr[5]+fr[4]-1.0*fr[1]); 
-    limQuad[2] = fr[0]/cflR; 
+    limQuad[2] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[3] = 0.5*(fl[6]+fl[3]+fl[2]+fl[0]); 
     f1Quad[3] = -0.5*(fl[7]+fl[5]+fl[4]+fl[1]); 
-    limQuad[3] = fl[0]/cflL; 
+    limQuad[3] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[3] = 0.5*(fr[6]+fr[3]+fr[2]+fr[0]); 
     f1Quad[3] = 0.5*(fr[7]+fr[5]+fr[4]+fr[1]); 
-    limQuad[3] = fr[0]/cflR; 
+    limQuad[3] = fr[0]/cflR/2.828427124746191; 
   }
   double fhat[8]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.5*(f0Quad[3]+f0Quad[2]+f0Quad[1]+f0Quad[0]); 
@@ -83,10 +83,10 @@ double GyrokineticSurfPositivity1x2vSer_X_P1_Bvars_0(const double q_, const doub
   fhatAL[3] = 1.5*(fhatCtrl[3]-1.0*(fhatCtrl[2]+fhatCtrl[1])+fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[4]; 
-  fhatALQuad[0] = fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[1]+fhatAL[0]), limQuad[0]); 
-  fhatALQuad[1] = fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[2]))+fhatAL[1]+fhatAL[0]), limQuad[1]); 
-  fhatALQuad[2] = fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3])-1.0*fhatAL[1]+fhatAL[0]), limQuad[2]); 
-  fhatALQuad[3] = fmin(0.5*(1.0*(fhatAL[3]+fhatAL[2])+fhatAL[1]+fhatAL[0]), limQuad[3]); 
+  fhatALQuad[0] = fmax(0.0, fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[1]+fhatAL[0]), limQuad[0])); 
+  fhatALQuad[1] = fmax(0.0, fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[2]))+fhatAL[1]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[2] = fmax(0.0, fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3])-1.0*fhatAL[1]+fhatAL[0]), limQuad[2])); 
+  fhatALQuad[3] = fmax(0.0, fmin(0.5*(1.0*(fhatAL[3]+fhatAL[2])+fhatAL[1]+fhatAL[0]), limQuad[3])); 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
   fhatAL[2] = 0.5*(fhatALQuad[3]+fhatALQuad[2]-1.0*(fhatALQuad[1]+fhatALQuad[0])); 
@@ -147,38 +147,38 @@ double GyrokineticSurfPositivity1x2vSer_Vpar_P1_Bvars_0(const double q_, const d
   if(0.5*alpha[0] > 0) {
     f0Quad[0] = 0.5*(fl[5]-1.0*(fl[3]+fl[1])+fl[0]); 
     f1Quad[0] = -0.5*(fl[7]-1.0*(fl[6]+fl[4])+fl[2]); 
-    limQuad[0] = fl[0]/cflL; 
+    limQuad[0] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[0] = 0.5*(fr[5]-1.0*(fr[3]+fr[1])+fr[0]); 
     f1Quad[0] = 0.5*(fr[7]-1.0*(fr[6]+fr[4])+fr[2]); 
-    limQuad[0] = fr[0]/cflR; 
+    limQuad[0] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[1] = -0.5*(fl[5]+fl[3]-1.0*(fl[1]+fl[0])); 
     f1Quad[1] = 0.5*(fl[7]+fl[6]-1.0*(fl[4]+fl[2])); 
-    limQuad[1] = fl[0]/cflL; 
+    limQuad[1] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[1] = -0.5*(fr[5]+fr[3]-1.0*(fr[1]+fr[0])); 
     f1Quad[1] = -0.5*(fr[7]+fr[6]-1.0*(fr[4]+fr[2])); 
-    limQuad[1] = fr[0]/cflR; 
+    limQuad[1] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[2] = -0.5*(fl[5]-1.0*fl[3]+fl[1]-1.0*fl[0]); 
     f1Quad[2] = 0.5*(fl[7]-1.0*fl[6]+fl[4]-1.0*fl[2]); 
-    limQuad[2] = fl[0]/cflL; 
+    limQuad[2] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[2] = -0.5*(fr[5]-1.0*fr[3]+fr[1]-1.0*fr[0]); 
     f1Quad[2] = -0.5*(fr[7]-1.0*fr[6]+fr[4]-1.0*fr[2]); 
-    limQuad[2] = fr[0]/cflR; 
+    limQuad[2] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[3] = 0.5*(fl[5]+fl[3]+fl[1]+fl[0]); 
     f1Quad[3] = -0.5*(fl[7]+fl[6]+fl[4]+fl[2]); 
-    limQuad[3] = fl[0]/cflL; 
+    limQuad[3] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[3] = 0.5*(fr[5]+fr[3]+fr[1]+fr[0]); 
     f1Quad[3] = 0.5*(fr[7]+fr[6]+fr[4]+fr[2]); 
-    limQuad[3] = fr[0]/cflR; 
+    limQuad[3] = fr[0]/cflR/2.828427124746191; 
   }
   double fhat[8]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.5*(f0Quad[3]+f0Quad[2]+f0Quad[1]+f0Quad[0]); 
@@ -206,10 +206,10 @@ double GyrokineticSurfPositivity1x2vSer_Vpar_P1_Bvars_0(const double q_, const d
   fhatAL[3] = 1.5*(fhatCtrl[3]-1.0*(fhatCtrl[2]+fhatCtrl[1])+fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[4]; 
-  fhatALQuad[0] = fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[2]+fhatAL[0]), limQuad[0]); 
-  fhatALQuad[1] = fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3])-1.0*fhatAL[2]+fhatAL[0]), limQuad[1]); 
-  fhatALQuad[2] = fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[1]))+fhatAL[2]+fhatAL[0]), limQuad[2]); 
-  fhatALQuad[3] = fmin(0.5*(1.0*(fhatAL[3]+fhatAL[1])+fhatAL[2]+fhatAL[0]), limQuad[3]); 
+  fhatALQuad[0] = fmax(0.0, fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[2]+fhatAL[0]), limQuad[0])); 
+  fhatALQuad[1] = fmax(0.0, fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3])-1.0*fhatAL[2]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[2] = fmax(0.0, fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[1]))+fhatAL[2]+fhatAL[0]), limQuad[2])); 
+  fhatALQuad[3] = fmax(0.0, fmin(0.5*(1.0*(fhatAL[3]+fhatAL[1])+fhatAL[2]+fhatAL[0]), limQuad[3])); 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
   fhatAL[2] = 0.5*(fhatALQuad[3]+fhatALQuad[2]-1.0*(fhatALQuad[1]+fhatALQuad[0])); 
@@ -270,38 +270,38 @@ double GyrokineticSurfPositivity1x2vSer_X_P1_Bvars_1(const double q_, const doub
   if(0.5*alpha[0] > 0) {
     f0Quad[0] = 0.5*(fl[6]-1.0*(fl[3]+fl[2])+fl[0]); 
     f1Quad[0] = -0.5*(fl[7]-1.0*(fl[5]+fl[4])+fl[1]); 
-    limQuad[0] = fl[0]/cflL; 
+    limQuad[0] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[0] = 0.5*(fr[6]-1.0*(fr[3]+fr[2])+fr[0]); 
     f1Quad[0] = 0.5*(fr[7]-1.0*(fr[5]+fr[4])+fr[1]); 
-    limQuad[0] = fr[0]/cflR; 
+    limQuad[0] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[1] = -0.5*(fl[6]+fl[3]-1.0*(fl[2]+fl[0])); 
     f1Quad[1] = 0.5*(fl[7]+fl[5]-1.0*(fl[4]+fl[1])); 
-    limQuad[1] = fl[0]/cflL; 
+    limQuad[1] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[1] = -0.5*(fr[6]+fr[3]-1.0*(fr[2]+fr[0])); 
     f1Quad[1] = -0.5*(fr[7]+fr[5]-1.0*(fr[4]+fr[1])); 
-    limQuad[1] = fr[0]/cflR; 
+    limQuad[1] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[2] = -0.5*(fl[6]-1.0*fl[3]+fl[2]-1.0*fl[0]); 
     f1Quad[2] = 0.5*(fl[7]-1.0*fl[5]+fl[4]-1.0*fl[1]); 
-    limQuad[2] = fl[0]/cflL; 
+    limQuad[2] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[2] = -0.5*(fr[6]-1.0*fr[3]+fr[2]-1.0*fr[0]); 
     f1Quad[2] = -0.5*(fr[7]-1.0*fr[5]+fr[4]-1.0*fr[1]); 
-    limQuad[2] = fr[0]/cflR; 
+    limQuad[2] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*alpha[0] > 0) {
     f0Quad[3] = 0.5*(fl[6]+fl[3]+fl[2]+fl[0]); 
     f1Quad[3] = -0.5*(fl[7]+fl[5]+fl[4]+fl[1]); 
-    limQuad[3] = fl[0]/cflL; 
+    limQuad[3] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[3] = 0.5*(fr[6]+fr[3]+fr[2]+fr[0]); 
     f1Quad[3] = 0.5*(fr[7]+fr[5]+fr[4]+fr[1]); 
-    limQuad[3] = fr[0]/cflR; 
+    limQuad[3] = fr[0]/cflR/2.828427124746191; 
   }
   double fhat[8]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.5*(f0Quad[3]+f0Quad[2]+f0Quad[1]+f0Quad[0]); 
@@ -329,10 +329,10 @@ double GyrokineticSurfPositivity1x2vSer_X_P1_Bvars_1(const double q_, const doub
   fhatAL[3] = 1.5*(fhatCtrl[3]-1.0*(fhatCtrl[2]+fhatCtrl[1])+fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[4]; 
-  fhatALQuad[0] = fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[1]+fhatAL[0]), limQuad[0]); 
-  fhatALQuad[1] = fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[2]))+fhatAL[1]+fhatAL[0]), limQuad[1]); 
-  fhatALQuad[2] = fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3])-1.0*fhatAL[1]+fhatAL[0]), limQuad[2]); 
-  fhatALQuad[3] = fmin(0.5*(1.0*(fhatAL[3]+fhatAL[2])+fhatAL[1]+fhatAL[0]), limQuad[3]); 
+  fhatALQuad[0] = fmax(0.0, fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[1]+fhatAL[0]), limQuad[0])); 
+  fhatALQuad[1] = fmax(0.0, fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[2]))+fhatAL[1]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[2] = fmax(0.0, fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[2]-1.732050807568877*fhatAL[3])-1.0*fhatAL[1]+fhatAL[0]), limQuad[2])); 
+  fhatALQuad[3] = fmax(0.0, fmin(0.5*(1.0*(fhatAL[3]+fhatAL[2])+fhatAL[1]+fhatAL[0]), limQuad[3])); 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
   fhatAL[2] = 0.5*(fhatALQuad[3]+fhatALQuad[2]-1.0*(fhatALQuad[1]+fhatALQuad[0])); 
@@ -396,38 +396,38 @@ double GyrokineticSurfPositivity1x2vSer_Vpar_P1_Bvars_1(const double q_, const d
   if(0.5*alpha[3]-0.5*(alpha[2]+alpha[1])+0.5*alpha[0] > 0) {
     f0Quad[0] = 0.5*(fl[5]-1.0*(fl[3]+fl[1])+fl[0]); 
     f1Quad[0] = -0.5*(fl[7]-1.0*(fl[6]+fl[4])+fl[2]); 
-    limQuad[0] = fl[0]/cflL; 
+    limQuad[0] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[0] = 0.5*(fr[5]-1.0*(fr[3]+fr[1])+fr[0]); 
     f1Quad[0] = 0.5*(fr[7]-1.0*(fr[6]+fr[4])+fr[2]); 
-    limQuad[0] = fr[0]/cflR; 
+    limQuad[0] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*(alpha[1]+alpha[0])-0.5*(alpha[3]+alpha[2]) > 0) {
     f0Quad[1] = -0.5*(fl[5]+fl[3]-1.0*(fl[1]+fl[0])); 
     f1Quad[1] = 0.5*(fl[7]+fl[6]-1.0*(fl[4]+fl[2])); 
-    limQuad[1] = fl[0]/cflL; 
+    limQuad[1] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[1] = -0.5*(fr[5]+fr[3]-1.0*(fr[1]+fr[0])); 
     f1Quad[1] = -0.5*(fr[7]+fr[6]-1.0*(fr[4]+fr[2])); 
-    limQuad[1] = fr[0]/cflR; 
+    limQuad[1] = fr[0]/cflR/2.828427124746191; 
   }
   if((-0.5*alpha[3])+0.5*alpha[2]-0.5*alpha[1]+0.5*alpha[0] > 0) {
     f0Quad[2] = -0.5*(fl[5]-1.0*fl[3]+fl[1]-1.0*fl[0]); 
     f1Quad[2] = 0.5*(fl[7]-1.0*fl[6]+fl[4]-1.0*fl[2]); 
-    limQuad[2] = fl[0]/cflL; 
+    limQuad[2] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[2] = -0.5*(fr[5]-1.0*fr[3]+fr[1]-1.0*fr[0]); 
     f1Quad[2] = -0.5*(fr[7]-1.0*fr[6]+fr[4]-1.0*fr[2]); 
-    limQuad[2] = fr[0]/cflR; 
+    limQuad[2] = fr[0]/cflR/2.828427124746191; 
   }
   if(0.5*(alpha[3]+alpha[2]+alpha[1]+alpha[0]) > 0) {
     f0Quad[3] = 0.5*(fl[5]+fl[3]+fl[1]+fl[0]); 
     f1Quad[3] = -0.5*(fl[7]+fl[6]+fl[4]+fl[2]); 
-    limQuad[3] = fl[0]/cflL; 
+    limQuad[3] = fl[0]/cflL/2.828427124746191; 
   } else {
     f0Quad[3] = 0.5*(fr[5]+fr[3]+fr[1]+fr[0]); 
     f1Quad[3] = 0.5*(fr[7]+fr[6]+fr[4]+fr[2]); 
-    limQuad[3] = fr[0]/cflR; 
+    limQuad[3] = fr[0]/cflR/2.828427124746191; 
   }
   double fhat[8]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.5*(f0Quad[3]+f0Quad[2]+f0Quad[1]+f0Quad[0]); 
@@ -455,10 +455,10 @@ double GyrokineticSurfPositivity1x2vSer_Vpar_P1_Bvars_1(const double q_, const d
   fhatAL[3] = 1.5*(fhatCtrl[3]-1.0*(fhatCtrl[2]+fhatCtrl[1])+fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[4]; 
-  fhatALQuad[0] = fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[2]+fhatAL[0]), limQuad[0]); 
-  fhatALQuad[1] = fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3])-1.0*fhatAL[2]+fhatAL[0]), limQuad[1]); 
-  fhatALQuad[2] = fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[1]))+fhatAL[2]+fhatAL[0]), limQuad[2]); 
-  fhatALQuad[3] = fmin(0.5*(1.0*(fhatAL[3]+fhatAL[1])+fhatAL[2]+fhatAL[0]), limQuad[3]); 
+  fhatALQuad[0] = fmax(0.0, fmin(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[2]+fhatAL[0]), limQuad[0])); 
+  fhatALQuad[1] = fmax(0.0, fmin(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3])-1.0*fhatAL[2]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[2] = fmax(0.0, fmin(0.5*((-1.0*(fhatAL[3]+fhatAL[1]))+fhatAL[2]+fhatAL[0]), limQuad[2])); 
+  fhatALQuad[3] = fmax(0.0, fmin(0.5*(1.0*(fhatAL[3]+fhatAL[1])+fhatAL[2]+fhatAL[0]), limQuad[3])); 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
   fhatAL[2] = 0.5*(fhatALQuad[3]+fhatALQuad[2]-1.0*(fhatALQuad[1]+fhatALQuad[0])); 
