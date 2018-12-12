@@ -25,7 +25,7 @@ function _M:init(tbl)
    self._status, self._dtSuggested = ffi.new("int[2]"), ffi.new("double[2]")
 
    self._dt = 0.0
-   self._cflRateByCell = {}
+   self._cflRateByCell = nil
 end
 
 -- must be provided by derived objects
