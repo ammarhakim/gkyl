@@ -1,11 +1,15 @@
 #ifndef GYROKINETIC_MOD_DECL_H 
 #define GYROKINETIC_MOD_DECL_H 
 #include <cmath> 
+#include <algorithm>
 #include <Positivity.h> 
 #define SURFAVG 1 
 #define QUAD 2 
 #define cflType QUAD 
 #define upwindType QUAD
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
 extern "C" { 
 double EmGyrokineticStep2Vol1x0vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi1xSer_P1(const double *phi, const double *phiWall, const double zVal);
