@@ -657,12 +657,19 @@ function KineticSpecies:createDiagnostics()
 end
 
 function KineticSpecies:calcDiagnosticMoments()
-   if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(-1, self.f0) end
+   local f
+   if self.positivityRescale then
+      self.posRescaler:advance(tCurr, {self.distf[1]}, {self.fPos})
+      f = self.fPos
+   else 
+      f = self.distf[1]
+   end
+   if self.f0 and self.perturbedMoments then f:accumulate(-1, self.f0) end
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
-	 0.0, {self.distf[1]}, {self.diagnosticMomentFields[mom]})
+	 0.0, {f}, {self.diagnosticMomentFields[mom]})
    end
-   if self.f0 and self.perturbedMoments then self.distf[1]:accumulate(1, self.f0) end
+   if self.f0 and self.perturbedMoments then f:accumulate(1, self.f0) end
 end
 
 function KineticSpecies:calcDiagnosticWeakMoments()

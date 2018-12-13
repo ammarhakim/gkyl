@@ -264,6 +264,12 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local em = emIn[1]:rkStepperFields()[inIdx]
    local emFunc = emIn[2]:rkStepperFields()[1]
 
+   -- rescale slopes
+   if self.positivityRescale then
+      -- self.fPos already calculated in calcCouplingMoments
+      fIn = self.fPos
+   end
+
    -- do collisions first so that collisions contribution to cflRate is included in GK positivity
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
@@ -275,12 +281,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      if self.positivityRescale then
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
-         self.solver:advance(tCurr, {self.fPos, em, emFunc, emGy}, {fRhsOut})
-      else
-         self.solver:advance(tCurr, {fIn, em, emFunc, emGy}, {fRhsOut})
-      end
+      self.solver:advance(tCurr, {fIn, em, emFunc, emGy}, {fRhsOut})
    else
       fRhsOut:clear(0.0) -- no RHS
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
@@ -288,14 +289,18 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if not self.solverStep2 then -- if step2, wait to do sources
       if self.fSource and self.evolveSources then
-        -- add source it to the RHS
-        fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
+         -- add source it to the RHS
+         fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
       end
    end
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
+   if self.positivityRescale then
+      -- self.fPos already calculated in calcCouplingMoments
+      fIn = self.fPos
+   end
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
@@ -303,18 +308,14 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
 
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      if self.positivityRescale then
-         self.solverStep2:advance(tCurr, {self.fPos, em, emFunc}, {fRhsOut})
-      else
-         self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
-      end
+      self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
    else
       fRhsOut:clear(0.0)  -- no RHS
    end
 
    if self.fSource and self.evolveSources then
-     -- add source it to the RHS
-     fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
+      -- add source it to the RHS
+      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
 
@@ -616,6 +617,10 @@ end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
+   if self.positivityRescale then
+      self.posRescaler:advance(nil, {fIn}, {self.fPos})
+      fIn = self.fPos
+   end
 
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then
@@ -647,15 +652,16 @@ end
 function GkSpecies:getNumDensity(rkIdx)
    -- if no rkIdx specified, assume numDensity has already been calculated
    if rkIdx == nil then return self.numDensity end 
+   local fIn = self:rkStepperFields()[rkIdx]
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
+        fIn:accumulate(-1.0, self.f0)
       end
-      self.numDensityCalc:advance(nil, {self:rkStepperFields()[rkIdx]}, { self.numDensityAux })
+      self.numDensityCalc:advance(nil, {fIn}, { self.numDensityAux })
       if self.deltaF then
-        self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
+        fIn:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
@@ -670,15 +676,16 @@ end
 function GkSpecies:getMomDensity(rkIdx)
    -- if no rkIdx specified, assume momDensity has already been calculated
    if rkIdx == nil then return self.momDensity end 
+   local fIn = self:rkStepperFields()[rkIdx]
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
       if self.deltaF then
-        self:rkStepperFields()[rkIdx]:accumulate(-1.0, self.f0)
+        fIn:accumulate(-1.0, self.f0)
       end
-      self.momDensityCalc:advance(nil, {self:rkStepperFields()[rkIdx]}, { self.momDensityAux })
+      self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
       if self.deltaF then
-        self:rkStepperFields()[rkIdx]:accumulate(1.0, self.f0)
+        fIn:accumulate(1.0, self.f0)
       end
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
