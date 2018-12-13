@@ -8,5 +8,5 @@
 #define PATCHFIT 4
 #define EPSILON std::numeric_limits<double>::epsilon()
 
-double patchFit(double r, double x, double CFL);
-double limTheta(double r, double x, double CFL);
+double patchFit(double r, double x);
+double limTheta(double r, double x);

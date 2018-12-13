@@ -3,35 +3,33 @@
 #include <iostream>
 #define extraType PATCHFIT
 
-double patchFit(double r, double x, double CFL) {
+double patchFit(double r, double x) {
    double val = 0.0;
    if (x > 0) {
       if (r<2.2) {
-         val = fmax(0.0, fmin(1.0/CFL, std::exp(2.*r*x/3.)*(1.+r*x/3.)));
+         val = std::exp(2.*r*x/3.)*(1.+r*x/3.);
       } else {
-         val = fmin(1.0/CFL, 6.0/(3.0-fmin(2.999, std::abs(r))));
+         val = 6.0/(3.0-std::min(2.999, std::abs(r)));
       }
    } else {
       if (r>-2.2) {
-         val = fmax(0.0, fmin(1.0/CFL, std::exp(2.*r*x/3.)*(1.+r*x/3.)));
+         val = std::exp(2.*r*x/3.)*(1.+r*x/3.);
       } else {
-         val = fmin(1.0/CFL, 6.0/(3.0+fmin(2.999, std::abs(r))));
+         val = 6.0/(3.0+std::min(2.999, std::abs(r)));
       }
    }
    return val;
 }
 
-double limTheta(double r, double x, double CFL) {
+double limTheta(double r, double x) {
 #if extraType == NONE
    return 1 + r*x;
-#elif extraType == LINEAR
-   return fmax(0.0, 1+r*x);
 #elif extraType == EXP
-   return fmin(1.0/CFL, std::exp(r*x));
+   return std::exp(r*x);
 #elif extraType == EXP0
-   return fmax(0.0, fmin(1.0/CFL, std::exp(2*r*x/3)*(1+r*x/3)));
+   return std::exp(2*r*x/3)*(1+r*x/3);
 #elif extraType == PATCHFIT
-   return patchFit(r, x, CFL);
+   return patchFit(r, x);
 #else
    return 0.0;
 #endif

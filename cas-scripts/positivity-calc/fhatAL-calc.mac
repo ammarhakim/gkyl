@@ -152,7 +152,7 @@ fhatALgenUpwind2(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   printf(fh,"  double rCtrl[~a];  // rCtrl=f1/f0 at each control node in dimensions other than ~a ~%",length(rSurfC),surfVar),
   writeCExprsNoExpand1(rCtrl,gcfac(rSurfC)),
   flush_output(fh),
-  fhatSurfC:fullratsimp(nodesub(avgAndSlope[1],cSurfNodes)*makelist(limTheta(rCtrl[i-1],surfVal,EPSILON),i,1,length(rSurfC))),
+  fhatSurfC:fullratsimp(nodesub(avgAndSlope[1],cSurfNodes)*makelist(limTheta(rCtrl[i-1],surfVal),i,1,length(rSurfC))),
   /* print fhatSurfC */
   printf(fh,"  double fhatCtrl[~a];  // fhatCtrl = anti-limited fhat evaluated at each control node on ~a surface ~%",length(fhatSurfC),surfVar),
   writeCExprsNoExpand1(fhatCtrl,gcfac(fhatSurfC)),
