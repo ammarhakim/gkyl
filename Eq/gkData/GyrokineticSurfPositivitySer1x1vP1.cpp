@@ -37,8 +37,8 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_0(const double q_, const doub
   rCtrl[0] = -(1.0*(1.732050807568877*fhat[3]-3.0*fhat[1]))/(3.464101615137754*EPSILON-1.0*fhat[2]+1.732050807568877*fhat[0]); 
   rCtrl[1] = (1.732050807568877*fhat[3]+3.0*fhat[1])/(3.464101615137754*EPSILON+fhat[2]+1.732050807568877*fhat[0]); 
   double fhatCtrl[2];  // fhatCtrl = anti-limited fhat evaluated at each control node on x surface 
-  fhatCtrl[0] = -0.2886751345948129*(fhat[2]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0,EPSILON); 
-  fhatCtrl[1] = 0.2886751345948129*(fhat[2]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0,EPSILON); 
+  fhatCtrl[0] = -0.2886751345948129*(fhat[2]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0); 
+  fhatCtrl[1] = 0.2886751345948129*(fhat[2]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0); 
   double fhatAL[2];  // fhatAL = mode coefficients of anti-limited f on surface 
   fhatAL[0] = 0.7071067811865475*(fhatCtrl[1]+fhatCtrl[0]); 
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
@@ -105,8 +105,8 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_0(const double q_, const d
   rCtrl[0] = -(1.0*(1.732050807568877*fhat[3]-3.0*fhat[2]))/(3.464101615137754*EPSILON-1.0*fhat[1]+1.732050807568877*fhat[0]); 
   rCtrl[1] = (1.732050807568877*fhat[3]+3.0*fhat[2])/(3.464101615137754*EPSILON+fhat[1]+1.732050807568877*fhat[0]); 
   double fhatCtrl[2];  // fhatCtrl = anti-limited fhat evaluated at each control node on vx surface 
-  fhatCtrl[0] = -0.2886751345948129*(fhat[1]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0,EPSILON); 
-  fhatCtrl[1] = 0.2886751345948129*(fhat[1]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0,EPSILON); 
+  fhatCtrl[0] = -0.2886751345948129*(fhat[1]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0); 
+  fhatCtrl[1] = 0.2886751345948129*(fhat[1]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0); 
   double fhatAL[2];  // fhatAL = mode coefficients of anti-limited f on surface 
   fhatAL[0] = 0.7071067811865475*(fhatCtrl[1]+fhatCtrl[0]); 
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
@@ -173,8 +173,8 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_1(const double q_, const doub
   rCtrl[0] = -(1.0*(1.732050807568877*fhat[3]-3.0*fhat[1]))/(3.464101615137754*EPSILON-1.0*fhat[2]+1.732050807568877*fhat[0]); 
   rCtrl[1] = (1.732050807568877*fhat[3]+3.0*fhat[1])/(3.464101615137754*EPSILON+fhat[2]+1.732050807568877*fhat[0]); 
   double fhatCtrl[2];  // fhatCtrl = anti-limited fhat evaluated at each control node on x surface 
-  fhatCtrl[0] = -0.2886751345948129*(fhat[2]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0,EPSILON); 
-  fhatCtrl[1] = 0.2886751345948129*(fhat[2]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0,EPSILON); 
+  fhatCtrl[0] = -0.2886751345948129*(fhat[2]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0); 
+  fhatCtrl[1] = 0.2886751345948129*(fhat[2]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0); 
   double fhatAL[2];  // fhatAL = mode coefficients of anti-limited f on surface 
   fhatAL[0] = 0.7071067811865475*(fhatCtrl[1]+fhatCtrl[0]); 
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
@@ -242,8 +242,8 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_1(const double q_, const d
   rCtrl[0] = -(1.0*(1.732050807568877*fhat[3]-3.0*fhat[2]))/(3.464101615137754*EPSILON-1.0*fhat[1]+1.732050807568877*fhat[0]); 
   rCtrl[1] = (1.732050807568877*fhat[3]+3.0*fhat[2])/(3.464101615137754*EPSILON+fhat[1]+1.732050807568877*fhat[0]); 
   double fhatCtrl[2];  // fhatCtrl = anti-limited fhat evaluated at each control node on vx surface 
-  fhatCtrl[0] = -0.2886751345948129*(fhat[1]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0,EPSILON); 
-  fhatCtrl[1] = 0.2886751345948129*(fhat[1]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0,EPSILON); 
+  fhatCtrl[0] = -0.2886751345948129*(fhat[1]-1.732050807568877*fhat[0])*limTheta(rCtrl[0],-1.0); 
+  fhatCtrl[1] = 0.2886751345948129*(fhat[1]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0); 
   double fhatAL[2];  // fhatAL = mode coefficients of anti-limited f on surface 
   fhatAL[0] = 0.7071067811865475*(fhatCtrl[1]+fhatCtrl[0]); 
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
