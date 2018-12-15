@@ -262,6 +262,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
+   local emPrev = emIn[1]:rkStepperFields()[1]
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    -- rescale slopes
@@ -281,7 +282,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, emGy}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, em, emFunc, emPrev}, {fRhsOut})
    else
       fRhsOut:clear(0.0) -- no RHS
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
