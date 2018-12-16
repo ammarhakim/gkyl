@@ -10,9 +10,11 @@
 
 local Basis = require "Basis"
 local Collisions = require "App.Collisions"
+local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.Field"
 local Grid = require "Grid"
+local Lin            = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
@@ -584,6 +586,11 @@ local function buildApplication(self, tbl)
    local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 0.2
    local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
 
+   local dtTracker = DataStruct.DynVector {
+      numComponents = 1,
+   }
+   local dtPtr = Lin.Vec(1)
+
    -- return function that runs main simulation loop
    return function(self)
       log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
@@ -667,15 +674,20 @@ local function buildApplication(self, tbl)
 	 -- check status and determine what to do next
 	 if status then
             if first then 
-               log(string.format(" Step 0 at time 0. Time step %g. Completed 0%%\n", myDt))
+               log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
                initDt = dtSuggested; first = false
             end
+            -- track dt
+            dtPtr:data()[0] = myDt
+            dtTracker:appendData(tCurr+myDt, dtPtr)
+            -- write log
 	    writeLogMessage(tCurr+myDt)
 	    -- we must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart
 	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
+               dtTracker:write(string.format("dt.bp"), tCurr+myDt, step, false)
 	    end	    
 	    
 	    tCurr = tCurr + myDt
@@ -689,12 +701,12 @@ local function buildApplication(self, tbl)
 	    myDt = dtSuggested
 	 end
 
-         if (myDt < 1e-3*initDt) then 
+         if (myDt < 1e-4*initDt) then 
             failcount = failcount + 1
-            log(string.format("WARNING: Timestep dt = %g is below 1e-3*initDt. Fail counter = %d...\n", myDt, failcount))
+            log(string.format("WARNING: Timestep dt = %g is below 1e-4*initDt. Fail counter = %d...\n", myDt, failcount))
             if failcount > 20 then
                writeData(tCurr+myDt, true)
-               log(string.format("ERROR: Timestep below 1e-3*initDt for 20 consecutive steps. Exiting...\n"))
+               log(string.format("ERROR: Timestep below 1e-4*initDt for 20 consecutive steps. Exiting...\n"))
                break
             end
          else
