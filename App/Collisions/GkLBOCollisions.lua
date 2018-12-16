@@ -116,7 +116,7 @@ function GkLBOCollisions:createSolver(funcField)
       zfd[d] = self.confGrid:ndim() + d
    end
 
-   local gkLBOconstNuCalc
+   self.gkLBOconstNuCalcEq = {}
    if self.varNu then
       -- Collisionality, nu.
       self.nuFld = DataStruct.Field {
@@ -133,7 +133,7 @@ function GkLBOCollisions:createSolver(funcField)
          useCellAverageNu = self.cellConstNu,
       }
       -- Lenard-Bernstein equation.
-      gkLBOconstNuCalc = GkLBOconstNuEq {
+      self.gkLBOconstNuCalcEq = GkLBOconstNuEq {
          phaseBasis       = self.phaseBasis,
          confBasis        = self.confBasis,
          useCellAverageNu = self.cellConstNu,
@@ -142,7 +142,7 @@ function GkLBOCollisions:createSolver(funcField)
       }
    else
       -- Lenard-Bernstein equation.
-      gkLBOconstNuCalc = GkLBOconstNuEq {
+      self.gkLBOconstNuCalcEq = GkLBOconstNuEq {
          nu         = self.collFreq,
          phaseBasis = self.phaseBasis,
          confBasis  = self.confBasis,
@@ -154,7 +154,7 @@ function GkLBOCollisions:createSolver(funcField)
       onGrid             = self.phaseGrid,
       basis              = self.phaseBasis,
       cfl                = self.cfl,
-      equation           = gkLBOconstNuCalc,
+      equation           = self.gkLBOconstNuCalcEq,
       updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
@@ -168,11 +168,14 @@ function GkLBOCollisions:createSolver(funcField)
    }
 
    -- Number of cells in which number density was negative (somewhere).
-   self.primMomLimitCrossings = DataStruct.DynVector {
+   self.primMomLimitCrossingsL = DataStruct.DynVector {
       numComponents = 1,
    }
-   self.primMomCrossLimitL = Lin.Vec(1)
-   self.primMomCrossLimitG = Lin.Vec(1)
+   self.primMomLimitCrossingsG = DataStruct.DynVector {
+      numComponents = 1,
+   }
+   self.zeroVec = Lin.Vec(1)
+   self.zeroVec[1] = 0.0
    -- Factor dividing zeroth-coefficient in configuration space cell average.
    self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
@@ -188,28 +191,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
                                          {self.uPar,self.vthSq})
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
-      -- Determine whether primitive moments cross limits based on
-      -- parallel flow speed and thermal speed squared.
-      self.primMomCrossLimitL[1] = 0
-      self.primMomCrossLimitG[1] = 0
-      local confIndexer       = self.uPar:genIndexer()
-      local uParItr           = self.uPar:get(1)
-      local vthSqItr          = self.vthSq:get(1)
-      for idx in self.uPar:localRangeIter() do
-         self.uPar:fill(confIndexer(idx), uParItr)
-         self.vthSq:fill(confIndexer(idx), vthSqItr)
-         -- Cell average values (mind normalization).
-         local uPar0  = uParItr[1]*self.cellAvFac
-         local vthSq0 = vthSqItr[1]*self.cellAvFac
-
-         if ((math.abs(uPar0)>self.vParMax) or
-             (vthSq0<0) or (vthSq0>self.vParMaxSq)) then
-            self.primMomCrossLimitL[1] = self.primMomCrossLimitL[1]+1
-         end
-      end
-      Mpi.Allreduce(self.primMomCrossLimitL:data(), self.primMomCrossLimitG:data(), 1,
-                    Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-      self.primMomLimitCrossings:appendData(tCurr, self.primMomCrossLimitG)
+      self.gkLBOconstNuCalcEq.primMomCrossLimit[1] = 0
 
       if self.varNu then
          -- Compute the collisionality.
@@ -224,6 +206,8 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
             tCurr, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
       end
 
+      self.primMomLimitCrossingsG:appendData(tCurr, self.zeroVec)
+      self.primMomLimitCrossingsL:appendData(tCurr, self.gkLBOconstNuCalcEq.primMomCrossLimit)
       fRhsOut:accumulate(1.0, self.collOut)
    end
    if self.crossSpecies then
@@ -234,11 +218,15 @@ end
 function GkLBOCollisions:write(tm, frame)
    self.uPar:write(string.format("%s_%s_%d.bp", self.speciesName, "uPar", frame), tm, frame)
    self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
-   self.primMomLimitCrossings:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame)
+   Mpi.Allreduce(self.primMomLimitCrossingsL:data():data(), self.primMomLimitCrossingsG:data():data(), self.primMomLimitCrossingsG:size(),
+                 Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
+   self.primMomLimitCrossingsG:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame, true)
+   self.primMomLimitCrossingsL:clear(0.0)
+   self.primMomLimitCrossingsG:clear(0.0)
 end
 
 function GkLBOCollisions:totalTime()
-   return self.collisionSlvr.totalTime + self.tmEvalMom
+   return self.collisionSlvr.totalTime-- + self.tmEvalMom
 end
 
 return GkLBOCollisions
