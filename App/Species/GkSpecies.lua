@@ -267,8 +267,13 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- rescale slopes
    if self.positivityRescale then
-      -- self.fPos already calculated in calcCouplingMoments
-      fIn = self.fPos
+      if self.positivityRescaleMoms then
+         -- self.fPos already calculated in calcCouplingMoments
+         fIn = self.fPos
+      else
+         self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
+         fIn = self.fPos
+      end
    end
 
    -- do collisions first so that collisions contribution to cflRate is included in GK positivity
@@ -618,8 +623,8 @@ end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
-   if self.positivityRescale then
-      self.posRescaler:advance(nil, {fIn}, {self.fPos})
+   if self.positivityRescaleMoms then
+      self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
       fIn = self.fPos
    end
 
