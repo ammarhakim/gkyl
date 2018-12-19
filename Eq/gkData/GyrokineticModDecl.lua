@@ -16,8 +16,9 @@ local _M = {}
 
 -- select function to compute volume  terms
 function _M.selectVol(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
-   if isElectromagnetic then emString = "Em" else emString = "" end
-   bvarString = "_Bvars"
+   local emString = ""
+   if isElectromagnetic then emString = "Em" end
+   local bvarString = "_Bvars"
    for k, v in ipairs(Bvars) do
       bvarString = bvarString .. "_" .. v
    end
@@ -27,9 +28,11 @@ end
 
 -- select functions to compute surface terms (output is a table of functions)
 function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positivity, Bvars)
-   if isElectromagnetic then emString = "Em" else emString = "" end
-   if positivity then posString = "Positivity" else posString = "" end
-   bvarString = "_Bvars"
+   local emString = ""
+   if isElectromagnetic then emString = "Em" end
+   local posString = ""
+   if positivity then posString = "Positivity" end
+   local bvarString = "_Bvars"
    for k, v in ipairs(Bvars) do
       bvarString = bvarString .. "_" .. v
    end
@@ -60,6 +63,23 @@ end
 function _M.selectStep2Vol(basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("EmGyrokineticStep2Vol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
+end
+
+function _M.selectStep2Surf(basisNm, CDIM, VDIM, polyOrder, positivity, Bvars)
+   local emString = "Em"
+   local posString = ""
+   if positivity then posString = "Positivity" end
+   local bvarString = "_Bvars"
+   for k, v in ipairs(Bvars) do
+      bvarString = bvarString .. "_" .. v
+   end
+   local funcNm
+   if polyOrder > 1 then
+      funcNm = string.format("EmGyrokineticSurf%s%dx%dv%s_Vpar_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   else
+      funcNm = string.format("EmGyrokineticSurf%s%dx%dv%sStep2_Vpar_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   end
+   return ffi.C[funcNm..bvarString]
 end
 
 function _M.selectSheathDeltaPhi(basisNm, CDIM, polyOrder)
