@@ -1,5 +1,5 @@
 #include <PositivityRescaleImpl.h> 
-double findMinNodalValue(double *fIn, int ndim) { 
+double findMinNodalValue(const double *fIn, int ndim) { 
   double fmin = 0.0; 
   if (ndim == 1) { 
   double fVal[2]; // fVal = array of vales of fIn evaluated at each node 

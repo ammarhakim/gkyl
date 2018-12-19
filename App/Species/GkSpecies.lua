@@ -304,17 +304,17 @@ end
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    if self.positivityRescale then
-      -- self.fPos already calculated in calcCouplingMoments
       fIn = self.fPos
    end
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
+   local emPrev = emIn[1]:rkStepperFields()[1]
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep2:advance(tCurr, {fIn, em, emFunc}, {fRhsOut})
+      self.solverStep2:advance(tCurr, {fIn, em, emFunc, emPrev}, {fRhsOut})
    else
       fRhsOut:clear(0.0)  -- no RHS
    end

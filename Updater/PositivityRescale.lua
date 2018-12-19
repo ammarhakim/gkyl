@@ -73,6 +73,20 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
       -- compute scaling factor
       local theta = math.min(1, f0/(f0 - fmin + GKYL_EPSILON))
 
+      --if fmin < 0 then
+      --   if ndim == 1 then
+      --     print(string.format("warning: negative control node %e in cell %2d, tCurr = %e", fmin, idx[1], tCurr))
+      --   elseif ndim == 2 then
+      --     print(string.format("warning: negative control node %e in cell %2d %2d, tCurr = %e", fmin, idx[1], idx[2], tCurr))
+      --   elseif ndim == 3 then
+      --     print(string.format("warning: negative control node %e in cell %2d %2d %2d, tCurr = %e", fmin, idx[1], idx[2], idx[3], tCurr))
+      --   elseif ndim == 4 then
+      --     print(string.format("warning: negative control node %e in cell %2d %2d %2d %2d, tCurr = %e", fmin, idx[1], idx[2], idx[3], idx[4], tCurr))
+      --   elseif ndim == 5 then
+      --     print(string.format("warning: negative control node %e in cell %2d %2d %2d %2d %2d, tCurr = %e", fmin, idx[1], idx[2], idx[3], idx[4], idx[5], tCurr))
+      --   end
+      --end
+
       -- modify moments. note no change to cell average
       fOutPtr[1] = fInPtr[1]
       for i = 2, numBasis do
