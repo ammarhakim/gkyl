@@ -246,7 +246,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
 
    self.tmCouplingMom = 0.0 -- for timer 
 
-   if self.positivityRescale then 
+   if self.positivityRescale or self.positivityDiffuse then 
       self.posRescaler = Updater.PositivityRescale {
          onGrid = self.grid,
          basis = self.basis,
@@ -267,13 +267,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- rescale slopes
    if self.positivityRescale then
-      if self.positivityRescaleMoms then
-         -- self.fPos already calculated in calcCouplingMoments
-         fIn = self.fPos
-      else
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
-         fIn = self.fPos
-      end
+      self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
+      fIn = self.fPos
    end
 
    -- do collisions first so that collisions contribution to cflRate is included in GK positivity
@@ -623,10 +618,6 @@ end
 
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
-   if self.positivityRescaleMoms then
-      self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
-      fIn = self.fPos
-   end
 
    -- compute moments needed in coupling to fields and collisions
    if self.evolve or self._firstMomentCalc then

@@ -255,8 +255,8 @@ function KineticSpecies:fullInit(appTbl)
    end
 
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
-   self.positivityRescaleMoms = xsys.pickBool(tbl.positivityRescaleMoms, false)
+   self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
+   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
    
    -- for GK only: flag for gyroaveraging
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
@@ -592,6 +592,9 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
    self:applyBc(nil, self:rkStepperFields()[outIdx])
+   if self.positivityDiffuse and a<=self.dtGlobal[0] then -- only diffuse when this combine is a forwardEuler 
+      self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
+   end
 end
 
 function KineticSpecies:suggestDt()
@@ -658,13 +661,7 @@ function KineticSpecies:createDiagnostics()
 end
 
 function KineticSpecies:calcDiagnosticMoments()
-   local f
-   if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {self.distf[1]}, {self.fPos})
-      f = self.fPos
-   else 
-      f = self.distf[1]
-   end
+   local f = self.distf[1]
    if self.f0 and self.perturbedMoments then f:accumulate(-1, self.f0) end
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(

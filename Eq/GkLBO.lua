@@ -79,7 +79,7 @@ function GkLBO:init(tbl)
    -- Flag to indicate if we are being called for first time.
    self._isFirst = true
 
-   self.primMomCrossLimit = Lin.Vec(1)
+   self.primMomCrossLimit = 0.0
 end
 
 -- Methods.
@@ -134,7 +134,7 @@ function GkLBO:volTerm(w, dx, idx, q, out)
          cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNu, self._uPtr:data(), self._vthSqPtr:data(), q:data(), out:data())
       else
          cflFreq = 0.0
-         self.primMomCrossLimit[1] = self.primMomCrossLimit[1]+1
+         self.primMomCrossLimit = self.primMomCrossLimit+1
       end
    else
       self._nu:fill(self._nuIdxr(idx), self._nuPtr)             -- Get pointer to nu field.
