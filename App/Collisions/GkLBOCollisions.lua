@@ -174,8 +174,6 @@ function GkLBOCollisions:createSolver(funcField)
    self.primMomLimitCrossingsG = DataStruct.DynVector {
       numComponents = 1,
    }
-   self.zeroVec = Lin.Vec(1)
-   self.zeroVec[1] = 0.0
    -- Factor dividing zeroth-coefficient in configuration space cell average.
    self.cellAvFac          = 1.0/math.sqrt(2.0^self.confGrid:ndim())
 end
@@ -191,7 +189,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
                                          {self.uPar,self.vthSq})
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
-      self.gkLBOconstNuCalcEq.primMomCrossLimit[1] = 0
+      self.gkLBOconstNuCalcEq.primMomCrossLimit = 0.0
 
       if self.varNu then
          -- Compute the collisionality.
@@ -206,8 +204,8 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
             tCurr, {fIn, self.bmagInv, self.uPar, self.vthSq}, {self.collOut})
       end
 
-      self.primMomLimitCrossingsG:appendData(tCurr, self.zeroVec)
-      self.primMomLimitCrossingsL:appendData(tCurr, self.gkLBOconstNuCalcEq.primMomCrossLimit)
+      self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
+      self.primMomLimitCrossingsL:appendData(tCurr, {self.gkLBOconstNuCalcEq.primMomCrossLimit})
       fRhsOut:accumulate(1.0, self.collOut)
    end
    if self.crossSpecies then
@@ -226,7 +224,7 @@ function GkLBOCollisions:write(tm, frame)
 end
 
 function GkLBOCollisions:totalTime()
-   return self.collisionSlvr.totalTime-- + self.tmEvalMom
+   return self.collisionSlvr.totalTime + self.tmEvalMom
 end
 
 return GkLBOCollisions
