@@ -156,14 +156,14 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
 
    -- no update in mu direction (last velocity direction if present)
    local upd = {}
-   if hasApar then -- if electromagnetic only update conf dir surface terms on first step
+   if hasApar and self.basis:polyOrder() > 1 then -- if electromagnetic only update conf dir surface terms on first step
       for d = 1, self.cdim do upd[d] = d end
    else
       for d = 1, self.cdim + 1 do upd[d] = d end
    end
    -- zero flux in vpar and mu
    table.insert(self.zeroFluxDirections, self.cdim+1)
-   table.insert(self.zeroFluxDirections, self.cdim+2)
+   if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
@@ -262,7 +262,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
-   local emPrev = emIn[1]:rkStepperFields()[1]
+   local dApardtPrev = emIn[1].dApardtPrev
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    -- rescale slopes
@@ -282,7 +282,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, emPrev}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtPrev}, {fRhsOut})
    else
       fRhsOut:clear(0.0) -- no RHS
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
@@ -304,12 +304,12 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
-   local emPrev = emIn[1]:rkStepperFields()[1]
+   local dApardtPrev = emIn[1].dApardtPrev
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep2:advance(tCurr, {fIn, em, emFunc, emPrev}, {fRhsOut})
+      self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtPrev}, {fRhsOut})
    else
       fRhsOut:clear(0.0)  -- no RHS
    end

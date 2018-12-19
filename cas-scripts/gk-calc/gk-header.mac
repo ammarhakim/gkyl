@@ -23,9 +23,11 @@ if ci=1 or (ci>1 and vi=2) or (ci=2 and vi=0) then (
         if si <= ci then dirlabel : cvars[si]
         else dirlabel : vvars[si-ci],
         printf(fh, "double GyrokineticSurf~ax~avSer_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_")),
-        printf(fh, "double EmGyrokineticSurf~ax~avSer_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_")),
+        printf(fh, "double EmGyrokineticSurf~ax~avSer_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_")),
+        printf(fh, "double EmGyrokineticSurf~ax~avSerStep2_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_")),
         printf(fh, "double GyrokineticSurfPositivity~ax~avSer_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_")),
-        printf(fh, "double EmGyrokineticSurfPositivity~ax~avSer_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_"))
+        printf(fh, "double EmGyrokineticSurfPositivity~ax~avSer_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_")),
+        printf(fh, "double EmGyrokineticSurfPositivity~ax~avSerStep2_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, dirlabel, pi, simplode(bvarslist[b],"_"))
       ),
       printf(fh, "~%")      
     ),
@@ -37,10 +39,14 @@ fh : openw("~/max-out/GyrokineticModDecl.h")$
 printf(fh, "#ifndef GYROKINETIC_MOD_DECL_H ~%")$
 printf(fh, "#define GYROKINETIC_MOD_DECL_H ~%")$
 printf(fh, "#include <cmath> ~%")$
+printf(fh, "#include <algorithm> ~%")$
 printf(fh, "#include <Positivity.h> ~%")$
 printf(fh, "#define SURFAVG 1 ~%")$
 printf(fh, "#define QUAD 2 ~%")$
 printf(fh, "#define cflType QUAD ~%")$
+printf(fh, "template <typename T> int sgn(T val) {~%")$
+printf(fh, "    return (T(0) < val) - (val < T(0));~%")$
+printf(fh, "}~%")$
 printf(fh, "extern \"C\" { ~%")$
 printPrototypes()$
 printf(fh, "} ~%")$
