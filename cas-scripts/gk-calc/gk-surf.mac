@@ -205,7 +205,7 @@ load(modNm),
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
       incr_r : facsum(fullratsimp(t),dxv),
       writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
-      printf(fh, "~%"),
+      printf(fh, "  }~%"),
       flush_output(fh),
 
       printf(fh, "#elif upwindType == QUAD ~%"),
