@@ -74,7 +74,6 @@ end
 function Gyrokinetic:setAuxFields(auxFields)
    local potentials = auxFields[1] -- first auxField is Field object
    local geo = auxFields[2] -- second auxField is FuncField object
-   local potentialsPrev = auxFields[3]
 
    -- get phi
    self.phi = potentials.phi
@@ -89,7 +88,7 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- get electromagnetic terms
       self.apar = potentials.apar
       self.dApardt = potentials.dApardt
-      self.dApardtPrev = potentialsPrev.dApardt
+      self.dApardtPrev = auxFields[3]
    end
 
    -- get magnetic geometry fields
