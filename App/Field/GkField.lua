@@ -132,6 +132,12 @@ function GkField:alloc(nRkDup)
       end
    end
 
+   self.dApardtPrev = DataStruct.Field {
+            onGrid = self.grid,
+            numComponents = self.basis:numBasis(),
+            ghost = {1, 1}
+   }
+
    -- create fields for total charge and current densities
    self.chargeDens = DataStruct.Field {
             onGrid = self.grid,
@@ -467,6 +473,8 @@ end
 function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
+
+   if inIdx == 1 then self.dApardtPrev:copy(potCurr.dApardt) end
 
    if self.evolve or (self._first and not self.initPhiFunc) then
       self.chargeDens:clear(0.0)
