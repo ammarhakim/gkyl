@@ -1,0 +1,43 @@
+load("modal-basis")$
+load("basis-precalc/basisSer1x")$
+bC : basisC[1]$
+eta(xc,dx,b) := subst(x=(z-xc)/(dx/2), b)$
+pL : eta(-1/2,1,bC)$
+pR : eta(1/2,1,bC)$
+
+N : length(bC)$
+
+hB : makelist(z^i,i,0,2*N-1)$
+
+fLn : doExpand1(fL, pL)$
+fRn : doExpand1(fR, pR)$
+
+h : doExpand1(hn, hB)$
+eqL : makelist(integrate(h*hB[i],z,-1,0), i, 1, N)$
+eqR : makelist(integrate(h*hB[i],z,0,1), i, 1, N)$
+LHS : append(eqL,eqR)$
+
+RHS : transpose(
+  append(
+    makelist(integrate(fLn*hB[i],z,-1,0), i, 1, N),
+    makelist(integrate(fRn*hB[i],z,-1,0), i, 1, N)
+  )
+)$
+
+
+A : coefmatrix(LHS, makelist(hn[i], i, 0, 2*N-1))$
+S : fullratsimp(invert(A) . RHS)$
+hsol : makelist(S[i][1], i, 1, 2*N)$
+
+kill(basisC)$
+load("basis-precalc/basisSer2x")$
+bC2 : basisC[1]$
+fh : doExpand(f, bC2)$
+hcoeff : calcInnerProdList([x], 1, bC, fh)$
+
+fLs : subst(makelist(f[i]=FL[i],i,length(bC2)), hcoeff)$
+fRs : subst(makelist(f[i]=FR[i],i,length(bC2)), hcoeff)$
+hsol2 : subst(append(makelist(fL[i]=fLs[i], i, 1, N), makelist(fR[i]=fRs[i], i, 1, N)), hsol)$
+
+h2d : sum(hsol2[i]*x^(i-1), i, 1, 2*N)$
+
