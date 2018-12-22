@@ -1,0 +1,32 @@
+Todo
+----
+
+ConfToPhase.lua
+CrossPrimMoments.lua
+FemGyroaverage.lua
+FemParPoisson.lua
+FemPerpPoisson.lua
+FemPoisson.lua
+LagrangeFix.lua
+MappedPoisson.lua
+MaxwellianOnBasis.lua
+PositivityRescale.lua
+SelfPrimMoments.lua
+SolidSurface.lua
+VoronovIonization.lua
+
+Completed
+---------
+
+** Base.lua
+** CalcDiagnostic.lua
+** CartFieldIntegratedQuantCalc.lua
+** DistFuncIntegratedMomentCalc.lua
+** ProjectOnBasis.lua
+** Bc.lua
+** DistFuncMomentCalc.lua
+** HyperDisCont.lua
+** CartFieldBinOp.lua
+** WavePropagation.lua
+** FiveMomentSrc.lua
+** BgkCollisions.lua

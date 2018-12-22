@@ -1,0 +1,23 @@
+load("modal-basis")$
+load("basis-precalc/basisSer1x")$
+bC : basisC[1]$
+N : length(bC)$
+
+eta(xc,dx,b) := subst(x=(z-xc)/(dx/2), b)$
+pL : eta(-1/2,1,bC)$
+pR : eta(1/2,1,bC)$
+pI : gsOrthoNorm([z], makelist(z^i,i,0,2*N-1))$
+
+h : doExpand1(hn, pI)$
+LHS : makelist(integrate(h*pI[i],z,-1,1), i, 1, 2*N)$
+
+fLe : doExpand(fL,pL)$
+fRe : doExpand(fR,pR)$
+
+RHS : transpose(makelist(integrate(fLe*pI[i],z,-1,0)+integrate(fRe*pI[i],z,0,1), i,1,2*N))$
+A : coefmatrix(LHS, makelist(hn[i], i, 0, 2*N-1))$
+S : fullratsimp(invert(A) . RHS)$
+hsol : makelist(S[i][1], i, 1, 2*N)$
+
+h0 : hsol[1][1]$
+
