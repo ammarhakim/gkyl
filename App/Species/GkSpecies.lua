@@ -172,6 +172,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       equation = self.gkEqn,
       zeroFluxDirections = self.zeroFluxDirections,
       updateDirections = upd,
+      clearOut = false,   -- continue accumulating into output field
    }
    if hasApar then 
       -- set up solver that adds on volume term involving dApar/dt and the entire vpar surface term
@@ -271,6 +272,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       fIn = self.fPos
    end
 
+   fRhsOut:clear(0.0)
+
    -- do collisions first so that collisions contribution to cflRate is included in GK positivity
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
@@ -284,7 +287,6 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtPrev}, {fRhsOut})
    else
-      fRhsOut:clear(0.0) -- no RHS
       self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
    end
 
@@ -310,8 +312,6 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtPrev}, {fRhsOut})
-   else
-      fRhsOut:clear(0.0)  -- no RHS
    end
 
    if self.fSource and self.evolveSources then
