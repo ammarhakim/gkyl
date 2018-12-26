@@ -92,15 +92,15 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
 
   if(f0 < 0.) {
      if(ndim == 1) {
-       printf("WARNING: negative cell avg %e in cell %2d, tCurr = %e", f0, idx[0], tCurr);
+       printf("WARNING: negative cell avg %e in cell %2d, tCurr = %e\n", f0, idx[0], tCurr);
      } else if( ndim == 2) {
-       printf("WARNING: negative cell avg %e in cell %2d %2d, tCurr = %e", f0, idx[0], idx[1], tCurr);
+       printf("WARNING: negative cell avg %e in cell %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], tCurr);
      } else if( ndim == 3) {
-       printf("WARNING: negative cell avg %e in cell %2d %2d %2d, tCurr = %e", f0, idx[0], idx[1], idx[2], tCurr);
+       printf("WARNING: negative cell avg %e in cell %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], tCurr);
      } else if( ndim == 4) {
-       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d, tCurr = %e", f0, idx[0], idx[1], idx[2], idx[3], tCurr);
+       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], tCurr);
      } else if( ndim == 5) {
-       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d %2d, tCurr = %e", f0, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr);
+       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr);
      }
   }
 
