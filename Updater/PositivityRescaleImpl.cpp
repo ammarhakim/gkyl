@@ -88,7 +88,7 @@ double findMinNodalValue(const double *fIn, int ndim) {
 
 double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr)
 {
-  double f0 = fIn[0]*std::pow(0.707107,ndim);
+  double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
 
   if(f0 < 0.) {
      if(ndim == 1) {
