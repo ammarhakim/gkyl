@@ -119,7 +119,7 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
   //   }
   //}
 
-  double theta = 1.0; // std::min(1.0, f0/(f0 - fmin + EPSILON));
+  double theta = std::min(1.0, f0/(f0 - fmin + EPSILON));
 
   // modify moments. note no change to cell average
   fOut[0] = fIn[0]; 
