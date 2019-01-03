@@ -67,6 +67,11 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
          onGrid = self.grid,
          basis = self.basis,
       }
+
+      self.posVolLimiter = Updater.PositivityVolLimiter {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
    end
 end
 

@@ -46,7 +46,8 @@ function SpeciesBase:totalBcTime() return 0.0 end
 function SpeciesBase:getCharge() return 0.0 end
 function SpeciesBase:getMass() return 1.0 end
 function SpeciesBase:copyRk(outIdx, aIdx) end
-function SpeciesBase:combineRk() end
+function SpeciesBase:combineRk(...) end
+function SpeciesBase:combineFE(...) return self:combineRk(...) end
 
 return SpeciesBase
 

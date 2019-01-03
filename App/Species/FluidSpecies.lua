@@ -281,6 +281,27 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    self:applyBc(nil, self:rkStepperFields()[outIdx])
 end
 
+function FluidSpecies:combineFE(outIdx, dt, outIdx, a, inIdx)
+   if self.positivity then
+      local fIn = self:rkStepperFields()[inIdx]
+      local fOut = self:rkStepperFields()[outIdx]
+      local fHat = self:rkStepperFields()[outIdx]
+    
+      local fRhsSurf = self:rkStepperFields()[outIdx]
+      local fRhsVol = self.fPos
+     
+      fHat:combine(dt, fRhsSurf, 1.0, fIn)
+      fRhsVol:scale(dt)
+
+      self.posVolLimiter:advance(tCurr, {fRhsVol, fHat}, {fRhsVol})
+      fOut:combine(1.0, fHat, 1.0, fRhsVol)
+
+      self:applyBc(nil, fOut)
+   else
+      self:combineRk(outIdx, dt, outIdx, a, inIdx) 
+   end
+end
+
 function FluidSpecies:suggestDt()
    return GKYL_MAX_DOUBLE
 end
@@ -295,9 +316,8 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolve then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      if self.positivityRescale then
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
-         self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
+      if self.positivity then
+         self.solver:advance(tCurr, {fIn, em}, {fRhsOut, self.fPos})
       else
          self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
       end

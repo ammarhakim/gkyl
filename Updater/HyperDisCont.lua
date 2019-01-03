@@ -86,7 +86,17 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    local cflRateByCell = self._cflRateByCell
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
-   local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+   local qRhsSurf, qRhsVol
+   if outFld[2]==nil then
+      qRhsSurf = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+      qRhsVol = outFld[1]
+      -- clear output field before computing vol/surf increments
+      if self._clearOut then qRhsVol:clear(0.0) end
+   else
+      qRhsSurf = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+      qRhsVol = outFld[2]
+      if self._clearOut then qRhsVol:clear(0.0); qRhsSurf:clear(0.0) end
+   end
 
    -- pass aux fields to equation object
    for i = 1, #inFld-1 do
@@ -99,9 +109,9 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    local cfl, cflm = self._cfl, self._cflm
    local cfla = 0.0 -- actual CFL number used
 
-   local localRange = qRhsOut:localRange()
-   local globalRange = qRhsOut:globalRange()
-   local qInIdxr, qRhsOutIdxr = qIn:genIndexer(), qRhsOut:genIndexer() -- indexer functions into fields
+   local localRange = qRhsVol:localRange()
+   local globalRange = qRhsVol:globalRange()
+   local qInIdxr, qRhsIdxr = qIn:genIndexer(), qRhsVol:genIndexer() -- indexer functions into fields
    local cflRateByCellIdxr = cflRateByCell:genIndexer()
 
    -- to store grid info
@@ -111,7 +121,8 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    -- pointers for (re)use in update
    local qInM, qInP = qIn:get(1), qIn:get(1)
-   local qRhsOutM, qRhsOutP = qRhsOut:get(1), qRhsOut:get(1)
+   local qRhsVolM, qRhsVolP = qRhsVol:get(1), qRhsVol:get(1)
+   local qRhsSurfM, qRhsSurfP = qRhsSurf:get(1), qRhsSurf:get(1)
    local cflRateByCellP = cflRateByCell:get(1)
    local cflRateByCellM = cflRateByCell:get(1)
 
@@ -129,8 +140,6 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    local tId = grid:subGridSharedId() -- local thread ID
 
-   -- clear output field before computing vol/surf increments
-   if self._clearOut then qRhsOut:clear(0.0) end
    -- accumulate contributions from volume and surface integrals
    local cflRate
    -- iterate through updateDirs backwards so that a zero flux dir is first in kinetics
@@ -179,13 +188,14 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	    qIn:fill(qInIdxr(idxm), qInM)
 	    qIn:fill(qInIdxr(idxp), qInP)
 
-	    qRhsOut:fill(qRhsOutIdxr(idxm), qRhsOutM)
-	    qRhsOut:fill(qRhsOutIdxr(idxp), qRhsOutP)
+	    qRhsVol:fill(qRhsIdxr(idxp), qRhsVolP)
+	    qRhsSurf:fill(qRhsIdxr(idxm), qRhsSurfM)
+	    qRhsSurf:fill(qRhsIdxr(idxp), qRhsSurfP)
             cflRateByCell:fill(cflRateByCellIdxr(idxm), cflRateByCellM)
             cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
 
 	    if firstDir and i<=dirUpIdx-1 then
-	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
+	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsVolP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
 	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
@@ -194,7 +204,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
                if cflp == 0.0 then cflp = 1.5*cflm end
                if cflm == 0.0 then cflm = 1.5*cflp end
 	       local maxs = self._equation:surfTerm(
-		  dir, cflm, cflp, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		  dir, cflm, cflp, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsSurfM, qRhsSurfP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then
@@ -202,7 +212,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	          -- surface updates even when the zeroFlux BCs have been
 	          -- applied
 	          self._equation:boundarySurfTerm(
-		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		     dir, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsSurfM, qRhsSurfP)
                end
 	    end
 	 end

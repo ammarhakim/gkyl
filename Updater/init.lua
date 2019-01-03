@@ -25,6 +25,7 @@ local LagrangeFix = require "Updater.LagrangeFix"
 local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local PositivityRescale = require "Updater.PositivityRescale"
+local PositivityVolLimiter = require "Updater.PositivityVolLimiter"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
@@ -52,6 +53,7 @@ return {
    MappedPoisson = MappedPoisson,
    MaxwellianOnBasis = MaxwellianOnBasis,
    PositivityRescale = PositivityRescale,
+   PositivityVolLimiter = PositivityVolLimiter,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
    SolidSurface = SolidSurface,

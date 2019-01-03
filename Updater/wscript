@@ -151,6 +151,7 @@ def build(bld):
     MaxwellianOnBasisImpl.cpp
 
     PositivityRescaleImpl.cpp
+    PositivityVolLimiterImpl.cpp
 
     ProjectOnBasisImpl.cpp
 
