@@ -1,5 +1,6 @@
 #include <algorithm> 
 #include <cmath>
+#include <stdio.h>
 #define EPSILON std::numeric_limits<double>::epsilon()
 extern "C" { 
 double findMinNodalValue(const double *fIn, int ndim); 
