@@ -706,6 +706,7 @@ local function buildApplication(self, tbl)
             log(string.format("WARNING: Timestep dt = %g is below 1e-4*initDt. Fail counter = %d...\n", myDt, failcount))
             if failcount > 20 then
                writeData(tCurr+myDt, true)
+               dtTracker:write(string.format("dt.bp"), tCurr+myDt, step, false)
                log(string.format("ERROR: Timestep below 1e-4*initDt for 20 consecutive steps. Exiting...\n"))
                break
             end
