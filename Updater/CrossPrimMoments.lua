@@ -1,10 +1,10 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to calculate the cross-primitive moments, u_ei, u_ie, vtSq_ei=T_ei/m_e,
--- and vtSq_ie=T_ie/m_i for the cross species collisions given the primitive
--- moments of the species.
--- Here the subscript ei means that it corresponds to the contribution to
--- electrons due to collisions with ions, and vice-versa for ie.
+-- Updater to calculate the cross-primitive moments for the cross species 
+-- collisions given the primitive moments of the species.
+-- For electron-ion plasmas and LBO, these are u_ei, u_ie, vtSq_ei=T_ei/m_e, 
+-- and vtSq_ie=T_ie/m_i. Here the subscript ei means that it corresponds to
+-- the effect on electrons due to collisions with ions, and vice-versa for ie.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -17,18 +17,17 @@ local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
 
--- function to check if collide option is correct
-local function isCollideGood(nm)
-   if nm == "Vmei" or nm == "Vmie" or nm == "Vmall" or
-      nm == "Gkei" or nm == "Gkie" or nm == "Gkall" then
+-- Function to check if operator option is correct.
+local function isOperatorGood(nm)
+   if nm == "BGK" or nm == "VmLBO" or nm == "GkLBO" then
       return true
    end
    return false
 end
 
--- function to check if operator option is correct
-local function isOperatorGood(nm)
-   if nm == "BGK" or nm == "LBO" then
+-- Function to check if formulas option is correct.
+local function isFormulasGood(nm)
+   if nm == "Shi" or nm == "JunoLimit" or nm == "JunoFull" then
       return true
    end
    return false
@@ -53,10 +52,13 @@ function CrossPrimMoments:init(tbl)
       tbl.massRatio, "Updater.CrossPrimMoments: Must provide the mass ratio (mi/me) using 'massRatio'.")
 
    local operator = assert(
-      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (BGK or LBO) using 'operator'.")
+      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (BGK, VmLBO, or GkLBO) using 'operator'.")
 
    local collide = assert(
-      tbl.collide, "Updater.CrossPrimMoments: Must specify which species to collide (Vmei, Vmie, Vmall, Gkei, Gkie, Gkall) using 'collide'.")
+      tbl.collide, "Updater.CrossPrimMoments: Must specify which species to collide (all, or species name list) using 'collide'.")
+
+   local formulas = assert(
+      tbl.formulas, "Updater.CrossPrimMoments: Must specify which formulas to use (Shi, JunoLimit, JunoFull) using 'formulas'.")
 
    -- dimension of spaces.
    self._pDim = phaseBasis:ndim()
