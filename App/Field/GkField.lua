@@ -474,7 +474,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
 
-   if inIdx == 1 then self.dApardtPrev:copy(potCurr.dApardt) end
+   if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
 
    if self.evolve or (self._first and not self.initPhiFunc) then
       self.chargeDens:clear(0.0)

@@ -14,6 +14,7 @@ local ffi = require "ffi"
 
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
+  double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -64,51 +65,9 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
 
       fIn:fill(fInIndexer(idx), fInPtr)
       fOut:fill(fOutIndexer(idx), fOutPtr)
-      
-      local f0 = 1.0/math.sqrt(2.0)^ndim*fInPtr[1] -- cell average
-      if f0 < 0 then
-         if ndim == 1 then
-           print(string.format("WARNING: negative cell avg %e in cell %2d, tCurr = %e", f0, idx[1], tCurr))
-         elseif ndim == 2 then
-           print(string.format("WARNING: negative cell avg %e in cell %2d %2d, tCurr = %e", f0, idx[1], idx[2], tCurr))
-         elseif ndim == 3 then
-           print(string.format("WARNING: negative cell avg %e in cell %2d %2d %2d, tCurr = %e", f0, idx[1], idx[2], idx[3], tCurr))
-         elseif ndim == 4 then
-           print(string.format("WARNING: negative cell avg %e in cell %2d %2d %2d %2d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], tCurr))
-         elseif ndim == 5 then
-           print(string.format("WARNING: negative cell avg %e in cell %2d %2d %2d %2d %2d, tCurr = %e", f0, idx[1], idx[2], idx[3], idx[4], idx[5], tCurr))
-         end
-      end
-      
-      local fmin = ffi.C.findMinNodalValue(fInPtr:data(), ndim)
-    
-      -- compute scaling factor
-      local theta = math.min(1, f0/(f0 - fmin + GKYL_EPSILON))
 
-      local del2ChangeCell = 0.0
-
-      --if fmin < 0 then
-      --   if ndim == 1 then
-      --     print(string.format("warning: negative control node %e in cell %2d, tCurr = %e", fmin, idx[1], tCurr))
-      --   elseif ndim == 2 then
-      --     print(string.format("warning: negative control node %e in cell %2d %2d, tCurr = %e", fmin, idx[1], idx[2], tCurr))
-      --   elseif ndim == 3 then
-      --     print(string.format("warning: negative control node %e in cell %2d %2d %2d, tCurr = %e", fmin, idx[1], idx[2], idx[3], tCurr))
-      --   elseif ndim == 4 then
-      --     print(string.format("warning: negative control node %e in cell %2d %2d %2d %2d, tCurr = %e", fmin, idx[1], idx[2], idx[3], idx[4], tCurr))
-      --   elseif ndim == 5 then
-      --     print(string.format("warning: negative control node %e in cell %2d %2d %2d %2d %2d, tCurr = %e", fmin, idx[1], idx[2], idx[3], idx[4], idx[5], tCurr))
-      --   end
-      --end
-
-      -- modify moments. note no change to cell average
-      fOutPtr[1] = fInPtr[1]
-      for i = 2, numBasis do
-         --if theta < 1 then del2ChangeCell = del2ChangeCell + fInPtr[i]^2 end
-         fOutPtr[i] = fInPtr[i]*theta
-      end
-
-      --self.del2Change = self.del2Change + del2ChangeCell*(1-theta^2)
+      local del2ChangeCell = ffi.C.rescale(fInPtr:data(), fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      self.del2Change = self.del2Change + del2ChangeCell
    end
 
    --self.del2ChangeL:appendData(tCurr, {self.del2Change})
