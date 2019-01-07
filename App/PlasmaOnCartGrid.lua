@@ -135,10 +135,10 @@ local function buildApplication(self, tbl)
    local species = {}
    for nm, val in pairs(tbl) do
       if Species.SpeciesBase.is(val) then
-	 val:fullInit(tbl) -- initialize species
 	 species[nm] = val
 	 species[nm]:setName(nm)
 	 species[nm]:setIoMethod(ioMethod)
+	 val:fullInit(tbl) -- initialize species
       end
    end
 
@@ -154,9 +154,9 @@ local function buildApplication(self, tbl)
    local sources = {}
    for nm, val in pairs(tbl) do
       if Sources.SourceBase.is(val) then
-	 val:fullInit(tbl) -- initialize sources
 	 sources[nm] = val
 	 sources[nm]:setName(nm)
+	 val:fullInit(tbl) -- initialize sources
       end
    end
 
