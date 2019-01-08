@@ -34,6 +34,7 @@ extern "C" {
     void gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
     /* Method to update fluids and flield using time-centered implicit method in the exact form*/
     void gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    void gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
 }
 
 #endif // GK_FIVE_MOMENT_SRC_H
