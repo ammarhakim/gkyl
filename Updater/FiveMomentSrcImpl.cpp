@@ -453,3 +453,304 @@ gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, 
   double crhoc = sd->chi_e * chargeDens/sd->epsilon0;
   em[PHIE] += dt * crhoc;
 }
+
+
+static void
+update_par(Eigen::VectorXd &q_par, double dt, std::vector<double> &wp,
+           double &wp_tot, unsigned nFluids)
+{
+  // TODO reuse v0, v1
+  // eigenvector with w=-w_p
+  Eigen::VectorXd v0 = Eigen::VectorXd::Constant(nFluids + 1, 0.);
+  // eigenvector with w=w_p
+  Eigen::VectorXd v1 = Eigen::VectorXd::Constant(nFluids + 1, 0.);
+
+  // eigenvectors at t=0
+  v0[0] = wp_tot;
+  for (unsigned n = 0; n < nFluids; ++n)
+  {
+    v1[n + 1] = wp[n];
+  }
+
+  double coeff[2];
+  coeff[0] = q_par.dot(v0) / v0.dot(v0);
+  coeff[1] = q_par.dot(v1) / v1.dot(v1);
+
+  double cost = std::cos(wp_tot * dt);
+  double sint = std::sin(wp_tot * dt);
+
+  // incremental changes to the eigenvectors
+  v0[0] = wp_tot * cost - v0[0];
+  v1[0] = -wp_tot * sint - v1[0];
+  for (unsigned n = 0; n < nFluids; ++n)
+  {
+    v0[n + 1] = wp[n] * sint - v0[n + 1];
+    v1[n + 1] = wp[n] * cost - v1[n + 1];
+  }
+
+  // accumulate incremental changes
+  q_par += coeff[0] * v0  + coeff[1] * v1;
+}
+
+
+/*
+ * Finding roots of a polynomial as eigenvalues of its companion matrix.
+ *
+ * @param coeffs The coefficients of the polynomial from the higher to lower order.
+ * @returns roots The roots.
+ */
+static Eigen::VectorXd roots(const std::vector<double> &coeffs)
+{
+  int N = coeffs.size() - 1;
+
+  // companion matrix of the polynomial
+  Eigen::MatrixXd M = Eigen::MatrixXd::Constant(N, N, 0);
+  
+  for(int n = 1; n < N; ++n){
+    M(n, n-1) = 1.;
+  }
+
+  for(int n = 0; n < N; ++n){
+    M(n, N-1) = -coeffs[N-n] / coeffs.front();
+  }
+
+  Eigen::VectorXd roots = M.eigenvalues().real();
+
+  return roots;
+}
+
+
+static Eigen::VectorXd
+update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
+            std::vector<double> &Wc, double wp_tot, unsigned nFluids)
+{
+  // TODO reuse v0, v1
+  // compute all eigenvalues
+  Eigen::VectorXd eigs(nFluids + 1);
+  if (nFluids == 2)
+  {
+      // gsl_poly_solve_cubic(
+      //     Wc[0] + Wc[1],
+      //     Wc[0] * Wc[1] - sq(wp[0]) - sq(wp[1]),
+      //     -Wc[0] * sq(wp[1]) - Wc[1] * sq(wp[0]),
+      //     &eigs[0], &eigs[1], &eigs[2]);
+  } else if (nFluids == 3) {
+    std::vector<double> poly_coeff = {
+      1.,
+      
+      Wc[0] + Wc[1] + Wc[2],
+      
+      Wc[0] * Wc[1] + Wc[0] * Wc[2] +
+      Wc[1] * Wc[2] - sq(wp[0]) - sq(wp[1]) - sq(wp[2]),
+
+      Wc[0] * Wc[1] * Wc[2] - Wc[0] * sq(wp[1]) - Wc[0] * sq(wp[2]) -
+      Wc[1] * sq(wp[0]) - Wc[1] * sq(wp[2]) - Wc[2] * sq(wp[0]) -
+      Wc[2] * sq(wp[1]),
+      
+      -Wc[0] * Wc[1] * sq(wp[2]) -
+      Wc[0] * Wc[2] * sq(wp[1]) - Wc[1] * Wc[2] * sq(wp[0])
+    };
+    eigs = roots(poly_coeff);
+  } else {
+    // TODO throw error
+  }
+
+  // compute the two eigenvector for each eigenvalue and accumulate their
+  // contributions to the final parallel state vector
+  Eigen::VectorXd q_perp_ = Eigen::VectorXd::Constant(2 * (nFluids + 1), 0.);
+  Eigen::VectorXd v0 = Eigen::VectorXd::Constant(2 * (nFluids + 1), 0.);
+  Eigen::VectorXd v1 = Eigen::VectorXd::Constant(2 * (nFluids + 1), 0.);
+  for (unsigned n = 0; n < nFluids + 1; ++n)
+  {
+    double w = eigs[n];
+
+    // compute the two eigenvectors for w at t=0
+    v0[1] = 1.;
+    v1[0] = 1.;
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      unsigned nn = n + 1;
+      double tmp = wp[n] / (w + Wc[n]);
+      v0[2 * nn] = tmp;
+      v1[2 * nn + 1] = -tmp;
+    }
+
+    // compute eigencoefficients
+    double coeff[2];
+    coeff[0] = q_perp.dot(v0) / v0.dot(v0);
+    coeff[1] = q_perp.dot(v1) / v1.dot(v1);
+
+    // compute the two eigenvectors for w at t=dt
+    double cost = std::cos(w * dt);
+    double sint = std::sin(w * dt);
+    v0[0] = -sint;
+    v0[1] = cost;
+    v1[0] = cost;
+    v1[1] = sint;
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      unsigned nn = n + 1;
+      double tmp = wp[n] / (w + Wc[n]);
+      v0[2 * nn] = tmp * cost;
+      v0[2 * nn + 1] = tmp * sint;
+      v1[2 * nn] = tmp * sint;
+      v1[2 * nn + 1] = -tmp * cost;
+    }
+
+    // accumulate contribution from the two eigenvectors
+    q_perp_ += coeff[0] * v0  + coeff[1] * v1;
+  }
+
+  return q_perp_;
+}
+
+void
+gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+{
+  unsigned nFluids = sd->nFluids;
+  double epsilon0 = sd->epsilon0;
+
+  std::vector<double> zeros(6, 0);
+  if (!(sd->hasStatic))
+  {
+    staticEm = zeros.data();
+  }
+
+  double Bx = (em[BX] + staticEm[BX]);
+  double By = (em[BY] + staticEm[BY]);
+  double Bz = (em[BZ] + staticEm[BZ]);
+  double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
+  Eigen::Vector3d b(0., 0., 0.);
+  if (Bmag > 0.)
+  {
+    b[0] = Bx / Bmag;
+    b[1] = By / Bmag;
+    b[2] = Bz / Bmag;
+  }
+
+  Eigen::Vector3d E(em[EX], em[EY], em[EZ]);
+  double Enorm = 1.;  // nominal normalization
+  Eigen::Vector3d E_ = E / Enorm;
+
+  std::vector<double> qbym(nFluids); 
+  std::vector<double> Wc(nFluids); 
+  std::vector<double> wp(nFluids);
+  double wp_tot = 0.;
+  std::vector<double> Pnorm(nFluids);  // norm from momentum to current 
+  std::vector<Eigen::Vector3d> J_(nFluids);  // normalized current
+  for (unsigned n=0; n < nFluids; ++n)
+  {
+    double *f = ff[n];
+    if (!fd[n].evolve)
+      continue;
+    qbym[n] = fd[n].charge / fd[n].mass;
+    Wc[n] = qbym[n] * Bmag;
+    double wp2 = f[RHO] * sq(qbym[n]) / epsilon0;
+    wp[n] = std::sqrt(wp2);
+    wp_tot += wp2;
+
+    Pnorm[n] = 1.;  // XXX for testing, do not normalize momentum
+    if (fd[n].charge < 0.)
+    {
+      Pnorm[n] *= -1.;
+    }
+    J_[n][0] = f[MX] / Pnorm[n];
+    J_[n][1] = f[MY] / Pnorm[n];
+    J_[n][2] = f[MZ] / Pnorm[n];
+  }
+  wp_tot = std::sqrt(wp_tot);
+
+  // store initial kinetic energy, needed to update final total energy
+  double chargeDens = 0.0;
+  std::vector<double> keOld(nFluids);
+  for (unsigned n = 0; n < nFluids; ++n)
+  {
+    double *f = ff[n];
+    chargeDens += qbym[n] * f[RHO];
+    if (!fd[n].evolve)
+      continue;
+    keOld[n] = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+  }
+
+  if (Bmag > 0.)
+  {
+    // parallel component of initial condition
+    Eigen::VectorXd q_par(nFluids + 1);
+    q_par[0] = E_[2];
+    for (unsigned n=0; n < nFluids; ++n)
+    {
+      q_par[n + 1] = J_[n][2];
+    }
+
+    // perpendicular component of initial condition
+    Eigen::VectorXd q_perp(2 * (nFluids + 1));
+    q_perp[0] = E_[0];
+    q_perp[1] = E_[1];
+    for (unsigned n=0; n < nFluids; ++n)
+    {
+      q_perp[2*(n + 1)] = J_[n][0];
+      q_perp[2*(n + 1) + 1] = J_[n][1];
+    }
+
+    // update parallel component
+    update_par(q_par, dt, wp, wp_tot, nFluids);
+
+    // re-normalize back
+    em[EZ] = q_par[0] * Enorm;
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      double *f = ff[n];
+      f[MZ] = q_par[n + 1] * Pnorm[n];
+    }
+
+    // update perpendicular component
+    Eigen::VectorXd q_perp_ = update_perp(q_perp, dt, wp, Wc, wp_tot, nFluids);
+     
+    // re-normalize back
+    em[EX] = q_perp_[0] * Enorm;
+    em[EY] = q_perp_[1] * Enorm;
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      double *f = ff[n];
+      unsigned nn = n + 1;
+      f[MX] = q_perp_[2 * nn] * Pnorm[n];
+      f[MY] = q_perp_[2 * nn + 1] * Pnorm[n];
+    }
+  } else {
+    Eigen::VectorXd q_par(nFluids + 1);
+
+    for (unsigned d = 0; d < 3; ++d)
+    {
+      q_par[0] = E_[d];
+      for (unsigned n=0; n < nFluids; ++n)
+      {
+        q_par[n + 1] = J_[n][d];
+      }
+
+      // FIXME avoid repeated calculation of eigenvectors
+      update_par(q_par, dt, wp, wp_tot, nFluids);
+
+      // re-normalize back
+      em[EX + d] = q_par[0] * Enorm;
+      for (unsigned n = 0; n < nFluids; ++n)
+      {
+        double *f = ff[n];
+        f[MX + d] = q_par[n + 1] * Pnorm[n];
+      }
+    }
+  }
+
+  if (sd->hasPressure)
+  {
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      double *f = ff[n];
+      double keNew = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
+      f[ER] += keNew - keOld[n];
+    }
+  } 
+
+  //------------> update correction potential
+  double crhoc = sd->chi_e * chargeDens/sd->epsilon0;
+  em[PHIE] += dt * crhoc;
+}
