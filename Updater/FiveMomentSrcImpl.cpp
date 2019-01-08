@@ -529,11 +529,16 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
   Eigen::VectorXd eigs(nFluids + 1);
   if (nFluids == 2)
   {
-      // gsl_poly_solve_cubic(
-      //     Wc[0] + Wc[1],
-      //     Wc[0] * Wc[1] - sq(wp[0]) - sq(wp[1]),
-      //     -Wc[0] * sq(wp[1]) - Wc[1] * sq(wp[0]),
-      //     &eigs[0], &eigs[1], &eigs[2]);
+    std::vector<double> poly_coeff = {
+      1.,
+
+      Wc[0] + Wc[1],
+
+      Wc[0] * Wc[1] - sq(wp[0]) - sq(wp[1]),
+
+      -Wc[0] * sq(wp[1]) - Wc[1] * sq(wp[0])
+    };
+    eigs = roots(poly_coeff);
   } else if (nFluids == 3) {
     std::vector<double> poly_coeff = {
       1.,
