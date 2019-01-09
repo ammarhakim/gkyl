@@ -621,17 +621,11 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
     staticEm = zeros.data();
   }
 
-  double Bx = (em[BX] + staticEm[BX]);
-  double By = (em[BY] + staticEm[BY]);
-  double Bz = (em[BZ] + staticEm[BZ]);
-  double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
-  Eigen::Vector3d b(0., 0., 0.);
-  if (Bmag > 0.)
-  {
-    b[0] = Bx / Bmag;
-    b[1] = By / Bmag;
-    b[2] = Bz / Bmag;
-  }
+  Eigen::Vector3d B(
+      em[BX] + staticEm[BX],
+      em[BY] + staticEm[BY],
+      em[BZ] + staticEm[BZ]);
+  double Bmag = B.norm();
 
   Eigen::Vector3d E(em[EX], em[EY], em[EZ]);
   double Enorm = 1.;  // nominal normalization
@@ -677,8 +671,17 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
     keOld[n] = 0.5 * (sq(f[MX]) + sq(f[MY]) + sq(f[MZ])) / f[RHO];
   }
 
-  if (Bmag > 0.)
+  if (Bmag > 0.)  // TODO set threshold
   {
+    double angle = std::acos(B[2] / Bmag);
+    Eigen::Vector3d axis = B.cross(Eigen::Vector3d::UnitZ());
+    axis.normalize();  // AngleAxisd needs a normalized axis vector
+    Eigen::AngleAxisd rotate = Eigen::AngleAxisd(angle, axis);
+
+    E_ = rotate * E_;
+    for (unsigned n=0; n < nFluids; ++n)
+      J_[n] = rotate * J_[n];
+
     // parallel component of initial condition
     Eigen::VectorXd q_par(nFluids + 1);
     q_par[0] = E_[2];
@@ -699,27 +702,41 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
 
     // update parallel component
     update_par(q_par, dt, wp, wp_tot, nFluids);
-
-    // re-normalize back
-    em[EZ] = q_par[0] * Enorm;
-    for (unsigned n = 0; n < nFluids; ++n)
-    {
-      double *f = ff[n];
-      f[MZ] = q_par[n + 1] * Pnorm[n];
-    }
-
     // update perpendicular component
     Eigen::VectorXd q_perp_ = update_perp(q_perp, dt, wp, Wc, wp_tot, nFluids);
-     
-    // re-normalize back
-    em[EX] = q_perp_[0] * Enorm;
-    em[EY] = q_perp_[1] * Enorm;
+
+    // normalize back
+    E_[2] = q_par[0] * Enorm;
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      J_[n][2] = q_par[n + 1] * Pnorm[n];
+    }
+    E_[0] = q_perp_[0] * Enorm;
+    E_[1] = q_perp_[1] * Enorm;
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      unsigned nn = n + 1;
+      J_[n][0] = q_perp_[2 * nn] * Pnorm[n];
+      J_[n][1] = q_perp_[2 * nn + 1] * Pnorm[n];
+    }
+
+    // rotate back
+    E_ = rotate.inverse() * E_;
+    for (unsigned n = 0; n < nFluids; ++n)
+    {
+      J_[n] = rotate.inverse() * J_[n];
+    }
+
+    // fill state vector
+    em[EX] = E_[0];
+    em[EY] = E_[1];
+    em[EZ] = E_[2];
     for (unsigned n = 0; n < nFluids; ++n)
     {
       double *f = ff[n];
-      unsigned nn = n + 1;
-      f[MX] = q_perp_[2 * nn] * Pnorm[n];
-      f[MY] = q_perp_[2 * nn + 1] * Pnorm[n];
+      f[MX] = J_[n][0];
+      f[MY] = J_[n][1];
+      f[MZ] = J_[n][2];
     }
   } else {
     Eigen::VectorXd q_par(nFluids + 1);
