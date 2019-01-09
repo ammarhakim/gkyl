@@ -454,11 +454,25 @@ gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, 
   em[PHIE] += dt * crhoc;
 }
 
-
+/* Updater for the parallel component of the exact source term.
+ *
+ * @param q_par Normalized parallel electric field and current along the
+ *    background B field direction, i.e., [Ez, Jz0, Jz1, ..., Jzs, ...], where s
+ *    denotes a species. The content of q_par will be modified in-place.
+ * @param dt Time step.
+ * @param wp Plasma frequency for each species.
+ */
 static void
-update_par(Eigen::VectorXd &q_par, double dt, std::vector<double> &wp,
-           double &wp_tot, unsigned nFluids)
+update_par(Eigen::VectorXd &q_par, double dt, std::vector<double> &wp)
 {
+  unsigned nFluids = wp.size();
+  double wp_tot = 0.;
+  for (unsigned n=0; n < nFluids; ++n)
+  {
+    wp_tot += sq(wp[n]);
+  }
+  wp_tot = std::sqrt(wp_tot);
+
   // TODO reuse v0, v1
   // eigenvector with w=-w_p
   Eigen::VectorXd v0 = Eigen::VectorXd::Constant(nFluids + 1, 0.);
@@ -497,7 +511,7 @@ update_par(Eigen::VectorXd &q_par, double dt, std::vector<double> &wp,
  * Finding roots of a polynomial as eigenvalues of its companion matrix.
  *
  * @param coeffs The coefficients of the polynomial from the higher to lower order.
- * @returns roots The roots.
+ * @return roots The roots.
  */
 static Eigen::VectorXd roots(const std::vector<double> &coeffs)
 {
@@ -519,11 +533,23 @@ static Eigen::VectorXd roots(const std::vector<double> &coeffs)
   return roots;
 }
 
-
+/* Updater for the perpendicular component of the exact source term.
+ *
+ * @param q_par Normalized perpendicular electric field and current along the
+ *    background B field direction, i.e., [Ex, Ey; Jx0, Jy0, Jx1, Jy1,  ...,
+ *    Jxs, Jys, ...], where s denotes a species.
+ * @param dt Time step.
+ * @param wp Plasma frequency for each species.
+ * @param Wc Signed cyclotron frequency for each species.
+ *
+ * @returns q_perp_. Updated vector.
+ */
 static Eigen::VectorXd
 update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
-            std::vector<double> &Wc, double wp_tot, unsigned nFluids)
+            std::vector<double> &Wc)
 {
+  unsigned nFluids = wp.size();
+
   // TODO reuse v0, v1
   // compute all eigenvalues
   Eigen::VectorXd eigs(nFluids + 1);
@@ -610,7 +636,8 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
 }
 
 void
-gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
+                       double **ff, double *em, double *staticEm)
 {
   unsigned nFluids = sd->nFluids;
   double epsilon0 = sd->epsilon0;
@@ -634,9 +661,8 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
   std::vector<double> qbym(nFluids); 
   std::vector<double> Wc(nFluids); 
   std::vector<double> wp(nFluids);
-  double wp_tot = 0.;
-  std::vector<double> Pnorm(nFluids);  // norm from momentum to current 
-  std::vector<Eigen::Vector3d> J_(nFluids);  // normalized current
+  std::vector<double> Pnorm(nFluids); 
+  std::vector<Eigen::Vector3d> J_(nFluids);
   for (unsigned n=0; n < nFluids; ++n)
   {
     double *f = ff[n];
@@ -646,9 +672,8 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
     Wc[n] = qbym[n] * Bmag;
     double wp2 = f[RHO] * sq(qbym[n]) / epsilon0;
     wp[n] = std::sqrt(wp2);
-    wp_tot += wp2;
 
-    Pnorm[n] = math.sqrt(epsilon0 * f[RHO]);  // XXX for testing, do not normalize momentum
+    Pnorm[n] = std::sqrt(epsilon0 * f[RHO]);
     if (fd[n].charge < 0.)
     {
       Pnorm[n] *= -1.;
@@ -657,9 +682,8 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
     J_[n][1] = f[MY] / Pnorm[n];
     J_[n][2] = f[MZ] / Pnorm[n];
   }
-  wp_tot = std::sqrt(wp_tot);
 
-  // store initial kinetic energy, needed to update final total energy
+  // store initial kinetic energy, needed for updating final total energy
   double chargeDens = 0.0;
   std::vector<double> keOld(nFluids);
   for (unsigned n = 0; n < nFluids; ++n)
@@ -701,9 +725,9 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
     }
 
     // update parallel component
-    update_par(q_par, dt, wp, wp_tot, nFluids);
+    update_par(q_par, dt, wp);
     // update perpendicular component
-    Eigen::VectorXd q_perp_ = update_perp(q_perp, dt, wp, Wc, wp_tot, nFluids);
+    Eigen::VectorXd q_perp_ = update_perp(q_perp, dt, wp, Wc);
 
     // normalize back
     E_[2] = q_par[0] * Enorm;
@@ -750,7 +774,7 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
       }
 
       // FIXME avoid repeated calculation of eigenvectors
-      update_par(q_par, dt, wp, wp_tot, nFluids);
+      update_par(q_par, dt, wp);
 
       // re-normalize back
       em[EX + d] = q_par[0] * Enorm;
