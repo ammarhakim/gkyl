@@ -43,12 +43,13 @@ function GkLBO:init(tbl)
       self._varNu       = false    -- Collisionality is spatially constant.
       self._cellConstNu = true     -- Cell-wise constant nu?
    else
-      self._cellConstNu = assert(tbl.useCellAverageNu, "Eq.VmLBO: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self._cellConstNu = nuCellConst    -- Specify 'useCellAverageNu=true/false' for using cellwise
+                                         -- constant/expanded spatially varying collisionality.
       self._varNu               = true    -- Spatially varying nu.
       self._nuPtr, self._nuIdxr = nil, nil
    end
    if self._cellConstNu then    -- Not varying within the cell.
-      self._inNu      = Lin.Vec(1)
+      self._inNu = Lin.Vec(1)
    end
 
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
@@ -227,13 +228,13 @@ function GkLBO:setAuxFields(auxFields)
       self._vthSqIdxr = self._vthSq:genIndexer()
 
       if self._varNu then
-         self._nuPtr     = self._nu:get(1)
-         self._nuIdxr    = self._nu:genIndexer()
+         self._nuPtr  = self._nu:get(1)
+         self._nuIdxr = self._nu:genIndexer()
       else
-         self._inNu = self._nu
+         self._inNu   = self._nu
       end
 
-      self._isFirst    = false -- No longer first time.
+      self._isFirst = false -- No longer first time.
    end
 end
 

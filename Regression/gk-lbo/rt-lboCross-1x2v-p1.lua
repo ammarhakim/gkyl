@@ -47,6 +47,8 @@ nuElcIon     = nuElc/1.96
 -- Box size
 Lx = 4 -- [m]
 
+print('Electron-ion collision period: ', 1.0/nuElcIon)
+
 plasmaApp = Plasma.App {
    logToFile = false,
    
@@ -98,9 +100,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
       coll = Plasma.GkLBOCollisions {
---         collFreq      = nuElc,
-         crossSpecies  = {"ion"},
-         collFreqCross = {nuElcIon},
+         collideWith = {"ion", },
+         frequencies = {nuElcIon, },
       },
    },
 
@@ -135,7 +136,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
 --      coll = Plasma.GkLBOCollisions {
---         collFreq = nuIon,
+--         collideWith = {"ion"},
+--         frequencies = {nuIon},
 --      },
    },
 

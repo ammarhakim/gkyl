@@ -99,7 +99,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
       coll = Plasma.GkLBOCollisions {
-         collFreq = nu,
+         collideWith = {'square'},
+         frequencies = {nu, },
       },
    },
 
@@ -143,7 +144,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
       coll = Plasma.GkLBOCollisions {
-         collFreq = nu,
+         collideWith = {'bump'},
+         frequencies = {nu, },
       },
    },
 

@@ -27,6 +27,7 @@ local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
 local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
+local CrossPrimMoments = require "Updater.CrossPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
 local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
 local VoronovIonization = require "Updater.VoronovIonization"
@@ -54,6 +55,7 @@ return {
    PositivityRescale = PositivityRescale,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
+   CrossPrimMoments = CrossPrimMoments,
    SolidSurface = SolidSurface,
    SpitzerCollisionality = SpitzerCollisionality,
    VoronovIonization = VoronovIonization,

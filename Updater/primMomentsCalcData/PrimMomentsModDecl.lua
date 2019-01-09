@@ -9,12 +9,12 @@
 local ffi = require "ffi"
 local _ = require "Updater.primMomentsCalcData._PrimMomentsCdef"
 
--- map of basis function name -> function encoding
+-- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
 
 local _M = {}
 
--- select kernel function to compute the primitive moments for self-collision terms. 
+-- Select kernel function to compute the primitive moments for self-collision terms. 
 function _M.selectSelfPrimMomentsCalc(kinSpecies, basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("%sSelfPrimMoments%dx%dv%s_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
@@ -61,9 +61,9 @@ function _M.selectBoundaryVFintegral(dir, kinSpecies, basisNm, CDIM, VDIM, polyO
    return ffi.C[funcNm]
 end
 
--- select kernel function to compute the cross primitive moments. 
-function _M.selectCrossPrimMomentsCalc(collOp, collide, basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("CrossPrimMoments_%s%s_%dx%dv%s_P%d", collide, operator, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+-- Select kernel function to compute the cross-collision primitive moments. 
+function _M.selectCrossPrimMomentsCalc(kinSpecies, form, basisNm, CDIM, VDIM, polyOrder, collTerm)
+   local funcNm = string.format("%sCrossPrimMoments%s%dx%dv%s%s_P%d", kinSpecies, form, CDIM, VDIM, basisNmMap[basisNm], collTerm, polyOrder)
    return ffi.C[funcNm]
 end
 

@@ -19,8 +19,9 @@ void VmBoundaryIntegral1x1vSer_F_VX_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x1vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x1vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x1vSer12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x1vSer21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x2vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -38,8 +39,9 @@ void VmBoundaryIntegral1x2vSer_F_VY_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x2vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x2vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x2vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x2vSer12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x2vSer21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x3vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -63,8 +65,9 @@ void VmBoundaryIntegral1x3vSer_F_VZ_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x3vSer_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x3vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x3vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x3vSer12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x3vSer21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments1x1vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -104,8 +107,9 @@ void VmBoundaryIntegral2x2vSer_F_VY_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x2vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x2vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x2vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x2vSer12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x2vSer21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments2x3vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -129,8 +133,9 @@ void VmBoundaryIntegral2x3vSer_F_VZ_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x3vSer_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x3vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x3vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x3vSer12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x3vSer21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments2x2vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -166,8 +171,9 @@ void VmBoundaryIntegral3x3vSer_F_VZ_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral3x3vSer_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_3x3vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_3x3vSer_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene3x3vSer12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene3x3vSer21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments3x2vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -188,8 +194,9 @@ void VmBoundaryIntegral1x1vSer_F_VX_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x1vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x1vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x1vSer12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x1vSer21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x2vSer_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -201,8 +208,9 @@ void VmBoundaryIntegral1x2vSer_F_VY_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x2vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x2vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x2vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x2vSer12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x2vSer21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x3vSer_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -218,8 +226,9 @@ void VmBoundaryIntegral1x3vSer_F_VZ_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x3vSer_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x3vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x3vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x3vSer12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x3vSer21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments1x1vSer_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -245,8 +254,9 @@ void VmBoundaryIntegral2x2vSer_F_VY_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x2vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x2vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x2vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x2vSer12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x2vSer21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments2x3vSer_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -262,8 +272,9 @@ void VmBoundaryIntegral2x3vSer_F_VZ_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x3vSer_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x3vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x3vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x3vSer12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x3vSer21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments2x2vSer_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -287,8 +298,9 @@ void VmBoundaryIntegral3x3vSer_F_VZ_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral3x3vSer_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_3x3vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_3x3vSer_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene3x3vSer12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene3x3vSer21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments3x2vSer_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -305,8 +317,9 @@ void VmBoundaryIntegral1x1vSer_F_VX_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vSer_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x1vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x1vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x1vSer12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x1vSer21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x2vSer_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -318,8 +331,9 @@ void VmBoundaryIntegral1x2vSer_F_VY_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x2vSer_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x2vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x2vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x2vSer12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x2vSer21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x3vSer_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -335,8 +349,9 @@ void VmBoundaryIntegral1x3vSer_F_VZ_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x3vSer_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x3vSer12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x3vSer21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments1x1vSer_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -362,8 +377,9 @@ void VmBoundaryIntegral2x2vSer_F_VY_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x2vSer_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x2vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x2vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x2vSer12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x2vSer21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments2x3vSer_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -379,8 +395,9 @@ void VmBoundaryIntegral2x3vSer_F_VZ_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x3vSer_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x3vSer12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x3vSer21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments2x2vSer_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -404,8 +421,9 @@ void VmBoundaryIntegral3x3vSer_F_VZ_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral3x3vSer_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_3x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_3x3vSer_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene3x3vSer12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene3x3vSer21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments3x2vSer_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -426,8 +444,9 @@ void VmBoundaryIntegral1x1vMax_F_VX_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vMax_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x1vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x1vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x1vMax12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x1vMax21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x2vMax_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -445,8 +464,9 @@ void VmBoundaryIntegral1x2vMax_F_VY_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x2vMax_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x2vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x2vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x2vMax12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x2vMax21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x3vMax_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -470,8 +490,9 @@ void VmBoundaryIntegral1x3vMax_F_VZ_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x3vMax_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x3vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x3vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x3vMax12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x3vMax21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments1x1vMax_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -511,8 +532,9 @@ void VmBoundaryIntegral2x2vMax_F_VY_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x2vMax_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x2vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x2vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x2vMax12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x2vMax21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments2x3vMax_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -536,8 +558,9 @@ void VmBoundaryIntegral2x3vMax_F_VZ_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x3vMax_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x3vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x3vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x3vMax12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x3vMax21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments2x2vMax_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -573,8 +596,9 @@ void VmBoundaryIntegral3x3vMax_F_VZ_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral3x3vMax_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_3x3vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_3x3vMax_P1(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene3x3vMax12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene3x3vMax21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments3x2vMax_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -595,8 +619,9 @@ void VmBoundaryIntegral1x1vMax_F_VX_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vMax_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x1vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x1vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x1vMax12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x1vMax21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x2vMax_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -608,8 +633,9 @@ void VmBoundaryIntegral1x2vMax_F_VY_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x2vMax_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x2vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x2vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x2vMax12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x2vMax21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x3vMax_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -625,8 +651,9 @@ void VmBoundaryIntegral1x3vMax_F_VZ_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x3vMax_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x3vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x3vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x3vMax12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x3vMax21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments1x1vMax_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -652,8 +679,9 @@ void VmBoundaryIntegral2x2vMax_F_VY_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x2vMax_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x2vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x2vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x2vMax12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x2vMax21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments2x3vMax_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -669,8 +697,9 @@ void VmBoundaryIntegral2x3vMax_F_VZ_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x3vMax_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x3vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x3vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x3vMax12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x3vMax21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments2x2vMax_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -694,8 +723,9 @@ void VmBoundaryIntegral3x3vMax_F_VZ_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral3x3vMax_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_3x3vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_3x3vMax_P2(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene3x3vMax12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene3x3vMax21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments3x2vMax_P2(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -712,8 +742,9 @@ void VmBoundaryIntegral1x1vMax_F_VX_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vMax_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x1vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x1vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x1vMax12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x1vMax21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x2vMax_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -725,8 +756,9 @@ void VmBoundaryIntegral1x2vMax_F_VY_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x2vMax_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x2vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x2vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x2vMax12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x2vMax21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments1x3vMax_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -742,8 +774,9 @@ void VmBoundaryIntegral1x3vMax_F_VZ_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x3vMax_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_1x3vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_1x3vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene1x3vMax12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene1x3vMax21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments1x1vMax_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -769,8 +802,9 @@ void VmBoundaryIntegral2x2vMax_F_VY_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x2vMax_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x2vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x2vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x2vMax12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x2vMax21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void VmSelfPrimMoments2x3vMax_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -786,8 +820,9 @@ void VmBoundaryIntegral2x3vMax_F_VZ_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral2x3vMax_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_2x3vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_2x3vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene2x3vMax12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene2x3vMax21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments2x2vMax_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -811,8 +846,9 @@ void VmBoundaryIntegral3x3vMax_F_VZ_P3(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral3x3vMax_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void CrossPrimMoments_VmeiLBO_3x3vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
-void CrossPrimMoments_VmieLBO_3x3vMax_P3(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); 
+void VmCrossPrimMomentsGreene3x3vMax12_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
+
+void VmCrossPrimMomentsGreene3x3vMax21_P3(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); 
 
 void GkSelfPrimMoments3x2vMax_P3(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
@@ -821,6 +857,5 @@ void GkBoundaryIntegral3x2vMax_F_VX_P3(const bool atLower, const double intFac, 
 void GkBoundaryIntegral3x2vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void GkBoundaryIntegral3x2vMax_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
-
 
 ]]

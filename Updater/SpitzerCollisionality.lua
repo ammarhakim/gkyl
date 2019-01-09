@@ -28,12 +28,8 @@ function SpitzerCollisionality:init(tbl)
    local confBasis = assert(
       tbl.confBasis, "Updater.SpitzerCollisionality: Must provide the configuration basis object using 'confBasis'.")
 
-   self._normNu      = assert(tbl.normalizedNu, "Updater.SpitzerCollisionality: Use 'normalizedNu' to specify the collisionality normalized by (T_0^(3/2)/n_0), where these are values somewhere in the domain at t=0.")
    self._cellConstNu = assert(
       tbl.useCellAverageNu, "Updater.SpitzerCollisionality: Must specify whether to use cell averaged collisionality in 'useCellAverageNu'.")
-   local massIn      = assert(tbl.mass, "Updater.SpitzerCollisionality: Must provide the species mass with 'mass'.")
-
-   self._rMassR3d2   = 1.0/math.sqrt(massIn^3)
 
    -- Dimension of configuration space.
    self._cDim = confBasis:ndim()
@@ -57,17 +53,19 @@ end
 function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
-   local nuOut          = outFld[1]
-
-   local nuOutIndexer   = nuOut:genIndexer()
-   local nuOutItr       = nuOut:get(1)
-
-   local m0Fld, vtSqFld = inFld[1], inFld[2]
+   local rMassR3d2      = 1.0/math.sqrt(inFld[1]^3)
+   local normNu         = inFld[2]
+   local m0Fld, vtSqFld = inFld[3], inFld[4]
 
    local m0FldIndexer   = m0Fld:genIndexer()
    local m0FldItr       = m0Fld:get(1)
    local vtSqFldIndexer = vtSqFld:genIndexer()
    local vtSqFldItr     = vtSqFld:get(1)
+
+   local nuOut          = outFld[1]
+
+   local nuOutIndexer   = nuOut:genIndexer()
+   local nuOutItr       = nuOut:get(1)
 
    local confRange      = m0Fld:localRange()
    if self.onGhosts then confRange = m0Fld:localExtRange() end
@@ -79,7 +77,7 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
       vtSqFld:fill(vtSqFldIndexer(confIdx), vtSqFldItr)
       nuOut:fill(nuOutIndexer(confIdx), nuOutItr)
 
-      self._SpitzerNuCalc(self._normNu, self._rMassR3d2, m0FldItr:data(), vtSqFldItr:data(), nuOutItr:data())
+      self._SpitzerNuCalc(normNu, rMassR3d2, m0FldItr:data(), vtSqFldItr:data(), nuOutItr:data())
    end
 end
 
