@@ -648,7 +648,7 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, doub
     wp[n] = std::sqrt(wp2);
     wp_tot += wp2;
 
-    Pnorm[n] = math.sqrt(epsilon0 * f[RHO]);  // XXX for testing, do not normalize momentum
+    Pnorm[n] = std::sqrt(epsilon0 * f[RHO]);  // XXX for testing, do not normalize momentum
     if (fd[n].charge < 0.)
     {
       Pnorm[n] *= -1.;

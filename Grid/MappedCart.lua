@@ -64,7 +64,7 @@ function MappedCart:init(tbl)
    self._d1, self._d2, self._d3 = Lin.Vec(self:ndim()), Lin.Vec(self:ndim()), Lin.Vec(self:ndim())
 end
 
-function MappedCart:id() return "mapped" end
+--function MappedCart:id() return "mapped" end
 function MappedCart:rdim() return self._rdim end
 
 function MappedCart:mapc2p(xc)
@@ -255,7 +255,8 @@ function MappedCart:_mapc2p_vec(xc, xp)
    end
 end
 
-function MappedCart:cellCenter(xp)
+-- get cell center in physical coordinates
+function MappedCart:cellCenterPhys(xp)
    self.super.cellCenter(self, self._xc)
    self:_mapc2p_vec(self._xc, xp)
 end

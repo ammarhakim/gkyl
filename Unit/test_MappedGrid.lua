@@ -9,6 +9,9 @@ local Unit = require "Unit"
 local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
 local math = require("sci.math").generic
+local Basis = require "Basis"
+local Updater = require "Updater"
+local DataStruct = require "DataStruct"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -20,7 +23,7 @@ function test_1()
       cells = {10, 20},
       -- map computational to physical space
       mapc2p = function(xc)
-	 return xc[1], xc[2]
+	 return xc[1], xc[2]*xc[2]
       end
    }
 
@@ -38,21 +41,43 @@ function test_1()
    -- check if mappings work
    xp[1], xp[2] = grid:mapc2p({0.5, 0.5})
    assert_equal(0.5, xp[1], "Checking mapping [1]")
-   assert_equal(0.5, xp[2], "Checking mapping [2]")
+   assert_equal(0.5*0.5, xp[2], "Checking mapping [2]")
 
    xp[1], xp[2] =  grid:mapc2p({0.75, 0.75})
    assert_equal(0.75, xp[1], "Checking mapping [1]")
-   assert_equal(0.75, xp[2], "Checking mapping [2]")
+   assert_equal(0.75*0.75, xp[2], "Checking mapping [2]")
 
    assert_equal(3, grid:numMetricElems(), "Checking size of metric")
    
    local g = Lin.Vec(grid:numMetricElems())
    -- compute metric quantities
-   grid:calcMetric({0.5, 0.5}, g)
+   grid:calcMetric({0.5, 0.35}, g)
    
    assert_equal(1.0, g[1], "Checking metric [1,1]")
    assert_equal(0.0, g[2], "Checking metric [1,2]")
-   assert_equal(1.0, g[3], "Checking metric [2,2]")
+   assert_equal(2*0.35*2*0.35, g[3], "Checking metric [2,2]")
+
+   local basis = Basis.CartModalSerendipity { ndim = 2, polyOrder = 1 }
+
+   local jacobFunc = function(t, xn)
+      return grid:calcJacobian(xn)
+   end
+
+   local project = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      projectOnGhosts = true,
+      evaluate = jacobFunc
+   }
+   local jacob = DataStruct.Field {
+      onGrid = grid,
+      numComponents = basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
+   project:advance(0.0, 0.0, {}, {jacob})
+   
 end
 
 function test_2()
@@ -68,7 +93,6 @@ function test_2()
 	 return math.sin(theta)*math.cos(phi), math.sin(theta)*math.sin(phi), math.cos(theta)
       end
    }
-
    assert_equal(3, grid:rdim(), "Checking rdim")
 end
 
