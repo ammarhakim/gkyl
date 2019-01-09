@@ -53,8 +53,9 @@ for bInd : 1 thru length(bName) do (
         ),
   
         /* Primitive moments for cross-collision Vlasov LBO terms. */
-        printf(fh, "void CrossPrimMoments_VmeiLBO_~ax~av~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, bName[bInd], pi),
-        printf(fh, "void CrossPrimMoments_VmieLBO_~ax~av~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "void VmCrossPrimMomentsGreene~ax~av~a12_P~a(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "~%"), 
+        printf(fh, "void VmCrossPrimMomentsGreene~ax~av~a21_P~a(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross); ~%", ci, vi, bName[bInd], pi),
         printf(fh, "~%") 
  
       ),

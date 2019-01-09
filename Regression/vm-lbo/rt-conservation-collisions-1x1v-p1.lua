@@ -81,7 +81,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
       coll = Plasma.VmLBOCollisions {
-            collFreq = nuElc,
+         collideWith = {'elc'},
+         frequencies = {nuElc},
       },
    },
    -- protons
@@ -108,7 +109,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
       coll = Plasma.VmLBOCollisions {
-            collFreq = nuIon,
+         collideWith = {'ion'},
+         frequencies = {nuIon},
       },
    },
 

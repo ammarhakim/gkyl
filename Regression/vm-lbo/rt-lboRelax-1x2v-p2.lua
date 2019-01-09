@@ -93,7 +93,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.VmLBOCollisions {
-         collFreq = nu,
+         collideWith = {'square'},
+         frequencies = {nu},
       },
    },
 
@@ -140,7 +141,8 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "M0", "M1i", "M2" },
       -- Collisions.
       coll = Plasma.VmLBOCollisions {
-         collFreq = nu,
+         collideWith = {'bump'},
+         frequencies = {nu},
       },
    },
 

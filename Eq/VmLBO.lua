@@ -43,20 +43,18 @@ function VmLBO:init(tbl)
    end
    self._vMaxSq = self._vMaxSq^2 
 
-   local constNu = tbl.nu
-   if constNu then
+   local nuCellConst = tbl.useCellAverageNu
+   if nuCellConst == nil then
       self._varNu       = false    -- Collisionality is spatially constant.
-      self._inNu        = Lin.Vec(1)
-      self._inNu        = constNu
       self._cellConstNu = true     -- Collisionality is cell-wise constant.
    else
-      self._cellConstNu = assert(tbl.useCellAverageNu, "Eq.VmLBO: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self._cellConstNu = nuCellConst    -- Specify 'useCellAverageNu=true/false' for using cellwise
+                                         -- constant/expanded spatially varying collisionality.
       self._varNu               = true    -- Spatially varying nu.
-      self._nu                  = nil
       self._nuPtr, self._nuIdxr = nil, nil
-      if self._cellConstNu then    -- Not varying within the cell.
-         self._inNu      = Lin.Vec(1)
-      end
+   end
+   if self._cellConstNu then    -- Not varying within the cell.
+      self._inNu = Lin.Vec(1)
    end
 
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
@@ -73,11 +71,13 @@ function VmLBO:init(tbl)
       self._boundarySurfUpdate = VmLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
-   -- bulk velocity times collisionality field object and pointers to cell values.
+   -- Collisionality passed as auxiliary field (even if just a constant number, not a field).
+   self._nu    = nil
+   -- Bulk velocity times collisionality field object and pointers to cell values.
    self._u     = nil
-   -- thermal speed squared times collisionality field object and pointers to cell values.
+   -- Thermal speed squared times collisionality field object and pointers to cell values.
    self._vthSq = nil
-   -- (these will be set on the first call to setAuxFields() method).
+   -- These will be set on the first call to setAuxFields() method.
    self._uPtr, self._uIdxr         = nil, nil
    self._vthSqPtr, self._vthSqIdxr = nil, nil
 
@@ -214,9 +214,7 @@ function VmLBO:setAuxFields(auxFields)
    -- Single aux field that has the full u, vthSq (and nu) fields.
    self._u     = auxFields[1]
    self._vthSq = auxFields[2]
-   if self._varNu then
-      self._nu = auxFields[3]
-   end
+   self._nu    = auxFields[3]
 
    if self._isFirst then
       -- Allocate pointers to field object.
@@ -229,6 +227,8 @@ function VmLBO:setAuxFields(auxFields)
       if self._varNu then
          self._nuPtr  = self._nu:get(1)
          self._nuIdxr = self._nu:genIndexer()
+      else
+         self._inNu   = self._nu
       end
 
       self._isFirst = false -- No longer first time.
