@@ -1,18 +1,19 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
   double dfac_y = 2.0/dxv[1]; 
   double wx = w[0]; 
   double wy = w[1]; 
+  double dfac_x2 = dfac_x*dfac_x; 
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = 0.125*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y; 
+  double alpha0 = -0.125*geoZ[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
 
   double alpha[2]; 
-  alpha[0] = 0.3535533905932737*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y; 
+  alpha[0] = -0.3535533905932737*geoZ[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.3535533905932737*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_x; 
@@ -28,6 +29,7 @@ double GyrokineticSurf2x0vSer_X_P1_Bvars_0(const double q_, const double m_, con
 #elif upwindType == QUAD 
 double fupwind[4];
 double fupwindQuad[4];
+double limQuad[4];
   if(0.7071067811865475*alpha[0] > 0) {
   fupwindQuad[0] = 0.5*(fl[1]+fl[0])-0.5*(fl[3]+fl[2]); 
   } else {
@@ -69,20 +71,21 @@ double fupwindQuad[4];
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
   double dfac_y = 2.0/dxv[1]; 
   double wx = w[0]; 
   double wy = w[1]; 
+  double dfac_x2 = dfac_x*dfac_x; 
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -0.125*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[1])*dfac_x; 
+  double alpha0 = 0.125*geoZ[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
 
   double alpha[2]; 
-  alpha[0] = -0.3535533905932737*BmagInv[0]*(3.0*Phi[3]-1.732050807568877*Phi[1])*dfac_x; 
+  alpha[0] = 0.3535533905932737*geoZ[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.3535533905932737*alpha[0]*(1.732050807568877*fl[2]+fl[0])*dfac_y; 
@@ -98,6 +101,7 @@ double GyrokineticSurf2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, con
 #elif upwindType == QUAD 
 double fupwind[4];
 double fupwindQuad[4];
+double limQuad[4];
   if(0.7071067811865475*alpha[0] > 0) {
   fupwindQuad[0] = (-0.5*fl[3])+0.5*fl[2]-0.5*fl[1]+0.5*fl[0]; 
   } else {
