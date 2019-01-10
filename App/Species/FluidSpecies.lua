@@ -42,7 +42,6 @@ end
 function FluidSpecies:fullInit(appTbl)
    local tbl = self.tbl -- previously store table
 
-   self.name = "name"
    self.cfl =  0.1
    self.charge = tbl.charge and tbl.charge or 1.0
    self.mass = tbl.mass and tbl.mass or 1.0
