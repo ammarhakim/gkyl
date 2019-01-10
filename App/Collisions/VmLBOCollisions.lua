@@ -100,18 +100,27 @@ function VmLBOCollisions:fullInit(speciesTbl)
    end
 
    if self.crossCollisions then
-      self.charge      = speciesTbl.mass  -- Charge of this species.
-      -- For now, crossMomOp=Greene is the only option.
-      --self.crossMomOp  = assert(tbl.crossMomOp, "App.VmLBOCollisions: Must specify 'crossMomOp' (Greene, GreeneSmallAngle, GreeneSmallAngleLimit), formulas used to calculate cross-species primitive moments.")
-      self.crossMomOp = "Greene"
-      if self.crossMomOp=="Greene" then
-         self.beta = assert(tbl.betaGreene, "App.VmLBOCollisions: Must specify 'betaGreene' free parameter in Grene cross-species collisions.")
+      self.charge      = speciesTbl.mass    -- Charge of this species.
+      local crossOpIn = tbl.crossOption     -- Can specify 'crossOption' (Greene, GreeneSmallAngle, HeavyIons), formulas used to calculate cross-species primitive moments.
+      if crossMomOp then
+         self.crossMomOp  = crossOpIn
+         if self.crossMomOp=="Greene" then
+            local betaIn = tbl.betaGreene   -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
+            if betaIn then
+               self.beta = betaIn
+            else
+               self.beta = 1.0   -- Default value is the heavy ion, quasineutral limit.
+            end
+         else
+            self.beta = 0.0   -- Default value is the heavy ion, quasineutral limit.
+         end
       else
-         self.beta = 1.0   -- Default value is the heavy ion, quasineutral limit.
+         self.crossMomOp  = "Greene"    -- Default to Greene-type formulas.
+         self.beta        = 1.0         -- Default value is the heavy ion, quasineutral limit.
       end
    end
 
-   self.mass           = speciesTbl.mass  -- Mass of this species.
+   self.mass = speciesTbl.mass    -- Mass of this species.
 
    self.tmEvalMom = 0.0
 end
@@ -362,17 +371,6 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
 
       for sInd, otherNm in ipairs(self.crossSpecies) do
-         -- Compute m1/m2, where m1 is the mass of the negative-charge species.
-         -- Also set the subscripts of the collision term (12 or 21, where 1
-         -- is the negative species)
-         local m1Dm2, termSub
-         if self.charge>0.0 then
-           m1Dm2   = species[otherNm]:getMass()/self.mass
-           collSub = "12"
-         else
-           m1Dm2   = self.mass/species[otherNm]:getMass()
-           collSub = "21"
-         end
          -- Obtain coupling moments of other species.
          local otherMom = species[otherNm]:fluidMoments()
          -- Compute primitive moments, u and vtSq, of other species.
@@ -382,10 +380,22 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
                                       -1.0/self.vdim, self.kinEnergyDens )
          self.confDiv:advance(0., {otherMom[1], self.thermEnergyDens}, {self.vthSqOther})
 
-         -- Calculate cross-species primitive moment, u_12 and vtSq_12, or u_21 and vtSq_21.
-         self.primMomCross:advance(0., {collSub, m1Dm2, selfMom[1], self.velocity, self.vthSq,
+         -- Set the subscripts of the collision term (12 or 21).
+         -- For "HeavyIons" species 1 is the lighter one.
+         local collSub
+         local mRat = species[otherNm]:getMass()/self.mass
+         if mRat <= 1 then
+            collSub = "12"
+         else
+            collSub = "21"
+         end
+         -- Get cross-species primitive moments, u_12 and vtSq_12, or u_21 and vtSq_21.
+         -- This updater expects inputs in the order:
+         -- collSub, mRat, nSelf, uSelf, vtSqSelf, nOther, uOther, vtSqOther.
+         self.primMomCross:advance(0., {collSub, mRat, selfMom[1], self.velocity, self.vthSq,
                                         otherMom[1], self.uOther, self.vthSqOther},
                                        {self.uCross, self.vthSqCross})
+
          if self.varNu then
             -- Compute the collisionality.
             self.spitzerNu:advance(0., {self.mass, self.normNuCross[sInd], otherMom[1], self.vthSq}, {self.collFreq})

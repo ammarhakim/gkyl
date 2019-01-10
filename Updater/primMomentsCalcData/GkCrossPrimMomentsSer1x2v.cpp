@@ -2,7 +2,7 @@
  
 using namespace Eigen; 
  
-void VmCrossPrimMomentsGreene1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMomentsGreene1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -41,12 +41,12 @@ void VmCrossPrimMomentsGreene1x2vSer_P1(const double mRat, const double beta, co
  
   double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
   // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = (vtSqOther[0]+0.5*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
-  vtSqCross[1] = (vtSqOther[1]+0.5*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
+  vtSqCross[0] = (vtSqOther[0]+0.3333333333333333*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
+  vtSqCross[1] = (vtSqOther[1]+0.3333333333333333*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
  
 } 
  
-void VmCrossPrimMomentsGreene1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMomentsGreene1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -89,13 +89,13 @@ void VmCrossPrimMomentsGreene1x2vSer_P2(const double mRat, const double beta, co
  
   double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
   // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = (vtSqOther[0]+0.5*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
-  vtSqCross[1] = (vtSqOther[1]+0.5*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
-  vtSqCross[2] = (vtSqOther[2]+0.5*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
+  vtSqCross[0] = (vtSqOther[0]+0.3333333333333333*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
+  vtSqCross[1] = (vtSqOther[1]+0.3333333333333333*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
+  vtSqCross[2] = (vtSqOther[2]+0.3333333333333333*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
  
 } 
  
-void VmCrossPrimMomentsGreene1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMomentsGreene1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -142,14 +142,14 @@ void VmCrossPrimMomentsGreene1x2vSer_P3(const double mRat, const double beta, co
  
   double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
   // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = (vtSqOther[0]+0.5*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
-  vtSqCross[1] = (vtSqOther[1]+0.5*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
-  vtSqCross[2] = (vtSqOther[2]+0.5*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
-  vtSqCross[3] = (vtSqOther[3]+0.5*uSMuOSq[3])*mBetaFrac*mRat-1.0*vtSqSelf[3]*mBetaFrac+vtSqSelf[3]; 
+  vtSqCross[0] = (vtSqOther[0]+0.3333333333333333*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
+  vtSqCross[1] = (vtSqOther[1]+0.3333333333333333*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
+  vtSqCross[2] = (vtSqOther[2]+0.3333333333333333*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
+  vtSqCross[3] = (vtSqOther[3]+0.3333333333333333*uSMuOSq[3])*mBetaFrac*mRat-1.0*vtSqSelf[3]*mBetaFrac+vtSqSelf[3]; 
  
 } 
  
-void VmCrossPrimMomentsHeavyIon1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMomentsHeavyIon1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -187,12 +187,12 @@ void VmCrossPrimMomentsHeavyIon1x2vSer_P1(const double mRat, const double beta, 
   } 
  
   // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = 0.5*uSMuOSq[0]*mRat+vtSqSelf[0]; 
-  vtSqCross[1] = 0.5*uSMuOSq[1]*mRat+vtSqSelf[1]; 
+  vtSqCross[0] = 0.3333333333333333*uSMuOSq[0]*mRat+vtSqSelf[0]; 
+  vtSqCross[1] = 0.3333333333333333*uSMuOSq[1]*mRat+vtSqSelf[1]; 
  
 } 
  
-void VmCrossPrimMomentsHeavyIon1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMomentsHeavyIon1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -234,13 +234,13 @@ void VmCrossPrimMomentsHeavyIon1x2vSer_P2(const double mRat, const double beta, 
   } 
  
   // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = 0.5*uSMuOSq[0]*mRat+vtSqSelf[0]; 
-  vtSqCross[1] = 0.5*uSMuOSq[1]*mRat+vtSqSelf[1]; 
-  vtSqCross[2] = 0.5*uSMuOSq[2]*mRat+vtSqSelf[2]; 
+  vtSqCross[0] = 0.3333333333333333*uSMuOSq[0]*mRat+vtSqSelf[0]; 
+  vtSqCross[1] = 0.3333333333333333*uSMuOSq[1]*mRat+vtSqSelf[1]; 
+  vtSqCross[2] = 0.3333333333333333*uSMuOSq[2]*mRat+vtSqSelf[2]; 
  
 } 
  
-void VmCrossPrimMomentsHeavyIon1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMomentsHeavyIon1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -286,10 +286,10 @@ void VmCrossPrimMomentsHeavyIon1x2vSer_P3(const double mRat, const double beta, 
   } 
  
   // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = 0.5*uSMuOSq[0]*mRat+vtSqSelf[0]; 
-  vtSqCross[1] = 0.5*uSMuOSq[1]*mRat+vtSqSelf[1]; 
-  vtSqCross[2] = 0.5*uSMuOSq[2]*mRat+vtSqSelf[2]; 
-  vtSqCross[3] = 0.5*uSMuOSq[3]*mRat+vtSqSelf[3]; 
+  vtSqCross[0] = 0.3333333333333333*uSMuOSq[0]*mRat+vtSqSelf[0]; 
+  vtSqCross[1] = 0.3333333333333333*uSMuOSq[1]*mRat+vtSqSelf[1]; 
+  vtSqCross[2] = 0.3333333333333333*uSMuOSq[2]*mRat+vtSqSelf[2]; 
+  vtSqCross[3] = 0.3333333333333333*uSMuOSq[3]*mRat+vtSqSelf[3]; 
  
 } 
  
