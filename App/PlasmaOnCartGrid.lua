@@ -489,15 +489,18 @@ local function buildApplication(self, tbl)
    end
 
    -- update solution in specified direction
-   local function updateInDirection(dir, tCurr, dt)
+   local function updateInDirection(dir, tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
 
+      local tryInv_next = {}
       -- update species
       for nm, s in pairs(species) do
 	 local vars = s:rkStepperFields()
 	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
-	 local myStatus, myDtSuggested = s:updateInDirection(dir, tCurr, dt, inp, out)
+	 local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
+       dir, tCurr, dt, inp, out, tryInv[s])
+    tryInv_next[s] = myTryInv
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
@@ -510,7 +513,7 @@ local function buildApplication(self, tbl)
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
-      return status, dtSuggested
+      return status, dtSuggested, tryInv_next
    end
 
    -- update sources
@@ -535,7 +538,7 @@ local function buildApplication(self, tbl)
    end
 
    -- function to advance solution using FV dimensionally split scheme
-   function timeSteppers.fvDimSplit(tCurr, dt)
+   function timeSteppers.fvDimSplit(tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields      
 
@@ -550,14 +553,37 @@ local function buildApplication(self, tbl)
       end
 
       -- update solution in each direction
+      local isInv = true
       for d = 1, cdim do
-	 local myStatus, myDtSuggested = updateInDirection(d, tCurr, dt)
+	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+    if not status then
+       log(" ** Time step too large! Aborting this step!")
+       break
+    else
+       for nm, s in pairs(species) do
+          if myTryInv[s] then
+             isInv = false
+             tryInv[s] = true
+             log(string.format(
+               " ** Invalid values in %s; Will re-update using Lax flux", nm))
+          end
+       end
+       if not isInv then
+          log(" ** Invalid values detected! Aborting this step!")
+          break
+       end
+    end
+      end
+      if isInv then
+         for nm, s in pairs(species) do
+            tryInv[s] = false
+         end
       end
 
       -- update source by half time-step
-      if status then
+      if status and isInv then
 	 local myStatus, myDtSuggested
 	 if fIdx[cdim][2] == 2 then
 	    myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
@@ -568,7 +594,7 @@ local function buildApplication(self, tbl)
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
-      if not status then
+      if not (status and isInv) then
 	 copy(1, 3) -- restore old solution in case of failure
       else
 	 -- if solution not already in field[1], copy for use in next
@@ -576,7 +602,7 @@ local function buildApplication(self, tbl)
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
       
-      return status, dtSuggested
+      return status, dtSuggested, isInv
    end
 
    local tmEnd = Time.clock()
@@ -653,12 +679,20 @@ local function buildApplication(self, tbl)
       local failcount = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
+      -- for the fvDimSplit updater, tryInv contains for indicators for each
+      -- species whether the domain-invariant equation should be used in the
+      -- next step; they might be changed during fvDimSplit calls
+      local tryInv = {}
+      for _, s in pairs(species) do
+         tryInv[s] = false
+      end
+      local isInv = true
       -- main simulation loop
       while true do
 	 -- call time-stepper
          local status, dtSuggested
          if timeStepperNm == "fvDimSplit" then
-	    status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
+	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
          else
             status, myDt = timeSteppers[timeStepperNm](tCurr)
             dtSuggested = myDt
@@ -672,7 +706,7 @@ local function buildApplication(self, tbl)
          end
 
 	 -- check status and determine what to do next
-	 if status then
+	 if status and isInv then
             if first then 
                log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
                initDt = dtSuggested; first = false
@@ -696,8 +730,11 @@ local function buildApplication(self, tbl)
 	    if (tCurr >= tEnd) then
 	       break
 	    end
-	 else
+	 elseif not status then
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
+	    myDt = dtSuggested
+	 elseif not isInv then
+	    log (string.format(" ** Invalid values detected! Will retake with dt %g\n", dtSuggested))
 	    myDt = dtSuggested
 	 end
 
