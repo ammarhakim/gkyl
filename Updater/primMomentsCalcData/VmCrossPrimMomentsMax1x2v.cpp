@@ -2,7 +2,7 @@
  
 using namespace Eigen; 
  
-void VmCrossPrimMomentsGreene1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsGreene1x2vMax_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -46,7 +46,7 @@ void VmCrossPrimMomentsGreene1x2vSer_P1(const double mRat, const double beta, co
  
 } 
  
-void VmCrossPrimMomentsGreene1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsGreene1x2vMax_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -95,7 +95,7 @@ void VmCrossPrimMomentsGreene1x2vSer_P2(const double mRat, const double beta, co
  
 } 
  
-void VmCrossPrimMomentsGreene1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsGreene1x2vMax_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -149,7 +149,7 @@ void VmCrossPrimMomentsGreene1x2vSer_P3(const double mRat, const double beta, co
  
 } 
  
-void VmCrossPrimMomentsHeavyIon1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsHeavyIon1x2vMax_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -192,7 +192,7 @@ void VmCrossPrimMomentsHeavyIon1x2vSer_P1(const double mRat, const double beta, 
  
 } 
  
-void VmCrossPrimMomentsHeavyIon1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsHeavyIon1x2vMax_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
@@ -240,7 +240,7 @@ void VmCrossPrimMomentsHeavyIon1x2vSer_P2(const double mRat, const double beta, 
  
 } 
  
-void VmCrossPrimMomentsHeavyIon1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsHeavyIon1x2vMax_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
   // mRat:              mass ratio = m_other/m_self. 
   // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 

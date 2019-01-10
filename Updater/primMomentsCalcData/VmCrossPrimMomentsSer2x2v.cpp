@@ -2,259 +2,444 @@
  
 using namespace Eigen; 
  
-void VmCrossPrimMomentsGreene2x2vSer12_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsGreene2x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
-  // mRat:          mass ratio = m_1/m_2. 
-  // n1, u1, vtSq1: number density, bulk flow velocity and T_1/m_1 of first species. 
-  // n2, u2, vtSq2: number density, bulk flow velocity and T_1/m_1 of second species. 
-  // uCross:        bulk flow velocity for cross-species collision term. 
-  // vtSqCross:     squared thermal speed for cross-species collision term. 
+  // mRat:              mass ratio = m_other/m_self. 
+  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
+  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
+  // uCross:            bulk flow velocity for cross-species collision term. 
+  // vtSqCross:         squared thermal speed for cross-species collision term. 
  
-  // ..... Compute and save the relative velocity u1-u2 ..... // 
-  double u1Mu2[8]; 
-  u1Mu2[0] = u1[0]-1.0*u2[0]; 
-  u1Mu2[1] = u1[1]-1.0*u2[1]; 
-  u1Mu2[2] = u1[2]-1.0*u2[2]; 
-  u1Mu2[3] = u1[3]-1.0*u2[3]; 
-  u1Mu2[4] = u1[4]-1.0*u2[4]; 
-  u1Mu2[5] = u1[5]-1.0*u2[5]; 
-  u1Mu2[6] = u1[6]-1.0*u2[6]; 
-  u1Mu2[7] = u1[7]-1.0*u2[7]; 
+  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
+  double uSMuO[8]; 
+  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
+  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
+  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
+  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
+  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
+  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
+  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
+  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
  
-  // ..... Get the relative speed squared (u1-u2)^2 ..... // 
-  double u1Mu2Sq[4]; 
+  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
+  double uSMuOSq[4]; 
   for (unsigned short int k=0; k<4; k++) 
   { 
-    u1Mu2Sq[k] = 0.0; 
+    uSMuOSq[k] = 0.0; 
   } 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
-    u1Mu2Sq[0] += 0.5*u1Mu2[a0+3]*u1Mu2[a0+3]+0.5*u1Mu2[a0+2]*u1Mu2[a0+2]+0.5*u1Mu2[a0+1]*u1Mu2[a0+1]+0.5*u1Mu2[a0]*u1Mu2[a0]; 
-    u1Mu2Sq[1] += u1Mu2[a0+2]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+1]; 
-    u1Mu2Sq[2] += u1Mu2[a0+1]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+2]; 
-    u1Mu2Sq[3] += u1Mu2[a0]*u1Mu2[a0+3]+u1Mu2[a0+1]*u1Mu2[a0+2]; 
+    uSMuOSq[0] += 0.5*uSMuO[a0+3]*uSMuO[a0+3]+0.5*uSMuO[a0+2]*uSMuO[a0+2]+0.5*uSMuO[a0+1]*uSMuO[a0+1]+0.5*uSMuO[a0]*uSMuO[a0]; 
+    uSMuOSq[1] += uSMuO[a0+2]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+1]; 
+    uSMuOSq[2] += uSMuO[a0+1]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+2]; 
+    uSMuOSq[3] += uSMuO[a0]*uSMuO[a0+3]+uSMuO[a0+1]*uSMuO[a0+2]; 
   } 
  
-  // ..... Get the relative flow velocity u12 ..... // 
+  // ..... Get the cross flow velocity uSelf2 ..... // 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
-    uCross[a0] = 0.5*(u2[a0]+u1[a0])-0.5*u1Mu2[a0]*beta; 
-    uCross[a0+1] = 0.5*(u2[a0+1]+u1[a0+1])-0.5*u1Mu2[a0+1]*beta; 
-    uCross[a0+2] = 0.5*(u2[a0+2]+u1[a0+2])-0.5*u1Mu2[a0+2]*beta; 
-    uCross[a0+3] = 0.5*(u2[a0+3]+u1[a0+3])-0.5*u1Mu2[a0+3]*beta; 
+    uCross[a0] = 0.5*(uSelf[a0]+uOther[a0])-0.5*uSMuO[a0]*beta; 
+    uCross[a0+1] = 0.5*(uSelf[a0+1]+uOther[a0+1])-0.5*uSMuO[a0+1]*beta; 
+    uCross[a0+2] = 0.5*(uSelf[a0+2]+uOther[a0+2])-0.5*uSMuO[a0+2]*beta; 
+    uCross[a0+3] = 0.5*(uSelf[a0+3]+uOther[a0+3])-0.5*uSMuO[a0+3]*beta; 
  
   } 
  
-  double mBetaFrac = (beta+1.0)/(m1Dm2+1.0); 
-  // ..... Get the relative thermal speed squared vtSq12 ..... // 
-  vtSqCross[0] = ((-1.0*vtSq1[0])-0.08333333333333333*u1Mu2Sq[0])*m1Dm2*mBetaFrac+(vtSq2[0]+0.25*u1Mu2Sq[0])*mBetaFrac+vtSq1[0]; 
-  vtSqCross[1] = ((-1.0*vtSq1[1])-0.08333333333333333*u1Mu2Sq[1])*m1Dm2*mBetaFrac+(vtSq2[1]+0.25*u1Mu2Sq[1])*mBetaFrac+vtSq1[1]; 
-  vtSqCross[2] = ((-1.0*vtSq1[2])-0.08333333333333333*u1Mu2Sq[2])*m1Dm2*mBetaFrac+(vtSq2[2]+0.25*u1Mu2Sq[2])*mBetaFrac+vtSq1[2]; 
-  vtSqCross[3] = ((-1.0*vtSq1[3])-0.08333333333333333*u1Mu2Sq[3])*m1Dm2*mBetaFrac+(vtSq2[3]+0.25*u1Mu2Sq[3])*mBetaFrac+vtSq1[3]; 
+  double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
+  // ..... Get the cross thermal speed squared vtSqCross ..... // 
+  vtSqCross[0] = (vtSqOther[0]+0.5*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
+  vtSqCross[1] = (vtSqOther[1]+0.5*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
+  vtSqCross[2] = (vtSqOther[2]+0.5*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
+  vtSqCross[3] = (vtSqOther[3]+0.5*uSMuOSq[3])*mBetaFrac*mRat-1.0*vtSqSelf[3]*mBetaFrac+vtSqSelf[3]; 
  
 } 
  
-void VmCrossPrimMomentsGreene2x2vSer21_P1(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsGreene2x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
-  // mRat:          mass ratio = m_1/m_2. 
-  // n1, u1, vtSq1: number density, bulk flow velocity and T_1/m_1 of first species. 
-  // n2, u2, vtSq2: number density, bulk flow velocity and T_1/m_1 of second species. 
-  // uCross:        bulk flow velocity for cross-species collision term. 
-  // vtSqCross:     squared thermal speed for cross-species collision term. 
+  // mRat:              mass ratio = m_other/m_self. 
+  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
+  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
+  // uCross:            bulk flow velocity for cross-species collision term. 
+  // vtSqCross:         squared thermal speed for cross-species collision term. 
  
-  // ..... Compute and save the relative velocity u1-u2 ..... // 
-  double u1Mu2[8]; 
-  u1Mu2[0] = u1[0]-1.0*u2[0]; 
-  u1Mu2[1] = u1[1]-1.0*u2[1]; 
-  u1Mu2[2] = u1[2]-1.0*u2[2]; 
-  u1Mu2[3] = u1[3]-1.0*u2[3]; 
-  u1Mu2[4] = u1[4]-1.0*u2[4]; 
-  u1Mu2[5] = u1[5]-1.0*u2[5]; 
-  u1Mu2[6] = u1[6]-1.0*u2[6]; 
-  u1Mu2[7] = u1[7]-1.0*u2[7]; 
+  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
+  double uSMuO[16]; 
+  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
+  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
+  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
+  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
+  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
+  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
+  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
+  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
+  uSMuO[8] = uSelf[8]-1.0*uOther[8]; 
+  uSMuO[9] = uSelf[9]-1.0*uOther[9]; 
+  uSMuO[10] = uSelf[10]-1.0*uOther[10]; 
+  uSMuO[11] = uSelf[11]-1.0*uOther[11]; 
+  uSMuO[12] = uSelf[12]-1.0*uOther[12]; 
+  uSMuO[13] = uSelf[13]-1.0*uOther[13]; 
+  uSMuO[14] = uSelf[14]-1.0*uOther[14]; 
+  uSMuO[15] = uSelf[15]-1.0*uOther[15]; 
  
-  // ..... Get the relative speed squared (u1-u2)^2 ..... // 
-  double u1Mu2Sq[4]; 
+  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
+  double uSMuOSq[8]; 
+  for (unsigned short int k=0; k<8; k++) 
+  { 
+    uSMuOSq[k] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    unsigned short int a0 = 8*vd; 
+    uSMuOSq[0] += 0.5*uSMuO[a0+7]*uSMuO[a0+7]+0.5*uSMuO[a0+6]*uSMuO[a0+6]+0.5*uSMuO[a0+5]*uSMuO[a0+5]+0.5*uSMuO[a0+4]*uSMuO[a0+4]+0.5*uSMuO[a0+3]*uSMuO[a0+3]+0.5*uSMuO[a0+2]*uSMuO[a0+2]+0.5*uSMuO[a0+1]*uSMuO[a0+1]+0.5*uSMuO[a0]*uSMuO[a0]; 
+    uSMuOSq[1] += 1.0*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+1]*uSMuO[a0+4]+uSMuO[a0+2]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+1]; 
+    uSMuOSq[2] += 0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+7]+1.0*uSMuO[a0+4]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+2]*uSMuO[a0+5]+uSMuO[a0+1]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+2]; 
+    uSMuOSq[3] += 0.8*uSMuO[a0+6]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+5]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+3]+uSMuO[a0+1]*uSMuO[a0+2]; 
+    uSMuOSq[4] += 0.4472135954999579*uSMuO[a0+7]*uSMuO[a0+7]+0.31943828249997*uSMuO[a0+6]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+4]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+4]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+1]*uSMuO[a0+1]; 
+    uSMuOSq[5] += 0.31943828249997*uSMuO[a0+7]*uSMuO[a0+7]+1.0*uSMuO[a0+1]*uSMuO[a0+7]+0.4472135954999579*uSMuO[a0+6]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+5]*uSMuO[a0+5]+uSMuO[a0]*uSMuO[a0+5]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+2]*uSMuO[a0+2]; 
+    uSMuOSq[6] += 0.8*uSMuO[a0+3]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+5]*uSMuO[a0+6]+0.6388765649999399*uSMuO[a0+4]*uSMuO[a0+6]+uSMuO[a0]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+4]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+3]; 
+    uSMuOSq[7] += 0.6388765649999399*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+4]*uSMuO[a0+7]+uSMuO[a0]*uSMuO[a0+7]+0.8*uSMuO[a0+3]*uSMuO[a0+6]+1.0*uSMuO[a0+1]*uSMuO[a0+5]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+3]; 
+  } 
+ 
+  // ..... Get the cross flow velocity uSelf2 ..... // 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    unsigned short int a0 = 8*vd; 
+    uCross[a0] = 0.5*(uSelf[a0]+uOther[a0])-0.5*uSMuO[a0]*beta; 
+    uCross[a0+1] = 0.5*(uSelf[a0+1]+uOther[a0+1])-0.5*uSMuO[a0+1]*beta; 
+    uCross[a0+2] = 0.5*(uSelf[a0+2]+uOther[a0+2])-0.5*uSMuO[a0+2]*beta; 
+    uCross[a0+3] = 0.5*(uSelf[a0+3]+uOther[a0+3])-0.5*uSMuO[a0+3]*beta; 
+    uCross[a0+4] = 0.5*(uSelf[a0+4]+uOther[a0+4])-0.5*uSMuO[a0+4]*beta; 
+    uCross[a0+5] = 0.5*(uSelf[a0+5]+uOther[a0+5])-0.5*uSMuO[a0+5]*beta; 
+    uCross[a0+6] = 0.5*(uSelf[a0+6]+uOther[a0+6])-0.5*uSMuO[a0+6]*beta; 
+    uCross[a0+7] = 0.5*(uSelf[a0+7]+uOther[a0+7])-0.5*uSMuO[a0+7]*beta; 
+ 
+  } 
+ 
+  double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
+  // ..... Get the cross thermal speed squared vtSqCross ..... // 
+  vtSqCross[0] = (vtSqOther[0]+0.5*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
+  vtSqCross[1] = (vtSqOther[1]+0.5*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
+  vtSqCross[2] = (vtSqOther[2]+0.5*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
+  vtSqCross[3] = (vtSqOther[3]+0.5*uSMuOSq[3])*mBetaFrac*mRat-1.0*vtSqSelf[3]*mBetaFrac+vtSqSelf[3]; 
+  vtSqCross[4] = (vtSqOther[4]+0.5*uSMuOSq[4])*mBetaFrac*mRat-1.0*vtSqSelf[4]*mBetaFrac+vtSqSelf[4]; 
+  vtSqCross[5] = (vtSqOther[5]+0.5*uSMuOSq[5])*mBetaFrac*mRat-1.0*vtSqSelf[5]*mBetaFrac+vtSqSelf[5]; 
+  vtSqCross[6] = (vtSqOther[6]+0.5*uSMuOSq[6])*mBetaFrac*mRat-1.0*vtSqSelf[6]*mBetaFrac+vtSqSelf[6]; 
+  vtSqCross[7] = (vtSqOther[7]+0.5*uSMuOSq[7])*mBetaFrac*mRat-1.0*vtSqSelf[7]*mBetaFrac+vtSqSelf[7]; 
+ 
+} 
+ 
+void VmCrossPrimMomentsGreene2x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+{ 
+  // mRat:              mass ratio = m_other/m_self. 
+  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
+  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
+  // uCross:            bulk flow velocity for cross-species collision term. 
+  // vtSqCross:         squared thermal speed for cross-species collision term. 
+ 
+  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
+  double uSMuO[24]; 
+  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
+  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
+  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
+  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
+  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
+  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
+  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
+  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
+  uSMuO[8] = uSelf[8]-1.0*uOther[8]; 
+  uSMuO[9] = uSelf[9]-1.0*uOther[9]; 
+  uSMuO[10] = uSelf[10]-1.0*uOther[10]; 
+  uSMuO[11] = uSelf[11]-1.0*uOther[11]; 
+  uSMuO[12] = uSelf[12]-1.0*uOther[12]; 
+  uSMuO[13] = uSelf[13]-1.0*uOther[13]; 
+  uSMuO[14] = uSelf[14]-1.0*uOther[14]; 
+  uSMuO[15] = uSelf[15]-1.0*uOther[15]; 
+  uSMuO[16] = uSelf[16]-1.0*uOther[16]; 
+  uSMuO[17] = uSelf[17]-1.0*uOther[17]; 
+  uSMuO[18] = uSelf[18]-1.0*uOther[18]; 
+  uSMuO[19] = uSelf[19]-1.0*uOther[19]; 
+  uSMuO[20] = uSelf[20]-1.0*uOther[20]; 
+  uSMuO[21] = uSelf[21]-1.0*uOther[21]; 
+  uSMuO[22] = uSelf[22]-1.0*uOther[22]; 
+  uSMuO[23] = uSelf[23]-1.0*uOther[23]; 
+ 
+  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
+  double uSMuOSq[12]; 
+  for (unsigned short int k=0; k<12; k++) 
+  { 
+    uSMuOSq[k] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    unsigned short int a0 = 12*vd; 
+    uSMuOSq[0] += 0.5*uSMuO[a0+11]*uSMuO[a0+11]+0.5*uSMuO[a0+10]*uSMuO[a0+10]+0.5*uSMuO[a0+9]*uSMuO[a0+9]+0.5*uSMuO[a0+8]*uSMuO[a0+8]+0.5*uSMuO[a0+7]*uSMuO[a0+7]+0.5*uSMuO[a0+6]*uSMuO[a0+6]+0.5*uSMuO[a0+5]*uSMuO[a0+5]+0.5*uSMuO[a0+4]*uSMuO[a0+4]+0.5*uSMuO[a0+3]*uSMuO[a0+3]+0.5*uSMuO[a0+2]*uSMuO[a0+2]+0.5*uSMuO[a0+1]*uSMuO[a0+1]+0.5*uSMuO[a0]*uSMuO[a0]; 
+    uSMuOSq[1] += 1.0*uSMuO[a0+9]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+6]*uSMuO[a0+10]+0.8783100656536796*uSMuO[a0+4]*uSMuO[a0+8]+1.0*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+1]*uSMuO[a0+4]+uSMuO[a0+2]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+1]; 
+    uSMuOSq[2] += 0.8783100656536798*uSMuO[a0+7]*uSMuO[a0+11]+1.0*uSMuO[a0+8]*uSMuO[a0+10]+0.8783100656536796*uSMuO[a0+5]*uSMuO[a0+9]+0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+7]+1.0*uSMuO[a0+4]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+2]*uSMuO[a0+5]+uSMuO[a0+1]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+2]; 
+    uSMuOSq[3] += 0.8783100656536798*uSMuO[a0+5]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+4]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+7]*uSMuO[a0+9]+0.8783100656536798*uSMuO[a0+6]*uSMuO[a0+8]+0.8*uSMuO[a0+6]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+5]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+3]+uSMuO[a0+1]*uSMuO[a0+2]; 
+    uSMuOSq[4] += 0.4472135954999579*uSMuO[a0+11]*uSMuO[a0+11]+0.2981423969999719*uSMuO[a0+10]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+10]+0.2981423969999719*uSMuO[a0+8]*uSMuO[a0+8]+0.8783100656536796*uSMuO[a0+1]*uSMuO[a0+8]+0.4472135954999579*uSMuO[a0+7]*uSMuO[a0+7]+0.31943828249997*uSMuO[a0+6]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+4]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+4]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+1]*uSMuO[a0+1]; 
+    uSMuOSq[5] += 0.2981423969999719*uSMuO[a0+11]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+11]+0.4472135954999579*uSMuO[a0+10]*uSMuO[a0+10]+0.2981423969999719*uSMuO[a0+9]*uSMuO[a0+9]+0.8783100656536796*uSMuO[a0+2]*uSMuO[a0+9]+0.31943828249997*uSMuO[a0+7]*uSMuO[a0+7]+1.0*uSMuO[a0+1]*uSMuO[a0+7]+0.4472135954999579*uSMuO[a0+6]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+5]*uSMuO[a0+5]+uSMuO[a0]*uSMuO[a0+5]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+2]*uSMuO[a0+2]; 
+    uSMuOSq[6] += 0.7855844048495726*uSMuO[a0+7]*uSMuO[a0+11]+0.5962847939999437*uSMuO[a0+8]*uSMuO[a0+10]+0.7855844048495726*uSMuO[a0+7]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+1]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+8]+0.8*uSMuO[a0+3]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+5]*uSMuO[a0+6]+0.6388765649999399*uSMuO[a0+4]*uSMuO[a0+6]+uSMuO[a0]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+4]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+3]; 
+    uSMuOSq[7] += 0.5962847939999437*uSMuO[a0+9]*uSMuO[a0+11]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+2]*uSMuO[a0+11]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+9]+0.6388765649999399*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+4]*uSMuO[a0+7]+uSMuO[a0]*uSMuO[a0+7]+0.8*uSMuO[a0+3]*uSMuO[a0+6]+1.0*uSMuO[a0+1]*uSMuO[a0+5]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+3]; 
+    uSMuOSq[8] += 0.5962847939999437*uSMuO[a0+6]*uSMuO[a0+10]+1.0*uSMuO[a0+2]*uSMuO[a0+10]+0.5962847939999438*uSMuO[a0+4]*uSMuO[a0+8]+uSMuO[a0]*uSMuO[a0+8]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+6]+0.8783100656536796*uSMuO[a0+1]*uSMuO[a0+4]; 
+    uSMuOSq[9] += 0.5962847939999437*uSMuO[a0+7]*uSMuO[a0+11]+1.0*uSMuO[a0+1]*uSMuO[a0+11]+0.5962847939999438*uSMuO[a0+5]*uSMuO[a0+9]+uSMuO[a0]*uSMuO[a0+9]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+7]+0.8783100656536796*uSMuO[a0+2]*uSMuO[a0+5]; 
+    uSMuOSq[10] += 0.8944271909999159*uSMuO[a0+5]*uSMuO[a0+10]+0.5962847939999438*uSMuO[a0+4]*uSMuO[a0+10]+uSMuO[a0]*uSMuO[a0+10]+0.5962847939999437*uSMuO[a0+6]*uSMuO[a0+8]+1.0*uSMuO[a0+2]*uSMuO[a0+8]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+7]+0.8783100656536798*uSMuO[a0+1]*uSMuO[a0+6]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+4]; 
+    uSMuOSq[11] += 0.5962847939999438*uSMuO[a0+5]*uSMuO[a0+11]+0.8944271909999159*uSMuO[a0+4]*uSMuO[a0+11]+uSMuO[a0]*uSMuO[a0+11]+0.5962847939999437*uSMuO[a0+7]*uSMuO[a0+9]+1.0*uSMuO[a0+1]*uSMuO[a0+9]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+7]+0.8783100656536798*uSMuO[a0+2]*uSMuO[a0+7]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+5]; 
+  } 
+ 
+  // ..... Get the cross flow velocity uSelf2 ..... // 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    unsigned short int a0 = 12*vd; 
+    uCross[a0] = 0.5*(uSelf[a0]+uOther[a0])-0.5*uSMuO[a0]*beta; 
+    uCross[a0+1] = 0.5*(uSelf[a0+1]+uOther[a0+1])-0.5*uSMuO[a0+1]*beta; 
+    uCross[a0+2] = 0.5*(uSelf[a0+2]+uOther[a0+2])-0.5*uSMuO[a0+2]*beta; 
+    uCross[a0+3] = 0.5*(uSelf[a0+3]+uOther[a0+3])-0.5*uSMuO[a0+3]*beta; 
+    uCross[a0+4] = 0.5*(uSelf[a0+4]+uOther[a0+4])-0.5*uSMuO[a0+4]*beta; 
+    uCross[a0+5] = 0.5*(uSelf[a0+5]+uOther[a0+5])-0.5*uSMuO[a0+5]*beta; 
+    uCross[a0+6] = 0.5*(uSelf[a0+6]+uOther[a0+6])-0.5*uSMuO[a0+6]*beta; 
+    uCross[a0+7] = 0.5*(uSelf[a0+7]+uOther[a0+7])-0.5*uSMuO[a0+7]*beta; 
+    uCross[a0+8] = 0.5*(uSelf[a0+8]+uOther[a0+8])-0.5*uSMuO[a0+8]*beta; 
+    uCross[a0+9] = 0.5*(uSelf[a0+9]+uOther[a0+9])-0.5*uSMuO[a0+9]*beta; 
+    uCross[a0+10] = 0.5*(uSelf[a0+10]+uOther[a0+10])-0.5*uSMuO[a0+10]*beta; 
+    uCross[a0+11] = 0.5*(uSelf[a0+11]+uOther[a0+11])-0.5*uSMuO[a0+11]*beta; 
+ 
+  } 
+ 
+  double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
+  // ..... Get the cross thermal speed squared vtSqCross ..... // 
+  vtSqCross[0] = (vtSqOther[0]+0.5*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
+  vtSqCross[1] = (vtSqOther[1]+0.5*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
+  vtSqCross[2] = (vtSqOther[2]+0.5*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
+  vtSqCross[3] = (vtSqOther[3]+0.5*uSMuOSq[3])*mBetaFrac*mRat-1.0*vtSqSelf[3]*mBetaFrac+vtSqSelf[3]; 
+  vtSqCross[4] = (vtSqOther[4]+0.5*uSMuOSq[4])*mBetaFrac*mRat-1.0*vtSqSelf[4]*mBetaFrac+vtSqSelf[4]; 
+  vtSqCross[5] = (vtSqOther[5]+0.5*uSMuOSq[5])*mBetaFrac*mRat-1.0*vtSqSelf[5]*mBetaFrac+vtSqSelf[5]; 
+  vtSqCross[6] = (vtSqOther[6]+0.5*uSMuOSq[6])*mBetaFrac*mRat-1.0*vtSqSelf[6]*mBetaFrac+vtSqSelf[6]; 
+  vtSqCross[7] = (vtSqOther[7]+0.5*uSMuOSq[7])*mBetaFrac*mRat-1.0*vtSqSelf[7]*mBetaFrac+vtSqSelf[7]; 
+  vtSqCross[8] = (vtSqOther[8]+0.5*uSMuOSq[8])*mBetaFrac*mRat-1.0*vtSqSelf[8]*mBetaFrac+vtSqSelf[8]; 
+  vtSqCross[9] = (vtSqOther[9]+0.5*uSMuOSq[9])*mBetaFrac*mRat-1.0*vtSqSelf[9]*mBetaFrac+vtSqSelf[9]; 
+  vtSqCross[10] = (vtSqOther[10]+0.5*uSMuOSq[10])*mBetaFrac*mRat-1.0*vtSqSelf[10]*mBetaFrac+vtSqSelf[10]; 
+  vtSqCross[11] = (vtSqOther[11]+0.5*uSMuOSq[11])*mBetaFrac*mRat-1.0*vtSqSelf[11]*mBetaFrac+vtSqSelf[11]; 
+ 
+} 
+ 
+void VmCrossPrimMomentsHeavyIon2x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+{ 
+  // mRat:              mass ratio = m_other/m_self. 
+  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
+  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
+  // uCross:            bulk flow velocity for cross-species collision term. 
+  // vtSqCross:         squared thermal speed for cross-species collision term. 
+ 
+  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
+  double uSMuO[8]; 
+  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
+  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
+  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
+  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
+  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
+  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
+  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
+  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
+ 
+  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
+  double uSMuOSq[4]; 
   for (unsigned short int k=0; k<4; k++) 
   { 
-    u1Mu2Sq[k] = 0.0; 
+    uSMuOSq[k] = 0.0; 
   } 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
-    u1Mu2Sq[0] += 0.5*u1Mu2[a0+3]*u1Mu2[a0+3]+0.5*u1Mu2[a0+2]*u1Mu2[a0+2]+0.5*u1Mu2[a0+1]*u1Mu2[a0+1]+0.5*u1Mu2[a0]*u1Mu2[a0]; 
-    u1Mu2Sq[1] += u1Mu2[a0+2]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+1]; 
-    u1Mu2Sq[2] += u1Mu2[a0+1]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+2]; 
-    u1Mu2Sq[3] += u1Mu2[a0]*u1Mu2[a0+3]+u1Mu2[a0+1]*u1Mu2[a0+2]; 
+    uSMuOSq[0] += 0.5*uSMuO[a0+3]*uSMuO[a0+3]+0.5*uSMuO[a0+2]*uSMuO[a0+2]+0.5*uSMuO[a0+1]*uSMuO[a0+1]+0.5*uSMuO[a0]*uSMuO[a0]; 
+    uSMuOSq[1] += uSMuO[a0+2]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+1]; 
+    uSMuOSq[2] += uSMuO[a0+1]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+2]; 
+    uSMuOSq[3] += uSMuO[a0]*uSMuO[a0+3]+uSMuO[a0+1]*uSMuO[a0+2]; 
   } 
  
-  // ..... Get the relative flow velocity u21 ..... // 
+  // ..... Get the cross flow velocity uCross ..... // 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
-    uCross[a0] = 0.5*(u1Mu2[a0]*beta+u2[a0]+u1[a0]); 
-    uCross[a0+1] = 0.5*(u1Mu2[a0+1]*beta+u2[a0+1]+u1[a0+1]); 
-    uCross[a0+2] = 0.5*(u1Mu2[a0+2]*beta+u2[a0+2]+u1[a0+2]); 
-    uCross[a0+3] = 0.5*(u1Mu2[a0+3]*beta+u2[a0+3]+u1[a0+3]); 
+    uCross[a0] = uOther[a0]; 
+    uCross[a0+1] = uOther[a0+1]; 
+    uCross[a0+2] = uOther[a0+2]; 
+    uCross[a0+3] = uOther[a0+3]; 
  
   } 
  
-  double mBetaFrac = (beta+1.0)/(m1Dm2+1.0); 
-  // ..... Get the relative thermal speed squared vtSq21 ..... // 
-  vtSqCross[0] = (vtSq1[0]+0.25*u1Mu2Sq[0])*m1Dm2*mBetaFrac+((-1.0*vtSq2[0])-0.08333333333333333*u1Mu2Sq[0])*mBetaFrac+vtSq2[0]; 
-  vtSqCross[1] = (vtSq1[1]+0.25*u1Mu2Sq[1])*m1Dm2*mBetaFrac+((-1.0*vtSq2[1])-0.08333333333333333*u1Mu2Sq[1])*mBetaFrac+vtSq2[1]; 
-  vtSqCross[2] = (vtSq1[2]+0.25*u1Mu2Sq[2])*m1Dm2*mBetaFrac+((-1.0*vtSq2[2])-0.08333333333333333*u1Mu2Sq[2])*mBetaFrac+vtSq2[2]; 
-  vtSqCross[3] = (vtSq1[3]+0.25*u1Mu2Sq[3])*m1Dm2*mBetaFrac+((-1.0*vtSq2[3])-0.08333333333333333*u1Mu2Sq[3])*mBetaFrac+vtSq2[3]; 
+  // ..... Get the cross thermal speed squared vtSqCross ..... // 
+  vtSqCross[0] = 0.5*uSMuOSq[0]*mRat+vtSqSelf[0]; 
+  vtSqCross[1] = 0.5*uSMuOSq[1]*mRat+vtSqSelf[1]; 
+  vtSqCross[2] = 0.5*uSMuOSq[2]*mRat+vtSqSelf[2]; 
+  vtSqCross[3] = 0.5*uSMuOSq[3]*mRat+vtSqSelf[3]; 
  
 } 
  
-void VmCrossPrimMomentsGreene2x2vSer12_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsHeavyIon2x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
-  // mRat:          mass ratio = m_1/m_2. 
-  // n1, u1, vtSq1: number density, bulk flow velocity and T_1/m_1 of first species. 
-  // n2, u2, vtSq2: number density, bulk flow velocity and T_1/m_1 of second species. 
-  // uCross:        bulk flow velocity for cross-species collision term. 
-  // vtSqCross:     squared thermal speed for cross-species collision term. 
+  // mRat:              mass ratio = m_other/m_self. 
+  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
+  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
+  // uCross:            bulk flow velocity for cross-species collision term. 
+  // vtSqCross:         squared thermal speed for cross-species collision term. 
  
-  // ..... Compute and save the relative velocity u1-u2 ..... // 
-  double u1Mu2[16]; 
-  u1Mu2[0] = u1[0]-1.0*u2[0]; 
-  u1Mu2[1] = u1[1]-1.0*u2[1]; 
-  u1Mu2[2] = u1[2]-1.0*u2[2]; 
-  u1Mu2[3] = u1[3]-1.0*u2[3]; 
-  u1Mu2[4] = u1[4]-1.0*u2[4]; 
-  u1Mu2[5] = u1[5]-1.0*u2[5]; 
-  u1Mu2[6] = u1[6]-1.0*u2[6]; 
-  u1Mu2[7] = u1[7]-1.0*u2[7]; 
-  u1Mu2[8] = u1[8]-1.0*u2[8]; 
-  u1Mu2[9] = u1[9]-1.0*u2[9]; 
-  u1Mu2[10] = u1[10]-1.0*u2[10]; 
-  u1Mu2[11] = u1[11]-1.0*u2[11]; 
-  u1Mu2[12] = u1[12]-1.0*u2[12]; 
-  u1Mu2[13] = u1[13]-1.0*u2[13]; 
-  u1Mu2[14] = u1[14]-1.0*u2[14]; 
-  u1Mu2[15] = u1[15]-1.0*u2[15]; 
+  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
+  double uSMuO[16]; 
+  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
+  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
+  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
+  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
+  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
+  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
+  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
+  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
+  uSMuO[8] = uSelf[8]-1.0*uOther[8]; 
+  uSMuO[9] = uSelf[9]-1.0*uOther[9]; 
+  uSMuO[10] = uSelf[10]-1.0*uOther[10]; 
+  uSMuO[11] = uSelf[11]-1.0*uOther[11]; 
+  uSMuO[12] = uSelf[12]-1.0*uOther[12]; 
+  uSMuO[13] = uSelf[13]-1.0*uOther[13]; 
+  uSMuO[14] = uSelf[14]-1.0*uOther[14]; 
+  uSMuO[15] = uSelf[15]-1.0*uOther[15]; 
  
-  // ..... Get the relative speed squared (u1-u2)^2 ..... // 
-  double u1Mu2Sq[8]; 
+  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
+  double uSMuOSq[8]; 
   for (unsigned short int k=0; k<8; k++) 
   { 
-    u1Mu2Sq[k] = 0.0; 
+    uSMuOSq[k] = 0.0; 
   } 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
     unsigned short int a0 = 8*vd; 
-    u1Mu2Sq[0] += 0.5*u1Mu2[a0+7]*u1Mu2[a0+7]+0.5*u1Mu2[a0+6]*u1Mu2[a0+6]+0.5*u1Mu2[a0+5]*u1Mu2[a0+5]+0.5*u1Mu2[a0+4]*u1Mu2[a0+4]+0.5*u1Mu2[a0+3]*u1Mu2[a0+3]+0.5*u1Mu2[a0+2]*u1Mu2[a0+2]+0.5*u1Mu2[a0+1]*u1Mu2[a0+1]+0.5*u1Mu2[a0]*u1Mu2[a0]; 
-    u1Mu2Sq[1] += 1.0*u1Mu2[a0+5]*u1Mu2[a0+7]+0.8944271909999161*u1Mu2[a0+3]*u1Mu2[a0+6]+0.8944271909999159*u1Mu2[a0+1]*u1Mu2[a0+4]+u1Mu2[a0+2]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+1]; 
-    u1Mu2Sq[2] += 0.8944271909999161*u1Mu2[a0+3]*u1Mu2[a0+7]+1.0*u1Mu2[a0+4]*u1Mu2[a0+6]+0.8944271909999159*u1Mu2[a0+2]*u1Mu2[a0+5]+u1Mu2[a0+1]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+2]; 
-    u1Mu2Sq[3] += 0.8*u1Mu2[a0+6]*u1Mu2[a0+7]+0.8944271909999161*u1Mu2[a0+2]*u1Mu2[a0+7]+0.8944271909999161*u1Mu2[a0+1]*u1Mu2[a0+6]+0.8944271909999159*u1Mu2[a0+3]*u1Mu2[a0+5]+0.8944271909999159*u1Mu2[a0+3]*u1Mu2[a0+4]+u1Mu2[a0]*u1Mu2[a0+3]+u1Mu2[a0+1]*u1Mu2[a0+2]; 
-    u1Mu2Sq[4] += 0.4472135954999579*u1Mu2[a0+7]*u1Mu2[a0+7]+0.31943828249997*u1Mu2[a0+6]*u1Mu2[a0+6]+1.0*u1Mu2[a0+2]*u1Mu2[a0+6]+0.31943828249997*u1Mu2[a0+4]*u1Mu2[a0+4]+u1Mu2[a0]*u1Mu2[a0+4]+0.4472135954999579*u1Mu2[a0+3]*u1Mu2[a0+3]+0.4472135954999579*u1Mu2[a0+1]*u1Mu2[a0+1]; 
-    u1Mu2Sq[5] += 0.31943828249997*u1Mu2[a0+7]*u1Mu2[a0+7]+1.0*u1Mu2[a0+1]*u1Mu2[a0+7]+0.4472135954999579*u1Mu2[a0+6]*u1Mu2[a0+6]+0.31943828249997*u1Mu2[a0+5]*u1Mu2[a0+5]+u1Mu2[a0]*u1Mu2[a0+5]+0.4472135954999579*u1Mu2[a0+3]*u1Mu2[a0+3]+0.4472135954999579*u1Mu2[a0+2]*u1Mu2[a0+2]; 
-    u1Mu2Sq[6] += 0.8*u1Mu2[a0+3]*u1Mu2[a0+7]+0.8944271909999159*u1Mu2[a0+5]*u1Mu2[a0+6]+0.6388765649999399*u1Mu2[a0+4]*u1Mu2[a0+6]+u1Mu2[a0]*u1Mu2[a0+6]+1.0*u1Mu2[a0+2]*u1Mu2[a0+4]+0.8944271909999161*u1Mu2[a0+1]*u1Mu2[a0+3]; 
-    u1Mu2Sq[7] += 0.6388765649999399*u1Mu2[a0+5]*u1Mu2[a0+7]+0.8944271909999159*u1Mu2[a0+4]*u1Mu2[a0+7]+u1Mu2[a0]*u1Mu2[a0+7]+0.8*u1Mu2[a0+3]*u1Mu2[a0+6]+1.0*u1Mu2[a0+1]*u1Mu2[a0+5]+0.8944271909999161*u1Mu2[a0+2]*u1Mu2[a0+3]; 
+    uSMuOSq[0] += 0.5*uSMuO[a0+7]*uSMuO[a0+7]+0.5*uSMuO[a0+6]*uSMuO[a0+6]+0.5*uSMuO[a0+5]*uSMuO[a0+5]+0.5*uSMuO[a0+4]*uSMuO[a0+4]+0.5*uSMuO[a0+3]*uSMuO[a0+3]+0.5*uSMuO[a0+2]*uSMuO[a0+2]+0.5*uSMuO[a0+1]*uSMuO[a0+1]+0.5*uSMuO[a0]*uSMuO[a0]; 
+    uSMuOSq[1] += 1.0*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+1]*uSMuO[a0+4]+uSMuO[a0+2]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+1]; 
+    uSMuOSq[2] += 0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+7]+1.0*uSMuO[a0+4]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+2]*uSMuO[a0+5]+uSMuO[a0+1]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+2]; 
+    uSMuOSq[3] += 0.8*uSMuO[a0+6]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+5]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+3]+uSMuO[a0+1]*uSMuO[a0+2]; 
+    uSMuOSq[4] += 0.4472135954999579*uSMuO[a0+7]*uSMuO[a0+7]+0.31943828249997*uSMuO[a0+6]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+4]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+4]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+1]*uSMuO[a0+1]; 
+    uSMuOSq[5] += 0.31943828249997*uSMuO[a0+7]*uSMuO[a0+7]+1.0*uSMuO[a0+1]*uSMuO[a0+7]+0.4472135954999579*uSMuO[a0+6]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+5]*uSMuO[a0+5]+uSMuO[a0]*uSMuO[a0+5]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+2]*uSMuO[a0+2]; 
+    uSMuOSq[6] += 0.8*uSMuO[a0+3]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+5]*uSMuO[a0+6]+0.6388765649999399*uSMuO[a0+4]*uSMuO[a0+6]+uSMuO[a0]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+4]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+3]; 
+    uSMuOSq[7] += 0.6388765649999399*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+4]*uSMuO[a0+7]+uSMuO[a0]*uSMuO[a0+7]+0.8*uSMuO[a0+3]*uSMuO[a0+6]+1.0*uSMuO[a0+1]*uSMuO[a0+5]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+3]; 
   } 
  
-  // ..... Get the relative flow velocity u12 ..... // 
+  // ..... Get the cross flow velocity uCross ..... // 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
     unsigned short int a0 = 8*vd; 
-    uCross[a0] = 0.5*(u2[a0]+u1[a0])-0.5*u1Mu2[a0]*beta; 
-    uCross[a0+1] = 0.5*(u2[a0+1]+u1[a0+1])-0.5*u1Mu2[a0+1]*beta; 
-    uCross[a0+2] = 0.5*(u2[a0+2]+u1[a0+2])-0.5*u1Mu2[a0+2]*beta; 
-    uCross[a0+3] = 0.5*(u2[a0+3]+u1[a0+3])-0.5*u1Mu2[a0+3]*beta; 
-    uCross[a0+4] = 0.5*(u2[a0+4]+u1[a0+4])-0.5*u1Mu2[a0+4]*beta; 
-    uCross[a0+5] = 0.5*(u2[a0+5]+u1[a0+5])-0.5*u1Mu2[a0+5]*beta; 
-    uCross[a0+6] = 0.5*(u2[a0+6]+u1[a0+6])-0.5*u1Mu2[a0+6]*beta; 
-    uCross[a0+7] = 0.5*(u2[a0+7]+u1[a0+7])-0.5*u1Mu2[a0+7]*beta; 
+    uCross[a0] = uOther[a0]; 
+    uCross[a0+1] = uOther[a0+1]; 
+    uCross[a0+2] = uOther[a0+2]; 
+    uCross[a0+3] = uOther[a0+3]; 
+    uCross[a0+4] = uOther[a0+4]; 
+    uCross[a0+5] = uOther[a0+5]; 
+    uCross[a0+6] = uOther[a0+6]; 
+    uCross[a0+7] = uOther[a0+7]; 
  
   } 
  
-  double mBetaFrac = (beta+1.0)/(m1Dm2+1.0); 
-  // ..... Get the relative thermal speed squared vtSq12 ..... // 
-  vtSqCross[0] = ((-1.0*vtSq1[0])-0.08333333333333333*u1Mu2Sq[0])*m1Dm2*mBetaFrac+(vtSq2[0]+0.25*u1Mu2Sq[0])*mBetaFrac+vtSq1[0]; 
-  vtSqCross[1] = ((-1.0*vtSq1[1])-0.08333333333333333*u1Mu2Sq[1])*m1Dm2*mBetaFrac+(vtSq2[1]+0.25*u1Mu2Sq[1])*mBetaFrac+vtSq1[1]; 
-  vtSqCross[2] = ((-1.0*vtSq1[2])-0.08333333333333333*u1Mu2Sq[2])*m1Dm2*mBetaFrac+(vtSq2[2]+0.25*u1Mu2Sq[2])*mBetaFrac+vtSq1[2]; 
-  vtSqCross[3] = ((-1.0*vtSq1[3])-0.08333333333333333*u1Mu2Sq[3])*m1Dm2*mBetaFrac+(vtSq2[3]+0.25*u1Mu2Sq[3])*mBetaFrac+vtSq1[3]; 
-  vtSqCross[4] = ((-1.0*vtSq1[4])-0.08333333333333333*u1Mu2Sq[4])*m1Dm2*mBetaFrac+(vtSq2[4]+0.25*u1Mu2Sq[4])*mBetaFrac+vtSq1[4]; 
-  vtSqCross[5] = ((-1.0*vtSq1[5])-0.08333333333333333*u1Mu2Sq[5])*m1Dm2*mBetaFrac+(vtSq2[5]+0.25*u1Mu2Sq[5])*mBetaFrac+vtSq1[5]; 
-  vtSqCross[6] = ((-1.0*vtSq1[6])-0.08333333333333333*u1Mu2Sq[6])*m1Dm2*mBetaFrac+(vtSq2[6]+0.25*u1Mu2Sq[6])*mBetaFrac+vtSq1[6]; 
-  vtSqCross[7] = ((-1.0*vtSq1[7])-0.08333333333333333*u1Mu2Sq[7])*m1Dm2*mBetaFrac+(vtSq2[7]+0.25*u1Mu2Sq[7])*mBetaFrac+vtSq1[7]; 
+  // ..... Get the cross thermal speed squared vtSqCross ..... // 
+  vtSqCross[0] = 0.5*uSMuOSq[0]*mRat+vtSqSelf[0]; 
+  vtSqCross[1] = 0.5*uSMuOSq[1]*mRat+vtSqSelf[1]; 
+  vtSqCross[2] = 0.5*uSMuOSq[2]*mRat+vtSqSelf[2]; 
+  vtSqCross[3] = 0.5*uSMuOSq[3]*mRat+vtSqSelf[3]; 
+  vtSqCross[4] = 0.5*uSMuOSq[4]*mRat+vtSqSelf[4]; 
+  vtSqCross[5] = 0.5*uSMuOSq[5]*mRat+vtSqSelf[5]; 
+  vtSqCross[6] = 0.5*uSMuOSq[6]*mRat+vtSqSelf[6]; 
+  vtSqCross[7] = 0.5*uSMuOSq[7]*mRat+vtSqSelf[7]; 
  
 } 
  
-void VmCrossPrimMomentsGreene2x2vSer21_P2(const double m1Dm2, const double beta, const double *n1, const double *u1, const double *vtSq1, const double *n2, const double *u2, const double *vtSq2, double *uCross, double *vtSqCross) 
+void VmCrossPrimMomentsHeavyIon2x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
 { 
-  // mRat:          mass ratio = m_1/m_2. 
-  // n1, u1, vtSq1: number density, bulk flow velocity and T_1/m_1 of first species. 
-  // n2, u2, vtSq2: number density, bulk flow velocity and T_1/m_1 of second species. 
-  // uCross:        bulk flow velocity for cross-species collision term. 
-  // vtSqCross:     squared thermal speed for cross-species collision term. 
+  // mRat:              mass ratio = m_other/m_self. 
+  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
+  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
+  // uCross:            bulk flow velocity for cross-species collision term. 
+  // vtSqCross:         squared thermal speed for cross-species collision term. 
  
-  // ..... Compute and save the relative velocity u1-u2 ..... // 
-  double u1Mu2[16]; 
-  u1Mu2[0] = u1[0]-1.0*u2[0]; 
-  u1Mu2[1] = u1[1]-1.0*u2[1]; 
-  u1Mu2[2] = u1[2]-1.0*u2[2]; 
-  u1Mu2[3] = u1[3]-1.0*u2[3]; 
-  u1Mu2[4] = u1[4]-1.0*u2[4]; 
-  u1Mu2[5] = u1[5]-1.0*u2[5]; 
-  u1Mu2[6] = u1[6]-1.0*u2[6]; 
-  u1Mu2[7] = u1[7]-1.0*u2[7]; 
-  u1Mu2[8] = u1[8]-1.0*u2[8]; 
-  u1Mu2[9] = u1[9]-1.0*u2[9]; 
-  u1Mu2[10] = u1[10]-1.0*u2[10]; 
-  u1Mu2[11] = u1[11]-1.0*u2[11]; 
-  u1Mu2[12] = u1[12]-1.0*u2[12]; 
-  u1Mu2[13] = u1[13]-1.0*u2[13]; 
-  u1Mu2[14] = u1[14]-1.0*u2[14]; 
-  u1Mu2[15] = u1[15]-1.0*u2[15]; 
+  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
+  double uSMuO[24]; 
+  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
+  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
+  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
+  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
+  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
+  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
+  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
+  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
+  uSMuO[8] = uSelf[8]-1.0*uOther[8]; 
+  uSMuO[9] = uSelf[9]-1.0*uOther[9]; 
+  uSMuO[10] = uSelf[10]-1.0*uOther[10]; 
+  uSMuO[11] = uSelf[11]-1.0*uOther[11]; 
+  uSMuO[12] = uSelf[12]-1.0*uOther[12]; 
+  uSMuO[13] = uSelf[13]-1.0*uOther[13]; 
+  uSMuO[14] = uSelf[14]-1.0*uOther[14]; 
+  uSMuO[15] = uSelf[15]-1.0*uOther[15]; 
+  uSMuO[16] = uSelf[16]-1.0*uOther[16]; 
+  uSMuO[17] = uSelf[17]-1.0*uOther[17]; 
+  uSMuO[18] = uSelf[18]-1.0*uOther[18]; 
+  uSMuO[19] = uSelf[19]-1.0*uOther[19]; 
+  uSMuO[20] = uSelf[20]-1.0*uOther[20]; 
+  uSMuO[21] = uSelf[21]-1.0*uOther[21]; 
+  uSMuO[22] = uSelf[22]-1.0*uOther[22]; 
+  uSMuO[23] = uSelf[23]-1.0*uOther[23]; 
  
-  // ..... Get the relative speed squared (u1-u2)^2 ..... // 
-  double u1Mu2Sq[8]; 
-  for (unsigned short int k=0; k<8; k++) 
+  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
+  double uSMuOSq[12]; 
+  for (unsigned short int k=0; k<12; k++) 
   { 
-    u1Mu2Sq[k] = 0.0; 
+    uSMuOSq[k] = 0.0; 
   } 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
-    unsigned short int a0 = 8*vd; 
-    u1Mu2Sq[0] += 0.5*u1Mu2[a0+7]*u1Mu2[a0+7]+0.5*u1Mu2[a0+6]*u1Mu2[a0+6]+0.5*u1Mu2[a0+5]*u1Mu2[a0+5]+0.5*u1Mu2[a0+4]*u1Mu2[a0+4]+0.5*u1Mu2[a0+3]*u1Mu2[a0+3]+0.5*u1Mu2[a0+2]*u1Mu2[a0+2]+0.5*u1Mu2[a0+1]*u1Mu2[a0+1]+0.5*u1Mu2[a0]*u1Mu2[a0]; 
-    u1Mu2Sq[1] += 1.0*u1Mu2[a0+5]*u1Mu2[a0+7]+0.8944271909999161*u1Mu2[a0+3]*u1Mu2[a0+6]+0.8944271909999159*u1Mu2[a0+1]*u1Mu2[a0+4]+u1Mu2[a0+2]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+1]; 
-    u1Mu2Sq[2] += 0.8944271909999161*u1Mu2[a0+3]*u1Mu2[a0+7]+1.0*u1Mu2[a0+4]*u1Mu2[a0+6]+0.8944271909999159*u1Mu2[a0+2]*u1Mu2[a0+5]+u1Mu2[a0+1]*u1Mu2[a0+3]+u1Mu2[a0]*u1Mu2[a0+2]; 
-    u1Mu2Sq[3] += 0.8*u1Mu2[a0+6]*u1Mu2[a0+7]+0.8944271909999161*u1Mu2[a0+2]*u1Mu2[a0+7]+0.8944271909999161*u1Mu2[a0+1]*u1Mu2[a0+6]+0.8944271909999159*u1Mu2[a0+3]*u1Mu2[a0+5]+0.8944271909999159*u1Mu2[a0+3]*u1Mu2[a0+4]+u1Mu2[a0]*u1Mu2[a0+3]+u1Mu2[a0+1]*u1Mu2[a0+2]; 
-    u1Mu2Sq[4] += 0.4472135954999579*u1Mu2[a0+7]*u1Mu2[a0+7]+0.31943828249997*u1Mu2[a0+6]*u1Mu2[a0+6]+1.0*u1Mu2[a0+2]*u1Mu2[a0+6]+0.31943828249997*u1Mu2[a0+4]*u1Mu2[a0+4]+u1Mu2[a0]*u1Mu2[a0+4]+0.4472135954999579*u1Mu2[a0+3]*u1Mu2[a0+3]+0.4472135954999579*u1Mu2[a0+1]*u1Mu2[a0+1]; 
-    u1Mu2Sq[5] += 0.31943828249997*u1Mu2[a0+7]*u1Mu2[a0+7]+1.0*u1Mu2[a0+1]*u1Mu2[a0+7]+0.4472135954999579*u1Mu2[a0+6]*u1Mu2[a0+6]+0.31943828249997*u1Mu2[a0+5]*u1Mu2[a0+5]+u1Mu2[a0]*u1Mu2[a0+5]+0.4472135954999579*u1Mu2[a0+3]*u1Mu2[a0+3]+0.4472135954999579*u1Mu2[a0+2]*u1Mu2[a0+2]; 
-    u1Mu2Sq[6] += 0.8*u1Mu2[a0+3]*u1Mu2[a0+7]+0.8944271909999159*u1Mu2[a0+5]*u1Mu2[a0+6]+0.6388765649999399*u1Mu2[a0+4]*u1Mu2[a0+6]+u1Mu2[a0]*u1Mu2[a0+6]+1.0*u1Mu2[a0+2]*u1Mu2[a0+4]+0.8944271909999161*u1Mu2[a0+1]*u1Mu2[a0+3]; 
-    u1Mu2Sq[7] += 0.6388765649999399*u1Mu2[a0+5]*u1Mu2[a0+7]+0.8944271909999159*u1Mu2[a0+4]*u1Mu2[a0+7]+u1Mu2[a0]*u1Mu2[a0+7]+0.8*u1Mu2[a0+3]*u1Mu2[a0+6]+1.0*u1Mu2[a0+1]*u1Mu2[a0+5]+0.8944271909999161*u1Mu2[a0+2]*u1Mu2[a0+3]; 
+    unsigned short int a0 = 12*vd; 
+    uSMuOSq[0] += 0.5*uSMuO[a0+11]*uSMuO[a0+11]+0.5*uSMuO[a0+10]*uSMuO[a0+10]+0.5*uSMuO[a0+9]*uSMuO[a0+9]+0.5*uSMuO[a0+8]*uSMuO[a0+8]+0.5*uSMuO[a0+7]*uSMuO[a0+7]+0.5*uSMuO[a0+6]*uSMuO[a0+6]+0.5*uSMuO[a0+5]*uSMuO[a0+5]+0.5*uSMuO[a0+4]*uSMuO[a0+4]+0.5*uSMuO[a0+3]*uSMuO[a0+3]+0.5*uSMuO[a0+2]*uSMuO[a0+2]+0.5*uSMuO[a0+1]*uSMuO[a0+1]+0.5*uSMuO[a0]*uSMuO[a0]; 
+    uSMuOSq[1] += 1.0*uSMuO[a0+9]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+6]*uSMuO[a0+10]+0.8783100656536796*uSMuO[a0+4]*uSMuO[a0+8]+1.0*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+1]*uSMuO[a0+4]+uSMuO[a0+2]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+1]; 
+    uSMuOSq[2] += 0.8783100656536798*uSMuO[a0+7]*uSMuO[a0+11]+1.0*uSMuO[a0+8]*uSMuO[a0+10]+0.8783100656536796*uSMuO[a0+5]*uSMuO[a0+9]+0.8944271909999161*uSMuO[a0+3]*uSMuO[a0+7]+1.0*uSMuO[a0+4]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+2]*uSMuO[a0+5]+uSMuO[a0+1]*uSMuO[a0+3]+uSMuO[a0]*uSMuO[a0+2]; 
+    uSMuOSq[3] += 0.8783100656536798*uSMuO[a0+5]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+4]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+7]*uSMuO[a0+9]+0.8783100656536798*uSMuO[a0+6]*uSMuO[a0+8]+0.8*uSMuO[a0+6]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+7]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+6]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+5]+0.8944271909999159*uSMuO[a0+3]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+3]+uSMuO[a0+1]*uSMuO[a0+2]; 
+    uSMuOSq[4] += 0.4472135954999579*uSMuO[a0+11]*uSMuO[a0+11]+0.2981423969999719*uSMuO[a0+10]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+10]+0.2981423969999719*uSMuO[a0+8]*uSMuO[a0+8]+0.8783100656536796*uSMuO[a0+1]*uSMuO[a0+8]+0.4472135954999579*uSMuO[a0+7]*uSMuO[a0+7]+0.31943828249997*uSMuO[a0+6]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+4]*uSMuO[a0+4]+uSMuO[a0]*uSMuO[a0+4]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+1]*uSMuO[a0+1]; 
+    uSMuOSq[5] += 0.2981423969999719*uSMuO[a0+11]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+11]+0.4472135954999579*uSMuO[a0+10]*uSMuO[a0+10]+0.2981423969999719*uSMuO[a0+9]*uSMuO[a0+9]+0.8783100656536796*uSMuO[a0+2]*uSMuO[a0+9]+0.31943828249997*uSMuO[a0+7]*uSMuO[a0+7]+1.0*uSMuO[a0+1]*uSMuO[a0+7]+0.4472135954999579*uSMuO[a0+6]*uSMuO[a0+6]+0.31943828249997*uSMuO[a0+5]*uSMuO[a0+5]+uSMuO[a0]*uSMuO[a0+5]+0.4472135954999579*uSMuO[a0+3]*uSMuO[a0+3]+0.4472135954999579*uSMuO[a0+2]*uSMuO[a0+2]; 
+    uSMuOSq[6] += 0.7855844048495726*uSMuO[a0+7]*uSMuO[a0+11]+0.5962847939999437*uSMuO[a0+8]*uSMuO[a0+10]+0.7855844048495726*uSMuO[a0+7]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+1]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+8]+0.8*uSMuO[a0+3]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+5]*uSMuO[a0+6]+0.6388765649999399*uSMuO[a0+4]*uSMuO[a0+6]+uSMuO[a0]*uSMuO[a0+6]+1.0*uSMuO[a0+2]*uSMuO[a0+4]+0.8944271909999161*uSMuO[a0+1]*uSMuO[a0+3]; 
+    uSMuOSq[7] += 0.5962847939999437*uSMuO[a0+9]*uSMuO[a0+11]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+11]+0.8783100656536798*uSMuO[a0+2]*uSMuO[a0+11]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+10]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+9]+0.6388765649999399*uSMuO[a0+5]*uSMuO[a0+7]+0.8944271909999159*uSMuO[a0+4]*uSMuO[a0+7]+uSMuO[a0]*uSMuO[a0+7]+0.8*uSMuO[a0+3]*uSMuO[a0+6]+1.0*uSMuO[a0+1]*uSMuO[a0+5]+0.8944271909999161*uSMuO[a0+2]*uSMuO[a0+3]; 
+    uSMuOSq[8] += 0.5962847939999437*uSMuO[a0+6]*uSMuO[a0+10]+1.0*uSMuO[a0+2]*uSMuO[a0+10]+0.5962847939999438*uSMuO[a0+4]*uSMuO[a0+8]+uSMuO[a0]*uSMuO[a0+8]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+6]+0.8783100656536796*uSMuO[a0+1]*uSMuO[a0+4]; 
+    uSMuOSq[9] += 0.5962847939999437*uSMuO[a0+7]*uSMuO[a0+11]+1.0*uSMuO[a0+1]*uSMuO[a0+11]+0.5962847939999438*uSMuO[a0+5]*uSMuO[a0+9]+uSMuO[a0]*uSMuO[a0+9]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+7]+0.8783100656536796*uSMuO[a0+2]*uSMuO[a0+5]; 
+    uSMuOSq[10] += 0.8944271909999159*uSMuO[a0+5]*uSMuO[a0+10]+0.5962847939999438*uSMuO[a0+4]*uSMuO[a0+10]+uSMuO[a0]*uSMuO[a0+10]+0.5962847939999437*uSMuO[a0+6]*uSMuO[a0+8]+1.0*uSMuO[a0+2]*uSMuO[a0+8]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+7]+0.8783100656536798*uSMuO[a0+1]*uSMuO[a0+6]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+4]; 
+    uSMuOSq[11] += 0.5962847939999438*uSMuO[a0+5]*uSMuO[a0+11]+0.8944271909999159*uSMuO[a0+4]*uSMuO[a0+11]+uSMuO[a0]*uSMuO[a0+11]+0.5962847939999437*uSMuO[a0+7]*uSMuO[a0+9]+1.0*uSMuO[a0+1]*uSMuO[a0+9]+0.7855844048495726*uSMuO[a0+6]*uSMuO[a0+7]+0.8783100656536798*uSMuO[a0+2]*uSMuO[a0+7]+0.8783100656536798*uSMuO[a0+3]*uSMuO[a0+5]; 
   } 
  
-  // ..... Get the relative flow velocity u21 ..... // 
+  // ..... Get the cross flow velocity uCross ..... // 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
-    unsigned short int a0 = 8*vd; 
-    uCross[a0] = 0.5*(u1Mu2[a0]*beta+u2[a0]+u1[a0]); 
-    uCross[a0+1] = 0.5*(u1Mu2[a0+1]*beta+u2[a0+1]+u1[a0+1]); 
-    uCross[a0+2] = 0.5*(u1Mu2[a0+2]*beta+u2[a0+2]+u1[a0+2]); 
-    uCross[a0+3] = 0.5*(u1Mu2[a0+3]*beta+u2[a0+3]+u1[a0+3]); 
-    uCross[a0+4] = 0.5*(u1Mu2[a0+4]*beta+u2[a0+4]+u1[a0+4]); 
-    uCross[a0+5] = 0.5*(u1Mu2[a0+5]*beta+u2[a0+5]+u1[a0+5]); 
-    uCross[a0+6] = 0.5*(u1Mu2[a0+6]*beta+u2[a0+6]+u1[a0+6]); 
-    uCross[a0+7] = 0.5*(u1Mu2[a0+7]*beta+u2[a0+7]+u1[a0+7]); 
+    unsigned short int a0 = 12*vd; 
+    uCross[a0] = uOther[a0]; 
+    uCross[a0+1] = uOther[a0+1]; 
+    uCross[a0+2] = uOther[a0+2]; 
+    uCross[a0+3] = uOther[a0+3]; 
+    uCross[a0+4] = uOther[a0+4]; 
+    uCross[a0+5] = uOther[a0+5]; 
+    uCross[a0+6] = uOther[a0+6]; 
+    uCross[a0+7] = uOther[a0+7]; 
+    uCross[a0+8] = uOther[a0+8]; 
+    uCross[a0+9] = uOther[a0+9]; 
+    uCross[a0+10] = uOther[a0+10]; 
+    uCross[a0+11] = uOther[a0+11]; 
  
   } 
  
-  double mBetaFrac = (beta+1.0)/(m1Dm2+1.0); 
-  // ..... Get the relative thermal speed squared vtSq21 ..... // 
-  vtSqCross[0] = (vtSq1[0]+0.25*u1Mu2Sq[0])*m1Dm2*mBetaFrac+((-1.0*vtSq2[0])-0.08333333333333333*u1Mu2Sq[0])*mBetaFrac+vtSq2[0]; 
-  vtSqCross[1] = (vtSq1[1]+0.25*u1Mu2Sq[1])*m1Dm2*mBetaFrac+((-1.0*vtSq2[1])-0.08333333333333333*u1Mu2Sq[1])*mBetaFrac+vtSq2[1]; 
-  vtSqCross[2] = (vtSq1[2]+0.25*u1Mu2Sq[2])*m1Dm2*mBetaFrac+((-1.0*vtSq2[2])-0.08333333333333333*u1Mu2Sq[2])*mBetaFrac+vtSq2[2]; 
-  vtSqCross[3] = (vtSq1[3]+0.25*u1Mu2Sq[3])*m1Dm2*mBetaFrac+((-1.0*vtSq2[3])-0.08333333333333333*u1Mu2Sq[3])*mBetaFrac+vtSq2[3]; 
-  vtSqCross[4] = (vtSq1[4]+0.25*u1Mu2Sq[4])*m1Dm2*mBetaFrac+((-1.0*vtSq2[4])-0.08333333333333333*u1Mu2Sq[4])*mBetaFrac+vtSq2[4]; 
-  vtSqCross[5] = (vtSq1[5]+0.25*u1Mu2Sq[5])*m1Dm2*mBetaFrac+((-1.0*vtSq2[5])-0.08333333333333333*u1Mu2Sq[5])*mBetaFrac+vtSq2[5]; 
-  vtSqCross[6] = (vtSq1[6]+0.25*u1Mu2Sq[6])*m1Dm2*mBetaFrac+((-1.0*vtSq2[6])-0.08333333333333333*u1Mu2Sq[6])*mBetaFrac+vtSq2[6]; 
-  vtSqCross[7] = (vtSq1[7]+0.25*u1Mu2Sq[7])*m1Dm2*mBetaFrac+((-1.0*vtSq2[7])-0.08333333333333333*u1Mu2Sq[7])*mBetaFrac+vtSq2[7]; 
+  // ..... Get the cross thermal speed squared vtSqCross ..... // 
+  vtSqCross[0] = 0.5*uSMuOSq[0]*mRat+vtSqSelf[0]; 
+  vtSqCross[1] = 0.5*uSMuOSq[1]*mRat+vtSqSelf[1]; 
+  vtSqCross[2] = 0.5*uSMuOSq[2]*mRat+vtSqSelf[2]; 
+  vtSqCross[3] = 0.5*uSMuOSq[3]*mRat+vtSqSelf[3]; 
+  vtSqCross[4] = 0.5*uSMuOSq[4]*mRat+vtSqSelf[4]; 
+  vtSqCross[5] = 0.5*uSMuOSq[5]*mRat+vtSqSelf[5]; 
+  vtSqCross[6] = 0.5*uSMuOSq[6]*mRat+vtSqSelf[6]; 
+  vtSqCross[7] = 0.5*uSMuOSq[7]*mRat+vtSqSelf[7]; 
+  vtSqCross[8] = 0.5*uSMuOSq[8]*mRat+vtSqSelf[8]; 
+  vtSqCross[9] = 0.5*uSMuOSq[9]*mRat+vtSqSelf[9]; 
+  vtSqCross[10] = 0.5*uSMuOSq[10]*mRat+vtSqSelf[10]; 
+  vtSqCross[11] = 0.5*uSMuOSq[11]*mRat+vtSqSelf[11]; 
  
 } 
  

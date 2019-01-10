@@ -43,17 +43,21 @@ nuIon        = nuFrac*logLambdaIon*(eV^4)*n0
               /(12*(math.pi^(3/2))*(eps0^2)*math.sqrt(mi)*((Ti0)^(3/2)))
 -- Electron-Ion collision frequency.
 nuElcIon     = nuElc/1.96
+nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 
 -- Box size
 Lx = 4 -- [m]
 
+print(' ')
 print('Electron-ion collision period: ', 1.0/nuElcIon)
+print('tEnd: ', 0.1/nuElcIon)
+print(' ')
 
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 1.0/nuElcIon,    -- End time.
-   nFrame      = 10,              -- Number of frames to write.
+   tEnd        = 0.10/nuElcIon,    -- End time.
+   nFrame      = 2,              -- Number of frames to write.
    lower       = {-Lx/2},         -- Configuration space lower coordinate.
    upper       = { Lx/2},         -- Configuration space upper coordinate.
    cells       = {12},            -- Configuration space cells.
@@ -100,8 +104,11 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
       coll = Plasma.GkLBOCollisions {
-         collideWith = {"ion", },
-         frequencies = {nuElcIon, },
+         collideWith = {"elc", "ion", },
+         frequencies = {nuElc, nuElcIon, },
+         -- Optional arguments:
+         --crossOption = "Greene", -- or crossOption="Greene"
+         --betaGreene  = 1.0,
       },
    },
 
@@ -135,10 +142,13 @@ plasmaApp = Plasma.App {
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
---      coll = Plasma.GkLBOCollisions {
---         collideWith = {"ion"},
---         frequencies = {nuIon},
---      },
+      coll = Plasma.GkLBOCollisions {
+         collideWith = {"ion", "elc"},
+         frequencies = {nuIon, nuIonElc},
+         -- Optional arguments:
+         --crossOption = "Greene", -- or crossOption="Greene"
+         --betaGreene  = 1.0,
+      },
    },
 
    -- Field solver.
