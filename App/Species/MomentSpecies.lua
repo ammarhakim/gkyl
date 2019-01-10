@@ -134,24 +134,29 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
+function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   local tryInv_next = false
    if self.evolve then
       self:applyBc(tCurr, fIn)
-      if self.forceInv or self.tryInv then
+      assert(self:checkInv(fIn))
+      if self.forceInv or tryInv then
          self.hyperSlvrInv[dir]:setDtAndCflRate(dt, nil)
          status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, {fIn}, {fOut})
          -- if result is OK, do not try to use invariant eqn. in next step
-         self.tryInv = not status
+         tryInv_next = not status
+         if status and (not self:checkInv(fOut)) then
+            assert(false, "** Invalid output using Lax flux!")
+         end
       else
          self.hyperSlvr[dir]:setDtAndCflRate(dt, nil)
          status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
-         self.tryInv = status and not self:checkInv(fOut)
+         tryInv_next = status and not self:checkInv(fOut)
       end
    else
       fOut:copy(fIn)
    end
-   return status, dtSuggested
+   return status, dtSuggested, tryInv_next
 end
 
 function MomentSpecies:totalSolverTime()
