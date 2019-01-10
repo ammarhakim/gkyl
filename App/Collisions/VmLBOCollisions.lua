@@ -363,12 +363,15 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    end
 
    if self.crossCollisions then
-      -- Compute primitive moments, u and vtSq, of this species.
-      self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.velocity})
-      self.confDotProduct:advance(0., {self.velocity, selfMom[2]}, {self.kinEnergyDens})
-      self.thermEnergyDens:combine( 1.0/self.vdim, selfMom[3],
-                                   -1.0/self.vdim, self.kinEnergyDens )
-      self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
+      if not self.selfCollisions then
+         -- If applying self-collisions, use the same primitive moments calculated above.
+         -- Otherwise compute primitive moments, u and vtSq, of this species.
+         self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.velocity})
+         self.confDotProduct:advance(0., {self.velocity, selfMom[2]}, {self.kinEnergyDens})
+         self.thermEnergyDens:combine( 1.0/self.vdim, selfMom[3],
+                                      -1.0/self.vdim, self.kinEnergyDens )
+         self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
+      end
 
       for sInd, otherNm in ipairs(self.crossSpecies) do
          -- Obtain coupling moments of other species.
