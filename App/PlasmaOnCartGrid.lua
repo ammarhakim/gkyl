@@ -723,13 +723,15 @@ local function buildApplication(self, tbl)
       end
 
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
+      local tmCollMom = 0.0
       for _, s in pairs(species) do
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
-	       tmColl = tmColl + c:totalTime()
+	       tmColl = tmColl + c:slvrTime()
+               tmCollMom = tmCollMom + c:momTime()
 	    end
          end
       end
@@ -768,6 +770,9 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+      log(string.format(
+	     "Collision moments(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmCollMom, tmCollMom/step, 100*tmCollMom/tmTotal))
       log(string.format(
 	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))

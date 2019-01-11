@@ -429,4 +429,12 @@ function VmLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.tmEvalMom
 end
 
+function VmLBOCollisions:slvrTime()
+   return self.collisionSlvr.totalTime
+end
+
+function VmLBOCollisions:momTime()
+   return self.tmEvalMom
+end
+
 return VmLBOCollisions
