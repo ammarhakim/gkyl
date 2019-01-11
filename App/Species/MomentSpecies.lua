@@ -46,6 +46,7 @@ function MomentSpecies:fullInit(appTbl)
    -- invariant (positivity-preserving) equation system to evolve
    self.equationInv = self.tbl.equationInv
    self.hyperSlvrInv = {} -- list of solvers
+   self.limiterInv = self.tbl.limiterInv and self.tbl.limiterInv or "zero"
    -- always use invariant eqn.
    self.forceInv = self.tbl.forceInv and (self.equationInv ~= nil)
    -- use invariant eqn. in next step; could change during run
@@ -90,7 +91,7 @@ function MomentSpecies:createSolver(hasE, hasB)
          self.hyperSlvrInv[d] = Updater.WavePropagation {
             onGrid = self.grid,
             equation = self.equationInv,
-            limiter = self.limiter,
+            limiter = self.limiterInv,
             cfl = self.cfl,
             updateDirections = {d},
             hasSsBnd = self._hasSsBnd,
