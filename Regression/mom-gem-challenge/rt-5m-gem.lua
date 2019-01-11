@@ -57,7 +57,7 @@ momentApp = Moments.App {
 
       equation = Euler { gasGamma = gasGamma },
       equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv = true,
+      forceInv = false,
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
@@ -84,7 +84,7 @@ momentApp = Moments.App {
 
       equation = Euler { gasGamma = gasGamma },
       equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv = true,
+      forceInv = false,
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
