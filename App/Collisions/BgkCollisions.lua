@@ -56,6 +56,8 @@ function BgkCollisions:fullInit(speciesTbl)
    end
 
    self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
+
+   self.tmEvalMom = 0.0
 end
 
 function BgkCollisions:setName(nm)
@@ -207,8 +209,10 @@ end
 function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom = species[self.speciesName]:fluidMoments()
 
+   local tmEvalMomStart = Time.clock()
    self:primMoments(selfMom[1], selfMom[2], selfMom[3], 
 		    self.uSelf, self.vth2Self)
+   self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
    if self.selfCollisions then
       self.maxwellian:advance(
@@ -237,6 +241,7 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 local mSelf = species[self.speciesName]:getMass()
 	 local mOther = species[otherNm]:getMass()
 	 local otherMom = species[otherNm]:fluidMoments()
+         local tmEvalMomStart = Time.clock()
 	 self:primMoments(otherMom[1], otherMom[2], otherMom[3], 
 			  self.uOther, self.vth2Other)
 	 
@@ -255,6 +260,7 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 				(1+self.beta)*(1+self.beta)/12*(mOther-mSelf),
 				self._kinEnergyDens)
 	 self.vth2Cross:scale(1.0/(mOther+mSelf))
+         self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
 	 self.maxwellian:advance(tCurr, {selfMom[1], self.uCross, self.vth2Cross}, {self.fMaxwell})
 	 self.collisionSlvr:advance(tCurr, {fIn, self.fMaxwell}, {fRhsOut})
@@ -266,7 +272,15 @@ function BgkCollisions:write(tm, frame)
 end
 
 function BgkCollisions:totalTime()
+   return self.collisionSlvr.totalTime + self.maxwellian.totalTime + self.tmEvalMom
+end
+
+function BgkCollisions:slvrTime()
    return self.collisionSlvr.totalTime + self.maxwellian.totalTime
+end
+
+function BgkCollisions:momTime()
+   return self.tmEvalMom
 end
 
 return BgkCollisions

@@ -417,4 +417,12 @@ function GkLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.tmEvalMom
 end
 
+function GkLBOCollisions:slvrTime()
+   return self.collisionSlvr.totalTime
+end
+
+function GkLBOCollisions:momTime()
+   return self.tmEvalMom
+end
+
 return GkLBOCollisions
