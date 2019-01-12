@@ -589,20 +589,24 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
   // compute the two eigenvector for each eigenvalue and accumulate their
   // contributions to the final parallel state vector
   Eigen::VectorXd q_perp_ = Eigen::VectorXd::Constant(2 * (nFluids + 1), 0.);
-  Eigen::VectorXd v0 = Eigen::VectorXd::Constant(2 * (nFluids + 1), 0.);
-  Eigen::VectorXd v1 = Eigen::VectorXd::Constant(2 * (nFluids + 1), 0.);
+  Eigen::VectorXd v0(2 * (nFluids + 1));
+  Eigen::VectorXd v1(2 * (nFluids + 1));
   for (unsigned n = 0; n < nFluids + 1; ++n)
   {
     double w = eigs[n];
 
     // compute the two eigenvectors for w at t=0
+    v0[0] = 0.;
     v0[1] = 1.;
     v1[0] = 1.;
+    v1[1] = 0.;
     for (unsigned n = 0; n < nFluids; ++n)
     {
       unsigned nn = n + 1;
       double tmp = wp[n] / (w + Wc[n]);
       v0[2 * nn] = tmp;
+      v0[2 * nn + 1] = 0.;
+      v1[2 * nn] = 0;
       v1[2 * nn + 1] = -tmp;
     }
 
