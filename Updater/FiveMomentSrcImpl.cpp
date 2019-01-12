@@ -729,19 +729,19 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
     // update perpendicular component
     Eigen::VectorXd q_perp_ = update_perp(q_perp, dt, wp, Wc);
 
-    // normalize back
-    E_[2] = q_par[0] * Enorm;
+    // fill the full vectors
+    E_[2] = q_par[0];
     for (unsigned n = 0; n < nFluids; ++n)
     {
-      J_[n][2] = q_par[n + 1] * Pnorm[n];
+      J_[n][2] = q_par[n + 1];
     }
-    E_[0] = q_perp_[0] * Enorm;
-    E_[1] = q_perp_[1] * Enorm;
+    E_[0] = q_perp_[0];
+    E_[1] = q_perp_[1];
     for (unsigned n = 0; n < nFluids; ++n)
     {
       unsigned nn = n + 1;
-      J_[n][0] = q_perp_[2 * nn] * Pnorm[n];
-      J_[n][1] = q_perp_[2 * nn + 1] * Pnorm[n];
+      J_[n][0] = q_perp_[2 * nn];
+      J_[n][1] = q_perp_[2 * nn + 1];
     }
 
     // rotate back
@@ -752,15 +752,15 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
     }
 
     // fill state vector
-    em[EX] = E_[0];
-    em[EY] = E_[1];
-    em[EZ] = E_[2];
+    em[EX] = E_[0] * Enorm;
+    em[EY] = E_[1] * Enorm;
+    em[EZ] = E_[2] * Enorm;
     for (unsigned n = 0; n < nFluids; ++n)
     {
       double *f = ff[n];
-      f[MX] = J_[n][0];
-      f[MY] = J_[n][1];
-      f[MZ] = J_[n][2];
+      f[MX] = J_[n][0] * Pnorm[n];
+      f[MY] = J_[n][1] * Pnorm[n];
+      f[MZ] = J_[n][2] * Pnorm[n];
     }
   } else {
     Eigen::VectorXd q_par(nFluids + 1);
