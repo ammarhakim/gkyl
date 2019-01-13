@@ -71,7 +71,7 @@ plasmaApp = Plasma.App {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {48},
       decompCuts = {1},
       -- Initial conditions.
@@ -97,7 +97,7 @@ plasmaApp = Plasma.App {
    --    charge = 0.0, mass = 1.0,
    --    -- Velocity space grid.
    --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
+   --    upper      = { 8.0*vt},
    --    cells      = {48},
    --    decompCuts = {1},
    --    -- Initial conditions.
@@ -119,7 +119,7 @@ plasmaApp = Plasma.App {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {48},
       decompCuts = {1},
       -- Initial conditions.
@@ -145,7 +145,7 @@ plasmaApp = Plasma.App {
    --    charge = 0.0, mass = 1.0,
    --    -- Velocity space grid.
    --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
+   --    upper      = { 8.0*vt},
    --    cells      = {48},
    --    decompCuts = {1},
    --    -- Initial conditions.
@@ -163,5 +163,5 @@ plasmaApp = Plasma.App {
    -- },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()
