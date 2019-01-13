@@ -10,24 +10,27 @@ printf(fh, "#include <../../Lib/gkyl_ipow.h> ~%~%")$
 printf(fh, "extern \"C\" { ~%")$
 printf(fh, "double gkyl_ipow(double base, int exp);~%~%")$
 
-/* Maximal order basis. */
-for ci : 1 thru 3 do (
-  for pi : 1 thru polyOrderMax do (
-    printf(fh, "void SpitzerNuCellAv~axMax_P~a(const double normNu, const double rmR3d2, const double *m0, const double *vtSq, const double *nu); ~%", ci, pi),
-    printf(fh, "~%")      
-  ),
-  printf(fh, "~%")
-)$
+bName   : ["Ser","Max"]$
+gkVdims : [[1,2], [2], [2]]$
 
-printf(fh, "~% ~%")$
+for bInd : 1 thru length(bName) do (
 
-/* Serendipity basis. */
-for ci : 1 thru 3 do (
-  for pi : 1 thru polyOrderMax do (
-    printf(fh, "void SpitzerNuCellAv~axSer_P~a(const double normNu, const double rmR3d2, const double *m0, const double *vtSq, const double *nu); ~%", ci, pi),
-    printf(fh, "~%")      
-  ),
-  printf(fh, "~%")
+   for pi : 1 thru polyOrderMax do (
+     for ci : 1 thru 3 do (
+       printf(fh, "void SpitzerNuCellAvScale~ax~a_P~a(const double normNu, const double rmR3d2, const double massSq, const double chargeR4, const double eps0Sq, const double *m0, const double *vtSq, double *nu); ~%", ci, bName[bInd], pi),
+       printf(fh, "~%")      
+     ),
+     printf(fh, "~%")
+   ),
+
+   for pi : 1 thru polyOrderMax do (
+     for ci : 1 thru 3 do (
+       printf(fh, "void SpitzerNuCellAvBuild~ax~a_P~a(const double elemCharge, const double mass, const double massSq, const double chargeR4, const double eps0Sq, const double *m0, const double *vtSq, double *nu); ~%", ci, bName[bInd], pi),
+       printf(fh, "~%")      
+     ),
+     printf(fh, "~%")
+   )
+
 )$
 
 printf(fh, "~% ~%")$

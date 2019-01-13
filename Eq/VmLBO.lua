@@ -22,11 +22,14 @@ local VmLBO = Proto(EqBase)
 -- ctor.
 function VmLBO:init(tbl)
 
-   self._phaseBasis = assert(
-      tbl.phaseBasis, "Eq.VmLBO: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis  = assert(
-      tbl.confBasis, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'confBasis'")
-   self._vMax       = assert(tbl.vUpper, "Eq.VmLBO: Must specify maximum velocity of v grid in 'vUpper'")
+   self._phaseBasis    = assert(
+      tbl.phaseBasis, "Eq.VmLBO: Must specify phase-space basis functions to use using 'phaseBasis'.")
+   self._confBasis     = assert(
+      tbl.confBasis, "Eq.VmLBO: Must specify configuration-space basis functions to use using 'confBasis'.")
+   self._vMax          = assert( 
+      tbl.vUpper, "Eq.VmLBO: Must specify maximum velocity of v grid in 'vUpper'.")
+   local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
+   local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
    
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
@@ -43,14 +46,20 @@ function VmLBO:init(tbl)
    end
    self._vMaxSq = self._vMaxSq^2 
 
-   local nuCellConst = tbl.useCellAverageNu
-   if nuCellConst == nil then
-      self._varNu       = false    -- Collisionality is spatially constant.
-      self._cellConstNu = true     -- Collisionality is cell-wise constant.
+   -- The default is spatially constant collisionality.
+   if varNuIn==nil then
+      self._varNu       = false
+      self._cellConstNu = true
    else
-      self._cellConstNu = nuCellConst    -- Specify 'useCellAverageNu=true/false' for using cellwise
-                                         -- constant/expanded spatially varying collisionality.
-      self._varNu               = true    -- Spatially varying nu.
+      self._varNu       = varNuIn
+      if cellConstNuIn==nil then
+         self._cellConstNu = true
+      else
+         self._cellConstNu = cellConstNuIn
+      end
+   end
+
+   if self._varNu then
       self._nuPtr, self._nuIdxr = nil, nil
    end
    if self._cellConstNu then    -- Not varying within the cell.

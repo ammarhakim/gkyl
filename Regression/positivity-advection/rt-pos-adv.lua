@@ -37,34 +37,34 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 1.0, -- end time
-   nFrame = 1, -- number of output frames
-   lower = {0, 0}, -- configuration space lower left
-   upper = {1.0, 1.0}, -- configuration space upper right
-   cells = {16, 16}, -- configuration space cells
-   basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 1, -- polynomial order
-   timeStepper = "rk3", -- one of "rk2" or "rk3"
+   tEnd        = 1.0,              -- End time.
+   nFrame      = 1,                -- Number of output frames.
+   lower       = {0, 0},           -- Configuration space lower left.
+   upper       = {1.0, 1.0},       -- Configuration space upper right.
+   cells       = {16, 16},         -- Configuration space cells.
+   basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
+   polyOrder   = 1,                -- Polynomial order.
+   timeStepper = "rk3",            -- One of "rk2" or "rk3".
    
-   -- decomposition for configuration space
-   decompCuts = {1,1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
+   -- Decomposition for configuration space.
+   decompCuts = {1,1},    -- Cuts in each configuration direction.
+   useShared  = false,    -- If to use shared memory.
 
-   -- boundary conditions for configuration space
-   periodicDirs = {1, 2}, -- periodic directions
+   -- Boundary conditions for configuration space.
+   periodicDirs = {1, 2}, -- Periodic directions
 
-   -- electrons
+   -- Fluid species.
    fluid = Plasma.IncompEuler.Species {
       charge = 1.0,
-      -- initial conditions
-      init = squareHat,
-      evolve = true, -- evolve species?
+      -- Initial conditions.
+      init            = squareHat,
+      evolve          = true, -- Evolve species?
       applyPositivity = true,
    },
 
-   -- field solver
+   -- Field solver.
    field = Plasma.IncompEuler.Field {
-      evolve = false, -- evolve field?
+      evolve = false, -- Evolve field?
       -- u = {dphi/dy, -dphi/dx}
       initPhiFunc = function (t, xn)
          local x, y = xn[1], xn[2]
@@ -72,5 +72,5 @@ plasmaApp = Plasma.App {
       end, 
    },
 }
--- run application
+-- Run application.
 plasmaApp:run()
