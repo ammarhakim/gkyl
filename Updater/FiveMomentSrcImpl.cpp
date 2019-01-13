@@ -250,7 +250,7 @@ gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double d
 }
 
 void
-gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylFiveMomentSrcTimeCenteredDirect2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
 {
   // based on Smithe (2007) with corrections
   unsigned nFluids = sd->nFluids;
@@ -361,7 +361,7 @@ gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, d
 }
 
 void
-gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylFiveMomentSrcTimeCenteredDirect(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
 {
   // based on Smithe (2007) with corrections
   // but using Hakim (2019) notations
