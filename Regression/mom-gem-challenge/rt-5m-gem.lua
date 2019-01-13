@@ -119,7 +119,7 @@ momentApp = Moments.App {
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
-      timeStepper = "analytic",
+      timeStepper = "time-centered-direct",
    },   
 
 }
