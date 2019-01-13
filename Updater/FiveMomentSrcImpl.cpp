@@ -33,6 +33,12 @@ static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
 static double sq(double x) { return x*x; }
+static double cube(double x) { return (x)*(x)*(x); }
+static double sgn(double x) {
+  if (x>0) return 1;
+  else if (x < 0) return -1;
+  else return 0;
+}
 
 static const int COL_PIV_HOUSEHOLDER_QR = 0;
 static const int PARTIAL_PIV_LU = 1;
@@ -555,16 +561,44 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
   Eigen::VectorXd eigs(nFluids + 1);
   if (nFluids == 2)
   {
-    std::vector<double> poly_coeff = {
-      1.,
+    if (false) {
+      std::vector<double> poly_coeff = {
+        1.,
 
-      Wc[0] + Wc[1],
+        Wc[0] + Wc[1],
 
-      Wc[0] * Wc[1] - sq(wp[0]) - sq(wp[1]),
+        Wc[0] * Wc[1] - sq(wp[0]) - sq(wp[1]),
 
-      -Wc[0] * sq(wp[1]) - Wc[1] * sq(wp[0])
-    };
-    eigs = roots(poly_coeff);
+        -Wc[0] * sq(wp[1]) - Wc[1] * sq(wp[0])
+      };
+      eigs = roots(poly_coeff);
+    } else {
+      // analytic solution based on
+      // http://web.cs.iastate.edu/~cs577/handouts/polyroots.pdf
+      double p = Wc[0] + Wc[1];
+      double q = Wc[0] * Wc[1] - sq(wp[0]) - sq(wp[1]);
+      double r = -Wc[0] * sq(wp[1]) - Wc[1] * sq(wp[0]);
+
+      double a = (3 * q - sq(p)) / 3;
+      double b = (2 * cube(p) - 9 * p * q + 27 * r) / 27;
+
+      double det = sq(b) / 4 + cube(a) / 27;
+
+      if (det < 0) {
+        double tmp = 2 * std::sqrt(-a / 3);
+        double phi = std::acos(-sgn(b) * std::sqrt(b * b / 4 / (-cube(a) / 27)));
+        eigs[0] = tmp * std::cos((phi) / 3) - p / 3;
+        eigs[1] = tmp * std::cos((phi + 2 * M_PI) / 3) - p / 3;
+        eigs[2] = tmp * std::cos((phi + 4 * M_PI) / 3) - p / 3;
+      } else if (det == 0) {
+        double tmp = sgn(b) * std::sqrt(-a / 3);
+        eigs[0] = -2 * tmp;
+        eigs[1] = tmp;
+        eigs[2] = tmp;
+      } else {
+        assert(false);
+      }
+    }
   } else if (nFluids == 3) {
     std::vector<double> poly_coeff = {
       1.,
@@ -583,7 +617,7 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
     };
     eigs = roots(poly_coeff);
   } else {
-    // TODO throw error
+    assert(false);
   }
 
   // compute the two eigenvector for each eigenvalue and accumulate their
