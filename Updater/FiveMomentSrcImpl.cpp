@@ -469,47 +469,52 @@ gkylFiveMomentSrcTimeCenteredDirect(FiveMomentSrcData_t *sd, FluidData_t *fd, do
  * @param wp Plasma frequency for each species.
  */
 static void
-update_par(Eigen::VectorXd &q_par, double dt, std::vector<double> &wp)
+update_par(Eigen::VectorXd &q_par, double dt, Eigen::VectorXd &wp)
 {
   unsigned nFluids = wp.size();
-  double wp_tot = 0.;
+  double wp_tot2 = 0.;
   for (unsigned n=0; n < nFluids; ++n)
   {
-    wp_tot += sq(wp[n]);
+    wp_tot2 += sq(wp[n]);
   }
-  wp_tot = std::sqrt(wp_tot);
+  double wp_tot = std::sqrt(wp_tot2);
 
   // TODO reuse v0, v1
-  // eigenvector with w=-w_p
-  Eigen::VectorXd v0 = Eigen::VectorXd::Constant(nFluids + 1, 0.);
-  // eigenvector with w=w_p
-  Eigen::VectorXd v1 = Eigen::VectorXd::Constant(nFluids + 1, 0.);
-
-  // eigenvectors at t=0
+  // eigenvector with w=-w_p at t=0
+  Eigen::VectorXd v0 = Eigen::VectorXd::Zero(nFluids + 1);
   v0[0] = wp_tot;
-  for (unsigned n = 0; n < nFluids; ++n)
-  {
-    v1[n + 1] = wp[n];
-  }
+  
+  // eigenvector with w=w_p at t=0
+  Eigen::VectorXd v1(nFluids + 1);
+  v1[0] = 0.;
+  v1.tail(nFluids).noalias() = wp;
 
-  double coeff[2];
-  coeff[0] = q_par.dot(v0) / v0.dot(v0);
-  coeff[1] = q_par.dot(v1) / v1.dot(v1);
+  double coeff0, coeff1;
+  // coeff0 = q_par.dot(v0) / v0.squaredNorm();
+  // coeff1 = q_par.dot(v1) / v1.squaredNorm();
+  coeff0 = q_par[0] / wp_tot;
+  coeff1 = q_par.dot(v1) / wp_tot2;
 
   double cost = std::cos(wp_tot * dt);
   double sint = std::sin(wp_tot * dt);
 
   // incremental changes to the eigenvectors
-  v0[0] = wp_tot * cost - v0[0];
-  v1[0] = -wp_tot * sint - v1[0];
-  for (unsigned n = 0; n < nFluids; ++n)
-  {
-    v0[n + 1] = wp[n] * sint - v0[n + 1];
-    v1[n + 1] = wp[n] * cost - v1[n + 1];
-  }
+  // v0[0] = wp_tot * cost - v0[0];
+  // v1[0] = -wp_tot * sint - v1[0];
+  // for (unsigned n = 0; n < nFluids; ++n)
+  // {
+  //   v0[n + 1] = wp[n] * sint - v0[n + 1];
+  //   v1[n + 1] = wp[n] * cost - v1[n + 1];
+  // }
+  v0 *= -1.;
+  v1 *= -1.;
+  v0[0] += wp_tot * cost;
+  v1[0] += -wp_tot * sint;
+  v0.tail(nFluids) += wp * sint;
+  v1.tail(nFluids) += wp * cost;
 
   // accumulate incremental changes
-  q_par += coeff[0] * v0  + coeff[1] * v1;
+  q_par.noalias() += coeff0 * v0  + coeff1 * v1;
 }
 
 
@@ -547,12 +552,11 @@ static Eigen::VectorXd roots(const std::vector<double> &coeffs)
  * @param dt Time step.
  * @param wp Plasma frequency for each species.
  * @param Wc Signed cyclotron frequency for each species.
- *
- * @returns q_perp_. Updated vector.
+ * @param q_perp_. Updated vector.
  */
-static Eigen::VectorXd
-update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
-            std::vector<double> &Wc)
+static void
+update_perp(Eigen::VectorXd &q_perp, double dt, Eigen::VectorXd &wp,
+            Eigen::VectorXd &Wc, Eigen::VectorXd &q_perp_)
 {
   unsigned nFluids = wp.size();
 
@@ -622,7 +626,7 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
 
   // compute the two eigenvector for each eigenvalue and accumulate their
   // contributions to the final parallel state vector
-  Eigen::VectorXd q_perp_ = Eigen::VectorXd::Constant(2 * (nFluids + 1), 0.);
+  q_perp_.setZero();
   Eigen::VectorXd v0(2 * (nFluids + 1));
   Eigen::VectorXd v1(2 * (nFluids + 1));
   for (unsigned n = 0; n < nFluids + 1; ++n)
@@ -645,9 +649,9 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
     }
 
     // compute eigencoefficients
-    double coeff[2];
-    coeff[0] = q_perp.dot(v0) / v0.dot(v0);
-    coeff[1] = q_perp.dot(v1) / v1.dot(v1);
+    double coeff0, coeff1;
+    coeff0 = q_perp.dot(v0) / v0.squaredNorm();
+    coeff1 = q_perp.dot(v1) / v1.squaredNorm();
 
     // compute the two eigenvectors for w at t=dt
     double cost = std::cos(w * dt);
@@ -667,10 +671,8 @@ update_perp(Eigen::VectorXd &q_perp, double dt, std::vector<double> &wp,
     }
 
     // accumulate contribution from the two eigenvectors
-    q_perp_ += coeff[0] * v0  + coeff[1] * v1;
+    q_perp_.noalias() += coeff0 * v0  + coeff1 * v1;
   }
-
-  return q_perp_;
 }
 
 void
@@ -696,10 +698,10 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
   double Enorm = 1.;  // nominal normalization
   Eigen::Vector3d E_ = E / Enorm;
 
-  std::vector<double> qbym(nFluids); 
-  std::vector<double> Wc(nFluids); 
-  std::vector<double> wp(nFluids);
-  std::vector<double> Pnorm(nFluids); 
+  Eigen::VectorXd qbym(nFluids); 
+  Eigen::VectorXd Wc(nFluids); 
+  Eigen::VectorXd wp(nFluids);
+  Eigen::VectorXd Pnorm(nFluids); 
   std::vector<Eigen::Vector3d> J_(nFluids);
   for (unsigned n=0; n < nFluids; ++n)
   {
@@ -765,7 +767,8 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
     // update parallel component
     update_par(q_par, dt, wp);
     // update perpendicular component
-    Eigen::VectorXd q_perp_ = update_perp(q_perp, dt, wp, Wc);
+    Eigen::VectorXd q_perp_(2 * (nFluids + 1));
+    update_perp(q_perp, dt, wp, Wc, q_perp_);
 
     // fill the full vectors
     E_[2] = q_par[0];
