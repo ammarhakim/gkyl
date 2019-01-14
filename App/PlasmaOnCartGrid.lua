@@ -815,21 +815,22 @@ return {
    AdiabaticSpecies = Species.AdiabaticSpecies,
    App = App,
    BgkCollisions = Collisions.BgkCollisions,   
+   FluidDiffusion = Collisions.FluidDiffusion,
    FuncMaxwellField = Field.FuncMaxwellField,
    FuncVlasovSpecies = Species.FuncVlasovSpecies,
    GkField = Field.GkField,
    GkGeometry = Field.GkGeometry,
+   GkLBOCollisions = Collisions.GkLBOCollisions,
    GkSpecies = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
    MaxwellField = Field.MaxwellField,
    MomentSpecies = Species.MomentSpecies,
    NoField = Field.NoField,
+   Projection = Projection,
    VlasovSpecies = Species.VlasovSpecies,
    VmLBOCollisions = Collisions.VmLBOCollisions,
-   GkLBOCollisions = Collisions.GkLBOCollisions,
    VoronovIonization = Collisions.VoronovIonization,
-   Projection = Projection,
 
    -- valid pre-packaged species-field systems
    Gyrokinetic = {
@@ -841,7 +842,8 @@ return {
       AdiabaticSpecies = Species.AdiabaticSpecies,
    },
    IncompEuler = {
-      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
+      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField,
+      Diffusion = Collisions.FluidDiffusion,
    },
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
