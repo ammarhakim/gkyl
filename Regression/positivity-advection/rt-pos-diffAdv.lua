@@ -38,7 +38,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd        = 1.0,              -- End time.
-   nFrame      = 1,                -- Number of output frames.
+   nFrame      = 20,               -- Number of output frames.
    lower       = {0, 0},           -- Configuration space lower left.
    upper       = {1.0, 1.0},       -- Configuration space upper right.
    cells       = {16, 16},         -- Configuration space cells.
@@ -54,12 +54,15 @@ plasmaApp = Plasma.App {
    periodicDirs = {1, 2}, -- Periodic directions
 
    -- Fluid species.
-   fluid = Plasma.IncompEuler.Species {
+   fluid = Plasma.IncompEulerSpecies {
       charge = 1.0,
       -- Initial conditions.
       init            = squareHat,
       evolve          = true, -- Evolve species?
       applyPositivity = true,
+      diff = Plasma.FluidDiffusion {
+         coefficient = {0.1, 0.1},
+      },
    },
 
    -- Field solver.
@@ -68,7 +71,9 @@ plasmaApp = Plasma.App {
       -- u = {dphi/dy, -dphi/dx}
       initPhiFunc = function (t, xn)
          local x, y = xn[1], xn[2]
-         return -uy*x + ux*y 
+         return -uy*x + ux*y -- Moving in \xhat+\yhat direction. 
+--         return  ux*y        -- Moving in \xhat direction. 
+--         return -uy*x        -- Moving in \yhat direction. 
       end, 
    },
 }

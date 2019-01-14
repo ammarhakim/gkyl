@@ -30,10 +30,11 @@ extern "C" {
     void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
     /* Method to update fluids and flield using time-centered implicit method */
     void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-    /* Method to update fluids and flield using time-centered implicit method in the exact form*/
-    void gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-    /* Method to update fluids and flield using time-centered implicit method in the exact form*/
-    void gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    /* Method to update fluids and flield using time-centered implicit method in the exact form */
+    void gkylFiveMomentSrcTimeCenteredDirect(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    /* Method to update fluids and flield using time-centered implicit method in the exact form; the older version*/
+    void gkylFiveMomentSrcTimeCenteredDirect2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    /* Method to update fluids and flield using the exact ODE solutions */
     void gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
 }
 
