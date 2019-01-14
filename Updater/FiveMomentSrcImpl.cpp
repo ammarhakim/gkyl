@@ -499,19 +499,12 @@ update_par(Eigen::VectorXd &q_par, double dt, Eigen::VectorXd &wp)
   double sint = std::sin(wp_tot * dt);
 
   // incremental changes to the eigenvectors
-  // v0[0] = wp_tot * cost - v0[0];
-  // v1[0] = -wp_tot * sint - v1[0];
-  // for (unsigned n = 0; n < nFluids; ++n)
-  // {
-  //   v0[n + 1] = wp[n] * sint - v0[n + 1];
-  //   v1[n + 1] = wp[n] * cost - v1[n + 1];
-  // }
   v0 *= -1.;
   v1 *= -1.;
   v0[0] += wp_tot * cost;
   v1[0] += -wp_tot * sint;
-  v0.tail(nFluids) += wp * sint;
-  v1.tail(nFluids) += wp * cost;
+  v0.tail(nFluids).noalias() += wp * sint;
+  v1.tail(nFluids).noalias() += wp * cost;
 
   // accumulate incremental changes
   q_par.noalias() += coeff0 * v0  + coeff1 * v1;
