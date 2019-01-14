@@ -293,6 +293,10 @@ function FluidSpecies:initDist()
       projectOnGhosts = true,
    }
    project:advance(0.0, {}, {self.moments[1]})
+
+   if self.positivityRescale or self.positivityDiffuse then
+     self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]})
+   end
 end
 
 function FluidSpecies:rkStepperFields()
