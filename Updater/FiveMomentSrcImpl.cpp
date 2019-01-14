@@ -622,9 +622,9 @@ update_perp(Eigen::VectorXd &q_perp, double dt, Eigen::VectorXd &wp,
   q_perp_.setZero();
   Eigen::VectorXd v0(2 * (nFluids + 1));
   Eigen::VectorXd v1(2 * (nFluids + 1));
-  for (unsigned n = 0; n < nFluids + 1; ++n)
+  for (unsigned i = 0; i < nFluids + 1; ++i)
   {
-    double w = eigs[n];
+    double w = eigs[i];
 
     // compute the two eigenvectors for w at t=0
     v0[0] = 0.;
