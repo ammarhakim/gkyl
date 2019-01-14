@@ -93,8 +93,11 @@ function FluidSpecies:fullInit(appTbl)
 
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
+   self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
+   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
    self.deltaF = xsys.pickBool(appTbl.deltaF, false)
+
+   self.tCurr = 0.0
 end
 
 function FluidSpecies:getCharge() return self.charge end
@@ -278,6 +281,9 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
    self:applyBc(nil, self:rkStepperFields()[outIdx])
+   if self.positivityDiffuse and a<=self.dtGlobal[0] then -- only diffuse when this combine is a forwardEuler 
+      self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
+   end
 end
 
 function FluidSpecies:suggestDt()
@@ -288,6 +294,7 @@ function FluidSpecies:clearCFL()
 end
 
 function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self.tCurr = tCurr
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
