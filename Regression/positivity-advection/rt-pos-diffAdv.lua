@@ -1,5 +1,5 @@
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").IncompEuler
 
 local ux = 1
 local uy = 1
@@ -54,26 +54,26 @@ plasmaApp = Plasma.App {
    periodicDirs = {1, 2}, -- Periodic directions
 
    -- Fluid species.
-   fluid = Plasma.IncompEulerSpecies {
+   fluid = Plasma.Species {
       charge = 1.0,
       -- Initial conditions.
       init            = squareHat,
       evolve          = true, -- Evolve species?
       applyPositivity = true,
-      diff = Plasma.FluidDiffusion {
+      diff = Plasma.Diffusion {
          coefficient = {0.1, 0.1},
       },
    },
 
    -- Field solver.
-   field = Plasma.IncompEuler.Field {
+   field = Plasma.Field {
       evolve = false, -- Evolve field?
       -- u = {dphi/dy, -dphi/dx}
       initPhiFunc = function (t, xn)
          local x, y = xn[1], xn[2]
-         return -uy*x + ux*y -- Moving in \xhat+\yhat direction. 
---         return  ux*y        -- Moving in \xhat direction. 
---         return -uy*x        -- Moving in \yhat direction. 
+         return -uy*x + ux*y    -- Moving in \xhat+\yhat direction. 
+--         return  ux*y           -- Moving in \xhat direction. 
+--         return -uy*x           -- Moving in \yhat direction. 
       end, 
    },
 }
