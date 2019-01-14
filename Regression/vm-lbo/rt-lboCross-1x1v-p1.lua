@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
 local n1, u1, p1 = 1.0, 0.0, 1.0
 local n2, u2, p2 = 1.0, 1.0, 0.1
@@ -41,7 +41,7 @@ vlasovApp = Plasma.App {
    periodicDirs = {1}, -- Periodic directions.
 
    -- First neutral species.
-   neut1 = Plasma.VlasovSpecies {
+   neut1 = Plasma.Species {
       --nDiagnosticFrame = 2,
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
@@ -60,7 +60,7 @@ vlasovApp = Plasma.App {
       diagnosticMoments = { "M0", "M1i", "M2" },
 
       -- Collisions.
-      coll = Plasma.VmLBOCollisions {
+      coll = Plasma.LBOCollisions {
 	 collideWith  = { "neut1", "neut2", },
      	 frequencies  = { vth1/K, vth1/K, },
          -- Optional arguments:
@@ -70,7 +70,7 @@ vlasovApp = Plasma.App {
    },
 
    -- Second neutral species.
-   neut2 = Plasma.VlasovSpecies {
+   neut2 = Plasma.Species {
       --nDiagnosticFrame = 2,
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
@@ -88,7 +88,7 @@ vlasovApp = Plasma.App {
       -- Diagnostic moments.
       diagnosticMoments = { "M0", "M1i", "M2" },
       -- Collisions.
-      coll = Plasma.VmLBOCollisions {
+      coll = Plasma.LBOCollisions {
 	 collideWith = { "neut1", "neut2", },
      	 frequencies = { vth1/K, vth1/K, },
          -- Optional arguments:
