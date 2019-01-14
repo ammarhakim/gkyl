@@ -46,6 +46,10 @@ function IncompEulerSpecies:appendBoundaryConditions(dir, edge, bcType)
 end
 
 function IncompEulerSpecies:createSolver(hasE, hasB)
+   -- Run the FluidSpecies 'createSolver()' to initialize the
+   -- collisions (diffusion) solver.
+   IncompEulerSpecies.super.createSolver(self)
+
    -- create updater to advance solution by one time-step
    local eqn = IncompEulerEq {
       onGrid = self.grid,
