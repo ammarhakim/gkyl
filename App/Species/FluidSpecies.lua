@@ -8,8 +8,10 @@
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Basis = require "Basis"
+local Collisions = require "App.Collisions"
 local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
+local ffi = require "ffi"
 local Grid = require "Grid"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Proto = require "Lib.Proto"
@@ -17,7 +19,6 @@ local SpeciesBase = require "App.Species.SpeciesBase"
 local Time = require "Lib.Time"
 local Updater = require "Updater"
 local xsys = require "xsys"
-local ffi = require "ffi"
 
 -- function to create basis functions
 local function createBasis(nm, ndim, polyOrder)
@@ -47,6 +48,9 @@ function FluidSpecies:fullInit(appTbl)
    self.mass = tbl.mass and tbl.mass or 1.0
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
+   self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
+                                            self.evolve)
+   self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve)
    self.confBasis = nil -- Will be set later
 
    -- create triggers to write diagnostics
@@ -91,10 +95,24 @@ function FluidSpecies:fullInit(appTbl)
 
    self.bcTime = 0.0 -- timer for BCs
 
+   -- Collisions: currently used for a diffusion term.
+   self.collisions = {}
+   for nm, val in pairs(tbl) do
+      if Collisions.CollisionsBase.is(val) then
+         self.collisions[nm] = val
+         self.collisions[nm]:setName(nm)
+         val:setSpeciesName(self.name)
+         val:fullInit(tbl)    -- Initialize collisions (diffusion).
+      end
+   end
+
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
+   self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
+   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
    self.deltaF = xsys.pickBool(appTbl.deltaF, false)
+
+   self.tCurr = 0.0
 end
 
 function FluidSpecies:getCharge() return self.charge end
@@ -112,15 +130,24 @@ function FluidSpecies:setName(nm)
 end
 function FluidSpecies:setCfl(cfl)
    self.cfl = cfl
+   for _, c in pairs(self.collisions) do
+      c:setCfl(cfl)
+   end
 end
 function FluidSpecies:setIoMethod(ioMethod)
    self.ioMethod = ioMethod
 end
 function FluidSpecies:setConfBasis(basis)
    self.confBasis = basis
+   for _, c in pairs(self.collisions) do
+      c:setConfBasis(basis)
+   end
 end
 function FluidSpecies:setConfGrid(cgrid)
    self.confGrid = cgrid
+   for _, c in pairs(self.collisions) do
+      c:setConfGrid(cgrid)
+   end
 end
 
 function FluidSpecies:createGrid(cLo, cUp, cCells, cDecompCuts, cPeriodicDirs)
@@ -218,6 +245,13 @@ function FluidSpecies:createBCs()
    handleBc(3, self.bcz)
 end
 
+function FluidSpecies:createSolver(funcField)
+   -- Create solvers for collisions (diffusion).
+   for _, c in pairs(self.collisions) do
+      c:createSolver(funcField)
+   end
+end
+
 function FluidSpecies:alloc(nRkDup)
    -- allocate fields needed in RK update
    self.moments = {}
@@ -259,6 +293,10 @@ function FluidSpecies:initDist()
       projectOnGhosts = true,
    }
    project:advance(0.0, {}, {self.moments[1]})
+
+   if self.positivityRescale or self.positivityDiffuse then
+     self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]})
+   end
 end
 
 function FluidSpecies:rkStepperFields()
@@ -278,6 +316,9 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end	 
    self:applyBc(nil, self:rkStepperFields()[outIdx])
+   if self.positivityDiffuse and a<=self.dtGlobal[0] then -- only diffuse when this combine is a forwardEuler 
+      self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
+   end
 end
 
 function FluidSpecies:suggestDt()
@@ -288,10 +329,11 @@ function FluidSpecies:clearCFL()
 end
 
 function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
+   self.tCurr = tCurr
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   if self.evolve then
+   if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
       if self.positivityRescale then
@@ -302,6 +344,16 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    else
       fRhsOut:clear(0.0) -- no RHS
+   end
+
+   -- Perform the collision (diffusion) update.
+   if self.evolveCollisions then
+      for _, c in pairs(self.collisions) do
+         c.diffusionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+         c:advance(tCurr, fIn, species, fRhsOut)
+         -- the full 'species' list is needed for the cross-species
+         -- collisions
+      end
    end
 end
 

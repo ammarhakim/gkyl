@@ -310,13 +310,15 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
    -- if all directions periodic need to adjust source so that integral is 0 
    if self._adjustSource then
      -- integrate source
-     local calcInt = CartFieldIntegratedQuantCalc {
-       onGrid = grid,
-       basis = basis,
-       numComponents = 1,
-       quantity = "V",
-     }
-     calcInt:advance(0.0, {src}, {self.dynVec})
+     if self._first then
+       self.calcInt = CartFieldIntegratedQuantCalc {
+         onGrid = grid,
+         basis = basis,
+         numComponents = 1,
+         quantity = "V",
+       }
+     end
+     self.calcInt:advance(0.0, {src}, {self.dynVec})
      _, intSrcVol = self.dynVec:lastData()
    end
 

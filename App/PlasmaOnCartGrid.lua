@@ -760,13 +760,15 @@ local function buildApplication(self, tbl)
       end
 
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
+      local tmCollMom = 0.0
       for _, s in pairs(species) do
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
-	       tmColl = tmColl + c:totalTime()
+	       tmColl = tmColl + c:slvrTime()
+               tmCollMom = tmCollMom + c:momTime()
 	    end
          end
       end
@@ -805,6 +807,9 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+      log(string.format(
+	     "Collision moments(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmCollMom, tmCollMom/step, 100*tmCollMom/tmTotal))
       log(string.format(
 	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
@@ -847,21 +852,22 @@ return {
    AdiabaticSpecies = Species.AdiabaticSpecies,
    App = App,
    BgkCollisions = Collisions.BgkCollisions,   
+   FluidDiffusion = Collisions.FluidDiffusion,
    FuncMaxwellField = Field.FuncMaxwellField,
    FuncVlasovSpecies = Species.FuncVlasovSpecies,
    GkField = Field.GkField,
    GkGeometry = Field.GkGeometry,
+   GkLBOCollisions = Collisions.GkLBOCollisions,
    GkSpecies = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
    MaxwellField = Field.MaxwellField,
    MomentSpecies = Species.MomentSpecies,
    NoField = Field.NoField,
+   Projection = Projection,
    VlasovSpecies = Species.VlasovSpecies,
    VmLBOCollisions = Collisions.VmLBOCollisions,
-   GkLBOCollisions = Collisions.GkLBOCollisions,
    VoronovIonization = Collisions.VoronovIonization,
-   Projection = Projection,
 
    -- valid pre-packaged species-field systems
    Gyrokinetic = {
@@ -873,7 +879,8 @@ return {
       AdiabaticSpecies = Species.AdiabaticSpecies,
    },
    IncompEuler = {
-      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
+      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField,
+      Diffusion = Collisions.FluidDiffusion,
    },
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
