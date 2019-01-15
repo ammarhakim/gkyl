@@ -95,6 +95,7 @@ function GkField:fullInit(appTbl)
    self.bcTime = 0.0 -- timer for BCs
 
    self._first = true
+   self._firstStep = true
 end
 
 -- methods for EM field object
@@ -238,7 +239,12 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
 end
 
 function GkField:suggestDt()
-   return GKYL_MAX_DOUBLE
+   if self.isElectromagnetic and self._firstStep then
+      self._firstStep = false
+      return 1e-30
+   else
+      return GKYL_MAX_DOUBLE
+   end
 end
 function GkField:clearCFL()
 end
@@ -474,7 +480,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potNew = self:rkStepperFields()[outIdx]
    
-   if inIdx == 1 then self.dApardtPrev:copy(potCurr.dApardt) end
+   if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
 
    if self.evolve or (self._first and not self.initPhiFunc) then
       self.chargeDens:clear(0.0)
@@ -538,7 +544,7 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       end
       for nm, s in pairs(species) do
         if s:isEvolving() then 
-           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
+           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
            -- taking momDensity at outIdx gives momentum moment of df/dt
            self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
         end

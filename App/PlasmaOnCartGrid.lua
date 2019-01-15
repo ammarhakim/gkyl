@@ -391,6 +391,7 @@ local function buildApplication(self, tbl)
       if calcCflFlag then
          dtSuggested = tbl.tEnd - tCurr + 1e-20
          if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
+         --if tCurr < 1e-20 then dtSuggested = 1e-20 end
          
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
