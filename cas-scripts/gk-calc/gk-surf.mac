@@ -686,15 +686,15 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
 )$
 
 em:true$
-for pos: 0 thru 0 do (
+for pos: 0 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"
 else posString : "",
-for c : 1 thru 1 do (
-for v: 1 thru 1 do (
+for c : 1 thru 3 do (
+for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
-pmax:1,
+pmax:2,
 if c=1 then (pmax:2),
 if positivity then pmax:1,
 for p:1 thru pmax do (
@@ -703,8 +703,8 @@ if em then fname : sconcat("~/max-out/EmGyrokineticSurf", posString, "Ser", c, "
 else fname : sconcat("~/max-out/GyrokineticSurf", posString, "Ser", c, "x", v, "vP", p, ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
-if p=2 then (
-  printf(fh, "#define upwindType SURFAVG ~%"),
+if p=2 and (c=1 or c=3) then (
+  printf(fh, "#define upwindType SURFAVG ~%")
 ),
 /* possible combinations of variable dependence of background magnetic field,
    with 0 = const, 1 = x, 2 = y, 3 = z.
@@ -731,9 +731,6 @@ for p:1 thru pmax do (
 fname : sconcat("~/max-out/GyrokineticSurf", posString, "Ser", c, "x", v, "vP", p, ".cpp"),
 fh : openw(fname),
 printf(fh, "#include <GyrokineticModDecl.h> ~%"),
-if p=2 then (
-  printf(fh, "#define upwindType SURFAVG ~%"),
-),
 bvarslist : [[0]],
 funcName : sconcat("GyrokineticSurf", posString, c, "x", v, "v", "Ser"),
 calcGKSurfUpdater(fh, funcName, c, v, "Ser", p, false, [0]),
