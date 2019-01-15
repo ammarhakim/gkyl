@@ -49,6 +49,18 @@ function Gyrokinetic:init(tbl)
       self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
    end
 
+   if self._isElectromagnetic then
+      self.emMod = DataStruct.Field {
+         onGrid = self._grid,
+         numComponents = self._basis:numBasis(),
+         ghost = {1, 1}
+      }
+      self.emModPtrL = self.emMod:get(1)
+      self.emModPtrR = self.emMod:get(1)
+      self.emModIdxr = self.emMod:genIndexer()
+      self.emMod:clear(0.0)
+   end
+
    -- for gyroaveraging
    self.gyavgSlvr = tbl.gyavgSlvr
    if self.gyavgSlvr then
@@ -188,7 +200,9 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
      self.dApardtPrev:fill(self.dApardtIdxr(idxr), self.dApardtPrevPtr)
-     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtPrevPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
+     self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
+     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtPrevPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
      res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
@@ -302,7 +316,7 @@ function GyrokineticStep2:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
    self.dApardtPrev:fill(self.dApardtIdxr(idxr), self.dApardtPrevPtr)
 
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtPrevPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtPrevPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
 
    return res
 end
