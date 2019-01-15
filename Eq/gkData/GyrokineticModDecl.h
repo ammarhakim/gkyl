@@ -6,6 +6,7 @@
 #define SURFAVG 1 
 #define QUAD 2 
 #define cflType QUAD 
+#define upwindType QUAD
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
