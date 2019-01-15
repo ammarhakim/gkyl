@@ -44,9 +44,9 @@ printf(fh, "#include <Positivity.h> ~%")$
 printf(fh, "#define SURFAVG 1 ~%")$
 printf(fh, "#define QUAD 2 ~%")$
 printf(fh, "#define cflType QUAD ~%")$
-printf(fh, "template <typename T> int sgn(T val) {~%")$
-printf(fh, "    return (T(0) < val) - (val < T(0));~%")$
-printf(fh, "}~%")$
+printf(fh, "#define upwindType QUAD ~%")$
+printf(fh, "template <typename T> int sgn(T val) { ~%")$
+printf(fh, "    return (T(0) < val) - (val < T(0)); ~%}~%")$
 printf(fh, "extern \"C\" { ~%")$
 printPrototypes()$
 printf(fh, "} ~%")$

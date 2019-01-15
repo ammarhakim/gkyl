@@ -15,6 +15,7 @@ RHS : transpose(append(makelist(fL[i]/2,i,1,N), makelist(fR[i]/2,i,1,N)))$
 A : coefmatrix(LHS, makelist(hn[i], i, 0, 2*N-1))$
 S : fullratsimp(invert(A) . RHS)$
 hsol : makelist(S[i][1], i, 1, 2*N)$
+h1d : subst(makelist(hn[i]=hsol[i+1],i,0,length(hsol)-1), h)$
 
 kill(basisC)$
 load("basis-precalc/basisSer2x")$

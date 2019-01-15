@@ -1,34 +1,35 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to calculate the cross-primitive moments, u_ei, u_ie, vtSq_ei=T_ei/m_e,
--- and vtSq_ie=T_ie/m_i for the cross species collisions given the primitive
--- moments of the species.
--- Here the subscript ei means that it corresponds to the contribution to
--- electrons due to collisions with ions, and vice-versa for ie.
+-- Updater to calculate the cross-primitive moments for the cross species 
+-- collisions given the masses and primitive moments (and maybe Greene's beta)
+-- of two species.
+-- For electron-ion plasmas and LBO, these are u_ei, u_ie, vtSq_ei=T_ei/m_e, 
+-- and vtSq_ie=T_ie/m_i. Here the subscript ei means that it corresponds to
+-- the effect on electrons due to collisions with ions, and vice-versa for ie.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
+-- Gkyl libraries.
 local UpdaterBase     = require "Updater.Base"
 local Lin             = require "Lib.Linalg"
 local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
 
--- function to check if collide option is correct
-local function isCollideGood(nm)
-   if nm == "Vmei" or nm == "Vmie" or nm == "Vmall" or
-      nm == "Gkei" or nm == "Gkie" or nm == "Gkall" then
+-- Function to check if operator option is correct.
+local function isOperatorGood(nm)
+   if nm == "VmLBO" or nm == "GkLBO" then
       return true
    end
    return false
 end
 
--- function to check if operator option is correct
-local function isOperatorGood(nm)
-   if nm == "BGK" or nm == "LBO" then
+-- Function to check if formulas option is correct.
+local function isFormulasGood(nm)
+   if nm=="HeavyIons" or nm=="GreenSmallAngle" or
+      nm=="GreeneSmallAngleLimit" or nm=="Greene" then
       return true
    end
    return false
@@ -38,7 +39,7 @@ end
 local CrossPrimMoments = Proto(UpdaterBase)
 
 function CrossPrimMoments:init(tbl)
-   CrossPrimMoments.super.init(self, tbl) -- setup base object.
+   CrossPrimMoments.super.init(self, tbl) -- Setup base object.
 
    self._onGrid = assert(
       tbl.onGrid, "Updater.CrossPrimMoments: Must provide grid object using 'onGrid'.")
@@ -49,139 +50,144 @@ function CrossPrimMoments:init(tbl)
    local confBasis = assert(
       tbl.confBasis, "Updater.CrossPrimMoments: Must provide the configuration basis object using 'confBasis'.")
 
-   self._massRat = assert(
-      tbl.massRatio, "Updater.CrossPrimMoments: Must provide the mass ratio (mi/me) using 'massRatio'.")
-
    local operator = assert(
-      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (BGK or LBO) using 'operator'.")
+      tbl.operator, "Updater.CrossPrimMoments: Must specify the collision operator (VmLBO, or GkLBO) using 'operator'.")
+   assert(isOperatorGood(operator), string.format("CrossPrimMoments: Operator option must be 'VmLBO' or 'GkLBO'. Requested %s instead.", operator))
+   if operator=="VmLBO" then
+      self._kinSpecies = "Vm"
+   elseif operator=="GkLBO" then
+      self._kinSpecies = "Gk"
+   end
 
-   local collide = assert(
-      tbl.collide, "Updater.CrossPrimMoments: Must specify which species to collide (Vmei, Vmie, Vmall, Gkei, Gkie, Gkall) using 'collide'.")
+   self._formulas = assert(
+      tbl.formulas, "Updater.CrossPrimMoments: Must specify which formulas to use (HeavyIons, Greene, GreeneSmallAngle) using 'formulas'.")
+   self._formulasKernel     = self._formulas
 
-   -- dimension of spaces.
+   self._isGreeneSmallAngle = false    -- MF: Better to check a boolean than compare a string in advance method.
+   if self._formulas == "GreeneSmallAngle" then
+      self._formulasKernel     = "Greene"
+      self._isGreeneSmallAngle = true
+   end
+   self._isHeavyIons = false    -- MF: Better to check a boolean than compare a string in advance method.
+   if self._formulas == "HeavyIons" then
+      self._isHeavyIons = true
+   end
+
+   -- Free-parameter in John Greene's equations.
+   self._beta = tbl.betaGreene
+
+   -- Dimension of spaces.
    self._pDim = phaseBasis:ndim()
-   -- ensure sanity.
+   -- Ensure sanity.
    assert(phaseBasis:polyOrder() == confBasis:polyOrder(),
           "Updater.CrossPrimMoments: Polynomial orders of phase and conf basis must match.")
    assert(phaseBasis:id() == confBasis:id(),
           "Updater.CrossPrimMoments: Type of phase and conf basis must match.")
-   -- determine configuration and velocity space dims.
+   -- Determine configuration and velocity space dims.
    self._cDim = confBasis:ndim()
    self._vDim = self._pDim - self._cDim
 
    self._numBasisP = phaseBasis:numBasis()
    self._numBasisC = confBasis:numBasis()
 
-   local id, polyOrder = confBasis:id(), confBasis:polyOrder()
-
-   if isOperatorGood(operator) then
-      if isCollideGood(collide) then
-         self._eiColl = false
-         self._ieColl = false
-         if ((collide == "Vmall") or (collide == "Vmei")) or 
-            ((collide == "Gkall") or (collide == "Gkei")) then self._eiColl = true end
-         if ((collide == "Vmall") or (collide == "Vmie")) or
-            ((collide == "Gkall") or (collide == "Gkie")) then self._ieColl = true end
-         self._allColl = self._eiColl and self._ieColl
-
-         if self._eiColl then
-           self._eiCrossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(operator, collide, id, self._cDim, self._vDim, polyOrder)
-         end
-         if self._ieColl then
-           self._ieCrossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(operator, collide, id, self._cDim, self._vDim, polyOrder)
-         end
-      else
-         assert(false, string.format(
-                   "CrossPrimMoments: Collide option must be 'Vmei', 'Vmie', 'Vmall', 'Gkei', 'Gkie' or 'Gkall'. Requested %s instead.", collide))
-      end
-   else
-      assert(false, string.format(
-                "CrossPrimMoments: Operator option must be 'BGK' or 'LBO'. Requested %s instead.", operator))
-   end
+   self._id, self._polyOrder = confBasis:id(), confBasis:polyOrder()
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
-
 end
 
--- advance method
+-- Advance method.
 function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
-   -- Need to allow the cases of ei and ie collisions,
-   -- ei collisions alone, and ie collisions alone.
-   if self._allColl then
-      local UeiOut    = outFld[1]
-      local vtSqeiOut = outFld[2]
-      local UieOut    = outFld[3]
-      local vtSqieOut = outFld[4]
-   elseif self._eiColl then
-      local UeiOut    = outFld[1]
-      local vtSqeiOut = outFld[2]
-   elseif self._ieColl then
-      local UieOut    = outFld[1]
-      local vtSqieOut = outFld[2]
+   -- Subscripts 1 and 2 refer to first and second species.
+   -- Species 1 is the negative-charge species, and 2 the positive-charge species.
+   -- For electron-ion, for example, one should think of 1 as the electrons
+   -- and 2 as the ions.
+   local collTermSub = inFld[1]    -- Collision term subscripts, 12 or 21.
+   local crossPrimMomentsCalc = PrimMomentsDecl.selectCrossPrimMomentsCalc(self._kinSpecies, self._formulasKernel, self._id, self._cDim, self._vDim, self._polyOrder)
+
+   -- Ratio of mass of other species to self species mass.
+   -- or if "HeavyIons", ratio of lighter to heavier species' mass.
+   local mRat = inFld[2]
+   if self._isHeavyIons and collTermSub=="12" then
+      mRat = 1.0
    end
 
-   local neFld, UeFld, vtSqeFld, niFld, UiFld, vtSqiFld
-   neFld, UeFld, vtSqeFld = inFld[1], inFld[2], inFld[3]
-   niFld, UiFld, vtSqiFld = inFld[4], inFld[5], inFld[6]
+   -- n1, u1, vtSq1 correspond to the self-species and n2, u2, vtSq2 
+   -- to the other species (or lighter and heavier, respectively, if
+   -- using "HeavyIons").
+   local n1Fld, n2Fld, u1Fld, u2Fld, vtSq1Fld, vtSq2Fld
+   n1Fld, u1Fld, vtSq1Fld = inFld[3], inFld[4], inFld[5]
+   n2Fld, u2Fld, vtSq2Fld = inFld[6], inFld[7], inFld[8]
 
-   local confRange = UeFld:localRange()
-   if self.onGhosts then confRange = UeFld:localExtRange() end
+   local uCross    = outFld[1]
+   local vtSqCross = outFld[2]
 
-   local neFldIndexer    = neFld:genIndexer()
-   local UeFldIndexer    = UeFld:genIndexer()
-   local vtSqeFldIndexer = vtSqeFld:genIndexer()
-   local niFldIndexer    = niFld:genIndexer()
-   local UiFldIndexer    = UiFld:genIndexer()
-   local vtSqiFldIndexer = vtSqiFld:genIndexer()
+   local confRange = u1Fld:localRange()
+   if self.onGhosts then confRange = u1Fld:localExtRange() end
 
-   local neFldItr     = neFld:get(1)
-   local UeFldItr     = UeFld:get(1)
-   local vtSqeFldItr  = vtSqeFld:get(1)
-   local niFldItr     = niFld:get(1)
-   local UiFldItr     = UiFld:get(1)
-   local vtSqiFldItr  = vtSqiFld:get(1)
+   local u1FldIndexer    = u1Fld:genIndexer()
+   local vtSq1FldIndexer = vtSq1Fld:genIndexer()
+   local u2FldIndexer    = u2Fld:genIndexer()
+   local vtSq2FldIndexer = vtSq2Fld:genIndexer()
 
-   if self._allColl or self._eiColl then
-      local UeiOutIndexer    = UeiOut:genIndexer()
-      local vtSqeiOutIndexer = vtSqeiOut:genIndexer()
+   local u1FldItr     = u1Fld:get(1)
+   local vtSq1FldItr  = vtSq1Fld:get(1)
+   local u2FldItr     = u2Fld:get(1)
+   local vtSq2FldItr  = vtSq2Fld:get(1)
 
-      local UeiOutItr    = UeiOut:get(1)
-      local vtSqeiOutItr = vtSqeiOut:get(1)
-   end
-   if self._allColl or self._ieColl then
-      local UieOutIndexer    = UieOut:genIndexer()
-      local vtSqieOutIndexer = vtSqieOut:genIndexer()
+   local uCrossIndexer    = uCross:genIndexer()
+   local vtSqCrossIndexer = vtSqCross:genIndexer()
 
-      local UieOutItr    = UieOut:get(1)
-      local vtSqieOutItr = vtSqieOut:get(1)
-   end
+   local uCrossItr    = uCross:get(1)
+   local vtSqCrossItr = vtSqCross:get(1)
 
-   -- configuration space loop, computing primitive moments in each cell
-   for confIdx in confRange:colMajorIter() do
-      grid:setIndex(confIdx)
+   if self._isGreeneSmallAngle then
 
-      neFld:fill(neFldIndexer(confIdx), neFldItr)
-      UeFld:fill(UeFldIndexer(confIdx), UeFldItr)
-      vtSqeFld:fill(vtSqeFldIndexer(confIdx), vtSqeFldItr)
-      niFld:fill(niFldIndexer(confIdx), niFldItr)
-      UiFld:fill(UiFldIndexer(confIdx), UiFldItr)
-      vtSqiFld:fill(vtSqiFldIndexer(confIdx), vtSqiFldItr)
-      
-      if self._eiColl then
-         UeiOut:fill(UeiOutIndexer(confIdx), UeiOutItr)
-         vtSqeiOut:fill(vtSqeiOutIndexer(confIdx), vtSqeiOutItr)
+      -- In this case number densities are used to compute beta.
+      local n1FldIndexer = n1Fld:genIndexer()
+      local n2FldIndexer = n2Fld:genIndexer()
+      local n1FldItr     = n1Fld:get(1)
+      local n2FldItr     = n2Fld:get(1)
 
-         self._eiCrossPrimMomentsCalc(self._massRat, neFldItr:data(), UeFldItr:data(), vtSqeFldItr:data(), niFldItr:data(), UiFldItr:data(), vtSqiFldItr:data(), UeiOutItr:data(), vtSqeiOutItr:data())
+      -- To obtain the cell average, multiply the zeroth coefficient by this factor.
+      local massRatFac = 2.0*(1.0+mRat) 
+
+      for confIdx in confRange:colMajorIter() do
+         grid:setIndex(confIdx)
+
+         n1Fld:fill(n1FldIndexer(confIdx), n1FldItr)
+         u1Fld:fill(u1FldIndexer(confIdx), u1FldItr)
+         vtSq1Fld:fill(vtSq1FldIndexer(confIdx), vtSq1FldItr)
+         n2Fld:fill(n2FldIndexer(confIdx), n2FldItr)
+         u2Fld:fill(u2FldIndexer(confIdx), u2FldItr)
+         vtSq2Fld:fill(vtSq2FldIndexer(confIdx), vtSq2FldItr)
+         
+         uCross:fill(uCrossIndexer(confIdx), uCrossItr)
+         vtSqCross:fill(vtSqCrossIndexer(confIdx), vtSqCrossItr)
+
+         self._beta   = (n1FldItr[1]/n2FldItr[1])*massRatFac/math.sqrt((1.0+vtSq2FldItr[1]/vtSq1FldItr[1])^3)-1.0
+
+         crossPrimMomentsCalc(mRat, self._beta, u1FldItr:data(), vtSq1FldItr:data(), u2FldItr:data(), vtSq2FldItr:data(), uCrossItr:data(), vtSqCrossItr:data())
       end
 
-      if self._ieColl then
-         UieOut:fill(UieOutIndexer(confIdx), UieOutItr)
-         vtSqieOut:fill(vtSqieOutIndexer(confIdx), vtSqieOutItr)
+   else
 
-         self._ieCrossPrimMomentsCalc(self._massRat, neFldItr:data(), UeFldItr:data(), vtSqeFldItr:data(), niFldItr:data(), UiFldItr:data(), vtSqiFldItr:data(), UieOutItr:data(), vtSqieOutItr:data())
+      -- Configuration space loop, computing cross-primitive moments in each cell.
+      for confIdx in confRange:colMajorIter() do
+         grid:setIndex(confIdx)
+
+         u1Fld:fill(u1FldIndexer(confIdx), u1FldItr)
+         vtSq1Fld:fill(vtSq1FldIndexer(confIdx), vtSq1FldItr)
+         u2Fld:fill(u2FldIndexer(confIdx), u2FldItr)
+         vtSq2Fld:fill(vtSq2FldIndexer(confIdx), vtSq2FldItr)
+         
+         uCross:fill(uCrossIndexer(confIdx), uCrossItr)
+         vtSqCross:fill(vtSqCrossIndexer(confIdx), vtSqCrossItr)
+
+         crossPrimMomentsCalc(mRat, self._beta, u1FldItr:data(), vtSq1FldItr:data(), u2FldItr:data(), vtSq2FldItr:data(), uCrossItr:data(), vtSqCrossItr:data())
       end
+
    end
 end
 

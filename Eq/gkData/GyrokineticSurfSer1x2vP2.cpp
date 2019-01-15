@@ -1,4 +1,5 @@
 #include <GyrokineticModDecl.h> 
+#define upwindType SURFAVG
 double GyrokineticSurf1x2vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
@@ -61,7 +62,7 @@ double GyrokineticSurf1x2vSer_X_P2_Bvars_0(const double q_, const double m_, con
   incr[17] = -0.01666666666666667*(51.96152422706631*alpha[1]*fr[18]-75.0*alpha[0]*fr[17]+alpha[1]*((-30.0*fr[14])-75.00000000000001*fr[13])+alpha[0]*(58.09475019311126*fr[10]-33.54101966249685*fr[6])+alpha[1]*(58.09475019311126*fr[5]-33.54101966249685*fr[3]))*dfac_x; 
   incr[18] = 0.05*(15.0*alpha[0]*fr[18]-17.32050807568877*alpha[1]*fr[17]-8.660254037844387*alpha[0]*fr[14]+alpha[1]*(13.41640786499874*fr[10]-7.745966692414834*fr[6]))*dfac_x; 
   incr[19] = 0.05*(alpha[0]*(15.0*fr[19]-8.660254037844387*fr[16])+alpha[1]*(15.0*fr[15]-8.660254037844386*fr[9]))*dfac_x; 
-
+  }
 #elif upwindType == QUAD 
 double fupwind[20];
 double fupwindQuad[20];
@@ -423,7 +424,7 @@ double GyrokineticSurf1x2vSer_X_P2_Bvars_1(const double q_, const double m_, con
   incr[17] = -0.01666666666666667*(51.96152422706631*alpha[1]*fr[18]-75.0*alpha[0]*fr[17]+alpha[1]*((-30.0*fr[14])-75.00000000000001*fr[13])+alpha[0]*(58.09475019311126*fr[10]-33.54101966249685*fr[6])+alpha[1]*(58.09475019311126*fr[5]-33.54101966249685*fr[3]))*dfac_x; 
   incr[18] = 0.05*(15.0*alpha[0]*fr[18]-17.32050807568877*alpha[1]*fr[17]-8.660254037844387*alpha[0]*fr[14]+alpha[1]*(13.41640786499874*fr[10]-7.745966692414834*fr[6]))*dfac_x; 
   incr[19] = 0.05*(alpha[0]*(15.0*fr[19]-8.660254037844387*fr[16])+alpha[1]*(15.0*fr[15]-8.660254037844386*fr[9]))*dfac_x; 
-
+  }
 #elif upwindType == QUAD 
 double fupwind[20];
 double fupwindQuad[20];

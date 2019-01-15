@@ -53,8 +53,10 @@ for bInd : 1 thru length(bName) do (
         ),
   
         /* Primitive moments for cross-collision Vlasov LBO terms. */
-        printf(fh, "void CrossPrimMoments_VmeiLBO_~ax~av~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, bName[bInd], pi),
-        printf(fh, "void CrossPrimMoments_VmieLBO_~ax~av~a_P~a(const double mRat, const double *ne, const double *ue, const double *vtSqe, const double *ni, const double *ui, const double *vtSqi, double *uie, double *vtSqie); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "void VmCrossPrimMomentsGreene~ax~av~a_P~a(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "~%"), 
+ 
+        printf(fh, "void VmCrossPrimMomentsHeavyIons~ax~av~a_P~a(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); ~%", ci, vi, bName[bInd], pi),
         printf(fh, "~%") 
  
       ),
@@ -89,7 +91,14 @@ for bInd : 1 thru length(bName) do (
         for si : 1 thru vi do (
           printf(fh, "void GkBoundaryIntegral~ax~av~a_vF_V~a_P~a(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); ~%", ci, vi, bName[bInd], VarsC[si], pi),
           printf(fh, "~%")
-        )
+        ),
+
+        /* Primitive moments for cross-collisions. */
+        printf(fh, "void GkCrossPrimMomentsGreene~ax~av~a_P~a(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "~%"),
+  
+        printf(fh, "void GkCrossPrimMomentsHeavyIons~ax~av~a_P~a(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "~%")
   
       )
 

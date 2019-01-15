@@ -86,7 +86,6 @@ end
 function Gyrokinetic:setAuxFields(auxFields)
    local potentials = auxFields[1] -- first auxField is Field object
    local geo = auxFields[2] -- second auxField is FuncField object
-   --local potentialsPrev = auxFields[3]
 
    -- get phi
    self.phi = potentials.phi

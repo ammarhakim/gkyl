@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
@@ -67,11 +67,11 @@ plasmaApp = Plasma.App {
    periodicDirs = {1},          -- Periodic directions.
 
    -- Neutral species with a rectangular/square IC.
-   square = Plasma.VlasovSpecies {
+   square = Plasma.Species {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {48},
       decompCuts = {1},
       -- Initial conditions.
@@ -85,22 +85,23 @@ plasmaApp = Plasma.App {
       -- Diagnostic moments.
       diagnosticMoments = { "M0", "M1i", "M2" },
       -- Collisions.
-      coll = Plasma.VmLBOCollisions {
-      --   collFreq = nu,
-         normNu = nu*math.sqrt(0.1018^3)/0.9622,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'square'},
+--         frequencies = {nu},
+         normNu      = {nu*math.sqrt(0.1018^3)/0.9622},
       },
    },
 
    -- -- Maxwellian for comparison with rectangular IC.
-   -- maxwellSquare = Plasma.VlasovSpecies {
+   -- maxwellSquare = Plasma.Species {
    --    charge = 0.0, mass = 1.0,
    --    -- Velocity space grid.
    --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
+   --    upper      = { 8.0*vt},
    --    cells      = {48},
    --    decompCuts = {1},
    --    -- Initial conditions.
-   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --    init = Plasma.MaxwellianProjection {
    --       density         = nMr,
    --       driftSpeed      = {uMr},
    --       temperature     = vtMr^2,
@@ -114,11 +115,11 @@ plasmaApp = Plasma.App {
    -- },
 
    -- Neutral species with a bump in the tail.
-   bump = Plasma.VlasovSpecies {
+   bump = Plasma.Species {
       charge = 0.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
-      upper      = {8.0*vt},
+      upper      = { 8.0*vt},
       cells      = {48},
       decompCuts = {1},
       -- Initial conditions.
@@ -132,22 +133,23 @@ plasmaApp = Plasma.App {
       -- Diagnostic moments.
       diagnosticMoments = { "M0", "M1i", "M2" },
       -- Collisions.
-      coll = Plasma.VmLBOCollisions {
-      --   collFreq = nu,
-         normNu = nu*math.sqrt(0.3966^3)/1.0993,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'bump'},
+ --        frequencies = {nu},
+         normNu      = {nu*math.sqrt(0.3966^3)/1.0993},
       },
    },
 
    -- -- Maxwellian for comparison with bump in tail IC.
-   -- maxwellBump = Plasma.VlasovSpecies {
+   -- maxwellBump = Plasma.Species {
    --    charge = 0.0, mass = 1.0,
    --    -- Velocity space grid.
    --    lower      = {-8.0*vt},
-   --    upper      = {8.0*vt},
+   --    upper      = { 8.0*vt},
    --    cells      = {48},
    --    decompCuts = {1},
    --    -- Initial conditions.
-   --    init = Plasma.VlasovMaxwell.MaxwellianProjection {
+   --    init = Plasma.MaxwellianProjection {
    --       density         = nMb,
    --       driftSpeed      = {uMb},
    --       temperature     = vtMb^2,
@@ -161,5 +163,5 @@ plasmaApp = Plasma.App {
    -- },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()

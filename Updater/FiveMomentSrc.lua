@@ -37,8 +37,9 @@ typedef struct {
 
   void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
   void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcTimeCenteredDirect(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcTimeCenteredDirect2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    void gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -60,13 +61,18 @@ local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcAnalytic(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcAnalytic(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcAnalytic2(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcAnalytic2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect2(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcTimeCenteredDirect2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+end
+
+-- Use an implicit scheme to update momentum and electric field
+local function updateSrcExact(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcExact(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Five-moment source updater object
@@ -125,10 +131,12 @@ function FiveMomentSrc:init(tbl)
       self._updateSrc = updateSrcModBoris
    elseif scheme == "time-centered" then
       self._updateSrc = updateSrcTimeCentered
-   elseif scheme == "analytic" then
-      self._updateSrc = updateSrcAnalytic
-   elseif scheme == "analytic2" then
-      self._updateSrc = updateSrcAnalytic2
+   elseif scheme == "time-centered-direct" then
+      self._updateSrc = updateSrcTimeCenteredDirect
+   elseif scheme == "time-centered-direct2" then
+      self._updateSrc = updateSrcTimeCenteredDirect2
+   elseif scheme == "exact" then
+      self._updateSrc = updateSrcExact
    end
 end
 

@@ -1,0 +1,28 @@
+load(orthopoly)$
+load("modal-basis")$
+
+/* Use different basis and test functions: these are biorthonormal */
+hbasis(n,x) := hermite(n,x)/sqrt(2^n*factorial(n))$
+htest(n,x) := exp(-x^2)*hermite(n,x)/sqrt(2^n*factorial(n)*%pi)$
+
+load("basis-precalc/basisSer1x1v")$
+bc : basisC[1]$
+
+/* Transforms function or list of functions to arbitrary interval */
+tr(f,zl,zr) := subst(x=(z-(zr+zl)/2)/((zr-zl)/2), f)$
+
+assume(zr>zl)$
+bcI : tr(bc, zl, zr)$
+
+/* Project Hermite basis on local DG basis */
+hProj(n) := calcInnerProdListGen([z], [[zl,zr]], 1, bcI, hbasis(n,z))$
+
+hMax : 2$
+/* Collect as matrix */
+hProjMat : zeromatrix(hMax+1, length(bc))$
+
+for m from 0 thru hMax do (
+  hp : hProj(m),
+  for i from 1 thru length(bc) do hProjMat[m+1][i] : hp[i]
+  )$
+
