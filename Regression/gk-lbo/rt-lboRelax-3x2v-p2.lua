@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic
 
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
@@ -70,7 +70,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1,2,3},          -- Periodic directions.
 
    -- Neutral species with a rectangular/square IC.
-   square = Plasma.GkSpecies {
+   square = Plasma.Species {
       charge = 1.0, mass = mass,
       -- Velocity space grid.
       lower      = {vMin,muMin},
@@ -83,20 +83,21 @@ plasmaApp = Plasma.App {
 
          return topHat(x, y, z, vpar, mu, n0, u0, vt)
       end,
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
+      --bcx = { Plasma.Species.bcOpen,
+      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
-      coll = Plasma.GkLBOCollisions {
-         collFreq = nu,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'square'},
+         frequencies = {nu, },
       },
    },
 
    -- Neutral species with a bump in the tail.
-   bump = Plasma.GkSpecies {
+   bump = Plasma.Species {
       charge = 1.0, mass = mass,
       -- Velocity space grid.
       lower      = {vMin,muMin},
@@ -109,26 +110,27 @@ plasmaApp = Plasma.App {
 
          return bumpMaxwell(x,y,z,vpar,mu,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
+      --bcx = { Plasma.Species.bcOpen,
+      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
-      coll = Plasma.GkLBOCollisions {
-         collFreq = nu,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'bump'},
+         frequencies = {nu, },
       },
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true, -- evolve fields?
       initPhiFunc = function (t, xn) return 0.0 end,
    },
    
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]

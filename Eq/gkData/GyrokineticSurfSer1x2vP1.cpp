@@ -36,7 +36,7 @@ double GyrokineticSurf1x2vSer_X_P1_Bvars_0(const double q_, const double m_, con
   incr[5] = 0.25*alpha[0]*(3.0*fr[5]-1.732050807568877*fr[3])*dfac_x; 
   incr[6] = -0.25*alpha[0]*(1.732050807568877*fr[7]-1.0*fr[6])*dfac_x; 
   incr[7] = 0.25*alpha[0]*(3.0*fr[7]-1.732050807568877*fr[6])*dfac_x; 
-
+  }
 #elif upwindType == QUAD 
 double fupwind[8];
 double fupwindQuad[8];
@@ -154,7 +154,7 @@ double GyrokineticSurf1x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   incr[5] = -0.25*alpha[0]*(1.732050807568877*fr[7]-1.0*fr[5])*dfac_v; 
   incr[6] = 0.25*alpha[0]*(3.0*fr[6]-1.732050807568877*fr[3])*dfac_v; 
   incr[7] = 0.25*alpha[0]*(3.0*fr[7]-1.732050807568877*fr[5])*dfac_v; 
-
+  }
 #elif upwindType == QUAD 
 double fupwind[8];
 double fupwindQuad[8];
@@ -272,7 +272,7 @@ double GyrokineticSurf1x2vSer_X_P1_Bvars_1(const double q_, const double m_, con
   incr[5] = 0.25*alpha[0]*(3.0*fr[5]-1.732050807568877*fr[3])*dfac_x; 
   incr[6] = -0.25*alpha[0]*(1.732050807568877*fr[7]-1.0*fr[6])*dfac_x; 
   incr[7] = 0.25*alpha[0]*(3.0*fr[7]-1.732050807568877*fr[6])*dfac_x; 
-
+  }
 #elif upwindType == QUAD 
 double fupwind[8];
 double fupwindQuad[8];
@@ -393,7 +393,7 @@ double GyrokineticSurf1x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   incr[5] = -0.25*(1.732050807568877*(alpha[0]*fr[7]+alpha[1]*fr[6])-1.0*alpha[0]*fr[5]+1.732050807568877*alpha[2]*fr[4]-1.0*alpha[1]*fr[3]+1.732050807568877*fr[2]*alpha[3]-1.0*(fr[0]*alpha[3]+fr[1]*alpha[2]))*dfac_v; 
   incr[6] = 0.25*(3.0*(alpha[1]*fr[7]+alpha[0]*fr[6])-1.732050807568877*alpha[1]*fr[5]+3.0*alpha[3]*fr[4]-1.732050807568877*(alpha[0]*fr[3]+fr[1]*alpha[3])+alpha[2]*(3.0*fr[2]-1.732050807568877*fr[0]))*dfac_v; 
   incr[7] = 0.25*(3.0*(alpha[0]*fr[7]+alpha[1]*fr[6])-1.732050807568877*alpha[0]*fr[5]+3.0*alpha[2]*fr[4]-1.732050807568877*alpha[1]*fr[3]+3.0*fr[2]*alpha[3]-1.732050807568877*(fr[0]*alpha[3]+fr[1]*alpha[2]))*dfac_v; 
-
+  }
 #elif upwindType == QUAD 
 double fupwind[8];
 double fupwindQuad[8];

@@ -22,35 +22,42 @@ local GkLBO = Proto(EqBase)
 -- ctor.
 function GkLBO:init(tbl)
 
-   self._phaseBasis = assert(
-      tbl.phaseBasis, "Eq.GkLBO: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis  = assert(
-      tbl.confBasis, "Eq.GkLBO: Must specify configuration-space basis functions to use using 'confBasis'")
+   self._phaseBasis  = assert(tbl.phaseBasis, 
+      "Eq.GkLBO: Must specify phase-space basis functions to use using 'phaseBasis'.")
+   self._confBasis   = assert(tbl.confBasis, 
+      "Eq.GkLBO: Must specify configuration-space basis functions to use using 'confBasis'.")
    
-   self._vParMax   = assert(tbl.vParUpper, "Eq.GkLBO: Must specify maximum velocity of vPar grid in 'vParUpper'")
-   self._vParMaxSq = self._vParMax^2
+   self._vParMax     = assert(tbl.vParUpper, 
+      "Eq.GkLBO: Must specify maximum velocity of vPar grid in 'vParUpper'.")
+   self._vParMaxSq   = self._vParMax^2
+   local varNuIn       = tbl.varyingNu    -- Specify if collisionality varies spatially.
+   local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
-   assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'")
+   assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'.")
    self._inMass = tbl.mass
 
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
 
-   local constNu = tbl.nu
-   if constNu then
-      self._varNu       = false    -- Collisionality is spatially constant.
-      self._inNu        = Lin.Vec(1)
-      self._inNu        = constNu
-      self._cellConstNu = true     -- Collisionality is cell-wise constant.
+   -- The default is spatially constant collisionality.
+   if varNuIn==nil then
+      self._varNu       = false
+      self._cellConstNu = true
    else
-      self._cellConstNu = assert(tbl.useCellAverageNu, "Eq.VmLBO: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
-      self._varNu               = true    -- Spatially varying nu.
-      self._nu                  = nil
-      self._nuPtr, self._nuIdxr = nil, nil
-      if self._cellConstNu then    -- Not varying within the cell.
-         self._inNu      = Lin.Vec(1)
+      self._varNu       = varNuIn
+      if cellConstNuIn==nil then
+         self._cellConstNu = true
+      else
+         self._cellConstNu = cellConstNuIn
       end
+   end
+
+   if self._varNu then
+      self._nuPtr, self._nuIdxr = nil, nil
+   end
+   if self._cellConstNu then    -- Not varying within the cell.
+      self._inNu = Lin.Vec(1)
    end
 
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
@@ -67,10 +74,13 @@ function GkLBO:init(tbl)
       self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
    end
 
+   -- Collisionality and inverse magnetic field amplitude passed as auxiliary fields.
+   self._nu      = nil
+   self._BmagInv = nil
    -- Bulk velocity field object and pointers to cell values.
-   self._u = nil
+   self._u       = nil
    -- Thermal speed squared field object and pointers to cell values.
-   self._vthSq = nil
+   self._vthSq   = nil
    -- (these will be set on the first call to setAuxFields() method).
    self._BmagInvPtr, self._BmagInvIdxr = nil, nil
    self._uPtr, self._uIdxr             = nil, nil
@@ -212,9 +222,7 @@ function GkLBO:setAuxFields(auxFields)
    self._BmagInv = auxFields[1]
    self._u       = auxFields[2]
    self._vthSq   = auxFields[3]
-   if self._varNu then
-     self._nu    = auxFields[4]
-   end
+   self._nu      = auxFields[4]
 
    if self._isFirst then
       -- Allocate pointers to field object.
@@ -228,11 +236,13 @@ function GkLBO:setAuxFields(auxFields)
       self._vthSqIdxr = self._vthSq:genIndexer()
 
       if self._varNu then
-         self._nuPtr     = self._nu:get(1)
-         self._nuIdxr    = self._nu:genIndexer()
+         self._nuPtr  = self._nu:get(1)
+         self._nuIdxr = self._nu:genIndexer()
+      else
+         self._inNu   = self._nu
       end
 
-      self._isFirst    = false -- No longer first time.
+      self._isFirst = false -- No longer first time.
    end
 end
 

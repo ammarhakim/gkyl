@@ -53,7 +53,6 @@ end
 function KineticSpecies:fullInit(appTbl)
    local tbl = self.tbl -- previously store table
 
-   self.name = "name"
    self.cfl =  0.1
    self.charge = tbl.charge and tbl.charge or 1.0
    self.mass = tbl.mass and tbl.mass or 1.0
@@ -248,9 +247,10 @@ function KineticSpecies:fullInit(appTbl)
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
-	 val:fullInit(tbl) -- initialize collisions
 	 self.collisions[nm] = val
 	 self.collisions[nm]:setName(nm)
+	 val:setSpeciesName(self.name)
+	 val:fullInit(tbl) -- initialize collisions
       end
    end
 
@@ -276,12 +276,8 @@ end
 function KineticSpecies:getVdim()
    return self.vdim
 end
-function KineticSpecies:setName(nm)
+function KineticSpecies:setName(nm) -- Needs to be called before fullInit().
    self.name = nm
-   -- set "self species" for collisions
-   for _, c in pairs(self.collisions) do
-      c:setSpeciesName(nm)
-   end
 end
 function KineticSpecies:setCfl(cfl)
    self.cfl = cfl

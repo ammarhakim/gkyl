@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic
 
 -- This test relaxes a rectangular/square IC and a bump in tail IC.
 -- Maxwellian's for comparison with each are also created.
@@ -68,7 +68,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1},          -- Periodic directions.
 
    -- Neutral species with a rectangular/square IC.
-   square = Plasma.GkSpecies {
+   square = Plasma.Species {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
@@ -83,14 +83,15 @@ plasmaApp = Plasma.App {
       end,
       evolve = true,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-      coll = Plasma.GkLBOCollisions {
---         collFreq = nu,
-         normNu = nu*math.sqrt(0.11404^3)/1.01036,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'square'},
+ --        frequencies = {nu, },
+         normNu      = {nu*math.sqrt(0.11404^3)/1.01036},
       },
    },
 
    -- Neutral species with a bump in the tail.
-   bump = Plasma.GkSpecies {
+   bump = Plasma.Species {
       charge = 1.0, mass = 1.0,
       -- Velocity space grid.
       lower      = {-8.0*vt},
@@ -104,21 +105,22 @@ plasmaApp = Plasma.App {
       end,
       evolve = true,
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
-      coll = Plasma.GkLBOCollisions {
---         collFreq = nu,
-         normNu = nu*math.sqrt(0.39677^3)/1.10187,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'bump'},
+--         frequencies = {nu, },
+         normNu      = {nu*math.sqrt(0.39677^3)/1.10187},
       },
    },
 
    -- field solver
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = false, -- evolve fields?
       initPhiFunc = function (t, xn) return 0.0 end,
       kperp2 = 0.0
    },
    
    -- magnetic geometry 
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]

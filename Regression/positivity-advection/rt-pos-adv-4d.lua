@@ -1,5 +1,5 @@
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").Gyrokinetic
 
 local ux = 1
 local uy = 1
@@ -37,47 +37,47 @@ end
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 1.0, -- end time
-   nFrame = 1, -- number of output frames
-   lower = {0, 0}, -- configuration space lower left
-   upper = {1.0, 1.0}, -- configuration space upper right
-   cells = {16, 16}, -- configuration space cells
-   basis = "serendipity", -- one of "serendipity" or "maximal-order"
-   polyOrder = 1, -- polynomial order
-   timeStepper = "rk3", -- one of "rk2" or "rk3"
+   tEnd        = 1.0,              -- End time.
+   nFrame      = 1,                -- Number of output frames.
+   lower       = {0, 0},           -- Configuration space lower left.
+   upper       = {1.0, 1.0},       -- Configuration space upper right.
+   cells       = {16, 16},         -- Configuration space cells.
+   basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
+   polyOrder   = 1,                -- Polynomial order.
+   timeStepper = "rk3",            -- One of "rk2" or "rk3".
    
-   -- decomposition for configuration space
-   decompCuts = {1,1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
+   -- Decomposition for configuration space.
+   decompCuts = {1,1},    -- Cuts in each configuration direction.
+   useShared  = false,    -- If to use shared memory.
 
-   -- boundary conditions for configuration space
-   periodicDirs = {1, 2}, -- periodic directions
+   -- Boundary conditions for configuration space.
+   periodicDirs = {1, 2},    -- Periodic directions.
 
-   -- electrons
-   fluid = Plasma.GkSpecies {
+   -- Fluid species.
+   fluid = Plasma.Species {
       charge = qi,
       mass = mi,
       n0 = 1,
-      -- velocity space grid
+      -- Velocity space grid.
       lower = {-4, 0},
       upper = {4, 4},
       cells = {8, 8},
       decompCuts = {1, 1},
-      -- initial conditions
+      -- Initial conditions.
       init = {"maxwellian",
-              density = squareHat,
+              density     = squareHat,
               temperature = function (t, xn)
                  return 1.0
               end,
              },
-      evolve = true, -- evolve species?
-      applyPositivity = true,
+      evolve            = true, -- Evolve species?
+      applyPositivity   = true,
       diagnosticMoments = {"GkM0"}
    },
 
-   -- field solver
-   field = Plasma.GkField {
-      evolve = false, -- evolve field?
+   -- Field solver.
+   field = Plasma.Field {
+      evolve = false, -- Evolve field?
       -- u = {dphi/dy, -dphi/dx}
       initPhiFunc = function (t, xn)
          local x, y = xn[1], xn[2]
@@ -85,16 +85,16 @@ plasmaApp = Plasma.App {
       end, 
    },
 
-   funcField = Plasma.GkGeometry {
-      -- background magnetic field
+   funcField = Plasma.Geometry {
+      -- Background magnetic field.
       B0 = 1.0,
       bmag = function (t, xn)
          return 1.0
       end,
 
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 }
--- run application
+-- Run application.
 plasmaApp:run()

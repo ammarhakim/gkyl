@@ -482,6 +482,8 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    
    if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
 
+   if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
+
    if self.evolve or (self._first and not self.initPhiFunc) then
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do

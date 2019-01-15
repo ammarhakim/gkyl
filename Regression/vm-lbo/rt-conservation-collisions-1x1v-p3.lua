@@ -1,5 +1,5 @@
 -- Gkyl ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
 -- Maxwellian in 1x1v
 local function maxwellian1D(n, vx, ux, mass, temp)
@@ -59,7 +59,7 @@ plasmaApp = Plasma.App {
    calcIntQuantEvery = 0.0025,
 
    -- electrons
-   elc = Plasma.VlasovSpecies {
+   elc = Plasma.Species {
       charge = elcCharge, mass = elcMass,
       -- velocity space grid
       lower = {-5.0*vtElc1},
@@ -81,12 +81,13 @@ plasmaApp = Plasma.App {
       -- write out density, flow, total energy, and heat flux moments
       diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
-      coll = Plasma.VmLBOCollisions {
-            collFreq = nuElc,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'elc'},
+         frequencies = {nuElc},
       },
    },
    -- protons
-   ion = Plasma.VlasovSpecies {
+   ion = Plasma.Species {
       charge = ionCharge, mass = ionMass,
       -- velocity space grid
       lower = {-6.0*vtIon1+vtElc1},
@@ -108,13 +109,14 @@ plasmaApp = Plasma.App {
       -- write out density, flow, total energy, and heat flux moments
       diagnosticMoments = { "M0", "M1i", "M2", "M3i" },
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal", "intL2" },
-      coll = Plasma.VmLBOCollisions {
-            collFreq = nuIon,
+      coll = Plasma.LBOCollisions {
+         collideWith = {'ion'},
+         frequencies = {nuIon},
       },
    },
 
    -- field solver
-   field = Plasma.MaxwellField {
+   field = Plasma.Field {
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
