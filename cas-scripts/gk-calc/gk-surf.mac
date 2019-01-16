@@ -184,13 +184,18 @@ load(modNm),
   alphaSurf_expd : doExpandLst(alphaNoZero_k, bSurf),
   flush_output(fh),
 
-  printf(fh, "  double alphaUp[~a]; ~%", length(bSurf)),
-  alphaUp_k : fullratsimp(innerProd(surfIntVars, 1, bSurf, subst(surfVar=-1,alphaUp_expd))),
-  flush_output(fh),
-  writeCExprsNoExpand1(alphaUp, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alphaUp_k)),
-  alphaUpNoZero_k : doMakeExprLst(alphaUp_k, alphaUp),
-  alphaUpSurf_expd : doExpandLst(alphaUpNoZero_k, bSurf),
-  flush_output(fh),
+  if surfVar=vpar and emflag and i=1 then (
+    /* print alphaUp */
+    printf(fh, "  double alphaUp[~a]; ~%", length(bSurf)),
+    alphaUp_k : fullratsimp(innerProd(surfIntVars, 1, bSurf, subst(surfVar=-1,alphaUp_expd))),
+    flush_output(fh),
+    writeCExprsNoExpand1(alphaUp, subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2],alphaUp_k)),
+    alphaUpNoZero_k : doMakeExprLst(alphaUp_k, alphaUp),
+    alphaUpSurf_expd : doExpandLst(alphaUpNoZero_k, bSurf),
+    flush_output(fh)
+  ) else (
+    alphaUpSurf_expd : alphaSurf_expd
+  ),
 
   /* note: always use pureUpwind for p=1 */
   if (alphaSurf_expd = 0) then (
@@ -207,38 +212,37 @@ load(modNm),
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
       incr_r : facsum(fullratsimp(t),dxv),
       writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
+        if surfVar=vpar and emflag and i=1 then (
+           tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
+           incrMod_r : facsum(fullratsimp(tMod),dxv),
+           writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
+        ),
+
       printf(fh, "~%"),
       flush_output(fh)
     )
     else (
       printf(fh, "#if upwindType == SURFAVG ~%"),
       printf(fh, "  if (alpha0>0) { ~%"),
-      if positivity then fhatSurf_expd : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, cflL, cdim, vdim, i))
-      else fhatSurf_expd : subst(surfVar=1, fL_expd),
-
-        if surfVar=vpar and emflag and i=1 then (
-           tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
-           incrMod_r : facsum(fullratsimp(tMod),dxv),
-           writeCIncrExprsNoExpand1(emModR, subst([wv^2=wv2,q_^2=q2], incrMod_r)),
-           tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=1, bP), fhatSurf_expd),
-           incrMod_l : -facsum(fullratsimp(tMod),dxv),
-           writeCIncrExprsNoExpand1(emModL, subst([wv^2=wv2,q_^2=q2], incrMod_l))
-        ),
+      fhatSurf_expd : subst(surfVar=1, fL_expd),
 
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
       incr_r : facsum(fullratsimp(t),dxv),
       writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
-      printf(fh, "  } else { ~%"),
-      if positivity then fhatSurf_expd : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, cflR, cdim, vdim, i))
-      else fhatSurf_expd : subst(surfVar=-1, fR_expd),
 
         if surfVar=vpar and emflag and i=1 then (
            tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
            incrMod_r : facsum(fullratsimp(tMod),dxv),
-           writeCIncrExprsNoExpand1(emModR, subst([wv^2=wv2,q_^2=q2], incrMod_r)),
-           tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=1, bP), fhatSurf_expd),
-           incrMod_l : -facsum(fullratsimp(tMod),dxv),
-           writeCIncrExprsNoExpand1(emModL, subst([wv^2=wv2,q_^2=q2], incrMod_l))
+           writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
+        ),
+
+      printf(fh, "  } else { ~%"),
+      fhatSurf_expd : subst(surfVar=-1, fR_expd),
+
+        if surfVar=vpar and emflag and i=1 then (
+           tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
+           incrMod_r : facsum(fullratsimp(tMod),dxv),
+           writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
         ),
 
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
@@ -250,7 +254,7 @@ load(modNm),
       printf(fh, "#elif upwindType == QUAD ~%"),
       printf(fh, "double fupwind[~a];~%", length(bP)),
       printf(fh, "double fupwindQuad[~a];~%", length(bP)),
-      printf(fh, "double limQuad[~a];~%", length(bP)),
+      printf(fh, "double alphaQuad;~%"),
       if i=1 then quad:1/sqrt(3),
       if i=2 then quad:sqrt(3/5),
       nodes : eval_string(sconcat("nodes", cdim+vdim, "xp", i))*quad,
@@ -263,12 +267,10 @@ load(modNm),
       /* note: alphaSurf_expd is a surface expansion */
       alphaq:gcfac(float(nodesub(alphaUpSurf_expd))),
       /* determine upwinding */
+      fupQ : gcfac(.5*(flQ+frQ)+.5*sgn(alphaQuad)*(flQ-frQ)),
       for i:1 thru length(alphaq) do (
-      printf(fh, "  if(~a > 0) {~%", alphaq[i]),
-      printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, flQ[i]),
-      printf(fh, "  } else {~%"),
-      printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, frQ[i]),
-      printf(fh, "  }~%")
+      printf(fh, "  alphaQuad = ~a; ~%", alphaq[i]),
+      printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, fupQ[i])
       ),
       if cdim+vdim<=3 then modToNod:calcModToNodPhaseWithNodes(cdim+vdim,0,i,nodes)
       else modToNod:calcModToNodPhaseWithNodes(cdim,vdim,i,nodes),
@@ -283,10 +285,7 @@ load(modNm),
       if surfVar=vpar and emflag and i=1 then (
          tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
          incrMod_r : facsum(fullratsimp(tMod),dxv),
-         writeCIncrExprsNoExpand1(emModR, subst([wv^2=wv2,q_^2=q2], incrMod_r)),
-         tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=1, bP), fhatSurf_expd),
-         incrMod_l : -facsum(fullratsimp(tMod),dxv),
-         writeCIncrExprsNoExpand1(emModL, subst([wv^2=wv2,q_^2=q2], incrMod_l))
+         writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
       ),
 
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
@@ -307,6 +306,14 @@ load(modNm),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
     writeCIncrExprsNoExpand1(outl, incr_s),
     flush_output(fh),
+
+    if surfVar=vpar and emflag and i=1 then (
+      incrEmMod_s : makelist(incrEmMod[i-1], i, 1, length(bP)),
+      writeCIncrExprsNoExpand1(emModR, incrEmMod_s),  
+      incrEmMod_s : makelist(signs[i]*incrEmMod[i-1], i, 1, length(bP)),
+      writeCIncrExprsNoExpand1(emModL, incrEmMod_s),  
+      flush_output(fh)
+    ),
     
     printf(fh, "  return std::abs(alpha0); ~%"),
     printf(fh, "} ~%"),
@@ -337,10 +344,8 @@ load(modNm),
 
     /* evaluate surface projection of Ghat = (alpha*favg - amax*fjump)/2 */
     t_k : gcfac(innerProd(surfIntVars, favg_expd, bSurf, alphaSurf_expd)),
-    printf(fh, "//~%"),
     flush_output(fh),
     Ghat_k : fullratsimp(t_k/2 - amax/2*fjump_k),
-    printf(fh, "// //~%"),
     flush_output(fh),
     writeCExprsNoExpand1(Ghat, Ghat_k),
     flush_output(fh),
@@ -563,7 +568,7 @@ load(modNm),
       printf(fh, "#elif upwindType == QUAD ~%"),
       printf(fh, "double fupwind[~a];~%", length(bP)),
       printf(fh, "double fupwindQuad[~a];~%", length(bP)),
-      printf(fh, "double limQuad[~a];~%", length(bP)),
+      printf(fh, "double alphaQuad;~%"),
       if i=1 then quad:1/sqrt(3),
       if i=2 then quad:sqrt(3/5),
       nodes : eval_string(sconcat("nodes", cdim+vdim, "xp", i))*quad,
@@ -576,12 +581,10 @@ load(modNm),
       /* note: alphaSurf_expd is a surface expansion */
       alphaq:gcfac(float(nodesub(alphaUpSurf_expd))),
       /* determine upwinding */
+      fupQ : gcfac(.5*(flQ+frQ)+.5*sgn(alphaQuad)*(flQ-frQ)),
       for i:1 thru length(alphaq) do (
-      printf(fh, "  if(~a > 0) {~%", alphaq[i]),
-      printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, flQ[i]),
-      printf(fh, "  } else {~%"),
-      printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, frQ[i]),
-      printf(fh, "  }~%")
+      printf(fh, "  alphaQuad = ~a; ~%", alphaq[i]),
+      printf(fh, "  fupwindQuad[~a] = ~a; ~%", i-1, fupQ[i])
       ),
       if cdim+vdim<=3 then modToNod:calcModToNodPhaseWithNodes(cdim+vdim,0,i,nodes)
       else modToNod:calcModToNodPhaseWithNodes(cdim,vdim,i,nodes),
@@ -686,7 +689,7 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
 )$
 
 em:true$
-for pos: 0 thru 1 do (
+for pos: 0 thru 0 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"
@@ -694,7 +697,7 @@ else posString : "",
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
-pmax:2,
+pmax:1,
 if c=1 then (pmax:2),
 if positivity then pmax:1,
 for p:1 thru pmax do (
