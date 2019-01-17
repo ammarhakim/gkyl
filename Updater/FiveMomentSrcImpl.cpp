@@ -669,6 +669,24 @@ update_perp(const Eigen::VectorXd &q_perp, const double dt,
   }
 }
 
+/* Rotate around axis by angle.
+ *
+ * @param v Original vector.
+ * @param cosa cos(angle).
+ * @param cosah cos(angle/2).
+ * @param sinah sin(angle/2).
+ * @param axis Normalized axis vector.
+ *
+ * @return Rotated vector.
+ */
+static inline Eigen::Vector3d
+rotate(const Eigen::Vector3d &v, const double cosa, const double cosah,
+       const double sinah, const Eigen::Vector3d &axis)
+{
+  return v * cosa + 2. * sq(sinah) * (v.dot(axis)) * axis
+       + 2. * cosah * sinah * v.cross(axis);
+}
+
 void
 gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
                        double **ff, double *em, double *staticEm)
@@ -734,11 +752,13 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
     double angle = std::acos(B[2] / Bmag);
     Eigen::Vector3d axis = B.cross(Eigen::Vector3d::UnitZ());
     axis.normalize();  // AngleAxisd needs a normalized axis vector
-    Eigen::AngleAxisd rotate = Eigen::AngleAxisd(angle, axis);
+    double cosa = std::cos(angle);
+    double cosah = std::cos(angle / 2.);
+    double sinah = std::sin(angle / 2.);
 
-    E_ = rotate * E_;
+    E_ = rotate(E_, cosa, cosah, -sinah, axis);
     for (unsigned n=0; n < nFluids; ++n)
-      J_[n] = rotate * J_[n];
+      J_[n] = rotate(J_[n], cosa, cosah, -sinah, axis);
 
     // parallel component of initial condition
     Eigen::VectorXd q_par(nFluids + 1);
@@ -780,11 +800,9 @@ gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt,
     }
 
     // rotate back
-    E_ = rotate.inverse() * E_;
-    for (unsigned n = 0; n < nFluids; ++n)
-    {
-      J_[n] = rotate.inverse() * J_[n];
-    }
+    E_ = rotate(E_, cosa, cosah, sinah, axis);
+    for (unsigned n=0; n < nFluids; ++n)
+      J_[n] = rotate(J_[n], cosa, cosah, sinah, axis);
 
     // fill state vector
     em[EX] = E_[0] * Enorm;
