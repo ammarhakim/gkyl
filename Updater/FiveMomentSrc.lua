@@ -134,9 +134,9 @@ function FiveMomentSrc:init(tbl)
       self._updateSrc = updateSrcModBoris
    elseif scheme == "time-centered" then
       self._updateSrc = updateSrcTimeCentered
-   elseif scheme == "time-centered-direct" then
+   elseif scheme == "time-centered-direct" or scheme == "direct" then
       self._updateSrc = updateSrcTimeCenteredDirect
-   elseif scheme == "time-centered-direct2" then
+   elseif scheme == "time-centered-direct2" or scheme == "direct2" then
       self._updateSrc = updateSrcTimeCenteredDirect2
    elseif scheme == "exact" then
       self._updateSrc = updateSrcExact
