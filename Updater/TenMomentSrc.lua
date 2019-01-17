@@ -22,6 +22,9 @@ local ffi = require "ffi"
 ffi.cdef [[
 typedef struct {
   double charge, mass; /* Charge and mass */
+  bool evolve;
+
+  double qbym;
 } FluidData_t;
 
 typedef struct {
@@ -32,12 +35,12 @@ typedef struct {
   double gravity; /* Gravitational acceleration */
   bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
   int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
-} TenMomentSrcData_t;
+} MomentSrcData_t;
 
-  void gkylTenMomentSrcRk3(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
-  void gkylTenMomentSrcTimeCentered(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylTenMomentSrcAnalytic(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylTenMomentSrcAnalytic2(TenMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylTenMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+  void gkylTenMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylTenMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -59,13 +62,13 @@ local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcAnalytic(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylTenMomentSrcAnalytic(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect2(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylTenMomentSrcTimeCenteredDirect2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcAnalytic2(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylTenMomentSrcAnalytic2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylTenMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Ten-moment source updater object
@@ -76,7 +79,7 @@ function TenMomentSrc:init(tbl)
 
    self._onGrid = assert(tbl.onGrid, "Updater.TenMomentSrc: Must provide grid object using 'onGrid'")
 
-   self._sd = ffi.new(ffi.typeof("TenMomentSrcData_t"))   
+   self._sd = ffi.new(ffi.typeof("MomentSrcData_t"))   
    -- Read in solver parameters
    self._sd.nFluids = assert(tbl.numFluids, "Updater.TenMomentSrc: Must specify number of fluid using 'numFluids'")
 
@@ -107,6 +110,7 @@ function TenMomentSrc:init(tbl)
    for n = 1, self._sd.nFluids do
       self._fd[n-1].charge = tbl.charge[n]
       self._fd[n-1].mass = tbl.mass[n]
+      self._fd[n-1].qbym = self._fd[n-1].charge / self._fd[n-1].mass
       -- self._fd[n-1].evolve = tbl.evolve ~= nil and tbl.evolve[n] or true
       if (tbl.evolve ~= nil) then
         self._fd[n-1].evolve = tbl.evolve[n]
@@ -124,10 +128,10 @@ function TenMomentSrc:init(tbl)
       self._updateSrc = updateSrcModBoris
    elseif scheme == "time-centered" then
       self._updateSrc = updateSrcTimeCentered
-   elseif scheme == "analytic" then
-      self._updateSrc = updateSrcAnalytic
-   elseif scheme == "analytic2" then
-      self._updateSrc = updateSrcAnalytic2
+   elseif scheme == "time-centered-direct2" then
+      self._updateSrc = updateSrcTimeCenteredDirect2
+   elseif scheme == "time-centered-direct" then
+      self._updateSrc = updateSrcTimeCenteredDirect
    end
 end
 

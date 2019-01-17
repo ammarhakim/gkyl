@@ -23,6 +23,8 @@ ffi.cdef [[
 typedef struct {
   double charge, mass; /* Charge and mass */
   bool evolve;
+
+  double qbym;
 } FluidData_t;
 
 typedef struct {
@@ -33,13 +35,13 @@ typedef struct {
   double gravity; /* Gravitational acceleration */
   bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
   int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
-} FiveMomentSrcData_t;
+} MomentSrcData_t;
 
-  void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
-  void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcTimeCenteredDirect(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcTimeCenteredDirect2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-    void gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
+  void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+  void gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -83,7 +85,7 @@ function FiveMomentSrc:init(tbl)
 
    self._onGrid = assert(tbl.onGrid, "Updater.FiveMomentSrc: Must provide grid object using 'onGrid'")
 
-   self._sd = ffi.new(ffi.typeof("FiveMomentSrcData_t"))   
+   self._sd = ffi.new(ffi.typeof("MomentSrcData_t"))   
    -- Read in solver parameters
    self._sd.nFluids = assert(tbl.numFluids, "Updater.FiveMomentSrc: Must specify number of fluid using 'numFluids'")
 
@@ -114,6 +116,7 @@ function FiveMomentSrc:init(tbl)
    for n = 1, self._sd.nFluids do
       self._fd[n-1].charge = tbl.charge[n]
       self._fd[n-1].mass = tbl.mass[n]
+      self._fd[n-1].qbym = self._fd[n-1].charge / self._fd[n-1].mass
       -- self._fd[n-1].evolve = tbl.evolve ~= nil and tbl.evolve[n] or true
       if (tbl.evolve ~= nil) then
         self._fd[n-1].evolve = tbl.evolve[n]
