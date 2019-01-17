@@ -469,7 +469,7 @@ gkylFiveMomentSrcTimeCenteredDirect(FiveMomentSrcData_t *sd, FluidData_t *fd, do
  * @param wp Plasma frequency for each species.
  */
 static void
-update_par(Eigen::VectorXd &q_par, double dt, Eigen::VectorXd &wp)
+update_par(Eigen::VectorXd &q_par, const double dt, const Eigen::VectorXd &wp)
 {
   unsigned nFluids = wp.size();
   double wp_tot2 = 0.;
@@ -548,8 +548,9 @@ static Eigen::VectorXd roots(const std::vector<double> &coeffs)
  * @param q_perp_. Updated vector.
  */
 static void
-update_perp(Eigen::VectorXd &q_perp, double dt, Eigen::VectorXd &wp,
-            Eigen::VectorXd &Wc, Eigen::VectorXd &q_perp_)
+update_perp(const Eigen::VectorXd &q_perp, const double dt,
+            const Eigen::VectorXd &wp, const Eigen::VectorXd &Wc,
+            Eigen::VectorXd &q_perp_)
 {
   unsigned nFluids = wp.size();
 
