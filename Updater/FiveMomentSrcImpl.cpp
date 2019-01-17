@@ -32,12 +32,10 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
-static double sq(double x) { return x*x; }
-static double cube(double x) { return (x)*(x)*(x); }
-static double sgn(double x) {
-  if (x>0) return 1;
-  else if (x < 0) return -1;
-  else return 0;
+#define sq(x) ((x) * (x))
+#define cube(x) ((x) * (x) * (x))
+template <typename T> static T sgn(T val) {
+    return (T(0) < val) - (val < T(0));
 }
 
 static const int COL_PIV_HOUSEHOLDER_QR = 0;
