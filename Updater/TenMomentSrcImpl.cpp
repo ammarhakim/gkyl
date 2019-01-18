@@ -191,6 +191,86 @@ gkylPressureTensorSrcTimeCenteredDirectPre(
   return prTen;
 }
 
+static std::vector<double>
+gkylPressureTensorSrcExactPre(
+    MomentSrcData_t *sd, FluidData_t *fd, const double dt, double **ff,
+    double *em, double *staticEm)
+{
+  double Bx = em[BX];
+  double By = em[BY];
+  double Bz = em[BZ];
+  if (sd->hasStatic)
+  {
+    Bx += staticEm[BX];
+    By += staticEm[BY];
+    Bz += staticEm[BZ];
+  }
+  double Bmag = std::sqrt(Bx*Bx + By*By + Bz*Bz);
+
+  unsigned nFluids = sd->nFluids;
+  std::vector<double> prTen(6 * nFluids, 0.);
+  if (Bmag < 1e-9)  // TODO threshold
+    return prTen;
+
+  double bx = Bx / Bmag;
+  double by = By / Bmag;
+  double bz = Bz / Bmag;
+
+  for (unsigned n = 0; n < nFluids; ++n)
+  {
+    if (!fd[n].evolve)
+      continue;
+    double *f = ff[n];
+    double Wc = Bmag * fd[n].charge / fd[n].mass;
+    double a = -Wc * dt;  // counter-clockwise rotation angle
+    double c = std::cos(a);
+    double s = std::sin(a);
+    double h = 1 - c;  // 2*sin(a/2)^2
+
+    // e1.e1_, e1.e2_, e1.e3_
+    double d11 = bx*bx*h + c;
+    double d12 = bx*by*h - bz*s;
+    double d13 = bx*bz*h + by*s;
+
+    // e2.e1_, e2.e2_, e2.e3_
+    double d21 = bx*by*h + bz*s;
+    double d22 = by*by*h + c;
+    double d23 = by*bz*h - bx*s;
+    
+    // e3.e1_, e3.e2_, e3.e3_
+    double d31 = bx*bz*h - by*s;
+    double d32 = by*bz*h + bx*s;  
+    double d33 = bz*bz*h + c;
+
+    double pr11 = f[P11] - f[MX]*f[MX]/f[RHO];
+    double pr12 = f[P12] - f[MX]*f[MY]/f[RHO];
+    double pr13 = f[P13] - f[MX]*f[MZ]/f[RHO];
+    double pr22 = f[P22] - f[MY]*f[MY]/f[RHO];
+    double pr23 = f[P23] - f[MY]*f[MZ]/f[RHO];
+    double pr33 = f[P33] - f[MZ]*f[MZ]/f[RHO];
+
+    prTen[6 *n + 0] = d11*(d11*pr11 + d12*pr12 + d13*pr13)
+                    + d12*(d11*pr12 + d12*pr22 + d13*pr23)
+                    + d13*(d11*pr13 + d12*pr23 + d13*pr33);
+    prTen[6 *n + 1] = d21*(d11*pr11 + d12*pr12 + d13*pr13)
+                    + d22*(d11*pr12 + d12*pr22 + d13*pr23)
+                    + d23*(d11*pr13 + d12*pr23 + d13*pr33);
+    prTen[6 *n + 2] = d31*(d11*pr11 + d12*pr12 + d13*pr13)
+                    + d32*(d11*pr12 + d12*pr22 + d13*pr23)
+                    + d33*(d11*pr13 + d12*pr23 + d13*pr33);
+    prTen[6 *n + 3] = d21*(d21*pr11 + d22*pr12 + d23*pr13)
+                    + d22*(d21*pr12 + d22*pr22 + d23*pr23)
+                    + d23*(d21*pr13 + d22*pr23 + d23*pr33);
+    prTen[6 *n + 4] = d31*(d21*pr11 + d22*pr12 + d23*pr13)
+                    + d32*(d21*pr12 + d22*pr22 + d23*pr23)
+                    + d33*(d21*pr13 + d22*pr23 + d23*pr33);
+    prTen[6 *n + 5] = d31*(d31*pr11 + d32*pr12 + d33*pr13)
+                    + d32*(d31*pr12 + d32*pr22 + d33*pr23)
+                    + d33*(d31*pr13 + d32*pr23 + d33*pr33);
+  }
+  
+  return prTen;
+}
 static void
 gkylPressureTensorSrcTimeCenteredPost(
     MomentSrcData_t *sd, FluidData_t *fd, const double dt, double **ff,
@@ -255,6 +335,21 @@ gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double
 
   // update momenta and E field
   gkylMomentSrcTimeCenteredDirect2(sd, fd, dt, ff, em, staticEm);
+
+  // update pressure tensor in stationary frame
+  gkylPressureTensorSrcTimeCenteredPost(sd, fd, dt, ff, prTen);
+}
+
+
+void
+gkylTenMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+{
+  // update pressure tensor in comoving frame
+  std::vector<double> prTen = gkylPressureTensorSrcExactPre(
+      sd, fd, dt, ff, em, staticEm);
+
+  // update momenta and E field
+  gkylMomentSrcExact(sd, fd, dt, ff, em, staticEm);
 
   // update pressure tensor in stationary frame
   gkylPressureTensorSrcTimeCenteredPost(sd, fd, dt, ff, prTen);
