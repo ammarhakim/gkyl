@@ -41,6 +41,7 @@ typedef struct {
   void gkylTenMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
   void gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
   void gkylTenMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylTenMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -69,6 +70,11 @@ end
 -- Use an implicit scheme to update momentum and electric field
 local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr)
    ffi.C.gkylTenMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+end
+
+-- Use an exact scheme to update momentum and electric field
+local function updateSrcExact(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylTenMomentSrcExact(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Ten-moment source updater object
@@ -132,6 +138,8 @@ function TenMomentSrc:init(tbl)
       self._updateSrc = updateSrcTimeCenteredDirect2
    elseif scheme == "time-centered-direct" or scheme == "direct" then
       self._updateSrc = updateSrcTimeCenteredDirect
+   elseif scheme == "exact" then
+      self._updateSrc = updateSrcExact
    end
 end
 
