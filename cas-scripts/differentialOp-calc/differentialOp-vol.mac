@@ -1,0 +1,43 @@
+load("differentialOp-calc/derivative-vol")$
+load(stringproc)$
+/* This script calls the functions which calculate the
+   updates from the volume term contributions. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 1$
+maxCdim_Ser : 1$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 1$
+minCdim_Max : 1$
+maxCdim_Max : 1$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 1$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 1$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+
+      disp(printf(false,sconcat("Creating volume CartFieldDifferentialOpDxx",bName[bInd]," ~ax"),c)),
+      fname : sconcat("~/max-out/CartFieldDifferentialOp", bName[bInd], c, "x", ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("CartFieldDifferentialOpDxxVol", c, "x", bName[bInd]),
+      calcDxxVolUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+      close(fh) 
+
+  )
+);
+
+
