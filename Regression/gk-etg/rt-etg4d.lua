@@ -2,6 +2,8 @@
 -- using 'pgkyl -f etg4d_elecEnergy_ growth' should approximately give growth rate printed at end of run
 --
 -- Plasma ------------------------------------------------------------------------
+--require('jit.dump').start('T', 'jit.log')
+require('jit.p').start('flva', 'prof.out')
 local Plasma = require "App.PlasmaOnCartGrid"
 local Constants = require "Lib.Constants"
 
