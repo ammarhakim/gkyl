@@ -38,13 +38,8 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
-static double sq(double x) { return x*x; }
-
 static const int COL_PIV_HOUSEHOLDER_QR = 0;
 static const int PARTIAL_PIV_LU = 1;
-
-#define fidx(n, c) (3 * (n) + (c))
-#define eidx(c) (3 * nFluids + (c))
 
 void
 gkylTenMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em)
@@ -75,9 +70,9 @@ gkylPressureTensorSrcTimeCenteredPre(
   for (unsigned n=0; n<nFluids; ++n)
   {
     double *f = ff[n];
-    double qbym = fd[n].charge/fd[n].mass;
 
     // assemble LHS terms
+    prLhs.noalias() = Eigen::MatrixXd::Identity(6, 6);
     if (fd[n].evolve)
     {
       double qbym = fd[n].charge / fd[n].mass;
@@ -100,45 +95,7 @@ gkylPressureTensorSrcTimeCenteredPre(
       prLhs(4,5) = -dt1*qbym*Bx;
       prLhs(5,2) = -2*dt1*qbym*By;
       prLhs(5,4) = 2*dt1*qbym*Bx;
-    } else {
-      prLhs(0,1) = 0.;
-      prLhs(0,2) = 0.;
-      prLhs(1,0) = 0.;
-      prLhs(1,2) = 0.;
-      prLhs(1,3) = 0.;
-      prLhs(1,4) = 0.;
-      prLhs(2,0) = 0.;
-      prLhs(2,1) = 0.;
-      prLhs(2,4) = 0.;
-      prLhs(2,5) = 0.;
-      prLhs(3,1) = 0.;
-      prLhs(3,4) = 0.;
-      prLhs(4,1) = 0.;
-      prLhs(4,2) = 0.;
-      prLhs(4,3) = 0.;
-      prLhs(4,5) = 0.;
-      prLhs(5,2) = 0.;
-      prLhs(5,4) = 0.;
     }
-    
-    prLhs(0,0) = 1;
-    prLhs(0,3) = 0;
-    prLhs(0,4) = 0;
-    prLhs(0,5) = 0;
-    prLhs(1,1) = 1;
-    prLhs(1,5) = 0;
-    prLhs(2,2) = 1;
-    prLhs(2,3) = 0;
-    prLhs(3,0) = 0;
-    prLhs(3,2) = 0;
-    prLhs(3,3) = 1;
-    prLhs(3,5) = 0;
-    prLhs(4,0) = 0;
-    prLhs(4,4) = 1;
-    prLhs(5,0) = 0;
-    prLhs(5,1) = 0;
-    prLhs(5,3) = 0;
-    prLhs(5,5) = 1;
 
     // RHS matrix
     prRhs[0] = f[P11] - f[MX]*f[MX]/f[RHO];
@@ -201,6 +158,8 @@ gkylPressureTensorSrcTimeCenteredDirectPre(
   double Bz4 = Bz * Bz3;
   for (unsigned n = 0; n < nFluids; ++n)
   {
+    if (!fd[n].evolve)
+      continue;
     double *f = ff[n];
     double qbym = fd[n].charge / fd[n].mass;
 
@@ -223,8 +182,6 @@ gkylPressureTensorSrcTimeCenteredDirectPre(
     prSol[4] =  (prRhs[4] + dt1*(By*prRhs[1] - Bz*prRhs[2] + Bx*(-prRhs[3] + prRhs[5]))*qbym + dtsq*(3*Bx*Bz*prRhs[1] + Bx2*prRhs[4] + 4*By2*prRhs[4] + 4*Bz2*prRhs[4] + By*(3*Bx*prRhs[2] + Bz*(-2*prRhs[0] + prRhs[3] + prRhs[5])))*qb2 + dt3*(4*By3*prRhs[1] - 2*By*Bz2*prRhs[1] + 2*By2*Bz*prRhs[2] - 4*Bz3*prRhs[2] + Bx2*(-2*By*prRhs[1] + 2*Bz*prRhs[2]) + Bx3*(-prRhs[3] + prRhs[5]) + Bx*(-(Bz2*(3*prRhs[0] + prRhs[3] - 4*prRhs[5])) + By2*(3*prRhs[0] - 4*prRhs[3] + prRhs[5])))*qb3 - 2*By*Bz*dt4*(-6*Bx*(By*prRhs[1] + Bz*prRhs[2]) - 6*By*Bz*prRhs[4] + Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]) + Bx2*(-2*prRhs[0] + prRhs[3] + prRhs[5]))*qb4)/d;
     prSol[5] =  (prRhs[5] + 2*dt1*(By*prRhs[2] - Bx*prRhs[4])*qbym + dtsq*(2*Bx*Bz*prRhs[2] + By*(-4*Bx*prRhs[1] + 2*Bz*prRhs[4]) + 5*Bz2*prRhs[5] + By2*(2*prRhs[0] + 3*prRhs[5]) + Bx2*(2*prRhs[3] + 3*prRhs[5]))*qb2 - 2*dt3*(Bx2*(3*Bz*prRhs[1] - By*prRhs[2]) - By*(3*By*Bz*prRhs[1] + By2*prRhs[2] + 4*Bz2*prRhs[2]) + Bx3*prRhs[4] + Bx*(3*By*Bz*(-prRhs[0] + prRhs[3]) + By2*prRhs[4] + 4*Bz2*prRhs[4]))*qb3 + 2*dt4*(-2*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 - 2*Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + By2*Bz2*(prRhs[0] + 3*prRhs[3]) - 2*By3*Bz*prRhs[4] + 4*By*Bz3*prRhs[4] + 2*Bz4*prRhs[5] + By4*(prRhs[0] + prRhs[5]) + Bx4*(prRhs[3] + prRhs[5]) + Bx2*(Bz2*(3*prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[3] + 2*prRhs[5])))*qb4)/d;
 
-    if (!fd[n].evolve)
-      continue;
     for (unsigned i=0; i<6; ++i)
     {
       prTen[6 * n + i] = 2 * prSol[i] - prRhs[i];
