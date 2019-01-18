@@ -69,6 +69,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x3v.cpp
     binOpCalcData/CartFieldBinOpSer3x2v.cpp
     binOpCalcData/CartFieldBinOpSer3x3v.cpp
+    binOpCalcData/CartFieldBinOpImpl.cpp
 
     binOpCalcData/CartFieldBinOpMax1x.cpp
     binOpCalcData/CartFieldBinOpMax2x.cpp

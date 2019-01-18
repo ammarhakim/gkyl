@@ -11,6 +11,7 @@ local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local xsys = require "xsys"
+local ffi = require "ffi"
 
 local Gyrokinetic = Proto(EqBase)
 
@@ -45,6 +46,8 @@ function Gyrokinetic:init(tbl)
 
    -- for sheath BCs
    if tbl.hasSheathBcs then
+      -- create struct containing binOp arrays and allocate
+      self._binOpData = ffi.C.new_binOpData_t(self._confBasis:numBasis(), 1)
       self._calcSheathDeltaPhi = GyrokineticModDecl.selectSheathDeltaPhi(nm, self._cdim, p)
       self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
    end
@@ -217,7 +220,7 @@ function Gyrokinetic:calcSheathDeltaPhi(idx, edgeVal)
 end
 -- calculate deltaPhi at domain edge for sheath BCs
 function Gyrokinetic:calcSheathPartialReflection(w, dv, edgeVal, vcut, f, fhat)
-   return self._calcSheathPartialReflection(w, dv, edgeVal, vcut, f:data(), fhat:data())
+   return self._calcSheathPartialReflection(self._binOpData, w, dv, edgeVal, vcut, f:data(), fhat:data())
 end
 
 local GyrokineticStep2 = Proto(EqBase)

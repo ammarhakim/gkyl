@@ -93,7 +93,7 @@ class FemPerpPoisson
   //Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
   //Eigen::SparseLU<Eigen::SparseMatrix<double> > solver;
-  Eigen::MatrixXd localMassModToNod, localNodToMod, localModToNod;
+  Eigen::MatrixXd localMassModToNod, localNodToMod, localModToNod, localStiff, localMass;
   bool analyzed_; // flag so that stiffness matrix only analyzed once
   
   int getNumPerpGlobalNodes(int nx, int ny, int ndim, int p, bool periodicFlgs[2]);

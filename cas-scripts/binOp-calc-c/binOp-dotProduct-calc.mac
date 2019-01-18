@@ -18,7 +18,7 @@ calcBinOpDotProduct(fh, funcNm, cdim, basisFun, pMax) := block([],
     N  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // A:       scalar/vector field. ~%"),
     printf(fh, "  // B:       scalar/vector field (must be vector if A is vector). ~%"),
     printf(fh, "  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). ~%"),

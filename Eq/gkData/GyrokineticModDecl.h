@@ -3,18 +3,19 @@
 #include <cmath> 
 #include <algorithm> 
 #include <Positivity.h> 
+#include <CartFieldBinOpModDecl.h> 
 #define SURFAVG 1 
 #define QUAD 2 
 #define cflType QUAD 
-#define upwindType QUAD
-template <typename T> int sgn(T val) {
-    return (T(0) < val) - (val < T(0));
+#define upwindType QUAD 
+template <typename T> int sgn(T val) { 
+    return (T(0) < val) - (val < T(0)); 
 }
 extern "C" { 
 double EmGyrokineticStep2Vol1x0vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi1xSer_P1(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv1x0vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled1x0vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv1x0vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled1x0vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol1x0vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol1x0vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf1x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -36,8 +37,8 @@ double EmGyrokineticSurfPositivity1x0vSerStep2_X_P1_Bvars_1(const double q_, con
 
 double EmGyrokineticStep2Vol1x0vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi1xSer_P2(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv1x0vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled1x0vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv1x0vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled1x0vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol1x0vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol1x0vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf1x0vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -59,8 +60,8 @@ double EmGyrokineticSurfPositivity1x0vSerStep2_X_P2_Bvars_1(const double q_, con
 
 double EmGyrokineticStep2Vol1x1vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi1xSer_P1(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv1x1vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled1x1vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv1x1vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled1x1vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -94,8 +95,8 @@ double EmGyrokineticSurfPositivity1x1vSerStep2_Vpar_P1_Bvars_1(const double q_, 
 
 double EmGyrokineticStep2Vol1x1vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi1xSer_P2(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv1x1vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled1x1vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv1x1vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled1x1vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol1x1vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf1x1vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -129,8 +130,8 @@ double EmGyrokineticSurfPositivity1x1vSerStep2_Vpar_P2_Bvars_1(const double q_, 
 
 double EmGyrokineticStep2Vol1x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi1xSer_P1(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv1x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled1x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv1x2vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled1x2vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf1x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -164,8 +165,8 @@ double EmGyrokineticSurfPositivity1x2vSerStep2_Vpar_P1_Bvars_1(const double q_, 
 
 double EmGyrokineticStep2Vol1x2vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi1xSer_P2(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv1x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled1x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv1x2vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled1x2vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol1x2vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol1x2vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf1x2vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -199,8 +200,8 @@ double EmGyrokineticSurfPositivity1x2vSerStep2_Vpar_P2_Bvars_1(const double q_, 
 
 double EmGyrokineticStep2Vol2x0vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi2xSer_P1(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv2x0vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled2x0vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv2x0vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled2x0vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol2x0vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol2x0vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -234,8 +235,8 @@ double EmGyrokineticSurfPositivity2x0vSerStep2_Y_P1_Bvars_1(const double q_, con
 
 double EmGyrokineticStep2Vol2x0vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi2xSer_P2(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv2x0vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled2x0vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv2x0vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled2x0vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol2x0vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol2x0vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -269,8 +270,8 @@ double EmGyrokineticSurfPositivity2x0vSerStep2_Y_P2_Bvars_1(const double q_, con
 
 double EmGyrokineticStep2Vol2x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi2xSer_P1(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv2x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled2x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv2x2vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled2x2vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol2x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol2x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -316,8 +317,8 @@ double EmGyrokineticSurfPositivity2x2vSerStep2_Vpar_P1_Bvars_1(const double q_, 
 
 double EmGyrokineticStep2Vol2x2vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi2xSer_P2(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv2x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled2x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv2x2vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled2x2vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol2x2vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol2x2vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf2x2vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -363,8 +364,8 @@ double EmGyrokineticSurfPositivity2x2vSerStep2_Vpar_P2_Bvars_1(const double q_, 
 
 double EmGyrokineticStep2Vol3x2vSerP1(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi3xSer_P1(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv3x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled3x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv3x2vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled3x2vSer_P1(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf3x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 
@@ -476,8 +477,8 @@ double EmGyrokineticSurfPositivity3x2vSerStep2_Vpar_P1_Bvars_1_3(const double q_
 
 double EmGyrokineticStep2Vol3x2vSerP2(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out); 
 double calcSheathDeltaPhi3xSer_P2(const double *phi, const double *phiWall, const double zVal);
-void calcSheathPartialReflectionWeakEquiv3x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
-void calcSheathPartialReflectionScaled3x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionWeakEquiv3x2vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
+void calcSheathPartialReflectionScaled3x2vSer_P2(binOpData_t* data, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat);
 double GyrokineticVol3x2vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out); 
 double EmGyrokineticVol3x2vSerP2_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out); 
 double GyrokineticSurf3x2vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); 

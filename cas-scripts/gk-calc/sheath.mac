@@ -37,7 +37,7 @@ for p : 1 thru pmax do (
 /* function to compute scaled partially-reflected distribution fhat */
 
   funcNm : sconcat("calcSheathPartialReflectionScaled", cdim, "x", vdim, "v", basisFun),
-  printf(fh, "void ~a_P~a(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
+  printf(fh, "void ~a_P~a(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
 
   varsP : subst(gkvsub, varsP),
   if vdim=1 then varsV:[vpar] else varsV:[vpar,mu],
@@ -97,10 +97,10 @@ for p : 1 thru pmax do (
   writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
   printf(fh, "  }~%~%"),
   printf(fh, "  // calculate c = uhat/u ~%"),
-  printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(u, uhat, 1, 1, c); ~%", cdim, basisFun, p),
+  printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(binOpData, u, uhat, 1, 1, c); ~%", cdim, basisFun, p),
 
   printf(fh, "  // calculate fhat = c*f ~%"),
-  printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(c, f, 1, 1, fhat); ~%", cdim, vdim, basisFun, p),
+  printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(binOpData, c, f, 1, 1, fhat); ~%", cdim, vdim, basisFun, p),
 
   printf(fh, "  // account for rare positivity issues ~%"),
   printf(fh, "  if (fhat[0]<0) {~%"),
@@ -129,7 +129,7 @@ writeWeakEquiv:false,
 
 if writeWeakEquiv then (
   funcNm : sconcat("calcSheathPartialReflectionWeakEquiv", cdim, "x", vdim, "v", basisFun),
-  printf(fh, "void ~a_P~a(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
+  printf(fh, "void ~a_P~a(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
 
   varsP : subst(gkvsub, varsP),
   if vdim=1 then varsV:[vpar] else varsV:[vpar,mu],
