@@ -58,24 +58,35 @@ function CollisionlessEmSource:createSolver(species, field)
    local mass, charge = {}, {}
    local evolve = {}
 
+   local source_type
    for i, nm in ipairs(self.speciesList) do
       mass[i] = species[nm]:getMass()
       charge[i] = species[nm]:getCharge()
       evolve[i] = species[nm]:getEvolve()
+      if not source_type then
+         source_type = species[nm].nMoments
+      else
+         -- FIXME Currently all species must have the same moments.
+         assert(source_type == species[nm].nMoments)
+      end
    end
 
-   self.slvr = Updater.FiveMomentSrc {
-      onGrid = self.grid,
-      numFluids = numSpecies,
-      charge = charge,
-      mass = mass,
-      evolve = evolve,
-      epsilon0 = field:getEpsilon0(),
-      elcErrorSpeedFactor = field:getElcErrorSpeedFactor(),
-      mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
-      linSolType = self.linSolType,
-      scheme = self.timeStepper,
-   }
+   if source_type == 5 then
+      self.slvr = Updater.FiveMomentSrc {
+         onGrid = self.grid,
+         numFluids = numSpecies,
+         charge = charge,
+         mass = mass,
+         evolve = evolve,
+         epsilon0 = field:getEpsilon0(),
+         elcErrorSpeedFactor = field:getElcErrorSpeedFactor(),
+         mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
+         linSolType = self.linSolType,
+         scheme = self.timeStepper,
+      }
+   else
+      assert(false, string.format("source_type %s not supported.", source_type))
+   end
 end
 
 function CollisionlessEmSource:forwardEuler(tCurr, dt, fIn, species, fOut)
