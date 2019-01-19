@@ -12,9 +12,6 @@ local UpdaterBase = require "Updater.Base"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 
-local COL_PIV_HOUSEHOLDER_QR = 0;
-local PARTIAL_PIV_LU = 1;
-
 -- system libraries
 local ffi = require "ffi"
 
@@ -61,8 +58,8 @@ function TenMomentRelax:init(tbl)
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    
    self._fd = ffi.new("FluidData_t[?]", 1)
-    self._fd[0].charge = tbl.charge
-    self._fd[0].mass = tbl.mass
+    self._fd[0].charge = tbl.charge[1]
+    self._fd[0].mass = tbl.mass[1]
 
    local scheme = tbl.scheme and tbl.scheme or "ssp-rk3"
    self._updateRelax = nil
