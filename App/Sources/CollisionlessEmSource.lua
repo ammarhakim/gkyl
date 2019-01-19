@@ -84,6 +84,19 @@ function CollisionlessEmSource:createSolver(species, field)
          linSolType = self.linSolType,
          scheme = self.timeStepper,
       }
+   elseif source_type == 10 then
+      self.slvr = Updater.TenMomentSrc {
+         onGrid = self.grid,
+         numFluids = numSpecies,
+         charge = charge,
+         mass = mass,
+         evolve = evolve,
+         epsilon0 = field:getEpsilon0(),
+         elcErrorSpeedFactor = field:getElcErrorSpeedFactor(),
+         mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
+         linSolType = self.linSolType,
+         scheme = self.timeStepper,
+      }
    else
       assert(false, string.format("source_type %s not supported.", source_type))
    end
