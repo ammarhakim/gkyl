@@ -156,14 +156,14 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
 
    -- no update in mu direction (last velocity direction if present)
    local upd = {}
-   if hasApar then -- if electromagnetic only update conf dir surface terms on first step
+   if hasApar and self.basis:polyOrder() > 1 then -- if electromagnetic only update conf dir surface terms on first step
       for d = 1, self.cdim do upd[d] = d end
    else
       for d = 1, self.cdim + 1 do upd[d] = d end
    end
    -- zero flux in vpar and mu
    table.insert(self.zeroFluxDirections, self.cdim+1)
-   table.insert(self.zeroFluxDirections, self.cdim+2)
+   if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
    self.solver = Updater.HyperDisCont {
       onGrid = self.grid,
@@ -209,7 +209,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       onGrid = self.grid,
       phaseBasis = self.basis,
       confBasis = self.confBasis,
-      moment = "GkM1",
+      moment = "GkM1proj",
       gkfacs = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
@@ -287,7 +287,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtPrev}, {fRhsOut})
    else
-      self.gkEqn:setAuxFields({em, emFunc})  -- set auxFields in case they are needed by BCs/collisions
+      self.gkEqn:setAuxFields({em, emFunc, dApardtPrev})  -- set auxFields in case they are needed by BCs/collisions
    end
 
    if not self.solverStep2 then -- if step2, wait to do sources
@@ -687,6 +687,28 @@ function GkSpecies:getMomDensity(rkIdx)
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
+   return self.momDensityAux
+end
+
+function GkSpecies:getEmModifier(rkIdx)
+   -- for p > 1, this is just numDensity
+   if self.basis:polyOrder() > 1 then return self:getNumDensity(rkIdx) end
+
+   local fIn = self.gkEqn.emMod
+
+   if self.evolve or self._firstMomentCalc then
+      local tmStart = Time.clock()
+      if self.deltaF then
+        fIn:accumulate(-1.0, self.f0)
+      end
+      self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
+      if self.deltaF then
+        fIn:accumulate(1.0, self.f0)
+      end
+      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+   end
+   if not self.evolve then self._firstMomentCalc = false end
+   fIn:clear(0.0)
    return self.momDensityAux
 end
 

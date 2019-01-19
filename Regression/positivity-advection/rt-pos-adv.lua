@@ -1,5 +1,5 @@
 -- Plasma ------------------------------------------------------------------------
-local Plasma = require "App.PlasmaOnCartGrid"
+local Plasma = require("App.PlasmaOnCartGrid").IncompEuler
 
 local ux = 1
 local uy = 1
@@ -54,7 +54,7 @@ plasmaApp = Plasma.App {
    periodicDirs = {1, 2}, -- Periodic directions
 
    -- Fluid species.
-   fluid = Plasma.IncompEuler.Species {
+   fluid = Plasma.Species {
       charge = 1.0,
       -- Initial conditions.
       init            = squareHat,
@@ -63,7 +63,7 @@ plasmaApp = Plasma.App {
    },
 
    -- Field solver.
-   field = Plasma.IncompEuler.Field {
+   field = Plasma.Field {
       evolve = false, -- Evolve field?
       -- u = {dphi/dy, -dphi/dx}
       initPhiFunc = function (t, xn)

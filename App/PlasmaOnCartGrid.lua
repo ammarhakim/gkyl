@@ -892,6 +892,7 @@ return {
    },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
-      CollisionlessEmSource = Sources.CollisionlessEmSource
+      CollisionlessEmSource = Sources.CollisionlessEmSource,
+      TenMomentRelaxSource = Sources.TenMomentRelaxSource
    } 
 }
