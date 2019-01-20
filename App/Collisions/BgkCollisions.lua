@@ -11,6 +11,8 @@ local DataStruct     = require "DataStruct"
 local Proto          = require "Lib.Proto"
 local Updater        = require "Updater"
 local xsys           = require "xsys"
+local Time           = require "Lib.Time"
+
 
 -- BgkCollisions ---------------------------------------------------------------
 --
@@ -149,6 +151,8 @@ function BgkCollisions:fullInit(speciesTbl)
    end
 
    self.exactLagFixM012 = xsys.pickBool(tbl.exactLagFixM012, true) 
+
+   self.tmEvalMom = 0.0
 end
 
 function BgkCollisions:setName(nm)
@@ -299,8 +303,7 @@ end
 
 function BgkCollisions:primMoments(M0, M1i, M2, u, vthSq)
    self.confDiv:advance(0., {M0, M1i}, {u})
-   self.confDotProduct:advance(0., {u, M1i},
-			       {self._kinEnergyDens})
+   self.confDotProduct:advance(0., {u, M1i}, {self._kinEnergyDens})
    self._thermEnergyDens:combine( 1.0/self.numVelDims, M2,
                                  -1.0/self.numVelDims, self._kinEnergyDens)
    self.confDiv:advance(0., {M0, self._thermEnergyDens}, {vthSq})
@@ -309,8 +312,10 @@ end
 function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
    local selfMom = species[self.speciesName]:fluidMoments()
 
+   local tmEvalMomStart = Time.clock()
    self:primMoments(selfMom[1], selfMom[2], selfMom[3], 
 		    self.uSelf, self.vthSqSelf)
+   self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
    if self.selfCollisions then
       self.maxwellian:advance(
@@ -343,6 +348,8 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
       for sInd, otherNm in ipairs(self.crossSpecies) do
 	 local mOther   = species[otherNm]:getMass()
 	 local otherMom = species[otherNm]:fluidMoments()
+
+         local tmEvalMomStart = Time.clock()
 	 self:primMoments(otherMom[1], otherMom[2], otherMom[3], 
 			  self.uOther, self.vthSqOther)
 	 
@@ -358,6 +365,7 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
                                  (1-self.betaGreene*self.betaGreene)/6*mOther, self._kinEnergyDens, 
                                  (1+self.betaGreene)*(1+self.betaGreene)/12*(mOther-self.mass), self._kinEnergyDens)
 	 self.vthSqCross:scale(1.0/(mOther+self.mass))
+         self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
          if self.varNu then
             -- Compute the collisionality.
@@ -376,7 +384,15 @@ function BgkCollisions:write(tm, frame)
 end
 
 function BgkCollisions:totalTime()
+   return self.collisionSlvr.totalTime + self.maxwellian.totalTime + self.tmEvalMom
+end
+
+function BgkCollisions:slvrTime()
    return self.collisionSlvr.totalTime + self.maxwellian.totalTime
+end
+
+function BgkCollisions:momTime()
+   return self.tmEvalMom
 end
 
 return BgkCollisions
