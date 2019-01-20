@@ -579,7 +579,7 @@ function test_binOp3x(nx, ny, nz, p, writeMatrix)
    writeMatrix = writeMatrix or false
    -- Phase-space and config-space grids.
    local confGrid = Grid.RectCart {
-      lower = {0.0, 0.0},
+      lower = {0.0, 0.0, 1.0},
       upper = {1.0, 1.0, 1.0},
       cells = {nx, ny, nz},
    }
@@ -1495,8 +1495,8 @@ function test_binOp2x2v(nx, ny, nvx, nvy, p, writeMatrix)
    writeMatrix = writeMatrix or false
    -- Phase-space and config-space grids.
    local phaseGrid = Grid.RectCart {
-      lower = {0.0, -1.0, -1.0},
-      upper = {1.0, 1.0, 1.0, 1.0},
+      lower = {0.0, 1.0, -1.0, -1.0},
+      upper = {1.0, 1.0,  1.0,  1.0},
       cells = {nx, ny, nvx, nvy},
    }
    local confGrid = Grid.RectCart {
@@ -2172,8 +2172,8 @@ function test_binOp3x2v(nx, ny, nz, nvx, nvy, p, writeMatrix)
    writeMatrix = writeMatrix or false
    -- Phase-space and config-space grids.
    local phaseGrid = Grid.RectCart {
-      lower = {0.0, 0.0, -1.0, -1.0},
-      upper = {1.0, 1.0, 1.0, 1.0, 1.0},
+      lower = {0.0, 0.0, 0.0, -1.0, -1.0},
+      upper = {1.0, 1.0, 1.0,  1.0,  1.0},
       cells = {nx, ny, nz, nvx, nvy},
    }
    local confGrid = Grid.RectCart {
@@ -2714,14 +2714,14 @@ end
 
 -- run tests
 local t1 = os.clock()
---binOp1x_conv(1)
---binOp1x_conv(2)
+-- binOp1x_conv(1)
+-- binOp1x_conv(2)
 -- binOp2x_conv(1)
--- binOp2x_conv(2)
+binOp2x_conv(2)
 -- binOp3x_conv(1)  -- This one takes a little time.
 -- binOp3x_conv(2)  -- This one takes more than a little time.
---binOp1x1v_conv(1)
-binOp1x1v_conv(2)
+-- binOp1x1v_conv(1)
+-- binOp1x1v_conv(2)
 -- binOp1x2v_conv(1)
 -- binOp1x2v_conv(2)
 -- binOp2x2v_conv(1)
