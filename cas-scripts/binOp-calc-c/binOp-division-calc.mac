@@ -154,7 +154,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     printf(fh, "    // Solve the system of equations. ~%"),
-    printf(fh, "    data->u_S = data->AEM_S->colPivHouseholderQr().solve(data->BEV_S); ~%"),
+    printf(fh, "    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); ~%"),
     printf(fh, " ~%"),
 
     printf(fh, "    // Copy data from Eigen vector. ~%"),
