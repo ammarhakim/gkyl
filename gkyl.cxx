@@ -137,7 +137,8 @@ createTopLevelDefs(int argc, char **argv) {
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60')" << std::endl;
+  varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60', 'maxmcode=8192', 'maxtrace=2000')"
+          << std::endl;
 
   std::string inpFile(argv[1]);
   std::string snm(argv[1]);
