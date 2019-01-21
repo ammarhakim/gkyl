@@ -48,7 +48,7 @@ writeCExprs1s(lhs, rhs) := block([expr],
   )
 )$
 
-calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
+calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
@@ -127,6 +127,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
     ue : doExpand1(u,bC),
     un : makelist(u[i],i,0,N-1),
 
+    kill(eq,E,Eflat,Ef,Elhs),
     eq : calcInnerProdList(varsC,ue,bC,Ae),
   
     E : fullratsimp(coefmatrix(eq,un)),
@@ -165,7 +166,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
   )
 )$
 
-calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -234,6 +235,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ue : doExpand1(u,bP),
     un : makelist(u[i],i,0,NC-1),
 
+    kill(eq,E,Eflat,Ef,Elhs),
     eq : calcInnerProdList(varsP,ue,bP,Ae),
   
     E : fullratsimp(coefmatrix(eq,un)),
