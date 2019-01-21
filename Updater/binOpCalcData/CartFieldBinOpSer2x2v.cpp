@@ -271,20 +271,20 @@ void CartFieldBinOpDivide2x2vSer_P1(binOpData_t* data, const double *A, const do
   } 
  
   // Fill AEM matrix. 
-  data->AEM_S(0,0) = 0.5*As[0]; 
-  data->AEM_S(0,1) = 0.5*As[1]; 
-  data->AEM_S(0,2) = 0.5*As[2]; 
-  data->AEM_S(0,4) = 0.5*As[1]; 
-  data->AEM_S(0,5) = 0.5*As[0]; 
-  data->AEM_S(0,6) = 0.5*As[3]; 
-  data->AEM_S(0,8) = 0.5*As[2]; 
-  data->AEM_S(0,9) = 0.5*As[3]; 
-  data->AEM_S(0,10) = 0.5*As[0]; 
+  data->AEM_D(0,0) = 0.5*As[0]; 
+  data->AEM_D(0,1) = 0.5*As[1]; 
+  data->AEM_D(0,2) = 0.5*As[2]; 
+  data->AEM_D(0,4) = 0.5*As[1]; 
+  data->AEM_D(0,5) = 0.5*As[0]; 
+  data->AEM_D(0,6) = 0.5*As[3]; 
+  data->AEM_D(0,8) = 0.5*As[2]; 
+  data->AEM_D(0,9) = 0.5*As[3]; 
+  data->AEM_D(0,10) = 0.5*As[0]; 
   data->AEM_D(0,15) = 0.5*As[0]; 
-  data->AEM_S(1,4) = 0.5*As[3]; 
-  data->AEM_S(1,5) = 0.5*As[2]; 
-  data->AEM_S(1,6) = 0.5*As[1]; 
-  data->AEM_S(1,11) = 0.5*As[1]; 
+  data->AEM_D(1,4) = 0.5*As[3]; 
+  data->AEM_D(1,5) = 0.5*As[2]; 
+  data->AEM_D(1,6) = 0.5*As[1]; 
+  data->AEM_D(1,11) = 0.5*As[1]; 
   data->AEM_D(1,15) = 0.5*As[2]; 
   data->AEM_D(2,15) = 0.5*As[3]; 
  
@@ -441,13 +441,13 @@ void CartFieldBinOpDivide2x2vSer_P2(binOpData_t* data, const double *A, const do
   } 
  
   // Fill AEM matrix. 
-  data->AEM_S(0,0) = 0.5*As[0]; 
-  data->AEM_S(0,1) = 0.5*As[1]; 
-  data->AEM_S(0,2) = 0.5*As[2]; 
-  data->AEM_S(0,5) = 0.5*As[3]; 
-  data->AEM_S(0,8) = 0.5*As[1]; 
-  data->AEM_S(0,9) = 0.4472135954999579*As[4]+0.5*As[0]; 
-  data->AEM_S(0,10) = 0.5*As[3]; 
+  data->AEM_D(0,0) = 0.5*As[0]; 
+  data->AEM_D(0,1) = 0.5*As[1]; 
+  data->AEM_D(0,2) = 0.5*As[2]; 
+  data->AEM_D(0,5) = 0.5*As[3]; 
+  data->AEM_D(0,8) = 0.5*As[1]; 
+  data->AEM_D(0,9) = 0.4472135954999579*As[4]+0.5*As[0]; 
+  data->AEM_D(0,10) = 0.5*As[3]; 
   data->AEM_D(0,13) = 0.447213595499958*As[6]+0.5*As[2]; 
   data->AEM_D(0,16) = 0.5*As[2]; 
   data->AEM_D(0,17) = 0.5*As[3]; 
@@ -461,10 +461,10 @@ void CartFieldBinOpDivide2x2vSer_P2(binOpData_t* data, const double *A, const do
   data->AEM_D(0,41) = 0.447213595499958*As[6]+0.5*As[2]; 
   data->AEM_D(0,42) = 0.447213595499958*As[7]+0.5*As[1]; 
   data->AEM_D(0,45) = 0.4472135954999579*As[5]+0.4472135954999579*As[4]+0.5*As[0]; 
-  data->AEM_S(1,3) = 0.5*As[1]; 
-  data->AEM_S(1,6) = 0.4472135954999579*As[4]+0.5*As[0]; 
-  data->AEM_S(1,7) = 0.5*As[3]; 
-  data->AEM_S(1,11) = 0.5*As[2]; 
+  data->AEM_D(1,3) = 0.5*As[1]; 
+  data->AEM_D(1,6) = 0.4472135954999579*As[4]+0.5*As[0]; 
+  data->AEM_D(1,7) = 0.5*As[3]; 
+  data->AEM_D(1,11) = 0.5*As[2]; 
   data->AEM_D(1,14) = 0.5*As[3]; 
   data->AEM_D(1,15) = 0.4472135954999579*As[5]+0.5*As[0]; 
   data->AEM_D(1,20) = 0.5*As[1]; 
@@ -473,17 +473,17 @@ void CartFieldBinOpDivide2x2vSer_P2(binOpData_t* data, const double *A, const do
   data->AEM_D(1,41) = 0.4472135954999579*As[1]; 
   data->AEM_D(1,42) = 0.5000000000000001*As[6]; 
   data->AEM_D(1,45) = 0.4472135954999579*As[3]; 
-  data->AEM_S(2,0) = 0.5*As[5]; 
-  data->AEM_S(2,1) = 0.5000000000000001*As[7]; 
-  data->AEM_S(2,2) = 0.4472135954999579*As[2]; 
-  data->AEM_S(2,5) = 0.4472135954999579*As[3]; 
+  data->AEM_D(2,0) = 0.5*As[5]; 
+  data->AEM_D(2,1) = 0.5000000000000001*As[7]; 
+  data->AEM_D(2,2) = 0.4472135954999579*As[2]; 
+  data->AEM_D(2,5) = 0.4472135954999579*As[3]; 
   data->AEM_D(2,27) = 0.5*As[3]; 
   data->AEM_D(2,30) = 0.447213595499958*As[6]+0.5*As[2]; 
   data->AEM_D(2,31) = 0.447213595499958*As[7]+0.5*As[1]; 
   data->AEM_D(2,36) = 0.5*As[3]; 
-  data->AEM_S(3,8) = 0.5*As[6]; 
-  data->AEM_S(3,9) = 0.447213595499958*As[3]; 
-  data->AEM_S(3,10) = 0.5000000000000001*As[4]; 
+  data->AEM_D(3,8) = 0.5*As[6]; 
+  data->AEM_D(3,9) = 0.447213595499958*As[3]; 
+  data->AEM_D(3,10) = 0.5000000000000001*As[4]; 
   data->AEM_D(3,13) = 0.4*As[7]+0.447213595499958*As[1]; 
   data->AEM_D(3,16) = 0.5*As[7]; 
   data->AEM_D(3,17) = 0.5000000000000001*As[5]; 
@@ -504,7 +504,7 @@ void CartFieldBinOpDivide2x2vSer_P2(binOpData_t* data, const double *A, const do
   data->AEM_D(5,30) = 0.5*As[5]; 
   data->AEM_D(5,31) = 0.4472135954999579*As[3]; 
   data->AEM_D(5,44) = 0.5000000000000001*As[6]; 
-  data->AEM_S(6,4) = 0.5000000000000001*As[7]; 
+  data->AEM_D(6,4) = 0.5000000000000001*As[7]; 
  
   // Fill BEV. 
   data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8],Bs[9],Bs[10],Bs[11],Bs[12],Bs[13],Bs[14],Bs[15],Bs[16],Bs[17],Bs[18],Bs[19],Bs[20],Bs[21],Bs[22],Bs[23],Bs[24],Bs[25],Bs[26],Bs[27],Bs[28],Bs[29],Bs[30],Bs[31],Bs[32],Bs[33],Bs[34],Bs[35],Bs[36],Bs[37],Bs[38],Bs[39],Bs[40],Bs[41],Bs[42],Bs[43],Bs[44],Bs[45],Bs[46],Bs[47]; 
@@ -731,11 +731,11 @@ void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const do
   } 
  
   // Fill AEM matrix. 
-  data->AEM_S(0,0) = 0.5*As[0]; 
-  data->AEM_S(0,1) = 0.5*As[1]; 
-  data->AEM_S(0,2) = 0.5*As[2]; 
-  data->AEM_S(0,5) = 0.5*As[3]; 
-  data->AEM_S(0,11) = 0.5*As[4]; 
+  data->AEM_D(0,0) = 0.5*As[0]; 
+  data->AEM_D(0,1) = 0.5*As[1]; 
+  data->AEM_D(0,2) = 0.5*As[2]; 
+  data->AEM_D(0,5) = 0.5*As[3]; 
+  data->AEM_D(0,11) = 0.5*As[4]; 
   data->AEM_D(0,12) = 0.5*As[1]; 
   data->AEM_D(0,13) = 0.4472135954999579*As[4]+0.5*As[0]; 
   data->AEM_D(0,14) = 0.5*As[3]; 
@@ -760,9 +760,9 @@ void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const do
   data->AEM_D(0,75) = 0.5*As[1]; 
   data->AEM_D(0,78) = 0.4472135954999579*As[4]+0.5*As[0]; 
   data->AEM_D(0,79) = 0.5*As[3]; 
-  data->AEM_S(1,7) = 0.5*As[2]; 
-  data->AEM_S(1,10) = 0.5*As[3]; 
-  data->AEM_S(1,11) = 0.4472135954999579*As[5]+0.5*As[0]; 
+  data->AEM_D(1,7) = 0.5*As[2]; 
+  data->AEM_D(1,10) = 0.5*As[3]; 
+  data->AEM_D(1,11) = 0.4472135954999579*As[5]+0.5*As[0]; 
   data->AEM_D(1,20) = 0.5*As[1]; 
   data->AEM_D(1,24) = 0.4472135954999579*As[4]+0.5*As[0]; 
   data->AEM_D(1,25) = 0.5*As[3]; 
@@ -792,11 +792,11 @@ void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const do
   data->AEM_D(2,70) = 0.5000000000000001*As[4]; 
   data->AEM_D(2,73) = 0.4391550328268399*As[8]+0.4*As[7]+0.447213595499958*As[1]; 
   data->AEM_D(2,79) = 0.31943828249997*As[6]+0.5000000000000001*As[2]; 
-  data->AEM_S(3,0) = 0.5*As[7]; 
-  data->AEM_S(3,1) = 0.5000000000000001*As[5]; 
-  data->AEM_S(3,2) = 0.4391550328268399*As[11]+0.447213595499958*As[3]; 
-  data->AEM_S(3,5) = 0.4391550328268399*As[9]+0.4*As[6]+0.447213595499958*As[2]; 
-  data->AEM_S(3,11) = 0.4472135954999579*As[7]; 
+  data->AEM_D(3,0) = 0.5*As[7]; 
+  data->AEM_D(3,1) = 0.5000000000000001*As[5]; 
+  data->AEM_D(3,2) = 0.4391550328268399*As[11]+0.447213595499958*As[3]; 
+  data->AEM_D(3,5) = 0.4391550328268399*As[9]+0.4*As[6]+0.447213595499958*As[2]; 
+  data->AEM_D(3,11) = 0.4472135954999579*As[7]; 
   data->AEM_D(3,15) = 0.5000000000000001*As[4]; 
   data->AEM_D(3,18) = 0.4391550328268399*As[8]+0.447213595499958*As[1]; 
   data->AEM_D(3,19) = 0.5*As[6]; 
@@ -807,8 +807,8 @@ void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const do
   data->AEM_D(3,68) = 0.4391550328268399*As[8]+0.447213595499958*As[1]; 
   data->AEM_D(3,69) = 0.5*As[6]; 
   data->AEM_D(3,76) = 0.5000000000000001*As[5]; 
-  data->AEM_S(4,0) = 0.5*As[7]; 
-  data->AEM_S(4,1) = 0.4391550328268399*As[9]+0.447213595499958*As[2]; 
+  data->AEM_D(4,0) = 0.5*As[7]; 
+  data->AEM_D(4,1) = 0.4391550328268399*As[9]+0.447213595499958*As[2]; 
   data->AEM_D(4,52) = 0.5*As[8]; 
   data->AEM_D(4,53) = 0.4391550328268398*As[4]; 
   data->AEM_D(4,54) = 0.5*As[10]; 
@@ -828,9 +828,9 @@ void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const do
   data->AEM_D(5,72) = 0.5000000000000001*As[6]; 
   data->AEM_D(5,76) = 0.4391550328268399*As[10]+0.4472135954999579*As[3]; 
   data->AEM_D(5,77) = 0.5*As[4]; 
-  data->AEM_S(6,4) = 0.5000000000000001*As[7]; 
-  data->AEM_S(6,8) = 0.5*As[5]; 
-  data->AEM_S(6,9) = 0.4391550328268399*As[11]+0.4472135954999579*As[3]; 
+  data->AEM_D(6,4) = 0.5000000000000001*As[7]; 
+  data->AEM_D(6,8) = 0.5*As[5]; 
+  data->AEM_D(6,9) = 0.4391550328268399*As[11]+0.4472135954999579*As[3]; 
   data->AEM_D(6,22) = 0.5*As[4]; 
   data->AEM_D(6,34) = 0.5*As[5]; 
   data->AEM_D(7,16) = 0.5*As[10]; 
@@ -855,7 +855,7 @@ void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const do
   data->AEM_D(8,24) = 0.5*As[9]; 
   data->AEM_D(8,28) = 0.5*As[11]; 
   data->AEM_D(8,29) = 0.4391550328268399*As[5]; 
-  data->AEM_S(9,10) = 0.5*As[6]; 
+  data->AEM_D(9,10) = 0.5*As[6]; 
   data->AEM_D(9,22) = 0.5*As[7]; 
   data->AEM_D(9,51) = 0.5*As[10]; 
   data->AEM_D(9,54) = 0.4391550328268399*As[6]; 
@@ -863,7 +863,7 @@ void CartFieldBinOpDivide2x2vSer_P3(binOpData_t* data, const double *A, const do
   data->AEM_D(9,63) = 0.5*As[11]; 
   data->AEM_D(9,66) = 0.5*As[9]; 
   data->AEM_D(9,67) = 0.4391550328268399*As[7]; 
-  data->AEM_S(10,8) = 0.5*As[10]; 
+  data->AEM_D(10,8) = 0.5*As[10]; 
   data->AEM_D(10,12) = 0.4391550328268399*As[6]; 
   data->AEM_D(10,13) = 0.5*As[8]; 
   data->AEM_D(10,20) = 0.5*As[11]; 
