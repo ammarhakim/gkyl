@@ -133,7 +133,7 @@ function GkField:alloc(nRkDup)
       end
    end
 
-   self.dApardtPrev = DataStruct.Field {
+   self.dApardtProv = DataStruct.Field {
             onGrid = self.grid,
             numComponents = self.basis:numBasis(),
             ghost = {1, 1}
@@ -239,12 +239,7 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
 end
 
 function GkField:suggestDt()
-   if self.isElectromagnetic and self._firstStep then
-      self._firstStep = false
-      return 1e-30
-   else
-      return GKYL_MAX_DOUBLE
-   end
+   return GKYL_MAX_DOUBLE
 end
 function GkField:clearCFL()
 end
@@ -377,7 +372,11 @@ function GkField:createSolver(species, funcField)
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
    self.isElliptic = true
 
-   if self.isElectromagnetic then self.step2 = true end
+   if self.isElectromagnetic and self.basis:polyOrder() == 1 then 
+      self.nstep = 3 
+   elseif self.isElectromagnetic then
+      self.nstep = 2
+   end
 end
 
 function GkField:createDiagnostics()
@@ -480,10 +479,6 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs = self:rkStepperFields()[outIdx]
    
-   if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
-
-   if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
-
    if self.evolve or (self._first and not self.initPhiFunc) then
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do
@@ -530,9 +525,12 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    end
 end
 
+-- solve for dApardt in p>=2, or solve for a provisional dApardtProv in p=1
 function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs = self:rkStepperFields()[outIdx]
+
+   local polyOrder = self.basis:polyOrder()
 
    if self.evolve then
 
@@ -544,7 +542,7 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       end
       for nm, s in pairs(species) do
         if s:isEvolving() then 
-           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
+           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
            -- taking momDensity at outIdx gives momentum moment of df/dt
            self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
         end
@@ -557,7 +555,6 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
       -- this ensures that dApar/dt is in the same space as dPhi/dz
       if self.ndim == 1 or self.ndim == 3 then -- only have z direction in 1d or 3d (2d is assumed to be x,y)
-         local polyOrder = self.basis:polyOrder()
          local localRange = dApardt:localRange()
          local indexer = dApardt:genIndexer()
          local ptr = dApardt:get(1)
@@ -589,14 +586,89 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
          end
       end
 
-      -- Apar RHS is just dApar/dt
-      potRhs.apar:copy(dApardt)
+      -- apply BCs
+      local tmStart = Time.clock()
+      dApardt:sync(true)
+      self.bcTime = self.bcTime + (Time.clock()-tmStart)
+
+      if polyOrder > 1 then 
+         -- Apar RHS is just dApar/dt
+         potRhs.apar:copy(dApardt)
+      else 
+         -- save dApardt as dApardtProv, so that it can be used in upwinding 
+         -- in vpar surface terms in p=1 Ohm's law and GK update
+         self.dApardtProv:copy(dApardt)
+      end
+   end
+end
+
+-- note: step 3 is for p=1 only: solve for dApardt
+function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
+   local potCurr = self:rkStepperFields()[inIdx]
+   local potRhs = self:rkStepperFields()[outIdx]
+
+   local polyOrder = self.basis:polyOrder()
+
+   if self.evolve then
+      self.currentDens:clear(0.0)
+      if self.ndim==1 then 
+         self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+      else 
+         self.modifierWeight:clear(0.0)
+      end
+      for nm, s in pairs(species) do
+        if s:isEvolving() then 
+           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
+           -- taking momDensity at outIdx gives momentum moment of df/dt
+           self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
+        end
+      end
+      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
+      -- dApar/dt solve
+      local dApardt = potCurr.dApardt
+      self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
+      
+      -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
+      -- this ensures that dApar/dt is in the same space as dPhi/dz
+      if self.ndim == 1 or self.ndim == 3 then -- only have z direction in 1d or 3d (2d is assumed to be x,y)
+         local localRange = dApardt:localRange()
+         local indexer = dApardt:genIndexer()
+         local ptr = dApardt:get(1)
+
+         -- loop over all cells
+         for idx in localRange:colMajorIter() do
+            self.grid:setIndex(idx)
+            
+            dApardt:fill(indexer(idx), ptr)
+            if self.ndim == 1 then
+               ptr:data()[polyOrder] = 0.0
+            else -- ndim == 3
+               if polyOrder == 1 then
+                  ptr:data()[3] = 0.0
+                  ptr:data()[5] = 0.0
+                  ptr:data()[6] = 0.0
+                  ptr:data()[7] = 0.0
+               elseif polyOrder == 2 then
+                  ptr:data()[9] = 0.0
+                  ptr:data()[13] = 0.0
+                  ptr:data()[14] = 0.0
+                  ptr:data()[15] = 0.0
+                  ptr:data()[16] = 0.0
+                  ptr:data()[17] = 0.0
+                  ptr:data()[18] = 0.0
+                  ptr:data()[19] = 0.0
+               end
+            end
+         end
+      end
 
       -- apply BCs
       local tmStart = Time.clock()
       dApardt:sync(true)
-      potRhs.apar:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
+
+      -- Apar RHS is just dApar/dt
+      potRhs.apar:copy(dApardt)
    end
 end
 
