@@ -562,20 +562,23 @@ local function buildApplication(self, tbl)
        log(" ** Time step too large! Aborting this step!")
        break
     else
+       -- if an updated species is invalid, plan to use lax flux for THIS
+       -- species in the re-taken step
        for nm, s in pairs(species) do
           if myTryInv[s] then
              isInv = false
              tryInv[s] = true
              log(string.format(
-               " ** Invalid values in %s; Will re-update using Lax flux", nm))
+               "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
           end
        end
+       -- break the loop if any species is invalid
        if not isInv then
-          log(" ** Invalid values detected! Aborting this step!")
           break
        end
     end
       end
+      -- is all species is valid, do not use lax in the next step  
       if isInv then
          for nm, s in pairs(species) do
             tryInv[s] = false
