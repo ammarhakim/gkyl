@@ -103,7 +103,7 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- get electromagnetic terms
       self.apar = potentials.apar
       self.dApardt = potentials.dApardt
-      self.dApardtPrev = auxFields[3]
+      self.dApardtProv = auxFields[3]
    end
 
    -- get magnetic geometry fields
@@ -123,7 +123,7 @@ function Gyrokinetic:setAuxFields(auxFields)
       if self._isElectromagnetic then
          self.aparPtr = self.apar:get(1)
          self.dApardtPtr = self.dApardt:get(1)
-         self.dApardtPrevPtr = self.dApardtPrev:get(1)
+         self.dApardtProvPtr = self.dApardtProv:get(1)
          self.aparIdxr = self.apar:genIndexer()
          self.dApardtIdxr = self.dApardt:genIndexer()
       end
@@ -174,8 +174,8 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
-     self.dApardtPrev:fill(self.dApardtIdxr(idx), self.dApardtPrevPtr)
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPrevPtr:data(), f:data(), out:data())
+     self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    else 
      res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
@@ -201,10 +201,10 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
-     self.dApardtPrev:fill(self.dApardtIdxr(idxr), self.dApardtPrevPtr)
+     self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
      self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtPrevPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
+     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
      res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
@@ -254,13 +254,13 @@ end
 function GyrokineticStep2:setAuxFields(auxFields)
    local potentials = auxFields[1] -- first auxField is Field object
    local geo = auxFields[2] -- second auxField is FuncField object
-   --local potentialsPrev = auxFields[3]
+   --local potentialsProv = auxFields[3]
 
    -- get phi, Apar, and dApar/dt
    self.phi = potentials.phi
    self.apar = potentials.apar
    self.dApardt = potentials.dApardt
-   self.dApardtPrev = auxFields[3]
+   self.dApardtProv = auxFields[3]
 
    -- get magnetic geometry fields
    self.bmag = geo.bmag
@@ -277,7 +277,7 @@ function GyrokineticStep2:setAuxFields(auxFields)
       self.phiIdxr = self.phi:genIndexer()
       self.aparPtr = self.apar:get(1)
       self.dApardtPtr = self.dApardt:get(1)
-      self.dApardtPrevPtr = self.dApardtPrev:get(1)
+      self.dApardtProvPtr = self.dApardtProv:get(1)
       self.aparIdxr = self.apar:genIndexer()
       self.dApardtIdxr = self.dApardt:genIndexer()
 
@@ -316,9 +316,9 @@ function GyrokineticStep2:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl
    self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
    self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
-   self.dApardtPrev:fill(self.dApardtIdxr(idxr), self.dApardtPrevPtr)
+   self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
 
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtPrevPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
+   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
 
    return res
 end

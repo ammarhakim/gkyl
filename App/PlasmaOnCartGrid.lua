@@ -324,8 +324,8 @@ local function buildApplication(self, tbl)
    end
 
    -- determine whether we need two steps in forwardEuler
-   local step2 = false
-   if field.step2 ~= nil then step2 = field.step2 end
+   local nstep = 1
+   if field.nstep ~= nil then nstep = field.nstep end
 
    -- various functions to copy/increment fields
    local function copy(outIdx, aIdx)
@@ -357,6 +357,9 @@ local function buildApplication(self, tbl)
          s:clearCFL()
       end
 
+      -- compute functional field (if any)
+      funcField:advance(tCurr)
+      
       -- update EM field
       for nm, s in pairs(species) do
 	 -- compute moments needed in coupling with fields and
@@ -367,24 +370,22 @@ local function buildApplication(self, tbl)
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both
       field:advance(tCurr, species, inIdx, outIdx)
 
-      -- compute functional field (if any)
-      funcField:advance(tCurr)
-      
       -- update species
       for nm, s in pairs(species) do
          s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
       end
 
-      -- some systems (e.g. EM GK) require a second step to complete the forward Euler
-      if step2 then      
+      -- some systems (e.g. EM GK) require additional step(s) to complete the forward Euler
+      for istep = 2, nstep do      
          -- update EM field.. step 2 (if necessary). 
          -- note: no calcCouplingMoments call because field:forwardEulerStep2 either reuses already calculated moments, 
          --       or other moments are calculated in field:forwardEulerStep2
-         field:advanceStep2(tCurr, species, inIdx, outIdx)
+         local advanceString = "advanceStep" .. istep
+         field[advanceString](field, tCurr, species, inIdx, outIdx)
 
          -- update species.. step 2 (if necessary)
          for nm, s in pairs(species) do
-            s:advanceStep2(tCurr, species, {field, funcField}, inIdx, outIdx)
+            s[advanceString](s, tCurr, species, {field, funcField}, inIdx, outIdx)
          end
       end
 

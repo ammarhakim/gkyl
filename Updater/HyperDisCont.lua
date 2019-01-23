@@ -58,6 +58,9 @@ function HyperDisCont:init(tbl)
       end
    end
 
+   -- flag to turn on/off volume term
+   self._updateVolumeTerm = xsys.pickBool(tbl.updateVolumeTerm, true)
+
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
@@ -184,7 +187,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
             cflRateByCell:fill(cflRateByCellIdxr(idxm), cflRateByCellM)
             cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
 
-	    if firstDir and i<=dirUpIdx-1 then
+	    if firstDir and i<=dirUpIdx-1 and self._updateVolumeTerm then
 	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
