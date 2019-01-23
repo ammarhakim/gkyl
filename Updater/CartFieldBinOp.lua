@@ -17,6 +17,7 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Proto       = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
 local xsys        = require "xsys"
+local ffi         = require "ffi"
 
 -- function to check if moment name is correct
 local function isOpNameGood(nm)
@@ -74,6 +75,12 @@ function CartFieldBinOp:init(tbl)
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 
+   -- create struct containing allocated binOp arrays
+   if fieldBasis then 
+      self._binOpData = ffi.C.new_binOpData_t(fieldBasis:numBasis(), self._numBasis) 
+   else 
+      self._binOpData = ffi.C.new_binOpData_t(self._numBasis, 1) 
+   end
 end
 
 -- advance method
@@ -144,7 +151,7 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
       Bfld:fill(BfldIndexer(idx), BfldItr)
       uOut:fill(uOutIndexer(idx), uOutItr)
 
-      self._BinOpCalc(AfldItr:data(), BfldItr:data(), nComp, nCompEq, uOutItr:data())
+      self._BinOpCalc(self._binOpData, AfldItr:data(), BfldItr:data(), nComp, nCompEq, uOutItr:data())
    end
 end
 
