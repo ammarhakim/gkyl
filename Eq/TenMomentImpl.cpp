@@ -75,21 +75,32 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   primitive(qr, vr);
 
   // compute Roe averages
-  double sqrl = std::sqrt(vl[0]), sqrr = std::sqrt(vr[0]);
-  double sqr1 = 1/(sqrl+sqrr);
-      
-  double p0 = sqrl*sqrr;
-  double p2s1 = sq(p0*sqr1);
-  
-  double u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1;
-  double u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1;
-  double u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1;
-  double p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]]);
-  double p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]]);
-  double p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]]);
-  double p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]]);
-  double p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]]);
-  double p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p2s1*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]]);
+  // double sqrl = std::sqrt(vl[0]), sqrr = std::sqrt(vr[0]);
+  // double sqr1 = 1/(sqrl+sqrr);
+  //
+  // double p0 = sqrl*sqrr;
+  // double p2s1 = sq(p0*sqr1);
+  //
+  // double u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1;
+  // double u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1;
+  // double u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1;
+  // double p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]]);
+  // double p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]]);
+  // double p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]]);
+  // double p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]]);
+  // double p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]]);
+  // double p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p2s1*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]]);
+
+  double p0 = 0.5*(vl[0] + vr[0]);
+  double u1 = (vl[d[1]] + vr[d[1]])*0.5;
+  double u2 = (vl[d[2]] + vr[d[2]])*0.5;
+  double u3 = (vl[d[3]] + vr[d[3]])*0.5;
+  double p11 = (vl[dp[1]]+vr[dp[1]])*0.5;
+  double p12 = (vl[dp[2]]+vr[dp[2]])*0.5;
+  double p13 = (vl[dp[3]]+vr[dp[3]])*0.5;
+  double p22 = (vl[dp[4]]+vr[dp[4]])*0.5;
+  double p23 = (vl[dp[5]]+vr[dp[5]])*0.5;
+  double p33 = (vl[dp[6]]+vr[dp[6]])*0.5;
 
   double phiDelta[10];
 
