@@ -478,7 +478,7 @@ end
 -- solve for electrostatic potential phi
 function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potNew = self:rkStepperFields()[outIdx]
+   local potRhs = self:rkStepperFields()[outIdx]
    
    if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
 
@@ -524,17 +524,15 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
       self._first = false
    else
       -- just copy stuff over
-      potNew.phi:copy(potCurr.phi)
       if self.isElectromagnetic then 
-         potNew.apar:copy(potCurr.apar) 
-         potNew.dApardt:copy(potCurr.dApardt) 
+         potRhs.apar:copy(potCurr.apar) 
       end
    end
 end
 
 function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potNew = self:rkStepperFields()[outIdx]
+   local potRhs = self:rkStepperFields()[outIdx]
 
    if self.evolve then
 
@@ -592,12 +590,12 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       end
 
       -- Apar RHS is just dApar/dt
-      potNew.apar:copy(dApardt)
+      potRhs.apar:copy(dApardt)
 
       -- apply BCs
       local tmStart = Time.clock()
       dApardt:sync(true)
-      potNew.apar:sync(true)
+      potRhs.apar:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
    end
 end
