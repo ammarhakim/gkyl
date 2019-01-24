@@ -52,7 +52,7 @@ r1d : subst(rsol, rh)$
 /* Taylor series analysis */
 taylorExpand(df,N,z) := df[0] + sum(df[i]*z^i/factorial(i), i, 1, N)$
 
-ft : taylorExpand(df, 8, z)$
+ft : taylorExpand(df, 6, z)$
 
 /* Project Taylor expansion on each of three cells */
 bCL : eta(-dx,dx,bCC)$

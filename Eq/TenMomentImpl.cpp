@@ -75,39 +75,43 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   primitive(qr, vr);
 
   // compute Roe averages
-  // double sqrl = std::sqrt(vl[0]), sqrr = std::sqrt(vr[0]);
-  // double sqr1 = 1/(sqrl+sqrr);
-  //
-  // double p0 = sqrl*sqrr;
-  // double p2s1 = sq(p0*sqr1);
-  //
-  // double u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1;
-  // double u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1;
-  // double u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1;
-  // double p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]]);
-  // double p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]]);
-  // double p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]]);
-  // double p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]]);
-  // double p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]]);
-  // double p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p2s1*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]]);
+  double sqrl = std::sqrt(vl[0]), sqrr = std::sqrt(vr[0]);
+  double sqr1 = 1/(sqrl+sqrr);
+  
+  double p0 = sqrl*sqrr;
+  double p2s1 = sq(p0*sqr1);
+  
+  double u1 = (sqrl*vl[d[1]] + sqrr*vr[d[1]])*sqr1;
+  double u2 = (sqrl*vl[d[2]] + sqrr*vr[d[2]])*sqr1;
+  double u3 = (sqrl*vl[d[3]] + sqrr*vr[d[3]])*sqr1;
+  double p11 = (sqrr*vl[dp[1]]+sqrl*vr[dp[1]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[1]]-vl[d[1]]);
+  double p12 = (sqrr*vl[dp[2]]+sqrl*vr[dp[2]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[2]]-vl[d[2]]);
+  double p13 = (sqrr*vl[dp[3]]+sqrl*vr[dp[3]])*sqr1 + 1.0/3.0*p2s1*(vr[d[1]]-vl[d[1]])*(vr[d[3]]-vl[d[3]]);
+  double p22 = (sqrr*vl[dp[4]]+sqrl*vr[dp[4]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[2]]-vl[d[2]]);
+  double p23 = (sqrr*vl[dp[5]]+sqrl*vr[dp[5]])*sqr1 + 1.0/3.0*p2s1*(vr[d[2]]-vl[d[2]])*(vr[d[3]]-vl[d[3]]);
+  double p33 = (sqrr*vl[dp[6]]+sqrl*vr[dp[6]])*sqr1 + 1.0/3.0*p2s1*(vr[d[3]]-vl[d[3]])*(vr[d[3]]-vl[d[3]]);
 
-  double p0 = 0.5*(vl[0] + vr[0]);
-  double u1 = (vl[d[1]] + vr[d[1]])*0.5;
-  double u2 = (vl[d[2]] + vr[d[2]])*0.5;
-  double u3 = (vl[d[3]] + vr[d[3]])*0.5;
-  double p11 = (vl[dp[1]]+vr[dp[1]])*0.5;
-  double p12 = (vl[dp[2]]+vr[dp[2]])*0.5;
-  double p13 = (vl[dp[3]]+vr[dp[3]])*0.5;
-  double p22 = (vl[dp[4]]+vr[dp[4]])*0.5;
-  double p23 = (vl[dp[5]]+vr[dp[5]])*0.5;
-  double p33 = (vl[dp[6]]+vr[dp[6]])*0.5;
+  // for multiplication by phi' we need to use unrotated values
+  double v[4];
+  v[d[1]] = u1; v[d[2]] = u2; v[d[3]] = u3;
+
+  // double p0 = 0.5*(vl[0] + vr[0]);
+  // double u1 = (vl[d[1]] + vr[d[1]])*0.5;
+  // double u2 = (vl[d[2]] + vr[d[2]])*0.5;
+  // double u3 = (vl[d[3]] + vr[d[3]])*0.5;
+  // double p11 = (vl[dp[1]]+vr[dp[1]])*0.5;
+  // double p12 = (vl[dp[2]]+vr[dp[2]])*0.5;
+  // double p13 = (vl[dp[3]]+vr[dp[3]])*0.5;
+  // double p22 = (vl[dp[4]]+vr[dp[4]])*0.5;
+  // double p23 = (vl[dp[5]]+vr[dp[5]])*0.5;
+  // double p33 = (vl[dp[6]]+vr[dp[6]])*0.5;
 
   double phiDelta[10];
 
   // pre-multiply jump (delta) by phiPrime inverse: we do this as
   // jumps are in conserved variables, while left eigenvectors used
   // below are computed from primitive variables
-  phiDelta[0] = delta[0]; 
+  phiDelta[0] = delta[0];
   phiDelta[1] = delta[d[1]]/p0-(1.0*delta[0]*u1)/p0; 
   phiDelta[2] = delta[d[2]]/p0-(1.0*delta[0]*u2)/p0; 
   phiDelta[3] = delta[d[3]]/p0-(1.0*delta[0]*u3)/p0; 
@@ -151,7 +155,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   wv[dp[5]] = leftProj[0]*p13+leftProj[1]*p12; 
   wv[dp[6]] = 2.0*leftProj[1]*p13;
 
-  mulByPhiPrime(p0, u1, u2, u3, wv, &waves[0]);
+  mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[0]);
 
   // Wave 2: (ev 3 and 4 are repeated)
   s[1] = u1+std::sqrt(p11/p0);
@@ -166,7 +170,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   wv[dp[5]] = leftProj[2]*p13+leftProj[3]*p12; 
   wv[dp[6]] = 2.0*leftProj[3]*p13;
 
-  mulByPhiPrime(p0, u1, u2, u3, wv, &waves[10]);
+  mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[10]);
   
   // Wave 3 (ev 5)
   s[2] = u1-std::sqrt(3*p11/p0);
@@ -181,7 +185,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   wv[dp[5]] = leftProj[4]*p11*p23+2.0*leftProj[4]*p12*p13; 
   wv[dp[6]] = leftProj[4]*p11*p33+2.0*leftProj[4]*p13sq;
 
-  mulByPhiPrime(p0, u1, u2, u3, wv, &waves[20]);
+  mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[20]);
 
   // Wave 4 (ev 6)
   s[3] = u1+std::sqrt(3*p11/p0);
@@ -196,7 +200,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   wv[dp[5]] = leftProj[5]*p11*p23+2.0*leftProj[5]*p12*p13; 
   wv[dp[6]] = leftProj[5]*p11*p33+2.0*leftProj[5]*p13sq;
 
-  mulByPhiPrime(p0, u1, u2, u3, wv, &waves[30]);
+  mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[30]);
 
   // Wave 5: (ev 7, 8, 9, 10 are repeated)
   s[4] = u1;
@@ -211,7 +215,7 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   wv[dp[5]] = leftProj[8]; 
   wv[dp[6]] = leftProj[9];
 
-  mulByPhiPrime(p0, u1, u2, u3, wv, &waves[40]);
+  mulByPhiPrime(p0, v[1], v[2], v[3], wv, &waves[40]);
 }
 
 // Qfluctuations for ten-moment equations
