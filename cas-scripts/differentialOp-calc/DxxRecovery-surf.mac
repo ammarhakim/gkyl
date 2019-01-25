@@ -8,6 +8,12 @@ fpprec : 24$
    two integrations by parts for the diffusive term and
    a constant collisionality nu. */
 
+/* Test different forms of recovery:
+   =0 maximal order polynomial via weak equality.
+   =1 quadratic polynomial via weak equality (least-squares).
+   =2 linear polynomial via weak equality (least-squares). */
+recoveryOp : 0$
+
 cvars : [x, y, z]$
 cVars : [X, Y, Z]$
 varsV : [vx, vy, vz]$
@@ -55,7 +61,6 @@ calcDxxUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
 
     kill(varsC, varsP, basisC, basisP),
 
-    /*... Compute  1D recovery polynomial coefficients into hsol ...*/
     /* Load 1D basis. */
     load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
     bC1 : basisC[polyOrder],
@@ -63,56 +68,88 @@ calcDxxUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
 
     eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
 
-    /* Construct the 1D recovery polynomial */
-    hOrder : 2*polyOrder+1,
     /* Left and right (of the boundary) basis sets */ 
     pL : eta(-1/2,1,bC1),
-    pR : eta(1/2,1,bC1),
-    /* Recovery polynomial expanded in z */
-    h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
-    
-    /* LHS of system of equations arising from weak equivalence relations */
-    eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
-    eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
-    LHS : append(eqL,eqR),
-    A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
-    
-    /* RHS is similar to the mass matrix */
-    RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
-    
-    /* solve system of equations for coefficients of h */
-    S     : fullratsimp(invert(A) . RHS),
-    hsol1 : makelist(S[i][1],i,1,hOrder+1),
+    pR : eta( 1/2,1,bC1),
+
+    /*... Compute 1D recovery polynomial coefficients into hsol ...*/
+    if (recoveryOp = 0) then (
+      /* Seek maximal order polynomial through weak equalities. */
+      hOrder : 2*polyOrder+1,
+
+      /* Recovery polynomial expanded in z */
+      h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
+      
+      /* LHS of system of equations arising from weak equivalence relations */
+      eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
+      eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
+      LHS : append(eqL,eqR),
+      A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
+      
+      /* RHS is similar to the mass matrix */
+      RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
+      
+      /* solve system of equations for coefficients of h */
+      S     : fullratsimp(invert(A) . RHS),
+      hsol1 : makelist(S[i][1],i,1,hOrder+1)
+  
+    ) elseif (recoveryOp=1 or recoveryOp=2) then (
+      /* Seek quadratic or linear polynomial through weak equalities (least squares). */
+      hOrder : 2*polyOrder+1-recoveryOp,
+
+      /* Recovery polynomial expanded in w. */
+      h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
+      
+      /* LHS of system of equations arising from weak equivalence relations */
+      eqL : makelist(integrate(h1*pL[i],w,-1,0), i, 1, polyOrder+1),
+      eqR : makelist(integrate(h1*pR[i],w, 0,1), i, 1, polyOrder+1),
+      LHS : append(eqL,eqR),
+      A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
+      
+      /* RHS is similar to the mass matrix */
+      RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
+
+      /* Compute the transpose of the left-side matrix. */
+      AT : transpose(A),
+
+      /* In the least-squares problem, the RHS is AT dotted with the old RHS. */
+      RHSnew : AT.RHS,
+
+      /* Solve for coefficients of the (least-squares) recovery polynomial. */
+      S : fullratsimp(invert(AT.A) . RHSnew),
+      hsol1 : makelist(S[i][1],i,1,hOrder+1)
+      
+    ),
 
     /*... Recovery polynomial coefficients of requested dimensionality ...*/
     kill(varsC, basisC),
     /* Load basis of dimensionality requested. */
     load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
-
+  
     /* Variables. */
     vv       : varsC[dir],
     surfVars : delete(vv,varsC),
-
+  
     /* Polynomial basis and its derivatives. */
     bC  : basisC[polyOrder],
     NC  : length(bC),
     bCp : diff(bC,vv),
-
+  
     f_e : doExpand(f, bC),	/* Function expanded in basis. */
-
+  
     /* Obtain the left and right function coefficients
        by projecting the function onto the direction of interest. */
     hcoeff : calcInnerProdList([vv], 1, subst(x=vv,bC1), f_e),
     fls : subst(makelist(f[i]=fl[i],i,NC), hcoeff),
     frs : subst(makelist(f[i]=fr[i],i,NC), hcoeff),
-
+  
     /* Substitute these "left" and "right" function coefficients,
        which contain variation along other dimensions, into the
        1D recovery polynomial coefficients computed above. */
     hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
     
     /* Write out the full recovery polynomial and its derivative. */
-    h  : sum(hsol[i]*vv^(i-1), i, 1, 2*N1),
+    h  : sum(hsol[i+1]*(vv^i), i, 0, hOrder),
     hp : diff(h,vv),
     /* Evaluate the recovery polynomial at the discontinuity. */
     hsol0  : subst(vv=0,h),

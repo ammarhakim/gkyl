@@ -1,5 +1,5 @@
 #include <CartFieldDifferentialOpModDecl.h> 
-void CartFieldDifferentialOpDxxRecoveryVol1xSer_P1(const double *w, const double *dx, const int *idx, const double *f, double *out) 
+void CartFieldDifferentialOpDxxRecoveryVol1xMax_P1(const double *w, const double *dx, const int *idx, const double *f, double *out) 
 { 
   // w[1]:   Cell-center coordinates. 
   // dx[1]:  Cell spacing. 

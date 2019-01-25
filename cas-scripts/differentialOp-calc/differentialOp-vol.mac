@@ -1,4 +1,4 @@
-load("differentialOp-calc/derivative-vol")$
+load("differentialOp-calc/DxxRecovery-vol")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions. */
@@ -30,10 +30,10 @@ maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
-      disp(printf(false,sconcat("Creating volume CartFieldDifferentialOpDxx",bName[bInd]," ~ax"),c)),
+      disp(printf(false,sconcat("Creating volume CartFieldDifferentialOpDxxRecovery",bName[bInd]," ~ax"),c)),
       fname : sconcat("~/max-out/CartFieldDifferentialOp", bName[bInd], c, "x", ".cpp"),
       fh : openw(fname),
-      funcName : sconcat("CartFieldDifferentialOpDxxVol", c, "x", bName[bInd]),
+      funcName : sconcat("CartFieldDifferentialOpDxxRecoveryVol", c, "x", bName[bInd]),
       calcDxxVolUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
       close(fh) 
 

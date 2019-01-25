@@ -37,10 +37,10 @@ for bInd : 1 thru length(bName) do (
 
   for ci : minCdim[bInd] thru maxCdim[bInd] do (
     for pi : 1 thru maxPolyOrder[bInd] do (
-      printf(fh, "void CartFieldDifferentialOpDxxVol~ax~a_P~a(const double *w, const double *dx, const int *idx, const double *f, double *out); ~%", ci, bName[bInd], pi),
+      printf(fh, "void CartFieldDifferentialOpDxxRecoveryVol~ax~a_P~a(const double *w, const double *dx, const int *idx, const double *f, double *out); ~%", ci, bName[bInd], pi),
       for si : 1 thru ci do (
-        printf(fh, "void CartFieldDifferentialOpDxxSurf~ax~a_~a_P~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, bName[bInd], cvars[si], pi),
-        printf(fh, "void CartFieldDifferentialOpDxxBoundarySurf~ax~a_~a_P~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, bName[bInd], cvars[si], pi)
+        printf(fh, "void CartFieldDifferentialOpDxxRecoverySurf~ax~a_~a_P~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, bName[bInd], cvars[si], pi),
+        printf(fh, "void CartFieldDifferentialOpDxxRecoveryBoundarySurf~ax~a_~a_P~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, bName[bInd], cvars[si], pi)
       ),
       printf(fh, "~%")      
     ),
