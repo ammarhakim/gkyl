@@ -724,7 +724,9 @@ function GkField:totalBcTime()
 end
 
 function GkField:energyCalcTime()
-   return self.energyCalc.totalTime
+   local t = self.int2Calc.totalTime
+   if self.energyCalc then t = t + self.energyCalcTime end
+   return t
 end
 
 -- GkGeometry ---------------------------------------------------------------------
