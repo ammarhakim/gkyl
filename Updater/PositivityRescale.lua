@@ -11,6 +11,7 @@ local DataStruct = require "DataStruct"
 local Proto = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
+local ffiC = ffi.C
 
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
@@ -66,7 +67,7 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
       fIn:fill(fInIndexer(idx), fInPtr)
       fOut:fill(fOutIndexer(idx), fOutPtr)
 
-      local del2ChangeCell = ffi.C.rescale(fInPtr:data(), fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      local del2ChangeCell = ffiC.rescale(fInPtr:data(), fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
       self.del2Change = self.del2Change + del2ChangeCell
    end
 

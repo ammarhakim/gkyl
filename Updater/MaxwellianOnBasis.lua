@@ -16,6 +16,7 @@ local UpdaterBase = require "Updater.Base"
 
 -- System libraries
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 
 ffi.cdef [[
@@ -188,7 +189,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 	 for d = 1, self.numPhaseDims do dz[d] = self.phaseGrid:dx(d) end
 	 self.phaseGrid:cellCenter(zc)
 
-	 ffi.C.MaxwellianInnerLoop(nOrd:data(), uOrd:data(), vth2Ord:data(),
+	 ffiC.MaxwellianInnerLoop(nOrd:data(), uOrd:data(), vth2Ord:data(),
 				   fItr:data(),
 				   self.phaseWeights:data(), dz:data(), zc:data(),
 				   self.phaseOrdinates:data(),

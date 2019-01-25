@@ -11,6 +11,7 @@
 local UpdaterBase = require "Updater.Base"
 local Proto = require "Lib.Proto"
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local DataStruct = require "DataStruct"
@@ -273,12 +274,12 @@ function FemGyroaverage:_advance(tCurr, inFld, outFld)
      for idmu=local_mu_lower, local_mu_upper do
        if self._first then 
          -- if first time, create gyavg C object for each z,mu cell
-         self._gyavg[idz][idmu] = ffi.C.new_FemGyroaverage(self._nx, self._ny, ndim, self._p, self._dx, self._dy,
+         self._gyavg[idz][idmu] = ffiC.new_FemGyroaverage(self._nx, self._ny, ndim, self._p, self._dx, self._dy,
                                              self._isDirPeriodic, self._bc, self._writeMatrix)
        end
 
        -- zero global source
-       ffi.C.zeroGlobalSrcGy(self._gyavg[idz][idmu])
+       ffiC.zeroGlobalSrcGy(self._gyavg[idz][idmu])
 
        -- create global source 
        -- globalSrc is an Eigen vector managed in C
@@ -298,8 +299,8 @@ function FemGyroaverage:_advance(tCurr, inFld, outFld)
                 self.rho2:fill(self.rho2Indexer(idx,idy,idz,1,idmu), self.rho2Ptr) 
                 self.rho3:fill(self.rho3Indexer(idx,idy,idz,1,idmu), self.rho3Ptr) 
               end
-              if self._muOrder0 then ffi.C.makeGyavg0Matrix(self._gyavg[idz][idmu], self.rho1Ptr:data(), self.rho2Ptr:data(), self.rho3Ptr:data(), idx-1)
-              else ffi.C.makeGyavgMatrix(self._gyavg[idz][idmu], self.rho1Ptr:data(), self.rho2Ptr:data(), self.rho3Ptr:data(), idx-1) end
+              if self._muOrder0 then ffiC.makeGyavg0Matrix(self._gyavg[idz][idmu], self.rho1Ptr:data(), self.rho2Ptr:data(), self.rho3Ptr:data(), idx-1)
+              else ffiC.makeGyavgMatrix(self._gyavg[idz][idmu], self.rho1Ptr:data(), self.rho2Ptr:data(), self.rho3Ptr:data(), idx-1) end
            end
 
            if cdim==2 then 
@@ -307,7 +308,7 @@ function FemGyroaverage:_advance(tCurr, inFld, outFld)
            else 
              src:fill(self.srcIndexer(idx,idy,idz,idmu), self.srcPtr) 
            end
-           ffi.C.createGlobalSrcGy(self._gyavg[idz][idmu], self.srcPtr:data(), idx-1, idy-1, src:ndim())
+           ffiC.createGlobalSrcGy(self._gyavg[idz][idmu], self.srcPtr:data(), idx-1, idy-1, src:ndim())
 
            if self._makeStiff then
               if cdim==2 then 
@@ -315,24 +316,24 @@ function FemGyroaverage:_advance(tCurr, inFld, outFld)
               else 
                 self.modifierWeight:fill(self.modifierWeightIndexer(idx, idy, idz), self.modifierWeightPtr) 
               end
-              ffi.C.makeGlobalStiffGy(self._gyavg[idz][idmu], self.modifierWeightPtr:data(), idx-1, idy-1)
+              ffiC.makeGlobalStiffGy(self._gyavg[idz][idmu], self.modifierWeightPtr:data(), idx-1, idy-1)
            end 
          end
        end
 
        if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
          -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
-         ffi.C.allreduceGlobalSrcGy(self._gyavg[idz][idmu], Mpi.getComm(self._zcomm))
+         ffiC.allreduceGlobalSrcGy(self._gyavg[idz][idmu], Mpi.getComm(self._zcomm))
          if self._makeStiff then
-           ffi.C.allgatherGlobalStiffGy(self._gyavg[idz][idmu], Mpi.getComm(self._zcomm))
+           ffiC.allgatherGlobalStiffGy(self._gyavg[idz][idmu], Mpi.getComm(self._zcomm))
          end
        end
 
        if self._makeStiff then
-          ffi.C.finishGlobalStiffGy(self._gyavg[idz][idmu])
+          ffiC.finishGlobalStiffGy(self._gyavg[idz][idmu])
        end
        -- solve 
-       ffi.C.solveGy(self._gyavg[idz][idmu])
+       ffiC.solveGy(self._gyavg[idz][idmu])
 
        -- remap global nodal solution to local modal solution 
        -- only need to loop over local proc region
@@ -352,7 +353,7 @@ function FemGyroaverage:_advance(tCurr, inFld, outFld)
              end
 
            end
-           ffi.C.getSolutionGy(self._gyavg[idz][idmu], self.solPtr:data(), idx-1, idy-1)
+           ffiC.getSolutionGy(self._gyavg[idz][idmu], self.solPtr:data(), idx-1, idy-1)
          end
        end
      end 
@@ -364,7 +365,7 @@ function FemGyroaverage:_advance(tCurr, inFld, outFld)
 end
 
 function FemGyroaverage:delete()
-  ffi.C.delete_FemGyroaverage(self._gyavg)
+  ffiC.delete_FemGyroaverage(self._gyavg)
 end
 
 function FemGyroaverage:setLaplacianWeight(weight)
