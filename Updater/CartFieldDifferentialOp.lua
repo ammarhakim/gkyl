@@ -2,10 +2,11 @@
 --
 -- Updater to calculate the result of a differential operator
 -- acting on a Cartesian field quantity.
--- At the moment we are interested in the second derivative in 1D.
+-- At the moment we are interested in the second derivative in 1D and the
+-- perpendicular gradient (for a 3D field).
 --
--- One could envision this updater computing 1st, 2nd derivatives, or Laplacians
--- in arbitrary directions and dimensions.
+-- One could envision this updater computing 1st, 2nd derivatives, Laplacians,
+-- gradients, divergences, curls, etc, in arbitrary directions and dimensions.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -20,9 +21,14 @@ local Lin                = require "Lib.Linalg"
 local LinearDecomp       = require "Lib.LinearDecomp"
 
 -- Function to check if operation requested is correct/supported.
-local function isOpNameGood(nm)
-   if nm == "Dxx" then
-      return true
+local function isOpNameGoodNsurfTerm(nm)
+   -- These operations don't have a surface term.
+   if nm=="gradPerp" then
+      return true, false
+   end
+   -- Operations computed with a surface term.
+   if nm=="DxxRecovery" then
+      return true, true
    end
    return false
 end
@@ -74,11 +80,14 @@ function CartFieldDifferentialOp:init(tbl)
       end
    end
 
-   if isOpNameGood(op) then
-      self._OperatorCalcSurf         = DifferentialOpDecl.selectOperatorSurf(op,self._basisID, self._cDim, self._polyOrder)
+   opNameCheck, needSurfTerm = isOpNameGoodNsurfTerm(op) 
+   if opNameCheck then
       self._OperatorCalcVol          = DifferentialOpDecl.selectOperatorVol(op,self._basisID, self._cDim, self._polyOrder)
-      if anyZeroSurfUpdateFlagsTrue then
-         self._OperatorCalcBoundarySurf = DifferentialOpDecl.selectOperatoruBoundarySurf(op,self._basisID, self._cDim, self._polyOrder)
+      if needSurfTerm then
+         self._OperatorCalcSurf         = DifferentialOpDecl.selectOperatorSurf(op,self._basisID, self._cDim, self._polyOrder)
+         if anyZeroSurfUpdateFlagsTrue then
+            self._OperatorCalcBoundarySurf = DifferentialOpDecl.selectOperatoruBoundarySurf(op,self._basisID, self._cDim, self._polyOrder)
+         end
       end
    else
       assert(false, string.format(
@@ -95,6 +104,7 @@ end
 -- Advance method.
 function CartFieldDifferentialOp:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
+   local ndim = grid:ndim()
 
    local fIn        = inFld[1]
    local fInIdxr    = fIn:genIndexer()
@@ -104,85 +114,87 @@ function CartFieldDifferentialOp:_advance(tCurr, inFld, outFld)
    local dfOutIdxr      = dfOut:genIndexer()
    local dfOutM, dfOutP = dfOut:get(1), dfOut:get(1)
 
-   -- Currently assume 1D:
-   local ndim = 1
-   local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim)    -- Index on right/left.
-   local dxp, dxm   = Lin.Vec(ndim), Lin.Vec(ndim)          -- Cell shape on right/left.
-   local xcp, xcm   = Lin.Vec(ndim), Lin.Vec(ndim)          -- Cell center on right/left.
-
-   local localRange                 = fIn:localRange()
-   if self.onGhosts then localRange = fIn:localExtRange() end
-
-   local tId = grid:subGridSharedId()    -- Local thread ID.
-
-   local firstDir = true
-
-   -- Iterate through updateDirs backwards so that a zeroSurfUpdate dir is first in kinetics.
-   for i = #self._updateDirs, 1, -1 do
-      local dir = self._updateDirs[i]
-
-      -- Lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell).
-      local dirLoIdx, dirUpIdx         = localRange:lower(dir), localRange:upper(dir)+1
-      local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
-
-      -- Compute loop bounds for directions without a surface update.
-      if self._zeroSurfUpdateFlags[dir] then
-         local dirGlobalLoIdx, dirGlobalUpIdx = globalRange:lower(dir), globalRange:upper(dir)+1
-         if dirLoIdx == dirGlobalLoIdx then
-            dirLoSurfIdx = dirLoIdx+1
-         end
-         if dirUpIdx == dirGlobalUpIdx then
-            dirUpSurfIdx = dirUpIdx-1
-         end
-      end
-
-      if self._isFirst then
-         self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
-            range      = localRange:shorten(dir),    -- Range orthogonal to 'dir'.
-            numSplit   = grid:numSharedProcs(),
-            threadComm = self:getSharedComm()
-         }
-      end
-      local perpRangeDecomp = self._perpRangeDecomp[dir]
-
-      for idx in perpRangeDecomp:colMajorIter(tId) do
-         idx:copyInto(idxp); idx:copyInto(idxm)
-
-         for i = dirLoIdx, dirUpIdx do    -- This loop is over edges.
-            idxm[dir], idxp[dir] = i-1, i -- Cell left/right of edge 'i'.
+   if needSurfTerm then
+      local idxp, idxm = Lin.IntVec(ndim), Lin.IntVec(ndim)    -- Index on right/left.
+      local dxp, dxm   = Lin.Vec(ndim), Lin.Vec(ndim)          -- Cell shape on right/left.
+      local xcp, xcm   = Lin.Vec(ndim), Lin.Vec(ndim)          -- Cell center on right/left.
    
-            grid:setIndex(idxm)
-            for d = 1, ndim do dxm[d] = grid:dx(d) end
-            grid:cellCenter(xcm)
-       
-            grid:setIndex(idxp)
-            for d = 1, ndim do dxp[d] = grid:dx(d) end
-            grid:cellCenter(xcp)
-       
-            fIn:fill(fInIdxr(idxm), fInM)
-            fIn:fill(fInIdxr(idxp), fInP)
-      
-            dfOut:fill(dfOutIdxr(idxm), dfOutM)
-            dfOut:fill(dfOutIdxr(idxp), dfOutP)
+      local localRange                 = fIn:localRange()
+      if self.onGhosts then localRange = fIn:localExtRange() end
    
-            if firstDir and i<=dirUpIdx-1 then
-               self._OperatorCalcVol(xcp:data(), dxp:data(), idxp:data(), fInP:data(), dfOutP:data())
+      local tId = grid:subGridSharedId()    -- Local thread ID.
+   
+      local firstDir = true
+   
+      -- Iterate through updateDirs backwards so that a zeroSurfUpdate dir is first in kinetics.
+      for i = #self._updateDirs, 1, -1 do
+         local dir = self._updateDirs[i]
+   
+         -- Lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell).
+         local dirLoIdx, dirUpIdx         = localRange:lower(dir), localRange:upper(dir)+1
+         local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
+   
+         -- Compute loop bounds for directions without a surface update.
+         if self._zeroSurfUpdateFlags[dir] then
+            local dirGlobalLoIdx, dirGlobalUpIdx = globalRange:lower(dir), globalRange:upper(dir)+1
+            if dirLoIdx == dirGlobalLoIdx then
+               dirLoSurfIdx = dirLoIdx+1
             end
-            if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
-               self._OperatorCalcSurf[dir](
-                  xcm:data(), xcp:data(), dxm:data(), dxp:data(), idxm:data(), idxp:data(), fInM:data(), fInP:data(), dfOutM:data(), dfOutP:data())
-            else
-               if self._zeroSurfUpdateFlags[dir] then
-                  -- We need to give operators a chance to apply partial
-                  -- surface updates even when the zeroFlux BCs have been
-                  -- applied.
-                  self._OperatorCalcBoundarySurf[dir](
-                     xcm:data(), xcp:data(), dxm:data(), dxp:data(), idxm:data(), idxp:data(), fInM:data(), dInP:data(), dfOutM:data(), dfOutP:data())
+            if dirUpIdx == dirGlobalUpIdx then
+               dirUpSurfIdx = dirUpIdx-1
+            end
+         end
+   
+         if self._isFirst then
+            self._perpRangeDecomp[dir] = LinearDecomp.LinearDecompRange {
+               range      = localRange:shorten(dir),    -- Range orthogonal to 'dir'.
+               numSplit   = grid:numSharedProcs(),
+               threadComm = self:getSharedComm()
+            }
+         end
+         local perpRangeDecomp = self._perpRangeDecomp[dir]
+   
+         for idx in perpRangeDecomp:colMajorIter(tId) do
+            idx:copyInto(idxp); idx:copyInto(idxm)
+   
+            for i = dirLoIdx, dirUpIdx do    -- This loop is over edges.
+               idxm[dir], idxp[dir] = i-1, i -- Cell left/right of edge 'i'.
+      
+               grid:setIndex(idxm)
+               for d = 1, ndim do dxm[d] = grid:dx(d) end
+               grid:cellCenter(xcm)
+          
+               grid:setIndex(idxp)
+               for d = 1, ndim do dxp[d] = grid:dx(d) end
+               grid:cellCenter(xcp)
+          
+               fIn:fill(fInIdxr(idxm), fInM)
+               fIn:fill(fInIdxr(idxp), fInP)
+         
+               dfOut:fill(dfOutIdxr(idxm), dfOutM)
+               dfOut:fill(dfOutIdxr(idxp), dfOutP)
+      
+               if firstDir and i<=dirUpIdx-1 then
+                  self._OperatorCalcVol(xcp:data(), dxp:data(), idxp:data(), fInP:data(), dfOutP:data())
+               end
+               if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
+                  self._OperatorCalcSurf[dir](
+                     xcm:data(), xcp:data(), dxm:data(), dxp:data(), idxm:data(), idxp:data(), fInM:data(), fInP:data(), dfOutM:data(), dfOutP:data())
+               else
+                  if self._zeroSurfUpdateFlags[dir] then
+                     -- We need to give operators a chance to apply partial
+                     -- surface updates even when the zeroFlux BCs have been
+                     -- applied.
+                     self._OperatorCalcBoundarySurf[dir](
+                        xcm:data(), xcp:data(), dxm:data(), dxp:data(), idxm:data(), idxp:data(), fInM:data(), dInP:data(), dfOutM:data(), dfOutP:data())
+                  end
                end
             end
          end
+         firstDir = false
       end
-      firstDir = false
+   else
+      -- Operation requested is computed without integration by parts.
    end
 
    self._isFirst = false
