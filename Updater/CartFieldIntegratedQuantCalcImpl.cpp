@@ -62,3 +62,22 @@ gkylCartFieldIntQuantV2(int ndim, unsigned nc, unsigned nb, const double *dxv, c
     out[c] += v2*vol;
   }
 }
+
+void
+gkylCartFieldIntQuantGradPerpV2(int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out)
+{
+  double vol = 1.0;
+  // assume polyOrder >= 1
+  for (unsigned d=0; d<ndim; ++d)
+    vol *= dxv[d]/2.0;
+
+  double dfac2_x = 4.0/dxv[0]/dxv[0];
+  double dfac2_y = 4.0/dxv[1]/dxv[1];
+
+  // assume 1 component
+  if(ndim==2) {
+    out[0] = vol*((3*fIn[3]*fIn[3]+3*fIn[2]*fIn[2])*dfac2_y+(3*fIn[3]*fIn[3]+3*fIn[1]*fIn[1])*dfac2_x);
+  } else if(ndim==3) {
+    out[0] = vol*((3*fIn[7]*fIn[7]+3*fIn[6]*fIn[6]+3*fIn[4]*fIn[4]+3*fIn[2]*fIn[2])*dfac2_y+(3*fIn[7]*fIn[7]+3*fIn[5]*fIn[5]+3*fIn[4]*fIn[4]+3*fIn[1]*fIn[1])*dfac2_x);
+  }
+}

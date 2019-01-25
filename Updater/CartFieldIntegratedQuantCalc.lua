@@ -23,6 +23,8 @@ ffi.cdef [[
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
     void gkylCartFieldIntQuantAbsV(
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
+    void gkylCartFieldIntQuantGradPerpV2(
+      int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
 ]]
 
 -- Integrated quantities calculator
@@ -41,9 +43,13 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
-   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV",
-	  "CartFieldIntegratedQuantCalc: quantity must be one of V, V2 or AbsV")
+   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV" or tbl.quantity == "GradPerpV2",
+	  "CartFieldIntegratedQuantCalc: quantity must be one of V, V2, AbsV, GradPerpV2")
    self.updateFunc = ffi.C["gkylCartFieldIntQuant"..tbl.quantity]
+
+   if tbl.quantity == "GradPerpV2" then assert(self.numComponents==1 and self.basis:polyOrder()==1, 
+          "CartFieldIntegratedQuantCalc: GradPerpV2 currently only implemented for p=1 and numComponents=1")
+   end
 
    -- for use in advance method
    self.dxv = Lin.Vec(self.basis:ndim()) -- cell shape
@@ -55,15 +61,16 @@ end
 function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
    local grid = self.onGrid
    local field, vals = inFld[1], outFld[1]
+   local multfac = inFld[2]
 
    local ndim = self.basis:ndim()
-   local nvals = #self.localVals
+   local nvals = self.numComponents
 
    local fieldIndexer = field:genIndexer()
    local fieldItr = field:get(1)
 
    -- clear local values
-   for i = 1, #self.localVals do
+   for i = 1, nvals do
       self.localVals[i] = 0.0
       self.globalVals[i] = 0.0
    end
@@ -78,12 +85,19 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
       field:fill(fieldIndexer(idx), fieldItr)
       -- compute integrated quantities
       self.updateFunc(
-	 ndim, self.numComponents, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.localVals:data())
+	 ndim, nvals, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.localVals:data())
    end
 
    -- all-reduce across processors and push result into dyn-vector
    Mpi.Allreduce(
       self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, self:getComm())
+
+   if multfac then 
+      for i = 1, nvals do
+         self.globalVals[i] = self.globalVals[i]*multfac
+      end
+   end
+
    vals:appendData(tCurr, self.globalVals)
 end
 

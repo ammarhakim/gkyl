@@ -67,6 +67,8 @@ function GkField:fullInit(appTbl)
    -- for storing integrated energies
    self.phi2 = DataStruct.DynVector { numComponents = 1 }
    self.apar2 = DataStruct.DynVector { numComponents = 1 }
+   self.esEnergy = DataStruct.DynVector { numComponents = 1 }
+   self.emEnergy = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
@@ -387,19 +389,41 @@ function GkField:createDiagnostics()
       writeGhost = self.writeGhost
    }
 
-   self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+   -- updaters for computing integrated quantities
+   self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
       onGrid = self.grid,
       basis = self.basis,
       quantity = "V2"
    }
+   if self.ndim == 1 then
+      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.grid,
+         basis = self.basis,
+         quantity = "V2"
+      }
+   else
+      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.grid,
+         basis = self.basis,
+         quantity = "GradPerpV2"
+      }
+   end
 end
 
 function GkField:write(tm, force)
    if self.evolve then
       -- compute integrated quantities over domain
-      self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.phi2 })
+      self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phi2 })
       if self.isElectromagnetic then 
-        self.energyCalc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
+        self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
+      end
+      local esEnergyFac = .5*self.polarizationWeight
+      if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
+      local emEnergyFac = .5/self.mu0
+      if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+      self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy })
+      if self.isElectromagnetic then 
+        self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
       end
       
       if self.ioTrigger(tm) or force then
@@ -409,8 +433,10 @@ function GkField:write(tm, force)
 	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
 	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.esEnergy:write(string.format("esEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 if self.isElectromagnetic then
 	    self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.emEnergy:write(string.format("emEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 end
 	 
 	 self.ioFrame = self.ioFrame+1
