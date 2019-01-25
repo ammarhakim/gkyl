@@ -133,7 +133,8 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local m1fldIndexer   = m1fld:genIndexer()
    local m1fldItr       = m1fld:get(1)
    local phaseIndexer   = fIn:genIndexer()
-   local fInItr         = fIn:get(1)
+   local fInItrP         = fIn:get(1)
+   local fInItrM         = fIn:get(1)
 
    local m0Star, m1Star, m2Star
    local m2fld, m2fldIndexer, m2fldItr
@@ -179,12 +180,8 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
       -- Compute the corrections to u and vtSq due to 
       -- finite velocity grid to ensure conservation.
-      for k = 1, self._numBasisC do
-         cEnergyB[k] = 0 
-         for vd = 1, self._uDim do
-            cMomB[(vd-1)*self._numBasisC + k] = 0
-         end
-      end
+      ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, cEnergyB:data())
+      ffiC.gkylCartFieldAssignAll(0, self._uDim*self._numBasisC, 0.0, cMomB:data())
 
       -- Only when the contributions to m0Star from the first direction
       -- are collected, do we collect contributions to m1Star and m2Star.
@@ -228,11 +225,10 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
                   idxP[self._cDim+vDir] = i 
 
                   self._phaseGrid:setIndex(idxP)
-                  for d = 1, self._pDim do dxP[d] = self._phaseGrid:dx(d) end
+                  self._phaseGrid:getDx(dxP)
                   self._phaseGrid:cellCenter(xcP)
 
-                  fIn:fill(phaseIndexer(idxP), fInItr)
-                  for k = 1, self._numBasisP do fInP[k] = fInItr[k] end
+                  fIn:fill(phaseIndexer(idxP), fInItrP)
 
                   local vBound = 0.0
                   if isLo then
@@ -243,12 +239,12 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
                   if (self._isGkLBO) then
                      if (firstDir) then
-                       self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInP:data(), cMomB:data())
+                       self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInItrP:data(), cMomB:data())
                      end
-                     self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                     self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                   else
-                     self._uCorrection(isLo, vBound, dxP:data(), fInP:data(), cMomB:data())
-                     self._vtSqCorrection(isLo, vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                     self._uCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cMomB:data())
+                     self._vtSqCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                   end
 
                   isLo = not isLo
@@ -306,26 +302,23 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
                   self._phaseGrid:getDx(dxP)
 	          self._phaseGrid:cellCenter(xcP)
 
-                  fIn:fill(phaseIndexer(idxM), fInItr)
-                  ffiC.gkylCopyToField(fInM:data(), fInItr:data(), self._numBasisP, 0)
-
-                  fIn:fill(phaseIndexer(idxP), fInItr)
-                  ffiC.gkylCopyToField(fInP:data(), fInItr:data(), self._numBasisP, 0)
+                  fIn:fill(phaseIndexer(idxM), fInItrM)
+                  fIn:fill(phaseIndexer(idxP), fInItrP)
 
                   if i>dirLoIdx and i<dirUpIdx then  
                      if (self._isGkLBO) then
                         if (firstDir) then
-                           self._StarM0Calc(self._intFac[1], xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInM:data(), fInP:data(), m0Star:data())
+                           self._StarM0Calc(self._intFac[1], xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInItrM:data(), fInItrP:data(), m0Star:data())
                         end
                      else
-                        self._StarM0Calc(xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInM:data(), fInP:data(), m0Star:data())
+                        self._StarM0Calc(xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInItrM:data(), fInItrP:data(), m0Star:data())
                      end
                   end
              	  if firstDir and i<dirUpIdx then
                      if self._isGkLBO then
-                        self._StarM1iM2Calc(xcP:data(), dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), fInP:data(), m1Star:data(), m2Star:data())
+                        self._StarM1iM2Calc(xcP:data(), dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), fInItrP:data(), m1Star:data(), m2Star:data())
                      else
-                        self._StarM1iM2Calc(xcP:data(), dxP:data(), fInP:data(), m1Star:data(), m2Star:data())
+                        self._StarM1iM2Calc(xcP:data(), dxP:data(), fInItrP:data(), m1Star:data(), m2Star:data())
                      end
                   end
 
@@ -339,12 +332,12 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
                      end
                      if (self._isGkLBO) then
                         if (firstDir) then
-                           self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInP:data(), cMomB:data())
+                           self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInItrP:data(), cMomB:data())
                         end
-                        self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                        self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                      else
-                        self._uCorrection(isLo, vBound, dxP:data(), fInP:data(), cMomB:data())
-                        self._vtSqCorrection(isLo, vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                        self._uCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cMomB:data())
+                        self._vtSqCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                      end
 
                      isLo = not isLo
