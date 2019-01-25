@@ -9,6 +9,7 @@
 assert(GKYL_HAVE_MPI, "Gkyl was not built with MPI!")
 
 local ffi  = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
@@ -129,57 +130,57 @@ ffi.cdef [[
 ]]
 
 -- Predefined objects and constants
-_M.COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
-_M.COMM_NULL = ffi.C.get_MPI_COMM_NULL()
-_M.COMM_SELF = ffi.C.get_MPI_COMM_SELF()
-_M.REQUEST_NULL = ffi.C.get_MPI_REQUEST_NULL()
-_M.STATUS_IGNORE = ffi.C.getPtr_MPI_STATUS_IGNORE()
+_M.COMM_WORLD = ffiC.get_MPI_COMM_WORLD()
+_M.COMM_NULL = ffiC.get_MPI_COMM_NULL()
+_M.COMM_SELF = ffiC.get_MPI_COMM_SELF()
+_M.REQUEST_NULL = ffiC.get_MPI_REQUEST_NULL()
+_M.STATUS_IGNORE = ffiC.getPtr_MPI_STATUS_IGNORE()
 
-_M.INFO_NULL = ffi.C.get_MPI_INFO_NULL()
-_M.COMM_TYPE_SHARED = ffi.C.get_MPI_COMM_TYPE_SHARED()
-_M.UNDEFINED = ffi.C.get_MPI_UNDEFINED()
+_M.INFO_NULL = ffiC.get_MPI_INFO_NULL()
+_M.COMM_TYPE_SHARED = ffiC.get_MPI_COMM_TYPE_SHARED()
+_M.UNDEFINED = ffiC.get_MPI_UNDEFINED()
 
 -- Object sizes
-_M.SIZEOF_STATUS = ffi.C.sizeof_MPI_Status()
+_M.SIZEOF_STATUS = ffiC.sizeof_MPI_Status()
 
 -- Datatypes
-_M.CHAR = ffi.C.get_MPI_CHAR()
-_M.BYTE = ffi.C.get_MPI_BYTE()
-_M.SHORT = ffi.C.get_MPI_SHORT()
-_M.INT = ffi.C.get_MPI_INT()
-_M.LONG = ffi.C.get_MPI_LONG()
-_M.FLOAT = ffi.C.get_MPI_FLOAT()
-_M.DOUBLE = ffi.C.get_MPI_DOUBLE()
-_M.UNSIGNED_CHAR = ffi.C.get_MPI_UNSIGNED_CHAR()
-_M.UNSIGNED_SHORT = ffi.C.get_MPI_UNSIGNED_SHORT()
-_M.UNSIGNED = ffi.C.get_MPI_UNSIGNED()
-_M.UNSIGNED_LONG = ffi.C.get_MPI_UNSIGNED_LONG()
-_M.LONG_DOUBLE = ffi.C.get_MPI_LONG_DOUBLE()
-_M.LONG_LONG_INT = ffi.C.get_MPI_LONG_LONG_INT()
-_M.FLOAT_INT = ffi.C.get_MPI_FLOAT_INT()
-_M.LONG_INT = ffi.C.get_MPI_LONG_INT()
-_M.DOUBLE_INT = ffi.C.get_MPI_DOUBLE_INT()
-_M.SHORT_INT = ffi.C.get_MPI_SHORT_INT()
-_M.TWOINT = ffi.C.get_MPI_2INT()
-_M.LONG_DOUBLE_INT = ffi.C.get_MPI_LONG_DOUBLE_INT()
-_M.PACKED = ffi.C.get_MPI_PACKED()
+_M.CHAR = ffiC.get_MPI_CHAR()
+_M.BYTE = ffiC.get_MPI_BYTE()
+_M.SHORT = ffiC.get_MPI_SHORT()
+_M.INT = ffiC.get_MPI_INT()
+_M.LONG = ffiC.get_MPI_LONG()
+_M.FLOAT = ffiC.get_MPI_FLOAT()
+_M.DOUBLE = ffiC.get_MPI_DOUBLE()
+_M.UNSIGNED_CHAR = ffiC.get_MPI_UNSIGNED_CHAR()
+_M.UNSIGNED_SHORT = ffiC.get_MPI_UNSIGNED_SHORT()
+_M.UNSIGNED = ffiC.get_MPI_UNSIGNED()
+_M.UNSIGNED_LONG = ffiC.get_MPI_UNSIGNED_LONG()
+_M.LONG_DOUBLE = ffiC.get_MPI_LONG_DOUBLE()
+_M.LONG_LONG_INT = ffiC.get_MPI_LONG_LONG_INT()
+_M.FLOAT_INT = ffiC.get_MPI_FLOAT_INT()
+_M.LONG_INT = ffiC.get_MPI_LONG_INT()
+_M.DOUBLE_INT = ffiC.get_MPI_DOUBLE_INT()
+_M.SHORT_INT = ffiC.get_MPI_SHORT_INT()
+_M.TWOINT = ffiC.get_MPI_2INT()
+_M.LONG_DOUBLE_INT = ffiC.get_MPI_LONG_DOUBLE_INT()
+_M.PACKED = ffiC.get_MPI_PACKED()
 
 -- Operators
-_M.MAX = ffi.C.get_MPI_MAX()
-_M.MIN = ffi.C.get_MPI_MIN()
-_M.SUM = ffi.C.get_MPI_SUM()
-_M.PROD = ffi.C.get_MPI_PROD()
-_M.LAND = ffi.C.get_MPI_LAND()
-_M.BAND = ffi.C.get_MPI_BAND()
-_M.LOR = ffi.C.get_MPI_LOR()
-_M.BOR = ffi.C.get_MPI_BOR()
-_M.LXOR = ffi.C.get_MPI_LXOR()
-_M.BXOR = ffi.C.get_MPI_BXOR()
-_M.MINLOC = ffi.C.get_MPI_MINLOC()
-_M.MAXLOC = ffi.C.get_MPI_MAXLOC()
+_M.MAX = ffiC.get_MPI_MAX()
+_M.MIN = ffiC.get_MPI_MIN()
+_M.SUM = ffiC.get_MPI_SUM()
+_M.PROD = ffiC.get_MPI_PROD()
+_M.LAND = ffiC.get_MPI_LAND()
+_M.BAND = ffiC.get_MPI_BAND()
+_M.LOR = ffiC.get_MPI_LOR()
+_M.BOR = ffiC.get_MPI_BOR()
+_M.LXOR = ffiC.get_MPI_LXOR()
+_M.BXOR = ffiC.get_MPI_BXOR()
+_M.MINLOC = ffiC.get_MPI_MINLOC()
+_M.MAXLOC = ffiC.get_MPI_MAXLOC()
 
 -- Error codes
-_M.SUCCESS = ffi.C.get_MPI_SUCCESS()
+_M.SUCCESS = ffiC.get_MPI_SUCCESS()
 
 -- some types for use in MPI functions
 local int_1 = typeof("int[1]")
@@ -236,148 +237,148 @@ function _M.Group()  return new_MPI_Group() end
 -- MPI_Comm_rank
 function _M.Comm_rank(comm)
    local r = int_1()
-   local err = ffi.C.MPI_Comm_rank(getObj(comm, "MPI_Comm[1]"), r)
+   local err = ffiC.MPI_Comm_rank(getObj(comm, "MPI_Comm[1]"), r)
    return r[0]
 end
 -- MPI_Comm_size
 function _M.Comm_size(comm)
    local r = int_1()
-   local err = ffi.C.MPI_Comm_size(getObj(comm, "MPI_Comm[1]"), r)
+   local err = ffiC.MPI_Comm_size(getObj(comm, "MPI_Comm[1]"), r)
    return r[0]
 end
 -- MPI_Comm_dup
 function _M.Comm_dup(comm)
    local c = new_MPI_Comm()
-   local err = ffi.C.MPI_Comm_dup(getObj(comm, "MPI_Comm[1]"), c)
+   local err = ffiC.MPI_Comm_dup(getObj(comm, "MPI_Comm[1]"), c)
    return c
 end
 -- MPI_Comm_split
 function _M.Comm_split(comm, color, key)
    local c = new_MPI_Comm()
-   local err = ffi.C.MPI_Comm_split(getObj(comm, "MPI_Comm[1]"), color, key, c)
+   local err = ffiC.MPI_Comm_split(getObj(comm, "MPI_Comm[1]"), color, key, c)
    return c
 end
 -- MPI_Comm_split_type
 function _M.Comm_split_type(comm, split_type, key, info)
    local c = new_MPI_Comm()
-   local err = ffi.C.MPI_Comm_split_type(getObj(comm, "MPI_Comm[1]"), split_type, key, info, c)
+   local err = ffiC.MPI_Comm_split_type(getObj(comm, "MPI_Comm[1]"), split_type, key, info, c)
    return c
 end
 -- MPI_Win_allocate_shared
 function _M.Win_allocate_shared(sz, disp_unit, info, comm)
    local w = new_MPI_Win()
    local baseptr = voidp()
-   local err = ffi.C.MPI_Win_allocate_shared(sz, disp_unit, info, getObj(comm, "MPI_Comm[1]"), baseptr, w)
+   local err = ffiC.MPI_Win_allocate_shared(sz, disp_unit, info, getObj(comm, "MPI_Comm[1]"), baseptr, w)
    return baseptr[0], w
 end
 -- MPI_Win_shared_query
 function _M.Win_shared_query(win, rank)
    local sz, du = uint_1(), int_1()
    local baseptr = voidp()
-   local err = ffi.C.MPI_Win_shared_query(getObj(win, "MPI_Win[1]"), rank, sz, du, baseptr)
+   local err = ffiC.MPI_Win_shared_query(getObj(win, "MPI_Win[1]"), rank, sz, du, baseptr)
    return sz[0], du[0], baseptr[0]
 end
 -- MPI_Win_lock_all
 function _M.Win_lock_all(assert, win)
-   local err = ffi.C.MPI_Win_lock_all(assert, getObj(win, "MPI_Win[1]"))
+   local err = ffiC.MPI_Win_lock_all(assert, getObj(win, "MPI_Win[1]"))
 end
 -- MPI_Win_unlock_all
 function _M.Win_unlock_all(win)
-   local err = ffi.C.MPI_Win_unlock_all(getObj(win, "MPI_Win[1]"))
+   local err = ffiC.MPI_Win_unlock_all(getObj(win, "MPI_Win[1]"))
 end
 -- MPI_Win_free
 function _M.Win_free(win)
-   local err = ffi.C.MPI_Win_free(win)
+   local err = ffiC.MPI_Win_free(win)
 end
 
 -- MPI_Get_count
 function _M.Get_count(status, datatype)
    local r = int_1()
-   local err = ffi.C.MPI_Get_count(status.mpiStatus, datatype, r)
+   local err = ffiC.MPI_Get_count(status.mpiStatus, datatype, r)
    return r[0]
 end
 -- MPI_Allreduce
 function _M.Allreduce(sendbuf, recvbuf, count, datatype, op, comm)
-   local err = ffi.C.MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getObj(comm, "MPI_Comm[1]"))
+   local err = ffiC.MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Bcast
 function _M.Bcast(buffer, count, datatype, root, comm)
-   local err = ffi.C.MPI_Bcast(buffer, count, datatype, root, getObj(comm, "MPI_Comm[1]"))
+   local err = ffiC.MPI_Bcast(buffer, count, datatype, root, getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Send
 function _M.Send(buf, count, datatype, dest, tag, comm)
-   local err = ffi.C.MPI_Send(buf, count, datatype, dest, tag, getObj(comm, "MPI_Comm[1]"))
+   local err = ffiC.MPI_Send(buf, count, datatype, dest, tag, getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Recv
 function _M.Recv(buf, count, datatype, source, tag, comm, status)
    local st = status and status.mpiStatus or _M.STATUS_IGNORE
-   local err = ffi.C.MPI_Recv(buf, count, datatype, source, tag, getObj(comm, "MPI_Comm[1]"), st)
+   local err = ffiC.MPI_Recv(buf, count, datatype, source, tag, getObj(comm, "MPI_Comm[1]"), st)
    -- store MPI_Status
    if status ~= nil then
       local gks = new("int[3]")
-      ffi.C.GkMPI_fillStatus(st, gks)
+      ffiC.GkMPI_fillStatus(st, gks)
       status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
    end
 end
 -- MPI_Irecv
 function _M.Irecv(buf, count, datatype, source, tag, comm)
    local req = new_MPI_Request()
-   local err = ffi.C.MPI_Irecv(
+   local err = ffiC.MPI_Irecv(
       buf, count, datatype, source, tag, getObj(comm, "MPI_Comm[1]"), req)
    return req
 end
 -- MPI_Wait
 function _M.Wait(request, status)
    local st = status and status.mpiStatus or _M.STATUS_IGNORE
-   local err = ffi.C.MPI_Wait(request, st)
+   local err = ffiC.MPI_Wait(request, st)
    -- store MPI_Status
    if status ~= nil then
       local gks = new("int[3]")
-      ffi.C.GkMPI_fillStatus(st, gks)
+      ffiC.GkMPI_fillStatus(st, gks)
       status.SOURCE, status.TAG, status.ERROR = gks[0], gks[1], gks[2]
    end
 end
 
 -- MPI_Barrier
 function _M.Barrier(comm)
-   local err = ffi.C.MPI_Barrier(getObj(comm, "MPI_Comm[1]"))
+   local err = ffiC.MPI_Barrier(getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Abort
 function _M.Abort(comm, errCode)
-   local err = ffi.C.MPI_Abort(getObj(comm, "MPI_Comm[1]"), errCode)
+   local err = ffiC.MPI_Abort(getObj(comm, "MPI_Comm[1]"), errCode)
 end
 
 -- MPI_Comm_group
 function _M.Comm_group(comm)
    local grp = new_MPI_Group()
-   local err = ffi.C.MPI_Comm_group(getObj(comm, "MPI_Comm[1]"), grp)
+   local err = ffiC.MPI_Comm_group(getObj(comm, "MPI_Comm[1]"), grp)
    return grp
 end
 function _M.Group_rank(group)
    local r = int_1()
-   local err = ffi.C.MPI_Group_rank(getObj(group, "MPI_Group[1]"), r)
+   local err = ffiC.MPI_Group_rank(getObj(group, "MPI_Group[1]"), r)
    return r[0]
 end
 function _M.Group_size(group)
    local r = int_1()
-   local err = ffi.C.MPI_Group_size(getObj(group, "MPI_Group[1]"), r)
+   local err = ffiC.MPI_Group_size(getObj(group, "MPI_Group[1]"), r)
    return r[0]
 end
 function _M.Group_incl(group, n, ranks)
    local newgroup = new_MPI_Group()
-   local err = ffi.C.MPI_Group_incl(getObj(group, "MPI_Group[1]"), n, ranks, newgroup)
+   local err = ffiC.MPI_Group_incl(getObj(group, "MPI_Group[1]"), n, ranks, newgroup)
    return newgroup
 end
 function _M.Comm_create(comm, group)
    local c = new_MPI_Comm()
-   local err = ffi.C.MPI_Comm_create(
+   local err = ffiC.MPI_Comm_create(
       getObj(comm, "MPI_Comm[1]"), getObj(group, "MPI_Group[1]"), c)
    return c
 end
 function _M.Group_translate_ranks(group1, ranks1, group2)
    local n = #ranks1
    local ranks2 = Lin.IntVec(n)
-   local err = ffi.C.MPI_Group_translate_ranks(
+   local err = ffiC.MPI_Group_translate_ranks(
       getObj(group1, "MPI_Group[1]"), n, ranks1:data(), getObj(group2, "MPI_Group[1]"), ranks2:data())
    return ranks2
 end

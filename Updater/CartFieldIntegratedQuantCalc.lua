@@ -15,6 +15,7 @@ local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
+local ffiC = ffi.C
 
 ffi.cdef [[
     void gkylCartFieldIntQuantV(
@@ -45,7 +46,7 @@ function CartFieldIntegratedQuantCalc:init(tbl)
 
    assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV" or tbl.quantity == "GradPerpV2",
 	  "CartFieldIntegratedQuantCalc: quantity must be one of V, V2, AbsV, GradPerpV2")
-   self.updateFunc = ffi.C["gkylCartFieldIntQuant"..tbl.quantity]
+   self.updateFunc = ffiC["gkylCartFieldIntQuant"..tbl.quantity]
 
    if tbl.quantity == "GradPerpV2" then assert(self.numComponents==1 and self.basis:polyOrder()==1, 
           "CartFieldIntegratedQuantCalc: GradPerpV2 currently only implemented for p=1 and numComponents=1")

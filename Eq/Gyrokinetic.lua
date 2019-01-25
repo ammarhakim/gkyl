@@ -12,6 +12,7 @@ local Proto = require "Lib.Proto"
 local Time = require "Lib.Time"
 local xsys = require "xsys"
 local ffi = require "ffi"
+local ffiC = ffi.C
 
 local Gyrokinetic = Proto(EqBase)
 
@@ -47,7 +48,7 @@ function Gyrokinetic:init(tbl)
    -- for sheath BCs
    if tbl.hasSheathBcs then
       -- create struct containing binOp arrays and allocate
-      self._binOpData = ffi.C.new_binOpData_t(self._confBasis:numBasis(), 1)
+      self._binOpData = ffiC.new_binOpData_t(self._confBasis:numBasis(), 1)
       self._calcSheathDeltaPhi = GyrokineticModDecl.selectSheathDeltaPhi(nm, self._cdim, p)
       self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
    end

@@ -6,6 +6,7 @@
 --------------------------------------------------------------------------------
 
 local ffi  = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
@@ -417,7 +418,7 @@ ffi.cdef [[
 ]]
 -- function to compute quotient and remainder from integer division
 local function div(n, d)
-   local r = ffi.C.div(n, d) -- call std C library
+   local r = ffiC.div(n, d) -- call std C library
    return r.quot, r.rem
 end
 

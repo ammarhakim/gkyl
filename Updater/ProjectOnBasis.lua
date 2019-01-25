@@ -19,6 +19,7 @@ local UpdaterBase = require "Updater.Base"
 
 -- system libraries
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 
 -- Template for function to map computional space -> physical space
@@ -163,7 +164,7 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
       end
 
       qOut:fill(indexer(idx), fItr)
-      ffi.C.projectF(
+      ffiC.projectF(
 	 fItr:data(), self._weights:data(), self._basisAtOrdinates:data(), fv:data(), numVal, numBasis, numOrd)
    end
 

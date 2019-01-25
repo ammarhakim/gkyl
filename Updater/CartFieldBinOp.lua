@@ -18,6 +18,7 @@ local Proto       = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
 local xsys        = require "xsys"
 local ffi         = require "ffi"
+local ffiC = ffi.C
 
 -- function to check if moment name is correct
 local function isOpNameGood(nm)
@@ -77,9 +78,9 @@ function CartFieldBinOp:init(tbl)
 
    -- create struct containing allocated binOp arrays
    if fieldBasis then 
-      self._binOpData = ffi.C.new_binOpData_t(fieldBasis:numBasis(), self._numBasis) 
+      self._binOpData = ffiC.new_binOpData_t(fieldBasis:numBasis(), self._numBasis) 
    else 
-      self._binOpData = ffi.C.new_binOpData_t(self._numBasis, 1) 
+      self._binOpData = ffiC.new_binOpData_t(self._numBasis, 1) 
    end
 end
 
