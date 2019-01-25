@@ -7,6 +7,7 @@
 
 -- system libraries
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 local new, copy, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, sizeof, typeof, metatype")
@@ -285,7 +286,7 @@ local function Field_meta_ctor(elct)
 	 self:_assign(1.0, fIn)
       end,
       clear = function (self, val)
-	 ffi.C.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
+	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
       end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
@@ -301,7 +302,7 @@ local function Field_meta_ctor(elct)
 	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
 	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
 
-	 ffi.C.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
@@ -311,7 +312,7 @@ local function Field_meta_ctor(elct)
          assert(self:layout() == fld:layout(),
 		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
-	 ffi.C.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
       accumulate = isNumberType and
 	 function (self, c1, fld1, ...)
@@ -339,14 +340,14 @@ local function Field_meta_ctor(elct)
 	 end,
       scale = isNumberType and
 	 function (self, fact)
-	    ffi.C.gkylCartFieldScale(self:_localLower(), self:_localShape(), fact, self._data)
+	    ffiC.gkylCartFieldScale(self:_localLower(), self:_localShape(), fact, self._data)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:scale: Scale only works on numeric fields")
 	 end,      
       abs = isNumberType and
          function (self)
-            ffi.C.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
+            ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:abs: Abs only works on numeric fields")
@@ -442,7 +443,7 @@ local function Field_meta_ctor(elct)
          local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
-            ffi.C.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, c)
+            ffiC.gkylCopyFromField(data:data(), fitr:data(), self._numComponents, c)
             c = c + self._numComponents
 	 end
       end,
@@ -452,7 +453,7 @@ local function Field_meta_ctor(elct)
          local fitr = self:get(1)
 	 for idx in rgn:rowMajorIter() do
 	    self:fill(indexer(idx), fitr)
-            ffi.C.gkylCopyToField(fitr:data(), data:data(), self._numComponents, c)
+            ffiC.gkylCopyToField(fitr:data(), data:data(), self._numComponents, c)
             c = c + self._numComponents
 	 end
       end,

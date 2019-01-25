@@ -172,11 +172,11 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
 	    grid:setIndex(idxm)
-	    for d = 1, ndim do dxm[d] = grid:dx(d) end
+            grid:getDx(dxm)
 	    grid:cellCenter(xcm)
 
 	    grid:setIndex(idxp)
-	    for d = 1, ndim do dxp[d] = grid:dx(d) end
+            grid:getDx(dxp)
 	    grid:cellCenter(xcp)
 
 	    qIn:fill(qInIdxr(idxm), qInM)
