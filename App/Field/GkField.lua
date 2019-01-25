@@ -401,7 +401,7 @@ function GkField:createDiagnostics()
          basis = self.basis,
          quantity = "V2"
       }
-   else
+   elseif self.basis:polyOrder()==1 then -- GradPerpV2 only implemented for p=1 currently
       self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
          onGrid = self.grid,
          basis = self.basis,
@@ -419,11 +419,11 @@ function GkField:write(tm, force)
       end
       local esEnergyFac = .5*self.polarizationWeight
       if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
-      local emEnergyFac = .5/self.mu0
-      if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
-      self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy })
+      if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy }) end
       if self.isElectromagnetic then 
-        self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy })
+        local emEnergyFac = .5/self.mu0
+        if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+        if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy }) end
       end
       
       if self.ioTrigger(tm) or force then
