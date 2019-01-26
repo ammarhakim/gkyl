@@ -55,8 +55,8 @@ function test_1(scheme, dt)
    
    local srcUpdater = Updater.TenMomentRelax {
       onGrid = grid,
-      charge = -1,
-      mass = me,
+      charge = {-1},
+      mass = {me},
       scheme = scheme,
       k = 1.,
    }
