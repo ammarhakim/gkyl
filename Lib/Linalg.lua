@@ -51,6 +51,13 @@ local function new_vec_ct(elct)
       copyInto = function (self, vecOut)
 	 vec_memcpy(vecOut, self)
       end,
+      setValues = function (self, vals)
+	 local n = math.min(#vals, #self)
+	 for i = 1, n do
+	    self._p[i-1] = vals[i]
+	 end
+	 return self
+      end,
    }
    local vec_mt = {
       __new = function(ct, n, data)
