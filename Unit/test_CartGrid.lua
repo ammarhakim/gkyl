@@ -53,7 +53,7 @@ function test_1()
    local xc = Lin.Vec(2)
    for i = localRange:lower(1), localRange:upper(1) do
       for j = localRange:lower(2), localRange:upper(2) do
-	 grid:setIndex({i, j})
+	 grid:setIndex( idx:setValues {i, j} )
 	 grid:cellCenter(xc)
 
 	 assert_equal(xc[1], lox+(i-0.5)*dx, "Testing cell-center coordinate")
@@ -91,10 +91,11 @@ function test_2()
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
 
+   local idx = Lin.IntVec(grid:ndim())
    local xc = Lin.Vec(2)
    for i = localRange:lower(1), localRange:upper(1) do
       for j = localRange:lower(2), localRange:upper(2) do
-	 grid:setIndex({i, j})
+	 grid:setIndex( idx:setValues {i, j} )
 	 grid:cellCenter(xc)
 
 	 assert_equal(xc[1], lox+(i-0.5)*dx, "Testing cell-center coordinate")
@@ -145,11 +146,12 @@ function test_3()
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)
 
+   local idx = Lin.IntVec(grid:ndim())
    local xc = Lin.Vec(3)
    for i = localRange:lower(1), localRange:upper(1) do
       for j = localRange:lower(2), localRange:upper(2) do
 	 for k = localRange:lower(3), localRange:upper(3) do
-	    grid:setIndex({i, j, k})
+	    grid:setIndex( idx:setValues {i, j, k} )
 	    grid:cellCenter(xc)
 	    
 	    assert_equal(xc[1], lox+(i-0.5)*dx, "Testing cell-center coordinate")
@@ -215,12 +217,13 @@ function test_5a()
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)
 
+   local idx = Lin.IntVec(grid:ndim())
    local localRange = grid:localRange()
    local xc = Lin.Vec(3)
    for i = localRange:lower(1), localRange:upper(1) do
       for j = localRange:lower(2), localRange:upper(2) do
 	 for k = localRange:lower(3), localRange:upper(3) do
-	    grid:setIndex({i, j, k})
+	    grid:setIndex( idx:setValues {i, j, k} )
 	    grid:cellCenter(xc)
 
 	    assert_equal(lox+(i-0.5)*dx, xc[1], "Testing cell-center x coordinate")
@@ -274,13 +277,14 @@ function test_5()
    local lox, dx = grid:lower(1), grid:dx(1)
    local loy, dy = grid:lower(2), grid:dx(2)
    local loz, dz = grid:lower(3), grid:dx(3)
-   
+
+   local idx = Lin.IntVec(grid:ndim())
    local localRange = grid:localRange()
    local xc = Lin.Vec(3)
    for i = localRange:lower(1), localRange:upper(1) do
       for j = localRange:lower(2), localRange:upper(2) do
 	 for k = localRange:lower(3), localRange:upper(3) do
-	    grid:setIndex({i, j, k})
+	    grid:setIndex( idx:setValues {i, j, k} )
 	    grid:cellCenter(xc)
 
 	    assert_equal(lox+(i-0.5)*dx, xc[1], "Testing cell-center x coordinate")
@@ -340,6 +344,8 @@ function test_7()
       }
    }
 
+   local idx = Lin.IntVec(grid:ndim())
+   
    assert_equal(1, grid:ndim(), "Checking NDIM")
 
    assert_equal(3, grid:numCells(1), "Checking numCells")
@@ -347,15 +353,15 @@ function test_7()
    assert_equal(0.0, grid:lower(1), "Checking lower")
    assert_equal(1.0, grid:upper(1), "Checking upper")
 
-   grid:setIndex({1})
+   grid:setIndex( idx:setValues {1} )
    assert_equal(1/9, grid:dx(1), "Checking dx")
    assert_equal(1/9, grid:cellVolume(), "Checking volume")
 
-   grid:setIndex({2})
+   grid:setIndex( idx:setValues {2} )
    assert_equal(1/3, grid:dx(1), "Checking dx")
    assert_equal(1/3, grid:cellVolume(), "Checking volume")
 
-   grid:setIndex({3})
+   grid:setIndex(idx:setValues {3} )
    assert_equal(5/9, grid:dx(1), "Checking dx")
    assert_equal(5/9, grid:cellVolume(), "Checking volume")
 end
@@ -370,6 +376,8 @@ function test_8()
    xn[4] = 1*1
    -- done
 
+   local idx = Lin.IntVec(grid:ndim())
+
    assert_equal(1, grid:ndim(), "Checking NDIM")
 
    assert_equal(3, grid:numCells(1), "Checking numCells")   
@@ -377,15 +385,15 @@ function test_8()
    assert_equal(0.0, grid:lower(1), "Checking lower")
    assert_equal(1.0, grid:upper(1), "Checking upper")
 
-   grid:setIndex({1})
+   grid:setIndex( idx:setValues {1} )
    assert_equal(1/9, grid:dx(1), "Checking dx")
    assert_equal(1/9, grid:cellVolume(), "Checking volume")
 
-   grid:setIndex({2})
+   grid:setIndex( idx:setValues {2} )
    assert_equal(1/3, grid:dx(1), "Checking dx")
    assert_equal(1/3, grid:cellVolume(), "Checking volume")
 
-   grid:setIndex({3})
+   grid:setIndex( idx:setValues {3} )
    assert_equal(5/9, grid:dx(1), "Checking dx")
    assert_equal(5/9, grid:cellVolume(), "Checking volume")   
 end

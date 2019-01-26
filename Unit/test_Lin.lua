@@ -37,6 +37,27 @@ function test_1()
    for i = 1, #vcopy1 do
       assert_equal((i+0.5)*0.1, vcopy1[i], "Checking vector copy")
    end
+
+   -- set values from a table
+   local vr = v:setValues {1.0, 2.0, 3.0} 
+   for i = 1, #v do
+      assert_equal(v[i], i, "Checking if table setting worked")
+   end
+
+   for i = 1, #v do
+      assert_equal(vr[i], v[i], "Checking if table setting worked")
+   end
+
+   v:setValues {1.0, 2.0, 3.0, 4.0} 
+   for i = 1, #v do
+      assert_equal(v[i], i, "Checking if table setting worked")
+   end
+
+   v:setValues {10.0}
+   assert_equal(v[1], 10.0, "Checking if table setting worked")
+   for i = 2, #v do
+      assert_equal(v[i], i, "Checking if table setting worked")
+   end   
 end
 
 function test_2()
