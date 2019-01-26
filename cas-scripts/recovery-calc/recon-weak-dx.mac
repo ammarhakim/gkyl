@@ -6,7 +6,7 @@ eta(xc,dx,b) := subst(z=x,
   subst(x=(z-xc)/(dx/2), b))$
 
 /* Reconstruction across two cells of size dx each */
-bCC : basisC[2]$
+bCC : basisC[1]$
 
 pL : eta(-dx/2,dx,bCC)$
 pR : eta(dx/2,dx,bCC)$
@@ -96,7 +96,7 @@ calcOrder(dx, errorDx) := float(makelist(
   log(errorDx[i]/errorDx[i+1])/log(dx[i]/dx[i+1]),
   i, 1, length(dx)-1))$
 
-g : dsin(x-1/2,10) + dsin(2*x,10)$
+g : dsin(x-1/2,10)$
 
 /* Make list of errors */
 dxVal : [2, 1, 1/2, 1/4, 1/8]$
