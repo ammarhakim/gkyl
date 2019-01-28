@@ -725,7 +725,7 @@ end
 
 function GkField:energyCalcTime()
    local t = self.int2Calc.totalTime
-   if self.energyCalc then t = t + self.energyCalcTime end
+   if self.energyCalc then t = t + self.energyCalc.totalTime end
    return t
 end
 
