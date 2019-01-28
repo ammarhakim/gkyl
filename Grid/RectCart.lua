@@ -141,11 +141,23 @@ function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
 function RectCart:cuts(dir) return self._cuts[dir] end
 function RectCart:setIndex(idxIn)
-   idxIn:copyInto(self._currIdx)
+   if type(idxIn) == "cdata" then
+     idxIn:copyInto(self._currIdx)
+   else 
+     for d = 1, self._ndim do
+        self._currIdx[d] = idxIn[d]
+     end
+   end
 end
 function RectCart:dx(dir) return self._dx[dir] end
 function RectCart:getDx(dxOut) 
-   self._dx:copyInto(dxOut)
+   if type(dxOut) == "cdata" then
+     self._dx:copyInto(dxOut)
+   else 
+     for d = 1, self._ndim do
+        dxOut[d] = self._dx[d]
+     end
+   end
 end
 function RectCart:cellCenterInDir(d)
    return self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
