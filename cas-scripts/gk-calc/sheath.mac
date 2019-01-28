@@ -12,6 +12,7 @@ load(modNm),
 for p : 1 thru pmax do (
   bP : subst(gkvsub, basisP[p]),
   bC : basisC[p],
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
 
 /* function to compute surface-average deltaPhi */
   funcNm : sconcat("calcSheathDeltaPhi", cdim, "x", basisFun),
