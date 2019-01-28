@@ -30,7 +30,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M0_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -51,7 +51,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bP_dvpar : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
 
   printf(fh, "void ~a_M0_step1_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -71,7 +71,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bP_dvpar : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([vx^2=1/3,vx=0],bP)))*bP),
   bC : basisC[p],
 
@@ -92,7 +92,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M1_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -121,7 +121,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M1proj_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -159,7 +159,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M2par_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -192,7 +192,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M2perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -228,7 +228,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M2_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -275,7 +275,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M3par_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -305,7 +305,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_M3perp_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out) ~%{ ~%", funcNm, p),
@@ -333,7 +333,7 @@ modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
   bP : basisP[p],
-  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
+  if p=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
 
   printf(fh, "void ~a_ThreeMoments_P~a(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *outM0, double *outM1, double *outM2) ~%{ ~%", funcNm, p),
