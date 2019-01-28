@@ -30,6 +30,10 @@ GkSpecies.bcSheath = SP_BC_SHEATH -- specular reflection
 GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX -- zero flux
 GkSpecies.bcCopy = SP_BC_COPY -- copy stuff
 
+function GkSpecies:type()
+  return "GkSpecies"
+end
+
 function GkSpecies:alloc(nRkDup)
    -- allocate distribution function
    GkSpecies.super.alloc(self, nRkDup)
