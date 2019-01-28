@@ -29,9 +29,9 @@ local Updater = require "Updater"
 local ffi = require "ffi"
 
 -- function to create basis functions
-local function createBasis(nm, ndim, polyOrder, inclV2)
+local function createBasis(nm, ndim, polyOrder, inclZ2InDirs)
    if nm == "serendipity" then
-      return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder, inclV2 = inclV2 }
+      return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder, inclZ2InDirs = inclZ2InDirs }
    elseif nm == "maximal-order" then
       return Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
    elseif nm == "tensor" then
@@ -371,13 +371,12 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
 end
 
 function KineticSpecies:createBasis(nm, polyOrder)
-   local inclV2 = false
-   if polyOrder == 1 and self:type()=="GkSpecies" then inclV2 = true end
-   self.basis = createBasis(nm, self.ndim, polyOrder, inclV2)
+   local inclZ2InDirs = {}
+   if polyOrder == 1 and self:type()=="GkSpecies" then inclZ2InDirs = {self.cdim+1} end
+   self.basis = createBasis(nm, self.ndim, polyOrder, inclZ2InDirs)
    for _, c in pairs(self.collisions) do
       c:setPhaseBasis(self.basis)
    end
-   print(self.name, self.basis:numBasis())
 end
 
 function KineticSpecies:allocDistf()
