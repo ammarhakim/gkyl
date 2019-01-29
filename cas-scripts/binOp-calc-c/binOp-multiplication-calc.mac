@@ -64,13 +64,14 @@ calcBinOpMultiplyS(fh, funcNm, cdim, basisFun, pMax) := block([],
   )
 )$
 
-calcBinOpMultiplyD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcBinOpMultiplyD(fh, funcNm, cdim, vdim, basisFun, pMax, includeVpar2) := block([],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
   for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     bP : basisP[polyOrder],
+    if polyOrder=1 and vdim>0 and includeVpar2 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
     N  : length(bP),
   
     /* Function declaration with input/output variables. */

@@ -41,6 +41,7 @@ for bInd : 1 thru length(bName) do (
     for vi : ci thru 3 do (
       for pi : 1 thru polyOrderMax do (
         printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+        if pi=1 then printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~aInclVx2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
         printf(fh, "~%") 
       )
     ),
@@ -51,6 +52,7 @@ for bInd : 1 thru length(bName) do (
     for vi : ci thru 3 do (
       for pi : 1 thru polyOrderMax do (
         printf(fh, "void CartFieldBinOpDivide~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+        if pi=1 then printf(fh, "void CartFieldBinOpDivide~ax~av~a_P~aInclVx2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
         printf(fh, "~%") 
       )
     ),
@@ -61,11 +63,13 @@ for bInd : 1 thru length(bName) do (
   vi : 2,
   for pi : 1 thru polyOrderMax do (
     printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+    if pi=1 then printf(fh, "void CartFieldBinOpMultiply~ax~av~a_P~aInclVx2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
     printf(fh, "~%")
   ),
   
   for pi : 1 thru polyOrderMax do (
     printf(fh, "void CartFieldBinOpDivide~ax~av~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
+    if pi=1 then printf(fh, "void CartFieldBinOpDivide~ax~av~a_P~aInclVx2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, vi, bName[bInd], pi),
     printf(fh, "~%")
   )
 
