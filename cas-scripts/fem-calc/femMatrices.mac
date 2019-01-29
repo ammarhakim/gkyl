@@ -167,6 +167,20 @@ modToNod:(
 return(modToNod)
 )$
 
+calcModToNodPhaseWithNodesAndBasis(nodes, basis, vars) := block([modNm,n,modToNod],
+n : length(nodes),
+modToNod : (
+  for i:1 thru n do (
+    col : subst(nodes[i][1],vars[1],basis),
+    for j:2 thru length(vars) do (
+      col : subst(nodes[i][j],vars[j],col)
+    ),
+    col : columnvector(col),
+    if i = 1 then modToNod:col else modToNod:addcol(modToNod,col)
+  ),modToNod),
+return(modToNod)
+)$
+
 /* calculate nodal-to-modal transformation matrix */
 calcNodToModPerp(cdim, p) := block([],
 kill(varsC, varsP, basisC, basisP),
