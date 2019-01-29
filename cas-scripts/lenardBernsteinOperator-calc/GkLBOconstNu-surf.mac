@@ -155,23 +155,19 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Calculate the drift. */
     if dir = 1 then (
-        dr      : (1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]]-u_e,
-	/* Separate out the (wl-u) part to simplify assignment of Ghat. */
-    	drD     : (1/2)*dxvl[vid1[dir]]*vv,
-    	drBar_c : calcInnerProdList(varsC,1,bC,(wl[vid1[dir]]-u_e)),
-        drBar_e : doExpand1(drBar,bC)
-    )
-    else (
-    	dr      : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],   
-	/* Separate out the 2*wl part to simplify assignment of Ghat. */
-    	drD     : dxvl[vid1[dir]]*vv,
-    	drBar_c : calcInnerProdList(varsC,1,bC,2*wl[vid1[dir]]),
-        drBar_e : doExpand(calcInnerProdList(varsC,1,bC,2*wl[vid1[dir]]), bC)
+      alphaDr : (1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]]-u_e
+    ) else (
+      alphaDr : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]]
     ),
+    /* Expand drag alpha (evaluated at the boundary) in conf basis to
+       simplify assignment of Ghat. */
+    alphaDrag_c : calcInnerProdList(varsC,1,bC,subst(vv=1,alphaDr)),
+    alst        : doMakeExprLst(alphaDrag_c, alphaDrag),
+    alphaDrag_e : doExpandLst(alst,bC),
 
     /* vMuMid is the value returned and from which vMuMidMax is computed. */
     zr     : makelist(varsP[d]=0, d, 1, length(varsP)),
-    vMuMid : float(expand(fullratsimp(subst(zr,dr)))),
+    vMuMid : float(expand(fullratsimp(subst(zr,alphaDr)))),
 
     /* Evaluate the average and jump functions at vv=1. */
     fhat_avg  : subst(vv=1, favg_e),
@@ -179,34 +175,27 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Factor to multiply hsol terms to simplify output */
     if dir = 1 then (
-        alpha_c : calcInnerProdList(varsP,1,bP,vtSq_e),
-       	alst : doMakeExprLst(alpha_c, alpha),
-       	alpha_e : doExpandLst(alst, bP)
-    )
-    else (
-    	alpha_c : calcInnerProdList(varsP,1,bP,m_*BmagInv_e*vtSq_e*subst(vv=1,dr)),
-       	alst : doMakeExprLst(alpha_c, alpha),
-       	alpha_e : doExpandLst(alst, bP)   
+      diffFac_c : calcInnerProdList(varsC,1,bC,vtSq_e),
+      alst      : doMakeExprLst(diffFac_c, vtSq),
+      diffFac_e : doExpandLst(alst, bC)
+    ) else (
+      diffFac_c : calcInnerProdList(varsC,1,bC,m_*BmagInv_e*vtSq_e*subst(vv=1,alphaDr)),
+      alst      : doMakeExprLst(diffFac_c, diffFac),
+      diffFac_e : doExpandLst(alst, bC)
     ),
 
     /* Separate out diffusion part of Ghat to simplify Ghat assignment.
     ** Leave the rdv factor out for later multiplication. */
-    Gdiff_c : fullratsimp(calcInnerProdList(varsP,1,bP,alpha_e*hsol[2])),
-
-    /* We could expand Gdiff with Gdiff_e : doExpand1(Gdiff,bP),
-    ** but that could result in references to elements of Gdiff in Ghat
-    ** which have value zero. Instead do the following: */
-    glst1   : doMakeExprLst(Gdiff_c, Gdiff),
-    Gdiff_e : doExpandLst(glst1, bP),
+    Gdiff_c : fullratsimp(calcInnerProdList(varsP,1,bP,diffFac_e*hsol[2])),
     /* Because f's in hsol are index-1, we need to switch to
     ** 0-indexed for C++. */
     subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
     Gdiff_c : psubst(subList,Gdiff_c),
+    Gdiff_e : doExpand(Gdiff_c, bP),
     
     /* Calculate Ghat projected on the phase basis. */
-    Ghat_eP : (1/2)*(subst(vv=1,drD)*fhat_avg-fhat_jump),
-    Ghat_c  : fullratsimp(calcInnerProdList(varsP,1,bP,Ghat_eP)
-             +calcInnerProdList(varsP,1,bP,(1/2)*(drBar_e*fhat_avg))
+    Ghat_c  : fullratsimp(calcInnerProdList(varsP,1,bP,-(1/2)*fhat_jump)
+             +calcInnerProdList(varsP,1,bP,(1/2)*alphaDrag_e*fhat_avg)
 	     +rdv*calcInnerProdList(varsP,1,bP,Gdiff_e)),
 
     /* Ghat_c (coefficients of Ghat) is what gets written. From here
@@ -215,17 +204,14 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     Ghat_e     : doExpandLst(glst1, bP),
     Ghat_final : subst(vv=1, Ghat_e),
 
-    /* Contribution from diffusive term of flux and second integration by parts. */
-    g : alpha_e*hsol[1],
-	 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
     incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-    incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), g)),
+    incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*hsol[1])),
 
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
-    incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), g)),
+    incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*hsol[1])),
 
     /* Because f's in hsol are index-1, we need to switch to
     ** 0-indexed for C++. */
@@ -262,25 +248,18 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     printf(fh, "~%"),
 
-    if dir = 1 then (
-      /* Compute the wl-u drift part of Ghat separately. */
-      printf(fh, "  double drBar[~a]; ~%", NC),
-      writeCExprs1(drBar,drBar_c),
+    /* Compute the drag part of Ghat separately. */
+    printf(fh, "  double alphaDrag[~a]; ~%", NC),
+    writeCExprs1(alphaDrag,alphaDrag_c),
+    printf(fh, "~%"),
+
+    /* Write out diffusion term factors if vdir=2 (otherwise it is just vtSq). */
+    if dir = 2 then (
+      printf(fh, "  double diffFac[~a]; ~%", NC),
+      clst : makelist(vtSq[i],i,0,NC-1),
+      writeCExprsCollect1c(diffFac, radcan(diffFac_c)),
       printf(fh, "~%")
     ),
-
-    /* Write out alpha */
-    printf(fh, "  double alpha[~a]; ~%", NP),
-    clst : makelist(vtSq[i],i,0,NC-1),
-    writeCExprsCollect1c(alpha, radcan(alpha_c)),
-    printf(fh, "~%"),
-
-    /* Compute the diffusive part of Ghat separately. */
-    printf(fh, "  double Gdiff[~a]; ~%", NP),
-    /* This one yields less compact expressions: writeCExprs1(Gdiff,Gdiff_c), */
-    clst : makelist(vtSq[i],i,0,NC-1),
-    writeCExprsCollect1c(Gdiff, radcan(Gdiff_c)),
-    printf(fh, "~%"),
 
     /* Declare and zero out Ghat. */
     printf(fh, "  double Ghat[~a]; ~%", NP),
@@ -290,7 +269,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "~%"),
 
     /* Populate Ghat. */
-    clst : append([rdv], makelist(drBar[i],i,0,NC-1)),
+    clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
     writeCExprsCollect1(Ghat, Ghat_c, clst),
     printf(fh, "~%"),
 
@@ -298,6 +277,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  double incr1[~a]; ~%", NP),
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
+
     printf(fh, "  double incr2[~a]; ~%", NP),
     clst : append(makelist(vtSq[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
     writeCExprsCollect1c(incr2, radcan(incr_r2)),
@@ -319,14 +299,14 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     signs1 : makelist(1,i,1,NP),
     signs2 : makelist(1,i,1,NP),
     for i : 1 thru NP do (
-        if (incr_r1[i] = 0) then
-          false
-        else
-          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i]),
-        if (incr_r2[i] = 0) then
-          false
-        else
-          signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
+      if (incr_r1[i] = 0) then
+        false
+      else
+        signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i]),
+      if (incr_r2[i] = 0) then
+        false
+      else
+        signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
     ),
     incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, NP),
     incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, NP),
@@ -344,8 +324,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCIncrExprs1(outl, rdv2nuL*incr_s1+rdvSq4nuL*incr_s2), 
     printf(fh, "~%"),
 
-    printf(fh, "  const double vMuMid = ~a; ~%", vMuMid),
-    printf(fh, "  return std::abs(vMuMid); ~%"),
+    printf(fh, "  return std::abs(~a); ~%", vMuMid),
   
     printf(fh, "} ~%")
 ));
@@ -384,27 +363,24 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
 
     /* Factor to multiply boundary surf terms to simplify output */
     if dir = 1 then (
-        alpha_c : calcInnerProdList(varsP,1,bP,vtSq_e),
-       	alst : doMakeExprLst(alpha_c, alpha),
-       	alpha_e : doExpandLst(alst, bP)
-    )
-    else (
-    	alpha_c : calcInnerProdList(varsP,1,bP,m_*BmagInv_e*vtSq_e),
-       	alst : doMakeExprLst(alpha_c, alpha),
-       	alpha_e : doExpandLst(alst, bP)   
+      diffFac_c : calcInnerProdList(varsC,1,bC,vtSq_e),
+      alst      : doMakeExprLst(diffFac_c, vtSq)
+    ) else (
+      diffFac_c : calcInnerProdList(varsC,1,bC,m_*BmagInv_e*vtSq_e),
+      alst      : doMakeExprLst(diffFac_c, diffFac)
     ),
+    diffFac_e : doExpandLst(alst, bC),
     
     /* Contribution from second integration by parts. */
     if dir = 1 then (
-        gl   : alpha_e*fl_e,
-	gr   : alpha_e*fr_e
-    )
-    else (
-    	/* Define drift term. */
-    	dr_l  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
-	gl    : alpha_e*dr_l*fl_e,
-	dr_r  : dxvr[vid1[dir]]*vv + 2*wr[vid1[dir]],
-    	gr    :	alpha_e*dr_r*fr_e
+      gl : diffFac_e*fl_e,
+      gr : diffFac_e*fr_e
+    ) else (
+      /* Define drift term. */
+      dr_l  : dxvl[vid1[dir]]*vv + 2*wl[vid1[dir]],
+      gl    : diffFac_e*dr_l*fl_e,
+      dr_r  : dxvr[vid1[dir]]*vv + 2*wr[vid1[dir]],
+      gr    : diffFac_e*dr_r*fr_e
     ),
 
     /* Increments to the right cell (some dimensional factors missing).
@@ -428,11 +404,13 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
     printf(fh, "  double rdvSq4nuR = 4.0*nu/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
     printf(fh, "~%"),
 
-    /* Write out alpha */
-    printf(fh, "  double alpha[~a]; ~%", NP),
-    clst : makelist(vtSq[i],i,0,NC-1),
-    writeCExprsCollect1c(alpha, radcan(alpha_c)),
-    printf(fh, "~%"),
+    /* Write out factors in diffusion term if dir=2, otherwise it's just vtSq. */
+    if dir = 2 then (
+      printf(fh, "  double diffFac[~a]; ~%", NC),
+      clst : makelist(vtSq[i],i,0,NC-1),
+      writeCExprsCollect1c(diffFac, radcan(diffFac_c)),
+      printf(fh, "~%")
+    ),
 
     /* Write out increments. */
     clst : makelist(vtSq[i],i,0,NC-1), 

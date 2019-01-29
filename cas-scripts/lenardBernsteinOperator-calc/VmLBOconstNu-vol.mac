@@ -8,12 +8,17 @@ fpprec : 24$
    Vlasov equation using two integrations by parts for
    the diffusive term. */
 
-cidx(cdim) := makelist(i,i,0,cdim-1)$
+cidx(cdim)      := makelist(i,i,0,cdim-1)$
 vidx(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
 
-varsV : [vx, vy, vz]$
+cvars    : [x, y, z]$
+varsV    : [vx, vy, vz]$
+rdv2nu   : [rdvx2nu, rdvy2nu, rdvz2nu]$
+rdvSq4nu : [rdvxSq4nu, rdvySq4nu, rdvzSq4nu]$
 
-doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+/* Helper functions for expanding (in basis functions) a quantity that should be sparse.  */
+/* For example, alpha, the phase space flow only depends on a few phase space coordinates. */
+doMakeExprLst(vals, S)  := makelist(if vals[i] # 0 then S[a0+i-1] else 0, i, 1, length(vals))$
 doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
 
 calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
@@ -24,7 +29,6 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Load basis of dimensionality requested. */
     modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
     load(modNm),
-    vid : vidx(cdim,vdim),
 
     /* Polynomial basis and its derivatives. */
     bP : basisP[polyOrder],
@@ -32,86 +36,118 @@ calcVmLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     NP : length(bP),
     NC : length(bC),
 
-    /* Expand distribution function f in phase basis. */
-    f_e    : doExpand1(f, bP),
-    /* Expand flow speed u and thermal speed squared in configuration basis. */
-    u_e    : doExpand1(u, bC),
-    vtSq_e : doExpand1(vtSq, bC),
-
-    /* To allow for multiple components change the cofficient indices in Ae and Be. */
-    u_e : psubst(makelist(u[i]=u[a0+i],i,0,NC-1),u_e),
-
-    /* w-u part of the drag term. */
-    drBar_e : doExpand1(drBar,bC),
-    drBar_e : psubst(makelist(drBar[i]=drBar[a0+i],i,0,NC-1),drBar_e),
-    
-    /* Volume increment. */
-    incr : (
-      incr : 0,
-      for dir : 1 thru vdim do (
-        cv : varsV[dir],
-        incr : incr+(-nu*calcInnerProdList(varsP,cv,diff(bP,cv),f_e)
-	       +rdv2[dir-1]*subst(a0=NC*(dir-1),calcInnerProdList(varsP,drBar_e,diff(bP,cv),f_e)))
-               +rdvSq4[dir-1]*nu*calcInnerProdList(varsP,vtSq_e,diff(bP,cv,2),f_e)
-      ),
-      incr
-    ),
+    /* Specify a point to evaluate alpha at for use in computing CFL */
+    /* Here we choose to evaluate things in the middle of the cell, where
+       coordinates = 0. */
+    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
 
     printf(fh, "double ~aP~a(const double *w, const double *dxv, const double nu, const double *u, const double *vtSq, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // w[~a]:   Cell-center coordinates. ~%", cdim+vdim),
     printf(fh, "  // dxv[~a]: Cell spacing. ~%", cdim+vdim),
     printf(fh, "  // nu:     diffusion coefficient (collisionality). ~%"),
-    printf(fh, "  // u:      bulk velocity. ~%"),
-    printf(fh, "  // vtSq:   thermal speed squared. ~%"),
-    printf(fh, "  // f:      Input distribution function. out: Incremented output ~%"),
+    printf(fh, "  // u:    bulk velocity. ~%"),
+    printf(fh, "  // vtSq: thermal speed squared. ~%"),
+    printf(fh, "  // f:      Input distribution function.~%"),
     printf(fh, "  // out:    Incremented output ~%"),
     cid : cidx(cdim),
-    printf(fh, "  double rdv2[~a]; ~%", vdim),
-    printf(fh, "  double rdvSq4[~a]; ~%", vdim),
+    vid : vidx(cdim,vdim),
+
     for dir : 1 thru vdim do (
-      printf(fh, "  rdv2[~a] = 2.0/dxv[~a]; ~%", dir-1, vid[dir]),
-      printf(fh, "  rdvSq4[~a] = 4.0/(dxv[~a]*dxv[~a]); ~%", dir-1, vid[dir], vid[dir])
+        printf(fh, "  const double rd~a2nu = 2.0*nu/dxv[~a]; ~%", varsV[dir], vid[dir]),
+        printf(fh, "  const double rd~aSq4nu = 4.0*nu/(dxv[~a]*dxv[~a]); ~%", varsV[dir], vid[dir], vid[dir])
     ),
     printf(fh, "~%"),
 
-    /* Compute the nu*(wxl-u) drift part separately. */
-    printf(fh, "  double drBar[~a]; ~%", NC*vdim),
-    /* -nu*(w-u) part of the drag term. */
-    for dir : 1 thru vdim do (
-       drBar_c : subst(a0=NC*(dir-1),calcInnerProdList(varsC,1,bC,-nu*(w[vid[dir]]-u_e))),
-       for i : 1 thru NC do (
-          printf(fh, "  ~a = ~a; ~%", drBar[NC*(dir-1)+i-1], float(expand(drBar_c[i])))
-       )
+    /* Expand distribution function f in phase basis.            */
+    f_e    : doExpand1(f, bP),
+
+    /* Expand flow speed u and thermal speed squared in configuration basis. */
+    u_e    : doExpand1(u, bC),
+    vtSq_e : doExpand1(vtSq, bC),
+
+    /* To allow for multiple components change the cofficient indices in u. */
+    u_e : psubst(makelist(u[i]=u[a0+i],i,0,NC-1),u_e),
+
+    /* alphaDrag = nu*(v-u). */
+    printf(fh, "  double alphaDrag[~a]; ~%", vdim*NP),
+
+    incrDrag : 0,
+    alphaDrag_mid : makelist(0, i, 1, vdim),
+
+    for vdir : 1 thru vdim do (
+
+      /* alphaDrag = rdv2nu*< psi, (v - u) >. */
+      alphaDrag_e : calcInnerProdList(varsP, 1, bP, -(w[vid[vdir]]+0.5*dxv[vid[vdir]]*varsV[vdir])+subst(a0=NC*(vdir-1),u_e)),
+      expr : gcfac(float(expand(radcan(rdv2nu[vdir]*alphaDrag_e)))),
+
+      /* Write out the component of alphaDrag's phase space expansion. */
+      printf(fh, "  // Expand rdv2nu*(~a-u~a) in phase basis.~%",varsV[vdir],cvars[vdir]),
+      for i : 1 thru NP do (
+          if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", alphaDrag[NP*(vdir-1)+i-1], expr[i])
+      ),
+      printf(fh, "~%"),
+
+      /* Zero out components of alpha which are empty. */
+      alphaDrag_NoZero   : doMakeExprLst(alphaDrag_e, alphaDrag),
+      alphaDrag_NoZero_e : doExpandLst(alphaDrag_NoZero, bP),
+
+      /* Evaluate alpha_vdim at zr to approximate max(abs(alpha_vdim))/dv_i. */
+      alphaDrag_mid[vdir] : gcfac(float(expand(subst(zr,0.5*subst(a0=NP*(vdir-1),alphaDrag_NoZero_e))))),
+      /* Volume increment from configuration space. */
+      incrDrag : incrDrag+subst(a0=NP*(vdir-1),calcInnerProdList(varsP, 1, diff(bP,varsV[vdir]), alphaDrag_NoZero_e*f_e))
     ),
+
+    /* facDiff = < psi, nu*vthSq >. */
+    facDiff_c : calcInnerProdList(varsC, 1, bC, vtSq_e),
+
+    if polyOrder>1 then (
+      /* facDiff = vtSq. Only used in increment if polyOrder>1. */
+      printf(fh, "  double facDiff[~a]; ~%", NC),
+      /* Write out the components of facDiff's expansion. */
+      printf(fh, "  // Expand nu*vthSq in phase basis.~%"),
+      expr : gcfac(float(expand(radcan(facDiff_c)))),
+      for i : 1 thru NC do (
+        if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", facDiff[i-1], expr[i])
+      ),
+      printf(fh, "~%"),
+
+      /* Zero out components of alpha which are empty. */
+      facDiff_NoZero : doMakeExprLst(facDiff_c, facDiff)
+    ) else (
+      /* Zero out components of alpha which are empty. */
+      facDiff_NoZero : doMakeExprLst(facDiff_c, vtSq)
+    ),
+
+    facDiff_NoZero_e : doExpandLst(facDiff_NoZero, bC),
+    /* Evaluate facDiff at zr to approximate max(abs(facDiff))/dv_i */
+    polyFact : ((polyOrder+1)^2)/(2*polyOrder+1),
+
+    incrDiff : 0,
+    facDiff_mid : makelist(0, i, 1, vdim),
+
+    for vdir : 1 thru vdim do (
+       facDiff_mid[vdir] : rdvSq4nu[vdir]*subst(a0=0,gcfac(float(expand(subst(zr,polyFact*facDiff_NoZero_e))))),
+
+       /* Volume increment from configuration space. */
+       incrDiff : incrDiff+rdvSq4nu[vdir]*subst(a0=0,calcInnerProdList(varsP, 1, diff(bP,varsV[vdir],2), facDiff_NoZero_e*f_e))
+    ),
+    /* Write out first attempts to simplify the radicals with radcan, e.g.
+       force sqrt(3)*sqrt(5) = sqrt(15). */
+    /* Outscripts loads scifac and uses the aggressive factorization routine "gcfac". */
+    printf(fh, "  // Put together updates due to drag and diffusion terms.~%"),
+    writeCExprsCollect1c(radcan(incrDrag+incrDiff)),
     printf(fh, "~%"),
-  
-    clst : append(makelist(rdv2[i],i,0,vdim-1),makelist(rdvSq4[i],i,0,vdim-1)),
-    writeCIncrExprsCollect1(out, incr, clst),
-    printf(fh, "~%"),
 
-    /* Calculate nu*vtSq at cell center for CFL condition */
-    nuVtSqP_c : nu*calcInnerProdList(varsP,1,bP,vtSq_e),
-    nvlst : doMakeExprLst(nuVtSqP_c, nuVtSqP),
-    nuVtSqP_e : doExpandLst(nvlst, bP),
-
-    printf(fh, "  double nuVtSqP[~a]; ~%", 0, length(bP)),
-    writeCExprsCollect1(nuVtSqP, nuVtSqP_c, []),
-
-    zr : makelist(varsP[d]=0, d, 1, length(varsP)),
-    nuVtSqMid : float(expand(fullratsimp(subst(zr,nuVtSqP_e)))),
-    printf(fh, "  const double nuVtSqMid = ~a; ~%", nuVtSqMid),
-    
     if vdim = 1 then (
-      printf(fh, "return nuVtSqMid*rdvSq4[0]; ~%")
+      printf(fh, "  return std::abs(~a)+std::abs(~a); ~%", alphaDrag_mid[1], facDiff_mid[1])
+    ) elseif vdim = 2 then (
+      printf(fh, "  return std::abs(~a)+std::abs(~a)+std::abs(~a)+std::abs(~a); ~%", alphaDrag_mid[1], alphaDrag_mid[2], facDiff_mid[1], facDiff_mid[2])
+    ) else (
+      printf(fh, "  return std::abs(~a)+std::abs(~a)+std::abs(~a)+std::abs(~a)+std::abs(~a)+std::abs(~a); ~%", alphaDrag_mid[1], alphaDrag_mid[2], alphaDrag_mid[3], facDiff_mid[1], facDiff_mid[2], facDiff_mid[3])
     ),
-    if vdim = 2 then (
-      printf(fh, "return nuVtSqMid*(rdvSq4[0]+rdvSq4[1]); ~%")
-    ),
-    if vdim = 3 then (
-      printf(fh, "return nuVtSqMid*(rdvSq4[0]+rdvSq4[1]+rdvSq4[2]); ~%")
-    ),
+
     printf(fh, "~%"),
   
     printf(fh, "} ~%")
-));
 
+));

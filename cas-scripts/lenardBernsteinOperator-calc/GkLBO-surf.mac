@@ -14,7 +14,7 @@ maxCdim_Ser : 2$
 maxVdim_Ser : 2$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 2$
+maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$
 maxCdim_Max : 2$
