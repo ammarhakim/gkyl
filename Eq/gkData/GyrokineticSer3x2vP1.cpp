@@ -67,8 +67,6 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.03125*((-0.3061862178478971*alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.03125*((-0.1976423537605236*alphax[32])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.03125*((-0.3061862178478971*alphax[7])-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
@@ -101,8 +99,6 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   alphaR = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.03125*(0.3061862178478971*alphax[7]+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.03125*((-0.1976423537605236*alphax[32])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
@@ -154,8 +150,6 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.03125*((-0.3061862178478971*alphay[8])+0.1767766952966368*(alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.03125*((-0.1976423537605236*alphay[32])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.03125*((-0.3061862178478971*alphay[8])-0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
@@ -188,8 +182,6 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   alphaR = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.03125*(0.3061862178478971*alphay[8]+0.1767766952966368*(alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.03125*((-0.1976423537605236*alphay[32])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
@@ -237,8 +229,6 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.0055242717280199*(alphaz[4]+alphaz[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.005524271728019897*alphaz[0]; 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.03125*(0.1767766952966368*alphaz[0]-0.1767766952966368*alphaz[4]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
@@ -271,8 +261,6 @@ double GyrokineticVol3x2vSerP1_Bvars_0(const double q_, const double m_, const d
   alphaR = 0.0055242717280199*(alphaz[4]+alphaz[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.0055242717280199*(alphaz[4]+alphaz[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.005524271728019897*alphaz[0]; 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
@@ -468,8 +456,6 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))+0.1767766952966368*(alphax[4]+alphax[3])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.03125*((-0.1976423537605236*alphax[32])-0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.03125*((-0.3061862178478971*(alphax[9]+alphax[7]))-0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
@@ -502,8 +488,6 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   alphaR = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.03125*(0.3061862178478971*(alphax[9]+alphax[7])+0.1767766952966368*(alphax[4]+alphax[3])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.03125*((-0.1976423537605236*alphax[32])+0.3061862178478971*alphax[1]+0.1767766952966368*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
@@ -562,8 +546,6 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.03125*((-0.3061862178478971*alphay[16])+0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])-0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.03125*((-0.1976423537605236*alphay[32])-0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[12]+alphay[9])-0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]-0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
@@ -596,8 +578,6 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   alphaR = 0.03125*((-0.3061862178478971*alphay[16])-0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]-0.1767766952966368*alphay[7]-0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]-0.1767766952966368*alphay[1]+0.1767766952966368*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.03125*(0.3061862178478971*alphay[16]+0.1767766952966368*(alphay[12]+alphay[9])+0.3061862178478971*alphay[8]+0.1767766952966368*alphay[7]+0.3061862178478971*alphay[6]+0.1767766952966368*(alphay[5]+alphay[4]+alphay[3])+0.3061862178478971*alphay[2]+0.1767766952966368*(alphay[1]+alphay[0])); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.03125*((-0.1976423537605236*alphay[32])+0.3061862178478971*alphay[2]+0.1767766952966368*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
@@ -647,8 +627,6 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.0055242717280199*(alphaz[9]+alphaz[4]+alphaz[1]+alphaz[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.005524271728019897*alphaz[0]; 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.03125*(0.1767766952966368*alphaz[9]-0.1767766952966368*(alphaz[4]+alphaz[1])+0.1767766952966368*alphaz[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
@@ -681,8 +659,6 @@ double GyrokineticVol3x2vSerP1_Bvars_1(const double q_, const double m_, const d
   alphaR = 0.03125*((-0.1767766952966368*alphaz[9])+0.1767766952966368*alphaz[4]-0.1767766952966368*alphaz[1]+0.1767766952966368*alphaz[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.0055242717280199*(alphaz[9]+alphaz[4]+alphaz[1]+alphaz[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.005524271728019897*alphaz[0]; 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 

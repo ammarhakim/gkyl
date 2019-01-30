@@ -29,14 +29,10 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.125*(alphax[2]+alphax[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.125*alphax[0]; 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.25*(0.5*alphax[0]-0.5*alphax[2]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.125*(alphax[2]+alphax[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.125*alphax[0]; 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
@@ -100,14 +96,10 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   alphaL = 0.25*((-0.8660254037844386*alphax[3])+0.5*alphax[2]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.25*(0.5*alphax[0]-0.8660254037844386*alphax[1]); 
-  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
   alphaR = 0.25*((-0.8660254037844386*alphax[3])-0.5*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
   alphaR = 0.25*(0.8660254037844386*alphax[3]+0.5*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.25*(0.8660254037844386*alphax[1]+0.5*alphax[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
