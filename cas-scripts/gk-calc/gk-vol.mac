@@ -176,7 +176,7 @@ load(modNm),
     if i=1 then quad:1/sqrt(3),
     if i=2 then quad:sqrt(3/5),
     nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p)),
-    if oddp(length(bSurf)) then nodes:addrow(nodes, makelist(0,i,1,cdim+vdim-1)),
+    /*if oddp(length(bSurf)) then nodes:addrow(nodes, makelist(0,i,1,cdim+vdim-1)),*/
     nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]*quad,j,1,length(surfIntVars)),f),i,1,length(nodes)),
 
     /* evaluate alpha at left and right edge */
