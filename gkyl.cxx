@@ -219,7 +219,7 @@ main(int argc, char **argv) {
   }
   lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
   luaL_openlibs(L);  // open standard libraries
-  luaopen_lfs(L); // open lue file-system library
+  luaopen_lfs(L); // open lua file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
   
   std::string topDefs = createTopLevelDefs(argc, argv);
