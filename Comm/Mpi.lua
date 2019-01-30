@@ -21,7 +21,7 @@ local _M = {}
 ffi.cdef [[
   // Opaque types
   typedef struct MPI_Comm_type *MPI_Comm;
-  typedef struct MPI_Datatype_type *MPI_Datatype;        
+  typedef struct MPI_Datatype_type *MPI_Datatype;
   typedef struct MPI_Op_type *MPI_Op;
   typedef struct MPI_Status_type *MPI_Status;
   typedef struct MPI_Group_type *MPI_Group;
@@ -207,6 +207,9 @@ end
 local function new_MPI_Win()
    return new("MPI_Win[1]")
 end
+local function new_MPI_Datatype()
+   return new("MPI_Datatype[1]")
+end
 
 -- de-reference if object is a pointer
 local function getObj(obj, ptyp)
@@ -233,6 +236,8 @@ setmetatable(_M.Status, { __call = function (self, o) return self.new(self, o) e
 function _M.Comm()  return new_MPI_Comm() end
 -- MPI_Group object
 function _M.Group()  return new_MPI_Group() end
+-- MPI_Datatype object
+function _M.MPI_Datatype() return new_MPI_Datatype() end
 
 -- MPI_Comm_rank
 function _M.Comm_rank(comm)
