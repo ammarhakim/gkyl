@@ -96,6 +96,7 @@ ffi.cdef [[
   int MPI_Type_vector(int count,
     int blocklength, int stride, MPI_Datatype oldtype, MPI_Datatype * newtype);
   int MPI_Type_commit(MPI_Datatype * datatype);
+  int MPI_Type_free(MPI_Datatype *datatype);
 
   // Win & SHM calls
   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
@@ -318,6 +319,10 @@ end
 function _M.Type_commit(datatype)
    local err = ffiC.MPI_Type_commit(datatype)
 end
+-- MPI_Type_free
+function _M.Type_free(datatype)
+   local err = ffiC.MPI_Type_free(datatype)
+end
 
 -- MPI_Get_count
 function _M.Get_count(status, datatype)
@@ -335,12 +340,14 @@ function _M.Bcast(buffer, count, datatype, root, comm)
 end
 -- MPI_Send
 function _M.Send(buf, count, datatype, dest, tag, comm)
-   local err = ffiC.MPI_Send(buf, count, datatype, dest, tag, getObj(comm, "MPI_Comm[1]"))
+   local err = ffiC.MPI_Send(
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), dest, tag, getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Recv
 function _M.Recv(buf, count, datatype, source, tag, comm, status)
    local st = status and status.mpiStatus or _M.STATUS_IGNORE
-   local err = ffiC.MPI_Recv(buf, count, datatype, source, tag, getObj(comm, "MPI_Comm[1]"), st)
+   local err = ffiC.MPI_Recv(
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), st)
    -- store MPI_Status
    if status ~= nil then
       local gks = new("int[3]")
