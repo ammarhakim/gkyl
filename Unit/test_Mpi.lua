@@ -278,7 +278,10 @@ function test_9(comm)
    local nz, nsend = 100, 20
    local buff = Alloc.Double(nz)
 
-   -- datatype for send/recv
+   -- '"datatype" for send/recv. This is not really a data-type but a
+   -- shape that tells what portion of buffers to copy. The
+   -- "contiguous" type is simplest, allowing one to copy a series of 
+   -- memory locations
    local dType = Mpi.Type_contiguous(nsend, Mpi.DOUBLE)
    Mpi.Type_commit(dType)
 
@@ -295,6 +298,22 @@ function test_9(comm)
 	 assert_equal(0.0, buff[i], "Checking send/recv via MPI_Datatype")
       end      
    end
+
+   if rnk == 0 then
+      for i = 1, nz do buff[i] = i+10.5 end
+      Mpi.Send(buff:data()+5, 1, dType, 1, 42, comm)
+   end
+   if rnk == 1 then
+      Mpi.Recv(buff:data(), 1, dType, 0, 42, comm, nil)
+      for i = 1, nsend do
+	 assert_equal(i+10.5+5, buff[i], "Checking send/recv via MPI_Datatype")
+      end
+      for i = nsend+1, nz do
+	 assert_equal(0.0, buff[i], "Checking send/recv via MPI_Datatype")
+      end      
+   end   
+
+   
    Mpi.Type_free(dType)
 end
 
