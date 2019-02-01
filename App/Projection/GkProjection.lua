@@ -198,6 +198,7 @@ function MaxwellianProjection:scaleM012(distf)
       fieldBasis = self.confBasis,
       operation = "Multiply",
       onGhosts = true,
+      inclVx2 = true,
    }
 
    -- calculate M0_mod = M0_e / M0
