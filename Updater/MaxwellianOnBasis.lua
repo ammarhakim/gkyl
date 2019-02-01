@@ -23,9 +23,12 @@ ffi.cdef [[
   void MaxwellianInnerLoop(double * n, double * u, double * vth2,
 			   double * fItr,
 			   double * weights, double * dz, double * zc,
-			   double * ordinates, double * basisAtOrds,
-			   int numBasis, int numConfOrds, int numVelOrds,
-			   int numConfDims, int numVelDims);
+			   double * ordinates,
+                           double * basisAtOrdinates,
+                           double * phaseToConfOrdMap,
+			   int numPhaseBasis, 
+                           int numConfOrds, int numPhaseOrds,
+			   int numConfDims, int numPhaseDims);
 ]]
 
 -- Inherit the base Updater from UpdaterBase updater object
@@ -55,60 +58,59 @@ function MaxwellianOnBasis:init(tbl)
    local ordinates = GaussQuadRules.ordinates[N]
    local weights = GaussQuadRules.weights[N]
 
-   -- Configuration space ordinates
+   -- Configuration space ordinates ----------------------------------
    self.numConfDims = self.confBasis:ndim()
    local l, u = {}, {}
    for d = 1, self.numConfDims do l[d], u[d] = 1, N end
    self.confQuadRange = Range.Range(l, u)
-   self.confQuadIndexer = Range.makeColMajorGenIndexer(self.confQuadRange)
-
+   self.confQuadIndexer = 
+      Range.makeColMajorGenIndexer(self.confQuadRange)
    self.numConfOrds = self.confQuadRange:volume()
-   self.confOrdinates = Lin.Mat(self.numConfOrds, self.numConfDims)
-   local nodeNum = 1
-   for idx in self.confQuadRange:colMajorIter() do
-      for d = 1, self.numConfDims do
-	 self.confOrdinates[nodeNum][d] = ordinates[idx[d]]
-      end
-      nodeNum = nodeNum + 1
-   end
    self.numConfBasis = self.confBasis:numBasis()
+   self.confOrdinates = Lin.Mat(self.numConfOrds, self.numConfDims)
    self.confBasisAtOrds = Lin.Mat(self.numConfOrds, self.numConfBasis)
-   -- Pre-compute values of basis functions at quadrature nodes
-   for n = 1, self.numConfOrds do
-      self.confBasis:evalBasis(self.confOrdinates[n],
-				self.confBasisAtOrds[n])
+   for ordIndexes in self.confQuadRange:colMajorIter() do
+      local ordIdx = self.confQuadIndexer(ordIndexes)
+      for d = 1, self.numConfDims do
+	 self.confOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
+      end
+      self.confBasis:evalBasis(self.confOrdinates[ordIdx],
+			       self.confBasisAtOrds[ordIdx])
    end
 
-   -- Phase space ordinates and weights
+   -- Phase space ordinates and weights ------------------------------
    self.numPhaseDims = self.phaseBasis:ndim()
    for d = 1, self.numPhaseDims do l[d], u[d] = 1, N end
    self.phaseQuadRange = Range.Range(l, u)
-
+   self.phaseQuadIndexer = 
+      Range.makeColMajorGenIndexer(self.phaseQuadRange)
    self.numPhaseOrds = self.phaseQuadRange:volume()
-   self.phaseOrdinates = Lin.Mat(self.numPhaseOrds,
-				 self.numPhaseDims)
-   self.phaseWeights = Lin.Vec(self.numPhaseOrds)
-   nodeNum = 1
-   for idx in self.phaseQuadRange:colMajorIter() do
-      self.phaseWeights[nodeNum] = 1.0
-      for d = 1, self.numPhaseDims do
-	 self.phaseWeights[nodeNum] =
-	    self.phaseWeights[nodeNum] * weights[idx[d]]
-	 self.phaseOrdinates[nodeNum][d] = ordinates[idx[d]]
-      end
-      nodeNum = nodeNum + 1
-   end
    self.numPhaseBasis = self.phaseBasis:numBasis()
    self.phaseBasisAtOrds = Lin.Mat(self.numPhaseOrds,
-					self.numPhaseBasis)
-   -- Pre-compute values of basis functions at quadrature nodes
-   for n = 1, self.numPhaseOrds do
-      self.phaseBasis:evalBasis(self.phaseOrdinates[n],
-				self.phaseBasisAtOrds[n])
+				   self.numPhaseBasis)
+   self.phaseOrdinates = Lin.Mat(self.numPhaseOrds, self.numPhaseDims)
+   self.phaseWeights = Lin.Vec(self.numPhaseOrds) -- Needed for integration
+   for ordIndexes in self.phaseQuadRange:colMajorIter() do
+      local ordIdx = self.phaseQuadIndexer(ordIndexes)
+      self.phaseWeights[ordIdx] = 1.0
+      for d = 1, self.numPhaseDims do
+	 self.phaseWeights[ordIdx] =
+	    self.phaseWeights[ordIdx]*weights[ordIndexes[d]]
+	 self.phaseOrdinates[ordIdx][d] = ordinates[ordIndexes[d]]
+      end
+      self.phaseBasis:evalBasis(self.phaseOrdinates[ordIdx],
+				self.phaseBasisAtOrds[ordIdx])
+   end
+
+   -- Construct the phase space to conf space ordinate map
+   self.phaseToConfOrdMap = Lin.Vec(self.numPhaseOrds)
+   for ordIndexes in self.phaseQuadRange:colMajorIter() do
+      local confOrdIdx = self.confQuadIndexer(ordIndexes)
+      local phaseOrdIdx = self.phaseQuadIndexer(ordIndexes)
+      self.phaseToConfOrdMap[phaseOrdIdx] = confOrdIdx
    end
 
    self.numVelDims = self.numPhaseDims - self.numConfDims
-   self.numVelOrds =  self.numPhaseOrds / self.numConfOrds
 end
 
 ----------------------------------------------------------------------
@@ -140,7 +142,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    -- Additional preallocated variables
    local dz = Lin.Vec(self.numPhaseDims) -- cell shape
    local zc = Lin.Vec(self.numPhaseDims) -- cell center
-   local ordIdx, offset = nil, nil
+   local ordIdx = nil
    local phaseIndexes = {}
 
    -- The conf. space loop
@@ -157,18 +159,14 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 	 for d = 1, self.numVelDims do uOrd[ordIdx][d] = 0.0 end
 
 	 for k = 1, self.numConfBasis do
-	    nOrd[ordIdx] = nOrd[ordIdx] +
-	       nItr[k] * self.confBasisAtOrds[ordIdx][k]
-	    vth2Ord[ordIdx] = vth2Ord[ordIdx] +
-		  vth2Itr[k] * self.confBasisAtOrds[ordIdx][k]
+	    nOrd[ordIdx] = nOrd[ordIdx] + nItr[k]*self.confBasisAtOrds[ordIdx][k]
+	    vth2Ord[ordIdx] = vth2Ord[ordIdx] + vth2Itr[k]*self.confBasisAtOrds[ordIdx][k]
 	 end
-	 offset = 0
 	 for d = 1, self.numVelDims do
 	    for k = 1, self.numConfBasis do
 	       uOrd[ordIdx][d] = uOrd[ordIdx][d] +
-		  uItr[offset + k] * self.confBasisAtOrds[ordIdx][k]
+		  uItr[self.numConfBasis*(d-1)+k]*self.confBasisAtOrds[ordIdx][k]
 	    end
-	    offset = offset + self.numConfBasis
 	 end
       end
 
@@ -180,7 +178,7 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 	    phaseIndexes[d] = confIndexes[d]
 	 end
 	 for d = 1, self.numVelDims do
-	    phaseIndexes[d + self.numConfDims] = velIndexes[d]
+	    phaseIndexes[self.numConfDims+d] = velIndexes[d]
 	 end
 	 fOut:fill(phaseIndexer(phaseIndexes), fItr)
 
@@ -194,9 +192,10 @@ function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
 				   self.phaseWeights:data(), dz:data(), zc:data(),
 				   self.phaseOrdinates:data(),
 				   self.phaseBasisAtOrds:data(),
+				   self.phaseToConfOrdMap:data(),
 				   self.numPhaseBasis,
-				   self.numConfOrds, self.numVelOrds,
-				   self.numConfDims, self.numVelDims)
+				   self.numConfOrds, self.numPhaseOrds,
+				   self.numConfDims, self.numPhaseDims)
       end
 
    end
