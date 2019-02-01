@@ -25,7 +25,7 @@ end
 -- between inputs of different dimensionality.
 function _M.selectBinOpCalcD(op, basisNm, CDIM, VDIM, polyOrder, inclVx2)
    local inclVx2str = ""
-   if inclVx2 then inclVx2str = "InclVx2" end
+   if inclVx2 and polyOrder==1 then inclVx2str = "InclVx2" end
    local funcNm = string.format("CartFieldBinOp%s%dx%dv%s%s_P%d", op, CDIM, VDIM, basisNmMap[basisNm], inclVx2str, polyOrder)
    return ffi.C[funcNm]
 end
