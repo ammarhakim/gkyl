@@ -783,43 +783,60 @@ local function buildApplication(self, tbl)
       end
 
       local tmTotal = tmSimEnd-tmSimStart
+      local tmAccounted = 0.0
       log(string.format("\nTotal number of time-steps %s\n\n", step))
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+      tmAccounted = tmAccounted + tmSlvr
       log(string.format(
 	     "Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmBc, tmBc/step, 100*tmBc/tmTotal))
+      tmAccounted = tmAccounted + tmBc
       log(string.format(
 	     "Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
+      tmAccounted = tmAccounted + field:totalSolverTime()
       log(string.format(
 	     "Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
+      tmAccounted = tmAccounted + field:totalBcTime()
       log(string.format(
 	     "Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
+      tmAccounted = tmAccounted + funcField:totalSolverTime()
       log(string.format(
 	     "Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmMom, tmMom/step, 100*tmMom/tmTotal))
+      tmAccounted = tmAccounted + tmMom
       log(string.format(
 	     "Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+      tmAccounted = tmAccounted + tmIntMom
       log(string.format(
 	     "Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
+      tmAccounted = tmAccounted + field:energyCalcTime()
       log(string.format(
 	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+      tmAccounted = tmAccounted + tmColl
       log(string.format(
 	     "Collision moments(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmCollMom, tmCollMom/step, 100*tmCollMom/tmTotal))
+      tmAccounted = tmAccounted + tmCollMom
       log(string.format(
 	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
+      tmAccounted = tmAccounted + tmSrc
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      tmAccounted = tmAccounted + stepperTime
+      tmUnaccounted = tmTotal - tmAccounted
+      log(string.format(
+	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
+	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
