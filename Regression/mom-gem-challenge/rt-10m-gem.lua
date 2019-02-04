@@ -44,7 +44,6 @@ momentApp = Moments.App {
    upper = {Lx/2, Ly/2},
    cells = {64, 32},
    timeStepper = "fvDimSplit",
-   maximumDt = 0.1,
 
    -- decomposition for configuration space
    decompCuts = {1, 1}, -- cuts in each configuration direction
@@ -58,6 +57,8 @@ momentApp = Moments.App {
       charge = elcCharge, mass = elcMass,
 
       equation = TenMoment {},
+      equationInv = TenMoment { numericalFlux = "lax" },
+      forceInv = false,
       -- initial conditions
       init = function (t, xn)
     local x, y = xn[1], xn[2]
@@ -89,7 +90,9 @@ momentApp = Moments.App {
    ion = Moments.Species {
       charge = ionCharge, mass = ionMass,
 
-      equation = TenMoment { gasGamma = gasGamma },
+      equation = TenMoment {},
+      equationInv = TenMoment { numericalFlux = "lax" },
+      forceInv = false,
       -- initial conditions
       init = function (t, xn)
     local x, y = xn[1], xn[2]
