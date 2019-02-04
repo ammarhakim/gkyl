@@ -83,7 +83,7 @@ function GkLBOCollisions:fullInit(speciesTbl)
       end
    else
       self.varNu       = true    -- Spatially varying nu.
-      self.charge      = speciesTbl.mass    -- Charge of this species.
+      self.charge      = speciesTbl.charge    -- Charge of this species.
       -- For now only cell-wise constant nu is implemented.
       -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
       self.cellConstNu = true
@@ -122,7 +122,7 @@ function GkLBOCollisions:fullInit(speciesTbl)
    end
 
    if self.crossCollisions then
-      self.charge     = speciesTbl.mass    -- Charge of this species.
+      self.charge     = speciesTbl.charge    -- Charge of this species.
       local crossOpIn = tbl.crossOption    -- Can specify 'crossOption' (Greene, GreeneSmallAngle, HeavyIons), formulas used to calculate cross-species primitive moments.
       if crossOpIn then
          self.crossMomOp  = crossOpIn
