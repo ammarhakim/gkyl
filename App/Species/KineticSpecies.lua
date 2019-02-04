@@ -713,7 +713,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     -- write integrated moments
     for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-       self.diagnosticIntegratedMomentFields[i]:write(
+       self.diagnosticIntegratedMomentFields[mom]:write(
           string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
     end
 end
@@ -764,8 +764,6 @@ function KineticSpecies:write(tm, force)
             end
          end
 
-         self.cflRateByCell:write(string.format("%s_cflRate_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
-
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
@@ -791,7 +789,7 @@ function KineticSpecies:writeRestart(tm)
 
    -- (the final "false" prevents flushing of data after write)
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      self.diagnosticIntegratedMomentFields[i]:write(
+      self.diagnosticIntegratedMomentFields[mom]:write(
          string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
    end
 end
@@ -803,7 +801,7 @@ function KineticSpecies:readRestart()
    
    self.distIoFrame = fr -- reset internal frame counter
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
-      local _, dfr = self.diagnosticIntegratedMomentFields[i]:read(
+      local _, dfr = self.diagnosticIntegratedMomentFields[mom]:read(
          string.format("%s_%s_restart.bp", self.name, mom))
       self.diagIoFrame = dfr -- reset internal diagnostic IO frame counter
    end

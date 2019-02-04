@@ -370,8 +370,39 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:createDiagnostics()
-   -- create updater to compute volume-integrated moments -- NOT YET IMPLEMENTED FOR GK
-   self.intMomentCalc = nil
+   local function isIntegratedMomentNameGood(nm)
+      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL2" then
+         return true
+      end
+      return false
+   end
+   self.diagnosticIntegratedMomentFields = { }
+   self.diagnosticIntegratedMomentUpdaters = { } 
+   -- allocate space to store integrated moments and create integrated moment updaters
+   for i, mom in pairs(self.diagnosticIntegratedMoments) do
+      if isIntegratedMomentNameGood(mom) then
+         self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
+            numComponents = 1,
+         }
+         if mom == "intL2" then
+            self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.grid,
+               basis = self.basis,
+               numComponents = 1,
+               quantity = "V2"
+            }
+         else
+            self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
+               onGrid = self.confGrid,
+               basis = self.confBasis,
+               numComponents = 1,
+               quantity = "V"
+            }
+         end
+      else
+         assert(false, string.format("Integrated moment %s not valid", mom))
+      end
+   end
    
    -- function to check if moment name is correct
    local function isMomentNameGood(nm)
@@ -424,7 +455,7 @@ function GkSpecies:createDiagnostics()
       end
    end
 
-   -- make sure we have the updaters needed to calculate all the weak and aux moments
+   -- make sure we have the updaters needed to calculate all the aux moments
    for i, mom in pairs(self.diagnosticAuxMoments) do
       if mom == "GkBeta" then
          if not contains(self.diagnosticWeakMoments, "GkTemp") then 
@@ -436,6 +467,7 @@ function GkSpecies:createDiagnostics()
       end
    end
 
+   -- make sure we have the updaters needed to calculate all the weak moments
    for i, mom in pairs(self.diagnosticWeakMoments) do
       -- all GK weak moments require M0 = density
       if not contains(self.diagnosticMoments, "GkM0") then
@@ -522,6 +554,29 @@ function GkSpecies:createDiagnostics()
          assert(false, string.format("Moment %s not valid", mom))
       end
    end
+end
+
+function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
+   -- first compute M0, M1, M2
+   local fIn = self:rkStepperFields()[1]
+   self.threeMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+
+   for i, mom in pairs(self.diagnosticIntegratedMoments) do
+      if mom == "intM0" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.numDensity}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intM1" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.momDensity}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intM2" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.ptclEnergy, self.mass}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intL2" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+      end
+   end
+
 end
 
 function GkSpecies:calcDiagnosticWeakMoments()

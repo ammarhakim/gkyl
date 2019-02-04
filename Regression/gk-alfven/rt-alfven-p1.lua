@@ -107,6 +107,7 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkM1", perturbed=true},
+      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
    },
 
    ion = Plasma.GkSpecies {
@@ -131,6 +132,7 @@ plasmaApp = Plasma.App {
       },
       evolve = true, -- evolve species?
       diagnosticMoments = {"GkM0", "GkM1"},
+      diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
    },
 
    -- field solver
