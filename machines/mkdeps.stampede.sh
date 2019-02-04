@@ -1,5 +1,5 @@
-module load intel/18.0.0
-module load impi/18.0.0
+module load intel/18.0.2
+module load impi/18.0.2
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then

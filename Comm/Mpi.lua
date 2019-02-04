@@ -95,6 +95,8 @@ ffi.cdef [[
   int MPI_Type_contiguous(int count, MPI_Datatype oldtype, MPI_Datatype *newtype);
   int MPI_Type_vector(int count,
     int blocklength, int stride, MPI_Datatype oldtype, MPI_Datatype * newtype);
+  int MPI_Type_indexed(int count, const int array_of_blocklengths[],
+    const int array_of_displacements[], MPI_Datatype oldtype, MPI_Datatype *newtype);
   int MPI_Type_commit(MPI_Datatype * datatype);
   int MPI_Type_free(MPI_Datatype *datatype);
 
@@ -315,6 +317,15 @@ function _M.Type_vector(count, blocklength, stride, oldtype)
    local err = ffiC.MPI_Type_contiguous(count, getObj(oldtype, "MPI_Datatype[1]"), t)
    return t
 end
+-- MPI_Type_indexed
+function _M.Type_indexed(count, array_of_blocklengths, array_of_displacements, oldtype)
+   local t = new_MPI_Datatype()
+   local err = ffiC.MPI_Type_indexed(
+      count, array_of_blocklengths, array_of_displacements,
+      getObj(oldtype, "MPI_Datatype[1]"), t)
+   return t
+end
+
 -- MPI_Type_commit
 function _M.Type_commit(datatype)
    local err = ffiC.MPI_Type_commit(datatype)
