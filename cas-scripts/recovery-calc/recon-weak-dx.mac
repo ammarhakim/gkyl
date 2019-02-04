@@ -5,6 +5,10 @@ assume(dx>0)$
 eta(xc,dx,b) := subst(z=x,
   subst(x=(z-xc)/(dx/2), b))$
 
+/* Flags to indicate what we are matching (one can match both) */
+matchSlope : true $
+matchValue : false $
+
 /* Reconstruction across two cells of size dx each */
 bCC : basisC[1]$
 
@@ -23,32 +27,44 @@ h1d : fullratsimp(subst(hsol, h))$
 bC : eta(0, dx, bCC)$
 fh : sum(f(j,i)*bC[i], i, 1, N)$
 
+/* Derivative and value of h at interface */
 dh : subst(x=0,diff(h1d,x))$
+vh : subst(x=0,h1d)$
 
-/* Slope on right cell edge */
 subListR : append(
   makelist(hL[i]=f(j,i), i, 1,N), makelist(hR[i]=f(j+1,i), i, 1,N)
   )$
-dhR : subst(subListR, dh)$
-
-/* Slope on left cell edge */
 subListL : append(
   makelist(hL[i]=f(j-1,i), i, 1,N), makelist(hR[i]=f(j,i), i, 1,N)
   )$
+
+/* Slope on right/left cell edge */
+dhR : subst(subListR, dh)$
 dhL : subst(subListL, dh)$
+/* Values on right/left cell edge */
+vhR : subst(subListR, vh)$
+vhL : subst(subListL, vh)$
 
 /* Reconstruct in the middle cell */
-rh : sum(r[i]*x^i, i, 0, N+1)$
+maxReconOrder : N-1$
+if matchSlope then maxReconOrder : maxReconOrder+2$
+if matchValue then maxReconOrder : maxReconOrder+2$
 
-/* Match slopes */
-eq1 : dhR = subst(x=dx/2,diff(rh,x))$
-eq2 : dhL = subst(x=-dx/2,diff(rh,x))$
-/* Match moments */
-eqN : calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, bC, rh-fh)$
-eqList : append([eq1, eq2], eqN)$
+rh : sum(r[i]*x^i, i, 0, maxReconOrder)$
+
+/* Construct list of equations to match */
+eqList : []$
+if matchSlope then eqList : append(
+  [ dhR = subst(x=dx/2,diff(rh,x)), dhL = subst(x=-dx/2,diff(rh,x)) ],
+  eqList)$
+if matchValue then eqList : append(
+  [ vhR = subst(x=dx/2,rh), vhL = subst(x=-dx/2,rh) ],
+  eqList)$
+eqList : append(eqList,
+  calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, bC, rh-fh))$
 
 /* Solve system and construct expansion */
-rsol : linsolve(eqList, makelist(r[i],i,0,N+1))$
+rsol : linsolve(eqList, makelist(r[i],i,0,maxReconOrder))$
 r1d : subst(rsol, rh)$
 
 /* Basis function in three cells: L,I,R */

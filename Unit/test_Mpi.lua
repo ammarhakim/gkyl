@@ -9,6 +9,7 @@ local Unit = require "Unit"
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 local Alloc = require "Lib.Alloc"
+local Range = require "Lib.Range"
 
 local ffi  = require "ffi"
 local xsys = require "xsys"
@@ -264,6 +265,83 @@ function test_8(comm)
    Mpi.Barrier(comm)
 end
 
+-- Datatypes
+function test_9(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype not run as number of procs not exactly 2")
+      return
+   end   
+
+   local nz, nsend = 100, 20
+   local buff = Alloc.Double(nz)
+
+   -- '"datatype" for send/recv. This is not really a data-type but a
+   -- shape that tells what portion of buffers to copy. The
+   -- "contiguous" type is simplest, allowing one to copy a series of 
+   -- memory locations.
+   local dType = Mpi.Type_contiguous(nsend, Mpi.DOUBLE)
+   Mpi.Type_commit(dType)
+
+   if rnk == 0 then
+      for i = 1, nz do buff[i] = i+0.5 end
+      Mpi.Send(buff:data(), 1, dType, 1, 42, comm)
+   end
+   if rnk == 1 then
+      Mpi.Recv(buff:data(), 1, dType, 0, 42, comm, nil)
+      for i = 1, nsend do
+	 assert_equal(buff[i], i+0.5, "Checking send/recv via MPI_Datatype")
+      end
+      for i = nsend+1, nz do
+	 assert_equal(0.0, buff[i], "Checking send/recv via MPI_Datatype")
+      end
+   end
+
+   if rnk == 0 then
+      for i = 1, nz do buff[i] = i+10.5 end
+      Mpi.Send(buff:data()+5, 1, dType, 1, 42, comm)
+   end
+   if rnk == 1 then
+      Mpi.Recv(buff:data(), 1, dType, 0, 42, comm, nil)
+      for i = 1, nsend do
+   	 assert_equal(i+10.5+5, buff[i], "Checking send/recv via MPI_Datatype")
+      end
+      for i = nsend+1, nz do
+   	 assert_equal(0.0, buff[i], "Checking send/recv via MPI_Datatype")
+      end      
+   end   
+   Mpi.Type_free(dType)
+end
+
+-- Datatypes (2D test)
+function test_10(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype (test_10) not run as number of procs not exactly 2")
+      return
+   end   
+
+   local range = Range.Range({1, 1}, {10, 20})
+   local indexer = Range.makeRowMajorIndexer(range)
+   
+   local nz = range:volume()
+   local buff = Alloc.Double(nz)
+
+   if rnk == 0 then
+      for i = range:lower(1), range:upper(1) do
+	 for j = range:lower(2), range:upper(2) do
+	    buff[indexer(i,j)] = 0.0
+	 end
+      end
+   end
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -274,6 +352,8 @@ test_5(Mpi.COMM_WORLD)
 test_6(Mpi.COMM_WORLD)
 test_7(Mpi.COMM_WORLD)
 test_8(Mpi.COMM_WORLD)
+test_9(Mpi.COMM_WORLD)
+test_10(Mpi.COMM_WORLD)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

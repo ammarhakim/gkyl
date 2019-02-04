@@ -21,7 +21,7 @@ local _M = {}
 ffi.cdef [[
   // Opaque types
   typedef struct MPI_Comm_type *MPI_Comm;
-  typedef struct MPI_Datatype_type *MPI_Datatype;        
+  typedef struct MPI_Datatype_type *MPI_Datatype;
   typedef struct MPI_Op_type *MPI_Op;
   typedef struct MPI_Status_type *MPI_Status;
   typedef struct MPI_Group_type *MPI_Group;
@@ -91,6 +91,13 @@ ffi.cdef [[
   int MPI_Comm_dup(MPI_Comm comm, MPI_Comm *newcomm);  
   int MPI_Comm_split(MPI_Comm comm, int color, int key, MPI_Comm *newcomm);
 
+  // MPI_Datatype handling
+  int MPI_Type_contiguous(int count, MPI_Datatype oldtype, MPI_Datatype *newtype);
+  int MPI_Type_vector(int count,
+    int blocklength, int stride, MPI_Datatype oldtype, MPI_Datatype * newtype);
+  int MPI_Type_commit(MPI_Datatype * datatype);
+  int MPI_Type_free(MPI_Datatype *datatype);
+
   // Win & SHM calls
   int MPI_Comm_split_type(MPI_Comm comm, int split_type, int key, MPI_Info info, MPI_Comm *newcomm);
   int MPI_Win_allocate_shared (MPI_Aint size, int disp_unit, MPI_Info info, MPI_Comm comm, void *baseptr, MPI_Win *win);
@@ -99,7 +106,7 @@ ffi.cdef [[
   int MPI_Win_unlock_all(MPI_Win win);
   int MPI_Win_free(MPI_Win *win);
 
-  // point-to-point communication
+  // Point-to-point communication
   int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
   int MPI_Allreduce(const void *sendbuf, void *recvbuf, int count,
 		    MPI_Datatype datatype, MPI_Op op, MPI_Comm comm);
@@ -207,6 +214,9 @@ end
 local function new_MPI_Win()
    return new("MPI_Win[1]")
 end
+local function new_MPI_Datatype()
+   return new("MPI_Datatype[1]")
+end
 
 -- de-reference if object is a pointer
 local function getObj(obj, ptyp)
@@ -233,6 +243,8 @@ setmetatable(_M.Status, { __call = function (self, o) return self.new(self, o) e
 function _M.Comm()  return new_MPI_Comm() end
 -- MPI_Group object
 function _M.Group()  return new_MPI_Group() end
+-- MPI_Datatype object
+function _M.MPI_Datatype() return new_MPI_Datatype() end
 
 -- MPI_Comm_rank
 function _M.Comm_rank(comm)
@@ -291,6 +303,27 @@ function _M.Win_free(win)
    local err = ffiC.MPI_Win_free(win)
 end
 
+-- MPI_Type_contiguous
+function _M.Type_contiguous(count, oldtype)
+   local t = new_MPI_Datatype()
+   local err = ffiC.MPI_Type_contiguous(count, getObj(oldtype, "MPI_Datatype[1]"), t)
+   return t
+end
+-- MPI_Type_vector
+function _M.Type_vector(count, blocklength, stride, oldtype)
+   local t = new_MPI_Datatype()
+   local err = ffiC.MPI_Type_contiguous(count, getObj(oldtype, "MPI_Datatype[1]"), t)
+   return t
+end
+-- MPI_Type_commit
+function _M.Type_commit(datatype)
+   local err = ffiC.MPI_Type_commit(datatype)
+end
+-- MPI_Type_free
+function _M.Type_free(datatype)
+   local err = ffiC.MPI_Type_free(datatype)
+end
+
 -- MPI_Get_count
 function _M.Get_count(status, datatype)
    local r = int_1()
@@ -307,12 +340,14 @@ function _M.Bcast(buffer, count, datatype, root, comm)
 end
 -- MPI_Send
 function _M.Send(buf, count, datatype, dest, tag, comm)
-   local err = ffiC.MPI_Send(buf, count, datatype, dest, tag, getObj(comm, "MPI_Comm[1]"))
+   local err = ffiC.MPI_Send(
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), dest, tag, getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Recv
 function _M.Recv(buf, count, datatype, source, tag, comm, status)
    local st = status and status.mpiStatus or _M.STATUS_IGNORE
-   local err = ffiC.MPI_Recv(buf, count, datatype, source, tag, getObj(comm, "MPI_Comm[1]"), st)
+   local err = ffiC.MPI_Recv(
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), st)
    -- store MPI_Status
    if status ~= nil then
       local gks = new("int[3]")
@@ -354,27 +389,32 @@ function _M.Comm_group(comm)
    local err = ffiC.MPI_Comm_group(getObj(comm, "MPI_Comm[1]"), grp)
    return grp
 end
+-- MPI_Group_rank
 function _M.Group_rank(group)
    local r = int_1()
    local err = ffiC.MPI_Group_rank(getObj(group, "MPI_Group[1]"), r)
    return r[0]
 end
+-- MPI_Group_size
 function _M.Group_size(group)
    local r = int_1()
    local err = ffiC.MPI_Group_size(getObj(group, "MPI_Group[1]"), r)
    return r[0]
 end
+-- MPI_Group_incl
 function _M.Group_incl(group, n, ranks)
    local newgroup = new_MPI_Group()
    local err = ffiC.MPI_Group_incl(getObj(group, "MPI_Group[1]"), n, ranks, newgroup)
    return newgroup
 end
+-- MPI_Comm_create
 function _M.Comm_create(comm, group)
    local c = new_MPI_Comm()
    local err = ffiC.MPI_Comm_create(
       getObj(comm, "MPI_Comm[1]"), getObj(group, "MPI_Group[1]"), c)
    return c
 end
+-- MPI_Group_translate_ranks
 function _M.Group_translate_ranks(group1, ranks1, group2)
    local n = #ranks1
    local ranks2 = Lin.IntVec(n)
