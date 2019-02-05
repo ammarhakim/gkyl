@@ -196,6 +196,7 @@ void CartFieldBinOpDivide1x3vTensor_P1(binOpData_t* data, const double *A, const
   } 
  
   // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(16,16);
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,2) = 0.7071067811865475*As[1]; 
@@ -404,6 +405,7 @@ void CartFieldBinOpDivide1x3vTensor_P2(binOpData_t* data, const double *A, const
   } 
  
   // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(81,81);
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,3) = 0.7071067811865475*As[1]; 
