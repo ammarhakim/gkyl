@@ -65,6 +65,8 @@ extern "C" {
     // Constants
     DECL_INT_OBJECT(MPI_COMM_TYPE_SHARED);
     DECL_INT_OBJECT(MPI_UNDEFINED);
+    DECL_INT_OBJECT(MPI_ORDER_C);
+    DECL_INT_OBJECT(MPI_ORDER_FORTRAN);
 
     // Some utility functions to allow accessing non-opaque MPI types
 
