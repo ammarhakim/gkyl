@@ -107,9 +107,8 @@ function SelfPrimMoments:init(tbl)
    
    self._isFirst   = true
    self._perpRange = {} -- perp ranges in velocity directions.
-   if self._polyOrder == 1 then
+   if self._polyOrder == 1 and not self._isGkLBO then
       self._StarM1iM2Calc = PrimMomentsDecl.selectStarM1iM2Calc(self._kinSpecies, self._basisID, self._cDim, self._vDim) 
-
    end
 
 end
@@ -138,7 +137,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    local m0Star, m1Star, m2Star
    local m2fld, m2fldIndexer, m2fldItr
-   if self._polyOrder == 1 then
+   if self._polyOrder == 1 and not self._isGkLBO then
       m0Star = Lin.Vec(self._numBasisC)
       m1Star = Lin.Vec(self._numBasisC*self._uDim)
       m2Star = Lin.Vec(self._numBasisC)
@@ -196,7 +195,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
       -- MF: Apologies if the code seems lengthy. 
       -- polyOrder=1 and >1 each use separate velocity grid loops to
       -- avoid evaluating (if polyOrder==1) at each velocity coordinate.
-      if self._polyOrder > 1 then
+      if self._polyOrder > 1 or self._isGkLBO then  -- GK basis p=1 basis now includes vpar^2
          m2fld:fill(m2fldIndexer(confIdx), m2fldItr)
 
          for vDir = 1, self._vDim do
