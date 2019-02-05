@@ -140,6 +140,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E]
     Elhs : list_matrix_entries(genmatrix(Ef,N-1,N-1,0,0)),
 
     printf(fh, "  // Fill AEM matrix. ~%"),
+    printf(fh, "  data->AEM_S = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N),
     writeCExprsB(Elhs,Eflat),
     printf(fh, " ~%"),
 
@@ -248,6 +249,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef
     Elhs : list_matrix_entries(genmatrix(Ef,NP-1,NP-1,0,0)),
 
     printf(fh, "  // Fill AEM matrix. ~%"),
+    printf(fh, "  data->AEM_D = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N),
     writeCExprsB(Elhs,Eflat),
     printf(fh, " ~%"),
 
