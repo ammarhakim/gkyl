@@ -80,7 +80,7 @@ function CartFieldBinOp:init(tbl)
    if fieldBasis then 
       self._binOpData = ffiC.new_binOpData_t(fieldBasis:numBasis(), self._numBasis) 
    else 
-      self._binOpData = ffiC.new_binOpData_t(self._numBasis, 1) 
+      self._binOpData = ffiC.new_binOpData_t(self._numBasis, 0) 
    end
 end
 
