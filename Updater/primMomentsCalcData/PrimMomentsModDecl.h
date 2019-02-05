@@ -65,11 +65,7 @@ void VmCrossPrimMomentsGreene1x3vSer_P1(const double mRat, const double beta, co
 
 void VmCrossPrimMomentsHeavyIons1x3vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
 
-void GkSelfPrimMoments1x1vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
-
-void GkM0Star1x1vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
-
-void GkM1iM2Star1x1vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkSelfPrimMoments1x1vSer_P1(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
 void GkBoundaryIntegral1x1vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
@@ -79,11 +75,7 @@ void GkCrossPrimMomentsGreene1x1vSer_P1(const double mRat, const double beta, co
 
 void GkCrossPrimMomentsHeavyIons1x1vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
 
-void GkSelfPrimMoments1x2vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
-
-void GkM0Star1x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
-
-void GkM1iM2Star1x2vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkSelfPrimMoments1x2vSer_P1(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
 void GkBoundaryIntegral1x2vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
@@ -141,11 +133,7 @@ void VmCrossPrimMomentsGreene2x3vSer_P1(const double mRat, const double beta, co
 
 void VmCrossPrimMomentsHeavyIons2x3vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
 
-void GkSelfPrimMoments2x2vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
-
-void GkM0Star2x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
-
-void GkM1iM2Star2x2vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkSelfPrimMoments2x2vSer_P1(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
 void GkBoundaryIntegral2x2vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
@@ -183,11 +171,7 @@ void VmCrossPrimMomentsGreene3x3vSer_P1(const double mRat, const double beta, co
 
 void VmCrossPrimMomentsHeavyIons3x3vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
 
-void GkSelfPrimMoments3x2vSer_P1(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); 
-
-void GkM0Star3x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
-
-void GkM1iM2Star3x2vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkSelfPrimMoments3x2vSer_P1(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); 
 
 void GkBoundaryIntegral3x2vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 

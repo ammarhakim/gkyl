@@ -43,13 +43,13 @@ load(modNm),
   if vdim=0 then varsP : varsC
   else varsP : subst(gkvsub, varsP),
   numC : length(bC),
+  if i=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
 
   if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
   else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
 
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
   volfac : 1,
-  cellCenter : makelist(varsP[d]=0, d, 1, length(varsP)),
   /* set up ignorable variables for Bmag */
   Bignorevars: flatten(makelist([varsC[d]^2=var2,var2=1/3,varsC[d]=0], d, 1, length(varsC))),
   if bvarslist # [0] then (
@@ -165,6 +165,9 @@ load(modNm),
     /* accumulate alpha.grad(w) in this direction to the direction-summed alpha.grad(w) */
     alphaSum_expd : alphaSum_expd + alphaDotGradBasis_expd,
 
+    /* generate surface basis */
+    bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst([varsP[d]^2=var2,var2=1/3,varsP[d]=0],bP)))*bP),
+
     /* cfl calculation */
     /* ONLY FOR CFL: add on dA/dt term in vpar direction */
     if d = cdim + 1 then alpha_expd : alpha_expd - q_/m_*dAdt_expd*dfac_v,
@@ -173,6 +176,7 @@ load(modNm),
     if i=1 then quad:1/sqrt(3),
     if i=2 then quad:sqrt(3/5),
     nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p)),
+    /*if oddp(length(bSurf)) then nodes:addrow(nodes, makelist(0,i,1,cdim+vdim-1)),*/
     nodesub(f):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j]*quad,j,1,length(surfIntVars)),f),i,1,length(nodes)),
 
     /* evaluate alpha at left and right edge */
@@ -235,6 +239,7 @@ load(modNm),
     label:["x", "y", "z", "v", "m"]
   ),
   bP : subst(gkvsub, basisP[i]),
+  if i=1 and vdim>0 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)]),
   bC : basisC[i],
   varsP : subst(gkvsub, varsP),
   numC : length(bC),
@@ -261,7 +266,7 @@ load(modNm),
 )$
 
 pmax:1$
-em:true$
+em:false$
 
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (

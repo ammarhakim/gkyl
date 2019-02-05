@@ -7,6 +7,7 @@
 
 -- Gkyl libraries
 local Proto = require "Lib.Proto"
+local xsys = require "xsys"
 
 -- CartModalSerendipity -----------------------------------------------------------
 --
@@ -50,8 +51,18 @@ function CartModalSerendipity:init(tbl)
       assert(false, "Polynomial order must be between 0 and 3")
    end
 
+   self._inclZ2InDirs = tbl.inclZ2InDirs or {}
+   if self._inclZ2InDirs[1] then assert(tbl.polyOrder==1, "Basis.CartModalSerendipity: inclZ2InDirs only valid for p=1") end
+
    self._numBasis = numBasis(self._ndim, self._polyOrder)
    self._numSurfBasis = numBasis(self._ndim-1, self._polyOrder)
+   self._numZ2 = 0
+
+   for i, d in ipairs(self._inclZ2InDirs) do
+      self._numBasis = self._numBasis + 1
+      self._numSurfBasis = self._numSurfBasis + 1
+      self._numZ2 = self._numZ2 + 1
+   end
 
    local _m = nil -- to store module with evaluation code
    -- get handle to function to compute basis functions at specified coordinates   
@@ -100,8 +111,18 @@ function CartModalSerendipity:ndim() return self._ndim end
 function CartModalSerendipity:polyOrder() return self._polyOrder end
 function CartModalSerendipity:numBasis() return self._numBasis end
 function CartModalSerendipity:numSurfBasis() return self._numSurfBasis end
-function CartModalSerendipity:evalBasis(z, b) return self._evalBasisFunc(z, b) end
-function CartModalSerendipity:flipSign(dir, fIn, fOut) self._flipSign(dir, fIn, fOut) end
+function CartModalSerendipity:evalBasis(z, b) 
+   self._evalBasisFunc(z, b) 
+   for i, d in ipairs(self._inclZ2InDirs) do
+      b[self._numBasis-self._numZ2+i] = 3.354101966249685/2.0^(self._ndim/2)*(z[d]^2-0.3333333333333333)
+   end
+end
+function CartModalSerendipity:flipSign(dir, fIn, fOut) 
+   self._flipSign(dir, fIn, fOut) 
+   for i, d in ipairs(self._inclZ2InDirs) do
+      fOut[self._numBasis-self._numZ2+i] = fIn[self._numBasis-self._numZ2+i]
+   end
+end
 
 return {
    CartModalSerendipity = CartModalSerendipity   
