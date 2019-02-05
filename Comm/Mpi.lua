@@ -321,7 +321,9 @@ end
 -- MPI_Type_vector
 function _M.Type_vector(count, blocklength, stride, oldtype)
    local t = new_MPI_Datatype()
-   local err = ffiC.MPI_Type_contiguous(count, getObj(oldtype, "MPI_Datatype[1]"), t)
+   local err = ffiC.MPI_Type_vector(
+      count, blocklength, stride,
+      getObj(oldtype, "MPI_Datatype[1]"), t)
    return t
 end
 -- MPI_Type_indexed
