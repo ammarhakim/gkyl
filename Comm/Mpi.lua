@@ -97,6 +97,9 @@ ffi.cdef [[
     int blocklength, int stride, MPI_Datatype oldtype, MPI_Datatype * newtype);
   int MPI_Type_indexed(int count, const int array_of_blocklengths[],
     const int array_of_displacements[], MPI_Datatype oldtype, MPI_Datatype *newtype);
+  int MPI_Type_create_subarray(int ndims, const int array_of_sizes[], const
+    int array_of_subsizes[], const int array_of_starts[], int order, MPI_Datatype
+    oldtype, MPI_Datatype *newtype);
   int MPI_Type_commit(MPI_Datatype * datatype);
   int MPI_Type_free(MPI_Datatype *datatype);
 
@@ -318,10 +321,21 @@ function _M.Type_vector(count, blocklength, stride, oldtype)
    return t
 end
 -- MPI_Type_indexed
-function _M.Type_indexed(count, array_of_blocklengths, array_of_displacements, oldtype)
+function _M.Type_indexed(array_of_blocklengths, array_of_displacements, oldtype)
    local t = new_MPI_Datatype()
+   local count = #array_of_blocklengths
    local err = ffiC.MPI_Type_indexed(
       count, array_of_blocklengths, array_of_displacements,
+      getObj(oldtype, "MPI_Datatype[1]"), t)
+   return t
+end
+-- MPI_Type_create_subarray
+function _M.Type_create_subarray(array_of_sizes, array_of_subsizes, array_of_starts, order, oldtype)
+   local t = new_MPI_Datatype()
+   local ndims = #array_of_sizes
+   local err = ffiC.MPI_Type_create_subarray(
+      ndims, array_of_sizes,
+      array_of_subsizes, array_of_starts, order,
       getObj(oldtype, "MPI_Datatype[1]"), t)
    return t
 end
