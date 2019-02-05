@@ -45,6 +45,8 @@ ffi.cdef [[
   MPI_Info get_MPI_INFO_NULL();
   int get_MPI_COMM_TYPE_SHARED();
   int get_MPI_UNDEFINED();
+  int get_MPI_ORDER_C();
+  int get_MPI_ORDER_FORTRAN();
 
   // Datatypes
   MPI_Datatype get_MPI_CHAR();
@@ -151,6 +153,8 @@ _M.STATUS_IGNORE = ffiC.getPtr_MPI_STATUS_IGNORE()
 _M.INFO_NULL = ffiC.get_MPI_INFO_NULL()
 _M.COMM_TYPE_SHARED = ffiC.get_MPI_COMM_TYPE_SHARED()
 _M.UNDEFINED = ffiC.get_MPI_UNDEFINED()
+_M.ORDER_C = ffiC.get_MPI_ORDER_C()
+_M.ORDER_FORTRAN = ffiC.get_MPI_ORDER_FORTRAN()
 
 -- Object sizes
 _M.SIZEOF_STATUS = ffiC.sizeof_MPI_Status()

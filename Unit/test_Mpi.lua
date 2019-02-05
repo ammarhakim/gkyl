@@ -325,7 +325,7 @@ function test_10(comm)
    if sz ~= 2 then
       log("Test for MPI_Datatype (test_10) not run as number of procs not exactly 2")
       return
-   end   
+   end
 
    local range = Range.Range({1, 1}, {10, 20})
    local indexer = Range.makeRowMajorIndexer(range)
@@ -333,12 +333,19 @@ function test_10(comm)
    local nz = range:volume()
    local buff = Alloc.Double(nz)
 
+   
+   -- '"datatype" for send/recv. This is not really a data-type but a
+   -- shape that tells what portion of buffers to copy.
+   --local dType = Mpi.Type_contiguous(nsend, Mpi.DOUBLE)
+   --Mpi.Type_commit(dType)   
+
    if rnk == 0 then
       for i = range:lower(1), range:upper(1) do
 	 for j = range:lower(2), range:upper(2) do
 	    buff[indexer(i,j)] = 0.0
 	 end
       end
+      
    end
 end
 
