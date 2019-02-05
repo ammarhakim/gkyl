@@ -6,17 +6,17 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
-maxCdim_Ser : 2$
+maxCdim_Ser : 3$
 maxVdim_Ser : 2$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
+maxPolyOrder_Max : 2$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* but see v loop below. */
-maxCdim_Max : 2$
+maxCdim_Max : 3$
 maxVdim_Max : 2$
 
 gkVdims      : [[1,2], [2], [2]]$
@@ -34,6 +34,7 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max]$
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
+/*
     /* Vlasov primitive moments. */
     for v : c thru maxVdim[bInd] do (
     
@@ -58,6 +59,7 @@ for bInd : 1 thru length(bName) do (
   
       close(fh)
     ),
+*/
 
     /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v. However each
        of these effectively solve a weak linear system of 2 equations.
@@ -76,7 +78,7 @@ for bInd : 1 thru length(bName) do (
       printf(fh, " ~%"),
     
       kinSpec : "Gk",
-      calcStarMomContributions(fh, kinSpec, c, v, bName[bInd]),
+      /*calcStarMomContributions(fh, kinSpec, c, v, bName[bInd]),*/
   
       funcName : sconcat("GkBoundaryIntegral", c, "x", v, "v", bName[bInd]),
       calcSurfIntegralCorrections(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
