@@ -261,6 +261,7 @@ void CartFieldBinOpDivide1x3vSer_P1(binOpData_t* data, const double *A, const do
   } 
  
   // Fill AEM matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(16,16);
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,2) = 0.7071067811865475*As[1]; 
@@ -403,6 +404,7 @@ void CartFieldBinOpDivide1x3vSer_P2(binOpData_t* data, const double *A, const do
   } 
  
   // Fill AEM matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(48,48);
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,3) = 0.7071067811865475*As[1]; 
@@ -616,6 +618,7 @@ void CartFieldBinOpDivide1x3vSer_P3(binOpData_t* data, const double *A, const do
   } 
  
   // Fill AEM matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(80,80);
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,4) = 0.7071067811865475*As[1]; 
