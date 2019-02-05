@@ -88,10 +88,16 @@ for bInd : 1 thru length(bName) do (
       printf(fh, " ~%"),
      
       funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]),
-      calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]), 
+      calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false), 
+
+      funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd], "InclVx2"),
+      calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd], 1, true), 
   
       funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd]),
-      calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]),
+      calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false),
+
+      funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd], "InclVx2"),
+      calcBinOpDivideD(fh, funcName, c, v, bName[bInd], 1, true),
   
       close(fh)
     )
@@ -113,12 +119,18 @@ for bInd : 1 thru length(bName) do (
   printf(fh, " ~%"),
   printf(fh, "using namespace Eigen; ~%"),
   printf(fh, " ~%"),
-  
+
   funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd]),
-  calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]),
+  calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false), 
+  
+  funcName : sconcat("CartFieldBinOpMultiply", c, "x", v, "v", bName[bInd], "InclVx2"),
+  calcBinOpMultiplyD(fh, funcName, c, v, bName[bInd], 1, true),
      
   funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd]),
-  calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd]),
+  calcBinOpDivideD(fh, funcName, c, v, bName[bInd],maxPolyOrder[bInd], false),
+
+  funcName : sconcat("CartFieldBinOpDivide", c, "x", v, "v", bName[bInd], "InclVx2"),
+  calcBinOpDivideD(fh, funcName, c, v, bName[bInd], 1, true),
   
   close(fh)
   )

@@ -70,13 +70,15 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /*... Compute  1D recovery polynomial coefficients into hsol ...*/
     /* Load 1D basis. */
     load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
-    bC1 : basisC[polyOrder],
+    if polyOrder=1 and dir=1 then polyOrder1 : 2
+    else polyOrder1 : polyOrder,
+    bC1 : basisC[polyOrder1],
     N1 : length(bC1),
 
     eta(xc,dx,b) := subst(x=(w-xc)/(dx/2), b),
 
     /* Construct the 1D recovery polynomial */
-    hOrder : 2*polyOrder+1,
+    hOrder : 2*polyOrder1+1,
     /* Left and right (of the boundary) basis sets */ 
     pL : eta(-1/2,1,bC1),
     pR : eta(1/2,1,bC1),
@@ -84,8 +86,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
     
     /* LHS of system of equations arising from weak equivalence relations */
-    eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
-    eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
+    eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder1+1),
+    eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder1+1),
     LHS : append(eqL,eqR),
     A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
     
@@ -111,6 +113,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Polynomial basis and its derivatives. */
     bP  : subst(gkvsub, basisP[polyOrder]),
+    if polyOrder=1 then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)])),
     bC  : basisC[polyOrder],
     NP  : length(bP),
     NC  : length(bC),
@@ -347,6 +350,7 @@ calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([]
 
     /* Polynomial basis and its derivatives. */
     bP  : subst(gkvsub, basisP[polyOrder]),
+    if polyOrder=1 then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)])),
     bC  : basisC[polyOrder],	
     NP  : length(bP),
     NC  : length(bC),

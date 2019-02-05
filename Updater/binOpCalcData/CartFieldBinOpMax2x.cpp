@@ -112,7 +112,7 @@ void CartFieldBinOpDivide2xMax_P1(binOpData_t* data, const double *A, const doub
     } 
   } 
  
-  // Fill AEM_S matrix. 
+  // Fill AEM matrix. 
   data->AEM_S(0,0) = 0.5*As[0]; 
   data->AEM_S(0,1) = 0.5*As[1]; 
   data->AEM_S(0,2) = 0.5*As[2]; 
@@ -124,7 +124,7 @@ void CartFieldBinOpDivide2xMax_P1(binOpData_t* data, const double *A, const doub
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 3*vd; 
-    // Fill BEV_S. 
+    // Fill BEV. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2]; 
  
     // Solve the system of equations. 
@@ -197,7 +197,7 @@ void CartFieldBinOpDivide2xMax_P2(binOpData_t* data, const double *A, const doub
     } 
   } 
  
-  // Fill AEM_S matrix. 
+  // Fill AEM matrix. 
   data->AEM_S(0,0) = 0.5*As[0]; 
   data->AEM_S(0,1) = 0.5*As[1]; 
   data->AEM_S(0,2) = 0.5*As[2]; 
@@ -232,7 +232,7 @@ void CartFieldBinOpDivide2xMax_P2(binOpData_t* data, const double *A, const doub
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 6*vd; 
-    // Fill BEV_S. 
+    // Fill BEV. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5]; 
  
     // Solve the system of equations. 
