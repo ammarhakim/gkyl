@@ -331,7 +331,7 @@ function _M.Type_indexed(array_of_blocklengths, array_of_displacements, oldtype)
    local t = new_MPI_Datatype()
    local count = #array_of_blocklengths
    local err = ffiC.MPI_Type_indexed(
-      count, array_of_blocklengths, array_of_displacements,
+      count, array_of_blocklengths:data(), array_of_displacements:data(),
       getObj(oldtype, "MPI_Datatype[1]"), t)
    return t
 end
@@ -345,7 +345,6 @@ function _M.Type_create_subarray(array_of_sizes, array_of_subsizes, array_of_sta
       getObj(oldtype, "MPI_Datatype[1]"), t)
    return t
 end
-
 -- MPI_Type_commit
 function _M.Type_commit(datatype)
    local err = ffiC.MPI_Type_commit(datatype)
