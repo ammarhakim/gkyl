@@ -112,6 +112,7 @@ function SelfPrimMoments:init(tbl)
 
    end
 
+   self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(self._uDim+1), 0) 
 end
 
 -- advance method
@@ -253,7 +254,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             firstDir = false
          end
 
-         self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
+         self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
 
       else
          -- To have energy conservation with piece-wise linear, we must use
@@ -348,7 +349,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             firstDir = false
          end
 
-      self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m0Star:data(), m1Star:data(), m2Star:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
+      self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m0Star:data(), m1Star:data(), m2Star:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
 
       end
 
