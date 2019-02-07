@@ -16,6 +16,10 @@ local Lin = require "Lib.Linalg"
 
 local _M = {}
 
+-- these are used to fetch consistent indexer and iterators
+_M.rowMajor = 1
+_M.colMajor = 2
+
 -- Range ----------------------------------------------------------------------
 --
 -- A range object, representing a ndim integer index set. 
@@ -281,6 +285,19 @@ local range_mt = {
 	 end	 
 	 return self:_iter( make_range_iter(self:ndim(), 1, -1), idxStart, maxBump and maxBump or self:volume() )
       end,
+      iter = function (self, ordering, idxStartIn, maxBump)
+	 if ordering == _M.rowMajor then
+	    return self:rowMajorIter(idxStartIn, maxBump)
+	 else
+	    return self:colMajorIter(idxStartIn, maxBump)
+	 end
+      end,
+      indexer = function (self, ordering)
+	 return _M.makeIndexer(ordering, self)
+      end,
+      genIndexer = function (self, ordering)
+	 return _M.makeGenIndexer(ordering, self)
+      end      
    }
 }
 -- construct Range object, attaching meta-type to it
@@ -404,6 +421,22 @@ function _M.makeColMajorGenIndexer(range)
    local idxr = genIndexerFunctions[range:ndim()]
    return function (idx)
       return idxr(ac, idx)
+   end
+end
+
+-- generic functions that dispatch on layout
+function _M.makeIndexer(ordering, range)
+   if ordering == _M.rowMajor then
+      return _M.makeRowMajorIndexer(range)
+   else
+      return _M.makeColMajorIndexer(range)
+   end
+end
+function _M.makeGenIndexer(ordering, range)
+   if ordering == _M.rowMajor then
+      return _M.makeRowMajorGenIndexer(range)
+   else
+      return _M.makeColMajorGenIndexer(range)
    end
 end
 
