@@ -601,6 +601,77 @@ function test_30()
    end
 end
 
+function test_31()
+   local range = Range.Range({1,1,1}, {10,20,30})
+
+   -- row-major test
+   local idxr = Range.makeGenIndexer(Range.rowMajor, range)
+   local lastIdx = 0
+   for idx in range:iter(Range.rowMajor) do
+      local currIdx = idxr(idx)
+      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      lastIdx = currIdx
+   end
+
+   -- col-major test
+   idxr = Range.makeGenIndexer(Range.colMajor, range)
+   lastIdx = 0
+   for idx in range:iter(Range.colMajor) do
+      local currIdx = idxr(idx)
+      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      lastIdx = currIdx
+   end   
+end
+
+function test_32()
+   local range = Range.Range({1,1,1}, {10,20,30})
+
+   -- row-major test
+   local idxr = range:genIndexer(Range.rowMajor)
+   local lastIdx = 0
+   for idx in range:iter(Range.rowMajor) do
+      local currIdx = idxr(idx)
+      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      lastIdx = currIdx
+   end
+
+   -- col-major test
+   idxr = range:genIndexer(Range.colMajor)
+   lastIdx = 0
+   for idx in range:iter(Range.colMajor) do
+      local currIdx = idxr(idx)
+      assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+      lastIdx = currIdx
+   end   
+end
+
+function test_33()
+   local range = Range.Range({1,1}, {10,20})
+
+   -- row-major test
+   local idxr = range:indexer(Range.rowMajor)
+   local lastIdx = 0
+
+   for i = range:lower(1), range:upper(1) do
+      for j = range:lower(2), range:upper(2) do
+	 local currIdx = idxr(i,j)
+	 assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+	 lastIdx = currIdx
+      end
+   end
+
+   -- col-major test
+   idxr = range:indexer(Range.colMajor)
+   lastIdx = 0
+   for j = range:lower(2), range:upper(2) do   
+      for i = range:lower(1), range:upper(1) do
+	 local currIdx = idxr(i, j)
+	 assert_equal(1, currIdx-lastIdx, "Checking generic indexer/iterator pair")
+	 lastIdx = currIdx
+      end
+   end   
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -632,6 +703,9 @@ test_27()
 test_28()
 test_29()
 test_30()
+test_31()
+test_32()
+test_33()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
