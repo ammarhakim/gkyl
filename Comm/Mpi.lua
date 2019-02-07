@@ -471,8 +471,7 @@ function _M.Is_comm_valid(comm)
    return getObj(comm, "MPI_Comm[1]") ~=  _M.COMM_NULL
 end
 
--- helper function to make a MPI_Datatype object from block sizes and
--- offsets
+-- Makes a MPI_Datatype object from block sizes and offsets
 function _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
    if #blockSize == 1 then
       return _M.Type_contiguous(blockSize[1], oldtype)
@@ -511,12 +510,12 @@ function _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype
    end
 end
 
--- Create an MPI_Datatype object from a range object in a specified
+-- Creates an MPI_Datatype object from a range object in a specified
 -- direction and ordering. 'ordering' must be one of Range.rowMajor or
 -- Range.colMajor
-function _M.createDataTypeFromRange(dir, range, ordering, oldtype)
+function _M.createDataTypeFromRange(dir, range, nlayer, ordering, oldtype)
    local indexer = range:genIndexer(ordering)
-   local rFace = range:shorten(dir)
+   local rFace = range:shorten(dir, nlayer)
    local lo = rFace:lowerAsVec()
    local up = rFace:upperAsVec()
 

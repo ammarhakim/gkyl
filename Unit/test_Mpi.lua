@@ -416,7 +416,7 @@ function test_11(comm)
 
    local rnk = Mpi.Comm_rank(comm)
    if sz ~= 2 then
-      log("Test for MPI_Datatype (test_10) not run as number of procs not exactly 2")
+      log("Test for MPI_Datatype (test_11) not run as number of procs not exactly 2")
       return
    end
 
@@ -520,19 +520,23 @@ function test_11(comm)
    end   
 end
 
-function test_12(comm, ordering)
+function test_12(comm, nlayer, ordering)
+   local range = Range.Range({1, 1}, {10, 20})
+   dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, ordering, Mpi.DOUBLE)
+   dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, ordering, Mpi.DOUBLE)
+
    local sz = Mpi.Comm_size(comm)
    local rnk = Mpi.Comm_rank(comm)
 
    local rnk = Mpi.Comm_rank(comm)
    if sz ~= 2 then
-      log("Test for MPI_Datatype (test_10) not run as number of procs not exactly 2")
+      log("Test for MPI_Datatype (test_13) not run as number of procs not exactly 2")
       return
    end
 
    local range = Range.Range({1, 1}, {10, 20})
-   dTypeX = Mpi.createDataTypeFromRange(1, range, ordering, Mpi.DOUBLE)
-   dTypeY = Mpi.createDataTypeFromRange(2, range, ordering, Mpi.DOUBLE)
+   dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, ordering, Mpi.DOUBLE)
+   dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, ordering, Mpi.DOUBLE)
 
    local indexer = range:indexer(ordering)
    local nz = range:volume()
@@ -550,53 +554,31 @@ function test_12(comm, ordering)
       -- left edge
       Mpi.Send(buff:data(), 1, dTypeX, 1, 42, comm)
       -- right edge
-      local ix, iy = range:upper(1), range:lower(2)
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
       Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 1, 43, comm)
    else
       -- left edge
       Mpi.Recv(buff:data(), 1, dTypeX, 0, 42, comm, nil)
       -- right edge
-      local ix, iy = range:upper(1), range:lower(2)
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
       Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 0, 43, comm, nil)
 
-      local i = range:lower(1)
-      for j = range:lower(2), range:upper(2) do
-	 assert_equal(i+20*j+0.5, buff[indexer(i,j)],
-		      string.format("Checking lower X-direction send/recv (%d,%d)", i,j))
+      for n = 1, nlayer do
+	 local i = range:lower(1)+n-1
+	 for j = range:lower(2), range:upper(2) do
+	    assert_equal(i+20*j+0.5, buff[indexer(i,j)],
+			 string.format("Checking lower X-direction send/recv (%d,%d)", i,j))
+	 end
       end
 
-      i = range:upper(1)
-      for j = range:lower(2), range:upper(2) do
-	 assert_equal(i+20*j+0.5, buff[indexer(i,j)],
-		      string.format("Checking upper X-direction send/recv (%d,%d)", i,j))
-      end      
-   end
-
-   -- Y direction
-   if rnk == 0 then
-      -- bottom edge
-      Mpi.Send(buff:data(), 1, dTypeY, 1, 44, comm)
-      -- top edge
-      local ix, iy = range:lower(1), range:upper(2)
-      Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 1, 45, comm)
-   else
-      -- bottom edge
-      Mpi.Recv(buff:data(), 1, dTypeY, 0, 44, comm, nil)
-      -- top edge
-      local ix, iy = range:lower(1), range:upper(2)
-      Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 0, 45, comm, nil)
-
-      local j = range:lower(2)
-      for i = range:lower(1), range:upper(1) do
-	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
+      for n = 1, nlayer do
+      	 i = range:upper(1)-n+1
+      	 for j = range:lower(2), range:upper(2) do
+      	    assert_equal(i+20*j+0.5, buff[indexer(i,j)],
+      			 string.format("Checking upper X-direction send/recv (%d,%d)", i,j))
+      	 end
       end
-
-      j = range:upper(2)
-      for i = range:lower(1), range:upper(1) do
-	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
-      end      
-   end
-
+   end   
    Mpi.Barrier(comm)
 end
 
@@ -613,8 +595,12 @@ test_8(Mpi.COMM_WORLD)
 test_9(Mpi.COMM_WORLD)
 test_10(Mpi.COMM_WORLD)
 test_11(Mpi.COMM_WORLD)
-test_12(Mpi.COMM_WORLD, Range.rowMajor)
-test_12(Mpi.COMM_WORLD, Range.colMajor)
+test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
+test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
+test_12(Mpi.COMM_WORLD, 2, Range.rowlMajor)
+test_12(Mpi.COMM_WORLD, 2, Range.collMajor)
+test_12(Mpi.COMM_WORLD, 3, Range.rowlMajor)
+test_12(Mpi.COMM_WORLD, 3, Range.collMajor)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
