@@ -15,6 +15,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 local Lin = require "Lib.Linalg"
+local Range = require "Lib.Range"
 
 local _M = {}
 
@@ -348,6 +349,7 @@ end
 -- MPI_Type_commit
 function _M.Type_commit(datatype)
    local err = ffiC.MPI_Type_commit(datatype)
+   return datatype
 end
 -- MPI_Type_free
 function _M.Type_free(datatype)
@@ -467,6 +469,99 @@ end
 -- Check if the communicator is NULL
 function _M.Is_comm_valid(comm)
    return getObj(comm, "MPI_Comm[1]") ~=  _M.COMM_NULL
+end
+
+-- helper function to make a MPI_Datatype object from block sizes and
+-- offsets
+function _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
+   if #blockSize == 1 then
+      return _M.Type_contiguous(blockSize[1], oldtype)
+   end
+   
+   -- check if sizes of all blocks and relative offsets are the same
+   local isVectorType = true
+   local sz = blockSize[1]
+   for i = 2, #blockSize do
+      if blockSize[i] ~= sz then
+	 isVectorType = false
+      end
+   end
+   if #blockSize > 1 then
+      local stride = blockOffset[2]-blockOffset[1]
+      for i = 2, #blockSize do
+	 if stride ~= blockOffset[i]-blockOffset[i-1] then
+	    isVectorType = false
+	 end
+      end
+   end
+
+   if isVectorType then
+      return _M.Type_vector(
+	 #blockOffset,
+	 blockSize[1],
+	 #blockOffset>1 and blockOffset[2]-blockOffset[1] or 0,
+	 oldtype)
+   else
+      -- must be contructed as an indexed type
+      local array_of_blocklengths, array_of_displacements
+	 = Lin.IntVec(#blockSize), Lin.IntVec(#blockSize)
+      array_of_blocklengths:setValues(blockSize)
+      array_of_displacements:setValues(blockOffset)
+      return _M.Type_indexed(array_of_blocklengths, array_of_displacements, oldtype)
+   end
+end
+
+-- Create an MPI_Datatype object from a range object in a specified
+-- direction and ordering. 'ordering' must be one of Range.rowMajor or
+-- Range.colMajor
+function _M.createDataTypeFromRange(dir, range, ordering, oldtype)
+   local indexer = range:genIndexer(ordering)
+   local rFace = range:shorten(dir)
+   local lo = rFace:lowerAsVec()
+   local up = rFace:upperAsVec()
+
+   local blockSize, blockOffset = {}, {}   
+   
+   local dist = indexer(up)-indexer(lo)+1
+   if dist == rFace:volume() then
+      blockSize[1] = rFace:volume()
+      blockOffset[1] = 0
+   else
+      -- determine size of each block and its zero-based index (MPI
+      -- expects zero-based indices)
+      local currBlockSize, lastLinIdx, lastOffset
+      local count = 0
+      for idx in rFace:iter(ordering) do
+	 if count == 0 then
+	    -- reset things if first time in this loop
+	    count = 1
+	    currBlockSize = 1
+	    lastLinIdx = indexer(idx)
+	    lastOffset = 0
+	 else
+	    local linIdx = indexer(idx)
+	    if linIdx-lastLinIdx == 1 then -- indices are contiguous
+	       currBlockSize = currBlockSize+1
+	    else
+	       -- store size and index
+	       blockSize[count] = currBlockSize
+	       blockOffset[count] = lastOffset
+
+	       -- prep for next round
+	       currBlockSize = 1
+	       lastOffset = linIdx-1
+	       count = count+1
+	    end
+	    lastLinIdx = linIdx -- for next round
+	 end
+	 blockSize[count] = currBlockSize
+	 blockOffset[count] = lastOffset
+      end
+   end
+   -- construct datatype and commit it
+   return _M.Type_commit(
+      _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
+   )
 end
 
 return _M
