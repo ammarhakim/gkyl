@@ -257,6 +257,21 @@ function test_15()
    assert_equal(10*1, range:volume(), "Checking shorter volume")
 end
 
+function test_15_b()
+   local bigr = Range.Range({1, 1}, {10, 10})
+   local range = bigr:shorten(1, 2)
+
+   assert_equal(1, range:lower(1), "Checking shorter range")
+   assert_equal(2, range:upper(1), "Checking shorter range")
+   assert_equal(2, range:shape(1), "Checking shorter range")
+
+   assert_equal(1, range:lower(2), "Checking shorter range")
+   assert_equal(10, range:upper(2), "Checking shorter range")
+   assert_equal(10, range:shape(2), "Checking shorter range")
+
+   assert_equal(10*2, range:volume(), "Checking shorter volume")
+end
+
 function test_16()
    local r = Range.Range({1, 2, 3}, {10, 11, 12})
    local lv, uv = r:lowerAsVec(), r:upperAsVec()
@@ -688,6 +703,7 @@ test_12()
 test_13()
 test_14()
 test_15()
+test_15_b()
 test_16()
 test_17()
 test_18()
