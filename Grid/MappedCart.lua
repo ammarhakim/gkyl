@@ -285,7 +285,7 @@ function MappedCart:write(fName)
 
    local localRange = nodalCoords:localRange()
    local indexer = nodalCoords:genIndexer()
-   for idx in localRange:colMajorIter() do
+   for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
 
       grid:cellCenter(xnc) -- nodal coordinate in computational space

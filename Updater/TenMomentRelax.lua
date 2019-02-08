@@ -102,7 +102,7 @@ function TenMomentRelax:_advance(tCurr, inFld, outFld,
    local staticEmDp = ffi.new("double*")
 
    local localRange = fFld:localRange()   
-   for idx in localRange:colMajorIter() do
+   for idx in localRange:rowMajorIter() do
 	    fDp = fFld:getDataPtrAt(fIdxr(idx))
       local myK = self._sd.k
       if (self._sd.hasKField) then
