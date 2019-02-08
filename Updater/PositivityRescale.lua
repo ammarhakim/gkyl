@@ -61,7 +61,7 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
  
    -- this should be ext range since rescaling might be done after applyBc
    local localRange = fIn:localExtRange()   
-   for idx in localRange:colMajorIter() do
+   for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
 
       fIn:fill(fInIndexer(idx), fInPtr)

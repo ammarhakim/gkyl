@@ -151,11 +151,11 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
    local idx = Lin.IntVec(cDim+vDim)
    -- outer loop is threaded and over configuration space
-   for cIdx in confRangeDecomp:colMajorIter(tId) do
+   for cIdx in confRangeDecomp:rowMajorIter(tId) do
 
       -- inner loop is over velocity space: no threading to avoid race
       -- conditions
-      for vIdx in velRange:colMajorIter() do
+      for vIdx in velRange:rowMajorIter() do
 	 --for d = 1, cDim do idx[d] = cIdx[d] end
          cIdx:copyInto(idx)
          for d = 1, vDim do idx[cDim+d] = vIdx[d] end

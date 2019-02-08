@@ -153,7 +153,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       -- To obtain the cell average, multiply the zeroth coefficient by this factor.
       local massRatFac = 2.0*(1.0+mRat) 
 
-      for confIdx in confRange:colMajorIter() do
+      for confIdx in confRange:rowMajorIter() do
          grid:setIndex(confIdx)
 
          n1Fld:fill(n1FldIndexer(confIdx), n1FldItr)
@@ -174,7 +174,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    else
 
       -- Configuration space loop, computing cross-primitive moments in each cell.
-      for confIdx in confRange:colMajorIter() do
+      for confIdx in confRange:rowMajorIter() do
          grid:setIndex(confIdx)
 
          u1Fld:fill(u1FldIndexer(confIdx), u1FldItr)
