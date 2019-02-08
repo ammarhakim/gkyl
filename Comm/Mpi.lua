@@ -509,13 +509,8 @@ function _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype
    end
 end
 
--- Creates an MPI_Datatype object from a range object in a specified
--- direction and ordering. 'ordering' must be one of Range.rowMajor or
--- Range.colMajor.
---
--- 'nlayer' is number of layers in range to include in datatype and
--- 'numComponent' is the number of components in field (usually 1)
-function _M.createDataTypeFromRange(dir, range, nlayer, numComponent, ordering, oldtype)
+-- Constructs block offsets and sizes from range object
+function _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
    local indexer = range:genIndexer(ordering)
    local rFace = range:shorten(dir, nlayer)
    local lo = rFace:lowerAsVec()
@@ -559,7 +554,17 @@ function _M.createDataTypeFromRange(dir, range, nlayer, numComponent, ordering, 
 	 blockOffset[count] = lastOffset
       end
    end
-   -- construct datatype and commit it
+   return blockSize, blockOffset
+end
+
+-- Creates an MPI_Datatype object from a range object in a specified
+-- direction and ordering. 'ordering' must be one of Range.rowMajor or
+-- Range.colMajor.
+--
+-- 'nlayer' is number of layers in range to include in datatype and
+-- 'numComponent' is the number of components in field (usually 1)
+function _M.createDataTypeFromRange(dir, range, nlayer, numComponent, ordering, oldtype)
+   local blockSize, blockOffset = _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
    return _M.Type_commit(
       _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
    )
