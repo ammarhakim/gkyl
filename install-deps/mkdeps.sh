@@ -46,6 +46,7 @@ If you build libraries that depend on MPI please specify the MPI C
 and C++ compilers to use.
 
 --build-luajit              Should we build LuaJIT?
+--build-luajit-beta3        Should we build LuaJIT-beta3?
 --build-luarocks            Should we build Luarocks?
 --build-adios               Should we build ADIOS?
 --build-openmpi             Should we build OpenMPI?
@@ -133,6 +134,10 @@ do
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
+      ;;
+   --build-luajit-beta3)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_LUAJIT_BETA3="$value"
       ;;   
    --build-adios)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -199,6 +204,14 @@ build_luajit() {
     fi
 }
 
+build_luajit_beta3() {
+    if [[ "$BUILD_LUAJIT_BETA3" = "yes" ]]
+    then    
+	echo "Building LuaJIT=beta3"
+	./build-luajit-beta3.sh
+    fi
+}
+
 build_adios() {
     if [[ ! "$BUILD_ADIOS" = "no" && ("$BUILD_ADIOS" = "yes" || ! -f $PREFIX/adios/include/adios.h) ]]
     then    
@@ -219,6 +232,7 @@ echo "Installations will be in $PREFIX"
 
 build_openmpi
 build_luajit
+build_luajit_beta3
 build_luarocks
 build_adios
 build_eigen
