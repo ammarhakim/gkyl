@@ -531,8 +531,8 @@ function test_12(comm, nlayer, ordering)
    end
 
    local range = Range.Range({1, 1}, {10, 20})
-   dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, 1, ordering, Mpi.DOUBLE)
-   dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, 1, ordering, Mpi.DOUBLE)
+   local dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, 1, ordering, Mpi.DOUBLE)
+   local dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, 1, ordering, Mpi.DOUBLE)
 
    local indexer = range:indexer(ordering)
    local nz = range:volume()
@@ -619,8 +619,8 @@ function test_13(comm, nlayer, numComponents, ordering)
    end
 
    local range = Range.Range({1, 1}, {10, 20})
-   dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, numComponents, ordering, Mpi.DOUBLE)
-   dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, numComponents, ordering, Mpi.DOUBLE)
+   local dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, numComponents, ordering, Mpi.DOUBLE)
+   local dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, numComponents, ordering, Mpi.DOUBLE)
 
    local nz = range:volume()*numComponents
    local buff = Alloc.Double(nz)

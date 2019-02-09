@@ -133,7 +133,7 @@ do
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
-      ;;
+      ;;   
    --build-adios)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADIOS="$value"
@@ -195,7 +195,7 @@ build_luajit() {
     if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
     then    
 	echo "Building LuaJIT"
-	./build-luajit-beta3.sh
+	./build-luajit-openresty.sh
     fi
 }
 
