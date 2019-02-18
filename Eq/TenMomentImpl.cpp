@@ -95,17 +95,6 @@ void gkylTenMomentRp(int dir, double delta[10], double ql[10], double qr[10], do
   double v[4];
   v[d[1]] = u1; v[d[2]] = u2; v[d[3]] = u3;
 
-  // double p0 = 0.5*(vl[0] + vr[0]);
-  // double u1 = (vl[d[1]] + vr[d[1]])*0.5;
-  // double u2 = (vl[d[2]] + vr[d[2]])*0.5;
-  // double u3 = (vl[d[3]] + vr[d[3]])*0.5;
-  // double p11 = (vl[dp[1]]+vr[dp[1]])*0.5;
-  // double p12 = (vl[dp[2]]+vr[dp[2]])*0.5;
-  // double p13 = (vl[dp[3]]+vr[dp[3]])*0.5;
-  // double p22 = (vl[dp[4]]+vr[dp[4]])*0.5;
-  // double p23 = (vl[dp[5]]+vr[dp[5]])*0.5;
-  // double p33 = (vl[dp[6]]+vr[dp[6]])*0.5;
-
   double phiDelta[10];
 
   // pre-multiply jump (delta) by phiPrime inverse: we do this as
