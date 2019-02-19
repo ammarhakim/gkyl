@@ -177,7 +177,7 @@ function TenMomentSrc:_advance(tCurr, inFld, outFld)
 
    local localRange = emFld:localRange()   
    -- loop over local range, updating source in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in localRange:rowMajorIter() do
       -- set pointers to fluids and field
       for i = 1, nFluids do
 	 fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))

@@ -111,6 +111,7 @@ function SelfPrimMoments:init(tbl)
       self._StarM1iM2Calc = PrimMomentsDecl.selectStarM1iM2Calc(self._kinSpecies, self._basisID, self._cDim, self._vDim) 
    end
 
+   self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(self._uDim+1), 0) 
 end
 
 -- advance method
@@ -166,7 +167,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local xcM, xcP   = Lin.Vec(self._pDim), Lin.Vec(self._pDim)
    local dxM, dxP   = Lin.Vec(self._pDim), Lin.Vec(self._pDim)
 
-   for confIdx in confRange:colMajorIter() do
+   for confIdx in confRange:rowMajorIter() do
       grid:setIndex(confIdx)
 
       m0fld:fill(m0fldIndexer(confIdx), m0fldItr)
@@ -216,7 +217,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             end
             local perpRange = self._perpRange[vDir]
 
-            for vPerpIdx in perpRange:colMajorIter() do
+            for vPerpIdx in perpRange:rowMajorIter() do
                vPerpIdx:copyInto(idxP)
                for d = 1, self._cDim do idxP[d] = confIdx[d] end
 
@@ -252,7 +253,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             firstDir = false
          end
 
-         self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
+         self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
 
       else
          -- To have energy conservation with piece-wise linear, we must use
@@ -285,7 +286,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
             -- Outer loop is over directions orthogonal to 'vDir' and
             -- inner loop is over 1D slice in 'vDir'.
-            for vPerpIdx in perpRange:colMajorIter() do
+            for vPerpIdx in perpRange:rowMajorIter() do
                vPerpIdx:copyInto(idxM); vPerpIdx:copyInto(idxP)
                for d = 1, self._cDim do idxM[d] = confIdx[d] end
                for d = 1, self._cDim do idxP[d] = confIdx[d] end
@@ -347,7 +348,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             firstDir = false
          end
 
-      self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m0Star:data(), m1Star:data(), m2Star:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
+      self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m0Star:data(), m1Star:data(), m2Star:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
 
       end
 

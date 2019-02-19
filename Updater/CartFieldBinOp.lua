@@ -82,7 +82,7 @@ function CartFieldBinOp:init(tbl)
    if fieldBasis then 
       self._binOpData = ffiC.new_binOpData_t(fieldBasis:numBasis(), self._numBasis) 
    else 
-      self._binOpData = ffiC.new_binOpData_t(self._numBasis, 1) 
+      self._binOpData = ffiC.new_binOpData_t(self._numBasis, 0) 
    end
 end
 
@@ -147,7 +147,7 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
 
    local tId = grid:subGridSharedId() -- local thread ID   
    -- loop, computing binOp in each cell
-   for idx in localBRangeDecomp:colMajorIter(tId) do
+   for idx in localBRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(idx)
 
       Afld:fill(AfldIndexer(idx), AfldItr)

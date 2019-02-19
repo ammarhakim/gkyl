@@ -97,7 +97,7 @@ function Bc:_advance(tCurr, inFld, outFld)
    local indexer = qOut:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- local thread ID
-   for idxG in self._ghostRangeDecomp:colMajorIter(tId) do -- loop, applying BCs
+   for idxG in self._ghostRangeDecomp:rowMajorIter(tId) do -- loop, applying BCs
       idxG:copyInto(idxS)
       -- if an in-field is specified the same indexes are used (gS
       -- points to the ghost layer of the in-field); otherwise, move
@@ -112,7 +112,7 @@ function Bc:_advance(tCurr, inFld, outFld)
       if self._skinLoop == "integrate" then 
    	 for c = 1, self._numComponents do qG[c] = 0 end
 
-         for idx in self._skin:colMajorIter() do
+         for idx in self._skin:rowMajorIter() do
    	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
    	    qOut:fill(indexer(idxS), qS)
             for _, bc in ipairs(self._bcList) do

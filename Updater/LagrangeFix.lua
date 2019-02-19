@@ -115,7 +115,7 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
    local vc = ffi.new("double[3]") -- cell center
 
    -- The configuration space loop
-   for confIdx in confRange:colMajorIter() do
+   for confIdx in confRange:rowMajorIter() do
       dm0:fill(confIndexer(confIdx), dm0Itr)
       dm1:fill(confIndexer(confIdx), dm1Itr)
       dm2:fill(confIndexer(confIdx), dm2Itr)
@@ -124,7 +124,7 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
       end
 
       -- The velocity space loop
-      for velIdx in velRange:colMajorIter() do
+      for velIdx in velRange:rowMajorIter() do
 	 -- Construct the phase space index ot of the configuration
 	 -- space a velocity space indices
 	 for d = 1, self.numConfDims do phaseIdx[d] = confIdx[d] end

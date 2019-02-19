@@ -34,12 +34,12 @@ ffi.cdef [[
 ]]
 
 -- Local definitions
-local rowMajLayout, colMajLayout = 1, 2 -- data layout
+local rowMajLayout, colMajLayout = Range.rowMajor, Range.colMajor -- data layout
 local indexerMakerFuncs = {} -- list of functions that make indexers
 indexerMakerFuncs[rowMajLayout] = Range.makeRowMajorIndexer
 indexerMakerFuncs[colMajLayout] = Range.makeColMajorIndexer
 -- Default layout
-local defaultLayout = colMajLayout
+local defaultLayout = rowMajLayout
 
 local genIndexerMakerFuncs = {} -- list of functions that make generic indexers
 genIndexerMakerFuncs[rowMajLayout] = Range.makeRowMajorGenIndexer
