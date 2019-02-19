@@ -52,7 +52,7 @@ MU_UPPER = 16*me*vte*vte/B/2
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 3*L_n/vti, -- end time
+   tEnd = 3*L_n/vti/2, -- end time
    nFrame = 1, -- number of output frames
    lower = {r0 - .01*dr/2, -dr/2, -L_parallel/2}, -- configuration space lower left
    upper = {r0 + .01*dr/2,  dr/2, L_parallel/2}, -- configuration space upper right

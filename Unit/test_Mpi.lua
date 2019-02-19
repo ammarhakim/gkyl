@@ -333,20 +333,383 @@ function test_10(comm)
    local nz = range:volume()
    local buff = Alloc.Double(nz)
 
-   
-   -- '"datatype" for send/recv. This is not really a data-type but a
-   -- shape that tells what portion of buffers to copy.
-   --local dType = Mpi.Type_contiguous(nsend, Mpi.DOUBLE)
-   --Mpi.Type_commit(dType)   
+   -- Construct '"datatype" for send/recv. This is not really a
+   -- data-type but a shape that tells what portion of buffers to
+   -- copy.
+   local dTypeX, dTypeY = nil, nil
+
+   local distance = indexer(range:upper(1), range:lower(2))
+      - indexer(range:lower(1), range:lower(2))
+   if distance == range:upper(1)-range:lower(1) then
+      dTypeX = Mpi.Type_vector(range:shape(2), 1, range:shape(1), Mpi.DOUBLE)
+      dTypeY = Mpi.Type_contiguous(range:shape(1), Mpi.DOUBLE)
+   else
+      dTypeX = Mpi.Type_contiguous(range:shape(2), Mpi.DOUBLE) 
+      dTypeY = Mpi.Type_vector(range:shape(1), 1, range:shape(2), Mpi.DOUBLE)
+   end
+   Mpi.Type_commit(dTypeX)
+   Mpi.Type_commit(dTypeY)
 
    if rnk == 0 then
       for i = range:lower(1), range:upper(1) do
 	 for j = range:lower(2), range:upper(2) do
-	    buff[indexer(i,j)] = 0.0
+	    buff[indexer(i,j)] = i+20*j+0.5
 	 end
       end
-      
    end
+
+   -- X direction
+   if rnk == 0 then
+      -- left edge
+      Mpi.Send(buff:data(), 1, dTypeX, 1, 42, comm)
+      -- right edge
+      local ix, iy = range:upper(1), range:lower(2)
+      Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 1, 43, comm)
+   else
+      -- left edge
+      Mpi.Recv(buff:data(), 1, dTypeX, 0, 42, comm, nil)
+      -- right edge
+      local ix, iy = range:upper(1), range:lower(2)
+      Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 0, 43, comm, nil)
+
+      local i = range:lower(1)
+      for j = range:lower(2), range:upper(2) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking X-direction send/recv")
+      end
+
+      i = range:upper(1)
+      for j = range:lower(2), range:upper(2) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking X-direction send/recv")
+      end      
+   end
+
+   -- Y direction
+   if rnk == 0 then
+      -- bottom edge
+      Mpi.Send(buff:data(), 1, dTypeY, 1, 44, comm)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)
+      Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 1, 45, comm)
+   else
+      -- bottom edge
+      Mpi.Recv(buff:data(), 1, dTypeY, 0, 44, comm, nil)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)
+      Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 0, 45, comm, nil)
+
+      local j = range:lower(2)
+      for i = range:lower(1), range:upper(1) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
+      end
+
+      j = range:upper(2)
+      for i = range:lower(1), range:upper(1) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
+      end      
+   end   
+end
+
+-- Datatypes (2D test with Type_indexed)
+function test_11(comm)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype (test_11) not run as number of procs not exactly 2")
+      return
+   end
+
+   local range = Range.Range({1, 1}, {10, 20})
+   local indexer = Range.makeRowMajorIndexer(range)
+   
+   local nz = range:volume()
+   local buff = Alloc.Double(nz)
+
+   -- Construct '"datatype" for send/recv. This is not really a
+   -- data-type but a shape that tells what portion of buffers to
+   -- copy.
+   local dTypeX, dTypeY = nil, nil
+
+   local distance = indexer(range:upper(1), range:lower(2))
+      - indexer(range:lower(1), range:lower(2))
+   if distance == range:upper(1)-range:lower(1) then
+      -- i-indices are ctt
+      local xbl, xdp = Lib.IntVec(range:shape(2)), Lib.IntVec(range:shape(2))
+      for i = 1, #xbl do xbl[i] = 1 end
+      xdp[1] = 0
+      for i = 2, #xdp do xdp[i] = xdp[i-1]+range:shape(1) end
+      dTypeX = Mpi.Type_indexed(xbl, xdp, Mpi.DOUBLE)
+
+      local ybl, ydp = Lin.IntVec(1), Lin.IntVec(1)
+      ybl[1] = range:shape(1)
+      ydp[1] = 0
+      dTypeY = Mpi.Type_indexed(ybl, ydp, Mpi.DOUBLE)
+   else
+      -- j-indices are ctt
+      local xbl, xdp = Lin.IntVec(1), Lin.IntVec(1)
+      xbl[1] = range:shape(2)
+      xdp[1] = 0
+      dTypeX = Mpi.Type_indexed(xbl, xdp, Mpi.DOUBLE)
+
+      local ybl, ydp = Lin.IntVec(range:shape(1)), Lin.IntVec(range:shape(1))
+      for i = 1, #ybl do ybl[i] = 1 end
+      ydp[1] = 0
+      for i = 2, #ydp do ydp[i] = ydp[i-1]+range:shape(2) end
+      dTypeY = Mpi.Type_indexed(ybl, ydp, Mpi.DOUBLE)
+   end
+   Mpi.Type_commit(dTypeX)
+   Mpi.Type_commit(dTypeY)
+
+   if rnk == 0 then
+      for i = range:lower(1), range:upper(1) do
+	 for j = range:lower(2), range:upper(2) do
+	    buff[indexer(i,j)] = i+20*j+0.5
+	 end
+      end
+   end
+
+   -- X direction
+   if rnk == 0 then
+      -- left edge
+      Mpi.Send(buff:data(), 1, dTypeX, 1, 42, comm)
+      -- right edge
+      local ix, iy = range:upper(1), range:lower(2)
+      Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 1, 43, comm)
+   else
+      -- left edge
+      Mpi.Recv(buff:data(), 1, dTypeX, 0, 42, comm, nil)
+      -- right edge
+      local ix, iy = range:upper(1), range:lower(2)
+      Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 0, 43, comm, nil)
+
+      local i = range:lower(1)
+      for j = range:lower(2), range:upper(2) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking X-direction send/recv")
+      end
+
+      i = range:upper(1)
+      for j = range:lower(2), range:upper(2) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking X-direction send/recv")
+      end      
+   end
+
+   -- Y direction
+   if rnk == 0 then
+      -- bottom edge
+      Mpi.Send(buff:data(), 1, dTypeY, 1, 44, comm)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)
+      Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 1, 45, comm)
+   else
+      -- bottom edge
+      Mpi.Recv(buff:data(), 1, dTypeY, 0, 44, comm, nil)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)
+      Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 0, 45, comm, nil)
+
+      local j = range:lower(2)
+      for i = range:lower(1), range:upper(1) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
+      end
+
+      j = range:upper(2)
+      for i = range:lower(1), range:upper(1) do
+	 assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
+      end      
+   end   
+end
+
+function test_12(comm, nlayer, ordering)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype (test_12) not run as number of procs not exactly 2")
+      return
+   end
+
+   local range = Range.Range({1, 1}, {10, 20})
+   local dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, 1, ordering, Mpi.DOUBLE)
+   local dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, 1, ordering, Mpi.DOUBLE)
+
+   local indexer = range:indexer(ordering)
+   local nz = range:volume()
+   local buff = Alloc.Double(nz)   
+   if rnk == 0 then
+      for i = range:lower(1), range:upper(1) do
+	 for j = range:lower(2), range:upper(2) do
+	    buff[indexer(i,j)] = i+20*j+0.5
+	 end
+      end
+   end
+
+   -- X direction
+   if rnk == 0 then
+      -- left edge
+      Mpi.Send(buff:data(), 1, dTypeX, 1, 42, comm)
+      -- right edge
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
+      Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 1, 43, comm)
+   else
+      -- left edge
+      Mpi.Recv(buff:data(), 1, dTypeX, 0, 42, comm, nil)
+      -- right edge
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
+      Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeX, 0, 43, comm, nil)
+
+      for n = 1, nlayer do
+	 local i = range:lower(1)+n-1
+	 for j = range:lower(2), range:upper(2) do
+	    assert_equal(i+20*j+0.5, buff[indexer(i,j)],
+			 string.format("Checking lower X-direction send/recv (%d,%d)", i,j))
+	 end
+      end
+
+      for n = 1, nlayer do
+      	 i = range:upper(1)-n+1
+      	 for j = range:lower(2), range:upper(2) do
+      	    assert_equal(i+20*j+0.5, buff[indexer(i,j)],
+      			 string.format("Checking upper X-direction send/recv (%d,%d)", i,j))
+      	 end
+      end
+   end
+
+   -- Y direction
+   if rnk == 0 then
+      -- bottom edge
+      Mpi.Send(buff:data(), 1, dTypeY, 1, 44, comm)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)-nlayer+1
+      Mpi.Send(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 1, 45, comm)
+   else
+      -- bottom edge
+      Mpi.Recv(buff:data(), 1, dTypeY, 0, 44, comm, nil)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)-nlayer+1
+      Mpi.Recv(buff:data()+indexer(ix,iy)-1, 1, dTypeY, 0, 45, comm, nil)
+
+      for n = 1, nlayer do
+	 local j = range:lower(2)+n-1
+	 for i = range:lower(1), range:upper(1) do
+	    assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
+	 end
+      end
+
+      for n = 1, nlayer do
+	 local j = range:upper(2)-n+1
+	 for i = range:lower(1), range:upper(1) do
+	    assert_equal(i+20*j+0.5, buff[indexer(i,j)], "Checking Y-direction send/recv")
+	 end
+      end
+   end
+   
+   Mpi.Barrier(comm)
+end
+
+function test_13(comm, nlayer, numComponents, ordering)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype (test_13) not run as number of procs not exactly 2")
+      return
+   end
+
+   local range = Range.Range({1, 1}, {10, 20})
+   local dTypeX = Mpi.createDataTypeFromRange(1, range, nlayer, numComponents, ordering, Mpi.DOUBLE)
+   local dTypeY = Mpi.createDataTypeFromRange(2, range, nlayer, numComponents, ordering, Mpi.DOUBLE)
+
+   local nz = range:volume()*numComponents
+   local buff = Alloc.Double(nz)
+
+   local indexer = range:indexer(ordering)   
+   local function cidx(i,j,c)
+      return (indexer(i,j)-1)*numComponents+c
+   end
+   
+   if rnk == 0 then
+      for i = range:lower(1), range:upper(1) do
+   	 for j = range:lower(2), range:upper(2) do
+   	    for k = 1, numComponents do
+   	       buff[cidx(i,j,k)] = i+20*j+0.5+1000*k
+   	    end
+   	 end
+      end
+   end
+
+   -- X direction
+   if rnk == 0 then
+      -- left edge
+      Mpi.Send(buff:data(), 1, dTypeX, 1, 42, comm)
+      -- right edge
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
+      Mpi.Send(buff:data()+cidx(ix,iy,1)-1, 1, dTypeX, 1, 43, comm)
+   else
+      -- left edge
+      Mpi.Recv(buff:data(), 1, dTypeX, 0, 42, comm, nil)
+      -- right edge
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
+      Mpi.Recv(buff:data()+cidx(ix,iy,1)-1, 1, dTypeX, 0, 43, comm, nil)
+
+      for n = 1, nlayer do
+   	 local i = range:lower(1)+n-1
+   	 for j = range:lower(2), range:upper(2) do
+   	    for k = 1, numComponents do
+   	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
+   			    string.format("Checking lower X-direction send/recv (%d,%d;%d [%d])",
+					  i,j,k,cidx(i,j,k)))
+   	    end
+   	 end
+      end
+
+      for n = 1, nlayer do
+      	 i = range:upper(1)-n+1
+      	 for j = range:lower(2), range:upper(2) do
+   	    for k = 1, numComponents do	    
+   	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
+   			    string.format("Checking upper X-direction send/recv (%d,%d;%d [%d])",
+					  i,j,k,cidx(i,j,k)))
+   	    end
+      	 end
+      end
+   end
+
+   -- Y direction
+   if rnk == 0 then
+      -- bottom edge
+      Mpi.Send(buff:data(), 1, dTypeY, 1, 44, comm)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)-nlayer+1
+      Mpi.Send(buff:data()+cidx(ix,iy,1)-1, 1, dTypeY, 1, 45, comm)
+   else
+      -- bottom edge
+      Mpi.Recv(buff:data(), 1, dTypeY, 0, 44, comm, nil)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)-nlayer+1
+      Mpi.Recv(buff:data()+cidx(ix,iy,1)-1, 1, dTypeY, 0, 45, comm, nil)
+
+      for n = 1, nlayer do
+   	 local j = range:lower(2)+n-1
+   	 for i = range:lower(1), range:upper(1) do
+	    for k = 1, numComponents do
+	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)], "Checking Y-direction send/recv")
+	    end
+   	 end
+      end
+
+      for n = 1, nlayer do
+   	 local j = range:upper(2)-n+1
+   	 for i = range:lower(1), range:upper(1) do
+	    for k = 1, numComponents do
+	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)], "Checking Y-direction send/recv")
+	    end
+   	 end
+      end
+   end   
+   
 end
 
 -- Run tests
@@ -361,6 +724,14 @@ test_7(Mpi.COMM_WORLD)
 test_8(Mpi.COMM_WORLD)
 test_9(Mpi.COMM_WORLD)
 test_10(Mpi.COMM_WORLD)
+test_11(Mpi.COMM_WORLD)
+test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
+test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
+test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
+test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
+test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
+test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
+test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")

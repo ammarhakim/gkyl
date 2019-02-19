@@ -103,7 +103,8 @@ void CartFieldBinOpDivide1x1vMax_P1(binOpData_t* data, const double *A, const do
     Bs[2] = B[2]; 
   } 
  
-  // Fill AEM matrix. 
+  // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(3,3);
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,2) = 0.7071067811865475*As[1]; 
@@ -161,7 +162,8 @@ void CartFieldBinOpDivide1x1vMax_P2(binOpData_t* data, const double *A, const do
     Bs[5] = B[5]; 
   } 
  
-  // Fill AEM matrix. 
+  // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(6,6);
   data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
   data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,3) = 0.7071067811865475*As[1]; 

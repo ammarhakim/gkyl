@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# Edit the paths and options in the following command to suit your system
-module load intel
-module load intel-mpi
-
 # Build directory
 OUT=build-par
 # Install location

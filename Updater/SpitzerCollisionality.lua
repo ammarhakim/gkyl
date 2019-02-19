@@ -97,7 +97,7 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local confRange      = m0Fld:localRange()
    if self.onGhosts then confRange = m0Fld:localExtRange() end
 
-   for confIdx in confRange:colMajorIter() do
+   for confIdx in confRange:rowMajorIter() do
       grid:setIndex(confIdx)
 
       m0Fld:fill(m0FldIndexer(confIdx), m0FldItr)

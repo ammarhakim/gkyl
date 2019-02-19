@@ -16,7 +16,7 @@ for bInd : 1 thru length(bName) do (
         /* For piecewise linear compute m0Star moment. */
         if (pi=1) then (
           /* Primitive moments for self-collision terms with p=1. */
-          printf(fh, "void VmSelfPrimMoments~ax~av~a_P~a(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void VmSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%"), 
 
           for si : 1 thru vi do (
@@ -27,7 +27,7 @@ for bInd : 1 thru length(bName) do (
           printf(fh, "~%")
         ) else (
           /* Primitive moments for self-collision terms with p>1. */
-          printf(fh, "void VmSelfPrimMoments~ax~av~a_P~a(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void VmSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%")
         ),
   
@@ -58,7 +58,7 @@ for bInd : 1 thru length(bName) do (
         /* For piecewise linear compute m0Star moment. */
         if (pi=1 and bInd=2) then (
           /* Primitive moments for self-collision terms with p=1. */
-          printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%"), 
 
           printf(fh, "void GkM0Star~ax~av~a_V~a(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); ~%", ci, vi, bName[bInd], VarsC[1]),
@@ -68,7 +68,7 @@ for bInd : 1 thru length(bName) do (
           printf(fh, "~%")
         ) else (
           /* Primitive moments for self-collision terms with p>1. */
-          printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%")
         ),
 
@@ -104,6 +104,7 @@ printf(fh, "#define PRIM_MOMENTS_MOD_DECL_H ~%")$
 printf(fh, " ~%")$
 printf(fh, "// Eigen include statements. ~%")$
 printf(fh, "#include <Eigen/Dense> ~%")$
+printf(fh, "#include <CartFieldBinOpModDecl.h> ~%")$
 printf(fh, " ~%")$
 printf(fh, "extern \"C\" { ~%")$
 printPrototypes()$

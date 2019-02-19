@@ -307,7 +307,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
-      for idx in perpRangeDecomp:colMajorIter(tId) do
+      for idx in perpRangeDecomp:rowMajorIter(tId) do
          idx:copyInto(idxp); idx:copyInto(idxm)
 
          -- fill masks along this direction

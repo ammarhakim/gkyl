@@ -19,7 +19,7 @@ varsV : [vx, vy, vz]$
 writeCExprsB(lhs, rhs) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
-    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", ssubst(")","]",ssubst("(","[",string(lhs[i]))), expr[i])
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", sremove("\\", ssubst(")","]",ssubst("(","[",string(lhs[i])))), expr[i])
   )
 )$
 
@@ -72,11 +72,11 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   
     /* Function declaration with input/output variables. */
     if (polyOrder=1 and species#"Gk") then (
-      printf(fh, "void ~a_P~a(const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
+      printf(fh, "void ~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
       printf(fh, "  // m0,m1:       moments of the distribution function. ~%"),
       printf(fh, "  // m0S,m1S,m1S: star moments (only used for piecewise linear). ~%")
     ) else (
-      printf(fh, "void ~a_P~a(const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
+      printf(fh, "void ~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) ~%{ ~%", funcNm, polyOrder),
       printf(fh, "  // m0,m1,m2: moments of the distribution function. ~%")
     ),
     printf(fh, "  // cM, cE:   vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. ~%"),
@@ -187,14 +187,12 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     N : NC*(udim+1),
 
     printf(fh, "  // Declare Eigen matrix and vectors for weak division. ~%"),
-    printf(fh, "  Eigen::MatrixXd BigAEM = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N), 
-    printf(fh, "  Eigen::VectorXd bEV = Eigen::VectorXd::Zero(~a);  ~%", N),
-    printf(fh, "  Eigen::VectorXd xEV = Eigen::VectorXd::Zero(~a);  ~%", N),
+    printf(fh, "  data->AEM_S = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N), 
     printf(fh, " ~%"),
 
     /* Make a list of the LHS matrix assignments. */
     /* Note: Eigen defaults to Column-major order. */
-    Ef [i,j] := BigAEM[i,j],
+    Ef [i,j] := "data->AEM_S"[i,j],
 
     m1RHS_c : [],
     for vd : 1 thru udim do (
@@ -288,30 +286,30 @@ calcSelfPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     if udim=2 then (
       printf(fh, "  // Set other entries to 0. // ~%"),
-      printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,0,NC),
-      printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,0),
+      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,0,NC),
+      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,0),
       printf(fh, " ~%")
     ) elseif udim=3 then (
       printf(fh, "  // Set other entries to 0. // ~%"),
-      printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,2*NC,0,NC),
-      printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",2*NC,NC,NC,0),
-      printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,2*NC),
-      printf(fh, "  BigAEM.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,2*NC,NC),
+      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,2*NC,0,NC),
+      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",2*NC,NC,NC,0),
+      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,NC,2*NC),
+      printf(fh, "  data->AEM_S.block<~a,~a>(~a,~a).setZero(); ~%",NC,NC,2*NC,NC),
       printf(fh, " ~%")
     ),
 
     printf(fh, "  // ....... RHS vector is composed of m1 and m2 .......... // ~%"),
     flush_output(fh),
-    writeEVExprs(bEV,append(m1RHS_c,m2_c), udim, NC, polyOrder, species),
+    writeEVExprs("data->BEV_S",append(m1RHS_c,m2_c), udim, NC, polyOrder,species),
     printf(fh, " ~%"),
 
-    printf(fh, "  xEV = BigAEM.colPivHouseholderQr().solve(bEV); ~%"),
+    printf(fh, "  data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); ~%"),
     printf(fh, " ~%"),
 
-    printf(fh, "  Eigen::Map<VectorXd>(u,~a,1) = xEV.segment<~a>(0); ~%", NC*udim,NC*udim),
+    printf(fh, "  Eigen::Map<VectorXd>(u,~a,1) = data->u_S.segment<~a>(0); ~%", NC*udim,NC*udim),
     printf(fh, " ~%"),
 
-    printf(fh, "  Eigen::Map<VectorXd>(vtSq,~a,1) = xEV.segment<~a>(~a); ~%", NC, NC, NC*udim),
+    printf(fh, "  Eigen::Map<VectorXd>(vtSq,~a,1) = data->u_S.segment<~a>(~a); ~%", NC, NC, NC*udim),
     printf(fh, " ~%"),
 
 

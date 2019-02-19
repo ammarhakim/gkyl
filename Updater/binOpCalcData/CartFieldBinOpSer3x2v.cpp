@@ -355,7 +355,8 @@ void CartFieldBinOpDivide3x2vSer_P1(binOpData_t* data, const double *A, const do
     Bs[31] = B[31]; 
   } 
  
-  // Fill AEM matrix. 
+  // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(32,32);
   data->AEM_D(0,0) = 0.3535533905932737*As[0]; 
   data->AEM_D(0,1) = 0.3535533905932737*As[1]; 
   data->AEM_D(0,2) = 0.3535533905932737*As[2]; 
@@ -737,7 +738,8 @@ void CartFieldBinOpDivide3x2vSer_P2(binOpData_t* data, const double *A, const do
     Bs[111] = B[111]; 
   } 
  
-  // Fill AEM matrix. 
+  // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(112,112);
   data->AEM_D(0,0) = 0.3535533905932737*As[0]; 
   data->AEM_D(0,1) = 0.3535533905932737*As[1]; 
   data->AEM_D(0,2) = 0.3535533905932737*As[2]; 
