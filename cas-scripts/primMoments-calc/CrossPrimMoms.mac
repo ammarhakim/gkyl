@@ -74,10 +74,8 @@ calcCrossPrimMomsGreene(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
   /* Physical number of velocity-space dimensions represented by model. */
   if (sequal(substring(funcNm,1,3),"Vm")) then (
-    physVdim : vdim,
-    species : "Vm"
+    physVdim : vdim
   ) else (
-    species : "Gk",
     if vdim=1 then (
       physVdim : vdim
     ) else (
@@ -88,7 +86,6 @@ calcCrossPrimMomsGreene(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   for polyOrder : 1 thru pMax do (
     bC  : basisC[polyOrder],
     bP  : basisP[polyOrder],
-    if polyOrder=1 and species="Gk" then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)])),
     NP  : length(bP),
     NC  : length(bC),
   
@@ -185,10 +182,8 @@ calcCrossPrimMomsHeavyIon(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
   /* Physical number of velocity-space dimensions represented by model. */
   if (sequal(substring(funcNm,1,3),"Vm")) then (
-    physVdim : vdim,
-    species : "Vm"
+    physVdim : vdim
   ) else (
-    species : "Gk",
     if vdim=1 then (
       physVdim : vdim
     ) else (
@@ -199,7 +194,6 @@ calcCrossPrimMomsHeavyIon(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   for polyOrder : 1 thru pMax do (
     bC  : basisC[polyOrder],
     bP  : basisP[polyOrder],
-    if polyOrder=1 and species="Gk" then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)])),
     NP  : length(bP),
     NC  : length(bC),
   

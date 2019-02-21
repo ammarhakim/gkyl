@@ -142,7 +142,7 @@ void CartFieldBinOpDivide2xTensor_P1(binOpData_t* data, const double *A, const d
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 4*vd; 
-    // Fill BEV. 
+    // Fill BEV_S. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
  
     // Solve the system of equations. 
@@ -314,7 +314,7 @@ void CartFieldBinOpDivide2xTensor_P2(binOpData_t* data, const double *A, const d
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 9*vd; 
-    // Fill BEV. 
+    // Fill BEV_S. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7],Bs[b0+8]; 
  
     // Solve the system of equations. 

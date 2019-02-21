@@ -1,11 +1,24 @@
+fh : openw("~/max-out/PrimMomentsModDecl.h")$
+
 polyOrderMax : 3$
 
 VarsC : [X, Y, Z]$
 
+printf(fh, "#ifndef PRIM_MOMENTS_MOD_DECL_H ~%")$
+printf(fh, "#define PRIM_MOMENTS_MOD_DECL_H ~%")$
+
+printf(fh, " ~%")$
+printf(fh, "// Eigen include statements. ~%")$
+printf(fh, "#include <Eigen/Dense> ~%")$
+printf(fh, "#include <CartFieldBinOpModDecl.h> ~%")$
+printf(fh, " ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+
 bName   : ["Ser","Max"]$
 gkVdims : [[1,2], [2], [2]]$
 
-printPrototypes() := block([], 
+
 for bInd : 1 thru length(bName) do (
 
   for pi : 1 thru polyOrderMax do (
@@ -56,7 +69,7 @@ for bInd : 1 thru length(bName) do (
         vi : gkVdims[ci][gkV],
 
         /* For piecewise linear compute m0Star moment. */
-        if (pi=1 and bInd=2) then (
+        if (pi=1) then (
           /* Primitive moments for self-collision terms with p=1. */
           printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%"), 
@@ -71,7 +84,7 @@ for bInd : 1 thru length(bName) do (
           printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%")
         ),
-
+  
         /* Corrections to primitive moments from finite velocity grids. */
         printf(fh, "void GkBoundaryIntegral~ax~av~a_F_V~a_P~a(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); ~%", ci, vi, bName[bInd], VarsC[1], pi),
         printf(fh, "~%"),
@@ -95,26 +108,10 @@ for bInd : 1 thru length(bName) do (
     printf(fh, "~%")
   )
 
-)
-)$
+);
 
-fh : openw("~/max-out/PrimMomentsModDecl.h")$
-printf(fh, "#ifndef PRIM_MOMENTS_MOD_DECL_H ~%")$
-printf(fh, "#define PRIM_MOMENTS_MOD_DECL_H ~%")$
-printf(fh, " ~%")$
-printf(fh, "// Eigen include statements. ~%")$
-printf(fh, "#include <Eigen/Dense> ~%")$
-printf(fh, "#include <CartFieldBinOpModDecl.h> ~%")$
-printf(fh, " ~%")$
-printf(fh, "extern \"C\" { ~%")$
-printPrototypes()$
 printf(fh, "} ~%")$
-printf(fh, "#endif ~%")$
-close(fh)$
 
-fh : openw("~/max-out/_PrimMomentsCdef.lua")$
-printf(fh, "local ffi = require \"ffi\" ~%~%")$
-printf(fh, "ffi.cdef [[~%")$
-printPrototypes()$
-printf(fh, "]]~%")$
+printf(fh, "#endif ~%")$
+
 close(fh)$

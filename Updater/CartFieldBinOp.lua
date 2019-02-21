@@ -43,8 +43,6 @@ function CartFieldBinOp:init(tbl)
 
    local op = assert(
       tbl.operation, "Updater.CartFieldBinOp: Must provide an operation using 'operation'.")
- 
-   local inclVx2 = xsys.pickBool(tbl.inclVx2, false)
 
    -- dimension of spaces.
    self._wDim = weakBasis:ndim()
@@ -70,7 +68,7 @@ function CartFieldBinOp:init(tbl)
    -- function to compute specified operation.
    if isOpNameGood(op) then
       self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, polyOrder)
-      if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder, inclVx2) end
+      if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder) end
    else
       assert(false, string.format(
 		"CartFieldBinOp: Operation must be one of Multiply, Divide. Requested %s instead.", op))

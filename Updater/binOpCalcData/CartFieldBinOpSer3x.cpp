@@ -233,7 +233,7 @@ void CartFieldBinOpDivide3xSer_P1(binOpData_t* data, const double *A, const doub
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 8*vd; 
-    // Fill BEV. 
+    // Fill BEV_S. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7]; 
  
     // Solve the system of equations. 
@@ -756,7 +756,7 @@ void CartFieldBinOpDivide3xSer_P2(binOpData_t* data, const double *A, const doub
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 20*vd; 
-    // Fill BEV. 
+    // Fill BEV_S. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7],Bs[b0+8],Bs[b0+9],Bs[b0+10],Bs[b0+11],Bs[b0+12],Bs[b0+13],Bs[b0+14],Bs[b0+15],Bs[b0+16],Bs[b0+17],Bs[b0+18],Bs[b0+19]; 
  
     // Solve the system of equations. 
