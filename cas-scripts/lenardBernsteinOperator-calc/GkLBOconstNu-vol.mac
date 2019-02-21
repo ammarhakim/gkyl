@@ -140,8 +140,10 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       facVparMid   : float(expand(fullratsimp(subst(zr,facVpar_e))))
     ),
     if vdim = 1 then (
-      expr : float(expand(fullratsimp(((polyOrder+1)**2)*facVparMid/(2*polyOrder+1)))),
-      param : cons(expr, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4nu[1], m_, w[vid[1]]]),
+      if polyOrder=1 then polyOrderEff:2
+      else polyOrderEff : polyOrder,
+      expr : float(expand(fullratsimp(((polyOrderEff+1)**2)*facVparMid/(2*polyOrderEff+1)))),
+      param : cons(expr, [float(expand(((polyOrderEff+1)**2)/(2*polyOrderEff+1))), rdvSq4nu[1], m_, w[vid[1]]]),
       eColl : apply(collectterms, param),
       printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl )
     ),
