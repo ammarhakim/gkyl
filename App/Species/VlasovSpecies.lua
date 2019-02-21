@@ -33,10 +33,6 @@ VlasovSpecies.bcExternal = SP_BC_EXTERN -- load external BC file
 VlasovSpecies.bcZeroFlux = SP_BC_ZEROFLUX
 VlasovSpecies.bcReservoir = SP_BC_RESERVOIR
 
-function VlasovSpecies:type()
-  return "VlasovSpecies"
-end
-
 function VlasovSpecies:alloc(nRkDup)
    -- allocate distribution function
    VlasovSpecies.super.alloc(self, nRkDup)

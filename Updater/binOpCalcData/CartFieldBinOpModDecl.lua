@@ -23,10 +23,8 @@ end
 
 -- select kernel function to compute specified operation
 -- between inputs of different dimensionality.
-function _M.selectBinOpCalcD(op, basisNm, CDIM, VDIM, polyOrder, inclVx2)
-   local inclVx2str = ""
-   if inclVx2 and polyOrder==1 then inclVx2str = "InclVx2" end
-   local funcNm = string.format("CartFieldBinOp%s%dx%dv%s%s_P%d", op, CDIM, VDIM, basisNmMap[basisNm], inclVx2str, polyOrder)
+function _M.selectBinOpCalcD(op, basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("CartFieldBinOp%s%dx%dv%s_P%d", op, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 

@@ -149,7 +149,7 @@ void CartFieldBinOpDivide3xMax_P1(binOpData_t* data, const double *A, const doub
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 4*vd; 
-    // Fill BEV. 
+    // Fill BEV_S. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
  
     // Solve the system of equations. 
@@ -326,7 +326,7 @@ void CartFieldBinOpDivide3xMax_P2(binOpData_t* data, const double *A, const doub
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 10*vd; 
-    // Fill BEV. 
+    // Fill BEV_S. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7],Bs[b0+8],Bs[b0+9]; 
  
     // Solve the system of equations. 

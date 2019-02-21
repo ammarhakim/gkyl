@@ -34,16 +34,9 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
 
-  if (species="Vm") then (
-    species : "Vm"
-  ) else (
-    species : "Gk"
-  ),
-
   for polyOrder : 1 thru pMax do (
     bC : basisC[polyOrder],
     bP : basisP[polyOrder],
-    if polyOrder=1 and species="Gk" then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)])),
     NP : length(bP),
     NC : length(bC),
 
@@ -58,7 +51,7 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
     /* Quantity to be integrated over velocity boundary surface.
        if atLower=true  this is -f_(vmin) or -(vf)_(vmin),
        if atLower=false this is f^(vmax) or (vf)^(vmax). */
-    if (species="Vm") then (
+    if (sequal(substring(funcNm,1,3),"Vm")) then (
       /* Vlasov Maxwell. */
       if (polyOrder=1 and wInd=2) then (
         mBlo_e : -(Bfac[wInd]+dv[dir]/2)*subst(vv=-1,fbIn_e), 
@@ -69,8 +62,13 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
       )
     ) else (
       /* Gyrokinetics. */
-      mBlo_e : -Bfac[wInd]*subst(vv=-1,fbIn_e),
-      mBup_e :  Bfac[wInd]*subst(vv=1,fbIn_e)
+      if (polyOrder=1 and wInd=2 and dir=1) then (
+        mBlo_e : -(Bfac[wInd]+dv[dir]/2)*subst(vv=-1,fbIn_e), 
+        mBup_e :  (Bfac[wInd]-dv[dir]/2)*subst(vv=1,fbIn_e)
+      ) else (
+        mBlo_e : -Bfac[wInd]*subst(vv=-1,fbIn_e),
+        mBup_e :  Bfac[wInd]*subst(vv=1,fbIn_e)
+      )
     ),
 
     /* if atLower=true this is -f_(vmin) or -(vf)_(vmin),
@@ -81,7 +79,7 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
     fBup_c : calcInnerProdList(surfVars,1,bC,mBup_e),
 
     /* Function declaration with input/output variables. */
-    if (species="Vm") then (
+    if (sequal(substring(funcNm,1,3),"Vm")) then (
       printf(fh, "void ~a_~a_~a_P~a(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder)
     ) else (
       printf(fh, "void ~a_~a_~a_P~a(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out) ~%{ ~%", funcNm, Fsuffix[wInd], VarsV[dir], polyOrder)
@@ -99,7 +97,7 @@ calcBoundaryIntegral(wInd, dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block
 
     /* Surface integral above was done in [-1,1] computational space. Surface
        factor needs to be multiplied to obtain result from physical grid. */
-    if (species="Vm") then (
+    if (sequal(substring(funcNm,1,3),"Vm")) then (
       printf(fh, "  const double dS = ~a; ~%", float(1/(2^(vdim-1)))*surfExpr)
     ) else (
       printf(fh, "  const double dS = ~a*intFac; ~%", float(1/(2^(vdim-1)))*surfExpr)

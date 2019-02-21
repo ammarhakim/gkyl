@@ -136,41 +136,6 @@ void CartFieldBinOpMultiply1x3vTensor_P2(binOpData_t* data, const double *A, con
  
 } 
  
-void CartFieldBinOpMultiply1x3vTensorInclVx2_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
-{ 
-  // A:       scalar/vector field in configuration space. 
-  // B:       scalar field in phase space. 
-  // Ncomp:   number of components of B (should =1 here). 
-  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (should=1 here). 
-  // out:     output field A*B (same number of components as B). 
- 
-  double tmp[17]; 
-  tmp[0] = 0.7071067811865475*A[1]*B[1]+0.7071067811865475*A[0]*B[0]; 
-  tmp[1] = 0.7071067811865475*A[0]*B[1]+0.7071067811865475*B[0]*A[1]; 
-  tmp[2] = 0.7071067811865475*A[1]*B[5]+0.7071067811865475*A[0]*B[2]; 
-  tmp[3] = 0.7071067811865475*A[1]*B[6]+0.7071067811865475*A[0]*B[3]; 
-  tmp[4] = 0.7071067811865475*A[1]*B[8]+0.7071067811865475*A[0]*B[4]; 
-  tmp[5] = 0.7071067811865475*A[0]*B[5]+0.7071067811865475*A[1]*B[2]; 
-  tmp[6] = 0.7071067811865475*A[0]*B[6]+0.7071067811865475*A[1]*B[3]; 
-  tmp[7] = 0.7071067811865475*A[1]*B[11]+0.7071067811865475*A[0]*B[7]; 
-  tmp[8] = 0.7071067811865475*A[0]*B[8]+0.7071067811865475*A[1]*B[4]; 
-  tmp[9] = 0.7071067811865475*A[1]*B[12]+0.7071067811865475*A[0]*B[9]; 
-  tmp[10] = 0.7071067811865475*A[1]*B[13]+0.7071067811865475*A[0]*B[10]; 
-  tmp[11] = 0.7071067811865475*A[0]*B[11]+0.7071067811865475*A[1]*B[7]; 
-  tmp[12] = 0.7071067811865475*A[0]*B[12]+0.7071067811865475*A[1]*B[9]; 
-  tmp[13] = 0.7071067811865475*A[0]*B[13]+0.7071067811865475*A[1]*B[10]; 
-  tmp[14] = 0.7071067811865475*A[1]*B[15]+0.7071067811865475*A[0]*B[14]; 
-  tmp[15] = 0.7071067811865475*A[0]*B[15]+0.7071067811865475*A[1]*B[14]; 
-  tmp[16] = 0.7071067811865475*A[0]*B[16]; 
- 
-  // This tmp allows for in-place multiplication. 
-  for (unsigned short int i=0; i<17; i++) 
-  { 
-    out[i] = tmp[i]; 
-  } 
- 
-} 
- 
 void CartFieldBinOpDivide1x3vTensor_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       configuration space denominator field (must be a scalar field). 
@@ -237,7 +202,7 @@ void CartFieldBinOpDivide1x3vTensor_P1(binOpData_t* data, const double *A, const
   data->AEM_D(0,2) = 0.7071067811865475*As[1]; 
   data->AEM_D(0,3) = 0.7071067811865475*As[0]; 
  
-  // Fill BEV. 
+  // Fill BEV_D. 
   data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8],Bs[9],Bs[10],Bs[11],Bs[12],Bs[13],Bs[14],Bs[15]; 
  
   // Solve the system of equations. 
@@ -451,7 +416,7 @@ void CartFieldBinOpDivide1x3vTensor_P2(binOpData_t* data, const double *A, const
   data->AEM_D(0,34) = 0.6324555320336759*As[1]; 
   data->AEM_D(0,59) = 0.7071067811865475*As[2]; 
  
-  // Fill BEV. 
+  // Fill BEV_D. 
   data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8],Bs[9],Bs[10],Bs[11],Bs[12],Bs[13],Bs[14],Bs[15],Bs[16],Bs[17],Bs[18],Bs[19],Bs[20],Bs[21],Bs[22],Bs[23],Bs[24],Bs[25],Bs[26],Bs[27],Bs[28],Bs[29],Bs[30],Bs[31],Bs[32],Bs[33],Bs[34],Bs[35],Bs[36],Bs[37],Bs[38],Bs[39],Bs[40],Bs[41],Bs[42],Bs[43],Bs[44],Bs[45],Bs[46],Bs[47],Bs[48],Bs[49],Bs[50],Bs[51],Bs[52],Bs[53],Bs[54],Bs[55],Bs[56],Bs[57],Bs[58],Bs[59],Bs[60],Bs[61],Bs[62],Bs[63],Bs[64],Bs[65],Bs[66],Bs[67],Bs[68],Bs[69],Bs[70],Bs[71],Bs[72],Bs[73],Bs[74],Bs[75],Bs[76],Bs[77],Bs[78],Bs[79],Bs[80]; 
  
   // Solve the system of equations. 
@@ -459,84 +424,6 @@ void CartFieldBinOpDivide1x3vTensor_P2(binOpData_t* data, const double *A, const
  
   // Copy data from Eigen vector. 
   Eigen::Map<VectorXd>(out,81,1) = data->u_D; 
- 
-} 
- 
-void CartFieldBinOpDivide1x3vTensorInclVx2_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
-{ 
-  // A:       configuration space denominator field (must be a scalar field). 
-  // B:       phase space numerator field (must be a scalar field). 
-  // Ncomp:   number of components of B (=1 here). 
-  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else (=1 here). 
-  // out:     output field (same number of components as B). 
- 
-  // If a corner value is below zero, use cell average A.
-  bool avgA = false;
-  if (0.7071067811865475*A[0]-1.224744871391589*A[1] < 0) { 
-    avgA = true;
-  }
-  if (1.224744871391589*A[1]+0.7071067811865475*A[0] < 0) { 
-    avgA = true;
-  }
- 
-  double As[2]; 
-  double Bs[17]; 
-  if (avgA) { 
-    As[0] = A[0]; 
-    As[1] = 0.0; 
-    Bs[0] = B[0]; 
-    Bs[1] = 0.0; 
-    Bs[2] = B[2]; 
-    Bs[3] = B[3]; 
-    Bs[4] = B[4]; 
-    Bs[5] = 0.0; 
-    Bs[6] = 0.0; 
-    Bs[7] = B[7]; 
-    Bs[8] = 0.0; 
-    Bs[9] = B[9]; 
-    Bs[10] = B[10]; 
-    Bs[11] = 0.0; 
-    Bs[12] = 0.0; 
-    Bs[13] = 0.0; 
-    Bs[14] = B[14]; 
-    Bs[15] = 0.0; 
-    Bs[16] = B[16]; 
-  } else { 
-    As[0] = A[0]; 
-    As[1] = A[1]; 
-    Bs[0] = B[0]; 
-    Bs[1] = B[1]; 
-    Bs[2] = B[2]; 
-    Bs[3] = B[3]; 
-    Bs[4] = B[4]; 
-    Bs[5] = B[5]; 
-    Bs[6] = B[6]; 
-    Bs[7] = B[7]; 
-    Bs[8] = B[8]; 
-    Bs[9] = B[9]; 
-    Bs[10] = B[10]; 
-    Bs[11] = B[11]; 
-    Bs[12] = B[12]; 
-    Bs[13] = B[13]; 
-    Bs[14] = B[14]; 
-    Bs[15] = B[15]; 
-    Bs[16] = B[16]; 
-  } 
- 
-  // Fill AEM matrix. 
-  data->AEM_D(0,0) = 0.7071067811865475*As[0]; 
-  data->AEM_D(0,1) = 0.7071067811865475*As[1]; 
-  data->AEM_D(0,2) = 0.7071067811865475*As[1]; 
-  data->AEM_D(0,3) = 0.7071067811865475*As[0]; 
- 
-  // Fill BEV. 
-  data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8],Bs[9],Bs[10],Bs[11],Bs[12],Bs[13],Bs[14],Bs[15],Bs[16]; 
- 
-  // Solve the system of equations. 
-  data->u_D = data->AEM_D.colPivHouseholderQr().solve(data->BEV_D); 
- 
-  // Copy data from Eigen vector. 
-  Eigen::Map<VectorXd>(out,17,1) = data->u_D; 
  
 } 
  
