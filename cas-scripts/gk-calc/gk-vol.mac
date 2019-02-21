@@ -183,6 +183,9 @@ load(modNm),
     alphaL : subst(varsP[d]=-1, alpha_expd),
     alphaR : subst(varsP[d]=1, alpha_expd),
 
+    /* for p=1, modify vpar cfl so that it is effectively p=2 since vpar^2 is included in basis */
+    if d=cdim+1 and i=1 then (alphaL : alphaL*3/5, alphaR : alphaR*3/5),
+
     /* evaluate cfl by surface averaging */
     printf(fh, "#if cflType == SURFAVG ~%"),
     /* note: factor of derivfacsD already included in alpha_expd */
