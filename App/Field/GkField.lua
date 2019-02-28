@@ -586,7 +586,7 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
          local ptr = dApardt:get(1)
 
          -- loop over all cells
-         for idx in localRange:colMajorIter() do
+         for idx in localRange:rowMajorIter() do
             self.grid:setIndex(idx)
             
             dApardt:fill(indexer(idx), ptr)
@@ -662,7 +662,7 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
          local ptr = dApardt:get(1)
 
          -- loop over all cells
-         for idx in localRange:colMajorIter() do
+         for idx in localRange:rowMajorIter() do
             self.grid:setIndex(idx)
             
             dApardt:fill(indexer(idx), ptr)
