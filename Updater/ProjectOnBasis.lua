@@ -88,7 +88,7 @@ function ProjectOnBasis:init(tbl)
    self._ordinates = Lin.Mat(numOrdinates, ndim)
    self._weights = Lin.Vec(numOrdinates)
    local nodeNum = 1
-   for idx in quadRange:colMajorIter() do
+   for idx in quadRange:rowMajorIter() do
       self._weights[nodeNum] = 1.0
       for d = 1, ndim do
 	 self._weights[nodeNum] = self._weights[nodeNum]*weights[idx[d]]

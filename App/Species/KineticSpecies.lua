@@ -586,7 +586,11 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
-   end	 
+   end
+
+   -- Barrier after accumulate since applyBc has different loop structure
+   Mpi.Barrier(self.grid:commSet().sharedComm)
+ 
    if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
       -- only applyBc on forwardEuler combine
       self:applyBc(nil, self:rkStepperFields()[outIdx])
@@ -601,12 +605,13 @@ function KineticSpecies:suggestDt()
    -- loop over local region 
    local grid = self.grid
    self.dt[0] = GKYL_MAX_DOUBLE
+
    local tId = grid:subGridSharedId() -- local thread ID
    local localRange = self.cflRateByCell:localRange()
    local localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange, numSplit = grid:numSharedProcs() }
 
-   for idx in localRangeDecomp:colMajorIter(tId) do
+   for idx in localRangeDecomp:rowMajorIter(tId) do
       -- calculate local min dt from local cflRates on each proc
       self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
       self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
@@ -633,6 +638,11 @@ function KineticSpecies:applyBc(tCurr, fIn)
       if self.fluctuationBCs then
         -- if fluctuation-only BCs, subtract off background before applying BCs
         fIn:accumulate(-1.0, self.f0)
+
+        -- possibly needed Barrier for fluctuation-only BCs with shared memory on
+        -- there is a barrier before applyBc is entered, but need a barrier before sync()
+        -- needs to be tested, but I think this is needed -- Jimmy Juno 02/28/19
+        Mpi.Barrier(self.grid:commSet().sharedComm)
       end
 
       -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
@@ -648,6 +658,11 @@ function KineticSpecies:applyBc(tCurr, fIn)
       if self.fluctuationBCs then
         -- put back together total distribution
         fIn:accumulate(1.0, self.f0)
+
+        -- possibly needed Barrier for fluctuation-only BCs with shared memory on
+        -- there is a barrier at the end of sync(), but need a barrier between accumulate and sync()
+        -- needs to be tested, but I think this is needed -- Jimmy Juno 02/28/19
+        Mpi.Barrier(self.grid:commSet().sharedComm)
 
         -- update ghosts in total distribution, without enforcing periodicity
         fIn:sync(not syncPeriodicDirsTrue)

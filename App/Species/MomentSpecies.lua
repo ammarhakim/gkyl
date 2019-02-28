@@ -174,7 +174,7 @@ function MomentSpecies:checkInv(fIn)
 
    local isInv = true
    local localRange = fIn:localRange()   
-   for idx in localRange:colMajorIter() do
+   for idx in localRange:rowMajorIter() do
       self.grid:setIndex(idx)
 
       fIn:fill(fInIndexer(idx), fInPtr)

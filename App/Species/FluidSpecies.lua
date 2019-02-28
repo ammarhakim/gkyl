@@ -314,7 +314,11 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
-   end	 
+   end
+
+   -- Barrier after accumulate since applyBc has different loop structure
+   Mpi.Barrier(self.grid:commSet().sharedComm)
+
    if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
       -- only applyBc on forwardEuler combine
       self:applyBc(nil, self:rkStepperFields()[outIdx])
