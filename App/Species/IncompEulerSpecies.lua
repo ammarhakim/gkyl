@@ -102,7 +102,7 @@ function IncompEulerSpecies:suggestDt()
    local localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange, numSplit = grid:numSharedProcs() }
 
-   for idx in localRangeDecomp:colMajorIter(tId) do
+   for idx in localRangeDecomp:rowMajorIter(tId) do
       -- calculate local min dt from local cflRates
       self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
       self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
