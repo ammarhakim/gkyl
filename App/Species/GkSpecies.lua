@@ -540,7 +540,11 @@ function GkSpecies:createDiagnostics()
          self.weakMomentScaleFac["GkTperp"] = self.mass
       elseif mom == "GkTemp" then 
          self.weakMomentOpFields["GkTemp"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2"]}
-         self.weakMomentScaleFac["GkTemp"] = self.mass/3
+         if self.vdim == 1 then
+            self.weakMomentScaleFac["GkTemp"] = self.mass
+         else
+            self.weakMomentScaleFac["GkTemp"] = self.mass/3
+         end
       end
    end
    for i, mom in pairs(self.diagnosticAuxMoments) do
@@ -588,7 +592,7 @@ function GkSpecies:calcDiagnosticWeakMoments()
            {self.momDensityAux})
    end
    if self.diagnosticWeakMoments["GkTemp"] then
-      self.diagnosticWeakMoments["GkTemp"]:accumulate(-self.mass/3, self.momDensityAux)
+      self.diagnosticWeakMoments["GkTemp"]:accumulate(-self.weakMomentScaleFac["GkTemp"], self.momDensityAux)
    end
    if self.diagnosticWeakMoments["GkTpar"] then
       self.diagnosticWeakMoments["GkTpar"]:accumulate(-self.mass, self.momDensityAux)
