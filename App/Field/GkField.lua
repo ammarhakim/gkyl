@@ -255,11 +255,12 @@ function GkField:createSolver(species, funcField)
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
    -- set up FEM solver for Poisson equation to solve for phi
-   local gxx, gxy, gyy
+   local gxx, gxy, gyy, jacobGeo
    if funcField.geo then 
      gxx = funcField.geo.gxx
      gxy = funcField.geo.gxy
      gyy = funcField.geo.gyy
+     jacobGeo = funcField.geo.jacobGeo
    end
    self.phiSlvr = Updater.FemPoisson {
      onGrid = self.grid,
@@ -307,8 +308,8 @@ function GkField:createSolver(species, funcField)
          modifierConstant = modifierConstant + self.adiabSpec:getQneutFac() 
       end
 
-      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
-      self.modifierWeight:combine(modifierConstant, self.unitWeight)
+      self.laplacianWeight:combine(laplacianConstant, jacobGeo)
+      self.modifierWeight:combine(modifierConstant, jacobGeo)
 
       if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
       if modifierConstant ~= 0 then self.phiSlvr:setModifierWeight(self.modifierWeight) end

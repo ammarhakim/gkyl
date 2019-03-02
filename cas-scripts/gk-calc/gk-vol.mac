@@ -114,11 +114,11 @@ load(modNm),
   geoZ_expd : subst(Bignorevars, doExpand1(geoZ, bC)),
 
   /* expand BstarX/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
-  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z) + BmagInv_expd*(geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z)),
+  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z) + (geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z)),
   /* expand BstarY/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
-  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(geoZ_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) - geoX_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z)) + BmagInv_expd*(-geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z)),
+  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(geoZ_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) - geoX_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z)) + (-geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z)),
   /* expand BstarZ/Bmag = bhat.grad(z) + (m/q vpar + Apar)/B*curl(bhat)*grad(z) = Gradpar + (m/q vpar + Apar)/B*curl(bhat)*grad(z) on basis */
-  BstarZ_by_Bmag_expd : subst(Bignorevars, doExpand1(Gradpar, bC)) - (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) + BmagInv_expd*(geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y)),
+  BstarZ_by_Bmag_expd : subst(Bignorevars, doExpand1(Gradpar, bC)) - (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) + (geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y)),
 
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
