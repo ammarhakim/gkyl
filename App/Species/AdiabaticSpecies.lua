@@ -25,7 +25,8 @@ end
 --   self.moments[1]:combine(1/self.charge, kineticChargeDens)
 --end
 
-function AdiabaticSpecies:createSolver(hasE, hasB)
+function AdiabaticSpecies:createSolver(hasE, hasB, funcField)
+
    -- compute density in center of domain
    local gridCenter = {}
    for d = 1, self.ndim do
@@ -34,6 +35,21 @@ function AdiabaticSpecies:createSolver(hasE, hasB)
    self._dens0 = self.initFunc(0, gridCenter)
 
    self.qneutFac = self:allocMoment()
+
+   -- set up jacobian for general geometry
+   -- and use it to scale initial density
+   -- (consistent with scaling distribution function with jacobian)
+   if funcField then
+      self.jacobGeoFunc = funcField.jacobGeoFunc
+
+      local initFuncWithoutJacobian = self.initFunc
+      self.initFunc = function (t, xn)
+         local J = self.jacobGeoFunc(t,xn)
+         local f = initFuncWithoutJacobian(t,xn)
+         return J*f
+      end
+   end
+
 end
 
 -- nothing to calculate, just copy
