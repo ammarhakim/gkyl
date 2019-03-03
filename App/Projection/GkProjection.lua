@@ -461,16 +461,18 @@ function MaxwellianProjection:run(tProj, distf)
          return J*f
       end
    end
+   -- for geometry jacobian, scale density function so that jacobian factor
+   -- is retained even after rescaling distf
    if self.species.jacobGeoFunc then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
+      local densityWithoutJacobian = self.density
+      self.density = function (t, xn, sp)
          local xconf = {}
          for d = 1, self.cdim do
             xconf[d] = xn[d]
          end
          local J = self.species.jacobGeoFunc(t,xconf)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
+         local n = densityWithoutJacobian(t,xn,sp)
+         return J*n
       end
    end
    -- note: don't use self.project as this does not have jacobian factors in initFunc
