@@ -6,7 +6,7 @@ source ./build-opts.sh
 PREFIX=$GKYLSOFT/adios-1.13.1
 
 # delete old checkout and builds
-rm -rf adios-1.13.0.tar* adios-1.13.0
+rm -rf adios-1.13.1.tar* adios-1.13.1
 
 curl -L http://users.nccs.gov/~pnorbert/adios-1.13.1.tar.gz > adios-1.13.1.tar.gz
 gunzip adios-1.13.1.tar.gz
