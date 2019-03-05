@@ -888,18 +888,21 @@ function GkGeometry:createSolver()
       self.gradparFunc = function (t, xn)
          return 1.0/self.salpha.q0/self.salpha.R0 
       end
+      self.jacobGeoFunc = function (t, xn)
+         return self.salpha.q0*self.salpha.R0
+      end
       self.geoYFunc = function (t, xn)
-         return -1.0/self.salpha.B0/self.salpha.r0
+         return -1.0/self.bmagFunc(t,xn)/self.salpha.r0
       end
       self.geoZFunc = function (t, xn)
-         return 1/self.salpha.B0
+         return 1/self.bmagFunc(t,xn)
       end
       self.gxx_Func = function (t, xn)
          return 1.0
       end
       if self.ndim == 1 then
          self.geoXFunc = function (t, xn)
-            return self.salpha.shat*xn[1]/self.salpha.B0/self.salpha.r0
+            return self.salpha.shat*xn[1]/self.bmagFunc(t,xn)/self.salpha.r0
          end
          self.gxy_Func = function (t, xn)
             return self.salpha.shat*xn[1]
@@ -919,7 +922,7 @@ function GkGeometry:createSolver()
          end
       elseif self.ndim == 3 then
          self.geoXFunc = function (t, xn)
-            return self.salpha.shat*xn[3]/self.salpha.B0/self.salpha.r0
+            return self.salpha.shat*xn[3]/self.bmagFunc(t,xn)/self.salpha.r0
          end
          self.gxy_Func = function (t, xn)
             return self.salpha.shat*xn[3]
@@ -927,18 +930,6 @@ function GkGeometry:createSolver()
          self.gyy_Func = function (t, xn)
             return 1 + self.salpha.shat^2*xn[3]^2
          end
-      end
-      self.jacobGeoFunc = function (t, xn)
-         return self.salpha.q0*self.salpha.R0
-      end
-      self.gxxFunc = function (t, xn)
-         return 1.0
-      end
-      self.gxyFunc = function (t, xn)
-         return 0.0
-      end
-      self.gyyFunc = function (t, xn)
-         return 1.0
       end
    end
 
