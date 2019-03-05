@@ -187,11 +187,15 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.sourceFunc and self.evolveSources then
-     -- if there is a source, add it to the RHS
-     local fSource = self.fSource
-     self.evalSource:advance(tCurr, {}, {fSource})
-     fRhsOut:accumulate(1.0, fSource)
+   -- if self.sourceFunc and self.evolveSources then
+   --    -- if there is a source, add it to the RHS
+   --    local fSource = self.fSource
+   --    self.evalSource:advance(tCurr, {}, {fSource})
+   --    fRhsOut:accumulate(1.0, fSource)
+   -- end
+   if self.fSource and self.evolveSources then
+      -- add source it to the RHS
+      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
 

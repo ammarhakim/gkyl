@@ -152,7 +152,7 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local fItr = qOut:get(1)
 
    -- loop, computing projections in each cell
-   for idx in localRangeDecomp:rowMajorIter(tId) do
+   for idx in localRangeDecomp:colMajorIter(tId) do
       grid:setIndex(idx)
       for d = 1, ndim do dx[d] = grid:dx(d) end
       grid:cellCenter(xc)
