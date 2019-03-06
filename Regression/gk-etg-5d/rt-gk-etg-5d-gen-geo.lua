@@ -4,6 +4,7 @@
 -- Plasma ------------------------------------------------------------------------
 local Plasma = require "App.PlasmaOnCartGrid"
 local Constants = require "Lib.Constants"
+local math = require("sci.math").generic
 
 -- physical parameters
 eV = Constants.ELEMENTARY_CHARGE

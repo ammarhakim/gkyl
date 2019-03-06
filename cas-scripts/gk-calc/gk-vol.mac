@@ -137,18 +137,18 @@ load(modNm),
   for d : 1 thru cdim+vd do (
     if d>cdim then (
       wD : wV[d-cdim],
-      derivfacsD : derivfacsV[d-cdim]
+      dfac_d : derivfacsV[d-cdim]
     ) 
     else (
       wD : wC[d],
-      derivfacsD : derivfacsC[d]
+      dfac_d : derivfacsC[d]
     ),
     /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    alpha_expd : gkPB(wD + varsP[d]/derivfacsD, H_expd),
+    alpha_expd : gkPB(wD + varsP[d]/dfac_d, H_expd),
 
     /* project alpha on basis and write to array */
     printf(fh, "  double alpha~a[~a]; ~%", label[d], length(bP)),
-    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)*derivfacsD),
+    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)*dfac_d),
     alphalabel : eval_string(sconcat(alpha, label[d])),
     writeCExprsNoExpand1(alphalabel, gcfac(expand(facsum(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], alpha_k),derivfac)))),
     flush_output(fh),
@@ -156,7 +156,7 @@ load(modNm),
     alphaNoZero_k : doMakeExprLst(alpha_k, alphalabel),
     alpha_expd : doExpandLst(alphaNoZero_k, bP),
 
-    /* note: factor of derivfacsD already included in alpha_expd */
+    /* note: factor of dfac_d already included in alpha_expd */
     alphaDotGradBasis_expd : alpha_expd*diff(bP, varsP[d]),
 
     /* accumulate alpha.grad(w) in this direction to the direction-summed alpha.grad(w) */
@@ -178,12 +178,12 @@ load(modNm),
 
     /* evaluate cfl by surface averaging */
     printf(fh, "#if cflType == SURFAVG ~%"),
-    /* note: factor of derivfacsD already included in alpha_expd */
+    /* note: factor of dfac_d already included in alpha_expd */
     alphaL0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaL, subst(varsP[d]=-1, bP[1]))*bP[1]),
     printf(fh, "  // evaluate surface-averaged alpha on left ~%"),
     printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaL0))),
     printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%"),
-    /* note: factor of derivfacsD already included in alpha_expd */
+    /* note: factor of dfac_d already included in alpha_expd */
     alphaR0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaR, subst(varsP[d]=1, bP[1]))*bP[1]),
     printf(fh, "  // evaluate surface-averaged alpha on right ~%"),
     printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaR0))),
