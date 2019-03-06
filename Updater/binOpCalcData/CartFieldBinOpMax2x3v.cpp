@@ -3,7 +3,7 @@
  
 using namespace Eigen; 
  
-void CartFieldBinOpMultiply2x3vMax_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpMultiply2x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field in configuration space. 
   // B:       scalar field in phase space. 
@@ -27,7 +27,7 @@ void CartFieldBinOpMultiply2x3vMax_P1(const double *A, const double *B, const sh
  
 } 
  
-void CartFieldBinOpMultiply2x3vMax_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpMultiply2x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field in configuration space. 
   // B:       scalar field in phase space. 
@@ -66,7 +66,7 @@ void CartFieldBinOpMultiply2x3vMax_P2(const double *A, const double *B, const sh
  
 } 
  
-void CartFieldBinOpDivide2x3vMax_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDivide2x3vMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       configuration space denominator field (must be a scalar field). 
   // B:       phase space numerator field (must be a scalar field). 
@@ -113,34 +113,28 @@ void CartFieldBinOpDivide2x3vMax_P1(const double *A, const double *B, const shor
     Bs[5] = B[5]; 
   } 
  
-  // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(6,6); 
-  // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(6);  
-  // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(6);  
+  // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(6,6);
+  data->AEM_D(0,0) = 0.5*As[0]; 
+  data->AEM_D(0,1) = 0.5*As[1]; 
+  data->AEM_D(0,2) = 0.5*As[2]; 
+  data->AEM_D(0,3) = 0.5*As[1]; 
+  data->AEM_D(0,4) = 0.5*As[0]; 
+  data->AEM_D(1,0) = 0.5*As[2]; 
+  data->AEM_D(1,2) = 0.5*As[0]; 
  
-  // Fill AEM matrix. 
-  AEM(0,0) = 0.5*As[0]; 
-  AEM(0,1) = 0.5*As[1]; 
-  AEM(0,2) = 0.5*As[2]; 
-  AEM(0,3) = 0.5*As[1]; 
-  AEM(0,4) = 0.5*As[0]; 
-  AEM(1,0) = 0.5*As[2]; 
-  AEM(1,2) = 0.5*As[0]; 
- 
-  // Fill BEV. 
-  BEV << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5]; 
+  // Fill BEV_D. 
+  data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5]; 
  
   // Solve the system of equations. 
-  u = AEM.colPivHouseholderQr().solve(BEV); 
+  data->u_D = data->AEM_D.colPivHouseholderQr().solve(data->BEV_D); 
  
   // Copy data from Eigen vector. 
-  Eigen::Map<VectorXd>(out,6,1) = u; 
+  Eigen::Map<VectorXd>(out,6,1) = data->u_D; 
  
 } 
  
-void CartFieldBinOpDivide2x3vMax_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDivide2x3vMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       configuration space denominator field (must be a scalar field). 
   // B:       phase space numerator field (must be a scalar field). 
@@ -223,48 +217,42 @@ void CartFieldBinOpDivide2x3vMax_P2(const double *A, const double *B, const shor
     Bs[20] = B[20]; 
   } 
  
-  // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(21,21); 
-  // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(21);  
-  // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(21);  
+  // Fill AEM_D matrix. 
+  data->AEM_D = Eigen::MatrixXd::Zero(21,21);
+  data->AEM_D(0,0) = 0.5*As[0]; 
+  data->AEM_D(0,1) = 0.5*As[1]; 
+  data->AEM_D(0,2) = 0.5*As[2]; 
+  data->AEM_D(0,6) = 0.5*As[1]; 
+  data->AEM_D(0,7) = 0.4472135954999579*As[4]+0.5*As[0]; 
+  data->AEM_D(0,8) = 0.5*As[3]; 
+  data->AEM_D(0,12) = 0.5*As[2]; 
+  data->AEM_D(0,13) = 0.5*As[3]; 
+  data->AEM_D(0,14) = 0.4472135954999579*As[5]+0.5*As[0]; 
+  data->AEM_D(1,0) = 0.5*As[0]; 
+  data->AEM_D(1,7) = 0.5*As[0]; 
+  data->AEM_D(1,14) = 0.5*As[0]; 
+  data->AEM_D(1,15) = 0.5*As[3]; 
+  data->AEM_D(1,16) = 0.5*As[2]; 
+  data->AEM_D(1,17) = 0.5*As[1]; 
+  data->AEM_D(2,3) = 0.5*As[1]; 
+  data->AEM_D(2,9) = 0.5*As[2]; 
+  data->AEM_D(2,16) = 0.5*As[1]; 
+  data->AEM_D(3,1) = 0.5*As[2]; 
+  data->AEM_D(3,14) = 0.5*As[1]; 
+  data->AEM_D(3,20) = 0.5*As[2]; 
+  data->AEM_D(4,12) = 0.5*As[4]; 
+  data->AEM_D(4,13) = 0.4472135954999579*As[1]; 
+  data->AEM_D(4,18) = 0.5*As[5]; 
+  data->AEM_D(4,20) = 0.4472135954999579*As[2]; 
  
-  // Fill AEM matrix. 
-  AEM(0,0) = 0.5*As[0]; 
-  AEM(0,1) = 0.5*As[1]; 
-  AEM(0,2) = 0.5*As[2]; 
-  AEM(0,6) = 0.5*As[1]; 
-  AEM(0,7) = 0.4472135954999579*As[4]+0.5*As[0]; 
-  AEM(0,8) = 0.5*As[3]; 
-  AEM(0,12) = 0.5*As[2]; 
-  AEM(0,13) = 0.5*As[3]; 
-  AEM(0,14) = 0.4472135954999579*As[5]+0.5*As[0]; 
-  AEM(1,0) = 0.5*As[0]; 
-  AEM(1,7) = 0.5*As[0]; 
-  AEM(1,14) = 0.5*As[0]; 
-  AEM(1,15) = 0.5*As[3]; 
-  AEM(1,16) = 0.5*As[2]; 
-  AEM(1,17) = 0.5*As[1]; 
-  AEM(2,3) = 0.5*As[1]; 
-  AEM(2,9) = 0.5*As[2]; 
-  AEM(2,16) = 0.5*As[1]; 
-  AEM(3,1) = 0.5*As[2]; 
-  AEM(3,14) = 0.5*As[1]; 
-  AEM(3,20) = 0.5*As[2]; 
-  AEM(4,12) = 0.5*As[4]; 
-  AEM(4,13) = 0.4472135954999579*As[1]; 
-  AEM(4,18) = 0.5*As[5]; 
-  AEM(4,20) = 0.4472135954999579*As[2]; 
- 
-  // Fill BEV. 
-  BEV << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8],Bs[9],Bs[10],Bs[11],Bs[12],Bs[13],Bs[14],Bs[15],Bs[16],Bs[17],Bs[18],Bs[19],Bs[20]; 
+  // Fill BEV_D. 
+  data->BEV_D << Bs[0],Bs[1],Bs[2],Bs[3],Bs[4],Bs[5],Bs[6],Bs[7],Bs[8],Bs[9],Bs[10],Bs[11],Bs[12],Bs[13],Bs[14],Bs[15],Bs[16],Bs[17],Bs[18],Bs[19],Bs[20]; 
  
   // Solve the system of equations. 
-  u = AEM.colPivHouseholderQr().solve(BEV); 
+  data->u_D = data->AEM_D.colPivHouseholderQr().solve(data->BEV_D); 
  
   // Copy data from Eigen vector. 
-  Eigen::Map<VectorXd>(out,21,1) = u; 
+  Eigen::Map<VectorXd>(out,21,1) = data->u_D; 
  
 } 
  

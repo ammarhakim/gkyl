@@ -3,7 +3,7 @@
  
 using namespace Eigen; 
  
-void CartFieldBinOpMultiply1xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpMultiply1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -30,7 +30,7 @@ void CartFieldBinOpMultiply1xSer_P1(const double *A, const double *B, const shor
  
 } 
  
-void CartFieldBinOpMultiply1xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpMultiply1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -58,7 +58,7 @@ void CartFieldBinOpMultiply1xSer_P2(const double *A, const double *B, const shor
  
 } 
  
-void CartFieldBinOpMultiply1xSer_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpMultiply1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -87,7 +87,7 @@ void CartFieldBinOpMultiply1xSer_P3(const double *A, const double *B, const shor
  
 } 
  
-void CartFieldBinOpDivide1xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDivide1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
   // B:       numerator field (can be scalar or vector). 
@@ -127,34 +127,28 @@ void CartFieldBinOpDivide1xSer_P1(const double *A, const double *B, const short 
     } 
   } 
  
-  // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(2,2); 
-  // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(2);  
-  // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(2);  
- 
   // Fill AEM matrix. 
-  AEM(0,0) = 0.7071067811865475*As[0]; 
-  AEM(0,1) = 0.7071067811865475*As[1]; 
-  AEM(1,0) = 0.7071067811865475*As[1]; 
-  AEM(1,1) = 0.7071067811865475*As[0]; 
+  data->AEM_S = Eigen::MatrixXd::Zero(2,2);
+  data->AEM_S(0,0) = 0.7071067811865475*As[0]; 
+  data->AEM_S(0,1) = 0.7071067811865475*As[1]; 
+  data->AEM_S(1,0) = 0.7071067811865475*As[1]; 
+  data->AEM_S(1,1) = 0.7071067811865475*As[0]; 
  
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 2*vd; 
     // Fill BEV. 
-    BEV << Bs[b0],Bs[b0+1]; 
+    data->BEV_S << Bs[b0],Bs[b0+1]; 
  
     // Solve the system of equations. 
-    u = AEM.colPivHouseholderQr().solve(BEV); 
+    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
-    Eigen::Map<VectorXd>(out+vd*2,2,1) = u; 
+    Eigen::Map<VectorXd>(out+vd*2,2,1) = data->u_S; 
   } 
 } 
  
-void CartFieldBinOpDivide1xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDivide1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
   // B:       numerator field (can be scalar or vector). 
@@ -198,39 +192,33 @@ void CartFieldBinOpDivide1xSer_P2(const double *A, const double *B, const short 
     } 
   } 
  
-  // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(3,3); 
-  // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(3);  
-  // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(3);  
- 
   // Fill AEM matrix. 
-  AEM(0,0) = 0.7071067811865475*As[0]; 
-  AEM(0,1) = 0.7071067811865475*As[1]; 
-  AEM(0,2) = 0.7071067811865475*As[2]; 
-  AEM(1,0) = 0.7071067811865475*As[1]; 
-  AEM(1,1) = 0.6324555320336759*As[2]+0.7071067811865475*As[0]; 
-  AEM(1,2) = 0.6324555320336759*As[1]; 
-  AEM(2,0) = 0.7071067811865475*As[2]; 
-  AEM(2,1) = 0.6324555320336759*As[1]; 
-  AEM(2,2) = 0.4517539514526256*As[2]+0.7071067811865475*As[0]; 
+  data->AEM_S = Eigen::MatrixXd::Zero(3,3);
+  data->AEM_S(0,0) = 0.7071067811865475*As[0]; 
+  data->AEM_S(0,1) = 0.7071067811865475*As[1]; 
+  data->AEM_S(0,2) = 0.7071067811865475*As[2]; 
+  data->AEM_S(1,0) = 0.7071067811865475*As[1]; 
+  data->AEM_S(1,1) = 0.6324555320336759*As[2]+0.7071067811865475*As[0]; 
+  data->AEM_S(1,2) = 0.6324555320336759*As[1]; 
+  data->AEM_S(2,0) = 0.7071067811865475*As[2]; 
+  data->AEM_S(2,1) = 0.6324555320336759*As[1]; 
+  data->AEM_S(2,2) = 0.4517539514526256*As[2]+0.7071067811865475*As[0]; 
  
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 3*vd; 
     // Fill BEV. 
-    BEV << Bs[b0],Bs[b0+1],Bs[b0+2]; 
+    data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2]; 
  
     // Solve the system of equations. 
-    u = AEM.colPivHouseholderQr().solve(BEV); 
+    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
-    Eigen::Map<VectorXd>(out+vd*3,3,1) = u; 
+    Eigen::Map<VectorXd>(out+vd*3,3,1) = data->u_S; 
   } 
 } 
  
-void CartFieldBinOpDivide1xSer_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDivide1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
   // B:       numerator field (can be scalar or vector). 
@@ -278,46 +266,40 @@ void CartFieldBinOpDivide1xSer_P3(const double *A, const double *B, const short 
     } 
   } 
  
-  // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(4,4); 
-  // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(4);  
-  // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(4);  
- 
   // Fill AEM matrix. 
-  AEM(0,0) = 0.7071067811865475*As[0]; 
-  AEM(0,1) = 0.7071067811865475*As[1]; 
-  AEM(0,2) = 0.7071067811865475*As[2]; 
-  AEM(0,3) = 0.7071067811865475*As[3]; 
-  AEM(1,0) = 0.7071067811865475*As[1]; 
-  AEM(1,1) = 0.6324555320336759*As[2]+0.7071067811865475*As[0]; 
-  AEM(1,2) = 0.6210590034081186*As[3]+0.6324555320336759*As[1]; 
-  AEM(1,3) = 0.6210590034081186*As[2]; 
-  AEM(2,0) = 0.7071067811865475*As[2]; 
-  AEM(2,1) = 0.6210590034081186*As[3]+0.6324555320336759*As[1]; 
-  AEM(2,2) = 0.4517539514526256*As[2]+0.7071067811865475*As[0]; 
-  AEM(2,3) = 0.421637021355784*As[3]+0.6210590034081186*As[1]; 
-  AEM(3,0) = 0.7071067811865475*As[3]; 
-  AEM(3,1) = 0.6210590034081186*As[2]; 
-  AEM(3,2) = 0.421637021355784*As[3]+0.6210590034081186*As[1]; 
-  AEM(3,3) = 0.421637021355784*As[2]+0.7071067811865475*As[0]; 
+  data->AEM_S = Eigen::MatrixXd::Zero(4,4);
+  data->AEM_S(0,0) = 0.7071067811865475*As[0]; 
+  data->AEM_S(0,1) = 0.7071067811865475*As[1]; 
+  data->AEM_S(0,2) = 0.7071067811865475*As[2]; 
+  data->AEM_S(0,3) = 0.7071067811865475*As[3]; 
+  data->AEM_S(1,0) = 0.7071067811865475*As[1]; 
+  data->AEM_S(1,1) = 0.6324555320336759*As[2]+0.7071067811865475*As[0]; 
+  data->AEM_S(1,2) = 0.6210590034081186*As[3]+0.6324555320336759*As[1]; 
+  data->AEM_S(1,3) = 0.6210590034081186*As[2]; 
+  data->AEM_S(2,0) = 0.7071067811865475*As[2]; 
+  data->AEM_S(2,1) = 0.6210590034081186*As[3]+0.6324555320336759*As[1]; 
+  data->AEM_S(2,2) = 0.4517539514526256*As[2]+0.7071067811865475*As[0]; 
+  data->AEM_S(2,3) = 0.421637021355784*As[3]+0.6210590034081186*As[1]; 
+  data->AEM_S(3,0) = 0.7071067811865475*As[3]; 
+  data->AEM_S(3,1) = 0.6210590034081186*As[2]; 
+  data->AEM_S(3,2) = 0.421637021355784*As[3]+0.6210590034081186*As[1]; 
+  data->AEM_S(3,3) = 0.421637021355784*As[2]+0.7071067811865475*As[0]; 
  
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 4*vd; 
     // Fill BEV. 
-    BEV << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
+    data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
  
     // Solve the system of equations. 
-    u = AEM.colPivHouseholderQr().solve(BEV); 
+    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
-    Eigen::Map<VectorXd>(out+vd*4,4,1) = u; 
+    Eigen::Map<VectorXd>(out+vd*4,4,1) = data->u_S; 
   } 
 } 
  
-void CartFieldBinOpDotProduct1xSer_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDotProduct1xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -341,7 +323,7 @@ void CartFieldBinOpDotProduct1xSer_P1(const double *A, const double *B, const sh
  
 } 
  
-void CartFieldBinOpDotProduct1xSer_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDotProduct1xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -366,7 +348,7 @@ void CartFieldBinOpDotProduct1xSer_P2(const double *A, const double *B, const sh
  
 } 
  
-void CartFieldBinOpDotProduct1xSer_P3(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDotProduct1xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 

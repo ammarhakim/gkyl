@@ -45,7 +45,7 @@ end
 function VmLBOCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- Previously stored table.
 
-   self.cfl            = 0.0    -- Will be replaced.
+   self.cfl = 0.0    -- Will be replaced.
 
    local collidingSpecies = assert(tbl.collideWith, "App.VmLBOCollisions: Must specify names of species to collide with in 'collideWith'.")
 
@@ -81,11 +81,20 @@ function VmLBOCollisions:fullInit(speciesTbl)
          table.remove(self.collFreqCross, selfSpecInd)
       end
    else
-      --local normNuIn      = tbl.normNu
-      local normNuIn      = assert(tbl.normNu, "App.GkLBOCollisions: No constant collision frequencies provided ('frequencies'). For spatially varying nu must specify 'normNu', list of collisionalities normalized by (T_0^(3/2)/n_0) evaluated somewhere in the simulation.")
+      self.varNu       = true                 -- Spatially varying nu.
+      self.mass        = speciesTbl.mass      -- Mass of this species.
+      self.charge      = speciesTbl.charge    -- Charge of this species.
+      -- For now only cell-wise constant nu is implemented.
+      -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self.cellConstNu = true
+      -- If no constant collision frequencies provided ('frequencies'), user can specify 'normNu'
+      -- list of collisionalities normalized by (T_0^(3/2)/n_0) evaluated somewhere in the
+      -- simulation. Otherwise code compute Spitzer collisionality from scratch.
+      local normNuIn   = tbl.normNu
+      -- normNuSelf, epsilon0 and elemCharge may not used, but are
+      -- initialized to avoid if-statements in advance method.
       if normNuIn then
-         self.varNu       = true    -- Spatially varying nu.
-         -- Below normNu is the collisionality normalized by (T_0^(3/2)/n_0) evaluated somewhere in the simulation.
+         self.userInputNormNu = true
          if self.selfCollisions then
             self.normNuSelf  = normNuIn[selfSpecInd]
          end
@@ -93,25 +102,46 @@ function VmLBOCollisions:fullInit(speciesTbl)
             self.normNuCross = normNuIn
             table.remove(self.normNuCross, selfSpecInd)
          end
-         -- For now only cell-wise constant nu is implemented.
-         -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
-         self.cellConstNu = true
+         self.epsilon0   = 8.854187817620389850536563031710750260608e-12    -- Farad/meter.
+         self.elemCharge = 1.602176487e-19    -- Coulomb.
+      else
+         self.userInputNormNu = false
+         if self.selfCollisions then
+            self.normNuSelf  = 0.0
+         end
+         if self.crossCollisions then
+            self.normNuCross = collidingSpecies
+            table.remove(self.normNuCross, selfSpecInd)
+            for i, _ in ipairs(self.normNuCross) do self.normNuCross[i] = 0.0 end 
+         end
+         self.epsilon0 = assert(
+            tbl.epsilon0, "Updater.VmLBOCollisions: Must specify vacuum permittivity 'epsilon0' ('frequencies' and 'normNu' are not specified, so nu is calculated via Spitzer).")
+         self.elemCharge = assert(
+            tbl.elemCharge, "Updater.VmLBOCollisions: Must specify elementary charge with 'elemCharge' ('frequencies' and 'normNu' are not specified, so nu is calculated via Spitzer).")
       end
    end
 
    if self.crossCollisions then
-      self.charge      = speciesTbl.mass  -- Charge of this species.
-      -- For now, crossMomOp=Greene is the only option.
-      --self.crossMomOp  = assert(tbl.crossMomOp, "App.VmLBOCollisions: Must specify 'crossMomOp' (Greene, GreeneSmallAngle, GreeneSmallAngleLimit), formulas used to calculate cross-species primitive moments.")
-      self.crossMomOp = "Greene"
-      if self.crossMomOp=="Greene" then
-         self.beta = assert(tbl.betaGreene, "App.VmLBOCollisions: Must specify 'betaGreene' free parameter in Grene cross-species collisions.")
+      self.mass       = speciesTbl.mass      -- Mass of this species.
+      self.charge     = speciesTbl.charge    -- Charge of this species.
+      local crossOpIn = tbl.crossOption      -- Can specify 'crossOption' (Greene, GreeneSmallAngle, HeavyIons), formulas used to calculate cross-species primitive moments.
+      if crossOpIn then
+         self.crossMomOp  = crossOpIn
+         if self.crossMomOp=="Greene" then
+            local betaGreeneIn = tbl.betaGreene   -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
+            if betaGreeneIn then
+               self.betaGreene = betaGreeneIn
+            else
+               self.betaGreene = 1.0   -- Default value is the heavy ion, quasineutral limit.
+            end
+         else
+            self.betaGreene = 0.0   -- Default value is the heavy ion, quasineutral limit.
+         end
       else
-         self.beta = 1.0   -- Default value is the heavy ion, quasineutral limit.
+         self.crossMomOp  = "Greene"    -- Default to Greene-type formulas.
+         self.betaGreene  = 1.0         -- Default value is the heavy ion, quasineutral limit.
       end
    end
-
-   self.mass           = speciesTbl.mass  -- Mass of this species.
 
    self.tmEvalMom = 0.0
 end
@@ -183,7 +213,6 @@ function VmLBOCollisions:createSolver()
       zfd[d] = self.confGrid:ndim() + d
    end
 
-   local vmLBOconstNuCalc
    if self.varNu then
       -- Collisionality, nu.
       self.collFreq = DataStruct.Field {
@@ -196,23 +225,21 @@ function VmLBOCollisions:createSolver()
          onGrid           = self.confGrid,
          confBasis        = self.confBasis,
          useCellAverageNu = self.cellConstNu,
-      }
-      -- Lenard-Bernstein equation.
-      vmLBOconstNuCalc = VmLBOconstNuEq {
-         phaseBasis       = self.phaseBasis,
-         confBasis        = self.confBasis,
-         useCellAverageNu = self.cellConstNu,
-         vUpper           = self.vMax,
+         willInputNormNu  = self.userInputNormNu,
+         elemCharge       = self.elemCharge,
+         epsilon0         = self.epsilon0,
       }
    else
       self.collFreq = 0.0    -- Assigned in advance method.
-      -- Lenard-Bernstein equation.
-      vmLBOconstNuCalc = VmLBOconstNuEq {
-         phaseBasis = self.phaseBasis,
-         confBasis  = self.confBasis,
-         vUpper     = self.vMax,
-      }
    end
+   -- Lenard-Bernstein equation.
+   local vmLBOconstNuCalc = VmLBOconstNuEq {
+      phaseBasis       = self.phaseBasis,
+      confBasis        = self.confBasis,
+      vUpper           = self.vMax,
+      varyingNu        = self.varNu,
+      useCellAverageNu = self.cellConstNu,
+   }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,
       basis              = self.phaseBasis,
@@ -285,7 +312,7 @@ function VmLBOCollisions:createSolver()
          confBasis  = self.confBasis,
          operator   = "VmLBO",
          formulas   = self.crossMomOp,
-         betaGreene = self.beta, 
+         betaGreene = self.betaGreene, 
       }
    end
 
@@ -342,7 +369,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, {self.mass, self.normNuSelf, selfMom[1], self.vthSq},{self.collFreq})
+         self.spitzerNu:advance(0.0, {self.mass, self.charge, selfMom[1], self.vthSq, self.normNuSelf},{self.collFreq})
       else
          self.collFreq = self.collFreqSelf
       end
@@ -354,25 +381,17 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    end
 
    if self.crossCollisions then
-      -- Compute primitive moments, u and vtSq, of this species.
-      self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.velocity})
-      self.confDotProduct:advance(0., {self.velocity, selfMom[2]}, {self.kinEnergyDens})
-      self.thermEnergyDens:combine( 1.0/self.vdim, selfMom[3],
-                                   -1.0/self.vdim, self.kinEnergyDens )
-      self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
+      if not self.selfCollisions then
+         -- If applying self-collisions, use the same primitive moments calculated above.
+         -- Otherwise compute primitive moments, u and vtSq, of this species.
+         self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.velocity})
+         self.confDotProduct:advance(0., {self.velocity, selfMom[2]}, {self.kinEnergyDens})
+         self.thermEnergyDens:combine( 1.0/self.vdim, selfMom[3],
+                                      -1.0/self.vdim, self.kinEnergyDens )
+         self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
+      end
 
       for sInd, otherNm in ipairs(self.crossSpecies) do
-         -- Compute m1/m2, where m1 is the mass of the negative-charge species.
-         -- Also set the subscripts of the collision term (12 or 21, where 1
-         -- is the negative species)
-         local m1Dm2, termSub
-         if self.charge>0.0 then
-           m1Dm2   = species[otherNm]:getMass()/self.mass
-           collSub = "12"
-         else
-           m1Dm2   = self.mass/species[otherNm]:getMass()
-           collSub = "21"
-         end
          -- Obtain coupling moments of other species.
          local otherMom = species[otherNm]:fluidMoments()
          -- Compute primitive moments, u and vtSq, of other species.
@@ -382,13 +401,25 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
                                       -1.0/self.vdim, self.kinEnergyDens )
          self.confDiv:advance(0., {otherMom[1], self.thermEnergyDens}, {self.vthSqOther})
 
-         -- Calculate cross-species primitive moment, u_12 and vtSq_12, or u_21 and vtSq_21.
-         self.primMomCross:advance(0., {collSub, m1Dm2, selfMom[1], self.velocity, self.vthSq,
+         -- Set the subscripts of the collision term (12 or 21).
+         -- For "HeavyIons" species 1 is the lighter one.
+         local collSub
+         local mRat = species[otherNm]:getMass()/self.mass
+         if mRat <= 1 then
+            collSub = "12"
+         else
+            collSub = "21"
+         end
+         -- Get cross-species primitive moments, u_12 and vtSq_12, or u_21 and vtSq_21.
+         -- This updater expects inputs in the order:
+         -- collSub, mRat, nSelf, uSelf, vtSqSelf, nOther, uOther, vtSqOther.
+         self.primMomCross:advance(0., {collSub, mRat, selfMom[1], self.velocity, self.vthSq,
                                         otherMom[1], self.uOther, self.vthSqOther},
                                        {self.uCross, self.vthSqCross})
+
          if self.varNu then
             -- Compute the collisionality.
-            self.spitzerNu:advance(0., {self.mass, self.normNuCross[sInd], otherMom[1], self.vthSq}, {self.collFreq})
+            self.spitzerNu:advance(0., {self.mass, self.charge, otherMom[1], self.vthSq, self.normNuCross[sInd]}, {self.collFreq})
          else
             self.collFreq = self.collFreqCross[sInd]
          end
@@ -414,6 +445,14 @@ end
 
 function VmLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.tmEvalMom
+end
+
+function VmLBOCollisions:slvrTime()
+   return self.collisionSlvr.totalTime
+end
+
+function VmLBOCollisions:momTime()
+   return self.tmEvalMom
 end
 
 return VmLBOCollisions

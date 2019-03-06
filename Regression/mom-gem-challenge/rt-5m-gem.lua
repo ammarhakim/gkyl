@@ -56,6 +56,8 @@ momentApp = Moments.App {
       charge = elcCharge, mass = elcMass,
 
       equation = Euler { gasGamma = gasGamma },
+      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
+      forceInv = false,
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
@@ -81,6 +83,8 @@ momentApp = Moments.App {
       charge = ionCharge, mass = ionMass,
 
       equation = Euler { gasGamma = gasGamma },
+      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
+      forceInv = false,
       -- initial conditions
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
@@ -119,7 +123,7 @@ momentApp = Moments.App {
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
-      timeStepper = "analytic",
+      timeStepper = "time-centered-direct",
    },   
 
 }

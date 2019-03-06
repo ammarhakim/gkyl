@@ -9,32 +9,19 @@
 #define GK_FIVE_MOMENT_SRC_H
 
 #include <stdint.h>
+#include <MomentSrcCommon.h>
 
 extern "C" {
-    typedef struct {
-        double charge, mass; /* Charge and mass */
-        bool evolve;
-    } FluidData_t;
-
-    typedef struct {
-        int8_t nFluids; /* Number of fluids */
-        double epsilon0; /* Permittivity of free space */
-        double chi_e, chi_m; /* Propagation speed factor for electric field error potential */
-        int8_t gravityDir; /* Direction of gravity force */
-        double gravity; /* Gravitational acceleration */
-        bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
-        int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
-    } FiveMomentSrcData_t;
-
     /* Method to update fluids and flield using explicit RK3 method */
-    void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+    void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
     /* Method to update fluids and flield using time-centered implicit method */
-    void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-    /* Method to update fluids and flield using time-centered implicit method in the exact form*/
-    void gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-    /* Method to update fluids and flield using time-centered implicit method in the exact form*/
-    void gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-    void gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
+    void gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    /* Method to update fluids and flield using time-centered implicit method in the exact form */
+    void gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    /* Method to update fluids and flield using time-centered implicit method in the exact form; the older version*/
+    void gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+    /* Method to update fluids and flield using the exact ODE solutions */
+    void gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
 }
 
 #endif // GK_FIVE_MOMENT_SRC_H

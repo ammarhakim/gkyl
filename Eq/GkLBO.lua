@@ -22,30 +22,38 @@ local GkLBO = Proto(EqBase)
 -- ctor.
 function GkLBO:init(tbl)
 
-   self._phaseBasis = assert(tbl.phaseBasis, 
-      "Eq.GkLBO: Must specify phase-space basis functions to use using 'phaseBasis'")
-   self._confBasis  = assert(tbl.confBasis, 
-      "Eq.GkLBO: Must specify configuration-space basis functions to use using 'confBasis'")
+   self._phaseBasis  = assert(tbl.phaseBasis, 
+      "Eq.GkLBO: Must specify phase-space basis functions to use using 'phaseBasis'.")
+   self._confBasis   = assert(tbl.confBasis, 
+      "Eq.GkLBO: Must specify configuration-space basis functions to use using 'confBasis'.")
    
-   self._vParMax   = assert(tbl.vParUpper, 
-      "Eq.GkLBO: Must specify maximum velocity of vPar grid in 'vParUpper'")
-   self._vParMaxSq = self._vParMax^2
+   self._vParMax     = assert(tbl.vParUpper, 
+      "Eq.GkLBO: Must specify maximum velocity of vPar grid in 'vParUpper'.")
+   self._vParMaxSq   = self._vParMax^2
+   local varNuIn       = tbl.varyingNu    -- Specify if collisionality varies spatially.
+   local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
-   assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'")
+   assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'.")
    self._inMass = tbl.mass
 
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
 
-   local nuCellConst = tbl.useCellAverageNu
-   if nuCellConst == nil then
-      self._varNu       = false    -- Collisionality is spatially constant.
-      self._cellConstNu = true     -- Cell-wise constant nu?
+   -- The default is spatially constant collisionality.
+   if varNuIn==nil then
+      self._varNu       = false
+      self._cellConstNu = true
    else
-      self._cellConstNu = nuCellConst    -- Specify 'useCellAverageNu=true/false' for using cellwise
-                                         -- constant/expanded spatially varying collisionality.
-      self._varNu               = true    -- Spatially varying nu.
+      self._varNu       = varNuIn
+      if cellConstNuIn==nil then
+         self._cellConstNu = true
+      else
+         self._cellConstNu = cellConstNuIn
+      end
+   end
+
+   if self._varNu then
       self._nuPtr, self._nuIdxr = nil, nil
    end
    if self._cellConstNu then    -- Not varying within the cell.

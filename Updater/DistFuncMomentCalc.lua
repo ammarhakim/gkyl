@@ -149,19 +149,22 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    local velRange = localRange:selectLast(vDim)
    local tId = grid:subGridSharedId() -- local thread ID
 
-   local idx = Lin.Vec(cDim+vDim)
+   local idx = Lin.IntVec(cDim+vDim)
    -- outer loop is threaded and over configuration space
-   for cIdx in confRangeDecomp:colMajorIter(tId) do
+   for cIdx in confRangeDecomp:rowMajorIter(tId) do
 
       -- inner loop is over velocity space: no threading to avoid race
       -- conditions
-      for vIdx in velRange:colMajorIter() do
-	 for d = 1, cDim do idx[d] = cIdx[d] end
-	 for d = 1, vDim do idx[cDim+d] = vIdx[d] end
+      for vIdx in velRange:rowMajorIter() do
+	 --for d = 1, cDim do idx[d] = cIdx[d] end
+         cIdx:copyInto(idx)
+         for d = 1, vDim do idx[cDim+d] = vIdx[d] end
+         --idx[cDim+1] = vIdx[1]
+         --idx[cDim+2] = vIdx[2]
       
 	 grid:setIndex(idx)
 	 grid:cellCenter(self.w)
-	 for d = 1, pDim do self.dxv[d] = grid:dx(d) end
+         grid:getDx(self.dxv)
       
 	 distf:fill(distfIndexer(idx), distfItr)
 	 mom1:fill(mom1Indexer(idx), mom1Itr)
@@ -172,7 +175,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 	       mom2:fill(mom2Indexer(idx), mom2Itr)
 	       mom3:fill(mom3Indexer(idx), mom3Itr)
 	       self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
-				mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+	        		mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
 	    else
 	       self._momCalcFun(self.w:data(), self.dxv:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
 	    end

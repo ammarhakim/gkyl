@@ -187,11 +187,15 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       end
    end
 
-   if self.sourceFunc and self.evolveSources then
-     -- if there is a source, add it to the RHS
-     local fSource = self.fSource
-     self.evalSource:advance(tCurr, {}, {fSource})
-     fRhsOut:accumulate(1.0, fSource)
+   -- if self.sourceFunc and self.evolveSources then
+   --    -- if there is a source, add it to the RHS
+   --    local fSource = self.fSource
+   --    self.evalSource:advance(tCurr, {}, {fSource})
+   --    fRhsOut:accumulate(1.0, fSource)
+   -- end
+   if self.fSource and self.evolveSources then
+      -- add source it to the RHS
+      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
 
@@ -217,18 +221,18 @@ function VlasovSpecies:createDiagnostics()
    -- allocate space to store moments and create moment updater
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       if isIntegratedMomentNameGood(mom) then
-         self.diagnosticIntegratedMomentFields[i] = DataStruct.DynVector {
+         self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
             numComponents = numCompInt[mom],
          }
          if mom == "intL2" then
-            self.diagnosticIntegratedMomentUpdaters[i] = Updater.CartFieldIntegratedQuantCalc {
+            self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid = self.grid,
                basis = self.basis,
                numComponents = numCompInt[mom],
                quantity = "V2"
             }
          else
-            self.diagnosticIntegratedMomentUpdaters[i] = Updater.CartFieldIntegratedQuantCalc {
+            self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid = self.confGrid,
                basis = self.confBasis,
                numComponents = numCompInt[mom],
@@ -361,23 +365,22 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
    -- compute VDIM*n*T from M2 and kinetic energy density
    self.thermalEnergyDensity:combine(1.0, self.ptclEnergy, -1.0, self.kineticEnergyDensity)
 
-   local numMoms = #self.diagnosticIntegratedMoments   
-   for i = 1, numMoms do
-      if self.diagnosticIntegratedMoments[i] == "intM0" then
-         self.diagnosticIntegratedMomentUpdaters[i]:advance(
-            tCurr, {self.numDensity}, {self.diagnosticIntegratedMomentFields[i]})
-      elseif self.diagnosticIntegratedMoments[i] == "intM1i" then
-         self.diagnosticIntegratedMomentUpdaters[i]:advance(
-            tCurr, {self.momDensity}, {self.diagnosticIntegratedMomentFields[i]})
-      elseif self.diagnosticIntegratedMoments[i] == "intM2Flow" then
-         self.diagnosticIntegratedMomentUpdaters[i]:advance(
-            tCurr, {self.kineticEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
-      elseif self.diagnosticIntegratedMoments[i] == "intM2Thermal" then
-         self.diagnosticIntegratedMomentUpdaters[i]:advance(
-            tCurr, {self.thermalEnergyDensity}, {self.diagnosticIntegratedMomentFields[i]})
-      elseif self.diagnosticIntegratedMoments[i] == "intL2" then
-         self.diagnosticIntegratedMomentUpdaters[i]:advance(
-            tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[i]})
+   for i, mom in pairs(self.diagnosticIntegratedMoments) do
+      if mom == "intM0" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.numDensity}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intM1i" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.momDensity}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intM2Flow" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.kineticEnergyDensity}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intM2Thermal" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.thermalEnergyDensity}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intL2" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
       end
    end
 end

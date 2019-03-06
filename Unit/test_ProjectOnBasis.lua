@@ -38,11 +38,12 @@ function test_1d_1()
    -- do projection
    project:advance(0.0, {}, {distf})
 
+   local idx = Lin.IntVec(grid:ndim())
    local xc = Lin.Vec(1)
    local indexer = distf:indexer()
    -- check projection
    for i = 1, grid:numCells(1) do
-      grid:setIndex({i})
+      grid:setIndex( idx:setValues {i} )
       grid:cellCenter(xc)
       local fItr = distf:get(indexer(i))
       assert_equal(xc[1], fItr[1]/math.sqrt(2), "Checking cell average")
@@ -75,11 +76,12 @@ function test_1d_2()
    -- do projection
    project:advance(0.0, {}, {distf})
 
+   local idx = Lin.IntVec(grid:ndim())
    local xc = Lin.Vec(1)
    local indexer = distf:indexer()
    -- check projection
    for i = 1, grid:numCells(1) do
-      grid:setIndex({i})
+      grid:setIndex( idx:setValues {i} )
       grid:cellCenter(xc)
       local fItr = distf:get(indexer(i))
       assert_equal(1.414213562373095*xc[1]^2+0.007365695637359865, fItr[1], "Checking cell average")
@@ -112,12 +114,13 @@ function test_2d()
    -- do projection
    project:advance(0.0, {}, {distf})
 
+   local idx = Lin.IntVec(grid:ndim())
    local xc = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()
    -- check projection
    for i = 1, grid:numCells(1) do
       for j = 2, grid:numCells(2) do
-	 grid:setIndex({i, j})
+	 grid:setIndex( idx:setValues {i, j} )
 	 grid:cellCenter(xc)
 	 local fItr = distf:get(indexer(i,j))
 	 assert_equal(xc[1], fItr[1]/2, "Checking cell average")
@@ -150,12 +153,13 @@ function test_2d_2()
    -- do projection
    project:advance(0.0, {}, {distf})
 
+   local idx = Lin.IntVec(grid:ndim())
    local xc = Lin.Vec(grid:ndim())
    local indexer = distf:indexer()
    -- check projection
    for i = 1, grid:numCells(1) do
       for j = 2, grid:numCells(2) do
-	 grid:setIndex({i, j})
+	 grid:setIndex( idx:setValues {i, j} )
 	 grid:cellCenter(xc)
 	 local fItr = distf:get(indexer(i,j))
 

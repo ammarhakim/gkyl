@@ -13,7 +13,7 @@ fpprec : 24$
 writeCExprsB(lhs, rhs) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
-    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", ssubst(")","]",ssubst("(","[",string(lhs[i]))), expr[i])
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", sremove("\\", ssubst(")","]",ssubst("(","[",string(lhs[i])))), expr[i])
   )
 )$
 
@@ -48,7 +48,7 @@ writeCExprs1s(lhs, rhs) := block([expr],
   )
 )$
 
-calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
+calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
@@ -57,7 +57,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
     N  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // A:       denominator field (must be a scalar field). ~%"),
     printf(fh, "  // B:       numerator field (can be scalar or vector). ~%"),
     printf(fh, "  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). ~%"),
@@ -127,6 +127,7 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
     ue : doExpand1(u,bC),
     un : makelist(u[i],i,0,N-1),
 
+    kill(eq,E,Eflat,Ef,Elhs),
     eq : calcInnerProdList(varsC,ue,bC,Ae),
   
     E : fullratsimp(coefmatrix(eq,un)),
@@ -135,18 +136,11 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
 
     /* Make a list of the LHS matrix assignments. */
     /* Note: Eigen defaults to Column-major order. */
-    Ef [i,j] := AEM[i,j],
+    Ef[i,j] := "data->AEM_S"[i,j],
     Elhs : list_matrix_entries(genmatrix(Ef,N-1,N-1,0,0)),
 
-    printf(fh, "  // Declare Eigen Matrix with triple basis tensor dotted with B vector. ~%"),
-    printf(fh, "  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N),
-    printf(fh, "  // Declare Eigen Vector with coefficients of B. ~%"),
-    printf(fh, "  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(~a);  ~%", N),
-    printf(fh, "  // Declare vector with solution to system of equations. ~%"),
-    printf(fh, "  Eigen::VectorXd u = Eigen::VectorXd::Zero(~a);  ~%", N),
-    printf(fh, " ~%"),
-
     printf(fh, "  // Fill AEM matrix. ~%"),
+    printf(fh, "  data->AEM_S = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N),
     writeCExprsB(Elhs,Eflat),
     printf(fh, " ~%"),
 
@@ -158,22 +152,22 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([],
 /*    printf(fh, "    Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", N), */
 /*  Something like this is only needed if the BEV vector is pre-initialized during init. */
 /*    printf(fh, "    ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", N), */
-    writeEVExprs(BEV,makelist(Bs[i],i,b0+0,b0+N-1)),
+    writeEVExprs("data->BEV_S",makelist(Bs[i],i,b0+0,b0+N-1)),
     printf(fh, " ~%"),
 
     printf(fh, "    // Solve the system of equations. ~%"),
-    printf(fh, "    u = AEM.colPivHouseholderQr().solve(BEV); ~%"),
+    printf(fh, "    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); ~%"),
     printf(fh, " ~%"),
 
     printf(fh, "    // Copy data from Eigen vector. ~%"),
-    printf(fh, "    Eigen::Map<VectorXd>(out+vd*~a,~a,1) = u; ~%", N, N),
+    printf(fh, "    Eigen::Map<VectorXd>(out+vd*~a,~a,1) = data->u_S; ~%", N, N),
     printf(fh, "  } ~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")
   )
 )$
 
-calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
   load(modNm),
@@ -184,7 +178,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     NP : length(bP),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "void ~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // A:       configuration space denominator field (must be a scalar field). ~%"),
     printf(fh, "  // B:       phase space numerator field (must be a scalar field). ~%"),
     printf(fh, "  // Ncomp:   number of components of B (=1 here). ~%"),
@@ -242,6 +236,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ue : doExpand1(u,bP),
     un : makelist(u[i],i,0,NC-1),
 
+    kill(eq,E,Eflat,Ef,Elhs),
     eq : calcInnerProdList(varsP,ue,bP,Ae),
   
     E : fullratsimp(coefmatrix(eq,un)),
@@ -250,18 +245,11 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Make a list of the LHS matrix assignments. */
     /* Note: Eigen defaults to Column-major order. */
-    Ef [i,j] := AEM[i,j],
+    Ef [i,j] := "data->AEM_D"[i,j],
     Elhs : list_matrix_entries(genmatrix(Ef,NP-1,NP-1,0,0)),
 
-    printf(fh, "  // Declare Eigen Matrix with triple basis tensor dotted with B vector. ~%"),
-    printf(fh, "  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(~a,~a); ~%", NP, NP),
-    printf(fh, "  // Declare Eigen Vector with coefficients of B. ~%"),
-    printf(fh, "  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(~a);  ~%", NP),
-    printf(fh, "  // Declare vector with solution to system of equations. ~%"),
-    printf(fh, "  Eigen::VectorXd u = Eigen::VectorXd::Zero(~a);  ~%", NP),
-    printf(fh, " ~%"),
-
     printf(fh, "  // Fill AEM matrix. ~%"),
+    printf(fh, "  data->AEM_D = Eigen::MatrixXd::Zero(~a,~a); ~%", NP, NP),
     writeCExprsB(Elhs,Eflat),
     printf(fh, " ~%"),
 
@@ -269,15 +257,15 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 /*    printf(fh, "  Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", NP), */
 /*  Something like this is only needed if the BEV vector is pre-initialized during init. */
 /*    printf(fh, "  ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", NP), */
-    writeEVExprsS(BEV,makelist(Bs[i],i,0,NP-1)),
+    writeEVExprsS("data->BEV_D",makelist(Bs[i],i,0,NP-1)),
     printf(fh, " ~%"),
 
     printf(fh, "  // Solve the system of equations. ~%"),
-    printf(fh, "  u = AEM.colPivHouseholderQr().solve(BEV); ~%"),
+    printf(fh, "  data->u_D = data->AEM_D.colPivHouseholderQr().solve(data->BEV_D); ~%"),
     printf(fh, " ~%"),
 
     printf(fh, "  // Copy data from Eigen vector. ~%"),
-    printf(fh, "  Eigen::Map<VectorXd>(out,~a,1) = u; ~%", NP),
+    printf(fh, "  Eigen::Map<VectorXd>(out,~a,1) = data->u_D; ~%", NP),
     printf(fh, " ~%"),
     printf(fh, "} ~%"),
     printf(fh, " ~%")

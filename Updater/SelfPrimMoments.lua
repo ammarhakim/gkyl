@@ -13,6 +13,13 @@ local Lin             = require "Lib.Linalg"
 local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
+local ffi = require "ffi"
+local ffiC = ffi.C
+
+ffi.cdef [[
+  void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
+  void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
+]]
 
 -- function to check if operator option is correct
 local function isOperatorGood(nm)
@@ -105,6 +112,7 @@ function SelfPrimMoments:init(tbl)
 
    end
 
+   self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(self._uDim+1), 0) 
 end
 
 -- advance method
@@ -126,7 +134,8 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local m1fldIndexer   = m1fld:genIndexer()
    local m1fldItr       = m1fld:get(1)
    local phaseIndexer   = fIn:genIndexer()
-   local fInItr         = fIn:get(1)
+   local fInItrP         = fIn:get(1)
+   local fInItrM         = fIn:get(1)
 
    local m0Star, m1Star, m2Star
    local m2fld, m2fldIndexer, m2fldItr
@@ -159,7 +168,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local xcM, xcP   = Lin.Vec(self._pDim), Lin.Vec(self._pDim)
    local dxM, dxP   = Lin.Vec(self._pDim), Lin.Vec(self._pDim)
 
-   for confIdx in confRange:colMajorIter() do
+   for confIdx in confRange:rowMajorIter() do
       grid:setIndex(confIdx)
 
       m0fld:fill(m0fldIndexer(confIdx), m0fldItr)
@@ -172,12 +181,8 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
       -- Compute the corrections to u and vtSq due to 
       -- finite velocity grid to ensure conservation.
-      for k = 1, self._numBasisC do
-         cEnergyB[k] = 0 
-         for vd = 1, self._uDim do
-            cMomB[(vd-1)*self._numBasisC + k] = 0
-         end
-      end
+      ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, cEnergyB:data())
+      ffiC.gkylCartFieldAssignAll(0, self._uDim*self._numBasisC, 0.0, cMomB:data())
 
       -- Only when the contributions to m0Star from the first direction
       -- are collected, do we collect contributions to m1Star and m2Star.
@@ -213,7 +218,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             end
             local perpRange = self._perpRange[vDir]
 
-            for vPerpIdx in perpRange:colMajorIter() do
+            for vPerpIdx in perpRange:rowMajorIter() do
                vPerpIdx:copyInto(idxP)
                for d = 1, self._cDim do idxP[d] = confIdx[d] end
 
@@ -221,11 +226,10 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
                   idxP[self._cDim+vDir] = i 
 
                   self._phaseGrid:setIndex(idxP)
-                  for d = 1, self._pDim do dxP[d] = self._phaseGrid:dx(d) end
+                  self._phaseGrid:getDx(dxP)
                   self._phaseGrid:cellCenter(xcP)
 
-                  fIn:fill(phaseIndexer(idxP), fInItr)
-                  for k = 1, self._numBasisP do fInP[k] = fInItr[k] end
+                  fIn:fill(phaseIndexer(idxP), fInItrP)
 
                   local vBound = 0.0
                   if isLo then
@@ -236,12 +240,12 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
                   if (self._isGkLBO) then
                      if (firstDir) then
-                       self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInP:data(), cMomB:data())
+                       self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInItrP:data(), cMomB:data())
                      end
-                     self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                     self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                   else
-                     self._uCorrection(isLo, vBound, dxP:data(), fInP:data(), cMomB:data())
-                     self._vtSqCorrection(isLo, vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                     self._uCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cMomB:data())
+                     self._vtSqCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                   end
 
                   isLo = not isLo
@@ -250,19 +254,15 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             firstDir = false
          end
 
-         self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
+         self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
 
       else
          -- To have energy conservation with piece-wise linear, we must use
          -- star moments in the second equation of the weak system solved
          -- in SelfPrimMoments.
-         for k = 1, self._numBasisC do
-            m0Star[k] = 0 
-            for vd = 1, self._uDim do
-              m1Star[(vd-1)*self._numBasisC + k] = 0
-            end
-            m2Star[k] = 0 
-         end
+         ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, m0Star:data())
+         ffiC.gkylCartFieldAssignAll(0, self._uDim*self._numBasisC, 0.0, m1Star:data())
+         ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, m2Star:data())
 
          for vDir = 1, self._vDim do
             if (not self._isGkLBO) or (self._isGkLBO and firstDir) then
@@ -287,7 +287,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
             -- Outer loop is over directions orthogonal to 'vDir' and
             -- inner loop is over 1D slice in 'vDir'.
-            for vPerpIdx in perpRange:colMajorIter() do
+            for vPerpIdx in perpRange:rowMajorIter() do
                vPerpIdx:copyInto(idxM); vPerpIdx:copyInto(idxP)
                for d = 1, self._cDim do idxM[d] = confIdx[d] end
                for d = 1, self._cDim do idxP[d] = confIdx[d] end
@@ -296,33 +296,30 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
                   idxM[self._cDim+vDir], idxP[self._cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
 
 	          self._phaseGrid:setIndex(idxM)
-	          for d = 1, self._pDim do dxM[d] = self._phaseGrid:dx(d) end
+                  self._phaseGrid:getDx(dxM)
 	          self._phaseGrid:cellCenter(xcM)
 
 	          self._phaseGrid:setIndex(idxP)
-	          for d = 1, self._pDim do dxP[d] = self._phaseGrid:dx(d) end
+                  self._phaseGrid:getDx(dxP)
 	          self._phaseGrid:cellCenter(xcP)
 
-                  fIn:fill(phaseIndexer(idxM), fInItr)
-                  for k = 1, self._numBasisP do fInM[k] = fInItr[k] end
-
-                  fIn:fill(phaseIndexer(idxP), fInItr)
-                  for k = 1, self._numBasisP do fInP[k] = fInItr[k] end
+                  fIn:fill(phaseIndexer(idxM), fInItrM)
+                  fIn:fill(phaseIndexer(idxP), fInItrP)
 
                   if i>dirLoIdx and i<dirUpIdx then  
                      if (self._isGkLBO) then
                         if (firstDir) then
-                           self._StarM0Calc(self._intFac[1], xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInM:data(), fInP:data(), m0Star:data())
+                           self._StarM0Calc(self._intFac[1], xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInItrM:data(), fInItrP:data(), m0Star:data())
                         end
                      else
-                        self._StarM0Calc(xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInM:data(), fInP:data(), m0Star:data())
+                        self._StarM0Calc(xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInItrM:data(), fInItrP:data(), m0Star:data())
                      end
                   end
              	  if firstDir and i<dirUpIdx then
                      if self._isGkLBO then
-                        self._StarM1iM2Calc(xcP:data(), dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), fInP:data(), m1Star:data(), m2Star:data())
+                        self._StarM1iM2Calc(xcP:data(), dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), fInItrP:data(), m1Star:data(), m2Star:data())
                      else
-                        self._StarM1iM2Calc(xcP:data(), dxP:data(), fInP:data(), m1Star:data(), m2Star:data())
+                        self._StarM1iM2Calc(xcP:data(), dxP:data(), fInItrP:data(), m1Star:data(), m2Star:data())
                      end
                   end
 
@@ -336,12 +333,12 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
                      end
                      if (self._isGkLBO) then
                         if (firstDir) then
-                           self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInP:data(), cMomB:data())
+                           self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInItrP:data(), cMomB:data())
                         end
-                        self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                        self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                      else
-                        self._uCorrection(isLo, vBound, dxP:data(), fInP:data(), cMomB:data())
-                        self._vtSqCorrection(isLo, vBound, dxP:data(), fInP:data(), cEnergyB:data())
+                        self._uCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cMomB:data())
+                        self._vtSqCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
                      end
 
                      isLo = not isLo
@@ -352,7 +349,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             firstDir = false
          end
 
-      self._SelfPrimMomentsCalc(m0fldItr:data(), m1fldItr:data(), m0Star:data(), m1Star:data(), m2Star:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
+      self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m0Star:data(), m1Star:data(), m2Star:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
 
       end
 

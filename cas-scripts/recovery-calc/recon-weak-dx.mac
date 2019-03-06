@@ -1,0 +1,144 @@
+load("modal-basis")$
+load("basis-precalc/basisSer1x")$
+assume(dx>0)$
+
+eta(xc,dx,b) := subst(z=x,
+  subst(x=(z-xc)/(dx/2), b))$
+
+/* Flags to indicate what we are matching (one can match both) */
+matchSlope : true $
+matchValue : false $
+
+/* Reconstruction across two cells of size dx each */
+bCC : basisC[1]$
+
+pL : eta(-dx/2,dx,bCC)$
+pR : eta(dx/2,dx,bCC)$
+
+N : length(bCC)$
+h : doExpand1(hn, makelist(x^i,i,0,2*N-1))$
+eqL : calcInnerProdListGen([x], [[-dx,0]], 1, pL, h-doExpand(hL,pL))$
+eqR : calcInnerProdListGen([x], [[0,dx]],  1, pR, h-doExpand(hR,pR))$
+eqList : append(eqL,eqR)$
+hsol : linsolve(eqList, makelist(hn[i], i, 0, 2*N-1))$
+h1d : fullratsimp(subst(hsol, h))$
+
+/* Three-cell reconstruction: match slope and moments */
+bC : eta(0, dx, bCC)$
+fh : sum(f(j,i)*bC[i], i, 1, N)$
+
+/* Derivative and value of h at interface */
+dh : subst(x=0,diff(h1d,x))$
+vh : subst(x=0,h1d)$
+
+subListR : append(
+  makelist(hL[i]=f(j,i), i, 1,N), makelist(hR[i]=f(j+1,i), i, 1,N)
+  )$
+subListL : append(
+  makelist(hL[i]=f(j-1,i), i, 1,N), makelist(hR[i]=f(j,i), i, 1,N)
+  )$
+
+/* Slope on right/left cell edge */
+dhR : subst(subListR, dh)$
+dhL : subst(subListL, dh)$
+/* Values on right/left cell edge */
+vhR : subst(subListR, vh)$
+vhL : subst(subListL, vh)$
+
+/* Reconstruct in the middle cell */
+maxReconOrder : N-1$
+if matchSlope then maxReconOrder : maxReconOrder+2$
+if matchValue then maxReconOrder : maxReconOrder+2$
+
+rh : sum(r[i]*x^i, i, 0, maxReconOrder)$
+
+/* Construct list of equations to match */
+eqList : []$
+if matchSlope then eqList : append(
+  [ dhR = subst(x=dx/2,diff(rh,x)), dhL = subst(x=-dx/2,diff(rh,x)) ],
+  eqList)$
+if matchValue then eqList : append(
+  [ vhR = subst(x=dx/2,rh), vhL = subst(x=-dx/2,rh) ],
+  eqList)$
+eqList : append(eqList,
+  calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, bC, rh-fh))$
+
+/* Solve system and construct expansion */
+rsol : linsolve(eqList, makelist(r[i],i,0,maxReconOrder))$
+r1d : subst(rsol, rh)$
+
+/* Basis function in three cells: L,I,R */
+bCL : eta(-dx,dx,bCC)$
+bCI : eta(0,dx,bCC)$
+bCR : eta(dx,dx,bCC)$
+
+/* Function to compute reconstruction of an expression */
+calcRecon(g) := block([gL, gI, gR, r1g],
+  gL : calcInnerProdListGen([x], [[-3*dx/2,-dx/2]], 1, bCL, g)*2/dx,
+  gI : calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, bCI, g)*2/dx,
+  gR : calcInnerProdListGen([x], [[dx/2,3*dx/2]], 1, bCR, g)*2/dx,
+  r1g : expand(
+    fullratsimp(subst(append(
+      makelist(f(j-1,i)=gL[i],i,1,N),
+      makelist(f(j,i)=gI[i],i,1,N),
+      makelist(f(j+1,i)=gR[i],i,1,N)),
+    r1d))),
+  return (r1g)
+  )$
+
+/* Taylor series analysis */
+taylorExpand(df,N,z) := df[0] + sum(df[i]*z^i/factorial(i), i, 1, N)$
+ft : taylorExpand(df, 10, x)$
+ft1d : calcRecon(ft)$
+
+/* Project Taylor series on basis functions */
+ft1d_xx_h : expand(calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, bC, diff(ft1d,x,2))*2/dx)$
+
+/* dsin is a "discrete" sin */
+dsin(x,n) := sum((-1)^(i-1)*x^(2*i-1)/factorial(2*i-1), i, 1, n)$
+
+/* Calculate errors in reconstruction in a cell */
+calcError(g, dxIn) := sqrt(
+  integrate((subst(dx=dxIn,g-calcRecon(g)))^2, x, -dxIn/2, dxIn/2)/dxIn
+  )$
+
+/* Calculate errors in second derivatives */
+calcD2Error(g, dxIn) := sqrt(
+  integrate((subst(dx=dxIn,diff(g-calcRecon(g),x,2)))^2, x, -dxIn/2, dxIn/2)/dxIn
+  )$
+
+/* Calculate order of convergence */
+calcOrder(dx, errorDx) := float(makelist(
+  log(errorDx[i]/errorDx[i+1])/log(dx[i]/dx[i+1]),
+  i, 1, length(dx)-1))$
+
+g : dsin(x-1/2,10)$
+
+/* Make list of errors */
+dxVal : [2, 1, 1/2, 1/4, 1/8]$
+reconErr : map(lambda([d], calcError(g,d)), dxVal)$
+reconConvOrder : calcOrder(dxVal, reconErr)$
+
+diff2Err : map(lambda([d], calcD2Error(g,d)), dxVal)$
+diff2ConvOrder : calcOrder(dxVal, diff2Err)$
+
+/* Function to plot reconstruction */
+plotRecon(g,dx) := block([gL,gI,gR,ge,r1ge,gLe,gIe,gRe],
+  gL : calcInnerProdListGen([x], [[-3,-1]*dx/2], 1, bCL, g)*2/dx,
+  gI : calcInnerProdListGen([x], [[-1,1]*dx/2], 1, bCI, g)*2/dx,
+  gR : calcInnerProdListGen([x], [[1,3]*dx/2], 1, bCR, g)*2/dx,
+  ge : explicit(g, x, -3*dx/2, 3*dx/2),
+  r1ge : explicit(calcRecon(g), x, -dx/2, dx/2),
+  gLe : explicit(gL.bCL, x, -3*dx/2, -dx/2),
+  gIe : explicit(gI.bCI, x, -dx/2, dx/2),
+  gRe : explicit(gR.bCR, x, dx/2, 3*dx/2),
+  draw2d(
+    grid=true,
+    color=red, r1ge,
+    color=black,gLe,
+    color=black,gIe,
+    color=black,gRe,
+    color=blue,line_type=dots,ge
+    )
+  )$
+plotRecon(g, 2)$

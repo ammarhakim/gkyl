@@ -7,6 +7,7 @@ import os
 
 def build(bld):
     bld.objects(source = r"""
+    MomentSrcCommon.cpp
     FiveMomentSrcImpl.cpp
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
@@ -40,7 +41,24 @@ def build(bld):
     primMomentsCalcData/GkSelfPrimMomentsMax3x2v.cpp
     primMomentsCalcData/VmCrossPrimMomentsSer1x1v.cpp
     primMomentsCalcData/VmCrossPrimMomentsSer1x2v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsSer1x3v.cpp
     primMomentsCalcData/VmCrossPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsSer2x3v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsSer3x3v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsMax1x1v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsMax1x2v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsMax1x3v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsMax2x3v.cpp
+    primMomentsCalcData/VmCrossPrimMomentsMax3x3v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsSer1x1v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsSer1x2v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsSer3x2v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsMax1x1v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsMax1x2v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/GkCrossPrimMomentsMax3x2v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
@@ -52,6 +70,7 @@ def build(bld):
     binOpCalcData/CartFieldBinOpSer2x3v.cpp
     binOpCalcData/CartFieldBinOpSer3x2v.cpp
     binOpCalcData/CartFieldBinOpSer3x3v.cpp
+    binOpCalcData/CartFieldBinOpImpl.cpp
 
     binOpCalcData/CartFieldBinOpMax1x.cpp
     binOpCalcData/CartFieldBinOpMax2x.cpp

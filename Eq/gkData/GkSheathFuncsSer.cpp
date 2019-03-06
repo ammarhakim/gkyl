@@ -1,6 +1,6 @@
 #include <GyrokineticModDecl.h> 
 #include <CartFieldBinOpModDecl.h> 
-void calcSheathPartialReflectionScaled1x1vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled1x1vSer_P1(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[2]; 
   double uhat[2]; 
@@ -29,9 +29,9 @@ void calcSheathPartialReflectionScaled1x1vSer_P1(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide1xSer_P1(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide1xSer_P1(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply1x1vSer_P1(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply1x1vSer_P1(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {
@@ -49,7 +49,7 @@ void calcSheathPartialReflectionScaled1x1vSer_P1(const double wv, const double d
 
 } 
 
-void calcSheathPartialReflectionScaled1x1vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled1x1vSer_P2(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[3]; 
   double uhat[3]; 
@@ -81,9 +81,9 @@ void calcSheathPartialReflectionScaled1x1vSer_P2(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide1xSer_P2(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide1xSer_P2(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply1x1vSer_P2(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply1x1vSer_P2(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {
@@ -106,7 +106,7 @@ double calcSheathDeltaPhi1xSer_P1(const double *phi, const double *phiWall, cons
   return 1.224744871391589*phi[1]*zVal-0.7071067811865475*phiWall[0]+0.7071067811865475*phi[0]; 
 }
 
-void calcSheathPartialReflectionScaled1x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled1x2vSer_P1(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[2]; 
   double uhat[2]; 
@@ -135,9 +135,9 @@ void calcSheathPartialReflectionScaled1x2vSer_P1(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide1xSer_P1(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide1xSer_P1(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply1x2vSer_P1(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply1x2vSer_P1(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {
@@ -161,7 +161,7 @@ double calcSheathDeltaPhi1xSer_P2(const double *phi, const double *phiWall, cons
   return 2.371708245126284*phi[2]*(zVal2-0.3333333333333333)+1.224744871391589*phi[1]*zVal+0.7905694150420947*phiWall[2]-0.7071067811865475*phiWall[0]+0.7071067811865475*phi[0]; 
 }
 
-void calcSheathPartialReflectionScaled1x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled1x2vSer_P2(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[3]; 
   double uhat[3]; 
@@ -193,9 +193,9 @@ void calcSheathPartialReflectionScaled1x2vSer_P2(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide1xSer_P2(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide1xSer_P2(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply1x2vSer_P2(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply1x2vSer_P2(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {
@@ -218,7 +218,7 @@ double calcSheathDeltaPhi2xSer_P1(const double *phi, const double *phiWall, cons
   return 0.8660254037844386*phi[2]*zVal-0.5*phiWall[0]+0.5*phi[0]; 
 }
 
-void calcSheathPartialReflectionScaled2x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled2x2vSer_P1(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[4]; 
   double uhat[4]; 
@@ -253,9 +253,9 @@ void calcSheathPartialReflectionScaled2x2vSer_P1(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide2xSer_P1(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide2xSer_P1(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply2x2vSer_P1(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply2x2vSer_P1(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {
@@ -279,7 +279,7 @@ double calcSheathDeltaPhi2xSer_P2(const double *phi, const double *phiWall, cons
   return 1.677050983124842*phi[5]*(zVal2-0.3333333333333333)-0.9682458365518543*phi[6]*zVal+0.8660254037844386*phi[2]*zVal+0.5590169943749475*phiWall[5]+0.5590169943749475*phiWall[4]-0.5590169943749475*phi[4]-0.5*phiWall[0]+0.5*phi[0]; 
 }
 
-void calcSheathPartialReflectionScaled2x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled2x2vSer_P2(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[8]; 
   double uhat[8]; 
@@ -326,9 +326,9 @@ void calcSheathPartialReflectionScaled2x2vSer_P2(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide2xSer_P2(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide2xSer_P2(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply2x2vSer_P2(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply2x2vSer_P2(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {
@@ -351,7 +351,7 @@ double calcSheathDeltaPhi3xSer_P1(const double *phi, const double *phiWall, cons
   return 0.6123724356957944*phi[3]*zVal-0.3535533905932737*phiWall[0]+0.3535533905932737*phi[0]; 
 }
 
-void calcSheathPartialReflectionScaled3x2vSer_P1(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled3x2vSer_P1(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[8]; 
   double uhat[8]; 
@@ -398,9 +398,9 @@ void calcSheathPartialReflectionScaled3x2vSer_P1(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide3xSer_P1(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide3xSer_P1(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply3x2vSer_P1(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply3x2vSer_P1(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {
@@ -424,7 +424,7 @@ double calcSheathDeltaPhi3xSer_P2(const double *phi, const double *phiWall, cons
   return 1.185854122563142*phi[9]*(zVal2-0.3333333333333333)-0.6846531968814574*phi[14]*zVal-0.6846531968814574*phi[13]*zVal+0.6123724356957944*phi[3]*zVal+0.3952847075210473*phiWall[9]+0.3952847075210473*phiWall[8]-0.3952847075210473*phi[8]+0.3952847075210473*phiWall[7]-0.3952847075210473*phi[7]-0.3535533905932737*phiWall[0]+0.3535533905932737*phi[0]; 
 }
 
-void calcSheathPartialReflectionScaled3x2vSer_P2(const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
+void calcSheathPartialReflectionScaled3x2vSer_P2(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) 
 { 
   double u[20]; 
   double uhat[20]; 
@@ -507,9 +507,9 @@ void calcSheathPartialReflectionScaled3x2vSer_P2(const double wv, const double d
   }
 
   // calculate c = uhat/u 
-  CartFieldBinOpDivide3xSer_P2(u, uhat, 1, 1, c); 
+  CartFieldBinOpDivide3xSer_P2(binOpData, u, uhat, 1, 1, c); 
   // calculate fhat = c*f 
-  CartFieldBinOpMultiply3x2vSer_P2(c, f, 1, 1, fhat); 
+  CartFieldBinOpMultiply3x2vSer_P2(binOpData, c, f, 1, 1, fhat); 
   // account for rare positivity issues 
   if (fhat[0]<0) {
     if(wv > 0) {

@@ -5,7 +5,7 @@
 local ffi = require'ffi'
 
 local M = {}
-local C = ffi.C
+local ffiC = ffi.C
 
 if ffi.os == 'Windows' then
 
@@ -20,20 +20,20 @@ if ffi.os == 'Windows' then
    local DELTA_EPOCH_IN_100NS = 116444736000000000ULL
 
    function M.time()
-      C.time_GetSystemTimeAsFileTime(t)
+      ffiC.time_GetSystemTimeAsFileTime(t)
       return tonumber(t[0] - DELTA_EPOCH_IN_100NS) / 10^7
    end
 
-   assert(C.time_QueryPerformanceFrequency(t) ~= 0)
+   assert(ffiC.time_QueryPerformanceFrequency(t) ~= 0)
    local qpf = tonumber(t[0])
 
    function M.clock()
-      assert(C.time_QueryPerformanceCounter(t) ~= 0)
+      assert(ffiC.time_QueryPerformanceCounter(t) ~= 0)
       return tonumber(t[0]) / qpf
    end
 
    function M.sleep(s)
-      C.time_Sleep(s * 1000)
+      ffiC.time_Sleep(s * 1000)
    end
 
 elseif ffi.os == 'Linux' or ffi.os == 'OSX' then
@@ -55,9 +55,9 @@ elseif ffi.os == 'Linux' or ffi.os == 'OSX' then
       local int, frac = math.modf(s)
       t.s = int
       t.ns = frac * 10^9
-      local ret = C.time_nanosleep(t, t)
+      local ret = ffiC.time_nanosleep(t, t)
       while ret == -1 and ffi.errno() == EINTR do --interrupted
-	 ret = C.time_nanosleep(t, t)
+	 ret = ffiC.time_nanosleep(t, t)
       end
       assert(ret == 0)
    end
@@ -108,17 +108,17 @@ elseif ffi.os == 'Linux' or ffi.os == 'OSX' then
       local t = ffi.new'time_timeval'
 
       function M.time()
-	 assert(C.time_gettimeofday(t, nil) == 0)
+	 assert(ffiC.time_gettimeofday(t, nil) == 0)
 	 return tonumber(t.s) + tonumber(t.us) / 10^6
       end
 
       --NOTE: this appears to be pointless on Intel Macs. The timebase fraction
       --is always 1/1 and mach_absolute_time() does dynamic scaling internally.
       local timebase = ffi.new'time_mach_timebase_info_data_t'
-      assert(C.time_mach_timebase_info(timebase) == 0)
+      assert(ffiC.time_mach_timebase_info(timebase) == 0)
       local scale = tonumber(timebase.numer) / tonumber(timebase.denom) / 10^9
       function M.clock()
-	 return tonumber(C.time_mach_absolute_time()) * scale
+	 return tonumber(ffiC.time_mach_absolute_time()) * scale
       end
 
    end --OSX

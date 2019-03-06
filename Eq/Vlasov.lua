@@ -11,6 +11,7 @@ local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local VlasovModDecl = require "Eq.vlasovData.VlasovModDecl"
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 
 -- for incrementing in updater
@@ -18,7 +19,7 @@ ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOu
 
 -- compute emOut = q/m*emIn
 local function rescaleEmField(qbym, emIn, emOut)
-   ffi.C.vlasovIncr(#emOut, emIn:data(), qbym, emOut:data())
+   ffiC.vlasovIncr(#emOut, emIn:data(), qbym, emOut:data())
 end
 
 -- Vlasov equation on a rectangular mesh

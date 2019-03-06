@@ -69,6 +69,7 @@ def build(bld):
     bld.recurse("Updater")
     bld.recurse("DataStruct")
     bld.recurse("Eq")
+    bld.recurse("Grid")
 
     # build executable
     buildExec(bld)    
@@ -176,7 +177,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
-        use='lib datastruct eq unit comm updater basis LUAJIT ADIOS EIGEN MPI M DL',
+        use='lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'

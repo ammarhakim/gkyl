@@ -46,6 +46,10 @@ function IncompEulerSpecies:appendBoundaryConditions(dir, edge, bcType)
 end
 
 function IncompEulerSpecies:createSolver(hasE, hasB)
+   -- Run the FluidSpecies 'createSolver()' to initialize the
+   -- collisions (diffusion) solver.
+   IncompEulerSpecies.super.createSolver(self)
+
    -- create updater to advance solution by one time-step
    local eqn = IncompEulerEq {
       onGrid = self.grid,
@@ -98,7 +102,7 @@ function IncompEulerSpecies:suggestDt()
    local localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange, numSplit = grid:numSharedProcs() }
 
-   for idx in localRangeDecomp:colMajorIter(tId) do
+   for idx in localRangeDecomp:rowMajorIter(tId) do
       -- calculate local min dt from local cflRates
       self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
       self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])

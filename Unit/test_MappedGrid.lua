@@ -33,7 +33,9 @@ function test_1()
    assert_equal(1.0, grid:upper(1), "Upper-right computational coordinate [1]")
    assert_equal(1.0, grid:upper(2), "Upper-right computational coordinate [2]")
 
-   grid:setIndex({1,1})
+   local idx = Lin.IntVec(grid:ndim())
+
+   grid:setIndex( idx:setValues {1,1} )
    assert_equal(0.1, grid:dx(1), "Computational cell-space [1]")
    assert_equal(0.05, grid:dx(2), "Computational cell-space [2]")
 

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load intel/18.0.0
-module load impi/18.0.0
+module load intel/18.0.2
+module load impi/18.0.2
 
 # Build directory
 OUT=build-par
@@ -12,7 +12,7 @@ PREFIX=$HOME/gkylsoft/gkyl
 # Compile flags (set optimization/debug flags here)
 CC=icc
 CXX=icpc
-CXXFLAGS='-O3,-std=c++14,-axMIC-AVX512'
+CXXFLAGS='-O3,-std=c++14,-axMIC-AVX512,-qopt-zmm-usage=high'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1

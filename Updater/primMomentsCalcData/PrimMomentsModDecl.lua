@@ -52,18 +52,18 @@ end
 function _M.selectBoundaryVFintegral(dir, kinSpecies, basisNm, CDIM, VDIM, polyOrder)
    local funcNm = ""
    if dir == 1 then 
-     funcNm = string.format("%sBoundaryIntegral%dx%dv%s_vF_VX_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      funcNm = string.format("%sBoundaryIntegral%dx%dv%s_vF_VX_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    elseif dir == 2 then 
-     funcNm = string.format("%sBoundaryIntegral%dx%dv%s_vF_VY_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      funcNm = string.format("%sBoundaryIntegral%dx%dv%s_vF_VY_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    elseif dir == 3 then 
-     funcNm = string.format("%sBoundaryIntegral%dx%dv%s_vF_VZ_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      funcNm = string.format("%sBoundaryIntegral%dx%dv%s_vF_VZ_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    end
    return ffi.C[funcNm]
 end
 
 -- Select kernel function to compute the cross-collision primitive moments. 
-function _M.selectCrossPrimMomentsCalc(kinSpecies, form, basisNm, CDIM, VDIM, polyOrder, collTerm)
-   local funcNm = string.format("%sCrossPrimMoments%s%dx%dv%s%s_P%d", kinSpecies, form, CDIM, VDIM, basisNmMap[basisNm], collTerm, polyOrder)
+function _M.selectCrossPrimMomentsCalc(kinSpecies, form, basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("%sCrossPrimMoments%s%dx%dv%s_P%d", kinSpecies, form, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 

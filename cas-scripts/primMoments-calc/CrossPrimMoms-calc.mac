@@ -4,18 +4,18 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
+maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
 maxCdim_Ser : 2$
 maxVdim_Ser : 2$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 1$
+maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* but see v loop below. */
-maxCdim_Max : 0$
-maxVdim_Max : 0$
+maxCdim_Max : 2$
+maxVdim_Max : 2$
 
 gkVdims      : [[1,2], [2], [2]]$
 
@@ -32,7 +32,7 @@ for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
     /* Vlasov cross-collision primitive moments. */
-    for v : c thru maxVdim[bInd] do (
+    for v : maxVdim[bInd] thru maxVdim[bInd] do (
 
       disp(printf(false,sconcat("Creating VmCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
       fname : sconcat("~/max-out/VmCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
@@ -46,9 +46,33 @@ for bInd : 1 thru length(bName) do (
       funcName : sconcat("VmCrossPrimMomentsGreene", c, "x", v, "v", bName[bInd]),
       calcCrossPrimMomsGreene(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
-      funcName : sconcat("VmCrossPrimMomentsGreeneSmallAngle", c, "x", v, "v", bName[bInd]),
-      calcCrossPrimMomsGreeneSmallAngle(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      funcName : sconcat("VmCrossPrimMomentsHeavyIon", c, "x", v, "v", bName[bInd]),
+      calcCrossPrimMomsHeavyIon(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
+      close(fh)
+    ),
+
+    /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v. However each
+       of these effectively solve a weak linear system of 2 equations.
+       For now assume that gyrokinetics is never run in 2x1v or 3x1v. */
+    for gkV : 1 thru length(gkVdims[c]) do (
+
+      v : gkVdims[c][gkV],
+
+      disp(printf(false,sconcat("Creating GkCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/GkCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+
+      printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+      printf(fh, " ~%"),
+      printf(fh, "using namespace Eigen; ~%"),
+      printf(fh, " ~%"),
+
+      funcName : sconcat("GkCrossPrimMomentsGreene", c, "x", v, "v", bName[bInd]),
+      calcCrossPrimMomsGreene(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+
+      funcName : sconcat("GkCrossPrimMomentsHeavyIon", c, "x", v, "v", bName[bInd]),
+      calcCrossPrimMomsHeavyIon(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
       close(fh)
     )
   )

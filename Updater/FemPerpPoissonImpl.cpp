@@ -72,7 +72,8 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
 
 // initialize modal-nodal transformation matrices
  
-  MatrixXd localMass = MatrixXd::Zero(nlocal, nlocal);
+  localMass = MatrixXd::Zero(nlocal, nlocal);
+  localStiff = MatrixXd::Zero(nlocal, nlocal);
   localMassModToNod = MatrixXd::Zero(nlocal, nlocal);
   localNodToMod = MatrixXd::Zero(nlocal, nlocal);
   localModToNod = MatrixXd::Zero(nlocal, nlocal);
@@ -101,7 +102,6 @@ FemPerpPoisson::FemPerpPoisson(int nx_, int ny_, int ndim_, int polyOrder_,
     //outName += std::to_string(ndim) + "d";
     saveMarket(localModToNod*localNodToMod, outName);
   }
-  localMass.resize(0,0);
 
   // create MPI type for eigen triplet vector
   MPI_Type_contiguous(sizeof(Triplet<double>), MPI_BYTE, &MPI_triplet_t);
@@ -586,9 +586,6 @@ void FemPerpPoisson::makeGlobalPerpStiffnessMatrix(double *laplacianWeight, doub
   if(ndim==3) nlocal_z += polyOrder;
 
   int nonzeros = nlocal*(std::pow(2.0, 1.0*2)+1); // estimate number of nonzeros per row
-
-  MatrixXd localStiff = MatrixXd::Zero(nlocal, nlocal);
-  MatrixXd localMass = MatrixXd::Zero(nlocal, nlocal);
 
   std::vector<int> lgMap(nlocal);
   stiffTripletList.reserve(nonzeros*nglobal); // estimate number of nonzero elements

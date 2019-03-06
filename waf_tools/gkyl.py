@@ -33,13 +33,13 @@ def check_gkyl(conf):
       conf.env.append_value('CXXFLAGS', '-g')
       conf.env.append_value('CFLAGS', '-g')
      
-    conf.start_msg("Checking if CXXFLAGS work")
-    conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
-    conf.end_msg("Flags work (%s)" % conf.options.gkcxxflags)
+    #conf.start_msg("Checking if CXXFLAGS work")
+    #conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
+    #conf.end_msg("Flags work (%s)" % conf.options.gkcxxflags)
 
-    conf.start_msg("Checking if CFLAGS work")
-    conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
-    conf.end_msg("Flags work (%s)" % conf.options.gkcflags)
+    #conf.start_msg("Checking if CFLAGS work")
+    #conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
+    #conf.end_msg("Flags work (%s)" % conf.options.gkcflags)
     
     return 1
 

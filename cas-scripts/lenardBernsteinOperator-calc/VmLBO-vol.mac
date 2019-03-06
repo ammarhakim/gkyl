@@ -1,4 +1,4 @@
-load("lenardBernsteinOperator-calc/VmLBOconstNu-alpha-vol")$
+load("lenardBernsteinOperator-calc/VmLBOconstNu-vol")$
 load("lenardBernsteinOperator-calc/VmLBOvarNu-vol")$
 load(stringproc)$
 /* This script calls the functions which calculate the

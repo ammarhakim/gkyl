@@ -14,6 +14,7 @@ local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local ffi = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
@@ -312,13 +313,15 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
    -- if all directions periodic need to adjust source so that integral is 0 
    if self._adjustSource then
      -- integrate source
-     local calcInt = CartFieldIntegratedQuantCalc {
-       onGrid = grid,
-       basis = basis,
-       numComponents = 1,
-       quantity = "V",
-     }
-     calcInt:advance(0.0, {src}, {self.dynVec})
+     if self._first then
+       self.calcInt = CartFieldIntegratedQuantCalc {
+         onGrid = grid,
+         basis = basis,
+         numComponents = 1,
+         quantity = "V",
+       }
+     end
+     self.calcInt:advance(0.0, {src}, {self.dynVec})
      _, intSrcVol = self.dynVec:lastData()
    end
 
@@ -326,13 +329,13 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
    for idz=local_z_lower, local_z_upper do
      if self._first then 
        -- if first time, create poisson C object for each z cell
-       self._poisson[idz] = ffi.C.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
+       self._poisson[idz] = ffiC.new_FemPerpPoisson(self._nx, self._ny, self._ndim, self._p, 
                                            self._dx, self._dy, self._isDirPeriodic, 
                                            self._bc, self._writeMatrix, self._adjustSource)
      end
 
      -- zero global source
-     ffi.C.zeroGlobalSrc(self._poisson[idz])
+     ffiC.zeroGlobalSrc(self._poisson[idz])
 
      -- create global source 
      -- globalSrc is an Eigen vector managed in C
@@ -345,7 +348,7 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
          else 
            src:fill(self.srcIndexer(idx, idy, idz), self.srcPtr) 
          end
-         ffi.C.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
+         ffiC.createGlobalSrc(self._poisson[idz], self.srcPtr:data(), idx-1, idy-1, intSrcVol[1]/grid:gridVolume()*math.sqrt(2)^self._ndim)
 
          if self._makeStiff then
             if ndim==2 then 
@@ -361,24 +364,24 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
               self.gxy:fill(self.gxyIndexer(idx,idy,idz), self.gxyPtr) 
               self.gyy:fill(self.gyyIndexer(idx,idy,idz), self.gyyPtr) 
             end
-            ffi.C.makeGlobalStiff(self._poisson[idz], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(), self.gxxPtr:data(), self.gxyPtr:data(), self.gyyPtr:data(), idx-1, idy-1)
+            ffiC.makeGlobalStiff(self._poisson[idz], self.laplacianWeightPtr:data(), self.modifierWeightPtr:data(), self.gxxPtr:data(), self.gxyPtr:data(), self.gyyPtr:data(), idx-1, idy-1)
          end 
        end
      end
 
      if GKYL_HAVE_MPI and Mpi.Comm_size(self._zcomm)>1 then
        -- sum each proc's globalSrc to get final globalSrc (on each proc via allreduce)
-       ffi.C.allreduceGlobalSrc(self._poisson[idz], Mpi.getComm(self._zcomm))
+       ffiC.allreduceGlobalSrc(self._poisson[idz], Mpi.getComm(self._zcomm))
        if self._makeStiff then
-         ffi.C.allgatherGlobalStiff(self._poisson[idz], Mpi.getComm(self._zcomm))
+         ffiC.allgatherGlobalStiff(self._poisson[idz], Mpi.getComm(self._zcomm))
        end
      end
 
      if self._makeStiff then
-        ffi.C.finishGlobalStiff(self._poisson[idz])
+        ffiC.finishGlobalStiff(self._poisson[idz])
      end
      -- solve 
-     ffi.C.solve(self._poisson[idz])
+     ffiC.solve(self._poisson[idz])
 
      -- remap global nodal solution to local modal solution 
      -- only need to loop over local proc region
@@ -389,7 +392,7 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
          else 
            sol:fill(self.solIndexer(idx, idy, idz), self.solPtr) 
          end
-         ffi.C.getSolution(self._poisson[idz], self.solPtr:data(), idx-1, idy-1)
+         ffiC.getSolution(self._poisson[idz], self.solPtr:data(), idx-1, idy-1)
        end
      end
    end 
@@ -400,7 +403,7 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
 end
 
 function FemPerpPoisson:delete()
-  ffi.C.delete_FemPerpPoisson(self._poisson)
+  ffiC.delete_FemPerpPoisson(self._poisson)
 end
 
 function FemPerpPoisson:setLaplacianWeight(weight)
