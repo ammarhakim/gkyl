@@ -10,16 +10,27 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, con
   double wy = w[1]; 
   double wv = w[2]; 
   double wm = w[3]; 
-  double dfac_x2 = dfac_x*dfac_x; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
   double q2 = q_*q_; 
   double incr[16]; 
+  double hamil[16]; 
+  hamil[0] = (0.6666666666666666*(3.0*dfac_v2*(m_*wv2+Bmag[0]*wm+Phi[0]*q_)+m_))/dfac_v2; 
+  hamil[1] = 2.0*Phi[1]*q_; 
+  hamil[2] = 2.0*Phi[2]*q_; 
+  hamil[3] = (2.309401076758503*m_*wv)/dfac_v; 
+  hamil[4] = (1.154700538379252*Bmag[0])/dfac_m; 
+  hamil[5] = 2.0*Phi[3]*q_; 
+  double BstarX_by_Bmag[16]; 
+  double BstarY_by_Bmag[16]; 
+  double BstarZ_by_Bmag[16]; 
+
+
   // surface-averaged phase velocity in this direction 
-  double alpha0 = 0.125*geoZ[0]*(3.0*Phi[3]-1.732050807568877*Phi[2])*dfac_y; 
+  double alpha0 = (0.0625*geoZ[0]*(3.0*hamil[5]-1.732050807568877*hamil[2])*dfac_y)/q_; 
 
   double alpha[8]; 
-  alpha[0] = 0.5*geoZ[0]*(4.242640687119286*Phi[3]-2.449489742783178*Phi[2])*dfac_y; 
+  alpha[0] = (0.25*geoZ[0]*(4.242640687119286*hamil[5]-2.449489742783178*hamil[2])*dfac_y)/q_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_x; 
@@ -148,16 +159,27 @@ double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, con
   double wy = w[1]; 
   double wv = w[2]; 
   double wm = w[3]; 
-  double dfac_x2 = dfac_x*dfac_x; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
   double q2 = q_*q_; 
   double incr[16]; 
+  double hamil[16]; 
+  hamil[0] = (0.6666666666666666*(3.0*dfac_v2*(m_*wv2+Bmag[0]*wm+Phi[0]*q_)+m_))/dfac_v2; 
+  hamil[1] = 2.0*Phi[1]*q_; 
+  hamil[2] = 2.0*Phi[2]*q_; 
+  hamil[3] = (2.309401076758503*m_*wv)/dfac_v; 
+  hamil[4] = (1.154700538379252*Bmag[0])/dfac_m; 
+  hamil[5] = 2.0*Phi[3]*q_; 
+  double BstarX_by_Bmag[16]; 
+  double BstarY_by_Bmag[16]; 
+  double BstarZ_by_Bmag[16]; 
+
+
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -0.125*geoZ[0]*(3.0*Phi[3]-1.732050807568877*Phi[1])*dfac_x; 
+  double alpha0 = -(0.0625*geoZ[0]*(3.0*hamil[5]-1.732050807568877*hamil[1])*dfac_x)/q_; 
 
   double alpha[8]; 
-  alpha[0] = -0.5*geoZ[0]*(4.242640687119286*Phi[3]-2.449489742783178*Phi[1])*dfac_x; 
+  alpha[0] = -(0.25*geoZ[0]*(4.242640687119286*hamil[5]-2.449489742783178*hamil[1])*dfac_x)/q_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*alpha[0]*(1.732050807568877*fl[2]+fl[0])*dfac_y; 
@@ -286,11 +308,22 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   double wy = w[1]; 
   double wv = w[2]; 
   double wm = w[3]; 
-  double dfac_x2 = dfac_x*dfac_x; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
   double q2 = q_*q_; 
   double incr[16]; 
+  double hamil[16]; 
+  hamil[0] = (0.6666666666666666*(3.0*dfac_v2*(m_*wv2+Bmag[0]*wm+Phi[0]*q_)+m_))/dfac_v2; 
+  hamil[1] = 2.0*Phi[1]*q_; 
+  hamil[2] = 2.0*Phi[2]*q_; 
+  hamil[3] = (2.309401076758503*m_*wv)/dfac_v; 
+  hamil[4] = (1.154700538379252*Bmag[0])/dfac_m; 
+  hamil[5] = 2.0*Phi[3]*q_; 
+  double BstarX_by_Bmag[16]; 
+  double BstarY_by_Bmag[16]; 
+  double BstarZ_by_Bmag[16]; 
+
+
   // surface-averaged phase velocity in this direction 
   double alpha0 = 0.0; 
 
@@ -309,16 +342,32 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, con
   double wy = w[1]; 
   double wv = w[2]; 
   double wm = w[3]; 
-  double dfac_x2 = dfac_x*dfac_x; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
   double q2 = q_*q_; 
   double incr[16]; 
+  double hamil[16]; 
+  hamil[0] = (0.6666666666666666*(3.0*dfac_v2*(m_*wv2+Bmag[0]*wm+Phi[0]*q_)+m_))/dfac_v2; 
+  hamil[1] = 2.0*(Bmag[1]*wm+Phi[1]*q_); 
+  hamil[2] = 2.0*Phi[2]*q_; 
+  hamil[3] = (2.309401076758503*m_*wv)/dfac_v; 
+  hamil[4] = (1.154700538379252*Bmag[0])/dfac_m; 
+  hamil[5] = 2.0*Phi[3]*q_; 
+  hamil[8] = (1.154700538379252*Bmag[1])/dfac_m; 
+  double BstarX_by_Bmag[16]; 
+  double BstarY_by_Bmag[16]; 
+  double BstarZ_by_Bmag[16]; 
+
+  BstarY_by_Bmag[0] = (0.8660254037844386*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*dfac_x*m_*wv)/q_; 
+  BstarY_by_Bmag[1] = (0.8660254037844386*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*dfac_x*m_*wv)/q_; 
+  BstarY_by_Bmag[3] = (0.5*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*dfac_x*m_)/(dfac_v*q_); 
+  BstarY_by_Bmag[6] = (0.5*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*dfac_x*m_)/(dfac_v*q_); 
+
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -0.125*((5.196152422706631*geoZ[1]-3.0*geoZ[0])*Phi[3]+(1.732050807568877*geoZ[0]-3.0*geoZ[1])*Phi[2])*dfac_y; 
+  double alpha0 = -(0.0625*((5.196152422706631*geoZ[1]-3.0*geoZ[0])*hamil[5]+(1.732050807568877*geoZ[0]-3.0*geoZ[1])*hamil[2])*dfac_y)/q_; 
 
   double alpha[8]; 
-  alpha[0] = -0.5*((7.348469228349534*geoZ[1]-4.242640687119286*geoZ[0])*Phi[3]+(2.449489742783178*geoZ[0]-4.242640687119286*geoZ[1])*Phi[2])*dfac_y; 
+  alpha[0] = -(0.25*((7.348469228349534*geoZ[1]-4.242640687119286*geoZ[0])*hamil[5]+(2.449489742783178*geoZ[0]-4.242640687119286*geoZ[1])*hamil[2])*dfac_y)/q_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_x; 
@@ -447,21 +496,37 @@ double GyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, con
   double wy = w[1]; 
   double wv = w[2]; 
   double wm = w[3]; 
-  double dfac_x2 = dfac_x*dfac_x; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
   double q2 = q_*q_; 
   double incr[16]; 
+  double hamil[16]; 
+  hamil[0] = (0.6666666666666666*(3.0*dfac_v2*(m_*wv2+Bmag[0]*wm+Phi[0]*q_)+m_))/dfac_v2; 
+  hamil[1] = 2.0*(Bmag[1]*wm+Phi[1]*q_); 
+  hamil[2] = 2.0*Phi[2]*q_; 
+  hamil[3] = (2.309401076758503*m_*wv)/dfac_v; 
+  hamil[4] = (1.154700538379252*Bmag[0])/dfac_m; 
+  hamil[5] = 2.0*Phi[3]*q_; 
+  hamil[8] = (1.154700538379252*Bmag[1])/dfac_m; 
+  double BstarX_by_Bmag[16]; 
+  double BstarY_by_Bmag[16]; 
+  double BstarZ_by_Bmag[16]; 
+
+  BstarY_by_Bmag[0] = (0.8660254037844386*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*dfac_x*m_*wv)/q_; 
+  BstarY_by_Bmag[1] = (0.8660254037844386*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*dfac_x*m_*wv)/q_; 
+  BstarY_by_Bmag[3] = (0.5*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*dfac_x*m_)/(dfac_v*q_); 
+  BstarY_by_Bmag[6] = (0.5*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*dfac_x*m_)/(dfac_v*q_); 
+
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.0625*dfac_x*(1.732050807568877*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*m_*wv2+2.0*geoZ[0]*(1.732050807568877*Bmag[1]*wm+(1.732050807568877*Phi[1]-3.0*Phi[3])*q_)))/q_; 
+  double alpha0 = (0.03125*(1.732050807568877*BstarY_by_Bmag[0]*hamil[3]*dfac_v*q_+2.0*geoZ[0]*(1.732050807568877*hamil[1]-3.0*hamil[5])*dfac_x*m_))/(m_*q_); 
 
   double alpha[8]; 
-  alpha[0] = (0.3535533905932737*dfac_x*(1.732050807568877*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*m_*wv2+geoZ[0]*(3.464101615137754*Bmag[1]*wm+(3.464101615137754*Phi[1]-6.0*Phi[3])*q_)))/q_; 
-  alpha[1] = (0.3535533905932737*dfac_x*(1.732050807568877*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*m_*wv2+geoZ[1]*(3.464101615137754*Bmag[1]*wm+(3.464101615137754*Phi[1]-6.0*Phi[3])*q_)))/q_; 
-  alpha[2] = (0.3535533905932737*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*dfac_x*m_*wv)/(dfac_v*q_); 
-  alpha[3] = (0.7071067811865475*geoZ[0]*Bmag[1]*dfac_x)/(dfac_m*q_); 
-  alpha[4] = (0.3535533905932737*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*dfac_x*m_*wv)/(dfac_v*q_); 
-  alpha[5] = (0.7071067811865475*Bmag[1]*geoZ[1]*dfac_x)/(dfac_m*q_); 
+  alpha[0] = (0.1767766952966368*(1.732050807568877*BstarY_by_Bmag[0]*hamil[3]*dfac_v*q_+geoZ[0]*(3.464101615137754*hamil[1]-6.0*hamil[5])*dfac_x*m_))/(m_*q_); 
+  alpha[1] = (0.1767766952966368*(1.732050807568877*BstarY_by_Bmag[1]*hamil[3]*dfac_v*q_+geoZ[1]*(3.464101615137754*hamil[1]-6.0*hamil[5])*dfac_x*m_))/(m_*q_); 
+  alpha[2] = (0.3061862178478971*BstarY_by_Bmag[3]*hamil[3]*dfac_v)/m_; 
+  alpha[3] = (0.6123724356957944*geoZ[0]*hamil[8]*dfac_x)/q_; 
+  alpha[4] = (0.3061862178478971*hamil[3]*BstarY_by_Bmag[6]*dfac_v)/m_; 
+  alpha[5] = (0.6123724356957944*geoZ[1]*hamil[8]*dfac_x)/q_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*(1.732050807568877*(alpha[5]*fl[12]+alpha[4]*fl[11]+alpha[3]*fl[9])+alpha[5]*fl[8]+1.732050807568877*alpha[2]*fl[7]+alpha[4]*fl[6]+1.732050807568877*alpha[1]*fl[5]+alpha[3]*fl[4]+alpha[2]*fl[3]+1.732050807568877*alpha[0]*fl[2]+alpha[1]*fl[1]+alpha[0]*fl[0])*dfac_y; 
@@ -590,17 +655,33 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   double wy = w[1]; 
   double wv = w[2]; 
   double wm = w[3]; 
-  double dfac_x2 = dfac_x*dfac_x; 
   double wv2 = wv*wv; 
   double dfac_v2 = dfac_v*dfac_v; 
   double q2 = q_*q_; 
   double incr[16]; 
+  double hamil[16]; 
+  hamil[0] = (0.6666666666666666*(3.0*dfac_v2*(m_*wv2+Bmag[0]*wm+Phi[0]*q_)+m_))/dfac_v2; 
+  hamil[1] = 2.0*(Bmag[1]*wm+Phi[1]*q_); 
+  hamil[2] = 2.0*Phi[2]*q_; 
+  hamil[3] = (2.309401076758503*m_*wv)/dfac_v; 
+  hamil[4] = (1.154700538379252*Bmag[0])/dfac_m; 
+  hamil[5] = 2.0*Phi[3]*q_; 
+  hamil[8] = (1.154700538379252*Bmag[1])/dfac_m; 
+  double BstarX_by_Bmag[16]; 
+  double BstarY_by_Bmag[16]; 
+  double BstarZ_by_Bmag[16]; 
+
+  BstarY_by_Bmag[0] = (0.8660254037844386*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*dfac_x*m_*wv)/q_; 
+  BstarY_by_Bmag[1] = (0.8660254037844386*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*dfac_x*m_*wv)/q_; 
+  BstarY_by_Bmag[3] = (0.5*Bmag[1]*(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*dfac_x*m_)/(dfac_v*q_); 
+  BstarY_by_Bmag[6] = (0.5*Bmag[1]*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*dfac_x*m_)/(dfac_v*q_); 
+
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.09375*Bmag[1]*((BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*Phi[3]+(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*Phi[2])*dfac_x*dfac_y*(dfac_v*wv-1.0))/dfac_v; 
+  double alpha0 = (0.03125*(hamil[5]*(3.0*BstarY_by_Bmag[6]-1.732050807568877*BstarY_by_Bmag[1])+hamil[2]*(3.0*BstarY_by_Bmag[3]-1.732050807568877*BstarY_by_Bmag[0]))*dfac_y)/m_; 
 
   double alpha[8]; 
-  alpha[0] = -(0.1767766952966368*Bmag[1]*((BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*Phi[3]+(BmagInv[1]*geoZ[1]+BmagInv[0]*geoZ[0])*Phi[2])*dfac_x*dfac_y*(3.0*dfac_v*wv-3.0))/dfac_v; 
-  alpha[1] = -(0.03535533905932736*Bmag[1]*dfac_x*dfac_y*(((27.0*BmagInv[1]*geoZ[1]+15.0*BmagInv[0]*geoZ[0])*Phi[3]+15.0*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*Phi[2])*dfac_v*wv+((-27.0*BmagInv[1]*geoZ[1])-15.0*BmagInv[0]*geoZ[0])*Phi[3]-15.0*(BmagInv[0]*geoZ[1]+geoZ[0]*BmagInv[1])*Phi[2]))/dfac_v; 
+  alpha[0] = (0.125*(hamil[5]*(4.242640687119286*BstarY_by_Bmag[6]-2.449489742783178*BstarY_by_Bmag[1])+hamil[2]*(4.242640687119286*BstarY_by_Bmag[3]-2.449489742783178*BstarY_by_Bmag[0]))*dfac_y)/m_; 
+  alpha[1] = (0.125*(4.242640687119286*hamil[2]*BstarY_by_Bmag[6]+(4.242640687119286*BstarY_by_Bmag[3]-2.449489742783178*BstarY_by_Bmag[0])*hamil[5]-2.449489742783178*BstarY_by_Bmag[1]*hamil[2])*dfac_y)/m_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*(1.732050807568877*(alpha[1]*fl[6]+alpha[0]*fl[3])+alpha[1]*fl[1]+alpha[0]*fl[0])*dfac_v; 
