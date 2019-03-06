@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local ffi  = require "ffi"
+local ffiC = ffi.C
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
@@ -23,23 +24,23 @@ ffi.cdef [[
 ]]
 
 local function malloc(sz)
-   local d = ffi.C.malloc(sz)
+   local d = ffiC.malloc(sz)
    assert(d, "Alloc.malloc: Unable to allocate memory!")
    return d
 end
 local function calloc(nitems, sz)
-   local d = ffi.C.calloc(nitems, sz)
+   local d = ffiC.calloc(nitems, sz)
    assert(d, "Alloc.calloc: Unable to allocate memory!")
    return d
 end
 local function realloc(dold, sz)
-   local d = ffi.C.realloc(dold, sz)
+   local d = ffiC.realloc(dold, sz)
    assert(d, "Alloc.realloc: Unable to allocate memory!")
    return d
 end
 local function free(d)
    if d then
-      ffi.C.free(d); d = nil
+      ffiC.free(d); d = nil
    end
 end
 

@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
-local Plasma    = require "App.PlasmaOnCartGrid"
+local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic
 local Constants = require "Lib.Constants"
 
 -- This test initializes Maxwellian electrons and ions with different
@@ -43,17 +43,21 @@ nuIon        = nuFrac*logLambdaIon*(eV^4)*n0
               /(12*(math.pi^(3/2))*(eps0^2)*math.sqrt(mi)*((Ti0)^(3/2)))
 -- Electron-Ion collision frequency.
 nuElcIon     = nuElc/1.96
+nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 
 -- Box size
 Lx = 4 -- [m]
 
+print(' ')
 print('Electron-ion collision period: ', 1.0/nuElcIon)
+print('tEnd: ', 0.1/nuElcIon)
+print(' ')
 
 plasmaApp = Plasma.App {
    logToFile = false,
    
-   tEnd        = 1.0/nuElcIon,    -- End time.
-   nFrame      = 10,              -- Number of frames to write.
+   tEnd        = 0.10/nuElcIon,    -- End time.
+   nFrame      = 2,              -- Number of frames to write.
    lower       = {-Lx/2},         -- Configuration space lower coordinate.
    upper       = { Lx/2},         -- Configuration space upper coordinate.
    cells       = {12},            -- Configuration space cells.
@@ -69,8 +73,8 @@ plasmaApp = Plasma.App {
    -- Boundary conditions for configuration space.
    periodicDirs = {1},            -- Periodic directions.
 
-   -- Neutral species with a rectangular/square IC.
-   elc = Plasma.GkSpecies {
+   -- Electrons.
+   elc = Plasma.Species {
       charge = qe, mass = me,
       -- Velocity space grid.
       lower      = {-4*vte, 0.0},
@@ -92,21 +96,24 @@ plasmaApp = Plasma.App {
             return Te0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
+      --bcx = { Plasma.Species.bcOpen,
+      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
-      coll = Plasma.GkLBOCollisions {
-         collideWith = {"ion", },
-         frequencies = {nuElcIon, },
+      coll = Plasma.LBOCollisions {
+         collideWith = {"elc", "ion", },
+         frequencies = {nuElc, nuElcIon, },
+         -- Optional arguments:
+         --crossOption = "Greene", -- or crossOption="Greene"
+         --betaGreene  = 1.0,
       },
    },
 
-   -- Neutral species with a bump in the tail.
-   ion = Plasma.GkSpecies {
+   -- Ions.
+   ion = Plasma.Species {
       charge = qi, mass = mi,
       -- Velocity space grid.
       lower      = {-4*vti, 0.0},
@@ -128,28 +135,31 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
-      --bcx = { Plasma.GkSpecies.bcOpen,
-      --        Plasma.GkSpecies.bcOpen },
+      --bcx = { Plasma.Species.bcOpen,
+      --        Plasma.Species.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       -- Collisions.
---      coll = Plasma.GkLBOCollisions {
---         collideWith = {"ion"},
---         frequencies = {nuIon},
---      },
+      coll = Plasma.LBOCollisions {
+         collideWith = {"ion", "elc"},
+         frequencies = {nuIon, nuIonElc},
+         -- Optional arguments:
+         --crossOption = "Greene", -- or crossOption="Greene"
+         --betaGreene  = 1.0,
+      },
    },
 
    -- Field solver.
-   field = Plasma.GkField {
+   field = Plasma.Field {
       evolve = true,    -- Evolve fields?
       -- initPhiFunc = function (t, xn) return 0.0 end,
       kperp2 = 0.0 
    },
    
    -- Magnetic geometry.
-   funcField = Plasma.GkGeometry {
+   funcField = Plasma.Geometry {
       -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]

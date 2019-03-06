@@ -113,6 +113,10 @@ innerProdGen(vars, lims, w, f1, f2) := block([n, r],
 calcInnerProdListGen(vars, lims, w, funcList, f) := fullratsimp(makelist(
     innerProdGen(vars, lims, w, funcList[i], f), i, 1, length(funcList)))$
 
+calcNormInnerProdListGen(vars, lims, w, funcList, f) := fullratsimp(makelist(
+    innerProdGen(vars, lims, w, funcList[i], f), i, 1, length(funcList)) /
+  makelist(innerProdGen(vars, lims, w, funcList[i], funcList[i]), i, 1, length(funcList)))$
+
 /* Compute mass matrix, i.e M_ij = <w phi_i phi_j> */
 calcMassMatrix(vars, w, basis) := block([n, mass],
   n : length(basis),

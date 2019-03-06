@@ -326,8 +326,8 @@ local function buildApplication(self, tbl)
    end
 
    -- determine whether we need two steps in forwardEuler
-   local step2 = false
-   if field.step2 ~= nil then step2 = field.step2 end
+   local nstep = 1
+   if field.nstep ~= nil then nstep = field.nstep end
 
    -- various functions to copy/increment fields
    local function copy(outIdx, aIdx)
@@ -359,6 +359,9 @@ local function buildApplication(self, tbl)
          s:clearCFL()
       end
 
+      -- compute functional field (if any)
+      funcField:advance(tCurr)
+      
       -- update EM field
       for nm, s in pairs(species) do
 	 -- compute moments needed in coupling with fields and
@@ -369,24 +372,22 @@ local function buildApplication(self, tbl)
       -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both
       field:advance(tCurr, species, inIdx, outIdx)
 
-      -- compute functional field (if any)
-      funcField:advance(tCurr)
-      
       -- update species
       for nm, s in pairs(species) do
          s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
       end
 
-      -- some systems (e.g. EM GK) require a second step to complete the forward Euler
-      if step2 then      
+      -- some systems (e.g. EM GK) require additional step(s) to complete the forward Euler
+      for istep = 2, nstep do      
          -- update EM field.. step 2 (if necessary). 
          -- note: no calcCouplingMoments call because field:forwardEulerStep2 either reuses already calculated moments, 
          --       or other moments are calculated in field:forwardEulerStep2
-         field:advanceStep2(tCurr, species, inIdx, outIdx)
+         local advanceString = "advanceStep" .. istep
+         field[advanceString](field, tCurr, species, inIdx, outIdx)
 
          -- update species.. step 2 (if necessary)
          for nm, s in pairs(species) do
-            s:advanceStep2(tCurr, species, {field, funcField}, inIdx, outIdx)
+            s[advanceString](s, tCurr, species, {field, funcField}, inIdx, outIdx)
          end
       end
 
@@ -491,15 +492,18 @@ local function buildApplication(self, tbl)
    end
 
    -- update solution in specified direction
-   local function updateInDirection(dir, tCurr, dt)
+   local function updateInDirection(dir, tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
 
+      local tryInv_next = {}
       -- update species
       for nm, s in pairs(species) do
 	 local vars = s:rkStepperFields()
 	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
-	 local myStatus, myDtSuggested = s:updateInDirection(dir, tCurr, dt, inp, out)
+	 local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
+       dir, tCurr, dt, inp, out, tryInv[s])
+    tryInv_next[s] = myTryInv
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
@@ -512,7 +516,7 @@ local function buildApplication(self, tbl)
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
-      return status, dtSuggested
+      return status, dtSuggested, tryInv_next
    end
 
    -- update sources
@@ -537,7 +541,7 @@ local function buildApplication(self, tbl)
    end
 
    -- function to advance solution using FV dimensionally split scheme
-   function timeSteppers.fvDimSplit(tCurr, dt)
+   function timeSteppers.fvDimSplit(tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
       local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields      
 
@@ -552,14 +556,40 @@ local function buildApplication(self, tbl)
       end
 
       -- update solution in each direction
+      local isInv = true
       for d = 1, cdim do
-	 local myStatus, myDtSuggested = updateInDirection(d, tCurr, dt)
+	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+    if not status then
+       log(" ** Time step too large! Aborting this step!")
+       break
+    else
+       -- if an updated species is invalid, plan to use lax flux for THIS
+       -- species in the re-taken step
+       for nm, s in pairs(species) do
+          if myTryInv[s] then
+             isInv = false
+             tryInv[s] = true
+             log(string.format(
+               "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
+          end
+       end
+       -- break the loop if any species is invalid
+       if not isInv then
+          break
+       end
+    end
+      end
+      -- is all species is valid, do not use lax in the next step  
+      if isInv then
+         for nm, s in pairs(species) do
+            tryInv[s] = false
+         end
       end
 
       -- update source by half time-step
-      if status then
+      if status and isInv then
 	 local myStatus, myDtSuggested
 	 if fIdx[cdim][2] == 2 then
 	    myStatus, myDtSuggested = updateSource(2, tCurr, dt/2)
@@ -570,7 +600,7 @@ local function buildApplication(self, tbl)
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
-      if not status then
+      if not (status and isInv) then
 	 copy(1, 3) -- restore old solution in case of failure
       else
 	 -- if solution not already in field[1], copy for use in next
@@ -578,7 +608,7 @@ local function buildApplication(self, tbl)
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
       
-      return status, dtSuggested
+      return status, dtSuggested, isInv
    end
 
    local tmEnd = Time.clock()
@@ -655,12 +685,20 @@ local function buildApplication(self, tbl)
       local failcount = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
+      -- for the fvDimSplit updater, tryInv contains for indicators for each
+      -- species whether the domain-invariant equation should be used in the
+      -- next step; they might be changed during fvDimSplit calls
+      local tryInv = {}
+      for _, s in pairs(species) do
+         tryInv[s] = false
+      end
+      local isInv = true
       -- main simulation loop
       while true do
 	 -- call time-stepper
          local status, dtSuggested
          if timeStepperNm == "fvDimSplit" then
-	    status, dtSuggested = timeSteppers[timeStepperNm](tCurr, myDt)
+	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
          else
             status, myDt = timeSteppers[timeStepperNm](tCurr)
             dtSuggested = myDt
@@ -674,7 +712,7 @@ local function buildApplication(self, tbl)
          end
 
 	 -- check status and determine what to do next
-	 if status then
+	 if status and isInv then
             if first then 
                log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
                initDt = dtSuggested; first = false
@@ -698,8 +736,11 @@ local function buildApplication(self, tbl)
 	    if (tCurr >= tEnd) then
 	       break
 	    end
-	 else
+	 elseif not status then
 	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
+	    myDt = dtSuggested
+	 elseif not isInv then
+	    log (string.format(" ** Invalid values detected! Will retake with dt %g\n", dtSuggested))
 	    myDt = dtSuggested
 	 end
 
@@ -725,13 +766,15 @@ local function buildApplication(self, tbl)
       end
 
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
+      local tmCollMom = 0.0
       for _, s in pairs(species) do
          tmMom = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
          tmBc = tmBc + s:totalBcTime()
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
-	       tmColl = tmColl + c:totalTime()
+	       tmColl = tmColl + c:slvrTime()
+               tmCollMom = tmCollMom + c:momTime()
 	    end
          end
       end
@@ -742,40 +785,60 @@ local function buildApplication(self, tbl)
       end
 
       local tmTotal = tmSimEnd-tmSimStart
+      local tmAccounted = 0.0
       log(string.format("\nTotal number of time-steps %s\n\n", step))
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
+      tmAccounted = tmAccounted + tmSlvr
       log(string.format(
 	     "Solver BCs took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmBc, tmBc/step, 100*tmBc/tmTotal))
+      tmAccounted = tmAccounted + tmBc
       log(string.format(
 	     "Field solver took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     field:totalSolverTime(), field:totalSolverTime()/step, 100*field:totalSolverTime()/tmTotal))
+      tmAccounted = tmAccounted + field:totalSolverTime()
       log(string.format(
 	     "Field solver BCs took			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     field:totalBcTime(), field:totalBcTime()/step, 100*field:totalBcTime()/tmTotal))
+      tmAccounted = tmAccounted + field:totalBcTime()
       log(string.format(
 	     "Function field solver took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     funcField:totalSolverTime(), funcField:totalSolverTime()/step, 100*funcField:totalSolverTime()/tmTotal))
+      tmAccounted = tmAccounted + funcField:totalSolverTime()
       log(string.format(
 	     "Moment calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmMom, tmMom/step, 100*tmMom/tmTotal))
+      tmAccounted = tmAccounted + tmMom
       log(string.format(
 	     "Integrated moment calculations took	%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmIntMom, tmIntMom/step, 100*tmIntMom/tmTotal))
+      tmAccounted = tmAccounted + tmIntMom
       log(string.format(
 	     "Field energy calculations took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     field:energyCalcTime(), field:energyCalcTime()/step, 100*field:energyCalcTime()/tmTotal))
+      tmAccounted = tmAccounted + field:energyCalcTime()
       log(string.format(
 	     "Collision solver(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmColl, tmColl/step, 100*tmColl/tmTotal))
+      tmAccounted = tmAccounted + tmColl
+      log(string.format(
+	     "Collision moments(s) took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
+	     tmCollMom, tmCollMom/step, 100*tmCollMom/tmTotal))
+      tmAccounted = tmAccounted + tmCollMom
       log(string.format(
 	     "Source updaters took 			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSrc, tmSrc/step, 100*tmSrc/tmTotal))
+      tmAccounted = tmAccounted + tmSrc
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      tmAccounted = tmAccounted + stepperTime
+      tmUnaccounted = tmTotal - tmAccounted
+      log(string.format(
+	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
+	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
@@ -812,21 +875,22 @@ return {
    AdiabaticSpecies = Species.AdiabaticSpecies,
    App = App,
    BgkCollisions = Collisions.BgkCollisions,   
+   FluidDiffusion = Collisions.FluidDiffusion,
    FuncMaxwellField = Field.FuncMaxwellField,
    FuncVlasovSpecies = Species.FuncVlasovSpecies,
    GkField = Field.GkField,
    GkGeometry = Field.GkGeometry,
+   GkLBOCollisions = Collisions.GkLBOCollisions,
    GkSpecies = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
    MaxwellField = Field.MaxwellField,
    MomentSpecies = Species.MomentSpecies,
    NoField = Field.NoField,
+   Projection = Projection,
    VlasovSpecies = Species.VlasovSpecies,
    VmLBOCollisions = Collisions.VmLBOCollisions,
-   GkLBOCollisions = Collisions.GkLBOCollisions,
    VoronovIonization = Collisions.VoronovIonization,
-   Projection = Projection,
 
    -- valid pre-packaged species-field systems
    Gyrokinetic = {
@@ -838,7 +902,8 @@ return {
       AdiabaticSpecies = Species.AdiabaticSpecies,
    },
    IncompEuler = {
-      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField
+      App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField,
+      Diffusion = Collisions.FluidDiffusion,
    },
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
@@ -850,6 +915,7 @@ return {
    },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
-      CollisionlessEmSource = Sources.CollisionlessEmSource
+      CollisionlessEmSource = Sources.CollisionlessEmSource,
+      TenMomentRelaxSource = Sources.TenMomentRelaxSource
    } 
 }

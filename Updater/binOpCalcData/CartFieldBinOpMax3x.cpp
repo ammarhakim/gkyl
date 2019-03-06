@@ -3,7 +3,7 @@
  
 using namespace Eigen; 
  
-void CartFieldBinOpMultiply3xMax_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpMultiply3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -32,7 +32,7 @@ void CartFieldBinOpMultiply3xMax_P1(const double *A, const double *B, const shor
  
 } 
  
-void CartFieldBinOpMultiply3xMax_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpMultiply3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -67,7 +67,7 @@ void CartFieldBinOpMultiply3xMax_P2(const double *A, const double *B, const shor
  
 } 
  
-void CartFieldBinOpDivide3xMax_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDivide3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
   // B:       numerator field (can be scalar or vector). 
@@ -133,40 +133,34 @@ void CartFieldBinOpDivide3xMax_P1(const double *A, const double *B, const short 
     } 
   } 
  
-  // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(4,4); 
-  // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(4);  
-  // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(4);  
- 
-  // Fill AEM matrix. 
-  AEM(0,0) = 0.3535533905932737*As[0]; 
-  AEM(0,1) = 0.3535533905932737*As[1]; 
-  AEM(0,2) = 0.3535533905932737*As[2]; 
-  AEM(0,3) = 0.3535533905932737*As[3]; 
-  AEM(1,0) = 0.3535533905932737*As[1]; 
-  AEM(1,1) = 0.3535533905932737*As[0]; 
-  AEM(2,0) = 0.3535533905932737*As[2]; 
-  AEM(2,2) = 0.3535533905932737*As[0]; 
-  AEM(3,0) = 0.3535533905932737*As[3]; 
-  AEM(3,3) = 0.3535533905932737*As[0]; 
+  // Fill AEM_S matrix. 
+  data->AEM_S = Eigen::MatrixXd::Zero(4,4);
+  data->AEM_S(0,0) = 0.3535533905932737*As[0]; 
+  data->AEM_S(0,1) = 0.3535533905932737*As[1]; 
+  data->AEM_S(0,2) = 0.3535533905932737*As[2]; 
+  data->AEM_S(0,3) = 0.3535533905932737*As[3]; 
+  data->AEM_S(1,0) = 0.3535533905932737*As[1]; 
+  data->AEM_S(1,1) = 0.3535533905932737*As[0]; 
+  data->AEM_S(2,0) = 0.3535533905932737*As[2]; 
+  data->AEM_S(2,2) = 0.3535533905932737*As[0]; 
+  data->AEM_S(3,0) = 0.3535533905932737*As[3]; 
+  data->AEM_S(3,3) = 0.3535533905932737*As[0]; 
  
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 4*vd; 
-    // Fill BEV. 
-    BEV << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
+    // Fill BEV_S. 
+    data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
  
     // Solve the system of equations. 
-    u = AEM.colPivHouseholderQr().solve(BEV); 
+    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
-    Eigen::Map<VectorXd>(out+vd*4,4,1) = u; 
+    Eigen::Map<VectorXd>(out+vd*4,4,1) = data->u_S; 
   } 
 } 
  
-void CartFieldBinOpDivide3xMax_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDivide3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
   // B:       numerator field (can be scalar or vector). 
@@ -256,100 +250,94 @@ void CartFieldBinOpDivide3xMax_P2(const double *A, const double *B, const short 
     } 
   } 
  
-  // Declare Eigen Matrix with triple basis tensor dotted with B vector. 
-  Eigen::MatrixXd AEM = Eigen::MatrixXd::Zero(10,10); 
-  // Declare Eigen Vector with coefficients of B. 
-  Eigen::VectorXd BEV = Eigen::VectorXd::Zero(10);  
-  // Declare vector with solution to system of equations. 
-  Eigen::VectorXd u = Eigen::VectorXd::Zero(10);  
- 
-  // Fill AEM matrix. 
-  AEM(0,0) = 0.3535533905932737*As[0]; 
-  AEM(0,1) = 0.3535533905932737*As[1]; 
-  AEM(0,2) = 0.3535533905932737*As[2]; 
-  AEM(0,3) = 0.3535533905932737*As[3]; 
-  AEM(0,4) = 0.3535533905932737*As[4]; 
-  AEM(0,5) = 0.3535533905932737*As[5]; 
-  AEM(0,6) = 0.3535533905932737*As[6]; 
-  AEM(0,7) = 0.3535533905932737*As[7]; 
-  AEM(0,8) = 0.3535533905932737*As[8]; 
-  AEM(0,9) = 0.3535533905932737*As[9]; 
-  AEM(1,0) = 0.3535533905932737*As[1]; 
-  AEM(1,1) = 0.3162277660168379*As[7]+0.3535533905932737*As[0]; 
-  AEM(1,2) = 0.3535533905932737*As[4]; 
-  AEM(1,3) = 0.3535533905932737*As[5]; 
-  AEM(1,4) = 0.3535533905932737*As[2]; 
-  AEM(1,5) = 0.3535533905932737*As[3]; 
-  AEM(1,7) = 0.3162277660168379*As[1]; 
-  AEM(2,0) = 0.3535533905932737*As[2]; 
-  AEM(2,1) = 0.3535533905932737*As[4]; 
-  AEM(2,2) = 0.3162277660168379*As[8]+0.3535533905932737*As[0]; 
-  AEM(2,3) = 0.3535533905932737*As[6]; 
-  AEM(2,4) = 0.3535533905932737*As[1]; 
-  AEM(2,6) = 0.3535533905932737*As[3]; 
-  AEM(2,8) = 0.3162277660168379*As[2]; 
-  AEM(3,0) = 0.3535533905932737*As[3]; 
-  AEM(3,1) = 0.3535533905932737*As[5]; 
-  AEM(3,2) = 0.3535533905932737*As[6]; 
-  AEM(3,3) = 0.3162277660168379*As[9]+0.3535533905932737*As[0]; 
-  AEM(3,5) = 0.3535533905932737*As[1]; 
-  AEM(3,6) = 0.3535533905932737*As[2]; 
-  AEM(3,9) = 0.3162277660168379*As[3]; 
-  AEM(4,0) = 0.3535533905932737*As[4]; 
-  AEM(4,1) = 0.3535533905932737*As[2]; 
-  AEM(4,2) = 0.3535533905932737*As[1]; 
-  AEM(4,4) = 0.3162277660168379*As[8]+0.3162277660168379*As[7]+0.3535533905932737*As[0]; 
-  AEM(4,5) = 0.3535533905932737*As[6]; 
-  AEM(4,6) = 0.3535533905932737*As[5]; 
-  AEM(4,7) = 0.3162277660168379*As[4]; 
-  AEM(4,8) = 0.3162277660168379*As[4]; 
-  AEM(5,0) = 0.3535533905932737*As[5]; 
-  AEM(5,1) = 0.3535533905932737*As[3]; 
-  AEM(5,3) = 0.3535533905932737*As[1]; 
-  AEM(5,4) = 0.3535533905932737*As[6]; 
-  AEM(5,5) = 0.3162277660168379*As[9]+0.3162277660168379*As[7]+0.3535533905932737*As[0]; 
-  AEM(5,6) = 0.3535533905932737*As[4]; 
-  AEM(5,7) = 0.3162277660168379*As[5]; 
-  AEM(5,9) = 0.3162277660168379*As[5]; 
-  AEM(6,0) = 0.3535533905932737*As[6]; 
-  AEM(6,2) = 0.3535533905932737*As[3]; 
-  AEM(6,3) = 0.3535533905932737*As[2]; 
-  AEM(6,4) = 0.3535533905932737*As[5]; 
-  AEM(6,5) = 0.3535533905932737*As[4]; 
-  AEM(6,6) = 0.3162277660168379*As[9]+0.3162277660168379*As[8]+0.3535533905932737*As[0]; 
-  AEM(6,8) = 0.3162277660168379*As[6]; 
-  AEM(6,9) = 0.3162277660168379*As[6]; 
-  AEM(7,0) = 0.3535533905932737*As[7]; 
-  AEM(7,1) = 0.3162277660168379*As[1]; 
-  AEM(7,4) = 0.3162277660168379*As[4]; 
-  AEM(7,5) = 0.3162277660168379*As[5]; 
-  AEM(7,7) = 0.2258769757263128*As[7]+0.3535533905932737*As[0]; 
-  AEM(8,0) = 0.3535533905932737*As[8]; 
-  AEM(8,2) = 0.3162277660168379*As[2]; 
-  AEM(8,4) = 0.3162277660168379*As[4]; 
-  AEM(8,6) = 0.3162277660168379*As[6]; 
-  AEM(8,8) = 0.2258769757263128*As[8]+0.3535533905932737*As[0]; 
-  AEM(9,0) = 0.3535533905932737*As[9]; 
-  AEM(9,3) = 0.3162277660168379*As[3]; 
-  AEM(9,5) = 0.3162277660168379*As[5]; 
-  AEM(9,6) = 0.3162277660168379*As[6]; 
-  AEM(9,9) = 0.2258769757263128*As[9]+0.3535533905932737*As[0]; 
+  // Fill AEM_S matrix. 
+  data->AEM_S = Eigen::MatrixXd::Zero(10,10);
+  data->AEM_S(0,0) = 0.3535533905932737*As[0]; 
+  data->AEM_S(0,1) = 0.3535533905932737*As[1]; 
+  data->AEM_S(0,2) = 0.3535533905932737*As[2]; 
+  data->AEM_S(0,3) = 0.3535533905932737*As[3]; 
+  data->AEM_S(0,4) = 0.3535533905932737*As[4]; 
+  data->AEM_S(0,5) = 0.3535533905932737*As[5]; 
+  data->AEM_S(0,6) = 0.3535533905932737*As[6]; 
+  data->AEM_S(0,7) = 0.3535533905932737*As[7]; 
+  data->AEM_S(0,8) = 0.3535533905932737*As[8]; 
+  data->AEM_S(0,9) = 0.3535533905932737*As[9]; 
+  data->AEM_S(1,0) = 0.3535533905932737*As[1]; 
+  data->AEM_S(1,1) = 0.3162277660168379*As[7]+0.3535533905932737*As[0]; 
+  data->AEM_S(1,2) = 0.3535533905932737*As[4]; 
+  data->AEM_S(1,3) = 0.3535533905932737*As[5]; 
+  data->AEM_S(1,4) = 0.3535533905932737*As[2]; 
+  data->AEM_S(1,5) = 0.3535533905932737*As[3]; 
+  data->AEM_S(1,7) = 0.3162277660168379*As[1]; 
+  data->AEM_S(2,0) = 0.3535533905932737*As[2]; 
+  data->AEM_S(2,1) = 0.3535533905932737*As[4]; 
+  data->AEM_S(2,2) = 0.3162277660168379*As[8]+0.3535533905932737*As[0]; 
+  data->AEM_S(2,3) = 0.3535533905932737*As[6]; 
+  data->AEM_S(2,4) = 0.3535533905932737*As[1]; 
+  data->AEM_S(2,6) = 0.3535533905932737*As[3]; 
+  data->AEM_S(2,8) = 0.3162277660168379*As[2]; 
+  data->AEM_S(3,0) = 0.3535533905932737*As[3]; 
+  data->AEM_S(3,1) = 0.3535533905932737*As[5]; 
+  data->AEM_S(3,2) = 0.3535533905932737*As[6]; 
+  data->AEM_S(3,3) = 0.3162277660168379*As[9]+0.3535533905932737*As[0]; 
+  data->AEM_S(3,5) = 0.3535533905932737*As[1]; 
+  data->AEM_S(3,6) = 0.3535533905932737*As[2]; 
+  data->AEM_S(3,9) = 0.3162277660168379*As[3]; 
+  data->AEM_S(4,0) = 0.3535533905932737*As[4]; 
+  data->AEM_S(4,1) = 0.3535533905932737*As[2]; 
+  data->AEM_S(4,2) = 0.3535533905932737*As[1]; 
+  data->AEM_S(4,4) = 0.3162277660168379*As[8]+0.3162277660168379*As[7]+0.3535533905932737*As[0]; 
+  data->AEM_S(4,5) = 0.3535533905932737*As[6]; 
+  data->AEM_S(4,6) = 0.3535533905932737*As[5]; 
+  data->AEM_S(4,7) = 0.3162277660168379*As[4]; 
+  data->AEM_S(4,8) = 0.3162277660168379*As[4]; 
+  data->AEM_S(5,0) = 0.3535533905932737*As[5]; 
+  data->AEM_S(5,1) = 0.3535533905932737*As[3]; 
+  data->AEM_S(5,3) = 0.3535533905932737*As[1]; 
+  data->AEM_S(5,4) = 0.3535533905932737*As[6]; 
+  data->AEM_S(5,5) = 0.3162277660168379*As[9]+0.3162277660168379*As[7]+0.3535533905932737*As[0]; 
+  data->AEM_S(5,6) = 0.3535533905932737*As[4]; 
+  data->AEM_S(5,7) = 0.3162277660168379*As[5]; 
+  data->AEM_S(5,9) = 0.3162277660168379*As[5]; 
+  data->AEM_S(6,0) = 0.3535533905932737*As[6]; 
+  data->AEM_S(6,2) = 0.3535533905932737*As[3]; 
+  data->AEM_S(6,3) = 0.3535533905932737*As[2]; 
+  data->AEM_S(6,4) = 0.3535533905932737*As[5]; 
+  data->AEM_S(6,5) = 0.3535533905932737*As[4]; 
+  data->AEM_S(6,6) = 0.3162277660168379*As[9]+0.3162277660168379*As[8]+0.3535533905932737*As[0]; 
+  data->AEM_S(6,8) = 0.3162277660168379*As[6]; 
+  data->AEM_S(6,9) = 0.3162277660168379*As[6]; 
+  data->AEM_S(7,0) = 0.3535533905932737*As[7]; 
+  data->AEM_S(7,1) = 0.3162277660168379*As[1]; 
+  data->AEM_S(7,4) = 0.3162277660168379*As[4]; 
+  data->AEM_S(7,5) = 0.3162277660168379*As[5]; 
+  data->AEM_S(7,7) = 0.2258769757263128*As[7]+0.3535533905932737*As[0]; 
+  data->AEM_S(8,0) = 0.3535533905932737*As[8]; 
+  data->AEM_S(8,2) = 0.3162277660168379*As[2]; 
+  data->AEM_S(8,4) = 0.3162277660168379*As[4]; 
+  data->AEM_S(8,6) = 0.3162277660168379*As[6]; 
+  data->AEM_S(8,8) = 0.2258769757263128*As[8]+0.3535533905932737*As[0]; 
+  data->AEM_S(9,0) = 0.3535533905932737*As[9]; 
+  data->AEM_S(9,3) = 0.3162277660168379*As[3]; 
+  data->AEM_S(9,5) = 0.3162277660168379*As[5]; 
+  data->AEM_S(9,6) = 0.3162277660168379*As[6]; 
+  data->AEM_S(9,9) = 0.2258769757263128*As[9]+0.3535533905932737*As[0]; 
  
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 10*vd; 
-    // Fill BEV. 
-    BEV << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7],Bs[b0+8],Bs[b0+9]; 
+    // Fill BEV_S. 
+    data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7],Bs[b0+8],Bs[b0+9]; 
  
     // Solve the system of equations. 
-    u = AEM.colPivHouseholderQr().solve(BEV); 
+    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
-    Eigen::Map<VectorXd>(out+vd*10,10,1) = u; 
+    Eigen::Map<VectorXd>(out+vd*10,10,1) = data->u_S; 
   } 
 } 
  
-void CartFieldBinOpDotProduct3xMax_P1(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDotProduct3xMax_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 
@@ -375,7 +363,7 @@ void CartFieldBinOpDotProduct3xMax_P1(const double *A, const double *B, const sh
  
 } 
  
-void CartFieldBinOpDotProduct3xMax_P2(const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+void CartFieldBinOpDotProduct3xMax_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 
   // B:       scalar/vector field (must be vector if A is vector). 

@@ -27,16 +27,19 @@ def build(bld):
     lboData/VmLBOconstNuSer1x3v.cpp
     lboData/VmLBOconstNuSer2x2v.cpp
     lboData/VmLBOconstNuSer2x3v.cpp
+    lboData/VmLBOconstNuSer3x3v.cpp
     lboData/VmLBOconstNuSurfSer1x1v.cpp
     lboData/VmLBOconstNuSurfSer1x2v.cpp
     lboData/VmLBOconstNuSurfSer1x3v.cpp
     lboData/VmLBOconstNuSurfSer2x2v.cpp
     lboData/VmLBOconstNuSurfSer2x3v.cpp
+    lboData/VmLBOconstNuSurfSer3x3v.cpp
     lboData/VmLBOconstNuBoundarySurfSer1x1v.cpp
     lboData/VmLBOconstNuBoundarySurfSer1x2v.cpp
     lboData/VmLBOconstNuBoundarySurfSer1x3v.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x2v.cpp
     lboData/VmLBOconstNuBoundarySurfSer2x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfSer3x3v.cpp
 
     lboData/VmLBOconstNuMax1x1v.cpp
     lboData/VmLBOconstNuMax1x2v.cpp

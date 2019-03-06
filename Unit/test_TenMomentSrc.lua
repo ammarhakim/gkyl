@@ -141,7 +141,7 @@ display()
 for _,evolve in ipairs({{true, true}, {true, false}, {false, false}}) do
    print(string.format("===== Testing evolve = {%5s, %5s} with different schemes: =====\n",
                        evolve[1], evolve[2]))
-   for _,scheme in ipairs({"time-centered", "analytic2", "analytic"}) do
+   for _,scheme in ipairs({"time-centered", "direct", "direct2"}) do
       for _,dt in ipairs({0.1}) do
          print(string.format("+++++ AFTER; evolve = {%5s, %5s}, scheme = %12s, dt = %g +++++",
                              evolve[1], evolve[2], scheme, dt))

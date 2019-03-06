@@ -137,7 +137,8 @@ createTopLevelDefs(int argc, char **argv) {
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60')" << std::endl;
+  varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
+          << std::endl;
 
   std::string inpFile(argv[1]);
   std::string snm(argv[1]);
@@ -218,7 +219,7 @@ main(int argc, char **argv) {
   }
   lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
   luaL_openlibs(L);  // open standard libraries
-  luaopen_lfs(L); // open lue file-system library
+  luaopen_lfs(L); // open lua file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
   
   std::string topDefs = createTopLevelDefs(argc, argv);

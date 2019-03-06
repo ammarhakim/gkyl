@@ -46,6 +46,7 @@ If you build libraries that depend on MPI please specify the MPI C
 and C++ compilers to use.
 
 --build-luajit              Should we build LuaJIT?
+--build-luajit-beta3        Should we build LuaJIT-beta3?
 --build-luarocks            Should we build Luarocks?
 --build-adios               Should we build ADIOS?
 --build-openmpi             Should we build OpenMPI?
@@ -134,6 +135,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
       ;;
+   --build-luajit-beta3)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_LUAJIT_BETA3="$value"
+      ;;   
    --build-adios)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADIOS="$value"
@@ -152,8 +157,8 @@ done
 # if mpicc doesn't work (because it doesn't exist or it's not in path), try to use installed openmpi version
 if ! [ -x "$(command -v $MPICC)" ]
 then
-    MPICC=$PREFIX/openmpi-3.0.0/bin/mpicc
-    MPICXX=$PREFIX/openmpi-3.0.0/bin/mpicxx
+    MPICC=$PREFIX/openmpi-3.1.2/bin/mpicc
+    MPICXX=$PREFIX/openmpi-3.1.2/bin/mpicxx
 fi
 # if mpicc still doesn't work, force to install openmpi
 if ! [ -x "$(command -v $MPICC)" ] 
@@ -195,6 +200,14 @@ build_luajit() {
     if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
     then    
 	echo "Building LuaJIT"
+	./build-luajit-openresty.sh
+    fi
+}
+
+build_luajit_beta3() {
+    if [[ "$BUILD_LUAJIT_BETA3" = "yes" ]]
+    then    
+	echo "Building LuaJIT=beta3"
 	./build-luajit-beta3.sh
     fi
 }
@@ -219,6 +232,7 @@ echo "Installations will be in $PREFIX"
 
 build_openmpi
 build_luajit
+build_luajit_beta3
 build_luarocks
 build_adios
 build_eigen

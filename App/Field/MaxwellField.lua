@@ -429,19 +429,27 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
          self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
       end	 
    end
-   self:applyBc(nil, self:rkStepperFields()[outIdx])
+
+   -- Barrier after accumulate since applyBc has different loop structure
+   Mpi.Barrier(self.grid:commSet().sharedComm)
+
+   if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
+      -- only applyBc on forwardEuler combine
+      self:applyBc(nil, self:rkStepperFields()[outIdx])
+   end
 end
 
 function MaxwellField:suggestDt()
    -- loop over local region 
    local grid = self.grid
    self.dt[0] = GKYL_MAX_DOUBLE
+
    local tId = grid:subGridSharedId() -- local thread ID
    local localRange = self.cflRateByCell:localRange()
    local localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange, numSplit = grid:numSharedProcs() }
 
-   for idx in localRangeDecomp:colMajorIter() do
+   for idx in localRangeDecomp:rowMajorIter() do
       -- calculate local min dt from local cflRates
       self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
       self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
@@ -461,7 +469,7 @@ end
 function MaxwellField:accumulateCurrent(current, emRhs)
    if current == nil then return end
 
-   -- Barrier befor doing accumulating current
+   -- Barrier before doing accumulating current
    Mpi.Barrier(self.grid:commSet().sharedComm)
 
    local tmStart = Time.clock()

@@ -68,6 +68,8 @@ function GkField:fullInit(appTbl)
    -- for storing integrated energies
    self.phi2 = DataStruct.DynVector { numComponents = 1 }
    self.apar2 = DataStruct.DynVector { numComponents = 1 }
+   self.esEnergy = DataStruct.DynVector { numComponents = 1 }
+   self.emEnergy = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
    self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
@@ -96,6 +98,7 @@ function GkField:fullInit(appTbl)
    self.bcTime = 0.0 -- timer for BCs
 
    self._first = true
+   self._firstStep = true
 end
 
 -- methods for EM field object
@@ -133,7 +136,7 @@ function GkField:alloc(nRkDup)
       end
    end
 
-   self.dApardtPrev = DataStruct.Field {
+   self.dApardtProv = DataStruct.Field {
             onGrid = self.grid,
             numComponents = self.basis:numBasis(),
             ghost = {1, 1}
@@ -375,7 +378,11 @@ function GkField:createSolver(species, funcField)
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
    self.isElliptic = true
 
-   if self.isElectromagnetic then self.step2 = true end
+   if self.isElectromagnetic and self.basis:polyOrder() == 1 then 
+      self.nstep = 3 
+   elseif self.isElectromagnetic then
+      self.nstep = 2
+   end
 end
 
 function GkField:createDiagnostics()
@@ -386,19 +393,41 @@ function GkField:createDiagnostics()
       writeGhost = self.writeGhost
    }
 
-   self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+   -- updaters for computing integrated quantities
+   self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
       onGrid = self.grid,
       basis = self.basis,
       quantity = "V2"
    }
+   if self.ndim == 1 then
+      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.grid,
+         basis = self.basis,
+         quantity = "V2"
+      }
+   elseif self.basis:polyOrder()==1 then -- GradPerpV2 only implemented for p=1 currently
+      self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
+         onGrid = self.grid,
+         basis = self.basis,
+         quantity = "GradPerpV2"
+      }
+   end
 end
 
 function GkField:write(tm, force)
    if self.evolve then
       -- compute integrated quantities over domain
-      self.energyCalc:advance(tm, { self.potentials[1].phi }, { self.phi2 })
+      self.int2Calc:advance(tm, { self.potentials[1].phi }, { self.phi2 })
       if self.isElectromagnetic then 
-        self.energyCalc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
+        self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
+      end
+      local esEnergyFac = .5*self.polarizationWeight
+      if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
+      if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy }) end
+      if self.isElectromagnetic then 
+        local emEnergyFac = .5/self.mu0
+        if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
+        if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy }) end
       end
       
       if self.ioTrigger(tm) or force then
@@ -408,8 +437,10 @@ function GkField:write(tm, force)
 	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
 	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	 self.esEnergy:write(string.format("esEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 if self.isElectromagnetic then
 	    self.apar2:write(string.format("apar2_%d.bp", self.ioFrame), tm, self.ioFrame)
+	    self.emEnergy:write(string.format("emEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 end
 	 
 	 self.ioFrame = self.ioFrame+1
@@ -476,10 +507,8 @@ end
 -- solve for electrostatic potential phi
 function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potNew = self:rkStepperFields()[outIdx]
-
-   if inIdx == 1 and self.isElectromagnetic then self.dApardtPrev:copy(potCurr.dApardt) end
-
+   local potRhs = self:rkStepperFields()[outIdx]
+   
    if self.evolve or (self._first and not self.initPhiFunc) then
       self.chargeDens:clear(0.0)
       for nm, s in pairs(species) do
@@ -520,19 +549,21 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
       self._first = false
    else
       -- just copy stuff over
-      potNew.phi:copy(potCurr.phi)
       if self.isElectromagnetic then 
-         potNew.apar:copy(potCurr.apar) 
-         potNew.dApardt:copy(potCurr.dApardt) 
+         potRhs.apar:copy(potCurr.apar) 
       end
    end
 end
 
+-- solve for dApardt in p>=2, or solve for a provisional dApardtProv in p=1
 function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potNew = self:rkStepperFields()[outIdx]
+   local potRhs = self:rkStepperFields()[outIdx]
+
+   local polyOrder = self.basis:polyOrder()
 
    if self.evolve then
+
       self.currentDens:clear(0.0)
       if self.ndim==1 then 
          self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
@@ -554,13 +585,12 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
       -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
       -- this ensures that dApar/dt is in the same space as dPhi/dz
       if self.ndim == 1 or self.ndim == 3 then -- only have z direction in 1d or 3d (2d is assumed to be x,y)
-         local polyOrder = self.basis:polyOrder()
          local localRange = dApardt:localRange()
          local indexer = dApardt:genIndexer()
          local ptr = dApardt:get(1)
 
          -- loop over all cells
-         for idx in localRange:colMajorIter() do
+         for idx in localRange:rowMajorIter() do
             self.grid:setIndex(idx)
             
             dApardt:fill(indexer(idx), ptr)
@@ -586,14 +616,89 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
          end
       end
 
-      -- Apar RHS is just dApar/dt
-      potNew.apar:copy(dApardt)
+      -- apply BCs
+      local tmStart = Time.clock()
+      dApardt:sync(true)
+      self.bcTime = self.bcTime + (Time.clock()-tmStart)
+
+      if polyOrder > 1 then 
+         -- Apar RHS is just dApar/dt
+         potRhs.apar:copy(dApardt)
+      else 
+         -- save dApardt as dApardtProv, so that it can be used in upwinding 
+         -- in vpar surface terms in p=1 Ohm's law and GK update
+         self.dApardtProv:copy(dApardt)
+      end
+   end
+end
+
+-- note: step 3 is for p=1 only: solve for dApardt
+function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
+   local potCurr = self:rkStepperFields()[inIdx]
+   local potRhs = self:rkStepperFields()[outIdx]
+
+   local polyOrder = self.basis:polyOrder()
+
+   if self.evolve then
+      self.currentDens:clear(0.0)
+      if self.ndim==1 then 
+         self.modifierWeight:combine(self.kperp2/self.mu0, self.unitWeight) 
+      else 
+         self.modifierWeight:clear(0.0)
+      end
+      for nm, s in pairs(species) do
+        if s:isEvolving() then 
+           self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getEmModifier())
+           -- taking momDensity at outIdx gives momentum moment of df/dt
+           self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
+        end
+      end
+      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
+      -- dApar/dt solve
+      local dApardt = potCurr.dApardt
+      self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
+      
+      -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
+      -- this ensures that dApar/dt is in the same space as dPhi/dz
+      if self.ndim == 1 or self.ndim == 3 then -- only have z direction in 1d or 3d (2d is assumed to be x,y)
+         local localRange = dApardt:localRange()
+         local indexer = dApardt:genIndexer()
+         local ptr = dApardt:get(1)
+
+         -- loop over all cells
+         for idx in localRange:rowMajorIter() do
+            self.grid:setIndex(idx)
+            
+            dApardt:fill(indexer(idx), ptr)
+            if self.ndim == 1 then
+               ptr:data()[polyOrder] = 0.0
+            else -- ndim == 3
+               if polyOrder == 1 then
+                  ptr:data()[3] = 0.0
+                  ptr:data()[5] = 0.0
+                  ptr:data()[6] = 0.0
+                  ptr:data()[7] = 0.0
+               elseif polyOrder == 2 then
+                  ptr:data()[9] = 0.0
+                  ptr:data()[13] = 0.0
+                  ptr:data()[14] = 0.0
+                  ptr:data()[15] = 0.0
+                  ptr:data()[16] = 0.0
+                  ptr:data()[17] = 0.0
+                  ptr:data()[18] = 0.0
+                  ptr:data()[19] = 0.0
+               end
+            end
+         end
+      end
 
       -- apply BCs
       local tmStart = Time.clock()
       dApardt:sync(true)
-      potNew.apar:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
+
+      -- Apar RHS is just dApar/dt
+      potRhs.apar:copy(dApardt)
    end
 end
 
@@ -623,7 +728,9 @@ function GkField:totalBcTime()
 end
 
 function GkField:energyCalcTime()
-   return self.energyCalc.totalTime
+   local t = self.int2Calc.totalTime
+   if self.energyCalc then t = t + self.energyCalc.totalTime end
+   return t
 end
 
 -- GkGeometry ---------------------------------------------------------------------

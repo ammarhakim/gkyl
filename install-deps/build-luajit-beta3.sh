@@ -17,12 +17,6 @@ git checkout v2.1
 make PREFIX=$PREFIX CC=$CC
 make XCFLAGS=-DLUAJIT_ENABLE_GC64 install PREFIX=$PREFIX
 
-# softlink to make finding easier
-ln -sf $PREFIX $GKYLSOFT/luajit
-
-# soft-link executable name "lua". This allows
-ln -sf $PREFIX/bin/luajit-2.1.0-beta3 $PREFIX/bin/lua
-
 # delete dynamic libraries
 cmd="rm -rf $PREFIX/lib/*.dylib $PREFIX/lib/*.so*"
 echo $cmd

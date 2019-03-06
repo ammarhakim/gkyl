@@ -1,6 +1,6 @@
 package:
   name: adios
-  version: "1.13.0"
+  version: "1.13.1"
 
 source:
   path: ./
@@ -10,8 +10,6 @@ build:
 
 requirements:
   build:
-    - openmpi
-  run:
     - openmpi
 
 about:

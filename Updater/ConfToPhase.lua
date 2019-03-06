@@ -75,7 +75,7 @@ function ConfToPhase:_advance(tCurr, inFld, outFld)
    local fphaseItr, fconfItr = fphase:get(1), fconf:get(1)
 
    -- loop, computing projection in each cell
-   for idx in localRange:colMajorIter() do
+   for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
       
       fphase:fill(fphaseIndexer(idx), fphaseItr)

@@ -46,6 +46,7 @@ function MomentSpecies:fullInit(appTbl)
    -- invariant (positivity-preserving) equation system to evolve
    self.equationInv = self.tbl.equationInv
    self.hyperSlvrInv = {} -- list of solvers
+   self.limiterInv = self.tbl.limiterInv and self.tbl.limiterInv or "zero"
    -- always use invariant eqn.
    self.forceInv = self.tbl.forceInv and (self.equationInv ~= nil)
    -- use invariant eqn. in next step; could change during run
@@ -90,7 +91,7 @@ function MomentSpecies:createSolver(hasE, hasB)
          self.hyperSlvrInv[d] = Updater.WavePropagation {
             onGrid = self.grid,
             equation = self.equationInv,
-            limiter = self.limiter,
+            limiter = self.limiterInv,
             cfl = self.cfl,
             updateDirections = {d},
             hasSsBnd = self._hasSsBnd,
@@ -134,24 +135,29 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
-function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut)
+function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
+   local tryInv_next = false
    if self.evolve then
       self:applyBc(tCurr, fIn)
-      if self.forceInv or self.tryInv then
+      assert(self:checkInv(fIn))
+      if self.forceInv or tryInv then
          self.hyperSlvrInv[dir]:setDtAndCflRate(dt, nil)
          status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, {fIn}, {fOut})
          -- if result is OK, do not try to use invariant eqn. in next step
-         self.tryInv = not status
+         tryInv_next = not status
+         if status and (not self:checkInv(fOut)) then
+            assert(false, "** Invalid output using Lax flux!")
+         end
       else
          self.hyperSlvr[dir]:setDtAndCflRate(dt, nil)
          status, dtSuggested = self.hyperSlvr[dir]:advance(tCurr, {fIn}, {fOut})
-         self.tryInv = status and not self:checkInv(fOut)
+         tryInv_next = status and not self:checkInv(fOut)
       end
    else
       fOut:copy(fIn)
    end
-   return status, dtSuggested
+   return status, dtSuggested, tryInv_next
 end
 
 function MomentSpecies:totalSolverTime()
@@ -168,7 +174,7 @@ function MomentSpecies:checkInv(fIn)
 
    local isInv = true
    local localRange = fIn:localRange()   
-   for idx in localRange:colMajorIter() do
+   for idx in localRange:rowMajorIter() do
       self.grid:setIndex(idx)
 
       fIn:fill(fInIndexer(idx), fInPtr)

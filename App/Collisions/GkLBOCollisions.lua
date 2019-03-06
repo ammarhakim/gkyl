@@ -46,7 +46,7 @@ end
 function GkLBOCollisions:fullInit(speciesTbl)
    local tbl = self.tbl -- previously stored table
 
-   self.cfl = 0.0 -- Will be replaced.
+   self.cfl = 0.0    -- Will be replaced.
 
    local collidingSpecies = assert(tbl.collideWith, "App.GkLBOCollisions: Must specify names of species to collide with in 'collideWith'.")
 
@@ -82,11 +82,19 @@ function GkLBOCollisions:fullInit(speciesTbl)
          table.remove(self.collFreqCross, selfSpecInd)
       end
    else
-      --local normNuIn      = tbl.normNu
-      local normNuIn      = assert(tbl.normNu, "App.GkLBOCollisions: No constant collision frequencies provided ('frequencies'). For spatially varying nu must specify 'normNu', list of collisionalities normalized by (T_0^(3/2)/n_0) evaluated somewhere in the simulation.") 
+      self.varNu       = true    -- Spatially varying nu.
+      self.charge      = speciesTbl.charge    -- Charge of this species.
+      -- For now only cell-wise constant nu is implemented.
+      -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      self.cellConstNu = true
+      -- If no constant collision frequencies provided ('frequencies'), user can specify 'normNu'
+      -- list of collisionalities normalized by (T_0^(3/2)/n_0) evaluated somewhere in the
+      -- simulation. Otherwise code compute Spitzer collisionality from scratch.
+      local normNuIn   = tbl.normNu
+      -- normNuSelf, epsilon0 and elemCharge may not used, but are
+      -- initialized to avoid if-statements in advance method.
       if normNuIn then
-         self.varNu       = true    -- Spatially varying nu.
-         -- Below normNu is the collisionality normalized by (T_0^(3/2)/n_0) evaluated somewhere in the simulation.
+         self.userInputNormNu = true
          if self.selfCollisions then
             self.normNuSelf  = normNuIn[selfSpecInd]
          end
@@ -94,21 +102,48 @@ function GkLBOCollisions:fullInit(speciesTbl)
             self.normNuCross = normNuIn
             table.remove(self.normNuCross, selfSpecInd)
          end
-         -- For now only cell-wise constant nu is implemented.
-         -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
-         self.cellConstNu = true
+         self.epsilon0   = 8.854187817620389850536563031710750260608e-12    -- Farad/meter.
+         self.elemCharge = 1.602176487e-19    -- Coulomb
+      else
+         self.userInputNormNu = false
+         if self.selfCollisions then
+            self.normNuSelf  = 0.0
+         end
+         if self.crossCollisions then
+            self.normNuCross = collidingSpecies
+            table.remove(self.normNuCross, selfSpecInd)
+            for i, _ in ipairs(self.normNuCross) do self.normNuCross[i] = 0.0 end
+         end
+         self.epsilon0 = assert(
+            tbl.epsilon0, "Updater.GkLBOCollisions: Must specify vacuum permittivity 'epsilon0' ('frequencies' and 'normNu' are not specified, so nu is calculated via Spitzer).")
+         self.elemCharge = assert(
+            tbl.elemCharge, "Updater.GkLBOCollisions: Must specify elementary charge with 'elemCharge' ('frequencies' and 'normNu' are not specified, so nu is calculated via Spitzer).")
       end
    end
 
    if self.crossCollisions then
-      -- IMPORTANT: First implement the option in Eric Shi's 2017 PhD thesis (HeavyIons).
-      --            For now assume constant collisionality only.
-      -- For now, crossMomOp=HeavyIons is the only option.
-      -- self.crossMomOp  = assert(tbl.crossMomOp, "App.GkLBOCollisions: Must specify 'crossMomOp' (HeavyIons, Greene, GreeneSmallAngle, GreeneSmallAngleLimit), formulas used to calculate cross-species primitive moments.")
-      self.crossMomOp  = "HeavyIons"
+      self.charge     = speciesTbl.charge    -- Charge of this species.
+      local crossOpIn = tbl.crossOption    -- Can specify 'crossOption' (Greene, GreeneSmallAngle, HeavyIons), formulas used to calculate cross-species primitive moments.
+      if crossOpIn then
+         self.crossMomOp  = crossOpIn
+         if self.crossMomOp=="Greene" then
+            local betaGreeneIn = tbl.betaGreene   -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
+            if betaGreeneIn then
+               self.betaGreene = betaGreeneIn
+            else
+               self.betaGreene = 1.0   -- Default value is the heavy ion, quasineutral limit.
+            end
+         else
+            self.betaGreene = 0.0   -- Default value is the heavy ion, quasineutral limit.
+         end
+      else
+         self.crossMomOp = "Greene"    -- Default to Greene-type formulas.
+         self.betaGreene = 1.0         -- Default value is the heavy ion, quasineutral limit.
+      end
    end
 
-   self.mass = speciesTbl.mass
+   self.mass = speciesTbl.mass   -- Mass of this species.
+
    self.tmEvalMom = 0.0
 end
 
@@ -154,6 +189,18 @@ function GkLBOCollisions:createSolver(funcField)
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
    }
+   -- Parallel flow velocity.
+   self.uPar = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   -- Thermal speed squared, vth=sqrt(T/m).
+   self.vthSq = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.confBasis:numBasis(),
+      ghost         = {1, 1},
+   }
 
    -- Inverse of background magnetic field.
    self.bmag    = funcField.geo.bmag
@@ -179,25 +226,22 @@ function GkLBOCollisions:createSolver(funcField)
          onGrid           = self.confGrid,
          confBasis        = self.confBasis,
          useCellAverageNu = self.cellConstNu,
-      }
-      -- Lenard-Bernstein equation.
-      self.gkLBOconstNuCalcEq = GkLBOconstNuEq {
-         phaseBasis       = self.phaseBasis,
-         confBasis        = self.confBasis,
-         vParUpper        = self.vParMax,
-         mass             = self.mass,
-         useCellAverageNu = self.cellConstNu,
+         willInputNormNu  = self.userInputNormNu,
+         elemCharge       = self.elemCharge,
+         epsilon0         = self.epsilon0,
       }
    else
       self.collFreq = 0.0    -- Assigned in advance method.
-      -- Lenard-Bernstein equation.
-      self.gkLBOconstNuCalcEq = GkLBOconstNuEq {
-         phaseBasis = self.phaseBasis,
-         confBasis  = self.confBasis,
-         vParUpper  = self.vParMax,
-         mass       = self.mass,
-      }
    end
+   -- Lenard-Bernstein equation.
+   self.gkLBOconstNuCalcEq = GkLBOconstNuEq {
+      phaseBasis       = self.phaseBasis,
+      confBasis        = self.confBasis,
+      vParUpper        = self.vParMax,
+      varyingNu        = self.varNu,
+      useCellAverageNu = self.cellConstNu,
+      mass             = self.mass,
+   }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,
       basis              = self.phaseBasis,
@@ -207,18 +251,6 @@ function GkLBOCollisions:createSolver(funcField)
       zeroFluxDirections = zfd,
    }
    if self.selfCollisions then
-      -- Parallel flow velocity.
-      self.uPar = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-      }
-      -- Thermal speed squared, vth=sqrt(T/m).
-      self.vthSq = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1},
-      }
       self.primMomSelf = Updater.SelfPrimMoments {
          onGrid     = self.confGrid,
          phaseGrid  = self.phaseGrid,
@@ -231,6 +263,12 @@ function GkLBOCollisions:createSolver(funcField)
    if self.crossCollisions then
       -- Flow velocity of the other species (ions if crossMomOp=HeavyIons).
       self.uParOther = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1},
+      }
+      -- Thermal speed squared of the other species.
+      self.vthSqOther = DataStruct.Field {
          onGrid        = self.confGrid,
          numComponents = self.confBasis:numBasis(),
          ghost         = {1, 1},
@@ -270,22 +308,14 @@ function GkLBOCollisions:createSolver(funcField)
          weakBasis = self.confBasis,
          operation = "Multiply",
       }
-      if self.crossMomOp ~= "HeavyIons" then
-         -- Thermal speed squared of the other species.
-         self.vthSqOther = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1},
-         }
-         self.primMomCross = Updater.CrossPrimMoments {
-            onGrid     = self.confGrid,
-            phaseBasis = self.phaseBasis,
-            confBasis  = self.confBasis,
-            operator   = "GkLBO",
-            gkfacs     = {self.mass, self.bmag},
-            formulas   = self.crossMomOp,
-         }
-      end
+      self.primMomCross = Updater.CrossPrimMoments {
+         onGrid     = self.confGrid,
+         phaseBasis = self.phaseBasis,
+         confBasis  = self.confBasis,
+         operator   = "GkLBO",
+         formulas   = self.crossMomOp,
+         betaGreene = self.betaGreene,
+      }
    end
 
    -- Number of cells in which number density was negative (somewhere).
@@ -312,7 +342,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, {self.mass, self.normNuSelf, selfMom[1], self.vthSq},{self.collFreq})
+         self.spitzerNu:advance(0.0, {self.mass, self.charge, selfMom[1], self.vthSq, self.normNuSelf},{self.collFreq})
       else
          self.collFreq = self.collFreqSelf
       end
@@ -327,40 +357,52 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    end
 
    if self.crossCollisions then
-      -- IMPORTANT: For now implement what was done in Eric Shi's PhD Thesis 2017 (HeavyIons).
-      --            Assume ions & electrons only, and only include the effect on
-      --            the electrons.
-      if self.crossMomOp=="HeavyIons" then
-         local tmEvalMomStart = Time.clock()
-         -- Compute ion flow velocity.
-         local ionMom = species[self.crossSpecies[1]]:fluidMoments()
-         self.confDiv:advance(0., {ionMom[1], ionMom[2]}, {self.uParOther})
-         self.uParCross:copy(self.uParOther)
-         -- Compute the cross thermal speed according to:
-         -- vDimPhys*M_{0,e} vthSq_{ei} = M_{2,e} - 2u_i dot M_{1,e} + u_i^2 M_{0,e}
-         -- vDimPhys=1 if vDim=1, vDimPhys=3 if vDim=2.
-         self.confMultiply:advance(0., {self.uParOther, selfMom[2]}, {self.kinEnergyDens})
-         self.confMultiply:advance(0., {self.uParOther, self.uParCross}, {self.uParOther})
-         self.confMultiply:advance(0., {self.uParOther, selfMom[1]}, {self.uParOther})
+      if not self.selfCollisions then
+         -- If applying self-collisions, use the same primitive moments calculated above.
+         -- Otherwise compute primitive moments, u and vtSq, of this species.
+         self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.uPar})
+         self.confMultiply:advance(0., {self.uPar, selfMom[2]}, {self.kinEnergyDens})
          self.thermEnergyDens:combine( 1.0/self.vDimPhys, selfMom[3],
-                                      -2.0/self.vDimPhys, self.kinEnergyDens,
-                                       1.0/self.vDimPhys, self.uParOther )
-         self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSqCross}) 
+                                      -1.0/self.vDimPhys, self.kinEnergyDens )
+         self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
+      end
+
+      for sInd, otherNm in ipairs(self.crossSpecies) do
+         local tmEvalMomStart = Time.clock()
+         -- Obtain coupling moments of other species.
+         local otherMom = species[otherNm]:fluidMoments()
+         -- Compute primitive moments, u and vtSq, of other species.
+         self.confDiv:advance(0., {otherMom[1], otherMom[2]}, {self.uParOther})
+         if self.crossMomOp ~= "HeavyIons" then
+            self.confMultiply:advance(0., {self.uParOther, otherMom[2]}, {self.kinEnergyDens})
+            self.thermEnergyDens:combine( 1.0/self.vDimPhys, otherMom[3],
+                                         -1.0/self.vDimPhys, self.kinEnergyDens )
+            self.confDiv:advance(0., {otherMom[1], self.thermEnergyDens}, {self.vthSqOther})
+         end
+
+         -- Set the subscripts of the collision term (12 or 21).
+         -- For "HeavyIons" species 1 is the lighter one.
+         local collSub
+         local mRat = species[otherNm]:getMass()/self.mass
+         if mRat <= 1 then
+            collSub = "12"
+         else
+            collSub = "21"
+         end
+         -- Get cross-species primitive moments, u_12 and vtSq_12, or u_21 and vtSq_21.
+         -- This updater expects inputs in the order:
+         -- collSub, mRat, nSelf, uSelf, vtSqSelf, nOther, uOther, vtSqOther.
+         self.primMomCross:advance(0., {collSub, mRat, selfMom[1], self.uPar, self.vthSq,
+                                        otherMom[1], self.uParOther, self.vthSqOther},
+                                       {self.uParCross, self.vthSqCross})
+
          self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
          if self.varNu then
             -- Compute the collisionality.
-            if not self.selfCollisions then
-               -- Need to compute the electron temperature.
-               self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.uPar})
-               self.confMultiply:advance(0., {self.uPar, selfMom[2]}, {self.kinEnergyDens})
-               self.thermEnergyDens:combine( 1.0/self.vDimPhys, selfMom[3],
-                                            -1.0/self.vDimPhys, self.kinEnergyDens )
-               self.confDiv:advance(0., {selfMom[1],self.thermEnergyDens}, {self.vthSq})
-            end
-            self.spitzerNu:advance(0.0, {self.mass, self.normNuCross[1], otherMom[1], self.vthSq}, {self.collFreq})
+            self.spitzerNu:advance(0.0, {self.mass, self.charge, otherMom[1], self.vthSq, self.normNuCross[sInd]}, {self.collFreq})
          else
-            self.collFreq = self.collFreqCross[1]
+            self.collFreq = self.collFreqCross[sInd]
          end
       end
       -- Compute increment from cross-species collisions and accumulate it into output.
@@ -371,9 +413,9 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function GkLBOCollisions:write(tm, frame)
+   self.uPar:write(string.format("%s_%s_%d.bp", self.speciesName, "uPar", frame), tm, frame)
+   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
    if self.selfCollisions then
-      self.uPar:write(string.format("%s_%s_%d.bp", self.speciesName, "uPar", frame), tm, frame)
-      self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
       Mpi.Allreduce(self.primMomLimitCrossingsL:data():data(), 
                     self.primMomLimitCrossingsG:data():data(), self.primMomLimitCrossingsG:size(),
                     Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
@@ -382,12 +424,23 @@ function GkLBOCollisions:write(tm, frame)
       self.primMomLimitCrossingsG:clear(0.0)
    end
    if self.crossCollisions then
+      if self.crossMomOp ~= "HeavyIons" then
+         self.uParCross:write(string.format("%s_%s_%d.bp", self.speciesName, "uParCross", frame), tm, frame)
+      end
       self.vthSqCross:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSqCross", frame), tm, frame)
    end
 end
 
 function GkLBOCollisions:totalTime()
    return self.collisionSlvr.totalTime + self.tmEvalMom
+end
+
+function GkLBOCollisions:slvrTime()
+   return self.collisionSlvr.totalTime
+end
+
+function GkLBOCollisions:momTime()
+   return self.tmEvalMom
 end
 
 return GkLBOCollisions

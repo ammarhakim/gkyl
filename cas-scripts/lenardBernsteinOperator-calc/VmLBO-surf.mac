@@ -38,7 +38,7 @@ for bInd : 1 thru length(bName) do (
      fh : openw(fname),
      funcName : sconcat("VmLBOconstNuSurf", c, "x", v, "v", bName[bInd]),
      calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
-     close(fh),
+     close(fh)
      
      /* boundarySurf kernels compute surface contribution that we
         do not want to zero-out at the boundary of velocity domain. */

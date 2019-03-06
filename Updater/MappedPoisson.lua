@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local ffi = require("ffi")
+local ffiC = ffi.C
 local Proto = require("Lib.Proto")
 local UpdaterBase = require("Updater.Base")
 local Lin = require("Lib.Linalg")
@@ -162,7 +163,7 @@ function MappedPoisson:init(tbl)
    assert(ybctl ~= nil, "Error: Top BC not specified")
 
    --initialize function pointer
-   self.point = ffi.C.new_MapPoisson(idx, idy, self._grid:lower(1), self._grid:lower(2),
+   self.point = ffiC.new_MapPoisson(idx, idy, self._grid:lower(1), self._grid:lower(2),
 				     self._grid:upper(1), self._grid:upper(2), xbctl, ybctl, xbctu, ybctu, xbcu,
 				     xbcl, ybcu, ybcl, sig);
    -- send over conductivity
@@ -175,19 +176,19 @@ function MappedPoisson:init(tbl)
            grid:setIndex({i,j})
            local citr = condarr:get(indexer(i,j))
            for k = 1,9 do
-              ffi.C.wrap_getConvalatIJ(self.point, i-1, j-1, k-1, citr[k])
+              ffiC.wrap_getConvalatIJ(self.point, i-1, j-1, k-1, citr[k])
            end
         end
      end
    end
    --set up metric function for c
-   ffi.C.setMetricFuncPointer_MapPoisson(self.point, gfunc)
+   ffiC.setMetricFuncPointer_MapPoisson(self.point, gfunc)
    --set up differential length funcs for c
-   ffi.C.setDiffLenPointer_MapPoisson(self.point, hfunc)
+   ffiC.setDiffLenPointer_MapPoisson(self.point, hfunc)
    --set up c callable mapc2p
-   ffi.C.setMapcpp_MapPoisson(self.point, mapcpp)
+   ffiC.setMapcpp_MapPoisson(self.point, mapcpp)
    --set up factorization wth pointer
-   ffi.C.wrap_factorize(self.point)
+   ffiC.wrap_factorize(self.point)
 end
 
 
@@ -206,12 +207,12 @@ function MappedPoisson:advance(tCurr, inFld, outFld)
       for i = localRange:lower(1), localRange:upper(1) do
 	        grid:setIndex({i,j})
 	        local sitr = source:get(indexer(i,j))
-	        ffi.C.wrap_getSrcvalatIJ(self.point, i-1, j-1, sitr[1])
+	        ffiC.wrap_getSrcvalatIJ(self.point, i-1, j-1, sitr[1])
       end
    end
 
    --solve the problem
-   ffi.C.wrap_phisolve(self.point)
+   ffiC.wrap_phisolve(self.point)
 
    --copy solution into output field
    localRange = phipot:localRange()
@@ -219,7 +220,7 @@ function MappedPoisson:advance(tCurr, inFld, outFld)
       for i = localRange:lower(1), localRange:upper(1) do
 	        grid:setIndex({i,j})
 	        local pitr = phipot:get(indexer(i,j))
-	        pitr[1] = ffi.C.wrap_getSolvalatIJ(self.point, i-1, j-1)
+	        pitr[1] = ffiC.wrap_getSolvalatIJ(self.point, i-1, j-1)
       end
    end
 end

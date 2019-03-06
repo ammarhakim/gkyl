@@ -23,6 +23,8 @@ ffi.cdef [[
 typedef struct {
   double charge, mass; /* Charge and mass */
   bool evolve;
+
+  double qbym;
 } FluidData_t;
 
 typedef struct {
@@ -33,13 +35,13 @@ typedef struct {
   double gravity; /* Gravitational acceleration */
   bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
   int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
-} FiveMomentSrcData_t;
+} MomentSrcData_t;
 
-  void gkylFiveMomentSrcRk3(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
-  void gkylFiveMomentSrcTimeCentered(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcAnalytic(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcAnalytic2(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-    void gkylFiveMomentSrcExact(FiveMomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
+  void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+  void gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -61,13 +63,13 @@ local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcAnalytic(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcAnalytic(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcAnalytic2(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcAnalytic2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect2(self, dt, fPtr, emPtr, staticEmPtr)
+   ffi.C.gkylFiveMomentSrcTimeCenteredDirect2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
@@ -83,7 +85,7 @@ function FiveMomentSrc:init(tbl)
 
    self._onGrid = assert(tbl.onGrid, "Updater.FiveMomentSrc: Must provide grid object using 'onGrid'")
 
-   self._sd = ffi.new(ffi.typeof("FiveMomentSrcData_t"))   
+   self._sd = ffi.new(ffi.typeof("MomentSrcData_t"))   
    -- Read in solver parameters
    self._sd.nFluids = assert(tbl.numFluids, "Updater.FiveMomentSrc: Must specify number of fluid using 'numFluids'")
 
@@ -114,6 +116,7 @@ function FiveMomentSrc:init(tbl)
    for n = 1, self._sd.nFluids do
       self._fd[n-1].charge = tbl.charge[n]
       self._fd[n-1].mass = tbl.mass[n]
+      self._fd[n-1].qbym = self._fd[n-1].charge / self._fd[n-1].mass
       -- self._fd[n-1].evolve = tbl.evolve ~= nil and tbl.evolve[n] or true
       if (tbl.evolve ~= nil) then
         self._fd[n-1].evolve = tbl.evolve[n]
@@ -131,10 +134,10 @@ function FiveMomentSrc:init(tbl)
       self._updateSrc = updateSrcModBoris
    elseif scheme == "time-centered" then
       self._updateSrc = updateSrcTimeCentered
-   elseif scheme == "analytic" then
-      self._updateSrc = updateSrcAnalytic
-   elseif scheme == "analytic2" then
-      self._updateSrc = updateSrcAnalytic2
+   elseif scheme == "time-centered-direct" or scheme == "direct" then
+      self._updateSrc = updateSrcTimeCenteredDirect
+   elseif scheme == "time-centered-direct2" or scheme == "direct2" then
+      self._updateSrc = updateSrcTimeCenteredDirect2
    elseif scheme == "exact" then
       self._updateSrc = updateSrcExact
    end

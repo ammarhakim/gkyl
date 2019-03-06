@@ -7,6 +7,7 @@
 
 -- system libraries
 local ffi = require "ffi"
+local ffiC = ffi.C
 
 -- Gkyl libraries
 local DecompRegionCalc = require "Lib.CartDecomp"
@@ -14,6 +15,10 @@ local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
+
+ffi.cdef [[
+  void cellCenter(int ndim, double* lower, int* currIdx, double* dx, double* xc);
+]]
 
 -- Determine local domain index. This is complicated by the fact that
 -- when using MPI-SHM the processes that live in shmComm all have the
@@ -136,12 +141,25 @@ function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
 function RectCart:getPeriodicDirs() return self._periodicDirs end
 function RectCart:cuts(dir) return self._cuts[dir] end
-function RectCart:setIndex(idx)
-   for d = 1, self._ndim do
-      self._currIdx[d] = idx[d]
+function RectCart:setIndex(idxIn)
+   if type(idxIn) == "cdata" then
+     idxIn:copyInto(self._currIdx)
+   else 
+     for d = 1, self._ndim do
+        self._currIdx[d] = idxIn[d]
+     end
    end
 end
 function RectCart:dx(dir) return self._dx[dir] end
+function RectCart:getDx(dxOut) 
+   if type(dxOut) == "cdata" then
+     self._dx:copyInto(dxOut)
+   else 
+     for d = 1, self._ndim do
+        dxOut[d] = self._dx[d]
+     end
+   end
+end
 function RectCart:cellCenterInDir(d)
    return self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
 end
@@ -152,9 +170,7 @@ function RectCart:cellUpperInDir(d)
    return self:lower(d) + (self._currIdx[d])*self:dx(d)
 end
 function RectCart:cellCenter(xc)
-   for d = 1, self._ndim do
-      xc[d] = self:lower(d) + (self._currIdx[d]-0.5)*self:dx(d)
-   end
+   ffiC.cellCenter(self._ndim, self._lower:data(), self._currIdx:data(), self._dx:data(), xc:data())
 end
 function RectCart:cellVolume() return self._vol end
 function RectCart:gridVolume() return self._gridVol end

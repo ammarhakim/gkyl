@@ -58,6 +58,9 @@ function HyperDisCont:init(tbl)
       end
    end
 
+   -- flag to turn on/off volume term
+   self._updateVolumeTerm = xsys.pickBool(tbl.updateVolumeTerm, true)
+
    -- CFL number
    self._cfl = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
    self._cflm = tbl.cflm and tbl.cflm or 1.1*self._cfl -- no larger than this
@@ -162,18 +165,18 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
       -- outer loop is over directions orthogonal to 'dir' and inner
       -- loop is over 1D slice in `dir`.
-      for idx in perpRangeDecomp:colMajorIter(tId) do
+      for idx in perpRangeDecomp:rowMajorIter(tId) do
 	 idx:copyInto(idxp); idx:copyInto(idxm)
 
          for i = dirLoIdx, dirUpIdx do -- this loop is over edges
 	    idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
 	    grid:setIndex(idxm)
-	    for d = 1, ndim do dxm[d] = grid:dx(d) end
+            grid:getDx(dxm)
 	    grid:cellCenter(xcm)
 
 	    grid:setIndex(idxp)
-	    for d = 1, ndim do dxp[d] = grid:dx(d) end
+            grid:getDx(dxp)
 	    grid:cellCenter(xcp)
 
 	    qIn:fill(qInIdxr(idxm), qInM)
@@ -184,7 +187,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
             cflRateByCell:fill(cflRateByCellIdxr(idxm), cflRateByCellM)
             cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
 
-	    if firstDir and i<=dirUpIdx-1 then
+	    if firstDir and i<=dirUpIdx-1 and self._updateVolumeTerm then
 	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end

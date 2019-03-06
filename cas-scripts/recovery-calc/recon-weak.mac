@@ -1,0 +1,121 @@
+load("modal-basis")$
+load("basis-precalc/basisSer1x")$
+
+bC : basisC[1]$
+N : length(bC)$
+eta(xc,dx,b) := subst(x=(z-xc)/(dx/2), b)$
+pL : eta(-1,2,bC)$
+pR : eta(1,2,bC)$
+
+/* Fit across two cells */
+h : doExpand1(hn, makelist(z^i,i,0,2*N-1))$
+eqL : calcInnerProdListGen([z], [[-2,0]], 1, pL, h-doExpand(hL,pL))$
+eqR : calcInnerProdListGen([z], [[0,2]],  1, pR, h-doExpand(hR,pR))$
+eqList : append(eqL,eqR)$
+hsol : linsolve(eqList, makelist(hn[i], i, 0, 2*N-1))$
+h1d : subst(hsol, h)$
+
+/* Now fit across three cells by matching moments and edge slopes */
+fh : sum(f(j,i)*bC[i], i, 1, N)$
+dh : subst(z=0,diff(h1d,z))$
+
+subListR : append(
+  makelist(hL[i]=f(j,i), i, 1,N), makelist(hR[i]=f(j+1,i), i, 1,N)
+  )$
+dhR : subst(subListR, dh)$
+subListL : append(
+  makelist(hL[i]=f(j-1,i), i, 1,N), makelist(hR[i]=f(j,i), i, 1,N)
+  )$
+dhL : subst(subListL, dh)$
+
+rh : sum(r[i]*x^i, i, 0, N+1)$
+
+eq1 : dhR = subst(x=1,diff(rh,x))$
+eq2 : dhL = subst(x=-1,diff(rh,x))$
+eqN : calcInnerProdListGen([x], [[-1,1]], 1, bC, rh-fh)$
+eqList : append([eq1, eq2], eqN)$
+
+rsol : linsolve(eqList, makelist(r[i],i,0,N+1))$
+r1d : subst(rsol, rh)$
+
+/* Plotting an example fit */
+bCL : subst(z=x,eta(-2,2,bC))$
+bCI : subst(z=x,eta(0,2,bC))$
+bCR : subst(z=x,eta(2,2,bC))$
+
+/* Map coordinates */
+xeta(eta,xc,dx) := eta*dx/2 + xc$
+
+/* Function to compute reconstruction of an expression */
+calcRecon(g) := block([gL, gI, gR, r1g],
+  gL : calcInnerProdListGen([x], [[-3,-1]], 1, bCL, g),
+  gI : calcInnerProdListGen([x], [[-1,1]], 1, bCI, g),
+  gR : calcInnerProdListGen([x], [[1,3]], 1, bCR, g),
+  r1g : subst(append(
+      makelist(f(j-1,i)=gL[i],i,1,N),
+      makelist(f(j,i)=gI[i],i,1,N),
+      makelist(f(j+1,i)=gR[i],i,1,N)),
+    r1d),
+  return (r1g)
+  )$
+
+/* dsin is a "discrete" sin in finite number of polynomials */
+dsin(x,n) := sum((-1)^(i-1)*x^(2*i-1)/factorial(2*i-1), i, 1, n)$
+gFunc(x,dx) := dsin(xeta(x-1,0, dx), 10) + dsin(xeta(2*(x-1),0, dx), 10)$
+
+g : gFunc(x,2)$
+r1g : calcRecon(g)$
+
+gL : calcInnerProdListGen([x], [[-3,-1]], 1, bCL, g)$
+gI : calcInnerProdListGen([x], [[-1,1]], 1, bCI, g)$
+gR : calcInnerProdListGen([x], [[1,3]], 1, bCR, g)$
+
+/* Plot stuff */
+ge : explicit(g, x, -3, 3)$
+r1ge : explicit(r1g, x, -1, 1)$
+
+gLe : explicit(gL.bCL, x, -3, -1)$
+gIe : explicit(gI.bCI, x, -1, 1)$
+gRe : explicit(gR.bCR, x, 1, 3)$
+
+draw2d(
+  grid=true,
+  color=red, r1ge,  
+  color=black, gLe,
+  color=black, gIe,
+  color=black, gRe,
+  color=blue, line_type=dots, ge 
+  )$
+
+/* Calculate error in reconstruction */
+calcError(g) := sqrt(integrate((g-calcRecon(g))^2, x, -1, 1))$
+
+/* Calculate order of convergence */
+calcOrder(dx, errorDx) := float(makelist(
+  log(errorDx[i]/errorDx[i+1])/log(dx[i]/dx[i+1]),
+  i, 1, length(dx)-1))$
+
+/* Compute errors as grid is refined */
+dx : [2, 1, 1/2, 1/4, 1/8]$
+errorDx : makelist(calcError(gFunc(x,dx[i])), i, 1, length(dx))$
+/* Make a plot */
+draw2d(points_joined=true, point_type=filled_circle, logx=true, logy=true,
+  points( float(makelist([1/dx[i],errorDx[i]/errorDx[1]], i, 1, length(dx))) )
+  )$
+
+/* Taylor series analysis */
+taylorExpand(df,N,z) := df[0] + sum(df[i]*z^i/factorial(i), i, 1, N)$
+
+ft : taylorExpand(df, 10, x)$
+
+ftL : calcInnerProdListGen([x], [[-3,-1]], 1, bCL, ft)$
+ftI : calcInnerProdListGen([x], [[-1,1]], 1, bCI, ft)$
+ftR : calcInnerProdListGen([x], [[1,3]], 1, bCR, ft)$
+
+ft1d : expand(fullratsimp(
+    subst(append(
+        makelist(f(j-1,i)=ftL[i],i,1,N),
+        makelist(f(j,i)=ftI[i],i,1,N),
+        makelist(f(j+1,i)=ftR[i],i,1,N)),
+      r1d
+      )))$
