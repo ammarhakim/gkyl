@@ -1,0 +1,160 @@
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+cvars : [X, Y, Z]$
+vvars : [Vpar, Mu]$
+
+/* set up some vector calculus functions */
+load("vect")$
+fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
+
+gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*geoZ_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x)) + 1/q_*geoY_expd*dfac_x*dfac_z*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x)) - 1/q_*geoX_expd*dfac_y*dfac_z*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y))$
+
+loadGKbasis(cdim, vdim, p) := block([],
+  if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
+  else modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+  load(modNm),
+
+  gkvsub:[vx=vpar,vy=mu],
+  gkvsubInv:[vpar=vx,mu=vy],
+
+  if cdim = 1 then (
+    label:["z", "v", "m"],
+    gkvsub:append([x=z], gkvsub),
+    wc : [wz, wv, wm],
+    derivfac : [dfac_z, dfac_v, dfac_m]
+  ),
+  if cdim = 2 then (
+    label:["x", "y", "v", "m"],
+    wc : [wx, wy, wv, wm],
+    derivfac : [dfac_x, dfac_y, dfac_v, dfac_m]
+  ),
+  if cdim = 3 then (
+    label:["x", "y", "z", "v", "m"],
+    wc : [wx, wy, wz, wv, wm],
+    derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m]
+  ),
+  bC : subst(gkvsub, basisC[p]),
+  varsC : subst(gkvsub, varsC),
+  if vdim=0 then bP : bC
+  else bP : subst(gkvsub, basisP[p]),
+  if vdim=0 then varsP : varsC
+  else varsP : subst(gkvsub, varsP),
+  numC : length(bC)
+)$
+
+calcAndWriteHamil() := block([],
+  /* expand background magnetic field Bmag, assuming it only varies in x */
+  Bmag_expd:subst(Bignorevars,doExpand1(Bmag,bC)),
+  /* expand Phi */
+  Phi_expd:doExpand1(Phi,bC),
+
+  if emflag then (
+    /* expand Apar */
+    Apar_expd:doExpand1(Apar,bC),
+    /* expand dApar/dt */
+    dAdt_expd:doExpand1(dApardt,bC),
+    dAdtPrev_expd:doExpand1(dApardtPrev,bC)
+    /* NOTE: even though Apar and dApar/dt are allowed
+       to be discontinuous in the parallel (z) direction,
+       the surface term in the z direction does not involve
+       Apar. since Apar is continuous in the other directions,
+       it does not matter if we use the right or left value */
+  )
+  else (
+    Apar_expd : 0,
+    dAdt_expd : 0,
+    dAdtPrev_expd : 0
+  ),
+
+  /* calculate full expansion expression for Hamiltonian */
+  H_full: q_*Phi_expd,
+  if vdim > 0 then H_full : H_full + 1/2*m_*(wv + vpar/dfac_v)^2,
+  if vdim > 1 then H_full : H_full + (wm+mu/dfac_m)*Bmag_expd,
+  
+  /* project Hamiltonian onto basis functions */
+  H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
+  /* write Hamiltonian to array */
+  printf(fh, "  double hamil[~a]; ~%", length(bP)),
+  writeCExprsNoExpand1(hamil, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], H_k))),
+  flush_output(fh),
+  HnoZero_k : doMakeExprLst(H_k, hamil),
+  /* expand projected Hamiltonian on basis */
+  H_expd:HnoZero_k.bP
+)$
+
+calcAndWriteBstar_by_Bmag() := block([],
+  /* expand geometric quantities on basis */
+  BmagInv_expd:subst(Bignorevars,doExpand1(BmagInv,bC)),
+  geoX_expd : subst(Bignorevars, doExpand1(geoX, bC)),
+  geoY_expd : subst(Bignorevars, doExpand1(geoY, bC)),
+  geoZ_expd : subst(Bignorevars, doExpand1(geoZ, bC)),
+  gradpar_expd : subst(Bignorevars, doExpand1(Gradpar, bC)),
+
+  /* expand BstarX/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
+  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z) + (geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z)),
+  /* expand BstarY/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
+  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(geoZ_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) - geoX_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z)) + (-geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z)),
+  /* expand BstarZ/Bmag = bhat.grad(z) + (m/q vpar + Apar)/B*curl(bhat)*grad(z) = Gradpar + (m/q vpar + Apar)/B*curl(bhat)*grad(z) on basis */
+  BstarZ_by_Bmag_expd : gradpar_expd - (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) + (geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y)),
+
+  /* project Bstar's onto basis, and print to arrays */
+  printf(fh, "  double BstarX_by_Bmag[~a]; ~%", length(bP)),
+  printf(fh, "  double BstarY_by_Bmag[~a]; ~%", length(bP)),
+  printf(fh, "  double BstarZ_by_Bmag[~a]; ~%", length(bP)),
+
+  if cdim # 1 then (
+  BstarX_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarX_by_Bmag_expd)),
+  writeCExprsNoExpand1(BstarX_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarX_by_Bmag_k))),
+  printf(fh, "~%"),
+  flush_output(fh),
+  BstarX_by_Bmag_noZero_k : doMakeExprLst(BstarX_by_Bmag_k, BstarX_by_Bmag),
+  BstarX_by_Bmag_expd:BstarX_by_Bmag_noZero_k.bP,
+
+  BstarY_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarY_by_Bmag_expd)),
+  writeCExprsNoExpand1(BstarY_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarY_by_Bmag_k))),
+  printf(fh, "~%"),
+  flush_output(fh),
+  BstarY_by_Bmag_noZero_k : doMakeExprLst(BstarY_by_Bmag_k, BstarY_by_Bmag),
+  BstarY_by_Bmag_expd:BstarY_by_Bmag_noZero_k.bP
+  ),
+
+  if cdim # 2 then (
+  BstarZ_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarZ_by_Bmag_expd)),
+  writeCExprsNoExpand1(BstarZ_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarZ_by_Bmag_k))),
+  printf(fh, "~%"),
+  flush_output(fh),
+  BstarZ_by_Bmag_noZero_k : doMakeExprLst(BstarZ_by_Bmag_k, BstarZ_by_Bmag),
+  BstarZ_by_Bmag_expd:BstarZ_by_Bmag_noZero_k.bP
+  ),
+
+  /* make Bstar/Bmag vector */
+  if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
+  if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd],
+  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd]
+)$
+
+calcAlpha(d, usePB) := block([w, dfac],
+  w : wc[d],
+  dfac : derivfac[d],
+ 
+  alpha_expd : gkPB(w + varsP[d]/dfac, H_expd),
+
+  if usePB = false then (
+    if varsP[d]=x then (
+      alpha_expd : alpha_expd - geoY_expd*dfac_z*diff(Phi_expd, z)
+    )
+    elseif varsP[d]=y then (
+      alpha_expd : alpha_expd + geoX_expd*dfac_z*diff(Phi_expd, z)
+    )
+    elseif varsP[d]=z then (
+      alpha_expd : gradpar_expd*dfac_v*diff(H_expd, vpar)
+    )
+    elseif varsP[d]=vpar then (
+      alpha_expd : alpha_expd - vpar*BmagInv_expd*geoY_expd*dfac_x*diff(Bmag_expd, x)*dfac_z*diff(Phi_expd, z)
+    )
+  ),
+  
+  fullratsimp(alpha_expd)
+)$
+
