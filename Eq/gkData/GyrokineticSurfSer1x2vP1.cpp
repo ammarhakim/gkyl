@@ -23,10 +23,10 @@ double GyrokineticSurf1x2vSer_X_P1_Bvars_0(const double q_, const double m_, con
   BstarZ_by_Bmag[0] = 2.0*Gradpar[0]; 
 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.1082531754730548*BstarZ_by_Bmag[0]*hamil[2]*dfac_v)/m_; 
+  double alpha0 = 0.2165063509461096*Gradpar[0]*hamil[2]*dfac_v; 
 
   double alpha[4]; 
-  alpha[0] = (0.4330127018922193*BstarZ_by_Bmag[0]*hamil[2]*dfac_v)/m_; 
+  alpha[0] = 0.8660254037844386*Gradpar[0]*hamil[2]*dfac_v; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.25*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_z; 
@@ -211,10 +211,10 @@ double GyrokineticSurf1x2vSer_X_P1_Bvars_1(const double q_, const double m_, con
   BstarZ_by_Bmag[1] = 2.0*Gradpar[1]; 
 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.0625*(3.0*BstarZ_by_Bmag[1]-1.732050807568877*BstarZ_by_Bmag[0])*hamil[2]*dfac_v)/m_; 
+  double alpha0 = -0.125*(3.0*Gradpar[1]-1.732050807568877*Gradpar[0])*hamil[2]*dfac_v; 
 
   double alpha[4]; 
-  alpha[0] = -(0.25*(3.0*BstarZ_by_Bmag[1]-1.732050807568877*BstarZ_by_Bmag[0])*hamil[2]*dfac_v)/m_; 
+  alpha[0] = -0.5*(3.0*Gradpar[1]-1.732050807568877*Gradpar[0])*hamil[2]*dfac_v; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.25*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_z; 

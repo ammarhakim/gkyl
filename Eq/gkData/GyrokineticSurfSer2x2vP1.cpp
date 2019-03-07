@@ -30,7 +30,7 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, con
   double alpha0 = (0.0625*geoZ[0]*(3.0*hamil[5]-1.732050807568877*hamil[2])*dfac_y)/q_; 
 
   double alpha[8]; 
-  alpha[0] = (0.25*geoZ[0]*(4.242640687119286*hamil[5]-2.449489742783178*hamil[2])*dfac_y)/q_; 
+  alpha[0] = (0.3535533905932737*geoZ[0]*(3.0*hamil[5]-1.732050807568877*hamil[2])*dfac_y)/q_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_x; 
@@ -179,7 +179,7 @@ double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, con
   double alpha0 = -(0.0625*geoZ[0]*(3.0*hamil[5]-1.732050807568877*hamil[1])*dfac_x)/q_; 
 
   double alpha[8]; 
-  alpha[0] = -(0.25*geoZ[0]*(4.242640687119286*hamil[5]-2.449489742783178*hamil[1])*dfac_x)/q_; 
+  alpha[0] = -(0.3535533905932737*geoZ[0]*(3.0*hamil[5]-1.732050807568877*hamil[1])*dfac_x)/q_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*alpha[0]*(1.732050807568877*fl[2]+fl[0])*dfac_y; 
@@ -367,7 +367,7 @@ double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, con
   double alpha0 = -(0.0625*((5.196152422706631*geoZ[1]-3.0*geoZ[0])*hamil[5]+(1.732050807568877*geoZ[0]-3.0*geoZ[1])*hamil[2])*dfac_y)/q_; 
 
   double alpha[8]; 
-  alpha[0] = -(0.25*((7.348469228349534*geoZ[1]-4.242640687119286*geoZ[0])*hamil[5]+(2.449489742783178*geoZ[0]-4.242640687119286*geoZ[1])*hamil[2])*dfac_y)/q_; 
+  alpha[0] = -(0.3535533905932737*((5.196152422706631*geoZ[1]-3.0*geoZ[0])*hamil[5]+(1.732050807568877*geoZ[0]-3.0*geoZ[1])*hamil[2])*dfac_y)/q_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*alpha[0]*(1.732050807568877*fl[1]+fl[0])*dfac_x; 
@@ -680,8 +680,8 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   double alpha0 = (0.03125*(hamil[5]*(3.0*BstarY_by_Bmag[6]-1.732050807568877*BstarY_by_Bmag[1])+hamil[2]*(3.0*BstarY_by_Bmag[3]-1.732050807568877*BstarY_by_Bmag[0]))*dfac_y)/m_; 
 
   double alpha[8]; 
-  alpha[0] = (0.125*(hamil[5]*(4.242640687119286*BstarY_by_Bmag[6]-2.449489742783178*BstarY_by_Bmag[1])+hamil[2]*(4.242640687119286*BstarY_by_Bmag[3]-2.449489742783178*BstarY_by_Bmag[0]))*dfac_y)/m_; 
-  alpha[1] = (0.125*(4.242640687119286*hamil[2]*BstarY_by_Bmag[6]+(4.242640687119286*BstarY_by_Bmag[3]-2.449489742783178*BstarY_by_Bmag[0])*hamil[5]-2.449489742783178*BstarY_by_Bmag[1]*hamil[2])*dfac_y)/m_; 
+  alpha[0] = (0.1767766952966368*(hamil[5]*(3.0*BstarY_by_Bmag[6]-1.732050807568877*BstarY_by_Bmag[1])+hamil[2]*(3.0*BstarY_by_Bmag[3]-1.732050807568877*BstarY_by_Bmag[0]))*dfac_y)/m_; 
+  alpha[1] = (0.1767766952966368*(3.0*hamil[2]*BstarY_by_Bmag[6]+(3.0*BstarY_by_Bmag[3]-1.732050807568877*BstarY_by_Bmag[0])*hamil[5]-1.732050807568877*BstarY_by_Bmag[1]*hamil[2])*dfac_y)/m_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.1767766952966368*(1.732050807568877*(alpha[1]*fl[6]+alpha[0]*fl[3])+alpha[1]*fl[1]+alpha[0]*fl[0])*dfac_v; 
