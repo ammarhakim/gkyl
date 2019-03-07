@@ -26,7 +26,7 @@ double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const d
   double alphaL = 0.0; 
   double alphaR = 0.0; 
   double alphaz[8]; 
-  alphaz[0] = 1.224744871391589*Gradpar[0]*hamil[2]*dfac_v*dfac_z; 
+  alphaz[0] = (1.224744871391589*Gradpar[0]*hamil[2]*dfac_v*dfac_z)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = 0.1767766952966368*alphaz[0]; 
@@ -56,7 +56,7 @@ double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const d
 #endif 
 
   double alphav[8]; 
-  alphav[0] = -(0.6123724356957944*BstarZ_by_Bmag[0]*hamil[1]*dfac_v*dfac_z)/m_; 
+  alphav[0] = -(2.449489742783178*Gradpar[0]*Phi[1]*dfac_v*dfac_z*q_)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = 0.1767766952966368*alphav[0]; 
@@ -122,8 +122,8 @@ double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const d
   double alphaL = 0.0; 
   double alphaR = 0.0; 
   double alphaz[8]; 
-  alphaz[0] = 1.224744871391589*Gradpar[0]*hamil[2]*dfac_v*dfac_z; 
-  alphaz[1] = 1.224744871391589*Gradpar[1]*hamil[2]*dfac_v*dfac_z; 
+  alphaz[0] = (1.224744871391589*Gradpar[0]*hamil[2]*dfac_v*dfac_z)/m_; 
+  alphaz[1] = (1.224744871391589*Gradpar[1]*hamil[2]*dfac_v*dfac_z)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.125*(2.449489742783178*alphaz[1]-1.414213562373095*alphaz[0]); 
@@ -153,10 +153,10 @@ double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const d
 #endif 
 
   double alphav[8]; 
-  alphav[0] = -(0.6123724356957944*BstarZ_by_Bmag[0]*hamil[1]*dfac_v*dfac_z)/m_; 
-  alphav[1] = -(0.6123724356957944*BstarZ_by_Bmag[1]*hamil[1]*dfac_v*dfac_z)/m_; 
-  alphav[3] = -(0.6123724356957944*BstarZ_by_Bmag[0]*hamil[5]*dfac_v*dfac_z)/m_; 
-  alphav[5] = -(0.6123724356957944*BstarZ_by_Bmag[1]*hamil[5]*dfac_v*dfac_z)/m_; 
+  alphav[0] = -(2.449489742783178*Gradpar[0]*dfac_v*dfac_z*(Bmag[1]*wm+Phi[1]*q_))/m_; 
+  alphav[1] = -(2.449489742783178*Gradpar[1]*dfac_v*dfac_z*(Bmag[1]*wm+Phi[1]*q_))/m_; 
+  alphav[3] = -(1.414213562373095*Gradpar[0]*Bmag[1]*dfac_v*dfac_z)/(dfac_m*m_); 
+  alphav[5] = -(1.414213562373095*Bmag[1]*Gradpar[1]*dfac_v*dfac_z)/(dfac_m*m_); 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = 0.1767766952966368*alphav[0]; 

@@ -141,17 +141,26 @@ calcAlpha(d, usePB) := block([w, dfac],
   alpha_expd : gkPB(w + varsP[d]/dfac, H_expd),
 
   if usePB = false then (
+    zvpar : wv + vpar/dfac_v,
+    zvpar_0 : dfac_v*diff(H_expd, vpar)/m_,
+    zvpar2_0 : zvpar*zvpar_0,
+    zmu : wm + mu/dfac_m,
     if varsP[d]=x then (
-      alpha_expd : alpha_expd - geoY_expd*dfac_z*diff(Phi_expd, z)
+      /*alpha_expd : alpha_expd - geoY_expd*dfac_z*diff(Phi_expd, z)*/
+      alpha_expd : (1/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*geoY_expd*dfac_z*diff(Bmag_expd,z) - geoZ_expd*dfac_y*diff(Phi_expd, y)
     )
     elseif varsP[d]=y then (
-      alpha_expd : alpha_expd + geoX_expd*dfac_z*diff(Phi_expd, z)
+      /*alpha_expd : alpha_expd + geoX_expd*dfac_z*diff(Phi_expd, z)*/
+      alpha_expd : (1/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*geoY_expd*dfac_z*diff(Bmag_expd,z) - geoZ_expd*dfac_y*diff(Phi_expd, y)
     )
     elseif varsP[d]=z then (
-      alpha_expd : gradpar_expd*dfac_v*diff(H_expd, vpar)
+      alpha_expd : gradpar_expd*zvpar_0
     )
     elseif varsP[d]=vpar then (
-      alpha_expd : alpha_expd - vpar*BmagInv_expd*geoY_expd*dfac_x*diff(Bmag_expd, x)*dfac_z*diff(Phi_expd, z)
+      /*alpha_expd : alpha_expd - vpar*BmagInv_expd*geoY_expd*dfac_x*diff(Bmag_expd, x)*dfac_z*diff(Phi_expd, z)*/
+      alpha_expd : -zvpar*BmagInv_expd*geoY_expd*dfac_z*diff(Bmag_expd,z)*dfac_x*diff(Phi_expd,x) 
+              -zvpar*BmagInv_expd*(geoZ_expd*dfac_x*diff(Bmag_expd,x)-geoX_expd*dfac_z*diff(Bmag_expd,z))*dfac_y*diff(Phi_expd,y) 
+              -gradpar_expd/m_*dfac_z*(zmu*diff(Bmag_expd,z) + q_*diff(Phi_expd,z))
     )
   ),
   
