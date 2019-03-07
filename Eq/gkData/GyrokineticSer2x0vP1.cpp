@@ -45,30 +45,30 @@ double GyrokineticVol2x0vSerP1_Bvars_0(const double q_, const double m_, const d
 #endif 
 
   double alphay[4]; 
-  alphay[0] = -0.8660254037844386*geoZ[0]*Phi[2]*dfac_y^2; 
-  alphay[1] = -0.8660254037844386*geoZ[0]*Phi[3]*dfac_y^2; 
+  alphay[0] = 0.8660254037844386*geoZ[0]*Phi[1]*dfac_x*dfac_y; 
+  alphay[2] = 0.8660254037844386*geoZ[0]*Phi[3]*dfac_x*dfac_y; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
-  alphaL = 0.25*alphay[0]; 
+  alphaL = -0.25*(1.732050807568877*alphay[2]-1.0*alphay[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
-  alphaR = 0.25*alphay[0]; 
+  alphaR = 0.25*(1.732050807568877*alphay[2]+alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
-  alphaL = 0.25*(0.5*alphay[0]-0.5*alphay[1]); 
+  alphaL = 0.25*(0.5*alphay[0]-0.8660254037844386*alphay[2]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.125*(alphay[1]+alphay[0]); 
+  alphaL = 0.25*(0.5*alphay[0]-0.8660254037844386*alphay[2]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
-  alphaR = 0.25*(0.5*alphay[0]-0.5*alphay[1]); 
+  alphaR = 0.25*(0.8660254037844386*alphay[2]+0.5*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.125*(alphay[1]+alphay[0]); 
+  alphaR = 0.25*(0.8660254037844386*alphay[2]+0.5*alphay[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
   out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
-  out[2] += 0.8660254037844386*(alphay[1]*f[1]+alphay[0]*f[0]); 
-  out[3] += 0.8660254037844386*(alphax[1]*f[3]+alphax[0]*f[2]+alphay[0]*f[1]+f[0]*alphay[1]); 
+  out[2] += 0.8660254037844386*(alphay[2]*f[2]+alphay[0]*f[0]); 
+  out[3] += 0.8660254037844386*((alphay[2]+alphax[1])*f[3]+alphax[0]*f[2]+alphay[0]*f[1]); 
   return cflFreq; 
 } 
