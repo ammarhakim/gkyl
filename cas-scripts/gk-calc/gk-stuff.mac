@@ -145,13 +145,15 @@ calcAlpha(d, usePB) := block([w, dfac],
     zvpar_0 : dfac_v*diff(H_expd, vpar)/m_,
     zvpar2_0 : zvpar*zvpar_0,
     zmu : wm + mu/dfac_m,
+    if vdim=1 then zmu : 0,
+    if vdim=0 then (zvpar:0, zvpar_0:0, zvpar2_0:0, zmu:0),
     if varsP[d]=x then (
       /*alpha_expd : alpha_expd - geoY_expd*dfac_z*diff(Phi_expd, z)*/
-      alpha_expd : (1/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*geoY_expd*dfac_z*diff(Bmag_expd,z) - geoZ_expd*dfac_y*diff(Phi_expd, y)
+      alpha_expd : (m_/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*geoY_expd*dfac_z*diff(Bmag_expd,z) - geoZ_expd*dfac_y*diff(Phi_expd, y)
     )
     elseif varsP[d]=y then (
       /*alpha_expd : alpha_expd + geoX_expd*dfac_z*diff(Phi_expd, z)*/
-      alpha_expd : (1/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*geoY_expd*dfac_z*diff(Bmag_expd,z) - geoZ_expd*dfac_y*diff(Phi_expd, y)
+      alpha_expd : (m_/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*(geoZ_expd*dfac_x*diff(Bmag_expd,x)-geoX_expd*dfac_z*diff(Bmag_expd,z)) + geoZ_expd*dfac_x*diff(Phi_expd, x)
     )
     elseif varsP[d]=z then (
       alpha_expd : gradpar_expd*zvpar_0

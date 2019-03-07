@@ -119,8 +119,8 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
 #endif 
 
   double alphav[4]; 
-  alphav[0] = -(1.732050807568877*Gradpar[0]*dfac_v*dfac_z*(Bmag[1]*wm+Phi[1]*q_+(Bmag[1]*mu)/dfac_m))/m_; 
-  alphav[1] = -(1.732050807568877*Gradpar[1]*dfac_v*dfac_z*(Bmag[1]*wm+Phi[1]*q_+(Bmag[1]*mu)/dfac_m))/m_; 
+  alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_z*q_)/m_; 
+  alphav[1] = -(1.732050807568877*Gradpar[1]*Phi[1]*dfac_v*dfac_z*q_)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = 0.25*alphav[0]; 

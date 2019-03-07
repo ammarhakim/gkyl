@@ -214,11 +214,11 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   BstarZ_by_Bmag[1] = 1.414213562373095*Gradpar[1]; 
 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.4330127018922193*Gradpar[0]*dfac_z*(dfac_m*(Bmag[1]*wm+Phi[1]*q_)+Bmag[1]*mu))/(dfac_m*m_); 
+  double alpha0 = -(0.4330127018922193*Gradpar[0]*Phi[1]*dfac_z*q_)/m_; 
 
   double alpha[2]; 
-  alpha[0] = -(1.224744871391589*Gradpar[0]*dfac_z*(dfac_m*(Bmag[1]*wm+Phi[1]*q_)+Bmag[1]*mu))/(dfac_m*m_); 
-  alpha[1] = -(1.224744871391589*Gradpar[1]*dfac_z*(dfac_m*(Bmag[1]*wm+Phi[1]*q_)+Bmag[1]*mu))/(dfac_m*m_); 
+  alpha[0] = -(1.224744871391589*Gradpar[0]*Phi[1]*dfac_z*q_)/m_; 
+  alpha[1] = -(1.224744871391589*Gradpar[1]*Phi[1]*dfac_z*q_)/m_; 
 #if upwindType == SURFAVG 
   if (alpha0>0) { 
   incr[0] = 0.3535533905932737*(1.732050807568877*(alpha[1]*fl[3]+alpha[0]*fl[2])+alpha[1]*fl[1]+alpha[0]*fl[0])*dfac_v; 
