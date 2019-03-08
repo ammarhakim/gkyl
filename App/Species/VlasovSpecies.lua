@@ -8,6 +8,7 @@
 
 local Proto = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
+local Mpi = require "Comm.Mpi"
 local VlasovEq = require "Eq.Vlasov"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
@@ -46,6 +47,9 @@ function VlasovSpecies:alloc(nRkDup)
    -- allocate field to accumulate funcField if any
    self.totalEmField = self:allocVectorMoment(8) -- 8 components of EM field
 
+   -- allocate field for external forces if any
+   self.vExtForce = self:allocVectorMoment(self.vdim)
+
    -- allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii)
    self.flow = self:allocVectorMoment(self.vdim)
    self.kineticEnergyDensity = self:allocMoment()
@@ -55,8 +59,14 @@ end
 
 function VlasovSpecies:fullInit(appTbl)
    VlasovSpecies.super.fullInit(self, appTbl)
-   
-   local externalBC = self.tbl.externalBC
+
+   local tbl = self.tbl
+   -- if there is an external force, get the force function
+   if tbl.vlasovExtForceFunc then
+      self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
+   end
+
+   local externalBC = tbl.externalBC
    if externalBC then
       self.wallFunction = require(externalBC)
    end
@@ -81,7 +91,6 @@ function VlasovSpecies:createSolver(hasE, hasB)
       mass = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
-      constGravity = self.constGravity,
    }
 
    -- must apply zero-flux BCs in velocity directions
@@ -139,13 +148,12 @@ function VlasovSpecies:createSolver(hasE, hasB)
       operation = "DotProduct",
    }
 
-   -- create updater to evaluate source 
-   if self.sourceFunc then 
-      self.evalSource = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.sourceFunc,
-         projectOnGhosts = true
+   if self.vlasovExtForceFunc then
+      self.evalVlasovExtForce = Updater.ProjectOnBasis {
+         onGrid = self.confGrid,
+         basis = self.confBasis,
+         evaluate = self.vlasovExtForceFunc,
+         projectOnGhosts = false
       }
    end
 
@@ -159,16 +167,33 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    -- accumulate functional Maxwell fields (if needed)
    local emField = emIn[1]:rkStepperFields()[inIdx]
    local emFuncField = emIn[2]:rkStepperFields()[1]
-   local totalEmField = nil
-   if emFuncField then
-      if emField then
-	 self.totalEmField:combine(1.0, emFuncField, 1.0, emField)
-	 totalEmField = self.totalEmField
-      else
-	 totalEmField = emFuncField
+   local totalEmField = self.totalEmField
+   totalEmField:clear(0.0)
+
+   local qbym = self.charge/self.mass
+
+   if emField then totalEmField:accumulate(qbym, emField) end
+   if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
+   
+   -- if external force present (gravity, body force, etc.) accumulate it to electric field
+   if self.vlasovExtForceFunc then
+      local vExtForce = self.vExtForce
+      self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
+
+      -- need to barrier over the shared communicator before accumulating force onto electric field
+      Mpi.Barrier(self.confGrid:commSet().sharedComm)
+
+      -- analogous to the current, the external force only gets accumulated onto the electric field
+      local vItr, eItr = vExtForce:get(1), totalEmField:get(1)
+      local vIdxr, eIdxr = vExtForce:genIndexer(), totalEmField:genIndexer()
+
+      for idx in totalEmField:localRangeIter() do
+         vExtForce:fill(vIdxr(idx), vItr)
+         totalEmField:fill(eIdxr(idx), eItr)
+         for i = 1, vExtForce:numComponents() do
+            eItr[i] = eItr[i]+vItr[i]
+         end
       end
-   else
-      totalEmField = emField
    end
 
    if self.evolveCollisionless then
@@ -181,18 +206,12 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-	 c:advance(tCurr, fIn, species, fRhsOut)
-	 -- the full 'species' list is needed for the cross-species
-	 -- collisions
+         c:advance(tCurr, fIn, species, fRhsOut)
+         -- the full 'species' list is needed for the cross-species
+         -- collisions
       end
    end
 
-   -- if self.sourceFunc and self.evolveSources then
-   --    -- if there is a source, add it to the RHS
-   --    local fSource = self.fSource
-   --    self.evalSource:advance(tCurr, {}, {fSource})
-   --    fRhsOut:accumulate(1.0, fSource)
-   -- end
    if self.fSource and self.evolveSources then
       -- add source it to the RHS
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
