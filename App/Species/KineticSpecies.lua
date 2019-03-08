@@ -261,9 +261,6 @@ function KineticSpecies:fullInit(appTbl)
    -- for GK only: flag for gyroaveraging
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
 
-   -- gravity table for running Vlasov simulations with constant gravity
-   self.constGravity = tbl.constGravity
-
    self.tCurr = 0.0
 end
 
@@ -512,6 +509,9 @@ function KineticSpecies:initDist()
    for _, pr in pairs(self.projections) do
       pr:fullInit(self)
       pr:run(0.0, self.distf[2])
+      -- this barrier is needed as when using MPI-SHM some
+      -- processes will get to accumulate before projection is finished
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       if pr.isInit then
 	 self.distf[1]:accumulate(1.0, self.distf[2])
 	 initCnt = initCnt + 1
@@ -521,6 +521,8 @@ function KineticSpecies:initDist()
 	    self.f0 = self:allocDistf()
 	 end
 	 self.f0:accumulate(1.0, self.distf[2])
+         --Barrier before sync() call 
+         Mpi.Barrier(self.grid:commSet().sharedComm)
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
@@ -587,9 +589,6 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
-
-   -- Barrier after accumulate since applyBc has different loop structure
-   Mpi.Barrier(self.grid:commSet().sharedComm)
  
    if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
       -- only applyBc on forwardEuler combine
@@ -638,11 +637,6 @@ function KineticSpecies:applyBc(tCurr, fIn)
       if self.fluctuationBCs then
         -- if fluctuation-only BCs, subtract off background before applying BCs
         fIn:accumulate(-1.0, self.f0)
-
-        -- possibly needed Barrier for fluctuation-only BCs with shared memory on
-        -- there is a barrier before applyBc is entered, but need a barrier before sync()
-        -- needs to be tested, but I think this is needed -- Jimmy Juno 02/28/19
-        Mpi.Barrier(self.grid:commSet().sharedComm)
       end
 
       -- apply non-periodic BCs (to only fluctuations if fluctuation BCs)
@@ -652,6 +646,9 @@ function KineticSpecies:applyBc(tCurr, fIn)
          end
       end
 
+      -- this barrier is needed as when using MPI-SHM some
+      -- processes will get to sync() method before RK step is finished
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       -- apply periodic BCs (to only fluctuations if fluctuation BCs)
       fIn:sync(syncPeriodicDirsTrue)
 
