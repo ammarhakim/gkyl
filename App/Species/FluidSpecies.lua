@@ -389,13 +389,13 @@ function FluidSpecies:createDiagnostics()
    }
 end
 
-function FluidSpecies:write(tm)
+function FluidSpecies:write(tm, force)
    if self.evolve then
       -- compute integrated diagnostics
       self.intMom2Calc:advance(tm, { self.moments[1] }, { self.integratedMoments })
       
       -- only write stuff if triggered
-      if self.diagIoTrigger(tm) then
+      if self.diagIoTrigger(tm) or force then
 	 self.momIo:write(
 	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
@@ -425,6 +425,9 @@ function FluidSpecies:readRestart()
    
    self:applyBc(tm, self.moments[1])
    self.moments[1]:sync() -- must get all ghost-cell data correct
+
+   -- iterate triggers
+   self.diagIoTrigger(tm)
 
    return tm
 end
