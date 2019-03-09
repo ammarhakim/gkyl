@@ -376,7 +376,7 @@ function MaxwellField:write(tm, force)
       end
       -- time computation of integrated moments
       self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
-      
+
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -409,6 +409,8 @@ function MaxwellField:readRestart()
    self.ioFrame = fr
    -- iterate triggers
    self.ioTrigger(tm)
+
+   return tm
 end
 
 function MaxwellField:rkStepperFields()
