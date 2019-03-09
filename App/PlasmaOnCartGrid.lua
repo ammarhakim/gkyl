@@ -14,7 +14,7 @@ local DataStruct = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
 local Field = require "App.Field"
 local Grid = require "Grid"
-local Lin = require "Lib.Linalg"
+local Lin            = require "Lib.Linalg"
 local LinearTrigger = require "Lib.LinearTrigger"
 local Logger = require "Lib.Logger"
 local Mpi = require "Comm.Mpi"
@@ -500,8 +500,8 @@ local function buildApplication(self, tbl)
 	 local vars = s:rkStepperFields()
 	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
 	 local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
-       dir, tCurr, dt, inp, out, tryInv[s])
-    tryInv_next[s] = myTryInv
+	    dir, tCurr, dt, inp, out, tryInv[s])
+	 tryInv_next[s] = myTryInv
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
@@ -541,7 +541,7 @@ local function buildApplication(self, tbl)
    -- function to advance solution using FV dimensionally split scheme
    function timeSteppers.fvDimSplit(tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields      
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
 
       -- copy in case we need to take this step again
       copy(3, 1)
@@ -559,25 +559,25 @@ local function buildApplication(self, tbl)
 	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
 	 status =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
-    if not status then
-       log(" ** Time step too large! Aborting this step!")
-       break
-    else
-       -- if an updated species is invalid, plan to use lax flux for THIS
-       -- species in the re-taken step
-       for nm, s in pairs(species) do
-          if myTryInv[s] then
-             isInv = false
-             tryInv[s] = true
-             log(string.format(
-               "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
-          end
-       end
-       -- break the loop if any species is invalid
-       if not isInv then
-          break
-       end
-    end
+	 if not status then
+	    log(" ** Time step too large! Aborting this step!")
+	    break
+	 else
+	    -- if an updated species is invalid, plan to use lax flux for THIS
+	    -- species in the re-taken step
+	    for nm, s in pairs(species) do
+	       if myTryInv[s] then
+		  isInv = false
+		  tryInv[s] = true
+		  log(string.format(
+			 "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
+	       end
+	    end
+	    -- break the loop if any species is invalid
+	    if not isInv then
+	       break
+	    end
+	 end
       end
       -- is all species is valid, do not use lax in the next step  
       if isInv then

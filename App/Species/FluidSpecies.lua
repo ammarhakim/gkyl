@@ -423,7 +423,7 @@ function FluidSpecies:readRestart()
    self.diagIoFrame = fr -- reset internal frame counter
    self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))   
    
-   self:applyBc(tm, 0.0, self.moments[1])
+   self:applyBc(tm, self.moments[1])
    self.moments[1]:sync() -- must get all ghost-cell data correct
 
    return tm
