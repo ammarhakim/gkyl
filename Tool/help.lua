@@ -7,7 +7,7 @@
 
 local argparse = require "Lib.argparse"
 
--- Usage help for top-level Gkyl executable
+-- Usage help string for top-level Gkyl executable
 local usageString = [[ 
 To run a Gkeyll simulation simply specify the name of script you want
 to run as the first argument:
