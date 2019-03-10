@@ -97,6 +97,13 @@ def build(bld):
         ["Unit/unit.lua", "Unit/init.lua"],
         cwd=Unit_dir, relative_trick=True)
 
+    # - Tool
+    Tool_dir = bld.path.find_dir('Tool')
+    bld.install_files(
+        "${PREFIX}/bin/Tool",
+        Tool_dir.ant_glob('**/*.lua'),
+        cwd=Tool_dir, relative_trick=True) 
+
     # - Lib
     Lib_dir = bld.path.find_dir('Lib')
     bld.install_files(

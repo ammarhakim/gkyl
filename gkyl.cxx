@@ -102,7 +102,7 @@ findExecPath() {
 
 // Create top-level variable definitions
 std::string
-createTopLevelDefs(int argc, char **argv) {
+createTopLevelDefs(int argc, char **argv, const std::string& inpFile) {
   // load compile-time constants into Lua compiler so they become
   // available to scripts
   std::ostringstream varDefs;
@@ -153,8 +153,7 @@ createTopLevelDefs(int argc, char **argv) {
   varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
           << std::endl;
 
-  std::string inpFile(argv[1]);
-  std::string snm(argv[1]);
+  std::string snm(inpFile);
   unsigned trunc = inpFile.find_last_of(".", snm.size());
   if (trunc > 0)
     snm.erase(trunc, snm.size());
@@ -227,8 +226,15 @@ main(int argc, char **argv) {
     return finish(0);
   }
 
-  // check if file exists  
   std::string inpFile(argv[1]);
+  // check if we should use a tool
+  auto tool = toolList.find(argv[1]);
+  if (toolList.end() != tool) {
+    std::string execPath = findExecPath(); // path of tool is wrt to executable location
+    inpFile =  execPath + "/Tool/" + tool->second.script;
+  }
+
+  // check if file exists  
   std::ifstream f(inpFile.c_str());
   if (!f.good()) {
     std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
@@ -251,7 +257,7 @@ main(int argc, char **argv) {
   luaopen_lfs(L); // open lua file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
   
-  std::string topDefs = createTopLevelDefs(argc, argv);
+  std::string topDefs = createTopLevelDefs(argc, argv, inpFile);
 
   // load variable definitions etc
   if (luaL_loadstring(L, topDefs.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
@@ -263,7 +269,7 @@ main(int argc, char **argv) {
   }
 
   // load and run input file
-  if (luaL_loadfile(L, argv[1]) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
+  if (luaL_loadfile(L, inpFile.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured
     const char* ret = lua_tostring(L, -1);
     std::cerr << "*** ERROR *** " << ret << std::endl;
