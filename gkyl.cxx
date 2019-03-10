@@ -16,8 +16,10 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <stdlib.h>
+#include <string>
 
 #if defined(__clang__)
 // nothing to include
@@ -57,6 +59,17 @@ class Logger {
     }
   private:
     int rank;
+};
+
+// Class to store information about various tools
+class GkToolInfo {
+  public:
+    GkToolInfo(const std::string& script, const std::string& description)
+      : script(script), description(description) {
+    }
+
+    // Name of script and short description
+    std::string script, description;
 };
 
 // Finish simulation
@@ -168,12 +181,15 @@ _adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm
 #endif
 
 void
-showUsage() {
+showUsage(const std::map<std::string, GkToolInfo>& tlist) {
   Logger logger;
   
-  logger.log("Usage: gkyl LUA-SCRIPT <cmd> ...");
-  logger.log(" List of <cmd> is optional");
-  logger.log("See particular App documentation for supported commands.\n");
+  std::cout << "Usage: gkyl <tool> ..." << std::endl;
+  std::cout << "Usage: gkyl LUA-SCRIPT <cmd> ..." << std::endl;
+  std::cout << std::endl;
+  std::cout << "Supported tools are" << std::endl;
+  for (auto tool : tlist)
+    std::cout << " " << tool.first << ": " << tool.second.description << std::endl;
 }
 
 int
@@ -193,8 +209,21 @@ main(int argc, char **argv) {
   
   Logger logger;
 
+  // list of tools
+  std::map<std::string, GkToolInfo> toolList;
+  // function to make inserting into list easier
+  auto insertInfo = [](std::map<std::string, GkToolInfo>& tl,
+    const std::string& nm, const std::string& script, const std::string& descr ) {
+    tl.insert(
+      std::pair<std::string, GkToolInfo>(nm, GkToolInfo(script, descr)));
+  };
+  // register various tools  
+  insertInfo(toolList, "help", "help.lua", "Gkeyll help system");
+  insertInfo(toolList, "examples", "examples.lua", "Example input files");
+  insertInfo(toolList, "runtests", "runregression.lua", "Run unit/regression tests");
+
   if (argc < 2) {
-    showUsage();
+    showUsage(toolList);
     return finish(0);
   }
 
@@ -203,7 +232,7 @@ main(int argc, char **argv) {
   std::ifstream f(inpFile.c_str());
   if (!f.good()) {
     std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
-    showUsage();
+    showUsage(toolList);
     return finish(1);
   }
   f.close();
