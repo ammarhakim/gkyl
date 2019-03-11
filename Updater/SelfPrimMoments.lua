@@ -10,6 +10,7 @@
 -- Gkyl libraries
 local UpdaterBase     = require "Updater.Base"
 local Lin             = require "Lib.Linalg"
+local LinearDecomp    = require "Lib.LinearDecomp"
 local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
@@ -119,6 +120,8 @@ end
 function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
+   local pDim, cDim, vDim = self._pDim, self._cDim, self._vDim
+
    local uOut           = outFld[1]
    local vtSqOut        = outFld[2]
 
@@ -164,11 +167,18 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local cEnergyB = Lin.Vec(self._numBasisC)
 
    -- Cell index, center and length left and right of a cell-boundary.
-   local idxM, idxP = Lin.IntVec(self._pDim), Lin.IntVec(self._pDim)
-   local xcM, xcP   = Lin.Vec(self._pDim), Lin.Vec(self._pDim)
-   local dxM, dxP   = Lin.Vec(self._pDim), Lin.Vec(self._pDim)
+   local idxM, idxP = Lin.IntVec(pDim), Lin.IntVec(pDim)
+   local xcM, xcP   = Lin.Vec(pDim), Lin.Vec(pDim)
+   local dxM, dxP   = Lin.Vec(pDim), Lin.Vec(pDim)
 
-   for confIdx in confRange:rowMajorIter() do
+   -- construct ranges for nested loops
+   -- NOTE: Shared memory is only being used over configuration space
+   -- Similar to DistFuncMomentCalc, this is to avoid race conditions
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = confRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId() -- local thread ID
+
+   for confIdx in confRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(confIdx)
 
       m0fld:fill(m0fldIndexer(confIdx), m0fldItr)
@@ -200,30 +210,30 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
       if self._polyOrder > 1 then
          m2fld:fill(m2fldIndexer(confIdx), m2fldItr)
 
-         for vDir = 1, self._vDim do
+         for vDir = 1, vDim do
             if (not self._isGkLBO) or (self._isGkLBO and firstDir) then
-               self._uCorrection    = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+               self._uCorrection    = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
             end
-            self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+            self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
 
             -- Lower/upper bounds in direction 'vDir': cell indices.
-            local dirLoIdx, dirUpIdx = phaseRange:lower(self._cDim+vDir), phaseRange:upper(self._cDim+vDir)
+            local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)
 
             if self._isFirst then
                self._perpRange[vDir] = phaseRange
-               for cd = 1, self._cDim do
+               for cd = 1, cDim do
                   self._perpRange[vDir] = self._perpRange[vDir]:shorten(cd) -- shorten configuration range.
                end
-               self._perpRange[vDir] = self._perpRange[vDir]:shorten(self._cDim+vDir) -- velocity range orthogonal to 'vDir'.
+               self._perpRange[vDir] = self._perpRange[vDir]:shorten(cDim+vDir) -- velocity range orthogonal to 'vDir'.
             end
             local perpRange = self._perpRange[vDir]
 
             for vPerpIdx in perpRange:rowMajorIter() do
                vPerpIdx:copyInto(idxP)
-               for d = 1, self._cDim do idxP[d] = confIdx[d] end
+               for d = 1, cDim do idxP[d] = confIdx[d] end
 
                for _, i in ipairs({dirLoIdx, dirUpIdx}) do     -- This loop is over edges.
-                  idxP[self._cDim+vDir] = i 
+                  idxP[cDim+vDir] = i 
 
                   self._phaseGrid:setIndex(idxP)
                   self._phaseGrid:getDx(dxP)
@@ -233,9 +243,9 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
                   local vBound = 0.0
                   if isLo then
-                     vBound = self._phaseGrid:cellLowerInDir(self._cDim + vDir)
+                     vBound = self._phaseGrid:cellLowerInDir(cDim + vDir)
                   else
-                     vBound = self._phaseGrid:cellUpperInDir(self._cDim + vDir)
+                     vBound = self._phaseGrid:cellUpperInDir(cDim + vDir)
                   end
 
                   if (self._isGkLBO) then
@@ -264,24 +274,24 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
          ffiC.gkylCartFieldAssignAll(0, self._uDim*self._numBasisC, 0.0, m1Star:data())
          ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, m2Star:data())
 
-         for vDir = 1, self._vDim do
+         for vDir = 1, vDim do
             if (not self._isGkLBO) or (self._isGkLBO and firstDir) then
-               self._StarM0Calc = PrimMomentsDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim)
-               self._uCorrection    = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+               self._StarM0Calc = PrimMomentsDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim)
+               self._uCorrection    = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
             end
-            self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
+            self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
 
             -- Lower/upper bounds in direction 'vDir': edge indices (including outer edges).
-            local dirLoIdx, dirUpIdx = phaseRange:lower(self._cDim+vDir), phaseRange:upper(self._cDim+vDir)+1
+            local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)+1
 
             if self._isFirst then
                -- Restricted velocity range.
                -- Velocity integral in m0Star does not include last cell.
                self._perpRange[vDir] = phaseRange
-               for cd = 1, self._cDim do
+               for cd = 1, cDim do
                   self._perpRange[vDir] = self._perpRange[vDir]:shorten(cd) -- shorten configuration range.
                end
-               self._perpRange[vDir] = self._perpRange[vDir]:shorten(self._cDim+vDir) -- velocity range orthogonal to 'vDir'.
+               self._perpRange[vDir] = self._perpRange[vDir]:shorten(cDim+vDir) -- velocity range orthogonal to 'vDir'.
             end
             local perpRange = self._perpRange[vDir]
 
@@ -289,11 +299,11 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
             -- inner loop is over 1D slice in 'vDir'.
             for vPerpIdx in perpRange:rowMajorIter() do
                vPerpIdx:copyInto(idxM); vPerpIdx:copyInto(idxP)
-               for d = 1, self._cDim do idxM[d] = confIdx[d] end
-               for d = 1, self._cDim do idxP[d] = confIdx[d] end
+               for d = 1, cDim do idxM[d] = confIdx[d] end
+               for d = 1, cDim do idxP[d] = confIdx[d] end
 
                for i = dirLoIdx, dirUpIdx do     -- This loop is over edges.
-                  idxM[self._cDim+vDir], idxP[self._cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
+                  idxM[cDim+vDir], idxP[cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
 
 	          self._phaseGrid:setIndex(idxM)
                   self._phaseGrid:getDx(dxM)
@@ -327,9 +337,9 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
                      local vBound = 0.0
                      -- Careful: for vBound below we assume idxP was set after idxM above.
                      if isLo then
-                        vBound = self._phaseGrid:cellLowerInDir(self._cDim + vDir)
+                        vBound = self._phaseGrid:cellLowerInDir(cDim + vDir)
                      else
-                        vBound = self._phaseGrid:cellUpperInDir(self._cDim + vDir)
+                        vBound = self._phaseGrid:cellUpperInDir(cDim + vDir)
                      end
                      if (self._isGkLBO) then
                         if (firstDir) then

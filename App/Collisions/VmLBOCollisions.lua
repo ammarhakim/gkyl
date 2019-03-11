@@ -376,6 +376,8 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       -- Compute increment from collisions and accumulate it into output.
       self.collisionSlvr:advance(
          tCurr, {fIn, self.velocity, self.vthSq, self.collFreq}, {self.collOut})
+      -- Barrier over shared communicator before accumulate
+      Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
       fRhsOut:accumulate(1.0, self.collOut)
    end
@@ -427,6 +429,9 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          -- Compute increment from cross-species collisions and accumulate it into output.
          self.collisionSlvr:advance(
             tCurr, {fIn, self.uCross, self.vthSqCross, self.collFreq}, {self.collOut} )
+         -- Barrier over shared communicator before accumulate
+         Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+
          fRhsOut:accumulate(1.0, self.collOut)
       end
    end
