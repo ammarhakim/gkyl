@@ -6,7 +6,6 @@
 --------------------------------------------------------------------------------
 
 local argparse = require "Lib.argparse"
-local markdown = require "Lib.markdown"
 
 -- Help doc for top-level Gkyl executable
 local usageString = [[
