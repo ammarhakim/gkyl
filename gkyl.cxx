@@ -159,6 +159,8 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile) {
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
+  std::cout << snm << std::endl;
+
   varDefs << "GKYL_COMMANDS = {}" << std::endl;
   // just append list of commands 
   for (unsigned i=2; i<argc; ++i)
