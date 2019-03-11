@@ -102,7 +102,8 @@ findExecPath() {
 
 // Create top-level variable definitions
 std::string
-createTopLevelDefs(int argc, char **argv, const std::string& inpFile) {
+createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
+  const std::map<std::string, GkToolInfo>& toolList) {
   // load compile-time constants into Lua compiler so they become
   // available to scripts
   std::ostringstream varDefs;
@@ -119,7 +120,8 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile) {
           << execPath << "/../lib/lib?.dylib;"
           << "\"" << std::endl;
 
-  // info about build  
+  // info about build
+  varDefs << "GKYL_EXEC_PATH = \"" << execPath << "\"" << std::endl;
   varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
   varDefs << "GKYL_HG_CHANGESET = \"" << GKYL_HG_CHANGESET << "\"" << std::endl;
   varDefs << "GKYL_BUILD_DATE = \"" << __DATE__ << " " << __TIME__ << "\"" << std::endl;
@@ -171,6 +173,13 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile) {
   // just append list of commands 
   for (unsigned i=2; i<argc; ++i)
     varDefs << "GKYL_COMMANDS[" << i-1 << "] = \"" << argv[i]  << "\"" << std::endl;
+
+  varDefs << "GKYL_TOOLS = {}" << std::endl;
+  // append list of tools
+  for (auto tool : toolList)
+    varDefs << "GKYL_TOOLS." << tool.first << " = { \""
+            << tool.second.script  << "\", \"" << tool.second.description
+            << "\" }" << std::endl;
 
   //std::cout << varDefs.str() << std::endl;
     
@@ -227,7 +236,7 @@ main(int argc, char **argv) {
   // register various tools  
   insertInfo(toolList, "help", "help.lua", "Gkeyll help system");
   insertInfo(toolList, "examples", "examples.lua", "Example input files");
-  insertInfo(toolList, "runtests", "runregression.lua", "Run unit/regression tests");
+  insertInfo(toolList, "runtests", "runtests.lua", "Run unit/regression tests");
 
   if (argc < 2) {
     showUsage(toolList);
@@ -265,7 +274,7 @@ main(int argc, char **argv) {
   luaopen_lfs(L); // open lua file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
   
-  std::string topDefs = createTopLevelDefs(argc, argv, inpFile);
+  std::string topDefs = createTopLevelDefs(argc, argv, inpFile, toolList);
 
   // load variable definitions etc
   if (luaL_loadstring(L, topDefs.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {

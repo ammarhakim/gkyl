@@ -94,8 +94,19 @@ def build(bld):
     Unit_dir = bld.path.find_dir('Unit')
     bld.install_files(
         "${PREFIX}/bin/Unit",
-        ["Unit/unit.lua", "Unit/init.lua"],
+        Unit_dir.ant_glob('**/*.lua'),
         cwd=Unit_dir, relative_trick=True)
+    bld.install_files(
+        "${PREFIX}/bin/Unit",
+        ['Unit/t2-two-stream_elc_10.bp'],
+        cwd=Unit_dir, relative_trick=True)    
+
+    # - Regression
+    Regression_dir = bld.path.find_dir('Regression')
+    bld.install_files(
+        "${PREFIX}/bin/Regression",
+        Regression_dir.ant_glob('**/*.lua'),
+        cwd=Regression_dir, relative_trick=True)
 
     # - Tool
     Tool_dir = bld.path.find_dir('Tool')
