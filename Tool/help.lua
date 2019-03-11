@@ -69,7 +69,8 @@ by querying the tool's own help system:
 local parser = argparse()
    :name("help")
    :description [[Run Gkeyll help system]]
-parser:flag("-u --usage", "Print usage information", true)
+parser:flag("-u --usage", "Print usage information")
+parser:flag("-t --tools", "Show list of tools")
 
 local args = parser:parse(GKYL_COMMANDS)
 
@@ -77,6 +78,13 @@ local args = parser:parse(GKYL_COMMANDS)
 
 -- do stuff
 if args.usage then
-   io.write ((usageString))
+   io.write (usageString)
+elseif args.tools then
+   io.write("Supported tools: \n")
+   for tn, tool in pairs(GKYL_TOOLS) do
+      io.write(string.format(" %s: %s\n", tn, tool[2]))
+   end
+else
+   io.write(parser:get_help() .. "\n")
 end
 
