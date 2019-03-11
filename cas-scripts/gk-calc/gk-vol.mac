@@ -64,7 +64,7 @@ kill(varsC, varsP, basisC, basisP),
     dfac_d : derivfac[d],
 
     /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    alpha_expd : calcAlpha(d, false),
+    alpha_expd : calcAlpha(d, true),
 
     /* project alpha on basis and write to array */
     printf(fh, "  double alpha~a[~a]; ~%", label[d], length(bP)),

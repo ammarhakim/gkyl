@@ -23,7 +23,7 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   double alphaL = 0.0; 
   double alphaR = 0.0; 
   double alphaz[4]; 
-  alphaz[0] = (1.224744871391589*Gradpar[0]*hamil[2]*dfac_v*dfac_z)/m_; 
+  alphaz[0] = (0.8660254037844386*BstarZ_by_Bmag[0]*hamil[2]*dfac_v*dfac_z)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = 0.25*alphaz[0]; 
@@ -45,7 +45,7 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
 #endif 
 
   double alphav[4]; 
-  alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_z*q_)/m_; 
+  alphav[0] = -(0.8660254037844386*BstarZ_by_Bmag[0]*hamil[1]*dfac_v*dfac_z)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = 0.25*alphav[0]; 
@@ -96,8 +96,8 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
   double alphaL = 0.0; 
   double alphaR = 0.0; 
   double alphaz[4]; 
-  alphaz[0] = (1.224744871391589*Gradpar[0]*hamil[2]*dfac_v*dfac_z)/m_; 
-  alphaz[1] = (1.224744871391589*Gradpar[1]*hamil[2]*dfac_v*dfac_z)/m_; 
+  alphaz[0] = (0.8660254037844386*BstarZ_by_Bmag[0]*hamil[2]*dfac_v*dfac_z)/m_; 
+  alphaz[1] = (0.8660254037844386*BstarZ_by_Bmag[1]*hamil[2]*dfac_v*dfac_z)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = -0.25*(1.732050807568877*alphaz[1]-1.0*alphaz[0]); 
@@ -119,8 +119,8 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
 #endif 
 
   double alphav[4]; 
-  alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_z*q_)/m_; 
-  alphav[1] = -(1.732050807568877*Gradpar[1]*Phi[1]*dfac_v*dfac_z*q_)/m_; 
+  alphav[0] = -(0.8660254037844386*BstarZ_by_Bmag[0]*hamil[1]*dfac_v*dfac_z)/m_; 
+  alphav[1] = -(0.8660254037844386*BstarZ_by_Bmag[1]*hamil[1]*dfac_v*dfac_z)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
   alphaL = 0.25*alphav[0]; 
