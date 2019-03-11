@@ -819,6 +819,14 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
+   -- inverse of jacobian of coordinate transformation
+   self.geo.jacobGeoInv = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
    -- functions for magnetic drifts 
    -- geoX = g_xz / ( J B sqrt(g_zz) )
    self.geo.geoX = DataStruct.Field {
@@ -1002,7 +1010,7 @@ function GkGeometry:createSolver()
          return -1.0/self.bmagFunc(t,xn)/self.salpha.r0
       end
       self.geoZFunc = function (t, xn)
-         return 1/self.bmagFunc(t,xn)
+         return 1.0/self.bmagFunc(t,xn)
       end
       self.gxx_Func = function (t, xn)
          return 1.0
@@ -1035,9 +1043,14 @@ function GkGeometry:createSolver()
             return self.salpha.shat*xn[3]
          end
          self.gyy_Func = function (t, xn)
-            return 1 + self.salpha.shat^2*xn[3]^2
+            return 1.0 + self.salpha.shat^2*xn[3]^2
          end
       end
+   end
+
+   -- inverse of jacobGeo, for removing jacobGeo factor from output quantities, e.g. density
+   self.jacobGeoInvFunc = function (t, xn)
+      return 1.0/self.jacobGeoFunc(t, xn)
    end
 
    -- projection updaters
@@ -1064,6 +1077,12 @@ function GkGeometry:createSolver()
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.jacobGeoFunc
+   }
+   self.setJacobGeoInv = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.jacobGeoInvFunc
    }
    self.setGeoX = Updater.ProjectOnBasis {
       onGrid = self.grid,
@@ -1136,6 +1155,7 @@ function GkGeometry:initField()
    self.setBmagInv:advance(0.0, {}, {self.geo.bmagInv})
    self.setGradpar:advance(0.0, {}, {self.geo.gradpar})
    self.setJacobGeo:advance(0.0, {}, {self.geo.jacobGeo})
+   self.setJacobGeoInv:advance(0.0, {}, {self.geo.jacobGeoInv})
    self.setGxx:advance(0.0, {}, {self.geo.gxx})
    self.setGxy:advance(0.0, {}, {self.geo.gxy})
    self.setGyy:advance(0.0, {}, {self.geo.gyy})
@@ -1153,6 +1173,7 @@ function GkGeometry:initField()
    self.geo.gxy:sync(false)
    self.geo.gyy:sync(false)
    self.geo.jacobGeo:sync(false)
+   self.geo.jacobGeoInv:sync(false)
    self.geo.geoX:sync(false)
    self.geo.geoY:sync(false)
    self.geo.geoZ:sync(false)

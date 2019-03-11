@@ -674,6 +674,19 @@ function KineticSpecies:applyBc(tCurr, fIn)
 end
 
 function KineticSpecies:createDiagnostics()
+   -- set up weak multiplication and division operators
+   self.weakMultiplication = Updater.CartFieldBinOp {
+      onGrid = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Multiply",
+      onGhosts = true,
+   }
+   self.weakDivision = Updater.CartFieldBinOp {
+      onGrid = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts = true,
+   }
 end
 
 function KineticSpecies:calcDiagnosticMoments()
@@ -682,6 +695,11 @@ function KineticSpecies:calcDiagnosticMoments()
    for i, mom in pairs(self.diagnosticMoments) do
       self.diagnosticMomentUpdaters[mom]:advance(
 	 0.0, {f}, {self.diagnosticMomentFields[mom]})
+      -- remove geometric jacobian factor
+      if self.jacobGeoInv then
+         self.weakMultiplication:advance(
+            0.0, {self.diagnosticMomentFields[mom], self.jacobGeoInv}, {self.diagnosticMomentFields[mom]})
+      end
    end
    if self.f0 and self.perturbedMoments then f:accumulate(1, self.f0) end
 end
