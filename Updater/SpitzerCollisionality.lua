@@ -12,6 +12,7 @@
 
 -- Gkyl libraries.
 local UpdaterBase   = require "Updater.Base"
+local LinearDecomp  = require "Lib.LinearDecomp"
 local Proto         = require "Lib.Proto"
 local SpitzerNuDecl = require "Updater.spitzerNuCalcData.SpitzerNuModDecl"
 local xsys          = require "xsys"
@@ -97,7 +98,12 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
    local confRange      = m0Fld:localRange()
    if self.onGhosts then confRange = m0Fld:localExtRange() end
 
-   for confIdx in confRange:rowMajorIter() do
+   -- construct ranges for nested loops
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId() -- local thread ID
+
+   for confIdx in confRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(confIdx)
 
       m0Fld:fill(m0FldIndexer(confIdx), m0FldItr)
