@@ -14,6 +14,7 @@
 -- Gkyl libraries.
 local UpdaterBase     = require "Updater.Base"
 local Lin             = require "Lib.Linalg"
+local LinearDecomp    = require "Lib.LinearDecomp"
 local Proto           = require "Lib.Proto"
 local PrimMomentsDecl = require "Updater.primMomentsCalcData.PrimMomentsModDecl"
 local xsys            = require "xsys"
@@ -126,6 +127,11 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local confRange = u1Fld:localRange()
    if self.onGhosts then confRange = u1Fld:localExtRange() end
 
+   -- construct ranges for nested loops
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId() -- local thread ID
+
    local u1FldIndexer    = u1Fld:genIndexer()
    local vtSq1FldIndexer = vtSq1Fld:genIndexer()
    local u2FldIndexer    = u2Fld:genIndexer()
@@ -153,7 +159,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       -- To obtain the cell average, multiply the zeroth coefficient by this factor.
       local massRatFac = 2.0*(1.0+mRat) 
 
-      for confIdx in confRange:rowMajorIter() do
+      for confIdx in confRangeDecomp:rowMajorIter(tId) do
          grid:setIndex(confIdx)
 
          n1Fld:fill(n1FldIndexer(confIdx), n1FldItr)
@@ -174,7 +180,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    else
 
       -- Configuration space loop, computing cross-primitive moments in each cell.
-      for confIdx in confRange:rowMajorIter() do
+      for confIdx in confRangeDecomp:rowMajorIter(tId) do
          grid:setIndex(confIdx)
 
          u1Fld:fill(u1FldIndexer(confIdx), u1FldItr)
