@@ -415,11 +415,15 @@ local parser = argparse()
    :name("runtests")
    :require_command(true)
    :description [[
-Run Gkyl regression tests. Regression tests are run and results are
-compared to "accepted" results. For meaningful testing you first need
-to configure the regression testing system and generate accepted
-results. This can be done using the "config" and "run create"
-commands. Obviously, this should be done only once.
+Run Gkyl unit and regression tests. Most end users should only run
+unit tests using the 'rununit' commands.  Developers should run
+regression tests.
+
+When regression tests are run the results are compared to "accepted"
+results. For meaningful testing you first need to configure the
+regression testing system and generate accepted results. This can be
+done using the "config" and "run create" commands. Obviously, this
+should be done only once.
 
 Once accepted results are created or obtained from elsewhere,
 regression testing can be  done using "run check" command.
