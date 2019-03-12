@@ -6,7 +6,6 @@
 --------------------------------------------------------------------------------
 
 local argparse = require "Lib.argparse"
-local lume = require "Lib.lume"
 
 -- table of help topics to doc file names
 local topics = {
@@ -29,7 +28,7 @@ local args = parser:parse(GKYL_COMMANDS)
 -- do stuff
 if args.list then
    io.write("Help topics: \n")
-   for tn, topic in pairs(topics) do
+   for tn, _ in pairs(topics) do
       io.write(string.format(" %s ", tn))
    end
    io.write("\n")
