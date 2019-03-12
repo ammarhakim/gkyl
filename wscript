@@ -113,7 +113,11 @@ def build(bld):
     bld.install_files(
         "${PREFIX}/bin/Tool",
         Tool_dir.ant_glob('**/*.lua'),
-        cwd=Tool_dir, relative_trick=True) 
+        cwd=Tool_dir, relative_trick=True)
+    bld.install_files(
+        "${PREFIX}/bin/Tool",
+        Tool_dir.ant_glob('**/*.md'),
+        cwd=Tool_dir, relative_trick=True)
 
     # - Lib
     Lib_dir = bld.path.find_dir('Lib')
