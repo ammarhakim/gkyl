@@ -10,9 +10,17 @@ To plot the out-of-plane electron momentum (or current) do:
 pgkyl -f 5m-gem_elc_5.bp sel -c3 pl --fix-aspect
 ```
 
+Note the option `-c3` selects the electron $\rho u_z$. Hence to
+compute the current from this one needs to multiply by $q/m$ for the
+electrons (in this case $-25$). This can be achieved using:
+
+```
+pgkyl -f 5m-gem_elc_5.bp sel -c3 ev "f0 -25 *" pl --fix-aspect
+```
+
 This will show the structure of the current sheet at the end of the
-simulation. The out-of-plane component of the magnetic field can be
-plotted using:
+simulation. The out-of-plane component of the magnetic field ($B_z$)
+can be plotted using:
 
 ```
 pgkyl -f 5m-gem_field_5.bp  sel -c5 pl --fix-aspect
