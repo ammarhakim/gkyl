@@ -26,9 +26,12 @@ local configVals = nil
 -- global list of tests to ignore
 local ignoreTests = {}
 
+-- config file name
+local configFile = os.getenv("HOME") .. "/gkyl-runregression.config.lua"
+
 -- loads configuration file
 local function loadConfigure(args)
-   local f = loadfile("runregression.config.lua")
+   local f = loadfile(configFile)
    if not f then
       log("Regression tests not configured! Run config command first\n")
       os.exit(1)
@@ -65,7 +68,7 @@ local function configure(prefix, mpiExec)
    end
 
    -- write information into config file
-   local fn = io.open("runregression.config.lua", "w")
+   local fn = io.open(configFile, "w")
    fn:write("return {\n")
    fn:write(string.format("mpiExec = \"%s\",\n", mpiExec))
    fn:write(string.format("results_dir = \"%s/gkyl-results\",\n", prefix))
