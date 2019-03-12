@@ -109,7 +109,7 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
   std::ostringstream varDefs;
 
   // find executable location and modify package paths
-  std::string execPath = findExecPath();
+  auto execPath = findExecPath();
   varDefs << "package.path = package.path .. \";"
           << execPath << "/?.lua;"
           << execPath << "/Lib/?.lua;" // we need add Lib to allow using external libraries
@@ -247,7 +247,7 @@ main(int argc, char **argv) {
   // check if we should use a tool
   auto tool = toolList.find(argv[1]);
   if (toolList.end() != tool) {
-    std::string execPath = findExecPath(); // path of tool is wrt to executable location
+    auto execPath = findExecPath(); // path of tool is wrt to executable location
     inpFile =  execPath + "/Tool/" + tool->second.script;
   }
 
@@ -262,7 +262,7 @@ main(int argc, char **argv) {
 
   // initialize LuaJIT and load libraries
   lua_State *L = luaL_newstate();
-  if (L==NULL) {
+  if (NULL == L) {
     // NOTE: we need to use cerr and not 'logger' when something goes
     // wrong in top-level executable. Otherwise error message won't
     // appear anywhere.
@@ -293,7 +293,7 @@ main(int argc, char **argv) {
     lua_close(L);
     return finish(1);
   }
-  lua_close(L);  
+  lua_close(L);
 
   return finish(0);
 }
