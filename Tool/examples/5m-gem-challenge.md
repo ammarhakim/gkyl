@@ -2,7 +2,10 @@ The GEM Reconnection Challenge (GEM Challenge) problem simulated with
 the five-moment plasma model. This problem shows that the five-moment
 model contains the physics of fast magnetic reconnection. To get the
 current sheet structure correct one should include the pressure
-tensor. See the 10-gem problem for the corresponding input file.
+tensor. In the five-moment moment model, as the grid is refined, the
+current sheet should go to a singular X-point structure and will not
+show the characteristic elongation seen in larger system size
+simulations.
 
 To plot the out-of-plane electron momentum (or current) do:
 
