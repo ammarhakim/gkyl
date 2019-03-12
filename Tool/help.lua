@@ -17,6 +17,7 @@ local topics = {
 local parser = argparse()
    :name("help")
    :description [[Run Gkeyll help system]]
+parser:flag("-v --version", "Gkeyll version information")
 parser:flag("-u --usage", "Print usage information")
 parser:flag("-l --list", "Show list of help topics")
 parser:option("-t --topic", "Show help for topic")
@@ -39,7 +40,9 @@ elseif topics[args.topic] then
 elseif args.usage then
    local f = io.open(GKYL_EXEC_PATH .. "/Tool/" .. topics['usage'], "r")
    local helpStr = f:read("*a")
-   io.write (helpStr .. "\n")   
+   io.write (helpStr .. "\n")
+elseif args.version then
+   io.write("Changeset: " .. GKYL_HG_CHANGESET .. "\nBuild date: " .. GKYL_BUILD_DATE .. "\n")
 elseif args.tools then
    io.write("Supported tools: \n")
    for tn, tool in pairs(GKYL_TOOLS) do
