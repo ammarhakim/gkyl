@@ -45,7 +45,9 @@ if args.list then
 elseif examples[args.example] then
    local f = io.open(GKYL_EXEC_PATH .. "/Tool/" .. examples[args.example][2], "r")
    local data = f:read("*a")
-   io.write (data .. "\n")
+   --io.write (data .. "\n")
+   local f = io.open(args.example .. ".lua", "w")
+   f:write (data .. "\n")
 elseif examples[args.describe] then
    local f = io.open(GKYL_EXEC_PATH .. "/Tool/" .. examples[args.describe][3], "r")
    local data = f:read("*a")
