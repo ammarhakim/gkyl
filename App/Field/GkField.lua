@@ -1130,19 +1130,19 @@ function GkGeometry:createSolver()
    end
 
    -- determine which variables bmag depends on by checking if setting a variable to nan results in nan
-   local ones = {}
+   local gridCenter = {}
    for dir = 1, self.ndim do
-      ones[dir] = 1
+      gridCenter[dir] = self.grid:mid(dir)
    end
    self.bmagVars = {}
    for dir = 1, self.ndim do
-      ones[dir] = 0/0 -- set this var to nan 
+      gridCenter[dir] = 0/0 -- set this var to nan 
       -- test if result is nan.. nan is the only value that doesn't equal itself
-      if self.bmagFunc(0, ones) ~= self.bmagFunc(0, ones) then 
+      if self.bmagFunc(0, gridCenter) ~= self.bmagFunc(0, gridCenter) then 
         -- if result is nan, bmag must depend on this var
         table.insert(self.bmagVars, dir) 
       end
-      ones[dir] = 1 -- reset so we can check other vars
+      gridCenter[dir] = self.grid:mid(dir) -- reset so we can check other vars
    end
    if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
 end
