@@ -24,11 +24,11 @@ B0 = Valf*math.sqrt(n0*ionMass)
 OmegaCi0 = ionCharge*B0/ionMass
 psi0 = pert*B0
 
-OmegaPe0 = math.sqrt(n0 * elcCharge^2 / (epsilon0 * elcMass))
-de0 = lightSpeed / OmegaPe0
-OmegaPi0 = math.sqrt(n0 * ionCharge^2 / (epsilon0 * ionMass))
-di0 = lightSpeed / OmegaPi0
-lambda = lambdaOverDi0 * di0
+OmegaPe0 = math.sqrt(n0*elcCharge^2/(epsilon0*elcMass))
+de0 = lightSpeed/OmegaPe0
+OmegaPi0 = math.sqrt(n0*ionCharge^2/(epsilon0*ionMass))
+di0 = lightSpeed/OmegaPi0
+lambda = lambdaOverDi0*di0
 
 -- domain size
 Lx = 25.6 * di0
@@ -110,9 +110,9 @@ momentApp = Moments.App {
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]
 
-	 local Bxb = B0 * math.tanh(y / lambda) 
-	 local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly) 
-	 local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
+	 local Bxb = B0*math.tanh(y/lambda) 
+	 local Bx = Bxb - psi0 *(math.pi/Ly)*math.cos(2*math.pi*x/Lx)*math.sin(math.pi*y/Ly) 
+	 local By = psi0*(2*math.pi/Lx)*math.sin(2*math.pi*x/Lx)*math.cos(math.pi*y/Ly)
 	 local Bz = 0.0
 
 	 return 0.0, 0.0, 0.0, Bx, By, Bz
