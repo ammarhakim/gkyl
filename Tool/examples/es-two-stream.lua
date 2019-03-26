@@ -40,7 +40,7 @@ vlasovApp = Plasma.App {
 	 local k = knumber
 	 local vt = elVTerm
 	 
-	 local fv = 1/math.sqrt(8*math.pi*vt^2)*(math.exp(-(v-vDrift )^2/(2*vt^2))+math.exp(-(v+vDrift)^2/(2*vt^2)))
+	 local fv = 1/math.sqrt(8*math.pi*vt^2)*(math.exp(-(v-vDrift)^2/(2*vt^2))+math.exp(-(v+vDrift)^2/(2*vt^2)))
 	 return (1+alpha*math.cos(k*x))*fv
       end,
       evolve = true, -- evolve species?
