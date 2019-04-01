@@ -995,7 +995,7 @@ function GkGeometry:createSolver()
       return math.sqrt(self.g_zzFunc(t,xn))/(self.bmagFunc(t,xn)*self.jacobGeoFunc(t,xn))
    end
 
-   -- use pseudo-local s-alpha geo
+   -- use local s-alpha geometry (overrides geometry funcs calculated from coordinate metric)
    if self.salpha then
       self.bmagInvFunc = function (t, xn)
          return 1.0/self.bmagFunc(t,xn)
