@@ -756,10 +756,6 @@ function GkGeometry:fullInit(appTbl)
    end
 
    self.ioFrame = 0 -- frame number for IO
-
-   -- scalar magnetic field strength (e.g. to calculate gyro-radii with)
-   -- calculate from max(bmag)? 
-   self.B0 = assert(B0 or tbl.B0, "Must specify B0 as global App variable or in GkGeometry as 'B0'")
    
    -- get function to initialize background magnetic field
    self.bmagFunc = tbl.bmag
