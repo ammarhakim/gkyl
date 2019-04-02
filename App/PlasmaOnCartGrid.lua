@@ -707,7 +707,7 @@ local function buildApplication(self, tbl)
 	 if status and isInv then
             if first then 
                log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
-               initDt = dtSuggested; first = false
+               initDt = math.min(maxDt, dtSuggested); first = false
             end
             -- track dt
             dtPtr:data()[0] = myDt
