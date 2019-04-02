@@ -65,6 +65,8 @@ function MaxwellField:fullInit(appTbl)
    self.mu0 = tbl.mu0
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
+   -- by default, do not write data if evolve is false
+   self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
 
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
@@ -366,7 +368,7 @@ function MaxwellField:initField()
 end
 
 function MaxwellField:write(tm, force)
-   if self.evolve then
+   if self.evolve or self.forceWrite then
       local tmStart = Time.clock()
       -- compute EM energy integrated over domain
       if self.calcIntEMQuantFlag == false then
@@ -658,7 +660,7 @@ function FuncMaxwellField:initField()
 end
 
 function FuncMaxwellField:write(tm, force)
-   if self.evolve then
+   if self.evolve or self.forceWrite then
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 

@@ -49,6 +49,8 @@ function FluidSpecies:fullInit(appTbl)
    self.mass = tbl.mass and tbl.mass or 1.0
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
+   -- by default, do not write species if it is not evolved
+   self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
                                             self.evolve)
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve)
@@ -390,7 +392,7 @@ function FluidSpecies:createDiagnostics()
 end
 
 function FluidSpecies:write(tm, force)
-   if self.evolve then
+   if self.evolve or self.forceWrite then
       -- compute integrated diagnostics
       self.intMom2Calc:advance(tm, { self.moments[1] }, { self.integratedMoments })
       
