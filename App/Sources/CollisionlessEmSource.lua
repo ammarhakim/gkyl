@@ -36,6 +36,7 @@ function CollisionlessEmSource:fullInit(appTbl)
    self.slvr = nil
 
    self.speciesList = tbl.species -- list of species to update
+   self.evolve = tbl.evolve
 
    -- (MAKE SURE NAME IS MATCHING ONE IN UPDATERS!!)
    self.timeStepper = tbl.timeStepper -- time-stepper to use
@@ -56,18 +57,22 @@ end
 function CollisionlessEmSource:createSolver(species, field)
    local numSpecies = #self.speciesList
    local mass, charge = {}, {}
-   local evolve = {}
+   local evolve = self.evolve
 
    local source_type
    for i, nm in ipairs(self.speciesList) do
       mass[i] = species[nm]:getMass()
       charge[i] = species[nm]:getCharge()
-      evolve[i] = species[nm]:getEvolve()
       if not source_type then
          source_type = species[nm].nMoments
       else
          -- FIXME Currently all species must have the same moments.
          assert(source_type == species[nm].nMoments)
+      end
+   end
+   if not evolve then
+      for i, nm in ipairs(self.speciesList) do
+         evolve[i] = species[nm]:getEvolve()
       end
    end
 
