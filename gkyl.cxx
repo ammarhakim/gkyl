@@ -155,19 +155,25 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
   varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
           << std::endl;
 
-  std::string myInpFile(inpFile);
+  // This is change from commit e2448fa. Rerolling it back because of unforseen consequences
+  // std::string myInpFile(inpFile);
 
-  // figure out output prefix. This is complicated by the fact the
-  // input file (or tool file) may be specified via full path
-  auto const slashPos = myInpFile.find_last_of('/');
-  if (std::string::npos != slashPos)
-    myInpFile = myInpFile.substr(slashPos+1);
+  // // figure out output prefix. This is complicated by the fact the
+  // // input file (or tool file) may be specified via full path
+  // auto const slashPos = myInpFile.find_last_of('/');
+  // if (std::string::npos != slashPos)
+  //   myInpFile = myInpFile.substr(slashPos+1);
 
-  std::string snm(myInpFile);
-  auto const trunc = myInpFile.find_last_of(".", snm.size());
-  if (std::string::npos != trunc)
+  // std::string snm(myInpFile);
+  // auto const trunc = myInpFile.find_last_of(".", snm.size());
+  // if (std::string::npos != trunc)
+  std::string snm(inpFile);
+  unsigned trunc = inpFile.find_last_of(".", snm.size());
+  if (trunc > 0)
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
+
+  std::cout << snm << std::endl;
 
   varDefs << "GKYL_COMMANDS = {}" << std::endl;
   // just append list of commands 
