@@ -34,6 +34,8 @@ lambda = lambdaOverDi0 * di0
 Lx = 25.6 * di0
 Ly = 12.8 * di0
 
+print("Valf/c", Valf/lightSpeed)
+
 momentApp = Moments.App {
    logToFile = true,
 
