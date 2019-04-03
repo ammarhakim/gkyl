@@ -71,6 +71,7 @@ function CollisionlessEmSource:createSolver(species, field)
       end
    end
    if not evolve then
+      evolve = {}
       for i, nm in ipairs(self.speciesList) do
          evolve[i] = species[nm]:getEvolve()
       end
