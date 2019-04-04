@@ -34,8 +34,6 @@ lambda = lambdaOverDi0 * di0
 Lx = 25.6 * di0
 Ly = 12.8 * di0
 
-print("Valf/c", Valf/lightSpeed)
-
 momentApp = Moments.App {
    logToFile = true,
 
@@ -43,13 +41,11 @@ momentApp = Moments.App {
    nFrame = 1,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
-   cells = {128, 64},
+   cells = {64, 32},
    timeStepper = "fvDimSplit",
-   cfl = 0.5,
 
    -- decomposition for configuration space
-   -- decompCuts = {1, 1}, -- cuts in each configuration direction
-   decompCuts = {2, 2}, -- cuts in each configuration direction
+   decompCuts = {1, 1}, -- cuts in each configuration direction
    useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
@@ -110,8 +106,6 @@ momentApp = Moments.App {
    },
 
    field = Moments.Field {
-      -- limiter = "no-limiter",
-      limiter = "zero",
       epsilon0 = 1.0, mu0 = 1.0,
       init = function (t, xn)
 	 local x, y = xn[1], xn[2]

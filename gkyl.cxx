@@ -169,7 +169,7 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
   // if (std::string::npos != trunc)
   std::string snm(inpFile);
   unsigned trunc = inpFile.find_last_of(".", snm.size());
-  if (trunc > 0)
+  if (std::string::npos != trunc)
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
