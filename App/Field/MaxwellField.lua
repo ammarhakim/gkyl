@@ -140,6 +140,11 @@ function MaxwellField:fullInit(appTbl)
 
    self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
 
+   -- numFlux used for selecting which type of numerical flux function to use
+   -- defaults to "upwind" in Eq object, supported options: "central," "upwind"
+   -- only used for DG Maxwell
+   self.numFlux = tbl.numFlux
+
    self._isFirst = true
 end
 
@@ -197,6 +202,7 @@ function MaxwellField:createSolver()
       elcErrorSpeedFactor = self.ce,
       mgnErrorSpeedFactor = self.cb,
       tau = self.tau,
+      numFlux = self.numFlux,
       basis = self.basis:numBasis() > 1 and self.basis or nil,
    }
 
