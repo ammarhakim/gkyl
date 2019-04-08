@@ -325,7 +325,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, em, emFunc, self.f0, dApardtProv}, {fRhsOut})
    else
       self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- set auxFields in case they are needed by BCs/collisions
    end
