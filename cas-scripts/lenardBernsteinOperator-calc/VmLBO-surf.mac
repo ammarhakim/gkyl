@@ -7,27 +7,34 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
 minVdim_Ser : 1$
-maxCdim_Ser : 2$
-maxVdim_Ser : 2$
+maxCdim_Ser : 1$
+maxVdim_Ser : 1$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
+maxPolyOrder_Max : 1$
 minCdim_Max : 1$
 minVdim_Max : 1$
-maxCdim_Max : 2$
-maxVdim_Max : 2$
+maxCdim_Max : 1$
+maxVdim_Max : 1$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 7$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 1$
+minVdim_Tensor : 1$    /* see begining of v loop below though. */
+maxVdim_Tensor : 1$
 
 /* ...... END OF USER INPUTS........ */
 
-bName        : ["Ser","Max"]$
-maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
-minCdim      : [minCdim_Ser, minCdim_Max]$
-minVdim      : [minVdim_Ser, minVdim_Max]$
-maxCdim      : [maxCdim_Ser, maxCdim_Max]$
-maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+minVdim      : [minVdim_Ser, minVdim_Max, minVdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
@@ -38,7 +45,7 @@ for bInd : 1 thru length(bName) do (
      fh : openw(fname),
      funcName : sconcat("VmLBOconstNuSurf", c, "x", v, "v", bName[bInd]),
      calcVmLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
-     close(fh)
+     close(fh),
      
      /* boundarySurf kernels compute surface contribution that we
         do not want to zero-out at the boundary of velocity domain. */

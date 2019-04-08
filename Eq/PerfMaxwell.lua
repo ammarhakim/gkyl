@@ -67,7 +67,19 @@ function PerfMaxwell:init(tbl)
    if self._basis then
       local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
       self._volTerm = MaxwellModDecl.selectVol(nm, ndim, p)
-      self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
+
+      -- numFlux used for selecting which type of numerical flux function to use
+      -- default is "upwind," supported options: "central," "upwind"
+      self._numFlux = tbl.numFlux and tbl.numFlux or "upwind"
+      print(self._numFlux)
+      if self._numFlux == "upwind" then
+         self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
+      elseif self._numFlux == "central" then
+         print("selecting central fluxes")
+         self._surfTerms = MaxwellModDecl.selectCentralSurf(nm, ndim, p)
+      else
+         assert(self._numFLux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
+      end
    end
 
    -- maximum characteristic speed
