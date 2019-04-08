@@ -277,9 +277,8 @@ kill(varsC, varsP, basisC, basisP),
      /* calculate phase space velocity alpha in direction of surfVar */
      /* we assume alpha.n is continuous across boundary, although H may not be */
      /* distinguish between alpha and alphaUp, where alphaUp is the one used to determine upwind direction */
-     alpha_expd : calcAlpha(surfDir, true),
      if surfDir = cdim then alpha_expd : -1/m_*diff(H_expd,vpar)*dfac_v*gradpar_expd 
-     elseif surfVar = cdim+1 then alpha_expd : 1/m_*(wm + mu/dfac_m)*dfac_z*diff(Bmag_expd,z)*dfac_v*diff(bP, vpar)*gradpar_expd,
+     elseif surfDir = cdim+1 then alpha_expd : 1/m_*(wm + mu/dfac_m)*dfac_z*diff(Bmag_expd,z)*gradpar_expd,
      alphaUp_expd : alpha_expd,
 
      /* generate surface basis */

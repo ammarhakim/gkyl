@@ -213,32 +213,7 @@ double alphaQuad;
   outl[7] += incr[7]; 
 
   // ensure cancellation of zeroth order terms for f0=F_M 
-  alpha[0] = -(0.4330127018922193*BstarZ_by_Bmag[0]*hamil[1]*dfac_z)/m_; 
-  incr[0] = -0.25*alpha[0]*(1.732050807568877*f0[2]-1.0*f0[0])*dfac_v; 
-  incr[1] = -0.25*alpha[0]*(1.732050807568877*f0[4]-1.0*f0[1])*dfac_v; 
-  incr[2] = 0.25*alpha[0]*(3.0*f0[2]-1.732050807568877*f0[0])*dfac_v; 
-  incr[3] = -0.25*alpha[0]*(1.732050807568877*f0[6]-1.0*f0[3])*dfac_v; 
-  incr[4] = 0.25*alpha[0]*(3.0*f0[4]-1.732050807568877*f0[1])*dfac_v; 
-  incr[5] = -0.25*alpha[0]*(1.732050807568877*f0[7]-1.0*f0[5])*dfac_v; 
-  incr[6] = 0.25*alpha[0]*(3.0*f0[6]-1.732050807568877*f0[3])*dfac_v; 
-  incr[7] = 0.25*alpha[0]*(3.0*f0[7]-1.732050807568877*f0[5])*dfac_v; 
-  outr[0] += incr[0]; 
-  outr[1] += incr[1]; 
-  outr[2] += incr[2]; 
-  outr[3] += incr[3]; 
-  outr[4] += incr[4]; 
-  outr[5] += incr[5]; 
-  outr[6] += incr[6]; 
-  outr[7] += incr[7]; 
-
-  outl[0] += -1.0*incr[0]; 
-  outl[1] += -1.0*incr[1]; 
-  outl[2] += incr[2]; 
-  outl[3] += -1.0*incr[3]; 
-  outl[4] += incr[4]; 
-  outl[5] += -1.0*incr[5]; 
-  outl[6] += incr[6]; 
-  outl[7] += incr[7]; 
+  // alpha == 0, so nothing to do 
 return std::abs(alpha0); 
 } 
 double GyrokineticSurf1x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
@@ -462,10 +437,10 @@ double alphaQuad;
   outl[7] += incr[7]; 
 
   // ensure cancellation of zeroth order terms for f0=F_M 
-  alpha[0] = -(0.4330127018922193*BstarZ_by_Bmag[0]*hamil[1]*dfac_z)/m_; 
-  alpha[1] = -(0.4330127018922193*BstarZ_by_Bmag[1]*hamil[1]*dfac_z)/m_; 
-  alpha[2] = -(0.4330127018922193*BstarZ_by_Bmag[0]*hamil[5]*dfac_z)/m_; 
-  alpha[3] = -(0.4330127018922193*BstarZ_by_Bmag[1]*hamil[5]*dfac_z)/m_; 
+  alpha[0] = (1.732050807568877*Gradpar[0]*Bmag[1]*dfac_z*wm)/m_; 
+  alpha[1] = (1.732050807568877*Bmag[1]*Gradpar[1]*dfac_z*wm)/m_; 
+  alpha[2] = (Gradpar[0]*Bmag[1]*dfac_z)/(dfac_m*m_); 
+  alpha[3] = (Bmag[1]*Gradpar[1]*dfac_z)/(dfac_m*m_); 
   incr[0] = -0.25*(1.732050807568877*(alpha[3]*f0[7]+alpha[2]*f0[6])-1.0*alpha[3]*f0[5]+1.732050807568877*alpha[1]*f0[4]-1.0*alpha[2]*f0[3]+1.732050807568877*alpha[0]*f0[2]-1.0*(alpha[1]*f0[1]+alpha[0]*f0[0]))*dfac_v; 
   incr[1] = -0.25*(1.732050807568877*(alpha[2]*f0[7]+alpha[3]*f0[6])-1.0*alpha[2]*f0[5]+1.732050807568877*alpha[0]*f0[4]-1.0*alpha[3]*f0[3]+1.732050807568877*alpha[1]*f0[2]-1.0*(alpha[0]*f0[1]+f0[0]*alpha[1]))*dfac_v; 
   incr[2] = 0.25*(3.0*(alpha[3]*f0[7]+alpha[2]*f0[6])-1.732050807568877*alpha[3]*f0[5]+3.0*alpha[1]*f0[4]-1.732050807568877*alpha[2]*f0[3]+3.0*alpha[0]*f0[2]-1.732050807568877*(alpha[1]*f0[1]+alpha[0]*f0[0]))*dfac_v; 
