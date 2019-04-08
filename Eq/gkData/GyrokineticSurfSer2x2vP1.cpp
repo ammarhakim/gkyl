@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -146,9 +146,9 @@ double alphaQuad;
   outl[13] += incr[13]; 
   outl[14] += -1.0*incr[14]; 
   outl[15] += incr[15]; 
-  return std::abs(alpha0); 
+return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -295,9 +295,61 @@ double alphaQuad;
   outl[13] += -1.0*incr[13]; 
   outl[14] += incr[14]; 
   outl[15] += incr[15]; 
-  return std::abs(alpha0); 
+
+  // ensure cancellation of zeroth order terms for f0=F_M 
+  alpha[0] = -(0.6123724356957944*Gradpar[0]*hamil[3]*dfac_v)/m_; 
+  incr[0] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[2]+f0[0])*dfac_y; 
+  incr[1] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[5]+f0[1])*dfac_y; 
+  incr[2] = -0.1767766952966368*alpha[0]*(3.0*f0[2]+1.732050807568877*f0[0])*dfac_y; 
+  incr[3] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[7]+f0[3])*dfac_y; 
+  incr[4] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[9]+f0[4])*dfac_y; 
+  incr[5] = -0.1767766952966368*alpha[0]*(3.0*f0[5]+1.732050807568877*f0[1])*dfac_y; 
+  incr[6] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[11]+f0[6])*dfac_y; 
+  incr[7] = -0.1767766952966368*alpha[0]*(3.0*f0[7]+1.732050807568877*f0[3])*dfac_y; 
+  incr[8] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[12]+f0[8])*dfac_y; 
+  incr[9] = -0.1767766952966368*alpha[0]*(3.0*f0[9]+1.732050807568877*f0[4])*dfac_y; 
+  incr[10] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[14]+f0[10])*dfac_y; 
+  incr[11] = -0.1767766952966368*alpha[0]*(3.0*f0[11]+1.732050807568877*f0[6])*dfac_y; 
+  incr[12] = -0.1767766952966368*alpha[0]*(3.0*f0[12]+1.732050807568877*f0[8])*dfac_y; 
+  incr[13] = 0.1767766952966368*alpha[0]*(1.732050807568877*f0[15]+f0[13])*dfac_y; 
+  incr[14] = -0.1767766952966368*alpha[0]*(3.0*f0[14]+1.732050807568877*f0[10])*dfac_y; 
+  incr[15] = -0.1767766952966368*alpha[0]*(3.0*f0[15]+1.732050807568877*f0[13])*dfac_y; 
+  outr[0] += incr[0]; 
+  outr[1] += incr[1]; 
+  outr[2] += incr[2]; 
+  outr[3] += incr[3]; 
+  outr[4] += incr[4]; 
+  outr[5] += incr[5]; 
+  outr[6] += incr[6]; 
+  outr[7] += incr[7]; 
+  outr[8] += incr[8]; 
+  outr[9] += incr[9]; 
+  outr[10] += incr[10]; 
+  outr[11] += incr[11]; 
+  outr[12] += incr[12]; 
+  outr[13] += incr[13]; 
+  outr[14] += incr[14]; 
+  outr[15] += incr[15]; 
+
+  outl[0] += -1.0*incr[0]; 
+  outl[1] += -1.0*incr[1]; 
+  outl[2] += incr[2]; 
+  outl[3] += -1.0*incr[3]; 
+  outl[4] += -1.0*incr[4]; 
+  outl[5] += incr[5]; 
+  outl[6] += -1.0*incr[6]; 
+  outl[7] += incr[7]; 
+  outl[8] += -1.0*incr[8]; 
+  outl[9] += incr[9]; 
+  outl[10] += -1.0*incr[10]; 
+  outl[11] += incr[11]; 
+  outl[12] += incr[12]; 
+  outl[13] += -1.0*incr[13]; 
+  outl[14] += incr[14]; 
+  outl[15] += incr[15]; 
+return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -329,9 +381,12 @@ double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
 
   double alpha[8]; 
   // alpha == 0, so nothing to do 
-  return std::abs(alpha0); 
+
+  // ensure cancellation of zeroth order terms for f0=F_M 
+  // alpha == 0, so nothing to do 
+return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_X_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -483,9 +538,9 @@ double alphaQuad;
   outl[13] += incr[13]; 
   outl[14] += -1.0*incr[14]; 
   outl[15] += incr[15]; 
-  return std::abs(alpha0); 
+return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Y_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -642,9 +697,62 @@ double alphaQuad;
   outl[13] += -1.0*incr[13]; 
   outl[14] += incr[14]; 
   outl[15] += incr[15]; 
-  return std::abs(alpha0); 
+
+  // ensure cancellation of zeroth order terms for f0=F_M 
+  alpha[0] = -(0.6123724356957944*Gradpar[0]*hamil[3]*dfac_v)/m_; 
+  alpha[1] = -(0.6123724356957944*Gradpar[1]*hamil[3]*dfac_v)/m_; 
+  incr[0] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[5]+alpha[0]*f0[2])+alpha[1]*f0[1]+alpha[0]*f0[0])*dfac_y; 
+  incr[1] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[5]+alpha[1]*f0[2])+alpha[0]*f0[1]+f0[0]*alpha[1])*dfac_y; 
+  incr[2] = -0.1767766952966368*(3.0*(alpha[1]*f0[5]+alpha[0]*f0[2])+1.732050807568877*(alpha[1]*f0[1]+alpha[0]*f0[0]))*dfac_y; 
+  incr[3] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[11]+alpha[0]*f0[7])+alpha[1]*f0[6]+alpha[0]*f0[3])*dfac_y; 
+  incr[4] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[12]+alpha[0]*f0[9])+alpha[1]*f0[8]+alpha[0]*f0[4])*dfac_y; 
+  incr[5] = -0.1767766952966368*(3.0*(alpha[0]*f0[5]+alpha[1]*f0[2])+1.732050807568877*(alpha[0]*f0[1]+f0[0]*alpha[1]))*dfac_y; 
+  incr[6] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[11]+alpha[1]*f0[7])+alpha[0]*f0[6]+alpha[1]*f0[3])*dfac_y; 
+  incr[7] = -0.1767766952966368*(3.0*(alpha[1]*f0[11]+alpha[0]*f0[7])+1.732050807568877*(alpha[1]*f0[6]+alpha[0]*f0[3]))*dfac_y; 
+  incr[8] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[12]+alpha[1]*f0[9])+alpha[0]*f0[8]+alpha[1]*f0[4])*dfac_y; 
+  incr[9] = -0.1767766952966368*(3.0*(alpha[1]*f0[12]+alpha[0]*f0[9])+1.732050807568877*(alpha[1]*f0[8]+alpha[0]*f0[4]))*dfac_y; 
+  incr[10] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[15]+alpha[0]*f0[14])+alpha[1]*f0[13]+alpha[0]*f0[10])*dfac_y; 
+  incr[11] = -0.1767766952966368*(3.0*(alpha[0]*f0[11]+alpha[1]*f0[7])+1.732050807568877*(alpha[0]*f0[6]+alpha[1]*f0[3]))*dfac_y; 
+  incr[12] = -0.1767766952966368*(3.0*(alpha[0]*f0[12]+alpha[1]*f0[9])+1.732050807568877*(alpha[0]*f0[8]+alpha[1]*f0[4]))*dfac_y; 
+  incr[13] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[15]+alpha[1]*f0[14])+alpha[0]*f0[13]+alpha[1]*f0[10])*dfac_y; 
+  incr[14] = -0.1767766952966368*(3.0*(alpha[1]*f0[15]+alpha[0]*f0[14])+1.732050807568877*(alpha[1]*f0[13]+alpha[0]*f0[10]))*dfac_y; 
+  incr[15] = -0.1767766952966368*(3.0*(alpha[0]*f0[15]+alpha[1]*f0[14])+1.732050807568877*(alpha[0]*f0[13]+alpha[1]*f0[10]))*dfac_y; 
+  outr[0] += incr[0]; 
+  outr[1] += incr[1]; 
+  outr[2] += incr[2]; 
+  outr[3] += incr[3]; 
+  outr[4] += incr[4]; 
+  outr[5] += incr[5]; 
+  outr[6] += incr[6]; 
+  outr[7] += incr[7]; 
+  outr[8] += incr[8]; 
+  outr[9] += incr[9]; 
+  outr[10] += incr[10]; 
+  outr[11] += incr[11]; 
+  outr[12] += incr[12]; 
+  outr[13] += incr[13]; 
+  outr[14] += incr[14]; 
+  outr[15] += incr[15]; 
+
+  outl[0] += -1.0*incr[0]; 
+  outl[1] += -1.0*incr[1]; 
+  outl[2] += incr[2]; 
+  outl[3] += -1.0*incr[3]; 
+  outl[4] += -1.0*incr[4]; 
+  outl[5] += incr[5]; 
+  outl[6] += -1.0*incr[6]; 
+  outl[7] += incr[7]; 
+  outl[8] += -1.0*incr[8]; 
+  outl[9] += incr[9]; 
+  outl[10] += -1.0*incr[10]; 
+  outl[11] += incr[11]; 
+  outl[12] += incr[12]; 
+  outl[13] += -1.0*incr[13]; 
+  outl[14] += incr[14]; 
+  outl[15] += incr[15]; 
+return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x2vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -797,5 +905,58 @@ double alphaQuad;
   outl[13] += incr[13]; 
   outl[14] += incr[14]; 
   outl[15] += incr[15]; 
-  return std::abs(alpha0); 
+
+  // ensure cancellation of zeroth order terms for f0=F_M 
+  alpha[0] = (0.1767766952966368*(hamil[5]*(3.0*BstarY_by_Bmag[6]-1.732050807568877*BstarY_by_Bmag[1])+hamil[2]*(3.0*BstarY_by_Bmag[3]-1.732050807568877*BstarY_by_Bmag[0]))*dfac_y)/m_; 
+  alpha[1] = (0.1767766952966368*(3.0*hamil[2]*BstarY_by_Bmag[6]+(3.0*BstarY_by_Bmag[3]-1.732050807568877*BstarY_by_Bmag[0])*hamil[5]-1.732050807568877*BstarY_by_Bmag[1]*hamil[2])*dfac_y)/m_; 
+  incr[0] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[6]+alpha[0]*f0[3])+alpha[1]*f0[1]+alpha[0]*f0[0])*dfac_v; 
+  incr[1] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[6]+alpha[1]*f0[3])+alpha[0]*f0[1]+f0[0]*alpha[1])*dfac_v; 
+  incr[2] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[11]+alpha[0]*f0[7])+alpha[1]*f0[5]+alpha[0]*f0[2])*dfac_v; 
+  incr[3] = -0.1767766952966368*(3.0*(alpha[1]*f0[6]+alpha[0]*f0[3])+1.732050807568877*(alpha[1]*f0[1]+alpha[0]*f0[0]))*dfac_v; 
+  incr[4] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[13]+alpha[0]*f0[10])+alpha[1]*f0[8]+alpha[0]*f0[4])*dfac_v; 
+  incr[5] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[11]+alpha[1]*f0[7])+alpha[0]*f0[5]+alpha[1]*f0[2])*dfac_v; 
+  incr[6] = -0.1767766952966368*(3.0*(alpha[0]*f0[6]+alpha[1]*f0[3])+1.732050807568877*(alpha[0]*f0[1]+f0[0]*alpha[1]))*dfac_v; 
+  incr[7] = -0.1767766952966368*(3.0*(alpha[1]*f0[11]+alpha[0]*f0[7])+1.732050807568877*(alpha[1]*f0[5]+alpha[0]*f0[2]))*dfac_v; 
+  incr[8] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[13]+alpha[1]*f0[10])+alpha[0]*f0[8]+alpha[1]*f0[4])*dfac_v; 
+  incr[9] = 0.1767766952966368*(1.732050807568877*(alpha[1]*f0[15]+alpha[0]*f0[14])+alpha[1]*f0[12]+alpha[0]*f0[9])*dfac_v; 
+  incr[10] = -0.1767766952966368*(3.0*(alpha[1]*f0[13]+alpha[0]*f0[10])+1.732050807568877*(alpha[1]*f0[8]+alpha[0]*f0[4]))*dfac_v; 
+  incr[11] = -0.1767766952966368*(3.0*(alpha[0]*f0[11]+alpha[1]*f0[7])+1.732050807568877*(alpha[0]*f0[5]+alpha[1]*f0[2]))*dfac_v; 
+  incr[12] = 0.1767766952966368*(1.732050807568877*(alpha[0]*f0[15]+alpha[1]*f0[14])+alpha[0]*f0[12]+alpha[1]*f0[9])*dfac_v; 
+  incr[13] = -0.1767766952966368*(3.0*(alpha[0]*f0[13]+alpha[1]*f0[10])+1.732050807568877*(alpha[0]*f0[8]+alpha[1]*f0[4]))*dfac_v; 
+  incr[14] = -0.1767766952966368*(3.0*(alpha[1]*f0[15]+alpha[0]*f0[14])+1.732050807568877*(alpha[1]*f0[12]+alpha[0]*f0[9]))*dfac_v; 
+  incr[15] = -0.1767766952966368*(3.0*(alpha[0]*f0[15]+alpha[1]*f0[14])+1.732050807568877*(alpha[0]*f0[12]+alpha[1]*f0[9]))*dfac_v; 
+  outr[0] += incr[0]; 
+  outr[1] += incr[1]; 
+  outr[2] += incr[2]; 
+  outr[3] += incr[3]; 
+  outr[4] += incr[4]; 
+  outr[5] += incr[5]; 
+  outr[6] += incr[6]; 
+  outr[7] += incr[7]; 
+  outr[8] += incr[8]; 
+  outr[9] += incr[9]; 
+  outr[10] += incr[10]; 
+  outr[11] += incr[11]; 
+  outr[12] += incr[12]; 
+  outr[13] += incr[13]; 
+  outr[14] += incr[14]; 
+  outr[15] += incr[15]; 
+
+  outl[0] += -1.0*incr[0]; 
+  outl[1] += -1.0*incr[1]; 
+  outl[2] += -1.0*incr[2]; 
+  outl[3] += incr[3]; 
+  outl[4] += -1.0*incr[4]; 
+  outl[5] += -1.0*incr[5]; 
+  outl[6] += incr[6]; 
+  outl[7] += incr[7]; 
+  outl[8] += -1.0*incr[8]; 
+  outl[9] += -1.0*incr[9]; 
+  outl[10] += incr[10]; 
+  outl[11] += incr[11]; 
+  outl[12] += -1.0*incr[12]; 
+  outl[13] += incr[13]; 
+  outl[14] += incr[14]; 
+  outl[15] += incr[15]; 
+return std::abs(alpha0); 
 } 

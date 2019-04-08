@@ -100,11 +100,13 @@ function Gyrokinetic:setAuxFields(auxFields)
       end
    end
 
+   self.f0 = auxFields[3]
+
    if self._isElectromagnetic then
       -- get electromagnetic terms
       self.apar = potentials.apar
       self.dApardt = potentials.dApardt
-      self.dApardtProv = auxFields[3]
+      self.dApardtProv = auxFields[4]
    end
 
    -- get magnetic geometry fields
@@ -122,6 +124,8 @@ function Gyrokinetic:setAuxFields(auxFields)
       -- potentials
       self.phiPtr = self.phi:get(1)
       self.phiIdxr = self.phi:genIndexer()
+      self.f0Ptr = self.f0:get(1)
+      self.f0Idxr = self.f0:genIndexer()
       if self._isElectromagnetic then
          self.aparPtr = self.apar:get(1)
          self.dApardtPtr = self.dApardt:get(1)
@@ -176,13 +180,14 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    self.geoX:fill(self.geoXIdxr(idx), self.geoXPtr)
    self.geoY:fill(self.geoYIdxr(idx), self.geoYPtr)
    self.geoZ:fill(self.geoZIdxr(idx), self.geoZPtr)
+   self.f0:fill(self.f0Idxr(idx), self.f0Ptr)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
      self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
      res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    else 
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.f0Ptr:data(), self.phiPtr:data(), f:data(), out:data())
    end
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
@@ -204,6 +209,7 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    self.geoX:fill(self.geoXIdxr(idxr), self.geoXPtr)
    self.geoY:fill(self.geoYIdxr(idxr), self.geoYPtr)
    self.geoZ:fill(self.geoZIdxr(idxr), self.geoZPtr)
+   self.f0:fill(self.f0Idxr(idxr), self.f0Ptr)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
@@ -212,7 +218,7 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
      res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
-     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.f0Ptr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
