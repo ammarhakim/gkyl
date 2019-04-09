@@ -125,6 +125,8 @@ function Gyrokinetic:setAuxFields(auxFields)
       self.phiPtr = self.phi:get(1)
       self.phiIdxr = self.phi:genIndexer()
       self.f0Ptr = self.f0:get(1)
+      self.f0lPtr = self.f0:get(1)
+      self.f0rPtr = self.f0:get(1)
       self.f0Idxr = self.f0:genIndexer()
       if self._isElectromagnetic then
          self.aparPtr = self.apar:get(1)
@@ -209,7 +211,8 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    self.geoX:fill(self.geoXIdxr(idxr), self.geoXPtr)
    self.geoY:fill(self.geoYIdxr(idxr), self.geoYPtr)
    self.geoZ:fill(self.geoZIdxr(idxr), self.geoZPtr)
-   self.f0:fill(self.f0Idxr(idxr), self.f0Ptr)
+   self.f0:fill(self.f0Idxr(idxr), self.f0rPtr)
+   self.f0:fill(self.f0Idxr(idxl), self.f0lPtr)
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
@@ -218,7 +221,7 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
      res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
-     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.f0Ptr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.geoXPtr:data(), self.geoYPtr:data(), self.geoZPtr:data(), self.f0lPtr:data(), self.f0rPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res

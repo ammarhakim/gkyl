@@ -50,6 +50,7 @@ kill(varsC, varsP, basisC, basisP),
   /* expand distribution function on basis */
   f_expd:doExpand1(f,bP),
   f0_expd:doExpand1(f0,bP),
+  if vdim=2 then f_expd:f_expd-f0_expd,
 
   /* calculate cflFeq = sum_d alpha_d / dxv[d] */
   printf(fh, "  double cflFreq = 0.0; ~%"), 
@@ -137,12 +138,13 @@ kill(varsC, varsP, basisC, basisP),
   flush_output(fh),
 
   /* ensure cancellation of zeroth order terms */
+  /*
   if vdim=2 then (
   alphaSum0_expd : 1/m_*diff(H_expd,vpar)*dfac_v*dfac_z*diff(bP, z)*gradpar_expd - 1/m_*(wm + mu/dfac_m)*dfac_z*diff(Bmag_expd,z)*dfac_v*diff(bP, vpar)*gradpar_expd,
   gkVolTerm0_k : fullratsimp(innerProd(varsP, -1, f0_expd, alphaSum0_expd)),
   writeCIncrExprsNoExpand(gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm0_k,derivfac))))),
   flush_output(fh)
-  ),
+  ),*/
 
   printf(fh, "  return cflFreq; ~%"),
   printf(fh, "} ~%"),
@@ -191,7 +193,7 @@ load(modNm),
 pmax:1$
 em:false$
 
-for c : 1 thru 3 do (
+for c : 1 thru 1 do (
 for v: 1 thru 2 do (
 if c=1 or (c>1 and v=2) then (
 for p : 1 thru pmax do (
