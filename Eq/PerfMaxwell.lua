@@ -71,7 +71,6 @@ function PerfMaxwell:init(tbl)
       -- numFlux used for selecting which type of numerical flux function to use
       -- default is "upwind," supported options: "central," "upwind"
       self._numFlux = tbl.numFlux and tbl.numFlux or "upwind"
-      print(self._numFlux)
       if self._numFlux == "upwind" then
          self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
       elseif self._numFlux == "central" then
