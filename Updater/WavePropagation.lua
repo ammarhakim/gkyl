@@ -241,7 +241,7 @@ function WavePropagation:limitWaves(lower, upper, wavesSlice, speedsSlice, onSsB
 end
 
 local isOutside = function (inOutPtr)
-   return inOutPtr[0] < 0.
+   return inOutPtr[1] < 0.
 end
 
 -- advance method
