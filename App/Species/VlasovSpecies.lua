@@ -13,6 +13,7 @@ local VlasovEq = require "Eq.Vlasov"
 local Updater = require "Updater"
 local DataStruct = require "DataStruct"
 local Time = require "Lib.Time"
+local ffi = require "ffi"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
@@ -211,8 +212,26 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          -- collisions
       end
    end
+   if self.sourceSteadyState and self.evolveSources then
+      local localEdgeFlux = ffi.new("double[3]")
+      localEdgeFlux[0] = 0.0
+      localEdgeFlux[1] = 0.0
+      localEdgeFlux[2] = 0.0
+      local flux = self:fluidMoments()[2]
+      local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
+      for idx in flux:localRangeIter() do
+	 if idx[1] == self.grid:upper(1) then
+	    flux:fill(fluxIndexer(idx), fluxItr)
+	    localEdgeFlux[0] = fluxItr[1] / math.sqrt(2)
+	 end
+      end
+      local globalEdgeFlux = ffi.new("double[3]")
+      Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1,
+		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
 
-   if self.fSource and self.evolveSources then
+      local densFactor = globalEdgeFlux[0]/100.0--*self.dtGlobal[0] -- Hard-coded L !!
+      fRhsOut:accumulate(densFactor, self.fSource)
+   elseif self.fSource and self.evolveSources then
       -- add source it to the RHS
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
