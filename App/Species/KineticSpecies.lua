@@ -142,6 +142,7 @@ function KineticSpecies:fullInit(appTbl)
 	 self.projections[nm] = val
       end
    end
+   self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false) 
    if tbl.sourceTimeDependence then 
       self.sourceTimeDependence = tbl.sourceTimeDependence 
    else 

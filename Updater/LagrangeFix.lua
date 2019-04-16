@@ -64,10 +64,14 @@ function LagrangeFix:init(tbl)
 						self.numVelDims,
 						self.polyOrder)
 
-   self.L = ffi.new("double[3]", {})
+   -- self.L = ffi.new("double[3]", {})
+   -- self.lo = ffi.new("double[3]", {})
+   self.L = ffi.new("double[3]")
+   self.lo = ffi.new("double[3]")
    for d = 1, self.numVelDims do
       self.L[d-1] = self.phaseGrid:upper(self.numConfDims + d) - 
 	 self.phaseGrid:lower(self.numConfDims + d) 
+      self.lo[d-1] = self.phaseGrid:lower(self.numConfDims + d) 
    end
 end
 
@@ -140,7 +144,7 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
 
 	 if self.mode == 'Vlasov' then
 	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
-			       self.L, Nv, vc,
+			       self.lo, self.L, Nv, vc,
 			       fItr:data())
 	 else
 	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
