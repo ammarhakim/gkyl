@@ -148,7 +148,7 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
 			       fItr:data())
 	 else
 	    self.lagrangeFixFn(dm0Itr:data(), dm1Itr:data(), dm2Itr:data(),
-			       BItr:data(), self.mass, self.L, Nv, vc,
+			       BItr:data(), self.mass, self.lo, self.L, Nv, vc,
 			       fItr:data())
 	 end
       end
