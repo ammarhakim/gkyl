@@ -92,6 +92,7 @@ def build(bld):
 
     lagrangeFixData/VlasovLagrangeFixSer1x1v.cpp
     lagrangeFixData/VlasovLagrangeFixSer1x2v.cpp
+    lagrangeFixData/VlasovLagrangeFixSer1x3v.cpp
     lagrangeFixData/VlasovLagrangeFixSer2x2v.cpp
     lagrangeFixData/GkLagrangeFixSer1x2v.cpp
     lagrangeFixData/GkLagrangeFixSer2x2v.cpp

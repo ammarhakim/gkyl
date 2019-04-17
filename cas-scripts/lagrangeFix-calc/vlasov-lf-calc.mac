@@ -11,7 +11,7 @@ momSum(mom, varsV):=block([],
 basis : ["Ser", "Max"]$
 for bIdx : 1 thru 2 do (
   for cDim : 1 thru 2 do (
-    for vDim : cDim thru 2 do (
+    for vDim : cDim thru 3 do (
       /* Prepare the CPP file */
       fname : sconcat("~/max-out/VlasovLagrangeFix", basis[bIdx], cDim, "x", vDim, "v.cpp"),
       fh : openw(fname),
@@ -70,18 +70,38 @@ for bIdx : 1 thru 2 do (
         eqns : fullratsimp(subst([vcx[jx]=lox+(jx-1/2)*dvx, vcy[jy]=loy+(jy-1/2)*dvy, vcz[jz]=loz+(jz-1/2)*dvz],
             append(eq0, eq1, eq2))), 
         sol : linsolve(eqns, append(lambda0k, lambda1k, lambda2k)),
-        
-        /* The solution of the system gives the lagrange multipliers;
-        they need to be then substituted to the RHS in order to get
-        the corrections of the distribution function, i.e., get g out
-        of f */
-        deltaF : subst(sol, RHS),
-        deltaFk : subst([dvx=Lx/Nvx,dvy=Ly/Nvy,dvz=Lz/Nvz],
-          makelist(subst(k=i, deltaF), i, 1, length(bp))),
-        expr : float(fullratsimp( deltaFk )),
-        
+
+        printf(fh, "void VlasovLagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
+        printf(fh, "  double lambda0 [~a];~%", length(bc)),
+        printf(fh, "  double lambda1 [~a];~%", length(bc)*length(varsV)),
+        printf(fh, "  double lambda2 [~a];~%~%", length(bc)),
+
+        for idx : 1 thru (2+length(varsV))*length(bc) do (
+          outStr : subst([dvx=Lx/Nvx, dvy=Ly/Nvy, dvz=Lz/Nvz], sol[idx]),
+          outStr : float(fullratsimp( outStr )),
+          outStr : subst([vcx[jx]=vc[0], vcy[jy]=vc[1], vcz[jz]=vc[2], Nvx=Nv[0], Nvy=Nv[1], Nvz=Nv[2],  Lx=L[0], Ly=L[1], Lz=L[2], lox=lo[0], loy=lo[1], loz=lo[2]], outStr),
+          /* Modification to convert from 1-indexed Maxima to 0-indexed C */
+          sList : makelist(dm0s[i]=dm0[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          sList : makelist(dm1s[i]=dm1[i-1], i, 1, length(bc)*length(varsV)),
+          outStr : subst(sList, outStr),
+          sList : makelist(dm2s[i]=dm2[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          sList : makelist(lambda0[i]=lambda0[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          sList : makelist(lambda1[i]=lambda1[i-1], i, 1, length(bc)*length(varsV)),
+          outStr : subst(sList, outStr),
+          sList : makelist(lambda2[i]=lambda2[i-1], i, 1, length(bc)),
+          outStr : subst(sList, outStr),
+          outStr : subst(gkyl_ipow, "^", outStr),
+          printf(fh, "  ~a;~%", outStr)
+          ),
+        printf(fh, "~%"),
+
+        expr : subst([dvx=Lx/Nvx, dvy=Ly/Nvy, dvz=Lz/Nvz],
+          makelist(subst(k=i, RHS), i, 1, length(bp))),
+        expr : float(fullratsimp( expr )),
         /* Modification to convert from 1-indexed Maxima to 0-indexed C */
-        /* printSub : subst([vcx[jx]=vc[0], vcy[jy]=vc[1], vcz[jz]=vc[2], Nvx=Nv[0], Nvy=Nv[1], Nvz=Nv[2], Lx=L[0], Ly=L[1], Lz=L[2]], expr), */
         printSub : subst([vcx[jx]=vc[0], vcy[jy]=vc[1], vcz[jz]=vc[2], Nvx=Nv[0], Nvy=Nv[1], Nvz=Nv[2], Lx=L[0], Ly=L[1], Lz=L[2], lox=lo[0], loy=lo[1], loz=lo[2]], expr),
         sList : makelist(dm0s[i]=dm0[i-1], i, 1, length(bc)),
         printSub : subst(sList, printSub),
@@ -89,9 +109,14 @@ for bIdx : 1 thru 2 do (
         printSub : subst(sList, printSub),
         sList : makelist(dm2s[i]=dm2[i-1], i, 1, length(bc)),
         printSub : subst(sList, printSub),
+        sList : makelist(lambda0[i]=lambda0[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
+        sList : makelist(lambda1[i]=lambda1[i-1], i, 1, length(bc)*length(varsV)),
+        printSub : subst(sList, printSub),
+        sList : makelist(lambda2[i]=lambda2[i-1], i, 1, length(bc)),
+        printSub : subst(sList, printSub),
         printSub : subst(gkyl_ipow, "^", printSub),
-
-        printf(fh, "void VlasovLagrangeFix~a~ax~av~ap(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f) {~%", basis[bIdx], cDim, vDim, polyOrder),
+        
         for i : 1 thru length(bp) do (
           printf(fh, "  f[~a] = f[~a] + ~a;~%", i-1, i-1, printSub[i])
         ),
