@@ -92,8 +92,14 @@ function FluidSpecies:fullInit(appTbl)
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
       self.hasNonPeriodicBc = true
    end
+   
+   self.ssBc = {}
+   if tbl.ssBc then
+      self.ssBc[1] = tbl.ssBc[1]
+   end
 
    self.boundaryConditions = { } -- list of Bcs to apply
+   self.ssBoundaryConditions = { } -- list of stair-stepped Bcs to apply
    self.zeroFluxDirections = {}
 
    self.bcTime = 0.0 -- timer for BCs
@@ -227,6 +233,16 @@ function FluidSpecies:makeBcUpdater(dir, edge, bcList)
       boundaryConditions = bcList,
       dir = dir,
       edge = edge,
+   }
+end
+
+-- function to construct a stair-stepped BC updater
+function FluidSpecies:makeSsBcUpdater(dir, inOut, bcList)
+   return Updater.StairSteppedBc {
+      onGrid = self.grid,
+      inOut = inOut,
+      boundaryConditions = bcList,
+      dir = dir,
    }
 end
 
@@ -380,6 +396,11 @@ function FluidSpecies:applyBc(tCurr, fIn, dir)
             end
          end
       end
+      for _, bc in ipairs(self.ssBoundaryConditions) do
+         if (not dir) or dir == bc:getDir() then
+             bc:advance(tCurr, {}, {fIn})
+          end
+       end
       fIn:sync()
    end
    self.bcTime = self.bcTime + Time.clock()-tmStart
