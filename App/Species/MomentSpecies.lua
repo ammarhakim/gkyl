@@ -139,7 +139,7 @@ function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    local tryInv_next = false
    if self.evolve then
-      self:applyBc(tCurr, fIn)
+      self:applyBc(tCurr, fIn, dir)
       assert(self:checkInv(fIn))
       if self.forceInv or tryInv then
          self.hyperSlvrInv[dir]:setDtAndCflRate(dt, nil)
