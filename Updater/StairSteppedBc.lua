@@ -73,7 +73,7 @@ function StairSteppedBc:init(tbl)
    self._isGhostR = SliceDataBool(l, u, 1);
 end
 
-function StairSteppedBc:_advance(tCurr, dt, inFld, outFld)
+function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "StairSteppedBc.advance: Must-specify an output field")
 
@@ -133,7 +133,7 @@ function StairSteppedBc:_advance(tCurr, dt, inFld, outFld)
                qOut:fill(indexer(idxL), qS)
             end
             for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr+dt, idxS, qS, qG) -- TODO: PASS COORDINATES
+               bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
             end
          end
       end
