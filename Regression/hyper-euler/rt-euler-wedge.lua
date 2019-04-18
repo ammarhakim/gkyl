@@ -46,6 +46,7 @@ eulerApp = Moments.App {
       charge = 0.0, mass = 1.0,
 
       equation = Euler { gasGamma = gasGamma },
+      equationInv = Euler { gasGamma = gasGamma, flux="lax" },
       -- initial conditions
       init = function (t, xn)
          return 1e-6*rhoIn, 0.0, 0.0, 0.0, 1e-6*erIn
@@ -53,7 +54,6 @@ eulerApp = Moments.App {
       evolve = true, -- evolve species?
 
       bcx = { Euler.bcConst(rhoIn, rhoIn*uIn, 0.0, 0.0, erIn),
-      -- bcx = { Moments.Species.bcCopy,
               Moments.Species.bcCopy }, -- boundary conditions in X
       bcy = { Moments.Species.bcWall, Moments.Species.bcCopy }, -- boundary conditions in X
 
@@ -65,8 +65,7 @@ eulerApp = Moments.App {
          return  wedge(x,y, 0.0, 0.0, 30*math.pi/180) and -1.0 or 1.0
       end,
 
-      ssBcx = { Moments.Species.bcWall }, -- embedded boundary conditions in X
-      ssBcy = { Moments.Species.bcWall }, -- embedded boundary conditions in Y
+      ssBc = { Moments.Species.bcWall }, -- embedded boundary conditions
    },   
 }
 -- run application
