@@ -143,4 +143,8 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
    return true, GKYL_MAX_DOUBLE
 end
 
+function StairSteppedBc:getDir()
+   return self._dir
+end
+
 return StairSteppedBc

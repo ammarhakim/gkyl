@@ -134,4 +134,8 @@ function Bc:_advance(tCurr, inFld, outFld)
    self._isFirst = false
 end
 
+function Bc:getDir()
+   return self._dir
+end
+
 return Bc
