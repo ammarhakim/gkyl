@@ -27,14 +27,21 @@ writeEVExprs(lhs, rhs, vd, nc, p) := block([expr],
   len   : length(rhs),
 /*  start : len*2+(len-1)+2*len+1, */
 /*  start : vd*NC*3+NC*2+(len-1)+2*len+1, */
+  /* vd*nc*3 is the number of coefficients from m1r. */
+  /* nc*3 (or nc*4) is the number of coefficients from m2r (or m2Sr). */
+  /* (len-1) is the number of commas. */
+  /* 2*len is the number of square brackets. */
+  /* 1 is the number semi-colons? might just be an indexing thing.*/
   if (p=1) then (
     start : vd*nc*3+nc*4+(len-1)+2*len+1
   ) else (
     start : vd*nc*3+nc*3+(len-1)+2*len+1
   ),
+  /* Number of characters indexing coefficients of m1r. */
   for k : 1 thru vd*nc do (
     start : start+slength(string(k-1))
   ),
+  /* Number of characters indexing coefficients of m2r (or m2Sr). */
   for k : 1 thru nc do (
     start : start+slength(string(k-1))
   ),

@@ -55,6 +55,8 @@ function VlasovSpecies:alloc(nRkDup)
    self.kineticEnergyDensity = self:allocMoment()
    self.thermalEnergyDensity = self:allocMoment()
 
+   self.fCurr = self:rkStepperFields()[1]  -- Current distribution. Returned by getF() method.
+
 end
 
 function VlasovSpecies:fullInit(appTbl)
@@ -163,6 +165,8 @@ end
 function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
+
+   self.fCurr = fIn  -- Current distribution (returned by the getF method).
 
    -- accumulate functional Maxwell fields (if needed)
    local emField = emIn[1]:rkStepperFields()[inIdx]
@@ -402,6 +406,14 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
             tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
       end
    end
+end
+
+function VlasovSpecies:getF()
+   return self.fCurr
+end
+
+function VlasovSpecies:getPhaseGrid()
+   return self.grid
 end
 
 function VlasovSpecies:fluidMoments()

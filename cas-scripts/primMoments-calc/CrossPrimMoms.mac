@@ -90,14 +90,17 @@ calcCrossPrimMomsGreene(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     NC  : length(bC),
   
     /* Function declaration with input/output variables. */
-    printf(fh, "void ~a_P~a(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "  // mRat:              mass ratio = m_other/m_self. ~%"),
-    printf(fh, "  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. ~%"),
-    printf(fh, "  // uOther, vtSqOther: bulk flow velocity and T/m of other species. ~%"),
-    printf(fh, "  // uCross:            bulk flow velocity for cross-species collision term. ~%"),
-    printf(fh, "  // vtSqCross:         squared thermal speed for cross-species collision term. ~%"),
+    printf(fh, "void ~a_P~a(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // betaGreenep1:       free parameter beta+1. This has to be >0. ~%"),
+    printf(fh, "  // m, nu:              mass and collisionality. ~%"),
+    printf(fh, "  // m0,m1,m2:           moments of the distribution function. ~%"),
+    printf(fh, "  // u,vtSq:             self primitive moments: mean flow velocity and thermal speed squared. ~%"),
+    printf(fh, "  // cM,cE:              corrections to momentum and energy conservation due to finite velocity space. ~%"),
+    printf(fh, "  // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. ~%"),
     printf(fh, " ~%"),
 
+    printf(fh, "  double mRat = mOther/mSelf; ~%"),
+    printf(fh, " ~%"),
     /*........... First compute and save uSelf-uOther .............*/
     uSelf_e    : doExpand1(uSelf,bC),
     uOther_e   : doExpand1(uOther,bC),
@@ -137,17 +140,17 @@ calcCrossPrimMomsGreene(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     /*.............. Get the relative bulk flow velocity ....................*/
-    uCross_e : calcInnerProdList(varsC,1,bC,0.5*((uSelf_e+uOther_e)-beta*uSMuO_e)),
+    uCrossSelf_e : calcInnerProdList(varsC,1,bC,0.5*((uSelf_e+uOther_e)-(betaGreenep1-1.0)*uSMuO_e)),
 
     printf(fh, "  // ..... Get the cross flow velocity uSelf2 ..... // ~%"),
     printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
     printf(fh, "  { ~%"),
     printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
-    expr : float(expand(uCross_e)),
+    expr : float(expand(uCrossSelf_e)),
     for i : 1 thru NC do (
       param : cons(expr[i], [0.5]),
       e : apply(collectterms, param),
-      printf(fh, "    ~a = ~a; ~%", uCross[a0+i-1], e)
+      printf(fh, "    ~a = ~a; ~%", uCrossSelf[a0+i-1], e)
     ),
     printf(fh, " ~%"),
     printf(fh, "  } ~%"),
@@ -161,12 +164,12 @@ calcCrossPrimMomsGreene(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     vtSqOther_c   : makelist(vtSqOther[i],i,0,NC-1),
     uSMuOSq_e     : doExpand1(uSMuOSq,bC),
 
-    printf(fh, "  double mBetaFrac = ~a; ~%", 0.5*(1.0+beta)/(1.0+mRat)),
-    vtSqCross_e: calcInnerProdList(varsC,1,bC,vtSqSelf_e
+    printf(fh, "  double mBetaFrac = ~a; ~%", 0.5*betaGreenep1/(1.0+mRat)),
+    vtSqCrossSelf_e: calcInnerProdList(varsC,1,bC,vtSqSelf_e
       -mBetaFrac*(vtSqSelf_e-mRat*vtSqOther_e-(1./physVdim)*mRat*uSMuOSq_e)),
 
-    printf(fh, "  // ..... Get the cross thermal speed squared vtSqCross ..... // ~%"),
-    writeCExprsCollect1(vtSqCross,vtSqCross_e,[mBetaFrac,mRat]),
+    printf(fh, "  // ..... Get the cross thermal speed squared vtSqCrossSelf ..... // ~%"),
+    writeCExprsCollect1(vtSqCrossSelf,vtSqCrossSelf_e,[mBetaFrac,mRat]),
     printf(fh, " ~%"),
 
     printf(fh, "} ~%"),

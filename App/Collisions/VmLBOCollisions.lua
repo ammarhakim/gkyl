@@ -124,7 +124,7 @@ function VmLBOCollisions:fullInit(speciesTbl)
    if self.crossCollisions then
       self.mass       = speciesTbl.mass      -- Mass of this species.
       self.charge     = speciesTbl.charge    -- Charge of this species.
-      local crossOpIn = tbl.crossOption      -- Can specify 'crossOption' (Greene, GreeneSmallAngle, HeavyIons), formulas used to calculate cross-species primitive moments.
+      local crossOpIn = tbl.crossOption      -- Can specify 'crossOption' (Greene, GreeneSmallAngle), formulas used to calculate cross-species primitive moments.
       if crossOpIn then
          self.crossMomOp  = crossOpIn
          if self.crossMomOp=="Greene" then
@@ -248,7 +248,7 @@ function VmLBOCollisions:createSolver()
       updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
-   if self.selfCollisions then
+--   if self.selfCollisions then
       self.primMomSelf = Updater.SelfPrimMoments {
          onGrid     = self.confGrid,
          phaseGrid  = self.phaseGrid,
@@ -256,7 +256,7 @@ function VmLBOCollisions:createSolver()
          confBasis  = self.confBasis,
          operator   = "VmLBO",
       }
-   end
+--   end
    if self.crossCollisions then
       -- Flow velocity in vdim directions of the other species.
       self.uOther = DataStruct.Field {
@@ -308,6 +308,7 @@ function VmLBOCollisions:createSolver()
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
          onGrid     = self.confGrid,
+         phaseGrid  = self.phaseGrid,
          phaseBasis = self.phaseBasis,
          confBasis  = self.confBasis,
          operator   = "VmLBO",
@@ -383,19 +384,24 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    end
 
    if self.crossCollisions then
-      if not self.selfCollisions then
+--      if not self.selfCollisions then
          -- If applying self-collisions, use the same primitive moments calculated above.
          -- Otherwise compute primitive moments, u and vtSq, of this species.
-         self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.velocity})
-         self.confDotProduct:advance(0., {self.velocity, selfMom[2]}, {self.kinEnergyDens})
-         self.thermEnergyDens:combine( 1.0/self.vdim, selfMom[3],
-                                      -1.0/self.vdim, self.kinEnergyDens )
-         self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
-      end
+--         self.confDiv:advance(0., {selfMom[1], selfMom[2]}, {self.velocity})
+--         self.confDotProduct:advance(0., {self.velocity, selfMom[2]}, {self.kinEnergyDens})
+--         self.thermEnergyDens:combine( 1.0/self.vdim, selfMom[3],
+--                                      -1.0/self.vdim, self.kinEnergyDens )
+--         self.confDiv:advance(0., {selfMom[1], self.thermEnergyDens}, {self.vthSq})
+         self.primMomSelf:advance(0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
+                                       {self.velocity, self.vthSq})
+--      end
 
       for sInd, otherNm in ipairs(self.crossSpecies) do
-         -- Obtain coupling moments of other species.
+         -- Obtain mass, distribution function, and coupling moments of other species.
+         local mOther = species[otherNm]:getMass()
+         local fOther = species[otherNm]:getF()
          local otherMom = species[otherNm]:fluidMoments()
+         local otherPhaseGrid = species[otherNm]:getPhaseGrid()
          -- Compute primitive moments, u and vtSq, of other species.
          self.confDiv:advance(0., {otherMom[1], otherMom[2]}, {self.uOther})
          self.confDotProduct:advance(0., {self.uOther, otherMom[2]}, {self.kinEnergyDens})
@@ -403,28 +409,20 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
                                       -1.0/self.vdim, self.kinEnergyDens )
          self.confDiv:advance(0., {otherMom[1], self.thermEnergyDens}, {self.vthSqOther})
 
-         -- Set the subscripts of the collision term (12 or 21).
-         -- For "HeavyIons" species 1 is the lighter one.
-         local collSub
-         local mRat = species[otherNm]:getMass()/self.mass
-         if mRat <= 1 then
-            collSub = "12"
-         else
-            collSub = "21"
-         end
-         -- Get cross-species primitive moments, u_12 and vtSq_12, or u_21 and vtSq_21.
-         -- This updater expects inputs in the order:
-         -- collSub, mRat, nSelf, uSelf, vtSqSelf, nOther, uOther, vtSqOther.
-         self.primMomCross:advance(0., {collSub, mRat, selfMom[1], self.velocity, self.vthSq,
-                                        otherMom[1], self.uOther, self.vthSqOther},
-                                       {self.uCross, self.vthSqCross})
-
          if self.varNu then
             -- Compute the collisionality.
             self.spitzerNu:advance(0., {self.mass, self.charge, otherMom[1], self.vthSq, self.normNuCross[sInd]}, {self.collFreq})
          else
             self.collFreq = self.collFreqCross[sInd]
+            self.collFreqOther = self.mass*self.collFreq/mOther
          end
+
+         -- Get cross-species primitive moments, u_12 and vtSq_12, or u_21 and vtSq_21.
+         -- This updater expects inputs in the order:
+         -- mSelf, nSelf, uSelf, vtSqSelf, nOther, uOther, vtSqOther.
+         self.primMomCross:advance(0., {self.mass, self.collFreq, selfMom[1], selfMom[2], selfMom[3], self.velocity, self.vthSq, fIn,
+                                        mOther, self.collFreqOther, otherMom[1], otherMom[2], otherMom[3], self.uOther, self.vthSqOther, fOther,otherPhaseGrid},
+                                       {self.uCross, self.vthSqCross})
 
          -- Compute increment from cross-species collisions and accumulate it into output.
          self.collisionSlvr:advance(

@@ -1,21 +1,21 @@
-load("primMoments-calc/CrossPrimMoms")$
+load("primMoments-calc/CrossPrimMoms-conserv")$
 load(stringproc)$
 
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 1$    /* but see v loop below. */
-maxCdim_Ser : 2$
-maxVdim_Ser : 2$
+maxCdim_Ser : 1$
+maxVdim_Ser : 1$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
 minVdim_Max : 1$    /* but see v loop below. */
-maxCdim_Max : 2$
-maxVdim_Max : 2$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
 
 gkVdims      : [[1,2], [2], [2]]$
 
@@ -32,7 +32,7 @@ for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
     /* Vlasov cross-collision primitive moments. */
-    for v : maxVdim[bInd] thru maxVdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
 
       disp(printf(false,sconcat("Creating VmCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
       fname : sconcat("~/max-out/VmCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
@@ -46,8 +46,10 @@ for bInd : 1 thru length(bName) do (
       funcName : sconcat("VmCrossPrimMomentsGreene", c, "x", v, "v", bName[bInd]),
       calcCrossPrimMomsGreene(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
+/*
       funcName : sconcat("VmCrossPrimMomentsHeavyIon", c, "x", v, "v", bName[bInd]),
       calcCrossPrimMomsHeavyIon(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+*/
 
       close(fh)
     ),
@@ -55,6 +57,7 @@ for bInd : 1 thru length(bName) do (
     /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v. However each
        of these effectively solve a weak linear system of 2 equations.
        For now assume that gyrokinetics is never run in 2x1v or 3x1v. */
+
     for gkV : 1 thru length(gkVdims[c]) do (
 
       v : gkVdims[c][gkV],
@@ -75,6 +78,7 @@ for bInd : 1 thru length(bName) do (
       calcCrossPrimMomsHeavyIon(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
       close(fh)
     )
+
   )
 );
 
