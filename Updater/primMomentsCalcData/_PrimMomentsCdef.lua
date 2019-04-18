@@ -19,7 +19,7 @@ void VmBoundaryIntegral1x1vSer_F_VX_P1(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void VmCrossPrimMomentsGreene1x1vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
+void VmCrossPrimMomentsGreene1x1vSer_P1(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf); 
 
 void VmCrossPrimMomentsHeavyIons1x1vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
 
@@ -210,7 +210,7 @@ void VmBoundaryIntegral1x1vSer_F_VX_P2(const bool atLower, const double vBoundar
 
 void VmBoundaryIntegral1x1vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
-void VmCrossPrimMomentsGreene1x1vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
+void VmCrossPrimMomentsGreene1x1vSer_P2(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf); 
 
 void VmCrossPrimMomentsHeavyIons1x1vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross); 
 
