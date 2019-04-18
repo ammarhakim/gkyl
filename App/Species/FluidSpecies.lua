@@ -324,7 +324,9 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
 
    if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
       -- only applyBc on forwardEuler combine
-      self:applyBc(nil, self:rkStepperFields()[outIdx])
+      for dir = 1, self.ndim do
+         self:applyBc(nil, self:rkStepperFields()[outIdx], dir)
+      end
       -- only positivity diffuse on forwardEuler combine
       if self.positivityDiffuse then
          self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
@@ -368,12 +370,14 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function FluidSpecies:applyBc(tCurr, fIn)
+function FluidSpecies:applyBc(tCurr, fIn, dir)
    local tmStart = Time.clock()
    if self.evolve then
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {fIn})
+            if (not dir) or dir == bc:getDir() then
+               bc:advance(tCurr, {}, {fIn})
+            end
          end
       end
       fIn:sync()
@@ -425,7 +429,9 @@ function FluidSpecies:readRestart()
    self.diagIoFrame = fr -- reset internal frame counter
    self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))   
    
-   self:applyBc(tm, self.moments[1])
+   for dir = 1, self.ndim do
+      self:applyBc(tm, self.moments[1], dir)
+   end
    self.moments[1]:sync() -- must get all ghost-cell data correct
 
    -- iterate triggers
