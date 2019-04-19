@@ -284,6 +284,12 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
 
    local tId = grid:subGridSharedId() -- local thread ID
 
+   local calcDelta = self._calcDelta
+   local calcFirstOrderGud = self._calcFirstOrderGud
+   local calcCfla = self._calcCfla
+   local secondOrderFlux = self._secondOrderFlux
+   local secondOrderUpdate = self._secondOrderUpdate
+
    qOut:copy(qIn) -- update only adds increments, so set qOut = qIn
    -- update specified directions
    for d = 1, #self._updateDirs do
@@ -331,14 +337,14 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
 
             if not (hasSsBnd and bothOutSsBnd[i][0]) then
                qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
-               self._calcDelta(qInL, qInR, delta) -- jump across interface
+               calcDelta(qInL, qInR, delta) -- jump across interface
 
                equation:rp(dir, delta, qInL, qInR, waves, s) -- compute waves and speeds
                equation:qFluctuations(dir, qInL, qInR, waves, s, amdq, apdq) -- compute fluctuations
 
                qOut:fill(qOutIdxr(idxm), qOutL); qOut:fill(qOutIdxr(idxp), qOutR)
-               self._calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
-               cfla = self._calcCfla(cfla, dtdx, s) -- actual CFL value
+               calcFirstOrderGud(dtdx, qOutL, qOutR, amdq, apdq) -- first-order Gudonov updates
+               cfla = calcCfla(cfla, dtdx, s) -- actual CFL value
 
                -- copy waves data for use in limiters
                copy(wavesSlice[i], waves:data(), sizeof("double")*meqn*mwave)
@@ -358,7 +364,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
             if not (hasSsBnd and bothOutSsBnd[i][0]) then
                for mw = 0, mwave-1 do
-                  self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
+                  secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
                end
             end
          end
@@ -369,7 +375,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
             idxm[dir] = i -- cell index
             if not (hasSsBnd and thisOutSsBnd[i][0]) then
                qOut:fill(qOutIdxr(idxm), q1)
-               self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
+               secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
             end
          end
       end
