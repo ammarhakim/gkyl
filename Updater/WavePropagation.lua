@@ -374,7 +374,6 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          end
       end
    end
-   print("advance done ******** tCurr", tCurr)
 
    self._isFirst = false -- no longer first time
    return true, dt*cfl/cfla
