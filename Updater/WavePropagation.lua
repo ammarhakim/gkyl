@@ -272,12 +272,13 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
    local qOutL, qOutR = qOut:get(1), qOut:get(1)
    local q1 = qOut:get(1)
 
+   local hasSsBnd = self._hasSsBnd
+   local inOut
    local inOutL, inOutR
-   local inOut1
    local inOutIdxr
-   if (self._hasSsBnd) then
-      inOutL, inOutR = self._inOut:get(1), self._inOut:get(1)
-      inOut1 = self._inOut:get(1)
+   if (hasSsBnd) then
+      inOut = self._inOut
+      inOutL, inOutR = inOut:get(1), inOut:get(1)
       inOutIdxr = self._inOut:genIndexer()
    end
 
@@ -311,24 +312,24 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          idx:copyInto(idxp); idx:copyInto(idxm)
 
          -- fill masks along this direction
-         if self._hasSsBnd then
+         if hasSsBnd then
             for i = localRange:lower(dir)-1, localRange:upper(dir)+2 do -- this loop is over edges
                idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
-               self._inOut:fill(inOutIdxr(idxm), inOutL)
-               self._inOut:fill(inOutIdxr(idxp), inOutR)
+               inOut:fill(inOutIdxr(idxm), inOutL)
+               inOut:fill(inOutIdxr(idxp), inOutR)
                local isOutsideL = isOutside(inOutL)
                local isOutsideR = isOutside(inOutR)
-               onSsBnd[i][0] =  (isOutsideL and not isOutsideR) or
-                  (not isOutsideL and isOutsideR)
+               onSsBnd[i][0] =  (isOutsideL and (not isOutsideR)) or
+                  ((not isOutsideL) and isOutsideR)
                bothOutSsBnd[i][0] =  isOutsideL and isOutsideR
-               thisOutSsBnd[i][0] = isOutsideL
+               thisOutSsBnd[i][0] = isOutsideR
             end
          end
 
          for i = dirLoIdx, dirUpIdx do -- this loop is over edges
             idxm[dir], idxp[dir]  = i-1, i -- cell left/right of edge 'i'
 
-            if not (self._hasSsBnd and bothOutSsBnd[i][0]) then
+            if not (hasSsBnd and bothOutSsBnd[i][0]) then
                qIn:fill(qInIdxr(idxm), qInL); qIn:fill(qInIdxr(idxp), qInR)
                self._calcDelta(qInL, qInR, delta) -- jump across interface
 
@@ -355,7 +356,7 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          -- compute second order correction fluxes
          clearSliceData(fsSlice)
          for i = dirLoIdx2, dirUpIdx2 do -- this loop is over edges
-            if not (self._hasSsBnd and bothOutSsBnd[i][0]) then
+            if not (hasSsBnd and bothOutSsBnd[i][0]) then
                for mw = 0, mwave-1 do
                   self._secondOrderFlux(dtdx, speedsSlice[i][mw], wavesSlice[i]+meqn*mw, fsSlice[i])
                end
@@ -366,13 +367,14 @@ function WavePropagation:_advance(tCurr, inFld, outFld)
          -- add them to solution
          for i = dirLoIdx3, dirUpIdx3 do -- this loop is over cells
             idxm[dir] = i -- cell index
-            if not (self._hasSsBnd and thisOutSsBnd[i][0]) then
+            if not (hasSsBnd and thisOutSsBnd[i][0]) then
                qOut:fill(qOutIdxr(idxm), q1)
                self._secondOrderUpdate(dtdx, fsSlice[i], fsSlice[i+1], q1)
             end
          end
       end
    end
+   print("advance done ******** tCurr", tCurr)
 
    self._isFirst = false -- no longer first time
    return true, dt*cfl/cfla
