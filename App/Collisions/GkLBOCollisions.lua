@@ -332,23 +332,21 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    local tmEvalMomStart = Time.clock()
    if self.selfCollisions then
-      -- Compute primitive moments velocity and vthSq=T/m from zeroth,
-      -- first and second moments, and distribution function.
-      self.primMomSelf:advance(0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
-                                    {self.uPar, self.vthSq})
+      -- Fetch primitive moments velocity and vthSq=T/m.
+      local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
       self.gkLBOconstNuCalcEq.primMomCrossLimit = 0.0
 
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, {self.mass, self.charge, selfMom[1], self.vthSq, self.normNuSelf},{self.collFreq})
+         self.spitzerNu:advance(0.0, {self.mass, self.charge, selfMom[1], primMomSelf[2], self.normNuSelf},{self.collFreq})
       else
          self.collFreq = self.collFreqSelf
       end
       -- Compute increment from collisions and accumulate it into output.
       self.collisionSlvr:advance(
-         tCurr, {fIn, self.bmagInv, self.uPar, self.vthSq, self.collFreq}, {self.collOut})
+         tCurr, {fIn, self.bmagInv, primMomSelf[1], primMomSelf[2], self.collFreq}, {self.collOut})
 
       self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
       self.primMomLimitCrossingsL:appendData(tCurr, {self.gkLBOconstNuCalcEq.primMomCrossLimit})
@@ -413,8 +411,8 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function GkLBOCollisions:write(tm, frame)
-   self.uPar:write(string.format("%s_%s_%d.bp", self.speciesName, "uPar", frame), tm, frame)
-   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
+--   self.uPar:write(string.format("%s_%s_%d.bp", self.speciesName, "uPar", frame), tm, frame)
+--   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
    if self.selfCollisions then
       Mpi.Allreduce(self.primMomLimitCrossingsL:data():data(), 
                     self.primMomLimitCrossingsG:data():data(), self.primMomLimitCrossingsG:size(),

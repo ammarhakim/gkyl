@@ -6,51 +6,66 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto = require "Lib.Proto"
+local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
-local Mpi = require "Comm.Mpi"
-local VlasovEq = require "Eq.Vlasov"
-local Updater = require "Updater"
-local DataStruct = require "DataStruct"
-local Time = require "Lib.Time"
+local Mpi            = require "Comm.Mpi"
+local VlasovEq       = require "Eq.Vlasov"
+local Updater        = require "Updater"
+local DataStruct     = require "DataStruct"
+local Time           = require "Lib.Time"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
--- add constants to object indicate various supported boundary conditions
-local SP_BC_ABSORB = 1
+-- Add constants to object indicate various supported boundary conditions.
+local SP_BC_ABSORB  = 1
 local SP_BC_REFLECT = 3
-local SP_BC_EXTERN = 4
-local SP_BC_COPY = 5
--- AHH: This was 2 but seems that is unstable. So using plain copy
-local SP_BC_OPEN = SP_BC_COPY
-local SP_BC_ZEROFLUX = 6
+local SP_BC_EXTERN  = 4
+local SP_BC_COPY    = 5
+-- AHH: This was 2 but seems that is unstable. So using plain copy.
+local SP_BC_OPEN      = SP_BC_COPY
+local SP_BC_ZEROFLUX  = 6
 local SP_BC_RESERVOIR = 7
 
-VlasovSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
-VlasovSpecies.bcOpen = SP_BC_OPEN -- zero gradient
-VlasovSpecies.bcCopy = SP_BC_COPY -- copy stuff
-VlasovSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
-VlasovSpecies.bcExternal = SP_BC_EXTERN -- load external BC file
-VlasovSpecies.bcZeroFlux = SP_BC_ZEROFLUX
+VlasovSpecies.bcAbsorb    = SP_BC_ABSORB     -- Absorb all particles.
+VlasovSpecies.bcOpen      = SP_BC_OPEN       -- Zero gradient.
+VlasovSpecies.bcCopy      = SP_BC_COPY       -- Copy stuff.
+VlasovSpecies.bcReflect   = SP_BC_REFLECT    -- Specular reflection.
+VlasovSpecies.bcExternal  = SP_BC_EXTERN     -- Load external BC file.
+VlasovSpecies.bcZeroFlux  = SP_BC_ZEROFLUX
 VlasovSpecies.bcReservoir = SP_BC_RESERVOIR
 
 function VlasovSpecies:alloc(nRkDup)
-   -- allocate distribution function
+   -- Allocate distribution function.
    VlasovSpecies.super.alloc(self, nRkDup)
 
-   -- allocate fields to store coupling moments (for use in coupling
-   -- to field and collisions)
+   -- Allocate fields to store coupling moments (for use in coupling
+   -- to field and collisions).
    self.numDensity = self:allocMoment()
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
 
-   -- allocate field to accumulate funcField if any
-   self.totalEmField = self:allocVectorMoment(8) -- 8 components of EM field
+   if self.collisions then
+     -- Allocate fields for boundary corrections.
+     self.m1Correction = self:allocVectorMoment(self.vdim)
+     self.m2Correction = self:allocMoment()
 
-   -- allocate field for external forces if any
+     -- Allocate fields for star moments (only used with polyOrder=1).
+     self.m0Star = self:allocMoment()
+     self.m1Star = self:allocVectorMoment(self.vdim)
+     self.m2Star = self:allocMoment()
+   end
+
+   -- Allocate fields to store self-species primitive moments.
+   self.uSelf    = self:allocVectorMoment(self.vdim)
+   self.vtSqSelf = self:allocMoment()
+
+   -- Allocate field to accumulate funcField if any.
+   self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
+
+   -- Allocate field for external forces if any.
    self.vExtForce = self:allocVectorMoment(self.vdim)
 
-   -- allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii)
+   -- Allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii).
    self.flow = self:allocVectorMoment(self.vdim)
    self.kineticEnergyDensity = self:allocMoment()
    self.thermalEnergyDensity = self:allocMoment()
@@ -61,7 +76,7 @@ function VlasovSpecies:fullInit(appTbl)
    VlasovSpecies.super.fullInit(self, appTbl)
 
    local tbl = self.tbl
-   -- if there is an external force, get the force function
+   -- If there is an external force, get the force function.
    if tbl.vlasovExtForceFunc then
       self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
    end
@@ -78,95 +93,109 @@ end
 
 
 function VlasovSpecies:createSolver(hasE, hasB)
-   -- run the KineticSpecies 'createSolver()' to initialize the
-   -- collisions solver
+   -- Run the KineticSpecies 'createSolver()' to initialize the
+   -- collisions solver.
    VlasovSpecies.super.createSolver(self)
 
-   -- create updater to advance solution by one time-step
+   -- Create updater to advance solution by one time-step.
    local vlasovEqn = VlasovEq {
-      onGrid = self.grid,
-      phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      charge = self.charge,
-      mass = self.mass,
+      onGrid           = self.grid,
+      phaseBasis       = self.basis,
+      confBasis        = self.confBasis,
+      charge           = self.charge,
+      mass             = self.mass,
       hasElectricField = hasE,
       hasMagneticField = hasB,
    }
 
-   -- must apply zero-flux BCs in velocity directions
+   -- Must apply zero-flux BCs in velocity directions.
    local zfd = { }
    for d = 1, self.vdim do 
      table.insert(self.zeroFluxDirections, self.cdim+d)
    end
 
    self.solver = Updater.HyperDisCont {
-      onGrid = self.grid,
-      basis = self.basis,
-      cfl = self.cfl,
-      equation = vlasovEqn,
+      onGrid             = self.grid,
+      basis              = self.basis,
+      cfl                = self.cfl,
+      equation           = vlasovEqn,
       zeroFluxDirections = self.zeroFluxDirections,
    }
 
-   -- create updaters to compute various moments
+   -- Create updaters to compute various moments.
    self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "M0",
+      confBasis  = self.confBasis,
+      moment     = "M0",
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "M1i",
+      confBasis  = self.confBasis,
+      moment     = "M1i",
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "M2",
+      confBasis  = self.confBasis,
+      moment     = "M2",
    }
-   -- create updater to compute M0, M1i, M2 moments sequentially
-   -- this is used in calcCouplingMoments to reduce overhead and multiplications
+   -- Create updater to compute M0, M1i, M2 moments sequentially.
+   -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
    self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "FiveMoments",
+      confBasis  = self.confBasis,
+      moment     = "FiveMoments",
+   }
+   -- This is used in calcCouplingMoments to reduce overhead and multiplications.
+   -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
+   self.fiveMomentsLBOCalc = Updater.DistFuncMomentCalc {
+      onGrid     = self.grid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      moment     = "FiveMomentsLBO",
+   }
+   self.primMomSelf = Updater.SelfPrimMoments {
+      onGrid     = self.confGrid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      operator   = "VmLBO",
    }
 
-   -- Updaters for the primitive moments
-   -- These will be used to compute n*u^2 and n*T for computing integrated moments
+   -- Updaters for the primitive moments.
+   -- These will be used to compute n*u^2 and n*T for computing integrated moments.
    self.confDiv = Updater.CartFieldBinOp {
-      onGrid = self.confGrid,
+      onGrid    = self.confGrid,
       weakBasis = self.confBasis,
       operation = "Divide",
    }
    self.confDotProduct = Updater.CartFieldBinOp {
-      onGrid = self.confGrid,
+      onGrid    = self.confGrid,
       weakBasis = self.confBasis,
       operation = "DotProduct",
    }
 
    if self.vlasovExtForceFunc then
       self.evalVlasovExtForce = Updater.ProjectOnBasis {
-         onGrid = self.confGrid,
-         basis = self.confBasis,
-         evaluate = self.vlasovExtForceFunc,
+         onGrid          = self.confGrid,
+         basis           = self.confBasis,
+         evaluate        = self.vlasovExtForceFunc,
          projectOnGhosts = false
       }
    end
 
-   self.tmCouplingMom = 0.0 -- for timer 
+   self.tmCouplingMom = 0.0    -- For timer.
 end
 
 function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
-   local fIn = self:rkStepperFields()[inIdx]
+   local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   -- accumulate functional Maxwell fields (if needed)
-   local emField = emIn[1]:rkStepperFields()[inIdx]
-   local emFuncField = emIn[2]:rkStepperFields()[1]
+   -- Accumulate functional Maxwell fields (if needed).
+   local emField      = emIn[1]:rkStepperFields()[inIdx]
+   local emFuncField  = emIn[2]:rkStepperFields()[1]
    local totalEmField = self.totalEmField
    totalEmField:clear(0.0)
 
@@ -175,15 +204,15 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if emField then totalEmField:accumulate(qbym, emField) end
    if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
    
-   -- if external force present (gravity, body force, etc.) accumulate it to electric field
+   -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    if self.vlasovExtForceFunc then
       local vExtForce = self.vExtForce
       self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
 
-      -- need to barrier over the shared communicator before accumulating force onto electric field
+      -- Need to barrier over the shared communicator before accumulating force onto electric field.
       Mpi.Barrier(self.grid:commSet().sharedComm)
 
-      -- analogous to the current, the external force only gets accumulated onto the electric field
+      -- Analogous to the current, the external force only gets accumulated onto the electric field.
       local vItr, eItr = vExtForce:get(1), totalEmField:get(1)
       local vIdxr, eIdxr = vExtForce:genIndexer(), totalEmField:genIndexer()
 
@@ -200,27 +229,27 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, totalEmField}, {fRhsOut})
    else
-      fRhsOut:clear(0.0) -- no RHS
+      fRhsOut:clear(0.0)    -- No RHS.
    end
-   -- perform the collision update
+   -- Perform the collision update.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
          c:advance(tCurr, fIn, species, fRhsOut)
-         -- the full 'species' list is needed for the cross-species
-         -- collisions
+         -- The full 'species' list is needed for the cross-species
+         -- collisions.
       end
    end
 
    if self.fSource and self.evolveSources then
-      -- add source it to the RHS
+      -- Add source it to the RHS.
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
 
 function VlasovSpecies:createDiagnostics()
-   -- create updater to compute volume-integrated moments
-   -- function to check if integrated moment name is correct
+   -- Create updater to compute volume-integrated moments
+   -- function to check if integrated moment name is correct.
    local function isIntegratedMomentNameGood(nm)
       if nm == "intM0" or nm == "intM1i" or nm == "intM2Flow" or nm == "intM2Thermal" or nm == "intL2" then
          return true
@@ -229,15 +258,15 @@ function VlasovSpecies:createDiagnostics()
    end
 
    local numCompInt = {}
-   numCompInt["intM0"] = 1
-   numCompInt["intM1i"] = self.vdim
-   numCompInt["intM2Flow"] = 1
+   numCompInt["intM0"]        = 1
+   numCompInt["intM1i"]       = self.vdim
+   numCompInt["intM2Flow"]    = 1
    numCompInt["intM2Thermal"] = 1
-   numCompInt["intL2"] = 1
+   numCompInt["intL2"]        = 1
 
-   self.diagnosticIntegratedMomentFields = { }
+   self.diagnosticIntegratedMomentFields   = { }
    self.diagnosticIntegratedMomentUpdaters = { } 
-   -- allocate space to store moments and create moment updater
+   -- Allocate space to store moments and create moment updater.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
       if isIntegratedMomentNameGood(mom) then
          self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
@@ -245,17 +274,17 @@ function VlasovSpecies:createDiagnostics()
          }
          if mom == "intL2" then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
-               onGrid = self.grid,
-               basis = self.basis,
+               onGrid        = self.grid,
+               basis         = self.basis,
                numComponents = numCompInt[mom],
-               quantity = "V2"
+               quantity      = "V2"
             }
          else
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
-               onGrid = self.confGrid,
-               basis = self.confBasis,
+               onGrid        = self.confGrid,
+               basis         = self.confBasis,
                numComponents = numCompInt[mom],
-               quantity = "V"
+               quantity      = "V"
             }
          end
       else
@@ -263,33 +292,33 @@ function VlasovSpecies:createDiagnostics()
       end
    end
 
-   -- function to check if moment name is correct
+   -- Function to check if moment name is correct.
    local function isMomentNameGood(nm)
       return Updater.DistFuncMomentCalc:isMomentNameGood(nm)
    end
 
    local numComp = {}
-   numComp["M0"] = 1
-   numComp["M1i"] = self.vdim
+   numComp["M0"]   = 1
+   numComp["M1i"]  = self.vdim
    numComp["M2ij"] = self.vdim*(self.vdim+1)/2
-   numComp["M2"] = 1
-   numComp["M3i"] = self.vdim
+   numComp["M2"]   = 1
+   numComp["M3i"]  = self.vdim
 
-   self.diagnosticMomentFields = { }
+   self.diagnosticMomentFields   = { }
    self.diagnosticMomentUpdaters = { } 
-   -- allocate space to store moments and create moment updater
+   -- Allocate space to store moments and create moment updater.
    for i, mom in ipairs(self.diagnosticMoments) do
       if isMomentNameGood(mom) then
          self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid = self.confGrid,
+            onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
-            ghost = {1, 1}
+            ghost         = {1, 1}
          }
          self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
-            onGrid = self.grid,
+            onGrid     = self.grid,
             phaseBasis = self.basis,
-            confBasis = self.confBasis,
-            moment = mom,
+            confBasis  = self.confBasis,
+            moment     = mom,
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -300,15 +329,15 @@ function VlasovSpecies:createDiagnostics()
    self.diagnosticAuxMoments = { }
 end
 
--- BC functions
+-- BC functions.
 function VlasovSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
-   -- requires skinLoop = "flip"
+   -- Requires skinLoop = "flip".
    self.basis:flipSign(dir, fIn, fOut)
    self.basis:flipSign(dir+self.cdim, fOut, fOut)
 end
 
 function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
-   -- requires skinLoop = "flip"
+   -- Requires skinLoop = "flip".
    local velIdx = {}
    for d = 1, self.vdim do
       velIdx[d] = idxIn[self.cdim + d]
@@ -317,7 +346,7 @@ function VlasovSpecies:bcExternFunc(dir, tm, idxIn, fIn, fOut)
 end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
-   -- need to wrap member functions so that self is passed
+   -- Need to wrap member functions so that self is passed.
    local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
    local function bcCopyFunc(...) return self:bcCopyFunc(...) end
    local function bcOpenFunc(...) return self:bcOpenFunc(...) end
@@ -360,10 +389,16 @@ end
 function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
 
    local tmStart = Time.clock()
-   -- compute moments needed in coupling to fields and collisions
+   -- Compute moments needed in coupling to fields and collisions.
    local fIn = self:rkStepperFields()[rkIdx]
    if self.collisions then 
-      self.fiveMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+      self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
+                                                      self.m1Correction, self.m2Correction,
+                                                      self.m0Star, self.m1Star, self.m2Star })
+      -- Also compute self-primitive moments u and vtSq.
+      self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
+                                       self.m1Correction, self.m2Correction, 
+                                       self.m0Star, self.m1Star, self.m2Star}, {self.uSelf, self.vtSqSelf})
    else
       self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
    end
@@ -371,17 +406,17 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
 
 end
 
--- function to compute n, u, nu^2, and nT for use in integrated moment routine
+-- Function to compute n, u, nu^2, and nT for use in integrated moment routine.
 function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
-   -- first compute M0, M1i, M2
+   -- First compute M0, M1i, M2.
    local fIn = self:rkStepperFields()[1]
    self.fiveMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
 
-   -- compute n*u^2 from n*u and n
+   -- Compute n*u^2 from n*u and n.
    self.confDiv:advance(0., {self.numDensity, self.momDensity}, {self.flow})
    self.confDotProduct:advance(0., {self.flow, self.momDensity}, {self.kineticEnergyDensity})
 
-   -- compute VDIM*n*T from M2 and kinetic energy density
+   -- Compute VDIM*n*T from M2 and kinetic energy density.
    self.thermalEnergyDensity:combine(1.0, self.ptclEnergy, -1.0, self.kineticEnergyDensity)
 
    for i, mom in pairs(self.diagnosticIntegratedMoments) do
@@ -408,8 +443,20 @@ function VlasovSpecies:fluidMoments()
    return { self.numDensity, self.momDensity, self.ptclEnergy }
 end
 
+function VlasovSpecies:boundaryCorrections()
+   return { self.m1Correction, self.m2Correction }
+end
+
+function VlasovSpecies:starMoments()
+   return { self.m0Star, self.m1Star, self.m2Star }
+end
+
+function VlasovSpecies:selfPrimitiveMoments()
+   return { self.uSelf, self.vtSqSelf }
+end
+
 function VlasovSpecies:getNumDensity(rkIdx)
-   -- if no rkIdx specified, assume numDensity has already been calculated
+   -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
 
    local tmStart = Time.clock()
@@ -423,7 +470,7 @@ function VlasovSpecies:getNumDensity(rkIdx)
 end
 
 function VlasovSpecies:getMomDensity(rkIdx)
-   -- if no rkIdx specified, assume momDensity has already been calculated
+   -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
 
    local tmStart = Time.clock()

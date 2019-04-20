@@ -39,9 +39,6 @@ function SelfPrimMoments:init(tbl)
    self._onGrid = assert(
       tbl.onGrid, "Updater.SelfPrimMoments: Must provide grid object using 'onGrid'.")
 
-   self._phaseGrid = assert(
-      tbl.phaseGrid, "Updater.SelfPrimMoments: Must provide phase grid object using 'phaseGrid'.")
-
    local phaseBasis = assert(
       tbl.phaseBasis, "Updater.SelfPrimMoments: Must provide the phase basis object using 'phaseBasis'.")
 
@@ -51,18 +48,18 @@ function SelfPrimMoments:init(tbl)
    local operator = assert(
       tbl.operator, "Updater.SelfPrimMoments: Must specify the collision operator (VmLBO or GkLBO for now) using 'operator'.")
 
-   -- dimension of phase space.
+   -- Dimension of phase space.
    self._pDim = phaseBasis:ndim()
    -- Basis name and polynomial order.
    self._basisID   = confBasis:id()
    self._polyOrder = confBasis:polyOrder()
 
-   -- ensure sanity.
+   -- Ensure sanity.
    assert(phaseBasis:polyOrder() == self._polyOrder,
           "Polynomial orders of phase and conf basis must match.")
    assert(phaseBasis:id() == self._basisID,
           "Type of phase and conf basis must match.")
-   -- determine configuration and velocity space dims.
+   -- Determine configuration and velocity space dims.
    self._cDim = confBasis:ndim()
    self._vDim = self._pDim - self._cDim
 
@@ -70,33 +67,14 @@ function SelfPrimMoments:init(tbl)
    self._numBasisP = phaseBasis:numBasis()
    self._numBasisC = confBasis:numBasis()
 
-   self._uDim       = self._vDim  -- Dimensionality of flow velocity vector.
+   local uDim       = self._vDim  -- Dimensionality of flow velocity vector.
    self._kinSpecies = "Vm"        -- Vlasov-Maxwell species.
+   self._isGkLBO    = false
    if isOperatorGood(operator) then
-     self._isGkLBO = false
      if operator == "GkLBO" then
         self._isGkLBO    = true
-        self._kinSpecies = "Gk"  -- Gyrokinetic species.
-
-        assert(tbl.gkfacs, [[DistFuncMomentCalc: must provide a gkfacs table
-                            containing the species mass and the background magnetic field
-                            to calculate a Gk moment]])
-        self.mass = tbl.gkfacs[1]
-        self.bmag = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")
-
-        self.bmagIndexer = self.bmag:genIndexer()
-        self.bmagItr     = self.bmag:get(1)
-
-        -- If vDim>1, intFac=2*pi/m or 4*pi/m.
-        self._intFac       = Lin.Vec(self._vDim)
-        for d = 1,self._vDim do 
-          self._intFac[d]  = 1.0
-        end
-        if self._vDim > 1 then -- A (vpar,mu) simulation has 3 physical velocity dimensions.
-           self._intFac[1] = 2.0*math.pi/self.mass
-           self._intFac[2] = 4.0*math.pi/self.mass
-           self._uDim      = 1
-        end
+        self._kinSpecies = "Gk"    -- Gyrokinetic species.
+        uDim             = 1       -- A (vpar,mu) simulation has 3 physical velocity dimensions.
      end
    else
       assert(false, string.format(
@@ -106,17 +84,10 @@ function SelfPrimMoments:init(tbl)
    self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
    
-   self._isFirst   = true
-   self._perpRange = {} -- perp ranges in velocity directions.
-   if self._polyOrder == 1 then
-      self._StarM1iM2Calc = PrimMomentsDecl.selectStarM1iM2Calc(self._kinSpecies, self._basisID, self._cDim, self._vDim) 
-
-   end
-
-   self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(self._uDim+1), 0) 
+   self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(uDim+1), 0) 
 end
 
--- advance method
+-- Advance method.
 function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
 
@@ -130,241 +101,87 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local vtSqOutIndexer = vtSqOut:genIndexer()
    local vtSqOutItr     = vtSqOut:get(1)
 
-   local m0fld, m1fld, fIn = inFld[1], inFld[2], inFld[4]
+   -- Moments used for all polyOrders.
+   local m0, m1 = inFld[1], inFld[2]
+   local m0Indexer   = m0:genIndexer()
+   local m0Itr       = m0:get(1)
+   local m1Indexer   = m1:genIndexer()
+   local m1Itr       = m1:get(1)
 
-   local m0fldIndexer   = m0fld:genIndexer()
-   local m0fldItr       = m0fld:get(1)
-   local m1fldIndexer   = m1fld:genIndexer()
-   local m1fldItr       = m1fld:get(1)
-   local phaseIndexer   = fIn:genIndexer()
-   local fInItrP         = fIn:get(1)
-   local fInItrM         = fIn:get(1)
+   -- Boundary corrections.
+   local cMomB, cEnergyB = inFld[4], inFld[5]
+   local cMomBIndexer    = cMomB:genIndexer()
+   local cMomBItr        = cMomB:get(1)
+   local cEnergyBIndexer = cEnergyB:genIndexer()
+   local cEnergyBItr     = cEnergyB:get(1)
 
-   local m0Star, m1Star, m2Star
-   local m2fld, m2fldIndexer, m2fldItr
-   if self._polyOrder == 1 then
-      m0Star = Lin.Vec(self._numBasisC)
-      m1Star = Lin.Vec(self._numBasisC*self._uDim)
-      m2Star = Lin.Vec(self._numBasisC)
+   local m2, m2Indexer, m2Itr
+   local m0Star, m0StarIndexer, m0StarItr
+   local m1Star, m1StarIndexer, m1StarItr
+   local m2Star, m2StarIndexer, m2StarItr
+   if self._polyOrder > 1 then
+      m2         = inFld[3]
+      m2Indexer  = m2:genIndexer()
+      m2Itr      = m2:get(1)
    else
-      m2fld         = inFld[3]
-      m2fldIndexer  = m2fld:genIndexer()
-      m2fldItr      = m2fld:get(1)
+      m0Star, m1Star, m2Star  = inFld[6], inFld[7], inFld[8]
+      m0StarIndexer = m0Star:genIndexer()
+      m0StarItr     = m0Star:get(1)
+      m1StarIndexer = m1Star:genIndexer()
+      m1StarItr     = m1Star:get(1)
+      m2StarIndexer = m2Star:genIndexer()
+      m2StarItr     = m2Star:get(1)
    end
 
-   local confRange  = m0fld:localRange()
-   if self.onGhosts then confRange = m0fld:localExtRange() end
+   local confRange  = m0:localRange()
+   if self.onGhosts then confRange = m0:localExtRange() end
 
-   local phaseRange = fIn:localRange()
-
-   -- Distribution functions left and right of a cell-boundary.
-   local fInP = Lin.Vec(self._numBasisP)
-   local fInM = Lin.Vec(self._numBasisP)
-
-   -- These store the corrections to momentum and energy
-   -- from the (velocity) boundary surface integrals.
-   local cMomB    = Lin.Vec(self._numBasisC*self._uDim)
-   local cEnergyB = Lin.Vec(self._numBasisC)
-
-   -- Cell index, center and length left and right of a cell-boundary.
-   local idxM, idxP = Lin.IntVec(pDim), Lin.IntVec(pDim)
-   local xcM, xcP   = Lin.Vec(pDim), Lin.Vec(pDim)
-   local dxM, dxP   = Lin.Vec(pDim), Lin.Vec(pDim)
-
-   -- construct ranges for nested loops
-   -- NOTE: Shared memory is only being used over configuration space
-   -- Similar to DistFuncMomentCalc, this is to avoid race conditions
+   -- Construct ranges for nested loops.
+   -- NOTE: Shared memory is only being used over configuration space.
+   -- Similar to DistFuncMomentCalc, this is to avoid race conditions.
    local confRangeDecomp = LinearDecomp.LinearDecompRange {
       range = confRange:selectFirst(cDim), numSplit = grid:numSharedProcs() }
-   local tId = grid:subGridSharedId() -- local thread ID
+   local tId = grid:subGridSharedId()    -- Local thread ID.
 
-   for confIdx in confRangeDecomp:rowMajorIter(tId) do
-      grid:setIndex(confIdx)
+   -- polyOrder=1 and >1 each use separate velocity grid loops to
+   -- avoid evaluating (if polyOrder==1) at each velocity coordinate.
+   if self._polyOrder > 1 then
 
-      m0fld:fill(m0fldIndexer(confIdx), m0fldItr)
-      m1fld:fill(m1fldIndexer(confIdx), m1fldItr)
-      uOut:fill(uOutIndexer(confIdx), uOutItr)
-      vtSqOut:fill(vtSqOutIndexer(confIdx), vtSqOutItr)
-      if (self._isGkLBO) then
-         self.bmag:fill(self.bmagIndexer(confIdx), self.bmagItr)
+      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+         grid:setIndex(cIdx)
+
+         m0:fill(m0Indexer(cIdx), m0Itr)
+         m1:fill(m1Indexer(cIdx), m1Itr)
+         m2:fill(m2Indexer(cIdx), m2Itr)
+         cMomB:fill(cMomBIndexer(cIdx), cMomBItr)
+         cEnergyB:fill(cEnergyBIndexer(cIdx), cEnergyBItr)
+
+         uOut:fill(uOutIndexer(cIdx), uOutItr)
+         vtSqOut:fill(vtSqOutIndexer(cIdx), vtSqOutItr)
+
+         self._SelfPrimMomentsCalc(self._binOpData, m0Itr:data(), m1Itr:data(), m2Itr:data(), cMomBItr:data(), cEnergyBItr:data(), uOutItr:data(), vtSqOutItr:data())
       end
 
-      -- Compute the corrections to u and vtSq due to 
-      -- finite velocity grid to ensure conservation.
-      ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, cEnergyB:data())
-      ffiC.gkylCartFieldAssignAll(0, self._uDim*self._numBasisC, 0.0, cMomB:data())
+   else
 
-      -- Only when the contributions to m0Star from the first direction
-      -- are collected, do we collect contributions to m1Star and m2Star.
-      -- Also, since Gk velocities are organized as (vpar,mu) the velocity
-      -- correction is only computed for the first velocity direction.
-      local firstDir = true
+      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+         grid:setIndex(cIdx)
 
-      -- isLo=true current cell is the lower boundary cell.
-      -- isLo=false current cell is the upper boundary cell.
-      local isLo = true
+         m0:fill(m0Indexer(cIdx), m0Itr)
+         m1:fill(m1Indexer(cIdx), m1Itr)
+         cMomB:fill(cMomBIndexer(cIdx), cMomBItr)
+         cEnergyB:fill(cEnergyBIndexer(cIdx), cEnergyBItr)
+         m0Star:fill(m0StarIndexer(cIdx), m0StarItr)
+         m1Star:fill(m1StarIndexer(cIdx), m1StarItr)
+         m2Star:fill(m2StarIndexer(cIdx), m2StarItr)
 
-      -- MF: Apologies if the code seems lengthy. 
-      -- polyOrder=1 and >1 each use separate velocity grid loops to
-      -- avoid evaluating (if polyOrder==1) at each velocity coordinate.
-      if self._polyOrder > 1 then
-         m2fld:fill(m2fldIndexer(confIdx), m2fldItr)
+         uOut:fill(uOutIndexer(cIdx), uOutItr)
+         vtSqOut:fill(vtSqOutIndexer(cIdx), vtSqOutItr)
 
-         for vDir = 1, vDim do
-            if (not self._isGkLBO) or (self._isGkLBO and firstDir) then
-               self._uCorrection    = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-            end
-            self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-
-            -- Lower/upper bounds in direction 'vDir': cell indices.
-            local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)
-
-            if self._isFirst then
-               self._perpRange[vDir] = phaseRange
-               for cd = 1, cDim do
-                  self._perpRange[vDir] = self._perpRange[vDir]:shorten(cd) -- shorten configuration range.
-               end
-               self._perpRange[vDir] = self._perpRange[vDir]:shorten(cDim+vDir) -- velocity range orthogonal to 'vDir'.
-            end
-            local perpRange = self._perpRange[vDir]
-
-            for vPerpIdx in perpRange:rowMajorIter() do
-               vPerpIdx:copyInto(idxP)
-               for d = 1, cDim do idxP[d] = confIdx[d] end
-
-               for _, i in ipairs({dirLoIdx, dirUpIdx}) do     -- This loop is over edges.
-                  idxP[cDim+vDir] = i 
-
-                  self._phaseGrid:setIndex(idxP)
-                  self._phaseGrid:getDx(dxP)
-                  self._phaseGrid:cellCenter(xcP)
-
-                  fIn:fill(phaseIndexer(idxP), fInItrP)
-
-                  local vBound = 0.0
-                  if isLo then
-                     vBound = self._phaseGrid:cellLowerInDir(cDim + vDir)
-                  else
-                     vBound = self._phaseGrid:cellUpperInDir(cDim + vDir)
-                  end
-
-                  if (self._isGkLBO) then
-                     if (firstDir) then
-                       self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInItrP:data(), cMomB:data())
-                     end
-                     self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
-                  else
-                     self._uCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cMomB:data())
-                     self._vtSqCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
-                  end
-
-                  isLo = not isLo
-               end
-            end
-            firstDir = false
-         end
-
-         self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m2fldItr:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
-
-      else
-         -- To have energy conservation with piece-wise linear, we must use
-         -- star moments in the second equation of the weak system solved
-         -- in SelfPrimMoments.
-         ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, m0Star:data())
-         ffiC.gkylCartFieldAssignAll(0, self._uDim*self._numBasisC, 0.0, m1Star:data())
-         ffiC.gkylCartFieldAssignAll(0, self._numBasisC, 0.0, m2Star:data())
-
-         for vDir = 1, vDim do
-            if (not self._isGkLBO) or (self._isGkLBO and firstDir) then
-               self._StarM0Calc = PrimMomentsDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim)
-               self._uCorrection    = PrimMomentsDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-            end
-            self._vtSqCorrection = PrimMomentsDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-
-            -- Lower/upper bounds in direction 'vDir': edge indices (including outer edges).
-            local dirLoIdx, dirUpIdx = phaseRange:lower(cDim+vDir), phaseRange:upper(cDim+vDir)+1
-
-            if self._isFirst then
-               -- Restricted velocity range.
-               -- Velocity integral in m0Star does not include last cell.
-               self._perpRange[vDir] = phaseRange
-               for cd = 1, cDim do
-                  self._perpRange[vDir] = self._perpRange[vDir]:shorten(cd) -- shorten configuration range.
-               end
-               self._perpRange[vDir] = self._perpRange[vDir]:shorten(cDim+vDir) -- velocity range orthogonal to 'vDir'.
-            end
-            local perpRange = self._perpRange[vDir]
-
-            -- Outer loop is over directions orthogonal to 'vDir' and
-            -- inner loop is over 1D slice in 'vDir'.
-            for vPerpIdx in perpRange:rowMajorIter() do
-               vPerpIdx:copyInto(idxM); vPerpIdx:copyInto(idxP)
-               for d = 1, cDim do idxM[d] = confIdx[d] end
-               for d = 1, cDim do idxP[d] = confIdx[d] end
-
-               for i = dirLoIdx, dirUpIdx do     -- This loop is over edges.
-                  idxM[cDim+vDir], idxP[cDim+vDir] = i-1, i -- Cell left/right of edge 'i'.
-
-	          self._phaseGrid:setIndex(idxM)
-                  self._phaseGrid:getDx(dxM)
-	          self._phaseGrid:cellCenter(xcM)
-
-	          self._phaseGrid:setIndex(idxP)
-                  self._phaseGrid:getDx(dxP)
-	          self._phaseGrid:cellCenter(xcP)
-
-                  fIn:fill(phaseIndexer(idxM), fInItrM)
-                  fIn:fill(phaseIndexer(idxP), fInItrP)
-
-                  if i>dirLoIdx and i<dirUpIdx then  
-                     if (self._isGkLBO) then
-                        if (firstDir) then
-                           self._StarM0Calc(self._intFac[1], xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInItrM:data(), fInItrP:data(), m0Star:data())
-                        end
-                     else
-                        self._StarM0Calc(xcM:data(), xcP:data(), dxM:data(), dxP:data(), fInItrM:data(), fInItrP:data(), m0Star:data())
-                     end
-                  end
-             	  if firstDir and i<dirUpIdx then
-                     if self._isGkLBO then
-                        self._StarM1iM2Calc(xcP:data(), dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), fInItrP:data(), m1Star:data(), m2Star:data())
-                     else
-                        self._StarM1iM2Calc(xcP:data(), dxP:data(), fInItrP:data(), m1Star:data(), m2Star:data())
-                     end
-                  end
-
-                  if i==dirLoIdx or i==dirUpIdx-1 then
-                     local vBound = 0.0
-                     -- Careful: for vBound below we assume idxP was set after idxM above.
-                     if isLo then
-                        vBound = self._phaseGrid:cellLowerInDir(cDim + vDir)
-                     else
-                        vBound = self._phaseGrid:cellUpperInDir(cDim + vDir)
-                     end
-                     if (self._isGkLBO) then
-                        if (firstDir) then
-                           self._uCorrection(isLo, self._intFac[1], vBound, dxP:data(), fInItrP:data(), cMomB:data())
-                        end
-                        self._vtSqCorrection(isLo, self._intFac[vDir], vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
-                     else
-                        self._uCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cMomB:data())
-                        self._vtSqCorrection(isLo, vBound, dxP:data(), fInItrP:data(), cEnergyB:data())
-                     end
-
-                     isLo = not isLo
-                  end
-
-               end
-            end
-            firstDir = false
-         end
-
-      self._SelfPrimMomentsCalc(self._binOpData, m0fldItr:data(), m1fldItr:data(), m0Star:data(), m1Star:data(), m2Star:data(), cMomB:data(), cEnergyB:data(), uOutItr:data(), vtSqOutItr:data())
-
+         self._SelfPrimMomentsCalc(self._binOpData, m0Itr:data(), m1Itr:data(), m0StarItr:data(), m1StarItr:data(), m2StarItr:data(), cMomBItr:data(), cEnergyBItr:data(), uOutItr:data(), vtSqOutItr:data())
       end
 
    end
-   self._isFirst = false
 end
 
 return SelfPrimMoments

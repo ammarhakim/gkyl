@@ -19,6 +19,17 @@ def build(bld):
     spitzerNuCalcData/SpitzerNuMax2x.cpp
     spitzerNuCalcData/SpitzerNuMax3x.cpp
 
+    momentCalcData/DistFuncMomentLBOCalcSer1x1v.cpp
+    momentCalcData/DistFuncMomentLBOCalcSer1x2v.cpp
+    momentCalcData/DistFuncMomentLBOCalcSer1x3v.cpp
+    momentCalcData/DistFuncMomentLBOCalcSer2x2v.cpp
+    momentCalcData/DistFuncMomentLBOCalcSer2x3v.cpp
+    momentCalcData/DistFuncMomentLBOCalcSer3x3v.cpp
+    momentCalcData/DistFuncGkMomentLBOCalcSer1x1v.cpp
+    momentCalcData/DistFuncGkMomentLBOCalcSer1x2v.cpp
+    momentCalcData/DistFuncGkMomentLBOCalcSer2x2v.cpp
+    momentCalcData/DistFuncGkMomentLBOCalcSer3x2v.cpp
+
     primMomentsCalcData/VmSelfPrimMomentsSer1x1v.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x2v.cpp
     primMomentsCalcData/VmSelfPrimMomentsSer1x3v.cpp
