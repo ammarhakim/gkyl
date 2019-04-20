@@ -248,15 +248,6 @@ function VmLBOCollisions:createSolver()
       updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
-   if self.selfCollisions then
-      self.primMomSelf = Updater.SelfPrimMoments {
-         onGrid     = self.confGrid,
-         phaseGrid  = self.phaseGrid,
-         phaseBasis = self.phaseBasis,
-         confBasis  = self.confBasis,
-         operator   = "VmLBO",
-      }
-   end
    if self.crossCollisions then
       -- Flow velocity in vdim directions of the other species.
       self.uOther = DataStruct.Field {
@@ -331,10 +322,8 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    local tmEvalMomStart = Time.clock()
    if self.selfCollisions then
-      -- Compute primitive moments velocity and vthSq=T/m from zeroth,
-      -- first and second moments, and distribution function.
-      self.primMomSelf:advance(0.0, {selfMom[1], selfMom[2], selfMom[3],fIn},
-                                    {self.velocity, self.vthSq})
+      -- Fetch primitive moments velocity and vthSq=T/m.
+      local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
       self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
 
       -- NOTE: The following code is commented out because Vm users don't seem
@@ -369,13 +358,13 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, {self.mass, self.charge, selfMom[1], self.vthSq, self.normNuSelf},{self.collFreq})
+         self.spitzerNu:advance(0.0, {self.mass, self.charge, selfMom[1], primMomSelf[2], self.normNuSelf},{self.collFreq})
       else
          self.collFreq = self.collFreqSelf
       end
       -- Compute increment from collisions and accumulate it into output.
       self.collisionSlvr:advance(
-         tCurr, {fIn, self.velocity, self.vthSq, self.collFreq}, {self.collOut})
+         tCurr, {fIn, primMomSelf[1], primMomSelf[2], self.collFreq}, {self.collOut})
       -- Barrier over shared communicator before accumulate
       Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
@@ -438,14 +427,14 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 end
 
 function VmLBOCollisions:write(tm, frame)
-   self.velocity:write(string.format("%s_%s_%d.bp", self.speciesName, "u", frame), tm, frame)
-   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
+--   self.velocity:write(string.format("%s_%s_%d.bp", self.speciesName, "u", frame), tm, frame)
+--   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
 -- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.
 --   self.primMomLimitCrossings:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame)
-   if self.crossCollisions then
-      self.uCross:write(string.format("%s_%s_%d.bp", self.speciesName, "uCross", frame), tm, frame)
-      self.vthSqCross:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSqCross", frame), tm, frame)
-   end
+--   if self.crossCollisions then
+--      self.uCross:write(string.format("%s_%s_%d.bp", self.speciesName, "uCross", frame), tm, frame)
+--      self.vthSqCross:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSqCross", frame), tm, frame)
+--   end
 end
 
 function VmLBOCollisions:totalTime()

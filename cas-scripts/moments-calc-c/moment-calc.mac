@@ -18,212 +18,213 @@ let(dv2^3, dv2_cu)$
 let(dv3^3, dv3_cu)$
 
 volExpr(cdim, vdim) := prod(dxv[cdim+i-1], i, 1, vdim)$
-vTrans : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
-wTrans : [wx1, wx2, wx3]$
+
+vTrans  : [vx*dv1/2+wx1, vy*dv2/2+wx2, vz*dv3/2+wx3]$
+wTrans  : [wx1, wx2, wx3]$
 dvTrans : [vx*dv1/2, vy*dv2/2, vz*dv3/2]$
-pmax : 3$
+
 /* Number density */
-calcM0(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for p : 1 thru pmax do (
-  bP : basisP[p],
-  bC : basisC[p],
-
-  printf(fh, "void ~a_M0_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
-  fl : doExpand1(f, bP),
-  M : calcInnerProdList(varsP, 1, bC, fl),
-  writeCIncrExprs1(out, volFact*M),
-
-  printf(fh, "} ~%")
+calcM0(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    bC : basisC[p],
+  
+    printf(fh, "void ~a_M0_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+    fl : doExpand1(f, bP),
+    M : calcInnerProdList(varsP, 1, bC, fl),
+    writeCIncrExprs1(out, volFact*M),
+  
+    printf(fh, "} ~%")
 ))$
 
 
 /* Momentum */
-calcM1i(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for p : 1 thru pmax do (
-  bP : basisP[p],
-  bC : basisC[p],
-
-  printf(fh, "void ~a_M1i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
-  for i : 1 thru vdim do (
-    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
-  ),
-
-  fl : doExpand1(f, bP),
-
-  M : (M : [],
-       for dir : 1 thru vdim do (
-         M : append(M, calcInnerProdList(varsP, vTrans[dir], bC, fl))
-       ),
-  M),
-
-  clst : [volFact],
-  writeCIncrExprsCollect1(out, volFact*M, clst),
-
-  printf(fh, "} ~%")
+calcM1i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    bC : basisC[p],
+  
+    printf(fh, "void ~a_M1i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1)
+    ),
+  
+    fl : doExpand1(f, bP),
+  
+    M : (M : [],
+         for dir : 1 thru vdim do (
+           M : append(M, calcInnerProdList(varsP, vTrans[dir], bC, fl))
+         ),
+    M),
+  
+    clst : [volFact],
+    writeCIncrExprsCollect1(out, volFact*M, clst),
+  
+    printf(fh, "} ~%")
 ))$
 
 /* Pressure tensor */
-calcM2ij(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for p : 1 thru pmax do (
-  bP : basisP[p],
-  bC : basisC[p],
-
-  printf(fh, "void ~a_M2ij_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
-  for i : 1 thru vdim do (
-    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
-    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
-  ),
-
-  fl : doExpand1(f, bP),
-
-  M : (M : [],
-       for d1 : 1 thru vdim do (
-          for d2 : d1 thru vdim do (
-            M : append(M, calcInnerProdList(varsP, vTrans[d1]*vTrans[d2], bC, fl))
-       )),
-  M),
-
-  M : map(letsimp, M),
-  clst : [volFact],
-  writeCIncrExprsCollect1(out, volFact*M, clst),
-
-  printf(fh, "} ~%")
+calcM2ij(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    bC : basisC[p],
+  
+    printf(fh, "void ~a_M2ij_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+      printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+    ),
+  
+    fl : doExpand1(f, bP),
+  
+    M : (M : [],
+         for d1 : 1 thru vdim do (
+            for d2 : d1 thru vdim do (
+              M : append(M, calcInnerProdList(varsP, vTrans[d1]*vTrans[d2], bC, fl))
+         )),
+    M),
+  
+    M : map(letsimp, M),
+    clst : [volFact],
+    writeCIncrExprsCollect1(out, volFact*M, clst),
+  
+    printf(fh, "} ~%")
 ))$
 
 /* Energy */
-calcM2(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for p : 1 thru pmax do (
-  bP : basisP[p],
-  bC : basisC[p],
-
-  printf(fh, "void ~a_M2_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
-  for i : 1 thru vdim do (
-    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
-    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
-  ),
-
-  fl : doExpand1(f, bP),
-
-  M : sum(calcInnerProdList(varsP, vTrans[d]*vTrans[d], bC, fl), d, 1, vdim),
-
-  M : map(letsimp, M),
-  clst : [volFact],
-  writeCIncrExprsCollect1(out, volFact*M, clst),
-
-  printf(fh, "} ~%")
+calcM2(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    bC : basisC[p],
+  
+    printf(fh, "void ~a_M2_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+      printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+    ),
+  
+    fl : doExpand1(f, bP),
+  
+    M : sum(calcInnerProdList(varsP, vTrans[d]*vTrans[d], bC, fl), d, 1, vdim),
+  
+    M : map(letsimp, M),
+    clst : [volFact],
+    writeCIncrExprsCollect1(out, volFact*M, clst),
+  
+    printf(fh, "} ~%")
 ))$
 
 /* Heat-flux vector */
-calcM3i(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for p : 1 thru pmax do (
-  bP : basisP[p],
-  bC : basisC[p],
-
-  printf(fh, "void ~a_M3i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
-  for i : 1 thru vdim do (
-    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
-    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i),
-    printf(fh, "  const double wx~a_cu = wx~a*wx~a*wx~a, dv~a_cu = dv~a*dv~a*dv~a; ~%", i, i, i, i, i, i, i, i)
-  ),
-
-  fl : doExpand1(f, bP),
-
-  M : (M : [],
-       for i : 1 thru vdim do (
-         M : append(M, sum(calcInnerProdList(varsP, vTrans[i]*vTrans[d]*vTrans[d], bC, fl), d, 1, vdim))
-       ),
-  M),
-
-  M : map(letsimp, M),
-  clst : [volFact],
-  writeCIncrExprsCollect1(out, volFact*M, clst),
-
-  printf(fh, "} ~%")
+calcM3i(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    bC : basisC[p],
+  
+    printf(fh, "void ~a_M3i_P~a(const double *w, const double *dxv, const double *f, double *out) ~%{ ~%", funcNm, p),
+    printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+      printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i),
+      printf(fh, "  const double wx~a_cu = wx~a*wx~a*wx~a, dv~a_cu = dv~a*dv~a*dv~a; ~%", i, i, i, i, i, i, i, i)
+    ),
+  
+    fl : doExpand1(f, bP),
+  
+    M : (M : [],
+         for i : 1 thru vdim do (
+           M : append(M, sum(calcInnerProdList(varsP, vTrans[i]*vTrans[d]*vTrans[d], bC, fl), d, 1, vdim))
+         ),
+    M),
+  
+    M : map(letsimp, M),
+    clst : [volFact],
+    writeCIncrExprsCollect1(out, volFact*M, clst),
+  
+    printf(fh, "} ~%")
 ))$
 
 /* Calculate M0, M1i, and M2 (Five moments) sequentially */
-calcFiveMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
-kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-for p : 1 thru pmax do (
-  bP : basisP[p],
-  bC : basisC[p],
-
-  printf(fh, "void ~a_FiveMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2) ~%{ ~%", funcNm, p),
-  printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
-  for i : 1 thru vdim do (
-    printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
-    printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
-  ),
-  printf(fh, "  double tempM0[~a], tempM1i[~a]; ~%", length(bC), length(bC)*vdim),
-  printf(fh, "~%"),
-  fl : doExpand1(f, bP),
-
-  M0 : calcInnerProdList(varsP, 1, bC, fl),
-  M1i : (M1i : [],
-       for dir : 1 thru vdim do (
-         M1i : append(M1i, calcInnerProdList(varsP, dvTrans[dir], bC, fl))
-       ),
-  M1i),
-  M2 : sum(calcInnerProdList(varsP, dvTrans[d]*dvTrans[d], bC, fl), d, 1, vdim),
-  writeCExprs1(tempM0, volFact*M0),
-
-  printf(fh, "~%"),
-  M0M1i : (M0M1i : [],
-       for dir : 1 thru vdim do (
-         M0M1i : append(M0M1i, makelist(tempM0[i-1]*wTrans[dir], i, 1, length(bC)))
-       ),
-  M0M1i),
-  writeCExprs1(tempM1i, M0M1i+volFact*M1i),
-  printf(fh, "~%"),
-  if vdim = 1 then (
-     M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]-tempM0[i-1]*wTrans[1]*wTrans[1], i, 1, length(bC))
-  ),
-  if vdim = 2 then (
-     M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]+2*tempM1i[i-1+length(bC)]*wTrans[2]-tempM0[i-1]*(wTrans[1]*wTrans[1]+wTrans[2]*wTrans[2]), i, 1, length(bC))
-  ),
-  if vdim = 3 then (
-     M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]+2*tempM1i[i-1+length(bC)]*wTrans[2]+2*tempM1i[i-1+2*length(bC)]*wTrans[3]-tempM0[i-1]*(wTrans[1]*wTrans[1]+wTrans[2]*wTrans[2]+wTrans[3]*wTrans[3]), i, 1, length(bC))
-  ),
-  M2 : map(letsimp, M2),
-  M0M2 : map(letsimp, M0M2),
-  incr_tempM0 : makelist(tempM0[i-1], i, 1, length(bC)),
-  incr_tempM1i : makelist(tempM1i[i-1], i, 1, vdim*length(bC)),
-  writeCIncrExprs1(outM0, incr_tempM0),
-  writeCIncrExprs1(outM1i, incr_tempM1i),
-  clst : [volFact],
-  clst : append(clst, makelist(tempM0[i-1], i, 1, length(bC))),
-  writeCIncrExprsCollect1(outM2, M0M2+volFact*M2, clst),
-  printf(fh, "} ~%")
+calcFiveMoments(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+  kill(varsC, varsP, basisC, basisP),
+  modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
+  load(modNm),
+  for p : 1 thru pMax do (
+    bP : basisP[p],
+    bC : basisC[p],
+  
+    printf(fh, "void ~a_FiveMoments_P~a(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2) ~%{ ~%", funcNm, p),
+    printf(fh, "  const double volFact = ~a/~a; ~%", volExpr(cdim, vdim), 2^vdim),
+    for i : 1 thru vdim do (
+      printf(fh, "  const double wx~a = w[~a], dv~a = dxv[~a]; ~%", i, cdim+i-1, i, cdim+i-1),
+      printf(fh, "  const double wx~a_sq = wx~a*wx~a, dv~a_sq = dv~a*dv~a; ~%", i, i, i, i, i, i)
+    ),
+    printf(fh, "  double tempM0[~a], tempM1i[~a]; ~%", length(bC), length(bC)*vdim),
+    printf(fh, "~%"),
+    fl : doExpand1(f, bP),
+  
+    M0 : calcInnerProdList(varsP, 1, bC, fl),
+    M1i : (M1i : [],
+         for dir : 1 thru vdim do (
+           M1i : append(M1i, calcInnerProdList(varsP, dvTrans[dir], bC, fl))
+         ),
+    M1i),
+    M2 : sum(calcInnerProdList(varsP, dvTrans[d]*dvTrans[d], bC, fl), d, 1, vdim),
+    writeCExprs1(tempM0, volFact*M0),
+  
+    printf(fh, "~%"),
+    M0M1i : (M0M1i : [],
+         for dir : 1 thru vdim do (
+           M0M1i : append(M0M1i, makelist(tempM0[i-1]*wTrans[dir], i, 1, length(bC)))
+         ),
+    M0M1i),
+    writeCExprs1(tempM1i, M0M1i+volFact*M1i),
+    printf(fh, "~%"),
+    if vdim = 1 then (
+       M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]-tempM0[i-1]*wTrans[1]*wTrans[1], i, 1, length(bC))
+    ),
+    if vdim = 2 then (
+       M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]+2*tempM1i[i-1+length(bC)]*wTrans[2]-tempM0[i-1]*(wTrans[1]*wTrans[1]+wTrans[2]*wTrans[2]), i, 1, length(bC))
+    ),
+    if vdim = 3 then (
+       M0M2 : makelist(2*tempM1i[i-1]*wTrans[1]+2*tempM1i[i-1+length(bC)]*wTrans[2]+2*tempM1i[i-1+2*length(bC)]*wTrans[3]-tempM0[i-1]*(wTrans[1]*wTrans[1]+wTrans[2]*wTrans[2]+wTrans[3]*wTrans[3]), i, 1, length(bC))
+    ),
+    M2 : map(letsimp, M2),
+    M0M2 : map(letsimp, M0M2),
+    incr_tempM0 : makelist(tempM0[i-1], i, 1, length(bC)),
+    incr_tempM1i : makelist(tempM1i[i-1], i, 1, vdim*length(bC)),
+    writeCIncrExprs1(outM0, incr_tempM0),
+    writeCIncrExprs1(outM1i, incr_tempM1i),
+    clst : [volFact],
+    clst : append(clst, makelist(tempM0[i-1], i, 1, length(bC))),
+    writeCIncrExprsCollect1(outM2, M0M2+volFact*M2, clst),
+    printf(fh, "} ~%")
 ))$
 
-calcMoments(fh, funcNm, cdim, vdim, basisFun) := block([],
+calcMoments(fh, funcNm, cdim, vdim, basisFun, polyOrderMax) := block([],
   printf(fh, "#include <DistFuncMomentCalcModDecl.h> ~%"),
-  calcM0(fh, funcNm, cdim, vdim, basisFun),
-  calcM1i(fh, funcNm, cdim, vdim, basisFun),
-  calcM2ij(fh, funcNm, cdim, vdim, basisFun),
-  calcM2(fh, funcNm, cdim, vdim, basisFun),
-  calcM3i(fh, funcNm, cdim, vdim, basisFun),
-  calcFiveMoments(fh, funcNm, cdim, vdim, basisFun),
+  calcM0(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+  calcM1i(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+  calcM2ij(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+  calcM2(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+  calcM3i(fh, funcNm, cdim, vdim, basisFun, polyOrderMax),
+  calcFiveMoments(fh, funcNm, cdim, vdim, basisFun, polyOrderMax)
 )$

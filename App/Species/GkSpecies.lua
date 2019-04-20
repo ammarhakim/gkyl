@@ -1,47 +1,62 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Gyrokinetic species object
+-- Gyrokinetic species object.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto = require "Lib.Proto"
+local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
-local Gk = require "Eq.Gyrokinetic"
-local Updater = require "Updater"
-local DataStruct = require "DataStruct"
-local Time = require "Lib.Time"
-local Constants = require "Lib.Constants"
+local Gk             = require "Eq.Gyrokinetic"
+local Updater        = require "Updater"
+local DataStruct     = require "DataStruct"
+local Time           = require "Lib.Time"
+local Constants      = require "Lib.Constants"
 
 local GkSpecies = Proto(KineticSpecies)
 
--- add constants to object indicate various supported boundary conditions
-local SP_BC_ABSORB = 1
-local SP_BC_OPEN = 2
-local SP_BC_REFLECT = 3
-local SP_BC_SHEATH = 4
+-- Add constants to object indicate various supported boundary conditions.
+local SP_BC_ABSORB   = 1
+local SP_BC_OPEN     = 2
+local SP_BC_REFLECT  = 3
+local SP_BC_SHEATH   = 4
 local SP_BC_ZEROFLUX = 5
-local SP_BC_COPY = 6
-GkSpecies.bcAbsorb = SP_BC_ABSORB -- absorb all particles
-GkSpecies.bcOpen = SP_BC_OPEN -- zero gradient
-GkSpecies.bcReflect = SP_BC_REFLECT -- specular reflection
-GkSpecies.bcSheath = SP_BC_SHEATH -- specular reflection
-GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX -- zero flux
-GkSpecies.bcCopy = SP_BC_COPY -- copy stuff
+local SP_BC_COPY     = 6
+GkSpecies.bcAbsorb   = SP_BC_ABSORB      -- Absorb all particles.
+GkSpecies.bcOpen     = SP_BC_OPEN        -- Zero gradient.
+GkSpecies.bcReflect  = SP_BC_REFLECT     -- Specular reflection.
+GkSpecies.bcSheath   = SP_BC_SHEATH      -- Specular reflection.
+GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX    -- Zero flux.
+GkSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
 
 function GkSpecies:alloc(nRkDup)
-   -- allocate distribution function
+   -- Allocate distribution function.
    GkSpecies.super.alloc(self, nRkDup)
 
-   -- allocate fields to store coupling moments (for use in coupling
-   -- to field and collisions)
-   self.numDensity = self:allocMoment()
-   self.numDensityAux = self:allocMoment()
-   self.momDensity = self:allocMoment()
-   self.momDensityAux = self:allocMoment()
-   self.ptclEnergy = self:allocMoment()
+   -- Allocate fields to store coupling moments (for use in coupling
+   -- to field and collisions).
+   self.numDensity         = self:allocMoment()
+   self.numDensityAux      = self:allocMoment()
+   self.momDensity         = self:allocMoment()
+   self.momDensityAux      = self:allocMoment()
+   self.ptclEnergy         = self:allocMoment()
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
+
+   if self.collisions then
+     -- Allocate fields for boundary corrections.
+     self.m1Correction = self:allocVectorMoment(self.vdim)
+     self.m2Correction = self:allocMoment()
+
+     -- Allocate fields for star moments (only used with polyOrder=1).
+     self.m0Star = self:allocMoment()
+     self.m1Star = self:allocVectorMoment(self.vdim)
+     self.m2Star = self:allocMoment()
+   end
+
+   -- Allocate fields to store self-species primitive moments.
+   self.uParSelf = self:allocVectorMoment(self.vdim)
+   self.vtSqSelf = self:allocMoment()
 
    if self.gyavg then
       self.rho1 = self:allocDistf()
@@ -65,7 +80,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       self.bmagFunc = funcField.bmagFunc
       -- if vdim>1, get jacobian=bmag from geo
       self.jacobPhaseFunc = self.bmagFunc
-      self.jacobGeoFunc = funcField.jacobGeoFunc
+      self.jacobGeoFunc   = funcField.jacobGeoFunc
       if self.cdim == 1 then 
          self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1)})
       elseif self.cdim == 2 then 
@@ -92,66 +107,66 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          return math.sqrt(2*mu*self.mass*(funcField.gxxFunc(t,xn)*funcField.gyyFunc(t,xn)-funcField.gxyFunc(t,xn)^2)/(self.charge^2*funcField.gxxFunc(t, xn)*funcField.bmagFunc(t, xn)))
       end
       local project1 = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = rho1Func,
+         onGrid          = self.grid,
+         basis           = self.basis,
+         evaluate        = rho1Func,
          projectOnGhosts = true
       }
       project1:advance(0.0, {}, {self.rho1})
       local project2 = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = rho2Func,
+         onGrid          = self.grid,
+         basis           = self.basis,
+         evaluate        = rho2Func,
          projectOnGhosts = true
       }
       project2:advance(0.0, {}, {self.rho2})
       local project3 = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = rho3Func,
+         onGrid          = self.grid,
+         basis           = self.basis,
+         evaluate        = rho3Func,
          projectOnGhosts = true
       }
       project3:advance(0.0, {}, {self.rho3})
 
-      -- create solver for gyroaveraging potentials
+      -- Create solver for gyroaveraging potentials.
       self.emGyavgSlvr = Updater.FemGyroaverage {
-         onGrid = self.confGrid,
-         confBasis = self.confBasis,
-         phaseGrid = self.grid,
+         onGrid     = self.confGrid,
+         confBasis  = self.confBasis,
+         phaseGrid  = self.grid,
          phaseBasis = self.basis,
-         rho1 = self.rho1,
-         rho2 = self.rho2,
-         rho3 = self.rho3,
-         muOrder0 = true, -- cell-average in mu
+         rho1       = self.rho1,
+         rho2       = self.rho2,
+         rho3       = self.rho3,
+         muOrder0   = true, -- Cell-average in mu.
       }
 
-      -- create solver for gyroaveraging distribution function
+      -- Create solver for gyroaveraging distribution function.
       self.distfGyavgSlvr = Updater.FemGyroaverage {
-         onGrid = self.confGrid,
-         confBasis = self.confBasis,
-         phaseGrid = self.grid,
+         onGrid     = self.confGrid,
+         confBasis  = self.confBasis,
+         phaseGrid  = self.grid,
          phaseBasis = self.basis,
-         rho1 = self.rho1,
-         rho2 = self.rho2,
-         rho3 = self.rho3,
-         integrate = true,
+         rho1       = self.rho1,
+         rho2       = self.rho2,
+         rho3       = self.rho3,
+         integrate  = true,
       }
    end
 
-   -- create updater to advance solution by one time-step
+   -- Create updater to advance solution by one time-step.
    self.gkEqn = Gk.GkEq {
-      onGrid = self.grid,
-      confGrid = self.confGrid,
-      phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      charge = self.charge,
-      mass = self.mass,
-      hasPhi = hasPhi,
-      hasApar = hasApar,
-      Bvars = funcField.bmagVars,
+      onGrid       = self.grid,
+      confGrid     = self.confGrid,
+      phaseBasis   = self.basis,
+      confBasis    = self.confBasis,
+      charge       = self.charge,
+      mass         = self.mass,
+      hasPhi       = hasPhi,
+      hasApar      = hasApar,
+      Bvars        = funcField.bmagVars,
       hasSheathBcs = self.hasSheathBcs,
-      positivity = self.positivity,
-      gyavgSlvr = self.emGyavgSlvr,
+      positivity   = self.positivity,
+      gyavgSlvr    = self.emGyavgSlvr,
    }
 
    -- no update in mu direction (last velocity direction if present)
@@ -166,120 +181,136 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
    self.solver = Updater.HyperDisCont {
-      onGrid = self.grid,
-      basis = self.basis,
-      cfl = self.cfl,
-      equation = self.gkEqn,
+      onGrid             = self.grid,
+      basis              = self.basis,
+      cfl                = self.cfl,
+      equation           = self.gkEqn,
       zeroFluxDirections = self.zeroFluxDirections,
-      updateDirections = upd,
-      clearOut = false,   -- continue accumulating into output field
+      updateDirections   = upd,
+      clearOut           = false,   -- Continue accumulating into output field.
    }
    if hasApar and self.basis:polyOrder()==1 then 
-      -- this solver calculates vpar surface terms for Ohm's law. p=1 only!
+      -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
       self.solverStep2 = Updater.HyperDisCont {
-         onGrid = self.grid,
-         basis = self.basis,
-         cfl = self.cfl,
-         equation = self.gkEqn,
+         onGrid             = self.grid,
+         basis              = self.basis,
+         cfl                = self.cfl,
+         equation           = self.gkEqn,
          zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections = {self.cdim+1}, -- only vpar terms
-         updateVolumeTerm = false, -- no volume term
-         clearOut = false,   -- continue accumulating into output field
+         updateDirections   = {self.cdim+1}, -- Only vpar terms.
+         updateVolumeTerm   = false, -- No volume term.
+         clearOut           = false,   -- Continue accumulating into output field.
       }
-      -- set up solver that adds on volume term involving dApar/dt and the entire vpar surface term
+      -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.gkEqnStep2 = Gk.GkEqStep2 {
-         onGrid = self.grid,
+         onGrid     = self.grid,
          phaseBasis = self.basis,
-         confBasis = self.confBasis,
-         charge = self.charge,
-         mass = self.mass,
-         Bvars = funcField.bmagVars,
+         confBasis  = self.confBasis,
+         charge     = self.charge,
+         mass       = self.mass,
+         Bvars      = funcField.bmagVars,
          positivity = self.positivity,
       }
-      -- note that the surface update for this term only involves the vpar direction
+      -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep3 = Updater.HyperDisCont {
-         onGrid = self.grid,
-         basis = self.basis,
-         cfl = self.cfl,
-         equation = self.gkEqnStep2,
+         onGrid             = self.grid,
+         basis              = self.basis,
+         cfl                = self.cfl,
+         equation           = self.gkEqnStep2,
          zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections = {self.cdim+1}, -- only vpar terms
-         clearOut = false,   -- continue accumulating into output field
+         updateDirections   = {self.cdim+1}, -- Only vpar terms.
+         clearOut           = false,   -- Continue accumulating into output field.
       }
    elseif hasApar and self.basis:polyOrder()>1 then
-      -- set up solver that adds on volume term involving dApar/dt and the entire vpar surface term
+      -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.gkEqnStep2 = Gk.GkEqStep2 {
-         onGrid = self.grid,
+         onGrid     = self.grid,
          phaseBasis = self.basis,
-         confBasis = self.confBasis,
-         charge = self.charge,
-         mass = self.mass,
-         Bvars = funcField.bmagVars,
+         confBasis  = self.confBasis,
+         charge     = self.charge,
+         mass       = self.mass,
+         Bvars      = funcField.bmagVars,
          positivity = self.positivity,
       }
-      -- note that the surface update for this term only involves the vpar direction
+      -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep2 = Updater.HyperDisCont {
-         onGrid = self.grid,
-         basis = self.basis,
-         cfl = self.cfl,
-         equation = self.gkEqnStep2,
+         onGrid             = self.grid,
+         basis              = self.basis,
+         cfl                = self.cfl,
+         equation           = self.gkEqnStep2,
          zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections = {self.cdim+1},
-         clearOut = false,   -- continue accumulating into output field
+         updateDirections   = {self.cdim+1},
+         clearOut           = false,   -- Continue accumulating into output field.
       }
    end
    
    -- create updaters to compute various moments
    self.numDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkM0",
-      gkfacs = {self.mass, self.bmag},
+      confBasis  = self.confBasis,
+      moment     = "GkM0",
+      gkfacs     = {self.mass, self.bmag},
    }
    self.momDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkM1",
-      gkfacs = {self.mass, self.bmag},
+      confBasis  = self.confBasis,
+      moment     = "GkM1",
+      gkfacs     = {self.mass, self.bmag},
    }
    self.momProjDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkM1proj",
-      gkfacs = {self.mass, self.bmag},
+      confBasis  = self.confBasis,
+      moment     = "GkM1proj",
+      gkfacs     = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkM2",
-      gkfacs = {self.mass, self.bmag},
+      confBasis  = self.confBasis,
+      moment     = "GkM2",
+      gkfacs     = {self.mass, self.bmag},
    }
    self.M2parCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkM2par",
-      gkfacs = {self.mass, self.bmag},
+      confBasis  = self.confBasis,
+      moment     = "GkM2par",
+      gkfacs     = {self.mass, self.bmag},
    }
    if self.vdim > 1 then
       self.M2perpCalc = Updater.DistFuncMomentCalc {
-         onGrid = self.grid,
+         onGrid     = self.grid,
          phaseBasis = self.basis,
-         confBasis = self.confBasis,
-         moment = "GkM2perp",
-         gkfacs = {self.mass, self.bmag},
+         confBasis  = self.confBasis,
+         moment     = "GkM2perp",
+         gkfacs     = {self.mass, self.bmag},
       }
    end
    self.threeMomentsCalc = Updater.DistFuncMomentCalc {
-      onGrid = self.grid,
+      onGrid     = self.grid,
       phaseBasis = self.basis,
-      confBasis = self.confBasis,
-      moment = "GkThreeMoments",
-      gkfacs = {self.mass, self.bmag},
+      confBasis  = self.confBasis,
+      moment     = "GkThreeMoments",
+      gkfacs     = {self.mass, self.bmag},
+   }
+   -- This is used in calcCouplingMoments to reduce overhead and multiplications.
+   -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
+   self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
+      onGrid     = self.grid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      moment     = "GkThreeMomentsLBO",
+      gkfacs     = {self.mass, self.bmag},
+   }
+   self.primMomSelf = Updater.SelfPrimMoments {
+      onGrid     = self.confGrid,
+      phaseBasis = self.basis,
+      confBasis  = self.confBasis,
+      operator   = "GkLBO",
+      gkfacs     = {self.mass, self.bmag},
    }
    
    self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
@@ -386,17 +417,17 @@ function GkSpecies:createDiagnostics()
          }
          if mom == "intL2" then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
-               onGrid = self.grid,
-               basis = self.basis,
+               onGrid        = self.grid,
+               basis         = self.basis,
                numComponents = 1,
-               quantity = "V2"
+               quantity      = "V2"
             }
          else
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
-               onGrid = self.confGrid,
-               basis = self.confBasis,
+               onGrid        = self.confGrid,
+               basis         = self.confBasis,
                numComponents = 1,
-               quantity = "V"
+               quantity      = "V"
             }
          end
       else
@@ -423,12 +454,12 @@ function GkSpecies:createDiagnostics()
      return false
    end
 
-   self.diagnosticMomentFields = { }
+   self.diagnosticMomentFields   = { }
    self.diagnosticMomentUpdaters = { } 
-   self.diagnosticWeakMoments = { }
-   self.diagnosticAuxMoments = { }
-   self.weakMomentOpFields = { }
-   self.weakMomentScaleFac = { }
+   self.diagnosticWeakMoments    = { }
+   self.diagnosticAuxMoments     = { }
+   self.weakMomentOpFields       = { }
+   self.weakMomentScaleFac       = { }
    -- set up weak multiplication and division operators
    self.weakMultiplication = Updater.CartFieldBinOp {
       onGrid = self.confGrid,
@@ -736,7 +767,13 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
       end
       
       if self.collisions then 
-         self.threeMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+         self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
+                                                          self.m1Correction, self.m2Correction,
+                                                          self.m0Star, self.m1Star, self.m2Star })
+      -- Also compute self-primitive moments uPar and vtSq.
+      self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
+                                       self.m1Correction, self.m2Correction,
+                                       self.m0Star, self.m1Star, self.m2Star}, {self.uParSelf, self.vtSqSelf})
       else
          self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
       end
@@ -752,6 +789,18 @@ end
 
 function GkSpecies:fluidMoments()
    return { self.numDensity, self.momDensity, self.ptclEnergy } 
+end
+
+function GkSpecies:boundaryCorrections()
+   return { self.m1Correction, self.m2Correction }
+end
+
+function GkSpecies:starMoments()
+   return { self.m0Star, self.m1Star, self.m2Star }
+end
+
+function GkSpecies:selfPrimitiveMoments()
+   return { self.uParSelf, self.vtSqSelf }
 end
 
 function GkSpecies:getNumDensity(rkIdx)

@@ -715,7 +715,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     end
 
     if self.diagnosticAuxMoments then 
-    self:calcDiagnosticAuxMoments()
+       self:calcDiagnosticAuxMoments()
        for i, mom in ipairs(self.diagnosticAuxMoments) do
           -- should one use AdiosIo object for this?
           self.diagnosticMomentFields[mom]:write(
