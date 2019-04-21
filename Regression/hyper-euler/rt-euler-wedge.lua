@@ -38,7 +38,7 @@ eulerApp = Moments.App {
       charge = 0.0, mass = 1.0,
 
       equation = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, flux="lax" },
+      equationInv = Euler { gasGamma = gasGamma, numericalFlux="lax" },
       forceInv = true,
 
       -- initial conditions
