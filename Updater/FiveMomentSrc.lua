@@ -192,7 +192,6 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
    local staticEmDp = ffi.new("double*")
    local sigmaDp = ffi.new("double*")
    local auxSrcDp = ffi.new("double[?]", 3*(nFluids+1))
-   local auxSrcDp = ffi.new("double[?]", 3*(nFluids+1))
 
    if (self._sd.hasAuxSrc) then
       -- TODO

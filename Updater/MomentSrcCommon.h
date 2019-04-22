@@ -26,6 +26,7 @@ extern "C" {
         double gravity; /* Gravitational acceleration */
         bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
         bool hasSigma;
+        bool hasAuxSrc;
         int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
     } MomentSrcData_t;
 
