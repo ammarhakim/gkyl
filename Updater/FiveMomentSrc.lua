@@ -152,6 +152,9 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local dt = self._dt
    local nFluids = self._sd.nFluids
+
+   local ndim = grid:ndim()
+   local xc = Lin.Vec(ndim) -- cell center
    
    -- check if correct number of inputs were provided
    assert(#outFld == nFluids+1,
@@ -187,6 +190,9 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
 
    -- loop over local range, updating source in each cell
    for idx in emFld:localRangeIter() do
+      grid:setIndex(idx)
+      grid:cellCenter(xc)
+
       -- set pointers to fluids and field
       for i = 1, nFluids do
 	 fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))
