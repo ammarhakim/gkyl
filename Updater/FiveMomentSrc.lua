@@ -183,7 +183,7 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
       end
       emDp = emFld:getDataPtrAt(emIdxr(idx))
       if (self._sd.hasStatic) then
-         staticEmDp = emFld:getDataPtrAt(staticEmIdxr(idx))
+         staticEmDp = staticEmFld:getDataPtrAt(staticEmIdxr(idx))
       end
 
       -- update sources
