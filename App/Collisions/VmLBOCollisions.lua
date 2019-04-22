@@ -195,13 +195,13 @@ function VmLBOCollisions:createSolver()
    }
 
    -- Flow velocity in vdim directions.
-   self.velocity = DataStruct.Field {
+   self.nuUSum = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.cNumBasis*self.vdim,
       ghost         = {1, 1},
    }
    -- Thermal speed squared, vth=sqrt(T/m).
-   self.vthSq = DataStruct.Field {
+   self.nuVtSqSum = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.cNumBasis,
       ghost         = {1, 1},
@@ -214,8 +214,8 @@ function VmLBOCollisions:createSolver()
    end
 
    if self.varNu then
-      -- Collisionality, nu.
-      self.collFreq = DataStruct.Field {
+      -- Collisionality, nu, summed over all species pairs.
+      self.nuSum = DataStruct.Field {
          onGrid        = self.confGrid,
          numComponents = self.cNumBasis,
          ghost         = {1, 1},
@@ -230,7 +230,7 @@ function VmLBOCollisions:createSolver()
          epsilon0         = self.epsilon0,
       }
    else
-      self.collFreq = 0.0    -- Assigned in advance method.
+      self.nuSum = 0.0    -- Assigned in advance method.
    end
    -- Lenard-Bernstein equation.
    local vmLBOconstNuCalc = VmLBOconstNuEq {
@@ -286,6 +286,11 @@ function VmLBOCollisions:createSolver()
          ghost         = {1, 1},
       }
       -- Weak binary operations.
+      self.confMul = Updater.CartFieldBinOp {
+         onGrid    = self.confGrid,
+         weakBasis = self.confBasis,
+         operation = "Multiply",
+      }
       self.confDiv = Updater.CartFieldBinOp {
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
@@ -358,13 +363,17 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
       if self.varNu then
          -- Compute the collisionality.
-         self.spitzerNu:advance(0.0, {self.mass, self.charge, selfMom[1], primMomSelf[2], self.normNuSelf},{self.collFreq})
+         self.spitzerNu:advance(tCurr, {self.mass, self.charge, selfMom[1], primMomSelf[2], self.normNuSelf},{self.nuSum})
+         self.confMul:advance(tCurr, {primMomSelf[1]}, {self.nuUSum})
+         self.confMul:advance(tCurr, {primMomSelf[2]}, {self.nuVtSqSum})
       else
-         self.collFreq = self.collFreqSelf
+         self.nuSum = self.collFreqSelf
+         self.nuUSum:combine(self.collFreqSelf, primMomSelf[1])
+         self.nuVtSqSum:combine(self.collFreqSelf, primMomSelf[2])
       end
       -- Compute increment from collisions and accumulate it into output.
       self.collisionSlvr:advance(
-         tCurr, {fIn, primMomSelf[1], primMomSelf[2], self.collFreq}, {self.collOut})
+         tCurr, {fIn, self.nuUSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
       -- Barrier over shared communicator before accumulate
       Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
