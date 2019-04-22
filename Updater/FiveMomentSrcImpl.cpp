@@ -45,7 +45,7 @@ static const int PARTIAL_PIV_LU = 1;
 #define eidx(c) (3 * nFluids + (c))
 
 void
-gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em)
+gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma)
 {
   unsigned nFluids = sd->nFluids;
 

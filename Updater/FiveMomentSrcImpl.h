@@ -13,7 +13,7 @@
 
 extern "C" {
     /* Method to update fluids and flield using explicit RK3 method */
-    void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+    void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
     /* Method to update fluids and flield using time-centered implicit method */
     void gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
     /* Method to update fluids and flield using time-centered implicit method in the exact form */

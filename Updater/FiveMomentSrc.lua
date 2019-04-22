@@ -38,7 +38,7 @@ typedef struct {
   int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
 } MomentSrcData_t;
 
-  void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
+  void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
   void gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
   void gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
   void gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
@@ -46,15 +46,15 @@ typedef struct {
 ]]
 
 -- Explicit, SSP RK3 scheme
-local function updateSrcRk3(self, dt, fPtr, emPtr)
-   ffi.C.gkylFiveMomentSrcRk3(self._sd, self._fd, dt, fPtr, emPtr)
+local function updateSrcRk3(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylFiveMomentSrcRk3(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Use an explicit scheme to update momentum and electric field: this
 -- is an extension of the standard Boris push algorithm, in which the
 -- half time-step electric field update is replaced by an implicit
 -- step in which both the velocity and electric are updated.
-local function updateSrcModBoris(self, dt, fPtr, emPtr)
+local function updateSrcModBoris(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
    print("updateSrcModBoris")
 end
 
