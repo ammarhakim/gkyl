@@ -45,9 +45,9 @@ sim = Plasma.App {
    -- boundary conditions for configuration space
    periodicDirs = {}, -- periodic directions
 
-   -- electrons
+   -- neutrals
    neut = Plasma.Species {
-      charge = 1.0, mass = 1.0,
+      charge = 0.0, mass = 1.0,
       -- velocity space grid
       lower = {-6.0*vThermal},
       upper = {6.0*vThermal},
