@@ -153,6 +153,9 @@ function TenMomentSrc:_advance(tCurr, inFld, outFld)
    local dt = self._dt
    local nFluids = self._sd.nFluids
    
+   local ndim = grid:ndim()
+   local xc = Lin.Vec(ndim) -- cell center
+   
    -- check if correct number of inputs were provided
    assert(#outFld == nFluids+1,
 	  "Must have exactly " .. nFluids+1 .. " output fields. Provided " .. #outFld .. " instead.")
@@ -188,6 +191,9 @@ function TenMomentSrc:_advance(tCurr, inFld, outFld)
    local localRange = emFld:localRange()   
    -- loop over local range, updating source in each cell
    for idx in localRange:rowMajorIter() do
+      grid:setIndex(idx)
+      grid:cellCenter(xc)
+
       -- set pointers to fluids and field
       for i = 1, nFluids do
 	 fDp[i-1] = outFld[i]:getDataPtrAt(fIdxr[i](idx))
