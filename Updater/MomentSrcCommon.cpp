@@ -45,7 +45,7 @@ static const int PARTIAL_PIV_LU = 1;
 #define eidx(c) (3 * nFluids + (c))
 
 void
-gkylMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em)
+gkylMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
   std::vector<double> f1(5), em1(8), curr(3);
@@ -121,7 +121,7 @@ gkylMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, d
 }
 
 void
-gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma)
+gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
   double dt1 = 0.5 * dt;
@@ -230,7 +230,7 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
 }
 
 void
-gkylMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma)
+gkylMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   // based on Smithe (2007) with corrections
   unsigned nFluids = sd->nFluids;
@@ -339,7 +339,7 @@ gkylMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt
 }
 
 void
-gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma)
+gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   // based on Smithe (2007) with corrections
   // but using Hakim (2019) notations
@@ -667,7 +667,7 @@ rotate(const Eigen::Vector3d &v, const double cosa, const double cosah,
 
 void
 gkylMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt,
-                       double **ff, double *em, double *staticEm, double *sigma)
+                       double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
   double epsilon0 = sd->epsilon0;
