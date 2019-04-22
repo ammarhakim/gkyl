@@ -34,14 +34,15 @@ typedef struct {
   int8_t gravityDir; /* Direction of gravity force */
   double gravity; /* Gravitational acceleration */
   bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
+  bool hasSigma; /* Flag to indicate if there is: sigma */
   int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
 } MomentSrcData_t;
 
   void gkylTenMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
-  void gkylTenMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylTenMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylTenMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
+  void gkylTenMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
+  void gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
+  void gkylTenMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
+  void gkylTenMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -58,23 +59,23 @@ local function updateSrcModBoris(self, dt, fPtr, emPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylTenMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylTenMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCenteredDirect2(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylTenMomentSrcTimeCenteredDirect2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect2(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylTenMomentSrcTimeCenteredDirect2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylTenMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylTenMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Use an exact scheme to update momentum and electric field
-local function updateSrcExact(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylTenMomentSrcExact(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcExact(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylTenMomentSrcExact(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Ten-moment source updater object
@@ -101,6 +102,9 @@ function TenMomentSrc:init(tbl)
    
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    self._sd.hasPressure = tbl.hasPressure ~= nil and tbl.hasPressure or true
+   self._sd.hasSigma = tbl.hasSigmaField ~= nil and tbl.hasSigmaField or false
+   
+   self._sd._sigmaFld = tbl.sigmaField
    
    local linSolType = tbl.linSolType and tbl.linSolType or "partialPivLu"
    if linSolType == "partialPivLu" then
@@ -170,10 +174,16 @@ function TenMomentSrc:_advance(tCurr, inFld, outFld)
       staticEmIdxr = staticEmFld:genIndexer()
    end
 
+   local sigmaIdxr
+   if (self._sd.hasSigma) then
+      sigmaIdxr = self._sigmaFld:genIndexer()
+   end
+
    -- allocate stuff to pass to C
    local fDp = ffi.new("double*[?]", nFluids)
    local emDp = ffi.new("double*")
    local staticEmDp = ffi.new("double*")
+   local sigmaDp = ffi.new("double*")
 
    local localRange = emFld:localRange()   
    -- loop over local range, updating source in each cell
@@ -186,9 +196,12 @@ function TenMomentSrc:_advance(tCurr, inFld, outFld)
       if (self._sd.hasStatic) then
          staticEmDp = emFld:getDataPtrAt(staticEmIdxr(idx))
       end
+      if (self._sd.hasSigma) then
+         sigmaDp = self._sigmaFld:getDataPtrAt(sigmaIdxr(idx))
+      end
 
       -- update sources
-      self._updateSrc(self, dt, fDp, emDp, staticEmDp)
+      self._updateSrc(self, dt, fDp, emDp, staticEmDp, sigmaDp)
    end
 
    return true, GKYL_MAX_DOUBLE

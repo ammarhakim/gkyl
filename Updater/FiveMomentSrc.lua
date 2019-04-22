@@ -34,14 +34,15 @@ typedef struct {
   int8_t gravityDir; /* Direction of gravity force */
   double gravity; /* Gravitational acceleration */
   bool hasStatic, hasPressure; /* Flag to indicate if there is: static EB field, pressure */
+  bool hasSigma; /* Flag to indicate if there is: sigma */
   int8_t linSolType; /* Flag to indicate linear solver type for implicit method */
 } MomentSrcData_t;
 
   void gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em);
-  void gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm);
-  void gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm);
+  void gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
+  void gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
+  void gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f, double *em, double *staticEm, double *sigma);
+  void gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma);
 ]]
 
 -- Explicit, SSP RK3 scheme
@@ -58,23 +59,23 @@ local function updateSrcModBoris(self, dt, fPtr, emPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCentered(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylFiveMomentSrcTimeCentered(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylFiveMomentSrcTimeCenteredDirect(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcTimeCenteredDirect2(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcTimeCenteredDirect2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcTimeCenteredDirect2(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylFiveMomentSrcTimeCenteredDirect2(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Use an implicit scheme to update momentum and electric field
-local function updateSrcExact(self, dt, fPtr, emPtr, staticEmPtr)
-   ffi.C.gkylFiveMomentSrcExact(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr)
+local function updateSrcExact(self, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
+   ffi.C.gkylFiveMomentSrcExact(self._sd, self._fd, dt, fPtr, emPtr, staticEmPtr, sigmaPtr)
 end
 
 -- Five-moment source updater object
@@ -101,6 +102,9 @@ function FiveMomentSrc:init(tbl)
    
    self._sd.hasStatic = tbl.hasStaticField ~= nil and tbl.hasStaticField or false
    self._sd.hasPressure = tbl.hasPressure ~= nil and tbl.hasPressure or true
+   self._sd.hasSigma = tbl.hasSigmaField ~= nil and tbl.hasSigmaField or false
+
+   self._sd._sigmaFld = tbl.sigmaField
    
    local linSolType = tbl.linSolType and tbl.linSolType or "partialPivLu"
    if linSolType == "partialPivLu" then
@@ -170,10 +174,16 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
       staticEmIdxr = staticEmFld:genIndexer()
    end
 
+   local sigmaIdxr
+   if (self._sd.hasSigma) then
+      sigmaIdxr = self._sigmaFld:genIndexer()
+   end
+
    -- allocate stuff to pass to C
    local fDp = ffi.new("double*[?]", nFluids)
    local emDp = ffi.new("double*")
    local staticEmDp = ffi.new("double*")
+   local sigmaDp = ffi.new("double*")
 
    -- loop over local range, updating source in each cell
    for idx in emFld:localRangeIter() do
@@ -185,9 +195,12 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
       if (self._sd.hasStatic) then
          staticEmDp = staticEmFld:getDataPtrAt(staticEmIdxr(idx))
       end
+      if (self._sd.hasSigma) then
+         sigmaDp = self._sigmaFld:getDataPtrAt(sigmaIdxr(idx))
+      end
 
       -- update sources
-      self._updateSrc(self, dt, fDp, emDp, staticEmDp)
+      self._updateSrc(self, dt, fDp, emDp, staticEmDp, sigmaDp)
    end
 
    return true, GKYL_MAX_DOUBLE

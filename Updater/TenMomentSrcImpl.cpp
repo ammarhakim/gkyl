@@ -295,14 +295,14 @@ gkylPressureTensorSrcTimeCenteredPost(
 void
 gkylTenMomentSrcTimeCentered(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em,
-    double *staticEm)
+    double *staticEm, double *sigma)
 {
   // update pressure tensor in comoving frame
   std::vector<double> prTen = gkylPressureTensorSrcTimeCenteredPre(
       sd, fd, dt, ff, em, staticEm);
 
   // update momenta and E field
-  gkylMomentSrcTimeCentered(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcTimeCentered(sd, fd, dt, ff, em, staticEm, sigma);
 
   // update pressure tensor in stationary frame
   gkylPressureTensorSrcTimeCenteredPost(sd, fd, dt, ff, prTen);
@@ -312,14 +312,14 @@ gkylTenMomentSrcTimeCentered(
 void
 gkylTenMomentSrcTimeCenteredDirect(
     MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em,
-    double *staticEm)
+    double *staticEm, double *sigma)
 {
   // update pressure tensor in comoving frame
   std::vector<double> prTen = gkylPressureTensorSrcTimeCenteredDirectPre(
       sd, fd, dt, ff, em, staticEm);
 
   // update momenta and E field
-  gkylMomentSrcTimeCenteredDirect(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcTimeCenteredDirect(sd, fd, dt, ff, em, staticEm, sigma);
 
   // update pressure tensor in stationary frame
   gkylPressureTensorSrcTimeCenteredPost(sd, fd, dt, ff, prTen);
@@ -327,14 +327,14 @@ gkylTenMomentSrcTimeCenteredDirect(
 
 
 void
-gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma)
 {
   // update pressure tensor in comoving frame
   std::vector<double> prTen = gkylPressureTensorSrcTimeCenteredDirectPre(
       sd, fd, dt, ff, em, staticEm);
 
   // update momenta and E field
-  gkylMomentSrcTimeCenteredDirect2(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcTimeCenteredDirect2(sd, fd, dt, ff, em, staticEm, sigma);
 
   // update pressure tensor in stationary frame
   gkylPressureTensorSrcTimeCenteredPost(sd, fd, dt, ff, prTen);
@@ -342,14 +342,14 @@ gkylTenMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double
 
 
 void
-gkylTenMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylTenMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma)
 {
   // update pressure tensor in comoving frame
   std::vector<double> prTen = gkylPressureTensorSrcExactPre(
       sd, fd, dt, ff, em, staticEm);
 
   // update momenta and E field
-  gkylMomentSrcExact(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcExact(sd, fd, dt, ff, em, staticEm, sigma);
 
   // update pressure tensor in stationary frame
   gkylPressureTensorSrcTimeCenteredPost(sd, fd, dt, ff, prTen);
