@@ -104,7 +104,7 @@ function FiveMomentSrc:init(tbl)
    self._sd.hasPressure = tbl.hasPressure ~= nil and tbl.hasPressure or true
    self._sd.hasSigma = tbl.hasSigmaField ~= nil and tbl.hasSigmaField or false
 
-   self._sd._sigmaFld = tbl.sigmaField
+   self._sigmaFld = tbl.sigmaField
    
    local linSolType = tbl.linSolType and tbl.linSolType or "partialPivLu"
    if linSolType == "partialPivLu" then
