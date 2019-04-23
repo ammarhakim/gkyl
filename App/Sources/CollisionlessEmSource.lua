@@ -41,6 +41,12 @@ function CollisionlessEmSource:fullInit(appTbl)
    -- (MAKE SURE NAME IS MATCHING ONE IN UPDATERS!!)
    self.timeStepper = tbl.timeStepper -- time-stepper to use
    self.linSolType = tbl.linSolType
+
+   self.hasStaticField = tbl.hasStaticField
+   self.hasPressure = tbl.hasPressureField
+   self.hasSigmaField = tbl.hasSigmaField
+   self.hasAuxSourceFunction = tbl.hasAuxSourceFunction
+   self.auxSourceFunction = tbl.auxSourceFunction
 end
 
 function CollisionlessEmSource:setName(nm)
@@ -89,6 +95,12 @@ function CollisionlessEmSource:createSolver(species, field)
          mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
          linSolType = self.linSolType,
          scheme = self.timeStepper,
+         hasStaticField = self.hasStaticField,
+         hasPressure = self.hasPressureField,
+         hasSigmaField = self.hasSigmaField,
+         sigmaField = self.sigmaField,
+         hasAuxSourceFunction = self.hasAuxSourceFunction,
+         auxSourceFunction = self.auxSourceFunction,
       }
    elseif source_type == 10 then
       self.slvr = Updater.TenMomentSrc {
@@ -102,6 +114,12 @@ function CollisionlessEmSource:createSolver(species, field)
          mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
          linSolType = self.linSolType,
          scheme = self.timeStepper,
+         hasStaticField = self.hasStaticField,
+         hasPressure = self.hasPressureField,
+         hasSigmaField = self.hasSigmaField,
+         sigmaField = self.sigmaField,
+         hasAuxSourceFunction = self.hasAuxSourceFunction,
+         auxSourceFunction = self.auxSourceFunction,
       }
    else
       assert(false, string.format("source_type %s not supported.", source_type))
