@@ -45,7 +45,7 @@ static const int PARTIAL_PIV_LU = 1;
 #define eidx(c) (3 * nFluids + (c))
 
 void
-gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em)
+gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
 
@@ -59,7 +59,7 @@ gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f
   }
 
   // update momenta and E field
-  gkylMomentSrcRk3(sd, fd, dt, ff, em);
+  gkylMomentSrcRk3(sd, fd, dt, ff, em, staticEm, sigma, auxSrc);
 
   if (sd->hasPressure)
   {
@@ -75,7 +75,7 @@ gkylFiveMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **f
 }
 
 void
-gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
 
@@ -89,7 +89,7 @@ gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, d
   }
 
   // update momenta and E field
-  gkylMomentSrcTimeCentered(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcTimeCentered(sd, fd, dt, ff, em, staticEm, sigma, auxSrc);
 
   if (sd->hasPressure)
   {
@@ -105,7 +105,7 @@ gkylFiveMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, d
 }
 
 void
-gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
 
@@ -119,7 +119,7 @@ gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, doubl
   }
 
   // update momenta and E field
-  gkylMomentSrcTimeCenteredDirect2(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcTimeCenteredDirect2(sd, fd, dt, ff, em, staticEm, sigma, auxSrc);
 
   if (sd->hasPressure)
   {
@@ -135,7 +135,7 @@ gkylFiveMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, doubl
 }
 
 void
-gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
 
@@ -149,7 +149,7 @@ gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double
   }
 
   // update momenta and E field
-  gkylMomentSrcTimeCenteredDirect(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcTimeCenteredDirect(sd, fd, dt, ff, em, staticEm, sigma, auxSrc);
 
   if (sd->hasPressure)
   {
@@ -166,7 +166,8 @@ gkylFiveMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double
 
 void
 gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt,
-                       double **ff, double *em, double *staticEm)
+                       double **ff, double *em, double *staticEm, double *sigma,
+                       double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
 
@@ -180,7 +181,7 @@ gkylFiveMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt,
   }
 
   // update momenta and E field
-  gkylMomentSrcExact(sd, fd, dt, ff, em, staticEm);
+  gkylMomentSrcExact(sd, fd, dt, ff, em, staticEm, sigma, auxSrc);
 
   if (sd->hasPressure)
   {
