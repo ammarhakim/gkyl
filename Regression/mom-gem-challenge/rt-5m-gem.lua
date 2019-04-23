@@ -133,7 +133,6 @@ momentApp = Moments.App {
       auxSourceFunction = function (
          self, xc, tCurr, epsilon0, qbym, fDp, emDp, auxSrcDp)
          local x, y = xc[1], xc[2]
-         print(x, y)
          local nFluids = #qbym
 
          local g = 0
