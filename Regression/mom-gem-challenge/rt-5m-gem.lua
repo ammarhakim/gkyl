@@ -129,7 +129,7 @@ momentApp = Moments.App {
       -- Not enabled here; for demo purpose
       -- Note: Dp are c arrays and use 0-based indices; xc and qbym are lua
       --    arrays and use 1-based indices
-      hasAuxSourceFunction = true,
+      hasAuxSourceFunction = false,
       auxSourceFunction = function (
          self, xc, tCurr, epsilon0, qbym, fDp, emDp, auxSrcDp)
          local x, y = xc[1], xc[2]
