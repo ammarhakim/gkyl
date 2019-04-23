@@ -175,6 +175,13 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
     // add gravity source term for current
     rhs(fidx(n, sd->gravityDir)) += qbym*f[RHO]*sd->gravity*dt1;
 
+    // add auxiliary source for current
+    if (sd->hasAuxSrc) {
+      rhs(fidx(n, X)) += auxSrc[n*3+0]*dt1;
+      rhs(fidx(n, Y)) += auxSrc[n*3+1]*dt1;
+      rhs(fidx(n, Z)) += auxSrc[n*3+2]*dt1;
+    }
+
     // set current contribution to electric field equation
     lhs(eidx(X), fidx(n,X)) = dt2;
     lhs(eidx(Y), fidx(n,Y)) = dt2;
@@ -190,6 +197,13 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
   rhs(eidx(EX)) = em[EX];
   rhs(eidx(EY)) = em[EY];
   rhs(eidx(EZ)) = em[EZ];
+
+  // add auxiliary source for current
+  if (sd->hasAuxSrc) {
+    rhs(eidx(EX)) += auxSrc[nFluids*3+0]*dt1;
+    rhs(eidx(EY)) += auxSrc[nFluids*3+1]*dt1;
+    rhs(eidx(EZ)) += auxSrc[nFluids*3+2]*dt1;
+  }
 
   // invert to find solution
   if (sd->linSolType == COL_PIV_HOUSEHOLDER_QR)

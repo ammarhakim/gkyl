@@ -107,7 +107,7 @@ function FiveMomentSrc:init(tbl)
 
    self._sigmaFld = tbl.sigmaField
    
-   self._sd.hasAuxSrc = tbl.hasAuxSourcFunction ~= nil and tbl.hasAuxSourcFunction or false
+   self._sd.hasAuxSrc = tbl.hasAuxSourceFunction ~= nil and tbl.hasAuxSourceFunction or false
    self._auxSrcFunc = tbl.auxSourceFunction
    
    local linSolType = tbl.linSolType and tbl.linSolType or "partialPivLu"
@@ -119,6 +119,7 @@ function FiveMomentSrc:init(tbl)
      assert(false, string.format("linSolType %s not supported", linSolType))
    end
 
+   self._qbym = {}
    self._fd = ffi.new("FluidData_t[?]", self._sd.nFluids)
    -- store charge and mass for each fluid
    for n = 1, self._sd.nFluids do
@@ -131,6 +132,7 @@ function FiveMomentSrc:init(tbl)
       else
         self._fd[n-1].evolve = true
       end
+      self._qbym[n] = self._fd[n-1].qbym
    end
 
    -- scheme is one of "ssp-rk3", "modified-boris"  or "time-centered"
@@ -193,10 +195,6 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
    local sigmaDp = ffi.new("double*")
    local auxSrcDp = ffi.new("double[?]", 3*(nFluids+1))
 
-   if (self._sd.hasAuxSrc) then
-      -- TODO
-   end
-
    -- loop over local range, updating source in each cell
    for idx in emFld:localRangeIter() do
       grid:setIndex(idx)
@@ -212,6 +210,11 @@ function FiveMomentSrc:_advance(tCurr, inFld, outFld)
       end
       if (self._sd.hasSigma) then
          sigmaDp = self._sigmaFld:getDataPtrAt(sigmaIdxr(idx))
+      end
+
+      if (self._sd.hasAuxSrc) then
+         self:_auxSrcFunc(
+            xc, tCurr, self._sd.epsilon0, self._qbym, fDp, emDp, auxSrcDp)
       end
 
       -- update sources
