@@ -123,7 +123,41 @@ momentApp = Moments.App {
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
-      timeStepper = "time-centered-direct",
+      timeStepper = "time-centered",
+
+      -- additional source terms
+      -- Not enabled here; for demo purpose
+      -- Note: Dp are c arrays and use 0-based indices; xc and qbym are lua
+      --    arrays and use 1-based indices
+      hasAuxSourceFunction = true,
+      auxSourceFunction = function (
+         self, xc, tCurr, epsilon0, qbym, fDp, emDp, auxSrcDp)
+         local x, y = xc[1], xc[2]
+         print(x, y)
+         local nFluids = #qbym
+
+         local g = 0
+         -- auxiliary source for electron currents
+         local s = 0
+         local rho_e = fDp[0][0]
+         local qbym_e = qbym[1]
+         auxSrcDp[s*3+0] = qbym_e * rho_e * g
+         auxSrcDp[s*3+1] = 0
+         auxSrcDp[s*3+2] = 0
+
+         -- auxiliary source for electron currents
+         s = 1
+         local rho_i = fDp[1][0]
+         local qbym_i = qbym[2]
+         auxSrcDp[s*3+0] = qbym_i * rho_i * g
+         auxSrcDp[s*3+1] = 0
+         auxSrcDp[s*3+2] = 0
+
+         -- auxiliary source for E field
+         auxSrcDp[nFluids*3+0] = 0
+         auxSrcDp[nFluids*3+1] = 0
+         auxSrcDp[nFluids*3+2] = 0
+      end,
    },   
 
 }
