@@ -189,86 +189,92 @@ end
 -- fName: file name
 function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
    local comm =  Mpi.getComm(field:grid():commSet().nodeComm)
+   local shmComm = Mpi.getComm(field:grid():commSet().sharedComm)
    -- (the extra getComm() is needed as Lua has no concept of
    -- pointers and hence we don't know before hand if nodeComm is a
    -- pointer or an object)
 
-   -- no need to do anything if communicator is not valid
-   if not Mpi.Is_comm_valid(comm) then return end
-
-   local ndim = field:ndim()
-   local localRange, globalRange = field:localRange(), field:globalRange()
-   
-   -- for use in ADIOS output
-   local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
-   for d = 1, ndim do
-      _adLocalSz[d] = localRange:shape(d)
-      _adGlobalSz[d] = globalRange:shape(d)
-      _adOffset[d] = localRange:lower(d)-1
-   end
-   _adLocalSz[ndim+1] = field:numComponents()
-   _adGlobalSz[ndim+1] = field:numComponents()
-   _adOffset[ndim+1] = 0
-
-   -- convert tables to comma-seperated-string. For some strange
-   -- reasons, this is what ADIOS expects
-   adLocalSz = toCSV(_adLocalSz)
-   adGlobalSz = toCSV(_adGlobalSz)
-   adOffset = toCSV(_adOffset)
-
-   -- resize buffer (only done if needed. Alloc handles this automatically)
-   self._outBuff:expand(field:size())
-
-   local rank = Mpi.Comm_rank(comm)
-
-   -- setup ADIOS for IO
-   Adios.init_noxml(comm)
-   --Adios.set_max_buffer_size(16) -- 16 MB chunks	 
-
-   -- setup group and set I/O method
-   local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
-   Adios.select_method(grpId, self._method, "", "")
-
-   -- field attributes
-   local cells = new("int[?]", ndim)
-   for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
-   Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)
-
-   local lower = new("double[?]", ndim)
-   for d = 1, ndim do lower[d-1] = field:grid():lower(d) end
-   Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
-
-   local upper = new("double[?]", ndim)
-   for d = 1, ndim do upper[d-1] = field:grid():upper(d) end
-   Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
-
-   -- define data to read
-   Adios.define_var(
-      grpId, "frame", "", Adios.integer, "", "", "")
-   Adios.define_var(
-      grpId, "time", "", Adios.double, "", "", "")
-   Adios.define_var(
-      grpId, "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
-
-   local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- concatenate prefix
-   -- open file to write out group
-   local fd = Adios.open("CartField", fullNm, "r", comm)
-
+   -- create time stamp and frame number arrays outside of if statement
    local tmStampBuff = new("double[1]")
    local frNumBuff = new("int[1]")
 
-   Adios.read(fd, "time", tmStampBuff, sizeof("double"))
-   Adios.read(fd, "frame", frNumBuff, sizeof("int"))
+   -- only read in data if communicator is valid
+   if Mpi.Is_comm_valid(comm) then
 
-   local fieldLocalSz = localRange:volume()*field:numComponents()*sizeof("double")
-   Adios.read(fd, "CartGridField", self._outBuff:data(), fieldLocalSz)
-   Adios.close(fd) -- no reads actually happen unless one closes file!
+      local ndim = field:ndim()
+      local localRange, globalRange = field:localRange(), field:globalRange()
 
-   -- copy output buffer into field
-   field:_copy_to_field_region(field:localRange(), self._outBuff)
-   
-   Adios.finalize(rank)
+      -- for use in ADIOS output
+      local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
+      for d = 1, ndim do
+	 _adLocalSz[d] = localRange:shape(d)
+	 _adGlobalSz[d] = globalRange:shape(d)
+	 _adOffset[d] = localRange:lower(d)-1
+      end
+      _adLocalSz[ndim+1] = field:numComponents()
+      _adGlobalSz[ndim+1] = field:numComponents()
+      _adOffset[ndim+1] = 0
 
+      -- convert tables to comma-seperated-string. For some strange
+      -- reasons, this is what ADIOS expects
+      adLocalSz = toCSV(_adLocalSz)
+      adGlobalSz = toCSV(_adGlobalSz)
+      adOffset = toCSV(_adOffset)
+
+      -- resize buffer (only done if needed. Alloc handles this automatically)
+      self._outBuff:expand(field:size())
+
+      local rank = Mpi.Comm_rank(comm)
+
+      -- setup ADIOS for IO
+      Adios.init_noxml(comm)
+      --Adios.set_max_buffer_size(16) -- 16 MB chunks	 
+
+      -- setup group and set I/O method
+      local grpId = Adios.declare_group("CartField", "", Adios.flag_no)
+      Adios.select_method(grpId, self._method, "", "")
+
+      -- field attributes
+      local cells = new("int[?]", ndim)
+      for d = 1, ndim do cells[d-1] = globalRange:shape(d) end
+      Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)
+
+      local lower = new("double[?]", ndim)
+      for d = 1, ndim do lower[d-1] = field:grid():lower(d) end
+      Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
+
+      local upper = new("double[?]", ndim)
+      for d = 1, ndim do upper[d-1] = field:grid():upper(d) end
+      Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
+
+      -- define data to read
+      Adios.define_var(
+	 grpId, "frame", "", Adios.integer, "", "", "")
+      Adios.define_var(
+	 grpId, "time", "", Adios.double, "", "", "")
+      Adios.define_var(
+	 grpId, "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
+
+      local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- concatenate prefix
+      -- open file to write out group
+      local fd = Adios.open("CartField", fullNm, "r", comm)
+
+      Adios.read(fd, "time", tmStampBuff, sizeof("double"))
+      Adios.read(fd, "frame", frNumBuff, sizeof("int"))
+
+      local fieldLocalSz = localRange:volume()*field:numComponents()*sizeof("double")
+      Adios.read(fd, "CartGridField", self._outBuff:data(), fieldLocalSz)
+      Adios.close(fd) -- no reads actually happen unless one closes file!
+
+      -- copy output buffer into field
+      field:_copy_to_field_region(field:localRange(), self._outBuff)
+
+      Adios.finalize(rank)
+
+   end
+   -- if running with shared memory, need to broadcast time stamp and frame number
+   Mpi.Bcast(tmStampBuff, 1, Mpi.DOUBLE, 0, shmComm)
+   Mpi.Bcast(frNumBuff, 1, Mpi.INT, 0, shmComm)
    return tmStampBuff[0], frNumBuff[0]
 end
 
