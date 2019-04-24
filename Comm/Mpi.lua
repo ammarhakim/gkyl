@@ -509,25 +509,25 @@ function _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype
    end
 end
 
--- Constructs block offsets and sizes from range object
-function _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
+-- Constructs block offsets and sizes from range and a specified
+-- sub-range. Sub-range must be completely inside the range
+function _M.createBlockInfoFromRangeAndSubRange(subRange, range, numComponent, ordering)
    local indexer = range:genIndexer(ordering)
-   local rFace = range:shorten(dir, nlayer)
-   local lo = rFace:lowerAsVec()
-   local up = rFace:upperAsVec()
+   local lo = subRange:lowerAsVec()
+   local up = subRange:upperAsVec()
 
    local blockSize, blockOffset = {}, {}
 
    local dist = indexer(up)-indexer(lo)+1
-   if dist == rFace:volume() then
-      blockSize[1] = rFace:volume()*numComponent
+   if dist == subRange:volume() then
+      blockSize[1] = subRange:volume()*numComponent
       blockOffset[1] = 0
    else
       -- determine size of each block and its zero-based index (MPI
       -- expects zero-based indices)
       local currBlockSize, lastLinIdx, lastOffset
       local count = 0
-      for idx in rFace:iter(ordering) do
+      for idx in subRange:iter(ordering) do
 	 if count == 0 then
 	    -- reset things if first time in this loop
 	    count = 1
@@ -557,6 +557,12 @@ function _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
    return blockSize, blockOffset
 end
 
+-- Constructs block offsets and sizes from range object
+function _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
+   return _M.createBlockInfoFromRangeAndSubRange(
+      range:shorten(dir, nlayer), range, numComponent, ordering)
+end
+
 -- Creates an MPI_Datatype object from a range object in a specified
 -- direction and ordering. 'ordering' must be one of Range.rowMajor or
 -- Range.colMajor.
@@ -565,6 +571,20 @@ end
 -- 'numComponent' is the number of components in field (usually 1)
 function _M.createDataTypeFromRange(dir, range, nlayer, numComponent, ordering, oldtype)
    local blockSize, blockOffset = _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
+   return _M.Type_commit(
+      _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
+   )
+end
+
+-- Creates an MPI_Datatype object from a range object in a specified
+-- direction and ordering. 'ordering' must be one of Range.rowMajor or
+-- Range.colMajor.
+--
+-- 'nlayer' is number of layers in range to include in datatype and
+-- 'numComponent' is the number of components in field (usually 1)
+function _M.createDataTypeFromRangeAndSubRange(subRange, range, numComponent, ordering, oldtype)
+   local blockSize, blockOffset = _M.createBlockInfoFromRangeAndSubRange(
+      subRange, range, numComponent, ordering)
    return _M.Type_commit(
       _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
    )

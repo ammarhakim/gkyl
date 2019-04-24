@@ -708,8 +708,113 @@ function test_13(comm, nlayer, numComponents, ordering)
 	    end
    	 end
       end
-   end   
+   end
+end
+
+function test_14(comm, nlayer, numComponents, ordering)
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype (test_13) not run as number of procs not exactly 2")
+      return
+   end
+
+   local range = Range.Range({1, 1}, {10, 20})
+   local rangeX = range:shorten(1, nlayer)
+   local rangeY = range:shorten(2, nlayer)
    
+   local dTypeX = Mpi.createDataTypeFromRangeAndSubRange(rangeX, range, numComponents, ordering, Mpi.DOUBLE)
+   local dTypeY = Mpi.createDataTypeFromRangeAndSubRange(rangeY, range, numComponents, ordering, Mpi.DOUBLE)
+
+   local nz = range:volume()*numComponents
+   local buff = Alloc.Double(nz)
+
+   local indexer = range:indexer(ordering)   
+   local function cidx(i,j,c)
+      return (indexer(i,j)-1)*numComponents+c
+   end
+   
+   if rnk == 0 then
+      for i = range:lower(1), range:upper(1) do
+   	 for j = range:lower(2), range:upper(2) do
+   	    for k = 1, numComponents do
+   	       buff[cidx(i,j,k)] = i+20*j+0.5+1000*k
+   	    end
+   	 end
+      end
+   end
+
+   -- X direction
+   if rnk == 0 then
+      -- left edge
+      Mpi.Send(buff:data(), 1, dTypeX, 1, 42, comm)
+      -- right edge
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
+      Mpi.Send(buff:data()+cidx(ix,iy,1)-1, 1, dTypeX, 1, 43, comm)
+   else
+      -- left edge
+      Mpi.Recv(buff:data(), 1, dTypeX, 0, 42, comm, nil)
+      -- right edge
+      local ix, iy = range:upper(1)-nlayer+1, range:lower(2)
+      Mpi.Recv(buff:data()+cidx(ix,iy,1)-1, 1, dTypeX, 0, 43, comm, nil)
+
+      for n = 1, nlayer do
+   	 local i = range:lower(1)+n-1
+   	 for j = range:lower(2), range:upper(2) do
+   	    for k = 1, numComponents do
+   	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
+   			    string.format("Checking lower X-direction send/recv (%d,%d;%d [%d])",
+					  i,j,k,cidx(i,j,k)))
+   	    end
+   	 end
+      end
+
+      for n = 1, nlayer do
+      	 i = range:upper(1)-n+1
+      	 for j = range:lower(2), range:upper(2) do
+   	    for k = 1, numComponents do	    
+   	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
+   			    string.format("Checking upper X-direction send/recv (%d,%d;%d [%d])",
+					  i,j,k,cidx(i,j,k)))
+   	    end
+      	 end
+      end
+   end
+
+   -- Y direction
+   if rnk == 0 then
+      -- bottom edge
+      Mpi.Send(buff:data(), 1, dTypeY, 1, 44, comm)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)-nlayer+1
+      Mpi.Send(buff:data()+cidx(ix,iy,1)-1, 1, dTypeY, 1, 45, comm)
+   else
+      -- bottom edge
+      Mpi.Recv(buff:data(), 1, dTypeY, 0, 44, comm, nil)
+      -- top edge
+      local ix, iy = range:lower(1), range:upper(2)-nlayer+1
+      Mpi.Recv(buff:data()+cidx(ix,iy,1)-1, 1, dTypeY, 0, 45, comm, nil)
+
+      for n = 1, nlayer do
+   	 local j = range:lower(2)+n-1
+   	 for i = range:lower(1), range:upper(1) do
+	    for k = 1, numComponents do
+	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)], "Checking Y-direction send/recv")
+	    end
+   	 end
+      end
+
+      for n = 1, nlayer do
+   	 local j = range:upper(2)-n+1
+   	 for i = range:lower(1), range:upper(1) do
+	    for k = 1, numComponents do
+	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)], "Checking Y-direction send/recv")
+	    end
+   	 end
+      end
+   end   
 end
 
 -- Run tests
@@ -732,6 +837,8 @@ test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
 test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
 test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
 test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
