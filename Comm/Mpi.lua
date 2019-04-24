@@ -390,7 +390,7 @@ end
 function _M.Irecv(buf, count, datatype, source, tag, comm)
    local req = new_MPI_Request()
    local _ = ffiC.MPI_Irecv(
-      buf, count, datatype, source, tag, getObj(comm, "MPI_Comm[1]"), req)
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), req)
    return req
 end
 -- MPI_Wait
