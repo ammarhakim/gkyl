@@ -182,12 +182,21 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- species that is not mediated by the field (solver), like
    -- collisions.
 
+
+   -- Function to find the index of an element in table.
+   local function findInd(tblIn, el)
+      for i, v in ipairs(tblIn) do
+         if v == el then
+            return i
+         end
+      end
+      return #tblIn+1    -- If not found return a number larger than the length of the table.
+   end
+
    -- Create a double nested table indicating who collides with whom.
    self.collPairs               = {}
-   local crossPrimMomPairsAlloc = {}    -- Used to know if uCross and vtSqCross have been allocated.
    for sN, _ in pairs(species) do
       self.collPairs[sN]         = {}
-      crossPrimMomPairsAlloc[sN] = {}
       if species[sN].collisions then
          -- This species collides with someone.
          local selfCollCurr, crossCollCurr, collSpecCurr
@@ -198,7 +207,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
             collSpecsCurr = species[sN].collisions[nm].collidingSpecies
          end
          for sO, _ in pairs(species) do
-            crossPrimMomPairsAlloc[sN][sO] = false
             if sN == sO then
                self.collPairs[sN][sO] = selfCollCurr
             else
@@ -217,7 +225,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       else
          -- This species does not collide with anyone.
          for sO, _ in pairs(species) do
-            crossPrimMomPairsAlloc[sN][sO] = false
             self.collPairs[sN][sO]         = false
          end
       end
@@ -480,64 +487,64 @@ end
 
 function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
 
---   local tmStart = Time.clock()
---   -- Compute moments needed in coupling to fields and collisions.
---   local fIn = self:rkStepperFields()[rkIdx]
---   if self.needSelfPrimMom then
---      self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
---                                                      self.m1Correction, self.m2Correction,
---                                                      self.m0Star, self.m1Star, self.m2Star })
---      if self.needCorrectedSelfPrimMom then
---         -- Also compute self-primitive moments u and vtSq.
---         self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
---                                          self.m1Correction, self.m2Correction, 
---                                          self.m0Star, self.m1Star, self.m2Star}, {self.uSelf, self.vtSqSelf})
---      else
---         -- Compute self-primitive moments with binOp updater.
---         self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uSelf})
---         self.confDotProduct:advance(tCurr, {self.uSelf, self.momDensity}, {self.kineticEnergyDensity})
---         self.thermalEnergyDensity:combine( 1.0/self.vdim, self.ptclEnergy,
---                                           -1.0/self.vdim, self.kineticEnergyDensity )
---         self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
---      end
---      -- Indicate that moments, boundary corrections, star moments
---      -- and self-primitive moments have been computed.
---      for iF=1,4 do
---         self.momentFlags[iF] = true
---      end
---   else
---      self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
---      -- Indicate that first moment has been computed.
---      self.momentFlags[1] = true
---   end
---   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+   local tmStart = Time.clock()
+   -- Compute moments needed in coupling to fields and collisions.
+   local fIn = self:rkStepperFields()[rkIdx]
+   if self.needSelfPrimMom then
+      self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
+                                                      self.m1Correction, self.m2Correction,
+                                                      self.m0Star, self.m1Star, self.m2Star })
+      if self.needCorrectedSelfPrimMom then
+         -- Also compute self-primitive moments u and vtSq.
+         self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
+                                          self.m1Correction, self.m2Correction, 
+                                          self.m0Star, self.m1Star, self.m2Star}, {self.uSelf, self.vtSqSelf})
+      else
+         -- Compute self-primitive moments with binOp updater.
+         self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uSelf})
+         self.confDotProduct:advance(tCurr, {self.uSelf, self.momDensity}, {self.kineticEnergyDensity})
+         self.thermalEnergyDensity:combine( 1.0/self.vdim, self.ptclEnergy,
+                                           -1.0/self.vdim, self.kineticEnergyDensity )
+         self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
+      end
+      -- Indicate that moments, boundary corrections, star moments
+      -- and self-primitive moments have been computed.
+      for iF=1,4 do
+         self.momentFlags[iF] = true
+      end
+   else
+      self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
+      -- Indicate that first moment has been computed.
+      self.momentFlags[1] = true
+   end
+   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
 end
 
 function VlasovSpecies:calcCrossCouplingMoments(tCurr, species, rkIdx)
 
-   if self.collisions then  -- Only compute cross primitive moments if cross-collisions affect this species. 
-      for nm, _ in pairs(self.collisions) do
-         if self.collisions[nm].crossCollisions then
-
-            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
-               if (not (self.momentFlags[5][otherNm] and species[otherNm].momentFlags[5][self.name])) then 
-                  -- Cross-primitive moments for the collision of these two species has not been computed.
-                  local mOther           = species[otherNm]:getMass()
-                  local otherMom         = species[otherNm]:fluidMoments()
-                  local otherSelfPrimMom = species[otherNm]:selfPrimitiveMoments()
-                  self.primMomCross:advance(tCurr, {self.mass, self.collFreq, self.numDensity, self.momDensity, self.ptclEnergy, self.uSelf, self.vtSqSelf,
-                                                 mOther, self.collFreqOther, otherMom[1], otherMom[2], otherMom[3], otherSelfPrimMom[1], otherSelfPrimMom[2]},
-                                                {self.uCross[otherNm], self.vtSqCross[otherNm]})
-
-                  self.momentFlags[5][otherNm]               = true
-                  species[otherNm].momentFlags[5][self.name] = true
-               end
-            end
-
-         end
-      end
-   end
+--   if self.collisions then  -- Only compute cross primitive moments if cross-collisions affect this species. 
+--      for nm, _ in pairs(self.collisions) do
+--         if self.collisions[nm].crossCollisions then
+--
+--            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
+--               if (not (self.momentFlags[5][otherNm] and species[otherNm].momentFlags[5][self.name])) then 
+--                  -- Cross-primitive moments for the collision of these two species has not been computed.
+--                  local mOther           = species[otherNm]:getMass()
+--                  local otherMom         = species[otherNm]:fluidMoments()
+--                  local otherSelfPrimMom = species[otherNm]:selfPrimitiveMoments()
+--                  self.primMomCross:advance(tCurr, {self.mass, self.collFreq, self.numDensity, self.momDensity, self.ptclEnergy, self.uSelf, self.vtSqSelf,
+--                                                 mOther, self.collFreqOther, otherMom[1], otherMom[2], otherMom[3], otherSelfPrimMom[1], otherSelfPrimMom[2]},
+--                                                {self.uCross[otherNm], self.vtSqCross[otherNm]})
+--
+--                  self.momentFlags[5][otherNm]               = true
+--                  species[otherNm].momentFlags[5][self.name] = true
+--               end
+--            end
+--
+--         end
+--      end
+--   end
 
 end
 

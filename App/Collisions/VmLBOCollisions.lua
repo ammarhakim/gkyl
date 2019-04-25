@@ -184,7 +184,6 @@ function VmLBOCollisions:createSolver()
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
    }
-
    -- Flow velocity in vdim directions.
    self.nuUSum = DataStruct.Field {
       onGrid        = self.confGrid,
@@ -205,12 +204,6 @@ function VmLBOCollisions:createSolver()
    end
 
    if self.varNu then
-      -- Temporary collisionality field.
-      self.collFreq = DataStruct.Field {
-         onGrid        = self.confGrid,
-         numComponents = self.cNumBasis,
-         ghost         = {1, 1},
-      }
       -- Collisionality, nu, summed over all species pairs.
       self.nuSum = DataStruct.Field {
          onGrid        = self.confGrid,
@@ -226,8 +219,13 @@ function VmLBOCollisions:createSolver()
          elemCharge       = self.elemCharge,
          epsilon0         = self.epsilon0,
       }
+      -- Weak binary operations.
+      self.confMul = Updater.CartFieldBinOp {
+         onGrid    = self.confGrid,
+         weakBasis = self.confBasis,
+         operation = "Multiply",
+      }
    else
-      self.collFreq = 0.0
       self.nuSum    = 0.0    -- Assigned in advance method.
    end
    -- Lenard-Bernstein equation.
@@ -248,6 +246,12 @@ function VmLBOCollisions:createSolver()
    }
    if self.crossCollisions then
       if self.varNu then
+         -- Temporary collisionality field.
+         self.collFreq = DataStruct.Field {
+            onGrid        = self.confGrid,
+            numComponents = self.cNumBasis,
+            ghost         = {1, 1},
+         }
          -- Cross-collision u and vtSq multiplied by collisionality.
          self.nuUCross = DataStruct.Field {
             onGrid        = self.confGrid,
@@ -259,6 +263,8 @@ function VmLBOCollisions:createSolver()
             numComponents = self.confBasis:numBasis(),
             ghost         = {1, 1},
          }
+      else
+         self.collFreq = 0.0
       end
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
@@ -348,7 +354,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
          local mOther            = species[otherNm]:getMass()
          local otherMom          = species[otherNm]:fluidMoments()
-         local otherSelfPrimMom  = species[otherNm]:selfPrimitiveMoments()
+         local primMomOther      = species[otherNm]:selfPrimitiveMoments()
          local bCorrectionsOther = species[otherNm]:boundaryCorrections()
 
          local collFreqOther
@@ -397,9 +403,6 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    fRhsOut:accumulate(1.0, self.collOut)
 
-end
-
-function VmLBOCollisions:calcCrossPrimitiveMoments(tCurr, species)
 end
 
 function VmLBOCollisions:write(tm, frame)

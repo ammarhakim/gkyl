@@ -2,294 +2,1121 @@
  
 using namespace Eigen; 
  
-void GkCrossPrimMomentsGreene1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMoments1x2vSer_P1(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *m0SOther, const double *m1SOther, const double *m2SOther, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
-  // mRat:              mass ratio = m_other/m_self. 
-  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
-  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
-  // uCross:            bulk flow velocity for cross-species collision term. 
-  // vtSqCross:         squared thermal speed for cross-species collision term. 
+  // betaGreenep1:       free parameter beta+1. This has to be >0. 
+  // nu, m:              collisionality and mass. 
+  // m0,m1,m2:           moments of the distribution function. 
+  // m0S,m1S,m1S:        star moments (only used for piecewise linear). 
+  // u,vtSq:             self primitive moments: mean flow velocity and thermal speed squared. 
+  // cM,cE:              corrections to momentum and energy conservation due to finite velocity space. 
+  // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
  
-  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
-  double uSMuO[4]; 
-  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
-  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
-  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
-  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
+  // If a corner value is below zero, use cell average m0.
+  bool cellAvg = false;
+  if (0.7071067811865475*m0Self[0]-1.224744871391589*m0Self[1] < 0) { 
+    cellAvg = true;
+  }
+  if (1.224744871391589*m0Self[1]+0.7071067811865475*m0Self[0] < 0) { 
+    cellAvg = true;
+  }
  
-  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
-  double uSMuOSq[2]; 
-  for (unsigned short int k=0; k<2; k++) 
-  { 
-    uSMuOSq[k] = 0.0; 
+  double m0rSelf[2]; 
+  double m1rSelf[2]; 
+  double m0SrSelf[2]; 
+  double m1SrSelf[2]; 
+  double m2SrSelf[2]; 
+  if (cellAvg) { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = 0.0; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = 0.0; 
+    m0SrSelf[0] = m0SSelf[0]; 
+    m0SrSelf[1] = 0.0; 
+    m1SrSelf[0] = m1SSelf[0]; 
+    m1SrSelf[1] = 0.0; 
+    m2SrSelf[0] = m2SSelf[0]; 
+    m2SrSelf[1] = 0.0; 
+  } else { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = m0Self[1]; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = m1Self[1]; 
+    m0SrSelf[0] = m0SSelf[0]; 
+    m0SrSelf[1] = m0SSelf[1]; 
+    m1SrSelf[0] = m1SSelf[0]; 
+    m1SrSelf[1] = m1SSelf[1]; 
+    m2SrSelf[0] = m2SSelf[0]; 
+    m2SrSelf[1] = m2SSelf[1]; 
   } 
+ 
+  if (0.7071067811865475*m0Other[0]-1.224744871391589*m0Other[1] < 0) { 
+    cellAvg = true;
+  }
+  if (1.224744871391589*m0Other[1]+0.7071067811865475*m0Other[0] < 0) { 
+    cellAvg = true;
+  }
+ 
+  double m0rOther[2]; 
+  double m1rOther[2]; 
+  double m0SrOther[2]; 
+  double m1SrOther[2]; 
+  double m2SrOther[2]; 
+  if (cellAvg) { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = 0.0; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = 0.0; 
+    m0SrOther[0] = m0SOther[0]; 
+    m0SrOther[1] = 0.0; 
+    m1SrOther[0] = m1SOther[0]; 
+    m1SrOther[1] = 0.0; 
+    m2SrOther[0] = m2SOther[0]; 
+    m2SrOther[1] = 0.0; 
+  } else { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = m0Other[1]; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = m1Other[1]; 
+    m0SrOther[0] = m0SOther[0]; 
+    m0SrOther[1] = m0SOther[1]; 
+    m1SrOther[0] = m1SOther[0]; 
+    m1SrOther[1] = m1SOther[1]; 
+    m2SrOther[0] = m2SOther[0]; 
+    m2SrOther[1] = m2SOther[1]; 
+  } 
+ 
+  // Declare Eigen matrix and vectors for weak division. 
+  data->AEM_S = Eigen::MatrixXd::Zero(8,8); 
+ 
+  double mnuSelf  = mSelf*nuSelf; 
+  double mnuOther = mOther*nuOther; 
+  double mnuM1sum[2]; 
+  // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    mnuM1sum[vd] = 0.0; 
+  } 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(0,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(0,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,1) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to momentum conservation (self) ... // 
+  data->AEM_S(0,2) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(0,3) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(1,2) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(1,3) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(0,4) = 0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(0,5) = 0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,4) = 0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,5) = 0.7071067811865475*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to momentum conservation (other) ... // 
+  data->AEM_S(0,6) = -0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(0,7) = -0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(1,6) = -0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(1,7) = -0.7071067811865475*cMOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
+  data->AEM_S(2,0) = 0.7071067811865475*m1SrSelf[0]*mnuSelf; 
+  data->AEM_S(2,1) = 0.7071067811865475*m1SrSelf[1]*mnuSelf; 
+  data->AEM_S(3,0) = 0.7071067811865475*m1SrSelf[1]*mnuSelf; 
+  data->AEM_S(3,1) = 0.7071067811865475*m1SrSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, m1OtherX and uCrossOtherX ... // 
+  data->AEM_S(2,4) = 0.7071067811865475*m1SrOther[0]*mnuOther; 
+  data->AEM_S(2,5) = 0.7071067811865475*m1SrOther[1]*mnuOther; 
+  data->AEM_S(3,4) = 0.7071067811865475*m1SrOther[1]*mnuOther; 
+  data->AEM_S(3,5) = 0.7071067811865475*m1SrOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of mnuM1Self+mnuM1Other. 
+  mnuM1sum[0] += m1rSelf[0]*mnuSelf+m1rOther[0]*mnuOther; 
+  mnuM1sum[1] += m1rSelf[1]*mnuSelf+m1rOther[1]*mnuOther; 
+ 
+  // ... Block from correction to energy conservation (self) ... // 
+  data->AEM_S(2,2) = 1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(2,3) = 1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(3,2) = 1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(3,3) = 1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to energy conservation (other) ... // 
+  data->AEM_S(2,6) = 1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*m0SrOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(2,7) = 1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*m0SrOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(3,6) = 1.414213562373095*m0rOther[1]*mnuOther+0.7071067811865475*m0SrOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(3,7) = 1.414213562373095*m0rOther[0]*mnuOther+0.7071067811865475*m0SrOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+ 
+  double mnuM2sum[2]; 
+  // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
+  mnuM2sum[0] = m2SrSelf[0]*mnuSelf+m2SrOther[0]*mnuOther; 
+  mnuM2sum[1] = m2SrSelf[1]*mnuSelf+m2SrOther[1]*mnuOther; 
+ 
+  double m1Relax[2]; 
+  // zero out array with sum of momentum relaxation terms. 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    m1Relax[vd] = 0.0; 
+  } 
+ 
+  // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(4,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(4,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(5,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(5,1) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to (self) 1st moment of collision operator ... // 
+  data->AEM_S(4,2) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(4,3) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(5,2) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(5,3) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(4,4) = -0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(4,5) = -0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(5,4) = -0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(5,5) = -0.7071067811865475*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to (other) 1st moment of collision operator ... // 
+  data->AEM_S(4,6) = 0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(4,7) = 0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(5,6) = 0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(5,7) = 0.7071067811865475*cMOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, (m1SelfX-uSelfX*m0Self) and uCrossSelfX ... // 
+  data->AEM_S(6,0) = (-0.5*m0SrSelf[1]*uSelf[1]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1SrSelf[0]*mnuSelf; 
+  data->AEM_S(6,1) = (-0.5*m0SrSelf[0]*uSelf[1]*mnuSelf)+0.7071067811865475*m1SrSelf[1]*mnuSelf-0.5*uSelf[0]*m0SrSelf[1]*mnuSelf; 
+  data->AEM_S(7,0) = (-0.5*m0SrSelf[0]*uSelf[1]*mnuSelf)+0.7071067811865475*m1SrSelf[1]*mnuSelf-0.5*uSelf[0]*m0SrSelf[1]*mnuSelf; 
+  data->AEM_S(7,1) = (-0.9*m0SrSelf[1]*uSelf[1]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1SrSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, (m1OtherX-uOtherX*m0Other) and uCrossOtherX ... // 
+  data->AEM_S(6,4) = 0.5*m0SrOther[1]*uOther[1]*mnuOther+0.5*m0SrOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
+  data->AEM_S(6,5) = 0.5*m0SrOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1SrOther[1]*mnuOther+0.5*uOther[0]*m0SrOther[1]*mnuOther; 
+  data->AEM_S(7,4) = 0.5*m0SrOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1SrOther[1]*mnuOther+0.5*uOther[0]*m0SrOther[1]*mnuOther; 
+  data->AEM_S(7,5) = 0.9*m0SrOther[1]*uOther[1]*mnuOther+0.5*m0SrOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of momentum relaxation. 
+  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+ 
+  // ... Block from correction to (self) 2nd moment of collision operator ... // 
+  data->AEM_S(6,2) = 0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(6,3) = 0.5*cMSelf[0]*uSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(7,2) = 0.5*cMSelf[0]*uSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(7,3) = 0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to (other) 2nd moment of collision operator ... // 
+  data->AEM_S(6,6) = (-0.5*cMOther[1]*uOther[1]*mnuOther)-0.5*cMOther[0]*uOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(6,7) = (-0.5*cMOther[0]*uOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*m0SrOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(7,6) = (-0.5*cMOther[0]*uOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*m0SrOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(7,7) = (-0.5*cMOther[1]*uOther[1]*mnuOther)-0.5*cMOther[0]*uOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+ 
+  double kinESelf[2]; 
+  // zero out array with dot product of u and m1. 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    kinESelf[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 2*vd; 
-    uSMuOSq[0] += 0.7071067811865475*uSMuO[a0+1]*uSMuO[a0+1]+0.7071067811865475*uSMuO[a0]*uSMuO[a0]; 
-    uSMuOSq[1] += 1.414213562373095*uSMuO[a0]*uSMuO[a0+1]; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    kinESelf[0] += 0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]; 
+    kinESelf[1] += 0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]; 
   } 
  
-  // ..... Get the cross flow velocity uSelf2 ..... // 
+  double kinEOther[2]; 
+  // zero out array with dot product of u and m1. 
   for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    kinEOther[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 2*vd; 
-    uCross[a0] = 0.5*(uSelf[a0]+uOther[a0])-0.5*uSMuO[a0]*beta; 
-    uCross[a0+1] = 0.5*(uSelf[a0+1]+uOther[a0+1])-0.5*uSMuO[a0+1]*beta; 
- 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    kinEOther[0] += 0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
+    kinEOther[1] += 0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
   } 
  
-  double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
-  // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = (vtSqOther[0]+0.3333333333333333*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
-  vtSqCross[1] = (vtSqOther[1]+0.3333333333333333*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
- 
-} 
- 
-void GkCrossPrimMomentsGreene1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
-{ 
-  // mRat:              mass ratio = m_other/m_self. 
-  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
-  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
-  // uCross:            bulk flow velocity for cross-species collision term. 
-  // vtSqCross:         squared thermal speed for cross-species collision term. 
- 
-  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
-  double uSMuO[6]; 
-  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
-  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
-  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
-  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
-  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
-  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
- 
-  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
-  double uSMuOSq[3]; 
-  for (unsigned short int k=0; k<3; k++) 
-  { 
-    uSMuOSq[k] = 0.0; 
-  } 
+  double relKinE[2]; 
+  // zero out array with dot product of u and m1. 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
-    unsigned short int a0 = 3*vd; 
-    uSMuOSq[0] += 0.7071067811865475*uSMuO[a0+2]*uSMuO[a0+2]+0.7071067811865475*uSMuO[a0+1]*uSMuO[a0+1]+0.7071067811865475*uSMuO[a0]*uSMuO[a0]; 
-    uSMuOSq[1] += 1.264911064067352*uSMuO[a0+1]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+1]; 
-    uSMuOSq[2] += 0.4517539514526256*uSMuO[a0+2]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+2]+0.6324555320336759*uSMuO[a0+1]*uSMuO[a0+1]; 
+    relKinE[vd] = 0.0; 
   } 
  
-  // ..... Get the cross flow velocity uSelf2 ..... // 
-  for (unsigned short int vd=0; vd<2; vd++) 
-  { 
-    unsigned short int a0 = 3*vd; 
-    uCross[a0] = 0.5*(uSelf[a0]+uOther[a0])-0.5*uSMuO[a0]*beta; 
-    uCross[a0+1] = 0.5*(uSelf[a0+1]+uOther[a0+1])-0.5*uSMuO[a0+1]*beta; 
-    uCross[a0+2] = 0.5*(uSelf[a0+2]+uOther[a0+2])-0.5*uSMuO[a0+2]*beta; 
- 
-  } 
- 
-  double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
-  // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = (vtSqOther[0]+0.3333333333333333*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
-  vtSqCross[1] = (vtSqOther[1]+0.3333333333333333*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
-  vtSqCross[2] = (vtSqOther[2]+0.3333333333333333*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
- 
-} 
- 
-void GkCrossPrimMomentsGreene1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
-{ 
-  // mRat:              mass ratio = m_other/m_self. 
-  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
-  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
-  // uCross:            bulk flow velocity for cross-species collision term. 
-  // vtSqCross:         squared thermal speed for cross-species collision term. 
- 
-  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
-  double uSMuO[8]; 
-  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
-  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
-  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
-  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
-  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
-  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
-  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
-  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
- 
-  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
-  double uSMuOSq[4]; 
-  for (unsigned short int k=0; k<4; k++) 
-  { 
-    uSMuOSq[k] = 0.0; 
-  } 
-  for (unsigned short int vd=0; vd<2; vd++) 
-  { 
-    unsigned short int a0 = 4*vd; 
-    uSMuOSq[0] += 0.7071067811865475*uSMuO[a0+3]*uSMuO[a0+3]+0.7071067811865475*uSMuO[a0+2]*uSMuO[a0+2]+0.7071067811865475*uSMuO[a0+1]*uSMuO[a0+1]+0.7071067811865475*uSMuO[a0]*uSMuO[a0]; 
-    uSMuOSq[1] += 1.242118006816237*uSMuO[a0+2]*uSMuO[a0+3]+1.264911064067352*uSMuO[a0+1]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+1]; 
-    uSMuOSq[2] += 0.421637021355784*uSMuO[a0+3]*uSMuO[a0+3]+1.242118006816237*uSMuO[a0+1]*uSMuO[a0+3]+0.4517539514526256*uSMuO[a0+2]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+2]+0.6324555320336759*uSMuO[a0+1]*uSMuO[a0+1]; 
-    uSMuOSq[3] += 0.8432740427115681*uSMuO[a0+2]*uSMuO[a0+3]+1.414213562373095*uSMuO[a0]*uSMuO[a0+3]+1.242118006816237*uSMuO[a0+1]*uSMuO[a0+2]; 
-  } 
- 
-  // ..... Get the cross flow velocity uSelf2 ..... // 
-  for (unsigned short int vd=0; vd<2; vd++) 
-  { 
-    unsigned short int a0 = 4*vd; 
-    uCross[a0] = 0.5*(uSelf[a0]+uOther[a0])-0.5*uSMuO[a0]*beta; 
-    uCross[a0+1] = 0.5*(uSelf[a0+1]+uOther[a0+1])-0.5*uSMuO[a0+1]*beta; 
-    uCross[a0+2] = 0.5*(uSelf[a0+2]+uOther[a0+2])-0.5*uSMuO[a0+2]*beta; 
-    uCross[a0+3] = 0.5*(uSelf[a0+3]+uOther[a0+3])-0.5*uSMuO[a0+3]*beta; 
- 
-  } 
- 
-  double mBetaFrac = (0.5*(beta+1.0))/(mRat+1.0); 
-  // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = (vtSqOther[0]+0.3333333333333333*uSMuOSq[0])*mBetaFrac*mRat-1.0*vtSqSelf[0]*mBetaFrac+vtSqSelf[0]; 
-  vtSqCross[1] = (vtSqOther[1]+0.3333333333333333*uSMuOSq[1])*mBetaFrac*mRat-1.0*vtSqSelf[1]*mBetaFrac+vtSqSelf[1]; 
-  vtSqCross[2] = (vtSqOther[2]+0.3333333333333333*uSMuOSq[2])*mBetaFrac*mRat-1.0*vtSqSelf[2]*mBetaFrac+vtSqSelf[2]; 
-  vtSqCross[3] = (vtSqOther[3]+0.3333333333333333*uSMuOSq[3])*mBetaFrac*mRat-1.0*vtSqSelf[3]*mBetaFrac+vtSqSelf[3]; 
- 
-} 
- 
-void GkCrossPrimMomentsHeavyIon1x2vSer_P1(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
-{ 
-  // mRat:              mass ratio = m_other/m_self. 
-  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
-  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
-  // uCross:            bulk flow velocity for cross-species collision term. 
-  // vtSqCross:         squared thermal speed for cross-species collision term. 
- 
-  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
-  double uSMuO[4]; 
-  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
-  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
-  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
-  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
- 
-  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
-  double uSMuOSq[2]; 
-  for (unsigned short int k=0; k<2; k++) 
-  { 
-    uSMuOSq[k] = 0.0; 
-  } 
-  for (unsigned short int vd=0; vd<2; vd++) 
+  for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 2*vd; 
-    uSMuOSq[0] += 0.7071067811865475*uSMuO[a0+1]*uSMuO[a0+1]+0.7071067811865475*uSMuO[a0]*uSMuO[a0]; 
-    uSMuOSq[1] += 1.414213562373095*uSMuO[a0]*uSMuO[a0+1]; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    relKinE[0] += 0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]-0.7071067811865475*m1rOther[a0]*uSelf[a0]-0.7071067811865475*m1rSelf[a0]*uOther[a0]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
+    relKinE[1] += 0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]-0.7071067811865475*uOther[a0]*m1rSelf[a0+1]-0.7071067811865475*uSelf[a0]*m1rOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
   } 
  
-  // ..... Get the cross flow velocity uCross ..... // 
-  for (unsigned short int vd=0; vd<2; vd++) 
-  { 
-    unsigned short int a0 = 2*vd; 
-    uCross[a0] = uOther[a0]; 
-    uCross[a0+1] = uOther[a0+1]; 
+  double m2Relax[2]; 
+  // ... Contribution to RHS vector from energy relaxation. 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2SrSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2SrOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2SrSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2SrOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
  
-  } 
+  // ....... RHS vector is composed of m1 and m2 .......... // 
+  data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM2sum[0],mnuM2sum[1],m1Relax[0],m1Relax[1],m2Relax[0],m2Relax[1]; 
  
-  // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = 0.3333333333333333*uSMuOSq[0]*mRat+vtSqSelf[0]; 
-  vtSqCross[1] = 0.3333333333333333*uSMuOSq[1]*mRat+vtSqSelf[1]; 
+  data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
+ 
+  Eigen::Map<VectorXd>(uCrossSelf,2,1) = data->u_S.segment<2>(0); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossSelf,2,1) = data->u_S.segment<2>(2); 
+ 
+  Eigen::Map<VectorXd>(uCrossOther,2,1) = data->u_S.segment<2>(4); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossOther,2,1) = data->u_S.segment<2>(6); 
  
 } 
  
-void GkCrossPrimMomentsHeavyIon1x2vSer_P2(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMoments1x2vSer_P2(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
-  // mRat:              mass ratio = m_other/m_self. 
-  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
-  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
-  // uCross:            bulk flow velocity for cross-species collision term. 
-  // vtSqCross:         squared thermal speed for cross-species collision term. 
+  // betaGreenep1:       free parameter beta+1. This has to be >0. 
+  // nu, m:              collisionality and mass. 
+  // m0,m1,m2:           moments of the distribution function. 
+  // u,vtSq:             self primitive moments: mean flow velocity and thermal speed squared. 
+  // cM,cE:              corrections to momentum and energy conservation due to finite velocity space. 
+  // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
  
-  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
-  double uSMuO[6]; 
-  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
-  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
-  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
-  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
-  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
-  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
+  // If a corner value is below zero, use cell average m0.
+  bool cellAvg = false;
+  if (1.58113883008419*m0Self[2]-1.224744871391589*m0Self[1]+0.7071067811865475*m0Self[0] < 0) { 
+    cellAvg = true;
+  }
+  if (1.58113883008419*m0Self[2]+1.224744871391589*m0Self[1]+0.7071067811865475*m0Self[0] < 0) { 
+    cellAvg = true;
+  }
  
-  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
-  double uSMuOSq[3]; 
-  for (unsigned short int k=0; k<3; k++) 
-  { 
-    uSMuOSq[k] = 0.0; 
+  double m0rSelf[3]; 
+  double m1rSelf[3]; 
+  double m2rSelf[3]; 
+  if (cellAvg) { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = 0.0; 
+    m0rSelf[2] = 0.0; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = 0.0; 
+    m1rSelf[2] = 0.0; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = 0.0; 
+    m2rSelf[2] = 0.0; 
+  } else { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = m0Self[1]; 
+    m0rSelf[2] = m0Self[2]; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = m1Self[1]; 
+    m1rSelf[2] = m1Self[2]; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = m2Self[1]; 
+    m2rSelf[2] = m2Self[2]; 
   } 
-  for (unsigned short int vd=0; vd<2; vd++) 
+ 
+  if (1.58113883008419*m0Other[2]-1.224744871391589*m0Other[1]+0.7071067811865475*m0Other[0] < 0) { 
+    cellAvg = true;
+  }
+  if (1.58113883008419*m0Other[2]+1.224744871391589*m0Other[1]+0.7071067811865475*m0Other[0] < 0) { 
+    cellAvg = true;
+  }
+ 
+  double m0rOther[3]; 
+  double m1rOther[3]; 
+  double m2rOther[3]; 
+  if (cellAvg) { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = 0.0; 
+    m0rOther[2] = 0.0; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = 0.0; 
+    m1rOther[2] = 0.0; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = 0.0; 
+    m2rOther[2] = 0.0; 
+  } else { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = m0Other[1]; 
+    m0rOther[2] = m0Other[2]; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = m1Other[1]; 
+    m1rOther[2] = m1Other[2]; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = m2Other[1]; 
+    m2rOther[2] = m2Other[2]; 
+  } 
+ 
+  // Declare Eigen matrix and vectors for weak division. 
+  data->AEM_S = Eigen::MatrixXd::Zero(12,12); 
+ 
+  double mnuSelf  = mSelf*nuSelf; 
+  double mnuOther = mOther*nuOther; 
+  double mnuM1sum[3]; 
+  // zero out array with sum of m*nu*m1. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    mnuM1sum[vd] = 0.0; 
+  } 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(0,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(0,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(0,2) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(1,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,1) = 0.6324555320336759*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(1,2) = 0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(2,0) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(2,1) = 0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(2,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to momentum conservation (self) ... // 
+  data->AEM_S(0,3) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(0,4) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(0,5) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(1,3) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(1,4) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(1,5) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(2,3) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(2,4) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(2,5) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(0,6) = 0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(0,7) = 0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(0,8) = 0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(1,6) = 0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,7) = 0.6324555320336759*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(1,8) = 0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(2,6) = 0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,7) = 0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(2,8) = 0.4517539514526256*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to momentum conservation (other) ... // 
+  data->AEM_S(0,9) = -0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(0,10) = -0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(0,11) = -0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(1,9) = -0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(1,10) = (-0.6324555320336759*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(1,11) = -0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(2,9) = -0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(2,10) = -0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(2,11) = (-0.4517539514526256*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
+  data->AEM_S(3,0) = 0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(3,1) = 0.7071067811865475*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(3,2) = 0.7071067811865475*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(4,0) = 0.7071067811865475*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(4,1) = 0.6324555320336759*m1rSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(4,2) = 0.6324555320336759*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(5,0) = 0.7071067811865475*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(5,1) = 0.6324555320336759*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(5,2) = 0.4517539514526256*m1rSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, m1OtherX and uCrossOtherX ... // 
+  data->AEM_S(3,6) = 0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(3,7) = 0.7071067811865475*m1rOther[1]*mnuOther; 
+  data->AEM_S(3,8) = 0.7071067811865475*m1rOther[2]*mnuOther; 
+  data->AEM_S(4,6) = 0.7071067811865475*m1rOther[1]*mnuOther; 
+  data->AEM_S(4,7) = 0.6324555320336759*m1rOther[2]*mnuOther+0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(4,8) = 0.6324555320336759*m1rOther[1]*mnuOther; 
+  data->AEM_S(5,6) = 0.7071067811865475*m1rOther[2]*mnuOther; 
+  data->AEM_S(5,7) = 0.6324555320336759*m1rOther[1]*mnuOther; 
+  data->AEM_S(5,8) = 0.4517539514526256*m1rOther[2]*mnuOther+0.7071067811865475*m1rOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of mnuM1Self+mnuM1Other. 
+  mnuM1sum[0] += m1rSelf[0]*mnuSelf+m1rOther[0]*mnuOther; 
+  mnuM1sum[1] += m1rSelf[1]*mnuSelf+m1rOther[1]*mnuOther; 
+  mnuM1sum[2] += m1rSelf[2]*mnuSelf+m1rOther[2]*mnuOther; 
+ 
+  // ... Block from correction to energy conservation (self) ... // 
+  data->AEM_S(3,3) = 2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(3,4) = 2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(3,5) = 2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(4,3) = 2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(4,4) = 1.897366596101028*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(4,5) = 1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(5,3) = 2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(5,4) = 1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(5,5) = 1.355261854357877*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to energy conservation (other) ... // 
+  data->AEM_S(3,9) = 2.121320343559642*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(3,10) = 2.121320343559642*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(3,11) = 2.121320343559642*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(4,9) = 2.121320343559642*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(4,10) = 1.897366596101028*m0rOther[2]*mnuOther-0.6324555320336759*cEOther[2]*mnuOther+2.121320343559642*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(4,11) = 1.897366596101028*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(5,9) = 2.121320343559642*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(5,10) = 1.897366596101028*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(5,11) = 1.355261854357877*m0rOther[2]*mnuOther-0.4517539514526256*cEOther[2]*mnuOther+2.121320343559642*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+ 
+  double mnuM2sum[3]; 
+  // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
+  mnuM2sum[0] = m2rSelf[0]*mnuSelf+m2rOther[0]*mnuOther; 
+  mnuM2sum[1] = m2rSelf[1]*mnuSelf+m2rOther[1]*mnuOther; 
+  mnuM2sum[2] = m2rSelf[2]*mnuSelf+m2rOther[2]*mnuOther; 
+ 
+  double m1Relax[3]; 
+  // zero out array with sum of momentum relaxation terms. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    m1Relax[vd] = 0.0; 
+  } 
+ 
+  // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(6,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(6,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(6,2) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(7,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(7,1) = 0.6324555320336759*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(7,2) = 0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(8,0) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(8,1) = 0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(8,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to (self) 1st moment of collision operator ... // 
+  data->AEM_S(6,3) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(6,4) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(6,5) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(7,3) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(7,4) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(7,5) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(8,3) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(8,4) = -0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(8,5) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(6,6) = -0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(6,7) = -0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(6,8) = -0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(7,6) = -0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(7,7) = (-0.6324555320336759*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(7,8) = -0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(8,6) = -0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(8,7) = -0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(8,8) = (-0.4517539514526256*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to (other) 1st moment of collision operator ... // 
+  data->AEM_S(6,9) = 0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(6,10) = 0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(6,11) = 0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(7,9) = 0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(7,10) = 0.6324555320336759*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(7,11) = 0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(8,9) = 0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(8,10) = 0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(8,11) = 0.4517539514526256*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, (m1SelfX-uSelfX*m0Self) and uCrossSelfX ... // 
+  data->AEM_S(9,0) = (-0.5*m0rSelf[2]*uSelf[2]*mnuSelf)-0.5*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(9,1) = (-0.4472135954999579*m0rSelf[1]*uSelf[2]*mnuSelf)-0.4472135954999579*uSelf[1]*m0rSelf[2]*mnuSelf-0.5*m0rSelf[0]*uSelf[1]*mnuSelf+0.7071067811865475*m1rSelf[1]*mnuSelf-0.5*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(9,2) = (-0.31943828249997*m0rSelf[2]*uSelf[2]*mnuSelf)-0.5*m0rSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[2]*mnuSelf-0.5*uSelf[0]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(10,0) = (-0.4472135954999579*m0rSelf[1]*uSelf[2]*mnuSelf)-0.4472135954999579*uSelf[1]*m0rSelf[2]*mnuSelf-0.5*m0rSelf[0]*uSelf[1]*mnuSelf+0.7071067811865475*m1rSelf[1]*mnuSelf-0.5*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(10,1) = (-0.7857142857142857*m0rSelf[2]*uSelf[2]*mnuSelf)-0.4472135954999579*m0rSelf[0]*uSelf[2]*mnuSelf+0.6324555320336759*m1rSelf[2]*mnuSelf-0.4472135954999579*uSelf[0]*m0rSelf[2]*mnuSelf-0.9*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(10,2) = (-0.7857142857142857*m0rSelf[1]*uSelf[2]*mnuSelf)-0.7857142857142857*uSelf[1]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[0]*uSelf[1]*mnuSelf+0.6324555320336759*m1rSelf[1]*mnuSelf-0.4472135954999579*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(11,0) = (-0.31943828249997*m0rSelf[2]*uSelf[2]*mnuSelf)-0.5*m0rSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[2]*mnuSelf-0.5*uSelf[0]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(11,1) = (-0.7857142857142857*m0rSelf[1]*uSelf[2]*mnuSelf)-0.7857142857142857*uSelf[1]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[0]*uSelf[1]*mnuSelf+0.6324555320336759*m1rSelf[1]*mnuSelf-0.4472135954999579*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(11,2) = (-1.071428571428571*m0rSelf[2]*uSelf[2]*mnuSelf)-0.31943828249997*m0rSelf[0]*uSelf[2]*mnuSelf+0.4517539514526256*m1rSelf[2]*mnuSelf-0.31943828249997*uSelf[0]*m0rSelf[2]*mnuSelf-0.7857142857142857*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, (m1OtherX-uOtherX*m0Other) and uCrossOtherX ... // 
+  data->AEM_S(9,6) = 0.5*m0rOther[2]*uOther[2]*mnuOther+0.5*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(9,7) = 0.4472135954999579*m0rOther[1]*uOther[2]*mnuOther+0.4472135954999579*uOther[1]*m0rOther[2]*mnuOther+0.5*m0rOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1rOther[1]*mnuOther+0.5*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(9,8) = 0.31943828249997*m0rOther[2]*uOther[2]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1rOther[2]*mnuOther+0.5*uOther[0]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(10,6) = 0.4472135954999579*m0rOther[1]*uOther[2]*mnuOther+0.4472135954999579*uOther[1]*m0rOther[2]*mnuOther+0.5*m0rOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1rOther[1]*mnuOther+0.5*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(10,7) = 0.7857142857142857*m0rOther[2]*uOther[2]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[2]*mnuOther-0.6324555320336759*m1rOther[2]*mnuOther+0.4472135954999579*uOther[0]*m0rOther[2]*mnuOther+0.9*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(10,8) = 0.7857142857142857*m0rOther[1]*uOther[2]*mnuOther+0.7857142857142857*uOther[1]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[1]*mnuOther-0.6324555320336759*m1rOther[1]*mnuOther+0.4472135954999579*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(11,6) = 0.31943828249997*m0rOther[2]*uOther[2]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1rOther[2]*mnuOther+0.5*uOther[0]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(11,7) = 0.7857142857142857*m0rOther[1]*uOther[2]*mnuOther+0.7857142857142857*uOther[1]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[1]*mnuOther-0.6324555320336759*m1rOther[1]*mnuOther+0.4472135954999579*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(11,8) = 1.071428571428571*m0rOther[2]*uOther[2]*mnuOther+0.31943828249997*m0rOther[0]*uOther[2]*mnuOther-0.4517539514526256*m1rOther[2]*mnuOther+0.31943828249997*uOther[0]*m0rOther[2]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of momentum relaxation. 
+  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+ 
+  // ... Block from correction to (self) 2nd moment of collision operator ... // 
+  data->AEM_S(9,3) = 0.5*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(9,4) = 0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(9,5) = 0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(10,3) = 0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(10,4) = 0.7857142857142857*cMSelf[2]*uSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[2]*mnuSelf+1.897366596101028*m0rSelf[2]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.9*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(10,5) = 0.4*cMSelf[1]*uSelf[2]*mnuSelf+0.4*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(11,3) = 0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(11,4) = 0.4*cMSelf[1]*uSelf[2]*mnuSelf+0.4*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(11,5) = 0.7040816326530612*cMSelf[2]*uSelf[2]*mnuSelf+0.31943828249997*cMSelf[0]*uSelf[2]*mnuSelf+1.355261854357877*m0rSelf[2]*mnuSelf+0.31943828249997*uSelf[0]*cMSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to (other) 2nd moment of collision operator ... // 
+  data->AEM_S(9,9) = (-0.5*cMOther[2]*uOther[2]*mnuOther)-0.5*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(9,10) = (-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther)-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(9,11) = (-0.31943828249997*cMOther[2]*uOther[2]*mnuOther)-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(10,9) = (-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther)-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(10,10) = (-0.7857142857142857*cMOther[2]*uOther[2]*mnuOther)-0.4472135954999579*cMOther[0]*uOther[2]*mnuOther-1.897366596101028*m0rOther[2]*mnuOther-0.4472135954999579*uOther[0]*cMOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.9*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(10,11) = (-0.4*cMOther[1]*uOther[2]*mnuOther)-0.4*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(11,9) = (-0.31943828249997*cMOther[2]*uOther[2]*mnuOther)-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(11,10) = (-0.4*cMOther[1]*uOther[2]*mnuOther)-0.4*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(11,11) = (-0.7040816326530612*cMOther[2]*uOther[2]*mnuOther)-0.31943828249997*cMOther[0]*uOther[2]*mnuOther-1.355261854357877*m0rOther[2]*mnuOther-0.31943828249997*uOther[0]*cMOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7857142857142857*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+ 
+  double kinESelf[3]; 
+  // zero out array with dot product of u and m1. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    kinESelf[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 3*vd; 
-    uSMuOSq[0] += 0.7071067811865475*uSMuO[a0+2]*uSMuO[a0+2]+0.7071067811865475*uSMuO[a0+1]*uSMuO[a0+1]+0.7071067811865475*uSMuO[a0]*uSMuO[a0]; 
-    uSMuOSq[1] += 1.264911064067352*uSMuO[a0+1]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+1]; 
-    uSMuOSq[2] += 0.4517539514526256*uSMuO[a0+2]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+2]+0.6324555320336759*uSMuO[a0+1]*uSMuO[a0+1]; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    kinESelf[0] += 0.7071067811865475*m1rSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]; 
+    kinESelf[1] += 0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*m1rSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]; 
+    kinESelf[2] += 0.4517539514526256*m1rSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+2]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+1]; 
   } 
  
-  // ..... Get the cross flow velocity uCross ..... // 
-  for (unsigned short int vd=0; vd<2; vd++) 
+  double kinEOther[3]; 
+  // zero out array with dot product of u and m1. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    kinEOther[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 3*vd; 
-    uCross[a0] = uOther[a0]; 
-    uCross[a0+1] = uOther[a0+1]; 
-    uCross[a0+2] = uOther[a0+2]; 
- 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    kinEOther[0] += 0.7071067811865475*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
+    kinEOther[1] += 0.6324555320336759*m1rOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*m1rOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
+    kinEOther[2] += 0.4517539514526256*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*m1rOther[a0+2]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+1]; 
   } 
  
-  // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = 0.3333333333333333*uSMuOSq[0]*mRat+vtSqSelf[0]; 
-  vtSqCross[1] = 0.3333333333333333*uSMuOSq[1]*mRat+vtSqSelf[1]; 
-  vtSqCross[2] = 0.3333333333333333*uSMuOSq[2]*mRat+vtSqSelf[2]; 
+  double relKinE[3]; 
+  // zero out array with dot product of u and m1. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    relKinE[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 3*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    relKinE[0] += 0.7071067811865475*m1rSelf[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rSelf[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]-0.7071067811865475*m1rOther[a0]*uSelf[a0]-0.7071067811865475*m1rSelf[a0]*uOther[a0]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
+    relKinE[1] += 0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+2]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+2]+0.6324555320336759*uSelf[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uOther[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uSelf[a0+1]*m1rOther[a0+2]+0.6324555320336759*uOther[a0+1]*m1rOther[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]-0.7071067811865475*uOther[a0]*m1rSelf[a0+1]-0.7071067811865475*uSelf[a0]*m1rOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
+    relKinE[2] += 0.4517539514526256*m1rSelf[a0+2]*uSelf[a0+2]-0.4517539514526256*m1rOther[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0]*uSelf[a0+2]-0.4517539514526256*m1rSelf[a0+2]*uOther[a0+2]+0.4517539514526256*m1rOther[a0+2]*uOther[a0+2]-0.7071067811865475*m1rSelf[a0]*uOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+2]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+2]-0.7071067811865475*uOther[a0]*m1rSelf[a0+2]-0.7071067811865475*uSelf[a0]*m1rOther[a0+2]+0.7071067811865475*uOther[a0]*m1rOther[a0+2]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+1]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+1]; 
+  } 
+ 
+  double m2Relax[3]; 
+  // ... Contribution to RHS vector from energy relaxation. 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*mSelf)/(mSelf+mOther)+(kinESelf[2]*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*mOther)/(mSelf+mOther)+(m2rOther[2]*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
+ 
+  // ....... RHS vector is composed of m1 and m2 .......... // 
+  data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],m1Relax[0],m1Relax[1],m1Relax[2],m2Relax[0],m2Relax[1],m2Relax[2]; 
+ 
+  data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
+ 
+  Eigen::Map<VectorXd>(uCrossSelf,3,1) = data->u_S.segment<3>(0); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossSelf,3,1) = data->u_S.segment<3>(3); 
+ 
+  Eigen::Map<VectorXd>(uCrossOther,3,1) = data->u_S.segment<3>(6); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossOther,3,1) = data->u_S.segment<3>(9); 
  
 } 
  
-void GkCrossPrimMomentsHeavyIon1x2vSer_P3(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) 
+void GkCrossPrimMoments1x2vSer_P3(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
-  // mRat:              mass ratio = m_other/m_self. 
-  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. 
-  // uOther, vtSqOther: bulk flow velocity and T/m of other species. 
-  // uCross:            bulk flow velocity for cross-species collision term. 
-  // vtSqCross:         squared thermal speed for cross-species collision term. 
+  // betaGreenep1:       free parameter beta+1. This has to be >0. 
+  // nu, m:              collisionality and mass. 
+  // m0,m1,m2:           moments of the distribution function. 
+  // u,vtSq:             self primitive moments: mean flow velocity and thermal speed squared. 
+  // cM,cE:              corrections to momentum and energy conservation due to finite velocity space. 
+  // uCross,vtSqCross:   cross primitive moments: mean flow velocity and thermal speed squared. 
  
-  // ..... Compute and save the relative velocity uSelf-uOther ..... // 
-  double uSMuO[8]; 
-  uSMuO[0] = uSelf[0]-1.0*uOther[0]; 
-  uSMuO[1] = uSelf[1]-1.0*uOther[1]; 
-  uSMuO[2] = uSelf[2]-1.0*uOther[2]; 
-  uSMuO[3] = uSelf[3]-1.0*uOther[3]; 
-  uSMuO[4] = uSelf[4]-1.0*uOther[4]; 
-  uSMuO[5] = uSelf[5]-1.0*uOther[5]; 
-  uSMuO[6] = uSelf[6]-1.0*uOther[6]; 
-  uSMuO[7] = uSelf[7]-1.0*uOther[7]; 
+  // If a corner value is below zero, use cell average m0.
+  bool cellAvg = false;
+  if ((-1.870828693386971*m0Self[3])+1.58113883008419*m0Self[2]-1.224744871391589*m0Self[1]+0.7071067811865475*m0Self[0] < 0) { 
+    cellAvg = true;
+  }
+  if (1.870828693386971*m0Self[3]+1.58113883008419*m0Self[2]+1.224744871391589*m0Self[1]+0.7071067811865475*m0Self[0] < 0) { 
+    cellAvg = true;
+  }
  
-  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // 
-  double uSMuOSq[4]; 
-  for (unsigned short int k=0; k<4; k++) 
-  { 
-    uSMuOSq[k] = 0.0; 
+  double m0rSelf[4]; 
+  double m1rSelf[4]; 
+  double m2rSelf[4]; 
+  if (cellAvg) { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = 0.0; 
+    m0rSelf[2] = 0.0; 
+    m0rSelf[3] = 0.0; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = 0.0; 
+    m1rSelf[2] = 0.0; 
+    m1rSelf[3] = 0.0; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = 0.0; 
+    m2rSelf[2] = 0.0; 
+    m2rSelf[3] = 0.0; 
+  } else { 
+    m0rSelf[0] = m0Self[0]; 
+    m0rSelf[1] = m0Self[1]; 
+    m0rSelf[2] = m0Self[2]; 
+    m0rSelf[3] = m0Self[3]; 
+    m1rSelf[0] = m1Self[0]; 
+    m1rSelf[1] = m1Self[1]; 
+    m1rSelf[2] = m1Self[2]; 
+    m1rSelf[3] = m1Self[3]; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = m2Self[1]; 
+    m2rSelf[2] = m2Self[2]; 
+    m2rSelf[3] = m2Self[3]; 
   } 
-  for (unsigned short int vd=0; vd<2; vd++) 
+ 
+  if ((-1.870828693386971*m0Other[3])+1.58113883008419*m0Other[2]-1.224744871391589*m0Other[1]+0.7071067811865475*m0Other[0] < 0) { 
+    cellAvg = true;
+  }
+  if (1.870828693386971*m0Other[3]+1.58113883008419*m0Other[2]+1.224744871391589*m0Other[1]+0.7071067811865475*m0Other[0] < 0) { 
+    cellAvg = true;
+  }
+ 
+  double m0rOther[4]; 
+  double m1rOther[4]; 
+  double m2rOther[4]; 
+  if (cellAvg) { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = 0.0; 
+    m0rOther[2] = 0.0; 
+    m0rOther[3] = 0.0; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = 0.0; 
+    m1rOther[2] = 0.0; 
+    m1rOther[3] = 0.0; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = 0.0; 
+    m2rOther[2] = 0.0; 
+    m2rOther[3] = 0.0; 
+  } else { 
+    m0rOther[0] = m0Other[0]; 
+    m0rOther[1] = m0Other[1]; 
+    m0rOther[2] = m0Other[2]; 
+    m0rOther[3] = m0Other[3]; 
+    m1rOther[0] = m1Other[0]; 
+    m1rOther[1] = m1Other[1]; 
+    m1rOther[2] = m1Other[2]; 
+    m1rOther[3] = m1Other[3]; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = m2Other[1]; 
+    m2rOther[2] = m2Other[2]; 
+    m2rOther[3] = m2Other[3]; 
+  } 
+ 
+  // Declare Eigen matrix and vectors for weak division. 
+  data->AEM_S = Eigen::MatrixXd::Zero(16,16); 
+ 
+  double mnuSelf  = mSelf*nuSelf; 
+  double mnuOther = mOther*nuOther; 
+  double mnuM1sum[4]; 
+  // zero out array with sum of m*nu*m1. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    mnuM1sum[vd] = 0.0; 
+  } 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(0,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(0,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(0,2) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(0,3) = 0.7071067811865475*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(1,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,1) = 0.6324555320336759*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(1,2) = 0.6210590034081186*m0rSelf[3]*mnuSelf+0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(1,3) = 0.6210590034081186*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(2,0) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(2,1) = 0.6210590034081186*m0rSelf[3]*mnuSelf+0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(2,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(2,3) = 0.421637021355784*m0rSelf[3]*mnuSelf+0.6210590034081186*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(3,0) = 0.7071067811865475*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(3,1) = 0.6210590034081186*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(3,2) = 0.421637021355784*m0rSelf[3]*mnuSelf+0.6210590034081186*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(3,3) = 0.421637021355784*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to momentum conservation (self) ... // 
+  data->AEM_S(0,4) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(0,5) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(0,6) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(0,7) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
+  data->AEM_S(1,4) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(1,5) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(1,6) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(1,7) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
+  data->AEM_S(2,4) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(2,5) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(2,6) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(2,7) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
+  data->AEM_S(3,4) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
+  data->AEM_S(3,5) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
+  data->AEM_S(3,6) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
+  data->AEM_S(3,7) = (-0.421637021355784*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(0,8) = 0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(0,9) = 0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(0,10) = 0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(0,11) = 0.7071067811865475*m0rOther[3]*mnuOther; 
+  data->AEM_S(1,8) = 0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,9) = 0.6324555320336759*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(1,10) = 0.6210590034081186*m0rOther[3]*mnuOther+0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(1,11) = 0.6210590034081186*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,8) = 0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(2,9) = 0.6210590034081186*m0rOther[3]*mnuOther+0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(2,10) = 0.4517539514526256*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(2,11) = 0.421637021355784*m0rOther[3]*mnuOther+0.6210590034081186*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,8) = 0.7071067811865475*m0rOther[3]*mnuOther; 
+  data->AEM_S(3,9) = 0.6210590034081186*m0rOther[2]*mnuOther; 
+  data->AEM_S(3,10) = 0.421637021355784*m0rOther[3]*mnuOther+0.6210590034081186*m0rOther[1]*mnuOther; 
+  data->AEM_S(3,11) = 0.421637021355784*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to momentum conservation (other) ... // 
+  data->AEM_S(0,12) = -0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(0,13) = -0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(0,14) = -0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(0,15) = -0.7071067811865475*cMOther[3]*mnuOther; 
+  data->AEM_S(1,12) = -0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(1,13) = (-0.6324555320336759*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(1,14) = (-0.6210590034081186*cMOther[3]*mnuOther)-0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(1,15) = -0.6210590034081186*cMOther[2]*mnuOther; 
+  data->AEM_S(2,12) = -0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(2,13) = (-0.6210590034081186*cMOther[3]*mnuOther)-0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(2,14) = (-0.4517539514526256*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(2,15) = (-0.421637021355784*cMOther[3]*mnuOther)-0.6210590034081186*cMOther[1]*mnuOther; 
+  data->AEM_S(3,12) = -0.7071067811865475*cMOther[3]*mnuOther; 
+  data->AEM_S(3,13) = -0.6210590034081186*cMOther[2]*mnuOther; 
+  data->AEM_S(3,14) = (-0.421637021355784*cMOther[3]*mnuOther)-0.6210590034081186*cMOther[1]*mnuOther; 
+  data->AEM_S(3,15) = (-0.421637021355784*cMOther[2]*mnuOther)-0.7071067811865475*cMOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, m1SelfX and uCrossSelfX ... // 
+  data->AEM_S(4,0) = 0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(4,1) = 0.7071067811865475*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(4,2) = 0.7071067811865475*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(4,3) = 0.7071067811865475*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(5,0) = 0.7071067811865475*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(5,1) = 0.6324555320336759*m1rSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(5,2) = 0.6210590034081186*m1rSelf[3]*mnuSelf+0.6324555320336759*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(5,3) = 0.6210590034081186*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(6,0) = 0.7071067811865475*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(6,1) = 0.6210590034081186*m1rSelf[3]*mnuSelf+0.6324555320336759*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(6,2) = 0.4517539514526256*m1rSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(6,3) = 0.421637021355784*m1rSelf[3]*mnuSelf+0.6210590034081186*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(7,0) = 0.7071067811865475*m1rSelf[3]*mnuSelf; 
+  data->AEM_S(7,1) = 0.6210590034081186*m1rSelf[2]*mnuSelf; 
+  data->AEM_S(7,2) = 0.421637021355784*m1rSelf[3]*mnuSelf+0.6210590034081186*m1rSelf[1]*mnuSelf; 
+  data->AEM_S(7,3) = 0.421637021355784*m1rSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, m1OtherX and uCrossOtherX ... // 
+  data->AEM_S(4,8) = 0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(4,9) = 0.7071067811865475*m1rOther[1]*mnuOther; 
+  data->AEM_S(4,10) = 0.7071067811865475*m1rOther[2]*mnuOther; 
+  data->AEM_S(4,11) = 0.7071067811865475*m1rOther[3]*mnuOther; 
+  data->AEM_S(5,8) = 0.7071067811865475*m1rOther[1]*mnuOther; 
+  data->AEM_S(5,9) = 0.6324555320336759*m1rOther[2]*mnuOther+0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(5,10) = 0.6210590034081186*m1rOther[3]*mnuOther+0.6324555320336759*m1rOther[1]*mnuOther; 
+  data->AEM_S(5,11) = 0.6210590034081186*m1rOther[2]*mnuOther; 
+  data->AEM_S(6,8) = 0.7071067811865475*m1rOther[2]*mnuOther; 
+  data->AEM_S(6,9) = 0.6210590034081186*m1rOther[3]*mnuOther+0.6324555320336759*m1rOther[1]*mnuOther; 
+  data->AEM_S(6,10) = 0.4517539514526256*m1rOther[2]*mnuOther+0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(6,11) = 0.421637021355784*m1rOther[3]*mnuOther+0.6210590034081186*m1rOther[1]*mnuOther; 
+  data->AEM_S(7,8) = 0.7071067811865475*m1rOther[3]*mnuOther; 
+  data->AEM_S(7,9) = 0.6210590034081186*m1rOther[2]*mnuOther; 
+  data->AEM_S(7,10) = 0.421637021355784*m1rOther[3]*mnuOther+0.6210590034081186*m1rOther[1]*mnuOther; 
+  data->AEM_S(7,11) = 0.421637021355784*m1rOther[2]*mnuOther+0.7071067811865475*m1rOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of mnuM1Self+mnuM1Other. 
+  mnuM1sum[0] += m1rSelf[0]*mnuSelf+m1rOther[0]*mnuOther; 
+  mnuM1sum[1] += m1rSelf[1]*mnuSelf+m1rOther[1]*mnuOther; 
+  mnuM1sum[2] += m1rSelf[2]*mnuSelf+m1rOther[2]*mnuOther; 
+  mnuM1sum[3] += m1rSelf[3]*mnuSelf+m1rOther[3]*mnuOther; 
+ 
+  // ... Block from correction to energy conservation (self) ... // 
+  data->AEM_S(4,4) = 2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(4,5) = 2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(4,6) = 2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(4,7) = 2.121320343559642*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
+  data->AEM_S(5,4) = 2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(5,5) = 1.897366596101028*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(5,6) = 1.863177010224355*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(5,7) = 1.863177010224355*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
+  data->AEM_S(6,4) = 2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(6,5) = 1.863177010224355*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(6,6) = 1.355261854357877*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(6,7) = 1.264911064067352*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
+  data->AEM_S(7,4) = 2.121320343559642*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
+  data->AEM_S(7,5) = 1.863177010224355*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
+  data->AEM_S(7,6) = 1.264911064067352*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
+  data->AEM_S(7,7) = 1.264911064067352*m0rSelf[2]*mnuSelf-0.421637021355784*cESelf[2]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to energy conservation (other) ... // 
+  data->AEM_S(4,12) = 2.121320343559642*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(4,13) = 2.121320343559642*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(4,14) = 2.121320343559642*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(4,15) = 2.121320343559642*m0rOther[3]*mnuOther-0.7071067811865475*cEOther[3]*mnuOther; 
+  data->AEM_S(5,12) = 2.121320343559642*m0rOther[1]*mnuOther-0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(5,13) = 1.897366596101028*m0rOther[2]*mnuOther-0.6324555320336759*cEOther[2]*mnuOther+2.121320343559642*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(5,14) = 1.863177010224355*m0rOther[3]*mnuOther-0.6210590034081186*cEOther[3]*mnuOther+1.897366596101028*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(5,15) = 1.863177010224355*m0rOther[2]*mnuOther-0.6210590034081186*cEOther[2]*mnuOther; 
+  data->AEM_S(6,12) = 2.121320343559642*m0rOther[2]*mnuOther-0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(6,13) = 1.863177010224355*m0rOther[3]*mnuOther-0.6210590034081186*cEOther[3]*mnuOther+1.897366596101028*m0rOther[1]*mnuOther-0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(6,14) = 1.355261854357877*m0rOther[2]*mnuOther-0.4517539514526256*cEOther[2]*mnuOther+2.121320343559642*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(6,15) = 1.264911064067352*m0rOther[3]*mnuOther-0.421637021355784*cEOther[3]*mnuOther+1.863177010224355*m0rOther[1]*mnuOther-0.6210590034081186*cEOther[1]*mnuOther; 
+  data->AEM_S(7,12) = 2.121320343559642*m0rOther[3]*mnuOther-0.7071067811865475*cEOther[3]*mnuOther; 
+  data->AEM_S(7,13) = 1.863177010224355*m0rOther[2]*mnuOther-0.6210590034081186*cEOther[2]*mnuOther; 
+  data->AEM_S(7,14) = 1.264911064067352*m0rOther[3]*mnuOther-0.421637021355784*cEOther[3]*mnuOther+1.863177010224355*m0rOther[1]*mnuOther-0.6210590034081186*cEOther[1]*mnuOther; 
+  data->AEM_S(7,15) = 1.264911064067352*m0rOther[2]*mnuOther-0.421637021355784*cEOther[2]*mnuOther+2.121320343559642*m0rOther[0]*mnuOther-0.7071067811865475*cEOther[0]*mnuOther; 
+ 
+  double mnuM2sum[4]; 
+  // ... Contribution to RHS vector from mnuM2Self+mnuM2Other. 
+  mnuM2sum[0] = m2rSelf[0]*mnuSelf+m2rOther[0]*mnuOther; 
+  mnuM2sum[1] = m2rSelf[1]*mnuSelf+m2rOther[1]*mnuOther; 
+  mnuM2sum[2] = m2rSelf[2]*mnuSelf+m2rOther[2]*mnuOther; 
+  mnuM2sum[3] = m2rSelf[3]*mnuSelf+m2rOther[3]*mnuOther; 
+ 
+  double m1Relax[4]; 
+  // zero out array with sum of momentum relaxation terms. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    m1Relax[vd] = 0.0; 
+  } 
+ 
+  // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
+  data->AEM_S(8,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(8,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(8,2) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(8,3) = 0.7071067811865475*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(9,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(9,1) = 0.6324555320336759*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(9,2) = 0.6210590034081186*m0rSelf[3]*mnuSelf+0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(9,3) = 0.6210590034081186*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(10,0) = 0.7071067811865475*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(10,1) = 0.6210590034081186*m0rSelf[3]*mnuSelf+0.6324555320336759*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(10,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+  data->AEM_S(10,3) = 0.421637021355784*m0rSelf[3]*mnuSelf+0.6210590034081186*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(11,0) = 0.7071067811865475*m0rSelf[3]*mnuSelf; 
+  data->AEM_S(11,1) = 0.6210590034081186*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(11,2) = 0.421637021355784*m0rSelf[3]*mnuSelf+0.6210590034081186*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(11,3) = 0.421637021355784*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to (self) 1st moment of collision operator ... // 
+  data->AEM_S(8,4) = -0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(8,5) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(8,6) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(8,7) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
+  data->AEM_S(9,4) = -0.7071067811865475*cMSelf[1]*mnuSelf; 
+  data->AEM_S(9,5) = (-0.6324555320336759*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(9,6) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(9,7) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
+  data->AEM_S(10,4) = -0.7071067811865475*cMSelf[2]*mnuSelf; 
+  data->AEM_S(10,5) = (-0.6210590034081186*cMSelf[3]*mnuSelf)-0.6324555320336759*cMSelf[1]*mnuSelf; 
+  data->AEM_S(10,6) = (-0.4517539514526256*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+  data->AEM_S(10,7) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
+  data->AEM_S(11,4) = -0.7071067811865475*cMSelf[3]*mnuSelf; 
+  data->AEM_S(11,5) = -0.6210590034081186*cMSelf[2]*mnuSelf; 
+  data->AEM_S(11,6) = (-0.421637021355784*cMSelf[3]*mnuSelf)-0.6210590034081186*cMSelf[1]*mnuSelf; 
+  data->AEM_S(11,7) = (-0.421637021355784*cMSelf[2]*mnuSelf)-0.7071067811865475*cMSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOtherX ... // 
+  data->AEM_S(8,8) = -0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(8,9) = -0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(8,10) = -0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(8,11) = -0.7071067811865475*m0rOther[3]*mnuOther; 
+  data->AEM_S(9,8) = -0.7071067811865475*m0rOther[1]*mnuOther; 
+  data->AEM_S(9,9) = (-0.6324555320336759*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(9,10) = (-0.6210590034081186*m0rOther[3]*mnuOther)-0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(9,11) = -0.6210590034081186*m0rOther[2]*mnuOther; 
+  data->AEM_S(10,8) = -0.7071067811865475*m0rOther[2]*mnuOther; 
+  data->AEM_S(10,9) = (-0.6210590034081186*m0rOther[3]*mnuOther)-0.6324555320336759*m0rOther[1]*mnuOther; 
+  data->AEM_S(10,10) = (-0.4517539514526256*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
+  data->AEM_S(10,11) = (-0.421637021355784*m0rOther[3]*mnuOther)-0.6210590034081186*m0rOther[1]*mnuOther; 
+  data->AEM_S(11,8) = -0.7071067811865475*m0rOther[3]*mnuOther; 
+  data->AEM_S(11,9) = -0.6210590034081186*m0rOther[2]*mnuOther; 
+  data->AEM_S(11,10) = (-0.421637021355784*m0rOther[3]*mnuOther)-0.6210590034081186*m0rOther[1]*mnuOther; 
+  data->AEM_S(11,11) = (-0.421637021355784*m0rOther[2]*mnuOther)-0.7071067811865475*m0rOther[0]*mnuOther; 
+ 
+  // ... Block from correction to (other) 1st moment of collision operator ... // 
+  data->AEM_S(8,12) = 0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(8,13) = 0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(8,14) = 0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(8,15) = 0.7071067811865475*cMOther[3]*mnuOther; 
+  data->AEM_S(9,12) = 0.7071067811865475*cMOther[1]*mnuOther; 
+  data->AEM_S(9,13) = 0.6324555320336759*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(9,14) = 0.6210590034081186*cMOther[3]*mnuOther+0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(9,15) = 0.6210590034081186*cMOther[2]*mnuOther; 
+  data->AEM_S(10,12) = 0.7071067811865475*cMOther[2]*mnuOther; 
+  data->AEM_S(10,13) = 0.6210590034081186*cMOther[3]*mnuOther+0.6324555320336759*cMOther[1]*mnuOther; 
+  data->AEM_S(10,14) = 0.4517539514526256*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
+  data->AEM_S(10,15) = 0.421637021355784*cMOther[3]*mnuOther+0.6210590034081186*cMOther[1]*mnuOther; 
+  data->AEM_S(11,12) = 0.7071067811865475*cMOther[3]*mnuOther; 
+  data->AEM_S(11,13) = 0.6210590034081186*cMOther[2]*mnuOther; 
+  data->AEM_S(11,14) = 0.421637021355784*cMOther[3]*mnuOther+0.6210590034081186*cMOther[1]*mnuOther; 
+  data->AEM_S(11,15) = 0.421637021355784*cMOther[2]*mnuOther+0.7071067811865475*cMOther[0]*mnuOther; 
+ 
+  // ... Block from weak multiply of mSelf, nuSelf, (m1SelfX-uSelfX*m0Self) and uCrossSelfX ... // 
+  data->AEM_S(12,0) = (-0.5*m0rSelf[3]*uSelf[3]*mnuSelf)-0.5*m0rSelf[2]*uSelf[2]*mnuSelf-0.5*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(12,1) = (-0.4391550328268398*m0rSelf[2]*uSelf[3]*mnuSelf)-0.4391550328268398*uSelf[2]*m0rSelf[3]*mnuSelf-0.4472135954999579*m0rSelf[1]*uSelf[2]*mnuSelf-0.4472135954999579*uSelf[1]*m0rSelf[2]*mnuSelf-0.5*m0rSelf[0]*uSelf[1]*mnuSelf+0.7071067811865475*m1rSelf[1]*mnuSelf-0.5*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(12,2) = (-0.2981423969999719*m0rSelf[3]*uSelf[3]*mnuSelf)-0.4391550328268398*m0rSelf[1]*uSelf[3]*mnuSelf-0.4391550328268398*uSelf[1]*m0rSelf[3]*mnuSelf-0.31943828249997*m0rSelf[2]*uSelf[2]*mnuSelf-0.5*m0rSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[2]*mnuSelf-0.5*uSelf[0]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(12,3) = (-0.2981423969999719*m0rSelf[2]*uSelf[3]*mnuSelf)-0.5*m0rSelf[0]*uSelf[3]*mnuSelf+0.7071067811865475*m1rSelf[3]*mnuSelf-0.2981423969999719*uSelf[2]*m0rSelf[3]*mnuSelf-0.5*uSelf[0]*m0rSelf[3]*mnuSelf-0.4391550328268398*m0rSelf[1]*uSelf[2]*mnuSelf-0.4391550328268398*uSelf[1]*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(13,0) = (-0.4391550328268398*m0rSelf[2]*uSelf[3]*mnuSelf)-0.4391550328268398*uSelf[2]*m0rSelf[3]*mnuSelf-0.4472135954999579*m0rSelf[1]*uSelf[2]*mnuSelf-0.4472135954999579*uSelf[1]*m0rSelf[2]*mnuSelf-0.5*m0rSelf[0]*uSelf[1]*mnuSelf+0.7071067811865475*m1rSelf[1]*mnuSelf-0.5*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(13,1) = (-0.7666666666666667*m0rSelf[3]*uSelf[3]*mnuSelf)-0.3927922024247862*m0rSelf[1]*uSelf[3]*mnuSelf-0.3927922024247862*uSelf[1]*m0rSelf[3]*mnuSelf-0.7857142857142857*m0rSelf[2]*uSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[0]*uSelf[2]*mnuSelf+0.6324555320336759*m1rSelf[2]*mnuSelf-0.4472135954999579*uSelf[0]*m0rSelf[2]*mnuSelf-0.9*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(13,2) = (-0.6546536707079771*m0rSelf[2]*uSelf[3]*mnuSelf)-0.4391550328268398*m0rSelf[0]*uSelf[3]*mnuSelf+0.6210590034081186*m1rSelf[3]*mnuSelf-0.6546536707079771*uSelf[2]*m0rSelf[3]*mnuSelf-0.4391550328268398*uSelf[0]*m0rSelf[3]*mnuSelf-0.7857142857142857*m0rSelf[1]*uSelf[2]*mnuSelf-0.7857142857142857*uSelf[1]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[0]*uSelf[1]*mnuSelf+0.6324555320336759*m1rSelf[1]*mnuSelf-0.4472135954999579*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(13,3) = (-0.499917348540637*m0rSelf[3]*uSelf[3]*mnuSelf)-0.7666666666666667*m0rSelf[1]*uSelf[3]*mnuSelf-0.7666666666666667*uSelf[1]*m0rSelf[3]*mnuSelf-0.6546536707079771*m0rSelf[2]*uSelf[2]*mnuSelf-0.4391550328268398*m0rSelf[0]*uSelf[2]*mnuSelf+0.6210590034081186*m1rSelf[2]*mnuSelf-0.4391550328268398*uSelf[0]*m0rSelf[2]*mnuSelf-0.3927922024247862*m0rSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(14,0) = (-0.2981423969999719*m0rSelf[3]*uSelf[3]*mnuSelf)-0.4391550328268398*m0rSelf[1]*uSelf[3]*mnuSelf-0.4391550328268398*uSelf[1]*m0rSelf[3]*mnuSelf-0.31943828249997*m0rSelf[2]*uSelf[2]*mnuSelf-0.5*m0rSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1rSelf[2]*mnuSelf-0.5*uSelf[0]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(14,1) = (-0.6546536707079771*m0rSelf[2]*uSelf[3]*mnuSelf)-0.4391550328268398*m0rSelf[0]*uSelf[3]*mnuSelf+0.6210590034081186*m1rSelf[3]*mnuSelf-0.6546536707079771*uSelf[2]*m0rSelf[3]*mnuSelf-0.4391550328268398*uSelf[0]*m0rSelf[3]*mnuSelf-0.7857142857142857*m0rSelf[1]*uSelf[2]*mnuSelf-0.7857142857142857*uSelf[1]*m0rSelf[2]*mnuSelf-0.4472135954999579*m0rSelf[0]*uSelf[1]*mnuSelf+0.6324555320336759*m1rSelf[1]*mnuSelf-0.4472135954999579*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(14,2) = (-0.9242424242424242*m0rSelf[3]*uSelf[3]*mnuSelf)-0.6546536707079771*m0rSelf[1]*uSelf[3]*mnuSelf-0.6546536707079771*uSelf[1]*m0rSelf[3]*mnuSelf-1.071428571428571*m0rSelf[2]*uSelf[2]*mnuSelf-0.31943828249997*m0rSelf[0]*uSelf[2]*mnuSelf+0.4517539514526256*m1rSelf[2]*mnuSelf-0.31943828249997*uSelf[0]*m0rSelf[2]*mnuSelf-0.7857142857142857*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+  data->AEM_S(14,3) = (-0.9242424242424242*m0rSelf[2]*uSelf[3]*mnuSelf)-0.2981423969999719*m0rSelf[0]*uSelf[3]*mnuSelf+0.421637021355784*m1rSelf[3]*mnuSelf-0.9242424242424242*uSelf[2]*m0rSelf[3]*mnuSelf-0.2981423969999719*uSelf[0]*m0rSelf[3]*mnuSelf-0.6546536707079771*m0rSelf[1]*uSelf[2]*mnuSelf-0.6546536707079771*uSelf[1]*m0rSelf[2]*mnuSelf-0.4391550328268398*m0rSelf[0]*uSelf[1]*mnuSelf+0.6210590034081186*m1rSelf[1]*mnuSelf-0.4391550328268398*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(15,0) = (-0.2981423969999719*m0rSelf[2]*uSelf[3]*mnuSelf)-0.5*m0rSelf[0]*uSelf[3]*mnuSelf+0.7071067811865475*m1rSelf[3]*mnuSelf-0.2981423969999719*uSelf[2]*m0rSelf[3]*mnuSelf-0.5*uSelf[0]*m0rSelf[3]*mnuSelf-0.4391550328268398*m0rSelf[1]*uSelf[2]*mnuSelf-0.4391550328268398*uSelf[1]*m0rSelf[2]*mnuSelf; 
+  data->AEM_S(15,1) = (-0.499917348540637*m0rSelf[3]*uSelf[3]*mnuSelf)-0.7666666666666667*m0rSelf[1]*uSelf[3]*mnuSelf-0.7666666666666667*uSelf[1]*m0rSelf[3]*mnuSelf-0.6546536707079771*m0rSelf[2]*uSelf[2]*mnuSelf-0.4391550328268398*m0rSelf[0]*uSelf[2]*mnuSelf+0.6210590034081186*m1rSelf[2]*mnuSelf-0.4391550328268398*uSelf[0]*m0rSelf[2]*mnuSelf-0.3927922024247862*m0rSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(15,2) = (-0.9242424242424242*m0rSelf[2]*uSelf[3]*mnuSelf)-0.2981423969999719*m0rSelf[0]*uSelf[3]*mnuSelf+0.421637021355784*m1rSelf[3]*mnuSelf-0.9242424242424242*uSelf[2]*m0rSelf[3]*mnuSelf-0.2981423969999719*uSelf[0]*m0rSelf[3]*mnuSelf-0.6546536707079771*m0rSelf[1]*uSelf[2]*mnuSelf-0.6546536707079771*uSelf[1]*m0rSelf[2]*mnuSelf-0.4391550328268398*m0rSelf[0]*uSelf[1]*mnuSelf+0.6210590034081186*m1rSelf[1]*mnuSelf-0.4391550328268398*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(15,3) = (-1.17972027972028*m0rSelf[3]*uSelf[3]*mnuSelf)-0.499917348540637*m0rSelf[1]*uSelf[3]*mnuSelf-0.499917348540637*uSelf[1]*m0rSelf[3]*mnuSelf-0.9242424242424242*m0rSelf[2]*uSelf[2]*mnuSelf-0.2981423969999719*m0rSelf[0]*uSelf[2]*mnuSelf+0.421637021355784*m1rSelf[2]*mnuSelf-0.2981423969999719*uSelf[0]*m0rSelf[2]*mnuSelf-0.7666666666666667*m0rSelf[1]*uSelf[1]*mnuSelf-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1rSelf[0]*mnuSelf; 
+ 
+  // ... Block from weak multiply of mOther, nuOther, (m1OtherX-uOtherX*m0Other) and uCrossOtherX ... // 
+  data->AEM_S(12,8) = 0.5*m0rOther[3]*uOther[3]*mnuOther+0.5*m0rOther[2]*uOther[2]*mnuOther+0.5*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(12,9) = 0.4391550328268398*m0rOther[2]*uOther[3]*mnuOther+0.4391550328268398*uOther[2]*m0rOther[3]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[2]*mnuOther+0.4472135954999579*uOther[1]*m0rOther[2]*mnuOther+0.5*m0rOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1rOther[1]*mnuOther+0.5*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(12,10) = 0.2981423969999719*m0rOther[3]*uOther[3]*mnuOther+0.4391550328268398*m0rOther[1]*uOther[3]*mnuOther+0.4391550328268398*uOther[1]*m0rOther[3]*mnuOther+0.31943828249997*m0rOther[2]*uOther[2]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1rOther[2]*mnuOther+0.5*uOther[0]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(12,11) = 0.2981423969999719*m0rOther[2]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1rOther[3]*mnuOther+0.2981423969999719*uOther[2]*m0rOther[3]*mnuOther+0.5*uOther[0]*m0rOther[3]*mnuOther+0.4391550328268398*m0rOther[1]*uOther[2]*mnuOther+0.4391550328268398*uOther[1]*m0rOther[2]*mnuOther; 
+  data->AEM_S(13,8) = 0.4391550328268398*m0rOther[2]*uOther[3]*mnuOther+0.4391550328268398*uOther[2]*m0rOther[3]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[2]*mnuOther+0.4472135954999579*uOther[1]*m0rOther[2]*mnuOther+0.5*m0rOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1rOther[1]*mnuOther+0.5*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(13,9) = 0.7666666666666667*m0rOther[3]*uOther[3]*mnuOther+0.3927922024247862*m0rOther[1]*uOther[3]*mnuOther+0.3927922024247862*uOther[1]*m0rOther[3]*mnuOther+0.7857142857142857*m0rOther[2]*uOther[2]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[2]*mnuOther-0.6324555320336759*m1rOther[2]*mnuOther+0.4472135954999579*uOther[0]*m0rOther[2]*mnuOther+0.9*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(13,10) = 0.6546536707079771*m0rOther[2]*uOther[3]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[3]*mnuOther-0.6210590034081186*m1rOther[3]*mnuOther+0.6546536707079771*uOther[2]*m0rOther[3]*mnuOther+0.4391550328268398*uOther[0]*m0rOther[3]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[2]*mnuOther+0.7857142857142857*uOther[1]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[1]*mnuOther-0.6324555320336759*m1rOther[1]*mnuOther+0.4472135954999579*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(13,11) = 0.499917348540637*m0rOther[3]*uOther[3]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[3]*mnuOther+0.7666666666666667*uOther[1]*m0rOther[3]*mnuOther+0.6546536707079771*m0rOther[2]*uOther[2]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[2]*mnuOther-0.6210590034081186*m1rOther[2]*mnuOther+0.4391550328268398*uOther[0]*m0rOther[2]*mnuOther+0.3927922024247862*m0rOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(14,8) = 0.2981423969999719*m0rOther[3]*uOther[3]*mnuOther+0.4391550328268398*m0rOther[1]*uOther[3]*mnuOther+0.4391550328268398*uOther[1]*m0rOther[3]*mnuOther+0.31943828249997*m0rOther[2]*uOther[2]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1rOther[2]*mnuOther+0.5*uOther[0]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(14,9) = 0.6546536707079771*m0rOther[2]*uOther[3]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[3]*mnuOther-0.6210590034081186*m1rOther[3]*mnuOther+0.6546536707079771*uOther[2]*m0rOther[3]*mnuOther+0.4391550328268398*uOther[0]*m0rOther[3]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[2]*mnuOther+0.7857142857142857*uOther[1]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[1]*mnuOther-0.6324555320336759*m1rOther[1]*mnuOther+0.4472135954999579*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(14,10) = 0.9242424242424242*m0rOther[3]*uOther[3]*mnuOther+0.6546536707079771*m0rOther[1]*uOther[3]*mnuOther+0.6546536707079771*uOther[1]*m0rOther[3]*mnuOther+1.071428571428571*m0rOther[2]*uOther[2]*mnuOther+0.31943828249997*m0rOther[0]*uOther[2]*mnuOther-0.4517539514526256*m1rOther[2]*mnuOther+0.31943828249997*uOther[0]*m0rOther[2]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
+  data->AEM_S(14,11) = 0.9242424242424242*m0rOther[2]*uOther[3]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[3]*mnuOther-0.421637021355784*m1rOther[3]*mnuOther+0.9242424242424242*uOther[2]*m0rOther[3]*mnuOther+0.2981423969999719*uOther[0]*m0rOther[3]*mnuOther+0.6546536707079771*m0rOther[1]*uOther[2]*mnuOther+0.6546536707079771*uOther[1]*m0rOther[2]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[1]*mnuOther-0.6210590034081186*m1rOther[1]*mnuOther+0.4391550328268398*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(15,8) = 0.2981423969999719*m0rOther[2]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1rOther[3]*mnuOther+0.2981423969999719*uOther[2]*m0rOther[3]*mnuOther+0.5*uOther[0]*m0rOther[3]*mnuOther+0.4391550328268398*m0rOther[1]*uOther[2]*mnuOther+0.4391550328268398*uOther[1]*m0rOther[2]*mnuOther; 
+  data->AEM_S(15,9) = 0.499917348540637*m0rOther[3]*uOther[3]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[3]*mnuOther+0.7666666666666667*uOther[1]*m0rOther[3]*mnuOther+0.6546536707079771*m0rOther[2]*uOther[2]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[2]*mnuOther-0.6210590034081186*m1rOther[2]*mnuOther+0.4391550328268398*uOther[0]*m0rOther[2]*mnuOther+0.3927922024247862*m0rOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(15,10) = 0.9242424242424242*m0rOther[2]*uOther[3]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[3]*mnuOther-0.421637021355784*m1rOther[3]*mnuOther+0.9242424242424242*uOther[2]*m0rOther[3]*mnuOther+0.2981423969999719*uOther[0]*m0rOther[3]*mnuOther+0.6546536707079771*m0rOther[1]*uOther[2]*mnuOther+0.6546536707079771*uOther[1]*m0rOther[2]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[1]*mnuOther-0.6210590034081186*m1rOther[1]*mnuOther+0.4391550328268398*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(15,11) = 1.17972027972028*m0rOther[3]*uOther[3]*mnuOther+0.499917348540637*m0rOther[1]*uOther[3]*mnuOther+0.499917348540637*uOther[1]*m0rOther[3]*mnuOther+0.9242424242424242*m0rOther[2]*uOther[2]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[2]*mnuOther-0.421637021355784*m1rOther[2]*mnuOther+0.2981423969999719*uOther[0]*m0rOther[2]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
+ 
+  // ... Contribution to RHS vector from component 1 of momentum relaxation. 
+  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[3] += (m1rOther[3]-1.0*m1rSelf[3])*betaGreenep1*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+ 
+  // ... Block from correction to (self) 2nd moment of collision operator ... // 
+  data->AEM_S(12,4) = 0.5*cMSelf[3]*uSelf[3]*mnuSelf+0.5*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(12,5) = 0.4391550328268398*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[2]*cMSelf[3]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(12,6) = 0.2981423969999719*cMSelf[3]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[3]*mnuSelf+0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(12,7) = 0.2981423969999719*cMSelf[2]*uSelf[3]*mnuSelf+0.5*cMSelf[0]*uSelf[3]*mnuSelf+2.121320343559642*m0rSelf[3]*mnuSelf+0.2981423969999719*uSelf[2]*cMSelf[3]*mnuSelf+0.5*uSelf[0]*cMSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[2]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[2]*mnuSelf; 
+  data->AEM_S(13,4) = 0.4391550328268398*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[2]*cMSelf[3]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(13,5) = 0.7666666666666667*cMSelf[3]*uSelf[3]*mnuSelf+0.3927922024247862*cMSelf[1]*uSelf[3]*mnuSelf+0.3927922024247862*uSelf[1]*cMSelf[3]*mnuSelf+0.7857142857142857*cMSelf[2]*uSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[2]*mnuSelf+1.897366596101028*m0rSelf[2]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.9*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(13,6) = 0.6546536707079771*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[3]*mnuSelf+1.863177010224355*m0rSelf[3]*mnuSelf+0.6546536707079771*uSelf[2]*cMSelf[3]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[2]*mnuSelf+0.7857142857142857*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(13,7) = 0.2618614682831908*cMSelf[3]*uSelf[3]*mnuSelf+0.3857142857142857*cMSelf[1]*uSelf[3]*mnuSelf+0.3857142857142857*uSelf[1]*cMSelf[3]*mnuSelf+0.2805658588748473*cMSelf[2]*uSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[2]*mnuSelf+1.863177010224355*m0rSelf[2]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf+0.3927922024247862*cMSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(14,4) = 0.2981423969999719*cMSelf[3]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[3]*mnuSelf+0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(14,5) = 0.6546536707079771*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[3]*mnuSelf+1.863177010224355*m0rSelf[3]*mnuSelf+0.6546536707079771*uSelf[2]*cMSelf[3]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[2]*mnuSelf+0.7857142857142857*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(14,6) = 0.6904761904761905*cMSelf[3]*uSelf[3]*mnuSelf+0.2805658588748473*cMSelf[1]*uSelf[3]*mnuSelf+0.2805658588748473*uSelf[1]*cMSelf[3]*mnuSelf+0.7040816326530612*cMSelf[2]*uSelf[2]*mnuSelf+0.31943828249997*cMSelf[0]*uSelf[2]*mnuSelf+1.355261854357877*m0rSelf[2]*mnuSelf+0.31943828249997*uSelf[0]*cMSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(14,7) = 0.5634920634920635*cMSelf[2]*uSelf[3]*mnuSelf+0.2981423969999719*cMSelf[0]*uSelf[3]*mnuSelf+1.264911064067352*m0rSelf[3]*mnuSelf+0.5634920634920635*uSelf[2]*cMSelf[3]*mnuSelf+0.2981423969999719*uSelf[0]*cMSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6546536707079771*cMSelf[1]*uSelf[2]*mnuSelf+0.6546536707079771*uSelf[1]*cMSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[1]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
+  data->AEM_S(15,4) = 0.2981423969999719*cMSelf[2]*uSelf[3]*mnuSelf+0.5*cMSelf[0]*uSelf[3]*mnuSelf+2.121320343559642*m0rSelf[3]*mnuSelf+0.2981423969999719*uSelf[2]*cMSelf[3]*mnuSelf+0.5*uSelf[0]*cMSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[2]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[2]*mnuSelf; 
+  data->AEM_S(15,5) = 0.2618614682831908*cMSelf[3]*uSelf[3]*mnuSelf+0.3857142857142857*cMSelf[1]*uSelf[3]*mnuSelf+0.3857142857142857*uSelf[1]*cMSelf[3]*mnuSelf+0.2805658588748473*cMSelf[2]*uSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[2]*mnuSelf+1.863177010224355*m0rSelf[2]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf+0.3927922024247862*cMSelf[1]*uSelf[1]*mnuSelf; 
+  data->AEM_S(15,6) = 0.5634920634920635*cMSelf[2]*uSelf[3]*mnuSelf+0.2981423969999719*cMSelf[0]*uSelf[3]*mnuSelf+1.264911064067352*m0rSelf[3]*mnuSelf+0.5634920634920635*uSelf[2]*cMSelf[3]*mnuSelf+0.2981423969999719*uSelf[0]*cMSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6546536707079771*cMSelf[1]*uSelf[2]*mnuSelf+0.6546536707079771*uSelf[1]*cMSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[1]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
+  data->AEM_S(15,7) = 0.6777777777777778*cMSelf[3]*uSelf[3]*mnuSelf+0.2618614682831908*cMSelf[1]*uSelf[3]*mnuSelf+0.2618614682831908*uSelf[1]*cMSelf[3]*mnuSelf+0.6904761904761905*cMSelf[2]*uSelf[2]*mnuSelf+0.2981423969999719*cMSelf[0]*uSelf[2]*mnuSelf+1.264911064067352*m0rSelf[2]*mnuSelf+0.2981423969999719*uSelf[0]*cMSelf[2]*mnuSelf-0.421637021355784*cESelf[2]*mnuSelf+0.7666666666666667*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  // ... Block from correction to (other) 2nd moment of collision operator ... // 
+  data->AEM_S(12,12) = (-0.5*cMOther[3]*uOther[3]*mnuOther)-0.5*cMOther[2]*uOther[2]*mnuOther-0.5*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(12,13) = (-0.4391550328268398*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*uOther[2]*cMOther[3]*mnuOther-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(12,14) = (-0.2981423969999719*cMOther[3]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[1]*uOther[3]*mnuOther-0.4391550328268398*uOther[1]*cMOther[3]*mnuOther-0.31943828249997*cMOther[2]*uOther[2]*mnuOther-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(12,15) = (-0.2981423969999719*cMOther[2]*uOther[3]*mnuOther)-0.5*cMOther[0]*uOther[3]*mnuOther-2.121320343559642*m0rOther[3]*mnuOther-0.2981423969999719*uOther[2]*cMOther[3]*mnuOther-0.5*uOther[0]*cMOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther-0.4391550328268398*cMOther[1]*uOther[2]*mnuOther-0.4391550328268398*uOther[1]*cMOther[2]*mnuOther; 
+  data->AEM_S(13,12) = (-0.4391550328268398*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*uOther[2]*cMOther[3]*mnuOther-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(13,13) = (-0.7666666666666667*cMOther[3]*uOther[3]*mnuOther)-0.3927922024247862*cMOther[1]*uOther[3]*mnuOther-0.3927922024247862*uOther[1]*cMOther[3]*mnuOther-0.7857142857142857*cMOther[2]*uOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[2]*mnuOther-1.897366596101028*m0rOther[2]*mnuOther-0.4472135954999579*uOther[0]*cMOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.9*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(13,14) = (-0.6546536707079771*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[0]*uOther[3]*mnuOther-1.863177010224355*m0rOther[3]*mnuOther-0.6546536707079771*uOther[2]*cMOther[3]*mnuOther-0.4391550328268398*uOther[0]*cMOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.7857142857142857*cMOther[1]*uOther[2]*mnuOther-0.7857142857142857*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(13,15) = (-0.2618614682831908*cMOther[3]*uOther[3]*mnuOther)-0.3857142857142857*cMOther[1]*uOther[3]*mnuOther-0.3857142857142857*uOther[1]*cMOther[3]*mnuOther-0.2805658588748473*cMOther[2]*uOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[2]*mnuOther-1.863177010224355*m0rOther[2]*mnuOther-0.4391550328268398*uOther[0]*cMOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther-0.3927922024247862*cMOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(14,12) = (-0.2981423969999719*cMOther[3]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[1]*uOther[3]*mnuOther-0.4391550328268398*uOther[1]*cMOther[3]*mnuOther-0.31943828249997*cMOther[2]*uOther[2]*mnuOther-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(14,13) = (-0.6546536707079771*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[0]*uOther[3]*mnuOther-1.863177010224355*m0rOther[3]*mnuOther-0.6546536707079771*uOther[2]*cMOther[3]*mnuOther-0.4391550328268398*uOther[0]*cMOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.7857142857142857*cMOther[1]*uOther[2]*mnuOther-0.7857142857142857*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(14,14) = (-0.6904761904761905*cMOther[3]*uOther[3]*mnuOther)-0.2805658588748473*cMOther[1]*uOther[3]*mnuOther-0.2805658588748473*uOther[1]*cMOther[3]*mnuOther-0.7040816326530612*cMOther[2]*uOther[2]*mnuOther-0.31943828249997*cMOther[0]*uOther[2]*mnuOther-1.355261854357877*m0rOther[2]*mnuOther-0.31943828249997*uOther[0]*cMOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7857142857142857*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(14,15) = (-0.5634920634920635*cMOther[2]*uOther[3]*mnuOther)-0.2981423969999719*cMOther[0]*uOther[3]*mnuOther-1.264911064067352*m0rOther[3]*mnuOther-0.5634920634920635*uOther[2]*cMOther[3]*mnuOther-0.2981423969999719*uOther[0]*cMOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6546536707079771*cMOther[1]*uOther[2]*mnuOther-0.6546536707079771*uOther[1]*cMOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[1]*mnuOther-1.863177010224355*m0rOther[1]*mnuOther-0.4391550328268398*uOther[0]*cMOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
+  data->AEM_S(15,12) = (-0.2981423969999719*cMOther[2]*uOther[3]*mnuOther)-0.5*cMOther[0]*uOther[3]*mnuOther-2.121320343559642*m0rOther[3]*mnuOther-0.2981423969999719*uOther[2]*cMOther[3]*mnuOther-0.5*uOther[0]*cMOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther-0.4391550328268398*cMOther[1]*uOther[2]*mnuOther-0.4391550328268398*uOther[1]*cMOther[2]*mnuOther; 
+  data->AEM_S(15,13) = (-0.2618614682831908*cMOther[3]*uOther[3]*mnuOther)-0.3857142857142857*cMOther[1]*uOther[3]*mnuOther-0.3857142857142857*uOther[1]*cMOther[3]*mnuOther-0.2805658588748473*cMOther[2]*uOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[2]*mnuOther-1.863177010224355*m0rOther[2]*mnuOther-0.4391550328268398*uOther[0]*cMOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther-0.3927922024247862*cMOther[1]*uOther[1]*mnuOther; 
+  data->AEM_S(15,14) = (-0.5634920634920635*cMOther[2]*uOther[3]*mnuOther)-0.2981423969999719*cMOther[0]*uOther[3]*mnuOther-1.264911064067352*m0rOther[3]*mnuOther-0.5634920634920635*uOther[2]*cMOther[3]*mnuOther-0.2981423969999719*uOther[0]*cMOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6546536707079771*cMOther[1]*uOther[2]*mnuOther-0.6546536707079771*uOther[1]*cMOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[1]*mnuOther-1.863177010224355*m0rOther[1]*mnuOther-0.4391550328268398*uOther[0]*cMOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
+  data->AEM_S(15,15) = (-0.6777777777777778*cMOther[3]*uOther[3]*mnuOther)-0.2618614682831908*cMOther[1]*uOther[3]*mnuOther-0.2618614682831908*uOther[1]*cMOther[3]*mnuOther-0.6904761904761905*cMOther[2]*uOther[2]*mnuOther-0.2981423969999719*cMOther[0]*uOther[2]*mnuOther-1.264911064067352*m0rOther[2]*mnuOther-0.2981423969999719*uOther[0]*cMOther[2]*mnuOther+0.421637021355784*cEOther[2]*mnuOther-0.7666666666666667*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+ 
+  double kinESelf[4]; 
+  // zero out array with dot product of u and m1. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    kinESelf[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
-    uSMuOSq[0] += 0.7071067811865475*uSMuO[a0+3]*uSMuO[a0+3]+0.7071067811865475*uSMuO[a0+2]*uSMuO[a0+2]+0.7071067811865475*uSMuO[a0+1]*uSMuO[a0+1]+0.7071067811865475*uSMuO[a0]*uSMuO[a0]; 
-    uSMuOSq[1] += 1.242118006816237*uSMuO[a0+2]*uSMuO[a0+3]+1.264911064067352*uSMuO[a0+1]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+1]; 
-    uSMuOSq[2] += 0.421637021355784*uSMuO[a0+3]*uSMuO[a0+3]+1.242118006816237*uSMuO[a0+1]*uSMuO[a0+3]+0.4517539514526256*uSMuO[a0+2]*uSMuO[a0+2]+1.414213562373095*uSMuO[a0]*uSMuO[a0+2]+0.6324555320336759*uSMuO[a0+1]*uSMuO[a0+1]; 
-    uSMuOSq[3] += 0.8432740427115681*uSMuO[a0+2]*uSMuO[a0+3]+1.414213562373095*uSMuO[a0]*uSMuO[a0+3]+1.242118006816237*uSMuO[a0+1]*uSMuO[a0+2]; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    kinESelf[0] += 0.7071067811865475*m1rSelf[a0+3]*uSelf[a0+3]+0.7071067811865475*m1rSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]; 
+    kinESelf[1] += 0.6210590034081186*m1rSelf[a0+2]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+2]*m1rSelf[a0+3]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*m1rSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]; 
+    kinESelf[2] += 0.421637021355784*m1rSelf[a0+3]*uSelf[a0+3]+0.6210590034081186*m1rSelf[a0+1]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+1]*m1rSelf[a0+3]+0.4517539514526256*m1rSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+2]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+1]; 
+    kinESelf[3] += 0.421637021355784*m1rSelf[a0+2]*uSelf[a0+3]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+3]+0.421637021355784*uSelf[a0+2]*m1rSelf[a0+3]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+3]+0.6210590034081186*m1rSelf[a0+1]*uSelf[a0+2]+0.6210590034081186*uSelf[a0+1]*m1rSelf[a0+2]; 
   } 
  
-  // ..... Get the cross flow velocity uCross ..... // 
-  for (unsigned short int vd=0; vd<2; vd++) 
+  double kinEOther[4]; 
+  // zero out array with dot product of u and m1. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    kinEOther[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
-    uCross[a0] = uOther[a0]; 
-    uCross[a0+1] = uOther[a0+1]; 
-    uCross[a0+2] = uOther[a0+2]; 
-    uCross[a0+3] = uOther[a0+3]; 
- 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    kinEOther[0] += 0.7071067811865475*m1rOther[a0+3]*uOther[a0+3]+0.7071067811865475*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
+    kinEOther[1] += 0.6210590034081186*m1rOther[a0+2]*uOther[a0+3]+0.6210590034081186*uOther[a0+2]*m1rOther[a0+3]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*m1rOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
+    kinEOther[2] += 0.421637021355784*m1rOther[a0+3]*uOther[a0+3]+0.6210590034081186*m1rOther[a0+1]*uOther[a0+3]+0.6210590034081186*uOther[a0+1]*m1rOther[a0+3]+0.4517539514526256*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*m1rOther[a0+2]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+1]; 
+    kinEOther[3] += 0.421637021355784*m1rOther[a0+2]*uOther[a0+3]+0.7071067811865475*m1rOther[a0]*uOther[a0+3]+0.421637021355784*uOther[a0+2]*m1rOther[a0+3]+0.7071067811865475*uOther[a0]*m1rOther[a0+3]+0.6210590034081186*m1rOther[a0+1]*uOther[a0+2]+0.6210590034081186*uOther[a0+1]*m1rOther[a0+2]; 
   } 
  
-  // ..... Get the cross thermal speed squared vtSqCross ..... // 
-  vtSqCross[0] = 0.3333333333333333*uSMuOSq[0]*mRat+vtSqSelf[0]; 
-  vtSqCross[1] = 0.3333333333333333*uSMuOSq[1]*mRat+vtSqSelf[1]; 
-  vtSqCross[2] = 0.3333333333333333*uSMuOSq[2]*mRat+vtSqSelf[2]; 
-  vtSqCross[3] = 0.3333333333333333*uSMuOSq[3]*mRat+vtSqSelf[3]; 
+  double relKinE[4]; 
+  // zero out array with dot product of u and m1. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    relKinE[vd] = 0.0; 
+  } 
+ 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 4*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    relKinE[0] += 0.7071067811865475*m1rSelf[a0+3]*uSelf[a0+3]-0.7071067811865475*m1rOther[a0+3]*uSelf[a0+3]-0.7071067811865475*m1rSelf[a0+3]*uOther[a0+3]+0.7071067811865475*m1rOther[a0+3]*uOther[a0+3]+0.7071067811865475*m1rSelf[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rSelf[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]-0.7071067811865475*m1rOther[a0]*uSelf[a0]-0.7071067811865475*m1rSelf[a0]*uOther[a0]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
+    relKinE[1] += 0.6210590034081186*m1rSelf[a0+2]*uSelf[a0+3]-0.6210590034081186*m1rOther[a0+2]*uSelf[a0+3]-0.6210590034081186*m1rSelf[a0+2]*uOther[a0+3]+0.6210590034081186*m1rOther[a0+2]*uOther[a0+3]+0.6210590034081186*uSelf[a0+2]*m1rSelf[a0+3]-0.6210590034081186*uOther[a0+2]*m1rSelf[a0+3]-0.6210590034081186*uSelf[a0+2]*m1rOther[a0+3]+0.6210590034081186*uOther[a0+2]*m1rOther[a0+3]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+2]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+2]+0.6324555320336759*uSelf[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uOther[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uSelf[a0+1]*m1rOther[a0+2]+0.6324555320336759*uOther[a0+1]*m1rOther[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]-0.7071067811865475*uOther[a0]*m1rSelf[a0+1]-0.7071067811865475*uSelf[a0]*m1rOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
+    relKinE[2] += 0.421637021355784*m1rSelf[a0+3]*uSelf[a0+3]-0.421637021355784*m1rOther[a0+3]*uSelf[a0+3]+0.6210590034081186*m1rSelf[a0+1]*uSelf[a0+3]-0.6210590034081186*m1rOther[a0+1]*uSelf[a0+3]-0.421637021355784*m1rSelf[a0+3]*uOther[a0+3]+0.421637021355784*m1rOther[a0+3]*uOther[a0+3]-0.6210590034081186*m1rSelf[a0+1]*uOther[a0+3]+0.6210590034081186*m1rOther[a0+1]*uOther[a0+3]+0.6210590034081186*uSelf[a0+1]*m1rSelf[a0+3]-0.6210590034081186*uOther[a0+1]*m1rSelf[a0+3]-0.6210590034081186*uSelf[a0+1]*m1rOther[a0+3]+0.6210590034081186*uOther[a0+1]*m1rOther[a0+3]+0.4517539514526256*m1rSelf[a0+2]*uSelf[a0+2]-0.4517539514526256*m1rOther[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0]*uSelf[a0+2]-0.4517539514526256*m1rSelf[a0+2]*uOther[a0+2]+0.4517539514526256*m1rOther[a0+2]*uOther[a0+2]-0.7071067811865475*m1rSelf[a0]*uOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+2]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+2]-0.7071067811865475*uOther[a0]*m1rSelf[a0+2]-0.7071067811865475*uSelf[a0]*m1rOther[a0+2]+0.7071067811865475*uOther[a0]*m1rOther[a0+2]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+1]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+1]; 
+    relKinE[3] += 0.421637021355784*m1rSelf[a0+2]*uSelf[a0+3]-0.421637021355784*m1rOther[a0+2]*uSelf[a0+3]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+3]-0.7071067811865475*m1rOther[a0]*uSelf[a0+3]-0.421637021355784*m1rSelf[a0+2]*uOther[a0+3]+0.421637021355784*m1rOther[a0+2]*uOther[a0+3]-0.7071067811865475*m1rSelf[a0]*uOther[a0+3]+0.7071067811865475*m1rOther[a0]*uOther[a0+3]+0.421637021355784*uSelf[a0+2]*m1rSelf[a0+3]-0.421637021355784*uOther[a0+2]*m1rSelf[a0+3]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+3]-0.7071067811865475*uOther[a0]*m1rSelf[a0+3]-0.421637021355784*uSelf[a0+2]*m1rOther[a0+3]+0.421637021355784*uOther[a0+2]*m1rOther[a0+3]-0.7071067811865475*uSelf[a0]*m1rOther[a0+3]+0.7071067811865475*uOther[a0]*m1rOther[a0+3]+0.6210590034081186*m1rSelf[a0+1]*uSelf[a0+2]-0.6210590034081186*m1rOther[a0+1]*uSelf[a0+2]-0.6210590034081186*m1rSelf[a0+1]*uOther[a0+2]+0.6210590034081186*m1rOther[a0+1]*uOther[a0+2]+0.6210590034081186*uSelf[a0+1]*m1rSelf[a0+2]-0.6210590034081186*uOther[a0+1]*m1rSelf[a0+2]-0.6210590034081186*uSelf[a0+1]*m1rOther[a0+2]+0.6210590034081186*uOther[a0+1]*m1rOther[a0+2]; 
+  } 
+ 
+  double m2Relax[4]; 
+  // ... Contribution to RHS vector from energy relaxation. 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*mSelf)/(mSelf+mOther)+(kinESelf[2]*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*mOther)/(mSelf+mOther)+(m2rOther[2]*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
+  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*mSelf)/(mSelf+mOther)+(kinESelf[3]*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*mOther)/(mSelf+mOther)+(m2rOther[3]*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2rOther[3])*mnuOther; 
+ 
+  // ....... RHS vector is composed of m1 and m2 .......... // 
+  data->BEV_S << mnuM1sum[0],mnuM1sum[1],mnuM1sum[2],mnuM1sum[3],mnuM2sum[0],mnuM2sum[1],mnuM2sum[2],mnuM2sum[3],m1Relax[0],m1Relax[1],m1Relax[2],m1Relax[3],m2Relax[0],m2Relax[1],m2Relax[2],m2Relax[3]; 
+ 
+  data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
+ 
+  Eigen::Map<VectorXd>(uCrossSelf,4,1) = data->u_S.segment<4>(0); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossSelf,4,1) = data->u_S.segment<4>(4); 
+ 
+  Eigen::Map<VectorXd>(uCrossOther,4,1) = data->u_S.segment<4>(8); 
+ 
+  Eigen::Map<VectorXd>(vtSqCrossOther,4,1) = data->u_S.segment<4>(12); 
  
 } 
  
