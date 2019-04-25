@@ -44,21 +44,6 @@ function VlasovSpecies:alloc(nRkDup)
    self.momDensity = self:allocVectorMoment(self.vdim)
    self.ptclEnergy = self:allocMoment()
 
-   if self.collisions then
-     -- Allocate fields for boundary corrections.
-     self.m1Correction = self:allocVectorMoment(self.vdim)
-     self.m2Correction = self:allocMoment()
-
-     -- Allocate fields for star moments (only used with polyOrder=1).
-     self.m0Star = self:allocMoment()
-     self.m1Star = self:allocVectorMoment(self.vdim)
-     self.m2Star = self:allocMoment()
-   end
-
-   -- Allocate fields to store self-species primitive moments.
-   self.uSelf    = self:allocVectorMoment(self.vdim)
-   self.vtSqSelf = self:allocMoment()
-
    -- Allocate field to accumulate funcField if any.
    self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
 
@@ -69,7 +54,6 @@ function VlasovSpecies:alloc(nRkDup)
    self.flow = self:allocVectorMoment(self.vdim)
    self.kineticEnergyDensity = self:allocMoment()
    self.thermalEnergyDensity = self:allocMoment()
-
 end
 
 function VlasovSpecies:fullInit(appTbl)
@@ -149,20 +133,24 @@ function VlasovSpecies:createSolver(hasE, hasB)
       confBasis  = self.confBasis,
       moment     = "FiveMoments",
    }
-   -- This is used in calcCouplingMoments to reduce overhead and multiplications.
-   -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
-   self.fiveMomentsLBOCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "FiveMomentsLBO",
-   }
-   self.primMomSelf = Updater.SelfPrimMoments {
-      onGrid     = self.confGrid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      operator   = "VmLBO",
-   }
+   if self.needSelfPrimMom then
+      -- This is used in calcCouplingMoments to reduce overhead and multiplications.
+      -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
+      self.fiveMomentsLBOCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,
+         phaseBasis = self.basis,
+         confBasis  = self.confBasis,
+         moment     = "FiveMomentsLBO",
+      }
+      if self.needCorrectedSelfPrimMom then
+         self.primMomSelf = Updater.SelfPrimMoments {
+            onGrid     = self.confGrid,
+            phaseBasis = self.basis,
+            confBasis  = self.confBasis,
+            operator   = "VmLBO",
+         }
+      end
+   end
 
    -- Updaters for the primitive moments.
    -- These will be used to compute n*u^2 and n*T for computing integrated moments.
@@ -187,6 +175,110 @@ function VlasovSpecies:createSolver(hasE, hasB)
    end
 
    self.tmCouplingMom = 0.0    -- For timer.
+end
+
+function VlasovSpecies:initCrossSpeciesCoupling(species)
+   -- This method establishes the interaction between different
+   -- species that is not mediated by the field (solver), like
+   -- collisions.
+
+   -- Create a double nested table indicating who collides with whom.
+   self.collPairs               = {}
+   local crossPrimMomPairsAlloc = {}    -- Used to know if uCross and vtSqCross have been allocated.
+   for sN, _ in pairs(species) do
+      self.collPairs[sN]         = {}
+      crossPrimMomPairsAlloc[sN] = {}
+      if species[sN].collisions then
+         -- This species collides with someone.
+         local selfCollCurr, crossCollCurr, collSpecCurr
+         -- Obtain the boolean indicating if self/cross collisions affect the sN species.
+         for nm, _ in pairs(species[sN].collisions) do
+            selfCollCurr  = species[sN].collisions[nm].selfCollisions
+            crossCollCurr = species[sN].collisions[nm].crossCollisions
+            collSpecsCurr = species[sN].collisions[nm].collidingSpecies
+         end
+         for sO, _ in pairs(species) do
+            crossPrimMomPairsAlloc[sN][sO] = false
+            if sN == sO then
+               self.collPairs[sN][sO] = selfCollCurr
+            else
+               if crossCollCurr then
+                  local specInd = findInd(collSpecsCurr, sO)
+                  if specInd < (#collSpecsCurr+1) then
+                     self.collPairs[sN][sO] = true
+                  else
+                     self.collPairs[sN][sO] = false
+                  end
+               else
+                  self.collPairs[sN][sO] = false
+               end
+            end
+         end
+      else
+         -- This species does not collide with anyone.
+         for sO, _ in pairs(species) do
+            crossPrimMomPairsAlloc[sN][sO] = false
+            self.collPairs[sN][sO]         = false
+         end
+      end
+   end
+
+   -- Determine if self primitive moments and boundary corrections are needed.
+   -- If a pair of species only has cross-species collisions (no self-collisions)
+   -- then the self-primitive moments may be computed without boundary corrections.
+   self.needSelfPrimMom          = false
+   self.needCorrectedSelfPrimMom = false
+   if self.collPairs[self.name][self.name] then
+      self.needSelfPrimMom          = true
+      self.needCorrectedSelfPrimMom = true
+   end
+   for sO, _ in pairs(species) do
+      if self.collPairs[self.name][sO] or self.collPairs[sO][self.name] then
+         self.needSelfPrimMom = true
+         if self.collPairs[sO][sO] then 
+            self.needCorrectedSelfPrimMom = true
+         end
+      end
+   end
+
+   if self.needSelfPrimMom then
+      -- Allocate fields to store self-species primitive moments.
+      self.uSelf    = self:allocVectorMoment(self.vdim)
+      self.vtSqSelf = self:allocMoment()
+
+      -- Allocate fields for boundary corrections.
+      self.m1Correction = self:allocVectorMoment(self.vdim)
+      self.m2Correction = self:allocMoment()
+
+      -- Allocate fields for star moments (only used with polyOrder=1).
+      if (self.basis:polyOrder()==1) then
+         self.m0Star = self:allocMoment()
+         self.m1Star = self:allocVectorMoment(self.vdim)
+         self.m2Star = self:allocMoment()
+      end
+   end
+
+   -- Allocate fieds to store cross-species primitive moments.
+   self.uCross    = {}
+   self.vtSqCross = {}
+   local cpmPair  = 0
+   for sN, _ in pairs(species) do
+      if sN ~= self.name then
+         self.momentFlags[5][sN] = false
+      end
+   end
+   if self.collisions then
+      for nm, _ in pairs(self.collisions) do
+         -- Allocate space for this species' cross-primitive moments only if it affects this species.
+         if self.collisions[nm].crossCollisions then
+            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
+               self.uCross[otherNm]    = self:allocVectorMoment(self.vdim)
+               self.vtSqCross[otherNm] = self:allocMoment()
+            end
+         end
+      end
+   end
+
 end
 
 function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
@@ -388,21 +480,64 @@ end
 
 function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
 
-   local tmStart = Time.clock()
-   -- Compute moments needed in coupling to fields and collisions.
-   local fIn = self:rkStepperFields()[rkIdx]
-   if self.collisions then 
-      self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
-                                                      self.m1Correction, self.m2Correction,
-                                                      self.m0Star, self.m1Star, self.m2Star })
-      -- Also compute self-primitive moments u and vtSq.
-      self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
-                                       self.m1Correction, self.m2Correction, 
-                                       self.m0Star, self.m1Star, self.m2Star}, {self.uSelf, self.vtSqSelf})
-   else
-      self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
+--   local tmStart = Time.clock()
+--   -- Compute moments needed in coupling to fields and collisions.
+--   local fIn = self:rkStepperFields()[rkIdx]
+--   if self.needSelfPrimMom then
+--      self.fiveMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy, 
+--                                                      self.m1Correction, self.m2Correction,
+--                                                      self.m0Star, self.m1Star, self.m2Star })
+--      if self.needCorrectedSelfPrimMom then
+--         -- Also compute self-primitive moments u and vtSq.
+--         self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
+--                                          self.m1Correction, self.m2Correction, 
+--                                          self.m0Star, self.m1Star, self.m2Star}, {self.uSelf, self.vtSqSelf})
+--      else
+--         -- Compute self-primitive moments with binOp updater.
+--         self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uSelf})
+--         self.confDotProduct:advance(tCurr, {self.uSelf, self.momDensity}, {self.kineticEnergyDensity})
+--         self.thermalEnergyDensity:combine( 1.0/self.vdim, self.ptclEnergy,
+--                                           -1.0/self.vdim, self.kineticEnergyDensity )
+--         self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
+--      end
+--      -- Indicate that moments, boundary corrections, star moments
+--      -- and self-primitive moments have been computed.
+--      for iF=1,4 do
+--         self.momentFlags[iF] = true
+--      end
+--   else
+--      self.momDensityCalc:advance(tCurr, {fIn}, { self.momDensity })
+--      -- Indicate that first moment has been computed.
+--      self.momentFlags[1] = true
+--   end
+--   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
+
+end
+
+function VlasovSpecies:calcCrossCouplingMoments(tCurr, species, rkIdx)
+
+   if self.collisions then  -- Only compute cross primitive moments if cross-collisions affect this species. 
+      for nm, _ in pairs(self.collisions) do
+         if self.collisions[nm].crossCollisions then
+
+            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
+               if (not (self.momentFlags[5][otherNm] and species[otherNm].momentFlags[5][self.name])) then 
+                  -- Cross-primitive moments for the collision of these two species has not been computed.
+                  local mOther           = species[otherNm]:getMass()
+                  local otherMom         = species[otherNm]:fluidMoments()
+                  local otherSelfPrimMom = species[otherNm]:selfPrimitiveMoments()
+                  self.primMomCross:advance(tCurr, {self.mass, self.collFreq, self.numDensity, self.momDensity, self.ptclEnergy, self.uSelf, self.vtSqSelf,
+                                                 mOther, self.collFreqOther, otherMom[1], otherMom[2], otherMom[3], otherSelfPrimMom[1], otherSelfPrimMom[2]},
+                                                {self.uCross[otherNm], self.vtSqCross[otherNm]})
+
+                  self.momentFlags[5][otherNm]               = true
+                  species[otherNm].momentFlags[5][self.name] = true
+               end
+            end
+
+         end
+      end
    end
-   self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
 
 end
 
@@ -453,6 +588,10 @@ end
 
 function VlasovSpecies:selfPrimitiveMoments()
    return { self.uSelf, self.vtSqSelf }
+end
+
+function VlasovSpecies:crossPrimitiveMoments(otherSpeciesName)
+   return { self.uCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
 end
 
 function VlasovSpecies:getNumDensity(rkIdx)
