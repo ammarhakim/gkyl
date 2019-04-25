@@ -186,7 +186,6 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       vtSqCrossOther:fill(vtSqCrossOtherIndexer(confIdx), vtSqCrossOtherItr)
 
       crossPrimMomentsCalc(self._binOpData, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
-
    end
 
 end
