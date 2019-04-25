@@ -46,6 +46,7 @@ momentApp = Moments.App {
    cells = {nx},
    cfl = cfl,
    timeStepper = "fvDimSplit",
+   maximumDt = 3e-12,
 
    -- decomposition for configuration space
    decompCuts = {1}, -- cuts in each configuration direction
@@ -56,7 +57,7 @@ momentApp = Moments.App {
 
    -- electrons
    elc = Moments.Species {
-      charge = Constants.ELEMENTARY_CHARGE, mass = Constants.ELECTRON_MASS,
+      charge = -Constants.ELEMENTARY_CHARGE, mass = Constants.ELECTRON_MASS,
 
       equation = Euler { gasGamma = gasGamma },
       equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
