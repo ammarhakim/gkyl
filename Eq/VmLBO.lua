@@ -130,7 +130,7 @@ end
 function VmLBO:checkPrimMomCrossings()
    local noUcrossing = true
    for vd = 1,self._vdim do
-      if (math.abs(self._nuUSumPtr[(vd-1)*self._cNumBasis+1]*self._cellAvFac)>(self._vMax[vd]*self._nuSum)) then
+      if (math.abs(self._nuUSumPtr[(vd-1)*self._cNumBasis+1]*self._cellAvFac)>(self._vMax[vd]*self._inNuSum)) then
          noUcrossing = false
          break
       end
@@ -151,7 +151,7 @@ function VmLBO:volTerm(w, dx, idx, q, out)
       -- If mean flow and thermal speeds are too high or if thermal
       -- speed is negative turn the LBO off (do not call kernels).
       local uCrossingNotFound, nuVtSqSum0 = self:checkPrimMomCrossings()
-      if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._nuSum))) then
+      if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) then
          cflFreq = self._volUpdate(w:data(), dx:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
       else
          cflFreq = 0.0
@@ -178,7 +178,7 @@ function VmLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
          -- If mean flow and thermal speeds are too high or if thermal
          -- speed is negative turn the LBO off (do not call kernels).
          local uCrossingNotFound, nuVtSqSum0 = self:checkPrimMomCrossings()
-         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._nuSum))) then
+         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
                wl:data(), wr:data(), dxl:data(), dxr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
@@ -206,7 +206,7 @@ function VmLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          -- If mean flow and thermal speeds are too high or if thermal
          -- speed is negative turn the LBO off (do not call kernels).
          local uCrossingNotFound, nuVtSqSum0 = self:checkPrimMomCrossings()
-         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._nuSum))) then
+         if (uCrossingNotFound and (nuVtSqSum0>0) and (nuVtSqSum0<(self._vMaxSq*self._inNuSum))) then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
                wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
