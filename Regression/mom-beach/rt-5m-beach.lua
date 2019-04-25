@@ -73,24 +73,6 @@ momentApp = Moments.App {
       bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
    },
 
-   -- ions
-   ion = Moments.Species {
-      charge = ionCharge, mass = ionMass,
-
-      equation = Euler { gasGamma = gasGamma },
-      equationInv = Euler { gasGamma = gasGamma, numericalFlux = "lax" },
-      forceInv = false,
-      -- initial conditions
-      init = function (t, xn)
-         local x = xn[1]
-         local rho_e, rhovx_e, rhovy_e, rhovz_e, u_e,
-               rho_i, rhovx_i, rhovy_i, rhovz_i, u_i,
-               Ex, Ey, Ez, Bx, By, Bz = init(x)
-         return rho_i, rhovx_i, rhovy_i, rhovz_i, u_i
-      end,
-      evolve = false, -- evolve species?
-      bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
-   },
 
    field = Moments.Field {
       epsilon0 = epsilon0, mu0 = mu0,
@@ -106,8 +88,7 @@ momentApp = Moments.App {
    },
 
    emSource = Moments.CollisionlessEmSource {
-      species = {"elc", "ion"},
-      evolve = {true, false},
+      species = {"elc"},
       timeStepper = "time-centered",
 
       -- additional source terms
@@ -122,7 +103,7 @@ momentApp = Moments.App {
 
 	      local J0 = 1.0e-12 -- Amps/m^3
          -- auxiliary source for currents
-         for s=0, 1 do
+         for s=0, 0 do
             auxSrcDp[s*3+0] = 0
             auxSrcDp[s*3+1] = 0
             auxSrcDp[s*3+2] = 0
