@@ -155,10 +155,10 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local uCrossOtherIndexer    = uCrossOther:genIndexer()
    local vtSqCrossOtherIndexer = vtSqCrossOther:genIndexer()
 
-   local uCrossSelfItr         = uCrossSelf:get(1)
-   local vtSqCrossSelfItr      = vtSqCrossSelf:get(1)
-   local uCrossOtherSelfItr    = uCrossOtherSelf:get(1)
-   local vtSqCrossOtherSelfItr = vtSqCrossOtherSelf:get(1)
+   local uCrossSelfItr     = uCrossSelf:get(1)
+   local vtSqCrossSelfItr  = vtSqCrossSelf:get(1)
+   local uCrossOtherItr    = uCrossOther:get(1)
+   local vtSqCrossOtherItr = vtSqCrossOther:get(1)
 
    -- Configuration space loop, computing cross-primitive moments in each cell.
    for confIdx in confRangeDecomp:rowMajorIter(tId) do
@@ -185,8 +185,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       uCrossOther:fill(uCrossOtherIndexer(confIdx), uCrossOtherItr)
       vtSqCrossOther:fill(vtSqCrossOtherIndexer(confIdx), vtSqCrossOtherItr)
 
-
-      crossPrimMomentsCalc(self._binOpData, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelf:data(), m2CorrectionSelf:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOther:data(), m2CorrectionOther:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
+      crossPrimMomentsCalc(self._binOpData, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
 
    end
 
