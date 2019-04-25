@@ -412,7 +412,7 @@ function VmLBOCollisions:write(tm, frame)
 --   self.primMomLimitCrossings:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame)
 --   if self.crossCollisions then
 --      self.uCross:write(string.format("%s_%s_%d.bp", self.speciesName, "uCross", frame), tm, frame)
---      self.vthSqCross:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSqCross", frame), tm, frame)
+--      self.vtSqCross:write(string.format("%s_%s_%d.bp", self.speciesName, "vtSqCross", frame), tm, frame)
 --   end
 end
 

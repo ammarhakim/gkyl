@@ -354,12 +354,12 @@ function KineticSpecies:createGrid(cLo, cUp, cCells, cDecompCuts,
       GridConstructor = Grid.NonUniformRectCart
    end
    self.grid = GridConstructor {
-      lower = lower,
-      upper = upper,
-      cells = cells,
-      periodicDirs = cPeriodicDirs,
+      lower         = lower,
+      upper         = upper,
+      cells         = cells,
+      periodicDirs  = cPeriodicDirs,
       decomposition = self.decomp,
-      mappings = coordinateMap,
+      mappings      = coordinateMap,
    }
 
    for _, c in pairs(self.collisions) do
@@ -376,18 +376,18 @@ end
 
 function KineticSpecies:allocDistf()
    local f = DataStruct.Field {
-	onGrid = self.grid,
+	onGrid        = self.grid,
 	numComponents = self.basis:numBasis(),
-	ghost = {1, 1},
+	ghost         = {1, 1},
    }
    f:clear(0.0)
    return f
 end
 function KineticSpecies:allocMoment()
    local m = DataStruct.Field {
-	onGrid = self.confGrid,
+	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis(),
-	ghost = {1, 1},
+	ghost         = {1, 1},
    }
    m:clear(0.0)
    return m
@@ -710,7 +710,7 @@ function KineticSpecies:calcDiagnosticMoments()
 end
 
 function KineticSpecies:calcDiagnosticWeakMoments()
-   for i, mom in pairs(self.diagnosticWeakMoments) do
+   for mom, _ in pairs(self.diagnosticWeakMoments) do
       self.weakDivision:advance(0.0, self.weakMomentOpFields[mom], {self.diagnosticMomentFields[mom]})
       if self.weakMomentScaleFac[mom] then self.diagnosticMomentFields[mom]:scale(self.weakMomentScaleFac[mom]) end
    end
@@ -734,7 +734,7 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
 
     if self.diagnosticWeakMoments then 
        self:calcDiagnosticWeakMoments()
-       for i, mom in ipairs(self.diagnosticWeakMoments) do
+       for mom, _ in pairs(self.diagnosticWeakMoments) do
           -- Should one use AdiosIo object for this?
           self.diagnosticMomentFields[mom]:write(
              string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)

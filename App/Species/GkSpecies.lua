@@ -70,15 +70,15 @@ function GkSpecies:allocMomCouplingFields()
 end
 
 function GkSpecies:createSolver(hasPhi, hasApar, funcField)
-   -- run the KineticSpecies 'createSolver()' to initialize the
-   -- collisions solver
+   -- Run the KineticSpecies 'createSolver()' to initialize the
+   -- collisions solver.
    GkSpecies.super.createSolver(self,funcField)
 
-   -- set up jacobian
+   -- Set up jacobian.
    if funcField then
-      -- save bmagFunc for later...
+      -- Save bmagFunc for later...
       self.bmagFunc = funcField.bmagFunc
-      -- if vdim>1, get jacobian=bmag from geo
+      -- If vdim>1, get jacobian=bmag from geo.
       self.jacobPhaseFunc = self.bmagFunc
       self.jacobGeoFunc   = funcField.jacobGeoFunc
       if self.cdim == 1 then 
@@ -88,12 +88,12 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       else
          self.B0 = funcField.bmagFunc(0.0, {self.grid:mid(1), self.grid:mid(2), self.grid:mid(3)})
       end
-      self.bmag = assert(funcField.geo.bmag, "nil bmag")
+      self.bmag    = assert(funcField.geo.bmag, "nil bmag")
       self.bmagInv = funcField.geo.bmagInv
    end
 
    if self.gyavg then
-      -- set up geo fields needed for gyroaveraging
+      -- Set up geo fields needed for gyroaveraging.
       local rho1Func = function (t, xn)
          local mu = xn[self.ndim]
          return math.sqrt(2*mu*self.mass*funcField.gxxFunc(t, xn)/(self.charge^2*funcField.bmagFunc(t, xn)))
@@ -169,14 +169,14 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       gyavgSlvr    = self.emGyavgSlvr,
    }
 
-   -- no update in mu direction (last velocity direction if present)
+   -- No update in mu direction (last velocity direction if present)
    local upd = {}
-   if hasApar then -- if electromagnetic only update conf dir surface terms on first step
+   if hasApar then    -- If electromagnetic only update conf dir surface terms on first step.
       for d = 1, self.cdim do upd[d] = d end
    else
       for d = 1, self.cdim + 1 do upd[d] = d end
    end
-   -- zero flux in vpar and mu
+   -- Zero flux in vpar and mu.
    table.insert(self.zeroFluxDirections, self.cdim+1)
    if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
 
@@ -197,9 +197,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          cfl                = self.cfl,
          equation           = self.gkEqn,
          zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = {self.cdim+1}, -- Only vpar terms.
-         updateVolumeTerm   = false, -- No volume term.
-         clearOut           = false,   -- Continue accumulating into output field.
+         updateDirections   = {self.cdim+1},    -- Only vpar terms.
+         updateVolumeTerm   = false,            -- No volume term.
+         clearOut           = false,            -- Continue accumulating into output field.
       }
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.gkEqnStep2 = Gk.GkEqStep2 {
@@ -244,7 +244,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       }
    end
    
-   -- create updaters to compute various moments
+   -- Create updaters to compute various moments.
    self.numDensityCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.grid,
       phaseBasis = self.basis,
@@ -313,9 +313,9 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       gkfacs     = {self.mass, self.bmag},
    }
    
-   self._firstMomentCalc = true  -- to avoid re-calculating moments when not evolving
+   self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
-   self.tmCouplingMom = 0.0 -- for timer 
+   self.tmCouplingMom = 0.0      -- For timer.
 
    if self.positivityRescale or self.positivityDiffuse then 
       self.posRescaler = Updater.PositivityRescale {
@@ -336,7 +336,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local dApardtProv = emIn[1].dApardtProv
    local emFunc = emIn[2]:rkStepperFields()[1]
 
-   -- rescale slopes
+   -- Rescale slopes.
    if self.positivityRescale then
       self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
       fIn = self.fPos
@@ -344,7 +344,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    fRhsOut:clear(0.0)
 
-   -- do collisions first so that collisions contribution to cflRate is included in GK positivity
+   -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
@@ -357,11 +357,11 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
    else
-      self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- set auxFields in case they are needed by BCs/collisions
+      self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
 
    if self.fSource and self.evolveSources then
-      -- add source it to the RHS
+      -- Add source it to the RHS.
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
@@ -409,7 +409,7 @@ function GkSpecies:createDiagnostics()
    end
    self.diagnosticIntegratedMomentFields = { }
    self.diagnosticIntegratedMomentUpdaters = { } 
-   -- allocate space to store integrated moments and create integrated moment updaters
+   -- Allocate space to store integrated moments and create integrated moment updaters.
    for i, mom in pairs(self.diagnosticIntegratedMoments) do
       if isIntegratedMomentNameGood(mom) then
          self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
@@ -435,7 +435,7 @@ function GkSpecies:createDiagnostics()
       end
    end
    
-   -- function to check if moment name is correct
+   -- Function to check if moment name is correct.
    local function isMomentNameGood(nm)
       return Updater.DistFuncMomentCalc:isGkMomentNameGood(nm)
    end
@@ -460,37 +460,37 @@ function GkSpecies:createDiagnostics()
    self.diagnosticAuxMoments     = { }
    self.weakMomentOpFields       = { }
    self.weakMomentScaleFac       = { }
-   -- set up weak multiplication and division operators
+   -- Set up weak multiplication and division operators.
    self.weakMultiplication = Updater.CartFieldBinOp {
-      onGrid = self.confGrid,
+      onGrid    = self.confGrid,
       weakBasis = self.confBasis,
       operation = "Multiply",
-      onGhosts = true,
+      onGhosts  = true,
    }
    self.weakDivision = Updater.CartFieldBinOp {
-      onGrid = self.confGrid,
+      onGrid    = self.confGrid,
       weakBasis = self.confBasis,
       operation = "Divide",
-      onGhosts = true,
+      onGhosts  = true,
    }
-   -- sort moments into diagnosticMoments, diagnosticWeakMoments, and diagnosticAuxMoments
+   -- Sort moments into diagnosticMoments, diagnosticWeakMoments, and diagnosticAuxMoments.
    for i, mom in pairs(self.diagnosticMoments) do
       if isWeakMomentNameGood(mom) then
-         -- remove moment name from self.diagnosticMoments list, and add it to self.diagnosticWeakMoments list
-         table.insert(self.diagnosticWeakMoments, mom)
+         -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticWeakMoments list.
+         self.diagnosticWeakMoments[mom] = true
          self.diagnosticMoments[i] = nil
       elseif isAuxMomentNameGood(mom) then
-         -- remove moment name from self.diagnosticMoments list, and add it to self.diagnosticAuxMoments list
+         -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticAuxMoments list.
          table.insert(self.diagnosticAuxMoments, mom)
          self.diagnosticMoments[i] = nil
       end
    end
 
-   -- make sure we have the updaters needed to calculate all the aux moments
+   -- Make sure we have the updaters needed to calculate all the aux moments.
    for i, mom in pairs(self.diagnosticAuxMoments) do
       if mom == "GkBeta" then
-         if not contains(self.diagnosticWeakMoments, "GkTemp") then 
-            table.insert(self.diagnosticWeakMoments, "GkTemp")
+         if not self.diagnosticWeakMoments["GkTemp"] then 
+            self.diagnosticWeakMoments["GkTemp"] = true
          end
          if not contains(self.diagnosticMoments, "GkM0") then
             table.insert(self.diagnosticMoments, "GkM0")
@@ -498,9 +498,9 @@ function GkSpecies:createDiagnostics()
       end
    end
 
-   -- make sure we have the updaters needed to calculate all the weak moments
-   for i, mom in pairs(self.diagnosticWeakMoments) do
-      -- all GK weak moments require M0 = density
+   -- Make sure we have the updaters needed to calculate all the weak moments.
+   for mom, _ in pairs(self.diagnosticWeakMoments) do
+      -- All GK weak moments require M0 = density.
       if not contains(self.diagnosticMoments, "GkM0") then
          table.insert(self.diagnosticMoments, "GkM0")
       end
@@ -514,8 +514,8 @@ function GkSpecies:createDiagnostics()
          if not contains(self.diagnosticMoments, "GkM2par") then
             table.insert(self.diagnosticMoments, "GkM2par")
          end
-         if not contains(self.diagnosticWeakMoments, "GkUpar") then
-            table.insert(self.diagnosticWeakMoments, "GkUpar")
+         if not self.diagnosticWeakMoments["GkUpar"] then
+            self.diagnosticWeakMoments["GkUpar"] = true
          end
       elseif mom == "GkTperp" then
          if not contains(self.diagnosticMoments, "GkM2perp") then
@@ -525,37 +525,37 @@ function GkSpecies:createDiagnostics()
          if not contains(self.diagnosticMoments, "GkM2") then
             table.insert(self.diagnosticMoments, "GkM2")
          end      
-         if not contains(self.diagnosticWeakMoments, "GkUpar") then
-            table.insert(self.diagnosticWeakMoments, "GkUpar")
+         if not self.diagnosticWeakMoments["GkUpar"] then
+            self.diagnosticWeakMoments["GkUpar"] = true
          end
       end
    end
 
-   -- allocate space to store moments and create moment updaters
+   -- Allocate space to store moments and create moment updaters.
    for i, mom in pairs(self.diagnosticMoments) do
       if isMomentNameGood(mom) then
          self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid = self.confGrid,
+            onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
-            ghost = {1, 1}
+            ghost         = {1, 1}
          }
          self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
-            onGrid = self.grid,
+            onGrid     = self.grid,
             phaseBasis = self.basis,
-            confBasis = self.confBasis,
-            moment = mom,
-            gkfacs = {self.mass, self.bmag},
+            confBasis  = self.confBasis,
+            moment     = mom,
+            gkfacs     = {self.mass, self.bmag},
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
       end
    end
-   for i, mom in pairs(self.diagnosticWeakMoments) do
+   for mom, _ in pairs(self.diagnosticWeakMoments) do
       if isWeakMomentNameGood(mom) then
          self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid = self.confGrid,
+            onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
-            ghost = {1, 1}
+            ghost         = {1, 1}
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -592,7 +592,7 @@ function GkSpecies:createDiagnostics()
 end
 
 function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
-   -- first compute M0, M1, M2
+   -- First compute M0, M1, M2.
    local fIn = self:rkStepperFields()[1]
    self.threeMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
 
@@ -616,17 +616,17 @@ end
 
 function GkSpecies:calcDiagnosticWeakMoments()
    GkSpecies.super.calcDiagnosticWeakMoments(self)
-   -- need to subtract m*Upar^2 from GkTemp and GkTpar
+   -- Need to subtract m*Upar^2 from GkTemp and GkTpar.
    if self.diagnosticWeakMoments["GkTemp"] or self.diagnosticWeakMoments["GkTpar"] then
       self.weakMultiplication:advance(0.0,
            {self.diagnosticMomentFields["GkUpar"], self.diagnosticMomentFields["GkUpar"]}, 
            {self.momDensityAux})
    end
    if self.diagnosticWeakMoments["GkTemp"] then
-      self.diagnosticWeakMoments["GkTemp"]:accumulate(-self.weakMomentScaleFac["GkTemp"], self.momDensityAux)
+      self.diagnosticMomentFields["GkTemp"]:accumulate(-self.weakMomentScaleFac["GkTemp"], self.momDensityAux)
    end
    if self.diagnosticWeakMoments["GkTpar"] then
-      self.diagnosticWeakMoments["GkTpar"]:accumulate(-self.mass, self.momDensityAux)
+      self.diagnosticMomentFields["GkTpar"]:accumulate(-self.mass, self.momDensityAux)
    end
 end
 
@@ -645,11 +645,11 @@ function GkSpecies:calcDiagnosticAuxMoments()
    end
 end
 
--- BC functions
+-- BC functions.
 function GkSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
    -- skinLoop should be "flip"
-   -- note that GK reflection only valid in z-vpar.
-   -- this is checked when bc is created.
+   -- Note that GK reflection only valid in z-vpar.
+   -- This is checked when bc is created.
 
    self.basis:flipSign(dir, fIn, fOut)
    -- vpar is always first velocity dimension
@@ -658,34 +658,34 @@ function GkSpecies:bcReflectFunc(dir, tm, idxIn, fIn, fOut)
 end
 function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    -- skinLoop should be "flip"
-   -- note that GK reflection only valid in z-vpar.
-   -- this is checked when bc is created.
+   -- Note that GK reflection only valid in z-vpar.
+   -- This is checked when bc is created.
 
-   -- need to figure out if we are on lower or upper domain edge
+   -- Need to figure out if we are on lower or upper domain edge
    local edgeVal
    local globalRange = self.grid:globalRange()
    if idxIn[dir] == globalRange:lower(dir) then 
-      -- this means we are at lower domain edge, 
-      -- so we need to evaluate basis functions at z=-1
+      -- This means we are at lower domain edge, 
+      -- so we need to evaluate basis functions at z=-1.
       edgeVal = -1 
    else 
-      -- this means we are at upper domain edge
-      -- so we need to evaluate basis functions at z=1
+      -- This means we are at upper domain edge
+      -- so we need to evaluate basis functions at z=1.
       edgeVal = 1 
    end
    local gkEqn = self.gkEqn
-   -- calculate deltaPhi = phi - phiWall
-   -- note: this gives surface-averaged scalar value of deltaPhi in this cell
+   -- Calculate deltaPhi = phi - phiWall.
+   -- Note: this gives surface-averaged scalar value of deltaPhi in this cell.
    local deltaPhi = gkEqn:calcSheathDeltaPhi(idxIn, edgeVal)
 
-   -- get vpar limits of cell
+   -- Get vpar limits of cell.
    local vpardir = self.cdim+1
    local gridIn = self.grid
    gridIn:setIndex(idxIn)
    local vL = gridIn:cellLowerInDir(vpardir)
    local vR = gridIn:cellUpperInDir(vpardir)
    local vlower, vupper
-   -- this makes it so that we only need to deal with absolute values of vpar
+   -- This makes it so that we only need to deal with absolute values of vpar.
    if math.abs(vR)>=math.abs(vL) then
       vlower = math.abs(vL)
       vupper = math.abs(vR)
@@ -694,33 +694,33 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
       vupper = math.abs(vL)
    end
    if -self.charge*deltaPhi > 0 then
-      -- calculate cutoff velocity for reflection
+      -- Calculate cutoff velocity for reflection.
       local vcut = math.sqrt(-2*self.charge*deltaPhi/self.mass)
       if vcut > vupper then
-         -- reflect if vcut is above the velocities in this cell
+         -- Reflect if vcut is above the velocities in this cell.
          self:bcReflectFunc(dir, tm, nil, fIn, fOut)
       elseif vcut > vlower then
-          -- partial reflect if vcut is in this velocity cell
+          -- Partial reflect if vcut is in this velocity cell.
           local fhat = self.fhatSheathPtr
           self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
           local w = gridIn:cellCenterInDir(vpardir)
           local dv = gridIn:dx(vpardir)
-          -- calculate weak-equivalent distribution fhat
+          -- Calculate weak-equivalent distribution fhat.
           gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
-          -- reflect fhat into skin cells
+          -- Reflect fhat into skin cells.
           self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
       else
-         -- absorb if vcut is below the velocities in this cell
+         -- Absorb if vcut is below the velocities in this cell.
          self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
       end
    else 
-      -- entire species (usually ions) is lost
+      -- Entire species (usually ions) is lost.
       self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
    end
 end
 
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
-   -- need to wrap member functions so that self is passed
+   -- Need to wrap member functions so that self is passed.
    local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
    local function bcOpenFunc(...) return  self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
@@ -736,8 +736,8 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpenFunc }, "pointwise"))
-   -- note: reflection and sheath BCs only make sense in z direction,
-   -- which is always last config space direction, i.e. dir = self.cdim
+   -- Note: reflection and sheath BCs only make sense in z direction,
+   -- which is always last config space direction, i.e. dir = self.cdim.
    elseif bcType == SP_BC_REFLECT and dir==self.cdim then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflectFunc }, "flip"))
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
@@ -758,7 +758,7 @@ end
 function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
    local fIn = self:rkStepperFields()[rkIdx]
 
-   -- compute moments needed in coupling to fields and collisions
+   -- Compute moments needed in coupling to fields and collisions.
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
 
@@ -807,7 +807,7 @@ function GkSpecies:selfPrimitiveMoments()
 end
 
 function GkSpecies:getNumDensity(rkIdx)
-   -- if no rkIdx specified, assume numDensity has already been calculated
+   -- If no rkIdx specified, assume numDensity has already been calculated.
    if rkIdx == nil then return self.numDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
 
@@ -831,7 +831,7 @@ function GkSpecies:getBackgroundDens()
 end
 
 function GkSpecies:getMomDensity(rkIdx)
-   -- if no rkIdx specified, assume momDensity has already been calculated
+   -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
  
@@ -850,9 +850,9 @@ function GkSpecies:getMomDensity(rkIdx)
    return self.momDensityAux
 end
 
--- like getMomDensity, but use GkM1proj instead of GkM1, which uses cell-average v_parallel in moment calculation
+-- Like getMomDensity, but use GkM1proj instead of GkM1, which uses cell-average v_parallel in moment calculation.
 function GkSpecies:getMomProjDensity(rkIdx)
-   -- if no rkIdx specified, assume momDensity has already been calculated
+   -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
  
@@ -872,7 +872,7 @@ function GkSpecies:getMomProjDensity(rkIdx)
 end
 
 function GkSpecies:getEmModifier(rkIdx)
-   -- for p > 1, this is just numDensity
+   -- For p > 1, this is just numDensity.
    if self.basis:polyOrder() > 1 then return self:getNumDensity(rkIdx) end
 
    local fIn = self.gkEqn.emMod

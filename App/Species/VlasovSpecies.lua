@@ -51,7 +51,7 @@ function VlasovSpecies:alloc(nRkDup)
    self.vExtForce = self:allocVectorMoment(self.vdim)
 
    -- Allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii).
-   self.flow = self:allocVectorMoment(self.vdim)
+   self.flow                 = self:allocVectorMoment(self.vdim)
    self.kineticEnergyDensity = self:allocMoment()
    self.thermalEnergyDensity = self:allocMoment()
 end
@@ -395,16 +395,87 @@ function VlasovSpecies:createDiagnostics()
    local function isMomentNameGood(nm)
       return Updater.DistFuncMomentCalc:isMomentNameGood(nm)
    end
+   -- Diagnostics computed with weak binary operations as diagnostic.
+   -- Check if diagnostic name is correct.
+   local function isWeakMomentNameGood(nm)
+      return nm == "u" or nm == "vtSq"
+   end
+   local function isAuxMomentNameGood(nm)
+      return nm == "uCross"
+   end
+   local function contains(table, element)
+     for _, value in pairs(table) do
+       if value == element then
+         return true
+       end
+     end
+     return false
+   end
 
-   local numComp = {}
+   local numComp   = {}
    numComp["M0"]   = 1
    numComp["M1i"]  = self.vdim
    numComp["M2ij"] = self.vdim*(self.vdim+1)/2
    numComp["M2"]   = 1
    numComp["M3i"]  = self.vdim
+   numComp["u"]    = self.vdim
+   numComp["vtSq"] = 1
 
    self.diagnosticMomentFields   = { }
    self.diagnosticMomentUpdaters = { } 
+   self.diagnosticWeakMoments    = { }
+   self.diagnosticAuxMoments     = { }
+   self.weakMomentOpFields       = { }
+   self.weakMomentScaleFac       = { }
+   -- Create weak multiplication and division operations.
+   self.weakDotProduct = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "DotProduct",
+      onGhosts  = true,
+   }
+   self.weakDivision = Updater.CartFieldBinOp {
+      onGrid    = self.confGrid,
+      weakBasis = self.confBasis,
+      operation = "Divide",
+      onGhosts  = true,
+   }
+
+   -- Sort moments into diagnosticWeakMoments and diagnosticAuxMoments.
+   for i, mom in pairs(self.diagnosticMoments) do
+      if isWeakMomentNameGood(mom) then
+         -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticWeakMoments list.
+         self.diagnosticWeakMoments[mom] = true
+         self.diagnosticMoments[i]       = nil
+      elseif isAuxMomentNameGood(mom) then
+         -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticAuxMoments list.
+         self.diagnosticAuxMoments[mom] = true
+         self.diagnosticMoments[i]      = nil
+      end
+   end
+
+   -- Make sure we have the updaters needed to calculate all the weak moments.
+   for mom, _ in pairs(self.diagnosticWeakMoments) do
+      -- All weak moments require M0 = density.
+      if not contains(self.diagnosticMoments, "M0") then
+         table.insert(self.diagnosticMoments, "M0")
+      end
+
+      if mom == "u" then
+         if not contains(self.diagnosticMoments, "M1i") then
+            table.insert(self.diagnosticMoments, "M1i")
+         end
+      end
+      if mom == "vtSq" then
+         if not contains(self.diagnosticMoments, "M2") then
+            table.insert(self.diagnosticMoments, "M2")
+         end
+         if not self.diagnosticWeakMoments["u"] then
+            self.diagnosticWeakMoments["u"] = true
+         end
+      end
+   end
+
    -- Allocate space to store moments and create moment updater.
    for i, mom in ipairs(self.diagnosticMoments) do
       if isMomentNameGood(mom) then
@@ -424,8 +495,25 @@ function VlasovSpecies:createDiagnostics()
       end
    end
 
-   self.diagnosticWeakMoments = { }
-   self.diagnosticAuxMoments = { }
+   for mom, _ in pairs(self.diagnosticWeakMoments) do
+      if isWeakMomentNameGood(mom) then
+         self.diagnosticMomentFields[mom] = DataStruct.Field {
+            onGrid        = self.confGrid,
+            numComponents = self.confBasis:numBasis()*numComp[mom],
+            ghost         = {1, 1}
+         }
+      else
+         assert(false, string.format("Moment %s not valid", mom))
+      end
+
+      if mom == "u" then
+         self.weakMomentOpFields["u"] = {self.diagnosticMomentFields["M0"], self.diagnosticMomentFields["M1i"]}
+      elseif mom == "vtSq" then
+         self.weakMomentOpFields["vtSq"] = {self.diagnosticMomentFields["M0"], self.diagnosticMomentFields["M2"]}
+         self.weakMomentScaleFac["vtSq"] = 1.0/self.vdim
+      end
+   end
+
 end
 
 -- BC functions.
@@ -521,33 +609,6 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
 
 end
 
-function VlasovSpecies:calcCrossCouplingMoments(tCurr, species, rkIdx)
-
---   if self.collisions then  -- Only compute cross primitive moments if cross-collisions affect this species. 
---      for nm, _ in pairs(self.collisions) do
---         if self.collisions[nm].crossCollisions then
---
---            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
---               if (not (self.momentFlags[5][otherNm] and species[otherNm].momentFlags[5][self.name])) then 
---                  -- Cross-primitive moments for the collision of these two species has not been computed.
---                  local mOther           = species[otherNm]:getMass()
---                  local otherMom         = species[otherNm]:fluidMoments()
---                  local otherSelfPrimMom = species[otherNm]:selfPrimitiveMoments()
---                  self.primMomCross:advance(tCurr, {self.mass, self.collFreq, self.numDensity, self.momDensity, self.ptclEnergy, self.uSelf, self.vtSqSelf,
---                                                 mOther, self.collFreqOther, otherMom[1], otherMom[2], otherMom[3], otherSelfPrimMom[1], otherSelfPrimMom[2]},
---                                                {self.uCross[otherNm], self.vtSqCross[otherNm]})
---
---                  self.momentFlags[5][otherNm]               = true
---                  species[otherNm].momentFlags[5][self.name] = true
---               end
---            end
---
---         end
---      end
---   end
-
-end
-
 -- Function to compute n, u, nu^2, and nT for use in integrated moment routine.
 function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
    -- First compute M0, M1i, M2.
@@ -578,6 +639,17 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
       end
+   end
+end
+
+function VlasovSpecies:calcDiagnosticWeakMoments()
+   VlasovSpecies.super.calcDiagnosticWeakMoments(self)
+   if self.diagnosticWeakMoments["vtSq"] then
+      -- Need to subtract (u^2)/vdim from vtSq (which at this point holds M2/(vdim*M0)).
+      -- u is calculated in KineticEnergySpecies:calcDiagnositcWeakMoments().
+      self.weakDotProduct:advance(0.0,
+         {self.diagnosticMomentFields["u"], self.diagnosticMomentFields["u"]}, {self.kineticEnergyDensity})
+      self.diagnosticMomentFields["vtSq"]:accumulate(-self.weakMomentScaleFac["vtSq"], self.kineticEnergyDensity)
    end
 end
 
