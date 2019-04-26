@@ -348,7 +348,8 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    if self.crossCollisions then
 
-      local bCorrectionsSelf  = species[self.speciesName]:boundaryCorrections()
+      local bCorrectionsSelf = species[self.speciesName]:boundaryCorrections()
+      local starMomSelf      = species[self.speciesName]:starMoments()
 
       for sInd, otherNm in ipairs(self.crossSpecies) do
 
@@ -356,6 +357,7 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          local otherMom          = species[otherNm]:fluidMoments()
          local primMomOther      = species[otherNm]:selfPrimitiveMoments()
          local bCorrectionsOther = species[otherNm]:boundaryCorrections()
+         local starMomOther      = species[otherNm]:starMoments()
 
          local collFreqOther
          if self.varNu then
@@ -369,8 +371,8 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          if (not (species[self.speciesName].momentFlags[5][otherNm] and
                   species[otherNm].momentFlags[5][self.speciesName])) then
             -- Cross-primitive moments for the collision of these two species has not been computed.
-            self.primMomCross:advance(tCurr, {self.mass, self.collFreq, selfMom, primMomSelf, bCorrectionsSelf,
-                                              mOther, collFreqOther, otherMom, primMomOther, bCorrectionsOther},
+            self.primMomCross:advance(tCurr, {self.mass, self.collFreq, selfMom, primMomSelf, bCorrectionsSelf, starMomSelf,
+                                              mOther, collFreqOther, otherMom, primMomOther, bCorrectionsOther, starMomOther},
                                              {species[self.speciesName].uCross[otherNm], species[self.speciesName].vtSqCross[otherNm], 
                                               species[otherNm].uCross[self.speciesName], species[otherNm].vtSqCross[self.speciesName]})
 

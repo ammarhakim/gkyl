@@ -144,7 +144,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local tId = grid:subGridSharedId()    -- Local thread ID.
 
    -- polyOrder=1 and >1 each use separate velocity grid loops to
-   -- avoid evaluating (if polyOrder==1) at each velocity coordinate.
+   -- avoid evaluating (if polyOrder==1) at each cell.
    if self._polyOrder > 1 then
 
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
