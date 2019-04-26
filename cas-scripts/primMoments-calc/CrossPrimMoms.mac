@@ -85,7 +85,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   
     /* Function declaration with input/output variables. */
     if (polyOrder=1) then (
-      printf(fh, "void ~a_P~a(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *m0SOther, const double *m1SOther, const double *m2SOther, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) ~%{ ~%", funcNm, polyOrder),
+      printf(fh, "void ~a_P~a(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m0SOther, const double *m1SOther, const double *m2SOther, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) ~%{ ~%", funcNm, polyOrder),
       printf(fh, "  // betaGreenep1:       free parameter beta+1. This has to be >0. ~%"),
       printf(fh, "  // nu, m:              collisionality and mass. ~%"),
       printf(fh, "  // m0,m1,m2:           moments of the distribution function. ~%"),
@@ -711,10 +711,15 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Include the RHS corresponding to the energy relaxation rate. */
     /* Weak product of uSelf and M1Self. */
-    m1Self_e   : doExpand1(m1rSelf, bC),
-    uSelf_e    : doExpand1(uSelf,bC),
-    m1Self_e   : psubst(makelist(m1rSelf[i]=m1rSelf[a0+i],i,0,NC-1),m1Self_e),
-    uSelf_e    : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
+    uSelf_e : doExpand1(uSelf,bC),
+    uSelf_e : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
+    if polyOrder=1 then (
+      m1Self_e  : doExpand1(m1SrSelf, bC),
+      m1Self_e  : psubst(makelist(m1SrSelf[i]=m1SrSelf[a0+i],i,0,NC-1),m1Self_e)
+    ) else (
+      m1Self_e  : doExpand1(m1rSelf, bC),
+      m1Self_e  : psubst(makelist(m1rSelf[i]=m1rSelf[a0+i],i,0,NC-1),m1Self_e)
+    ),
     kinESelf_c : calcInnerProdList(varsC,uSelf_e,bC,m1Self_e),
     printf(fh, "  double kinESelf[~a]; ~%", NC),
     printf(fh, "  // zero out array with dot product of u and m1. ~%"),
@@ -734,10 +739,15 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
     /* Weak product of uOther and M1Other. */
-    m1Other_e   : doExpand1(m1rOther, bC),
-    uOther_e    : doExpand1(uOther,bC),
-    m1Other_e   : psubst(makelist(m1rOther[i]=m1rOther[a0+i],i,0,NC-1),m1Other_e),
-    uOther_e    : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
+    uOther_e : doExpand1(uOther,bC),
+    uOther_e : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
+    if polyOrder=1 then (
+      m1Other_e : doExpand1(m1SrOther, bC),
+      m1Other_e : psubst(makelist(m1SrOther[i]=m1SrOther[a0+i],i,0,NC-1),m1Other_e)
+    ) else (
+      m1Other_e : doExpand1(m1rOther, bC),
+      m1Other_e : psubst(makelist(m1rOther[i]=m1rOther[a0+i],i,0,NC-1),m1Other_e)
+    ),
     kinEOther_c : calcInnerProdList(varsC,uOther_e,bC,m1Other_e),
     printf(fh, "  double kinEOther[~a]; ~%", NC),
     printf(fh, "  // zero out array with dot product of u and m1. ~%"),
@@ -756,19 +766,26 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
-    /* Weak product of (uSelf-uOther) with itself. */
-    uSelf_e      : doExpand1(uSelf,bC),
-    uSelf_e      : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
-    uOther_e     : doExpand1(uOther,bC),
-    uOther_e     : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
-    m1Self_e     : doExpand1(m1rSelf, bC),
-    m1Self_e     : psubst(makelist(m1rSelf[i]=m1rSelf[a0+i],i,0,NC-1),m1Self_e),
-    m1Other_e    : doExpand1(m1rOther, bC),
-    m1Other_e    : psubst(makelist(m1rOther[i]=m1rOther[a0+i],i,0,NC-1),m1Other_e),
-    cMSelf_e     : doExpand1(cMSelf, bC),
-    cMSelf_e     : psubst(makelist(cMSelf[i]=cMSelf[a0+i],i,0,NC-1),cMSelf_e),
-    cMOther_e    : doExpand1(cMOther, bC),
-    cMOther_e    : psubst(makelist(cMOther[i]=cMOther[a0+i],i,0,NC-1),cMOther_e),
+    /* Weak product of (uSelf-uOther) with (M1Self-M1Other). */
+    uSelf_e  : doExpand1(uSelf,bC),
+    uSelf_e  : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
+    uOther_e : doExpand1(uOther,bC),
+    uOther_e : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
+    if polyOrder=1 then (
+      m1Self_e  : doExpand1(m1SrSelf, bC),
+      m1Self_e  : psubst(makelist(m1SrSelf[i]=m1SrSelf[a0+i],i,0,NC-1),m1Self_e),
+      m1Other_e : doExpand1(m1SrOther, bC),
+      m1Other_e : psubst(makelist(m1SrOther[i]=m1SrOther[a0+i],i,0,NC-1),m1Other_e)
+    ) else (
+      m1Self_e  : doExpand1(m1rSelf, bC),
+      m1Self_e  : psubst(makelist(m1rSelf[i]=m1rSelf[a0+i],i,0,NC-1),m1Self_e),
+      m1Other_e : doExpand1(m1rOther, bC),
+      m1Other_e : psubst(makelist(m1rOther[i]=m1rOther[a0+i],i,0,NC-1),m1Other_e)
+    ),
+    cMSelf_e  : doExpand1(cMSelf, bC),
+    cMSelf_e  : psubst(makelist(cMSelf[i]=cMSelf[a0+i],i,0,NC-1),cMSelf_e),
+    cMOther_e : doExpand1(cMOther, bC),
+    cMOther_e : psubst(makelist(cMOther[i]=cMOther[a0+i],i,0,NC-1),cMOther_e),
     relKinE_c : calcInnerProdList(varsC,uSelf_e-uOther_e,bC,m1Self_e-m1Other_e),
     printf(fh, "  double relKinE[~a]; ~%", NC),
     printf(fh, "  // zero out array with dot product of u and m1. ~%"),
@@ -797,10 +814,17 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     relKinE_e   : doExpand1(relKinE,bC),
     /* Variable holding contribution to RHS vector from energy relaxation. */
     printf(fh, "  double m2Relax[~a]; ~%", NC),
-    m2Relax_c    : mnuSelf*(m2Self_c-kinESelf_c)-mnuOther*(m2Other_c-kinEOther_c)
-                  -mnuSelf*(betaGreenep1/(mSelf+mOther))*(mSelf*(m2Self_c-kinESelf_c)
-                  -mOther*(m2Other_c-kinEOther_c)+0.5*(mSelf-mOther)*calcInnerProdList(varsC,1.0,bC,
-                   +relKinE_e)),
+    if polyOrder=1 then (
+      m2Relax_c    : mnuSelf*(m2Self_c-kinESelf_c)-mnuOther*(m2Other_c-kinEOther_c)
+                    -mnuSelf*(betaGreenep1/(mSelf+mOther))*(mSelf*(m2Self_c-kinESelf_c)
+                    -mOther*(m2Other_c-kinEOther_c)+0.5*(mSelf-mOther)*calcInnerProdList(varsC,1.0,bC,
+                    +relKinE_e))
+    ) else (
+      m2Relax_c    : mnuSelf*(m2Self_c-kinESelf_c)-mnuOther*(m2Other_c-kinEOther_c)
+                    -mnuSelf*(betaGreenep1/(mSelf+mOther))*(mSelf*(m2Self_c-kinESelf_c)
+                    -mOther*(m2Other_c-kinEOther_c)+0.5*(mSelf-mOther)*calcInnerProdList(varsC,1.0,bC,
+                    +relKinE_e))
+    ),
     printf(fh, "  // ... Contribution to RHS vector from energy relaxation. ~%"),
     expr : float(expand(m2Relax_c)),
     for i : 1 thru NC do (
