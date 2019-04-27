@@ -276,10 +276,6 @@ local function buildApplication(self, tbl)
       s:clearMomentFlags(species)
       s:calcCouplingMoments(0.0, 1)
    end
-   -- Compute cross-species coupling moments.
-   for nm, s in pairs(species) do
-      s:calcCrossCouplingMoments(0.0, species, 1)
-   end
    -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, funcField)
    field:initField(species)
@@ -366,12 +362,6 @@ local function buildApplication(self, tbl)
 	 -- Compute moments needed in coupling with fields and
 	 -- collisions (the species should update internal datastructures). 
          s:calcCouplingMoments(tCurr, inIdx)
-      end
-
-      for nm, s in pairs(species) do
-	 -- Compute cross-species moments. These are need, for example,
-         -- for cross-species collisions.
-         s:calcCrossCouplingMoments(tCurr, species, inIdx)
       end
 
       -- Update EM field.

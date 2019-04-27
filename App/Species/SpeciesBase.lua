@@ -31,7 +31,6 @@ function SpeciesBase:clearCFL() end
 function SpeciesBase:initDist() end
 function SpeciesBase:initCrossSpeciesCoupling() end
 function SpeciesBase:calcCouplingMoments() end
-function SpeciesBase:calcCrossCouplingMoments() end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
 function SpeciesBase:readRestart() return 0.0 end
