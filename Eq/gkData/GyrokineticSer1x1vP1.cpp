@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -17,7 +17,7 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   double BstarX_by_Bmag[4]; 
   double BstarY_by_Bmag[4]; 
   double BstarZ_by_Bmag[4]; 
-  BstarZ_by_Bmag[0] = 1.414213562373095*Gradpar[0]; 
+  BstarZ_by_Bmag[0] = Gradpar[0]*jacobTotInv[0]; 
 
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
@@ -71,7 +71,7 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   out[3] += 0.8660254037844386*(alphaz[0]*f[2]+alphav[0]*f[1]); 
   return cflFreq; 
 } 
-double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -89,8 +89,8 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
   double BstarX_by_Bmag[4]; 
   double BstarY_by_Bmag[4]; 
   double BstarZ_by_Bmag[4]; 
-  BstarZ_by_Bmag[0] = 1.414213562373095*Gradpar[0]; 
-  BstarZ_by_Bmag[1] = 1.414213562373095*Gradpar[1]; 
+  BstarZ_by_Bmag[0] = Gradpar[1]*jacobTotInv[1]+Gradpar[0]*jacobTotInv[0]; 
+  BstarZ_by_Bmag[1] = Gradpar[0]*jacobTotInv[1]+jacobTotInv[0]*Gradpar[1]; 
 
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
