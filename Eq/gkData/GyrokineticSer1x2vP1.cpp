@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -91,13 +91,9 @@ double GyrokineticVol1x2vSerP1_Bvars_0(const double q_, const double m_, const d
   out[5] += 0.6123724356957944*alphaz[0]*f[3]; 
   out[6] += 0.6123724356957944*alphav[0]*f[3]; 
   out[7] += 0.6123724356957944*(alphaz[0]*f[6]+alphav[0]*f[5]); 
-  out[1] += -(0.75*Gradpar[0]*f0[0]*hamil[2]*dfac_v*dfac_z)/m_; 
-  out[4] += -(0.75*Gradpar[0]*f0[2]*hamil[2]*dfac_v*dfac_z)/m_; 
-  out[5] += -(0.75*Gradpar[0]*hamil[2]*f0[3]*dfac_v*dfac_z)/m_; 
-  out[7] += -(0.75*Gradpar[0]*hamil[2]*f0[6]*dfac_v*dfac_z)/m_; 
   return cflFreq; 
 } 
-double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *f0, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -195,11 +191,5 @@ double GyrokineticVol1x2vSerP1_Bvars_1(const double q_, const double m_, const d
   out[5] += 0.6123724356957944*(alphaz[1]*f[5]+alphaz[0]*f[3]); 
   out[6] += 0.6123724356957944*(alphav[1]*f[5]+f[1]*alphav[5]+alphav[0]*f[3]+f[0]*alphav[3]); 
   out[7] += 0.6123724356957944*(alphaz[1]*f[7]+alphaz[0]*f[6]+alphav[0]*f[5]+f[0]*alphav[5]+alphav[1]*f[3]+f[1]*alphav[3]); 
-  out[1] += -(0.75*(Gradpar[1]*f0[1]+Gradpar[0]*f0[0])*hamil[2]*dfac_v*dfac_z)/m_; 
-  out[2] += (0.5*Bmag[1]*dfac_v*dfac_z*(3.0*(Gradpar[1]*f0[1]+Gradpar[0]*f0[0])*dfac_m*wm+1.732050807568877*(Gradpar[1]*f0[5]+Gradpar[0]*f0[3])))/(dfac_m*m_); 
-  out[4] += (0.25*dfac_v*dfac_z*(3.0*dfac_m*(2.0*Bmag[1]*(Gradpar[0]*f0[1]+f0[0]*Gradpar[1])*wm-1.0*hamil[2]*(Gradpar[1]*f0[4]+Gradpar[0]*f0[2]))+3.464101615137754*Bmag[1]*(Gradpar[0]*f0[5]+Gradpar[1]*f0[3])))/(dfac_m*m_); 
-  out[5] += -(0.75*hamil[2]*(Gradpar[1]*f0[5]+Gradpar[0]*f0[3])*dfac_v*dfac_z)/m_; 
-  out[6] += (0.5*Bmag[1]*dfac_v*dfac_z*(3.0*(Gradpar[1]*f0[5]+Gradpar[0]*f0[3])*dfac_m*wm+1.732050807568877*(Gradpar[1]*f0[1]+Gradpar[0]*f0[0])))/(dfac_m*m_); 
-  out[7] += (0.25*dfac_v*dfac_z*(3.0*dfac_m*(2.0*Bmag[1]*(Gradpar[0]*f0[5]+Gradpar[1]*f0[3])*wm-1.0*hamil[2]*(Gradpar[1]*f0[7]+Gradpar[0]*f0[6]))+3.464101615137754*Bmag[1]*(Gradpar[0]*f0[1]+f0[0]*Gradpar[1])))/(dfac_m*m_); 
   return cflFreq; 
 } 
