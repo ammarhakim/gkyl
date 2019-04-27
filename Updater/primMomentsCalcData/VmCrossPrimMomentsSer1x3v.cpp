@@ -2,7 +2,7 @@
  
 using namespace Eigen; 
  
-void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *m0SOther, const double *m1SOther, const double *m2SOther, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:       free parameter beta+1. This has to be >0. 
   // nu, m:              collisionality and mass. 
@@ -23,6 +23,7 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
  
   double m0rSelf[2]; 
   double m1rSelf[6]; 
+  double m2rSelf[2]; 
   double m0SrSelf[2]; 
   double m1SrSelf[6]; 
   double m2SrSelf[2]; 
@@ -35,6 +36,8 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
     m1rSelf[3] = 0.0; 
     m1rSelf[4] = m1Self[4]; 
     m1rSelf[5] = 0.0; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = 0.0; 
     m0SrSelf[0] = m0SSelf[0]; 
     m0SrSelf[1] = 0.0; 
     m1SrSelf[0] = m1SSelf[0]; 
@@ -54,6 +57,8 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
     m1rSelf[3] = m1Self[3]; 
     m1rSelf[4] = m1Self[4]; 
     m1rSelf[5] = m1Self[5]; 
+    m2rSelf[0] = m2Self[0]; 
+    m2rSelf[1] = m2Self[1]; 
     m0SrSelf[0] = m0SSelf[0]; 
     m0SrSelf[1] = m0SSelf[1]; 
     m1SrSelf[0] = m1SSelf[0]; 
@@ -75,6 +80,7 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
  
   double m0rOther[2]; 
   double m1rOther[6]; 
+  double m2rOther[2]; 
   double m0SrOther[2]; 
   double m1SrOther[6]; 
   double m2SrOther[2]; 
@@ -87,6 +93,8 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
     m1rOther[3] = 0.0; 
     m1rOther[4] = m1Other[4]; 
     m1rOther[5] = 0.0; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = 0.0; 
     m0SrOther[0] = m0SOther[0]; 
     m0SrOther[1] = 0.0; 
     m1SrOther[0] = m1SOther[0]; 
@@ -106,6 +114,8 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
     m1rOther[3] = m1Other[3]; 
     m1rOther[4] = m1Other[4]; 
     m1rOther[5] = m1Other[5]; 
+    m2rOther[0] = m2Other[0]; 
+    m2rOther[1] = m2Other[1]; 
     m0SrOther[0] = m0SOther[0]; 
     m0SrOther[1] = m0SOther[1]; 
     m1SrOther[0] = m1SOther[0]; 
@@ -309,16 +319,16 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(9,15) = 0.7071067811865475*cMOther[0]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfX-uSelfX*m0Self) and uCrossSelfX ... // 
-  data->AEM_S(14,0) = (-0.5*m0SrSelf[1]*uSelf[1]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1SrSelf[0]*mnuSelf; 
-  data->AEM_S(14,1) = (-0.5*m0SrSelf[0]*uSelf[1]*mnuSelf)+0.7071067811865475*m1SrSelf[1]*mnuSelf-0.5*uSelf[0]*m0SrSelf[1]*mnuSelf; 
-  data->AEM_S(15,0) = (-0.5*m0SrSelf[0]*uSelf[1]*mnuSelf)+0.7071067811865475*m1SrSelf[1]*mnuSelf-0.5*uSelf[0]*m0SrSelf[1]*mnuSelf; 
-  data->AEM_S(15,1) = (-0.9*m0SrSelf[1]*uSelf[1]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1SrSelf[0]*mnuSelf; 
+  data->AEM_S(14,0) = (-0.5*m0rSelf[1]*uSelf[1]*mnuSelf)-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1SrSelf[0]*mnuSelf; 
+  data->AEM_S(14,1) = (-0.5*m0rSelf[0]*uSelf[1]*mnuSelf)+0.7071067811865475*m1SrSelf[1]*mnuSelf-0.5*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(15,0) = (-0.5*m0rSelf[0]*uSelf[1]*mnuSelf)+0.7071067811865475*m1SrSelf[1]*mnuSelf-0.5*uSelf[0]*m0rSelf[1]*mnuSelf; 
+  data->AEM_S(15,1) = (-0.9*m0rSelf[1]*uSelf[1]*mnuSelf)-0.5*m0rSelf[0]*uSelf[0]*mnuSelf+0.7071067811865475*m1SrSelf[0]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, (m1OtherX-uOtherX*m0Other) and uCrossOtherX ... // 
-  data->AEM_S(14,8) = 0.5*m0SrOther[1]*uOther[1]*mnuOther+0.5*m0SrOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
-  data->AEM_S(14,9) = 0.5*m0SrOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1SrOther[1]*mnuOther+0.5*uOther[0]*m0SrOther[1]*mnuOther; 
-  data->AEM_S(15,8) = 0.5*m0SrOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1SrOther[1]*mnuOther+0.5*uOther[0]*m0SrOther[1]*mnuOther; 
-  data->AEM_S(15,9) = 0.9*m0SrOther[1]*uOther[1]*mnuOther+0.5*m0SrOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
+  data->AEM_S(14,8) = 0.5*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
+  data->AEM_S(14,9) = 0.5*m0rOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1SrOther[1]*mnuOther+0.5*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(15,8) = 0.5*m0rOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1SrOther[1]*mnuOther+0.5*uOther[0]*m0rOther[1]*mnuOther; 
+  data->AEM_S(15,9) = 0.9*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
  
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
   m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
@@ -349,16 +359,16 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(11,15) = 0.7071067811865475*cMOther[2]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfY-uSelfY*m0Self) and uCrossSelfY ... // 
-  data->AEM_S(14,2) = (-0.5*m0SrSelf[1]*uSelf[3]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1SrSelf[2]*mnuSelf; 
-  data->AEM_S(14,3) = (-0.5*m0SrSelf[0]*uSelf[3]*mnuSelf)+0.7071067811865475*m1SrSelf[3]*mnuSelf-0.5*m0SrSelf[1]*uSelf[2]*mnuSelf; 
-  data->AEM_S(15,2) = (-0.5*m0SrSelf[0]*uSelf[3]*mnuSelf)+0.7071067811865475*m1SrSelf[3]*mnuSelf-0.5*m0SrSelf[1]*uSelf[2]*mnuSelf; 
-  data->AEM_S(15,3) = (-0.9*m0SrSelf[1]*uSelf[3]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1SrSelf[2]*mnuSelf; 
+  data->AEM_S(14,2) = (-0.5*m0rSelf[1]*uSelf[3]*mnuSelf)-0.5*m0rSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1SrSelf[2]*mnuSelf; 
+  data->AEM_S(14,3) = (-0.5*m0rSelf[0]*uSelf[3]*mnuSelf)+0.7071067811865475*m1SrSelf[3]*mnuSelf-0.5*m0rSelf[1]*uSelf[2]*mnuSelf; 
+  data->AEM_S(15,2) = (-0.5*m0rSelf[0]*uSelf[3]*mnuSelf)+0.7071067811865475*m1SrSelf[3]*mnuSelf-0.5*m0rSelf[1]*uSelf[2]*mnuSelf; 
+  data->AEM_S(15,3) = (-0.9*m0rSelf[1]*uSelf[3]*mnuSelf)-0.5*m0rSelf[0]*uSelf[2]*mnuSelf+0.7071067811865475*m1SrSelf[2]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, (m1OtherY-uOtherY*m0Other) and uCrossOtherY ... // 
-  data->AEM_S(14,10) = 0.5*m0SrOther[1]*uOther[3]*mnuOther+0.5*m0SrOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1SrOther[2]*mnuOther; 
-  data->AEM_S(14,11) = 0.5*m0SrOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1SrOther[3]*mnuOther+0.5*m0SrOther[1]*uOther[2]*mnuOther; 
-  data->AEM_S(15,10) = 0.5*m0SrOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1SrOther[3]*mnuOther+0.5*m0SrOther[1]*uOther[2]*mnuOther; 
-  data->AEM_S(15,11) = 0.9*m0SrOther[1]*uOther[3]*mnuOther+0.5*m0SrOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1SrOther[2]*mnuOther; 
+  data->AEM_S(14,10) = 0.5*m0rOther[1]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1SrOther[2]*mnuOther; 
+  data->AEM_S(14,11) = 0.5*m0rOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1SrOther[3]*mnuOther+0.5*m0rOther[1]*uOther[2]*mnuOther; 
+  data->AEM_S(15,10) = 0.5*m0rOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1SrOther[3]*mnuOther+0.5*m0rOther[1]*uOther[2]*mnuOther; 
+  data->AEM_S(15,11) = 0.9*m0rOther[1]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1SrOther[2]*mnuOther; 
  
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
   m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
@@ -389,16 +399,16 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(13,15) = 0.7071067811865475*cMOther[4]*mnuOther; 
  
   // ... Block from weak multiply of mSelf, nuSelf, (m1SelfZ-uSelfZ*m0Self) and uCrossSelfZ ... // 
-  data->AEM_S(14,4) = (-0.5*m0SrSelf[1]*uSelf[5]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[4]*mnuSelf+0.7071067811865475*m1SrSelf[4]*mnuSelf; 
-  data->AEM_S(14,5) = (-0.5*m0SrSelf[0]*uSelf[5]*mnuSelf)+0.7071067811865475*m1SrSelf[5]*mnuSelf-0.5*m0SrSelf[1]*uSelf[4]*mnuSelf; 
-  data->AEM_S(15,4) = (-0.5*m0SrSelf[0]*uSelf[5]*mnuSelf)+0.7071067811865475*m1SrSelf[5]*mnuSelf-0.5*m0SrSelf[1]*uSelf[4]*mnuSelf; 
-  data->AEM_S(15,5) = (-0.9*m0SrSelf[1]*uSelf[5]*mnuSelf)-0.5*m0SrSelf[0]*uSelf[4]*mnuSelf+0.7071067811865475*m1SrSelf[4]*mnuSelf; 
+  data->AEM_S(14,4) = (-0.5*m0rSelf[1]*uSelf[5]*mnuSelf)-0.5*m0rSelf[0]*uSelf[4]*mnuSelf+0.7071067811865475*m1SrSelf[4]*mnuSelf; 
+  data->AEM_S(14,5) = (-0.5*m0rSelf[0]*uSelf[5]*mnuSelf)+0.7071067811865475*m1SrSelf[5]*mnuSelf-0.5*m0rSelf[1]*uSelf[4]*mnuSelf; 
+  data->AEM_S(15,4) = (-0.5*m0rSelf[0]*uSelf[5]*mnuSelf)+0.7071067811865475*m1SrSelf[5]*mnuSelf-0.5*m0rSelf[1]*uSelf[4]*mnuSelf; 
+  data->AEM_S(15,5) = (-0.9*m0rSelf[1]*uSelf[5]*mnuSelf)-0.5*m0rSelf[0]*uSelf[4]*mnuSelf+0.7071067811865475*m1SrSelf[4]*mnuSelf; 
  
   // ... Block from weak multiply of mOther, nuOther, (m1OtherZ-uOtherZ*m0Other) and uCrossOtherZ ... // 
-  data->AEM_S(14,12) = 0.5*m0SrOther[1]*uOther[5]*mnuOther+0.5*m0SrOther[0]*uOther[4]*mnuOther-0.7071067811865475*m1SrOther[4]*mnuOther; 
-  data->AEM_S(14,13) = 0.5*m0SrOther[0]*uOther[5]*mnuOther-0.7071067811865475*m1SrOther[5]*mnuOther+0.5*m0SrOther[1]*uOther[4]*mnuOther; 
-  data->AEM_S(15,12) = 0.5*m0SrOther[0]*uOther[5]*mnuOther-0.7071067811865475*m1SrOther[5]*mnuOther+0.5*m0SrOther[1]*uOther[4]*mnuOther; 
-  data->AEM_S(15,13) = 0.9*m0SrOther[1]*uOther[5]*mnuOther+0.5*m0SrOther[0]*uOther[4]*mnuOther-0.7071067811865475*m1SrOther[4]*mnuOther; 
+  data->AEM_S(14,12) = 0.5*m0rOther[1]*uOther[5]*mnuOther+0.5*m0rOther[0]*uOther[4]*mnuOther-0.7071067811865475*m1SrOther[4]*mnuOther; 
+  data->AEM_S(14,13) = 0.5*m0rOther[0]*uOther[5]*mnuOther-0.7071067811865475*m1SrOther[5]*mnuOther+0.5*m0rOther[1]*uOther[4]*mnuOther; 
+  data->AEM_S(15,12) = 0.5*m0rOther[0]*uOther[5]*mnuOther-0.7071067811865475*m1SrOther[5]*mnuOther+0.5*m0rOther[1]*uOther[4]*mnuOther; 
+  data->AEM_S(15,13) = 0.9*m0rOther[1]*uOther[5]*mnuOther+0.5*m0rOther[0]*uOther[4]*mnuOther-0.7071067811865475*m1SrOther[4]*mnuOther; 
  
   // ... Contribution to RHS vector from component 3 of momentum relaxation. 
   m1Relax[4] += (m1rOther[4]-1.0*m1rSelf[4])*betaGreenep1*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
@@ -463,8 +473,8 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
  
   double m2Relax[2]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2SrSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2SrOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2SrSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2SrOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<2,4>(8,2).setZero(); 

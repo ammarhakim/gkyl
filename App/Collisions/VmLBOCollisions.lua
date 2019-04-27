@@ -244,6 +244,16 @@ function VmLBOCollisions:createSolver()
       updateDirections   = zfd, -- only update velocity directions
       zeroFluxDirections = zfd,
    }
+   self.uCross = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.cNumBasis*self.vdim,
+      ghost         = {1, 1},
+   }
+   self.vtSqCross = DataStruct.Field {
+      onGrid        = self.confGrid,
+      numComponents = self.cNumBasis,
+      ghost         = {1, 1},
+   }
    if self.crossCollisions then
       if self.varNu then
          -- Temporary collisionality field.
@@ -380,6 +390,8 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
             species[otherNm].momentFlags[5][self.speciesName] = true
          end
 
+         self.uCross:copy(species[self.speciesName].uCross[otherNm])
+         self.vtSqCross:copy(species[self.speciesName].vtSqCross[otherNm])
          if self.varNu then
             self.confMul:advance(tCurr, {self.collFreq, species[self.speciesName].uCross[otherNm]}, {self.nuUCross})
             self.confMul:advance(tCurr, {self.collFreq, species[self.speciesName].vtSqCross[otherNm]}, {self.nuVtSqCross})
@@ -412,10 +424,10 @@ function VmLBOCollisions:write(tm, frame)
 --   self.vthSq:write(string.format("%s_%s_%d.bp", self.speciesName, "vthSq", frame), tm, frame)
 -- Since this doesn't seem to be as big a problem in Vm as in Gk, we comment this out for now.
 --   self.primMomLimitCrossings:write(string.format("%s_%s_%d.bp", self.speciesName, "primMomLimitCrossings", frame), tm, frame)
---   if self.crossCollisions then
---      self.uCross:write(string.format("%s_%s_%d.bp", self.speciesName, "uCross", frame), tm, frame)
---      self.vtSqCross:write(string.format("%s_%s_%d.bp", self.speciesName, "vtSqCross", frame), tm, frame)
---   end
+   if self.crossCollisions then
+      self.uCross:write(string.format("%s_%s_%d.bp", self.speciesName, "uCross", frame), tm, frame)
+      self.vtSqCross:write(string.format("%s_%s_%d.bp", self.speciesName, "vtSqCross", frame), tm, frame)
+   end
 end
 
 function VmLBOCollisions:totalTime()

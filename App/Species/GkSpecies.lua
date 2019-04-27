@@ -787,9 +787,6 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
    if not self.evolve then self._firstMomentCalc = false end
 end
 
-function GkSpecies:calcCrossCouplingMoments(tCurr, rkIdx)
-end
-
 function GkSpecies:fluidMoments()
    return { self.numDensity, self.momDensity, self.ptclEnergy } 
 end

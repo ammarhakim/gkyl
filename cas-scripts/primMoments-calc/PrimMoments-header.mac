@@ -33,7 +33,7 @@ for bInd : 1 thru length(bName) do (
           printf(fh, "~%"),
 
           /* Primitive moments for cross-collision Vlasov LBO terms. */
-          printf(fh, "void VmCrossPrimMoments~ax~av~a_P~a(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m0SOther, const double *m1SOther, const double *m2SOther, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void VmCrossPrimMoments~ax~av~a_P~a(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%")
         ) else (
           /* Primitive moments for self-collision terms with p>1. */
@@ -61,7 +61,7 @@ for bInd : 1 thru length(bName) do (
           printf(fh, "~%"),
   
           /* Primitive moments for cross-collisions. */
-          printf(fh, "void GkCrossPrimMoments~ax~av~a_P~a(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m0SOther, const double *m1SOther, const double *m2SOther, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther); ~%", ci, vi, bName[bInd], pi),
+          printf(fh, "void GkCrossPrimMoments~ax~av~a_P~a(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%")
         ) else (
           /* Primitive moments for self-collision terms with p>1. */
