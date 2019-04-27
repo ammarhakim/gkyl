@@ -87,11 +87,11 @@ calcAndWriteHamil() := block([],
 
 calcAndWriteBstar_by_Bmag() := block([],
   /* expand geometric quantities on basis */
-  BmagInv_expd:subst(Bignorevars,doExpand1(BmagInv,bC)),
   geoX_expd : subst(Bignorevars, doExpand1(geoX, bC)),
   geoY_expd : subst(Bignorevars, doExpand1(geoY, bC)),
   geoZ_expd : subst(Bignorevars, doExpand1(geoZ, bC)),
   gradpar_expd : subst(Bignorevars, doExpand1(Gradpar, bC)),
+  jacobTotInv_expd : subst(Bignorevars, doExpand1(jacobTotInv, bC)),
 
   /* expand BstarX/Bmag on basis */
   BstarX_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_z*diff(geoY_expd,z)) + geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
