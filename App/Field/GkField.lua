@@ -1141,6 +1141,35 @@ function GkGeometry:createSolver()
       gridCenter[dir] = self.grid:mid(dir) -- reset so we can check other vars
    end
    if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+
+   self.smoother = Updater.FemPoisson {
+     onGrid = self.grid,
+     basis = self.basis,
+     periodicDirs = self.periodicDirs,
+     smooth = true,
+   }
+
+   self.weakDivision = Updater.CartFieldBinOp {
+      onGrid = self.grid,
+      weakBasis = self.basis,
+      operation = "Divide",
+      onGhosts = true,
+   }
+
+   self.unitWeight = DataStruct.Field {
+        onGrid = self.grid,
+        numComponents = self.basis:numBasis(),
+        ghost = {1, 1},
+   }
+   local initUnit = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      evaluate = function (t,xn)
+                    return 1.0
+                 end,
+      projectOnGhosts = true,
+   }
+   initUnit:advance(0.,{},{self.unitWeight})
 end
 
 function GkGeometry:createDiagnostics()
@@ -1160,6 +1189,23 @@ function GkGeometry:initField()
    self.setGeoZ:advance(0.0, {}, {self.geo.geoZ})
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
+
+   self.smoother:advance(0.0, {self.geo.bmag}, {self.geo.bmag})
+   self.smoother:advance(0.0, {self.geo.gradpar}, {self.geo.gradpar})
+   self.smoother:advance(0.0, {self.geo.jacobGeo}, {self.geo.jacobGeo})
+   self.smoother:advance(0.0, {self.geo.gxx}, {self.geo.gxx})
+   self.smoother:advance(0.0, {self.geo.gxy}, {self.geo.gxy})
+   self.smoother:advance(0.0, {self.geo.gyy}, {self.geo.gyy})
+   self.smoother:advance(0.0, {self.geo.geoX}, {self.geo.geoX})
+   self.smoother:advance(0.0, {self.geo.geoY}, {self.geo.geoY})
+   self.smoother:advance(0.0, {self.geo.geoZ}, {self.geo.geoZ})
+
+   --self.weakDivision:advance(0.0, {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
+   self.smoother:advance(0.0, {self.geo.bmagInv}, {self.geo.bmagInv})
+   self.geo.jacobGeo:copy(self.geo.bmagInv)
+   --self.weakDivision:advance(0.0, {self.geo.jacobGeo, self.unitWeight}, {self.geo.jacobGeoInv})
+   self.smoother:advance(0.0, {self.geo.jacobGeoInv}, {self.geo.jacobGeoInv})
+
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
    self.geo.bmag:sync(false)
