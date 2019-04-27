@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -17,7 +17,7 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_0(const double q_, const double m_, con
   double BstarX_by_Bmag[4]; 
   double BstarY_by_Bmag[4]; 
   double BstarZ_by_Bmag[4]; 
-  BstarZ_by_Bmag[0] = 1.414213562373095*Gradpar[0]; 
+  BstarZ_by_Bmag[0] = Gradpar[0]*jacobTotInv[0]; 
 
   // surface-averaged phase velocity in this direction 
   double alpha0 = (0.2165063509461096*BstarZ_by_Bmag[0]*hamil[2]*dfac_v)/m_; 
@@ -63,7 +63,7 @@ double alphaQuad;
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -81,7 +81,7 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_0(const double q_, const double m_, 
   double BstarX_by_Bmag[4]; 
   double BstarY_by_Bmag[4]; 
   double BstarZ_by_Bmag[4]; 
-  BstarZ_by_Bmag[0] = 1.414213562373095*Gradpar[0]; 
+  BstarZ_by_Bmag[0] = Gradpar[0]*jacobTotInv[0]; 
 
   // surface-averaged phase velocity in this direction 
   double alpha0 = -(0.2165063509461096*BstarZ_by_Bmag[0]*hamil[1]*dfac_z)/m_; 
@@ -127,7 +127,7 @@ double alphaQuad;
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -145,8 +145,8 @@ double GyrokineticSurf1x1vSer_X_P1_Bvars_1(const double q_, const double m_, con
   double BstarX_by_Bmag[4]; 
   double BstarY_by_Bmag[4]; 
   double BstarZ_by_Bmag[4]; 
-  BstarZ_by_Bmag[0] = 1.414213562373095*Gradpar[0]; 
-  BstarZ_by_Bmag[1] = 1.414213562373095*Gradpar[1]; 
+  BstarZ_by_Bmag[0] = Gradpar[1]*jacobTotInv[1]+Gradpar[0]*jacobTotInv[0]; 
+  BstarZ_by_Bmag[1] = Gradpar[0]*jacobTotInv[1]+jacobTotInv[0]*Gradpar[1]; 
 
   // surface-averaged phase velocity in this direction 
   double alpha0 = -(0.125*(3.0*BstarZ_by_Bmag[1]-1.732050807568877*BstarZ_by_Bmag[0])*hamil[2]*dfac_v)/m_; 
@@ -192,7 +192,7 @@ double alphaQuad;
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_z = 2.0/dxv[0]; 
@@ -210,8 +210,8 @@ double GyrokineticSurf1x1vSer_Vpar_P1_Bvars_1(const double q_, const double m_, 
   double BstarX_by_Bmag[4]; 
   double BstarY_by_Bmag[4]; 
   double BstarZ_by_Bmag[4]; 
-  BstarZ_by_Bmag[0] = 1.414213562373095*Gradpar[0]; 
-  BstarZ_by_Bmag[1] = 1.414213562373095*Gradpar[1]; 
+  BstarZ_by_Bmag[0] = Gradpar[1]*jacobTotInv[1]+Gradpar[0]*jacobTotInv[0]; 
+  BstarZ_by_Bmag[1] = Gradpar[0]*jacobTotInv[1]+jacobTotInv[0]*Gradpar[1]; 
 
   // surface-averaged phase velocity in this direction 
   double alpha0 = -(0.2165063509461096*BstarZ_by_Bmag[0]*hamil[1]*dfac_z)/m_; 

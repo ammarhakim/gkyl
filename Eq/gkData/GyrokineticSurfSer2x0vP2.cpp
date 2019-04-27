@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -23,11 +23,11 @@ double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, con
 
 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -(0.125*geoZ[0]*(3.872983346207417*hamil[6]-3.0*hamil[3]+1.732050807568877*hamil[2])*dfac_y)/q_; 
+  double alpha0 = -(0.0625*geoZ[0]*jacobTotInv[0]*(3.872983346207417*hamil[6]-3.0*hamil[3]+1.732050807568877*hamil[2])*dfac_y)/q_; 
 
   double alpha[3]; 
-  alpha[0] = -(0.3535533905932737*geoZ[0]*(3.872983346207417*hamil[6]-3.0*hamil[3]+1.732050807568877*hamil[2])*dfac_y)/q_; 
-  alpha[1] = (0.3535533905932737*geoZ[0]*(6.708203932499369*hamil[7]-3.872983346207417*hamil[5])*dfac_y)/q_; 
+  alpha[0] = -(0.1767766952966368*geoZ[0]*jacobTotInv[0]*(3.872983346207417*hamil[6]-3.0*hamil[3]+1.732050807568877*hamil[2])*dfac_y)/q_; 
+  alpha[1] = (0.1767766952966368*geoZ[0]*jacobTotInv[0]*(6.708203932499369*hamil[7]-3.872983346207417*hamil[5])*dfac_y)/q_; 
   double amax = 0.0; 
   bool upwind = false; 
   if(upwind) 
@@ -72,7 +72,7 @@ double GyrokineticSurf2x0vSer_X_P2_Bvars_0(const double q_, const double m_, con
   outl[7] += incr[7]; 
 return std::abs(alpha0); 
 } 
-double GyrokineticSurf2x0vSer_Y_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurf2x0vSer_Y_P2_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -96,11 +96,11 @@ double GyrokineticSurf2x0vSer_Y_P2_Bvars_0(const double q_, const double m_, con
 
 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = (0.125*geoZ[0]*(3.872983346207417*hamil[7]-3.0*hamil[3]+1.732050807568877*hamil[1])*dfac_x)/q_; 
+  double alpha0 = (0.0625*geoZ[0]*jacobTotInv[0]*(3.872983346207417*hamil[7]-3.0*hamil[3]+1.732050807568877*hamil[1])*dfac_x)/q_; 
 
   double alpha[3]; 
-  alpha[0] = (0.3535533905932737*geoZ[0]*(3.872983346207417*hamil[7]-3.0*hamil[3]+1.732050807568877*hamil[1])*dfac_x)/q_; 
-  alpha[1] = -(0.3535533905932737*geoZ[0]*(6.708203932499369*hamil[6]-3.872983346207417*hamil[4])*dfac_x)/q_; 
+  alpha[0] = (0.1767766952966368*geoZ[0]*jacobTotInv[0]*(3.872983346207417*hamil[7]-3.0*hamil[3]+1.732050807568877*hamil[1])*dfac_x)/q_; 
+  alpha[1] = -(0.1767766952966368*geoZ[0]*jacobTotInv[0]*(6.708203932499369*hamil[6]-3.872983346207417*hamil[4])*dfac_x)/q_; 
   double amax = 0.0; 
   bool upwind = false; 
   if(upwind) 
