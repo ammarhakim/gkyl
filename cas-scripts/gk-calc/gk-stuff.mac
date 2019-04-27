@@ -94,7 +94,7 @@ calcAndWriteBstar_by_Bmag() := block([],
   jacobTotInv_expd : subst(Bignorevars, doExpand1(jacobTotInv, bC)),
 
   /* expand BstarX/Bmag on basis */
-  BstarX_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_z*diff(geoY_expd,z)) + geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
+  BstarX_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_z*diff(geoY_expd,z) + geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
   /* expand BstarY/Bmag on basis */
   BstarY_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(dfac_x*diff(geoZ_expd,x) - dfac_z*diff(geoX_expd,z)) - geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
   /* expand BstarZ/Bmag on basis */
