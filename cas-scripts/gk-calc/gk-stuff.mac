@@ -8,7 +8,7 @@ vvars : [Vpar, Mu]$
 load("vect")$
 fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
-gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*geoZ_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x)) + 1/q_*geoY_expd*dfac_x*dfac_z*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x)) - 1/q_*geoX_expd*dfac_y*dfac_z*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y))$
+gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))+(-1/q_*geoZ_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x)) + 1/q_*geoY_expd*dfac_x*dfac_z*(diff(f,x)*diff(g,z)-diff(f,z)*diff(g,x)) - 1/q_*geoX_expd*dfac_y*dfac_z*(diff(f,y)*diff(g,z)-diff(f,z)*diff(g,y)))*jacobTotInv_expd$
 
 loadGKbasis(cdim, vdim, p) := block([],
   if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
@@ -21,6 +21,7 @@ loadGKbasis(cdim, vdim, p) := block([],
   if cdim = 1 then (
     label:["z", "v", "m"],
     gkvsub:append([x=z], gkvsub),
+    gkvsubInv:append([z=x], gkvsubInv),
     wc : [wz, wv, wm],
     derivfac : [dfac_z, dfac_v, dfac_m]
   ),
@@ -40,7 +41,8 @@ loadGKbasis(cdim, vdim, p) := block([],
   else bP : subst(gkvsub, basisP[p]),
   if vdim=0 then varsP : varsC
   else varsP : subst(gkvsub, varsP),
-  numC : length(bC)
+  numC : length(bC),
+  bP
 )$
 
 calcAndWriteHamil() := block([],
@@ -91,12 +93,12 @@ calcAndWriteBstar_by_Bmag() := block([],
   geoZ_expd : subst(Bignorevars, doExpand1(geoZ, bC)),
   gradpar_expd : subst(Bignorevars, doExpand1(Gradpar, bC)),
 
-  /* expand BstarX/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
-  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z) + (geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z)),
-  /* expand BstarY/Bmag = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
-  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(geoZ_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) - geoX_expd*BmagInv_expd*dfac_z*diff(Bmag_expd,z)) + (-geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z)),
-  /* expand BstarZ/Bmag = bhat.grad(z) + (m/q vpar + Apar)/B*curl(bhat)*grad(z) = Gradpar + (m/q vpar + Apar)/B*curl(bhat)*grad(z) on basis */
-  BstarZ_by_Bmag_expd : gradpar_expd - (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*geoY_expd*BmagInv_expd*dfac_x*diff(Bmag_expd,x) + (geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y)),
+  /* expand BstarX/Bmag on basis */
+  BstarX_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_z*diff(geoY_expd,z)) + geoZ_expd*dfac_y*diff(Apar_expd,y) - geoY_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
+  /* expand BstarY/Bmag on basis */
+  BstarY_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(dfac_x*diff(geoZ_expd,x) - dfac_z*diff(geoX_expd,z)) - geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
+  /* expand BstarZ/Bmag on basis */
+  BstarZ_by_Bmag_expd : (gradpar_expd + (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_x*diff(geoY_expd,x) + geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y))*jacobTotInv_expd,
 
   /* project Bstar's onto basis, and print to arrays */
   printf(fh, "  double BstarX_by_Bmag[~a]; ~%", length(bP)),
@@ -148,21 +150,22 @@ calcAlpha(d, usePB) := block([w, dfac],
     if vdim=1 then zmu : 0,
     if vdim=0 then (zvpar:0, zvpar_0:0, zvpar2_0:0, zmu:0),
     if varsP[d]=x then (
-      /*alpha_expd : alpha_expd - geoY_expd*dfac_z*diff(Phi_expd, z)*/
-      alpha_expd : (m_/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*geoY_expd*dfac_z*diff(Bmag_expd,z) - geoZ_expd*dfac_y*diff(Phi_expd, y)
+      alpha_expd : alpha_expd /*- geoY_expd*dfac_z*diff(Phi_expd, z)*/
+      /*alpha_expd : (m_/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*geoY_expd*dfac_z*diff(Bmag_expd,z) - geoZ_expd*dfac_y*diff(Phi_expd, y)*/
     )
     elseif varsP[d]=y then (
-      /*alpha_expd : alpha_expd + geoX_expd*dfac_z*diff(Phi_expd, z)*/
-      alpha_expd : (m_/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*(geoZ_expd*dfac_x*diff(Bmag_expd,x)-geoX_expd*dfac_z*diff(Bmag_expd,z)) + geoZ_expd*dfac_x*diff(Phi_expd, x)
+      alpha_expd : alpha_expd + geoX_expd*dfac_z*diff(Phi_expd, z)
+      /*alpha_expd : (m_/q_*BmagInv_expd*zvpar2_0 + zmu/q_)*(geoZ_expd*dfac_x*diff(Bmag_expd,x)-geoX_expd*dfac_z*diff(Bmag_expd,z)) + geoZ_expd*dfac_x*diff(Phi_expd, x)*/
     )
     elseif varsP[d]=z then (
-      alpha_expd : gradpar_expd*zvpar_0
+      alpha_expd : alpha_expd - geoX_expd*dfac_y*diff(Phi_expd, y)
+      /*alpha_expd : gradpar_expd*zvpar_0*/
     )
     elseif varsP[d]=vpar then (
-      /*alpha_expd : alpha_expd - vpar*BmagInv_expd*geoY_expd*dfac_x*diff(Bmag_expd, x)*dfac_z*diff(Phi_expd, z)*/
-      alpha_expd : -zvpar*BmagInv_expd*geoY_expd*dfac_z*diff(Bmag_expd,z)*dfac_x*diff(Phi_expd,x) 
+      alpha_expd : alpha_expd /*- vpar*BmagInv_expd*geoY_expd*dfac_x*diff(Bmag_expd, x)*dfac_z*diff(Phi_expd, z)*/
+      /*alpha_expd : -zvpar*BmagInv_expd*geoY_expd*dfac_z*diff(Bmag_expd,z)*dfac_x*diff(Phi_expd,x) 
               -zvpar*BmagInv_expd*(geoZ_expd*dfac_x*diff(Bmag_expd,x)-geoX_expd*dfac_z*diff(Bmag_expd,z))*dfac_y*diff(Phi_expd,y) 
-              -gradpar_expd/m_*dfac_z*(zmu*diff(Bmag_expd,z) + q_*diff(Phi_expd,z))
+              -gradpar_expd/m_*dfac_z*(zmu*diff(Bmag_expd,z) + q_*diff(Phi_expd,z))*/
     )
   ),
   
