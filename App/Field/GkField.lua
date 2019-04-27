@@ -799,7 +799,7 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
-   -- bhat.grad z = 1/sqrt(g_zz)
+   -- gradpar = J B / sqrt(g_zz)
    self.geo.gradpar = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
@@ -824,21 +824,21 @@ function GkGeometry:alloc()
    }
 
    -- functions for magnetic drifts 
-   -- geoX = g_xz / ( J B sqrt(g_zz) )
+   -- geoX = g_xz / ( sqrt(g_zz) )
    self.geo.geoX = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
-   -- geoY = g_yz / ( J B sqrt(g_zz) )
+   -- geoY = g_yz / ( sqrt(g_zz) )
    self.geo.geoY = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
-   -- geoZ = sqrt(g_zz) / ( J B )
+   -- geoZ = sqrt(g_zz)
    self.geo.geoZ = DataStruct.Field {
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
@@ -979,69 +979,16 @@ function GkGeometry:createSolver()
       return 1.0/self.bmagFunc(t,xn)
    end
    self.gradparFunc = function (t, xn)
-      return 1.0/math.sqrt(self.g_zzFunc(t,xn))
+      return self.jacobGeoFunc(t,xn)*self.bmagFunc(t,xn)/math.sqrt(self.g_zzFunc(t,xn))
    end
    self.geoXFunc = function (t, xn)
-      return self.g_xzFunc(t,xn)/(self.bmagFunc(t,xn)*self.jacobGeoFunc(t,xn)*math.sqrt(self.g_zzFunc(t,xn)))
+      return self.g_xzFunc(t,xn)/math.sqrt(self.g_zzFunc(t,xn))
    end
    self.geoYFunc = function (t, xn)
-      return self.g_yzFunc(t,xn)/(self.bmagFunc(t,xn)*self.jacobGeoFunc(t,xn)*math.sqrt(self.g_zzFunc(t,xn)))
+      return self.g_yzFunc(t,xn)/math.sqrt(self.g_zzFunc(t,xn))
    end
    self.geoZFunc = function (t, xn)
-      return math.sqrt(self.g_zzFunc(t,xn))/(self.bmagFunc(t,xn)*self.jacobGeoFunc(t,xn))
-   end
-
-   -- use local s-alpha geometry (overrides geometry funcs calculated from coordinate metric)
-   if self.salpha then
-      self.bmagInvFunc = function (t, xn)
-         return 1.0/self.bmagFunc(t,xn)
-      end
-      self.gradparFunc = function (t, xn)
-         return 1.0/self.salpha.q0/self.salpha.R0 
-      end
-      self.jacobGeoFunc = function (t, xn)
-         return self.salpha.q0*self.salpha.R0
-      end
-      self.geoYFunc = function (t, xn)
-         return -1.0/self.bmagFunc(t,xn)/self.salpha.r0
-      end
-      self.geoZFunc = function (t, xn)
-         return 1.0/self.bmagFunc(t,xn)
-      end
-      self.gxx_Func = function (t, xn)
-         return 1.0
-      end
-      if self.ndim == 1 then
-         self.geoXFunc = function (t, xn)
-            return self.salpha.shat*xn[1]/self.bmagFunc(t,xn)/self.salpha.r0
-         end
-         self.gxy_Func = function (t, xn)
-            return self.salpha.shat*xn[1]
-         end
-         self.gyy_Func = function (t, xn)
-            return 1.0 + self.salpha.shat^2*xn[1]^2
-         end
-      elseif self.ndim == 2 then 
-         self.geoXFunc = function (t, xn)
-            return 0.0
-         end
-         self.gxy_Func = function (t, xn)
-            return 0.0
-         end
-         self.gyy_Func = function (t, xn)
-            return 1.0
-         end
-      elseif self.ndim == 3 then
-         self.geoXFunc = function (t, xn)
-            return self.salpha.shat*xn[3]/self.bmagFunc(t,xn)/self.salpha.r0
-         end
-         self.gxy_Func = function (t, xn)
-            return self.salpha.shat*xn[3]
-         end
-         self.gyy_Func = function (t, xn)
-            return 1.0 + self.salpha.shat^2*xn[3]^2
-         end
-      end
+      return math.sqrt(self.g_zzFunc(t,xn))
    end
 
    -- inverse of jacobGeo, for removing jacobGeo factor from output quantities, e.g. density
