@@ -823,6 +823,15 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
+   -- inverse of total jacobian, including phase space jacobian
+   -- jacobTotInv = 1 / ( J B )
+   self.geo.jacobTotInv = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
    -- functions for magnetic drifts 
    -- geoX = g_xz / ( sqrt(g_zz) )
    self.geo.geoX = DataStruct.Field {
@@ -996,6 +1005,11 @@ function GkGeometry:createSolver()
       return 1.0/self.jacobGeoFunc(t, xn)
    end
 
+   -- inverse of total jacobian, including geo jacobian and phase jacobian
+   self.jacobTotInvFunc = function (t, xn)
+      return 1.0/(self.jacobGeoFunc(t, xn)*self.bmagFunc(t, xn))
+   end
+
    -- projection updaters
    self.setBmag = Updater.ProjectOnBasis {
       onGrid = self.grid,
@@ -1026,6 +1040,12 @@ function GkGeometry:createSolver()
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.jacobGeoInvFunc
+   }
+   self.setJacobTotInv = Updater.ProjectOnBasis {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.jacobTotInvFunc
    }
    self.setGeoX = Updater.ProjectOnBasis {
       onGrid = self.grid,
@@ -1128,6 +1148,7 @@ function GkGeometry:initField()
    self.setGradpar:advance(0.0, {}, {self.geo.gradpar})
    self.setJacobGeo:advance(0.0, {}, {self.geo.jacobGeo})
    self.setJacobGeoInv:advance(0.0, {}, {self.geo.jacobGeoInv})
+   self.setJacobTotInv:advance(0.0, {}, {self.geo.jacobTotInv})
    self.setGxx:advance(0.0, {}, {self.geo.gxx})
    self.setGxy:advance(0.0, {}, {self.geo.gxy})
    self.setGyy:advance(0.0, {}, {self.geo.gyy})
@@ -1137,9 +1158,15 @@ function GkGeometry:initField()
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
 
+   -- smooth all geo quantities
+   -- note bmag is only one that is required to be smooth, but
+   -- for others would need to pass R and L values in surface kernels if not smooth
    self.smoother:advance(0.0, {self.geo.bmag}, {self.geo.bmag})
+   self.smoother:advance(0.0, {self.geo.bmagInv}, {self.geo.bmagInv})
    self.smoother:advance(0.0, {self.geo.gradpar}, {self.geo.gradpar})
    self.smoother:advance(0.0, {self.geo.jacobGeo}, {self.geo.jacobGeo})
+   self.smoother:advance(0.0, {self.geo.jacobGeoInv}, {self.geo.jacobGeoInv})
+   self.smoother:advance(0.0, {self.geo.jacobTotInv}, {self.geo.jacobTotInv})
    self.smoother:advance(0.0, {self.geo.gxx}, {self.geo.gxx})
    self.smoother:advance(0.0, {self.geo.gxy}, {self.geo.gxy})
    self.smoother:advance(0.0, {self.geo.gyy}, {self.geo.gyy})
@@ -1147,11 +1174,6 @@ function GkGeometry:initField()
    self.smoother:advance(0.0, {self.geo.geoY}, {self.geo.geoY})
    self.smoother:advance(0.0, {self.geo.geoZ}, {self.geo.geoZ})
 
-   --self.weakDivision:advance(0.0, {self.geo.bmag, self.unitWeight}, {self.geo.bmagInv})
-   self.smoother:advance(0.0, {self.geo.bmagInv}, {self.geo.bmagInv})
-   self.geo.jacobGeo:copy(self.geo.bmagInv)
-   --self.weakDivision:advance(0.0, {self.geo.jacobGeo, self.unitWeight}, {self.geo.jacobGeoInv})
-   self.smoother:advance(0.0, {self.geo.jacobGeoInv}, {self.geo.jacobGeoInv})
 
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
@@ -1163,6 +1185,7 @@ function GkGeometry:initField()
    self.geo.gyy:sync(false)
    self.geo.jacobGeo:sync(false)
    self.geo.jacobGeoInv:sync(false)
+   self.geo.jacobTotInv:sync(false)
    self.geo.geoX:sync(false)
    self.geo.geoY:sync(false)
    self.geo.geoZ:sync(false)
