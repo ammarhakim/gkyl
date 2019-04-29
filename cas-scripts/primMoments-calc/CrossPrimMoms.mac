@@ -72,9 +72,11 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
   if (sequal(substring(funcNm,1,3),"Vm")) then (
-    udim : vdim
+    udim        : vdim,   /* Number of configuration space components of the mean flow velocity. */
+    vDegFreedom : vdim    /* Number of velocity degrees of freedom. */
   ) else (
-    udim : 1
+    udim        : 1,    /* Number of configuration space components of the mean flow velocity. */
+    vDegFreedom : 2*vdim-1    /* Number of velocity degrees of freedom. */
   ),
 
   for polyOrder : 1 thru pMax do (
@@ -407,7 +409,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m0SSelf_e : doExpand1(m0SrSelf, bC),
         eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,2*(vdim-1)*m0Self_e+m0SSelf_e-cESelf_e)
       ) else (
-        eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,(2*vdim-1)*m0Self_e-cESelf_e)
+        eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,vDegFreedom*m0Self_e-cESelf_e)
       )
     ),
     E  : fullratsimp(coefmatrix(eq,vtSqCrossSelf_c)),
@@ -437,7 +439,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m0SOther_e : doExpand1(m0SrOther, bC),
         eq : calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,2*(vdim-1)*m0Other_e+m0SOther_e-cEOther_e)
       ) else (
-        eq : calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,(2*vdim-1)*m0Other_e-cEOther_e)
+        eq : calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,vDegFreedom*m0Other_e-cEOther_e)
       )
     ),
     E  : fullratsimp(coefmatrix(eq,vtSqCrossOther_c)),
@@ -659,7 +661,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m0SSelf_e : doExpand1(m0SrSelf, bC),
         eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,2*(vdim-1)*m0Self_e+m0SSelf_e-cESelf_e+ucMSelf_e)
       ) else (
-        eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,(2*vdim-1)*m0Self_e-cESelf_e+ucMSelf_e)
+        eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,vDegFreedom*m0Self_e-cESelf_e+ucMSelf_e)
       )
     ),
     E : fullratsimp(coefmatrix(eq,vtSqCrossSelf_c)),
@@ -693,7 +695,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m0SOther_e : doExpand1(m0SrOther, bC),
         eq : -calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,2*(vdim-1)*m0Other_e+m0SOther_e-cEOther_e+ucMOther_e)
       ) else (
-        eq : -calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,(2*vdim-1)*m0Other_e-cEOther_e+ucMOther_e)
+        eq : -calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,vDegFreedom*m0Other_e-cEOther_e+ucMOther_e)
       )
     ),
     E  : fullratsimp(coefmatrix(eq,vtSqCrossOther_c)),

@@ -97,7 +97,7 @@ function DistFuncMomentCalc:init(tbl)
    elseif self:isGkMomentNameGood(mom) then
       self._kinSpecies = "Gk"
       self._momCalcFun = MomDecl.selectGkMomCalc(mom, self._basisID, self._cDim, self._vDim, self._polyOrder)
-      self._isGk = true
+      self._isGk       = true
       assert(tbl.gkfacs, [[DistFuncMomentCalc: must provide a gkfacs table 
                         containing the species mass and the background magnetic field
                         to calculate a Gk moment]])
