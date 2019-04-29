@@ -28,6 +28,7 @@ function SpeciesBase:createDiagnostics() end
 function SpeciesBase:rkStepperFields() return { nil } end
 function SpeciesBase:suggestDt() end
 function SpeciesBase:clearCFL() end
+function SpeciesBase:clearMomentFlags(species) end
 function SpeciesBase:initDist() end
 function SpeciesBase:initCrossSpeciesCoupling() end
 function SpeciesBase:calcCouplingMoments() end

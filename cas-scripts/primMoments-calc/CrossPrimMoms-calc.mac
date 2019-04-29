@@ -32,6 +32,7 @@ for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
     /* Vlasov cross-collision primitive moments. */
+    /*
     for v : c thru maxVdim[bInd] do (
 
       disp(printf(false,sconcat("Creating VmCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
@@ -48,6 +49,7 @@ for bInd : 1 thru length(bName) do (
 
       close(fh)
     ),
+    */
 
     /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v. However each
        of these effectively solve a weak linear system of 2 equations.
