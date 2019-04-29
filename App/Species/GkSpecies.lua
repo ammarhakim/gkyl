@@ -43,25 +43,16 @@ function GkSpecies:alloc(nRkDup)
    self.ptclEnergy         = self:allocMoment()
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 
-   if self.collisions then
-     -- Allocate fields for boundary corrections.
-     self.m1Correction = self:allocVectorMoment(self.vdim)
-     self.m2Correction = self:allocMoment()
-
-     -- Allocate fields for star moments (only used with polyOrder=1).
-     self.m0Star = self:allocMoment()
-     self.m1Star = self:allocVectorMoment(self.vdim)
-     self.m2Star = self:allocMoment()
-   end
-
-   -- Allocate fields to store self-species primitive moments.
-   self.uParSelf = self:allocVectorMoment(self.vdim)
-   self.vtSqSelf = self:allocMoment()
-
    if self.gyavg then
       self.rho1 = self:allocDistf()
       self.rho2 = self:allocDistf()
       self.rho3 = self:allocDistf()
+   end
+
+   if self.vdim == 1 then
+      self.vDegFreedom = 1.0
+   else
+      self.vDegFreedom = 3.0
    end
 end
 
@@ -296,22 +287,39 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       moment     = "GkThreeMoments",
       gkfacs     = {self.mass, self.bmag},
    }
-   -- This is used in calcCouplingMoments to reduce overhead and multiplications.
-   -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
-   self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkThreeMomentsLBO",
-      gkfacs     = {self.mass, self.bmag},
-   }
-   self.primMomSelf = Updater.SelfPrimMoments {
-      onGrid     = self.confGrid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      operator   = "GkLBO",
-      gkfacs     = {self.mass, self.bmag},
-   }
+   if self.needSelfPrimMom then
+      -- This is used in calcCouplingMoments to reduce overhead and multiplications.
+      -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
+      self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
+         onGrid     = self.grid,
+         phaseBasis = self.basis,
+         confBasis  = self.confBasis,
+         moment     = "GkThreeMomentsLBO",
+         gkfacs     = {self.mass, self.bmag},
+      }
+      if self.needCorrectedSelfPrimMom then
+         self.primMomSelf = Updater.SelfPrimMoments {
+            onGrid     = self.confGrid,
+            phaseBasis = self.basis,
+            confBasis  = self.confBasis,
+            operator   = "GkLBO",
+            gkfacs     = {self.mass, self.bmag},
+         }
+      end
+      -- Updaters for the primitive moments.
+      self.confDiv = Updater.CartFieldBinOp {
+         onGrid = self.confGrid,
+         onGrid    = self.confGrid,
+         weakBasis = self.confBasis,
+         operation = "Divide",
+      }
+      self.confMul = Updater.CartFieldBinOp {
+         onGrid    = self.confGrid,
+         onGrid    = self.confGrid,
+         weakBasis = self.confBasis,
+         operation = "Multiply",
+      }
+   end
    
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
 
@@ -325,6 +333,116 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    end
 
    assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
+end
+
+function GkSpecies:initCrossSpeciesCoupling(species)
+   -- This method establishes the interaction between different
+   -- species that is not mediated by the field (solver), like
+   -- collisions.
+
+   -- Function to find the index of an element in table.
+   local function findInd(tblIn, el)
+      for i, v in ipairs(tblIn) do
+         if v == el then
+            return i
+         end
+      end
+      return #tblIn+1    -- If not found return a number larger than the length of the table.
+   end
+
+   -- Create a double nested table indicating who collides with whom.
+   self.collPairs = {}
+   for sN, _ in pairs(species) do
+      self.collPairs[sN] = {}
+      if species[sN].collisions then
+         -- This species collides with someone.
+         local selfCollCurr, crossCollCurr, collSpecCurr
+         -- Obtain the boolean indicating if self/cross collisions affect the sN species.
+         for nm, _ in pairs(species[sN].collisions) do
+            selfCollCurr  = species[sN].collisions[nm].selfCollisions
+            crossCollCurr = species[sN].collisions[nm].crossCollisions
+            collSpecsCurr = species[sN].collisions[nm].collidingSpecies
+         end
+         for sO, _ in pairs(species) do
+            if sN == sO then
+               self.collPairs[sN][sO] = selfCollCurr
+            else
+               if crossCollCurr then
+                  local specInd = findInd(collSpecsCurr, sO)
+                  if specInd < (#collSpecsCurr+1) then
+                     self.collPairs[sN][sO] = true
+                  else
+                     self.collPairs[sN][sO] = false
+                  end
+               else
+                  self.collPairs[sN][sO] = false
+               end
+            end
+         end
+      else
+         -- This species does not collide with anyone.
+         for sO, _ in pairs(species) do
+            self.collPairs[sN][sO] = false
+         end
+      end
+   end
+
+   -- Determine if self primitive moments and boundary corrections are needed.
+   -- If a pair of species only has cross-species collisions (no self-collisions)
+   -- then the self-primitive moments may be computed without boundary corrections.
+   self.needSelfPrimMom          = false
+   self.needCorrectedSelfPrimMom = false
+   if self.collPairs[self.name][self.name] then
+      self.needSelfPrimMom          = true
+      self.needCorrectedSelfPrimMom = true
+   end
+   for sO, _ in pairs(species) do
+      if self.collPairs[self.name][sO] or self.collPairs[sO][self.name] then
+         self.needSelfPrimMom = true
+         if self.collPairs[sO][sO] then
+            self.needCorrectedSelfPrimMom = true
+         end
+      end
+   end
+
+   if self.needSelfPrimMom then
+      -- Allocate fields to store self-species primitive moments.
+      self.uParSelf = self:allocMoment()
+      self.vtSqSelf = self:allocMoment()
+
+      -- Allocate fields for boundary corrections.
+      self.m1Correction = self:allocMoment()
+      self.m2Correction = self:allocMoment()
+
+      -- Allocate fields for star moments (only used with polyOrder=1).
+      if (self.basis:polyOrder()==1) then
+         self.m0Star = self:allocMoment()
+         self.m1Star = self:allocMoment()
+         self.m2Star = self:allocMoment()
+      end
+   end
+
+   -- Allocate fieds to store cross-species primitive moments.
+   self.uParCross = {}
+   self.vtSqCross = {}
+   local cpmPair  = 0
+   for sN, _ in pairs(species) do
+      if sN ~= self.name then
+         self.momentFlags[5][sN] = false
+      end
+   end
+   if self.collisions then
+      for nm, _ in pairs(self.collisions) do
+         -- Allocate space for this species' cross-primitive moments only if it affects this species.
+         if self.collisions[nm].crossCollisions then
+            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
+               self.uParCross[otherNm] = self:allocMoment()
+               self.vtSqCross[otherNm] = self:allocMoment()
+            end
+         end
+      end
+   end
+
 end
 
 function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
@@ -440,7 +558,7 @@ function GkSpecies:createDiagnostics()
       return Updater.DistFuncMomentCalc:isGkMomentNameGood(nm)
    end
    local function isWeakMomentNameGood(nm)
-      return nm == "GkUpar" or nm == "GkTpar" or nm == "GkTperp" or nm == "GkTemp"
+      return nm == "GkUpar" or nm == "GkVtSq" or nm == "GkTpar" or nm == "GkTperp" or nm == "GkTemp"
    end
    local function isAuxMomentNameGood(nm)
       return nm == "GkBeta"
@@ -478,7 +596,7 @@ function GkSpecies:createDiagnostics()
       if isWeakMomentNameGood(mom) then
          -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticWeakMoments list.
          self.diagnosticWeakMoments[mom] = true
-         self.diagnosticMoments[i] = nil
+         self.diagnosticMoments[i]       = nil
       elseif isAuxMomentNameGood(mom) then
          -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticAuxMoments list.
          table.insert(self.diagnosticAuxMoments, mom)
@@ -510,7 +628,14 @@ function GkSpecies:createDiagnostics()
             table.insert(self.diagnosticMoments, "GkM1")
          end
       end
-      if mom == "GkTpar" then
+      if mom == "GkVtSq" then
+         if not contains(self.diagnosticMoments, "GkM2") then
+            table.insert(self.diagnosticMoments, "GkM2")
+         end
+         if not self.diagnosticWeakMoments["GkUpar"] then
+            self.diagnosticWeakMoments["GkUpar"] = true
+         end
+      elseif mom == "GkTpar" then
          if not contains(self.diagnosticMoments, "GkM2par") then
             table.insert(self.diagnosticMoments, "GkM2par")
          end
@@ -563,6 +688,9 @@ function GkSpecies:createDiagnostics()
 
       if mom == "GkUpar" then
          self.weakMomentOpFields["GkUpar"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM1"]}
+      elseif mom == "GkVtSq" then 
+         self.weakMomentOpFields["GkVtSq"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2"]}
+         self.weakMomentScaleFac["GkVtSq"] = 1.0/self.vDegFreedom
       elseif mom == "GkTpar" then
          self.weakMomentOpFields["GkTpar"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2par"]}
          self.weakMomentScaleFac["GkTpar"] = self.mass
@@ -571,11 +699,7 @@ function GkSpecies:createDiagnostics()
          self.weakMomentScaleFac["GkTperp"] = self.mass
       elseif mom == "GkTemp" then 
          self.weakMomentOpFields["GkTemp"] = {self.diagnosticMomentFields["GkM0"], self.diagnosticMomentFields["GkM2"]}
-         if self.vdim == 1 then
-            self.weakMomentScaleFac["GkTemp"] = self.mass
-         else
-            self.weakMomentScaleFac["GkTemp"] = self.mass/3
-         end
+         self.weakMomentScaleFac["GkTemp"] = self.mass/self.vDegFreedom
       end
    end
    for i, mom in pairs(self.diagnosticAuxMoments) do
@@ -616,6 +740,14 @@ end
 
 function GkSpecies:calcDiagnosticWeakMoments()
    GkSpecies.super.calcDiagnosticWeakMoments(self)
+   if self.diagnosticWeakMoments["GkVtSq"] then
+      -- Need to subtract (uPar^2)/vdim from vtSq (which at this point holds M2/(vdim*M0)).
+      -- uPar is calculated in KineticEnergySpecies:calcDiagnositcWeakMoments().
+      self.weakMultiplication:advance(0.0,
+           {self.diagnosticMomentFields["GkUpar"], self.diagnosticMomentFields["GkUpar"]}, 
+           {self.momDensityAux})
+      self.diagnosticMomentFields["GkVtSq"]:accumulate(-self.weakMomentScaleFac["GkVtSq"], self.momDensityAux)
+   end
    -- Need to subtract m*Upar^2 from GkTemp and GkTpar.
    if self.diagnosticWeakMoments["GkTemp"] or self.diagnosticWeakMoments["GkTpar"] then
       self.weakMultiplication:advance(0.0,
@@ -766,16 +898,32 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
         fIn:accumulate(-1.0, self.f0)
       end
       
-      if self.collisions then 
+      if self.needSelfPrimMom then
          self.threeMomentsLBOCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy,
                                                           self.m1Correction, self.m2Correction,
                                                           self.m0Star, self.m1Star, self.m2Star })
-      -- Also compute self-primitive moments uPar and vtSq.
-      self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
-                                       self.m1Correction, self.m2Correction,
-                                       self.m0Star, self.m1Star, self.m2Star}, {self.uParSelf, self.vtSqSelf})
+         if self.needCorrectedSelfPrimMom then
+            -- Also compute self-primitive moments uPar and vtSq.
+            self.primMomSelf:advance(tCurr, {self.numDensity, self.momDensity, self.ptclEnergy,
+                                             self.m1Correction, self.m2Correction,
+                                             self.m0Star, self.m1Star, self.m2Star}, {self.uParSelf, self.vtSqSelf})
+         else
+            -- Compute self-primitive moments with binOp updaters.
+            self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
+            self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
+            self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
+                                       -1.0/self.vDegFreedom, self.numDensityAux )
+            self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})
+         end
+         -- Indicate that moments, boundary corrections, star moments
+         -- and self-primitive moments have been computed.
+         for iF=1,4 do
+            self.momentFlags[iF] = true
+         end
       else
          self.numDensityCalc:advance(tCurr, {fIn}, { self.numDensity })
+         -- Indicate that first moment has been computed.
+         self.momentFlags[1] = true
       end
 
       if self.deltaF then
@@ -801,6 +949,10 @@ end
 
 function GkSpecies:selfPrimitiveMoments()
    return { self.uParSelf, self.vtSqSelf }
+end
+
+function GkSpecies:crossPrimitiveMoments(otherSpeciesName)
+   return { self.uParCross[otherSpeciesName], self.vtSqCross[otherSpeciesName] }
 end
 
 function GkSpecies:getNumDensity(rkIdx)
