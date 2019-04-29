@@ -235,6 +235,7 @@ function FemPerpPoisson:init(tbl)
    end
 
    self.zContinuous = xsys.pickBool(tbl.zContinuous, false)
+   if self._smooth then self.zContinuous = true end
    self.zDiscontToCont = nil
    if self._ndim == 3 and self.zContinuous then
      self.zDiscontToCont = FemParPoisson {
