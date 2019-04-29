@@ -823,6 +823,15 @@ function GkGeometry:alloc()
       syncPeriodicDirs = false
    }
 
+   -- total jacobian, including phase space jacobian
+   -- jacobTot = J B 
+   self.geo.jacobTot = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+
    -- inverse of total jacobian, including phase space jacobian
    -- jacobTotInv = 1 / ( J B )
    self.geo.jacobTotInv = DataStruct.Field {
@@ -1005,86 +1014,97 @@ function GkGeometry:createSolver()
       return 1.0/self.jacobGeoFunc(t, xn)
    end
 
+   -- total jacobian, including geo jacobian and phase jacobian
+   self.jacobTotFunc = function (t, xn)
+      return self.jacobGeoFunc(t, xn)*self.bmagFunc(t, xn)
+   end
+
    -- inverse of total jacobian, including geo jacobian and phase jacobian
    self.jacobTotInvFunc = function (t, xn)
       return 1.0/(self.jacobGeoFunc(t, xn)*self.bmagFunc(t, xn))
    end
 
    -- projection updaters
-   self.setBmag = Updater.ProjectOnBasis {
+   self.setBmag = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       evaluate = self.bmagFunc,
       projectOnGhosts = true,
    }
-   self.setBmagInv = Updater.ProjectOnBasis {
+   self.setBmagInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.bmagInvFunc
    }
-   self.setGradpar = Updater.ProjectOnBasis {
+   self.setGradpar = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.gradparFunc
    }
-   self.setJacobGeo = Updater.ProjectOnBasis {
+   self.setJacobGeo = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.jacobGeoFunc
    }
-   self.setJacobGeoInv = Updater.ProjectOnBasis {
+   self.setJacobGeoInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.jacobGeoInvFunc
    }
-   self.setJacobTotInv = Updater.ProjectOnBasis {
+   self.setJacobTot = Updater.EvalOnNodes {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.jacobTotFunc
+   }
+   self.setJacobTotInv = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.jacobTotInvFunc
    }
-   self.setGeoX = Updater.ProjectOnBasis {
+   self.setGeoX = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.geoXFunc
    }
-   self.setGeoY = Updater.ProjectOnBasis {
+   self.setGeoY = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.geoYFunc
    }
-   self.setGeoZ = Updater.ProjectOnBasis {
+   self.setGeoZ = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.geoZFunc
    }
-   self.setGxx = Updater.ProjectOnBasis {
+   self.setGxx = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.gxx_Func
    }
-   self.setGxy = Updater.ProjectOnBasis {
+   self.setGxy = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.gxy_Func
    }
-   self.setGyy = Updater.ProjectOnBasis {
+   self.setGyy = Updater.EvalOnNodes {
       onGrid = self.grid,
       basis = self.basis,
       projectOnGhosts = true,
       evaluate = self.gyy_Func
    }
    if self.phiWallFunc then 
-      self.setPhiWall = Updater.ProjectOnBasis {
+      self.setPhiWall = Updater.EvalOnNodes {
          onGrid = self.grid,
          basis = self.basis,
          projectOnGhosts = true,
@@ -1144,10 +1164,10 @@ end
 
 function GkGeometry:initField()
    self.setBmag:advance(0.0, {}, {self.geo.bmag})
-   self.setBmagInv:advance(0.0, {}, {self.geo.bmagInv})
    self.setGradpar:advance(0.0, {}, {self.geo.gradpar})
    self.setJacobGeo:advance(0.0, {}, {self.geo.jacobGeo})
    self.setJacobGeoInv:advance(0.0, {}, {self.geo.jacobGeoInv})
+   self.setJacobTot:advance(0.0, {}, {self.geo.jacobTot})
    self.setJacobTotInv:advance(0.0, {}, {self.geo.jacobTotInv})
    self.setGxx:advance(0.0, {}, {self.geo.gxx})
    self.setGxy:advance(0.0, {}, {self.geo.gxy})
@@ -1161,19 +1181,22 @@ function GkGeometry:initField()
    -- smooth all geo quantities
    -- note bmag is only one that is required to be smooth, but
    -- for others would need to pass R and L values in surface kernels if not smooth
-   self.smoother:advance(0.0, {self.geo.bmag}, {self.geo.bmag})
-   self.smoother:advance(0.0, {self.geo.bmagInv}, {self.geo.bmagInv})
-   self.smoother:advance(0.0, {self.geo.gradpar}, {self.geo.gradpar})
-   self.smoother:advance(0.0, {self.geo.jacobGeo}, {self.geo.jacobGeo})
-   self.smoother:advance(0.0, {self.geo.jacobGeoInv}, {self.geo.jacobGeoInv})
-   self.smoother:advance(0.0, {self.geo.jacobTotInv}, {self.geo.jacobTotInv})
-   self.smoother:advance(0.0, {self.geo.gxx}, {self.geo.gxx})
-   self.smoother:advance(0.0, {self.geo.gxy}, {self.geo.gxy})
-   self.smoother:advance(0.0, {self.geo.gyy}, {self.geo.gyy})
-   self.smoother:advance(0.0, {self.geo.geoX}, {self.geo.geoX})
-   self.smoother:advance(0.0, {self.geo.geoY}, {self.geo.geoY})
-   self.smoother:advance(0.0, {self.geo.geoZ}, {self.geo.geoZ})
+--   self.smoother:advance(0.0, {self.geo.bmag}, {self.geo.bmag})
+--   self.smoother:advance(0.0, {self.geo.jacobTotInv}, {self.geo.jacobTotInv})
+--   --self.smoother:advance(0.0, {self.geo.bmagInv}, {self.geo.bmagInv})
+--   self.smoother:advance(0.0, {self.geo.gradpar}, {self.geo.gradpar})
+--   self.smoother:advance(0.0, {self.geo.jacobGeo}, {self.geo.jacobGeo})
+--   --self.smoother:advance(0.0, {self.geo.jacobGeoInv}, {self.geo.jacobGeoInv})
+--   --self.smoother:advance(0.0, {self.geo.jacobTotInv}, {self.geo.jacobTotInv})
+--   self.smoother:advance(0.0, {self.geo.gxx}, {self.geo.gxx})
+--   self.smoother:advance(0.0, {self.geo.gxy}, {self.geo.gxy})
+--   self.smoother:advance(0.0, {self.geo.gyy}, {self.geo.gyy})
+--   self.smoother:advance(0.0, {self.geo.geoX}, {self.geo.geoX})
+--   self.smoother:advance(0.0, {self.geo.geoY}, {self.geo.geoY})
+--   self.smoother:advance(0.0, {self.geo.geoZ}, {self.geo.geoZ})
 
+   --self.weakDivision:advance(0.0, {self.geo.jacobTot, self.unitWeight}, {self.geo.jacobTotInv})
+   --self.weakDivision:advance(0.0, {self.geo.jacobGeo, self.unitWeight}, {self.geo.jacobGeoInv})
 
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
@@ -1199,7 +1222,6 @@ function GkGeometry:write(tm)
    -- not evolving geometry, so only write geometry at beginning
    if self.ioFrame == 0 then
       self.fieldIo:write(self.geo.bmag, string.format("bmag_%d.bp", self.ioFrame), tm, self.ioFrame)
-      self.fieldIo:write(self.geo.bmagInv, string.format("bmagInv_%d.bp", self.ioFrame), tm, self.ioFrame)
       self.fieldIo:write(self.geo.gradpar, string.format("gradpar_%d.bp", self.ioFrame), tm, self.ioFrame)
       self.fieldIo:write(self.geo.geoX, string.format("geoX_%d.bp", self.ioFrame), tm, self.ioFrame)
       self.fieldIo:write(self.geo.geoY, string.format("geoY_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -1208,6 +1230,7 @@ function GkGeometry:write(tm)
       self.fieldIo:write(self.geo.gxy, string.format("gxy_%d.bp", self.ioFrame), tm, self.ioFrame)
       self.fieldIo:write(self.geo.gyy, string.format("gyy_%d.bp", self.ioFrame), tm, self.ioFrame)
       self.fieldIo:write(self.geo.jacobGeo, string.format("jacobGeo_%d.bp", self.ioFrame), tm, self.ioFrame)
+      self.fieldIo:write(self.geo.jacobTotInv, string.format("jacobTotInv_%d.bp", self.ioFrame), tm, self.ioFrame)
    end
    self.ioFrame = self.ioFrame+1
 end
