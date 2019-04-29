@@ -113,7 +113,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local m0StarSelfItr, m1StarSelfItr, m2StarSelfItr
    local m0StarOtherItr, m1StarOtherItr, m2StarOtherItr
    if self._polyOrder == 1 then
-      m0StarSelf, m1StarSelf, m2StarSelf  = inFld[6][1], inFld[6][2], inFld[6][3]
+      m0StarSelf, m1StarSelf, m2StarSelf = inFld[6][1], inFld[6][2], inFld[6][3]
       m0StarSelfIndexer = m0StarSelf:genIndexer()
       m1StarSelfIndexer = m1StarSelf:genIndexer()
       m2StarSelfIndexer = m2StarSelf:genIndexer()
@@ -121,7 +121,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       m1StarSelfItr     = m1StarSelf:get(1)
       m2StarSelfItr     = m2StarSelf:get(1)
 
-      m0StarOther, m1StarOther, m2StarOther  = inFld[12][1], inFld[12][2], inFld[12][3]
+      m0StarOther, m1StarOther, m2StarOther = inFld[12][1], inFld[12][2], inFld[12][3]
       m0StarOtherIndexer = m0StarOther:genIndexer()
       m1StarOtherIndexer = m1StarOther:genIndexer()
       m2StarOtherIndexer = m2StarOther:genIndexer()

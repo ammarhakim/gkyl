@@ -293,8 +293,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       /* Flatten E for WriteCExprsB. */
       Eflat : list_matrix_entries(E),
   
-      /* Elhs     : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)), */
-      Elhs     : list_matrix_entries(genmatrix(Ef,vd*NC-1,vd*NC-1,(vd-1)*NC,(vd-1)*NC)),
+      Elhs  : list_matrix_entries(genmatrix(Ef,vd*NC-1,vd*NC-1,(vd-1)*NC,(vd-1)*NC)),
   
       printf(fh, "  // ... Block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelf~a ... // ~%", VarsC[vd]),
       writeCExprsB(Elhs,Eflat),
@@ -318,8 +317,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       /* Flatten E for WriteCExprsB. */
       Eflat : list_matrix_entries(E),
   
-      /* Elhs     : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)), */
-      Elhs     : list_matrix_entries(genmatrix(Ef,vd*NC-1,(udim+1+vd)*NC-1,(vd-1)*NC,(udim+1+vd-1)*NC)),
+      Elhs  : list_matrix_entries(genmatrix(Ef,vd*NC-1,(udim+1+vd)*NC-1,(vd-1)*NC,(udim+1+vd-1)*NC)),
   
       printf(fh, "  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOther~a ... // ~%", VarsC[vd]),
       writeCExprsB(Elhs,Eflat),
@@ -343,9 +341,9 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m1SSelf_e : doExpand1(m1SrSelf, bC),
         m1SSelf_e : subst(makelist(m1SrSelf[i]=m1SrSelf[(vd-1)*NC+i],i,0,NC-1),m1SSelf_e),
 
-        eq    : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,m1SSelf_e)
+        eq  : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,m1SSelf_e)
       ) else (
-        eq    : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,m1Self_e)
+        eq  : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,m1Self_e)
       ),
       E     : fullratsimp(coefmatrix(eq,uCrossSelf_c)),
       /* Flatten E for WriteCExprsB. */
@@ -363,9 +361,9 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m1SOther_e : doExpand1(m1SrOther, bC),
         m1SOther_e : subst(makelist(m1SrOther[i]=m1SrOther[(vd-1)*NC+i],i,0,NC-1),m1SOther_e),
 
-        eq    : calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,m1SOther_e)
+        eq  : calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,m1SOther_e)
       ) else (
-        eq    : calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,m1Other_e)
+        eq  : calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,m1Other_e)
       ),
       E     : fullratsimp(coefmatrix(eq,uCrossOther_c)),
       /* Flatten E for WriteCExprsB. */
@@ -396,7 +394,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     if (sequal(substring(funcNm,1,3),"Vm")) then (
       /* Vlasov-Maxwell. */
       if polyOrder=1 then (
-        /* Expand m0S and use the vd component of m1S. */
+        /* Expand m0S. */
         m0SSelf_e : doExpand1(m0SrSelf, bC),
         eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,m0SSelf_e-cESelf_e)
       ) else (
@@ -405,7 +403,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ) else (
       /* Gyrokinetics. */
       if polyOrder=1 then (
-        /* Expand m0S and use the vd component of m1S. */
+        /* Expand m0S. */
         m0SSelf_e : doExpand1(m0SrSelf, bC),
         eq : calcInnerProdList(varsC,mnuSelf*vtSqCrossSelf_e,bC,2*(vdim-1)*m0Self_e+m0SSelf_e-cESelf_e)
       ) else (
@@ -426,7 +424,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     if (sequal(substring(funcNm,1,3),"Vm")) then (
       /* Vlasov-Maxwell. */
       if polyOrder=1 then (
-        /* Expand m0S and use the vd component of m1S. */
+        /* Expand m0S. */
         m0SOther_e : doExpand1(m0SrOther, bC),
         eq : calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,m0SOther_e-cEOther_e)
       ) else (
@@ -435,7 +433,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ) else (
       /* Gyrokinetics. */
       if polyOrder=1 then (
-        /* Expand m0S and use the vd component of m1S. */
+        /* Expand m0S. */
         m0SOther_e : doExpand1(m0SrOther, bC),
         eq : calcInnerProdList(varsC,mnuOther*vtSqCrossOther_e,bC,2*(vdim-1)*m0Other_e+m0SOther_e-cEOther_e)
       ) else (
@@ -539,8 +537,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       /* Flatten E for WriteCExprsB. */
       Eflat : list_matrix_entries(E),
   
-      /* Elhs     : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)), */
-      Elhs     : list_matrix_entries(genmatrix(Ef,(udim+1+vd)*NC-1,vd*NC-1,(udim+1+vd-1)*NC,(vd-1)*NC)),
+      Elhs  : list_matrix_entries(genmatrix(Ef,(udim+1+vd)*NC-1,vd*NC-1,(udim+1+vd-1)*NC,(vd-1)*NC)),
   
       printf(fh, "  // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelf~a ... // ~%", VarsC[vd]),
       writeCExprsB(Elhs,Eflat),
@@ -564,8 +561,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       /* Flatten E for WriteCExprsB. */
       Eflat : list_matrix_entries(E),
   
-      /* Elhs     : list_matrix_entries(genmatrix(Ef,NC-1,NC-1,0,0)), */
-      Elhs     : list_matrix_entries(genmatrix(Ef,(udim+1+vd)*NC-1,(udim+1+vd)*NC-1,(udim+1+vd-1)*NC,(udim+1+vd-1)*NC)),
+      Elhs  : list_matrix_entries(genmatrix(Ef,(udim+1+vd)*NC-1,(udim+1+vd)*NC-1,(udim+1+vd-1)*NC,(udim+1+vd-1)*NC)),
   
       printf(fh, "  // ... Block from weak multiply of mOther, nuOther, M0Other and uCrossOther~a ... // ~%", VarsC[vd]),
       writeCExprsB(Elhs,Eflat),
@@ -590,9 +586,9 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m1SSelf_e : doExpand1(m1SrSelf, bC),
         m1SSelf_e : subst(makelist(m1SrSelf[i]=m1SrSelf[(vd-1)*NC+i],i,0,NC-1),m1SSelf_e),
 
-        eq    : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,(m1SSelf_e-uSelf_e*m0Self_e))
+        eq  : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,(m1SSelf_e-uSelf_e*m0Self_e))
       ) else (
-        eq    : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,(m1Self_e-uSelf_e*m0Self_e))
+        eq  : calcInnerProdList(varsC,mnuSelf*uCrossSelf_e,bC,(m1Self_e-uSelf_e*m0Self_e))
       ),
       E     : fullratsimp(coefmatrix(eq,uCrossSelf_c)),
       /* Flatten E for WriteCExprsB. */
@@ -611,9 +607,9 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         m1SOther_e : doExpand1(m1SrOther, bC),
         m1SOther_e : subst(makelist(m1SrOther[i]=m1SrOther[(vd-1)*NC+i],i,0,NC-1),m1SOther_e),
 
-        eq    : -calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,(m1SOther_e-uOther_e*m0Other_e))
+        eq  : -calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,(m1SOther_e-uOther_e*m0Other_e))
       ) else (
-        eq    : -calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,(m1Other_e-uOther_e*m0Other_e))
+        eq  : -calcInnerProdList(varsC,mnuOther*uCrossOther_e,bC,(m1Other_e-uOther_e*m0Other_e))
       ),
       E     : fullratsimp(coefmatrix(eq,uCrossOther_c)),
       /* Flatten E for WriteCExprsB. */
@@ -641,9 +637,29 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     ),
 
     /*........... Matrix block from correction to (self) 2nd moment of collision operator .............*/
-    /* Need the weak product of u and cM. */
-    ucMSelf_c : calcInnerProdList(varsC,uSelf_e,bC,cMSelf_e),
-    ucMSelf_e : doExpand(ucMSelf_c,bC),
+    /* Need the weak dot product of u and cM. */
+    uSelf_e    : doExpand1(uSelf,bC),
+    uSelf_e    : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
+    cMSelf_e   : doExpand1(cMSelf, bC),
+    cMSelf_e   : psubst(makelist(cMSelf[i]=cMSelf[a0+i],i,0,NC-1),cMSelf_e),
+    ucMSelf_c  : calcInnerProdList(varsC,uSelf_e,bC,cMSelf_e),
+    ucMSelf_e  : doExpand1(ucMSelf,bC),
+    printf(fh, "  double ucMSelf[~a]; ~%", NC),
+    printf(fh, "  // Zero out array with dot product of uSelf and cMSelf. ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%",NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    ucMSelf[vd] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", udim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a; ~%",NC*vd),
+    printf(fh, "    // Contribution to dot-product from weak multiplication of ~a component. ~%",vd),
+    expr : float(expand(ucMSelf_c)),
+    for i : 1 thru NC do (
+      printf(fh, "    ~a += ~a; ~%", ucMSelf[i-1], expr[i])
+    ),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
 
     if (sequal(substring(funcNm,1,3),"Vm")) then (
       /* Vlasov-Maxwell. */
@@ -675,9 +691,29 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, " ~%"),
 
     /*........... Matrix block from correction to (other) 2nd moment of collision operator .............*/
-    /* Need the weak product of u and cM. */
-    ucMOther_c : calcInnerProdList(varsC,uOther_e,bC,cMOther_e),
-    ucMOther_e : doExpand(ucMOther_c,bC),
+    /* Need the weak dot product of u and cM. */
+    uOther_e    : doExpand1(uOther,bC),
+    uOther_e    : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
+    cMOther_e   : doExpand1(cMOther, bC),
+    cMOther_e   : psubst(makelist(cMOther[i]=cMOther[a0+i],i,0,NC-1),cMOther_e),
+    ucMOther_c  : calcInnerProdList(varsC,uOther_e,bC,cMOther_e),
+    ucMOther_e  : doExpand1(ucMOther,bC),
+    printf(fh, "  double ucMOther[~a]; ~%", NC),
+    printf(fh, "  // Zero out array with dot product of uOther and cMOther. ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%",NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    ucMOther[vd] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", udim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a; ~%",NC*vd),
+    printf(fh, "    // Contribution to dot-product from weak multiplication of ~a component. ~%",vd),
+    expr : float(expand(ucMOther_c)),
+    for i : 1 thru NC do (
+      printf(fh, "    ~a += ~a; ~%", ucMOther[i-1], expr[i])
+    ),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
 
     if (sequal(substring(funcNm,1,3),"Vm")) then (
       /* Vlasov-Maxwell. */
@@ -710,10 +746,10 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Include the RHS corresponding to the energy relaxation rate. */
     /* Weak product of uSelf and M1Self. */
-    uSelf_e : doExpand1(uSelf,bC),
-    uSelf_e : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
-    m1Self_e  : doExpand1(m1rSelf, bC),
-    m1Self_e  : psubst(makelist(m1rSelf[i]=m1rSelf[a0+i],i,0,NC-1),m1Self_e),
+    uSelf_e    : doExpand1(uSelf,bC),
+    uSelf_e    : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
+    m1Self_e   : doExpand1(m1rSelf, bC),
+    m1Self_e   : psubst(makelist(m1rSelf[i]=m1rSelf[a0+i],i,0,NC-1),m1Self_e),
     kinESelf_c : calcInnerProdList(varsC,uSelf_e,bC,m1Self_e),
     printf(fh, "  double kinESelf[~a]; ~%", NC),
     printf(fh, "  // zero out array with dot product of u and m1. ~%"),
@@ -721,7 +757,6 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  { ~%"),
     printf(fh, "    kinESelf[vd] = 0.0; ~%"),
     printf(fh, "  } ~%"),
-    printf(fh, " ~%"),
     printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", udim),
     printf(fh, "  { ~%"),
     printf(fh, "    unsigned short int a0 = ~a; ~%",NC*vd),
@@ -733,10 +768,10 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),
     /* Weak product of uOther and M1Other. */
-    uOther_e : doExpand1(uOther,bC),
-    uOther_e : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
-    m1Other_e : doExpand1(m1rOther, bC),
-    m1Other_e : psubst(makelist(m1rOther[i]=m1rOther[a0+i],i,0,NC-1),m1Other_e),
+    uOther_e    : doExpand1(uOther,bC),
+    uOther_e    : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
+    m1Other_e   : doExpand1(m1rOther, bC),
+    m1Other_e   : psubst(makelist(m1rOther[i]=m1rOther[a0+i],i,0,NC-1),m1Other_e),
     kinEOther_c : calcInnerProdList(varsC,uOther_e,bC,m1Other_e),
     printf(fh, "  double kinEOther[~a]; ~%", NC),
     printf(fh, "  // zero out array with dot product of u and m1. ~%"),
@@ -744,7 +779,6 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  { ~%"),
     printf(fh, "    kinEOther[vd] = 0.0; ~%"),
     printf(fh, "  } ~%"),
-    printf(fh, " ~%"),
     printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", udim),
     printf(fh, "  { ~%"),
     printf(fh, "    unsigned short int a0 = ~a; ~%",NC*vd),
@@ -764,10 +798,6 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     m1Self_e  : psubst(makelist(m1rSelf[i]=m1rSelf[a0+i],i,0,NC-1),m1Self_e),
     m1Other_e : doExpand1(m1rOther, bC),
     m1Other_e : psubst(makelist(m1rOther[i]=m1rOther[a0+i],i,0,NC-1),m1Other_e),
-    cMSelf_e  : doExpand1(cMSelf, bC),
-    cMSelf_e  : psubst(makelist(cMSelf[i]=cMSelf[a0+i],i,0,NC-1),cMSelf_e),
-    cMOther_e : doExpand1(cMOther, bC),
-    cMOther_e : psubst(makelist(cMOther[i]=cMOther[a0+i],i,0,NC-1),cMOther_e),
     relKinE_c : calcInnerProdList(varsC,uSelf_e-uOther_e,bC,m1Self_e-m1Other_e),
     printf(fh, "  double relKinE[~a]; ~%", NC),
     printf(fh, "  // zero out array with dot product of u and m1. ~%"),
@@ -775,7 +805,6 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  { ~%"),
     printf(fh, "    relKinE[vd] = 0.0; ~%"),
     printf(fh, "  } ~%"),
-    printf(fh, " ~%"),
     printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", udim),
     printf(fh, "  { ~%"),
     printf(fh, "    unsigned short int a0 = ~a; ~%",NC*vd),
@@ -843,7 +872,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); ~%"),
     printf(fh, " ~%"),
 
-    printf(fh, "  Eigen::Map<VectorXd>(uCrossSelf,~a,1) = data->u_S.segment<~a>(0); ~%", NC*udim,NC*udim),
+    printf(fh, "  Eigen::Map<VectorXd>(uCrossSelf,~a,1) = data->u_S.segment<~a>(~a); ~%", NC*udim,NC*udim,0),
     printf(fh, " ~%"),
 
     printf(fh, "  Eigen::Map<VectorXd>(vtSqCrossSelf,~a,1) = data->u_S.segment<~a>(~a); ~%", NC, NC, NC*udim),
