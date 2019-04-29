@@ -212,17 +212,45 @@ void GkCrossPrimMoments1x2vMax_P1(binOpData_t *data, const double betaGreenep1, 
   m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
   m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
  
+  double ucMSelf[2]; 
+  // Zero out array with dot product of uSelf and cMSelf. 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    ucMSelf[vd] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 2*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    ucMSelf[0] += 0.7071067811865475*cMSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMSelf[a0]*uSelf[a0]; 
+    ucMSelf[1] += 0.7071067811865475*cMSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMSelf[a0+1]; 
+  } 
+ 
   // ... Block from correction to (self) 2nd moment of collision operator ... // 
-  data->AEM_S(6,2) = 0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(6,3) = 0.5*cMSelf[0]*uSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(7,2) = 0.5*cMSelf[0]*uSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(7,3) = 0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(6,2) = 0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(6,3) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(7,2) = 0.7071067811865475*ucMSelf[1]*mnuSelf+1.414213562373095*m0rSelf[1]*mnuSelf+0.7071067811865475*m0SrSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(7,3) = 0.7071067811865475*ucMSelf[0]*mnuSelf+1.414213562373095*m0rSelf[0]*mnuSelf+0.7071067811865475*m0SrSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  double ucMOther[2]; 
+  // Zero out array with dot product of uOther and cMOther. 
+  for (unsigned short int vd=0; vd<2; vd++) 
+  { 
+    ucMOther[vd] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 2*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    ucMOther[0] += 0.7071067811865475*cMOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMOther[a0]*uOther[a0]; 
+    ucMOther[1] += 0.7071067811865475*cMOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMOther[a0+1]; 
+  } 
  
   // ... Block from correction to (other) 2nd moment of collision operator ... // 
-  data->AEM_S(6,6) = (-0.5*cMOther[1]*uOther[1]*mnuOther)-0.5*cMOther[0]*uOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(6,7) = (-0.5*cMOther[0]*uOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*m0SrOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(7,6) = (-0.5*cMOther[0]*uOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*m0SrOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(7,7) = (-0.5*cMOther[1]*uOther[1]*mnuOther)-0.5*cMOther[0]*uOther[0]*mnuOther-1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(6,6) = (-0.7071067811865475*ucMOther[0]*mnuOther)-1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(6,7) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*m0SrOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(7,6) = (-0.7071067811865475*ucMOther[1]*mnuOther)-1.414213562373095*m0rOther[1]*mnuOther-0.7071067811865475*m0SrOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(7,7) = (-0.7071067811865475*ucMOther[0]*mnuOther)-1.414213562373095*m0rOther[0]*mnuOther-0.7071067811865475*m0SrOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
  
   double kinESelf[2]; 
   // zero out array with dot product of u and m1. 
@@ -230,7 +258,6 @@ void GkCrossPrimMoments1x2vMax_P1(binOpData_t *data, const double betaGreenep1, 
   { 
     kinESelf[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 2*vd; 
@@ -245,7 +272,6 @@ void GkCrossPrimMoments1x2vMax_P1(binOpData_t *data, const double betaGreenep1, 
   { 
     kinEOther[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 2*vd; 
@@ -260,7 +286,6 @@ void GkCrossPrimMoments1x2vMax_P1(binOpData_t *data, const double betaGreenep1, 
   { 
     relKinE[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 2*vd; 
@@ -553,27 +578,57 @@ void GkCrossPrimMoments1x2vMax_P2(binOpData_t *data, const double betaGreenep1, 
   m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
   m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
  
+  double ucMSelf[3]; 
+  // Zero out array with dot product of uSelf and cMSelf. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    ucMSelf[vd] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 3*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    ucMSelf[0] += 0.7071067811865475*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMSelf[a0]*uSelf[a0]; 
+    ucMSelf[1] += 0.6324555320336759*cMSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*cMSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMSelf[a0+1]; 
+    ucMSelf[2] += 0.4517539514526256*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*cMSelf[a0+2]+0.6324555320336759*cMSelf[a0+1]*uSelf[a0+1]; 
+  } 
+ 
   // ... Block from correction to (self) 2nd moment of collision operator ... // 
-  data->AEM_S(9,3) = 0.5*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(9,4) = 0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(9,5) = 0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
-  data->AEM_S(10,3) = 0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(10,4) = 0.7857142857142857*cMSelf[2]*uSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[2]*mnuSelf+1.897366596101028*m0rSelf[2]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.9*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(10,5) = 0.4*cMSelf[1]*uSelf[2]*mnuSelf+0.4*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(11,3) = 0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
-  data->AEM_S(11,4) = 0.4*cMSelf[1]*uSelf[2]*mnuSelf+0.4*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(11,5) = 0.7040816326530612*cMSelf[2]*uSelf[2]*mnuSelf+0.31943828249997*cMSelf[0]*uSelf[2]*mnuSelf+1.355261854357877*m0rSelf[2]*mnuSelf+0.31943828249997*uSelf[0]*cMSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(9,3) = 0.7071067811865475*ucMSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(9,4) = 0.7071067811865475*ucMSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(9,5) = 0.7071067811865475*ucMSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(10,3) = 0.7071067811865475*ucMSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(10,4) = 0.6324555320336759*ucMSelf[2]*mnuSelf+1.897366596101028*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(10,5) = 0.6324555320336759*ucMSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(11,3) = 0.7071067811865475*ucMSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(11,4) = 0.6324555320336759*ucMSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(11,5) = 0.4517539514526256*ucMSelf[2]*mnuSelf+1.355261854357877*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  double ucMOther[3]; 
+  // Zero out array with dot product of uOther and cMOther. 
+  for (unsigned short int vd=0; vd<3; vd++) 
+  { 
+    ucMOther[vd] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 3*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    ucMOther[0] += 0.7071067811865475*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMOther[a0]*uOther[a0]; 
+    ucMOther[1] += 0.6324555320336759*cMOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*cMOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMOther[a0+1]; 
+    ucMOther[2] += 0.4517539514526256*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*cMOther[a0+2]+0.6324555320336759*cMOther[a0+1]*uOther[a0+1]; 
+  } 
  
   // ... Block from correction to (other) 2nd moment of collision operator ... // 
-  data->AEM_S(9,9) = (-0.5*cMOther[2]*uOther[2]*mnuOther)-0.5*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(9,10) = (-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther)-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(9,11) = (-0.31943828249997*cMOther[2]*uOther[2]*mnuOther)-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
-  data->AEM_S(10,9) = (-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther)-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(10,10) = (-0.7857142857142857*cMOther[2]*uOther[2]*mnuOther)-0.4472135954999579*cMOther[0]*uOther[2]*mnuOther-1.897366596101028*m0rOther[2]*mnuOther-0.4472135954999579*uOther[0]*cMOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.9*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(10,11) = (-0.4*cMOther[1]*uOther[2]*mnuOther)-0.4*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(11,9) = (-0.31943828249997*cMOther[2]*uOther[2]*mnuOther)-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
-  data->AEM_S(11,10) = (-0.4*cMOther[1]*uOther[2]*mnuOther)-0.4*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(11,11) = (-0.7040816326530612*cMOther[2]*uOther[2]*mnuOther)-0.31943828249997*cMOther[0]*uOther[2]*mnuOther-1.355261854357877*m0rOther[2]*mnuOther-0.31943828249997*uOther[0]*cMOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7857142857142857*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(9,9) = (-0.7071067811865475*ucMOther[0]*mnuOther)-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(9,10) = (-0.7071067811865475*ucMOther[1]*mnuOther)-2.121320343559642*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(9,11) = (-0.7071067811865475*ucMOther[2]*mnuOther)-2.121320343559642*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(10,9) = (-0.7071067811865475*ucMOther[1]*mnuOther)-2.121320343559642*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(10,10) = (-0.6324555320336759*ucMOther[2]*mnuOther)-1.897366596101028*m0rOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(10,11) = (-0.6324555320336759*ucMOther[1]*mnuOther)-1.897366596101028*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(11,9) = (-0.7071067811865475*ucMOther[2]*mnuOther)-2.121320343559642*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(11,10) = (-0.6324555320336759*ucMOther[1]*mnuOther)-1.897366596101028*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(11,11) = (-0.4517539514526256*ucMOther[2]*mnuOther)-1.355261854357877*m0rOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
  
   double kinESelf[3]; 
   // zero out array with dot product of u and m1. 
@@ -581,7 +636,6 @@ void GkCrossPrimMoments1x2vMax_P2(binOpData_t *data, const double betaGreenep1, 
   { 
     kinESelf[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 3*vd; 
@@ -597,7 +651,6 @@ void GkCrossPrimMoments1x2vMax_P2(binOpData_t *data, const double betaGreenep1, 
   { 
     kinEOther[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 3*vd; 
@@ -613,7 +666,6 @@ void GkCrossPrimMoments1x2vMax_P2(binOpData_t *data, const double betaGreenep1, 
   { 
     relKinE[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 3*vd; 
@@ -1021,41 +1073,73 @@ void GkCrossPrimMoments1x2vMax_P3(binOpData_t *data, const double betaGreenep1, 
   m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
   m1Relax[3] += (m1rOther[3]-1.0*m1rSelf[3])*betaGreenep1*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
  
+  double ucMSelf[4]; 
+  // Zero out array with dot product of uSelf and cMSelf. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    ucMSelf[vd] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 4*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    ucMSelf[0] += 0.7071067811865475*cMSelf[a0+3]*uSelf[a0+3]+0.7071067811865475*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0+1]*uSelf[a0+1]+0.7071067811865475*cMSelf[a0]*uSelf[a0]; 
+    ucMSelf[1] += 0.6210590034081186*cMSelf[a0+2]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+2]*cMSelf[a0+3]+0.6324555320336759*cMSelf[a0+1]*uSelf[a0+2]+0.6324555320336759*uSelf[a0+1]*cMSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+1]+0.7071067811865475*uSelf[a0]*cMSelf[a0+1]; 
+    ucMSelf[2] += 0.421637021355784*cMSelf[a0+3]*uSelf[a0+3]+0.6210590034081186*cMSelf[a0+1]*uSelf[a0+3]+0.6210590034081186*uSelf[a0+1]*cMSelf[a0+3]+0.4517539514526256*cMSelf[a0+2]*uSelf[a0+2]+0.7071067811865475*cMSelf[a0]*uSelf[a0+2]+0.7071067811865475*uSelf[a0]*cMSelf[a0+2]+0.6324555320336759*cMSelf[a0+1]*uSelf[a0+1]; 
+    ucMSelf[3] += 0.421637021355784*cMSelf[a0+2]*uSelf[a0+3]+0.7071067811865475*cMSelf[a0]*uSelf[a0+3]+0.421637021355784*uSelf[a0+2]*cMSelf[a0+3]+0.7071067811865475*uSelf[a0]*cMSelf[a0+3]+0.6210590034081186*cMSelf[a0+1]*uSelf[a0+2]+0.6210590034081186*uSelf[a0+1]*cMSelf[a0+2]; 
+  } 
+ 
   // ... Block from correction to (self) 2nd moment of collision operator ... // 
-  data->AEM_S(12,4) = 0.5*cMSelf[3]*uSelf[3]*mnuSelf+0.5*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(12,5) = 0.4391550328268398*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[2]*cMSelf[3]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(12,6) = 0.2981423969999719*cMSelf[3]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[3]*mnuSelf+0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
-  data->AEM_S(12,7) = 0.2981423969999719*cMSelf[2]*uSelf[3]*mnuSelf+0.5*cMSelf[0]*uSelf[3]*mnuSelf+2.121320343559642*m0rSelf[3]*mnuSelf+0.2981423969999719*uSelf[2]*cMSelf[3]*mnuSelf+0.5*uSelf[0]*cMSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[2]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[2]*mnuSelf; 
-  data->AEM_S(13,4) = 0.4391550328268398*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[2]*cMSelf[3]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[2]*mnuSelf+0.4472135954999579*uSelf[1]*cMSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf+0.5*uSelf[0]*cMSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
-  data->AEM_S(13,5) = 0.7666666666666667*cMSelf[3]*uSelf[3]*mnuSelf+0.3927922024247862*cMSelf[1]*uSelf[3]*mnuSelf+0.3927922024247862*uSelf[1]*cMSelf[3]*mnuSelf+0.7857142857142857*cMSelf[2]*uSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[2]*mnuSelf+1.897366596101028*m0rSelf[2]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.9*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(13,6) = 0.6546536707079771*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[3]*mnuSelf+1.863177010224355*m0rSelf[3]*mnuSelf+0.6546536707079771*uSelf[2]*cMSelf[3]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[2]*mnuSelf+0.7857142857142857*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(13,7) = 0.2618614682831908*cMSelf[3]*uSelf[3]*mnuSelf+0.3857142857142857*cMSelf[1]*uSelf[3]*mnuSelf+0.3857142857142857*uSelf[1]*cMSelf[3]*mnuSelf+0.2805658588748473*cMSelf[2]*uSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[2]*mnuSelf+1.863177010224355*m0rSelf[2]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf+0.3927922024247862*cMSelf[1]*uSelf[1]*mnuSelf; 
-  data->AEM_S(14,4) = 0.2981423969999719*cMSelf[3]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[3]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[3]*mnuSelf+0.31943828249997*cMSelf[2]*uSelf[2]*mnuSelf+0.5*cMSelf[0]*uSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf+0.5*uSelf[0]*cMSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf+0.4472135954999579*cMSelf[1]*uSelf[1]*mnuSelf; 
-  data->AEM_S(14,5) = 0.6546536707079771*cMSelf[2]*uSelf[3]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[3]*mnuSelf+1.863177010224355*m0rSelf[3]*mnuSelf+0.6546536707079771*uSelf[2]*cMSelf[3]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[2]*mnuSelf+0.7857142857142857*uSelf[1]*cMSelf[2]*mnuSelf+0.4472135954999579*cMSelf[0]*uSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf+0.4472135954999579*uSelf[0]*cMSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
-  data->AEM_S(14,6) = 0.6904761904761905*cMSelf[3]*uSelf[3]*mnuSelf+0.2805658588748473*cMSelf[1]*uSelf[3]*mnuSelf+0.2805658588748473*uSelf[1]*cMSelf[3]*mnuSelf+0.7040816326530612*cMSelf[2]*uSelf[2]*mnuSelf+0.31943828249997*cMSelf[0]*uSelf[2]*mnuSelf+1.355261854357877*m0rSelf[2]*mnuSelf+0.31943828249997*uSelf[0]*cMSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7857142857142857*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
-  data->AEM_S(14,7) = 0.5634920634920635*cMSelf[2]*uSelf[3]*mnuSelf+0.2981423969999719*cMSelf[0]*uSelf[3]*mnuSelf+1.264911064067352*m0rSelf[3]*mnuSelf+0.5634920634920635*uSelf[2]*cMSelf[3]*mnuSelf+0.2981423969999719*uSelf[0]*cMSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6546536707079771*cMSelf[1]*uSelf[2]*mnuSelf+0.6546536707079771*uSelf[1]*cMSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[1]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
-  data->AEM_S(15,4) = 0.2981423969999719*cMSelf[2]*uSelf[3]*mnuSelf+0.5*cMSelf[0]*uSelf[3]*mnuSelf+2.121320343559642*m0rSelf[3]*mnuSelf+0.2981423969999719*uSelf[2]*cMSelf[3]*mnuSelf+0.5*uSelf[0]*cMSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf+0.4391550328268398*cMSelf[1]*uSelf[2]*mnuSelf+0.4391550328268398*uSelf[1]*cMSelf[2]*mnuSelf; 
-  data->AEM_S(15,5) = 0.2618614682831908*cMSelf[3]*uSelf[3]*mnuSelf+0.3857142857142857*cMSelf[1]*uSelf[3]*mnuSelf+0.3857142857142857*uSelf[1]*cMSelf[3]*mnuSelf+0.2805658588748473*cMSelf[2]*uSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[2]*mnuSelf+1.863177010224355*m0rSelf[2]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf+0.3927922024247862*cMSelf[1]*uSelf[1]*mnuSelf; 
-  data->AEM_S(15,6) = 0.5634920634920635*cMSelf[2]*uSelf[3]*mnuSelf+0.2981423969999719*cMSelf[0]*uSelf[3]*mnuSelf+1.264911064067352*m0rSelf[3]*mnuSelf+0.5634920634920635*uSelf[2]*cMSelf[3]*mnuSelf+0.2981423969999719*uSelf[0]*cMSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6546536707079771*cMSelf[1]*uSelf[2]*mnuSelf+0.6546536707079771*uSelf[1]*cMSelf[2]*mnuSelf+0.4391550328268398*cMSelf[0]*uSelf[1]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf+0.4391550328268398*uSelf[0]*cMSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
-  data->AEM_S(15,7) = 0.6777777777777778*cMSelf[3]*uSelf[3]*mnuSelf+0.2618614682831908*cMSelf[1]*uSelf[3]*mnuSelf+0.2618614682831908*uSelf[1]*cMSelf[3]*mnuSelf+0.6904761904761905*cMSelf[2]*uSelf[2]*mnuSelf+0.2981423969999719*cMSelf[0]*uSelf[2]*mnuSelf+1.264911064067352*m0rSelf[2]*mnuSelf+0.2981423969999719*uSelf[0]*cMSelf[2]*mnuSelf-0.421637021355784*cESelf[2]*mnuSelf+0.7666666666666667*cMSelf[1]*uSelf[1]*mnuSelf+0.5*cMSelf[0]*uSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(12,4) = 0.7071067811865475*ucMSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(12,5) = 0.7071067811865475*ucMSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(12,6) = 0.7071067811865475*ucMSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(12,7) = 0.7071067811865475*ucMSelf[3]*mnuSelf+2.121320343559642*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
+  data->AEM_S(13,4) = 0.7071067811865475*ucMSelf[1]*mnuSelf+2.121320343559642*m0rSelf[1]*mnuSelf-0.7071067811865475*cESelf[1]*mnuSelf; 
+  data->AEM_S(13,5) = 0.6324555320336759*ucMSelf[2]*mnuSelf+1.897366596101028*m0rSelf[2]*mnuSelf-0.6324555320336759*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(13,6) = 0.6210590034081186*ucMSelf[3]*mnuSelf+1.863177010224355*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.6324555320336759*ucMSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(13,7) = 0.6210590034081186*ucMSelf[2]*mnuSelf+1.863177010224355*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
+  data->AEM_S(14,4) = 0.7071067811865475*ucMSelf[2]*mnuSelf+2.121320343559642*m0rSelf[2]*mnuSelf-0.7071067811865475*cESelf[2]*mnuSelf; 
+  data->AEM_S(14,5) = 0.6210590034081186*ucMSelf[3]*mnuSelf+1.863177010224355*m0rSelf[3]*mnuSelf-0.6210590034081186*cESelf[3]*mnuSelf+0.6324555320336759*ucMSelf[1]*mnuSelf+1.897366596101028*m0rSelf[1]*mnuSelf-0.6324555320336759*cESelf[1]*mnuSelf; 
+  data->AEM_S(14,6) = 0.4517539514526256*ucMSelf[2]*mnuSelf+1.355261854357877*m0rSelf[2]*mnuSelf-0.4517539514526256*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+  data->AEM_S(14,7) = 0.421637021355784*ucMSelf[3]*mnuSelf+1.264911064067352*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6210590034081186*ucMSelf[1]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
+  data->AEM_S(15,4) = 0.7071067811865475*ucMSelf[3]*mnuSelf+2.121320343559642*m0rSelf[3]*mnuSelf-0.7071067811865475*cESelf[3]*mnuSelf; 
+  data->AEM_S(15,5) = 0.6210590034081186*ucMSelf[2]*mnuSelf+1.863177010224355*m0rSelf[2]*mnuSelf-0.6210590034081186*cESelf[2]*mnuSelf; 
+  data->AEM_S(15,6) = 0.421637021355784*ucMSelf[3]*mnuSelf+1.264911064067352*m0rSelf[3]*mnuSelf-0.421637021355784*cESelf[3]*mnuSelf+0.6210590034081186*ucMSelf[1]*mnuSelf+1.863177010224355*m0rSelf[1]*mnuSelf-0.6210590034081186*cESelf[1]*mnuSelf; 
+  data->AEM_S(15,7) = 0.421637021355784*ucMSelf[2]*mnuSelf+1.264911064067352*m0rSelf[2]*mnuSelf-0.421637021355784*cESelf[2]*mnuSelf+0.7071067811865475*ucMSelf[0]*mnuSelf+2.121320343559642*m0rSelf[0]*mnuSelf-0.7071067811865475*cESelf[0]*mnuSelf; 
+ 
+  double ucMOther[4]; 
+  // Zero out array with dot product of uOther and cMOther. 
+  for (unsigned short int vd=0; vd<4; vd++) 
+  { 
+    ucMOther[vd] = 0.0; 
+  } 
+  for (unsigned short int vd=0; vd<1; vd++) 
+  { 
+    unsigned short int a0 = 4*vd; 
+    // Contribution to dot-product from weak multiplication of vd component. 
+    ucMOther[0] += 0.7071067811865475*cMOther[a0+3]*uOther[a0+3]+0.7071067811865475*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0+1]*uOther[a0+1]+0.7071067811865475*cMOther[a0]*uOther[a0]; 
+    ucMOther[1] += 0.6210590034081186*cMOther[a0+2]*uOther[a0+3]+0.6210590034081186*uOther[a0+2]*cMOther[a0+3]+0.6324555320336759*cMOther[a0+1]*uOther[a0+2]+0.6324555320336759*uOther[a0+1]*cMOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+1]+0.7071067811865475*uOther[a0]*cMOther[a0+1]; 
+    ucMOther[2] += 0.421637021355784*cMOther[a0+3]*uOther[a0+3]+0.6210590034081186*cMOther[a0+1]*uOther[a0+3]+0.6210590034081186*uOther[a0+1]*cMOther[a0+3]+0.4517539514526256*cMOther[a0+2]*uOther[a0+2]+0.7071067811865475*cMOther[a0]*uOther[a0+2]+0.7071067811865475*uOther[a0]*cMOther[a0+2]+0.6324555320336759*cMOther[a0+1]*uOther[a0+1]; 
+    ucMOther[3] += 0.421637021355784*cMOther[a0+2]*uOther[a0+3]+0.7071067811865475*cMOther[a0]*uOther[a0+3]+0.421637021355784*uOther[a0+2]*cMOther[a0+3]+0.7071067811865475*uOther[a0]*cMOther[a0+3]+0.6210590034081186*cMOther[a0+1]*uOther[a0+2]+0.6210590034081186*uOther[a0+1]*cMOther[a0+2]; 
+  } 
  
   // ... Block from correction to (other) 2nd moment of collision operator ... // 
-  data->AEM_S(12,12) = (-0.5*cMOther[3]*uOther[3]*mnuOther)-0.5*cMOther[2]*uOther[2]*mnuOther-0.5*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(12,13) = (-0.4391550328268398*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*uOther[2]*cMOther[3]*mnuOther-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(12,14) = (-0.2981423969999719*cMOther[3]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[1]*uOther[3]*mnuOther-0.4391550328268398*uOther[1]*cMOther[3]*mnuOther-0.31943828249997*cMOther[2]*uOther[2]*mnuOther-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
-  data->AEM_S(12,15) = (-0.2981423969999719*cMOther[2]*uOther[3]*mnuOther)-0.5*cMOther[0]*uOther[3]*mnuOther-2.121320343559642*m0rOther[3]*mnuOther-0.2981423969999719*uOther[2]*cMOther[3]*mnuOther-0.5*uOther[0]*cMOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther-0.4391550328268398*cMOther[1]*uOther[2]*mnuOther-0.4391550328268398*uOther[1]*cMOther[2]*mnuOther; 
-  data->AEM_S(13,12) = (-0.4391550328268398*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*uOther[2]*cMOther[3]*mnuOther-0.4472135954999579*cMOther[1]*uOther[2]*mnuOther-0.4472135954999579*uOther[1]*cMOther[2]*mnuOther-0.5*cMOther[0]*uOther[1]*mnuOther-2.121320343559642*m0rOther[1]*mnuOther-0.5*uOther[0]*cMOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
-  data->AEM_S(13,13) = (-0.7666666666666667*cMOther[3]*uOther[3]*mnuOther)-0.3927922024247862*cMOther[1]*uOther[3]*mnuOther-0.3927922024247862*uOther[1]*cMOther[3]*mnuOther-0.7857142857142857*cMOther[2]*uOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[2]*mnuOther-1.897366596101028*m0rOther[2]*mnuOther-0.4472135954999579*uOther[0]*cMOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.9*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(13,14) = (-0.6546536707079771*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[0]*uOther[3]*mnuOther-1.863177010224355*m0rOther[3]*mnuOther-0.6546536707079771*uOther[2]*cMOther[3]*mnuOther-0.4391550328268398*uOther[0]*cMOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.7857142857142857*cMOther[1]*uOther[2]*mnuOther-0.7857142857142857*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(13,15) = (-0.2618614682831908*cMOther[3]*uOther[3]*mnuOther)-0.3857142857142857*cMOther[1]*uOther[3]*mnuOther-0.3857142857142857*uOther[1]*cMOther[3]*mnuOther-0.2805658588748473*cMOther[2]*uOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[2]*mnuOther-1.863177010224355*m0rOther[2]*mnuOther-0.4391550328268398*uOther[0]*cMOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther-0.3927922024247862*cMOther[1]*uOther[1]*mnuOther; 
-  data->AEM_S(14,12) = (-0.2981423969999719*cMOther[3]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[1]*uOther[3]*mnuOther-0.4391550328268398*uOther[1]*cMOther[3]*mnuOther-0.31943828249997*cMOther[2]*uOther[2]*mnuOther-0.5*cMOther[0]*uOther[2]*mnuOther-2.121320343559642*m0rOther[2]*mnuOther-0.5*uOther[0]*cMOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther-0.4472135954999579*cMOther[1]*uOther[1]*mnuOther; 
-  data->AEM_S(14,13) = (-0.6546536707079771*cMOther[2]*uOther[3]*mnuOther)-0.4391550328268398*cMOther[0]*uOther[3]*mnuOther-1.863177010224355*m0rOther[3]*mnuOther-0.6546536707079771*uOther[2]*cMOther[3]*mnuOther-0.4391550328268398*uOther[0]*cMOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.7857142857142857*cMOther[1]*uOther[2]*mnuOther-0.7857142857142857*uOther[1]*cMOther[2]*mnuOther-0.4472135954999579*cMOther[0]*uOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther-0.4472135954999579*uOther[0]*cMOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
-  data->AEM_S(14,14) = (-0.6904761904761905*cMOther[3]*uOther[3]*mnuOther)-0.2805658588748473*cMOther[1]*uOther[3]*mnuOther-0.2805658588748473*uOther[1]*cMOther[3]*mnuOther-0.7040816326530612*cMOther[2]*uOther[2]*mnuOther-0.31943828249997*cMOther[0]*uOther[2]*mnuOther-1.355261854357877*m0rOther[2]*mnuOther-0.31943828249997*uOther[0]*cMOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7857142857142857*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
-  data->AEM_S(14,15) = (-0.5634920634920635*cMOther[2]*uOther[3]*mnuOther)-0.2981423969999719*cMOther[0]*uOther[3]*mnuOther-1.264911064067352*m0rOther[3]*mnuOther-0.5634920634920635*uOther[2]*cMOther[3]*mnuOther-0.2981423969999719*uOther[0]*cMOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6546536707079771*cMOther[1]*uOther[2]*mnuOther-0.6546536707079771*uOther[1]*cMOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[1]*mnuOther-1.863177010224355*m0rOther[1]*mnuOther-0.4391550328268398*uOther[0]*cMOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
-  data->AEM_S(15,12) = (-0.2981423969999719*cMOther[2]*uOther[3]*mnuOther)-0.5*cMOther[0]*uOther[3]*mnuOther-2.121320343559642*m0rOther[3]*mnuOther-0.2981423969999719*uOther[2]*cMOther[3]*mnuOther-0.5*uOther[0]*cMOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther-0.4391550328268398*cMOther[1]*uOther[2]*mnuOther-0.4391550328268398*uOther[1]*cMOther[2]*mnuOther; 
-  data->AEM_S(15,13) = (-0.2618614682831908*cMOther[3]*uOther[3]*mnuOther)-0.3857142857142857*cMOther[1]*uOther[3]*mnuOther-0.3857142857142857*uOther[1]*cMOther[3]*mnuOther-0.2805658588748473*cMOther[2]*uOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[2]*mnuOther-1.863177010224355*m0rOther[2]*mnuOther-0.4391550328268398*uOther[0]*cMOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther-0.3927922024247862*cMOther[1]*uOther[1]*mnuOther; 
-  data->AEM_S(15,14) = (-0.5634920634920635*cMOther[2]*uOther[3]*mnuOther)-0.2981423969999719*cMOther[0]*uOther[3]*mnuOther-1.264911064067352*m0rOther[3]*mnuOther-0.5634920634920635*uOther[2]*cMOther[3]*mnuOther-0.2981423969999719*uOther[0]*cMOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6546536707079771*cMOther[1]*uOther[2]*mnuOther-0.6546536707079771*uOther[1]*cMOther[2]*mnuOther-0.4391550328268398*cMOther[0]*uOther[1]*mnuOther-1.863177010224355*m0rOther[1]*mnuOther-0.4391550328268398*uOther[0]*cMOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
-  data->AEM_S(15,15) = (-0.6777777777777778*cMOther[3]*uOther[3]*mnuOther)-0.2618614682831908*cMOther[1]*uOther[3]*mnuOther-0.2618614682831908*uOther[1]*cMOther[3]*mnuOther-0.6904761904761905*cMOther[2]*uOther[2]*mnuOther-0.2981423969999719*cMOther[0]*uOther[2]*mnuOther-1.264911064067352*m0rOther[2]*mnuOther-0.2981423969999719*uOther[0]*cMOther[2]*mnuOther+0.421637021355784*cEOther[2]*mnuOther-0.7666666666666667*cMOther[1]*uOther[1]*mnuOther-0.5*cMOther[0]*uOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(12,12) = (-0.7071067811865475*ucMOther[0]*mnuOther)-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(12,13) = (-0.7071067811865475*ucMOther[1]*mnuOther)-2.121320343559642*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(12,14) = (-0.7071067811865475*ucMOther[2]*mnuOther)-2.121320343559642*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(12,15) = (-0.7071067811865475*ucMOther[3]*mnuOther)-2.121320343559642*m0rOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther; 
+  data->AEM_S(13,12) = (-0.7071067811865475*ucMOther[1]*mnuOther)-2.121320343559642*m0rOther[1]*mnuOther+0.7071067811865475*cEOther[1]*mnuOther; 
+  data->AEM_S(13,13) = (-0.6324555320336759*ucMOther[2]*mnuOther)-1.897366596101028*m0rOther[2]*mnuOther+0.6324555320336759*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(13,14) = (-0.6210590034081186*ucMOther[3]*mnuOther)-1.863177010224355*m0rOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.6324555320336759*ucMOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(13,15) = (-0.6210590034081186*ucMOther[2]*mnuOther)-1.863177010224355*m0rOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther; 
+  data->AEM_S(14,12) = (-0.7071067811865475*ucMOther[2]*mnuOther)-2.121320343559642*m0rOther[2]*mnuOther+0.7071067811865475*cEOther[2]*mnuOther; 
+  data->AEM_S(14,13) = (-0.6210590034081186*ucMOther[3]*mnuOther)-1.863177010224355*m0rOther[3]*mnuOther+0.6210590034081186*cEOther[3]*mnuOther-0.6324555320336759*ucMOther[1]*mnuOther-1.897366596101028*m0rOther[1]*mnuOther+0.6324555320336759*cEOther[1]*mnuOther; 
+  data->AEM_S(14,14) = (-0.4517539514526256*ucMOther[2]*mnuOther)-1.355261854357877*m0rOther[2]*mnuOther+0.4517539514526256*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
+  data->AEM_S(14,15) = (-0.421637021355784*ucMOther[3]*mnuOther)-1.264911064067352*m0rOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6210590034081186*ucMOther[1]*mnuOther-1.863177010224355*m0rOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
+  data->AEM_S(15,12) = (-0.7071067811865475*ucMOther[3]*mnuOther)-2.121320343559642*m0rOther[3]*mnuOther+0.7071067811865475*cEOther[3]*mnuOther; 
+  data->AEM_S(15,13) = (-0.6210590034081186*ucMOther[2]*mnuOther)-1.863177010224355*m0rOther[2]*mnuOther+0.6210590034081186*cEOther[2]*mnuOther; 
+  data->AEM_S(15,14) = (-0.421637021355784*ucMOther[3]*mnuOther)-1.264911064067352*m0rOther[3]*mnuOther+0.421637021355784*cEOther[3]*mnuOther-0.6210590034081186*ucMOther[1]*mnuOther-1.863177010224355*m0rOther[1]*mnuOther+0.6210590034081186*cEOther[1]*mnuOther; 
+  data->AEM_S(15,15) = (-0.421637021355784*ucMOther[2]*mnuOther)-1.264911064067352*m0rOther[2]*mnuOther+0.421637021355784*cEOther[2]*mnuOther-0.7071067811865475*ucMOther[0]*mnuOther-2.121320343559642*m0rOther[0]*mnuOther+0.7071067811865475*cEOther[0]*mnuOther; 
  
   double kinESelf[4]; 
   // zero out array with dot product of u and m1. 
@@ -1063,7 +1147,6 @@ void GkCrossPrimMoments1x2vMax_P3(binOpData_t *data, const double betaGreenep1, 
   { 
     kinESelf[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
@@ -1080,7 +1163,6 @@ void GkCrossPrimMoments1x2vMax_P3(binOpData_t *data, const double betaGreenep1, 
   { 
     kinEOther[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
@@ -1097,7 +1179,6 @@ void GkCrossPrimMoments1x2vMax_P3(binOpData_t *data, const double betaGreenep1, 
   { 
     relKinE[vd] = 0.0; 
   } 
- 
   for (unsigned short int vd=0; vd<1; vd++) 
   { 
     unsigned short int a0 = 4*vd; 

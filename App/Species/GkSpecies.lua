@@ -525,7 +525,7 @@ function GkSpecies:createDiagnostics()
       end
       return false
    end
-   self.diagnosticIntegratedMomentFields = { }
+   self.diagnosticIntegratedMomentFields   = { }
    self.diagnosticIntegratedMomentUpdaters = { } 
    -- Allocate space to store integrated moments and create integrated moment updaters.
    for i, mom in pairs(self.diagnosticIntegratedMoments) do
@@ -705,9 +705,9 @@ function GkSpecies:createDiagnostics()
    for i, mom in pairs(self.diagnosticAuxMoments) do
       if isAuxMomentNameGood(mom) then
          self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid = self.confGrid,
+            onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
-            ghost = {1, 1}
+            ghost         = {1, 1}
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -729,7 +729,7 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
             tCurr, {self.momDensity}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intM2" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
-            tCurr, {self.ptclEnergy, self.mass}, {self.diagnosticIntegratedMomentFields[mom]})
+            tCurr, {self.ptclEnergy}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intL2" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})

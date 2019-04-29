@@ -240,7 +240,7 @@ function VmLBOCollisions:createSolver()
       basis              = self.phaseBasis,
       cfl                = self.cfl,
       equation           = vmLBOconstNuCalc,
-      updateDirections   = zfd, -- only update velocity directions
+      updateDirections   = zfd,    -- Only update velocity directions.
       zeroFluxDirections = zfd,
    }
    if self.crossCollisions then

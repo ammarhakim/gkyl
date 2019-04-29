@@ -242,7 +242,7 @@ function GkLBOCollisions:createSolver(funcField)
       basis              = self.phaseBasis,
       cfl                = self.cfl,
       equation           = self.gkLBOconstNuCalcEq,
-      updateDirections   = zfd, -- only update velocity directions
+      updateDirections   = zfd,    -- Only update velocity directions.
       zeroFluxDirections = zfd,
    }
    if self.crossCollisions then
