@@ -398,6 +398,10 @@ function FemPerpPoisson:_advance(tCurr, inFld, outFld)
      end
    end 
 
+   if self.zDiscontToCont then 
+      self.zDiscontToCont:advance(tCurr, {sol}, {sol}) 
+   end
+
    self._first = false
    -- reset makeStiff flag to false, until stiffness matrix changes again
    self._makeStiff = false
