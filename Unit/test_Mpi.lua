@@ -817,7 +817,7 @@ function test_14(comm, nlayer, numComponents, ordering)
    end   
 end
 
-function test_15(comm, numComponents, ordering)
+function test_15(comm, nlayer, numComponents, ordering)
    -- tests MPI_Datatype API with a sub-region of a given region
    local sz = Mpi.Comm_size(comm)
    local rnk = Mpi.Comm_rank(comm)
@@ -828,7 +828,6 @@ function test_15(comm, numComponents, ordering)
       return
    end
 
-   local nlayer = 1
    local range = Range.Range({1, 1}, {10, 20})
    local rangeX = Range.Range(
       {range:lower(1), range:lower(2)+nlayer},
@@ -906,10 +905,20 @@ test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
 test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
 test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
 
-test_15(Mpi.COMM_WORLD, 1, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 2, Range.rowMajor)
-test_15(Mpi.COMM_WORLD, 1, Range.colMajor)
-test_15(Mpi.COMM_WORLD, 2, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
