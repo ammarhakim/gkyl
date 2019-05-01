@@ -516,6 +516,9 @@ function _M.createBlockInfoFromRangeAndSubRange(subRange, range, numComponent, o
    local lo = subRange:lowerAsVec()
    local up = subRange:upperAsVec()
 
+   -- first linear location relative to which all other offsets are specified
+   local firstOffset = indexer(lo)
+
    local blockSize, blockOffset = {}, {}
 
    local dist = indexer(up)-indexer(lo)+1
@@ -545,7 +548,7 @@ function _M.createBlockInfoFromRangeAndSubRange(subRange, range, numComponent, o
 
 	       -- prep for next round
 	       currBlockSize = 1
-	       lastOffset = (linIdx-1)*numComponent
+	       lastOffset = (linIdx-firstOffset)*numComponent
 	       count = count+1
 	    end
 	    lastLinIdx = linIdx -- for next round
@@ -557,12 +560,6 @@ function _M.createBlockInfoFromRangeAndSubRange(subRange, range, numComponent, o
    return blockSize, blockOffset
 end
 
--- Constructs block offsets and sizes from range object
-function _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
-   return _M.createBlockInfoFromRangeAndSubRange(
-      range:shorten(dir, nlayer), range, numComponent, ordering)
-end
-
 -- Creates an MPI_Datatype object from a range object in a specified
 -- direction and ordering. 'ordering' must be one of Range.rowMajor or
 -- Range.colMajor.
@@ -570,17 +567,16 @@ end
 -- 'nlayer' is number of layers in range to include in datatype and
 -- 'numComponent' is the number of components in field (usually 1)
 function _M.createDataTypeFromRange(dir, range, nlayer, numComponent, ordering, oldtype)
-   local blockSize, blockOffset = _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
+   local blockSize, blockOffset = _M.createBlockInfoFromRangeAndSubRange(
+	 range:shorten(dir, nlayer), range, numComponent, ordering)
    return _M.Type_commit(
       _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
    )
 end
 
--- Creates an MPI_Datatype object from a range object in a specified
--- direction and ordering. 'ordering' must be one of Range.rowMajor or
--- Range.colMajor.
+-- Creates an MPI_Datatype object from a range and its subRange object.
+-- 'ordering' must be one of Range.rowMajor or Range.colMajor.
 --
--- 'nlayer' is number of layers in range to include in datatype and
 -- 'numComponent' is the number of components in field (usually 1)
 function _M.createDataTypeFromRangeAndSubRange(subRange, range, numComponent, ordering, oldtype)
    local blockSize, blockOffset = _M.createBlockInfoFromRangeAndSubRange(

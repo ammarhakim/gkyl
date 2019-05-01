@@ -828,13 +828,17 @@ function test_15(comm, numComponents, ordering)
       return
    end
 
-   local nlayer = 1 -- this is hard-coded in this test. DO NOT CHANGE!
+   local nlayer = 1
    local range = Range.Range({1, 1}, {10, 20})
-   local rangeX = Range.Range({1, 2}, {1, 19})
-   local rangeY = Range.Range({2, 1}, {9, 1})
+   local rangeX = Range.Range(
+      {range:lower(1), range:lower(2)+nlayer},
+      {range:lower(1), range:upper(2)-nlayer})
+   local rangeY = Range.Range(
+      {range:lower(1)+nlayer, range:lower(2)},
+      {range:upper(1)-nlayer, range:lower(2)})
    
    local dTypeX = Mpi.createDataTypeFromRangeAndSubRange(rangeX, range, numComponents, ordering, Mpi.DOUBLE)
-   local dTypeY = Mpi.createDataTypeFromRangeAndSubRange(rangeY, range, numComponents, ordering, Mpi.DOUBLE)
+   --local dTypeY = Mpi.createDataTypeFromRangeAndSubRange(rangeY, range, numComponents, ordering, Mpi.DOUBLE)
 
    local nz = range:volume()*numComponents
    local buff = Alloc.Double(nz)
@@ -856,19 +860,18 @@ function test_15(comm, numComponents, ordering)
 
    -- X direction
    if rnk == 0 then
-      -- send box on left side of domain
+      -- send box
       local loc = cidx(rangeX:lower(1), rangeX:lower(2), 0)
       Mpi.Send(buff:data()+loc, 1, dTypeX, 1, 42, comm)
    else
-      -- recv box on right side of domain
-      local loc = cidx(range:upper(1), rangeX:lower(2), 0)
+      -- recv box
+      local loc = cidx(rangeX:lower(1), rangeX:lower(2), 0)      
       Mpi.Recv(buff:data()+loc, 1, dTypeX, 0, 42, comm, nil)
 
-      for i = range:upper(1), range:upper(1) do
+      for i = rangeX:lower(1), rangeX:upper(1) do
 	 for j = rangeX:lower(2), rangeX:upper(2) do
 	    for k = 1, numComponents do
-	       local isend, jsend = rangeX:lower(1), j
-	       assert_equal(isend+20*jsend+0.5+1000*k, buff[cidx(i,j,k)],
+	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
 			    string.format("Checking lower X-direction send/recv (%d,%d;%d [%d])",
 					  i,j,k,cidx(i,j,k)))
 	    end
@@ -905,8 +908,8 @@ test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
 
 test_15(Mpi.COMM_WORLD, 1, Range.rowMajor)
 test_15(Mpi.COMM_WORLD, 2, Range.rowMajor)
---test_15(Mpi.COMM_WORLD, 1, Range.colMajor)
---test_15(Mpi.COMM_WORLD, 2, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 2, Range.colMajor)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
