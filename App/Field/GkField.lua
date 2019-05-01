@@ -260,9 +260,16 @@ function GkField:createSolver(species, funcField)
    -- set up FEM solver for Poisson equation to solve for phi
    local gxx, gxy, gyy, jacobGeo
    if funcField.geo then 
-     gxx = funcField.geo.gxx
-     gxy = funcField.geo.gxy
-     gyy = funcField.geo.gyy
+     -- include jacobian factor in metric coefficients if using linearized polarization density
+     if self.linearizedPolarization then
+        gxx = funcField.geo.gxxJ
+        gxy = funcField.geo.gxyJ
+        gyy = funcField.geo.gyyJ
+     else  -- if not, jacobian already included in polarization density
+        gxx = funcField.geo.gxx
+        gxy = funcField.geo.gxy
+        gyy = funcField.geo.gyy
+     end
      jacobGeo = funcField.geo.jacobGeo
    end
    self.phiSlvr = Updater.FemPoisson {
@@ -311,7 +318,7 @@ function GkField:createSolver(species, funcField)
          modifierConstant = modifierConstant + self.adiabSpec:getQneutFac() 
       end
 
-      self.laplacianWeight:combine(laplacianConstant, jacobGeo)
+      self.laplacianWeight:combine(laplacianConstant, self.unitWeight) -- no jacobian here
       self.modifierWeight:combine(modifierConstant, jacobGeo)
 
       if laplacianConstant ~= 0 then self.phiSlvr:setLaplacianWeight(self.laplacianWeight) end
@@ -428,6 +435,11 @@ function GkField:write(tm, force)
         local emEnergyFac = .5/self.mu0
         if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
         if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].apar, emEnergyFac}, { self.emEnergy }) end
+      end
+
+      if self.ioFrame == 0 then 
+         self.fieldIo:write(self.phiSlvr:getLaplacianWeight(), "laplacianWeight_0.bp", tm, self.ioFrame, false)
+         self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_0.bp", tm, self.ioFrame, false)
       end
       
       if self.ioTrigger(tm) or force then
@@ -886,6 +898,26 @@ function GkGeometry:alloc()
       ghost = {1, 1},
       syncPeriodicDirs = false
    }
+
+   -- functions for laplacian, including jacobian factor
+   self.geo.gxxJ = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   self.geo.gxyJ = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
+   self.geo.gyyJ = DataStruct.Field {
+      onGrid = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost = {1, 1},
+      syncPeriodicDirs = false
+   }
    
    -- wall potential for sheath BCs
    self.geo.phiWall = DataStruct.Field {
@@ -929,6 +961,15 @@ function GkGeometry:createSolver()
       self.jacobGeoFunc = function (t, xn)
          return self.grid:calcJacobian(xn)
       end
+      self.gxxJ_Func = function (t, xn)
+         return self.jacobGeoFunc(t,xn)
+      end
+      self.gxyJ_Func = function (t, xn)
+         return 0
+      end
+      self.gyyJ_Func = function (t, xn)
+         return self.jacobGeoFunc(t,xn)
+      end
    elseif self.ndim == 2 then
       self.g_zzFunc = function (t, xn)
          return 1
@@ -957,7 +998,25 @@ function GkGeometry:createSolver()
       self.jacobGeoFunc = function (t, xn)
          return self.grid:calcJacobian(xn)
       end
+      self.gxxJ_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[1]*self.jacobGeoFunc(t,xn)
+      end
+      self.gxyJ_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[2]*self.jacobGeoFunc(t,xn)
+      end
+      self.gyyJ_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[3]*self.jacobGeoFunc(t,xn)
+      end
    elseif self.ndim == 3 then
+      self.jacobGeoFunc = function (t, xn)
+         return self.grid:calcJacobian(xn)
+      end
       self.g_zzFunc = function (t, xn)
          local g = {}
          self.grid:calcMetric(xn, g)
@@ -988,8 +1047,20 @@ function GkGeometry:createSolver()
          self.grid:calcContraMetric(xn, g)
          return g[4]
       end
-      self.jacobGeoFunc = function (t, xn)
-         return self.grid:calcJacobian(xn)
+      self.gxxJ_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[1]*self.jacobGeoFunc(t,xn)
+      end
+      self.gxyJ_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[2]*self.jacobGeoFunc(t,xn)
+      end
+      self.gyyJ_Func = function (t, xn)
+         local g = {}
+         self.grid:calcContraMetric(xn, g)
+         return g[4]*self.jacobGeoFunc(t,xn)
       end
    end
 
@@ -1103,6 +1174,24 @@ function GkGeometry:createSolver()
       projectOnGhosts = true,
       evaluate = self.gyy_Func
    }
+   self.setGxxJ = Updater.EvalOnNodes {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.gxxJ_Func
+   }
+   self.setGxyJ = Updater.EvalOnNodes {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.gxyJ_Func
+   }
+   self.setGyyJ = Updater.EvalOnNodes {
+      onGrid = self.grid,
+      basis = self.basis,
+      projectOnGhosts = true,
+      evaluate = self.gyyJ_Func
+   }
    if self.phiWallFunc then 
       self.setPhiWall = Updater.EvalOnNodes {
          onGrid = self.grid,
@@ -1172,6 +1261,9 @@ function GkGeometry:initField()
    self.setGxx:advance(0.0, {}, {self.geo.gxx})
    self.setGxy:advance(0.0, {}, {self.geo.gxy})
    self.setGyy:advance(0.0, {}, {self.geo.gyy})
+   self.setGxxJ:advance(0.0, {}, {self.geo.gxxJ})
+   self.setGxyJ:advance(0.0, {}, {self.geo.gxyJ})
+   self.setGyyJ:advance(0.0, {}, {self.geo.gyyJ})
    self.setGeoX:advance(0.0, {}, {self.geo.geoX})
    self.setGeoY:advance(0.0, {}, {self.geo.geoY})
    self.setGeoZ:advance(0.0, {}, {self.geo.geoZ})
@@ -1206,6 +1298,9 @@ function GkGeometry:initField()
    self.geo.gxx:sync(false)
    self.geo.gxy:sync(false)
    self.geo.gyy:sync(false)
+   self.geo.gxxJ:sync(false)
+   self.geo.gxyJ:sync(false)
+   self.geo.gyyJ:sync(false)
    self.geo.jacobGeo:sync(false)
    self.geo.jacobGeoInv:sync(false)
    self.geo.jacobTotInv:sync(false)
