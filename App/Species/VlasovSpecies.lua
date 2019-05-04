@@ -183,7 +183,6 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- species that is not mediated by the field (solver), like
    -- collisions.
 
-
    -- Function to find the index of an element in table.
    local function findInd(tblIn, el)
       for i, v in ipairs(tblIn) do
@@ -197,8 +196,8 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- Create a double nested table indicating who collides with whom.
    self.collPairs               = {}
    for sN, _ in pairs(species) do
-      self.collPairs[sN]         = {}
-      if species[sN].collisions then
+      self.collPairs[sN]        = {}
+      if next(species[sN].collisions) then -- Species[].collisions initialized as an empty table regardless. Need next. 
          -- This species collides with someone.
          local selfCollCurr, crossCollCurr, collSpecCurr
          -- Obtain the boolean indicating if self/cross collisions affect the sN species.
@@ -226,7 +225,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       else
          -- This species does not collide with anyone.
          for sO, _ in pairs(species) do
-            self.collPairs[sN][sO]         = false
+            self.collPairs[sN][sO] = false
          end
       end
    end
@@ -269,20 +268,20 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- Allocate fieds to store cross-species primitive moments.
    self.uCross    = {}
    self.vtSqCross = {}
-   local cpmPair  = 0
    for sN, _ in pairs(species) do
       if sN ~= self.name then
+         -- Flags for couplingMoments, boundary corrections, star moments,
+         -- self primitive moments, cross primitive moments.
          self.momentFlags[5][sN] = false
       end
-   end
-   if self.collisions then
-      for nm, _ in pairs(self.collisions) do
-         -- Allocate space for this species' cross-primitive moments only if it affects this species.
-         if self.collisions[nm].crossCollisions then
-            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
-               self.uCross[otherNm]    = self:allocVectorMoment(self.vdim)
-               self.vtSqCross[otherNm] = self:allocMoment()
-            end
+
+      for sO, _ in pairs(species) do
+         -- Allocate space for this species' cross-primitive moments
+         -- only if some other species collides with it.
+         if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN])
+             and (self.uCross[string.gsub(sO .. sN, self.name, "")] == nil) then
+            self.uCross[sO]    = self:allocVectorMoment(self.vdim)
+            self.vtSqCross[sO] = self:allocMoment()
          end
       end
    end
