@@ -183,13 +183,13 @@ function VmLBOCollisions:createSolver()
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
    }
-   -- Flow velocity in vdim directions.
+   -- Sum of flow velocities in vdim directions multiplied by respective collisionalities.
    self.nuUSum = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.cNumBasis*self.vdim,
       ghost         = {1, 1},
    }
-   -- Thermal speed squared, vth=sqrt(T/m).
+   -- Sum of squared thermal speeds, vthSq=T/m, multiplied by respective collisionalities.
    self.nuVtSqSum = DataStruct.Field {
       onGrid        = self.confGrid,
       numComponents = self.cNumBasis,
