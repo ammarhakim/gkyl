@@ -117,20 +117,20 @@ end
 -- Updater Advance ---------------------------------------------------
 function MaxwellianOnBasis:_advance(tCurr, inFld, outFld)
    -- Get the inputs and outputs
-   local nIn = assert(inFld[1], "MaxwellianOnBasis.advance: Must specify density 'inFld[1]'")
-   local uIn = assert(inFld[2], "MaxwellianOnBasis.advance: Must specify drift speed 'inFld[2]'")
+   local nIn    = assert(inFld[1], "MaxwellianOnBasis.advance: Must specify density 'inFld[1]'")
+   local uIn    = assert(inFld[2], "MaxwellianOnBasis.advance: Must specify drift speed 'inFld[2]'")
    local vth2In = assert(inFld[3], "MaxwellianOnBasis.advance: Must specify thermal velocity squared 'inFld[3]'")
-   local fOut = assert(outFld[1], "MaxwellianOnBasis.advance: Must specify an output field 'outFld[1]'")
+   local fOut   = assert(outFld[1], "MaxwellianOnBasis.advance: Must specify an output field 'outFld[1]'")
 
-   local nItr, nOrd = nIn:get(1), Lin.Vec(self.numConfOrds)
-   local uItr, uOrd = uIn:get(1), Lin.Mat(self.numConfOrds, self.numVelDims)
+   local nItr, nOrd       = nIn:get(1), Lin.Vec(self.numConfOrds)
+   local uItr, uOrd       = uIn:get(1), Lin.Mat(self.numConfOrds, self.numVelDims)
    local vth2Itr, vth2Ord = vth2In:get(1), Lin.Vec(self.numConfOrds)
-   local fItr = fOut:get(1)
+   local fItr             = fOut:get(1)
 
    -- Get the Ranges to loop over the domain
-   local confRange = nIn:localRange()
-   local confIndexer = nIn:genIndexer()
-   local phaseRange = fOut:localRange()
+   local confRange    = nIn:localRange()
+   local confIndexer  = nIn:genIndexer()
+   local phaseRange   = fOut:localRange()
    local phaseIndexer = fOut:genIndexer()
    local l, u = {}, {}
    for d = 1, self.numVelDims do
