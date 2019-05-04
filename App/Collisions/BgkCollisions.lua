@@ -222,6 +222,12 @@ function BgkCollisions:createSolver()
    end
 
    if self.crossCollisions then
+      -- Cross-collision Maxwellian multiplied by collisionality.
+      self.nufMaxwellCross = DataStruct.Field {
+         onGrid        = self.phaseGrid,
+         numComponents = self.phaseBasis:numBasis(),
+         ghost         = {1, 1},
+      }
       -- Dummy fields for the primitive moment calculator.
       self.uCrossSq = DataStruct.Field {
          onGrid        = self.confGrid,
@@ -238,12 +244,6 @@ function BgkCollisions:createSolver()
          self.collFreq = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.cNumBasis,
-            ghost         = {1, 1},
-         }
-         -- Cross-collision u and vtSq multiplied by collisionality.
-         self.nufMaxwellCross = DataStruct.Field {
-            onGrid        = self.phaseGrid,
-            numComponents = self.phaseBasis:numBasis(),
             ghost         = {1, 1},
          }
       else
