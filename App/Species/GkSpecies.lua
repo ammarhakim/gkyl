@@ -350,26 +350,36 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       return #tblIn+1    -- If not found return a number larger than the length of the table.
    end
 
+   -- Function to concatenate to tables.
+   local function tableConcat(t1,t2)
+      for i=1,#t2 do
+         t1[#t1+1] = t2[i]
+      end
+      return t1
+   end
+
    -- Create a double nested table indicating who collides with whom.
    self.collPairs = {}
    for sN, _ in pairs(species) do
       self.collPairs[sN] = {}
-      if species[sN].collisions then
-         -- This species collides with someone.
-         local selfCollCurr, crossCollCurr, collSpecCurr
-         -- Obtain the boolean indicating if self/cross collisions affect the sN species.
-         for nm, _ in pairs(species[sN].collisions) do
-            selfCollCurr  = species[sN].collisions[nm].selfCollisions
-            crossCollCurr = species[sN].collisions[nm].crossCollisions
-            collSpecsCurr = species[sN].collisions[nm].collidingSpecies
-         end
-         for sO, _ in pairs(species) do
+      for sO, _ in pairs(species) do
+         -- Need next below because species[].collisions is createded as an empty table.
+         if next(species[sN].collisions) then
+            -- This species collides with someone.
+            local selfColl, crossColl, collSpecs = false, false, {}
+            -- Obtain the boolean indicating if self/cross collisions affect the sN species.
+            for nm, _ in pairs(species[sN].collisions) do
+               selfColl  = selfColl or species[sN].collisions[nm].selfCollisions
+               crossColl = crossColl or species[sN].collisions[nm].crossCollisions
+               collSpecs = tableConcat(collSpecs, species[sN].collisions[nm].collidingSpecies)
+            end
+
             if sN == sO then
-               self.collPairs[sN][sO] = selfCollCurr
+               self.collPairs[sN][sO] = selfColl
             else
-               if crossCollCurr then
-                  local specInd = findInd(collSpecsCurr, sO)
-                  if specInd < (#collSpecsCurr+1) then
+               if crossColl then
+                  local specInd = findInd(collSpecs, sO)
+                  if specInd < (#collSpecs+1) then
                      self.collPairs[sN][sO] = true
                   else
                      self.collPairs[sN][sO] = false
@@ -378,10 +388,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                   self.collPairs[sN][sO] = false
                end
             end
-         end
-      else
-         -- This species does not collide with anyone.
-         for sO, _ in pairs(species) do
+         else
+            -- This species does not collide with anyone.
             self.collPairs[sN][sO] = false
          end
       end
@@ -425,20 +433,20 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- Allocate fieds to store cross-species primitive moments.
    self.uParCross = {}
    self.vtSqCross = {}
-   local cpmPair  = 0
    for sN, _ in pairs(species) do
       if sN ~= self.name then
+         -- Flags for couplingMoments, boundary corrections, star moments,
+         -- self primitive moments, cross primitive moments.
          self.momentFlags[5][sN] = false
       end
-   end
-   if self.collisions then
-      for nm, _ in pairs(self.collisions) do
-         -- Allocate space for this species' cross-primitive moments only if it affects this species.
-         if self.collisions[nm].crossCollisions then
-            for sInd, otherNm in ipairs(self.collisions[nm].crossSpecies) do
-               self.uParCross[otherNm] = self:allocMoment()
-               self.vtSqCross[otherNm] = self:allocMoment()
-            end
+
+      for sO, _ in pairs(species) do
+         -- Allocate space for this species' cross-primitive moments
+         -- only if some other species collides with it.
+         if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN])
+             and (self.uParCross[string.gsub(sO .. sN, self.name, "")] == nil) then
+            self.uParCross[otherNm] = self:allocMoment()
+            self.vtSqCross[otherNm] = self:allocMoment()
          end
       end
    end
