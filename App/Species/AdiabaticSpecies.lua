@@ -6,7 +6,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Proto = require "Lib.Proto"
+local Proto        = require "Lib.Proto"
 local FluidSpecies = require "App.Species.FluidSpecies"
 
 local AdiabaticSpecies = Proto(FluidSpecies)
