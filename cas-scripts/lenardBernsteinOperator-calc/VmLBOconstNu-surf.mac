@@ -12,7 +12,7 @@ cvars : [x, y, z]$
 cVars : [X, Y, Z]$
 varsV : [vx, vy, vz]$
 vvars : [VX, VY, VZ]$
-ux    : [Ux, Uy, Uz]$
+nuUSumx : [sumNuUx, sumNuUy, sumNuUz]$
 
 vidx(cdim,vdim)  := makelist(i,i,cdim+1,cdim+vdim)$
 vidx1(cdim,vdim) := makelist(i,i,cdim,cdim+vdim-1)$
@@ -127,7 +127,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* First compute the contribution coming from the second
     ** differentiation by parts to left and right cells. */
-    vtSq_e : doExpand1(vtSq,bC),
+    nuVtSqSum_e : doExpand1(nuVtSqSum,bC),
 
     /* Now do the contribution from the generalized flux Ghat. */
     basisFlip : subst(vv=-1*vv, bP),
@@ -136,9 +136,9 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     favg_e  : doExpand1(favg, bP),
     fjump_e : doExpand1(fjump, bP),
     /* Expand the mean flow speed in the configuration basis. */
-    u_e : doExpand1(ux[dir],bC),
+    nuUSum_e : doExpand1(nuUSumx[dir],bC),
     /* Calculate the alpha-velocity due to drag. */
-    alphaDr : (1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]]-u_e,
+    alphaDr : nuSum*((1/2)*dxvl[vid1[dir]]*vv+wl[vid1[dir]])-nuUSum_e,
     /* Expand drag alpha (evaluated at the boundary) in conf basis to
        simplify assignment of Ghat. */
     alphaDrag_c : calcInnerProdList(varsC,1,bC,subst(vv=1,alphaDr)),
@@ -146,7 +146,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* vMuMid is the value returned and from which vMuMidMax is computed. */
     zr : makelist(varsP[d]=0, d, 1, length(varsP)),
-    vMuMid : float(expand(fullratsimp(subst(zr,alphaDr)))),
+    vMuMid : float(expand(fullratsimp(subst(zr,alphaDr/nuSum)))),
 
     /* Evaluate the average and jump functions at vv=1. */
     fhat_avg  : subst(vv=1, favg_e),
@@ -154,7 +154,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Separate out diffusion part of Ghat to simplify Ghat assignment.
     ** Leave the rdv factor out for later multiplication. */
-    Gdiff_c : calcInnerProdList(varsP,1,bP,vtSq_e*hsol[2]),
+    Gdiff_c : calcInnerProdList(varsP,1,bP,nuVtSqSum_e*hsol[2]),
     /* Because f's in hsol are index-1, we need to switch to
     ** 0-indexed for C++. */
     subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
@@ -175,35 +175,35 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
     incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), vtSq_e*hsol[1]),
+    incr_r2 : -calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), nuVtSqSum_e*hsol[1]),
 
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
-    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), vtSq_e*hsol[1]),
+    incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), nuVtSqSum_e*hsol[1]),
 
     /* Because f's in hsol are index-1, we need to switch to
     ** 0-indexed for C++. */
     incr_l2 : psubst(subList,incr_l2),
     incr_r2 : psubst(subList,incr_r2),
     
-    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], polyOrder),
-    printf(fh, "  // w[~a]:       Cell-center coordinates. ~%", cdim+vdim),
-    printf(fh, "  // dxv[~a]:     Cell spacing. ~%", cdim+vdim),
-    printf(fh, "  // nu:         constant collisionality. ~%"),
-    printf(fh, "  // vMuMidMax:  maximum midpoint value of v-u. ~%"),
-    printf(fh, "  // u[~a]:       bulk velocity (in ~a directions). ~%", vdim*NC, vdim),
-    printf(fh, "  // vtSq[~a]:    thermal speed squared. ~%", NC),
-    printf(fh, "  // fl/fr:      Distribution function in left/right cells ~%"),
-    printf(fh, "  // outl/outr:  Incremented distribution function in left/right cells ~%"),
+    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], polyOrder),
+    printf(fh, "  // w[~a]:          Cell-center coordinates. ~%", cdim+vdim),
+    printf(fh, "  // dxv[~a]:        Cell spacing. ~%", cdim+vdim),
+    printf(fh, "  // nuSum:         collisionalities added (self and cross species collisionalities). ~%"),
+    printf(fh, "  // vMuMidMax:     maximum midpoint value of v-u. ~%"),
+    printf(fh, "  // nuUSum[~a]:     sum of bulk velocities times their respective collisionalities. ~%", vdim*NC),
+    printf(fh, "  // nuVtSqSum[~a]:  sum of thermal speeds squared time their respective collisionalities. ~%", NC),
+    printf(fh, "  // fl/fr:         Distribution function in left/right cells ~%"),
+    printf(fh, "  // outl/outr:     Incremented distribution function in left/right cells ~%"),
     printf(fh, "  double rdv = 1.0/dxvl[~a]; ~%", vid1[dir]),
-    printf(fh, "  double rdv2nuL = 2.0*nu/dxvl[~a]; ~%", vid1[dir]),
-    printf(fh, "  double rdv2nuR = 2.0*nu/dxvr[~a]; ~%", vid1[dir]),
-    printf(fh, "  double rdvSq4nuL = 4.0*nu/(dxvl[~a]*dxvl[~a]); ~%", vid1[dir], vid1[dir]),
-    printf(fh, "  double rdvSq4nuR = 4.0*nu/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
+    printf(fh, "  double rdv2L = 2.0/dxvl[~a]; ~%", vid1[dir]),
+    printf(fh, "  double rdv2R = 2.0/dxvr[~a]; ~%", vid1[dir]),
+    printf(fh, "  double rdvSq4L = 4.0/(dxvl[~a]*dxvl[~a]); ~%", vid1[dir], vid1[dir]),
+    printf(fh, "  double rdvSq4R = 4.0/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
     printf(fh, "~%"),
 
     /* Create pointer to component of u relevant to this surface. */
-    printf(fh, "  const double *U~a = &u[~a]; ~%", cvars[dir], NC*(dir-1)),
+    printf(fh, "  const double *sumNuU~a = &nuUSum[~a]; ~%", cvars[dir], NC*(dir-1)),
     printf(fh, "~%"),
 
     /* Declare and populate favg. */
@@ -216,11 +216,11 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     /* Declare and populate fjump. */
     printf(fh, "  double fjump[~a]; ~%", NP),
     for c : 1 thru NP do (
-      printf(fh, "  fjump[~a] = vMuMidMax*(fl[~a]-(~a*fr[~a])); ~%", c-1, c-1, signs[c], c-1)
+      printf(fh, "  fjump[~a] = nuSum*vMuMidMax*(fl[~a]-(~a*fr[~a])); ~%", c-1, c-1, signs[c], c-1)
     ),
     printf(fh, "~%"),
 
-    /* Compute the vl-u drift part of Ghat separately. */
+    /* Compute the nu*(vl-u) drift part of Ghat separately. */
     printf(fh, "  double alphaDrag[~a]; ~%", NC),
     writeCExprs1(alphaDrag,alphaDrag_c),
     printf(fh, "~%"),
@@ -243,7 +243,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "~%"),
 
     printf(fh, "  double incr2[~a]; ~%", NP),
-    clst : makelist(vtSq[i],i,0,NC-1), 
+    clst : makelist(nuVtSqSum[i],i,0,NC-1), 
     writeCExprsCollect1c(incr2, incr_r2, clst),
     printf(fh, "~%"),
   
@@ -257,7 +257,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         incr_s2[i] : 0
     ), 
     /* Write out contribution right cell. */
-    writeCIncrExprs1(outr, rdv2nuR*incr_s1+rdvSq4nuR*incr_s2), 
+    writeCIncrExprs1(outr, rdv2R*incr_s1+rdvSq4R*incr_s2), 
     printf(fh, "~%"),
   
     signs1 : makelist(1,i,1,NP),
@@ -284,7 +284,7 @@ calcConstNuUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         incr_s2[i] : 0
     ), 
     /* Write out contribution to left cell. */
-    writeCIncrExprs1(outl, rdv2nuL*incr_s1+rdvSq4nuL*incr_s2), 
+    writeCIncrExprs1(outl, rdv2L*incr_s1+rdvSq4L*incr_s2), 
     printf(fh, "~%"),
 
     printf(fh, "  return std::abs(~a); ~%", vMuMid),
@@ -316,14 +316,14 @@ calcConstNuBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := b
 
     /* First compute the contribution coming from the second
     ** differentiation by parts to left and right cells. */
-    vtSq_e : doExpand1(vtSq,bC),
+    nuVtSqSum_e : doExpand1(nuVtSqSum,bC),
 
     /* Function expanded in basis. */
     fl_e : doExpand1(fl, bP),
     fr_e : doExpand1(fr, bP),
     /* Contribution from second differentiation by parts. */
-    gl : vtSq_e*fl_e,
-    gr : vtSq_e*fr_e,
+    gl : nuVtSqSum_e*fl_e,
+    gr : nuVtSqSum_e*fr_e,
 
     /* Increments to the right cell (some dimensional factors missing).
     ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
@@ -332,22 +332,22 @@ calcConstNuBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := b
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l2 : -calcInnerProdList(surfVars, 1, subst(vv=1, bPp), subst(vv=1,gl)),
 
-    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], polyOrder),
+    printf(fh, "double ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vvars[dir], polyOrder),
     printf(fh, "  // w[~a]:       Cell-center coordinates.~%", cdim+vdim),
     printf(fh, "  // dxv[~a]:     Cell spacing.~%", cdim+vdim),
     printf(fh, "  // idx[~a]:     current grid index.~%", cdim+vdim),
-    printf(fh, "  // nu:         constant collisionality. ~%"),
-    printf(fh, "  // vMuMidMax:  maximum midpoint value of v-u. ~%"),
-    printf(fh, "  // u[~a]:       bulk velocity (in ~a directions). ~%", vdim*NC, vdim),
-    printf(fh, "  // vtSq[~a]:    thermal speed squared. ~%", NC),
+    printf(fh, "  // nuSum:         collisionalities added (self and cross species collisionalities). ~%"),
+    printf(fh, "  // vMuMidMax:     maximum midpoint value of v-u. ~%"),
+    printf(fh, "  // nuUSum[~a]:     sum of bulk velocities times their respective collisionalities. ~%", vdim*NC, vdim),
+    printf(fh, "  // nuVtSqSum[~a]:  sum of thermal speeds squared time their respective collisionalities. ~%", NC),
     printf(fh, "  // fl/fr:      Distribution function in left/right cells ~%"),
     printf(fh, "  // outl/outr:  Incremented distribution function in left/right cells ~%"),
-    printf(fh, "  double rdvSq4nuL = 4.0*nu/(dxvl[~a]*dxvl[~a]); ~%", vid1[dir], vid1[dir]),
-    printf(fh, "  double rdvSq4nuR = 4.0*nu/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
+    printf(fh, "  double rdvSq4L = 4.0/(dxvl[~a]*dxvl[~a]); ~%", vid1[dir], vid1[dir]),
+    printf(fh, "  double rdvSq4R = 4.0/(dxvr[~a]*dxvr[~a]); ~%", vid1[dir], vid1[dir]),
     printf(fh, "~%"),
 
     /* Write out increments. */
-    clst : makelist(vtSq[i],i,0,NC-1), 
+    clst : makelist(nuVtSqSum[i],i,0,NC-1), 
 
     printf(fh, "  if (idxr[~a] == 1) {~%", vid1[dir]),
     printf(fh, "~%"),
@@ -359,7 +359,7 @@ calcConstNuBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := b
         incr_s2[i] : 0
     ), 
     /* Write out contribution right cell. */
-    writeCIncrExprs1s(outr, rdvSq4nuR*incr_s2), 
+    writeCIncrExprs1s(outr, rdvSq4R*incr_s2), 
     printf(fh, "~%"),
   
     printf(fh, "  } else {~%"),
@@ -372,7 +372,7 @@ calcConstNuBoundaryUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax) := b
         incr_s2[i] : 0
     ), 
     /* Write out contribution to left cell. */
-    writeCIncrExprs1s(outl, rdvSq4nuL*incr_s2), 
+    writeCIncrExprs1s(outl, rdvSq4L*incr_s2), 
     printf(fh, "~%"),
     printf(fh, "  }~%"),
 

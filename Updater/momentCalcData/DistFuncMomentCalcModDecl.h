@@ -15,6 +15,14 @@ void GkMomentCalc1x1vSer_M2par_P1(const double *w, const double *dxv, const doub
 void GkMomentCalc1x1vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x1vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x1vSer(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x1vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x1vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x1vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vSer_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vSer_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -30,6 +38,10 @@ void GkMomentCalc1x1vSer_M2par_P2(const double *w, const double *dxv, const doub
 void GkMomentCalc1x1vSer_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x1vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vSer_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vSer_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -38,6 +50,10 @@ void MomentCalc1x1vSer_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc1x1vSer_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vSer_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x1vSer_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x1vSer_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vSer_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vSer_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vSer_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc1x2vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -56,6 +72,18 @@ void GkMomentCalc1x2vSer_M3par_P1(const double *w, const double *dxv, const doub
 void GkMomentCalc1x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x2vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x2vSer_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x2vSer(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x2vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x2vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vSer_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x2vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vSer_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -73,6 +101,13 @@ void GkMomentCalc1x2vSer_M3par_P2(const double *w, const double *dxv, const doub
 void GkMomentCalc1x2vSer_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x2vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vSer_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x2vSer_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vSer_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -81,6 +116,13 @@ void MomentCalc1x2vSer_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc1x2vSer_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vSer_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x2vSer_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x2vSer_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vSer_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vSer_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vSer_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc1x3vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -90,6 +132,22 @@ void MomentCalc1x3vSer_M2_P1(const double *w, const double *dxv, const double *f
 void MomentCalc1x3vSer_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vSer_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x3vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x3vSer_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x3vSer_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x3vSer(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x3vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x3vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x3vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x3vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vSer_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -98,6 +156,16 @@ void MomentCalc1x3vSer_M2_P2(const double *w, const double *dxv, const double *f
 void MomentCalc1x3vSer_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vSer_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x3vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x3vSer_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vSer_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -106,6 +174,16 @@ void MomentCalc1x3vSer_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc1x3vSer_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vSer_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vSer_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x3vSer_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vSer_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vSer_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc2x2vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -124,6 +202,18 @@ void GkMomentCalc2x2vSer_M3par_P1(const double *w, const double *dxv, const doub
 void GkMomentCalc2x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star2x2vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x2vSer_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star2x2vSer(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star2x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star2x2vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral2x2vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vSer_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x2vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vSer_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -141,6 +231,13 @@ void GkMomentCalc2x2vSer_M3par_P2(const double *w, const double *dxv, const doub
 void GkMomentCalc2x2vSer_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x2vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vSer_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x2vSer_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vSer_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -149,6 +246,13 @@ void MomentCalc2x2vSer_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc2x2vSer_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vSer_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x2vSer_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x2vSer_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vSer_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vSer_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vSer_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc2x3vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -158,6 +262,22 @@ void MomentCalc2x3vSer_M2_P1(const double *w, const double *dxv, const double *f
 void MomentCalc2x3vSer_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vSer_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star2x3vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x3vSer_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x3vSer_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star2x3vSer(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star2x3vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star2x3vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral2x3vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x3vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vSer_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -166,6 +286,16 @@ void MomentCalc2x3vSer_M2_P2(const double *w, const double *dxv, const double *f
 void MomentCalc2x3vSer_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vSer_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x3vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x3vSer_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vSer_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -174,6 +304,16 @@ void MomentCalc2x3vSer_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc2x3vSer_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vSer_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vSer_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x3vSer_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vSer_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vSer_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc3x3vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -183,6 +323,22 @@ void MomentCalc3x3vSer_M2_P1(const double *w, const double *dxv, const double *f
 void MomentCalc3x3vSer_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vSer_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc3x3vSer_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star3x3vSer_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star3x3vSer_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star3x3vSer_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star3x3vSer(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star3x3vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star3x3vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral3x3vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc3x3vSer_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vSer_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -191,6 +347,16 @@ void MomentCalc3x3vSer_M2_P2(const double *w, const double *dxv, const double *f
 void MomentCalc3x3vSer_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vSer_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc3x3vSer_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral3x3vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc3x3vSer_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vSer_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -199,6 +365,16 @@ void MomentCalc3x3vSer_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc3x3vSer_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vSer_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc3x3vSer_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral3x3vSer_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vSer_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vSer_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void GkMomentCalc3x2vSer_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
@@ -210,6 +386,11 @@ void GkMomentCalc3x2vSer_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc3x2vSer_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+void GkM0Star3x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star3x2vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral3x2vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vSer_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void GkMomentCalc3x2vSer_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
@@ -220,6 +401,9 @@ void GkMomentCalc3x2vSer_M2perp_P2(const double *w, const double *dxv, const dou
 void GkMomentCalc3x2vSer_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+void GkBoundaryIntegral3x2vSer_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vSer_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vSer_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vMax_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vMax_M1i_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -232,11 +416,17 @@ void GkMomentCalc1x1vMax_M1_P1(const double *w, const double *dxv, const double 
 void GkMomentCalc1x1vMax_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
-void GkMomentCalc1x1vMax_M2perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
-void GkMomentCalc1x1vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x1vMax_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x1vMax(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x1vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x1vMax(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x1vMax_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vMax_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vMax_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vMax_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -249,11 +439,13 @@ void GkMomentCalc1x1vMax_M1_P2(const double *w, const double *dxv, const double 
 void GkMomentCalc1x1vMax_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_M2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
-void GkMomentCalc1x1vMax_M2perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
-void GkMomentCalc1x1vMax_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x1vMax_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vMax_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x1vMax_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vMax_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vMax_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vMax_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vMax_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vMax_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -262,6 +454,10 @@ void MomentCalc1x1vMax_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc1x1vMax_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vMax_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x1vMax_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x1vMax_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vMax_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vMax_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc1x2vMax_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -280,6 +476,18 @@ void GkMomentCalc1x2vMax_M3par_P1(const double *w, const double *dxv, const doub
 void GkMomentCalc1x2vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x2vMax_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x2vMax_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x2vMax(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x2vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x2vMax(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x2vMax_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vMax_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x2vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vMax_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -297,6 +505,13 @@ void GkMomentCalc1x2vMax_M3par_P2(const double *w, const double *dxv, const doub
 void GkMomentCalc1x2vMax_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc1x2vMax_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vMax_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x2vMax_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vMax_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vMax_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x2vMax_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vMax_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -305,6 +520,13 @@ void MomentCalc1x2vMax_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc1x2vMax_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vMax_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x2vMax_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x2vMax_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vMax_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vMax_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc1x3vMax_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -314,6 +536,22 @@ void MomentCalc1x3vMax_M2_P1(const double *w, const double *dxv, const double *f
 void MomentCalc1x3vMax_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vMax_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x3vMax_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x3vMax_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x3vMax_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x3vMax(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x3vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x3vMax(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x3vMax_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x3vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vMax_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -322,6 +560,16 @@ void MomentCalc1x3vMax_M2_P2(const double *w, const double *dxv, const double *f
 void MomentCalc1x3vMax_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vMax_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vMax_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x3vMax_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x3vMax_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vMax_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -330,6 +578,16 @@ void MomentCalc1x3vMax_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc1x3vMax_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vMax_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vMax_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x3vMax_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vMax_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vMax_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc2x2vMax_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -348,6 +606,18 @@ void GkMomentCalc2x2vMax_M3par_P1(const double *w, const double *dxv, const doub
 void GkMomentCalc2x2vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star2x2vMax_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x2vMax_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star2x2vMax(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star2x2vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star2x2vMax(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral2x2vMax_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vMax_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x2vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vMax_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -365,6 +635,13 @@ void GkMomentCalc2x2vMax_M3par_P2(const double *w, const double *dxv, const doub
 void GkMomentCalc2x2vMax_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc2x2vMax_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vMax_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x2vMax_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vMax_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vMax_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x2vMax_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vMax_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -373,6 +650,13 @@ void MomentCalc2x2vMax_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc2x2vMax_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vMax_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x2vMax_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x2vMax_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vMax_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vMax_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc2x3vMax_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -382,6 +666,22 @@ void MomentCalc2x3vMax_M2_P1(const double *w, const double *dxv, const double *f
 void MomentCalc2x3vMax_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vMax_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star2x3vMax_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x3vMax_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x3vMax_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star2x3vMax(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star2x3vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star2x3vMax(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral2x3vMax_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x3vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vMax_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -390,6 +690,16 @@ void MomentCalc2x3vMax_M2_P2(const double *w, const double *dxv, const double *f
 void MomentCalc2x3vMax_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vMax_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vMax_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x3vMax_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x3vMax_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vMax_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -398,6 +708,16 @@ void MomentCalc2x3vMax_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc2x3vMax_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vMax_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vMax_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x3vMax_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vMax_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vMax_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc3x3vMax_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -407,6 +727,22 @@ void MomentCalc3x3vMax_M2_P1(const double *w, const double *dxv, const double *f
 void MomentCalc3x3vMax_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vMax_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc3x3vMax_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star3x3vMax_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star3x3vMax_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star3x3vMax_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star3x3vMax(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star3x3vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star3x3vMax(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral3x3vMax_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc3x3vMax_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vMax_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -415,6 +751,16 @@ void MomentCalc3x3vMax_M2_P2(const double *w, const double *dxv, const double *f
 void MomentCalc3x3vMax_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vMax_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc3x3vMax_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral3x3vMax_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc3x3vMax_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vMax_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -423,10 +769,18 @@ void MomentCalc3x3vMax_M2_P3(const double *w, const double *dxv, const double *f
 void MomentCalc3x3vMax_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc3x3vMax_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc3x3vMax_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral3x3vMax_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vMax_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vMax_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
-
- 
 void GkMomentCalc3x2vMax_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_M1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
@@ -436,6 +790,11 @@ void GkMomentCalc3x2vMax_M2perp_P1(const double *w, const double *dxv, const dou
 void GkMomentCalc3x2vMax_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+void GkM0Star3x2vMax_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star3x2vMax(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral3x2vMax_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vMax_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vMax_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void GkMomentCalc3x2vMax_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
@@ -446,6 +805,9 @@ void GkMomentCalc3x2vMax_M2perp_P2(const double *w, const double *dxv, const dou
 void GkMomentCalc3x2vMax_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vMax_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+void GkBoundaryIntegral3x2vMax_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vMax_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vMax_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vTensor_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_M1i_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -453,7 +815,22 @@ void MomentCalc1x1vTensor_M2ij_P1(const double *w, const double *dxv, const doub
 void MomentCalc1x1vTensor_M2_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x1vTensor_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x1vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x1vTensor(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x1vTensor_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x1vTensor(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x1vTensor_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vTensor_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vTensor_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vTensor_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vTensor_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -461,7 +838,18 @@ void MomentCalc1x1vTensor_M2ij_P2(const double *w, const double *dxv, const doub
 void MomentCalc1x1vTensor_M2_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x1vTensor_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x1vTensor_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x1vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x1vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vTensor_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vTensor_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x1vTensor_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -470,6 +858,10 @@ void MomentCalc1x1vTensor_M2_P3(const double *w, const double *dxv, const double
 void MomentCalc1x1vTensor_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vTensor_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x1vTensor_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x1vTensor_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vTensor_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x1vTensor_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x1vTensor_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc1x2vTensor_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -478,7 +870,28 @@ void MomentCalc1x2vTensor_M2ij_P1(const double *w, const double *dxv, const doub
 void MomentCalc1x2vTensor_M2_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vTensor_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vTensor_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x2vTensor_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M2perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x2vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x2vTensor_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x2vTensor(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x2vTensor_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x2vTensor(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x2vTensor_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vTensor_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vTensor_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x2vTensor_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vTensor_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -486,7 +899,23 @@ void MomentCalc1x2vTensor_M2ij_P2(const double *w, const double *dxv, const doub
 void MomentCalc1x2vTensor_M2_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vTensor_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vTensor_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc1x2vTensor_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M2perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc1x2vTensor_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc1x2vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x2vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vTensor_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vTensor_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x2vTensor_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vTensor_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -495,6 +924,13 @@ void MomentCalc1x2vTensor_M2_P3(const double *w, const double *dxv, const double
 void MomentCalc1x2vTensor_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x2vTensor_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x2vTensor_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x2vTensor_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vTensor_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x2vTensor_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x2vTensor_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc1x3vTensor_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -504,6 +940,22 @@ void MomentCalc1x3vTensor_M2_P1(const double *w, const double *dxv, const double
 void MomentCalc1x3vTensor_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vTensor_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star1x3vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x3vTensor_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star1x3vTensor_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star1x3vTensor(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star1x3vTensor_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star1x3vTensor(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral1x3vTensor_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x3vTensor_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vTensor_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -512,6 +964,16 @@ void MomentCalc1x3vTensor_M2_P2(const double *w, const double *dxv, const double
 void MomentCalc1x3vTensor_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vTensor_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x3vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc1x3vTensor_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vTensor_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -520,6 +982,16 @@ void MomentCalc1x3vTensor_M2_P3(const double *w, const double *dxv, const double
 void MomentCalc1x3vTensor_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x3vTensor_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc1x3vTensor_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral1x3vTensor_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral1x3vTensor_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral1x3vTensor_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc2x2vTensor_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -528,7 +1000,28 @@ void MomentCalc2x2vTensor_M2ij_P1(const double *w, const double *dxv, const doub
 void MomentCalc2x2vTensor_M2_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vTensor_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vTensor_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc2x2vTensor_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M2perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star2x2vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x2vTensor_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star2x2vTensor(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star2x2vTensor_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star2x2vTensor(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral2x2vTensor_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vTensor_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vTensor_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x2vTensor_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vTensor_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -536,7 +1029,23 @@ void MomentCalc2x2vTensor_M2ij_P2(const double *w, const double *dxv, const doub
 void MomentCalc2x2vTensor_M2_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vTensor_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vTensor_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void GkMomentCalc2x2vTensor_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M2perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc2x2vTensor_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void IntMomentCalc2x2vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x2vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vTensor_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vTensor_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x2vTensor_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vTensor_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -545,6 +1054,13 @@ void MomentCalc2x2vTensor_M2_P3(const double *w, const double *dxv, const double
 void MomentCalc2x2vTensor_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x2vTensor_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x2vTensor_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x2vTensor_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vTensor_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x2vTensor_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x2vTensor_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
 void MomentCalc2x3vTensor_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
@@ -554,6 +1070,22 @@ void MomentCalc2x3vTensor_M2_P1(const double *w, const double *dxv, const double
 void MomentCalc2x3vTensor_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vTensor_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star2x3vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x3vTensor_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star2x3vTensor_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star2x3vTensor(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star2x3vTensor_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star2x3vTensor(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral2x3vTensor_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x3vTensor_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vTensor_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
@@ -562,6 +1094,16 @@ void MomentCalc2x3vTensor_M2_P2(const double *w, const double *dxv, const double
 void MomentCalc2x3vTensor_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vTensor_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x3vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 void MomentCalc2x3vTensor_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vTensor_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
@@ -570,7 +1112,108 @@ void MomentCalc2x3vTensor_M2_P3(const double *w, const double *dxv, const double
 void MomentCalc2x3vTensor_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc2x3vTensor_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
 void IntMomentCalc2x3vTensor_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral2x3vTensor_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral2x3vTensor_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral2x3vTensor_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
+void MomentCalc3x3vTensor_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M1i_P1(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M2ij_P1(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M2_P1(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M3i_P1(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_FiveMoments_P1(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void IntMomentCalc3x3vTensor_P1(const double *w, const double *dxv, const double *f, double *out); 
+void VmM0Star3x3vTensor_VX(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star3x3vTensor_VY(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM0Star3x3vTensor_VZ(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void VmM1iM2Star3x3vTensor(const double *w, const double *dxv, const double *f, double *outM1i, double *outM2); 
+void GkM0Star3x3vTensor_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star3x3vTensor(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral3x3vTensor_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VX_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VY_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VZ_P1(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VZ_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+
+void MomentCalc3x3vTensor_M0_P2(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M1i_P2(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M2ij_P2(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M2_P2(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M3i_P2(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_FiveMoments_P2(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void IntMomentCalc3x3vTensor_P2(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral3x3vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VX_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VY_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VZ_P2(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VZ_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+
+void MomentCalc3x3vTensor_M0_P3(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M1i_P3(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M2ij_P3(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M2_P3(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_M3i_P3(const double *w, const double *dxv, const double *f, double *out); 
+void MomentCalc3x3vTensor_FiveMoments_P3(const double *w, const double *dxv, const double *f, double *outM0, double *outM1i, double *outM2); 
+void IntMomentCalc3x3vTensor_P3(const double *w, const double *dxv, const double *f, double *out); 
+void GkBoundaryIntegral3x3vTensor_F_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VX_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VX_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VY_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VY_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_F_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void VmBoundaryIntegral3x3vTensor_vF_VZ_P3(const bool atLower, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x3vTensor_vF_VZ_P3(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+
+
+void GkMomentCalc3x2vTensor_M0_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M1_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M1proj_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M2_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M2par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M2perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M3par_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+void GkM0Star3x2vTensor_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM1iM2Star3x2vTensor(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
+void GkBoundaryIntegral3x2vTensor_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vTensor_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vTensor_vF_VY_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+
+void GkMomentCalc3x2vTensor_M0_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M1_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M1proj_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M2_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M2par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M2perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M3par_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_M3perp_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
+void GkMomentCalc3x2vTensor_ThreeMoments_P2(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
+void GkBoundaryIntegral3x2vTensor_F_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vTensor_vF_VX_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+void GkBoundaryIntegral3x2vTensor_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
+
+
+ 
 } 
 #endif 

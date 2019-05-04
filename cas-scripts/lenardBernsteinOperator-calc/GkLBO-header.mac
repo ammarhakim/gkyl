@@ -13,13 +13,17 @@ printf(fh, "extern \"C\" { ~%")$
 /* Serendipity basis. */
 for ci : 1 thru 3 do (
   for vi : 1 thru 2 do (
+
     for pi : 1 thru polyOrderMax do (
-      printf(fh, "double GkLBOconstNuVol~ax~avSerP~a(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nu, const double *u, const double *vtSq, const double *f, double *out); ~%", ci, vi, pi),
+      printf(fh, "double GkLBOconstNuVol~ax~avSerP~a(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out); ~%", ci, vi, pi),
+
       for si : 1 thru vi do (
-        printf(fh, "double GkLBOconstNuSurf~ax~avSer_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi),
-        printf(fh, "double GkLBOconstNuBoundarySurf~ax~avSer_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nu, const double vMuMidMax, const double *u, const double *vtSq, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi)
+        printf(fh, "double GkLBOconstNuSurf~ax~avSer_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi),
+
+        printf(fh, "double GkLBOconstNuBoundarySurf~ax~avSer_~a_P~a(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, vi, vVars[si], pi)
       ),
       printf(fh, "~%")
+
     ),
     printf(fh, "~%")
   )
