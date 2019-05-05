@@ -286,10 +286,14 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       for sO, _ in pairs(species) do
          -- Allocate space for this species' cross-primitive moments
          -- only if some other species collides with it.
-         if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN])
-             and (self.uCross[string.gsub(sO .. sN, self.name, "")] == nil) then
-            self.uCross[sO]    = self:allocVectorMoment(self.vdim)
-            self.vtSqCross[sO] = self:allocMoment()
+         if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN]) then
+            otherNm = string.gsub(sO .. sN, self.name, "")
+            if self.uCross[otherNm] == nil then
+               self.uCross[otherNm] = self:allocVectorMoment(self.vdim)
+            end
+            if self.vtSqCross[otherNm] == nil then
+               self.vtSqCross[otherNm] = self:allocMoment()
+            end
          end
       end
    end
@@ -427,7 +431,7 @@ function VlasovSpecies:createDiagnostics()
       return nm == "u" or nm == "vtSq"
    end
    local function isAuxMomentNameGood(nm)
-      return nm == "uCross"
+      return nm == "uCross" or nm == "vtSqCross"
    end
    local function contains(table, element)
      for _, value in pairs(table) do
@@ -438,14 +442,16 @@ function VlasovSpecies:createDiagnostics()
      return false
    end
 
-   local numComp   = {}
-   numComp["M0"]   = 1
-   numComp["M1i"]  = self.vdim
-   numComp["M2ij"] = self.vdim*(self.vdim+1)/2
-   numComp["M2"]   = 1
-   numComp["M3i"]  = self.vdim
-   numComp["u"]    = self.vdim
-   numComp["vtSq"] = 1
+   local numComp        = {}
+   numComp["M0"]        = 1
+   numComp["M1i"]       = self.vdim
+   numComp["M2ij"]      = self.vdim*(self.vdim+1)/2
+   numComp["M2"]        = 1
+   numComp["M3i"]       = self.vdim
+   numComp["u"]         = self.vdim
+   numComp["vtSq"]      = 1
+   numComp["uCross"]    = self.vdim
+   numComp["vtSqCross"] = 1
 
    self.diagnosticMomentFields   = { }
    self.diagnosticMomentUpdaters = { } 
@@ -475,9 +481,34 @@ function VlasovSpecies:createDiagnostics()
          self.diagnosticMoments[i]       = nil
       elseif isAuxMomentNameGood(mom) then
          -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticAuxMoments list.
-         self.diagnosticAuxMoments[mom] = true
-         self.diagnosticMoments[i]      = nil
+         if mom == "uCross" then
+            for nm, _ in pairs(self.uCross) do
+               -- Create one diagnostic for each cross velocity (used in collisions).
+               self.diagnosticAuxMoments[mom .. "-" .. nm] = true
+            end
+         elseif mom == "vtSqCross" then
+            for nm, _ in pairs(self.vtSqCross) do
+               -- Create one diagnostic for each cross temperature (used in collisions).
+               self.diagnosticAuxMoments[mom .. "-" .. nm] = true
+            end
+         else
+            self.diagnosticAuxMoments[mom] = true
+         end
+         self.diagnosticMoments[i] = nil
       end
+   end
+
+   -- Make sure we have the updaters needed to calculate all the aux moments.
+   for i, mom in pairs(self.diagnosticAuxMoments) do
+-- Not supported yet.
+--      if mom == "beta" then
+--         if not self.diagnosticWeakMoments["vtSq"] then
+--            self.diagnosticWeakMoments["vtSq"] = true
+--         end
+--         if not contains(self.diagnosticMoments, "M0") then
+--            table.insert(self.diagnosticMoments, "M0")
+--         end
+--      end
    end
 
    -- Make sure we have the updaters needed to calculate all the weak moments.
@@ -537,6 +568,22 @@ function VlasovSpecies:createDiagnostics()
       elseif mom == "vtSq" then
          self.weakMomentOpFields["vtSq"] = {self.diagnosticMomentFields["M0"], self.diagnosticMomentFields["M2"]}
          self.weakMomentScaleFac["vtSq"] = 1.0/self.vdim
+      end
+   end
+
+   for mom, _ in pairs(self.diagnosticAuxMoments) do
+      if string.find(mom, "uCross") then
+         self.diagnosticMomentFields[mom] = DataStruct.Field {
+            onGrid        = self.confGrid,
+            numComponents = self.confBasis:numBasis()*numComp["uCross"],
+            ghost         = {1, 1}
+         }
+      else
+         self.diagnosticMomentFields[mom] = DataStruct.Field {
+            onGrid        = self.confGrid,
+            numComponents = self.confBasis:numBasis(),
+            ghost         = {1, 1}
+         }
       end
    end
 
@@ -676,6 +723,19 @@ function VlasovSpecies:calcDiagnosticWeakMoments()
       self.weakDotProduct:advance(0.0,
          {self.diagnosticMomentFields["u"], self.diagnosticMomentFields["u"]}, {self.kineticEnergyDensity})
       self.diagnosticMomentFields["vtSq"]:accumulate(-self.weakMomentScaleFac["vtSq"], self.kineticEnergyDensity)
+   end
+end
+
+function VlasovSpecies:calcDiagnosticAuxMoments()
+   for nm, _ in pairs(self.diagnosticAuxMoments) do
+      if string.find(nm, "uCross") then
+         otherNm = string.gsub(nm, "uCross%-", "")
+         self.diagnosticMomentFields[nm]:copy(self.uCross[otherNm])
+      end
+      if string.find(nm, "vtSqCross") then
+         otherNm = string.gsub(nm, "vtSqCross%-", "")
+         self.diagnosticMomentFields[nm]:copy(self.vtSqCross[otherNm])
+      end
    end
 end
 

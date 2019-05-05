@@ -443,10 +443,14 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       for sO, _ in pairs(species) do
          -- Allocate space for this species' cross-primitive moments
          -- only if some other species collides with it.
-         if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN])
-             and (self.uParCross[string.gsub(sO .. sN, self.name, "")] == nil) then
-            self.uParCross[sO] = self:allocMoment()
-            self.vtSqCross[sO] = self:allocMoment()
+         if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN]) then
+            otherNm = string.gsub(sO .. sN, self.name, "")
+            if (self.uParCross[otherNm] == nil) then
+               self.uParCross[otherNm] = self:allocMoment()
+            end
+            if (self.vtSqCross[otherNm] == nil) then
+               self.vtSqCross[otherNm] = self:allocMoment()
+            end
          end
       end
    end
@@ -569,7 +573,7 @@ function GkSpecies:createDiagnostics()
       return nm == "GkUpar" or nm == "GkVtSq" or nm == "GkTpar" or nm == "GkTperp" or nm == "GkTemp"
    end
    local function isAuxMomentNameGood(nm)
-      return nm == "GkBeta"
+      return nm == "GkBeta" or nm == "GkUparCross" or nm == "GkVtSqCross"
    end
    local function contains(table, element)
      for _, value in pairs(table) do
@@ -607,7 +611,19 @@ function GkSpecies:createDiagnostics()
          self.diagnosticMoments[i]       = nil
       elseif isAuxMomentNameGood(mom) then
          -- Remove moment name from self.diagnosticMoments list, and add it to self.diagnosticAuxMoments list.
-         table.insert(self.diagnosticAuxMoments, mom)
+         if mom == "GkUparCross" then
+            for nm, _ in pairs(self.uParCross) do
+               -- Create one diagnostic for each cross velocity (used in collisions).
+               self.diagnosticAuxMoments[mom .. "-" .. nm] = true
+            end
+         elseif mom == "GkVtSqCross" then
+            for nm, _ in pairs(self.vtSqCross) do
+               -- Create one diagnostic for each cross temperature (used in collisions).
+               self.diagnosticAuxMoments[mom .. "-" .. nm] = true
+            end
+         else
+            self.diagnosticAuxMoments[mom] = true
+         end
          self.diagnosticMoments[i] = nil
       end
    end
@@ -710,16 +726,13 @@ function GkSpecies:createDiagnostics()
          self.weakMomentScaleFac["GkTemp"] = self.mass/self.vDegFreedom
       end
    end
-   for i, mom in pairs(self.diagnosticAuxMoments) do
-      if isAuxMomentNameGood(mom) then
-         self.diagnosticMomentFields[mom] = DataStruct.Field {
-            onGrid        = self.confGrid,
-            numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1}
-         }
-      else
-         assert(false, string.format("Moment %s not valid", mom))
-      end
+
+   for mom, _ in pairs(self.diagnosticAuxMoments) do
+      self.diagnosticMomentFields[mom] = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.confBasis:numBasis(),
+         ghost         = {1, 1}
+      }
    end
 end
 
@@ -782,6 +795,16 @@ function GkSpecies:calcDiagnosticAuxMoments()
            {self.diagnosticMomentFields["GkBeta"], self.bmagInv}, 
            {self.diagnosticMomentFields["GkBeta"]})
       self.diagnosticMomentFields["GkBeta"]:scale(2*Constants.MU0)
+   end
+   for nm, _ in pairs(self.diagnosticAuxMoments) do
+      if string.find(nm, "GkUparCross") then
+         otherNm = string.gsub(nm, "GkUparCross%-", "")
+         self.diagnosticMomentFields[nm]:copy(self.uParCross[otherNm])
+      end
+      if string.find(nm, "GkVtSqCross") then
+         otherNm = string.gsub(nm, "GkVtSqCross%-", "")
+         self.diagnosticMomentFields[nm]:copy(self.vtSqCross[otherNm])
+      end
    end
 end
 
