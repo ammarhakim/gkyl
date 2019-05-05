@@ -629,7 +629,7 @@ function GkSpecies:createDiagnostics()
    end
 
    -- Make sure we have the updaters needed to calculate all the aux moments.
-   for i, mom in pairs(self.diagnosticAuxMoments) do
+   for mom, _ in pairs(self.diagnosticAuxMoments) do
       if mom == "GkBeta" then
          if not self.diagnosticWeakMoments["GkTemp"] then 
             self.diagnosticWeakMoments["GkTemp"] = true
