@@ -445,8 +445,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          -- only if some other species collides with it.
          if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN])
              and (self.uParCross[string.gsub(sO .. sN, self.name, "")] == nil) then
-            self.uParCross[otherNm] = self:allocMoment()
-            self.vtSqCross[otherNm] = self:allocMoment()
+            self.uParCross[sO] = self:allocMoment()
+            self.vtSqCross[sO] = self:allocMoment()
          end
       end
    end
