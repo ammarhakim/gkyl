@@ -238,8 +238,9 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     Ef [i,j] := "data->AEM_S"[i,j],
 
     /* Create variable w/ product of mass and collisionality. */  
-    printf(fh, "  double mnuSelf  = ~a; ~%", mSelf*nuSelf),
-    printf(fh, "  double mnuOther = ~a; ~%", mOther*nuOther),
+    printf(fh, "  double mnuSelf   = ~a; ~%", mSelf*nuSelf),
+    printf(fh, "  double mnuOther  = ~a; ~%", mOther*nuOther),
+    printf(fh, "  double deltaSelf = ~a; ~%", sqrt(mnuOther/mnuSelf)),
 
     /* Variable holding addition of M1 moments for RHS vector. */
     printf(fh, "  double mnuM1sum[~a]; ~%", udim*NC),
@@ -622,7 +623,7 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       printf(fh, " ~%"),
 
       /* Include the RHS corresponding to the momentum relaxation rate. */
-      m1Relax_c : mnuSelf*m1Self_c-mnuOther*m1Other_c-mnuSelf*betaGreenep1*(m1Self_c-m1Other_c),
+      m1Relax_c : mnuSelf*m1Self_c-mnuOther*m1Other_c-mnuSelf*deltaSelf*betaGreenep1*(m1Self_c-m1Other_c),
       printf(fh, "  // ... Contribution to RHS vector from component ~a of momentum relaxation. ~%",vd),
       expr : float(expand(m1Relax_c)),
       for i : 1 thru NC do (
@@ -827,11 +828,11 @@ calcCrossPrimMoms(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "  double m2Relax[~a]; ~%", NC),
     if polyOrder=1 then (
       m2Relax_c : mnuSelf*(m2SSelf_c-kinESelf_c)-mnuOther*(m2SOther_c-kinEOther_c)
-                 -mnuSelf*(betaGreenep1/(mSelf+mOther))*(mSelf*(m2Self_c-kinESelf_c)
+                 -mnuSelf*deltaSelf*(betaGreenep1/(mSelf+mOther))*(mSelf*(m2Self_c-kinESelf_c)
                  -mOther*(m2Other_c-kinEOther_c)+0.5*(mSelf-mOther)*calcInnerProdList(varsC,1.0,bC,relKinE_e))
     ) else (
       m2Relax_c : mnuSelf*(m2Self_c-kinESelf_c)-mnuOther*(m2Other_c-kinEOther_c)
-                 -mnuSelf*(betaGreenep1/(mSelf+mOther))*(mSelf*(m2Self_c-kinESelf_c)
+                 -mnuSelf*deltaSelf*(betaGreenep1/(mSelf+mOther))*(mSelf*(m2Self_c-kinESelf_c)
                  -mOther*(m2Other_c-kinEOther_c)+0.5*(mSelf-mOther)*calcInnerProdList(varsC,1.0,bC,relKinE_e))
     ),
     printf(fh, "  // ... Contribution to RHS vector from energy relaxation. ~%"),

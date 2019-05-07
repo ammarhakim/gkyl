@@ -201,39 +201,124 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       return t1
    end
 
-   -- Create a double nested table indicating who collides with whom.
-   self.collPairs               = {}
+   -- Create a double nested table of colliding species.
+   -- In this table we will encode information about that collition such as:
+   --   * does the collision take place?
+   --   * Operator modeling the collision.
+   --   * Does it use constant collisionality or spatially varying.
+   --   * If using constant collisionality, what is its value.
+   -- Other features of a collision may be added in the future, such as
+   -- velocity dependent collisionality, FLR effects, or some specific
+   -- neutral/impurity effect.
+   self.collPairs  = {}
    for sN, _ in pairs(species) do
-      self.collPairs[sN]        = {}
+      self.collPairs[sN] = {}
       for sO, _ in pairs(species) do
+         self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is createded as an empty table. 
          if next(species[sN].collisions) then 
             -- This species collides with someone.
             local selfColl, crossColl, collSpecs = false, false, {}
             -- Obtain the boolean indicating if self/cross collisions affect the sN species.
-            for nm, _ in pairs(species[sN].collisions) do
-               selfColl  = selfColl or species[sN].collisions[nm].selfCollisions
-               crossColl = crossColl or species[sN].collisions[nm].crossCollisions
-               collSpecs = tableConcat(collSpecs, species[sN].collisions[nm].collidingSpecies)
+            for collNm, _ in pairs(species[sN].collisions) do
+               selfColl  = selfColl or species[sN].collisions[collNm].selfCollisions
+               crossColl = crossColl or species[sN].collisions[collNm].crossCollisions
+               collSpecs = tableConcat(collSpecs, species[sN].collisions[collNm].collidingSpecies)
             end
 
+            -- Record if a specific binary collision is turned on.
             if sN == sO then
-               self.collPairs[sN][sO] = selfColl
+               self.collPairs[sN][sO].on   = selfColl
             else
                if crossColl then
                   local specInd = findInd(collSpecs, sO)
                   if specInd < (#collSpecs+1) then
-                     self.collPairs[sN][sO] = true
+                     self.collPairs[sN][sO].on = true
                   else
-                     self.collPairs[sN][sO] = false
+                     self.collPairs[sN][sO].on = false
                   end
                else
-                  self.collPairs[sN][sO] = false
+                  self.collPairs[sN][sO].on = false
                end
             end
+
          else
+
             -- This species does not collide with anyone.
-            self.collPairs[sN][sO] = false
+            self.collPairs[sN][sO].on = false
+
+         end    -- end if next(species[sN].collisions) statement.
+      end
+   end
+
+   for sN, _ in pairs(species) do
+      -- Need next below because species[].collisions is createded as an empty table. 
+      if next(species[sN].collisions) then 
+         for sO, _ in pairs(species) do  -- An if (species[sO].collisions) statement might be needed below.
+            -- Find the kind of a specific collision, and the collision frequency it uses.
+            -- Can use this loop to record other properties of a specific collition in collPairs.
+            for collNmN, _ in pairs(species[sN].collisions) do
+               if self.collPairs[sN][sO].on then
+                  local specInd = findInd(species[sN].collisions[collNmN].collidingSpecies, sO)
+                  if specInd < (#species[sN].collisions[collNmN].collidingSpecies+1) then
+                     -- Collision operator kind.
+                     self.collPairs[sN][sO].kind  = species[sN].collisions[collNmN].collKind
+                     -- Collision frequency type (e.g. constant, spatially varying).
+                     self.collPairs[sN][sO].varNu = species[sN].collisions[collNmN].varNu
+                     if (not self.collPairs[sN][sO].varNu) then
+                        -- Constant collisionality. Record it.
+                        self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
+                     else
+                        if (species[sN].collisions[collNmN].userInputNormNu) then
+                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
+                           self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
+                        end
+                     end
+                  end
+               elseif self.collPairs[sO][sN].on then
+                  -- This species sN doesn't collide with sO, but sO collides with sN.
+                  -- For computing cross-primitive moments, species sO may need the sN-sO
+                  -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
+                  for collNmO, _ in pairs(species[sO].collisions) do
+                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
+                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
+                        if (not self.collPairs[sO][sN].varNu) then
+                           -- Constant collisionality. Record it.
+                           self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                        else
+                           if (species[sO].collisions[collNmO].userInputNormNu) then
+                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
+                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           end
+                        end
+                     end
+                  end
+               end
+            end
+         end    -- end if next(species[sN].collisions) statement.
+      else
+         for sO, _ in pairs(species) do
+            if next(species[sO].collisions) then 
+               for collNmO, _ in pairs(species[sO].collisions) do
+                  if self.collPairs[sO][sN].on then
+                     -- Species sO collides with sN. For computing cross-primitive moments,
+                     -- species sO may need the sN-sO collision frequency. Set it such 
+                     -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
+                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
+                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
+                        if (not self.collPairs[sO][sN].varNu) then
+                           -- Constant collisionality. Record it.
+                           self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                        else
+                           if (species[sO].collisions[collNmO].userInputNormNu) then
+                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
+                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           end
+                        end
+                     end
+                  end
+               end
+            end
          end
       end
    end
@@ -243,15 +328,20 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- then the self-primitive moments may be computed without boundary corrections.
    self.needSelfPrimMom          = false
    self.needCorrectedSelfPrimMom = false
-   if self.collPairs[self.name][self.name] then
+   local needVarNu               = false    -- Also check if spatially varying nu is needed.
+   if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
       self.needCorrectedSelfPrimMom = true
    end
    for sO, _ in pairs(species) do
-      if self.collPairs[self.name][sO] or self.collPairs[sO][self.name] then
+      if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
          self.needSelfPrimMom = true
-         if self.collPairs[sO][sO] then 
+         if self.collPairs[sO][sO].on then 
             self.needCorrectedSelfPrimMom = true
+         end
+
+         if self.collPairs[self.name][sO].varNu or self.collPairs[sO][self.name].varNu then
+            needVarNu = true
          end
       end
    end
@@ -286,13 +376,34 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       for sO, _ in pairs(species) do
          -- Allocate space for this species' cross-primitive moments
          -- only if some other species collides with it.
-         if (sN ~= sO) and (self.collPairs[sN][sO] or self.collPairs[sO][sN]) then
+         if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
             otherNm = string.gsub(sO .. sN, self.name, "")
             if self.uCross[otherNm] == nil then
                self.uCross[otherNm] = self:allocVectorMoment(self.vdim)
             end
             if self.vtSqCross[otherNm] == nil then
                self.vtSqCross[otherNm] = self:allocMoment()
+            end
+         end
+      end
+   end
+
+   if needVarNu then
+      self.nuVarXCross = {}    -- Collisionality varying in configuration space.
+      for sN, _ in pairs(species) do
+         if sN ~= self.name then
+            -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
+            self.momentFlags[6][sN] = false
+         end
+
+         for sO, _ in pairs(species) do
+            -- Allocate space for this species' collision frequency 
+            -- only if some other species collides with it.
+            if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
+               otherNm = string.gsub(sO .. sN, self.name, "")
+               if self.nuVarXCross[otherNm] == nil then
+                  self.nuVarXCross[otherNm] = self:allocMoment()
+               end
             end
          end
       end

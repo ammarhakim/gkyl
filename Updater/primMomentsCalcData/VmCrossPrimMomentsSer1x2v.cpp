@@ -1,4 +1,5 @@
 #include <PrimMomentsModDecl.h> 
+#include <math.h> 
  
 using namespace Eigen; 
  
@@ -115,8 +116,9 @@ void VmCrossPrimMoments1x2vSer_P1(binOpData_t *data, const double betaGreenep1, 
   // Declare Eigen matrix and vectors for weak division. 
   data->AEM_S = Eigen::MatrixXd::Zero(12,12); 
  
-  double mnuSelf  = mSelf*nuSelf; 
-  double mnuOther = mOther*nuOther; 
+  double mnuSelf   = mSelf*nuSelf; 
+  double mnuOther  = mOther*nuOther; 
+  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[4]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<4; vd++) 
@@ -271,8 +273,8 @@ void VmCrossPrimMoments1x2vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(11,7) = 0.9*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
  
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(8,2) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -311,8 +313,8 @@ void VmCrossPrimMoments1x2vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(11,9) = 0.9*m0rOther[1]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1SrOther[2]*mnuOther; 
  
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
-  m1Relax[3] += (m1rOther[3]-1.0*m1rSelf[3])*betaGreenep1*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
  
   double ucMSelf[2]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -398,8 +400,8 @@ void VmCrossPrimMoments1x2vSer_P1(binOpData_t *data, const double betaGreenep1, 
  
   double m2Relax[2]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<2,2>(6,2).setZero(); 
@@ -512,8 +514,9 @@ void VmCrossPrimMoments1x2vSer_P2(binOpData_t *data, const double betaGreenep1, 
   // Declare Eigen matrix and vectors for weak division. 
   data->AEM_S = Eigen::MatrixXd::Zero(18,18); 
  
-  double mnuSelf  = mSelf*nuSelf; 
-  double mnuOther = mOther*nuOther; 
+  double mnuSelf   = mSelf*nuSelf; 
+  double mnuOther  = mOther*nuOther; 
+  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[6]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<6; vd++) 
@@ -771,9 +774,9 @@ void VmCrossPrimMoments1x2vSer_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(17,11) = 1.071428571428571*m0rOther[2]*uOther[2]*mnuOther+0.31943828249997*m0rOther[0]*uOther[2]*mnuOther-0.4517539514526256*m1rOther[2]*mnuOther+0.31943828249997*uOther[0]*m0rOther[2]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
  
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
-  m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(12,3) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -842,9 +845,9 @@ void VmCrossPrimMoments1x2vSer_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(17,14) = 1.071428571428571*m0rOther[2]*uOther[5]*mnuOther+0.31943828249997*m0rOther[0]*uOther[5]*mnuOther-0.4517539514526256*m1rOther[5]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[4]*mnuOther+0.31943828249997*m0rOther[2]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1rOther[3]*mnuOther; 
  
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[3] += (m1rOther[3]-1.0*m1rSelf[3])*betaGreenep1*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
-  m1Relax[4] += (m1rOther[4]-1.0*m1rSelf[4])*betaGreenep1*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
-  m1Relax[5] += (m1rOther[5]-1.0*m1rSelf[5])*betaGreenep1*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
+  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[4] += betaGreenep1*(m1rOther[4]*deltaSelf-1.0*m1rSelf[4]*deltaSelf)*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
+  m1Relax[5] += betaGreenep1*(m1rOther[5]*deltaSelf-1.0*m1rSelf[5]*deltaSelf)*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
  
   double ucMSelf[3]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -945,9 +948,9 @@ void VmCrossPrimMoments1x2vSer_P2(binOpData_t *data, const double betaGreenep1, 
  
   double m2Relax[3]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
-  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*mSelf)/(mSelf+mOther)+(kinESelf[2]*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*mOther)/(mSelf+mOther)+(m2rOther[2]*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[2]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<3,3>(9,3).setZero(); 
@@ -1076,8 +1079,9 @@ void VmCrossPrimMoments1x2vSer_P3(binOpData_t *data, const double betaGreenep1, 
   // Declare Eigen matrix and vectors for weak division. 
   data->AEM_S = Eigen::MatrixXd::Zero(24,24); 
  
-  double mnuSelf  = mSelf*nuSelf; 
-  double mnuOther = mOther*nuOther; 
+  double mnuSelf   = mSelf*nuSelf; 
+  double mnuOther  = mOther*nuOther; 
+  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[8]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<8; vd++) 
@@ -1478,10 +1482,10 @@ void VmCrossPrimMoments1x2vSer_P3(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(23,15) = 1.17972027972028*m0rOther[3]*uOther[3]*mnuOther+0.499917348540637*m0rOther[1]*uOther[3]*mnuOther+0.499917348540637*uOther[1]*m0rOther[3]*mnuOther+0.9242424242424242*m0rOther[2]*uOther[2]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[2]*mnuOther-0.421637021355784*m1rOther[2]*mnuOther+0.2981423969999719*uOther[0]*m0rOther[2]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
  
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
-  m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
-  m1Relax[3] += (m1rOther[3]-1.0*m1rSelf[3])*betaGreenep1*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(16,4) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -1592,10 +1596,10 @@ void VmCrossPrimMoments1x2vSer_P3(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(23,19) = 1.17972027972028*m0rOther[3]*uOther[7]*mnuOther+0.499917348540637*m0rOther[1]*uOther[7]*mnuOther+0.9242424242424242*m0rOther[2]*uOther[6]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[6]*mnuOther-0.421637021355784*m1rOther[6]*mnuOther+0.499917348540637*m0rOther[3]*uOther[5]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[5]*mnuOther+0.2981423969999719*m0rOther[2]*uOther[4]*mnuOther+0.5*m0rOther[0]*uOther[4]*mnuOther-0.7071067811865475*m1rOther[4]*mnuOther; 
  
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[4] += (m1rOther[4]-1.0*m1rSelf[4])*betaGreenep1*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
-  m1Relax[5] += (m1rOther[5]-1.0*m1rSelf[5])*betaGreenep1*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
-  m1Relax[6] += (m1rOther[6]-1.0*m1rSelf[6])*betaGreenep1*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
-  m1Relax[7] += (m1rOther[7]-1.0*m1rSelf[7])*betaGreenep1*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
+  m1Relax[4] += betaGreenep1*(m1rOther[4]*deltaSelf-1.0*m1rSelf[4]*deltaSelf)*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
+  m1Relax[5] += betaGreenep1*(m1rOther[5]*deltaSelf-1.0*m1rSelf[5]*deltaSelf)*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
+  m1Relax[6] += betaGreenep1*(m1rOther[6]*deltaSelf-1.0*m1rSelf[6]*deltaSelf)*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
+  m1Relax[7] += betaGreenep1*(m1rOther[7]*deltaSelf-1.0*m1rSelf[7]*deltaSelf)*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
  
   double ucMSelf[4]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -1715,10 +1719,10 @@ void VmCrossPrimMoments1x2vSer_P3(binOpData_t *data, const double betaGreenep1, 
  
   double m2Relax[4]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
-  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*mSelf)/(mSelf+mOther)+(kinESelf[2]*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*mOther)/(mSelf+mOther)+(m2rOther[2]*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
-  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*mSelf)/(mSelf+mOther)+(kinESelf[3]*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*mOther)/(mSelf+mOther)+(m2rOther[3]*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2rOther[3])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[2]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
+  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[3]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2rOther[3])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<4,4>(12,4).setZero(); 

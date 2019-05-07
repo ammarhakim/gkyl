@@ -1,4 +1,5 @@
 #include <PrimMomentsModDecl.h> 
+#include <math.h> 
  
 using namespace Eigen; 
  
@@ -247,8 +248,9 @@ void VmCrossPrimMoments3x3vMax_P1(binOpData_t *data, const double betaGreenep1, 
   // Declare Eigen matrix and vectors for weak division. 
   data->AEM_S = Eigen::MatrixXd::Zero(32,32); 
  
-  double mnuSelf  = mSelf*nuSelf; 
-  double mnuOther = mOther*nuOther; 
+  double mnuSelf   = mSelf*nuSelf; 
+  double mnuOther  = mOther*nuOther; 
+  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[12]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<12; vd++) 
@@ -623,10 +625,10 @@ void VmCrossPrimMoments3x3vMax_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(31,19) = 0.225*m0rOther[3]*uOther[3]*mnuOther+0.125*m0rOther[2]*uOther[2]*mnuOther+0.125*m0rOther[1]*uOther[1]*mnuOther+0.125*m0rOther[0]*uOther[0]*mnuOther-0.3535533905932737*m1SrOther[0]*mnuOther; 
  
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
-  m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
-  m1Relax[3] += (m1rOther[3]-1.0*m1rSelf[3])*betaGreenep1*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(20,4) = 0.3535533905932737*m0rSelf[0]*mnuSelf; 
@@ -713,10 +715,10 @@ void VmCrossPrimMoments3x3vMax_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(31,23) = 0.225*m0rOther[3]*uOther[7]*mnuOther+0.125*m0rOther[2]*uOther[6]*mnuOther+0.125*m0rOther[1]*uOther[5]*mnuOther+0.125*m0rOther[0]*uOther[4]*mnuOther-0.3535533905932737*m1SrOther[4]*mnuOther; 
  
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[4] += (m1rOther[4]-1.0*m1rSelf[4])*betaGreenep1*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
-  m1Relax[5] += (m1rOther[5]-1.0*m1rSelf[5])*betaGreenep1*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
-  m1Relax[6] += (m1rOther[6]-1.0*m1rSelf[6])*betaGreenep1*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
-  m1Relax[7] += (m1rOther[7]-1.0*m1rSelf[7])*betaGreenep1*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
+  m1Relax[4] += betaGreenep1*(m1rOther[4]*deltaSelf-1.0*m1rSelf[4]*deltaSelf)*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
+  m1Relax[5] += betaGreenep1*(m1rOther[5]*deltaSelf-1.0*m1rSelf[5]*deltaSelf)*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
+  m1Relax[6] += betaGreenep1*(m1rOther[6]*deltaSelf-1.0*m1rSelf[6]*deltaSelf)*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
+  m1Relax[7] += betaGreenep1*(m1rOther[7]*deltaSelf-1.0*m1rSelf[7]*deltaSelf)*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfZ ... // 
   data->AEM_S(24,8) = 0.3535533905932737*m0rSelf[0]*mnuSelf; 
@@ -803,10 +805,10 @@ void VmCrossPrimMoments3x3vMax_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(31,27) = 0.225*m0rOther[3]*uOther[11]*mnuOther+0.125*m0rOther[2]*uOther[10]*mnuOther+0.125*m0rOther[1]*uOther[9]*mnuOther+0.125*m0rOther[0]*uOther[8]*mnuOther-0.3535533905932737*m1SrOther[8]*mnuOther; 
  
   // ... Contribution to RHS vector from component 3 of momentum relaxation. 
-  m1Relax[8] += (m1rOther[8]-1.0*m1rSelf[8])*betaGreenep1*mnuSelf+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
-  m1Relax[9] += (m1rOther[9]-1.0*m1rSelf[9])*betaGreenep1*mnuSelf+m1rSelf[9]*mnuSelf-1.0*m1rOther[9]*mnuOther; 
-  m1Relax[10] += (m1rOther[10]-1.0*m1rSelf[10])*betaGreenep1*mnuSelf+m1rSelf[10]*mnuSelf-1.0*m1rOther[10]*mnuOther; 
-  m1Relax[11] += (m1rOther[11]-1.0*m1rSelf[11])*betaGreenep1*mnuSelf+m1rSelf[11]*mnuSelf-1.0*m1rOther[11]*mnuOther; 
+  m1Relax[8] += betaGreenep1*(m1rOther[8]*deltaSelf-1.0*m1rSelf[8]*deltaSelf)*mnuSelf+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
+  m1Relax[9] += betaGreenep1*(m1rOther[9]*deltaSelf-1.0*m1rSelf[9]*deltaSelf)*mnuSelf+m1rSelf[9]*mnuSelf-1.0*m1rOther[9]*mnuOther; 
+  m1Relax[10] += betaGreenep1*(m1rOther[10]*deltaSelf-1.0*m1rSelf[10]*deltaSelf)*mnuSelf+m1rSelf[10]*mnuSelf-1.0*m1rOther[10]*mnuOther; 
+  m1Relax[11] += betaGreenep1*(m1rOther[11]*deltaSelf-1.0*m1rSelf[11]*deltaSelf)*mnuSelf+m1rSelf[11]*mnuSelf-1.0*m1rOther[11]*mnuOther; 
  
   double ucMSelf[4]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -914,10 +916,10 @@ void VmCrossPrimMoments3x3vMax_P1(binOpData_t *data, const double betaGreenep1, 
  
   double m2Relax[4]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
-  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*mSelf)/(mSelf+mOther)+(kinESelf[2]*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*mOther)/(mSelf+mOther)+(m2rOther[2]*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2SrOther[2])*mnuOther; 
-  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*mSelf)/(mSelf+mOther)+(kinESelf[3]*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*mOther)/(mSelf+mOther)+(m2rOther[3]*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2SrOther[3])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[2]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2SrOther[2])*mnuOther; 
+  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[3]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2SrOther[3])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<4,8>(16,4).setZero(); 
@@ -1222,8 +1224,9 @@ void VmCrossPrimMoments3x3vMax_P2(binOpData_t *data, const double betaGreenep1, 
   // Declare Eigen matrix and vectors for weak division. 
   data->AEM_S = Eigen::MatrixXd::Zero(80,80); 
  
-  double mnuSelf  = mSelf*nuSelf; 
-  double mnuOther = mOther*nuOther; 
+  double mnuSelf   = mSelf*nuSelf; 
+  double mnuOther  = mOther*nuOther; 
+  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[30]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<30; vd++) 
@@ -3230,16 +3233,16 @@ void VmCrossPrimMoments3x3vMax_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(79,49) = 0.2678571428571428*m0rOther[9]*uOther[9]*mnuOther+0.07985957062499249*m0rOther[0]*uOther[9]*mnuOther-0.2258769757263128*m1rOther[9]*mnuOther+0.07985957062499249*uOther[0]*m0rOther[9]*mnuOther+0.125*m0rOther[8]*uOther[8]*mnuOther+0.125*m0rOther[7]*uOther[7]*mnuOther+0.1964285714285714*m0rOther[6]*uOther[6]*mnuOther+0.1964285714285714*m0rOther[5]*uOther[5]*mnuOther+0.125*m0rOther[4]*uOther[4]*mnuOther+0.1964285714285714*m0rOther[3]*uOther[3]*mnuOther+0.125*m0rOther[2]*uOther[2]*mnuOther+0.125*m0rOther[1]*uOther[1]*mnuOther+0.125*m0rOther[0]*uOther[0]*mnuOther-0.3535533905932737*m1rOther[0]*mnuOther; 
  
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += (m1rOther[0]-1.0*m1rSelf[0])*betaGreenep1*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += (m1rOther[1]-1.0*m1rSelf[1])*betaGreenep1*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
-  m1Relax[2] += (m1rOther[2]-1.0*m1rSelf[2])*betaGreenep1*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
-  m1Relax[3] += (m1rOther[3]-1.0*m1rSelf[3])*betaGreenep1*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
-  m1Relax[4] += (m1rOther[4]-1.0*m1rSelf[4])*betaGreenep1*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
-  m1Relax[5] += (m1rOther[5]-1.0*m1rSelf[5])*betaGreenep1*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
-  m1Relax[6] += (m1rOther[6]-1.0*m1rSelf[6])*betaGreenep1*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
-  m1Relax[7] += (m1rOther[7]-1.0*m1rSelf[7])*betaGreenep1*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
-  m1Relax[8] += (m1rOther[8]-1.0*m1rSelf[8])*betaGreenep1*mnuSelf+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
-  m1Relax[9] += (m1rOther[9]-1.0*m1rSelf[9])*betaGreenep1*mnuSelf+m1rSelf[9]*mnuSelf-1.0*m1rOther[9]*mnuOther; 
+  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[4] += betaGreenep1*(m1rOther[4]*deltaSelf-1.0*m1rSelf[4]*deltaSelf)*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
+  m1Relax[5] += betaGreenep1*(m1rOther[5]*deltaSelf-1.0*m1rSelf[5]*deltaSelf)*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
+  m1Relax[6] += betaGreenep1*(m1rOther[6]*deltaSelf-1.0*m1rSelf[6]*deltaSelf)*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
+  m1Relax[7] += betaGreenep1*(m1rOther[7]*deltaSelf-1.0*m1rSelf[7]*deltaSelf)*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
+  m1Relax[8] += betaGreenep1*(m1rOther[8]*deltaSelf-1.0*m1rSelf[8]*deltaSelf)*mnuSelf+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
+  m1Relax[9] += betaGreenep1*(m1rOther[9]*deltaSelf-1.0*m1rSelf[9]*deltaSelf)*mnuSelf+m1rSelf[9]*mnuSelf-1.0*m1rOther[9]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(50,10) = 0.3535533905932737*m0rSelf[0]*mnuSelf; 
@@ -3734,16 +3737,16 @@ void VmCrossPrimMoments3x3vMax_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(79,59) = 0.2678571428571428*m0rOther[9]*uOther[19]*mnuOther+0.07985957062499249*m0rOther[0]*uOther[19]*mnuOther-0.2258769757263128*m1rOther[19]*mnuOther+0.125*m0rOther[8]*uOther[18]*mnuOther+0.125*m0rOther[7]*uOther[17]*mnuOther+0.1964285714285714*m0rOther[6]*uOther[16]*mnuOther+0.1964285714285714*m0rOther[5]*uOther[15]*mnuOther+0.125*m0rOther[4]*uOther[14]*mnuOther+0.1964285714285714*m0rOther[3]*uOther[13]*mnuOther+0.125*m0rOther[2]*uOther[12]*mnuOther+0.125*m0rOther[1]*uOther[11]*mnuOther+0.07985957062499249*m0rOther[9]*uOther[10]*mnuOther+0.125*m0rOther[0]*uOther[10]*mnuOther-0.3535533905932737*m1rOther[10]*mnuOther; 
  
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[10] += (m1rOther[10]-1.0*m1rSelf[10])*betaGreenep1*mnuSelf+m1rSelf[10]*mnuSelf-1.0*m1rOther[10]*mnuOther; 
-  m1Relax[11] += (m1rOther[11]-1.0*m1rSelf[11])*betaGreenep1*mnuSelf+m1rSelf[11]*mnuSelf-1.0*m1rOther[11]*mnuOther; 
-  m1Relax[12] += (m1rOther[12]-1.0*m1rSelf[12])*betaGreenep1*mnuSelf+m1rSelf[12]*mnuSelf-1.0*m1rOther[12]*mnuOther; 
-  m1Relax[13] += (m1rOther[13]-1.0*m1rSelf[13])*betaGreenep1*mnuSelf+m1rSelf[13]*mnuSelf-1.0*m1rOther[13]*mnuOther; 
-  m1Relax[14] += (m1rOther[14]-1.0*m1rSelf[14])*betaGreenep1*mnuSelf+m1rSelf[14]*mnuSelf-1.0*m1rOther[14]*mnuOther; 
-  m1Relax[15] += (m1rOther[15]-1.0*m1rSelf[15])*betaGreenep1*mnuSelf+m1rSelf[15]*mnuSelf-1.0*m1rOther[15]*mnuOther; 
-  m1Relax[16] += (m1rOther[16]-1.0*m1rSelf[16])*betaGreenep1*mnuSelf+m1rSelf[16]*mnuSelf-1.0*m1rOther[16]*mnuOther; 
-  m1Relax[17] += (m1rOther[17]-1.0*m1rSelf[17])*betaGreenep1*mnuSelf+m1rSelf[17]*mnuSelf-1.0*m1rOther[17]*mnuOther; 
-  m1Relax[18] += (m1rOther[18]-1.0*m1rSelf[18])*betaGreenep1*mnuSelf+m1rSelf[18]*mnuSelf-1.0*m1rOther[18]*mnuOther; 
-  m1Relax[19] += (m1rOther[19]-1.0*m1rSelf[19])*betaGreenep1*mnuSelf+m1rSelf[19]*mnuSelf-1.0*m1rOther[19]*mnuOther; 
+  m1Relax[10] += betaGreenep1*(m1rOther[10]*deltaSelf-1.0*m1rSelf[10]*deltaSelf)*mnuSelf+m1rSelf[10]*mnuSelf-1.0*m1rOther[10]*mnuOther; 
+  m1Relax[11] += betaGreenep1*(m1rOther[11]*deltaSelf-1.0*m1rSelf[11]*deltaSelf)*mnuSelf+m1rSelf[11]*mnuSelf-1.0*m1rOther[11]*mnuOther; 
+  m1Relax[12] += betaGreenep1*(m1rOther[12]*deltaSelf-1.0*m1rSelf[12]*deltaSelf)*mnuSelf+m1rSelf[12]*mnuSelf-1.0*m1rOther[12]*mnuOther; 
+  m1Relax[13] += betaGreenep1*(m1rOther[13]*deltaSelf-1.0*m1rSelf[13]*deltaSelf)*mnuSelf+m1rSelf[13]*mnuSelf-1.0*m1rOther[13]*mnuOther; 
+  m1Relax[14] += betaGreenep1*(m1rOther[14]*deltaSelf-1.0*m1rSelf[14]*deltaSelf)*mnuSelf+m1rSelf[14]*mnuSelf-1.0*m1rOther[14]*mnuOther; 
+  m1Relax[15] += betaGreenep1*(m1rOther[15]*deltaSelf-1.0*m1rSelf[15]*deltaSelf)*mnuSelf+m1rSelf[15]*mnuSelf-1.0*m1rOther[15]*mnuOther; 
+  m1Relax[16] += betaGreenep1*(m1rOther[16]*deltaSelf-1.0*m1rSelf[16]*deltaSelf)*mnuSelf+m1rSelf[16]*mnuSelf-1.0*m1rOther[16]*mnuOther; 
+  m1Relax[17] += betaGreenep1*(m1rOther[17]*deltaSelf-1.0*m1rSelf[17]*deltaSelf)*mnuSelf+m1rSelf[17]*mnuSelf-1.0*m1rOther[17]*mnuOther; 
+  m1Relax[18] += betaGreenep1*(m1rOther[18]*deltaSelf-1.0*m1rSelf[18]*deltaSelf)*mnuSelf+m1rSelf[18]*mnuSelf-1.0*m1rOther[18]*mnuOther; 
+  m1Relax[19] += betaGreenep1*(m1rOther[19]*deltaSelf-1.0*m1rSelf[19]*deltaSelf)*mnuSelf+m1rSelf[19]*mnuSelf-1.0*m1rOther[19]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfZ ... // 
   data->AEM_S(60,20) = 0.3535533905932737*m0rSelf[0]*mnuSelf; 
@@ -4238,16 +4241,16 @@ void VmCrossPrimMoments3x3vMax_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(79,69) = 0.2678571428571428*m0rOther[9]*uOther[29]*mnuOther+0.07985957062499249*m0rOther[0]*uOther[29]*mnuOther-0.2258769757263128*m1rOther[29]*mnuOther+0.125*m0rOther[8]*uOther[28]*mnuOther+0.125*m0rOther[7]*uOther[27]*mnuOther+0.1964285714285714*m0rOther[6]*uOther[26]*mnuOther+0.1964285714285714*m0rOther[5]*uOther[25]*mnuOther+0.125*m0rOther[4]*uOther[24]*mnuOther+0.1964285714285714*m0rOther[3]*uOther[23]*mnuOther+0.125*m0rOther[2]*uOther[22]*mnuOther+0.125*m0rOther[1]*uOther[21]*mnuOther+0.07985957062499249*m0rOther[9]*uOther[20]*mnuOther+0.125*m0rOther[0]*uOther[20]*mnuOther-0.3535533905932737*m1rOther[20]*mnuOther; 
  
   // ... Contribution to RHS vector from component 3 of momentum relaxation. 
-  m1Relax[20] += (m1rOther[20]-1.0*m1rSelf[20])*betaGreenep1*mnuSelf+m1rSelf[20]*mnuSelf-1.0*m1rOther[20]*mnuOther; 
-  m1Relax[21] += (m1rOther[21]-1.0*m1rSelf[21])*betaGreenep1*mnuSelf+m1rSelf[21]*mnuSelf-1.0*m1rOther[21]*mnuOther; 
-  m1Relax[22] += (m1rOther[22]-1.0*m1rSelf[22])*betaGreenep1*mnuSelf+m1rSelf[22]*mnuSelf-1.0*m1rOther[22]*mnuOther; 
-  m1Relax[23] += (m1rOther[23]-1.0*m1rSelf[23])*betaGreenep1*mnuSelf+m1rSelf[23]*mnuSelf-1.0*m1rOther[23]*mnuOther; 
-  m1Relax[24] += (m1rOther[24]-1.0*m1rSelf[24])*betaGreenep1*mnuSelf+m1rSelf[24]*mnuSelf-1.0*m1rOther[24]*mnuOther; 
-  m1Relax[25] += (m1rOther[25]-1.0*m1rSelf[25])*betaGreenep1*mnuSelf+m1rSelf[25]*mnuSelf-1.0*m1rOther[25]*mnuOther; 
-  m1Relax[26] += (m1rOther[26]-1.0*m1rSelf[26])*betaGreenep1*mnuSelf+m1rSelf[26]*mnuSelf-1.0*m1rOther[26]*mnuOther; 
-  m1Relax[27] += (m1rOther[27]-1.0*m1rSelf[27])*betaGreenep1*mnuSelf+m1rSelf[27]*mnuSelf-1.0*m1rOther[27]*mnuOther; 
-  m1Relax[28] += (m1rOther[28]-1.0*m1rSelf[28])*betaGreenep1*mnuSelf+m1rSelf[28]*mnuSelf-1.0*m1rOther[28]*mnuOther; 
-  m1Relax[29] += (m1rOther[29]-1.0*m1rSelf[29])*betaGreenep1*mnuSelf+m1rSelf[29]*mnuSelf-1.0*m1rOther[29]*mnuOther; 
+  m1Relax[20] += betaGreenep1*(m1rOther[20]*deltaSelf-1.0*m1rSelf[20]*deltaSelf)*mnuSelf+m1rSelf[20]*mnuSelf-1.0*m1rOther[20]*mnuOther; 
+  m1Relax[21] += betaGreenep1*(m1rOther[21]*deltaSelf-1.0*m1rSelf[21]*deltaSelf)*mnuSelf+m1rSelf[21]*mnuSelf-1.0*m1rOther[21]*mnuOther; 
+  m1Relax[22] += betaGreenep1*(m1rOther[22]*deltaSelf-1.0*m1rSelf[22]*deltaSelf)*mnuSelf+m1rSelf[22]*mnuSelf-1.0*m1rOther[22]*mnuOther; 
+  m1Relax[23] += betaGreenep1*(m1rOther[23]*deltaSelf-1.0*m1rSelf[23]*deltaSelf)*mnuSelf+m1rSelf[23]*mnuSelf-1.0*m1rOther[23]*mnuOther; 
+  m1Relax[24] += betaGreenep1*(m1rOther[24]*deltaSelf-1.0*m1rSelf[24]*deltaSelf)*mnuSelf+m1rSelf[24]*mnuSelf-1.0*m1rOther[24]*mnuOther; 
+  m1Relax[25] += betaGreenep1*(m1rOther[25]*deltaSelf-1.0*m1rSelf[25]*deltaSelf)*mnuSelf+m1rSelf[25]*mnuSelf-1.0*m1rOther[25]*mnuOther; 
+  m1Relax[26] += betaGreenep1*(m1rOther[26]*deltaSelf-1.0*m1rSelf[26]*deltaSelf)*mnuSelf+m1rSelf[26]*mnuSelf-1.0*m1rOther[26]*mnuOther; 
+  m1Relax[27] += betaGreenep1*(m1rOther[27]*deltaSelf-1.0*m1rSelf[27]*deltaSelf)*mnuSelf+m1rSelf[27]*mnuSelf-1.0*m1rOther[27]*mnuOther; 
+  m1Relax[28] += betaGreenep1*(m1rOther[28]*deltaSelf-1.0*m1rSelf[28]*deltaSelf)*mnuSelf+m1rSelf[28]*mnuSelf-1.0*m1rOther[28]*mnuOther; 
+  m1Relax[29] += betaGreenep1*(m1rOther[29]*deltaSelf-1.0*m1rSelf[29]*deltaSelf)*mnuSelf+m1rSelf[29]*mnuSelf-1.0*m1rOther[29]*mnuOther; 
  
   double ucMSelf[10]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -4505,16 +4508,16 @@ void VmCrossPrimMoments3x3vMax_P2(binOpData_t *data, const double betaGreenep1, 
  
   double m2Relax[10]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*mSelf)/(mSelf+mOther)+(kinESelf[0]*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*mOther)/(mSelf+mOther)+(m2rOther[0]*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*mSelf)/(mSelf+mOther)+(kinESelf[1]*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*mOther)/(mSelf+mOther)+(m2rOther[1]*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
-  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*mSelf)/(mSelf+mOther)+(kinESelf[2]*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*mOther)/(mSelf+mOther)+(m2rOther[2]*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
-  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*mSelf)/(mSelf+mOther)+(kinESelf[3]*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*mOther)/(mSelf+mOther)+(m2rOther[3]*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2rOther[3])*mnuOther; 
-  m2Relax[4] = betaGreenep1*((-(0.5*relKinE[4]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[4]*mSelf)/(mSelf+mOther)+(kinESelf[4]*mSelf)/(mSelf+mOther)+(0.5*relKinE[4]*mOther)/(mSelf+mOther)+(m2rOther[4]*mOther)/(mSelf+mOther)-(1.0*kinEOther[4]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[4]-1.0*kinESelf[4])*mnuSelf+(kinEOther[4]-1.0*m2rOther[4])*mnuOther; 
-  m2Relax[5] = betaGreenep1*((-(0.5*relKinE[5]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[5]*mSelf)/(mSelf+mOther)+(kinESelf[5]*mSelf)/(mSelf+mOther)+(0.5*relKinE[5]*mOther)/(mSelf+mOther)+(m2rOther[5]*mOther)/(mSelf+mOther)-(1.0*kinEOther[5]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[5]-1.0*kinESelf[5])*mnuSelf+(kinEOther[5]-1.0*m2rOther[5])*mnuOther; 
-  m2Relax[6] = betaGreenep1*((-(0.5*relKinE[6]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[6]*mSelf)/(mSelf+mOther)+(kinESelf[6]*mSelf)/(mSelf+mOther)+(0.5*relKinE[6]*mOther)/(mSelf+mOther)+(m2rOther[6]*mOther)/(mSelf+mOther)-(1.0*kinEOther[6]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[6]-1.0*kinESelf[6])*mnuSelf+(kinEOther[6]-1.0*m2rOther[6])*mnuOther; 
-  m2Relax[7] = betaGreenep1*((-(0.5*relKinE[7]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[7]*mSelf)/(mSelf+mOther)+(kinESelf[7]*mSelf)/(mSelf+mOther)+(0.5*relKinE[7]*mOther)/(mSelf+mOther)+(m2rOther[7]*mOther)/(mSelf+mOther)-(1.0*kinEOther[7]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[7]-1.0*kinESelf[7])*mnuSelf+(kinEOther[7]-1.0*m2rOther[7])*mnuOther; 
-  m2Relax[8] = betaGreenep1*((-(0.5*relKinE[8]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[8]*mSelf)/(mSelf+mOther)+(kinESelf[8]*mSelf)/(mSelf+mOther)+(0.5*relKinE[8]*mOther)/(mSelf+mOther)+(m2rOther[8]*mOther)/(mSelf+mOther)-(1.0*kinEOther[8]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[8]-1.0*kinESelf[8])*mnuSelf+(kinEOther[8]-1.0*m2rOther[8])*mnuOther; 
-  m2Relax[9] = betaGreenep1*((-(0.5*relKinE[9]*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[9]*mSelf)/(mSelf+mOther)+(kinESelf[9]*mSelf)/(mSelf+mOther)+(0.5*relKinE[9]*mOther)/(mSelf+mOther)+(m2rOther[9]*mOther)/(mSelf+mOther)-(1.0*kinEOther[9]*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[9]-1.0*kinESelf[9])*mnuSelf+(kinEOther[9]-1.0*m2rOther[9])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[2]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
+  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[3]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2rOther[3])*mnuOther; 
+  m2Relax[4] = betaGreenep1*((-(0.5*relKinE[4]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[4]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[4]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[4]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[4]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[4]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[4]-1.0*kinESelf[4])*mnuSelf+(kinEOther[4]-1.0*m2rOther[4])*mnuOther; 
+  m2Relax[5] = betaGreenep1*((-(0.5*relKinE[5]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[5]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[5]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[5]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[5]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[5]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[5]-1.0*kinESelf[5])*mnuSelf+(kinEOther[5]-1.0*m2rOther[5])*mnuOther; 
+  m2Relax[6] = betaGreenep1*((-(0.5*relKinE[6]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[6]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[6]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[6]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[6]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[6]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[6]-1.0*kinESelf[6])*mnuSelf+(kinEOther[6]-1.0*m2rOther[6])*mnuOther; 
+  m2Relax[7] = betaGreenep1*((-(0.5*relKinE[7]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[7]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[7]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[7]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[7]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[7]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[7]-1.0*kinESelf[7])*mnuSelf+(kinEOther[7]-1.0*m2rOther[7])*mnuOther; 
+  m2Relax[8] = betaGreenep1*((-(0.5*relKinE[8]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[8]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[8]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[8]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[8]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[8]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[8]-1.0*kinESelf[8])*mnuSelf+(kinEOther[8]-1.0*m2rOther[8])*mnuOther; 
+  m2Relax[9] = betaGreenep1*((-(0.5*relKinE[9]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[9]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[9]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[9]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[9]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[9]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[9]-1.0*kinESelf[9])*mnuSelf+(kinEOther[9]-1.0*m2rOther[9])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<10,20>(40,10).setZero(); 
