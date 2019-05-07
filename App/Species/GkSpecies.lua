@@ -430,6 +430,78 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   -- Here we wish to record some properties of each collision in collPairs.
+   for sN, _ in pairs(species) do
+      -- Need next below because species[].collisions is createded as an empty table.
+      if next(species[sN].collisions) then
+         for sO, _ in pairs(species) do
+            -- Find the kind of a specific collision, and the collision frequency it uses.
+            for collNmN, _ in pairs(species[sN].collisions) do
+               if self.collPairs[sN][sO].on then
+                  local specInd = findInd(species[sN].collisions[collNmN].collidingSpecies, sO)
+                  if specInd < (#species[sN].collisions[collNmN].collidingSpecies+1) then
+                     -- Collision operator kind.
+                     self.collPairs[sN][sO].kind  = species[sN].collisions[collNmN].collKind
+                     -- Collision frequency type (e.g. constant, spatially varying).
+                     self.collPairs[sN][sO].varNu = species[sN].collisions[collNmN].varNu
+                     if (not self.collPairs[sN][sO].varNu) then
+                        -- Constant collisionality. Record it.
+                        self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
+                     else
+                        if (species[sN].collisions[collNmN].userInputNormNu) then
+                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
+                           self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
+                        end
+                     end
+                  end
+               elseif self.collPairs[sO][sN].on then
+                  -- This species sN doesn't collide with sO, but sO collides with sN.
+                  -- For computing cross-primitive moments, species sO may need the sN-sO
+                  -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
+                  for collNmO, _ in pairs(species[sO].collisions) do
+                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
+                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
+                        if (not self.collPairs[sO][sN].varNu) then
+                           -- Constant collisionality. Record it.
+                           self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                        else
+                           if (species[sO].collisions[collNmO].userInputNormNu) then
+                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
+                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           end
+                        end
+                     end
+                  end
+               end
+            end
+         end    -- end if next(species[sN].collisions) statement.
+      else
+         for sO, _ in pairs(species) do
+            if next(species[sO].collisions) then
+               for collNmO, _ in pairs(species[sO].collisions) do
+                  if self.collPairs[sO][sN].on then
+                     -- Species sO collides with sN. For computing cross-primitive moments,
+                     -- species sO may need the sN-sO collision frequency. Set it such
+                     -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
+                     local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
+                     if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
+                        if (not self.collPairs[sO][sN].varNu) then
+                           -- Constant collisionality. Record it.
+                           self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                        else
+                           if (species[sO].collisions[collNmO].userInputNormNu) then
+                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
+                              self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           end
+                        end
+                     end
+                  end
+               end
+            end
+         end
+      end
+   end
+
    -- Determine if self primitive moments and boundary corrections are needed.
    -- If a pair of species only has cross-species collisions (no self-collisions)
    -- then the self-primitive moments may be computed without boundary corrections.

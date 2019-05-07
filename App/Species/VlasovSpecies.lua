@@ -228,7 +228,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
 
             -- Record if a specific binary collision is turned on.
             if sN == sO then
-               self.collPairs[sN][sO].on   = selfColl
+               self.collPairs[sN][sO].on = selfColl
             else
                if crossColl then
                   local specInd = findInd(collSpecs, sO)
@@ -251,12 +251,12 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       end
    end
 
+   -- Here we wish to record some properties of each collision in collPairs.
    for sN, _ in pairs(species) do
       -- Need next below because species[].collisions is createded as an empty table. 
       if next(species[sN].collisions) then 
-         for sO, _ in pairs(species) do  -- An if (species[sO].collisions) statement might be needed below.
+         for sO, _ in pairs(species) do
             -- Find the kind of a specific collision, and the collision frequency it uses.
-            -- Can use this loop to record other properties of a specific collition in collPairs.
             for collNmN, _ in pairs(species[sN].collisions) do
                if self.collPairs[sN][sO].on then
                   local specInd = findInd(species[sN].collisions[collNmN].collidingSpecies, sO)
