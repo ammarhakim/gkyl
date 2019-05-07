@@ -39,6 +39,7 @@ for bInd : 1 thru length(bName) do (
       fh : openw(fname),
 
       printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+      printf(fh, "#include <math.h> ~%"),
       printf(fh, " ~%"),
       printf(fh, "using namespace Eigen; ~%"),
       printf(fh, " ~%"),

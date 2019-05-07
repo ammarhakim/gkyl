@@ -503,9 +503,10 @@ function KineticSpecies:alloc(nRkDup)
    for iF = 1,4 do
       self.momentFlags[iF] = false
    end
-   -- The last entries corresponds to uCross and vtSqCross and we need
-   -- a table to store a flag for each pair of species colliding.
-   self.momentFlags[5] = {}
+   -- The fifth and sixth entries need a table to store 
+   -- a flag for each pair of species colliding.
+   self.momentFlags[5] = {}  -- Corresponds to uCross and vtSqCross.
+   self.momentFlags[6] = {}  -- Corresponds to varNuXCross.
 
 end
 
