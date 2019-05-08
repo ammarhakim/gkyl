@@ -8,6 +8,7 @@
 
 local SourceBase = require "App.Sources.SourceBase"
 local DataStruct = require "DataStruct"
+local Basis = require "Basis"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
@@ -47,6 +48,10 @@ function CollisionlessEmSource:fullInit(appTbl)
    self.hasSigmaField = tbl.hasSigmaField
    self.hasAuxSourceFunction = tbl.hasAuxSourceFunction
    self.auxSourceFunction = tbl.auxSourceFunction
+
+   self.hasStaticEm = tbl.hasStaticEm
+   self.staticEmFunc = tbl.staticEmFunction
+   self.staticEm = nil
 end
 
 function CollisionlessEmSource:setName(nm)
@@ -83,6 +88,26 @@ function CollisionlessEmSource:createSolver(species, field)
       end
    end
 
+   local hasStaticEm = false
+   if self.hasStaticEm then
+      local ndim = self.grid:ndim()
+      local polyOrder = 0
+      self.basis = Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
+      self.staticEm = DataStruct.Field {
+         onGrid = self.grid,
+         numComponents = 6,
+         ghost = {2, 2}
+      }
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.staticEmFunc,
+         projectOnGhosts = true,
+      }
+      project:advance(0.0, {}, {self.staticEm})
+      hasStaticEm = true
+   end
+
    if source_type == 5 then
       self.slvr = Updater.FiveMomentSrc {
          onGrid = self.grid,
@@ -101,6 +126,7 @@ function CollisionlessEmSource:createSolver(species, field)
          sigmaField = self.sigmaField,
          hasAuxSourceFunction = self.hasAuxSourceFunction,
          auxSourceFunction = self.auxSourceFunction,
+         hasStaticField = hasStaticEm,
       }
    elseif source_type == 10 then
       self.slvr = Updater.TenMomentSrc {
@@ -120,6 +146,7 @@ function CollisionlessEmSource:createSolver(species, field)
          sigmaField = self.sigmaField,
          hasAuxSourceFunction = self.hasAuxSourceFunction,
          auxSourceFunction = self.auxSourceFunction,
+         hasStaticField = hasStaticEm,
       }
    else
       assert(false, string.format("source_type %s not supported.", source_type))
@@ -138,7 +165,7 @@ function CollisionlessEmSource:updateSource(tCurr, dt, speciesVar, fieldVar)
    end
    outVars[#self.speciesList+1] = fieldVar
    self.slvr:setDtAndCflRate(dt, nil)
-   return self.slvr:advance(tCurr, {}, outVars)
+   return self.slvr:advance(tCurr, {self.staticEm}, outVars)
 end
 
 function CollisionlessEmSource:write(tm, frame)
