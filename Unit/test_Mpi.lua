@@ -717,7 +717,7 @@ function test_14(comm, nlayer, numComponents, ordering)
 
    local rnk = Mpi.Comm_rank(comm)
    if sz ~= 2 then
-      log("Test for MPI_Datatype (test_13) not run as number of procs not exactly 2")
+      log("Test for MPI_Datatype (test_14) not run as number of procs not exactly 2")
       return
    end
 
@@ -817,6 +817,68 @@ function test_14(comm, nlayer, numComponents, ordering)
    end   
 end
 
+function test_15(comm, nlayer, numComponents, ordering)
+   -- tests MPI_Datatype API with a sub-region of a given region
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype (test_15) not run as number of procs not exactly 2")
+      return
+   end
+
+   local range = Range.Range({1, 1}, {10, 20})
+   local rangeX = Range.Range(
+      {range:lower(1), range:lower(2)+nlayer},
+      {range:lower(1), range:upper(2)-nlayer})
+   local rangeY = Range.Range(
+      {range:lower(1)+nlayer, range:lower(2)},
+      {range:upper(1)-nlayer, range:lower(2)})
+   
+   local dTypeX = Mpi.createDataTypeFromRangeAndSubRange(rangeX, range, numComponents, ordering, Mpi.DOUBLE)
+   --local dTypeY = Mpi.createDataTypeFromRangeAndSubRange(rangeY, range, numComponents, ordering, Mpi.DOUBLE)
+
+   local nz = range:volume()*numComponents
+   local buff = Alloc.Double(nz)
+
+   local indexer = range:indexer(ordering)   
+   local function cidx(i,j,c)
+      return (indexer(i,j)-1)*numComponents+c
+   end
+   
+   if rnk == 0 then
+      for i = range:lower(1), range:upper(1) do
+   	 for j = range:lower(2), range:upper(2) do
+   	    for k = 1, numComponents do
+   	       buff[cidx(i,j,k)] = i+20*j+0.5+1000*k
+   	    end
+   	 end
+      end
+   end
+
+   -- X direction
+   if rnk == 0 then
+      -- send box
+      local loc = cidx(rangeX:lower(1), rangeX:lower(2), 0)
+      Mpi.Send(buff:data()+loc, 1, dTypeX, 1, 42, comm)
+   else
+      -- recv box
+      local loc = cidx(rangeX:lower(1), rangeX:lower(2), 0)      
+      Mpi.Recv(buff:data()+loc, 1, dTypeX, 0, 42, comm, nil)
+
+      for i = rangeX:lower(1), rangeX:upper(1) do
+	 for j = rangeX:lower(2), rangeX:upper(2) do
+	    for k = 1, numComponents do
+	       assert_equal(i+20*j+0.5+1000*k, buff[cidx(i,j,k)],
+			    string.format("Checking lower X-direction send/recv (%d,%d;%d [%d])",
+					  i,j,k,cidx(i,j,k)))
+	    end
+	 end
+      end
+   end
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -830,15 +892,33 @@ test_8(Mpi.COMM_WORLD)
 test_9(Mpi.COMM_WORLD)
 test_10(Mpi.COMM_WORLD)
 test_11(Mpi.COMM_WORLD)
+
 test_12(Mpi.COMM_WORLD, 1, Range.rowMajor)
 test_12(Mpi.COMM_WORLD, 1, Range.colMajor)
 test_12(Mpi.COMM_WORLD, 2, Range.rowMajor)
 test_12(Mpi.COMM_WORLD, 2, Range.colMajor)
 test_12(Mpi.COMM_WORLD, 3, Range.rowMajor)
 test_12(Mpi.COMM_WORLD, 3, Range.colMajor)
+
 test_13(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+
 test_14(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
 test_14(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+
+test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
