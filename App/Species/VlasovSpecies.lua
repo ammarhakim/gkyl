@@ -216,7 +216,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       for sO, _ in pairs(species) do
          self.collPairs[sN][sO] = {}
          -- Need next below because species[].collisions is createded as an empty table. 
-         if next(species[sN].collisions) then 
+         if species[sN].collisions and next(species[sN].collisions) then 
             -- This species collides with someone.
             local selfColl, crossColl, collSpecs = false, false, {}
             -- Obtain the boolean indicating if self/cross collisions affect the sN species.
@@ -254,7 +254,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- Here we wish to record some properties of each collision in collPairs.
    for sN, _ in pairs(species) do
       -- Need next below because species[].collisions is createded as an empty table. 
-      if next(species[sN].collisions) then 
+      if species[sN].collisions and next(species[sN].collisions) then 
          for sO, _ in pairs(species) do
             -- Find the kind of a specific collision, and the collision frequency it uses.
             for collNmN, _ in pairs(species[sN].collisions) do
@@ -298,7 +298,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
          end    -- end if next(species[sN].collisions) statement.
       else
          for sO, _ in pairs(species) do
-            if next(species[sO].collisions) then 
+            if species[sO].collisions and next(species[sO].collisions) then 
                for collNmO, _ in pairs(species[sO].collisions) do
                   if self.collPairs[sO][sN].on then
                      -- Species sO collides with sN. For computing cross-primitive moments,
