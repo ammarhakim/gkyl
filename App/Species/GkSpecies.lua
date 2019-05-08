@@ -799,6 +799,10 @@ function GkSpecies:createDiagnostics()
          if not self.diagnosticWeakMoments["GkUpar"] then
             self.diagnosticWeakMoments["GkUpar"] = true
          end
+         if not contains(self.diagnosticMoments, "GkM1") then
+            -- First moment is needed by GkUpar.
+            table.insert(self.diagnosticMoments, "GkM1")
+         end
       elseif mom == "GkTperp" then
          if not contains(self.diagnosticMoments, "GkM2perp") then
             table.insert(self.diagnosticMoments, "GkM2perp")
@@ -809,6 +813,10 @@ function GkSpecies:createDiagnostics()
          end      
          if not self.diagnosticWeakMoments["GkUpar"] then
             self.diagnosticWeakMoments["GkUpar"] = true
+         end
+         if not contains(self.diagnosticMoments, "GkM1") then
+            -- First moment is needed by GkUpar.
+            table.insert(self.diagnosticMoments, "GkM1")
          end
       end
    end
