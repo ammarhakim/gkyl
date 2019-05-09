@@ -6,17 +6,17 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local Lin = require "Lib.Linalg"
-local MomDecl = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
+-- Gkyl libraries.
+local Alloc       = require "Lib.Alloc"
+local Lin         = require "Lib.Linalg"
+local MomDecl     = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
+local Mpi         = require "Comm.Mpi"
+local Proto       = require "Lib.Proto"
+local Range       = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
-local ffi = require "ffi"
-local ffiC = ffi.C
+local ffi         = require "ffi"
 
+local ffiC = ffi.C
 ffi.cdef [[
     void gkylCartFieldIntQuantV(
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
@@ -28,20 +28,20 @@ ffi.cdef [[
       int ndim, unsigned nc, unsigned nb, const double *dxv, const double *fIn, double *out);
 ]]
 
--- Integrated quantities calculator
+-- Integrated quantities calculator.
 local CartFieldIntegratedQuantCalc = Proto(UpdaterBase)
 
 function CartFieldIntegratedQuantCalc:init(tbl)
-   CartFieldIntegratedQuantCalc.super.init(self, tbl) -- setup base object
+   CartFieldIntegratedQuantCalc.super.init(self, tbl)    -- Setup base object.
 
-   -- grid and basis
+   -- Grid and basis.
    self.onGrid = assert(
       tbl.onGrid, "Updater.CartFieldIntegratedQuantCalc: Must provide grid object using 'onGrid'")
    self.basis = assert(
       tbl.basis,
       "Updater.CartFieldIntegratedQuantCalc: Must provide phase-space basis object using 'basis'")
 
-   -- number of components to set
+   -- Number of components to set.
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
    assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV" or tbl.quantity == "GradPerpV2",
@@ -52,31 +52,31 @@ function CartFieldIntegratedQuantCalc:init(tbl)
           "CartFieldIntegratedQuantCalc: GradPerpV2 currently only implemented for p=1 and numComponents=1")
    end
 
-   -- for use in advance method
-   self.dxv = Lin.Vec(self.basis:ndim()) -- cell shape
-   self.localVals = Lin.Vec(self.numComponents)
+   -- For use in advance method.
+   self.dxv        = Lin.Vec(self.basis:ndim())    -- Cell shape.
+   self.localVals  = Lin.Vec(self.numComponents)
    self.globalVals = Lin.Vec(self.numComponents)
 end   
 
--- advance method
+-- Advance method.
 function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
-   local grid = self.onGrid
+   local grid        = self.onGrid
    local field, vals = inFld[1], outFld[1]
-   local multfac = inFld[2]
+   local multfac     = inFld[2]
 
-   local ndim = self.basis:ndim()
+   local ndim  = self.basis:ndim()
    local nvals = self.numComponents
 
    local fieldIndexer = field:genIndexer()
-   local fieldItr = field:get(1)
+   local fieldItr     = field:get(1)
 
-   -- clear local values
+   -- Clear local values.
    for i = 1, nvals do
-      self.localVals[i] = 0.0
+      self.localVals[i]  = 0.0
       self.globalVals[i] = 0.0
    end
 
-   -- loop, computing integrated moments in each cell
+   -- Loop, computing integrated moments in each cell.
    for idx in field:localRangeIter() do
       grid:setIndex(idx)
       for d = 1, ndim do
@@ -84,12 +84,12 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
       end
 
       field:fill(fieldIndexer(idx), fieldItr)
-      -- compute integrated quantities
+      -- Compute integrated quantities.
       self.updateFunc(
 	 ndim, nvals, self.basis:numBasis(), self.dxv:data(), fieldItr:data(), self.localVals:data())
    end
 
-   -- all-reduce across processors and push result into dyn-vector
+   -- All-reduce across processors and push result into dyn-vector.
    Mpi.Allreduce(
       self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, self:getComm())
 
