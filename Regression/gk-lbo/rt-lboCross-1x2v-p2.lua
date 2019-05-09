@@ -64,7 +64,7 @@ plasmaApp = Plasma.App {
    upper       = { Lx/2},         -- Configuration space upper coordinate.
    cells       = {12},            -- Configuration space cells.
    basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
-   polyOrder   = 1,               -- Polynomial order.
+   polyOrder   = 2,               -- Polynomial order.
    timeStepper = "rk3",           -- One of "rk2", "rk3" or "rk3s4".
    cflFrac     = 1.0,
    
