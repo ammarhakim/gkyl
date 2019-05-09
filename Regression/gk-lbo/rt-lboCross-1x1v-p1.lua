@@ -45,7 +45,7 @@ nuIon        = nuFrac*logLambdaIon*(eV^4)*n0
 nuElcIon     = nuElc*2.0
 nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 
--- Box size.
+-- Box size
 Lx = 4 -- [m]
 
 print(' ')
@@ -62,11 +62,11 @@ plasmaApp = Plasma.App {
    nFrame      = 1,              -- Number of frames to write.
    lower       = {-Lx/2},         -- Configuration space lower coordinate.
    upper       = { Lx/2},         -- Configuration space upper coordinate.
-   cells       = {12},            -- Configuration space cells.
+   cells       = {32},            -- Configuration space cells.
    basis       = "serendipity",   -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,               -- Polynomial order.
    timeStepper = "rk3",           -- One of "rk2", "rk3" or "rk3s4".
-   cflFrac     = 1.0,
+--   cflFrac     = 1.0,
    
    -- Decomposition for configuration space.
    decompCuts = {1},              -- Cuts in each configuration direction.
@@ -79,22 +79,22 @@ plasmaApp = Plasma.App {
    elc = Plasma.Species {
       charge = qe, mass = me,
       -- Velocity space grid.
-      lower      = {-5*vte, 0.0},
-      upper      = { 5*vte, 12*me*(vte^2)/(2*B0)},
-      cells      = {16, 8},
-      decompCuts = {1,1},
+      lower      = {-5.0*vte},
+      upper      = { 5.0*vte},
+      cells      = {32},
+      decompCuts = {1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, vpar = xn[1], xn[2]
             return n0
          end,
          driftSpeed = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, vpar = xn[1], xn[2]
             return uPare
          end,
          temperature = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, vpar = xn[1], xn[2]
             return Te0
          end,
       },
@@ -107,14 +107,12 @@ plasmaApp = Plasma.App {
       diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
-         collideWith = { "elc", "ion" },
-         frequencies = { nuElc, nuElcIon },
---         collideWith = { "elc" },
---         frequencies = { nuElc },
+         collideWith = {"elc", "ion", },
+         frequencies = {nuElc, nuElcIon, },
 --         collideWith = { "ion" },
 --         frequencies = { nuElcIon },
          -- Optional arguments:
---         betaGreene  = 1.0,    -- Free parameter, must be >-1.
+--         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },
    },
 
@@ -122,22 +120,22 @@ plasmaApp = Plasma.App {
    ion = Plasma.Species {
       charge = qi, mass = mi,
       -- Velocity space grid.
-      lower      = {-5*vti, 0.0},
-      upper      = { 5*vti, 12*mi*(vti^2)/(2*B0)},
-      cells      = {16, 8},
-      decompCuts = {1,1},
+      lower      = {-5.0*vti},
+      upper      = { 5.0*vti},
+      cells      = {32},
+      decompCuts = {1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, vpar = xn[1], xn[2]
             return n0
          end,
          driftSpeed = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, vpar = xn[1], xn[2]
             return uPari
          end,
          temperature = function (t, xn)
-            local x, vpar, mu = xn[1], xn[2], xn[3]
+            local x, vpar = xn[1], xn[2]
             return Ti0
          end,
       },
@@ -150,14 +148,12 @@ plasmaApp = Plasma.App {
       diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
-         collideWith = { "ion", "elc" },
-         frequencies = { nuIon, nuIonElc },
---         collideWith = { "ion" },
---         frequencies = { nuIon },
+         collideWith = {"ion", "elc"},
+         frequencies = {nuIon, nuIonElc},
 --         collideWith = { "elc" },
 --         frequencies = { nuIonElc },
          -- Optional arguments:
---         betaGreene  = 1.0,    -- Free parameter, must be >-1.
+--         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },
    },
 
@@ -170,12 +166,12 @@ plasmaApp = Plasma.App {
    
    -- Magnetic geometry.
    funcField = Plasma.Geometry {
-      -- Background magnetic field.
+      -- background magnetic field
       bmag = function (t, xn)
          local x = xn[1]
          return B0
       end,
-      -- Geometry is not time-dependent.
+      -- geometry is not time-dependent
       evolve = false,
    },
 

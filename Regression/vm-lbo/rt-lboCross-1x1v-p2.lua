@@ -3,7 +3,7 @@
 --
 local Plasma = require("App.PlasmaOnCartGrid").VlasovMaxwell
 
--- Might help to think of species 1 as the ions.
+-- Might help to think of species 1 as the heavy ion.
 local n1, u1, p1, m1 = 1.0, 0.10, 1.0, 1.0
 local n2, u2, p2, m2 = 1.0, 2.50, 0.50, 0.05
 
@@ -13,9 +13,9 @@ local vt2 = math.sqrt(p2/(n2*m2))
 local K1 = 0.01/n1
 local K2 = 0.01/n2
 
--- Collisionalities
-nu11 = vt1/K1 
-nu22 = vt2/K2 
+-- Collisionalities.
+nu11 = vt1/K1
+nu22 = vt2/K2
 nu21 = 2*vt2/K2
 nu12 = (m2/m1)*nu21
 
@@ -31,13 +31,13 @@ print(' ')
 vlasovApp = Plasma.App {
    logToFile = false,
 
-   tEnd        = 0.005,            -- End time.
-   nFrame      = 1,                -- Number of frames to write.
+   tEnd        = 0.0025,             -- End time.
+   nFrame      = 1,              -- Number of frames to write.
    lower       = {0.0},            -- Configuration space lower left.
    upper       = {1.0},            -- Configuration space upper right.
    cells       = {16},             -- Configuration space cells.
    basis       = "serendipity",    -- One of "serendipity" or "maximal-order".
-   polyOrder   = 1,                -- Polynomial order.
+   polyOrder   = 2,                -- Polynomial order.
    timeStepper = "rk3",            -- One of "rk2", "rk3" or "rk3s4".
 --   cflFrac     = 1.0,
 --   maximumDt   = 1.30e-05,
@@ -82,13 +82,14 @@ vlasovApp = Plasma.App {
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
-         collideWith  = { "neut1", "neut2", },
-         frequencies  = { nu11, nu12, },
+	 collideWith  = { "neut1", "neut2", },
+     	 frequencies  = { nu11, nu12, },
 --         collideWith  = { "neut1", },
 --         frequencies  = { nu11, },
---         collideWith  = { "neut2" },
---         -- Optional arguments:
---         betaGreene  = 0.0,    -- Free parameter, must be >-1.
+--	 collideWith  = { "neut2" },
+--     	 frequencies  = { nu12 },
+         -- Optional arguments:
+         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },
    },
 
@@ -130,8 +131,9 @@ vlasovApp = Plasma.App {
 --         collideWith = { "neut2", },
 --         frequencies = { nu22, },
 --         collideWith = { "neut1" },
---         -- Optional arguments:
---         betaGreene  = 0.0,    -- Free parameter, must be >-1.
+--         frequencies = { nu21 },
+         -- Optional arguments:
+         betaGreene  = 0.0,    -- Free parameter, must be >-1.
       },
    },
 }

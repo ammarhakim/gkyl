@@ -1,6 +1,10 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 --
+
+-- This test is meant to test the infrastructure that supports one species
+-- colliding but not the other.
+
 local Plasma    = require("App.PlasmaOnCartGrid").Gyrokinetic
 local Constants = require "Lib.Constants"
 
@@ -149,16 +153,16 @@ plasmaApp = Plasma.App {
       diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
       diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
       -- Collisions.
-      coll = Plasma.LBOCollisions {
-         collideWith = { "ion", "elc" },
-         frequencies = { nuIon, nuIonElc },
---         collideWith = { "ion" },
---         frequencies = { nuIon },
---         collideWith = { "elc" },
---         frequencies = { nuIonElc },
-         -- Optional arguments:
---         betaGreene  = 1.0,    -- Free parameter, must be >-1.
-      },
+--      coll = Plasma.LBOCollisions {
+--         collideWith = { "ion", "elc" },
+--         frequencies = { nuIon, nuIonElc },
+----         collideWith = { "ion" },
+----         frequencies = { nuIon },
+----         collideWith = { "elc" },
+----         frequencies = { nuIonElc },
+--         -- Optional arguments:
+----         betaGreene  = 1.0,    -- Free parameter, must be >-1.
+--      },
    },
 
    -- Field solver.

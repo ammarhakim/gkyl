@@ -81,15 +81,15 @@ vlasovApp = Plasma.App {
       diagnosticMoments = { "M0", "M1i", "M2", "u", "vtSq" },
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
       -- Collisions.
-      coll = Plasma.LBOCollisions {
-         collideWith  = { "neut1", "neut2", },
-         frequencies  = { nu11, nu12, },
---         collideWith  = { "neut1", },
---         frequencies  = { nu11, },
---         collideWith  = { "neut2" },
---         -- Optional arguments:
---         betaGreene  = 0.0,    -- Free parameter, must be >-1.
-      },
+--      coll = Plasma.LBOCollisions {
+--         collideWith  = { "neut1", "neut2", },
+--         frequencies  = { nu11, nu12, },
+----         collideWith  = { "neut1", },
+----         frequencies  = { nu11, },
+----         collideWith  = { "neut2" },
+----         -- Optional arguments:
+----         betaGreene  = 0.0,    -- Free parameter, must be >-1.
+--      },
    },
 
    -- Second neutral species.
