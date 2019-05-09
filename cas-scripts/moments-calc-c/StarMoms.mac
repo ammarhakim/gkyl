@@ -93,6 +93,7 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
   A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
 
   /* RHS is similar to the mass matrix */
+  kill(fl, fr),
   RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
 
   /* solve system of equations for coefficients of h */
@@ -180,6 +181,7 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun) := block([],
 calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 
   kill(varsC, varsP, basisC, basisP),
+  kill(M0,M1i,M2,M0M1i,M0M2),    /* So it plays well with moment kernel script. */
 
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
@@ -243,13 +245,16 @@ calcVmStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
   writeCIncrExprsCollect1r(outM2, M0M2, clst, cdim, vdim),
 
   printf(fh, " ~%"),
-  printf(fh, "} ~%")
+  printf(fh, "} ~%"),
+
+  kill(M0,M1i,M2,M0M1i,M0M2,tempM1i)    /* So it plays well with moment kernel script. */
 )$
 
 /* Calculate gyrokinetic M1i* and M2*. */
 calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 
   kill(varsC, varsP, basisC, basisP),
+  kill(M1,M2par,M2perp),    /* So it plays well with moment kernel script. */
 
   load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
 
@@ -316,7 +321,9 @@ calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun) := block([],
 
   ),
 
-  printf(fh, "} ~%")
+  printf(fh, "} ~%"),
+
+  kill(M1,M2par,M2perp,tempM)    /* So it plays well with moment kernel script. */
 )$
 
 calcStarMomContributions(fh, funcNmRoot, cdim, vdim, basisFun) := block([],
