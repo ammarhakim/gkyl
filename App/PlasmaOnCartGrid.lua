@@ -8,27 +8,27 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Basis = require "Basis"
-local Collisions = require "App.Collisions"
-local DataStruct = require "DataStruct"
+local Basis            = require "Basis"
+local Collisions       = require "App.Collisions"
+local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Field = require "App.Field"
-local Grid = require "Grid"
-local Lin  = require "Lib.Linalg"
-local LinearTrigger = require "Lib.LinearTrigger"
-local Logger = require "Lib.Logger"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Sources = require "App.Sources"
-local Species = require "App.Species"
-local Time = require "Lib.Time"
-local date = require "xsys.date"
-local lume = require "Lib.lume"
-local xsys = require "xsys"
-local Projection = require "App.Projection"
-local lfs = require "lfs"
+local Field            = require "App.Field"
+local Grid             = require "Grid"
+local Lin              = require "Lib.Linalg"
+local LinearTrigger    = require "Lib.LinearTrigger"
+local Logger           = require "Lib.Logger"
+local Mpi              = require "Comm.Mpi"
+local Proto            = require "Lib.Proto"
+local Sources          = require "App.Sources"
+local Species          = require "App.Species"
+local Time             = require "Lib.Time"
+local date             = require "xsys.date"
+local lume             = require "Lib.lume"
+local xsys             = require "xsys"
+local Projection       = require "App.Projection"
+local lfs              = require "lfs"
 
--- function to create basis functions
+-- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
    if nm == "serendipity" then
       return Basis.CartModalSerendipity { ndim = ndim, polyOrder = polyOrder }
@@ -39,18 +39,18 @@ local function createBasis(nm, ndim, polyOrder)
    end
 end
 
--- function to check if file exists
+-- Function to check if file exists.
 local function file_exists(name)
    if lfs.attributes(name) then return true else return false end
 end
 
--- top-level method to build application "run" method
+-- Top-level method to build application "run" method.
 local function buildApplication(self, tbl)
    local log = Logger {
       logToFile = xsys.pickBool(tbl.logToFile, true)
    }
       
-   log(date(false):fmt()); log("\n") -- time-stamp for sim start
+   log(date(false):fmt()); log("\n") -- Time-stamp for sim start.
    if GKYL_HG_CHANGESET then
       log(string.format("Gkyl built with %s\n", GKYL_HG_CHANGESET))
    end
@@ -58,7 +58,7 @@ local function buildApplication(self, tbl)
       log(string.format("Gkyl built on %s\n", GKYL_BUILD_DATE))
    end
 
-   -- function to warn user about default values
+   -- Function to warn user about default values.
    local function warnDefault(varVal, varNm, default)
       if varVal then return varVal end
       log(string.format(" ** WARNING: %s not specified, assuming %s\n", varNm, tostring(default)))
@@ -68,20 +68,20 @@ local function buildApplication(self, tbl)
    log("Initializing PlasmaOnCartGrid simulation ...\n")
    local tmStart = Time.clock()
 
-   local cdim = #tbl.lower -- configuration space dimensions
+   local cdim = #tbl.lower -- Configuration space dimensions.
    assert(cdim == #tbl.upper, "upper should have exactly " .. cdim .. " entries")
    assert(cdim == #tbl.cells, "cells should have exactly " .. cdim .. " entries")
 
-   -- basis function name
+   -- Basis function name.
    local basisNm = tbl.basis and tbl.basis or "serendipity"
    if basisNm ~= "serendipity" and basisNm ~= "maximal-order" and basisNm ~= "tensor" then
       assert(false, "Incorrect basis type " .. basisNm .. " specified")
    end
 
-   -- FV methods don't need to specify polyOrder
-   local polyOrder = tbl.polyOrder and tbl.polyOrder or 0 -- polynomial order
+   -- FV methods don't need to specify polyOrder.
+   local polyOrder = tbl.polyOrder and tbl.polyOrder or 0 -- Polynomial order.
 
-   -- create basis function for configuration space
+   -- Create basis function for configuration space.
    local confBasis = createBasis(basisNm, cdim, polyOrder)
 
    -- I/O method
@@ -91,7 +91,7 @@ local function buildApplication(self, tbl)
    end
 
    local goodStepperNames = { "rk1", "rk2", "rk3", "rk3s4", "fvDimSplit" }
-   -- time-stepper
+   -- Time-stepper.
    local timeStepperNm = warnDefault(tbl.timeStepper, "timeStepper", "rk3")
    if not lume.find(goodStepperNames, timeStepperNm) then
       assert(false, "Incorrect timeStepper type " .. timeStepperNm .. " specified")
@@ -109,18 +109,18 @@ local function buildApplication(self, tbl)
    -- Number of fields needed for each stepper type
    local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
 
-   -- parallel decomposition stuff
+   -- Parallel decomposition stuff.
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
    else
-      -- if not specified, use 1 processor
+      -- If not specified, use 1 processor.
       decompCuts = {}
       for d = 1, cdim do decompCuts[d] = 1 end
    end
    local useShared = xsys.pickBool(tbl.useShared, false)
 
-   -- extract periodic directions
+   -- Extract periodic directions.
    local periodicDirs = {}
    if tbl.periodicDirs then
       for i, d in ipairs(tbl.periodicDirs) do
@@ -131,18 +131,18 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- read in information about each species
+   -- Read in information about each species.
    local species = {}
    for nm, val in pairs(tbl) do
       if Species.SpeciesBase.is(val) then
 	 species[nm] = val
 	 species[nm]:setName(nm)
 	 species[nm]:setIoMethod(ioMethod)
-	 val:fullInit(tbl) -- initialize species
+	 val:fullInit(tbl) -- Initialize species.
       end
    end
 
-   -- setup each species
+   -- Setup each species.
    for _, s in pairs(species) do
       s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts,
 		   periodicDirs, tbl.coordinateMap)
@@ -150,29 +150,29 @@ local function buildApplication(self, tbl)
       s:createBasis(basisNm, polyOrder)
    end
 
-   -- read in information about each species
+   -- Read in information about each species.
    local sources = {}
    for nm, val in pairs(tbl) do
       if Sources.SourceBase.is(val) then
 	 sources[nm] = val
 	 sources[nm]:setName(nm)
-	 val:fullInit(tbl) -- initialize sources
+	 val:fullInit(tbl) -- Initialize sources.
       end
    end
 
-   -- configuration space decomp object (eventually, this will be
-   -- slaved to the phase-space decomp)
+   -- Configuration space decomp object (eventually, this will be
+   -- slaved to the phase-space decomp).
    local decomp = DecompRegionCalc.CartProd {
       cuts = decompCuts,
       useShared = useShared,
    }
 
-   -- pick grid ctor based on uniform/non-uniform grid
+   -- Pick grid ctor based on uniform/non-uniform grid.
    local GridConstructor = Grid.RectCart
    if tbl.coordinateMap then
       GridConstructor = Grid.NonUniformRectCart
    end
-   -- setup configuration space grid
+   -- Setup configuration space grid.
    local grid = GridConstructor {
       lower = tbl.lower,
       upper = tbl.upper,
@@ -182,22 +182,22 @@ local function buildApplication(self, tbl)
       mappings = tbl.coordinateMap,
    }
 
-   -- add grid to app object
+   -- Add grid to app object.
    self._confGrid = grid
 
-   -- set conf grid for each species
+   -- Set conf grid for each species.
    for _, s in pairs(species) do
       s:setConfGrid(grid)
       s:alloc(stepperNumFields[timeStepperNm])
    end
 
-   -- set conf grid for each source
+   -- Set conf grid for each source.
    for _, s in pairs(sources) do
       s:setConfGrid(grid)
    end   
 
    local cflMin = GKYL_MAX_DOUBLE
-   -- compute CFL numbers
+   -- Compute CFL numbers.
    for _, s in pairs(species) do
       local ndim = s:getNdim()
       local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
@@ -206,7 +206,7 @@ local function buildApplication(self, tbl)
    end
 
    local function completeFieldSetup(fld)
-      fld:fullInit(tbl) -- complete initialization
+      fld:fullInit(tbl) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
       fld:setGrid(grid)
@@ -220,15 +220,15 @@ local function buildApplication(self, tbl)
       end
       log(string.format("Using CFL number %g\n", cflMin))
       
-      -- allocate field data
+      -- Allocate field data.
       fld:alloc(stepperNumFields[timeStepperNm])
 
-      -- initialize field solvers and diagnostics
+      -- Initialize field solvers and diagnostics.
       fld:createDiagnostics()
    end
 
-   -- setup information about fields: if this is not specified, it is
-   -- assumed there are no force terms (neutral particles)
+   -- Setup information about fields: if this is not specified, it is
+   -- assumed there are no force terms (neutral particles).
    local field = nil
    local nfields = 0
    for _, val in pairs(tbl) do
@@ -241,7 +241,7 @@ local function buildApplication(self, tbl)
    assert(nfields<=1, "PlasmaOnCartGrid: can only specify one Field object!")
    if field == nil then field = Field.NoField {} end
 
-   -- initialize funcField, which is sometimes needed to initialize species
+   -- Initialize funcField, which is sometimes needed to initialize species.
    local funcField = nil
    nfields = 0
    for _, val in pairs(tbl) do
@@ -256,78 +256,81 @@ local function buildApplication(self, tbl)
    funcField:createSolver()
    funcField:initField()
    
-   -- initialize species solvers and diagnostics
+   -- Initialize species solvers and diagnostics.
    for nm, s in pairs(species) do
       local hasE, hasB = field:hasEB()
       local funcHasE, funcHasB = funcField:hasEB()
+      s:initCrossSpeciesCoupling(species)    -- Call this before createSolver if updaters are all created in createSolver.
       s:createSolver(hasE or funcHasE, hasB or funcHasB, funcField)
       s:initDist()
       s:createDiagnostics()
    end
 
-   -- initialize source solvers
+   -- Initialize source solvers.
    for nm, s in pairs(sources) do
       s:createSolver(species, field)
    end   
 
-   -- initialize field (sometimes requires species to have been initialized)
+   -- Compute the coupling moments.
    for nm, s in pairs(species) do
+      s:clearMomentFlags(species)
       s:calcCouplingMoments(0.0, 1)
    end
+   -- Initialize field (sometimes requires species to have been initialized).
    field:createSolver(species, funcField)
    field:initField(species)
 
-   -- apply species BCs 
+   -- Apply species BCs.
    for nm, s in pairs(species) do
-      -- this is a dummy forwardEuler call because some BCs require 
-      -- auxFields to be set, which is controlled by species solver
+      -- This is a dummy forwardEuler call because some BCs require 
+      -- auxFields to be set, which is controlled by species solver.
       s:advance(0, species, {field, funcField}, 1, 2)
       s:applyBc(0, s:rkStepperFields()[1])
    end
 
-   -- function to write data to file
+   -- Function to write data to file.
    local function writeData(tCurr, force)
       for _, s in pairs(species) do s:write(tCurr, force) end
       field:write(tCurr, force)
       funcField:write(tCurr, force)
    end
 
-   -- function to write restart frames to file
+   -- Function to write restart frames to file.
    local function writeRestart(tCurr)
       for _, s in pairs(species) do s:writeRestart(tCurr) end
       field:writeRestart(tCurr)
       funcField:writeRestart(tCurr)
    end
 
-   -- function to read from restart frame
-   local function readRestart() --> time at which restart was written
+   -- Function to read from restart frame.
+   local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
-      -- read fields first, in case needed for species init or BCs
+      -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       funcField:readRestart()
       for _, s in pairs(species) do
-         -- this is a dummy forwardEuler call because some BCs require 
-         -- auxFields to be set, which is controlled by species solver
+         -- This is a dummy forwardEuler call because some BCs require 
+         -- auxFields to be set, which is controlled by species solver.
          s:advance(0, species, {field, funcField}, 1, 2)
 	 rTime = s:readRestart()
       end
       return rTime
    end
 
-   local tStart = 0.0 -- by default start at t=0
+   local tStart = 0.0 -- By default start at t=0.
    if GKYL_COMMANDS[1] == "restart" then
-      -- give everyone a chance to adjust ICs based on restart frame
-      -- and adjust tStart accordingly
+      -- Give everyone a chance to adjust ICs based on restart frame
+      -- and adjust tStart accordingly.
       tStart = readRestart()
    else
-      writeData(0.0) -- write initial conditions
+      writeData(0.0) -- Write initial conditions.
    end
 
-   -- determine whether we need two steps in forwardEuler
+   -- Determine whether we need two steps in forwardEuler.
    local nstep = 1
    if field.nstep ~= nil then nstep = field.nstep end
 
-   -- various functions to copy/increment fields
+   -- Various functions to copy/increment fields.
    local function copy(outIdx, aIdx)
       for nm, s in pairs(species) do
          s:copyRk(outIdx, aIdx)
@@ -341,7 +344,7 @@ local function buildApplication(self, tbl)
       field:combineRk(outIdx, a, aIdx, ...)
    end
 
-   -- function to take a single forward-euler time-step
+   -- Function to take a single forward-euler time-step.
    local function forwardEuler(tCurr, dt, inIdx, outIdx)
       local calcCflFlag = false
       local dtSuggested
@@ -349,35 +352,38 @@ local function buildApplication(self, tbl)
       field:clearCFL()
       for nm, s in pairs(species) do
          s:clearCFL()
+         s:clearMomentFlags(species)
       end
 
-      -- compute functional field (if any)
+      -- Compute functional field (if any).
       funcField:advance(tCurr)
       
-      -- update EM field
       for nm, s in pairs(species) do
-	 -- compute moments needed in coupling with fields and
+	 -- Compute moments needed in coupling with fields and
 	 -- collisions (the species should update internal datastructures). 
          s:calcCouplingMoments(tCurr, inIdx)
       end
-      -- note that this can be either an elliptic solve, which updates inIdx
-      -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both
+
+      -- Update EM field.
+      -- Note that this can be either an elliptic solve, which updates inIdx
+      -- or a hyperbolic solve, which updates outIdx = RHS, or a combination of both.
       field:advance(tCurr, species, inIdx, outIdx)
 
-      -- update species
+      -- Update species.
       for nm, s in pairs(species) do
          s:advance(tCurr, species, {field, funcField}, inIdx, outIdx)
       end
 
-      -- some systems (e.g. EM GK) require additional step(s) to complete the forward Euler
+      -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
       for istep = 2, nstep do      
-         -- update EM field.. step 2 (if necessary). 
-         -- note: no calcCouplingMoments call because field:forwardEulerStep2 either reuses already calculated moments, 
-         --       or other moments are calculated in field:forwardEulerStep2
+         -- Update EM field.. step 2 (if necessary). 
+         -- Note: no calcCouplingMoments call because field:forwardEulerStep2
+         -- either reuses already calculated moments, or other moments are
+         -- calculated in field:forwardEulerStep2.
          local advanceString = "advanceStep" .. istep
          field[advanceString](field, tCurr, species, inIdx, outIdx)
 
-         -- update species.. step 2 (if necessary)
+         -- Update species.. step 2 (if necessary).
          for nm, s in pairs(species) do
             s[advanceString](s, tCurr, species, {field, funcField}, inIdx, outIdx)
          end
@@ -392,22 +398,22 @@ local function buildApplication(self, tbl)
             dtSuggested = math.min(dtSuggested, s:suggestDt())
          end
       else 
-         dtSuggested = dt -- from argument list
+         dtSuggested = dt -- From argument list.
       end
-      -- take forward Euler step in fields and species
-      -- NOTE: order of these arguments matters... outIdx must come before inIdx
+      -- Take forward Euler step in fields and species
+      -- NOTE: order of these arguments matters... outIdx must come before inIdx.
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
 
       return dtSuggested
    end
 
-   -- various time-steppers. See gkyl docs for formulas for various
+   -- Various time-steppers. See gkyl docs for formulas for various
    -- SSP-RK schemes:
    -- http://gkyl.readthedocs.io/en/latest/dev/ssp-rk.html
    local timeSteppers = {}
    local stepperTime = 0.0
 
-   -- function to advance solution using RK1 scheme (UNSTABLE! Only for testing)
+   -- Function to advance solution using RK1 scheme (UNSTABLE! Only for testing).
    function timeSteppers.rk1(tCurr)
       local dt = forwardEuler(tCurr, nil, 1, 2)
       local tm = Time.clock()
@@ -417,13 +423,13 @@ local function buildApplication(self, tbl)
       return true, dt
    end
 
-   -- function to advance solution using SSP-RK2 scheme (mildly
-   -- unstable and in general should not be used)
+   -- Function to advance solution using SSP-RK2 scheme (mildly
+   -- unstable and in general should not be used).
    function timeSteppers.rk2(tCurr)
-      -- RK stage 1
+      -- RK stage 1.
       local dt = forwardEuler(tCurr, nil, 1, 2)
 
-      -- RK stage 2
+      -- RK stage 2.
       forwardEuler(tCurr+dt, dt, 2, 3)
       local tm = Time.clock()
       combine(2, 1.0/2.0, 1, 1.0/2.0, 3)
@@ -433,18 +439,18 @@ local function buildApplication(self, tbl)
       return true, dt
    end
 
-   -- function to advance solution using SSP-RK3 scheme
+   -- Function to advance solution using SSP-RK3 scheme.
    function timeSteppers.rk3(tCurr)
-      -- RK stage 1
+      -- RK stage 1.
       local dt = forwardEuler(tCurr, nil, 1, 2)
 
-      -- RK stage 2
+      -- RK stage 2.
       forwardEuler(tCurr+dt, dt, 2, 3)
       local tm = Time.clock()
       combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      -- RK stage 3
+      -- RK stage 3.
       forwardEuler(tCurr+dt/2, dt, 2, 3)
       tm = Time.clock()
       combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
@@ -454,27 +460,27 @@ local function buildApplication(self, tbl)
       return true, dt
    end
 
-   -- function to advance solution using 4-stage SSP-RK3 scheme
+   -- Function to advance solution using 4-stage SSP-RK3 scheme.
    function timeSteppers.rk3s4(tCurr)
-      -- RK stage 1
+      -- RK stage 1.
       local dt = forwardEuler(tCurr, nil, 1, 2)
       local tm = Time.clock()
       combine(3, 1.0/2.0, 1, 1.0/2.0, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      -- RK stage 2
+      -- RK stage 2.
       forwardEuler(tCurr+dt/2, dt, 3, 4)
       tm = Time.clock()
       combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      -- RK stage 3
+      -- RK stage 3.
       forwardEuler(tCurr+dt, dt, 2, 3)
       tm = Time.clock()
       combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      -- RK stage 4
+      -- RK stage 4.
       forwardEuler(tCurr+dt/2, dt, 4, 3)
       tm = Time.clock()
       combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
@@ -483,13 +489,13 @@ local function buildApplication(self, tbl)
       return true, dt
    end
 
-   -- update solution in specified direction
+   -- Update solution in specified direction.
    local function updateInDirection(dir, tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- For indexing inp/out fields.
 
       local tryInv_next = {}
-      -- update species
+      -- Update species.
       for nm, s in pairs(species) do
 	 local vars = s:rkStepperFields()
 	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
@@ -500,7 +506,7 @@ local function buildApplication(self, tbl)
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
       do
-	 -- update field
+	 -- Update field.
 	 local vars = field:rkStepperFields()
 	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
 	 local myStatus, myDtSuggested = field:updateInDirection(dir, tCurr, dt, inp, out)
@@ -511,18 +517,18 @@ local function buildApplication(self, tbl)
       return status, dtSuggested, tryInv_next
    end
 
-   -- update sources
+   -- Update sources.
    local function updateSource(dataIdx, tCurr, dt)
-      -- make list of species data to operate on
+      -- Make list of species data to operate on.
       local speciesVar = {}
       for nm, s in pairs(species) do
 	 speciesVar[nm] = s:rkStepperFields()[dataIdx]
       end
-      -- field data to operate on
+      -- Field data to operate on.
       local fieldVar = field:rkStepperFields()[dataIdx]
 
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      -- update sources
+      -- Update sources.
       for nm, s in pairs(sources) do
 	 local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
 	 status =  status and myStatus
@@ -532,22 +538,22 @@ local function buildApplication(self, tbl)
       return status, dtSuggested
    end
 
-   -- function to advance solution using FV dimensionally split scheme
+   -- Function to advance solution using FV dimensionally split scheme.
    function timeSteppers.fvDimSplit(tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- for indexing inp/out fields
+      local fIdx = { {1,2}, {2,1}, {1,2} } -- For indexing inp/out fields.
 
-      -- copy in case we need to take this step again
+      -- Copy in case we need to take this step again.
       copy(3, 1)
 
-      -- update source by half time-step
+      -- Update source by half time-step.
       do
 	 local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
 	 status = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
-      -- update solution in each direction
+      -- Update solution in each direction.
       local isInv = true
       for d = 1, cdim do
 	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
@@ -557,8 +563,8 @@ local function buildApplication(self, tbl)
 	    log(" ** Time step too large! Aborting this step!")
 	    break
 	 else
-	    -- if an updated species is invalid, plan to use lax flux for THIS
-	    -- species in the re-taken step
+	    -- If an updated species is invalid, plan to use lax flux for THIS
+	    -- species in the re-taken step.
 	    for nm, s in pairs(species) do
 	       if myTryInv[s] then
 		  isInv = false
@@ -567,20 +573,20 @@ local function buildApplication(self, tbl)
 			 "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
 	       end
 	    end
-	    -- break the loop if any species is invalid
+	    -- Break the loop if any species is invalid.
 	    if not isInv then
 	       break
 	    end
 	 end
       end
-      -- is all species is valid, do not use lax in the next step  
+      -- Is all species is valid, do not use lax in the next step.
       if isInv then
          for nm, s in pairs(species) do
             tryInv[s] = false
          end
       end
 
-      -- update source by half time-step
+      -- Update source by half time-step.
       if status and isInv then
 	 local myStatus, myDtSuggested
 	 if fIdx[cdim][2] == 2 then
@@ -593,10 +599,10 @@ local function buildApplication(self, tbl)
       end
 
       if not (status and isInv) then
-	 copy(1, 3) -- restore old solution in case of failure
+	 copy(1, 3) -- Restore old solution in case of failure.
       else
-	 -- if solution not already in field[1], copy for use in next
-	 -- time-step
+	 -- If solution not already in field[1], copy for use in next
+	 -- time-step.
 	 if fIdx[cdim][2] == 2 then copy(1, 2) end
       end
       
@@ -606,7 +612,7 @@ local function buildApplication(self, tbl)
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
-   -- read some info about restarts (default is to write restarts 1/5 of sim)
+   -- Read some info about restarts (default is to write restarts 1/5 of sim).
    local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 0.2
    local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
 
@@ -615,12 +621,12 @@ local function buildApplication(self, tbl)
    }
    local dtPtr = Lin.Vec(1)
 
-   -- return function that runs main simulation loop
+   -- Return function that runs main simulation loop.
    return function(self)
       log("Starting main loop of PlasmaOnCartGrid simulation ...\n\n")
       local tStart, tEnd = tStart, tbl.tEnd
 
-      -- sanity check: don't run if not needed
+      -- Sanity check: don't run if not needed.
       if tStart >= tEnd then return end
 
       local maxDt = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
@@ -629,7 +635,7 @@ local function buildApplication(self, tbl)
       local tCurr = tStart
       local myDt = initDt
 
-      -- triggers for 10% and 1% loggers
+      -- Triggers for 10% and 1% loggers.
       local logTrigger = LinearTrigger(0, tEnd, 10)
       local logTrigger1p = LinearTrigger(0, tEnd, 100)
       local tenth = 0
@@ -637,10 +643,10 @@ local function buildApplication(self, tbl)
 	 tenth = math.floor(tStart/tEnd*10)
       end
 
-      -- triggers for restarts
+      -- Triggers for restarts.
       local restartTrigger = LinearTrigger(0.0, tEnd, math.floor(1/restartFrameEvery))
       local nRestart = 0
-      -- function to check if restart frame should happen
+      -- Function to check if restart frame should happen.
       local function checkWriteRestart(t)
 	 if restartTrigger(t) then
 	    if nRestart > 1 then return true end
@@ -654,8 +660,8 @@ local function buildApplication(self, tbl)
 	 p1c = math.floor(tStart/tEnd*100) % 10
       end
 
-      local logCount = 0 -- this is needed to avoid initial log message
-      -- for writing out log messages
+      local logCount = 0 -- This is needed to avoid initial log message.
+      -- For writing out log messages.
       local function writeLogMessage(tCurr)
 	 if logTrigger(tCurr) then
 	    if logCount > 0 then
@@ -677,17 +683,17 @@ local function buildApplication(self, tbl)
       local failcount = 0
       local stopfile = GKYL_OUT_PREFIX .. ".stop"
 
-      -- for the fvDimSplit updater, tryInv contains for indicators for each
+      -- For the fvDimSplit updater, tryInv contains for indicators for each
       -- species whether the domain-invariant equation should be used in the
-      -- next step; they might be changed during fvDimSplit calls
+      -- next step; they might be changed during fvDimSplit calls.
       local tryInv = {}
       for _, s in pairs(species) do
          tryInv[s] = false
       end
       local isInv = true
-      -- main simulation loop
+      -- Main simulation loop.
       while true do
-	 -- call time-stepper
+	 -- Call time-stepper.
          local status, dtSuggested
          if timeStepperNm == "fvDimSplit" then
 	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
@@ -696,26 +702,26 @@ local function buildApplication(self, tbl)
             dtSuggested = myDt
          end
     
-         -- if stopfile exists, break
+         -- If stopfile exists, break.
          if (file_exists(stopfile)) then
             writeData(tCurr+myDt, true)
             writeRestart(tCurr+myDt)
             break
          end
 
-	 -- check status and determine what to do next
+	 -- Check status and determine what to do next.
 	 if status and isInv then
             if first then 
                log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
                initDt = math.min(maxDt, dtSuggested); first = false
             end
-            -- track dt
+            -- Track dt.
             dtPtr:data()[0] = myDt
             dtTracker:appendData(tCurr+myDt, dtPtr)
-            -- write log
+            -- Write log
 	    writeLogMessage(tCurr+myDt)
-	    -- we must write data first before calling writeRestart in
-	    -- order not to mess up numbering of frames on a restart
+	    -- We must write data first before calling writeRestart in
+	    -- order not to mess up numbering of frames on a restart.
 	    writeData(tCurr+myDt)
 	    if checkWriteRestart(tCurr+myDt) then
 	       writeRestart(tCurr+myDt)
@@ -751,7 +757,7 @@ local function buildApplication(self, tbl)
       end
       local tmSimEnd = Time.clock()
 
-      -- compute time spent in various parts of code
+      -- Compute time spent in various parts of code.
       local tmSlvr = 0.0
       for _, s in pairs(species) do
 	 tmSlvr = tmSlvr+s:totalSolverTime()
@@ -834,13 +840,13 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
-      log(date(false):fmt()); log("\n") -- time-stamp for sim end
+      log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
-      if file_exists(stopfile) then os.remove(stopfile) end -- clean up
+      if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
    end
 end
 
--- PlasmaOnCartGrid application object
+-- PlasmaOnCartGrid application object.
 local App = Proto()
 
 function App:init(tbl)
@@ -852,10 +858,10 @@ function App:getConfGrid()
 end
 
 function App:run()
-   -- by default command is "run"
+   -- By default command is "run".
    if #GKYL_COMMANDS == 0 then GKYL_COMMANDS[1] = "run" end
 
-   -- take action
+   -- Take action.
    if GKYL_COMMANDS[1] == "run" or GKYL_COMMANDS[1] == "restart" then
       return self:_runApplication()
    elseif GKYL_COMMANDS[1] == "init" then
@@ -884,7 +890,7 @@ return {
    VmLBOCollisions = Collisions.VmLBOCollisions,
    VoronovIonization = Collisions.VoronovIonization,
 
-   -- valid pre-packaged species-field systems
+   -- Valid pre-packaged species-field systems.
    Gyrokinetic = {
       App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
       FunctionProjection = Projection.GkProjection.FunctionProjection, 
