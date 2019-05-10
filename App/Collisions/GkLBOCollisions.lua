@@ -136,6 +136,8 @@ function GkLBOCollisions:fullInit(speciesTbl)
 
    self.mass = speciesTbl.mass   -- Mass of this species.
 
+   self.usePositivity = speciesTbl.positivity    -- Use positivity preserving algorithms.
+
    self.tmEvalMom = 0.0
 end
 
@@ -239,6 +241,7 @@ function GkLBOCollisions:createSolver(funcField)
       varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
       mass             = self.mass,
+      positivity       = self.usePositivity,
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

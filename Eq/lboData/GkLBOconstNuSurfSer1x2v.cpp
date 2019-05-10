@@ -1,5 +1,5 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurf1x2vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x2vSer_Vpar_P1(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -85,7 +85,7 @@ double GkLBOconstNuSurf1x2vSer_Vpar_P1(const double m_, const double *wl, const 
 
   return std::abs(wl[1]-(0.7071067811865475*nuUSum[0])/nuSum); 
 } 
-double GkLBOconstNuSurf1x2vSer_Vpar_P2(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x2vSer_Vpar_P2(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -244,7 +244,7 @@ double GkLBOconstNuSurf1x2vSer_Vpar_P2(const double m_, const double *wl, const 
 
   return std::abs((0.7905694150420947*nuUSum[2])/nuSum-(0.7071067811865475*nuUSum[0])/nuSum+wl[1]); 
 } 
-double GkLBOconstNuSurf1x2vSer_Vpar_P3(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x2vSer_Vpar_P3(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -476,7 +476,7 @@ double GkLBOconstNuSurf1x2vSer_Vpar_P3(const double m_, const double *wl, const 
 
   return std::abs((0.7905694150420947*nuUSum[2])/nuSum-(0.7071067811865475*nuUSum[0])/nuSum+wl[1]); 
 } 
-double GkLBOconstNuSurf1x2vSer_Mu_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x2vSer_Mu_P1(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -565,7 +565,7 @@ double GkLBOconstNuSurf1x2vSer_Mu_P1(const double m_, const double *wl, const do
 
   return std::abs(2.0*wl[2]); 
 } 
-double GkLBOconstNuSurf1x2vSer_Mu_P2(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x2vSer_Mu_P2(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
@@ -727,7 +727,7 @@ double GkLBOconstNuSurf1x2vSer_Mu_P2(const double m_, const double *wl, const do
 
   return std::abs(2.0*wl[2]); 
 } 
-double GkLBOconstNuSurf1x2vSer_Mu_P3(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurf1x2vSer_Mu_P3(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[3]:         Cell-center coordinates. 
   // dxv[3]:       Cell spacing. 
