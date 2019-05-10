@@ -38,19 +38,21 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
    end
 end
-function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder)
+function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
+   local posString = ""
+   if applyPos then posString = "Positivity" end
    if VDIM == 1 then
-      local funcNmX = string.format("GkLBOconstNuSurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("GkLBOconstNuSurf%s%dx%dv%s_Vpar_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], nullFunc, nullFunc }
    elseif VDIM == 2 then
-      local funcNmX = string.format("GkLBOconstNuSurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
-      local funcNmY = string.format("GkLBOconstNuSurf%dx%dv%s_Mu_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmX = string.format("GkLBOconstNuSurf%s%dx%dv%s_Vpar_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+      local funcNmY = string.format("GkLBOconstNuSurf%s%dx%dv%s_Mu_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
    end
 end
 
 -- select functions to compute boundary surface terms (output is a table of functions)
-function _M.selectBoundarySurf(basisNm, CDIM, VDIM, polyOrder)
+function _M.selectBoundarySurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
    if VDIM == 1 then
       local funcNmX = string.format("GkLBOBoundarySurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], nullFunc, nullFunc }
@@ -60,7 +62,7 @@ function _M.selectBoundarySurf(basisNm, CDIM, VDIM, polyOrder)
       return { ffi.C[funcNmX], ffi.C[funcNmY], nullFunc }
    end
 end
-function _M.selectConstNuBoundarySurf(basisNm, CDIM, VDIM, polyOrder)
+function _M.selectConstNuBoundarySurf(basisNm, CDIM, VDIM, polyOrder, applyPos)
    if VDIM == 1 then
       local funcNmX = string.format("GkLBOconstNuBoundarySurf%dx%dv%s_Vpar_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
       return { ffi.C[funcNmX], nullFunc, nullFunc }
