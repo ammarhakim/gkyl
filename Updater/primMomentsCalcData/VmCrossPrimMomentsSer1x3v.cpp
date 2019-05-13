@@ -1,9 +1,8 @@
 #include <PrimMomentsModDecl.h> 
-#include <math.h> 
  
 using namespace Eigen; 
  
-void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:       free parameter beta+1. This has to be >0. 
   // nu, m:              collisionality and mass. 
@@ -129,12 +128,11 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
     m2SrOther[1] = m2SOther[1]; 
   } 
  
-  // Declare Eigen matrix and vectors for weak division. 
+  // Declare Eigen matrix and vectors for weak system. 
   data->AEM_S = Eigen::MatrixXd::Zero(16,16); 
  
   double mnuSelf   = mSelf*nuSelf; 
   double mnuOther  = mOther*nuOther; 
-  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[6]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<6; vd++) 
@@ -296,6 +294,8 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
     m1Relax[vd] = 0.0; 
   } 
  
+  double m1EffD[6]; 
+ 
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
   data->AEM_S(8,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
   data->AEM_S(8,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
@@ -332,9 +332,26 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(15,8) = 0.5*m0rOther[0]*uOther[1]*mnuOther-0.7071067811865475*m1SrOther[1]*mnuOther+0.5*uOther[0]*m0rOther[1]*mnuOther; 
   data->AEM_S(15,9) = 0.9*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1SrOther[0]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfX-m0Self*m1OtherX)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[0] = 0.7071067811865475*m0rOther[1]*m1rSelf[1]-0.7071067811865475*m0rSelf[1]*m1rOther[1]+0.7071067811865475*m0rOther[0]*m1rSelf[0]-0.7071067811865475*m0rSelf[0]*m1rOther[0]; 
+  m1EffD[1] = 0.7071067811865475*m0rOther[0]*m1rSelf[1]-0.7071067811865475*m0rSelf[0]*m1rOther[1]-0.7071067811865475*m1rOther[0]*m0rSelf[1]+0.7071067811865475*m1rSelf[0]*m0rOther[1]; 
+  // Fill AEM matrix. 
+  dataDiv->AEM_S = Eigen::MatrixXd::Zero(2,2); 
+  dataDiv->AEM_S(0,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf+0.7071067811865475*m0rOther[0]*mnuOther; 
+  dataDiv->AEM_S(0,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf+0.7071067811865475*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(1,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf+0.7071067811865475*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(1,1) = 0.7071067811865475*m0rSelf[0]*mnuSelf+0.7071067811865475*m0rOther[0]*mnuOther; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[0],m1EffD[1]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+0,2,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[0] += (-2.0*m1EffD[0]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += (-2.0*m1EffD[1]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(10,2) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -372,9 +389,20 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(15,10) = 0.5*m0rOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1SrOther[3]*mnuOther+0.5*m0rOther[1]*uOther[2]*mnuOther; 
   data->AEM_S(15,11) = 0.9*m0rOther[1]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[2]*mnuOther-0.7071067811865475*m1SrOther[2]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfY-m0Self*m1OtherY)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[2] = 0.7071067811865475*m0rOther[1]*m1rSelf[3]-0.7071067811865475*m0rSelf[1]*m1rOther[3]+0.7071067811865475*m0rOther[0]*m1rSelf[2]-0.7071067811865475*m0rSelf[0]*m1rOther[2]; 
+  m1EffD[3] = 0.7071067811865475*m0rOther[0]*m1rSelf[3]-0.7071067811865475*m0rSelf[0]*m1rOther[3]+0.7071067811865475*m0rOther[1]*m1rSelf[2]-0.7071067811865475*m0rSelf[1]*m1rOther[2]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[2],m1EffD[3]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+2,2,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
-  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[2] += (-2.0*m1EffD[2]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[3] += (-2.0*m1EffD[3]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfZ ... // 
   data->AEM_S(12,4) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -412,9 +440,20 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(15,12) = 0.5*m0rOther[0]*uOther[5]*mnuOther-0.7071067811865475*m1SrOther[5]*mnuOther+0.5*m0rOther[1]*uOther[4]*mnuOther; 
   data->AEM_S(15,13) = 0.9*m0rOther[1]*uOther[5]*mnuOther+0.5*m0rOther[0]*uOther[4]*mnuOther-0.7071067811865475*m1SrOther[4]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfZ-m0Self*m1OtherZ)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[4] = 0.7071067811865475*m0rOther[1]*m1rSelf[5]-0.7071067811865475*m0rSelf[1]*m1rOther[5]+0.7071067811865475*m0rOther[0]*m1rSelf[4]-0.7071067811865475*m0rSelf[0]*m1rOther[4]; 
+  m1EffD[5] = 0.7071067811865475*m0rOther[0]*m1rSelf[5]-0.7071067811865475*m0rSelf[0]*m1rOther[5]+0.7071067811865475*m0rOther[1]*m1rSelf[4]-0.7071067811865475*m0rSelf[1]*m1rOther[4]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[4],m1EffD[5]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+4,2,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 3 of momentum relaxation. 
-  m1Relax[4] += betaGreenep1*(m1rOther[4]*deltaSelf-1.0*m1rSelf[4]*deltaSelf)*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
-  m1Relax[5] += betaGreenep1*(m1rOther[5]*deltaSelf-1.0*m1rSelf[5]*deltaSelf)*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
+  m1Relax[4] += (-2.0*m1EffD[4]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
+  m1Relax[5] += (-2.0*m1EffD[5]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
  
   double ucMSelf[2]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -485,7 +524,7 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   } 
  
   double relKinE[2]; 
-  // zero out array with dot product of u and m1. 
+  // zero out array with dot product of uSelf-uOther and m1EffD. 
   for (unsigned short int vd=0; vd<2; vd++) 
   { 
     relKinE[vd] = 0.0; 
@@ -494,14 +533,38 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
   { 
     unsigned short int a0 = 2*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    relKinE[0] += 0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]-0.7071067811865475*m1rOther[a0]*uSelf[a0]-0.7071067811865475*m1rSelf[a0]*uOther[a0]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
-    relKinE[1] += 0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]-0.7071067811865475*uOther[a0]*m1rSelf[a0+1]-0.7071067811865475*uSelf[a0]*m1rOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
+    relKinE[0] += 0.7071067811865475*m1EffD[a0+1]*uSelf[a0+1]-0.7071067811865475*m1EffD[a0+1]*uOther[a0+1]+0.7071067811865475*m1EffD[a0]*uSelf[a0]-0.7071067811865475*m1EffD[a0]*uOther[a0]; 
+    relKinE[1] += 0.7071067811865475*m1EffD[a0]*uSelf[a0+1]-0.7071067811865475*m1EffD[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1EffD[a0+1]-0.7071067811865475*uOther[a0]*m1EffD[a0+1]; 
   } 
+ 
+  // Divide m0Other*(m2Self-kinESelf) by mnuSelf*m0Self+mnuOther*m0Other. 
+  // Product of m0Other and m2Self-uSelf.m1Self. 
+  double m0OtherThESelf[2]; 
+  m0OtherThESelf[0] = 0.7071067811865475*m0rOther[1]*m2rSelf[1]-0.7071067811865475*kinESelf[1]*m0rOther[1]+0.7071067811865475*m0rOther[0]*m2rSelf[0]-0.7071067811865475*kinESelf[0]*m0rOther[0]; 
+  m0OtherThESelf[1] = 0.7071067811865475*m0rOther[0]*m2rSelf[1]+0.7071067811865475*m2rSelf[0]*m0rOther[1]-0.7071067811865475*kinESelf[0]*m0rOther[1]-0.7071067811865475*m0rOther[0]*kinESelf[1]; 
+  dataDiv->BEV_S << m0OtherThESelf[0],m0OtherThESelf[1]; 
+  // Invert system of equations from weak division. dataDiv.AEM was filled earlier. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  double effEthSelf[2]; 
+  Eigen::Map<VectorXd>(effEthSelf,2,1) = dataDiv->u_S; 
+ 
+  // Divide m0Self*(m2Other-kinEOther) by mnuSelf*m0Self+mnuOther*m0Other. 
+  // Product of m0Self and m2Other-uOther.m1Other. 
+  double m0SelfThEOther[2]; 
+  m0SelfThEOther[0] = 0.7071067811865475*m0rSelf[1]*m2rOther[1]-0.7071067811865475*kinEOther[1]*m0rSelf[1]+0.7071067811865475*m0rSelf[0]*m2rOther[0]-0.7071067811865475*kinEOther[0]*m0rSelf[0]; 
+  m0SelfThEOther[1] = 0.7071067811865475*m0rSelf[0]*m2rOther[1]+0.7071067811865475*m2rOther[0]*m0rSelf[1]-0.7071067811865475*kinEOther[0]*m0rSelf[1]-0.7071067811865475*m0rSelf[0]*kinEOther[1]; 
+  dataDiv->BEV_S << m0SelfThEOther[0],m0SelfThEOther[1]; 
+  // Invert system of equations from weak division. dataDiv.AEM was filled earlier. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  double effEthOther[2]; 
+  Eigen::Map<VectorXd>(effEthOther,2,1) = dataDiv->u_S; 
  
   double m2Relax[2]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(1.0*relKinE[0]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[0]*mSelf)/(mSelf+mOther)+(1.0*relKinE[0]*mOther)/(mSelf+mOther)+(2.0*effEthOther[0]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2SrSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2SrOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(1.0*relKinE[1]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[1]*mSelf)/(mSelf+mOther)+(1.0*relKinE[1]*mOther)/(mSelf+mOther)+(2.0*effEthOther[1]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2SrSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2SrOther[1])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<2,4>(8,2).setZero(); 
@@ -528,7 +591,7 @@ void VmCrossPrimMoments1x3vSer_P1(binOpData_t *data, const double betaGreenep1, 
  
 } 
  
-void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, binOpData_t *dataDiv,const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:       free parameter beta+1. This has to be >0. 
   // nu, m:              collisionality and mass. 
@@ -627,12 +690,11 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
     m2rOther[2] = m2Other[2]; 
   } 
  
-  // Declare Eigen matrix and vectors for weak division. 
+  // Declare Eigen matrix and vectors for weak system. 
   data->AEM_S = Eigen::MatrixXd::Zero(24,24); 
  
   double mnuSelf   = mSelf*nuSelf; 
   double mnuOther  = mOther*nuOther; 
-  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[9]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<9; vd++) 
@@ -898,6 +960,8 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
     m1Relax[vd] = 0.0; 
   } 
  
+  double m1EffD[9]; 
+ 
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
   data->AEM_S(12,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
   data->AEM_S(12,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
@@ -964,10 +1028,33 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(23,13) = 0.7857142857142857*m0rOther[1]*uOther[2]*mnuOther+0.7857142857142857*uOther[1]*m0rOther[2]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[1]*mnuOther-0.6324555320336759*m1rOther[1]*mnuOther+0.4472135954999579*uOther[0]*m0rOther[1]*mnuOther; 
   data->AEM_S(23,14) = 1.071428571428571*m0rOther[2]*uOther[2]*mnuOther+0.31943828249997*m0rOther[0]*uOther[2]*mnuOther-0.4517539514526256*m1rOther[2]*mnuOther+0.31943828249997*uOther[0]*m0rOther[2]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfX-m0Self*m1OtherX)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[0] = 0.7071067811865475*m0rOther[2]*m1rSelf[2]-0.7071067811865475*m0rSelf[2]*m1rOther[2]+0.7071067811865475*m0rOther[1]*m1rSelf[1]-0.7071067811865475*m0rSelf[1]*m1rOther[1]+0.7071067811865475*m0rOther[0]*m1rSelf[0]-0.7071067811865475*m0rSelf[0]*m1rOther[0]; 
+  m1EffD[1] = 0.6324555320336759*m0rOther[1]*m1rSelf[2]-0.6324555320336759*m0rSelf[1]*m1rOther[2]-0.6324555320336759*m1rOther[1]*m0rSelf[2]+0.6324555320336759*m1rSelf[1]*m0rOther[2]+0.7071067811865475*m0rOther[0]*m1rSelf[1]-0.7071067811865475*m0rSelf[0]*m1rOther[1]-0.7071067811865475*m1rOther[0]*m0rSelf[1]+0.7071067811865475*m1rSelf[0]*m0rOther[1]; 
+  m1EffD[2] = 0.4517539514526256*m0rOther[2]*m1rSelf[2]+0.7071067811865475*m0rOther[0]*m1rSelf[2]-0.4517539514526256*m0rSelf[2]*m1rOther[2]-0.7071067811865475*m0rSelf[0]*m1rOther[2]-0.7071067811865475*m1rOther[0]*m0rSelf[2]+0.7071067811865475*m1rSelf[0]*m0rOther[2]+0.6324555320336759*m0rOther[1]*m1rSelf[1]-0.6324555320336759*m0rSelf[1]*m1rOther[1]; 
+  // Fill AEM matrix. 
+  dataDiv->AEM_S = Eigen::MatrixXd::Zero(3,3); 
+  dataDiv->AEM_S(0,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf+0.7071067811865475*m0rOther[0]*mnuOther; 
+  dataDiv->AEM_S(0,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf+0.7071067811865475*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(0,2) = 0.7071067811865475*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rOther[2]*mnuOther; 
+  dataDiv->AEM_S(1,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf+0.7071067811865475*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(1,1) = 0.6324555320336759*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf+0.6324555320336759*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  dataDiv->AEM_S(1,2) = 0.6324555320336759*m0rSelf[1]*mnuSelf+0.6324555320336759*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(2,0) = 0.7071067811865475*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rOther[2]*mnuOther; 
+  dataDiv->AEM_S(2,1) = 0.6324555320336759*m0rSelf[1]*mnuSelf+0.6324555320336759*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(2,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf+0.4517539514526256*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[0],m1EffD[1],m1EffD[2]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+0,3,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
-  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[0] += (-2.0*m1EffD[0]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += (-2.0*m1EffD[1]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += (-2.0*m1EffD[2]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(15,3) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -1035,10 +1122,22 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(23,16) = 0.7857142857142857*m0rOther[1]*uOther[5]*mnuOther+0.7857142857142857*m0rOther[2]*uOther[4]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[4]*mnuOther-0.6324555320336759*m1rOther[4]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[3]*mnuOther; 
   data->AEM_S(23,17) = 1.071428571428571*m0rOther[2]*uOther[5]*mnuOther+0.31943828249997*m0rOther[0]*uOther[5]*mnuOther-0.4517539514526256*m1rOther[5]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[4]*mnuOther+0.31943828249997*m0rOther[2]*uOther[3]*mnuOther+0.5*m0rOther[0]*uOther[3]*mnuOther-0.7071067811865475*m1rOther[3]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfY-m0Self*m1OtherY)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[3] = 0.7071067811865475*m0rOther[2]*m1rSelf[5]-0.7071067811865475*m0rSelf[2]*m1rOther[5]+0.7071067811865475*m0rOther[1]*m1rSelf[4]-0.7071067811865475*m0rSelf[1]*m1rOther[4]+0.7071067811865475*m0rOther[0]*m1rSelf[3]-0.7071067811865475*m0rSelf[0]*m1rOther[3]; 
+  m1EffD[4] = 0.6324555320336759*m0rOther[1]*m1rSelf[5]-0.6324555320336759*m0rSelf[1]*m1rOther[5]+0.6324555320336759*m0rOther[2]*m1rSelf[4]+0.7071067811865475*m0rOther[0]*m1rSelf[4]-0.6324555320336759*m0rSelf[2]*m1rOther[4]-0.7071067811865475*m0rSelf[0]*m1rOther[4]+0.7071067811865475*m0rOther[1]*m1rSelf[3]-0.7071067811865475*m0rSelf[1]*m1rOther[3]; 
+  m1EffD[5] = 0.4517539514526256*m0rOther[2]*m1rSelf[5]+0.7071067811865475*m0rOther[0]*m1rSelf[5]-0.4517539514526256*m0rSelf[2]*m1rOther[5]-0.7071067811865475*m0rSelf[0]*m1rOther[5]+0.6324555320336759*m0rOther[1]*m1rSelf[4]-0.6324555320336759*m0rSelf[1]*m1rOther[4]+0.7071067811865475*m0rOther[2]*m1rSelf[3]-0.7071067811865475*m0rSelf[2]*m1rOther[3]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[3],m1EffD[4],m1EffD[5]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+3,3,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
-  m1Relax[4] += betaGreenep1*(m1rOther[4]*deltaSelf-1.0*m1rSelf[4]*deltaSelf)*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
-  m1Relax[5] += betaGreenep1*(m1rOther[5]*deltaSelf-1.0*m1rSelf[5]*deltaSelf)*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
+  m1Relax[3] += (-2.0*m1EffD[3]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[4] += (-2.0*m1EffD[4]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
+  m1Relax[5] += (-2.0*m1EffD[5]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfZ ... // 
   data->AEM_S(18,6) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -1106,10 +1205,22 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(23,19) = 0.7857142857142857*m0rOther[1]*uOther[8]*mnuOther+0.7857142857142857*m0rOther[2]*uOther[7]*mnuOther+0.4472135954999579*m0rOther[0]*uOther[7]*mnuOther-0.6324555320336759*m1rOther[7]*mnuOther+0.4472135954999579*m0rOther[1]*uOther[6]*mnuOther; 
   data->AEM_S(23,20) = 1.071428571428571*m0rOther[2]*uOther[8]*mnuOther+0.31943828249997*m0rOther[0]*uOther[8]*mnuOther-0.4517539514526256*m1rOther[8]*mnuOther+0.7857142857142857*m0rOther[1]*uOther[7]*mnuOther+0.31943828249997*m0rOther[2]*uOther[6]*mnuOther+0.5*m0rOther[0]*uOther[6]*mnuOther-0.7071067811865475*m1rOther[6]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfZ-m0Self*m1OtherZ)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[6] = 0.7071067811865475*m0rOther[2]*m1rSelf[8]-0.7071067811865475*m0rSelf[2]*m1rOther[8]+0.7071067811865475*m0rOther[1]*m1rSelf[7]-0.7071067811865475*m0rSelf[1]*m1rOther[7]+0.7071067811865475*m0rOther[0]*m1rSelf[6]-0.7071067811865475*m0rSelf[0]*m1rOther[6]; 
+  m1EffD[7] = 0.6324555320336759*m0rOther[1]*m1rSelf[8]-0.6324555320336759*m0rSelf[1]*m1rOther[8]+0.6324555320336759*m0rOther[2]*m1rSelf[7]+0.7071067811865475*m0rOther[0]*m1rSelf[7]-0.6324555320336759*m0rSelf[2]*m1rOther[7]-0.7071067811865475*m0rSelf[0]*m1rOther[7]+0.7071067811865475*m0rOther[1]*m1rSelf[6]-0.7071067811865475*m0rSelf[1]*m1rOther[6]; 
+  m1EffD[8] = 0.4517539514526256*m0rOther[2]*m1rSelf[8]+0.7071067811865475*m0rOther[0]*m1rSelf[8]-0.4517539514526256*m0rSelf[2]*m1rOther[8]-0.7071067811865475*m0rSelf[0]*m1rOther[8]+0.6324555320336759*m0rOther[1]*m1rSelf[7]-0.6324555320336759*m0rSelf[1]*m1rOther[7]+0.7071067811865475*m0rOther[2]*m1rSelf[6]-0.7071067811865475*m0rSelf[2]*m1rOther[6]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[6],m1EffD[7],m1EffD[8]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+6,3,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 3 of momentum relaxation. 
-  m1Relax[6] += betaGreenep1*(m1rOther[6]*deltaSelf-1.0*m1rSelf[6]*deltaSelf)*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
-  m1Relax[7] += betaGreenep1*(m1rOther[7]*deltaSelf-1.0*m1rSelf[7]*deltaSelf)*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
-  m1Relax[8] += betaGreenep1*(m1rOther[8]*deltaSelf-1.0*m1rSelf[8]*deltaSelf)*mnuSelf+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
+  m1Relax[6] += (-2.0*m1EffD[6]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
+  m1Relax[7] += (-2.0*m1EffD[7]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
+  m1Relax[8] += (-2.0*m1EffD[8]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
  
   double ucMSelf[3]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -1194,7 +1305,7 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
   } 
  
   double relKinE[3]; 
-  // zero out array with dot product of u and m1. 
+  // zero out array with dot product of uSelf-uOther and m1EffD. 
   for (unsigned short int vd=0; vd<3; vd++) 
   { 
     relKinE[vd] = 0.0; 
@@ -1203,16 +1314,42 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
   { 
     unsigned short int a0 = 3*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    relKinE[0] += 0.7071067811865475*m1rSelf[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rSelf[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]-0.7071067811865475*m1rOther[a0]*uSelf[a0]-0.7071067811865475*m1rSelf[a0]*uOther[a0]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
-    relKinE[1] += 0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+2]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+2]+0.6324555320336759*uSelf[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uOther[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uSelf[a0+1]*m1rOther[a0+2]+0.6324555320336759*uOther[a0+1]*m1rOther[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]-0.7071067811865475*uOther[a0]*m1rSelf[a0+1]-0.7071067811865475*uSelf[a0]*m1rOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
-    relKinE[2] += 0.4517539514526256*m1rSelf[a0+2]*uSelf[a0+2]-0.4517539514526256*m1rOther[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0]*uSelf[a0+2]-0.4517539514526256*m1rSelf[a0+2]*uOther[a0+2]+0.4517539514526256*m1rOther[a0+2]*uOther[a0+2]-0.7071067811865475*m1rSelf[a0]*uOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+2]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+2]-0.7071067811865475*uOther[a0]*m1rSelf[a0+2]-0.7071067811865475*uSelf[a0]*m1rOther[a0+2]+0.7071067811865475*uOther[a0]*m1rOther[a0+2]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+1]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+1]; 
+    relKinE[0] += 0.7071067811865475*m1EffD[a0+2]*uSelf[a0+2]-0.7071067811865475*m1EffD[a0+2]*uOther[a0+2]+0.7071067811865475*m1EffD[a0+1]*uSelf[a0+1]-0.7071067811865475*m1EffD[a0+1]*uOther[a0+1]+0.7071067811865475*m1EffD[a0]*uSelf[a0]-0.7071067811865475*m1EffD[a0]*uOther[a0]; 
+    relKinE[1] += 0.6324555320336759*m1EffD[a0+1]*uSelf[a0+2]-0.6324555320336759*m1EffD[a0+1]*uOther[a0+2]+0.6324555320336759*uSelf[a0+1]*m1EffD[a0+2]-0.6324555320336759*uOther[a0+1]*m1EffD[a0+2]+0.7071067811865475*m1EffD[a0]*uSelf[a0+1]-0.7071067811865475*m1EffD[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1EffD[a0+1]-0.7071067811865475*uOther[a0]*m1EffD[a0+1]; 
+    relKinE[2] += 0.4517539514526256*m1EffD[a0+2]*uSelf[a0+2]+0.7071067811865475*m1EffD[a0]*uSelf[a0+2]-0.4517539514526256*m1EffD[a0+2]*uOther[a0+2]-0.7071067811865475*m1EffD[a0]*uOther[a0+2]+0.7071067811865475*uSelf[a0]*m1EffD[a0+2]-0.7071067811865475*uOther[a0]*m1EffD[a0+2]+0.6324555320336759*m1EffD[a0+1]*uSelf[a0+1]-0.6324555320336759*m1EffD[a0+1]*uOther[a0+1]; 
   } 
+ 
+  // Divide m0Other*(m2Self-kinESelf) by mnuSelf*m0Self+mnuOther*m0Other. 
+  // Product of m0Other and m2Self-uSelf.m1Self. 
+  double m0OtherThESelf[3]; 
+  m0OtherThESelf[0] = 0.7071067811865475*m0rOther[2]*m2rSelf[2]-0.7071067811865475*kinESelf[2]*m0rOther[2]+0.7071067811865475*m0rOther[1]*m2rSelf[1]-0.7071067811865475*kinESelf[1]*m0rOther[1]+0.7071067811865475*m0rOther[0]*m2rSelf[0]-0.7071067811865475*kinESelf[0]*m0rOther[0]; 
+  m0OtherThESelf[1] = 0.6324555320336759*m0rOther[1]*m2rSelf[2]+0.6324555320336759*m2rSelf[1]*m0rOther[2]-0.6324555320336759*kinESelf[1]*m0rOther[2]-0.6324555320336759*m0rOther[1]*kinESelf[2]+0.7071067811865475*m0rOther[0]*m2rSelf[1]+0.7071067811865475*m2rSelf[0]*m0rOther[1]-0.7071067811865475*kinESelf[0]*m0rOther[1]-0.7071067811865475*m0rOther[0]*kinESelf[1]; 
+  m0OtherThESelf[2] = 0.4517539514526256*m0rOther[2]*m2rSelf[2]+0.7071067811865475*m0rOther[0]*m2rSelf[2]-0.4517539514526256*kinESelf[2]*m0rOther[2]+0.7071067811865475*m2rSelf[0]*m0rOther[2]-0.7071067811865475*kinESelf[0]*m0rOther[2]-0.7071067811865475*m0rOther[0]*kinESelf[2]+0.6324555320336759*m0rOther[1]*m2rSelf[1]-0.6324555320336759*kinESelf[1]*m0rOther[1]; 
+  dataDiv->BEV_S << m0OtherThESelf[0],m0OtherThESelf[1],m0OtherThESelf[2]; 
+  // Invert system of equations from weak division. dataDiv.AEM was filled earlier. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  double effEthSelf[3]; 
+  Eigen::Map<VectorXd>(effEthSelf,3,1) = dataDiv->u_S; 
+ 
+  // Divide m0Self*(m2Other-kinEOther) by mnuSelf*m0Self+mnuOther*m0Other. 
+  // Product of m0Self and m2Other-uOther.m1Other. 
+  double m0SelfThEOther[3]; 
+  m0SelfThEOther[0] = 0.7071067811865475*m0rSelf[2]*m2rOther[2]-0.7071067811865475*kinEOther[2]*m0rSelf[2]+0.7071067811865475*m0rSelf[1]*m2rOther[1]-0.7071067811865475*kinEOther[1]*m0rSelf[1]+0.7071067811865475*m0rSelf[0]*m2rOther[0]-0.7071067811865475*kinEOther[0]*m0rSelf[0]; 
+  m0SelfThEOther[1] = 0.6324555320336759*m0rSelf[1]*m2rOther[2]+0.6324555320336759*m2rOther[1]*m0rSelf[2]-0.6324555320336759*kinEOther[1]*m0rSelf[2]-0.6324555320336759*m0rSelf[1]*kinEOther[2]+0.7071067811865475*m0rSelf[0]*m2rOther[1]+0.7071067811865475*m2rOther[0]*m0rSelf[1]-0.7071067811865475*kinEOther[0]*m0rSelf[1]-0.7071067811865475*m0rSelf[0]*kinEOther[1]; 
+  m0SelfThEOther[2] = 0.4517539514526256*m0rSelf[2]*m2rOther[2]+0.7071067811865475*m0rSelf[0]*m2rOther[2]-0.4517539514526256*kinEOther[2]*m0rSelf[2]+0.7071067811865475*m2rOther[0]*m0rSelf[2]-0.7071067811865475*kinEOther[0]*m0rSelf[2]-0.7071067811865475*m0rSelf[0]*kinEOther[2]+0.6324555320336759*m0rSelf[1]*m2rOther[1]-0.6324555320336759*kinEOther[1]*m0rSelf[1]; 
+  dataDiv->BEV_S << m0SelfThEOther[0],m0SelfThEOther[1],m0SelfThEOther[2]; 
+  // Invert system of equations from weak division. dataDiv.AEM was filled earlier. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  double effEthOther[3]; 
+  Eigen::Map<VectorXd>(effEthOther,3,1) = dataDiv->u_S; 
  
   double m2Relax[3]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
-  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[2]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(1.0*relKinE[0]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[0]*mSelf)/(mSelf+mOther)+(1.0*relKinE[0]*mOther)/(mSelf+mOther)+(2.0*effEthOther[0]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(1.0*relKinE[1]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[1]*mSelf)/(mSelf+mOther)+(1.0*relKinE[1]*mOther)/(mSelf+mOther)+(2.0*effEthOther[1]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(1.0*relKinE[2]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[2]*mSelf)/(mSelf+mOther)+(1.0*relKinE[2]*mOther)/(mSelf+mOther)+(2.0*effEthOther[2]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<3,6>(12,3).setZero(); 
@@ -1239,7 +1376,7 @@ void VmCrossPrimMoments1x3vSer_P2(binOpData_t *data, const double betaGreenep1, 
  
 } 
  
-void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, binOpData_t *dataDiv,const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:       free parameter beta+1. This has to be >0. 
   // nu, m:              collisionality and mass. 
@@ -1358,12 +1495,11 @@ void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, 
     m2rOther[3] = m2Other[3]; 
   } 
  
-  // Declare Eigen matrix and vectors for weak division. 
+  // Declare Eigen matrix and vectors for weak system. 
   data->AEM_S = Eigen::MatrixXd::Zero(32,32); 
  
   double mnuSelf   = mSelf*nuSelf; 
   double mnuOther  = mOther*nuOther; 
-  double deltaSelf = sqrt(mnuOther/mnuSelf); 
   double mnuM1sum[12]; 
   // zero out array with sum of m*nu*m1. 
   for (unsigned short int vd=0; vd<12; vd++) 
@@ -1773,6 +1909,8 @@ void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, 
     m1Relax[vd] = 0.0; 
   } 
  
+  double m1EffD[12]; 
+ 
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfX ... // 
   data->AEM_S(16,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
   data->AEM_S(16,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf; 
@@ -1881,11 +2019,42 @@ void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(31,18) = 0.9242424242424242*m0rOther[2]*uOther[3]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[3]*mnuOther-0.421637021355784*m1rOther[3]*mnuOther+0.9242424242424242*uOther[2]*m0rOther[3]*mnuOther+0.2981423969999719*uOther[0]*m0rOther[3]*mnuOther+0.6546536707079771*m0rOther[1]*uOther[2]*mnuOther+0.6546536707079771*uOther[1]*m0rOther[2]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[1]*mnuOther-0.6210590034081186*m1rOther[1]*mnuOther+0.4391550328268398*uOther[0]*m0rOther[1]*mnuOther; 
   data->AEM_S(31,19) = 1.17972027972028*m0rOther[3]*uOther[3]*mnuOther+0.499917348540637*m0rOther[1]*uOther[3]*mnuOther+0.499917348540637*uOther[1]*m0rOther[3]*mnuOther+0.9242424242424242*m0rOther[2]*uOther[2]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[2]*mnuOther-0.421637021355784*m1rOther[2]*mnuOther+0.2981423969999719*uOther[0]*m0rOther[2]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[1]*mnuOther+0.5*m0rOther[0]*uOther[0]*mnuOther-0.7071067811865475*m1rOther[0]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfX-m0Self*m1OtherX)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[0] = 0.7071067811865475*m0rOther[3]*m1rSelf[3]-0.7071067811865475*m0rSelf[3]*m1rOther[3]+0.7071067811865475*m0rOther[2]*m1rSelf[2]-0.7071067811865475*m0rSelf[2]*m1rOther[2]+0.7071067811865475*m0rOther[1]*m1rSelf[1]-0.7071067811865475*m0rSelf[1]*m1rOther[1]+0.7071067811865475*m0rOther[0]*m1rSelf[0]-0.7071067811865475*m0rSelf[0]*m1rOther[0]; 
+  m1EffD[1] = 0.6210590034081186*m0rOther[2]*m1rSelf[3]-0.6210590034081186*m0rSelf[2]*m1rOther[3]-0.6210590034081186*m1rOther[2]*m0rSelf[3]+0.6210590034081186*m1rSelf[2]*m0rOther[3]+0.6324555320336759*m0rOther[1]*m1rSelf[2]-0.6324555320336759*m0rSelf[1]*m1rOther[2]-0.6324555320336759*m1rOther[1]*m0rSelf[2]+0.6324555320336759*m1rSelf[1]*m0rOther[2]+0.7071067811865475*m0rOther[0]*m1rSelf[1]-0.7071067811865475*m0rSelf[0]*m1rOther[1]-0.7071067811865475*m1rOther[0]*m0rSelf[1]+0.7071067811865475*m1rSelf[0]*m0rOther[1]; 
+  m1EffD[2] = 0.421637021355784*m0rOther[3]*m1rSelf[3]+0.6210590034081186*m0rOther[1]*m1rSelf[3]-0.421637021355784*m0rSelf[3]*m1rOther[3]-0.6210590034081186*m0rSelf[1]*m1rOther[3]-0.6210590034081186*m1rOther[1]*m0rSelf[3]+0.6210590034081186*m1rSelf[1]*m0rOther[3]+0.4517539514526256*m0rOther[2]*m1rSelf[2]+0.7071067811865475*m0rOther[0]*m1rSelf[2]-0.4517539514526256*m0rSelf[2]*m1rOther[2]-0.7071067811865475*m0rSelf[0]*m1rOther[2]-0.7071067811865475*m1rOther[0]*m0rSelf[2]+0.7071067811865475*m1rSelf[0]*m0rOther[2]+0.6324555320336759*m0rOther[1]*m1rSelf[1]-0.6324555320336759*m0rSelf[1]*m1rOther[1]; 
+  m1EffD[3] = 0.421637021355784*m0rOther[2]*m1rSelf[3]+0.7071067811865475*m0rOther[0]*m1rSelf[3]-0.421637021355784*m0rSelf[2]*m1rOther[3]-0.7071067811865475*m0rSelf[0]*m1rOther[3]-0.421637021355784*m1rOther[2]*m0rSelf[3]-0.7071067811865475*m1rOther[0]*m0rSelf[3]+0.421637021355784*m1rSelf[2]*m0rOther[3]+0.7071067811865475*m1rSelf[0]*m0rOther[3]+0.6210590034081186*m0rOther[1]*m1rSelf[2]-0.6210590034081186*m0rSelf[1]*m1rOther[2]-0.6210590034081186*m1rOther[1]*m0rSelf[2]+0.6210590034081186*m1rSelf[1]*m0rOther[2]; 
+  // Fill AEM matrix. 
+  dataDiv->AEM_S = Eigen::MatrixXd::Zero(4,4); 
+  dataDiv->AEM_S(0,0) = 0.7071067811865475*m0rSelf[0]*mnuSelf+0.7071067811865475*m0rOther[0]*mnuOther; 
+  dataDiv->AEM_S(0,1) = 0.7071067811865475*m0rSelf[1]*mnuSelf+0.7071067811865475*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(0,2) = 0.7071067811865475*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rOther[2]*mnuOther; 
+  dataDiv->AEM_S(0,3) = 0.7071067811865475*m0rSelf[3]*mnuSelf+0.7071067811865475*m0rOther[3]*mnuOther; 
+  dataDiv->AEM_S(1,0) = 0.7071067811865475*m0rSelf[1]*mnuSelf+0.7071067811865475*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(1,1) = 0.6324555320336759*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf+0.6324555320336759*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  dataDiv->AEM_S(1,2) = 0.6210590034081186*m0rSelf[3]*mnuSelf+0.6324555320336759*m0rSelf[1]*mnuSelf+0.6210590034081186*m0rOther[3]*mnuOther+0.6324555320336759*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(1,3) = 0.6210590034081186*m0rSelf[2]*mnuSelf+0.6210590034081186*m0rOther[2]*mnuOther; 
+  dataDiv->AEM_S(2,0) = 0.7071067811865475*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rOther[2]*mnuOther; 
+  dataDiv->AEM_S(2,1) = 0.6210590034081186*m0rSelf[3]*mnuSelf+0.6324555320336759*m0rSelf[1]*mnuSelf+0.6210590034081186*m0rOther[3]*mnuOther+0.6324555320336759*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(2,2) = 0.4517539514526256*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf+0.4517539514526256*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  dataDiv->AEM_S(2,3) = 0.421637021355784*m0rSelf[3]*mnuSelf+0.6210590034081186*m0rSelf[1]*mnuSelf+0.421637021355784*m0rOther[3]*mnuOther+0.6210590034081186*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(3,0) = 0.7071067811865475*m0rSelf[3]*mnuSelf+0.7071067811865475*m0rOther[3]*mnuOther; 
+  dataDiv->AEM_S(3,1) = 0.6210590034081186*m0rSelf[2]*mnuSelf+0.6210590034081186*m0rOther[2]*mnuOther; 
+  dataDiv->AEM_S(3,2) = 0.421637021355784*m0rSelf[3]*mnuSelf+0.6210590034081186*m0rSelf[1]*mnuSelf+0.421637021355784*m0rOther[3]*mnuOther+0.6210590034081186*m0rOther[1]*mnuOther; 
+  dataDiv->AEM_S(3,3) = 0.421637021355784*m0rSelf[2]*mnuSelf+0.7071067811865475*m0rSelf[0]*mnuSelf+0.421637021355784*m0rOther[2]*mnuOther+0.7071067811865475*m0rOther[0]*mnuOther; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[0],m1EffD[1],m1EffD[2],m1EffD[3]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+0,4,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 1 of momentum relaxation. 
-  m1Relax[0] += betaGreenep1*(m1rOther[0]*deltaSelf-1.0*m1rSelf[0]*deltaSelf)*mnuSelf+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
-  m1Relax[1] += betaGreenep1*(m1rOther[1]*deltaSelf-1.0*m1rSelf[1]*deltaSelf)*mnuSelf+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
-  m1Relax[2] += betaGreenep1*(m1rOther[2]*deltaSelf-1.0*m1rSelf[2]*deltaSelf)*mnuSelf+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
-  m1Relax[3] += betaGreenep1*(m1rOther[3]*deltaSelf-1.0*m1rSelf[3]*deltaSelf)*mnuSelf+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
+  m1Relax[0] += (-2.0*m1EffD[0]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[0]*mnuSelf-1.0*m1rOther[0]*mnuOther; 
+  m1Relax[1] += (-2.0*m1EffD[1]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[1]*mnuSelf-1.0*m1rOther[1]*mnuOther; 
+  m1Relax[2] += (-2.0*m1EffD[2]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[2]*mnuSelf-1.0*m1rOther[2]*mnuOther; 
+  m1Relax[3] += (-2.0*m1EffD[3]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[3]*mnuSelf-1.0*m1rOther[3]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfY ... // 
   data->AEM_S(20,4) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -1995,11 +2164,24 @@ void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(31,22) = 0.9242424242424242*m0rOther[2]*uOther[7]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[7]*mnuOther-0.421637021355784*m1rOther[7]*mnuOther+0.9242424242424242*m0rOther[3]*uOther[6]*mnuOther+0.6546536707079771*m0rOther[1]*uOther[6]*mnuOther+0.6546536707079771*m0rOther[2]*uOther[5]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[5]*mnuOther-0.6210590034081186*m1rOther[5]*mnuOther+0.2981423969999719*m0rOther[3]*uOther[4]*mnuOther+0.4391550328268398*m0rOther[1]*uOther[4]*mnuOther; 
   data->AEM_S(31,23) = 1.17972027972028*m0rOther[3]*uOther[7]*mnuOther+0.499917348540637*m0rOther[1]*uOther[7]*mnuOther+0.9242424242424242*m0rOther[2]*uOther[6]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[6]*mnuOther-0.421637021355784*m1rOther[6]*mnuOther+0.499917348540637*m0rOther[3]*uOther[5]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[5]*mnuOther+0.2981423969999719*m0rOther[2]*uOther[4]*mnuOther+0.5*m0rOther[0]*uOther[4]*mnuOther-0.7071067811865475*m1rOther[4]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfY-m0Self*m1OtherY)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[4] = 0.7071067811865475*m0rOther[3]*m1rSelf[7]-0.7071067811865475*m0rSelf[3]*m1rOther[7]+0.7071067811865475*m0rOther[2]*m1rSelf[6]-0.7071067811865475*m0rSelf[2]*m1rOther[6]+0.7071067811865475*m0rOther[1]*m1rSelf[5]-0.7071067811865475*m0rSelf[1]*m1rOther[5]+0.7071067811865475*m0rOther[0]*m1rSelf[4]-0.7071067811865475*m0rSelf[0]*m1rOther[4]; 
+  m1EffD[5] = 0.6210590034081186*m0rOther[2]*m1rSelf[7]-0.6210590034081186*m0rSelf[2]*m1rOther[7]+0.6210590034081186*m0rOther[3]*m1rSelf[6]+0.6324555320336759*m0rOther[1]*m1rSelf[6]-0.6210590034081186*m0rSelf[3]*m1rOther[6]-0.6324555320336759*m0rSelf[1]*m1rOther[6]+0.6324555320336759*m0rOther[2]*m1rSelf[5]+0.7071067811865475*m0rOther[0]*m1rSelf[5]-0.6324555320336759*m0rSelf[2]*m1rOther[5]-0.7071067811865475*m0rSelf[0]*m1rOther[5]+0.7071067811865475*m0rOther[1]*m1rSelf[4]-0.7071067811865475*m0rSelf[1]*m1rOther[4]; 
+  m1EffD[6] = 0.421637021355784*m0rOther[3]*m1rSelf[7]+0.6210590034081186*m0rOther[1]*m1rSelf[7]-0.421637021355784*m0rSelf[3]*m1rOther[7]-0.6210590034081186*m0rSelf[1]*m1rOther[7]+0.4517539514526256*m0rOther[2]*m1rSelf[6]+0.7071067811865475*m0rOther[0]*m1rSelf[6]-0.4517539514526256*m0rSelf[2]*m1rOther[6]-0.7071067811865475*m0rSelf[0]*m1rOther[6]+0.6210590034081186*m0rOther[3]*m1rSelf[5]+0.6324555320336759*m0rOther[1]*m1rSelf[5]-0.6210590034081186*m0rSelf[3]*m1rOther[5]-0.6324555320336759*m0rSelf[1]*m1rOther[5]+0.7071067811865475*m0rOther[2]*m1rSelf[4]-0.7071067811865475*m0rSelf[2]*m1rOther[4]; 
+  m1EffD[7] = 0.421637021355784*m0rOther[2]*m1rSelf[7]+0.7071067811865475*m0rOther[0]*m1rSelf[7]-0.421637021355784*m0rSelf[2]*m1rOther[7]-0.7071067811865475*m0rSelf[0]*m1rOther[7]+0.421637021355784*m0rOther[3]*m1rSelf[6]+0.6210590034081186*m0rOther[1]*m1rSelf[6]-0.421637021355784*m0rSelf[3]*m1rOther[6]-0.6210590034081186*m0rSelf[1]*m1rOther[6]+0.6210590034081186*m0rOther[2]*m1rSelf[5]-0.6210590034081186*m0rSelf[2]*m1rOther[5]+0.7071067811865475*m0rOther[3]*m1rSelf[4]-0.7071067811865475*m0rSelf[3]*m1rOther[4]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[4],m1EffD[5],m1EffD[6],m1EffD[7]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+4,4,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 2 of momentum relaxation. 
-  m1Relax[4] += betaGreenep1*(m1rOther[4]*deltaSelf-1.0*m1rSelf[4]*deltaSelf)*mnuSelf+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
-  m1Relax[5] += betaGreenep1*(m1rOther[5]*deltaSelf-1.0*m1rSelf[5]*deltaSelf)*mnuSelf+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
-  m1Relax[6] += betaGreenep1*(m1rOther[6]*deltaSelf-1.0*m1rSelf[6]*deltaSelf)*mnuSelf+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
-  m1Relax[7] += betaGreenep1*(m1rOther[7]*deltaSelf-1.0*m1rSelf[7]*deltaSelf)*mnuSelf+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
+  m1Relax[4] += (-2.0*m1EffD[4]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[4]*mnuSelf-1.0*m1rOther[4]*mnuOther; 
+  m1Relax[5] += (-2.0*m1EffD[5]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[5]*mnuSelf-1.0*m1rOther[5]*mnuOther; 
+  m1Relax[6] += (-2.0*m1EffD[6]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[6]*mnuSelf-1.0*m1rOther[6]*mnuOther; 
+  m1Relax[7] += (-2.0*m1EffD[7]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[7]*mnuSelf-1.0*m1rOther[7]*mnuOther; 
  
   // ... Relaxation block from weak multiply of mSelf, nuSelf, M0Self and uCrossSelfZ ... // 
   data->AEM_S(24,8) = 0.7071067811865475*m0rSelf[0]*mnuSelf; 
@@ -2109,11 +2291,24 @@ void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, 
   data->AEM_S(31,26) = 0.9242424242424242*m0rOther[2]*uOther[11]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[11]*mnuOther-0.421637021355784*m1rOther[11]*mnuOther+0.9242424242424242*m0rOther[3]*uOther[10]*mnuOther+0.6546536707079771*m0rOther[1]*uOther[10]*mnuOther+0.6546536707079771*m0rOther[2]*uOther[9]*mnuOther+0.4391550328268398*m0rOther[0]*uOther[9]*mnuOther-0.6210590034081186*m1rOther[9]*mnuOther+0.2981423969999719*m0rOther[3]*uOther[8]*mnuOther+0.4391550328268398*m0rOther[1]*uOther[8]*mnuOther; 
   data->AEM_S(31,27) = 1.17972027972028*m0rOther[3]*uOther[11]*mnuOther+0.499917348540637*m0rOther[1]*uOther[11]*mnuOther+0.9242424242424242*m0rOther[2]*uOther[10]*mnuOther+0.2981423969999719*m0rOther[0]*uOther[10]*mnuOther-0.421637021355784*m1rOther[10]*mnuOther+0.499917348540637*m0rOther[3]*uOther[9]*mnuOther+0.7666666666666667*m0rOther[1]*uOther[9]*mnuOther+0.2981423969999719*m0rOther[2]*uOther[8]*mnuOther+0.5*m0rOther[0]*uOther[8]*mnuOther-0.7071067811865475*m1rOther[8]*mnuOther; 
  
+  // ... Divide (m0Other*m1SelfZ-m0Self*m1OtherZ)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute m0Other*m1Self-m0Self*m1Other. 
+  m1EffD[8] = 0.7071067811865475*m0rOther[3]*m1rSelf[11]-0.7071067811865475*m0rSelf[3]*m1rOther[11]+0.7071067811865475*m0rOther[2]*m1rSelf[10]-0.7071067811865475*m0rSelf[2]*m1rOther[10]+0.7071067811865475*m0rOther[1]*m1rSelf[9]-0.7071067811865475*m0rSelf[1]*m1rOther[9]+0.7071067811865475*m0rOther[0]*m1rSelf[8]-0.7071067811865475*m0rSelf[0]*m1rOther[8]; 
+  m1EffD[9] = 0.6210590034081186*m0rOther[2]*m1rSelf[11]-0.6210590034081186*m0rSelf[2]*m1rOther[11]+0.6210590034081186*m0rOther[3]*m1rSelf[10]+0.6324555320336759*m0rOther[1]*m1rSelf[10]-0.6210590034081186*m0rSelf[3]*m1rOther[10]-0.6324555320336759*m0rSelf[1]*m1rOther[10]+0.6324555320336759*m0rOther[2]*m1rSelf[9]+0.7071067811865475*m0rOther[0]*m1rSelf[9]-0.6324555320336759*m0rSelf[2]*m1rOther[9]-0.7071067811865475*m0rSelf[0]*m1rOther[9]+0.7071067811865475*m0rOther[1]*m1rSelf[8]-0.7071067811865475*m0rSelf[1]*m1rOther[8]; 
+  m1EffD[10] = 0.421637021355784*m0rOther[3]*m1rSelf[11]+0.6210590034081186*m0rOther[1]*m1rSelf[11]-0.421637021355784*m0rSelf[3]*m1rOther[11]-0.6210590034081186*m0rSelf[1]*m1rOther[11]+0.4517539514526256*m0rOther[2]*m1rSelf[10]+0.7071067811865475*m0rOther[0]*m1rSelf[10]-0.4517539514526256*m0rSelf[2]*m1rOther[10]-0.7071067811865475*m0rSelf[0]*m1rOther[10]+0.6210590034081186*m0rOther[3]*m1rSelf[9]+0.6324555320336759*m0rOther[1]*m1rSelf[9]-0.6210590034081186*m0rSelf[3]*m1rOther[9]-0.6324555320336759*m0rSelf[1]*m1rOther[9]+0.7071067811865475*m0rOther[2]*m1rSelf[8]-0.7071067811865475*m0rSelf[2]*m1rOther[8]; 
+  m1EffD[11] = 0.421637021355784*m0rOther[2]*m1rSelf[11]+0.7071067811865475*m0rOther[0]*m1rSelf[11]-0.421637021355784*m0rSelf[2]*m1rOther[11]-0.7071067811865475*m0rSelf[0]*m1rOther[11]+0.421637021355784*m0rOther[3]*m1rSelf[10]+0.6210590034081186*m0rOther[1]*m1rSelf[10]-0.421637021355784*m0rSelf[3]*m1rOther[10]-0.6210590034081186*m0rSelf[1]*m1rOther[10]+0.6210590034081186*m0rOther[2]*m1rSelf[9]-0.6210590034081186*m0rSelf[2]*m1rOther[9]+0.7071067811865475*m0rOther[3]*m1rSelf[8]-0.7071067811865475*m0rSelf[3]*m1rOther[8]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << m1EffD[8],m1EffD[9],m1EffD[10],m1EffD[11]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(m1EffD+8,4,1) = dataDiv->u_S; 
+ 
   // ... Contribution to RHS vector from component 3 of momentum relaxation. 
-  m1Relax[8] += betaGreenep1*(m1rOther[8]*deltaSelf-1.0*m1rSelf[8]*deltaSelf)*mnuSelf+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
-  m1Relax[9] += betaGreenep1*(m1rOther[9]*deltaSelf-1.0*m1rSelf[9]*deltaSelf)*mnuSelf+m1rSelf[9]*mnuSelf-1.0*m1rOther[9]*mnuOther; 
-  m1Relax[10] += betaGreenep1*(m1rOther[10]*deltaSelf-1.0*m1rSelf[10]*deltaSelf)*mnuSelf+m1rSelf[10]*mnuSelf-1.0*m1rOther[10]*mnuOther; 
-  m1Relax[11] += betaGreenep1*(m1rOther[11]*deltaSelf-1.0*m1rSelf[11]*deltaSelf)*mnuSelf+m1rSelf[11]*mnuSelf-1.0*m1rOther[11]*mnuOther; 
+  m1Relax[8] += (-2.0*m1EffD[8]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[8]*mnuSelf-1.0*m1rOther[8]*mnuOther; 
+  m1Relax[9] += (-2.0*m1EffD[9]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[9]*mnuSelf-1.0*m1rOther[9]*mnuOther; 
+  m1Relax[10] += (-2.0*m1EffD[10]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[10]*mnuSelf-1.0*m1rOther[10]*mnuOther; 
+  m1Relax[11] += (-2.0*m1EffD[11]*betaGreenep1*mnuOther*mnuSelf)+m1rSelf[11]*mnuSelf-1.0*m1rOther[11]*mnuOther; 
  
   double ucMSelf[4]; 
   // Zero out array with dot product of uSelf and cMSelf. 
@@ -2216,7 +2411,7 @@ void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, 
   } 
  
   double relKinE[4]; 
-  // zero out array with dot product of u and m1. 
+  // zero out array with dot product of uSelf-uOther and m1EffD. 
   for (unsigned short int vd=0; vd<4; vd++) 
   { 
     relKinE[vd] = 0.0; 
@@ -2225,18 +2420,46 @@ void VmCrossPrimMoments1x3vSer_P3(binOpData_t *data, const double betaGreenep1, 
   { 
     unsigned short int a0 = 4*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
-    relKinE[0] += 0.7071067811865475*m1rSelf[a0+3]*uSelf[a0+3]-0.7071067811865475*m1rOther[a0+3]*uSelf[a0+3]-0.7071067811865475*m1rSelf[a0+3]*uOther[a0+3]+0.7071067811865475*m1rOther[a0+3]*uOther[a0+3]+0.7071067811865475*m1rSelf[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0+2]*uSelf[a0+2]-0.7071067811865475*m1rSelf[a0+2]*uOther[a0+2]+0.7071067811865475*m1rOther[a0+2]*uOther[a0+2]+0.7071067811865475*m1rSelf[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0+1]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0+1]*uOther[a0+1]+0.7071067811865475*m1rOther[a0+1]*uOther[a0+1]+0.7071067811865475*m1rSelf[a0]*uSelf[a0]-0.7071067811865475*m1rOther[a0]*uSelf[a0]-0.7071067811865475*m1rSelf[a0]*uOther[a0]+0.7071067811865475*m1rOther[a0]*uOther[a0]; 
-    relKinE[1] += 0.6210590034081186*m1rSelf[a0+2]*uSelf[a0+3]-0.6210590034081186*m1rOther[a0+2]*uSelf[a0+3]-0.6210590034081186*m1rSelf[a0+2]*uOther[a0+3]+0.6210590034081186*m1rOther[a0+2]*uOther[a0+3]+0.6210590034081186*uSelf[a0+2]*m1rSelf[a0+3]-0.6210590034081186*uOther[a0+2]*m1rSelf[a0+3]-0.6210590034081186*uSelf[a0+2]*m1rOther[a0+3]+0.6210590034081186*uOther[a0+2]*m1rOther[a0+3]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+2]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+2]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+2]+0.6324555320336759*uSelf[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uOther[a0+1]*m1rSelf[a0+2]-0.6324555320336759*uSelf[a0+1]*m1rOther[a0+2]+0.6324555320336759*uOther[a0+1]*m1rOther[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+1]-0.7071067811865475*m1rOther[a0]*uSelf[a0+1]-0.7071067811865475*m1rSelf[a0]*uOther[a0+1]+0.7071067811865475*m1rOther[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+1]-0.7071067811865475*uOther[a0]*m1rSelf[a0+1]-0.7071067811865475*uSelf[a0]*m1rOther[a0+1]+0.7071067811865475*uOther[a0]*m1rOther[a0+1]; 
-    relKinE[2] += 0.421637021355784*m1rSelf[a0+3]*uSelf[a0+3]-0.421637021355784*m1rOther[a0+3]*uSelf[a0+3]+0.6210590034081186*m1rSelf[a0+1]*uSelf[a0+3]-0.6210590034081186*m1rOther[a0+1]*uSelf[a0+3]-0.421637021355784*m1rSelf[a0+3]*uOther[a0+3]+0.421637021355784*m1rOther[a0+3]*uOther[a0+3]-0.6210590034081186*m1rSelf[a0+1]*uOther[a0+3]+0.6210590034081186*m1rOther[a0+1]*uOther[a0+3]+0.6210590034081186*uSelf[a0+1]*m1rSelf[a0+3]-0.6210590034081186*uOther[a0+1]*m1rSelf[a0+3]-0.6210590034081186*uSelf[a0+1]*m1rOther[a0+3]+0.6210590034081186*uOther[a0+1]*m1rOther[a0+3]+0.4517539514526256*m1rSelf[a0+2]*uSelf[a0+2]-0.4517539514526256*m1rOther[a0+2]*uSelf[a0+2]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+2]-0.7071067811865475*m1rOther[a0]*uSelf[a0+2]-0.4517539514526256*m1rSelf[a0+2]*uOther[a0+2]+0.4517539514526256*m1rOther[a0+2]*uOther[a0+2]-0.7071067811865475*m1rSelf[a0]*uOther[a0+2]+0.7071067811865475*m1rOther[a0]*uOther[a0+2]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+2]-0.7071067811865475*uOther[a0]*m1rSelf[a0+2]-0.7071067811865475*uSelf[a0]*m1rOther[a0+2]+0.7071067811865475*uOther[a0]*m1rOther[a0+2]+0.6324555320336759*m1rSelf[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rOther[a0+1]*uSelf[a0+1]-0.6324555320336759*m1rSelf[a0+1]*uOther[a0+1]+0.6324555320336759*m1rOther[a0+1]*uOther[a0+1]; 
-    relKinE[3] += 0.421637021355784*m1rSelf[a0+2]*uSelf[a0+3]-0.421637021355784*m1rOther[a0+2]*uSelf[a0+3]+0.7071067811865475*m1rSelf[a0]*uSelf[a0+3]-0.7071067811865475*m1rOther[a0]*uSelf[a0+3]-0.421637021355784*m1rSelf[a0+2]*uOther[a0+3]+0.421637021355784*m1rOther[a0+2]*uOther[a0+3]-0.7071067811865475*m1rSelf[a0]*uOther[a0+3]+0.7071067811865475*m1rOther[a0]*uOther[a0+3]+0.421637021355784*uSelf[a0+2]*m1rSelf[a0+3]-0.421637021355784*uOther[a0+2]*m1rSelf[a0+3]+0.7071067811865475*uSelf[a0]*m1rSelf[a0+3]-0.7071067811865475*uOther[a0]*m1rSelf[a0+3]-0.421637021355784*uSelf[a0+2]*m1rOther[a0+3]+0.421637021355784*uOther[a0+2]*m1rOther[a0+3]-0.7071067811865475*uSelf[a0]*m1rOther[a0+3]+0.7071067811865475*uOther[a0]*m1rOther[a0+3]+0.6210590034081186*m1rSelf[a0+1]*uSelf[a0+2]-0.6210590034081186*m1rOther[a0+1]*uSelf[a0+2]-0.6210590034081186*m1rSelf[a0+1]*uOther[a0+2]+0.6210590034081186*m1rOther[a0+1]*uOther[a0+2]+0.6210590034081186*uSelf[a0+1]*m1rSelf[a0+2]-0.6210590034081186*uOther[a0+1]*m1rSelf[a0+2]-0.6210590034081186*uSelf[a0+1]*m1rOther[a0+2]+0.6210590034081186*uOther[a0+1]*m1rOther[a0+2]; 
+    relKinE[0] += 0.7071067811865475*m1EffD[a0+3]*uSelf[a0+3]-0.7071067811865475*m1EffD[a0+3]*uOther[a0+3]+0.7071067811865475*m1EffD[a0+2]*uSelf[a0+2]-0.7071067811865475*m1EffD[a0+2]*uOther[a0+2]+0.7071067811865475*m1EffD[a0+1]*uSelf[a0+1]-0.7071067811865475*m1EffD[a0+1]*uOther[a0+1]+0.7071067811865475*m1EffD[a0]*uSelf[a0]-0.7071067811865475*m1EffD[a0]*uOther[a0]; 
+    relKinE[1] += 0.6210590034081186*m1EffD[a0+2]*uSelf[a0+3]-0.6210590034081186*m1EffD[a0+2]*uOther[a0+3]+0.6210590034081186*uSelf[a0+2]*m1EffD[a0+3]-0.6210590034081186*uOther[a0+2]*m1EffD[a0+3]+0.6324555320336759*m1EffD[a0+1]*uSelf[a0+2]-0.6324555320336759*m1EffD[a0+1]*uOther[a0+2]+0.6324555320336759*uSelf[a0+1]*m1EffD[a0+2]-0.6324555320336759*uOther[a0+1]*m1EffD[a0+2]+0.7071067811865475*m1EffD[a0]*uSelf[a0+1]-0.7071067811865475*m1EffD[a0]*uOther[a0+1]+0.7071067811865475*uSelf[a0]*m1EffD[a0+1]-0.7071067811865475*uOther[a0]*m1EffD[a0+1]; 
+    relKinE[2] += 0.421637021355784*m1EffD[a0+3]*uSelf[a0+3]+0.6210590034081186*m1EffD[a0+1]*uSelf[a0+3]-0.421637021355784*m1EffD[a0+3]*uOther[a0+3]-0.6210590034081186*m1EffD[a0+1]*uOther[a0+3]+0.6210590034081186*uSelf[a0+1]*m1EffD[a0+3]-0.6210590034081186*uOther[a0+1]*m1EffD[a0+3]+0.4517539514526256*m1EffD[a0+2]*uSelf[a0+2]+0.7071067811865475*m1EffD[a0]*uSelf[a0+2]-0.4517539514526256*m1EffD[a0+2]*uOther[a0+2]-0.7071067811865475*m1EffD[a0]*uOther[a0+2]+0.7071067811865475*uSelf[a0]*m1EffD[a0+2]-0.7071067811865475*uOther[a0]*m1EffD[a0+2]+0.6324555320336759*m1EffD[a0+1]*uSelf[a0+1]-0.6324555320336759*m1EffD[a0+1]*uOther[a0+1]; 
+    relKinE[3] += 0.421637021355784*m1EffD[a0+2]*uSelf[a0+3]+0.7071067811865475*m1EffD[a0]*uSelf[a0+3]-0.421637021355784*m1EffD[a0+2]*uOther[a0+3]-0.7071067811865475*m1EffD[a0]*uOther[a0+3]+0.421637021355784*uSelf[a0+2]*m1EffD[a0+3]-0.421637021355784*uOther[a0+2]*m1EffD[a0+3]+0.7071067811865475*uSelf[a0]*m1EffD[a0+3]-0.7071067811865475*uOther[a0]*m1EffD[a0+3]+0.6210590034081186*m1EffD[a0+1]*uSelf[a0+2]-0.6210590034081186*m1EffD[a0+1]*uOther[a0+2]+0.6210590034081186*uSelf[a0+1]*m1EffD[a0+2]-0.6210590034081186*uOther[a0+1]*m1EffD[a0+2]; 
   } 
+ 
+  // Divide m0Other*(m2Self-kinESelf) by mnuSelf*m0Self+mnuOther*m0Other. 
+  // Product of m0Other and m2Self-uSelf.m1Self. 
+  double m0OtherThESelf[4]; 
+  m0OtherThESelf[0] = 0.7071067811865475*m0rOther[3]*m2rSelf[3]-0.7071067811865475*kinESelf[3]*m0rOther[3]+0.7071067811865475*m0rOther[2]*m2rSelf[2]-0.7071067811865475*kinESelf[2]*m0rOther[2]+0.7071067811865475*m0rOther[1]*m2rSelf[1]-0.7071067811865475*kinESelf[1]*m0rOther[1]+0.7071067811865475*m0rOther[0]*m2rSelf[0]-0.7071067811865475*kinESelf[0]*m0rOther[0]; 
+  m0OtherThESelf[1] = 0.6210590034081186*m0rOther[2]*m2rSelf[3]+0.6210590034081186*m2rSelf[2]*m0rOther[3]-0.6210590034081186*kinESelf[2]*m0rOther[3]-0.6210590034081186*m0rOther[2]*kinESelf[3]+0.6324555320336759*m0rOther[1]*m2rSelf[2]+0.6324555320336759*m2rSelf[1]*m0rOther[2]-0.6324555320336759*kinESelf[1]*m0rOther[2]-0.6324555320336759*m0rOther[1]*kinESelf[2]+0.7071067811865475*m0rOther[0]*m2rSelf[1]+0.7071067811865475*m2rSelf[0]*m0rOther[1]-0.7071067811865475*kinESelf[0]*m0rOther[1]-0.7071067811865475*m0rOther[0]*kinESelf[1]; 
+  m0OtherThESelf[2] = 0.421637021355784*m0rOther[3]*m2rSelf[3]+0.6210590034081186*m0rOther[1]*m2rSelf[3]-0.421637021355784*kinESelf[3]*m0rOther[3]+0.6210590034081186*m2rSelf[1]*m0rOther[3]-0.6210590034081186*kinESelf[1]*m0rOther[3]-0.6210590034081186*m0rOther[1]*kinESelf[3]+0.4517539514526256*m0rOther[2]*m2rSelf[2]+0.7071067811865475*m0rOther[0]*m2rSelf[2]-0.4517539514526256*kinESelf[2]*m0rOther[2]+0.7071067811865475*m2rSelf[0]*m0rOther[2]-0.7071067811865475*kinESelf[0]*m0rOther[2]-0.7071067811865475*m0rOther[0]*kinESelf[2]+0.6324555320336759*m0rOther[1]*m2rSelf[1]-0.6324555320336759*kinESelf[1]*m0rOther[1]; 
+  m0OtherThESelf[3] = 0.421637021355784*m0rOther[2]*m2rSelf[3]+0.7071067811865475*m0rOther[0]*m2rSelf[3]+0.421637021355784*m2rSelf[2]*m0rOther[3]-0.421637021355784*kinESelf[2]*m0rOther[3]+0.7071067811865475*m2rSelf[0]*m0rOther[3]-0.7071067811865475*kinESelf[0]*m0rOther[3]-0.421637021355784*m0rOther[2]*kinESelf[3]-0.7071067811865475*m0rOther[0]*kinESelf[3]+0.6210590034081186*m0rOther[1]*m2rSelf[2]+0.6210590034081186*m2rSelf[1]*m0rOther[2]-0.6210590034081186*kinESelf[1]*m0rOther[2]-0.6210590034081186*m0rOther[1]*kinESelf[2]; 
+  dataDiv->BEV_S << m0OtherThESelf[0],m0OtherThESelf[1],m0OtherThESelf[2],m0OtherThESelf[3]; 
+  // Invert system of equations from weak division. dataDiv.AEM was filled earlier. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  double effEthSelf[4]; 
+  Eigen::Map<VectorXd>(effEthSelf,4,1) = dataDiv->u_S; 
+ 
+  // Divide m0Self*(m2Other-kinEOther) by mnuSelf*m0Self+mnuOther*m0Other. 
+  // Product of m0Self and m2Other-uOther.m1Other. 
+  double m0SelfThEOther[4]; 
+  m0SelfThEOther[0] = 0.7071067811865475*m0rSelf[3]*m2rOther[3]-0.7071067811865475*kinEOther[3]*m0rSelf[3]+0.7071067811865475*m0rSelf[2]*m2rOther[2]-0.7071067811865475*kinEOther[2]*m0rSelf[2]+0.7071067811865475*m0rSelf[1]*m2rOther[1]-0.7071067811865475*kinEOther[1]*m0rSelf[1]+0.7071067811865475*m0rSelf[0]*m2rOther[0]-0.7071067811865475*kinEOther[0]*m0rSelf[0]; 
+  m0SelfThEOther[1] = 0.6210590034081186*m0rSelf[2]*m2rOther[3]+0.6210590034081186*m2rOther[2]*m0rSelf[3]-0.6210590034081186*kinEOther[2]*m0rSelf[3]-0.6210590034081186*m0rSelf[2]*kinEOther[3]+0.6324555320336759*m0rSelf[1]*m2rOther[2]+0.6324555320336759*m2rOther[1]*m0rSelf[2]-0.6324555320336759*kinEOther[1]*m0rSelf[2]-0.6324555320336759*m0rSelf[1]*kinEOther[2]+0.7071067811865475*m0rSelf[0]*m2rOther[1]+0.7071067811865475*m2rOther[0]*m0rSelf[1]-0.7071067811865475*kinEOther[0]*m0rSelf[1]-0.7071067811865475*m0rSelf[0]*kinEOther[1]; 
+  m0SelfThEOther[2] = 0.421637021355784*m0rSelf[3]*m2rOther[3]+0.6210590034081186*m0rSelf[1]*m2rOther[3]-0.421637021355784*kinEOther[3]*m0rSelf[3]+0.6210590034081186*m2rOther[1]*m0rSelf[3]-0.6210590034081186*kinEOther[1]*m0rSelf[3]-0.6210590034081186*m0rSelf[1]*kinEOther[3]+0.4517539514526256*m0rSelf[2]*m2rOther[2]+0.7071067811865475*m0rSelf[0]*m2rOther[2]-0.4517539514526256*kinEOther[2]*m0rSelf[2]+0.7071067811865475*m2rOther[0]*m0rSelf[2]-0.7071067811865475*kinEOther[0]*m0rSelf[2]-0.7071067811865475*m0rSelf[0]*kinEOther[2]+0.6324555320336759*m0rSelf[1]*m2rOther[1]-0.6324555320336759*kinEOther[1]*m0rSelf[1]; 
+  m0SelfThEOther[3] = 0.421637021355784*m0rSelf[2]*m2rOther[3]+0.7071067811865475*m0rSelf[0]*m2rOther[3]+0.421637021355784*m2rOther[2]*m0rSelf[3]-0.421637021355784*kinEOther[2]*m0rSelf[3]+0.7071067811865475*m2rOther[0]*m0rSelf[3]-0.7071067811865475*kinEOther[0]*m0rSelf[3]-0.421637021355784*m0rSelf[2]*kinEOther[3]-0.7071067811865475*m0rSelf[0]*kinEOther[3]+0.6210590034081186*m0rSelf[1]*m2rOther[2]+0.6210590034081186*m2rOther[1]*m0rSelf[2]-0.6210590034081186*kinEOther[1]*m0rSelf[2]-0.6210590034081186*m0rSelf[1]*kinEOther[2]; 
+  dataDiv->BEV_S << m0SelfThEOther[0],m0SelfThEOther[1],m0SelfThEOther[2],m0SelfThEOther[3]; 
+  // Invert system of equations from weak division. dataDiv.AEM was filled earlier. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  double effEthOther[4]; 
+  Eigen::Map<VectorXd>(effEthOther,4,1) = dataDiv->u_S; 
  
   double m2Relax[4]; 
   // ... Contribution to RHS vector from energy relaxation. 
-  m2Relax[0] = betaGreenep1*((-(0.5*relKinE[0]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[0]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[0]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[0]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[0]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
-  m2Relax[1] = betaGreenep1*((-(0.5*relKinE[1]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[1]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[1]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[1]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[1]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
-  m2Relax[2] = betaGreenep1*((-(0.5*relKinE[2]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[2]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[2]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[2]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[2]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
-  m2Relax[3] = betaGreenep1*((-(0.5*relKinE[3]*deltaSelf*mSelf)/(mSelf+mOther))-(1.0*m2rSelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(kinESelf[3]*deltaSelf*mSelf)/(mSelf+mOther)+(0.5*relKinE[3]*deltaSelf*mOther)/(mSelf+mOther)+(m2rOther[3]*deltaSelf*mOther)/(mSelf+mOther)-(1.0*kinEOther[3]*deltaSelf*mOther)/(mSelf+mOther))*mnuSelf+(m2rSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2rOther[3])*mnuOther; 
+  m2Relax[0] = betaGreenep1*((-(1.0*relKinE[0]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[0]*mSelf)/(mSelf+mOther)+(1.0*relKinE[0]*mOther)/(mSelf+mOther)+(2.0*effEthOther[0]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[0]-1.0*kinESelf[0])*mnuSelf+(kinEOther[0]-1.0*m2rOther[0])*mnuOther; 
+  m2Relax[1] = betaGreenep1*((-(1.0*relKinE[1]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[1]*mSelf)/(mSelf+mOther)+(1.0*relKinE[1]*mOther)/(mSelf+mOther)+(2.0*effEthOther[1]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[1]-1.0*kinESelf[1])*mnuSelf+(kinEOther[1]-1.0*m2rOther[1])*mnuOther; 
+  m2Relax[2] = betaGreenep1*((-(1.0*relKinE[2]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[2]*mSelf)/(mSelf+mOther)+(1.0*relKinE[2]*mOther)/(mSelf+mOther)+(2.0*effEthOther[2]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[2]-1.0*kinESelf[2])*mnuSelf+(kinEOther[2]-1.0*m2rOther[2])*mnuOther; 
+  m2Relax[3] = betaGreenep1*((-(1.0*relKinE[3]*mSelf)/(mSelf+mOther))-(2.0*effEthSelf[3]*mSelf)/(mSelf+mOther)+(1.0*relKinE[3]*mOther)/(mSelf+mOther)+(2.0*effEthOther[3]*mOther)/(mSelf+mOther))*mnuOther*mnuSelf+(m2rSelf[3]-1.0*kinESelf[3])*mnuSelf+(kinEOther[3]-1.0*m2rOther[3])*mnuOther; 
  
   // Set other entries to 0. // 
   data->AEM_S.block<4,8>(16,4).setZero(); 

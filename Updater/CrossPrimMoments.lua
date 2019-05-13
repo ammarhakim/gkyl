@@ -83,7 +83,10 @@ function CrossPrimMoments:init(tbl)
 
    self._basisID, self._polyOrder = confBasis:id(), confBasis:polyOrder()
 
-   self._binOpData = ffiC.new_binOpData_t(self._numBasisC*2*(self._uDim+1), 0)
+   -- Need two Eigen matrices: one to divide by (ms*nusr*m0s+mr*nurs*m0r)
+   -- and one to compute cross-primitive moments.
+   self._binOpData    = ffiC.new_binOpData_t(self._numBasisC*2*(self._uDim+1), 0)
+   self._binOpDataDiv = ffiC.new_binOpData_t(self._numBasisC, 0)
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 end
@@ -213,7 +216,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
          uCrossOther:fill(uCrossOtherIndexer(confIdx), uCrossOtherItr)
          vtSqCrossOther:fill(vtSqCrossOtherIndexer(confIdx), vtSqCrossOtherItr)
    
-         crossPrimMomentsCalc(self._binOpData, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
+         crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
       end
 
    else
@@ -248,7 +251,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
          uCrossOther:fill(uCrossOtherIndexer(confIdx), uCrossOtherItr)
          vtSqCrossOther:fill(vtSqCrossOtherIndexer(confIdx), vtSqCrossOtherItr)
    
-         crossPrimMomentsCalc(self._binOpData, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), m0StarSelfItr:data(), m1StarSelfItr:data(), m2StarSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), m0StarOtherItr:data(), m1StarOtherItr:data(), m2StarOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
+         crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), m0StarSelfItr:data(), m1StarSelfItr:data(), m2StarSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), m0StarOtherItr:data(), m1StarOtherItr:data(), m2StarOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
       end
 
    end

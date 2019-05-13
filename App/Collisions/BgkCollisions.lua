@@ -401,14 +401,14 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 self.confDotProduct:advance(tCurr,
 				     {species[self.speciesName].uCross[otherNm],
 				      species[self.speciesName].uCross[otherNm]}, {self.uCrossSq})
-	 species[self.speciesName].uCross[otherNm]:combine(0.5, primMomSelf[1], 0.5, primMomOther[1],
+	 species[self.speciesName].uCross[otherNm]:combine( 0.5, primMomSelf[1], 0.5, primMomOther[1],
 							   -0.5*self.betaGreene, primMomSelf[1],
-							   0.5*self.betaGreene, primMomOther[1])
+							    0.5*self.betaGreene, primMomOther[1])
 	 species[self.speciesName].vtSqCross[otherNm]:combine(mOther, primMomSelf[2], mOther, primMomOther[2],
                                                               -self.betaGreene*self.mass, primMomSelf[2],
                                                                self.betaGreene*mOther, primMomOther[2],
-                                                               (1-self.betaGreene*self.betaGreene)/6*mOther, self.uCrossSq, 
-                                                               (1+self.betaGreene)*(1+self.betaGreene)/12*(mOther-self.mass), self.uCrossSq)
+                                                               (1/6)*(1-self.betaGreene*self.betaGreene)*mOther, self.uCrossSq, 
+                                                               (1/12)*(1+self.betaGreene)*(1+self.betaGreene)*(mOther-self.mass), self.uCrossSq)
 	 species[self.speciesName].vtSqCross[otherNm]:scale(1.0/(mOther+self.mass))
 
          self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
