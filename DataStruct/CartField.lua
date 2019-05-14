@@ -199,11 +199,13 @@ local function Field_meta_ctor(elct)
 	 self._decompNeigh:calcFaceCommNeigh(ghost[1], ghost[2])
       end
 
-      -- pre-allocate memory for send/recv calls when doing ghost-cell
+      -- pre-allocate MPI DataTypes for send/recv calls when doing ghost-cell
       -- sync(). This prevents memory fragmentation in the C memory
       -- system as otherwise one would need to malloc/free every time
-      -- sync() is called.
-      self._sendData, self._recvData = {}, {}      
+      -- sync() is called for the temporary buffers
+      -- in this case, we can directly send and receive from the data structure
+      -- without the need for temporary buffers
+      self._sendMPIDataType, self._recvMPIDataType = {}, {}    
       local decomposedRange = self._grid:decomposedRange()
       local myId = self._grid:subGridId() -- grid ID on this processor
       local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
@@ -212,21 +214,21 @@ local function Field_meta_ctor(elct)
 	 local neighRgn = decomposedRange:subDomain(sendId)
 	 local sendRgn = localRange:intersect(
 	    neighRgn:extend(self._lowerGhost, self._upperGhost))
-	 local sz = sendRgn:volume()*self._numComponents
-	 self._sendData[sendId] = allocator(shmComm, sz)
+
+         self._sendMPIDataType[sendId] = Mpi.createDataTypeFromRangeAndSubRange(sendRgn, localRange, self._numComponents, self._layout, elctCommType)
       end
 
       local localExtRange = self:localExtRange()
       for _, recvId in ipairs(neigIds) do
 	 local neighRgn = decomposedRange:subDomain(recvId)
 	 local recvRgn = localExtRange:intersect(neighRgn)
-	 local sz = recvRgn:volume()*self._numComponents
-	 self._recvData[recvId] = allocator(shmComm, sz)
+
+         self._recvMPIDataType[recvId] = Mpi.createDataTypeFromRangeAndSubRange(recvRgn, localExtRange, self._numComponents, self._layout, elctCommType)
       end
 
-      -- pre-allocate memory for send/recv calls for periodic BCs
-      self._sendLowerPerData, self._recvLowerPerData = {}, {}
-      self._sendUpperPerData, self._recvUpperPerData = {}, {}
+      -- allocate MPI DataTypes for periodic directions
+      self._sendLowerPerMPIDataType, self._recvLowerPerMPIDataType = {}, {}
+      self._sendUpperPerMPIDataType, self._recvUpperPerMPIDataType = {}, {}
 
       -- Following loop allocates memory for periodic directions. This
       -- is complicated as one needs to treat lower -> upper transfers
@@ -241,24 +243,22 @@ local function Field_meta_ctor(elct)
 	       -- only allocate if we are on proper ranks
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-		  local szSend = rgnSend:volume()*self._numComponents
-		  self._sendLowerPerData[dir] = allocator(shmComm, szSend)
+                  self._sendLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnSend, localRange, self._numComponents, self._layout, elctCommType)
+
 		  local rgnRecv = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-		  local szRecv = rgnRecv:volume()*self._numComponents
-		  self._recvLowerPerData[dir] = allocator(shmComm, szRecv)
+                  self._recvLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
 	       end
 	       if myId == upId then
 		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-		  local szSend = rgnSend:volume()*self._numComponents
-		  self._sendUpperPerData[dir] = allocator(shmComm, szSend)
+                  self._sendUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnSend, localRange, self._numComponents, self._layout, elctCommType)
+
 		  local rgnRecv = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-		  local szRecv = rgnRecv:volume()*self._numComponents
-		  self._recvUpperPerData[dir] = allocator(shmComm, szRecv)
+                  self._recvUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
 	       end	       
 	    end
 	 end
       end
-      
+      print(self._recvUpperPerMPIDataType)
       -- create IO object
       self._adiosIo = AdiosCartFieldIo { elemType = elct }
       -- tag to identify basis used to set this field
@@ -474,14 +474,21 @@ local function Field_meta_ctor(elct)
 	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
 	 local tag = 42 -- Communicator tag for regular (non-periodic) messages
 	 local localExtRange = self:localExtRange()
-
+         -- create indexer to access part of the data being communicated
+         -- this is necessary because with MPI DataTypes we don't use temporary buffers
+         local indexer = self:genIndexer()
 	 local recvReq = {} -- list of recv requests
 	 -- post a non-blocking recv request
 	 for _, recvId in ipairs(neigIds) do
-	    local buff = self._recvData[recvId]
-	    local sz = buff:size()
+	    local neighRgn = decomposedRange:subDomain(recvId)
+	    local recvRgn = localExtRange:intersect(neighRgn)
+            local idx = recvRgn:lowerAsVec()
+            -- set idx to starting point of region you want to recv
+            local loc = (indexer(idx)-1)*self:numComponents()
+
+            local dataType = self._recvMPIDataType[recvId]
 	    -- recv data: (its from recvId-1 as MPI ranks are zero indexed)
-	    recvReq[recvId] = Mpi.Irecv(buff:data(), sz*elcCommSize, elctCommType, recvId-1, tag, comm)
+	    recvReq[recvId] = Mpi.Irecv(self._data+loc, 1, dataType, recvId-1, tag, comm)
 	 end
 	 
 	 -- do a blocking send (does not really block as recv requests
@@ -490,21 +497,21 @@ local function Field_meta_ctor(elct)
 	    local neighRgn = decomposedRange:subDomain(sendId)
 	    local sendRgn = self._localRange:intersect(
 	       neighRgn:extend(self._lowerGhost, self._upperGhost))
-	    local sz = sendRgn:volume()*self._numComponents
 
-	    local buff = self._sendData[sendId]
-	    self:_copy_from_field_region(sendRgn, buff) -- copy from skin cells
+            local idx = sendRgn:lowerAsVec()
+            -- set idx to starting point of region you want to send
+            local loc = (indexer(idx)-1)*self:numComponents()
+
+            local dataType = self._sendMPIDataType[sendId]
 	    -- send data: (its to sendId-1 as MPI ranks are zero indexed)
-	    Mpi.Send(buff:data(), sz*elcCommSize, elctCommType, sendId-1, tag, comm)
+	    Mpi.Send(self._data+loc, 1, dataType, sendId-1, tag, comm)
 	 end
 
 	 -- complete recv
+         -- since MPI DataTypes eliminate the need for buffers, 
+         -- all we have to do is wait for non-blocking receives to finish
 	 for _, recvId in ipairs(neigIds) do
-	    local neighRgn = decomposedRange:subDomain(recvId)
-	    local recvRgn = localExtRange:intersect(neighRgn)
-	    local buff = self._recvData[recvId]
 	    Mpi.Wait(recvReq[recvId], nil)
-	    self:_copy_to_field_region(recvRgn, buff) -- copy data into ghost cells
 	 end
       end,
       _field_periodic_sync = function (self)
@@ -525,6 +532,9 @@ local function Field_meta_ctor(elct)
 	 local decomposedRange = self._grid:decomposedRange()
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local basePerTag = 53 -- tag for periodic BCs
+         -- create indexer to access part of the data being communicated
+         -- this is necessary because with MPI DataTypes we don't use temporary buffers
+         local indexer = self:genIndexer()
 
 	 -- Note on tags: Each MPI message (send/recv pair) must have
 	 -- a unique tag. With periodic BCs it is possible that a rank
@@ -546,19 +556,25 @@ local function Field_meta_ctor(elct)
 
 		  if myId == loId then
 		     local loTag = basePerTag+dir+10
-		     local loBuff = self._recvLowerPerData[dir]
-		     local sz = loBuff:size()
-		     --print(string.format("Recv request %d <- %d. Tag %d", myId, upId, loTag))
+		     local loRgn = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
+		     local idx = loRgn:lowerAsVec()
+		     -- set idx to starting point of region you want to recv
+		     local loc = (indexer(idx)-1)*self:numComponents()
+
+		     local dataType = self._recvLowerPerMPIDataType[dir]
 		     recvLowerReq[dir] = Mpi.Irecv(
-			loBuff:data(), sz*elcCommSize, elctCommType, upId-1, loTag, comm)
+			self._data+loc, 1, dataType, upId-1, loTag, comm)
 		  end
 		  if myId == upId then
 		     local upTag = basePerTag+dir
-		     local upBuff = self._recvUpperPerData[dir]
-		     local sz = upBuff:size()
-		     --print(string.format("Recv request %d <- %d. Tag %d", myId, loId, upTag))
+		     local upRgn = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
+		     local idx = upRgn:lowerAsVec()
+		     -- set idx to starting point of region you want to recv
+		     local loc = (indexer(idx)-1)*self:numComponents()
+
+		     local dataType = self._recvUpperPerMPIDataType[dir]
 		     recvUpperReq[dir] = Mpi.Irecv(
-			upBuff:data(), sz*elcCommSize, elctCommType, loId-1, upTag, comm)
+			self._data+loc, 1, dataType, loId-1, upTag, comm)
 		  end
 	       end
 	    end
@@ -575,45 +591,40 @@ local function Field_meta_ctor(elct)
 		  if myId == loId then
 		     local loRgn = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
 		     local loTag = basePerTag+dir -- this must match recv tag posted above
-		     local loBuff = self._sendLowerPerData[dir]
-		     self:_copy_from_field_region(loRgn, loBuff) -- copy from skin cells
-		     local sz = loBuff:size()
-		     --print(string.format("Sending %d -> %d. Tag %d", myId, upId, loTag))
-		     Mpi.Send(loBuff:data(), sz*elcCommSize, elctCommType, upId-1, loTag, comm)
+		     local idx = loRgn:lowerAsVec()
+		     -- set idx to starting point of region you want to send
+		     local loc = (indexer(idx)-1)*self:numComponents()
+
+		     local dataType = self._sendLowerPerMPIDataType[dir]
+		     Mpi.Send(self._data+loc, 1, dataType, upId-1, loTag, comm)
 		  end
 		  if myId == upId then
 		     local upRgn = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
 		     local upTag = basePerTag+dir+10 -- this must match recv tag posted above
-		     local upBuff = self._sendUpperPerData[dir]
-		     self:_copy_from_field_region(upRgn, upBuff) -- copy from skin cells
-		     local sz = upBuff:size()
-		     --print(string.format("Sending %d -> %d. Tag %d", myId, loId, upTag))
-		     Mpi.Send(upBuff:data(), sz*elcCommSize, elctCommType, loId-1, upTag, comm)
+		     local idx = upRgn:lowerAsVec()
+		     -- set idx to starting point of region you want to send
+		     local loc = (indexer(idx)-1)*self:numComponents()
+
+		     local dataType = self._sendUpperPerMPIDataType[dir]
+		     Mpi.Send(self._data+loc, 1, dataType, loId-1, upTag, comm)
 		  end
 	       end
 	    end
 	 end
 
 	 -- complete recv for periodic directions
+         -- since MPI DataTypes eliminate the need for buffers, 
+         -- all we have to do is wait for non-blocking receives to finish
 	 for dir = 1, self._ndim do
 	    if grid:isDirPeriodic(dir) then
 	       local skelIds = decomposedRange:boundarySubDomainIds(dir)
 	       for i = 1, #skelIds do
 	 	  local loId, upId = skelIds[i].lower, skelIds[i].upper
-
 		  if myId == loId then
-		     local loRgn = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
-		     local loBuff = self._recvLowerPerData[dir]
-		     --print(string.format("Waiting for recv on %d", loId))
 		     Mpi.Wait(recvLowerReq[dir], nil)
-		     self:_copy_to_field_region(loRgn, loBuff) -- copy data into ghost cells
 		  end
 		  if myId == upId then
-		     local upRgn = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
-		     local upBuff = self._recvUpperPerData[dir]
-		     --print(string.format("Waiting for recv on %d", upId))
 		     Mpi.Wait(recvUpperReq[dir], nil)
-		     self:_copy_to_field_region(upRgn, upBuff) -- copy data into ghost cells
 		  end
 	       end
 	    end
