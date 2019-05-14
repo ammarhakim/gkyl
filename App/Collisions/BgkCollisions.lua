@@ -7,13 +7,13 @@
 --------------------------------------------------------------------------------
 
 local CollisionsBase = require "App.Collisions.CollisionsBase"
-local Constants = require "Lib.Constants"
-local DataStruct = require "DataStruct"
-local Proto = require "Lib.Proto"
-local Time = require "Lib.Time"
-local Updater = require "Updater"
-local lume = require "Lib.lume"
-local xsys = require "xsys"
+local Constants      = require "Lib.Constants"
+local DataStruct     = require "DataStruct"
+local Proto          = require "Lib.Proto"
+local Time           = require "Lib.Time"
+local Updater        = require "Updater"
+local lume           = require "Lib.lume"
+local xsys           = require "xsys"
 
 
 -- BgkCollisions ---------------------------------------------------------------
@@ -84,9 +84,9 @@ function BgkCollisions:fullInit(speciesTbl)
          table.remove(self.collFreqCross, selfSpecInd)
       end
    else
-      self.varNu = true  -- Spatially varying nu.
-      self.mass = speciesTbl.mass  -- Mass of this species.
-      self.charge = speciesTbl.charge  -- Charge of this species.
+      self.varNu  = true                 -- Spatially varying nu.
+      self.mass   = speciesTbl.mass      -- Mass of this species.
+      self.charge = speciesTbl.charge    -- Charge of this species.
       -- For now only cell-wise constant nu is implemented.
       -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
       self.cellConstNu = true
@@ -105,7 +105,7 @@ function BgkCollisions:fullInit(speciesTbl)
             self.normNuCross = lume.clone(self.normNuIn)
             table.remove(self.normNuCross, selfSpecInd)
          end
-         self.epsilon0 = Constants.EPSILON0
+         self.epsilon0   = Constants.EPSILON0
          self.elemCharge = Constants.ELEMENTARY_CHARGE
       else
          self.userInputNormNu = false
@@ -127,9 +127,9 @@ function BgkCollisions:fullInit(speciesTbl)
    end
 
    if self.crossCollisions then
-      self.mass = speciesTbl.mass  -- Mass of this species.
-      self.charge = speciesTbl.charge  -- Charge of this species.
-      local betaGreeneIn = tbl.betaGreene  -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
+      self.mass   = speciesTbl.mass          -- Mass of this species.
+      self.charge = speciesTbl.charge        -- Charge of this species.
+      local betaGreeneIn = tbl.betaGreene    -- Can specify 'betaGreene' free parameter in Grene cross-species collisions.
       if betaGreeneIn then
         self.betaGreene = betaGreeneIn
       else
@@ -176,16 +176,16 @@ function BgkCollisions:createSolver()
 
    local function createConfFieldCompV()
       return DataStruct.Field {
-	 onGrid = self.confGrid,
+	 onGrid        = self.confGrid,
 	 numComponents = self.confBasis:numBasis()*self.numVelDims,
-	 ghost = {1, 1},
+	 ghost         = {1, 1},
       }
    end
    local function createConfFieldComp1()
       return DataStruct.Field {
-	 onGrid = self.confGrid,
+	 onGrid        = self.confGrid,
 	 numComponents = self.confBasis:numBasis(),
-	 ghost = {1, 1},
+	 ghost         = {1, 1},
       }
    end
 
@@ -195,33 +195,33 @@ function BgkCollisions:createSolver()
 
    -- Sum of Maxwellians multiplied by respective collisionalities.
    self.nufMaxwellSum = DataStruct.Field {
-      onGrid = self.phaseGrid,
+      onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
-      ghost = {1, 1},
+      ghost         = {1, 1},
    }
 
    if self.varNu then
       -- Collisionality, nu, summed over all species pairs
       self.nuSum = DataStruct.Field {
-         onGrid = self.confGrid,
+         onGrid        = self.confGrid,
          numComponents = self.cNumBasis,
-         ghost = {1, 1},
+         ghost         = {1, 1},
       }
       -- Updater to compute spatially varying (Spitzer) nu
       self.spitzerNu = Updater.SpitzerCollisionality {
          onGrid = self.confGrid,
-         confBasis = self.confBasis,
+         confBasis        = self.confBasis,
          useCellAverageNu = self.cellConstNu,
-         willInputNormNu = self.userInputNormNu,
-         elemCharge = self.elemCharge,
-         epsilon0 = self.epsilon0,
+         willInputNormNu  = self.userInputNormNu,
+         elemCharge       = self.elemCharge,
+         epsilon0         = self.epsilon0,
       }
       -- Weak multiplication to multiply nu(x) with fMaxwell
       self.phaseMul = Updater.CartFieldBinOp {
-         onGrid = self.phaseGrid,
-         weakBasis = self.phaseBasis,
+         onGrid     = self.phaseGrid,
+         weakBasis  = self.phaseBasis,
          fieldBasis = self.confBasis,
-         operation = "Multiply",
+         operation  = "Multiply",
       }
    else
       self.nuSum = 0.0  -- Assigned in advance method
@@ -230,91 +230,91 @@ function BgkCollisions:createSolver()
    if self.crossCollisions then
       -- Cross-collision Maxwellian multiplied by collisionality
       self.nufMaxwellCross = DataStruct.Field {
-         onGrid = self.phaseGrid,
+         onGrid        = self.phaseGrid,
          numComponents = self.phaseBasis:numBasis(),
-         ghost = {1, 1},
+         ghost         = {1, 1},
       }
       -- Dummy fields for the primitive moment calculator
       self.uCrossSq = DataStruct.Field {
-         onGrid = self.confGrid,
+         onGrid        = self.confGrid,
          numComponents = self.confBasis:numBasis(),
-         ghost = {1, 1},
+         ghost         = {1, 1},
       }
       self.confDotProduct = Updater.CartFieldBinOp {
-         onGrid = self.confGrid,
+         onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "DotProduct",
       }
       if self.varNu then
          -- Temporary collisionality field
          self.nuCrossSelf = DataStruct.Field {
-            onGrid = self.confGrid,
+            onGrid        = self.confGrid,
             numComponents = self.cNumBasis,
-            ghost = {1, 1},
+            ghost         = {1, 1},
          }
          self.nuCrossOther = DataStruct.Field {
-            onGrid = self.confGrid,
+            onGrid        = self.confGrid,
             numComponents = self.cNumBasis,
-            ghost = {1, 1},
+            ghost         = {1, 1},
          }
       else
-         self.nuCrossSelf = 0.0
+         self.nuCrossSelf  = 0.0
          self.nuCrossOther = 0.0
       end
    end
 
    -- Maxwellian solver
    self.maxwellian = Updater.MaxwellianOnBasis {
-      onGrid = self.phaseGrid,
-      confGrid = self.confGrid,
-      confBasis = self.confBasis,
-      phaseGrid = self.phaseGrid,
+      onGrid     = self.phaseGrid,
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      phaseGrid  = self.phaseGrid,
       phaseBasis = self.phaseBasis,
    }
 
    -- BGK Collision solver itself
    self.collisionSlvr = Updater.BgkCollisions {
-      onGrid = self.phaseGrid,
-      confGrid = self.confGrid,
-      confBasis = self.confBasis,
-      phaseBasis = self.phaseBasis,
-      varyingNu = self.varNu,
+      onGrid           = self.phaseGrid,
+      confGrid         = self.confGrid,
+      confBasis        = self.confBasis,
+      phaseBasis       = self.phaseBasis,
+      varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
    }
 
    self.m0Calc = Updater.DistFuncMomentCalc {
-      onGrid = self.phaseGrid,
+      onGrid     = self.phaseGrid,
       phaseBasis = self.phaseBasis,
-      confBasis = self.confBasis,
-      moment = "M0",
+      confBasis  = self.confBasis,
+      moment     = "M0",
    }
    self.m1Calc = Updater.DistFuncMomentCalc {
-      onGrid = self.phaseGrid,
+      onGrid     = self.phaseGrid,
       phaseBasis = self.phaseBasis,
-      confBasis = self.confBasis,
-      moment = "M1i",
+      confBasis  = self.confBasis,
+      moment     = "M1i",
    }
    self.m2Calc = Updater.DistFuncMomentCalc {
-      onGrid = self.phaseGrid,
+      onGrid     = self.phaseGrid,
       phaseBasis = self.phaseBasis,
-      confBasis = self.confBasis,
-      moment = "M2",
+      confBasis  = self.confBasis,
+      moment     = "M2",
    }
 
    self.lagFix = Updater.LagrangeFix {
-      onGrid = self.phaseGrid,
-      phaseGrid = self.phaseGrid,
+      onGrid     = self.phaseGrid,
+      phaseGrid  = self.phaseGrid,
       phaseBasis = self.phaseBasis,
-      confGrid = self.confGrid,
-      confBasis = self.confBasis,
-      mode = 'Vlasov',
+      confGrid   = self.confGrid,
+      confBasis  = self.confBasis,
+      mode       = 'Vlasov',
 }
 end
 
 function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    -- Fetch coupling moments and primitive moments of this species
-   local selfMom = species[self.speciesName]:fluidMoments()
+   local selfMom     = species[self.speciesName]:fluidMoments()
    local primMomSelf = species[self.speciesName]:selfPrimitiveMoments()
 
    if self.varNu then
@@ -392,7 +392,7 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
             self.nuCrossSelf:copy(species[self.speciesName].nuVarXCross[otherNm])
             self.nuCrossOther:copy(species[otherNm].nuVarXCross[self.speciesName])
          else
-            self.nuCrossSelf = self.collFreqCross[sInd]
+            self.nuCrossSelf  = self.collFreqCross[sInd]
             self.nuCrossOther = species[otherNm].collPairs[otherNm][self.speciesName].nu
          end
 

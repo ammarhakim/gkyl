@@ -7,6 +7,7 @@
 --------------------------------------------------------------------------------
 
 local CollisionsBase = require "App.Collisions.CollisionsBase"
+local Constants      = require "Lib.Constants"
 local DataStruct     = require "DataStruct"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
@@ -105,8 +106,8 @@ function GkLBOCollisions:fullInit(speciesTbl)
             self.normNuCross = lume.clone(self.normNuIn)
             table.remove(self.normNuCross, selfSpecInd)
          end
-         self.epsilon0   = 8.854187817620389850536563031710750260608e-12    -- Farad/meter.
-         self.elemCharge = 1.602176487e-19    -- Coulomb
+         self.epsilon0   = Constants.EPSILON0
+         self.elemCharge = Constants.ELEMENTARY_CHARGE
       else
          self.userInputNormNu = false
          if self.selfCollisions then
