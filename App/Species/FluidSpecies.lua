@@ -328,18 +328,12 @@ function FluidSpecies:copyRk(outIdx, aIdx)
 end
 -- for RK timestepping 
 function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
-   -- loop structure for combine and accumulate different from rest of code, so
-   -- but Barriers before and after
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-
    local args = {...} -- package up rest of args as table
    local nFlds = #args/2
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
-
-   Mpi.Barrier(self.grid:commSet().sharedComm)
 end
 
 function FluidSpecies:suggestDt()

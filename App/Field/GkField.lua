@@ -265,10 +265,6 @@ function GkField:copyRk(outIdx, aIdx)
 end
 -- for RK timestepping for non-elliptic fields (e.g. only apar)
 function GkField:combineRk(outIdx, a, aIdx, ...)
-   -- loop structure for combine and accumulate different from rest of code, so
-   -- but Barriers before and after
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-
    if self.isElectromagnetic and self:rkStepperFields()[aIdx] then
       local args = {...} -- package up rest of args as table
       local nFlds = #args/2
@@ -277,8 +273,6 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
          self:rkStepperFields()[outIdx].apar:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]].apar)
       end	 
    end
-
-   Mpi.Barrier(self.grid:commSet().sharedComm)
 end
 
 function GkField:suggestDt()

@@ -404,11 +404,18 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
             self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].uCross[otherNm]}, {self.nuUCross})
             self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].vtSqCross[otherNm]}, {self.nuVtSqCross})
 
+            -- Barrier over shared communicator before accumulate
+            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+
             self.nuSum:accumulate(1.0, self.nuCrossSelf)
             self.nuUSum:accumulate(1.0, self.nuUCross)
             self.nuVtSqSum:accumulate(1.0, self.nuVtSqCross)
          else
             self.nuSum = self.nuSum+self.nuCrossSelf
+
+            -- Barrier over shared communicator before accumulate
+            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+
             self.nuUSum:accumulate(self.nuCrossSelf, species[self.speciesName].uCross[otherNm])
             self.nuVtSqSum:accumulate(self.nuCrossSelf, species[self.speciesName].vtSqCross[otherNm])
          end
