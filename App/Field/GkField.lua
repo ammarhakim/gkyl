@@ -11,6 +11,7 @@ local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Constants = require "Lib.Constants"
 local DataStruct = require "DataStruct"
 local LinearTrigger = require "LinearTrigger"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
@@ -230,6 +231,10 @@ function GkField:copyRk(outIdx, aIdx)
 end
 -- for RK timestepping for non-elliptic fields (e.g. only apar)
 function GkField:combineRk(outIdx, a, aIdx, ...)
+   -- loop structure for combine and accumulate different from rest of code, so
+   -- but Barriers before and after
+   Mpi.Barrier(self.grid:commSet().sharedComm)
+
    if self.isElectromagnetic and self:rkStepperFields()[aIdx] then
       local args = {...} -- package up rest of args as table
       local nFlds = #args/2
@@ -238,6 +243,8 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
          self:rkStepperFields()[outIdx].apar:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]].apar)
       end	 
    end
+
+   Mpi.Barrier(self.grid:commSet().sharedComm)
 end
 
 function GkField:suggestDt()
@@ -698,6 +705,10 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
    end
 end
 
+function GkField:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[idx])
+end
+
 -- NOTE: global boundary conditions handled by solver. this just updates interproc ghosts.
 function GkField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
@@ -1112,6 +1123,7 @@ function GkGeometry:initField()
    else self.geo.bdriftY:clear(0.0) end
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
+
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
    self.geo.bmag:sync(false)
@@ -1157,6 +1169,10 @@ function GkGeometry:advance(tCurr)
    if self.evolve then 
       self.setPhiWall:advance(tCurr, {}, self.geo.phiWall)
    end 
+end
+
+function GkGeometry:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
 function GkGeometry:applyBc(tCurr, geoIn)
