@@ -343,6 +343,12 @@ local function buildApplication(self, tbl)
       end
       field:combineRk(outIdx, a, aIdx, ...)
    end
+   local function applyBc(tCurr, idx)
+      for nm, s in pairs(species) do
+         s:applyBcIdx(tCurr, idx)
+      end
+      field:applyBcIdx(tCurr, idx)
+   end
 
    -- Function to take a single forward-euler time-step.
    local function forwardEuler(tCurr, dt, inIdx, outIdx)
@@ -403,6 +409,7 @@ local function buildApplication(self, tbl)
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      applyBc(tCurr, outIdx)
 
       return dtSuggested
    end

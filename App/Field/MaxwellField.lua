@@ -433,6 +433,10 @@ function MaxwellField:copyRk(outIdx, aIdx)
 end
 -- for RK timestepping
 function MaxwellField:combineRk(outIdx, a, aIdx, ...)
+   -- loop structure for combine and accumulate different from rest of code, so
+   -- but Barriers before and after
+   Mpi.Barrier(self.grid:commSet().sharedComm)
+
    if self:rkStepperFields()[aIdx] then 
       local args = {...} -- package up rest of args as table
       local nFlds = #args/2
@@ -442,13 +446,7 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
       end	 
    end
 
-   -- Barrier after accumulate since applyBc has different loop structure
    Mpi.Barrier(self.grid:commSet().sharedComm)
-
-   if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
-      -- only applyBc on forwardEuler combine
-      self:applyBc(nil, self:rkStepperFields()[outIdx])
-   end
 end
 
 function MaxwellField:suggestDt()
@@ -558,6 +556,10 @@ function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    end
    return status, dtSuggested   
 end
+
+function MaxwellField:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[idx])
+end 
 
 function MaxwellField:applyBc(tCurr, emIn)
    local tmStart = Time.clock()
@@ -700,7 +702,12 @@ function FuncMaxwellField:advance(tCurr)
    local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, {}, {emOut})
+      self:applyBc(tCurr, emOut)
    end
+end
+
+function FuncMaxwellField:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
 function FuncMaxwellField:applyBc(tCurr, emIn)

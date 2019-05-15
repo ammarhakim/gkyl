@@ -599,21 +599,18 @@ function KineticSpecies:copyRk(outIdx, aIdx)
 end
 -- For RK timestepping.
 function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
+   -- loop structure for combine and accumulate different from rest of code, so
+   -- but Barriers before and after
+   Mpi.Barrier(self.grid:commSet().sharedComm)
+
    local args = {...} -- Package up rest of args as table.
    local nFlds = #args/2
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
- 
-   if a<=self.dtGlobal[0] then -- This should be sufficient to determine if this combine is a forwardEuler step.
-      -- Only applyBc on forwardEuler combine.
-      self:applyBc(nil, self:rkStepperFields()[outIdx])
-      -- Only positivity diffuse on forwardEuler combine.
-      if self.positivityDiffuse then
-         self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
-      end
-   end
+
+   Mpi.Barrier(self.grid:commSet().sharedComm)
 end
 
 function KineticSpecies:suggestDt()
@@ -654,6 +651,13 @@ function KineticSpecies:clearMomentFlags(species)
          self.momentFlags[5][sN] = false
       end
    end
+end
+
+function KineticSpecies:applyBcIdx(tCurr, idx)
+  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  if self.positivityDiffuse then
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  end
 end
 
 function KineticSpecies:applyBc(tCurr, fIn)

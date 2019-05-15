@@ -40,6 +40,7 @@ end
 function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut)
    return true, GKYL_MAX_DOUBLE
 end
+function SpeciesBase:applyBcIdx(tCurr, idx) end
 function SpeciesBase:applyBc(tCurr, fld) end
 function SpeciesBase:totalSolverTime() return 0.0 end
 function SpeciesBase:momCalcTime() return 0.0 end
