@@ -25,6 +25,8 @@ local numPassedTests = 0
 local configVals = nil
 -- global list of tests to ignore
 local ignoreTests = {}
+-- list of MOAT regression
+local moatTests = {}
 
 -- loads configuration file
 local function loadConfigure(args)
@@ -43,6 +45,9 @@ local function loadConfigure(args)
    if not args.all then
       ignoreTests = g()
    end
+
+   local m = loadfile("moat.lua")
+   moatTests = m()
    
    return configVals
 end
@@ -201,7 +206,10 @@ local function list_tests(args)
       end
    end
 
-   if args.run_only then
+   if args.moat then
+      -- only MOAT regressions are to be run
+      for _, t in ipairs(moatTests) do addTest(t) end
+   elseif args.run_only then
       local a = lfs.attributes(args.run_only)
       if a.mode == "file" then
 	 addTest(args.run_only)
@@ -443,6 +451,7 @@ c_conf:option("-m --mpiexec", "Full path to MPI executable")
 local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only", "Only list this test or all tests in this directory")
+c_list:flag("-m --moat", "Only run key MOAT regression")
 
 -- "run" tests
 local c_run = parser:command("run")
@@ -450,6 +459,7 @@ local c_run = parser:command("run")
    :require_command(false)
    :action(run_action)
 c_run:option("-r --run-only", "Only run this test or all tests in this directory")
+c_run:flag("-m --moat", "Only run key MOAT regression")
 
 -- check against accepted results
 c_run:command("check", "Check results")
