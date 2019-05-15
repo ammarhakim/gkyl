@@ -433,10 +433,6 @@ function MaxwellField:copyRk(outIdx, aIdx)
 end
 -- for RK timestepping
 function MaxwellField:combineRk(outIdx, a, aIdx, ...)
-   -- loop structure for combine and accumulate different from rest of code, so
-   -- but Barriers before and after
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-
    if self:rkStepperFields()[aIdx] then 
       local args = {...} -- package up rest of args as table
       local nFlds = #args/2
@@ -445,8 +441,6 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
          self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
       end	 
    end
-
-   Mpi.Barrier(self.grid:commSet().sharedComm)
 end
 
 function MaxwellField:suggestDt()

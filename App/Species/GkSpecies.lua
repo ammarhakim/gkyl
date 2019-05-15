@@ -8,6 +8,7 @@
 
 local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
+local Mpi            = require "Comm.Mpi"
 local Gk             = require "Eq.Gyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
@@ -625,6 +626,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.fSource and self.evolveSources then
       -- Add source it to the RHS.
+      -- Barrier over shared communicator before accumulate.
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
@@ -908,6 +911,8 @@ function GkSpecies:calcDiagnosticWeakMoments()
       self.weakMultiplication:advance(0.0,
            {self.diagnosticMomentFields["GkUpar"], self.diagnosticMomentFields["GkUpar"]}, 
            {self.momDensityAux})
+      -- Barrier over shared communicator before accumulate.
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       self.diagnosticMomentFields["GkVtSq"]:accumulate(-self.weakMomentScaleFac["GkVtSq"], self.momDensityAux)
    end
    -- Need to subtract m*Upar^2 from GkTemp and GkTpar.
@@ -916,6 +921,8 @@ function GkSpecies:calcDiagnosticWeakMoments()
            {self.diagnosticMomentFields["GkUpar"], self.diagnosticMomentFields["GkUpar"]}, 
            {self.momDensityAux})
    end
+   -- Barrier over shared communicator before accumulate.
+   Mpi.Barrier(self.grid:commSet().sharedComm)
    if self.diagnosticWeakMoments["GkTemp"] then
       self.diagnosticMomentFields["GkTemp"]:accumulate(-self.weakMomentScaleFac["GkTemp"], self.momDensityAux)
    end
@@ -1083,6 +1090,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
             -- Compute self-primitive moments with binOp updaters.
             self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
             self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
+            -- Barrier over shared communicator before combine
+            Mpi.Barrier(self.grid:commSet().sharedComm)
             self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
                                        -1.0/self.vDegFreedom, self.numDensityAux )
             self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})

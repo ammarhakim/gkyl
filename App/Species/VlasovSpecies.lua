@@ -483,6 +483,8 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       fRhsOut:accumulate(densFactor, self.fSource)
    elseif self.fSource and self.evolveSources then
       -- add source it to the RHS
+      -- Barrier over shared communicator before accumulate
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
@@ -775,6 +777,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
          -- Compute self-primitive moments with binOp updater.
          self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uSelf})
          self.confDotProduct:advance(tCurr, {self.uSelf, self.momDensity}, {self.kineticEnergyDensity})
+         -- Barrier over shared communicator before combine
+         Mpi.Barrier(self.grid:commSet().sharedComm)
          self.thermalEnergyDensity:combine( 1.0/self.vdim, self.ptclEnergy,
                                            -1.0/self.vdim, self.kineticEnergyDensity )
          self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
@@ -802,7 +806,8 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
    -- Compute n*u^2 from n*u and n.
    self.confDiv:advance(0., {self.numDensity, self.momDensity}, {self.flow})
    self.confDotProduct:advance(0., {self.flow, self.momDensity}, {self.kineticEnergyDensity})
-
+   -- Barrier over shared communicator before combine
+   Mpi.Barrier(self.grid:commSet().sharedComm)
    -- Compute VDIM*n*T from M2 and kinetic energy density.
    self.thermalEnergyDensity:combine(1.0, self.ptclEnergy, -1.0, self.kineticEnergyDensity)
 
@@ -833,6 +838,8 @@ function VlasovSpecies:calcDiagnosticWeakMoments()
       -- u is calculated in KineticEnergySpecies:calcDiagnositcWeakMoments().
       self.weakDotProduct:advance(0.0,
          {self.diagnosticMomentFields["u"], self.diagnosticMomentFields["u"]}, {self.kineticEnergyDensity})
+      -- Barrier over shared communicator before accumulate
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       self.diagnosticMomentFields["vtSq"]:accumulate(-self.weakMomentScaleFac["vtSq"], self.kineticEnergyDensity)
    end
 end
