@@ -40,7 +40,7 @@ function BgkCollisions:init(tbl)
       self._cellConstNu = true
    else
       self._varNu       = varNuIn
-      if cellConstNuIn==nil then
+      if cellConstNuIn == nil then
          self._cellConstNu = true
       else
          self._cellConstNu = cellConstNuIn
@@ -54,7 +54,6 @@ function BgkCollisions:init(tbl)
    local numConfDims   = self._confBasis:ndim()
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/(math.sqrt(2.0^numConfDims))
-
 end
 
 ----------------------------------------------------------------------
@@ -92,16 +91,23 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
    -- Get the range to loop over the domain.
    local phaseIndexer = fRhsOut:genIndexer()
 
+   -- Get the interface for setting global CFL frequencies
+   local cflRateByCell = self._cflRateByCell
+   local cflRateByCellIdxr = cflRateByCell:genIndexer()
+   local cflRateByCellPtr = cflRateByCell:get(1)
+
    -- Phase space loop.
-   for phaseIdx in fRhsOut:localRangeIter() do
-      fIn:fill(phaseIndexer(phaseIdx), fInItr)
-      sumNufMaxwell:fill(phaseIndexer(phaseIdx), sumNufMaxwellItr)
-      fRhsOut:fill(phaseIndexer(phaseIdx), fRhsOutItr)
+   for pIdx in fRhsOut:localRangeIter() do
+      fIn:fill(phaseIndexer(pIdx), fInItr)
+      sumNufMaxwell:fill(phaseIndexer(pIdx), sumNufMaxwellItr)
+      fRhsOut:fill(phaseIndexer(pIdx), fRhsOutItr)
+
+      cflRateByCell:fill(cflRateByCellIdxr(pIdx), cflRateByCellPtr)
 
       if self._cellConstNu then
          -- This code assumes nu is cell-wise constant.
          if self._varNu then
-            sumNuIn:fill(self._sumNuIdxr(phaseIdx), self._sumNuPtr)    -- Get pointer to sumNu field.
+            sumNuIn:fill(self._sumNuIdxr(pIdx), self._sumNuPtr)    -- Get pointer to sumNu field.
             sumNu = self._sumNuPtr[1]*self._cellAvFac
          end
          for k = 1, numPhaseBasis do
@@ -109,6 +115,7 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
                fRhsOutItr[k] = fRhsOutItr[k] + nuFrac*(sumNufMaxwellItr[k] - sumNu*fInItr[k])
             end
          end
+	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + sumNu
       end
    end
 end
