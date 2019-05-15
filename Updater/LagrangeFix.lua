@@ -7,6 +7,7 @@
 
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
+local LinearDecomp = require "Lib.LinearDecomp"
 local Proto = require "Proto"
 local Range = require "Lib.Range"
 local Time = require "Lib.Time"
@@ -118,8 +119,14 @@ function LagrangeFix:_advance(tCurr, inFld, outFld)
    local zc = Lin.Vec(self.numPhaseDims) -- cell center
    local vc = ffi.new("double[3]") -- cell center
 
+   -- construct ranges for nested loops
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phaseRange:selectFirst(self.numConfDims), numSplit = self.phaseGrid:numSharedProcs() }
+   local velRange = phaseRange:selectLast(self.numVelDims)
+   local tId = self.phaseGrid:subGridSharedId() -- local thread ID
+
    -- The configuration space loop
-   for confIdx in confRange:rowMajorIter() do
+   for confIdx in confRangeDecomp:rowMajorIter(tId) do
       dm0:fill(confIndexer(confIdx), dm0Itr)
       dm1:fill(confIndexer(confIdx), dm1Itr)
       dm2:fill(confIndexer(confIdx), dm2Itr)

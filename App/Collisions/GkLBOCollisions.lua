@@ -378,12 +378,15 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          if self.varNu then
             self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].uParCross[otherNm]}, {self.nuUParCross})
             self.confMul:advance(tCurr, {self.nuCrossSelf, species[self.speciesName].vtSqCross[otherNm]}, {self.nuVtSqCross})
-
+            -- Barrier over shared communicator before accumulate
+            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
             self.nuSum:accumulate(1.0, self.nuCrossSelf)
             self.nuUParSum:accumulate(1.0, self.nuUParCross)
             self.nuVtSqSum:accumulate(1.0, self.nuVtSqCross)
          else
             self.nuSum = self.nuSum+self.nuCrossSelf
+            -- Barrier over shared communicator before accumulate
+            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
             self.nuUParSum:accumulate(self.nuCrossSelf, species[self.speciesName].uParCross[otherNm])
             self.nuVtSqSum:accumulate(self.nuCrossSelf, species[self.speciesName].vtSqCross[otherNm])
          end
@@ -398,6 +401,9 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
    self.primMomLimitCrossingsL:appendData(tCurr, {self.gkLBOconstNuCalcEq.primMomCrossLimit})
+
+   -- Barrier over shared communicator before accumulate
+   Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
    fRhsOut:accumulate(1.0, self.collOut)
 
