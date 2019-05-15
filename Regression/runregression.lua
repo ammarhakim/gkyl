@@ -293,9 +293,19 @@ local function check_equal_numeric(expected, actual)
    return true
 end
 
+-- relative difference between two numbers (NOT SURE IF THIS IS BEST
+-- WAY TO DO THINGS)
+local function get_relative_numeric(expected, actual)
+   if math.abs(actual) < 1e-15 then
+      return math.abs(expected-actual)
+   else
+      return math.abs(1-expected/actual)
+   end
+end
+
 -- function to compare files
 local function compareFiles(f1, f2)
-   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
+   --verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
@@ -304,6 +314,9 @@ local function compareFiles(f1, f2)
    
    local r1, r2 = AdiosReader.Reader(f1), AdiosReader.Reader(f2)
 
+   local cmpPass = true
+   local currMaxDiff = 0.0
+   
    if r1:hasVar("CartGridField") and r2:hasVar("CartGridField") then
       -- compare CartField
       local d1, d2 = r1:getVar("CartGridField"):read(), r2:getVar("CartGridField"):read()
@@ -311,10 +324,8 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    verboseLog(
-	       string.format(" ... comparing %g %g (diff %g) failed. Index %d of %d ...\n",
-			     d1[i], d2[i], d1[i]-d2[i], i, d1:size()))
-	    return false
+	    currMaxDiff = get_relative_numeric(d1[i], d2[i])
+	    cmpPass = false
 	 end
       end
    elseif r1:hasVar("TimeMesh") and r2:hasVar("TimeMesh") then
@@ -323,15 +334,19 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    verboseLog(string.format(" ... comparing %g %g (diff %g) failed ...\n", d1[i], d2[i], d1[i]-d2[i]))
-	    return false
+	    currMaxDiff = get_relative_numeric(d1[i], d2[i])
+	    cmpPass = false
 	 end
       end
    end
 
+   if cmpPass == false then
+      verboseLog(string.format(" ... relative error in file %s is %g ...\n", f2, currMaxDiff))
+   end
+
    r1:close(); r2:close()
    
-   return true
+   return cmpPass
 end
 
 -- function to handle "check" sub-command of "run"
@@ -356,7 +371,8 @@ local function check_action(test)
       if attr.mode == "file" then
 	 if string.find(fullNm, testPrefix) and string.sub(fullNm, -3, -1) == ".bp" then
 	    local acceptedFileNm = fullResultsDir .. "/" .. string.sub(fullNm, vloc+1, -1)
-	    passed = passed and compareFiles(acceptedFileNm, fullNm)
+	    local status = compareFiles(acceptedFileNm, fullNm)
+	    passed = passed and status
 	 end
       end
    end
