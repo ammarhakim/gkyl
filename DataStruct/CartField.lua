@@ -420,13 +420,17 @@ local function Field_meta_ctor(elct)
       end,
       sync = function (self, syncPeriodicDirs)
          local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs, true)
+	 -- this barrier is needed as when using MPI-SHM some
+	 -- processors will get to the sync method before others
+         -- this is especially troublesome in the RK combine step
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
 	 self._field_sync(self)
 	 if self._syncPeriodicDirs and syncPeriodicDirs then
 	    self._field_periodic_sync(self)
 	 end
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will not participate in sync()
-	 Mpi.Barrier(self._grid:commSet().comm)
+	 Mpi.Barrier(self._grid:commSet().sharedComm)
       end,
       setBasisId = function(self, basisId)
          self._basisId = basisId
