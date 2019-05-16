@@ -260,7 +260,10 @@ local function Field_meta_ctor(elct)
       end
       
       -- create IO object
-      self._adiosIo = AdiosCartFieldIo { elemType = elct }
+      self._adiosIo = AdiosCartFieldIo {
+	 elemType = elct,
+	 metaData = tbl.metaData,
+      }
       -- tag to identify basis used to set this field
       self._basisId = "none"
 
