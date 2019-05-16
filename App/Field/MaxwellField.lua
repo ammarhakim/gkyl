@@ -181,6 +181,10 @@ function MaxwellField:alloc(nRkDup)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
       method = self.ioMethod,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }
 
    -- array with one component per cell to store cflRate in each cell

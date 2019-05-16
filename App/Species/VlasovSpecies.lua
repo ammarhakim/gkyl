@@ -652,7 +652,11 @@ function VlasovSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },
          }
          self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
             onGrid     = self.grid,
@@ -670,7 +674,11 @@ function VlasovSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    	    
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -689,13 +697,22 @@ function VlasovSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp["uCross"],
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    
+
          }
       else
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    
          }
       end
    end
