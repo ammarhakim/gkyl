@@ -71,12 +71,38 @@ function AdiosCartFieldIo:init(tbl)
    self._outBuff = self._allocator(1) -- this will be resized on an actual write()
 
    self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
+
+   -- if we have meta-data to write out, store it
+   self._metaData = {}
+   if tbl.metaData then
+      -- store value and its type for each piece of data
+      for k,v in pairs(tbl.metaData) do
+	 if type(v) == "number" then
+	    -- check if this is an integer or float
+	    if math.floor(math.abs(v)) == math.abs(v) then
+	       self._metaData[k] = {
+		  value = new("int[1]", v), vType = "integer",
+	       }
+	    else
+	       self._metaData[k] = {
+		  value = new("double[1]", v), vType = "double",
+	       }	       
+	    end
+	 elseif type(v) == "string" then
+	    self._metaData[k] = {
+	       value = v, vType = "string"
+	    }
+	 end
+      end
+   end
 end
 
 -- Writes field to file.
 -- fName: file name
 -- tmStamp: time-stamp
 -- frNum: frame number
+-- writeGhost: Flag to indicate if we should write ghost-cells
+-- 
 function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    local _writeGhost = self._writeGhost
    if writeGhost ~= nil then _writeGhost = writeGhost end
@@ -155,6 +181,17 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
       if _writeGhost then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
    end
    Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
+
+   -- write meta-data for this file
+   for attrNm, v in pairs(self._metaData) do
+      if v.vType == "integer" then
+	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.integer, 1, v.value)
+      elseif v.vType == "double" then
+	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.double, 1, v.value)
+      elseif v.vType == "string" then
+	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.string, 1, v.value)
+      end
+   end
 
    -- define data to write
    Adios.define_var(
