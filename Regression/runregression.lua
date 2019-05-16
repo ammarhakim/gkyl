@@ -321,10 +321,10 @@ local function compareFiles(f1, f2)
       -- compare CartField
       local d1, d2 = r1:getVar("CartGridField"):read(), r2:getVar("CartGridField"):read()
 
-      if d1:size() ~= d2:size() then return false end 
+      if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    currMaxDiff = get_relative_numeric(d1[i], d2[i])
+	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
 	    cmpPass = false
 	 end
       end
@@ -334,7 +334,7 @@ local function compareFiles(f1, f2)
       if d1:size() ~= d2:size() then return false end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    currMaxDiff = get_relative_numeric(d1[i], d2[i])
+	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
 	    cmpPass = false
 	 end
       end
