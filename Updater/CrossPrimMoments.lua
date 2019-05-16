@@ -111,23 +111,15 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
 
    local m0StarSelf, m1StarSelf, m2StarSelf
    local m0StarOther, m1StarOther, m2StarOther
-   local m0StarSelfIndexer, m1StarSelfIndexer, m2StarSelfIndexer
-   local m0StarOtherIndexer, m1StarOtherIndexer, m2StarOtherIndexer
    local m0StarSelfItr, m1StarSelfItr, m2StarSelfItr
    local m0StarOtherItr, m1StarOtherItr, m2StarOtherItr
    if self._polyOrder == 1 then
       m0StarSelf, m1StarSelf, m2StarSelf = inFld[6][1], inFld[6][2], inFld[6][3]
-      m0StarSelfIndexer = m0StarSelf:genIndexer()
-      m1StarSelfIndexer = m1StarSelf:genIndexer()
-      m2StarSelfIndexer = m2StarSelf:genIndexer()
       m0StarSelfItr     = m0StarSelf:get(1)
       m1StarSelfItr     = m1StarSelf:get(1)
       m2StarSelfItr     = m2StarSelf:get(1)
 
       m0StarOther, m1StarOther, m2StarOther = inFld[12][1], inFld[12][2], inFld[12][3]
-      m0StarOtherIndexer = m0StarOther:genIndexer()
-      m1StarOtherIndexer = m1StarOther:genIndexer()
-      m2StarOtherIndexer = m2StarOther:genIndexer()
       m0StarOtherItr     = m0StarOther:get(1)
       m1StarOtherItr     = m1StarOther:get(1)
       m2StarOtherItr     = m2StarOther:get(1)
@@ -146,21 +138,7 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
       range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
    local tId = grid:subGridSharedId() -- Local thread ID.
 
-   local m0SelfIndexer   = m0Self:genIndexer()
-   local m1SelfIndexer   = m1Self:genIndexer()
-   local m2SelfIndexer   = m2Self:genIndexer()
-   local uSelfIndexer    = uSelf:genIndexer()
-   local vtSqSelfIndexer = vtSqSelf:genIndexer()
-   local m1CorrectionSelfIndexer = m1CorrectionSelf:genIndexer()
-   local m2CorrectionSelfIndexer = m2CorrectionSelf:genIndexer()
-
-   local m0OtherIndexer   = m0Other:genIndexer()
-   local m1OtherIndexer   = m1Other:genIndexer()
-   local m2OtherIndexer   = m2Other:genIndexer()
-   local uOtherIndexer    = uOther:genIndexer()
-   local vtSqOtherIndexer = vtSqOther:genIndexer()
-   local m1CorrectionOtherIndexer = m1CorrectionOther:genIndexer()
-   local m2CorrectionOtherIndexer = m2CorrectionOther:genIndexer()
+   local confIndexer   = m0Self:genIndexer()
 
    local m0SelfItr   = m0Self:get(1)
    local m1SelfItr   = m1Self:get(1)
@@ -178,11 +156,6 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    local m1CorrectionOtherItr = m1CorrectionOther:get(1)
    local m2CorrectionOtherItr = m2CorrectionOther:get(1)
 
-   local uCrossSelfIndexer     = uCrossSelf:genIndexer()
-   local vtSqCrossSelfIndexer  = vtSqCrossSelf:genIndexer()
-   local uCrossOtherIndexer    = uCrossOther:genIndexer()
-   local vtSqCrossOtherIndexer = vtSqCrossOther:genIndexer()
-
    local uCrossSelfItr     = uCrossSelf:get(1)
    local vtSqCrossSelfItr  = vtSqCrossSelf:get(1)
    local uCrossOtherItr    = uCrossOther:get(1)
@@ -192,64 +165,64 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
    -- avoid evaluating (if polyOrder==1) at each cell.
    if self._polyOrder > 1 then
 
-      for confIdx in confRangeDecomp:rowMajorIter(tId) do
-         grid:setIndex(confIdx)
+      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+         grid:setIndex(cIdx)
    
-         m0Self:fill(m0SelfIndexer(confIdx), m0SelfItr)
-         m1Self:fill(m1SelfIndexer(confIdx), m1SelfItr)
-         m2Self:fill(m2SelfIndexer(confIdx), m2SelfItr)
-         uSelf:fill(uSelfIndexer(confIdx), uSelfItr)
-         vtSqSelf:fill(vtSqSelfIndexer(confIdx), vtSqSelfItr)
-         m1CorrectionSelf:fill(m1CorrectionSelfIndexer(confIdx), m1CorrectionSelfItr)
-         m2CorrectionSelf:fill(m2CorrectionSelfIndexer(confIdx), m2CorrectionSelfItr)
+         m0Self:fill(confIndexer(cIdx), m0SelfItr)
+         m1Self:fill(confIndexer(cIdx), m1SelfItr)
+         m2Self:fill(confIndexer(cIdx), m2SelfItr)
+         uSelf:fill(confIndexer(cIdx), uSelfItr)
+         vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
+         m1CorrectionSelf:fill(confIndexer(cIdx), m1CorrectionSelfItr)
+         m2CorrectionSelf:fill(confIndexer(cIdx), m2CorrectionSelfItr)
    
-         m0Other:fill(m0OtherIndexer(confIdx), m0OtherItr)
-         m1Other:fill(m1OtherIndexer(confIdx), m1OtherItr)
-         m2Other:fill(m2OtherIndexer(confIdx), m2OtherItr)
-         uOther:fill(uOtherIndexer(confIdx), uOtherItr)
-         vtSqOther:fill(vtSqOtherIndexer(confIdx), vtSqOtherItr)
-         m1CorrectionOther:fill(m1CorrectionOtherIndexer(confIdx), m1CorrectionOtherItr)
-         m2CorrectionOther:fill(m2CorrectionOtherIndexer(confIdx), m2CorrectionOtherItr)
+         m0Other:fill(confIndexer(cIdx), m0OtherItr)
+         m1Other:fill(confIndexer(cIdx), m1OtherItr)
+         m2Other:fill(confIndexer(cIdx), m2OtherItr)
+         uOther:fill(confIndexer(cIdx), uOtherItr)
+         vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
+         m1CorrectionOther:fill(confIndexer(cIdx), m1CorrectionOtherItr)
+         m2CorrectionOther:fill(confIndexer(cIdx), m2CorrectionOtherItr)
    
-         uCrossSelf:fill(uCrossSelfIndexer(confIdx), uCrossSelfItr)
-         vtSqCrossSelf:fill(vtSqCrossSelfIndexer(confIdx), vtSqCrossSelfItr)
-         uCrossOther:fill(uCrossOtherIndexer(confIdx), uCrossOtherItr)
-         vtSqCrossOther:fill(vtSqCrossOtherIndexer(confIdx), vtSqCrossOtherItr)
+         uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
+         vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
+         uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
+         vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
    
          crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
       end
 
    else
 
-      for confIdx in confRangeDecomp:rowMajorIter(tId) do
-         grid:setIndex(confIdx)
+      for cIdx in confRangeDecomp:rowMajorIter(tId) do
+         grid:setIndex(cIdx)
    
-         m0Self:fill(m0SelfIndexer(confIdx), m0SelfItr)
-         m1Self:fill(m1SelfIndexer(confIdx), m1SelfItr)
-         m2Self:fill(m2SelfIndexer(confIdx), m2SelfItr)
-         uSelf:fill(uSelfIndexer(confIdx), uSelfItr)
-         vtSqSelf:fill(vtSqSelfIndexer(confIdx), vtSqSelfItr)
-         m1CorrectionSelf:fill(m1CorrectionSelfIndexer(confIdx), m1CorrectionSelfItr)
-         m2CorrectionSelf:fill(m2CorrectionSelfIndexer(confIdx), m2CorrectionSelfItr)
-         m0StarSelf:fill(m0StarSelfIndexer(confIdx), m0StarSelfItr)
-         m1StarSelf:fill(m1StarSelfIndexer(confIdx), m1StarSelfItr)
-         m2StarSelf:fill(m2StarSelfIndexer(confIdx), m2StarSelfItr)
+         m0Self:fill(confIndexer(cIdx), m0SelfItr)
+         m1Self:fill(confIndexer(cIdx), m1SelfItr)
+         m2Self:fill(confIndexer(cIdx), m2SelfItr)
+         uSelf:fill(confIndexer(cIdx), uSelfItr)
+         vtSqSelf:fill(confIndexer(cIdx), vtSqSelfItr)
+         m1CorrectionSelf:fill(confIndexer(cIdx), m1CorrectionSelfItr)
+         m2CorrectionSelf:fill(confIndexer(cIdx), m2CorrectionSelfItr)
+         m0StarSelf:fill(confIndexer(cIdx), m0StarSelfItr)
+         m1StarSelf:fill(confIndexer(cIdx), m1StarSelfItr)
+         m2StarSelf:fill(confIndexer(cIdx), m2StarSelfItr)
    
-         m0Other:fill(m0OtherIndexer(confIdx), m0OtherItr)
-         m1Other:fill(m1OtherIndexer(confIdx), m1OtherItr)
-         m2Other:fill(m2OtherIndexer(confIdx), m2OtherItr)
-         uOther:fill(uOtherIndexer(confIdx), uOtherItr)
-         vtSqOther:fill(vtSqOtherIndexer(confIdx), vtSqOtherItr)
-         m1CorrectionOther:fill(m1CorrectionOtherIndexer(confIdx), m1CorrectionOtherItr)
-         m2CorrectionOther:fill(m2CorrectionOtherIndexer(confIdx), m2CorrectionOtherItr)
-         m0StarOther:fill(m0StarOtherIndexer(confIdx), m0StarOtherItr)
-         m1StarOther:fill(m1StarOtherIndexer(confIdx), m1StarOtherItr)
-         m2StarOther:fill(m2StarOtherIndexer(confIdx), m2StarOtherItr)
+         m0Other:fill(confIndexer(cIdx), m0OtherItr)
+         m1Other:fill(confIndexer(cIdx), m1OtherItr)
+         m2Other:fill(confIndexer(cIdx), m2OtherItr)
+         uOther:fill(confIndexer(cIdx), uOtherItr)
+         vtSqOther:fill(confIndexer(cIdx), vtSqOtherItr)
+         m1CorrectionOther:fill(confIndexer(cIdx), m1CorrectionOtherItr)
+         m2CorrectionOther:fill(confIndexer(cIdx), m2CorrectionOtherItr)
+         m0StarOther:fill(confIndexer(cIdx), m0StarOtherItr)
+         m1StarOther:fill(confIndexer(cIdx), m1StarOtherItr)
+         m2StarOther:fill(confIndexer(cIdx), m2StarOtherItr)
    
-         uCrossSelf:fill(uCrossSelfIndexer(confIdx), uCrossSelfItr)
-         vtSqCrossSelf:fill(vtSqCrossSelfIndexer(confIdx), vtSqCrossSelfItr)
-         uCrossOther:fill(uCrossOtherIndexer(confIdx), uCrossOtherItr)
-         vtSqCrossOther:fill(vtSqCrossOtherIndexer(confIdx), vtSqCrossOtherItr)
+         uCrossSelf:fill(confIndexer(cIdx), uCrossSelfItr)
+         vtSqCrossSelf:fill(confIndexer(cIdx), vtSqCrossSelfItr)
+         uCrossOther:fill(confIndexer(cIdx), uCrossOtherItr)
+         vtSqCrossOther:fill(confIndexer(cIdx), vtSqCrossOtherItr)
    
          crossPrimMomentsCalc(self._binOpData, self._binOpDataDiv, self._betaP1, mSelf, nuSelf, m0SelfItr:data(), m1SelfItr:data(), m2SelfItr:data(), uSelfItr:data(), vtSqSelfItr:data(), m1CorrectionSelfItr:data(), m2CorrectionSelfItr:data(), m0StarSelfItr:data(), m1StarSelfItr:data(), m2StarSelfItr:data(), mOther, nuOther, m0OtherItr:data(), m1OtherItr:data(), m2OtherItr:data(), uOtherItr:data(), vtSqOtherItr:data(), m1CorrectionOtherItr:data(), m2CorrectionOtherItr:data(), m0StarOtherItr:data(), m1StarOtherItr:data(), m2StarOtherItr:data(), uCrossSelfItr:data(), vtSqCrossSelfItr:data(), uCrossOtherItr:data(), vtSqCrossOtherItr:data())
       end

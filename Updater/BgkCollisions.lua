@@ -6,6 +6,7 @@
 
 -- Gkyl libraries.
 local GaussQuadRules = require "Lib.GaussQuadRules"
+local LinearDecomp   = require "Lib.LinearDecomp"
 local Lin            = require "Lib.Linalg"
 local Proto          = require "Proto"
 local Range          = require "Lib.Range"
@@ -34,6 +35,9 @@ function BgkCollisions:init(tbl)
    local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
    local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
+  -- Dimension of phase space.
+   self._pDim = self._phaseBasis:ndim()
+
    -- The default is spatially constant collisionality.
    if varNuIn==nil then
       self._varNu       = false
@@ -59,8 +63,9 @@ end
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
 function BgkCollisions:_advance(tCurr, inFld, outFld)
+   local grid = self._phaseGrid
    local numPhaseBasis = self._phaseBasis:numBasis()
-
+   local pDim = self._pDim
    -- Get the inputs and outputs.
    local fIn           = assert(inFld[1],
       "BgkCollisions.advance: Must specify an input distribution function field as input[1]")
@@ -87,7 +92,7 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
    end
 
    local fRhsOutItr   = fRhsOut:get(1)
-
+   local phaseRange = fRhsOut:localRange()
    -- Get the range to loop over the domain.
    local phaseIndexer = fRhsOut:genIndexer()
 
@@ -96,8 +101,13 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
    local cflRateByCellIdxr = cflRateByCell:genIndexer()
    local cflRateByCellPtr = cflRateByCell:get(1)
 
+   -- Construct range for shared memory.
+   local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
    -- Phase space loop.
-   for pIdx in fRhsOut:localRangeIter() do
+   for pIdx in phaseRangeDecomp:rowMajorIter(tId) do
       fIn:fill(phaseIndexer(pIdx), fInItr)
       sumNufMaxwell:fill(phaseIndexer(pIdx), sumNufMaxwellItr)
       fRhsOut:fill(phaseIndexer(pIdx), fRhsOutItr)
