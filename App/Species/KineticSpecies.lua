@@ -473,7 +473,11 @@ function KineticSpecies:alloc(nRkDup)
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
       method     = self.ioMethod,
-      writeGhost = self.writeGhost
+      writeGhost = self.writeGhost,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }
 
    if self.positivity then
