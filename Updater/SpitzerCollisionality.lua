@@ -86,13 +86,11 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
       massFac    = mass
    end
 
-   local m0FldIndexer   = m0Fld:genIndexer()
+   local confIndexer   = m0Fld:genIndexer()
    local m0FldItr       = m0Fld:get(1)
-   local vtSqFldIndexer = vtSqFld:genIndexer()
    local vtSqFldItr     = vtSqFld:get(1)
 
    local nuOut          = outFld[1]
-   local nuOutIndexer   = nuOut:genIndexer()
    local nuOutItr       = nuOut:get(1)
 
    local confRange      = m0Fld:localRange()
@@ -103,12 +101,12 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
       range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
    local tId = grid:subGridSharedId() -- local thread ID
 
-   for confIdx in confRangeDecomp:rowMajorIter(tId) do
-      grid:setIndex(confIdx)
+   for cIdx in confRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(cIdx)
 
-      m0Fld:fill(m0FldIndexer(confIdx), m0FldItr)
-      vtSqFld:fill(vtSqFldIndexer(confIdx), vtSqFldItr)
-      nuOut:fill(nuOutIndexer(confIdx), nuOutItr)
+      m0Fld:fill(confIndexer(cIdx), m0FldItr)
+      vtSqFld:fill(confIndexer(cIdx), vtSqFldItr)
+      nuOut:fill(confIndexer(cIdx), nuOutItr)
 
       self._SpitzerNuCalc(firstInput, massFac, massSq, chargeR4, self._epsilon0Sq, m0FldItr:data(), vtSqFldItr:data(), nuOutItr:data())
    end

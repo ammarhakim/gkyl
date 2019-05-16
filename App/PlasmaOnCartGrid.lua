@@ -405,6 +405,10 @@ local function buildApplication(self, tbl)
          end
       else 
          dtSuggested = dt -- From argument list.
+         -- If calcCflFlag not being used, need to barrier before doing the RK combine.
+         -- When running with calcCflFlag, an all-reduce is done on the time-step to find
+         -- the smallest time step, giving us an implicit barrier before we combine RK steps.
+         Mpi.Barrier(self._confGrid:commSet().sharedComm)
       end
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.

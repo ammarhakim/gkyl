@@ -12,6 +12,7 @@ local DataStruct     = require "DataStruct"
 local Proto          = require "Lib.Proto"
 local Time           = require "Lib.Time"
 local Updater        = require "Updater"
+local Mpi            = require "Comm.Mpi"
 local lume           = require "Lib.lume"
 local xsys           = require "xsys"
 
@@ -282,23 +283,13 @@ function BgkCollisions:createSolver()
       useCellAverageNu = self.cellConstNu,
    }
 
-   self.m0Calc = Updater.DistFuncMomentCalc {
+   -- Create updater to compute M0, M1i, M2 moments sequentially.
+   -- This is needed if running BGK operator with Lagrange Fix on Maxwellian
+   self.fiveMomentsCalc = Updater.DistFuncMomentCalc {
       onGrid     = self.phaseGrid,
       phaseBasis = self.phaseBasis,
       confBasis  = self.confBasis,
-      moment     = "M0",
-   }
-   self.m1Calc = Updater.DistFuncMomentCalc {
-      onGrid     = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
-      confBasis  = self.confBasis,
-      moment     = "M1i",
-   }
-   self.m2Calc = Updater.DistFuncMomentCalc {
-      onGrid     = self.phaseGrid,
-      phaseBasis = self.phaseBasis,
-      confBasis  = self.confBasis,
-      moment     = "M2",
+      moment     = "FiveMoments",
    }
 
    self.lagFix = Updater.LagrangeFix {
@@ -329,13 +320,13 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 tCurr, {selfMom[1], primMomSelf[1], primMomSelf[2]},
 	 {self.nufMaxwellSum})
       if self.exactLagFixM012 then
-	 self.m0Calc:advance(tCurr, {self.nufMaxwellSum}, {self.dM0})
+         self.fiveMomentsCalc:advance(tCurr, {self.nufMaxwellSum}, { self.dM0, self.dM1, self.dM2 })
+         -- Barrier before manipulations to moments before passing them to Lagrange Fix updater
+         Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 	 self.dM0:scale(-1)
 	 self.dM0:accumulate(1, selfMom[1])
-	 self.m1Calc:advance(tCurr, {self.nufMaxwellSum}, {self.dM1})
 	 self.dM1:scale(-1)
 	 self.dM1:accumulate(1, selfMom[2])
-	 self.m2Calc:advance(tCurr, {self.nufMaxwellSum}, {self.dM2})
 	 self.dM2:scale(-1)
 	 self.dM2:accumulate(1, selfMom[3])
 	 self.lagFix:advance(tCurr, {self.dM0, self.dM1, self.dM2},
@@ -352,6 +343,9 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 			       {self.nufMaxwellSum})
       else
          self.nuSum = self.collFreqSelf
+         -- Barrier before scaling by the collisionality
+         -- Note that this is not necessary when nu varies because the scaling is done via advance methods
+         Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
          self.nufMaxwellSum:scale(self.collFreqSelf)
       end
    end    -- end if self.selfCollisions
@@ -401,6 +395,11 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 	 self.confDotProduct:advance(tCurr,
 				     {species[self.speciesName].uCross[otherNm],
 				      species[self.speciesName].uCross[otherNm]}, {self.uCrossSq})
+         -- Barrier over shared communicator before combine
+         -- Note to Mana: this barrier is current necessary, but may not be necessary after you rearrange cross-collisions
+         -- J. Juno 05/16/19
+         Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+
 	 species[self.speciesName].uCross[otherNm]:combine( 0.5, primMomSelf[1], 0.5, primMomOther[1],
 							   -0.5*self.betaGreene, primMomSelf[1],
 							    0.5*self.betaGreene, primMomOther[1])
@@ -421,10 +420,17 @@ function BgkCollisions:advance(tCurr, fIn, species, fRhsOut)
 				  {self.nuCrossSelf, self.nufMaxwellCross},
 				  {self.nufMaxwellCross})
 
+            -- Barrier over shared communicator before accumulate
+            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+
             self.nuSum:accumulate(1.0, self.nuCrossSelf)
             self.nufMaxwellSum:accumulate(1.0, self.nufMaxwellCross)
          else
             self.nuSum = self.nuSum+self.nuCrossSelf
+
+            -- Barrier over shared communicator before accumulate
+            Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+
             self.nufMaxwellSum:accumulate(self.nuCrossSelf, self.nufMaxwellCross)
          end
       end    -- end loop over other species that this species collides with

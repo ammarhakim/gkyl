@@ -541,8 +541,6 @@ function KineticSpecies:initDist()
 	    self.f0 = self:allocDistf()
 	 end
 	 self.f0:accumulate(1.0, self.distf[2])
-         --Barrier before sync() call. 
-         Mpi.Barrier(self.grid:commSet().sharedComm)
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
@@ -677,20 +675,12 @@ function KineticSpecies:applyBc(tCurr, fIn)
          end
       end
 
-      -- This barrier is needed as when using MPI-SHM some
-      -- processes will get to sync() method before RK step is finished.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
       -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
       fIn:sync(syncPeriodicDirsTrue)
 
       if self.fluctuationBCs then
         -- Put back together total distribution
         fIn:accumulate(1.0, self.f0)
-
-        -- Possibly needed Barrier for fluctuation-only BCs with shared memory on
-        -- there is a barrier at the end of sync(), but need a barrier between accumulate and sync()
-        -- needs to be tested, but I think this is needed -- Jimmy Juno 02/28/19.
-        Mpi.Barrier(self.grid:commSet().sharedComm)
 
         -- Update ghosts in total distribution, without enforcing periodicity.
         fIn:sync(not syncPeriodicDirsTrue)
