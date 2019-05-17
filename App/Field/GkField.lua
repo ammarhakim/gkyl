@@ -456,9 +456,13 @@ function GkField:write(tm, force)
       if self.isElectromagnetic then 
         self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
       end
-      local esEnergyFac = .5*self.polarizationWeight
-      if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
-      if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy }) end
+      if self.linearizedPolarization then
+         local esEnergyFac = .5*self.polarizationWeight
+         if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
+         if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy }) end
+      else
+         -- something
+      end
       if self.isElectromagnetic then 
         local emEnergyFac = .5/self.mu0
         if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
