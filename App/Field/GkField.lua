@@ -203,6 +203,8 @@ function GkField:initField(species)
       self:advance(0.0, species, 1, 1)
    end
 
+   local polyOrder = self.basis:polyOrder()
+
    if self.isElectromagnetic then
       -- solve for initial Apar
       local apar = self.potentials[1].apar
