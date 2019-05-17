@@ -224,7 +224,9 @@ end
 
 -- Read field from file.
 -- fName: file name
-function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
+function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-number
+   local _readGhost = self._writeGhost
+   if readGhost ~= nil then _readGhost = readGhost end
    local comm =  Mpi.getComm(field:grid():commSet().nodeComm)
    local shmComm = Mpi.getComm(field:grid():commSet().sharedComm)
    -- (the extra getComm() is needed as Lua has no concept of
@@ -241,12 +243,18 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
       local ndim = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
 
+      if readGhost then
+         localRange = field:localExtRange() 
+         globalRange = field:globalExtRange() 
+      end
+
       -- for use in ADIOS output
       local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
       for d = 1, ndim do
 	 _adLocalSz[d] = localRange:shape(d)
 	 _adGlobalSz[d] = globalRange:shape(d)
 	 _adOffset[d] = localRange:lower(d)-1
+         if _readGhost then _adOffset[d] = _adOffset[d] + 1 end
       end
       _adLocalSz[ndim+1] = field:numComponents()
       _adGlobalSz[ndim+1] = field:numComponents()
@@ -277,11 +285,17 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
       Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)
 
       local lower = new("double[?]", ndim)
-      for d = 1, ndim do lower[d-1] = field:grid():lower(d) end
+      for d = 1, ndim do 
+         lower[d-1] = field:grid():lower(d)
+         if _readGhost then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+      end
       Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
 
       local upper = new("double[?]", ndim)
-      for d = 1, ndim do upper[d-1] = field:grid():upper(d) end
+      for d = 1, ndim do 
+         upper[d-1] = field:grid():upper(d) 
+         if _readGhost then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+      end
       Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
 
       -- define data to read
@@ -304,7 +318,7 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
       Adios.close(fd) -- no reads actually happen unless one closes file!
 
       -- copy output buffer into field
-      field:_copy_to_field_region(field:localRange(), self._outBuff)
+      field:_copy_to_field_region(localRange, self._outBuff)
 
       Adios.finalize(rank)
 

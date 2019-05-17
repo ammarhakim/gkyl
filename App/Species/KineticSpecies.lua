@@ -468,6 +468,7 @@ function KineticSpecies:alloc(nRkDup)
    self.distf = {}
    for i = 1, nRkDup do
       self.distf[i] = self:allocDistf()
+      self.distf[i]:clear(0.0)
    end
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
@@ -813,8 +814,10 @@ function KineticSpecies:write(tm, force)
 end
 
 function KineticSpecies:writeRestart(tm)
-   -- (The final "false" prevents writing of ghost cells).
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, false)
+   -- (The final "true/false" determines writing of ghost cells).
+   local writeGhosts = false
+   if self.hasSheathBcs then writeGhosts = true end
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhosts)
    for i, mom in ipairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
@@ -828,9 +831,11 @@ function KineticSpecies:writeRestart(tm)
 end
 
 function KineticSpecies:readRestart()
-   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
+   local readGhosts = false
+   if self.hasSheathBcs then readGhosts = true end
+   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhosts)
 
-   self:applyBc(tm, self.distf[1]) -- Apply BCs and set ghost-cell data.
+   if not self.hasSheathBcs then self:applyBc(tm, self.distf[1]) end -- Apply BCs and set ghost-cell data.
    
    self.distIoFrame = fr -- Reset internal frame counter.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
