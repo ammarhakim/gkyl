@@ -406,6 +406,34 @@ function GkField:createSolver(species, funcField)
      self.modifierWeight:combine(modifierConstant, self.unitWeight)
      if laplacianConstant ~= 0 then self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight) end
      if modifierConstant ~= 0 then self.dApardtSlvr:setModifierWeight(self.modifierWeight) end
+
+     -- separate solver for additional step for p=1
+     if self.basis:polyOrder() == 1 then
+        self.dApardtSlvr2 = Updater.FemPoisson {
+          onGrid = self.grid,
+          basis = self.basis,
+          bcLeft = self.aparBcLeft,
+          bcRight = self.aparBcRight,
+          bcBottom = self.aparBcBottom,
+          bcTop = self.aparBcTop,
+          periodicDirs = self.periodicDirs,
+          zContinuous = not self.discontinuousApar,
+          gxx = gxx,
+          gxy = gxy,
+          gyy = gyy,
+        }
+        if ndim==1 then
+           laplacianConstant = 0.0
+           modifierConstant = 1.0
+        else
+           laplacianConstant = -1.0/self.mu0
+           modifierConstant = 1.0
+        end
+        self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
+        self.modifierWeight:combine(modifierConstant, self.unitWeight)
+        if laplacianConstant ~= 0 then self.dApardtSlvr2:setLaplacianWeight(self.laplacianWeight) end
+        if modifierConstant ~= 0 then self.dApardtSlvr2:setModifierWeight(self.modifierWeight) end
+     end
    end
 
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
@@ -694,10 +722,10 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
            self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
         end
       end
-      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
+      self.dApardtSlvr2:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve
       local dApardt = potCurr.dApardt
-      self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
+      self.dApardtSlvr2:advance(tCurr, {self.currentDens}, {dApardt}) 
       
       -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
       -- this ensures that dApar/dt is in the same space as dPhi/dz
@@ -764,6 +792,7 @@ function GkField:totalSolverTime()
      local time = self.phiSlvr.totalTime
      if self.isElectromagnetic and self.aparSlvr then time = time + self.aparSlvr.totalTime end
      if self.isElectromagnetic and self.dApardtSlvr then time = time + self.dApardtSlvr.totalTime end
+     if self.isElectromagnetic and self.dApardtSlvr2 then time = time + self.dApardtSlvr2.totalTime end
      return time
    end
    return 0.0
