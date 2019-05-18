@@ -534,8 +534,6 @@ function GkField:writeRestart(tm)
    self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
    if self.isElectromagnetic then
      self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
-     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame, false)
-     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame, false)
    end
 
    -- (the final "false" prevents flushing of data after write)
@@ -557,9 +555,6 @@ function GkField:readRestart()
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
-      self.fieldIo:read(self.potentials[1].dApardt, "dApardt_restart.bp")
-      self.fieldIo:read(self.modifierWeight, "modifierWeightEM_restart.bp")
-      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
    end
 
    self:applyBc(0, self.potentials[1])
