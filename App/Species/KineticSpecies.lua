@@ -815,8 +815,8 @@ end
 
 function KineticSpecies:writeRestart(tm)
    -- (The final "true/false" determines writing of ghost cells).
-   local writeGhosts = false
-   if self.hasSheathBcs then writeGhosts = true end
+   local writeGhosts = true
+   if self.hasSheathBcs or self.fluctuationBCs then writeGhosts = true end
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhosts)
    for i, mom in ipairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
@@ -831,11 +831,14 @@ function KineticSpecies:writeRestart(tm)
 end
 
 function KineticSpecies:readRestart()
-   local readGhosts = false
-   if self.hasSheathBcs then readGhosts = true end
+   local readGhosts = true
+   if self.hasSheathBcs or self.fluctuationBCs then readGhosts = true end
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhosts)
 
-   if not self.hasSheathBcs then self:applyBc(tm, self.distf[1]) end -- Apply BCs and set ghost-cell data.
+   -- Apply BCs and set ghost-cell data (unless ghosts have been read because of special BCs)
+   if not self.hasSheathBcs and not self.fluctuationBCs then 
+      self:applyBc(tm, self.distf[1]) 
+   end 
    
    self.distIoFrame = fr -- Reset internal frame counter.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do
