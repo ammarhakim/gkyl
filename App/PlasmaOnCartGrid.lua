@@ -909,6 +909,8 @@ return {
       MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
       BGKCollisions        = Collisions.GkBGKCollisions,
       LBOCollisions        = Collisions.GkLBOCollisions,
+      BgkCollisions        = Collisions.GkBGKCollisions,
+      LboCollisions        = Collisions.GkLBOCollisions,
       AdiabaticSpecies     = Species.AdiabaticSpecies,
    },
    IncompEuler = {
@@ -922,6 +924,8 @@ return {
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BGKCollisions        = Collisions.VmBGKCollisions,
       LBOCollisions        = Collisions.VmLBOCollisions,
+      BgkCollisions        = Collisions.VmBGKCollisions,
+      LboCollisions        = Collisions.VmLBOCollisions,
    },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
