@@ -365,8 +365,9 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          if (not (species[self.speciesName].momentFlags[5][otherNm] and
                   species[otherNm].momentFlags[5][self.speciesName])) then
             -- Cross-primitive moments for the collision of these two species has not been computed.
-            self.primMomCross:advance(tCurr, {self.mass, self.nuCrossSelf, selfMom, primMomSelf, bCorrectionsSelf, starMomSelf,
-                                              mOther, self.nuCrossOther, otherMom, primMomOther, bCorrectionsOther, starMomOther},
+            self.primMomCross:advance(tCurr, {self.mass, self.nuCrossSelf, selfMom, primMomSelf,
+                                              mOther, self.nuCrossOther, otherMom, primMomOther,
+                                              bCorrectionsSelf, starMomSelf, bCorrectionsOther, starMomOther},
                                              {species[self.speciesName].uParCross[otherNm], species[self.speciesName].vtSqCross[otherNm],
                                               species[otherNm].uParCross[self.speciesName], species[otherNm].vtSqCross[self.speciesName]})
 

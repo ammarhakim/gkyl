@@ -21,8 +21,8 @@ function _M.selectSelfPrimMomentsCalc(kinSpecies, basisNm, CDIM, VDIM, polyOrder
 end
 
 -- Select kernel function to compute the cross-collision primitive moments. 
-function _M.selectCrossPrimMomentsCalc(kinSpecies, basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("%sCrossPrimMoments%dx%dv%s_P%d", kinSpecies, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+function _M.selectCrossPrimMomentsCalc(operator, basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("%sCrossPrimMoments%dx%dv%s_P%d", operator, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 
