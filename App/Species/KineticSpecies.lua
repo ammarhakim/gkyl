@@ -815,7 +815,7 @@ end
 
 function KineticSpecies:writeRestart(tm)
    -- (The final "true/false" determines writing of ghost cells).
-   local writeGhosts = true
+   local writeGhosts = false
    if self.hasSheathBcs or self.fluctuationBCs then writeGhosts = true end
    self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhosts)
    for i, mom in ipairs(self.diagnosticMoments) do
