@@ -881,34 +881,35 @@ function App:run()
 end
 
 return {
-   AdiabaticSpecies = Species.AdiabaticSpecies,
-   App = App,
-   BgkCollisions = Collisions.BgkCollisions,   
-   FluidDiffusion = Collisions.FluidDiffusion,
-   FuncMaxwellField = Field.FuncMaxwellField,
-   FuncVlasovSpecies = Species.FuncVlasovSpecies,
-   GkField = Field.GkField,
-   GkGeometry = Field.GkGeometry,
-   GkLBOCollisions = Collisions.GkLBOCollisions,
-   GkSpecies = Species.GkSpecies,
+   AdiabaticSpecies   = Species.AdiabaticSpecies,
+   App                = App,
+   FluidDiffusion     = Collisions.FluidDiffusion,
+   FuncMaxwellField   = Field.FuncMaxwellField,
+   FuncVlasovSpecies  = Species.FuncVlasovSpecies,
+   GkBGKCollisions    = Collisions.GKLBOCollisions,   
+   GkField            = Field.GkField,
+   GkGeometry         = Field.GkGeometry,
+   GkLBOCollisions    = Collisions.GkLBOCollisions,
+   GkSpecies          = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
-   MaxwellField = Field.MaxwellField,
-   MomentSpecies = Species.MomentSpecies,
-   NoField = Field.NoField,
-   Projection = Projection,
-   VlasovSpecies = Species.VlasovSpecies,
-   VmLBOCollisions = Collisions.VmLBOCollisions,
-   VoronovIonization = Collisions.VoronovIonization,
+   MaxwellField       = Field.MaxwellField,
+   MomentSpecies      = Species.MomentSpecies,
+   NoField            = Field.NoField,
+   Projection         = Projection,
+   VlasovSpecies      = Species.VlasovSpecies,
+   VmBGKCollisions    = Collisions.VmLBOCollisions,   
+   VmLBOCollisions    = Collisions.VmLBOCollisions,
+   VoronovIonization  = Collisions.VoronovIonization,
 
    -- Valid pre-packaged species-field systems.
    Gyrokinetic = {
       App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
-      FunctionProjection = Projection.GkProjection.FunctionProjection, 
+      FunctionProjection   = Projection.GkProjection.FunctionProjection, 
       MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
-      BgkCollisions = Collisions.BgkCollisions,
-      LBOCollisions = Collisions.GkLBOCollisions,
-      AdiabaticSpecies = Species.AdiabaticSpecies,
+      BGKCollisions        = Collisions.GkBGKCollisions,
+      LBOCollisions        = Collisions.GkLBOCollisions,
+      AdiabaticSpecies     = Species.AdiabaticSpecies,
    },
    IncompEuler = {
       App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField,
@@ -916,15 +917,15 @@ return {
    },
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
-      Field = Field.MaxwellField,
-      FunctionProjection = Projection.VlasovProjection.FunctionProjection, 
+      Field                = Field.MaxwellField,
+      FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
-      BgkCollisions = Collisions.BgkCollisions,
-      LBOCollisions = Collisions.VmLBOCollisions,
+      BGKCollisions        = Collisions.VmBGKCollisions,
+      LBOCollisions        = Collisions.VmLBOCollisions,
    },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
       CollisionlessEmSource = Sources.CollisionlessEmSource,
-      TenMomentRelaxSource = Sources.TenMomentRelaxSource
+      TenMomentRelaxSource  = Sources.TenMomentRelaxSource
    } 
 }
