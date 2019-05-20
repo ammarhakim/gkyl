@@ -161,18 +161,19 @@ calcCrossPrimMomsBGK(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     m0Other_e : doExpand1(m0rOther, bC),
     m0Other_c : makelist(m0rOther[i],i,0,NC-1),
     /* Equivalently for  vtSq .*/
-    vtSqSelf_e  : doExpand1(vtSqSelf,bC),
-    vtSqSelf_c  : makelist(vtSqSelf[i],i,0,NC-1),
-    vtSqOther_e : doExpand1(vtSqOther,bC),
-    vtSqOther_c : makelist(vtSqOther[i],i,0,NC-1),
+    vtSqSelf_e       : doExpand1(vtSqSelf,bC),
+    vtSqSelf_c       : makelist(vtSqSelf[i],i,0,NC-1),
+    vtSqOther_e      : doExpand1(vtSqOther,bC),
+    vtSqOther_c      : makelist(vtSqOther[i],i,0,NC-1),
     vtSqCrossSelf_e  : doExpand1(vtSqCrossSelf,bC),
     vtSqCrossSelf_c  : makelist(vtSqCrossSelf[i],i,0,NC-1),
     vtSqCrossOther_e : doExpand1(vtSqCrossOther,bC),
     vtSqCrossOther_c : makelist(vtSqCrossOther[i],i,0,NC-1),
 
     /* Create variable w/ product of mass and collisionality. */  
-    printf(fh, "  double mnuSelf   = ~a; ~%", mSelf*nuSelf),
-    printf(fh, "  double mnuOther  = ~a; ~%", mOther*nuOther),
+    printf(fh, "  double mnuSelf  = ~a; ~%", mSelf*nuSelf),
+    printf(fh, "  double mnuOther = ~a; ~%", mOther*nuOther),
+    printf(fh, " ~%"),
 
     /* (us-ur)/(mnus*m0s+mnur*m0r) is used twice for each species.
        Save it in the following variable. */
@@ -199,7 +200,6 @@ calcCrossPrimMomsBGK(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       uCrossOther_e : subst(makelist(uCrossOther[i]=uCrossOther[(vd-1)*NC+i],i,0,NC-1),uCrossOther_e),
       uCrossOther_c : subst(makelist(uCrossOther[i]=uCrossOther[(vd-1)*NC+i],i,0,NC-1),uCrossOther_c),
 
-      /* Include the RHS corresponding to the momentum relaxation rate. */
       /* We first must compute the weak division
          (uSelf-uOther)/(mnuSelf*m0Self+mnuOther*m0Other). */
 
@@ -257,7 +257,7 @@ calcCrossPrimMomsBGK(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       for i : 1 thru NC do (
         param : cons(expr[i], [mnuSelf, mnuOther, betaGreenep1]),
         e : apply(collectterms, param),
-        printf(fh, "  ~a += ~a; ~%", uCrossOther[(vd-1)*NC+i-1], e)
+        printf(fh, "  ~a = ~a; ~%", uCrossOther[(vd-1)*NC+i-1], e)
       ),
       printf(fh, " ~%")
 
@@ -320,7 +320,9 @@ calcCrossPrimMomsBGK(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     printf(fh, "    // Contribution to dot-product from weak multiplication of ~a component. ~%",vd),
     expr : float(expand(relKinE_c)),
     for i : 1 thru NC do (
-      printf(fh, "    ~a += ~a; ~%", relKinE[i-1], expr[i])
+      param : cons(expr[i], [betaGreenep1]),
+      e : apply(collectterms, param),
+      printf(fh, "    ~a += ~a; ~%", relKinE[i-1], e)
     ),
     printf(fh, "  } ~%"),
     printf(fh, " ~%"),

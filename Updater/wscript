@@ -76,6 +76,12 @@ def build(bld):
     primMomentsCalcData/VmBGKCrossPrimMomentsMax1x1v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsMax1x2v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsSer1x1v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsSer1x2v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x1v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsMax1x2v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsMax2x2v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp

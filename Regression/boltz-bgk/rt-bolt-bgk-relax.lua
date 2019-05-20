@@ -46,7 +46,7 @@ sim = Plasma.App {
       diagnosticIntegratedMoments = { "intM0", "intM1i",
 				      "intM2Flow", "intM2Thermal" },
       -- Collisions.
-      bgk = Plasma.BgkCollisions {
+      bgk = Plasma.BGKCollisions {
          collideWith = {"neut"},
 	 frequencies = {1.0},
       },
