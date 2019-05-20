@@ -831,7 +831,7 @@ function KineticSpecies:writeRestart(tm)
 end
 
 function KineticSpecies:readRestart()
-   local readGhosts = true
+   local readGhosts = false
    if self.hasSheathBcs or self.fluctuationBCs then readGhosts = true end
    local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhosts)
 
