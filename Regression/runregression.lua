@@ -321,7 +321,11 @@ local function compareFiles(f1, f2)
       -- compare CartField
       local d1, d2 = r1:getVar("CartGridField"):read(), r2:getVar("CartGridField"):read()
 
-      if d1:size() ~= d2:size() then return false end
+      if d1:size() ~= d2:size() then
+	 verboseLog(string.format(
+		       " ... CartGridField in files %s and %s not the same size!\n", f1, f2))
+	 return false
+      end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
 	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
@@ -331,7 +335,11 @@ local function compareFiles(f1, f2)
    elseif r1:hasVar("TimeMesh") and r2:hasVar("TimeMesh") then
       -- Compare DynVector
       local d1, d2 = r1:getVar("Data"):read(), r2:getVar("Data"):read()
-      if d1:size() ~= d2:size() then return false end
+      if d1:size() ~= d2:size() then
+	 verboseLog(string.format(
+		       " ... DynVector in files %s and %s not the same size!\n", f1, f2))
+	 return false
+      end
       for i = 1, d1:size() do
 	 if check_equal_numeric(d1[i], d2[i]) == false then
 	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
