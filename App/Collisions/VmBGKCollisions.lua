@@ -45,7 +45,7 @@ end
 function VmBGKCollisions:fullInit(speciesTbl)
    local tbl = self.tbl  -- Previously stored table.
 
-   self.collKind = "BGK"  -- Type of collisions model. Useful at the species app level.
+   self.collKind = "VmBGK"  -- Type of collisions model. Useful at the species app level.
 
    self.cfl = 0.1  -- Some default value.
 

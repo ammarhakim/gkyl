@@ -72,16 +72,24 @@ def build(bld):
     primMomentsCalcData/GkLBOCrossPrimMomentsMax3x2v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x1v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer1x2v.cpp
+    primMomentsCalcData/VmBGKCrossPrimMomentsSer1x3v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/VmBGKCrossPrimMomentsSer2x3v.cpp
+    primMomentsCalcData/VmBGKCrossPrimMomentsSer3x3v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsMax1x1v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsMax1x2v.cpp
+    primMomentsCalcData/VmBGKCrossPrimMomentsMax1x3v.cpp
     primMomentsCalcData/VmBGKCrossPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/VmBGKCrossPrimMomentsMax2x3v.cpp
+    primMomentsCalcData/VmBGKCrossPrimMomentsMax3x3v.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x1v.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer1x2v.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsSer2x2v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsSer3x2v.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsMax1x1v.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsMax1x2v.cpp
     primMomentsCalcData/GkBGKCrossPrimMomentsMax2x2v.cpp
+    primMomentsCalcData/GkBGKCrossPrimMomentsMax3x2v.cpp
 
     binOpCalcData/CartFieldBinOpSer1x.cpp
     binOpCalcData/CartFieldBinOpSer2x.cpp
