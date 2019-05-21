@@ -1012,38 +1012,34 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    gridIn:setIndex(idxIn)
    local vL = gridIn:cellLowerInDir(vpardir)
    local vR = gridIn:cellUpperInDir(vpardir)
-   local vlower, vupper
+   local vlower2, vupper2
    -- This makes it so that we only need to deal with absolute values of vpar.
    if math.abs(vR)>=math.abs(vL) then
-      vlower = math.abs(vL)
-      vupper = math.abs(vR)
+      vlower2 = vL*vL
+      vupper2 = vR*vR
    else
-      vlower = math.abs(vR)
-      vupper = math.abs(vL)
+      vlower2 = vR*vR
+      vupper2 = vL*vL
    end
-   if -self.charge*deltaPhi > 0 then
-      -- Calculate cutoff velocity for reflection.
-      local vcut = math.sqrt(-2*self.charge*deltaPhi/self.mass)
-      if vcut > vupper then
-         -- Reflect if vcut is above the velocities in this cell.
-         self:bcReflectFunc(dir, tm, nil, fIn, fOut)
-      elseif vcut > vlower then
-          -- Partial reflect if vcut is in this velocity cell.
-          local fhat = self.fhatSheathPtr
-          self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
-          local w = gridIn:cellCenterInDir(vpardir)
-          local dv = gridIn:dx(vpardir)
-          -- Calculate weak-equivalent distribution fhat.
-          gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
-          -- Reflect fhat into skin cells.
-          self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
-      else
-         -- Absorb if vcut is below the velocities in this cell.
-         self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
-      end
-   else 
-      -- Entire species (usually ions) is lost.
+   local vcut2 = -2*self.charge*deltaPhi/self.mass
+   if vcut2 <= vlower2 then 
+      -- Absorb if vcut is below the velocities in this cell,
+      -- or if vcut2 is negative, meaning entire species (usually ions) is lost.
       self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
+   elseif vcut2 > vupper2 then
+      -- Reflect if vcut is above the velocities in this cell.
+      self:bcReflectFunc(dir, tm, nil, fIn, fOut)
+   else
+      -- Partial reflect if vcut is in this velocity cell.
+      local vcut = math.sqrt(vcut2)
+      local fhat = self.fhatSheathPtr
+      self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
+      local w = gridIn:cellCenterInDir(vpardir)
+      local dv = gridIn:dx(vpardir)
+      -- Calculate weak-equivalent distribution fhat.
+      gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
+      -- Reflect fhat into skin cells.
+      self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
    end
 end
 
