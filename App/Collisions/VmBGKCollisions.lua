@@ -134,7 +134,7 @@ function VmBGKCollisions:fullInit(speciesTbl)
       if betaGreeneIn then
         self.betaGreene = betaGreeneIn
       else
-        self.betaGreene = 1.0 -- Default value is the heavy ion, quasineutral limit.
+        self.betaGreene = 0.0                -- Default value.
       end
    end
 
