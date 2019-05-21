@@ -2,7 +2,7 @@
  
 using namespace Eigen; 
  
-void GkBGKCrossPrimMoments2x2vSer_P1(binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *m0Other, const double *uOther, const double *vtSqOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void VmBGKCrossPrimMoments2x3vSer_P1(binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *m0Other, const double *uOther, const double *vtSqOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:     free parameter beta+1. This has to be >0. 
   // m, nu:            mass and collisionality. 
@@ -67,7 +67,7 @@ void GkBGKCrossPrimMoments2x2vSer_P1(binOpData_t *dataDiv, const double betaGree
   double mnuSelf  = mSelf*nuSelf; 
   double mnuOther = mOther*nuOther; 
  
-  double uRelDmnu[4]; 
+  double uRelDmnu[12]; 
  
   // ... Divide (uSelfX-uOtherX)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
   // Compute (uSelf-uOther). 
@@ -112,13 +112,63 @@ void GkBGKCrossPrimMoments2x2vSer_P1(binOpData_t *dataDiv, const double betaGree
   uCrossOther[2] = (0.5*m0rSelf[1]*uRelDmnu[3]+0.5*uRelDmnu[1]*m0rSelf[3]+0.5*m0rSelf[0]*uRelDmnu[2]+0.5*uRelDmnu[0]*m0rSelf[2])*betaGreenep1*mnuSelf+uOther[2]; 
   uCrossOther[3] = (0.5*m0rSelf[0]*uRelDmnu[3]+0.5*uRelDmnu[0]*m0rSelf[3]+0.5*m0rSelf[1]*uRelDmnu[2]+0.5*uRelDmnu[1]*m0rSelf[2])*betaGreenep1*mnuSelf+uOther[3]; 
  
+  // ... Divide (uSelfY-uOtherY)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute (uSelf-uOther). 
+  uRelDmnu[4] = uSelf[4]-1.0*uOther[4]; 
+  uRelDmnu[5] = uSelf[5]-1.0*uOther[5]; 
+  uRelDmnu[6] = uSelf[6]-1.0*uOther[6]; 
+  uRelDmnu[7] = uSelf[7]-1.0*uOther[7]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << uRelDmnu[4],uRelDmnu[5],uRelDmnu[6],uRelDmnu[7]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(uRelDmnu+4,4,1) = dataDiv->u_S; 
+ 
+  // ... Component 2 of cross-velocity of this species ... // 
+  uCrossSelf[4] = ((-0.5*m0rOther[3]*uRelDmnu[7])-0.5*m0rOther[2]*uRelDmnu[6]-0.5*m0rOther[1]*uRelDmnu[5]-0.5*m0rOther[0]*uRelDmnu[4])*betaGreenep1*mnuOther+uSelf[4]; 
+  uCrossSelf[5] = ((-0.5*m0rOther[2]*uRelDmnu[7])-0.5*m0rOther[3]*uRelDmnu[6]-0.5*m0rOther[0]*uRelDmnu[5]-0.5*m0rOther[1]*uRelDmnu[4])*betaGreenep1*mnuOther+uSelf[5]; 
+  uCrossSelf[6] = ((-0.5*m0rOther[1]*uRelDmnu[7])-0.5*m0rOther[0]*uRelDmnu[6]-0.5*m0rOther[3]*uRelDmnu[5]-0.5*m0rOther[2]*uRelDmnu[4])*betaGreenep1*mnuOther+uSelf[6]; 
+  uCrossSelf[7] = ((-0.5*m0rOther[0]*uRelDmnu[7])-0.5*m0rOther[1]*uRelDmnu[6]-0.5*m0rOther[2]*uRelDmnu[5]-0.5*m0rOther[3]*uRelDmnu[4])*betaGreenep1*mnuOther+uSelf[7]; 
+ 
+  // ... Component 2 of cross-velocity of the other species ... // 
+  uCrossOther[4] = (0.5*m0rSelf[3]*uRelDmnu[7]+0.5*m0rSelf[2]*uRelDmnu[6]+0.5*m0rSelf[1]*uRelDmnu[5]+0.5*m0rSelf[0]*uRelDmnu[4])*betaGreenep1*mnuSelf+uOther[4]; 
+  uCrossOther[5] = (0.5*m0rSelf[2]*uRelDmnu[7]+0.5*m0rSelf[3]*uRelDmnu[6]+0.5*m0rSelf[0]*uRelDmnu[5]+0.5*m0rSelf[1]*uRelDmnu[4])*betaGreenep1*mnuSelf+uOther[5]; 
+  uCrossOther[6] = (0.5*m0rSelf[1]*uRelDmnu[7]+0.5*m0rSelf[0]*uRelDmnu[6]+0.5*m0rSelf[3]*uRelDmnu[5]+0.5*m0rSelf[2]*uRelDmnu[4])*betaGreenep1*mnuSelf+uOther[6]; 
+  uCrossOther[7] = (0.5*m0rSelf[0]*uRelDmnu[7]+0.5*m0rSelf[1]*uRelDmnu[6]+0.5*m0rSelf[2]*uRelDmnu[5]+0.5*m0rSelf[3]*uRelDmnu[4])*betaGreenep1*mnuSelf+uOther[7]; 
+ 
+  // ... Divide (uSelfZ-uOtherZ)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute (uSelf-uOther). 
+  uRelDmnu[8] = uSelf[8]-1.0*uOther[8]; 
+  uRelDmnu[9] = uSelf[9]-1.0*uOther[9]; 
+  uRelDmnu[10] = uSelf[10]-1.0*uOther[10]; 
+  uRelDmnu[11] = uSelf[11]-1.0*uOther[11]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << uRelDmnu[8],uRelDmnu[9],uRelDmnu[10],uRelDmnu[11]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(uRelDmnu+8,4,1) = dataDiv->u_S; 
+ 
+  // ... Component 3 of cross-velocity of this species ... // 
+  uCrossSelf[8] = ((-0.5*m0rOther[3]*uRelDmnu[11])-0.5*m0rOther[2]*uRelDmnu[10]-0.5*m0rOther[1]*uRelDmnu[9]-0.5*m0rOther[0]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[8]; 
+  uCrossSelf[9] = ((-0.5*m0rOther[2]*uRelDmnu[11])-0.5*m0rOther[3]*uRelDmnu[10]-0.5*m0rOther[0]*uRelDmnu[9]-0.5*m0rOther[1]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[9]; 
+  uCrossSelf[10] = ((-0.5*m0rOther[1]*uRelDmnu[11])-0.5*m0rOther[0]*uRelDmnu[10]-0.5*m0rOther[3]*uRelDmnu[9]-0.5*m0rOther[2]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[10]; 
+  uCrossSelf[11] = ((-0.5*m0rOther[0]*uRelDmnu[11])-0.5*m0rOther[1]*uRelDmnu[10]-0.5*m0rOther[2]*uRelDmnu[9]-0.5*m0rOther[3]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[11]; 
+ 
+  // ... Component 3 of cross-velocity of the other species ... // 
+  uCrossOther[8] = (0.5*m0rSelf[3]*uRelDmnu[11]+0.5*m0rSelf[2]*uRelDmnu[10]+0.5*m0rSelf[1]*uRelDmnu[9]+0.5*m0rSelf[0]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[8]; 
+  uCrossOther[9] = (0.5*m0rSelf[2]*uRelDmnu[11]+0.5*m0rSelf[3]*uRelDmnu[10]+0.5*m0rSelf[0]*uRelDmnu[9]+0.5*m0rSelf[1]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[9]; 
+  uCrossOther[10] = (0.5*m0rSelf[1]*uRelDmnu[11]+0.5*m0rSelf[0]*uRelDmnu[10]+0.5*m0rSelf[3]*uRelDmnu[9]+0.5*m0rSelf[2]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[10]; 
+  uCrossOther[11] = (0.5*m0rSelf[0]*uRelDmnu[11]+0.5*m0rSelf[1]*uRelDmnu[10]+0.5*m0rSelf[2]*uRelDmnu[9]+0.5*m0rSelf[3]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[11]; 
+ 
   double uRelSq[4]; 
   // Zero out array with dot product of uSelf-uOther with itself. 
   for (unsigned short int vd=0; vd<4; vd++) 
   { 
     uRelSq[vd] = 0.0; 
   } 
-  for (unsigned short int vd=0; vd<1; vd++) 
+  for (unsigned short int vd=0; vd<3; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
@@ -134,7 +184,7 @@ void GkBGKCrossPrimMoments2x2vSer_P1(binOpData_t *dataDiv, const double betaGree
   { 
     relKinE[vd] = 0.0; 
   } 
-  for (unsigned short int vd=0; vd<1; vd++) 
+  for (unsigned short int vd=0; vd<3; vd++) 
   { 
     unsigned short int a0 = 4*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
@@ -193,7 +243,7 @@ void GkBGKCrossPrimMoments2x2vSer_P1(binOpData_t *dataDiv, const double betaGree
  
 } 
  
-void GkBGKCrossPrimMoments2x2vSer_P2(binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *m0Other, const double *uOther, const double *vtSqOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
+void VmBGKCrossPrimMoments2x3vSer_P2(binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *uSelf, const double *vtSqSelf, const double mOther, const double nuOther, const double *m0Other, const double *uOther, const double *vtSqOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther) 
 { 
   // betaGreenep1:     free parameter beta+1. This has to be >0. 
   // m, nu:            mass and collisionality. 
@@ -274,7 +324,7 @@ void GkBGKCrossPrimMoments2x2vSer_P2(binOpData_t *dataDiv, const double betaGree
   double mnuSelf  = mSelf*nuSelf; 
   double mnuOther = mOther*nuOther; 
  
-  double uRelDmnu[8]; 
+  double uRelDmnu[24]; 
  
   // ... Divide (uSelfX-uOtherX)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
   // Compute (uSelf-uOther). 
@@ -377,13 +427,87 @@ void GkBGKCrossPrimMoments2x2vSer_P2(binOpData_t *dataDiv, const double betaGree
   uCrossOther[6] = (0.4*m0rSelf[3]*uRelDmnu[7]+0.4*uRelDmnu[3]*m0rSelf[7]+0.4472135954999579*m0rSelf[5]*uRelDmnu[6]+0.31943828249997*m0rSelf[4]*uRelDmnu[6]+0.5*m0rSelf[0]*uRelDmnu[6]+0.4472135954999579*uRelDmnu[5]*m0rSelf[6]+0.31943828249997*uRelDmnu[4]*m0rSelf[6]+0.5*uRelDmnu[0]*m0rSelf[6]+0.5000000000000001*m0rSelf[2]*uRelDmnu[4]+0.5000000000000001*uRelDmnu[2]*m0rSelf[4]+0.447213595499958*m0rSelf[1]*uRelDmnu[3]+0.447213595499958*uRelDmnu[1]*m0rSelf[3])*betaGreenep1*mnuSelf+uOther[6]; 
   uCrossOther[7] = (0.31943828249997*m0rSelf[5]*uRelDmnu[7]+0.4472135954999579*m0rSelf[4]*uRelDmnu[7]+0.5*m0rSelf[0]*uRelDmnu[7]+0.31943828249997*uRelDmnu[5]*m0rSelf[7]+0.4472135954999579*uRelDmnu[4]*m0rSelf[7]+0.5*uRelDmnu[0]*m0rSelf[7]+0.4*m0rSelf[3]*uRelDmnu[6]+0.4*uRelDmnu[3]*m0rSelf[6]+0.5000000000000001*m0rSelf[1]*uRelDmnu[5]+0.5000000000000001*uRelDmnu[1]*m0rSelf[5]+0.447213595499958*m0rSelf[2]*uRelDmnu[3]+0.447213595499958*uRelDmnu[2]*m0rSelf[3])*betaGreenep1*mnuSelf+uOther[7]; 
  
+  // ... Divide (uSelfY-uOtherY)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute (uSelf-uOther). 
+  uRelDmnu[8] = uSelf[8]-1.0*uOther[8]; 
+  uRelDmnu[9] = uSelf[9]-1.0*uOther[9]; 
+  uRelDmnu[10] = uSelf[10]-1.0*uOther[10]; 
+  uRelDmnu[11] = uSelf[11]-1.0*uOther[11]; 
+  uRelDmnu[12] = uSelf[12]-1.0*uOther[12]; 
+  uRelDmnu[13] = uSelf[13]-1.0*uOther[13]; 
+  uRelDmnu[14] = uSelf[14]-1.0*uOther[14]; 
+  uRelDmnu[15] = uSelf[15]-1.0*uOther[15]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << uRelDmnu[8],uRelDmnu[9],uRelDmnu[10],uRelDmnu[11],uRelDmnu[12],uRelDmnu[13],uRelDmnu[14],uRelDmnu[15]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(uRelDmnu+8,8,1) = dataDiv->u_S; 
+ 
+  // ... Component 2 of cross-velocity of this species ... // 
+  uCrossSelf[8] = ((-0.5*m0rOther[7]*uRelDmnu[15])-0.5*m0rOther[6]*uRelDmnu[14]-0.5*m0rOther[5]*uRelDmnu[13]-0.5*m0rOther[4]*uRelDmnu[12]-0.5*m0rOther[3]*uRelDmnu[11]-0.5*m0rOther[2]*uRelDmnu[10]-0.5*m0rOther[1]*uRelDmnu[9]-0.5*m0rOther[0]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[8]; 
+  uCrossSelf[9] = ((-0.5000000000000001*m0rOther[5]*uRelDmnu[15])-0.447213595499958*m0rOther[3]*uRelDmnu[14]-0.5000000000000001*m0rOther[7]*uRelDmnu[13]-0.4472135954999579*m0rOther[1]*uRelDmnu[12]-0.447213595499958*m0rOther[6]*uRelDmnu[11]-0.5*m0rOther[2]*uRelDmnu[11]-0.5*m0rOther[3]*uRelDmnu[10]-0.4472135954999579*m0rOther[4]*uRelDmnu[9]-0.5*m0rOther[0]*uRelDmnu[9]-0.5*m0rOther[1]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[9]; 
+  uCrossSelf[10] = ((-0.447213595499958*m0rOther[3]*uRelDmnu[15])-0.5000000000000001*m0rOther[4]*uRelDmnu[14]-0.4472135954999579*m0rOther[2]*uRelDmnu[13]-0.5000000000000001*m0rOther[6]*uRelDmnu[12]-0.447213595499958*m0rOther[7]*uRelDmnu[11]-0.5*m0rOther[1]*uRelDmnu[11]-0.4472135954999579*m0rOther[5]*uRelDmnu[10]-0.5*m0rOther[0]*uRelDmnu[10]-0.5*m0rOther[3]*uRelDmnu[9]-0.5*m0rOther[2]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[10]; 
+  uCrossSelf[11] = ((-0.4*m0rOther[6]*uRelDmnu[15])-0.447213595499958*m0rOther[2]*uRelDmnu[15]-0.4*m0rOther[7]*uRelDmnu[14]-0.447213595499958*m0rOther[1]*uRelDmnu[14]-0.4472135954999579*m0rOther[3]*uRelDmnu[13]-0.4472135954999579*m0rOther[3]*uRelDmnu[12]-0.4472135954999579*m0rOther[5]*uRelDmnu[11]-0.4472135954999579*m0rOther[4]*uRelDmnu[11]-0.5*m0rOther[0]*uRelDmnu[11]-0.447213595499958*m0rOther[7]*uRelDmnu[10]-0.5*m0rOther[1]*uRelDmnu[10]-0.447213595499958*m0rOther[6]*uRelDmnu[9]-0.5*m0rOther[2]*uRelDmnu[9]-0.5*m0rOther[3]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[11]; 
+  uCrossSelf[12] = ((-0.4472135954999579*m0rOther[7]*uRelDmnu[15])-0.31943828249997*m0rOther[6]*uRelDmnu[14]-0.5000000000000001*m0rOther[2]*uRelDmnu[14]-0.31943828249997*m0rOther[4]*uRelDmnu[12]-0.5*m0rOther[0]*uRelDmnu[12]-0.4472135954999579*m0rOther[3]*uRelDmnu[11]-0.5000000000000001*m0rOther[6]*uRelDmnu[10]-0.4472135954999579*m0rOther[1]*uRelDmnu[9]-0.5*m0rOther[4]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[12]; 
+  uCrossSelf[13] = ((-0.31943828249997*m0rOther[7]*uRelDmnu[15])-0.5000000000000001*m0rOther[1]*uRelDmnu[15]-0.4472135954999579*m0rOther[6]*uRelDmnu[14]-0.31943828249997*m0rOther[5]*uRelDmnu[13]-0.5*m0rOther[0]*uRelDmnu[13]-0.4472135954999579*m0rOther[3]*uRelDmnu[11]-0.4472135954999579*m0rOther[2]*uRelDmnu[10]-0.5000000000000001*m0rOther[7]*uRelDmnu[9]-0.5*m0rOther[5]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[13]; 
+  uCrossSelf[14] = ((-0.4*m0rOther[3]*uRelDmnu[15])-0.4472135954999579*m0rOther[5]*uRelDmnu[14]-0.31943828249997*m0rOther[4]*uRelDmnu[14]-0.5*m0rOther[0]*uRelDmnu[14]-0.4472135954999579*m0rOther[6]*uRelDmnu[13]-0.31943828249997*m0rOther[6]*uRelDmnu[12]-0.5000000000000001*m0rOther[2]*uRelDmnu[12]-0.4*m0rOther[7]*uRelDmnu[11]-0.447213595499958*m0rOther[1]*uRelDmnu[11]-0.5000000000000001*m0rOther[4]*uRelDmnu[10]-0.447213595499958*m0rOther[3]*uRelDmnu[9]-0.5*m0rOther[6]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[14]; 
+  uCrossSelf[15] = ((-0.31943828249997*m0rOther[5]*uRelDmnu[15])-0.4472135954999579*m0rOther[4]*uRelDmnu[15]-0.5*m0rOther[0]*uRelDmnu[15]-0.4*m0rOther[3]*uRelDmnu[14]-0.31943828249997*m0rOther[7]*uRelDmnu[13]-0.5000000000000001*m0rOther[1]*uRelDmnu[13]-0.4472135954999579*m0rOther[7]*uRelDmnu[12]-0.4*m0rOther[6]*uRelDmnu[11]-0.447213595499958*m0rOther[2]*uRelDmnu[11]-0.447213595499958*m0rOther[3]*uRelDmnu[10]-0.5000000000000001*m0rOther[5]*uRelDmnu[9]-0.5*m0rOther[7]*uRelDmnu[8])*betaGreenep1*mnuOther+uSelf[15]; 
+ 
+  // ... Component 2 of cross-velocity of the other species ... // 
+  uCrossOther[8] = (0.5*m0rSelf[7]*uRelDmnu[15]+0.5*m0rSelf[6]*uRelDmnu[14]+0.5*m0rSelf[5]*uRelDmnu[13]+0.5*m0rSelf[4]*uRelDmnu[12]+0.5*m0rSelf[3]*uRelDmnu[11]+0.5*m0rSelf[2]*uRelDmnu[10]+0.5*m0rSelf[1]*uRelDmnu[9]+0.5*m0rSelf[0]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[8]; 
+  uCrossOther[9] = (0.5000000000000001*m0rSelf[5]*uRelDmnu[15]+0.447213595499958*m0rSelf[3]*uRelDmnu[14]+0.5000000000000001*m0rSelf[7]*uRelDmnu[13]+0.4472135954999579*m0rSelf[1]*uRelDmnu[12]+0.447213595499958*m0rSelf[6]*uRelDmnu[11]+0.5*m0rSelf[2]*uRelDmnu[11]+0.5*m0rSelf[3]*uRelDmnu[10]+0.4472135954999579*m0rSelf[4]*uRelDmnu[9]+0.5*m0rSelf[0]*uRelDmnu[9]+0.5*m0rSelf[1]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[9]; 
+  uCrossOther[10] = (0.447213595499958*m0rSelf[3]*uRelDmnu[15]+0.5000000000000001*m0rSelf[4]*uRelDmnu[14]+0.4472135954999579*m0rSelf[2]*uRelDmnu[13]+0.5000000000000001*m0rSelf[6]*uRelDmnu[12]+0.447213595499958*m0rSelf[7]*uRelDmnu[11]+0.5*m0rSelf[1]*uRelDmnu[11]+0.4472135954999579*m0rSelf[5]*uRelDmnu[10]+0.5*m0rSelf[0]*uRelDmnu[10]+0.5*m0rSelf[3]*uRelDmnu[9]+0.5*m0rSelf[2]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[10]; 
+  uCrossOther[11] = (0.4*m0rSelf[6]*uRelDmnu[15]+0.447213595499958*m0rSelf[2]*uRelDmnu[15]+0.4*m0rSelf[7]*uRelDmnu[14]+0.447213595499958*m0rSelf[1]*uRelDmnu[14]+0.4472135954999579*m0rSelf[3]*uRelDmnu[13]+0.4472135954999579*m0rSelf[3]*uRelDmnu[12]+0.4472135954999579*m0rSelf[5]*uRelDmnu[11]+0.4472135954999579*m0rSelf[4]*uRelDmnu[11]+0.5*m0rSelf[0]*uRelDmnu[11]+0.447213595499958*m0rSelf[7]*uRelDmnu[10]+0.5*m0rSelf[1]*uRelDmnu[10]+0.447213595499958*m0rSelf[6]*uRelDmnu[9]+0.5*m0rSelf[2]*uRelDmnu[9]+0.5*m0rSelf[3]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[11]; 
+  uCrossOther[12] = (0.4472135954999579*m0rSelf[7]*uRelDmnu[15]+0.31943828249997*m0rSelf[6]*uRelDmnu[14]+0.5000000000000001*m0rSelf[2]*uRelDmnu[14]+0.31943828249997*m0rSelf[4]*uRelDmnu[12]+0.5*m0rSelf[0]*uRelDmnu[12]+0.4472135954999579*m0rSelf[3]*uRelDmnu[11]+0.5000000000000001*m0rSelf[6]*uRelDmnu[10]+0.4472135954999579*m0rSelf[1]*uRelDmnu[9]+0.5*m0rSelf[4]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[12]; 
+  uCrossOther[13] = (0.31943828249997*m0rSelf[7]*uRelDmnu[15]+0.5000000000000001*m0rSelf[1]*uRelDmnu[15]+0.4472135954999579*m0rSelf[6]*uRelDmnu[14]+0.31943828249997*m0rSelf[5]*uRelDmnu[13]+0.5*m0rSelf[0]*uRelDmnu[13]+0.4472135954999579*m0rSelf[3]*uRelDmnu[11]+0.4472135954999579*m0rSelf[2]*uRelDmnu[10]+0.5000000000000001*m0rSelf[7]*uRelDmnu[9]+0.5*m0rSelf[5]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[13]; 
+  uCrossOther[14] = (0.4*m0rSelf[3]*uRelDmnu[15]+0.4472135954999579*m0rSelf[5]*uRelDmnu[14]+0.31943828249997*m0rSelf[4]*uRelDmnu[14]+0.5*m0rSelf[0]*uRelDmnu[14]+0.4472135954999579*m0rSelf[6]*uRelDmnu[13]+0.31943828249997*m0rSelf[6]*uRelDmnu[12]+0.5000000000000001*m0rSelf[2]*uRelDmnu[12]+0.4*m0rSelf[7]*uRelDmnu[11]+0.447213595499958*m0rSelf[1]*uRelDmnu[11]+0.5000000000000001*m0rSelf[4]*uRelDmnu[10]+0.447213595499958*m0rSelf[3]*uRelDmnu[9]+0.5*m0rSelf[6]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[14]; 
+  uCrossOther[15] = (0.31943828249997*m0rSelf[5]*uRelDmnu[15]+0.4472135954999579*m0rSelf[4]*uRelDmnu[15]+0.5*m0rSelf[0]*uRelDmnu[15]+0.4*m0rSelf[3]*uRelDmnu[14]+0.31943828249997*m0rSelf[7]*uRelDmnu[13]+0.5000000000000001*m0rSelf[1]*uRelDmnu[13]+0.4472135954999579*m0rSelf[7]*uRelDmnu[12]+0.4*m0rSelf[6]*uRelDmnu[11]+0.447213595499958*m0rSelf[2]*uRelDmnu[11]+0.447213595499958*m0rSelf[3]*uRelDmnu[10]+0.5000000000000001*m0rSelf[5]*uRelDmnu[9]+0.5*m0rSelf[7]*uRelDmnu[8])*betaGreenep1*mnuSelf+uOther[15]; 
+ 
+  // ... Divide (uSelfZ-uOtherZ)/(mnuSelf*m0Self+mnuOther*m0Other) ... // 
+  // Compute (uSelf-uOther). 
+  uRelDmnu[16] = uSelf[16]-1.0*uOther[16]; 
+  uRelDmnu[17] = uSelf[17]-1.0*uOther[17]; 
+  uRelDmnu[18] = uSelf[18]-1.0*uOther[18]; 
+  uRelDmnu[19] = uSelf[19]-1.0*uOther[19]; 
+  uRelDmnu[20] = uSelf[20]-1.0*uOther[20]; 
+  uRelDmnu[21] = uSelf[21]-1.0*uOther[21]; 
+  uRelDmnu[22] = uSelf[22]-1.0*uOther[22]; 
+  uRelDmnu[23] = uSelf[23]-1.0*uOther[23]; 
+  // Fill BEV. 
+  dataDiv->BEV_S << uRelDmnu[16],uRelDmnu[17],uRelDmnu[18],uRelDmnu[19],uRelDmnu[20],uRelDmnu[21],uRelDmnu[22],uRelDmnu[23]; 
+  // Invert system of equations from weak division. 
+  dataDiv->u_S = dataDiv->AEM_S.colPivHouseholderQr().solve(dataDiv->BEV_S); 
+  // Copy data from Eigen vector. 
+  Eigen::Map<VectorXd>(uRelDmnu+16,8,1) = dataDiv->u_S; 
+ 
+  // ... Component 3 of cross-velocity of this species ... // 
+  uCrossSelf[16] = ((-0.5*m0rOther[7]*uRelDmnu[23])-0.5*m0rOther[6]*uRelDmnu[22]-0.5*m0rOther[5]*uRelDmnu[21]-0.5*m0rOther[4]*uRelDmnu[20]-0.5*m0rOther[3]*uRelDmnu[19]-0.5*m0rOther[2]*uRelDmnu[18]-0.5*m0rOther[1]*uRelDmnu[17]-0.5*m0rOther[0]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[16]; 
+  uCrossSelf[17] = ((-0.5000000000000001*m0rOther[5]*uRelDmnu[23])-0.447213595499958*m0rOther[3]*uRelDmnu[22]-0.5000000000000001*m0rOther[7]*uRelDmnu[21]-0.4472135954999579*m0rOther[1]*uRelDmnu[20]-0.447213595499958*m0rOther[6]*uRelDmnu[19]-0.5*m0rOther[2]*uRelDmnu[19]-0.5*m0rOther[3]*uRelDmnu[18]-0.4472135954999579*m0rOther[4]*uRelDmnu[17]-0.5*m0rOther[0]*uRelDmnu[17]-0.5*m0rOther[1]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[17]; 
+  uCrossSelf[18] = ((-0.447213595499958*m0rOther[3]*uRelDmnu[23])-0.5000000000000001*m0rOther[4]*uRelDmnu[22]-0.4472135954999579*m0rOther[2]*uRelDmnu[21]-0.5000000000000001*m0rOther[6]*uRelDmnu[20]-0.447213595499958*m0rOther[7]*uRelDmnu[19]-0.5*m0rOther[1]*uRelDmnu[19]-0.4472135954999579*m0rOther[5]*uRelDmnu[18]-0.5*m0rOther[0]*uRelDmnu[18]-0.5*m0rOther[3]*uRelDmnu[17]-0.5*m0rOther[2]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[18]; 
+  uCrossSelf[19] = ((-0.4*m0rOther[6]*uRelDmnu[23])-0.447213595499958*m0rOther[2]*uRelDmnu[23]-0.4*m0rOther[7]*uRelDmnu[22]-0.447213595499958*m0rOther[1]*uRelDmnu[22]-0.4472135954999579*m0rOther[3]*uRelDmnu[21]-0.4472135954999579*m0rOther[3]*uRelDmnu[20]-0.4472135954999579*m0rOther[5]*uRelDmnu[19]-0.4472135954999579*m0rOther[4]*uRelDmnu[19]-0.5*m0rOther[0]*uRelDmnu[19]-0.447213595499958*m0rOther[7]*uRelDmnu[18]-0.5*m0rOther[1]*uRelDmnu[18]-0.447213595499958*m0rOther[6]*uRelDmnu[17]-0.5*m0rOther[2]*uRelDmnu[17]-0.5*m0rOther[3]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[19]; 
+  uCrossSelf[20] = ((-0.4472135954999579*m0rOther[7]*uRelDmnu[23])-0.31943828249997*m0rOther[6]*uRelDmnu[22]-0.5000000000000001*m0rOther[2]*uRelDmnu[22]-0.31943828249997*m0rOther[4]*uRelDmnu[20]-0.5*m0rOther[0]*uRelDmnu[20]-0.4472135954999579*m0rOther[3]*uRelDmnu[19]-0.5000000000000001*m0rOther[6]*uRelDmnu[18]-0.4472135954999579*m0rOther[1]*uRelDmnu[17]-0.5*m0rOther[4]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[20]; 
+  uCrossSelf[21] = ((-0.31943828249997*m0rOther[7]*uRelDmnu[23])-0.5000000000000001*m0rOther[1]*uRelDmnu[23]-0.4472135954999579*m0rOther[6]*uRelDmnu[22]-0.31943828249997*m0rOther[5]*uRelDmnu[21]-0.5*m0rOther[0]*uRelDmnu[21]-0.4472135954999579*m0rOther[3]*uRelDmnu[19]-0.4472135954999579*m0rOther[2]*uRelDmnu[18]-0.5000000000000001*m0rOther[7]*uRelDmnu[17]-0.5*m0rOther[5]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[21]; 
+  uCrossSelf[22] = ((-0.4*m0rOther[3]*uRelDmnu[23])-0.4472135954999579*m0rOther[5]*uRelDmnu[22]-0.31943828249997*m0rOther[4]*uRelDmnu[22]-0.5*m0rOther[0]*uRelDmnu[22]-0.4472135954999579*m0rOther[6]*uRelDmnu[21]-0.31943828249997*m0rOther[6]*uRelDmnu[20]-0.5000000000000001*m0rOther[2]*uRelDmnu[20]-0.4*m0rOther[7]*uRelDmnu[19]-0.447213595499958*m0rOther[1]*uRelDmnu[19]-0.5000000000000001*m0rOther[4]*uRelDmnu[18]-0.447213595499958*m0rOther[3]*uRelDmnu[17]-0.5*m0rOther[6]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[22]; 
+  uCrossSelf[23] = ((-0.31943828249997*m0rOther[5]*uRelDmnu[23])-0.4472135954999579*m0rOther[4]*uRelDmnu[23]-0.5*m0rOther[0]*uRelDmnu[23]-0.4*m0rOther[3]*uRelDmnu[22]-0.31943828249997*m0rOther[7]*uRelDmnu[21]-0.5000000000000001*m0rOther[1]*uRelDmnu[21]-0.4472135954999579*m0rOther[7]*uRelDmnu[20]-0.4*m0rOther[6]*uRelDmnu[19]-0.447213595499958*m0rOther[2]*uRelDmnu[19]-0.447213595499958*m0rOther[3]*uRelDmnu[18]-0.5000000000000001*m0rOther[5]*uRelDmnu[17]-0.5*m0rOther[7]*uRelDmnu[16])*betaGreenep1*mnuOther+uSelf[23]; 
+ 
+  // ... Component 3 of cross-velocity of the other species ... // 
+  uCrossOther[16] = (0.5*m0rSelf[7]*uRelDmnu[23]+0.5*m0rSelf[6]*uRelDmnu[22]+0.5*m0rSelf[5]*uRelDmnu[21]+0.5*m0rSelf[4]*uRelDmnu[20]+0.5*m0rSelf[3]*uRelDmnu[19]+0.5*m0rSelf[2]*uRelDmnu[18]+0.5*m0rSelf[1]*uRelDmnu[17]+0.5*m0rSelf[0]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[16]; 
+  uCrossOther[17] = (0.5000000000000001*m0rSelf[5]*uRelDmnu[23]+0.447213595499958*m0rSelf[3]*uRelDmnu[22]+0.5000000000000001*m0rSelf[7]*uRelDmnu[21]+0.4472135954999579*m0rSelf[1]*uRelDmnu[20]+0.447213595499958*m0rSelf[6]*uRelDmnu[19]+0.5*m0rSelf[2]*uRelDmnu[19]+0.5*m0rSelf[3]*uRelDmnu[18]+0.4472135954999579*m0rSelf[4]*uRelDmnu[17]+0.5*m0rSelf[0]*uRelDmnu[17]+0.5*m0rSelf[1]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[17]; 
+  uCrossOther[18] = (0.447213595499958*m0rSelf[3]*uRelDmnu[23]+0.5000000000000001*m0rSelf[4]*uRelDmnu[22]+0.4472135954999579*m0rSelf[2]*uRelDmnu[21]+0.5000000000000001*m0rSelf[6]*uRelDmnu[20]+0.447213595499958*m0rSelf[7]*uRelDmnu[19]+0.5*m0rSelf[1]*uRelDmnu[19]+0.4472135954999579*m0rSelf[5]*uRelDmnu[18]+0.5*m0rSelf[0]*uRelDmnu[18]+0.5*m0rSelf[3]*uRelDmnu[17]+0.5*m0rSelf[2]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[18]; 
+  uCrossOther[19] = (0.4*m0rSelf[6]*uRelDmnu[23]+0.447213595499958*m0rSelf[2]*uRelDmnu[23]+0.4*m0rSelf[7]*uRelDmnu[22]+0.447213595499958*m0rSelf[1]*uRelDmnu[22]+0.4472135954999579*m0rSelf[3]*uRelDmnu[21]+0.4472135954999579*m0rSelf[3]*uRelDmnu[20]+0.4472135954999579*m0rSelf[5]*uRelDmnu[19]+0.4472135954999579*m0rSelf[4]*uRelDmnu[19]+0.5*m0rSelf[0]*uRelDmnu[19]+0.447213595499958*m0rSelf[7]*uRelDmnu[18]+0.5*m0rSelf[1]*uRelDmnu[18]+0.447213595499958*m0rSelf[6]*uRelDmnu[17]+0.5*m0rSelf[2]*uRelDmnu[17]+0.5*m0rSelf[3]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[19]; 
+  uCrossOther[20] = (0.4472135954999579*m0rSelf[7]*uRelDmnu[23]+0.31943828249997*m0rSelf[6]*uRelDmnu[22]+0.5000000000000001*m0rSelf[2]*uRelDmnu[22]+0.31943828249997*m0rSelf[4]*uRelDmnu[20]+0.5*m0rSelf[0]*uRelDmnu[20]+0.4472135954999579*m0rSelf[3]*uRelDmnu[19]+0.5000000000000001*m0rSelf[6]*uRelDmnu[18]+0.4472135954999579*m0rSelf[1]*uRelDmnu[17]+0.5*m0rSelf[4]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[20]; 
+  uCrossOther[21] = (0.31943828249997*m0rSelf[7]*uRelDmnu[23]+0.5000000000000001*m0rSelf[1]*uRelDmnu[23]+0.4472135954999579*m0rSelf[6]*uRelDmnu[22]+0.31943828249997*m0rSelf[5]*uRelDmnu[21]+0.5*m0rSelf[0]*uRelDmnu[21]+0.4472135954999579*m0rSelf[3]*uRelDmnu[19]+0.4472135954999579*m0rSelf[2]*uRelDmnu[18]+0.5000000000000001*m0rSelf[7]*uRelDmnu[17]+0.5*m0rSelf[5]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[21]; 
+  uCrossOther[22] = (0.4*m0rSelf[3]*uRelDmnu[23]+0.4472135954999579*m0rSelf[5]*uRelDmnu[22]+0.31943828249997*m0rSelf[4]*uRelDmnu[22]+0.5*m0rSelf[0]*uRelDmnu[22]+0.4472135954999579*m0rSelf[6]*uRelDmnu[21]+0.31943828249997*m0rSelf[6]*uRelDmnu[20]+0.5000000000000001*m0rSelf[2]*uRelDmnu[20]+0.4*m0rSelf[7]*uRelDmnu[19]+0.447213595499958*m0rSelf[1]*uRelDmnu[19]+0.5000000000000001*m0rSelf[4]*uRelDmnu[18]+0.447213595499958*m0rSelf[3]*uRelDmnu[17]+0.5*m0rSelf[6]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[22]; 
+  uCrossOther[23] = (0.31943828249997*m0rSelf[5]*uRelDmnu[23]+0.4472135954999579*m0rSelf[4]*uRelDmnu[23]+0.5*m0rSelf[0]*uRelDmnu[23]+0.4*m0rSelf[3]*uRelDmnu[22]+0.31943828249997*m0rSelf[7]*uRelDmnu[21]+0.5000000000000001*m0rSelf[1]*uRelDmnu[21]+0.4472135954999579*m0rSelf[7]*uRelDmnu[20]+0.4*m0rSelf[6]*uRelDmnu[19]+0.447213595499958*m0rSelf[2]*uRelDmnu[19]+0.447213595499958*m0rSelf[3]*uRelDmnu[18]+0.5000000000000001*m0rSelf[5]*uRelDmnu[17]+0.5*m0rSelf[7]*uRelDmnu[16])*betaGreenep1*mnuSelf+uOther[23]; 
+ 
   double uRelSq[8]; 
   // Zero out array with dot product of uSelf-uOther with itself. 
   for (unsigned short int vd=0; vd<8; vd++) 
   { 
     uRelSq[vd] = 0.0; 
   } 
-  for (unsigned short int vd=0; vd<1; vd++) 
+  for (unsigned short int vd=0; vd<3; vd++) 
   { 
     unsigned short int a0 = 8*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 
@@ -403,7 +527,7 @@ void GkBGKCrossPrimMoments2x2vSer_P2(binOpData_t *dataDiv, const double betaGree
   { 
     relKinE[vd] = 0.0; 
   } 
-  for (unsigned short int vd=0; vd<1; vd++) 
+  for (unsigned short int vd=0; vd<3; vd++) 
   { 
     unsigned short int a0 = 8*vd; 
     // Contribution to dot-product from weak multiplication of vd component. 

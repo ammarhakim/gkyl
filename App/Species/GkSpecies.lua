@@ -506,17 +506,22 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- Determine if self primitive moments and boundary corrections are needed.
    -- If a pair of species only has cross-species collisions (no self-collisions)
    -- then the self-primitive moments may be computed without boundary corrections.
+   -- Boundary corrections are only needed if there are LBO self-species collisions.
    self.needSelfPrimMom          = false
    self.needCorrectedSelfPrimMom = false
    local needVarNu               = false    -- Also check if spatially varying nu is needed.
    if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
-      self.needCorrectedSelfPrimMom = true
+      if (self.collPairs[self.name][self.name].collKind=="GkLBO") or
+         (self.collPairs[self.name][self.name].collKind=="VmLBO") then
+         self.needCorrectedSelfPrimMom = true
+      end
    end
    for sO, _ in pairs(species) do
       if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
          self.needSelfPrimMom = true
-         if self.collPairs[sO][sO].on then
+         if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].collKind=="GkLBO" or
+                                             self.collPairs[self.name][self.name].collKind=="VmLBO") ) then
             self.needCorrectedSelfPrimMom = true
          end
 
