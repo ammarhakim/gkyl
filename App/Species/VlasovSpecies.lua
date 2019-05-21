@@ -332,16 +332,16 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    local needVarNu               = false    -- Also check if spatially varying nu is needed.
    if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
-      if (self.collPairs[self.name][self.name].collKind=="GkLBO") or
-         (self.collPairs[self.name][self.name].collKind=="VmLBO") then
+      if (self.collPairs[self.name][self.name].kind=="GkLBO") or
+         (self.collPairs[self.name][self.name].kind=="VmLBO") then
          self.needCorrectedSelfPrimMom = true
       end
    end
    for sO, _ in pairs(species) do
       if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
          self.needSelfPrimMom = true
-         if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].collKind=="GkLBO" or
-                                             self.collPairs[self.name][self.name].collKind=="VmLBO") ) then
+         if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].kind=="GkLBO" or
+                                             self.collPairs[self.name][self.name].kind=="VmLBO") ) then
             self.needCorrectedSelfPrimMom = true
          end
 
