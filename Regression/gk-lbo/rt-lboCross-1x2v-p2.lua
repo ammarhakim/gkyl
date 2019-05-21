@@ -48,13 +48,6 @@ nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 -- Box size.
 Lx = 4 -- [m]
 
-print(' ')
-print('i-i collision period: ', 1.0/nuIon)
-print('e-e collision period: ', 1.0/nuElc)
-print('i-e collision period: ', 1.0/nuIonElc)
-print('e-i collision period: ', 1.0/nuElcIon)
-print(' ')
-
 plasmaApp = Plasma.App {
    logToFile = false,
    
