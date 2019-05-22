@@ -48,6 +48,10 @@ ffi.cdef[[
 -- Projection  updater object
 local ProjectOnBasis = Proto(UpdaterBase)
 
+function ProjectOnBasis:setFunc(func)
+   self._evaluate = func
+end
+
 function ProjectOnBasis:init(tbl)
    ProjectOnBasis.super.init(self, tbl) -- setup base object
 
@@ -55,7 +59,8 @@ function ProjectOnBasis:init(tbl)
 
    self._onGrid = assert(tbl.onGrid, "Updater.ProjectOnBasis: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.ProjectOnBasis: Must specify basis functions to use using 'basis'")
-   self._evaluate = assert(tbl.evaluate, "Updater.ProjectOnBasis: Must specify function to project using 'evaluate'")
+   local ev = assert(tbl.evaluate, "Updater.ProjectOnBasis: Must specify function to project using 'evaluate'")
+   self:setFunc(ev)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 

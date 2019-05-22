@@ -175,11 +175,68 @@ function test_2d_2()
    end
 end
 
+function test_3()
+   local grid = Grid.RectCart {
+      lower = {0.0},
+      upper = {1.0},
+      cells = {4},
+   }
+   local basis = Basis.CartModalSerendipity { ndim = 1, polyOrder = 2 }
+   local distf = DataStruct.Field {
+      onGrid = grid,
+      numComponents = basis:numBasis(),
+      ghost = {0, 0},
+   }
+   local project = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = function (t, xn)
+	 return xn[1]
+      end
+   }
+
+   -- do projection
+   project:advance(0.0, {}, {distf})
+
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(1)
+   local indexer = distf:indexer()
+   -- check projection
+   for i = 1, grid:numCells(1) do
+      grid:setIndex( idx:setValues {i} )
+      grid:cellCenter(xc)
+      local fItr = distf:get(indexer(i))
+      assert_equal(xc[1], fItr[1]/math.sqrt(2), "Checking cell average")
+      assert_equal(0.1020620726159657, fItr[2], "Checking slope")
+      assert_equal(0.0, fItr[3], "Checking second-moment")
+   end
+
+   project:setFunc(function (t, xn) return 2*xn[1] end)
+
+   -- do projection
+   project:advance(0.0, {}, {distf})
+
+   local idx = Lin.IntVec(grid:ndim())
+   local xc = Lin.Vec(1)
+   local indexer = distf:indexer()
+   -- check projection
+   for i = 1, grid:numCells(1) do
+      grid:setIndex( idx:setValues {i} )
+      grid:cellCenter(xc)
+      local fItr = distf:get(indexer(i))
+      assert_equal(2*xc[1], fItr[1]/math.sqrt(2), "Checking cell average")
+      assert_equal(2*0.1020620726159657, fItr[2], "Checking slope")
+      --assert_equal(2*0.0, fItr[3], "Checking second-moment")
+   end   
+
+end
+
 -- run tests
 test_1d_1()
 test_1d_2()
 test_2d()
 test_2d_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
