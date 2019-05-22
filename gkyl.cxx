@@ -152,7 +152,7 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
+  varDefs << "jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
           << std::endl;
 
   // This is change from commit e2448fa. Rerolling it back because of unforseen consequences
