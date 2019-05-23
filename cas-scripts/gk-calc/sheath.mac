@@ -62,7 +62,9 @@ for p : 1 thru pmax do (
   /* evaluate and write vcut^2 at x,y quadrature nodes */
   vcutSqQ:gcfac(float(fullratsimp(-2*q_/m_*deltaPhiQ))),
   /* for each x,y quadrature node, determine and write coefficients for vpar,mu modal basis (bVpMu) */
-  printf(fh, "  double vcutSq_i, xc, b; ~%"),
+  printf(fh, "  double vcutSq_i, xc, xcSq, b; ~%"),
+  printf(fh, "  double wvSq = wv*wv; ~%"),
+  printf(fh, "  double dvSq = dv*dv; ~%"),
   printf(fh, "  double fReflXYQuad[~a][~a]; ~%", length(nodesXY), length(bVpMu)),
   printf(fh, "  double fReflXYMuQuad[~a][~a]; ~%", length(nodesMu), length(bVp)),
   printf(fh, "  ~%~%"),
@@ -81,28 +83,38 @@ for p : 1 thru pmax do (
       for j:1 thru length(nodesMu) do (
         /* project f at this (x,y)_i,mu_j quad node onto vpar basis (bVp) */
         fXYMuQ_Vp_c : gcfac(fullratsimp(innerProd([vx], 1, bVp, fXYMuQ_expd[j]))),
-        beta:invL(gcfac(float(fXYMuQ_Vp_c[2]/sqrt(3)/fXYMuQ_Vp_c[1]))),
-        printf(fh, "  b = ~a; ~%", beta),
+        /*beta:invL(gcfac(float(fXYMuQ_Vp_c[2]/sqrt(3)/fXYMuQ_Vp_c[1]))),
+        printf(fh, "  b = ~a; ~%", beta),*/
         printf(fh, "  if(wv > 0) {~%"),
         printf(fh, "  xc = ~a; ~%", 2*(sqrt(vcutSq_i)-wv)/dv),
-        fReflfacs : [ "(exp(b*xc)-exp(-b))/sinh(b)", 
-            "((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/(b*cosh(b)-sinh(b))",
-            "(((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
+        printf(fh, "  xcSq = ~a; ~%", subst([wv^2=wvSq,dv^2=dvSq],expand((2*(sqrt(vcutSq_i)-wv)/dv)^2))),
+        /*fReflfacs : [ "(exp(b*xc)-exp(-b))/2/sinh(b)", 
+            "((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))",
+            "(((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],*/
+        cutlims : [-1,xc],
+        uhat : fullratsimp(innerProdGen([vx], [cutlims], 1, wv+dv/2*vx, fXYMuQ_expd[j])),
+        u : fullratsimp(innerProd([vx], 1, wv+dv/2*vx, fXYMuQ_expd[j])),
+        fReflfacs : subst([xc^2=xcSq,wv^2=wvSq,dv^2=dvSq],gcfac(float(fullratsimp(uhat/u)))),
         for k:1 thru length(bVp) do (
-          printf(fh, "  fReflXYMuQuad[~a][~a] = ~a*~a; ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+          printf(fh, "  fReflXYMuQuad[~a][~a] = ~a*~a; ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs)
         ),
         printf(fh, "  } else { ~%"),
         printf(fh, "  xc = ~a; ~%", 2*(-sqrt(vcutSq_i)-wv)/dv),
-        fReflfacs : [ "(exp(b)-exp(b*xc))/sinh(b)", 
-            "((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/(b*cosh(b)-sinh(b))", 
-            "((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
+        printf(fh, "  xcSq = ~a; ~%", subst([wv^2=wvSq,dv^2=dvSq],expand((2*(-sqrt(vcutSq_i)-wv)/dv)^2))),
+        /*fReflfacs : [ "(exp(b)-exp(b*xc))/2/sinh(b)", 
+            "((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))", 
+            "((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],*/
+        cutlims : [xc,1],
+        uhat : fullratsimp(innerProdGen([vx], [cutlims], 1, wv+dv/2*vx, fXYMuQ_expd[j])),
+        u : fullratsimp(innerProd([vx], 1, wv+dv/2*vx, fXYMuQ_expd[j])),
+        fReflfacs : subst([xc^2=xcSq,wv^2=wvSq,dv^2=dvSq],gcfac(float(fullratsimp(uhat/u)))),
         for k:1 thru length(bVp) do (
-          printf(fh, "  fReflXYMuQuad[~a][~a] = ~a*~a; ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+          printf(fh, "  fReflXYMuQuad[~a][~a] = ~a*~a; ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs)
         ),
         printf(fh, "  } ~%"),
-        modToNodMu:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodesMu, bMu, [vy])),
         fReflXYMuQ_expd[j] : makelist(fReflXYMuQuad[j-1][k-1],k,1,length(bVp)).bVp
       ),
+      modToNodMu:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodesMu, bMu, [vy])),
       fReflXYQ_VpMu_expd : fullratsimp(bMu.fullratsimp(invert(transpose(float(modToNodMu))).fReflXYMuQ_expd)),
       /* project fRefl at this (x,y)_i quad node onto vpar,mu basis (bVpMu) */
       fReflXYQ_VpMu_c : gcfac(fullratsimp(innerProd([vx,vy], 1, bVpMu, fReflXYQ_VpMu_expd))),
