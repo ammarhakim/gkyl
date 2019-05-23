@@ -1001,46 +1001,33 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
       -- so we need to evaluate basis functions at z=1.
       edgeVal = 1 
    end
-   local gkEqn = self.gkEqn
-   -- Calculate deltaPhi = phi - phiWall.
-   -- Note: this gives surface-averaged scalar value of deltaPhi in this cell.
-   local deltaPhi = gkEqn:calcSheathDeltaPhi(idxIn, edgeVal)
-
    -- Get vpar limits of cell.
    local vpardir = self.cdim+1
    local gridIn = self.grid
    gridIn:setIndex(idxIn)
    local vL = gridIn:cellLowerInDir(vpardir)
    local vR = gridIn:cellUpperInDir(vpardir)
-   local vlower2, vupper2
+   local vlowerSq, vupperSq
    -- This makes it so that we only need to deal with absolute values of vpar.
    if math.abs(vR)>=math.abs(vL) then
-      vlower2 = vL*vL
-      vupper2 = vR*vR
+      vlowerSq = vL*vL
+      vupperSq = vR*vR
    else
-      vlower2 = vR*vR
-      vupper2 = vL*vL
+      vlowerSq = vR*vR
+      vupperSq = vL*vL
    end
-   local vcut2 = -2*self.charge*deltaPhi/self.mass
-   if vcut2 <= vlower2 then 
-      -- Absorb if vcut is below the velocities in this cell,
-      -- or if vcut2 is negative, meaning entire species (usually ions) is lost.
-      self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
-   elseif vcut2 > vupper2 then
-      -- Reflect if vcut is above the velocities in this cell.
-      self:bcReflectFunc(dir, tm, nil, fIn, fOut)
-   else
-      -- Partial reflect if vcut is in this velocity cell.
-      local vcut = math.sqrt(vcut2)
-      local fhat = self.fhatSheathPtr
-      self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
-      local w = gridIn:cellCenterInDir(vpardir)
-      local dv = gridIn:dx(vpardir)
-      -- Calculate weak-equivalent distribution fhat.
-      gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
-      -- Reflect fhat into skin cells.
-      self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
-   end
+   local w = gridIn:cellCenterInDir(vpardir)
+   local dv = gridIn:dx(vpardir)
+   local fhat = self.fhatSheathPtr -- distribution function to be reflected
+   self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
+   -- calculate reflected distribution function fhat
+   -- note: reflected distribution can be 
+   -- 1) fhat=0 (no reflection, i.e. absorb), 
+   -- 2) fhat=f (full reflection)
+   -- 3) fhat=c*f (partial reflection)
+   self.gkEqn:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, fhat)
+   -- reflect fhat into skin cells
+   self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
 end
 
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
