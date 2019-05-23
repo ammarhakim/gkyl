@@ -130,7 +130,7 @@ plasmaApp = Plasma.App {
       --coll   = Plasma.GkLBOCollisions { collFreq = nuElc },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      applyPositivity = true,
+      --applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -174,7 +174,7 @@ plasmaApp = Plasma.App {
       --coll   = Plasma.GkLBOCollisions { collFreq = nuIon },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      applyPositivity = true,
+      --applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
