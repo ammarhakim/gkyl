@@ -90,5 +90,9 @@ function _M.selectSheathPartialReflection(basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("calcSheathPartialReflectionScaled%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
+function _M.selectSheathReflection(basisNm, CDIM, VDIM, polyOrder)
+   local funcNm = string.format("calcSheathReflection%dx%dv%s_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   return ffi.C[funcNm]
+end
 
 return _M
