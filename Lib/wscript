@@ -9,5 +9,6 @@ def build(bld):
     bld.objects(source = r"""
     gkyl_ipow.cpp
     whereami.c
+    base64.cpp
     lfs.c""",
     use = "LUAJIT", includes = '.', target = 'lib')
