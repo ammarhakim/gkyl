@@ -63,7 +63,8 @@ def build(bld):
     bld.add_to_group(hgTip)
     
     # recurse down directories and build C++ code
-    bld.recurse("Lib") 
+    bld.recurse("sqlite3")    
+    bld.recurse("Lib")
     bld.recurse("Comm")
     bld.recurse("Unit")
     bld.recurse("Updater")
@@ -118,6 +119,13 @@ def build(bld):
         "${PREFIX}/bin/Tool",
         Tool_dir.ant_glob('**/*.md'),
         cwd=Tool_dir, relative_trick=True)
+
+    # - Sqlite3
+    Sqlite_dir = bld.path.find_dir('sqlite3')
+    bld.install_files(
+        "${PREFIX}/bin/sqlite3",
+        Sqlite_dir.ant_glob('**/*.lua'),
+        cwd=Sqlite_dir, relative_trick=True)    
 
     # - Lib
     Lib_dir = bld.path.find_dir('Lib')
@@ -199,7 +207,7 @@ def buildExec(bld):
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
-        use='lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL',
+        use='sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL',
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'
