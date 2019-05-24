@@ -55,7 +55,6 @@ def build(bld):
     primMomentsCalcData/VmLBOCrossPrimMomentsSer1x3v.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer2x2v.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsSer2x3v.cpp
-    primMomentsCalcData/VmLBOCrossPrimMomentsSer3x3v.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsMax1x1v.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsMax1x2v.cpp
     primMomentsCalcData/VmLBOCrossPrimMomentsMax1x3v.cpp
@@ -203,3 +202,7 @@ def build(bld):
 
     """,
     includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+
+## REMOVED BY AHH (5/24/2019)    
+#    primMomentsCalcData/VmLBOCrossPrimMomentsSer3x3v.cpp
+    
