@@ -44,6 +44,7 @@
 // Gkyl includes
 #include <lfs.h>
 #include <whereami.h>
+#include <base64.h>
 
 // A simple logger for parallel simulations
 class Logger {
@@ -173,7 +174,19 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
-  //std::cout << snm << std::endl;
+  // read complete input file and make it available to Lua
+  std::ifstream inpf(inpFile.c_str()); 
+  inpf.seekg(0, std::ios::end);
+  size_t size = inpf.tellg();
+  std::string buffer(size, ' ');
+  inpf.seekg(0);
+  inpf.read(&buffer[0], size);
+
+  // we need to base64 encode file contents to avoid issues with Lua
+  // loadstr method getting confused with embedded strings etc
+  std::string inpfEncoded = base64_encode(
+    reinterpret_cast<const unsigned char*>(buffer.c_str()), buffer.length());
+  varDefs << "GKYL_INP_FILE_CONTENTS = \"" << inpfEncoded  << "\" " << std::endl;
 
   varDefs << "GKYL_COMMANDS = {}" << std::endl;
   // just append list of commands 
@@ -187,7 +200,7 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
             << tool.second.script  << "\", \"" << tool.second.description
             << "\" }" << std::endl;
 
-  //std::cout << varDefs.str() << std::endl;
+  // std::cout << varDefs.str() << std::endl;
     
   return varDefs.str();
 }
