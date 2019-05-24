@@ -73,7 +73,12 @@ function AdiosCartFieldIo:init(tbl)
    self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
 
    -- if we have meta-data to write out, store it
-   self._metaData = {}
+   self._metaData = {
+      -- we always write out input file contents (encoded as base64 string)
+      ["inputfile"] = {
+	 value = GKYL_INP_FILE_CONTENTS, vType = "string"
+      }
+   }
    if tbl.metaData then
       -- store value and its type for each piece of data
       for k,v in pairs(tbl.metaData) do
