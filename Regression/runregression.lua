@@ -31,8 +31,25 @@ local ignoreTests = {}
 local moatTests = {}
 -- Sqlite3 database for storing regression data
 local sqlConn = nil
--- stored procedure to store data in table
-local insertProc = nil
+-- stored procedures to store data in tables
+local insertRegressionDataProc = nil
+local insertRegressionMetaProc = nil
+
+-- UUID generator
+math.randomseed( os.time() )
+local function uuid()
+   local random = math.random
+   local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+   return string.gsub(template, '[xy]', function (c)
+			 local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
+			 return string.format('%x', v)
+   end)
+end
+
+-- generate ID for this run of regression system
+local runID = uuid()
+-- date when tests were run
+local runDate = date(false):fmt()
 
 -- loads configuration file
 local function loadConfigure(args)
@@ -57,19 +74,25 @@ local function loadConfigure(args)
 
    -- open connection to SQL DB
    sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']))
-   -- stored procedure to insert data into table
-   insertProc = sqlConn:prepare [[
+   -- SQL stored procedures to insert data into table
+   insertRegressionDataProc = sqlConn:prepare [[
      insert into RegressionData values (
-       ?, ?, ?, ?, ?, ?, ?
+       ?, ?, ?, ?, ?, ?, ?, ?
+     )
+   ]]
+   insertRegressionMetaProc = sqlConn:prepare [[
+     insert into RegressionMeta values (
+       ?, ?, ?, ?
      )
    ]]
    
    return configVals
 end
 
--- function to insert data into the table
-local function insertData(tm, nm, status, runtm)
-   insertProc:reset():bind(
+-- functions to insert data into the tables
+local function insertRegressionData(id, tm, nm, status, runtm)
+   insertRegressionDataProc:reset():bind(
+      id,
       tm,
       nm,
       GKYL_EXEC,
@@ -78,12 +101,17 @@ local function insertData(tm, nm, status, runtm)
       status == true and 1 or 0,
       runtm):step()
 end
+local function insertRegressionMeta(id, tm, nfail, npass)
+   insertRegressionMetaProc:reset():bind(
+      id, tm, nfail, npass):step()
+end
 
 -- configure paths
 local function configure(prefix, mpiExec)
    local mpiAttr = lfs.attributes(mpiExec)
 
-   -- FOR NOW THIS IS DISABLE TILL I FIGURE OUT WHAT TO DO WITH PARALLEL TESTS (AH, 5/24/2019)
+   -- FOR NOW THIS IS DISABLED TILL I FIGURE OUT HOW TO DO PARALLEL
+   -- TESTS (AH, 5/24/2019)
    if false then
       if mpiAttr and mpiAttr.mode == "file" and string.sub(mpiAttr.permissions, 3, 3) == "x" then
 	 log(string.format("Setting MPIEXEC to %s ...\n", mpiExec))
@@ -99,11 +127,27 @@ local function configure(prefix, mpiExec)
       assert(false, string.format("Prefix %s is not a directory!", prefix))
    end
 
-   -- create the Sqlite3 database to store regression data
+   -- create Sqlite3 database to store regression data
    log(string.format("Creating DB file %s/gkyl-results/regressiondb\n", prefix))
    local conn = sql.open(string.format("%s/gkyl-results/regressiondb", prefix))
+
+   -- Following tables are created: RegressionMeta that stores date
+   -- when test was run and how many passed or failed. RegressionData
+   -- stores output from each test. GUIDs are shared between tables so
+   -- one can get all tests and their data given the GUID
    conn:exec [[
-    create table if not exists RegressionData (
+
+    drop table if exists RegressionMeta;
+    create table RegressionMeta (
+      guid text,
+      tstamp text,
+      nfail integer,
+      npass integer
+    );
+
+    drop table if exists RegressionData;
+    create table RegressionData (
+      guid text,
       tstamp text,
       name text,
       GKYL_EXEC text,
@@ -111,7 +155,7 @@ local function configure(prefix, mpiExec)
       GKYL_BUILD_DATE text,
       status integer,
       runtime real
-    )
+    );
    ]]
 
    -- write information into config file
@@ -554,4 +598,9 @@ if numPassedTests > 0 then
 end
 if numFailedTests > 0 then
    log(string.format("Total tests FAILED: %d\n", numFailedTests))
+end
+
+if numPassedTests > 0 or numFailedTests>0 then
+   -- insert data into SQL table
+   insertRegressionMeta(runID, runDate, numFailedTests, numPassedTests)
 end
