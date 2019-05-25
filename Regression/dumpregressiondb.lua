@@ -19,3 +19,7 @@ configVals = f()
 sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']))
 
 sqlConn "select * from RegressionMeta"
+
+print("\n\n")
+
+sqlConn "select * from RegressionData"

@@ -23,6 +23,8 @@ local verboseLogger = function (msg) log(msg) end
 local numFailedTests = 0
 local numPassedTests = 0
 
+-- flag to indicate if we are configuring system
+local isConfiguring = false
 -- global value to store config information
 local configVals = nil
 -- global list of tests to ignore
@@ -98,7 +100,7 @@ local function insertRegressionData(id, tm, nm, status, runtm)
       GKYL_EXEC,
       GKYL_HG_CHANGESET,
       GKYL_BUILD_DATE,
-      status == true and 1 or 0,
+      status,
       runtm):step()
 end
 local function insertRegressionMeta(id, tm, nfail, npass)
@@ -245,7 +247,9 @@ local function runLuaTest(test)
 	 verboseLog(l.."\n")
       end
    end
-   log(string.format("... completed in %g sec\n", Time.clock()-tmStart))
+   local runtm = Time.clock()-tmStart
+   log(string.format("... completed in %g sec\n", runtm))
+   return runtm
 end
 
 -- runs a single shell-script test
@@ -338,6 +342,8 @@ end
 
 -- function to handle "config" command
 local function config_action(args, name)
+   isConfiguring = true
+   
    local prefix = args.config_prefix and args.config_prefix or
       os.getenv("HOME") .. "/gkylsoft"
    local mpiexec = args.config_mpiexec and  args.config_mpiexec or
@@ -365,6 +371,8 @@ local function create_action(test)
    mkdir(fullResultsDir) -- recursively create all dirs as needed
    local srcPath = string.sub(test, 1, -5)
    copyAllFiles(srcPath, "bp", fullResultsDir)
+
+   return -2
 end
 
 -- function to compare floats (NOT SURE IF THIS IS BEST WAY TO DO
@@ -480,6 +488,7 @@ local function check_action(test)
       numFailedTests = numFailedTests+1
       log(string.format("... %s FAILED!\n", test))
    end
+   return passed and 1 or 0
 end
 
 -- function to handle "run" command
@@ -488,7 +497,7 @@ local function run_action(args, name)
    local luaRegTests, shellRegTests = list_tests(args)
 
    -- function to run after simulation is finisihed
-   local postRun = function(f) end
+   local postRun = function(f) return -1 end
    if args.create then
       postRun = create_action
    elseif args.check then
@@ -498,10 +507,14 @@ local function run_action(args, name)
    log("Running regression tests ...\n\n")
    local tmStart = Time.clock()
 
-   lume.each(
-      luaRegTests, function (f) runLuaTest(f); postRun(f) end)
-   lume.each(
-      shellRegTests, function (f) runShellTest(f); postRun(f) end)
+   -- run all tests
+   for _, test in pairs(luaRegTests) do
+      local tm = date(false):fmt()
+      local runtm = runLuaTest(test)
+      local status = postRun(test)
+      -- insert data into SQL table
+      insertRegressionData(runID, tm, test, status, runtm)
+   end
 
    log(string.format("All regression tests completed in %g secs\n", Time.clock()-tmStart))
 end
@@ -600,7 +613,7 @@ if numFailedTests > 0 then
    log(string.format("Total tests FAILED: %d\n", numFailedTests))
 end
 
-if numPassedTests > 0 or numFailedTests>0 then
+if not isConfiguring then
    -- insert data into SQL table
    insertRegressionMeta(runID, runDate, numFailedTests, numPassedTests)
 end
