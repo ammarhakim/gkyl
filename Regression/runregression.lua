@@ -10,8 +10,10 @@ local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
+local date = require "xsys.date"
 local lfs = require "lfs"
 local lume = require "Lib.lume"
+local sql = require "sqlite3"
 
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
@@ -27,6 +29,10 @@ local configVals = nil
 local ignoreTests = {}
 -- list of MOAT regression
 local moatTests = {}
+-- Sqlite3 database for storing regression data
+local sqlConn = nil
+-- stored procedure to store data in table
+local insertProc = nil
 
 -- loads configuration file
 local function loadConfigure(args)
@@ -48,18 +54,42 @@ local function loadConfigure(args)
 
    local m = loadfile("moat.lua")
    moatTests = m()
+
+   -- open connection to SQL DB
+   sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']))
+   -- stored procedure to insert data into table
+   insertProc = sqlConn:prepare [[
+     insert into RegressionData values (
+       ?, ?, ?, ?, ?, ?, ?
+     )
+   ]]
    
    return configVals
+end
+
+-- function to insert data into the table
+local function insertData(tm, nm, status, runtm)
+   insertProc:reset():bind(
+      tm,
+      nm,
+      GKYL_EXEC,
+      GKYL_HG_CHANGESET,
+      GKYL_BUILD_DATE,
+      status == true and 1 or 0,
+      runtm):step()
 end
 
 -- configure paths
 local function configure(prefix, mpiExec)
    local mpiAttr = lfs.attributes(mpiExec)
 
-   if mpiAttr and mpiAttr.mode == "file" and string.sub(mpiAttr.permissions, 3, 3) == "x" then
-      log(string.format("Setting MPIEXEC to %s ...\n", mpiExec))
-   else
-      assert(false, string.format("MPI launch binary %s not found or is not an executable!", mpiExec))
+   -- FOR NOW THIS IS DISABLE TILL I FIGURE OUT WHAT TO DO WITH PARALLEL TESTS (AH, 5/24/2019)
+   if false then
+      if mpiAttr and mpiAttr.mode == "file" and string.sub(mpiAttr.permissions, 3, 3) == "x" then
+	 log(string.format("Setting MPIEXEC to %s ...\n", mpiExec))
+      else
+	 assert(false, string.format("MPI launch binary %s not found or is not an executable!", mpiExec))
+      end
    end
 
    local prefixAttr = lfs.attributes(prefix)
@@ -68,6 +98,21 @@ local function configure(prefix, mpiExec)
    else
       assert(false, string.format("Prefix %s is not a directory!", prefix))
    end
+
+   -- create the Sqlite3 database to store regression data
+   log(string.format("Creating DB file %s/gkyl-results/regressiondb\n", prefix))
+   local conn = sql.open(string.format("%s/gkyl-results/regressiondb", prefix))
+   conn:exec [[
+    create table if not exists RegressionData (
+      tstamp text,
+      name text,
+      GKYL_EXEC text,
+      GKYL_HG_CHANGESET text,
+      GKYL_BUILD_DATE text,
+      status integer,
+      runtime real
+    )
+   ]]
 
    -- write information into config file
    local fn = io.open("runregression.config.lua", "w")
