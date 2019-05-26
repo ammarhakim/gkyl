@@ -80,12 +80,12 @@ local function loadConfigure(args)
    -- SQL stored procedures to insert data into table
    insertRegressionDataProc = sqlConn:prepare [[
      insert into RegressionData values (
-       ?, ?, ?, ?, ?, ?, ?, ?, ?
+       ?, ?, ?, ?, ?
      )
    ]]
    insertRegressionMetaProc = sqlConn:prepare [[
      insert into RegressionMeta values (
-       ?, ?, ?, ?, ?
+       ?, ?, ?, ?, ?, ?, ?, ?
      )
    ]]
    
@@ -93,21 +93,24 @@ local function loadConfigure(args)
 end
 
 -- functions to insert data into the tables
-local function insertRegressionData(id, tm, nm, status, runtm, runlog)
+local function insertRegressionData(id, nm, status, runtm, runlog)
    insertRegressionDataProc:reset():bind(
       id,
-      tm,
       nm,
-      GKYL_EXEC,
-      GKYL_HG_CHANGESET,
-      GKYL_BUILD_DATE,
       status,
       runtm,
       runlog):step()
 end
 local function insertRegressionMeta(id, tm, ntotal, npass, nfail)
    insertRegressionMetaProc:reset():bind(
-      id, tm, ntotal, npass, nfail):step()
+      id,
+      tm,
+      GKYL_EXEC,
+      GKYL_HG_CHANGESET,
+      GKYL_BUILD_DATE,      
+      ntotal,
+      npass,
+      nfail):step()
 end
 
 -- configure paths
@@ -145,6 +148,9 @@ local function configure(prefix, mpiExec)
     create table RegressionMeta (
       guid text,
       tstamp text,
+      GKYL_EXEC text,
+      GKYL_HG_CHANGESET text,
+      GKYL_BUILD_DATE text,
       ntotal integer,
       npass integer,
       nfail integer
@@ -153,11 +159,7 @@ local function configure(prefix, mpiExec)
     drop table if exists RegressionData;
     create table RegressionData (
       guid text,
-      tstamp text,
       name text,
-      GKYL_EXEC text,
-      GKYL_HG_CHANGESET text,
-      GKYL_BUILD_DATE text,
       status integer,
       runtime real,
       runlog text
@@ -517,11 +519,10 @@ local function run_action(args, name)
 
    -- run all tests
    for _, test in pairs(luaRegTests) do
-      local tm = date(false):fmt()
       local runtm, runlog = runLuaTest(test)
       local status = postRun(test)
       -- insert data into SQL table
-      insertRegressionData(runID, tm, test, status, runtm, runlog)
+      insertRegressionData(runID, test, status, runtm, runlog)
    end
 
    log(string.format("All regression tests completed in %g secs\n", Time.clock()-tmStart))
@@ -622,6 +623,5 @@ if numFailedTests > 0 then
 end
 
 if numTotalTests>0 then
-   -- insert data into SQL table
    insertRegressionMeta(runID, runDate, numTotalTests, numPassedTests, numFailedTests)
 end
