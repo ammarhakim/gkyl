@@ -19,9 +19,10 @@ local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end
 
--- total passed/failed tests
+-- number of passed/failed and total tests
 local numFailedTests = 0
 local numPassedTests = 0
+local numTotalTests = 0
 
 -- flag to indicate if we are configuring system
 local isConfiguring = false
@@ -84,7 +85,7 @@ local function loadConfigure(args)
    ]]
    insertRegressionMetaProc = sqlConn:prepare [[
      insert into RegressionMeta values (
-       ?, ?, ?, ?
+       ?, ?, ?, ?, ?
      )
    ]]
    
@@ -104,9 +105,9 @@ local function insertRegressionData(id, tm, nm, status, runtm, runlog)
       runtm,
       runlog):step()
 end
-local function insertRegressionMeta(id, tm, nfail, npass)
+local function insertRegressionMeta(id, tm, ntotal, npass, nfail)
    insertRegressionMetaProc:reset():bind(
-      id, tm, nfail, npass):step()
+      id, tm, ntotal, npass, nfail):step()
 end
 
 -- configure paths
@@ -144,8 +145,9 @@ local function configure(prefix, mpiExec)
     create table RegressionMeta (
       guid text,
       tstamp text,
-      nfail integer,
-      npass integer
+      ntotal integer,
+      npass integer,
+      nfail integer
     );
 
     drop table if exists RegressionData;
@@ -216,6 +218,8 @@ end
 -- runs a single lua test
 local function runLuaTest(test)
    log(string.format("\nRunning test %s ...\n", test))
+
+   numTotalTests = numTotalTests+1
 
    local opts = {}
    -- open Lua file and check if first line is a command line
@@ -617,7 +621,7 @@ if numFailedTests > 0 then
    log(string.format("Total tests FAILED: %d\n", numFailedTests))
 end
 
-if not isConfiguring then
+if numTotalTests>0 then
    -- insert data into SQL table
-   insertRegressionMeta(runID, runDate, numFailedTests, numPassedTests)
+   insertRegressionMeta(runID, runDate, numTotalTests, numPassedTests, numFailedTests)
 end
