@@ -79,7 +79,7 @@ local function loadConfigure(args)
    -- SQL stored procedures to insert data into table
    insertRegressionDataProc = sqlConn:prepare [[
      insert into RegressionData values (
-       ?, ?, ?, ?, ?, ?, ?, ?
+       ?, ?, ?, ?, ?, ?, ?, ?, ?
      )
    ]]
    insertRegressionMetaProc = sqlConn:prepare [[
@@ -92,7 +92,7 @@ local function loadConfigure(args)
 end
 
 -- functions to insert data into the tables
-local function insertRegressionData(id, tm, nm, status, runtm)
+local function insertRegressionData(id, tm, nm, status, runtm, runlog)
    insertRegressionDataProc:reset():bind(
       id,
       tm,
@@ -101,7 +101,8 @@ local function insertRegressionData(id, tm, nm, status, runtm)
       GKYL_HG_CHANGESET,
       GKYL_BUILD_DATE,
       status,
-      runtm):step()
+      runtm,
+      runlog):step()
 end
 local function insertRegressionMeta(id, tm, nfail, npass)
    insertRegressionMetaProc:reset():bind(
@@ -156,7 +157,8 @@ local function configure(prefix, mpiExec)
       GKYL_HG_CHANGESET text,
       GKYL_BUILD_DATE text,
       status integer,
-      runtime real
+      runtime real,
+      runlog text
     );
    ]]
 
@@ -238,18 +240,20 @@ local function runLuaTest(test)
    -- run test
    local tmStart = Time.clock()
 
+   local runlog = ""
    if opts.numProc then
       -- skip for now: NEED TO USE MPI_COMM_SPAWN FOR THIS, I THINK!
       log(string.format("**** NOT RUNNING PARALLEL TEST %s \n", runCmd))
    else
       local f = io.popen(runCmd, "r")
       for l in f:lines() do
+	 runlog = runlog .. l .. "\n"
 	 verboseLog(l.."\n")
       end
    end
    local runtm = Time.clock()-tmStart
    log(string.format("... completed in %g sec\n", runtm))
-   return runtm
+   return runtm, runlog
 end
 
 -- runs a single shell-script test
@@ -510,10 +514,10 @@ local function run_action(args, name)
    -- run all tests
    for _, test in pairs(luaRegTests) do
       local tm = date(false):fmt()
-      local runtm = runLuaTest(test)
+      local runtm, runlog = runLuaTest(test)
       local status = postRun(test)
       -- insert data into SQL table
-      insertRegressionData(runID, tm, test, status, runtm)
+      insertRegressionData(runID, tm, test, status, runtm, runlog)
    end
 
    log(string.format("All regression tests completed in %g secs\n", Time.clock()-tmStart))

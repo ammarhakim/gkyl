@@ -22,4 +22,4 @@ sqlConn "select * from RegressionMeta"
 
 print("\n\n")
 
-sqlConn "select * from RegressionData"
+--sqlConn "select * from RegressionData"
