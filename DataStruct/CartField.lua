@@ -10,7 +10,7 @@ local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
 local new, copy, sizeof, typeof, metatype = xsys.from(ffi,
-     "new, copy, sizeof, typeof, metatype")
+						      "new, copy, sizeof, typeof, metatype")
 
 -- Gkyl libraries
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
@@ -141,7 +141,7 @@ local function Field_meta_ctor(elct)
 
       -- allocator function
       local allocator = grid:isShared() and sharedAllocatorFunc or allocatorFunc
-   
+      
       -- allocate memory: this is NOT managed by the LuaJIT GC, allowing fields to be arbitrarly large
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
       self._allocData = allocator(shmComm, sz) -- store this so it does not vanish under us
@@ -215,7 +215,8 @@ local function Field_meta_ctor(elct)
 	 local sendRgn = localRange:intersect(
 	    neighRgn:extend(self._lowerGhost, self._upperGhost))
 
-         self._sendMPIDataType[sendId] = Mpi.createDataTypeFromRangeAndSubRange(sendRgn, localRange, self._numComponents, self._layout, elctCommType)
+         self._sendMPIDataType[sendId] = Mpi.createDataTypeFromRangeAndSubRange(
+	    sendRgn, localRange, self._numComponents, self._layout, elctCommType)
       end
 
       local localExtRange = self:localExtRange()
@@ -223,7 +224,8 @@ local function Field_meta_ctor(elct)
 	 local neighRgn = decomposedRange:subDomain(recvId)
 	 local recvRgn = localExtRange:intersect(neighRgn)
 
-         self._recvMPIDataType[recvId] = Mpi.createDataTypeFromRangeAndSubRange(recvRgn, localExtRange, self._numComponents, self._layout, elctCommType)
+         self._recvMPIDataType[recvId] = Mpi.createDataTypeFromRangeAndSubRange(
+	    recvRgn, localExtRange, self._numComponents, self._layout, elctCommType)
       end
 
       -- allocate MPI DataTypes for periodic directions
@@ -243,22 +245,25 @@ local function Field_meta_ctor(elct)
 	       -- only allocate if we are on proper ranks
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  self._sendLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnSend, localRange, self._numComponents, self._layout, elctCommType)
+                  self._sendLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
+		     rgnSend, localRange, self._numComponents, self._layout, elctCommType)
 
 		  local rgnRecv = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  self._recvLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
+                  self._recvLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
+		     rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
 	       end
 	       if myId == upId then
 		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
-                  self._sendUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnSend, localRange, self._numComponents, self._layout, elctCommType)
+                  self._sendUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
+		     rgnSend, localRange, self._numComponents, self._layout, elctCommType)
 
 		  local rgnRecv = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
-                  self._recvUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
+                  self._recvUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
+		     rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
 	       end	       
 	    end
 	 end
       end
-      print(self._recvUpperPerMPIDataType)
       -- create IO object
       self._adiosIo = AdiosCartFieldIo {
 	 elemType = elct,
