@@ -519,7 +519,7 @@ local function run_action(args, name)
 
    local function trimname(nm)
       local s,e = string.find(nm, "./")
-      if s then return string.sub(nm, e+1) end
+      if s and s==1 then return string.sub(nm, e+1) end
       return nm
    end
 

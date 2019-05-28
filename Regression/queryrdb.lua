@@ -102,15 +102,48 @@ local function query_action(args, name)
    end
 end
 
+-- function to handle query ("q") command
+local function history_action(args, name)
+   if args.regression == nil then return end
+
+   local function trimname(nm)
+      local s,e = string.find(nm, "./")
+      if s and s==1 then return string.sub(nm, e+1) end
+      return nm
+   end
+
+   local tNm = trimname(args.regression)
+   local dat, nrow = sqlConn:exec(
+      string.format("select * from RegressionData where name=='%s'", tNm)
+   )
+
+   local fmt = "%-20s %-30s %-4s"
+   print(string.format(fmt, "Time-Stamp", "Changeset", "Run-Time"))
+   local fmt1 = "%-20s %-30s %.4g"
+   for i = 1,nrow do
+      local guid = dat['guid'][i]
+      local tstamp, changeset = sqlConn:rowexec(
+	 string.format("select tstamp, GKYL_HG_CHANGESET from RegressionMeta where guid='%s'", guid)
+      )
+      print(string.format(fmt1, tstamp, changeset, dat['runtime'][i]))
+   end
+   
+end
+
 -- "s" (summary) command
-parser:command("s", "Print summary of all tests")
+parser:command("summary", "Print summary of all tests")
    :action(summary_action)
 
 -- "q" (query) command
-local c_query = parser:command("q", "Query individual run of regression system and print information")
+local c_query = parser:command("query", "Query individual run of regression system and print information")
    :action(query_action)
 c_query:option("-i --id", "Print information for regression run with this ID", 1)
-c_query:option("-t --test", "Print log for specified test", 0)
+c_query:option("-t --test", "Print log for specified test number", 0)
+
+-- "h" (history) command
+local c_history = parser:command("history", "Query historical data for a specific test")
+   :action(history_action)
+c_history:option("-r --regression", "Print history for specific test")
 
 -- parse command-line args (functionality encoded in command actions)
 local _ = parser:parse(GKYL_COMMANDS)
