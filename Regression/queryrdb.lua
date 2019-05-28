@@ -29,6 +29,7 @@ Query database created by runregression system to extract information
 about various tests.
 ]]
 
+-- read metadata table 
 local function read_metatable()
    local t, nrow = sqlConn:exec("select * from RegressionMeta")
    local dbMeta = {}
@@ -46,45 +47,58 @@ local function read_metatable()
    return dbMeta
 end
 
+-- get all tests with specified GUID
+local function read_tests_with_id(guid)
+   local t, nrow = sqlConn:exec(
+      string.format("select * from RegressionData where guid=='%s'", guid))
+   local sstr = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass" }
+
+   local maxNm = 0
+   
+   dbData = {}
+   for i = 1, nrow do
+      dbData[i] = {
+	 name = t['name'][i],
+	 status = sstr[tonumber(t['status'][i])],
+	 runtime = t['runtime'][i],
+	 runlog = t['runlog'][i],
+      }
+      maxNm = math.max(maxNm, string.len(t['name'][i]))
+   end
+   return dbData, maxNm
+end
+
 -- function to handle summary ("s") command
 local function summary_action(args, name)
    local dbMeta = read_metatable()
    local nrow = #dbMeta
-      
-   print("---------------------------------------------------")
-   print("ID: Time-Stamp Changeset Build-Date Total Pass Fail")
-   print("---------------------------------------------------")
-   for i, d in pairs(dbMeta) do
-      --print(d.tstamp, d.changeset, d.builddate, d.ntotal, d.npass, d.nfail)
-      print(string.format("%d: %s %s %s %s %s %s",
-        nrow-i+1, d.tstamp, d.changeset, d.builddate, tostring(d.ntotal), tostring(d.npass), tostring(d.nfail)))
+
+   local fmt = "%-4s: %-20s %-30s %-5s %-5s %-5s"
+   print(string.format(fmt, "ID", "Time-Stamp", "Changeset", "Total", "Pass", "Fail"))
+   for i,d in pairs(dbMeta) do
+      print(string.format(fmt, nrow-i+1, d.tstamp, d.changeset, tonumber(d.ntotal), tonumber(d.npass), tonumber(d.nfail)))
    end
 end
 
 -- function to handle query ("q") command
 local function query_action(args, name)
    local dbMeta = read_metatable()
-   local id = #dbMeta-args.id+1 -- meta-list is printed in reverse order
-   local guid = dbMeta[id].guid -- this is tha GUID for fetching information
+   local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
+   local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
 
-   local t, nrow = sqlConn:exec(
-      string.format("select * from RegressionData where guid=='%s'", guid))
-
-   local function status2str(status)
-      local s = tonumber(status)
-      if s == -2 then return "create" end
-      if s == -1 then return "skip  " end      
-      if s == 0 then return  "fail  " end
-      if s == 1 then return  "pass  " end
-   end
-
-   
-   print("------------------------")
-   print("ID: Name Status Run-Time")
-   print("------------------------")   
-   for i = 1, nrow do
-      print(string.format(
-	       "%d: %s %s %g sec", i, t['name'][i], status2str(t['status'][i]), t['runtime'][i]))
+   if tonumber(args.test) > 0 then
+      local tidx = math.min(args.test, #dbData)
+      print(string.format("=== "))
+      print(string.format("=== Log for test %s ==", dbData[tidx].name))
+      print(string.format("=== ")) 
+      print(dbData[tidx].runlog)
+   else
+      local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
+      print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
+      local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
+      for i,d in pairs(dbData) do
+	 print(string.format(fmt1, i, d.name, d.status, d.runtime))
+      end
    end
 end
 
@@ -95,7 +109,8 @@ parser:command("s", "Print summary of all tests")
 -- "q" (query) command
 local c_query = parser:command("q", "Query individual run of regression system and print information")
    :action(query_action)
-c_query:option("-i --id", "Print information for regression run with this ID")
+c_query:option("-i --id", "Print information for regression run with this ID", 1)
+c_query:option("-t --test", "Print log for specified test", 0)
 
 -- parse command-line args (functionality encoded in command actions)
 local _ = parser:parse(GKYL_COMMANDS)
