@@ -5,6 +5,8 @@
 -- Copyright (C) 2006, by Jas Latrix (jastejada@yahoo.com)
 -- Copyright (C) 2013-2014, by Thijs Schreijer
 -- Licensed under MIT, http://opensource.org/licenses/MIT
+--
+-- See docs at http://tieske.github.io/date/
 
 --[[ CONSTANTS ]]--
   local HOURPERDAY  = 24

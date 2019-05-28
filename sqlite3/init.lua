@@ -11,6 +11,10 @@
  one needs to load this as
 
  local sql = require "sqlite3"
+
+ Full Sqlite3 tutorial is at:
+ 
+ http://www.sqlitetutorial.net
 --]]
 
 return require("sqlite3.sqlite3")
