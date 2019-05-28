@@ -9,16 +9,26 @@
 local argparse = require "Lib.argparse"
 local sql = require "sqlite3"
 
--- load configuration file created by regression testing system
-local f = loadfile("runregression.config.lua")
-if not f then
-   log("Regression tests not configured! Run config command first\n")
-   os.exit(1)
-end
-configVals = f()
+-- SQLite connection handle
+local sqlConn = nil
+-- status code -> string
+local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass" }
 
--- open connection
-local sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']), "ro")
+-- configure query system
+local function configure(args)
+   if args.db then
+      sqlConn = sql.open(args.db, "ro")
+   else
+      -- load configuration file created by regression testing system
+      local f = loadfile("runregression.config.lua")
+      if not f then
+	 log("Regression tests not configured! Run config command first\n")
+	 os.exit(1)
+      end
+      local configVals = f()
+      sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']), "ro")
+   end
+end
 
 -- read metadata table 
 local function read_metatable()
@@ -42,15 +52,12 @@ end
 local function read_tests_with_id(guid)
    local t, nrow = sqlConn:exec(
       string.format("select * from RegressionData where guid=='%s'", guid))
-   local sstr = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass" }
-
    local maxNm = 0
-   
    dbData = {}
    for i = 1, nrow do
       dbData[i] = {
 	 name = t['name'][i],
-	 status = sstr[tonumber(t['status'][i])],
+	 status = statusToString[tonumber(t['status'][i])],
 	 runtime = t['runtime'][i],
 	 runlog = t['runlog'][i],
       }
@@ -61,6 +68,8 @@ end
 
 -- function to handle summary command
 local function summary_action(args, name)
+   configure(args)
+   
    local dbMeta = read_metatable()
    local nrow = #dbMeta
 
@@ -73,6 +82,8 @@ end
 
 -- function to handle query command
 local function query_action(args, name)
+   configure(args)
+   
    local dbMeta = read_metatable()
    local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
    local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
@@ -95,6 +106,8 @@ end
 
 -- function to handle history command
 local function history_action(args, name)
+   configure(args)
+   
    if args.regression == nil then return end
 
    local function trimname(nm)
@@ -108,15 +121,16 @@ local function history_action(args, name)
       string.format("select * from RegressionData where name=='%s'", tNm)
    )
 
-   local fmt = "%-20s %-30s %-4s"
-   print(string.format(fmt, "Time-Stamp", "Changeset", "Run-Time"))
-   local fmt1 = "%-20s %-30s %.4g"
+   local fmt = "%-20s %-30s %-7s %-4s"
+   print(string.format(fmt, "Time-Stamp", "Changeset", "Status", "Run-Time"))
+   local fmt1 = "%-20s %-30s %-7s %.4g"
    for i = 1,nrow do
       local guid = dat['guid'][i]
       local tstamp, changeset = sqlConn:rowexec(
 	 string.format("select tstamp, GKYL_HG_CHANGESET from RegressionMeta where guid='%s'", guid)
       )
-      print(string.format(fmt1, tstamp, changeset, dat['runtime'][i]))
+      local stat = statusToString[tonumber(dat['status'][i])]
+      print(string.format(fmt1, tstamp, changeset, stat, dat['runtime'][i]))
    end
    
 end
@@ -129,6 +143,7 @@ local parser = argparse()
 Query database created by runregression system to extract information
 about various tests.
 ]]
+parser:option("--db", "Alternate DB to use")
 
 -- summary command
 parser:command("summary", "Print summary of all tests")

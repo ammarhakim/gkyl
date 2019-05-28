@@ -114,7 +114,7 @@ local function insertRegressionMeta(id, tm, ntotal, npass, nfail)
 end
 
 -- configure paths
-local function configure(prefix, mpiExec)
+local function configure(prefix, mpiExec, args)
    local mpiAttr = lfs.attributes(mpiExec)
 
    -- FOR NOW THIS IS DISABLED TILL I FIGURE OUT HOW TO DO PARALLEL
@@ -134,37 +134,44 @@ local function configure(prefix, mpiExec)
       assert(false, string.format("Prefix %s is not a directory!", prefix))
    end
 
-   -- create Sqlite3 database to store regression data
-   log(string.format("Creating DB file %s/gkyl-results/regressiondb\n", prefix))
-   local conn = sql.open(string.format("%s/gkyl-results/regressiondb", prefix))
+   -- regression data is stored in SQLite. Create tables if needed
+   local regressionDb = string.format("%s/gkyl-results/regressiondb", prefix)
+   local regressionDbAttr = lfs.attributes(regressionDb)
 
-   -- Following tables are created: RegressionMeta that stores date
-   -- when test was run and how many passed or failed. RegressionData
-   -- stores output from each test. GUIDs are shared between tables so
-   -- one can get all tests and their data given the GUID
-   conn:exec [[
+   if args.drop_tables or regressionDbAttr==nil then
+      log(string.format("Creating DB file %s\n", regressionDb))
+      -- create Sqlite3 database to store regression data
+      local conn = sql.open(regressionDb)
+      
+      -- Following tables are created: RegressionMeta that stores date
+      -- when test was run and how many passed or
+      -- failed. RegressionData stores output from each test. GUIDs
+      -- are shared between tables so one can get all tests and their
+      -- data given the GUID
+      conn:exec [[
 
-    drop table if exists RegressionMeta;
-    create table RegressionMeta (
-      guid text,
-      tstamp text,
-      GKYL_EXEC text,
-      GKYL_HG_CHANGESET text,
-      GKYL_BUILD_DATE text,
-      ntotal integer,
-      npass integer,
-      nfail integer
-    );
+      drop table if exists RegressionMeta;
+      create table RegressionMeta (
+        guid text,
+        tstamp text,
+        GKYL_EXEC text,
+        GKYL_HG_CHANGESET text,
+        GKYL_BUILD_DATE text,
+        ntotal integer,
+        npass integer,
+        nfail integer
+      );
 
-    drop table if exists RegressionData;
-    create table RegressionData (
-      guid text,
-      name text,
-      status integer,
-      runtime real,
-      runlog text
-    );
-   ]]
+      drop table if exists RegressionData;
+      create table RegressionData (
+        guid text,
+        name text,
+        status integer,
+        runtime real,
+        runlog text
+      );
+     ]]
+   end
 
    -- write information into config file
    local fn = io.open("runregression.config.lua", "w")
@@ -359,7 +366,7 @@ local function config_action(args, name)
    local mpiexec = args.config_mpiexec and  args.config_mpiexec or
       os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec"
 
-   configure(prefix, mpiexec)
+   configure(prefix, mpiexec, args)
 end
 
 -- function to handle "list" command
@@ -587,6 +594,7 @@ c_conf:option("-p --prefix", "Location to store accepted results")
    :target("config_prefix")
 c_conf:option("-m --mpiexec", "Full path to MPI executable")
    :target("config_mpiexec")
+c_conf:flag("--drop-tables", "Recreate SQL tables", false)
 
 -- "list" command
 local c_list = parser:command("list", "List all regression tests")
