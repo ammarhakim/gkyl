@@ -1,6 +1,9 @@
 #ifndef GKLBO_MOD_DELC_H 
 #define GKLBO_MOD_DELC_H 
 #include <cmath> 
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
 extern "C" { 
 double GkLBOconstNuVol1x1vSerP1(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out); 
 double GkLBOconstNuSurf1x1vSer_Vpar_P1(const double m_, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr); 
