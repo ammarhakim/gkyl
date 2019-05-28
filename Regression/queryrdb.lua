@@ -20,15 +20,6 @@ configVals = f()
 -- open connection
 local sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']), "ro")
 
--- Create CLI parser to handle commands and options
-local parser = argparse()
-   :name("queryrdb")
-   :require_command(true)
-   :description [[
-Query database created by runregression system to extract information
-about various tests.
-]]
-
 -- read metadata table 
 local function read_metatable()
    local t, nrow = sqlConn:exec("select * from RegressionMeta")
@@ -68,7 +59,7 @@ local function read_tests_with_id(guid)
    return dbData, maxNm
 end
 
--- function to handle summary ("s") command
+-- function to handle summary command
 local function summary_action(args, name)
    local dbMeta = read_metatable()
    local nrow = #dbMeta
@@ -80,7 +71,7 @@ local function summary_action(args, name)
    end
 end
 
--- function to handle query ("q") command
+-- function to handle query command
 local function query_action(args, name)
    local dbMeta = read_metatable()
    local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
@@ -102,7 +93,7 @@ local function query_action(args, name)
    end
 end
 
--- function to handle query ("q") command
+-- function to handle history command
 local function history_action(args, name)
    if args.regression == nil then return end
 
@@ -130,17 +121,26 @@ local function history_action(args, name)
    
 end
 
--- "s" (summary) command
+-- Create CLI parser to handle commands and options
+local parser = argparse()
+   :name("queryrdb")
+   :require_command(true)
+   :description [[
+Query database created by runregression system to extract information
+about various tests.
+]]
+
+-- summary command
 parser:command("summary", "Print summary of all tests")
    :action(summary_action)
 
--- "q" (query) command
+-- query command
 local c_query = parser:command("query", "Query individual run of regression system and print information")
    :action(query_action)
 c_query:option("-i --id", "Print information for regression run with this ID", 1)
 c_query:option("-t --test", "Print log for specified test number", 0)
 
--- "h" (history) command
+-- history command
 local c_history = parser:command("history", "Query historical data for a specific test")
    :action(history_action)
 c_history:option("-r --regression", "Print history for specific test")
