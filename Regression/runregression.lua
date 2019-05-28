@@ -52,7 +52,7 @@ end
 -- generate ID for this run of regression system
 local runID = uuid()
 -- date when tests were run
-local runDate = date(false):fmt()
+local runDate = date(false):fmt("${iso}")
 
 -- loads configuration file
 local function loadConfigure(args)
@@ -517,12 +517,18 @@ local function run_action(args, name)
    log("Running regression tests ...\n\n")
    local tmStart = Time.clock()
 
+   local function trimname(nm)
+      local s,e = string.find(nm, "./")
+      if s then return string.sub(nm, e+1) end
+      return nm
+   end
+
    -- run all tests
    for _, test in pairs(luaRegTests) do
       local runtm, runlog = runLuaTest(test)
       local status = postRun(test)
       -- insert data into SQL table
-      insertRegressionData(runID, test, status, runtm, runlog)
+      insertRegressionData(runID, trimname(test), status, runtm, runlog)
    end
 
    log(string.format("All regression tests completed in %g secs\n", Time.clock()-tmStart))
@@ -586,7 +592,7 @@ c_conf:option("-m --mpiexec", "Full path to MPI executable")
 local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only", "Only list this test or all tests in this directory")
-c_list:flag("-m --moat", "Only run key MOAT regression")
+c_list:flag("-m --moat", "Only list MOAT regression")
 
 -- "run" tests
 local c_run = parser:command("run")
