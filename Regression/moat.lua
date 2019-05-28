@@ -3,5 +3,6 @@
 return {
    "./vm-weibel/rt-weibel-1x2v-p1.lua",
    "./gk-etg/rt-etg4d.lua",
+   "./gk-sheath/rt-gk-sheath.lua",
    "./mom-gem-challenge/rt-5m-gem.lua",
 }
