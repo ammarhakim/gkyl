@@ -10,23 +10,49 @@ local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
+local date = require "xsys.date"
 local lfs = require "lfs"
 local lume = require "Lib.lume"
+local sql = require "sqlite3"
 
 local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end
 
--- total passed/failed tests
+-- number of passed/failed and total tests
 local numFailedTests = 0
 local numPassedTests = 0
+local numTotalTests = 0
 
+-- flag to indicate if we are configuring system
+local isConfiguring = false
 -- global value to store config information
 local configVals = nil
 -- global list of tests to ignore
 local ignoreTests = {}
 -- list of MOAT regression
 local moatTests = {}
+-- Sqlite3 database for storing regression data
+local sqlConn = nil
+-- stored procedures to store data in tables
+local insertRegressionDataProc = nil
+local insertRegressionMetaProc = nil
+
+-- UUID generator
+math.randomseed( os.time() )
+local function uuid()
+   local random = math.random
+   local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+   return string.gsub(template, '[xy]', function (c)
+			 local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
+			 return string.format('%x', v)
+   end)
+end
+
+-- generate ID for this run of regression system
+local runID = uuid()
+-- date when tests were run
+local runDate = date(false):fmt("${iso}")
 
 -- loads configuration file
 local function loadConfigure(args)
@@ -48,18 +74,57 @@ local function loadConfigure(args)
 
    local m = loadfile("moat.lua")
    moatTests = m()
+
+   -- open connection to SQL DB
+   sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']))
+   -- SQL stored procedures to insert data into table
+   insertRegressionDataProc = sqlConn:prepare [[
+     insert into RegressionData values (
+       ?, ?, ?, ?, ?
+     )
+   ]]
+   insertRegressionMetaProc = sqlConn:prepare [[
+     insert into RegressionMeta values (
+       ?, ?, ?, ?, ?, ?, ?, ?
+     )
+   ]]
    
    return configVals
 end
 
+-- functions to insert data into the tables
+local function insertRegressionData(id, nm, status, runtm, runlog)
+   insertRegressionDataProc:reset():bind(
+      id,
+      nm,
+      status,
+      runtm,
+      runlog):step()
+end
+local function insertRegressionMeta(id, tm, ntotal, npass, nfail)
+   insertRegressionMetaProc:reset():bind(
+      id,
+      tm,
+      GKYL_EXEC,
+      GKYL_HG_CHANGESET,
+      GKYL_BUILD_DATE,      
+      ntotal,
+      npass,
+      nfail):step()
+end
+
 -- configure paths
-local function configure(prefix, mpiExec)
+local function configure(prefix, mpiExec, args)
    local mpiAttr = lfs.attributes(mpiExec)
 
-   if mpiAttr and mpiAttr.mode == "file" and string.sub(mpiAttr.permissions, 3, 3) == "x" then
-      log(string.format("Setting MPIEXEC to %s ...\n", mpiExec))
-   else
-      assert(false, string.format("MPI launch binary %s not found or is not an executable!", mpiExec))
+   -- FOR NOW THIS IS DISABLED TILL I FIGURE OUT HOW TO DO PARALLEL
+   -- TESTS (AH, 5/24/2019)
+   if false then
+      if mpiAttr and mpiAttr.mode == "file" and string.sub(mpiAttr.permissions, 3, 3) == "x" then
+	 log(string.format("Setting MPIEXEC to %s ...\n", mpiExec))
+      else
+	 assert(false, string.format("MPI launch binary %s not found or is not an executable!", mpiExec))
+      end
    end
 
    local prefixAttr = lfs.attributes(prefix)
@@ -67,6 +132,45 @@ local function configure(prefix, mpiExec)
       log(string.format("Will write accepted results to %s/gkyl-results ...\n", prefix))
    else
       assert(false, string.format("Prefix %s is not a directory!", prefix))
+   end
+
+   -- regression data is stored in SQLite. Create tables if needed
+   local regressionDb = string.format("%s/gkyl-results/regressiondb", prefix)
+   local regressionDbAttr = lfs.attributes(regressionDb)
+
+   if args.drop_tables or regressionDbAttr==nil then
+      log(string.format("Creating DB file %s\n", regressionDb))
+      -- create Sqlite3 database to store regression data
+      local conn = sql.open(regressionDb)
+      
+      -- Following tables are created: RegressionMeta that stores date
+      -- when test was run and how many passed or
+      -- failed. RegressionData stores output from each test. GUIDs
+      -- are shared between tables so one can get all tests and their
+      -- data given the GUID
+      conn:exec [[
+
+      drop table if exists RegressionMeta;
+      create table RegressionMeta (
+        guid text,
+        tstamp text,
+        GKYL_EXEC text,
+        GKYL_HG_CHANGESET text,
+        GKYL_BUILD_DATE text,
+        ntotal integer,
+        npass integer,
+        nfail integer
+      );
+
+      drop table if exists RegressionData;
+      create table RegressionData (
+        guid text,
+        name text,
+        status integer,
+        runtime real,
+        runlog text
+      );
+     ]]
    end
 
    -- write information into config file
@@ -124,6 +228,8 @@ end
 local function runLuaTest(test)
    log(string.format("\nRunning test %s ...\n", test))
 
+   numTotalTests = numTotalTests+1
+
    local opts = {}
    -- open Lua file and check if first line is a command line
    local f = io.open(test, "r")
@@ -147,16 +253,20 @@ local function runLuaTest(test)
    -- run test
    local tmStart = Time.clock()
 
+   local runlog = ""
    if opts.numProc then
       -- skip for now: NEED TO USE MPI_COMM_SPAWN FOR THIS, I THINK!
       log(string.format("**** NOT RUNNING PARALLEL TEST %s \n", runCmd))
    else
       local f = io.popen(runCmd, "r")
       for l in f:lines() do
+	 runlog = runlog .. l .. "\n"
 	 verboseLog(l.."\n")
       end
    end
-   log(string.format("... completed in %g sec\n", Time.clock()-tmStart))
+   local runtm = Time.clock()-tmStart
+   log(string.format("... completed in %g sec\n", runtm))
+   return runtm, runlog
 end
 
 -- runs a single shell-script test
@@ -249,12 +359,14 @@ end
 
 -- function to handle "config" command
 local function config_action(args, name)
+   isConfiguring = true
+   
    local prefix = args.config_prefix and args.config_prefix or
       os.getenv("HOME") .. "/gkylsoft"
    local mpiexec = args.config_mpiexec and  args.config_mpiexec or
       os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec"
 
-   configure(prefix, mpiexec)
+   configure(prefix, mpiexec, args)
 end
 
 -- function to handle "list" command
@@ -276,6 +388,8 @@ local function create_action(test)
    mkdir(fullResultsDir) -- recursively create all dirs as needed
    local srcPath = string.sub(test, 1, -5)
    copyAllFiles(srcPath, "bp", fullResultsDir)
+
+   return -2
 end
 
 -- function to compare floats (NOT SURE IF THIS IS BEST WAY TO DO
@@ -391,6 +505,7 @@ local function check_action(test)
       numFailedTests = numFailedTests+1
       log(string.format("... %s FAILED!\n", test))
    end
+   return passed and 1 or 0
 end
 
 -- function to handle "run" command
@@ -399,7 +514,7 @@ local function run_action(args, name)
    local luaRegTests, shellRegTests = list_tests(args)
 
    -- function to run after simulation is finisihed
-   local postRun = function(f) end
+   local postRun = function(f) return -1 end
    if args.create then
       postRun = create_action
    elseif args.check then
@@ -409,10 +524,19 @@ local function run_action(args, name)
    log("Running regression tests ...\n\n")
    local tmStart = Time.clock()
 
-   lume.each(
-      luaRegTests, function (f) runLuaTest(f); postRun(f) end)
-   lume.each(
-      shellRegTests, function (f) runShellTest(f); postRun(f) end)
+   local function trimname(nm)
+      local s,e = string.find(nm, "./")
+      if s and s==1 then return string.sub(nm, e+1) end
+      return nm
+   end
+
+   -- run all tests
+   for _, test in pairs(luaRegTests) do
+      local runtm, runlog = runLuaTest(test)
+      local status = postRun(test)
+      -- insert data into SQL table
+      insertRegressionData(runID, trimname(test), status, runtm, runlog)
+   end
 
    log(string.format("All regression tests completed in %g secs\n", Time.clock()-tmStart))
 end
@@ -470,12 +594,13 @@ c_conf:option("-p --prefix", "Location to store accepted results")
    :target("config_prefix")
 c_conf:option("-m --mpiexec", "Full path to MPI executable")
    :target("config_mpiexec")
+c_conf:flag("--drop-tables", "Recreate SQL tables", false)
 
 -- "list" command
 local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only", "Only list this test or all tests in this directory")
-c_list:flag("-m --moat", "Only run key MOAT regression")
+c_list:flag("-m --moat", "Only list MOAT regression")
 
 -- "run" tests
 local c_run = parser:command("run")
@@ -509,4 +634,8 @@ if numPassedTests > 0 then
 end
 if numFailedTests > 0 then
    log(string.format("Total tests FAILED: %d\n", numFailedTests))
+end
+
+if numTotalTests>0 then
+   insertRegressionMeta(runID, runDate, numTotalTests, numPassedTests, numFailedTests)
 end
