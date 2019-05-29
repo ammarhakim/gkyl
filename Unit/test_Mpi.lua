@@ -879,6 +879,68 @@ function test_15(comm, nlayer, numComponents, ordering)
    end
 end
 
+function test_16(comm, nlayer, numComponents, ordering)
+   -- tests MPI_Datatype API with a sub-region of a given region
+   local sz = Mpi.Comm_size(comm)
+   local rnk = Mpi.Comm_rank(comm)
+
+   local rnk = Mpi.Comm_rank(comm)
+   if sz ~= 2 then
+      log("Test for MPI_Datatype (test_16) not run as number of procs not exactly 2")
+      return
+   end
+
+   local range = Range.Range({1, 1, 1}, {10, 20, 30})
+   local rangeX = Range.Range(
+      {range:lower(1), range:lower(2)+nlayer, range:lower(3)+nlayer},
+      {range:lower(1), range:upper(2)-nlayer, range:upper(3)-nlayer})
+   
+   local dTypeX = Mpi.createDataTypeFromRangeAndSubRange(rangeX, range, numComponents, ordering, Mpi.DOUBLE)
+
+   local nz = range:volume()*numComponents
+   local buff = Alloc.Double(nz)
+
+   local indexer = range:indexer(ordering)   
+   local function cidx(i,j,k,c)
+      return (indexer(i,j,k)-1)*numComponents+c
+   end
+   
+   if rnk == 0 then
+      for i = range:lower(1), range:upper(1) do
+   	 for j = range:lower(2), range:upper(2) do
+	    for k = range:lower(3), range:upper(3) do
+	       for c = 1, numComponents do
+		  buff[cidx(i,j,k,c)] = i+20*j+10*k+0.5+1000*c
+	       end
+	    end
+	 end
+      end
+   end
+
+   -- X direction
+   if rnk == 0 then
+      -- send box
+      local loc = cidx(rangeX:lower(1), rangeX:lower(2), rangeX:lower(3), 0)
+      Mpi.Send(buff:data()+loc, 1, dTypeX, 1, 42, comm)
+   else
+      -- recv box
+      local loc = cidx(rangeX:lower(1), rangeX:lower(2), rangeX:lower(3), 0)
+      Mpi.Recv(buff:data()+loc, 1, dTypeX, 0, 42, comm, nil)
+
+      for i = rangeX:lower(1), rangeX:upper(1) do
+	 for j = rangeX:lower(2), rangeX:upper(2) do
+	    for k = range:lower(3), range:upper(3) do
+	       for c = 1, numComponents do
+		  assert_equal(i+20*j+10*k+0.5+1000*c, buff[cidx(i,j,k,c)],
+			       string.format("Checking lower X-direction send/recv (%d,%d;%d [%d])",
+					     i,j,k,cidx(i,j,k,c)))
+	       end
+	    end
+	 end
+      end
+   end
+end
+
 -- Run tests
 test_0(Mpi.COMM_WORLD)
 test_1(Mpi.COMM_WORLD)
@@ -909,6 +971,21 @@ test_15(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
 test_15(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
 test_15(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
 test_15(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+
+test_15(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+test_15(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+test_15(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+
+test_16(Mpi.COMM_WORLD, 0, 1, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
 
 test_15(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
 test_15(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
