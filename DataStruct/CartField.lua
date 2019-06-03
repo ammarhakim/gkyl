@@ -216,7 +216,7 @@ local function Field_meta_ctor(elct)
 	    neighRgn:extend(self._lowerGhost, self._upperGhost))
 
          self._sendMPIDataType[sendId] = Mpi.createDataTypeFromRangeAndSubRange(
-	    sendRgn, localRange, self._numComponents, self._layout, elctCommType)
+	    sendRgn, localExtRange, self._numComponents, self._layout, elctCommType)
       end
 
       local localExtRange = self:localExtRange()
@@ -246,18 +246,18 @@ local function Field_meta_ctor(elct)
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
                   self._sendLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
-		     rgnSend, localRange, self._numComponents, self._layout, elctCommType)
-
-		  local rgnRecv = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
+		     rgnSend, localExtRange, self._numComponents, self._layout, elctCommType)
+		 
+		  local rgnRecv = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
                   self._recvLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
 		     rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
 	       end
 	       if myId == upId then
 		  local rgnSend = decomposedRange:subDomain(upId):upperSkin(dir, self._lowerGhost)
                   self._sendUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
-		     rgnSend, localRange, self._numComponents, self._layout, elctCommType)
+		     rgnSend, localExtRange, self._numComponents, self._layout, elctCommType)
 
-		  local rgnRecv = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
+		  local rgnRecv = decomposedRange:subDomain(upId):upperGhost(dir, self._upperGhost)
                   self._recvUpperPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
 		     rgnRecv, localExtRange, self._numComponents, self._layout, elctCommType)
 	       end	       
