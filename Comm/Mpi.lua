@@ -516,45 +516,38 @@ function _M.createBlockInfoFromRangeAndSubRange(subRange, range, numComponent, o
    local lo = subRange:lowerAsVec()
    local up = subRange:upperAsVec()
 
-   -- first linear location relative to which all other offsets are specified
-   local firstOffset = indexer(lo)
-
-   local blockSize, blockOffset = {}, {}
-
+   -- check if subRange is contiguous subset of range
    local dist = indexer(up)-indexer(lo)+1
    if dist == subRange:volume() then
-      blockSize[1] = subRange:volume()*numComponent
-      blockOffset[1] = 0
-   else
-      -- determine size of each block and its zero-based index (MPI
-      -- expects zero-based indices)
-      local currBlockSize, lastLinIdx, lastOffset
-      local count = 0
-      for idx in subRange:iter(ordering) do
-	 if count == 0 then
-	    -- reset things if first time in this loop
-	    count = 1
-	    currBlockSize = 1
-	    lastLinIdx = indexer(idx)
-	    lastOffset = 0
-	 else
-	    local linIdx = indexer(idx)
-	    if linIdx-lastLinIdx == 1 then -- indices are contiguous
-	       currBlockSize = currBlockSize+1
-	    else
-	       -- store size and index
-	       blockSize[count] = currBlockSize*numComponent
-	       blockOffset[count] = lastOffset
+      return { subRange:volume()*numComponent }, { 0 }
+   end
 
-	       -- prep for next round
-	       currBlockSize = 1
-	       lastOffset = (linIdx-firstOffset)*numComponent
-	       count = count+1
-	    end
-	    lastLinIdx = linIdx -- for next round
+   local firstOffset = indexer(lo)
+   local blockSize, blockOffset = {}, {}   
+   local currBlockSize, currOffset = 1, indexer(subRange:lowerAsVec())
+   local count = 0
+   local lastLinIdx = indexer(lo)
+   
+   for idx in subRange:iter(ordering) do
+      if count == 0 then
+	 count = 1
+      else
+	 local linIdx = indexer(idx)
+	 if linIdx-lastLinIdx == 1 then -- indices are contiguous
+	    currBlockSize = currBlockSize+1
+	 else
+	    -- store size and index
+	    blockSize[count] = currBlockSize*numComponent
+	    blockOffset[count] = (currOffset-firstOffset)*numComponent
+	    
+	    -- prep for next round
+	    currBlockSize = 1
+	    currOffset = linIdx  -- -firstOffset
+	    count = count+1
 	 end
+	 lastLinIdx = linIdx -- for next round
 	 blockSize[count] = currBlockSize*numComponent
-	 blockOffset[count] = lastOffset
+	 blockOffset[count] = (currOffset-firstOffset)*numComponent
       end
    end
    return blockSize, blockOffset
