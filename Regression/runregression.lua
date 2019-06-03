@@ -113,6 +113,15 @@ local function insertRegressionMeta(id, tm, ntotal, npass, nfail)
       nfail):step()
 end
 
+-- creates directories if they don't exist
+local function mkdir(path)
+   local sep, pStr = package.config:sub(1,1), "/"
+   for dir in path:gmatch("[^" .. sep .. "]+") do
+      pStr = pStr .. dir .. sep
+      lfs.mkdir(pStr)
+   end
+end
+
 -- configure paths
 local function configure(prefix, mpiExec, args)
    local mpiAttr = lfs.attributes(mpiExec)
@@ -133,6 +142,9 @@ local function configure(prefix, mpiExec, args)
    else
       assert(false, string.format("Prefix %s is not a directory!", prefix))
    end
+
+   -- create directory (only if it does not exist)
+   mkdir(string.format("%s/gkyl-results", prefix))
 
    -- regression data is stored in SQLite. Create tables if needed
    local regressionDb = string.format("%s/gkyl-results/regressiondb", prefix)
@@ -203,15 +215,6 @@ local function dirtree(dir)
       end
    end
    return coroutine.wrap(function() yieldtree(dir) end)
-end
-
--- creates directories if they don't exist
-local function mkdir(path)
-   local sep, pStr = package.config:sub(1,1), "/"
-   for dir in path:gmatch("[^" .. sep .. "]+") do
-      pStr = pStr .. dir .. sep
-      lfs.mkdir(pStr)
-   end
 end
 
 -- copies all files with specified extension to target directory
