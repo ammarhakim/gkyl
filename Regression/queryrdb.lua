@@ -17,7 +17,7 @@ local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pa
 -- configure query system
 local function configure(args)
    if args.db then
-      sqlConn = sql.open(args.db, "ro")
+      sqlConn = sql.open(args.db)
    else
       -- load configuration file created by regression testing system
       local f = loadfile("runregression.config.lua")
@@ -26,7 +26,7 @@ local function configure(args)
 	 os.exit(1)
       end
       local configVals = f()
-      sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']), "ro")
+      sqlConn = sql.open(string.format("%s/regressiondb", configVals['results_dir']))
    end
 end
 
@@ -76,7 +76,12 @@ local function summary_action(args, name)
    local fmt = "%-4s: %-20s %-30s %-5s %-5s %-5s"
    print(string.format(fmt, "ID", "Time-Stamp", "Changeset", "Total", "Pass", "Fail"))
    for i,d in pairs(dbMeta) do
-      print(string.format(fmt, nrow-i+1, d.tstamp, d.changeset, tonumber(d.ntotal), tonumber(d.npass), tonumber(d.nfail)))
+      print(
+	 string.format(
+	    fmt,
+	    nrow-i+1, d.tstamp, d.changeset, tonumber(d.ntotal), tonumber(d.npass), tonumber(d.nfail)
+	 )
+      )
    end
 end
 
@@ -87,6 +92,13 @@ local function query_action(args, name)
    local dbMeta = read_metatable()
    local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
    local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
+
+   local function filt(status)
+      if args.fail_only then
+	 if status == "fail" then return true else return false end
+      end
+      return true
+   end
 
    if tonumber(args.test) > 0 then
       local tidx = math.min(args.test, #dbData)
@@ -99,9 +111,16 @@ local function query_action(args, name)
       print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
       local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
       for i,d in pairs(dbData) do
-	 print(string.format(fmt1, i, d.name, d.status, d.runtime))
+	 if filt(d.status) then
+	    print(string.format(fmt1, i, d.name, d.status, d.runtime))
+	 end
       end
    end
+end
+
+-- function to handle delete command
+local function delete_action(args, name)
+   configure(args)
 end
 
 -- function to handle history command
@@ -153,7 +172,13 @@ parser:command("summary", "Print summary of all tests")
 local c_query = parser:command("query", "Query individual run of regression system and print information")
    :action(query_action)
 c_query:option("-i --id", "Print information for regression run with this ID", 1)
+c_query:flag("-f --fail-only", "Print only failed tests", false)
 c_query:option("-t --test", "Print log for specified test number", 0)
+
+-- delete command
+local c_delete = parser:command("delete", "Delete run data from regression system")
+   :action(delete_action)
+c_delete:option("-i --id", "Regression run with this ID will be deleted")
 
 -- history command
 local c_history = parser:command("history", "Query historical data for a specific test")
