@@ -929,11 +929,11 @@ function test_16(comm, nlayer, numComponents, ordering)
 
       for i = rangeX:lower(1), rangeX:upper(1) do
 	 for j = rangeX:lower(2), rangeX:upper(2) do
-	    for k = range:lower(3), range:upper(3) do
+	    for k = rangeX:lower(3), rangeX:upper(3) do
 	       for c = 1, numComponents do
 		  assert_equal(i+20*j+10*k+0.5+1000*c, buff[cidx(i,j,k,c)],
-			       string.format("Checking lower X-direction send/recv (%d,%d;%d [%d])",
-					     i,j,k,cidx(i,j,k,c)))
+			       string.format("Checking lower X-direction send/recv (%d,%d,%d;%d [%d])",
+					     i,j,k,c,cidx(i,j,k,c)))
 	       end
 	    end
 	 end
@@ -987,15 +987,15 @@ test_16(Mpi.COMM_WORLD, 0, 2, Range.rowMajor)
 test_16(Mpi.COMM_WORLD, 0, 1, Range.colMajor)
 test_16(Mpi.COMM_WORLD, 0, 2, Range.colMajor)
 
--- test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
--- test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
--- test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
--- test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 1, 1, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 1, 2, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 1, 1, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 1, 2, Range.colMajor)
 
--- test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
--- test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
--- test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
--- test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 2, 1, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 2, 2, Range.rowMajor)
+test_16(Mpi.COMM_WORLD, 2, 1, Range.colMajor)
+test_16(Mpi.COMM_WORLD, 2, 2, Range.colMajor)
 
 function allReduceOneInt(localv)
    local sendbuf, recvbuf = new("int[1]"), new("int[1]")
