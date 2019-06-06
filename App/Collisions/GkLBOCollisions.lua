@@ -254,12 +254,12 @@ function GkLBOCollisions:createSolver(funcField)
          -- Temporary collisionality field.
          self.nuCrossSelf = DataStruct.Field {
             onGrid        = self.confGrid,
-            numComponents = self.cNumBasis,
+            numComponents = self.confBasis:numBasis(),
             ghost         = {1, 1},
          }
          self.nuCrossOther = DataStruct.Field {
             onGrid        = self.confGrid,
-            numComponents = self.cNumBasis,
+            numComponents = self.confBasis:numBasis(),
             ghost         = {1, 1},
          }
          -- Cross-species uPar and vtSq multiplied by collisionality.
