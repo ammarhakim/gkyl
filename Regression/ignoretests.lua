@@ -19,4 +19,5 @@ return {
    "./dg-maxwell/rt-maxwell-2d-reflect-p3.lua",
    "./dg-maxwell/rt-maxwell-3d-plane-p3.lua",
    "./mom-ecdi1d/rt-5m-ecdi1d.lua",
+   "./gk-lbo/rt-lboRelax-3x2v-p2.lua",
 }
