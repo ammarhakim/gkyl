@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen',
+    opt.load('gkyl luajit mpi adios eigen zmq',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -35,7 +35,7 @@ def configure(conf):
     conf.check_mpi()
     conf.check_adios()
     conf.check_eigen()
-    #conf.check_zmq()
+    conf.check_zmq()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -204,11 +204,15 @@ def buildExec(bld):
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
 
+    useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    if bld.env['ZMQ_FOUND']:
+        useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN ZMQ MPI M DL'
+        
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
-        use='sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL',
+        use = useList,
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'
