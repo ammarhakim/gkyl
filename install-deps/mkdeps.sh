@@ -9,7 +9,8 @@ CXX=g++
 MPICC=mpicc
 MPICXX=mpicxx
 
-# by default, don't build anything. will check later to see if things should be installed.
+# by default, don't build anything. will check later to see if things
+# should be installed.
 BUILD_LUAJIT=
 BUILD_LUAROCKS=
 BUILD_ADIOS=
@@ -158,7 +159,6 @@ do
    --build-zmq)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ZMQ="$value"
-      BUILD_CZMQ="$value" # build CZMQ when ZMQ is built
       ;;
    *)
       die "Error: Unknown flag: $1"
