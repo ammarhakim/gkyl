@@ -29,13 +29,14 @@ def check_zmq(conf):
         conf.env.STLIB_ZMQ = ["zmq"]
          
     conf.start_msg('Checking for ZMQ')
-    conf.check(header_name='zmq.h', features='cxx cxxprogram', use='ZMQ', mandatory=False)
-    if conf.env.LIB_ZMQ:
+    try:
+        conf.check(header_name='zmq.h', features='cxx cxxprogram', use='ZMQ', mandatory=True)
         conf.end_msg("Found ZMQ")
         conf.env['ZMQ_FOUND'] = True
-    else:
+    except:
        conf.env['ZMQ_FOUND'] = False
-       conf.end_msg("NOT Found ZMQ")
+       conf.end_msg("ZMQ not found", "YELLOW")
+              
     return 1
 
 def detect(conf):
