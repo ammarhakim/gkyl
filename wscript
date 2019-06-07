@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen zmq',
+    opt.load('gkyl luajit mpi adios eigen',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -35,7 +35,7 @@ def configure(conf):
     conf.check_mpi()
     conf.check_adios()
     conf.check_eigen()
-    conf.check_zmq()
+    #conf.check_zmq()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
