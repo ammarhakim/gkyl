@@ -109,9 +109,12 @@ findExecPath() {
 // Get ZMQ version
 std::tuple<int, int, int>
 getZmqVersion() {
+#ifdef HAVE_ZMQ_H
   int major, minor, patch;
   zmq_version (&major, &minor, &patch);
   return std::make_tuple(major, minor, patch);
+#endif
+  return std::make_tuple(0, 0, 0);
 }
 
 // Create top-level variable definitions
