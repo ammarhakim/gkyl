@@ -91,28 +91,42 @@ local function query_action(args, name)
    
    local dbMeta = read_metatable()
    local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
-   local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
 
-   local function filt(status)
-      if args.fail_only then
-	 if status == "fail" then return true else return false end
+
+   if args.net_time then
+      -- print total time to run all tests specified ID
+      local t, nrow = sqlConn:exec(
+	 string.format("select runtime from RegressionData where guid=='%s'", 
+		       dbMeta[idx].guid))
+      local nettm = 0.0
+      for i = 1, nrow do
+	 nettm = nettm+t['runtime'][i]
       end
-      return true
-   end
-
-   if tonumber(args.test) > 0 then
-      local tidx = math.min(args.test, #dbData)
-      print(string.format("=== "))
-      print(string.format("=== Log for test %s ==", dbData[tidx].name))
-      print(string.format("=== ")) 
-      print(dbData[tidx].runlog)
+      print(string.format("%.4g", nettm))
    else
-      local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
-      print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
-      local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
-      for i,d in pairs(dbData) do
-	 if filt(d.status) then
-	    print(string.format(fmt1, i, d.name, d.status, d.runtime))
+      local dbData, maxNm = read_tests_with_id(dbMeta[idx].guid)
+      -- print info about all tests with specified ID
+      local function filt(status)
+	 if args.fail_only then
+	    if status == "fail" then return true else return false end
+	 end
+	 return true
+      end
+      
+      if tonumber(args.test) > 0 then
+	 local tidx = math.min(args.test, #dbData)
+	 print(string.format("=== "))
+	 print(string.format("=== Log for test %s ==", dbData[tidx].name))
+	 print(string.format("=== ")) 
+	 print(dbData[tidx].runlog)
+      else
+	 local fmt = "%-4s: %-" .. maxNm+2 .. "s %-7s %-4s"
+	 print(string.format(fmt, "ID", "Name", "Status", "Run-Time"))
+	 local fmt1 = "%-4s: %-" .. maxNm+2 .. "s %-7s %.4g"
+	 for i,d in pairs(dbData) do
+	    if filt(d.status) then
+	       print(string.format(fmt1, i, d.name, d.status, d.runtime))
+	    end
 	 end
       end
    end
@@ -121,6 +135,9 @@ end
 -- function to handle delete command
 local function delete_action(args, name)
    configure(args)
+   if args.id < 1 then
+      print("No deletions done. Specify run ID as returned by summary command")
+   end
 end
 
 -- function to handle history command
@@ -174,11 +191,12 @@ local c_query = parser:command("query", "Query individual run of regression syst
 c_query:option("-i --id", "Print information for regression run with this ID", 1)
 c_query:flag("-f --fail-only", "Print only failed tests", false)
 c_query:option("-t --test", "Print log for specified test number", 0)
+c_query:flag("--net-time", "Print total time it too to run all tests", false)
 
 -- delete command
 local c_delete = parser:command("delete", "Delete run data from regression system")
    :action(delete_action)
-c_delete:option("-i --id", "Regression run with this ID will be deleted")
+c_delete:option("-i --id", "Regression run with this ID will be deleted", 0)
 
 -- history command
 local c_history = parser:command("history", "Query historical data for a specific test")
