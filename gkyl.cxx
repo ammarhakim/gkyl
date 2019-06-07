@@ -20,6 +20,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string>
+#include <tuple>
 
 #if defined(__clang__)
 // nothing to include
@@ -39,6 +40,10 @@
 
 #ifdef HAVE_EIGEN_CORE
 #include <Eigen/Core>
+#endif
+
+#ifdef HAVE_ZMQ_H
+#include <zmq.h>
 #endif
 
 // Gkyl includes
@@ -101,6 +106,14 @@ findExecPath() {
   return execPath;
 }
 
+// Get ZMQ version
+std::tuple<int, int, int>
+getZmqVersion() {
+  int major, minor, patch;
+  zmq_version (&major, &minor, &patch);
+  return std::make_tuple(major, minor, patch);
+}
+
 // Create top-level variable definitions
 std::string
 createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
@@ -143,6 +156,20 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
   varDefs << "GKYL_HAVE_EIGEN = true" << std::endl;
 #else
   varDefs << "GKYL_HAVE_EIGEN = false" << std::endl;
+#endif
+
+#ifdef HAVE_ZMQ_H
+  varDefs << "GKYL_HAVE_ZMQ = true" << std::endl;
+  // get ZMQ version and store it so scripts can get at it
+  int zmajor, zminor, zpatch;
+  std::tie(zmajor, zminor, zpatch) = getZmqVersion();
+  varDefs << "GKYL_ZMQ_VERSION = { ";
+  varDefs << "major = " << zmajor << ", ";
+  varDefs << "minor = " << zminor << ", ";
+  varDefs << "patch = " << zpatch << ", ";
+  varDefs << "}" << std::endl;
+#else
+  varDefs << "GKYL_HAVE_ZMQ = false" << std::endl;
 #endif
   
   // numeric limits
