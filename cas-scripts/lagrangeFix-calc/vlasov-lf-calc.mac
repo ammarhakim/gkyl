@@ -9,8 +9,8 @@ momSum(mom, varsV):=block([],
   s)$
 
 basis : ["Ser", "Max"]$
-for bIdx : 1 thru 2 do (
-  for cDim : 1 thru 2 do (
+for bIdx : 1 thru 1 do (
+  for cDim : 2 thru 2 do (
     for vDim : cDim thru 3 do (
       /* Prepare the CPP file */
       fname : sconcat("~/max-out/VlasovLagrangeFix", basis[bIdx], cDim, "x", vDim, "v.cpp"),
@@ -31,7 +31,7 @@ for bIdx : 1 thru 2 do (
       vcs : makelist(tmp[i], i, 1, length(varsV)),
       vPhys : dVarsV*varsV/2 + vcs,
 
-      for polyOrder : 1 thru 3 do (
+      for polyOrder : 1 thru 2 do (
         /* Load basis and expand the new distribution function g */
         bc : basisC[polyOrder],
         bp : basisP[polyOrder],
