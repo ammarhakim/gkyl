@@ -13,7 +13,7 @@ local _ = require "Eq.lboData._VmLBOCdef"
 local function nullFunc(...) end
 
 -- map of basis function name -> function encoding
-local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
+local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
 
 local _M = {}
 
