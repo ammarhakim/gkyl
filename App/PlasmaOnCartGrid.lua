@@ -20,15 +20,15 @@ local Lin              = require "Lib.Linalg"
 local LinearTrigger    = require "Lib.LinearTrigger"
 local Logger           = require "Lib.Logger"
 local Mpi              = require "Comm.Mpi"
+local Projection       = require "App.Projection"
 local Proto            = require "Lib.Proto"
 local Sources          = require "App.Sources"
 local Species          = require "App.Species"
 local Time             = require "Lib.Time"
 local date             = require "xsys.date"
+local lfs              = require "lfs"
 local lume             = require "Lib.lume"
 local xsys             = require "xsys"
-local Projection       = require "App.Projection"
-local lfs              = require "lfs"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
