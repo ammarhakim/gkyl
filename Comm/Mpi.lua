@@ -16,6 +16,9 @@ local new, typeof = xsys.from(ffi,
 
 local Lin = require "Lib.Linalg"
 
+-- global count of barriers
+local numMpiBarrier = 0
+
 local _M = {}
 
 ffi.cdef [[
@@ -407,6 +410,7 @@ end
 
 -- MPI_Barrier
 function _M.Barrier(comm)
+   numMpiBarrier = numMpiBarrier+1
    local _ = ffiC.MPI_Barrier(getObj(comm, "MPI_Comm[1]"))
 end
 -- MPI_Abort
@@ -578,5 +582,8 @@ function _M.createDataTypeFromRangeAndSubRange(subRange, range, numComponent, or
       _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
    )
 end
+
+-- Gets total number of barriers called in system
+function _M.getNumBarriers()  return numMpiBarrier end
 
 return _M
