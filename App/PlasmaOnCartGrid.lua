@@ -9,6 +9,7 @@
 --------------------------------------------------------------------------------
 
 local Alloc            = require "Alloc"
+local AllocShared      = require "AllocShared"
 local Basis            = require "Basis"
 local Collisions       = require "App.Collisions"
 local DataStruct       = require "DataStruct"
