@@ -117,9 +117,35 @@ getZmqVersion() {
   return std::make_tuple(0, 0, 0);
 }
 
+// read contents of inpFile
+std::string
+readInputFile(const std::string& inpFile) {
+  int size;
+  std::string buffer;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);  
+  if (rank == 0) {
+    std::ifstream inpf(inpFile.c_str()); 
+    inpf.seekg(0, std::ios::end);
+    size = inpf.tellg();
+    buffer = std::string(size, ' ');
+    inpf.seekg(0);
+    inpf.read(&buffer[0], size);
+  }
+
+  MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (rank > 0)
+    buffer = std::string(size, ' ');
+  MPI_Bcast(&buffer[0], size, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+  return buffer;
+}
+
 // Create top-level variable definitions
 std::string
 createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
+  const std::string& inpFileContents,
   const std::map<std::string, GkToolInfo>& toolList) {
   // load compile-time constants into Lua compiler so they become
   // available to scripts
@@ -204,18 +230,11 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
-  // read complete input file and make it available to Lua
-  std::ifstream inpf(inpFile.c_str()); 
-  inpf.seekg(0, std::ios::end);
-  size_t size = inpf.tellg();
-  std::string buffer(size, ' ');
-  inpf.seekg(0);
-  inpf.read(&buffer[0], size);
-
   // we need to base64 encode file contents to avoid issues with Lua
   // loadstr method getting confused with embedded strings etc
   std::string inpfEncoded = base64_encode(
-    reinterpret_cast<const unsigned char*>(buffer.c_str()), buffer.length());
+    reinterpret_cast<const unsigned char*>(inpFileContents.c_str()), inpFileContents.length());
+
   varDefs << "GKYL_INP_FILE_CONTENTS = \"" << inpfEncoded  << "\" " << std::endl;
 
   varDefs << "GKYL_COMMANDS = {}" << std::endl;
@@ -322,8 +341,10 @@ main(int argc, char **argv) {
   luaL_openlibs(L);  // open standard libraries
   luaopen_lfs(L); // open lua file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
-  
-  std::string topDefs = createTopLevelDefs(argc, argv, inpFile, toolList);
+
+  // read complete input file and make it available to Lua
+  std::string inpFileContents = readInputFile(inpFile);
+  std::string topDefs = createTopLevelDefs(argc, argv, inpFile, inpFileContents, toolList);
 
   // load variable definitions etc
   if (luaL_loadstring(L, topDefs.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
@@ -335,7 +356,7 @@ main(int argc, char **argv) {
   }
 
   // load and run input file
-  if (luaL_loadfile(L, inpFile.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
+  if (luaL_loadstring(L, inpFileContents.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured
     const char* ret = lua_tostring(L, -1);
     std::cerr << "*** ERROR *** " << ret << std::endl;
