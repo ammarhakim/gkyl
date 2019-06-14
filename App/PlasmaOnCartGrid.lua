@@ -8,6 +8,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local Alloc            = require "Alloc"
 local Basis            = require "Basis"
 local Collisions       = require "App.Collisions"
 local DataStruct       = require "DataStruct"

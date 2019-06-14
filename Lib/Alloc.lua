@@ -87,7 +87,7 @@ local function Alloc_meta_ctor(elct)
    -- memory. Uninitialized memory can cause random crashes in LuaJIT.
    local function alloc(ct, num)
       local adjBytes, adjNum = calcAdjustedSize(num)
-      _totalAlloc = _totalAlloc + num*elmSz -- keep track of amount allocated
+      _totalAlloc = _totalAlloc + adjNum*elmSz -- keep track of amount allocated
 
       local v = new(ct)
       v._capacity = 0
