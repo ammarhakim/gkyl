@@ -162,5 +162,5 @@ return {
    Double = createAllocator("double"),
    Float = createAllocator("float"),
    Int = createAllocator("int"),
-   totalAlloc,
+   totalAlloc = totalAlloc,
 }
