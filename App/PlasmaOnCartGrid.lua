@@ -853,6 +853,14 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
 	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
+      log(string.format("\nTotal amount of memory allocated %f\n\n", Alloc.totalAlloc()))
+      log(string.format("\nTotal amount of shared memory allocated %f\n\n", AllocShared.totalAlloc()))
+      log(string.format(
+	     "Number of barriers			%9.5f barriers   (%7.6f barriers/step)\n\n",
+	     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+      log(string.format(
+      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
+      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
