@@ -15,9 +15,12 @@ local new, typeof = xsys.from(ffi,
      "new, typeof")
 
 local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
 
 -- global count of barriers
 local numMpiBarrier = 0
+-- time spent in barrier function
+local timeMpiBarrier = 0.0
 
 local _M = {}
 
@@ -411,7 +414,9 @@ end
 -- MPI_Barrier
 function _M.Barrier(comm)
    numMpiBarrier = numMpiBarrier+1
+   local tm = Time.clock()
    local _ = ffiC.MPI_Barrier(getObj(comm, "MPI_Comm[1]"))
+   timeMpiBarrier = timeMpiBarrier + (Time.clock() - tm)
 end
 -- MPI_Abort
 function _M.Abort(comm, errCode)
@@ -585,5 +590,8 @@ end
 
 -- Gets total number of barriers called in system
 function _M.getNumBarriers()  return numMpiBarrier end
+
+-- Gets total time spent in barriers
+function _M.getTimeBarriers()  return timeMpiBarrier end
 
 return _M
