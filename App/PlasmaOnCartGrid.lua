@@ -112,15 +112,19 @@ local function buildApplication(self, tbl)
    local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
 
    -- Parallel decomposition stuff.
+   local useShared = xsys.pickBool(tbl.useShared, false)   
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
    else
-      -- If not specified, use 1 processor.
-      decompCuts = {}
-      for d = 1, cdim do decompCuts[d] = 1 end
+      if not useShared then
+	 -- if not specified and not using shared, construct a
+	 -- decompCuts automatically
+	 decompCuts = DecompRegionCalc.makeCuts(cdim, tbl.cells)
+      else
+	 assert(false, "Must specify decompCuts when useShared = true")
+      end
    end
-   local useShared = xsys.pickBool(tbl.useShared, false)
 
    -- Extract periodic directions.
    local periodicDirs = {}
