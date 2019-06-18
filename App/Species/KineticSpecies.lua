@@ -75,14 +75,8 @@ function KineticSpecies:fullInit(appTbl)
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    
    self.decompCuts = {}
-   -- Parallel decomposition stuff.
-   if tbl.decompCuts then
-      assert(self.vdim == #tbl.decompCuts, "decompCuts should have exactly " .. self.vdim .. " entries")
-      self.decompCuts = tbl.decompCuts
-   else
-      -- If not specified, use 1 processor.
-      for d = 1, self.vdim do self.decompCuts[d] = 1 end
-   end
+   -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
+   for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
    -- Create triggers to write distribution functions and moments.
    if tbl.nDistFuncFrame then
