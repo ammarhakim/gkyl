@@ -67,7 +67,6 @@ vlasovApp = Plasma.App {
       lower = {-1.0, -1.0},
       upper = {1.0, 1.0},
       cells = {8, 8},
-      decompCuts = {1, 1},
       -- initial conditions
       init = function (t, xn)
 	 local x, y, vx, vy = xn[1], xn[2], xn[3], xn[4]

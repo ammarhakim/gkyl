@@ -17,18 +17,12 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 local Mpi = require "Comm.Mpi"
 local LinearDecomp = require "Lib.LinearDecomp"
 
--- Keep track of allocated memory
-local _totalAlloc = 0
-local function totalAlloc() return _totalAlloc end
-
 -- Wrapper around MPI memory functions
 local function sharedAlloc(comm, sz)
    -- Allocate memory on rank 0 only, attaching handles to this on all
    -- other ranks. Hence, all ranks have direct access to all the
    -- allocated memory. The communicator 'comm' must be of type
    -- MPI_COMM_TYPE_SHARED
-
-   _totalAlloc = _totalAlloc+sz
 
    local data, win, ssz, du
    if Mpi.Comm_rank(comm) == 0 then
@@ -162,5 +156,4 @@ return {
    Double = createAllocator("double"),
    Float = createAllocator("float"),
    Int = createAllocator("int"),
-   totalAlloc = totalAlloc,
 }

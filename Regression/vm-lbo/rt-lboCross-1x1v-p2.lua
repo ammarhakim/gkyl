@@ -48,7 +48,6 @@ vlasovApp = Plasma.App {
       lower = {-6.0*vt1},
       upper = { 6.0*vt1},
       cells = {32},
-      decompCuts = {1},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection{
          density = function (t, zn)
@@ -92,7 +91,6 @@ vlasovApp = Plasma.App {
       lower = {-6.0*vt2},
       upper = { 6.0*vt2},
       cells = {32},
-      decompCuts = {1},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection{
          density = function (t, zn)

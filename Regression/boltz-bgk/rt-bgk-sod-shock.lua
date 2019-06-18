@@ -52,7 +52,6 @@ sim = Plasma.App {
       lower = {-6.0*vThermal},
       upper = {6.0*vThermal},
       cells = {16},
-      decompCuts = {1},
 
       -- initial conditions
       init = function (t, xn)

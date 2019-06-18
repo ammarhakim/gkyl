@@ -62,7 +62,6 @@ plasmaApp = Plasma.App {
       lower = {-5.0*vtElc, -5.0*vtElc},
       upper = { 5.0*vtElc,  5.0*vtElc},
       cells = {12, 12},
-      decompCuts = {1, 1}, -- Do not change, no parallelization in velocity space currently.
       -- Initial conditions.
       init = Plasma.MaxwellianProjection{
          density = function (t, zn)
@@ -108,7 +107,6 @@ plasmaApp = Plasma.App {
       lower = {-5.0*vtIon, -5.0*vtIon},
       upper = { 5.0*vtIon,  5.0*vtIon},
       cells = {12, 12},
-      decompCuts = {1, 1}, -- Do not change, no parallelization in velocity space currently.
       -- Initial conditions.
       init = Plasma.MaxwellianProjection{
          density = function (t, zn)
