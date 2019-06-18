@@ -6,7 +6,7 @@
 --------------------------------------------------------------------------------
 
 local Unit = require "Unit"
-local DecompRegionCalc = require "Lib.CartDecomp"
+local CartDecomp = require "Lib.CartDecomp"
 local Lin = require "Lib.Linalg"
 local Range = require "Lib.Range"
 
@@ -14,7 +14,7 @@ local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 function test_1()
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3}, __serTesting = true }
+   local decomp = CartDecomp.CartProd { cuts = {2, 3}, __serTesting = true }
    assert_equal(2, decomp:ndim(), "Checking ndim")
    
    assert_equal(2, decomp:cuts(1), "Checking cuts")
@@ -45,7 +45,7 @@ function test_1()
 end
 
 function test_2()
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3, 4}, __serTesting = true }
+   local decomp = CartDecomp.CartProd { cuts = {2, 3, 4}, __serTesting = true }
    assert_equal(3, decomp:ndim(), "Checking ndim")
    
    assert_equal(2, decomp:cuts(1), "Checking cuts")
@@ -77,7 +77,7 @@ function test_2()
 end
 
 function test_3()
-   local decomp = DecompRegionCalc.CartProd { cuts = {1, 1}, __serTesting = true }
+   local decomp = CartDecomp.CartProd { cuts = {1, 1}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
 
    local perIds = decomposedRgn:boundarySubDomainIds(1)
@@ -94,7 +94,7 @@ function test_3()
 end
 
 function test_4()
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3}, __serTesting = true }
+   local decomp = CartDecomp.CartProd { cuts = {2, 3}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {10, 10}))
 
    local perIds = decomposedRgn:boundarySubDomainIds(1)
@@ -127,7 +127,7 @@ function showRange(msg, rng)
 end
 
 function test_5()
-   local decomp = DecompRegionCalc.CartProd { cuts = {2, 3}, __serTesting = true }
+   local decomp = CartDecomp.CartProd { cuts = {2, 3}, __serTesting = true }
    local decomposedRgn = decomp:decompose(Range.Range({1, 1}, {20, 30}))
 
    for d = 1, decomp:ndim() do
@@ -142,12 +142,52 @@ function test_5()
 
 end
 
+function test_6()
+   ---
+   local cells = {10, 10}
+   local cuts = CartDecomp.makeCuts(#cells, 4, cells)
+   
+   assert_equal(2, cuts[1], "Checking cuts")
+   assert_equal(2, cuts[2], "Checking cuts")
+
+   ----
+   local cells = {10, 20}
+   local cuts = CartDecomp.makeCuts(#cells, 6, cells)
+   
+   assert_equal(2, cuts[1], "Checking cuts")
+   assert_equal(3, cuts[2], "Checking cuts")
+
+   --
+   local cells = {20, 10}
+   local cuts = CartDecomp.makeCuts(#cells, 6, cells)
+   
+   assert_equal(3, cuts[1], "Checking cuts")
+   assert_equal(2, cuts[2], "Checking cuts")
+
+   --
+   local cells = {20, 10, 30}
+   local cuts = CartDecomp.makeCuts(#cells, 6, cells)
+   
+   assert_equal(2, cuts[1], "Checking cuts")
+   assert_equal(1, cuts[2], "Checking cuts")
+   assert_equal(3, cuts[3], "Checking cuts")
+
+   --
+   local cells = {20, 10, 30}
+   local cuts = CartDecomp.makeCuts(#cells, 1234567, cells)
+   
+   assert_equal(127, cuts[1], "Checking cuts")
+   assert_equal(1, cuts[2], "Checking cuts")
+   assert_equal(9721, cuts[3], "Checking cuts")   
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
+test_6()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
