@@ -45,7 +45,14 @@ function test_1()
 
    local av = PrimeFactor.all(12345678901)
    assert_equal(857, av[1], "Checking prime-factor")
-   assert_equal(14405693, av[2], "Checking prime-factor")   
+   assert_equal(14405693, av[2], "Checking prime-factor")
+
+   -- 14405693 = {14405693}
+   local v = PrimeFactor.largest(14405693)
+   assert_equal(14405693, v, "Checking largest prime-factor")
+
+   local av = PrimeFactor.all(14405693)
+   assert_equal(14405693, av[1], "Checking prime-factor")
 end
 
 -- Run tests
