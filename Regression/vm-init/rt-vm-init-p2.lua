@@ -28,7 +28,6 @@ app = Plasma.App {
       lower = {-7.0, -7.0},
       upper = {7.0, 7.0},
       cells = {nCells, nCells},
-      decompCuts = {1, 1},
       -- initial conditions
       init = Plasma.MaxwellianProjection {
          density = function (t, zn)
@@ -54,7 +53,6 @@ app = Plasma.App {
       lower = {-7.0, -7.0},
       upper = {7.0, 7.0},
       cells = {nCells, nCells},
-      decompCuts = {1, 1},
       -- initial conditions
       init = Plasma.MaxwellianProjection {
          density = function (t, zn)
@@ -80,7 +78,6 @@ app = Plasma.App {
       lower = {-7.0, -7.0},
       upper = {7.0, 7.0},
       cells = {nCells, nCells},
-      decompCuts = {1, 1},
       -- initial conditions
       init = Plasma.MaxwellianProjection {
          density = function (t, zn)
@@ -106,7 +103,6 @@ app = Plasma.App {
       lower = {-6.0, -6.0},
       upper = {6.0, 6.0},
       cells = {4, 6},
-      decompCuts = {1, 1},
       -- initial conditions
       init1 = Plasma.MaxwellianProjection {
          density = 1.0,

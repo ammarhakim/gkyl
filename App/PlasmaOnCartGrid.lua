@@ -120,7 +120,8 @@ local function buildApplication(self, tbl)
       if not useShared then
 	 -- if not specified and not using shared, construct a
 	 -- decompCuts automatically
-	 decompCuts = DecompRegionCalc.makeCuts(cdim, tbl.cells)
+	 local numRanks = Mpi.Comm_size(Mpi.COMM_WORLD)
+	 decompCuts = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
       else
 	 assert(false, "Must specify decompCuts when useShared = true")
       end
@@ -801,7 +802,11 @@ local function buildApplication(self, tbl)
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
-      log(string.format("\nTotal number of time-steps %s\n\n", step))
+      log(string.format("\nTotal number of time-steps %s\n", step))
+      log(string.format(
+	     "Number of barriers %d barriers (%g barriers/step)\n\n",
+	     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+      
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
@@ -849,22 +854,18 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      log(string.format(
+      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.f%%)\n",
+      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmAccounted = tmAccounted + stepperTime
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
 	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
+      
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
-	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
-      log(string.format("\nTotal amount of memory allocated %f\n\n", Alloc.totalAlloc()))
-      log(string.format("\nTotal amount of shared memory allocated %f\n\n", AllocShared.totalAlloc()))
-      log(string.format(
-	     "Number of barriers			%9.5f barriers   (%7.6f barriers/step)\n\n",
-	     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
-      log(string.format(
-      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
-      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))
+	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
