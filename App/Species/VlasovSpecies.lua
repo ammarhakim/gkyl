@@ -616,7 +616,7 @@ function VlasovSpecies:createDiagnostics()
       end
    end
 
-   -- Make sure we have the updaters needed to calculate all the aux moments.
+   -- Make sure we have other moments needed to calculate all the aux moments.
    for i, mom in pairs(self.diagnosticAuxMoments) do
 -- Not supported yet.
 --      if mom == "beta" then
@@ -629,7 +629,7 @@ function VlasovSpecies:createDiagnostics()
 --      end
    end
 
-   -- Make sure we have the updaters needed to calculate all the weak moments.
+   -- Make sure we have other moments needed to calculate all the weak moments.
    for mom, _ in pairs(self.diagnosticWeakMoments) do
       -- All weak moments require M0 = density.
       if not contains(self.diagnosticMoments, "M0") then
@@ -721,6 +721,57 @@ function VlasovSpecies:createDiagnostics()
          }
       end
    end
+
+   -- Diagnostics on the distribution function itself (not the moments).
+   -- Check if diagnostic name is correct.
+   local function isDistDiagnosticNameGood(nm)
+      return nm == "Hermite"
+   end
+
+   if (self.phaseSpaceDiagnostics) then
+      self.distDiagnostics = {}
+      for i, diag in pairs(self.phaseSpaceDiagnostics) do
+         -- Extract the root and the number at the end.
+         local distDiagnosticName = string.sub(diag,1,#diag-1)
+         local distDiagnosticDir  = tonumber(string.sub(diag,#diag,#diag))
+         if isDistDiagnosticNameGood(distDiagnosticName) and
+            (distDiagnosticDir > 0) and (distDiagnosticDir <= self.cdim+self.vdim) then
+            -- Remove diagnostic name from self.phaseSpaceDiagnostics list, and add it to self.distDiagnostics list.
+            self.distDiagnostics[diag]    = true
+            self.phaseSpaceDiagnostics[i] = nil
+            self.distDiagnosticFields     = { }
+            self.distDiagnosticUpdaters   = { }
+         end
+      end
+   
+      for diag, _ in pairs(self.distDiagnostics) do
+         local distDiagnosticName = string.sub(diag,1,#diag-1)
+         local distDiagnosticDir  = tonumber(string.sub(diag,#diag,#diag))
+         if isDistDiagnosticNameGood(distDiagnosticName) and
+            (distDiagnosticDir > 0) and (distDiagnosticDir <= self.cdim+self.vdim) then
+            self.distDiagnosticFields[diag] = DataStruct.Field {
+               onGrid        = self.grid,
+               numComponents = self.basis:numBasis(),
+               ghost         = {1, 1},
+   	    metaData = {
+   	       polyOrder = self.basis:polyOrder(),
+   	       basisType = self.basis:id()
+   	    },	    	    
+            }
+   
+            self.distDiagnosticUpdaters[diag] = Updater.CartFieldSpectralTransform {
+               onGrid     = self.grid,
+               weakBasis  = self.basis,
+               confBasis  = self.confBasis,
+               transforms = {distDiagnosticName},
+               directions = {distDiagnosticDir},
+            }
+         else
+            assert(false, string.format("Diagnostic %s not valid", diag))
+         end
+      end
+   end
+
 
 end
 
