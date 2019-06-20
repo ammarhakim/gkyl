@@ -8,7 +8,7 @@
 
 -- Table structure
 -- 
--- create table RegressionMeta (
+-- table RegressionMeta (
 --   guid text,
 --   tstamp text,
 --   GKYL_EXEC text,
@@ -19,7 +19,7 @@
 --   nfail integer
 -- );
 --
--- create table RegressionData (
+-- table RegressionData (
 --   guid text,
 --   name text,
 --   status integer,

@@ -56,7 +56,7 @@ local runDate = date(false):fmt("${iso}")
 
 -- Table structure for data stored in SQLite DB
 -- 
--- create table RegressionMeta (
+-- table RegressionMeta (
 --   guid text,
 --   tstamp text,
 --   GKYL_EXEC text,
@@ -67,7 +67,7 @@ local runDate = date(false):fmt("${iso}")
 --   nfail integer
 -- );
 --
--- create table RegressionData (
+-- table RegressionData (
 --   guid text,
 --   name text,
 --   status integer,
