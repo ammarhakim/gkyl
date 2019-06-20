@@ -1,0 +1,37 @@
+/* Generate exponentially-weighterd physicists' Hermite polynomials normalized
+   as in T. Adkins and A. A. Schekochihin JPP 84, 905840107 (2018) and
+   put them in a Lua function. */
+
+load(stringproc)$
+fpprec : 24$
+
+maxHermite : 768$
+load(orthopoly)$
+
+fname : "~/max-out/HermiteBasisElements.lua"$
+fH    : openw(fname)$
+
+printf(fH,"local _M = {}~%")$
+printf(fH," ~%")$
+
+for mH : 0 thru maxHermite do (
+  printf(fH,"_M[~a] = function (t, xn)~%", mH+1),
+  printf(fH,"   local z1 = xn[1]~%"),
+  
+  mHermite : hermite(mH,z1),
+  normalizedHermite : float(expand(mHermite/sqrt(%pi*(2^mH)*(mH!)))),numer,
+
+  /* Append exponential. */
+  hermiteBasisS : sconcat("(",string(normalizedHermite),")*math.exp(-(z1^2))"),
+  printf(fH,"   return ~a~%", hermiteBasisS),
+
+  printf(fH,"end~%"),
+  flush_output(fH)
+)$
+
+printf(fH,"return _M~%")$
+printf(fH," ~%")$
+
+close(fH)$
+
+

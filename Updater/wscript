@@ -12,6 +12,8 @@ def build(bld):
     TenMomentSrcImpl.cpp
     TenMomentRelaxImpl.cpp
 
+    spectralTransformCalcData/CartFieldSpectralTransformImpl.cpp
+
     spitzerNuCalcData/SpitzerNuSer1x.cpp
     spitzerNuCalcData/SpitzerNuSer2x.cpp
     spitzerNuCalcData/SpitzerNuSer3x.cpp
@@ -204,5 +206,5 @@ def build(bld):
     ProjectOnBasisImpl.cpp
 
     """,
-    includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+    includes = '. spectralTransformCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
     

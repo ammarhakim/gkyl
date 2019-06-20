@@ -7,18 +7,18 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local UpdaterBase = require "Updater.Base"
-local Lin = require "Lib.Linalg"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local ffi = require "ffi"
-local ffiC = ffi.C
-local xsys = require "xsys"
+-- Gkyl libraries.
+local Alloc                        = require "Lib.Alloc"
+local UpdaterBase                  = require "Updater.Base"
+local Lin                          = require "Lib.Linalg"
+local Proto                        = require "Lib.Proto"
+local Range                        = require "Lib.Range"
+local ffi                          = require "ffi"
+local ffiC                         = ffi.C
+local xsys                         = require "xsys"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
-local ProjectOnBasis = require "Updater.ProjectOnBasis"
-local DataStruct = require "DataStruct"
+local ProjectOnBasis               = require "Updater.ProjectOnBasis"
+local DataStruct                   = require "DataStruct"
 local Mpi
 if GKYL_HAVE_MPI then Mpi = require "Comm.Mpi" end
 
@@ -48,8 +48,8 @@ ffi.cdef[[
   void getSolutionPar(FemParPoisson* f, double* ptr, int idz);
   void getNodalSolutionPar(FemParPoisson* f, double* ptr, int idz);
 ]]
-local DIRICHLET = 0
-local NEUMANN = 1
+local DIRICHLET          = 0
+local NEUMANN            = 1
 local DIRICHLET_VARIABLE = 2
 
 -- FEM Poisson solver updater object
@@ -59,7 +59,7 @@ function FemParPoisson:init(tbl)
    FemParPoisson.super.init(self, tbl)
 
    -- read data from input file
-   self._grid = assert(tbl.onGrid, "Updater.FemParPoisson: Must provide grid object using 'onGrid'")
+   self._grid  = assert(tbl.onGrid, "Updater.FemParPoisson: Must provide grid object using 'onGrid'")
    self._basis = assert(tbl.basis, "Updater.FemParPoisson: Must specify basis functions to use using 'basis'")
 
    assert(self._basis:id()=="serendipity", "Updater.FemParPoisson only implemented for modal serendipity basis")
@@ -102,30 +102,30 @@ function FemParPoisson:init(tbl)
    end
 
    self._hasLaplacian = false
-   self._hasModifier = false
+   self._hasModifier  = false
 
    self._adjustSource = false
 
    self._nz = self._grid:numCells(self._zdir)
-   self._p = self._basis:polyOrder()
+   self._p  = self._basis:polyOrder()
    self._dz = self._grid:dx(self._zdir)
 
    assert(self._p == 1 or self._p == 2, "This solver only implemented for polyOrder = 1 or 2")
    assert(self._ndim == 1 or self._ndim == 3, "This solver only implemented for 1D or 3D (with a solve only in last dimension)")
 
-   self._poisson = {}
-   self._first = true
+   self._poisson   = {}
+   self._first     = true
    self._makeStiff = true
 
    -- set up constant dummy field
    self.unitWeight = DataStruct.Field {
-	onGrid = self._grid,
+	onGrid        = self._grid,
 	numComponents = self._basis:numBasis(),
-	ghost = {1, 1},
+	ghost         = {1, 1},
    }
    local initUnit = ProjectOnBasis {
-      onGrid = self._grid,
-      basis = self._basis,
+      onGrid   = self._grid,
+      basis    = self._basis,
       evaluate = function (t,xn)
                     return 1.0
                  end,
@@ -135,14 +135,14 @@ function FemParPoisson:init(tbl)
 
    -- set up fields for non-uniform and/or time-dependent laplacian and modifier weights
    self.laplacianWeight = DataStruct.Field {
-        onGrid = self._grid,
+        onGrid        = self._grid,
         numComponents = self._basis:numBasis(),
-        ghost = {1, 1},
+        ghost         = {1, 1},
    }
    self.modifierWeight = DataStruct.Field {
-        onGrid = self._grid,
+        onGrid        = self._grid,
         numComponents = self._basis:numBasis(),
-        ghost = {1, 1},
+        ghost         = {1, 1},
    }
    -- initialize these fields to zero
    self.laplacianWeight:clear(0.0)
@@ -163,11 +163,11 @@ function FemParPoisson:init(tbl)
 
    if GKYL_HAVE_MPI then
      -- split communicators in x-y
-     local commSet = self._grid:commSet()
+     local commSet   = self._grid:commSet()
      local worldComm = commSet.comm
-     local nodeComm = commSet.nodeComm
-     local nodeRank = Mpi.Comm_rank(nodeComm)
-     local xyrank = 0
+     local nodeComm  = commSet.nodeComm
+     local nodeRank  = Mpi.Comm_rank(nodeComm)
+     local xyrank    = 0
      if self._ndim>1 then xyrank = nodeRank%(self._grid:cuts(1)*self._grid:cuts(2)) end
      self._xycomm = Mpi.Comm_split(worldComm, xyrank, nodeRank)
    end
@@ -183,7 +183,7 @@ function FemParPoisson:bcValue(side) return self._bc[side].value end
 
 ---- advance method
 function FemParPoisson:_advance(tCurr, inFld, outFld) 
-   local grid = self._grid
+   local grid  = self._grid
    local basis = self._basis
 
    local src = assert(inFld[1], "FemParPoisson.advance: Must specify an input field")
@@ -192,8 +192,8 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
    local ndim = self._ndim
 
    -- create region that is effectively 1d and global in z directions
-   local parRange = src:globalRange()
-   local localRange = src:localRange()
+   local parRange       = src:globalRange()
+   local localRange     = src:localRange()
    local local_xy_lower = {1, 1}
    local local_xy_upper = {1, 1}
    for d = 1, self._ndim-1 do
@@ -204,14 +204,14 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
 
    -- create indexers and pointers for src and sol
    if self._first then 
-      self.srcIndexer = src:indexer() 
-      self.srcPtr = src:get(1)
-      self.solIndexer = sol:indexer() 
-      self.solPtr = sol:get(1)
+      self.srcIndexer             = src:indexer() 
+      self.srcPtr                 = src:get(1)
+      self.solIndexer             = sol:indexer() 
+      self.solPtr                 = sol:get(1)
       self.laplacianWeightIndexer = self.laplacianWeight:indexer() 
-      self.laplacianWeightPtr = self.laplacianWeight:get(1)
-      self.modifierWeightIndexer = self.modifierWeight:indexer() 
-      self.modifierWeightPtr = self.modifierWeight:get(1)
+      self.laplacianWeightPtr     = self.laplacianWeight:get(1)
+      self.modifierWeightIndexer  = self.modifierWeight:indexer() 
+      self.modifierWeightPtr      = self.modifierWeight:get(1)
       if self._hasModifier == false and self._hasLaplacian == false then 
          if self._smooth then 
            self.modifierWeight:copy(self.unitWeight) 
@@ -230,10 +230,10 @@ function FemParPoisson:_advance(tCurr, inFld, outFld)
      -- integrate source
      if self._first then
      self.calcInt = CartFieldIntegratedQuantCalc {
-       onGrid = grid,
-       basis = basis,
+       onGrid        = grid,
+       basis         = basis,
        numComponents = 1,
-       quantity = "V",
+       quantity      = "V",
      }
      end
      self.calcInt:advance(0.0, {src}, {self.dynVec})

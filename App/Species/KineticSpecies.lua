@@ -124,6 +124,16 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
 
+   -- Read in which diagnostics to perform on the distribution function.
+   self.phaseSpaceDiagnostics = { }
+   if tbl.phaseSpaceDiagnostics then
+      for i, nm in pairs(tbl.phaseSpaceDiagnostics) do
+         if type(i) == "number" then
+	    self.phaseSpaceDiagnostics[i] = nm
+         end
+      end
+   end
+
    -- Read in which integrated diagnostic moments to compute on output.
    self.diagnosticIntegratedMoments = { }
    if tbl.diagnosticIntegratedMoments then
@@ -719,6 +729,14 @@ end
 function KineticSpecies:calcDiagnosticIntegratedMoments()
 end
 
+function KineticSpecies:calcDistDiagnostics()
+   local f = self.distf[1]
+   for diag, _ in pairs(self.distDiagnostics) do
+      self.distDiagnosticUpdaters[diag]:advance(
+	 0.0, {f}, {self.distDiagnosticFields[diag]})
+   end
+end
+
 function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
     self:calcDiagnosticMoments()
     for i, mom in ipairs(self.diagnosticMoments) do
@@ -750,6 +768,16 @@ function KineticSpecies:calcAndWriteDiagnosticMoments(tm)
        self.diagnosticIntegratedMomentFields[mom]:write(
           string.format("%s_%s_%d.bp", self.name, mom, self.diagIoFrame), tm, self.diagIoFrame)
     end
+end
+
+function KineticSpecies:calcAndWriteDistDiagnostics(tm)
+   if self.distDiagnostics then
+      self:calcDistDiagnostics()
+      for diag, _ in pairs(self.distDiagnostics) do
+         -- Compute and write out diagnostics computed on the distribution function (not the moments).
+         self.distIo:write(self.distDiagnosticFields[diag], string.format("%s_%s_%d.bp", self.name, diag, self.distIoFrame), tm, self.distIoFrame)
+      end
+   end
 end
 
 function KineticSpecies:isEvolving()
@@ -784,6 +812,9 @@ function KineticSpecies:write(tm, force)
          if tm == 0.0 and self.fSource then
             self.distIo:write(self.fSource, string.format("%s_fSource_0.bp", self.name), tm, self.distIoFrame)
          end
+         -- Compute phase space diagnostics and write them out.
+         self:calcAndWriteDistDiagnostics(tm)
+
 	 self.distIoFrame = self.distIoFrame+1
       end
 
