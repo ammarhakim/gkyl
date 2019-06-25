@@ -10,8 +10,8 @@ local Basis = require "Basis"
 local Updater = require "Updater"
 local xsys = require "xsys"
 
-local dragStencil = require "dragStencil"
-local diffStencil = require "diffStencil"
+local dragStencil = require "Proto.Fpo.dragStencil"
+local diffStencil = require "Proto.Fpo.diffStencil"
 
 return function(tbl)
 
