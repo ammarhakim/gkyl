@@ -551,7 +551,7 @@ function _M.createBlockInfoFromRangeAndSubRange(subRange, range, numComponent, o
 	    
 	    -- prep for next round
 	    currBlockSize = 1
-	    currOffset = linIdx  -- -firstOffset
+	    currOffset = linIdx
 	    count = count+1
 	 end
 	 lastLinIdx = linIdx -- for next round
