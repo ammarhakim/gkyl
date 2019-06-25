@@ -178,7 +178,23 @@ function test_6()
    
    assert_equal(127, cuts[1], "Checking cuts")
    assert_equal(1, cuts[2], "Checking cuts")
-   assert_equal(9721, cuts[3], "Checking cuts")   
+   assert_equal(9721, cuts[3], "Checking cuts")
+
+   --
+   local cells = {20, 20, 20}
+   local cuts = CartDecomp.makeCuts(#cells, 1000, cells)
+   
+   assert_equal(10, cuts[1], "Checking cuts")
+   assert_equal(10, cuts[2], "Checking cuts")
+   assert_equal(10, cuts[3], "Checking cuts")
+
+   --
+   local cells = {20, 20, 20}
+   local cuts = CartDecomp.makeCuts(#cells, 100^3, cells)
+   
+   assert_equal(100, cuts[1], "Checking cuts")
+   assert_equal(100, cuts[2], "Checking cuts")
+   assert_equal(100, cuts[3], "Checking cuts")   
 end
 
 -- Run tests
