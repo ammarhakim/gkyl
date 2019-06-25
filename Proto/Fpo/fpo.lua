@@ -22,8 +22,11 @@ return function(tbl)
    local tEnd = tbl.tEnd
    local nFrames = tbl.nFrames
    local updatePotentials = xsys.pickBool(tbl.updatePotentials, true)
+   local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
 
-   local nCellsX, nCellsY = tbl.cells[1], tbl.cells[2]
+   local cells = tbl.cells
+   local lower = tbl.lower
+   local upper = tbl.upper
 
    local tmRosen, tmFpo = 0.0, 0.0
 
@@ -31,12 +34,12 @@ return function(tbl)
    -- Grids and fields --
    ----------------------
    local grid = Grid.RectCart {
-      lower = {tbl.lower[1], tbl.lower[2]},
-      upper = {tbl.upper[1], tbl.upper[2]},
-      cells = {tbl.cells[1], tbl.cells[2]},
+      lower = {lower[1], lower[2]},
+      upper = {upper[1], upper[2]},
+      cells = {cells[1], cells[2]},
       periodicDirs = {},
    }
-   
+
    -- basis functions
    local basis = Basis.CartModalSerendipity {
       ndim = grid:ndim(),
@@ -59,8 +62,8 @@ return function(tbl)
    local fNew = getField()
    local h = getField()
    local g = getField()
-   
-   local density = DataStruct.DynVector { numComponents = 1 }
+
+   local M0 = DataStruct.DynVector { numComponents = 1 }
 
    --------------
    -- Updaters --
@@ -130,12 +133,25 @@ return function(tbl)
       bcLeft = { T = "D", V = 0.0 },
       bcRight = { T = "D", V = 0.0 },
    }
+   local initDrag = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = tbl.initDrag,
+   }
+   local initDiff = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = tbl.initDiff,
+   }
 
    local function updateRosenbluthDrag(fIn, hOut)
       local tmStart = Time.clock()
       fs:combine(-1.0, fIn)
       if updatePotentials then
 	 poisson:advance(0.0, {fs}, {hOut})
+      else
+	 initDrag:advance(0.0, {}, {hOut})
+	 applyBc(hOut)
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -143,6 +159,9 @@ return function(tbl)
       local tmStart = Time.clock()
       if updatePotentials then
 	 poisson:advance(0.0, {hIn}, {gOut})
+      else
+	 initDiff:advance(0.0, {}, {gOut})
+	 applyBc(gOut)
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -150,21 +169,20 @@ return function(tbl)
    -- update Rosenbluth potentials
    updateRosenbluthDrag(f, h)
    updateRosenbluthDiffusion(h, g)
-   
    h:write('h_0.bp', 0.0, 0)
    g:write('g_0.bp', 0.0, 0)
 
-   -- densityCalc = Updater.CartFieldIntegratedQuantCalc {
-   --    onGrid = grid,
-   --    basis = basis,
-   --    numComponents = 1,
-   --    quantity = "V"
-   -- }
-   -- density:write("density_0.bp", 0.0)
+   local M0Calc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid = grid,
+      basis = basis,
+      numComponents = 1,
+      quantity = "V"
+   }
+   if writeDiagnostics then M0:write("f_M0_0.bp", 0.0) end
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
-      
+
       local dx, dy = grid:dx(1), grid:dx(2)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
@@ -185,9 +203,9 @@ return function(tbl)
 	 local isLeftEdge, isRightEdge = false, false
 
 	 if idxs[1] == 1 then isLeftEdge = true end
-	 if idxs[1] == nCellsX then isRightEdge = true end
+	 if idxs[1] == cells[1] then isRightEdge = true end
 	 if idxs[2] == 1 then isBotEdge = true end
-	 if idxs[2] == nCellsY then isTopEdge = true end
+	 if idxs[2] == cells[2] then isTopEdge = true end
 
 	 local fPtr = fIn:get(indexer(idxs))
 	 local fRPtr = fIn:get(indexer(idxsR))
@@ -210,9 +228,9 @@ return function(tbl)
 	 local fOutPtr= fOut:get(indexer(idxs))
 
 	 dragStencil(dt, dx, dy,
-		     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-		     hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
-		     fOutPtr)
+	 	     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
+	 	     hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
+	 	     fOutPtr)
 	 diffStencil(dt, dx, dy,
 		     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
 		     gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
@@ -264,11 +282,10 @@ return function(tbl)
 	 print(string.format("Step %d at time %g with dt %g ...", step, tCurr, dt))
 	 rk3(dt, f, fNew)
 	 f:copy(fNew)
+	 if writeDiagnostics then M0Calc:advance(tCurr+dt, { f }, { M0 }) end
 	 if tCurr >= nextFrame*frameInt then
 	    f:write(string.format("f_%d.bp", nextFrame), tCurr, nextFrame)
-	    --g:write(string.format("g_%d.bp", step), tCurr)
-	    --densityCalc:advance(tCurr+dt, { f }, { density })
-	    --density:write(string.format("density_%d.bp", step))
+	    if writeDiagnostics then M0:write(string.format("f_M0_%d.bp", nextFrame)) end
 	    nextFrame = nextFrame+1
 	 end
 	 step = step+1
@@ -276,6 +293,7 @@ return function(tbl)
       end
       local tmTotal = Time.clock()-tmStart
 
+      print("")
       print(string.format("Poisson solver took %g secs", tmRosen))
       print(string.format("FPO solver took %g secs", tmFpo))
       print(string.format("Total run-time %g secs", tmTotal))
