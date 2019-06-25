@@ -133,15 +133,20 @@ return function(tbl)
       bcLeft = { T = "D", V = 0.0 },
       bcRight = { T = "D", V = 0.0 },
    }
+
+   -- check if drag/diff functions are provided
+   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
+   local initDiffFunc = tbl.initDrag and tbl.initDiff or function(t, xn) return 0.0 end
+   
    local initDrag = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
-      evaluate = tbl.initDrag,
+      evaluate = initDragFunc
    }
    local initDiff = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
-      evaluate = tbl.initDiff,
+      evaluate = initDiffFunc
    }
 
    local function updateRosenbluthDrag(fIn, hOut)
