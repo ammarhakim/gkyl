@@ -203,8 +203,8 @@ end
 -- check if numSubDoms^(1/ndim) is an integer
 local function isEvenDecomp(ndim, numSubDoms)
 
-   -- This code is tricky as round off errors can mess the simple
-   -- G(and obvious) test for even decomposition, i.e. math.ceil(v) =
+   -- This code is tricky as round off errors can mess the simple (and
+   -- obvious) test for even decomposition, i.e. math.ceil(v) =
    -- math.floor(v) where v = numSubDoms^(1/ndim)
    
    local c = math.pow(numSubDoms, 1/ndim)
