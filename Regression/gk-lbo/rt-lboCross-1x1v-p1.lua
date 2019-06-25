@@ -75,7 +75,6 @@ plasmaApp = Plasma.App {
       lower      = {-5.0*vte},
       upper      = { 5.0*vte},
       cells      = {32},
-      decompCuts = {1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)
@@ -116,7 +115,6 @@ plasmaApp = Plasma.App {
       lower      = {-5.0*vti},
       upper      = { 5.0*vti},
       cells      = {32},
-      decompCuts = {1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)

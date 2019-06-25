@@ -12,10 +12,6 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
--- Keep track of allocated memory
-local _totalAlloc = 0
-local function totalAlloc() return _totalAlloc end
-
 ffi.cdef [[
   void* malloc(size_t size);
   void* calloc(size_t nitems, size_t size);
@@ -87,8 +83,7 @@ local function Alloc_meta_ctor(elct)
    -- memory. Uninitialized memory can cause random crashes in LuaJIT.
    local function alloc(ct, num)
       local adjBytes, adjNum = calcAdjustedSize(num)
-      _totalAlloc = _totalAlloc + num*elmSz -- keep track of amount allocated
-
+      
       local v = new(ct)
       v._capacity = 0
       v._data = calloc(adjNum, elmSz)
@@ -168,7 +163,6 @@ local function Alloc_meta_ctor(elct)
 	 if self._capacity == 0 then
 	    return false
 	 else
-	    _totalAlloc = _totalAlloc - self:elemSize()*self._capacity
 	    free(self._data)
 	    self._capacity = 0
 	 end
@@ -223,5 +217,4 @@ return {
    calloc = calloc,
    free = free,
    createAllocator = createAllocator,
-   totalAlloc = totalAlloc,
 }

@@ -11,6 +11,7 @@ local ffi = require "ffi"
 -- Gkyl libraries
 local Lin = require "Lib.Linalg"
 local Mpi = require "Comm.Mpi"
+local PrimeFactor = require "Lib.PrimeFactor"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 local xsys = require "xsys"
@@ -192,6 +193,97 @@ function CartProdDecomp:decompose(range) -- decompose range
    return decompRgn
 end
 
+--------------------------------------------------------------------------------
+--
+-- Set utility functions to construct a reasonable decomposition when
+-- user has not specified one explicitly
+--
+--------------------------------------------------------------------------------
+
+-- check if numSubDoms^(1/ndim) is an integer
+local function isEvenDecomp(ndim, numSubDoms)
+
+   -- This code is tricky as round off errors can mess the simple
+   -- G(and obvious) test for even decomposition, i.e. math.ceil(v) =
+   -- math.floor(v) where v = numSubDoms^(1/ndim)
+   
+   local c = math.pow(numSubDoms, 1/ndim)
+   local cdown = math.floor(c)
+   local cup = math.ceil(c)
+
+   local cuts = {}
+   if cdown^ndim == numSubDoms then
+      for i = 1, ndim do cuts[i] = cdown end
+      return true, cuts
+   end
+   if cup^ndim == numSubDoms then
+      for i = 1, ndim do cuts[i] = cup end
+      return true, cuts      
+   end
+   return false, cuts
+end
+
+local function calcCuts(ndim, numSubDoms)
+
+   -- first check if we can create an "even" decomposition
+   local evFlag, evCuts = isEvenDecomp(ndim, numSubDoms)
+   if evFlag then return evCuts end
+   
+   -- Compute prime factorization of numSubDoms and then use this to
+   -- compute "cuts". This algorithm may not produce the best possible
+   -- decomposition, but it is hard to tell what "best" means. For
+   -- most reasonable cases (say numSubDoms is not a prime or small
+   -- multiple of a prime) the decompositions are probably okay.
+   
+   local factors = PrimeFactor.all(numSubDoms)
+   local div, rem = math.floor(#factors/ndim), #factors%ndim
+   local cuts, idx = {}, 1
+   for d = 1, ndim do
+      cuts[d] = 1
+      for i = 1, div do
+	 cuts[d] = cuts[d]*factors[idx]
+	 idx = idx+1
+      end
+      if rem > 0 then
+	 cuts[d] = cuts[d]*factors[idx]
+	 idx = idx+1
+	 rem = rem-1
+      end
+   end
+   return cuts
+end
+
+-- Construct a reasonable decomposition (cuts) given dimensions,
+-- number of sub-domains and cells along each dimension. The returned
+-- cuts table can be used in CartProdDecomp to decompose a given range
+-- object.
+local function makeCuts(ndim, numSubDoms, cells)
+   -- This initial sort is required as calcCuts does not return cuts
+   -- in any particular order. The sort ensures that the rearrangement
+   -- of cuts (done in the second for-loop) then matches order of
+   -- cells table
+   local rawCuts = calcCuts(ndim, numSubDoms); table.sort(rawCuts)
+
+   -- The idea here is that we need cuts arranged in same order as
+   -- cell sizes. This is needed as "rawCuts" is not returned in any
+   -- particular order, and needs to be rearranged to give a
+   -- reasonable decomposition
+   
+   local cellsWithIdx = {}
+   for i = 1, #cells do
+      cellsWithIdx[i] = { cells[i], i }
+   end
+   table.sort(cellsWithIdx, function(l,r) return l[1]<r[1] end)
+
+   local cuts = {}
+   for i = 1, #cells do
+      cuts[i] = rawCuts[cellsWithIdx[i][2]]
+   end
+   
+   return cuts
+end
+
 return {
    CartProd = CartProdDecomp,
+   makeCuts = makeCuts,
 }

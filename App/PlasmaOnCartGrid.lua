@@ -8,6 +8,8 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local Alloc            = require "Alloc"
+local AllocShared      = require "AllocShared"
 local Basis            = require "Basis"
 local Collisions       = require "App.Collisions"
 local DataStruct       = require "DataStruct"
@@ -18,15 +20,15 @@ local Lin              = require "Lib.Linalg"
 local LinearTrigger    = require "Lib.LinearTrigger"
 local Logger           = require "Lib.Logger"
 local Mpi              = require "Comm.Mpi"
+local Projection       = require "App.Projection"
 local Proto            = require "Lib.Proto"
 local Sources          = require "App.Sources"
 local Species          = require "App.Species"
 local Time             = require "Lib.Time"
 local date             = require "xsys.date"
+local lfs              = require "lfs"
 local lume             = require "Lib.lume"
 local xsys             = require "xsys"
-local Projection       = require "App.Projection"
-local lfs              = require "lfs"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -110,15 +112,20 @@ local function buildApplication(self, tbl)
    local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
 
    -- Parallel decomposition stuff.
+   local useShared = xsys.pickBool(tbl.useShared, false)   
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
    else
-      -- If not specified, use 1 processor.
-      decompCuts = {}
-      for d = 1, cdim do decompCuts[d] = 1 end
+      if not useShared then
+	 -- if not specified and not using shared, construct a
+	 -- decompCuts automatically
+	 local numRanks = Mpi.Comm_size(Mpi.COMM_WORLD)
+	 decompCuts = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
+      else
+	 assert(false, "Must specify decompCuts when useShared = true")
+      end
    end
-   local useShared = xsys.pickBool(tbl.useShared, false)
 
    -- Extract periodic directions.
    local periodicDirs = {}
@@ -795,7 +802,11 @@ local function buildApplication(self, tbl)
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
-      log(string.format("\nTotal number of time-steps %s\n\n", step))
+      log(string.format("\nTotal number of time-steps %s\n", step))
+      log(string.format(
+	     "Number of barriers %d barriers (%g barriers/step)\n\n",
+	     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+      
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
@@ -843,14 +854,18 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      log(string.format(
+      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.f%%)\n",
+      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmAccounted = tmAccounted + stepperTime
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
 	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
+      
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
-	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
+	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.

@@ -54,6 +54,28 @@ local runID = uuid()
 -- date when tests were run
 local runDate = date(false):fmt("${iso}")
 
+-- Table structure for data stored in SQLite DB
+-- 
+-- table RegressionMeta (
+--   guid text,
+--   tstamp text,
+--   GKYL_EXEC text,
+--   GKYL_HG_CHANGESET text,
+--   GKYL_BUILD_DATE text,
+--   ntotal integer,
+--   npass integer,
+--   nfail integer
+-- );
+--
+-- table RegressionData (
+--   guid text,
+--   name text,
+--   status integer,
+--   runtime real,
+--   runlog text
+-- );
+--
+
 -- loads configuration file
 local function loadConfigure(args)
    local f = loadfile("runregression.config.lua")

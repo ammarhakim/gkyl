@@ -59,14 +59,6 @@ double MaxwellCentralSurf3xMax_Y_P2(const MaxwellEq_t *meq, const double *wl, co
 double MaxwellSurf3xMax_Z_P2(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
 double MaxwellCentralSurf3xMax_Z_P2(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
 
-double MaxwellVol3xMaxP3(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
-double MaxwellSurf3xMax_X_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xMax_X_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellSurf3xMax_Y_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xMax_Y_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellSurf3xMax_Z_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xMax_Z_P3(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-
 
 
  
@@ -110,22 +102,6 @@ double MaxwellCentralSurf3xSer_Y_P1(const MaxwellEq_t * meq, const double *wl, c
 double MaxwellSurf3xSer_Z_P1(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
 double MaxwellCentralSurf3xSer_Z_P1(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
 
-double MaxwellVol3xSerP2(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
-double MaxwellSurf3xSer_X_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xSer_X_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellSurf3xSer_Y_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xSer_Y_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellSurf3xSer_Z_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xSer_Z_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-
-double MaxwellVol3xSerP3(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
-double MaxwellSurf3xSer_X_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xSer_X_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellSurf3xSer_Y_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xSer_Y_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellSurf3xSer_Z_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf3xSer_Z_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-
 
 
  
@@ -152,12 +128,6 @@ double MaxwellVol2xTensorP2(const MaxwellEq_t *meq, const double *w, const doubl
 double MaxwellSurf2xTensor_X_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
 double MaxwellCentralSurf2xTensor_X_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
 double MaxwellSurf2xTensor_Y_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf2xTensor_Y_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-
-double MaxwellVol2xTensorP3(const MaxwellEq_t *meq, const double *w, const double *dx, const double *q, double *out); 
-double MaxwellSurf2xTensor_X_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf2xTensor_X_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellSurf2xTensor_Y_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
-double MaxwellCentralSurf2xTensor_Y_P3(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr); 
+double MaxwellCentralSurf2xTensor_Y_P2(const MaxwellEq_t * meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr);
  
 ]]

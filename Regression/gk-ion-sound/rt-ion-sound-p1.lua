@@ -42,7 +42,6 @@ plasmaApp = Plasma.App {
       lower = {-6.0},
       upper = {6.0},
       cells = {32},
-      decompCuts = {1},
       -- initial conditions
       -- specify background so that we can plot perturbed distribution and moments
       initBackground = {"maxwellian",
