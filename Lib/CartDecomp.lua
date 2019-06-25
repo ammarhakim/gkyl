@@ -200,7 +200,34 @@ end
 --
 --------------------------------------------------------------------------------
 
+-- check if numSubDoms^(1/ndim) is an integer
+local function isEvenDecomp(ndim, numSubDoms)
+
+   -- This code is tricky as round off errors can mess the simple
+   -- G(and obvious) test for even decomposition, i.e. math.ceil(v) =
+   -- math.floor(v) where v = numSubDoms^(1/ndim)
+   
+   local c = math.pow(numSubDoms, 1/ndim)
+   local cdown = math.floor(c)
+   local cup = math.ceil(c)
+
+   local cuts = {}
+   if cdown^ndim == numSubDoms then
+      for i = 1, ndim do cuts[i] = cdown end
+      return true, cuts
+   end
+   if cup^ndim == numSubDoms then
+      for i = 1, ndim do cuts[i] = cup end
+      return true, cuts      
+   end
+   return false, cuts
+end
+
 local function calcCuts(ndim, numSubDoms)
+
+   -- first check if we can create an "even" decomposition
+   local evFlag, evCuts = isEvenDecomp(ndim, numSubDoms)
+   if evFlag then return evCuts end
    
    -- Compute prime factorization of numSubDoms and then use this to
    -- compute "cuts". This algorithm may not produce the best possible
