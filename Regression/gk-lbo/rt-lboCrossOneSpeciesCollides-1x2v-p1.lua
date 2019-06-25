@@ -86,7 +86,6 @@ plasmaApp = Plasma.App {
       lower      = {-5*vte, 0.0},
       upper      = { 5*vte, 12*me*(vte^2)/(2*B0)},
       cells      = {16, 8},
-      decompCuts = {1,1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)
@@ -129,7 +128,6 @@ plasmaApp = Plasma.App {
       lower      = {-5*vti, 0.0},
       upper      = { 5*vti, 12*mi*(vti^2)/(2*B0)},
       cells      = {16, 8},
-      decompCuts = {1,1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)

@@ -29,7 +29,6 @@ sim = Plasma.App {
       lower = {-6.0},
       upper = { 6.0},
       cells = {8},
-      decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]

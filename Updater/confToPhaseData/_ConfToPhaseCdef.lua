@@ -96,9 +96,6 @@ void assignConfToPhase2x3vSer_P2(const double fact, const double *fconf, double 
 void accumulateConfToPhase2x3vMax_P2(const double fact, const double *fconf, double *fphase); 
 void assignConfToPhase2x3vMax_P2(const double fact, const double *fconf, double *fphase); 
 
-void accumulateConfToPhase2x3vSer_P3(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase2x3vSer_P3(const double fact, const double *fconf, double *fphase); 
-
 void accumulateConfToPhase2x3vMax_P3(const double fact, const double *fconf, double *fphase); 
 void assignConfToPhase2x3vMax_P3(const double fact, const double *fconf, double *fphase); 
 
@@ -113,10 +110,7 @@ void accumulateConfToPhase3x2vSer_P2(const double fact, const double *fconf, dou
 void assignConfToPhase3x2vSer_P2(const double fact, const double *fconf, double *fphase); 
 
 void accumulateConfToPhase3x2vMax_P2(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase3x2vMax_P2(const double fact, const double *fconf, double *fphase); 
-
-void accumulateConfToPhase3x2vSer_P3(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase3x2vSer_P3(const double fact, const double *fconf, double *fphase); 
+void assignConfToPhase3x2vMax_P2(const double fact, const double *fconf, double *fphase);  
 
 void accumulateConfToPhase3x2vMax_P3(const double fact, const double *fconf, double *fphase); 
 void assignConfToPhase3x2vMax_P3(const double fact, const double *fconf, double *fphase); 
@@ -126,17 +120,5 @@ void accumulateConfToPhase3x3vSer_P1(const double fact, const double *fconf, dou
 void assignConfToPhase3x3vSer_P1(const double fact, const double *fconf, double *fphase); 
 
 void accumulateConfToPhase3x3vMax_P1(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase3x3vMax_P1(const double fact, const double *fconf, double *fphase); 
-
-void accumulateConfToPhase3x3vSer_P2(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase3x3vSer_P2(const double fact, const double *fconf, double *fphase); 
-
-void accumulateConfToPhase3x3vMax_P2(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase3x3vMax_P2(const double fact, const double *fconf, double *fphase); 
-
-void accumulateConfToPhase3x3vSer_P3(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase3x3vSer_P3(const double fact, const double *fconf, double *fphase); 
-
-void accumulateConfToPhase3x3vMax_P3(const double fact, const double *fconf, double *fphase); 
-void assignConfToPhase3x3vMax_P3(const double fact, const double *fconf, double *fphase); 
+void assignConfToPhase3x3vMax_P1(const double fact, const double *fconf, double *fphase);
 ]]

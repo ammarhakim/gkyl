@@ -1,0 +1,108 @@
+kill(all) $
+load("modal-basis") $
+load("basis-precalc/basisSer1x1v") $
+assume(dx>0, dy>0) $
+vars : subst(vx=y, varsP) $
+polyOrder : 1 $
+N : polyOrder + 1 $
+basisX : basisC[polyOrder] $
+basisY : subst(x=y, basisC[polyOrder]) $
+basisXY : subst(vx=y, basisP[polyOrder]) $
+
+eta(xc, yc, dx, dy, basis) := subst([wx=x, wy=y], subst([x=(wx-xc)/(dx/2), y=(wy-yc)/(dy/2)] , basis)) $
+baCc : eta(0, 0, dx, dy, basisXY) $
+baTc : eta(0, dy/2, dx, dy, basisXY) $
+baBc : eta(0, -dy/2, dx, dy, basisXY) $
+baTe : eta(0, dy/2, dx, dy, basisX) $
+baBe : eta(0, -dy/2, dx, dy, basisX) $
+
+gRecovYExp : doExpand(gRecovY, create_list(x^i*y^j, i, 0, N-1, j, 0, 2*N-1)) $
+gyyfRecovYExp : doExpand(gyyfRecovY, create_list(x^i*y^j, i, 0, N-1, j, 0, 2*N-1)) $
+
+gRecovYEqList : append(
+    calcInnerProdListGen([x,y], [[-dx/2,dx/2], [-dy,0]], 1, baBc, gRecovYExp-doExpand(gB, baBc)),
+    calcInnerProdListGen([x,y], [[-dx/2,dx/2], [0,dy]], 1, baTc, gRecovYExp-doExpand(gT, baTc))
+) $
+gRecovYSol : linsolve(gRecovYEqList, makelist(gRecovY[i], i, 1, 2*N*N)) $
+gRecovYSub : fullratsimp(subst(gRecovYSol, gRecovYExp)) $
+
+subListT : append(
+    makelist(gT[i]=gTPtr[i], i, 1, length(baTc)),
+    makelist(gB[i]=gPtr[i], i, 1, length(baCc)),
+    makelist(gRecovY[i]=gRecovT[i], i, 1, length(gRecovYSol)),
+    makelist(fT[i]=fTPtr[i], i, 1, length(baTc)),
+    makelist(fB[i]=fPtr[i], i, 1, length(baCc)),
+    makelist(gyyfRecovY[i]=gyyfRecovT[i], i, 1, length(gRecovYSol))
+) $
+subListB : append(
+    makelist(gT[i]=gPtr[i], i, 1, length(baCc)),
+    makelist(gB[i]=gBPtr[i], i, 1, length(baBc)),
+    makelist(gRecovY[i]=gRecovB[i], i, 1, length(gRecovYSol)),
+    makelist(fT[i]=fPtr[i], i, 1, length(baCc)),
+    makelist(fB[i]=fBPtr[i], i, 1, length(baBc)),
+    makelist(gyyfRecovY[i]=gyyfRecovB[i], i, 1, length(gRecovYSol))
+) $
+
+fh : openw("~/max-out/diff_yy")$
+printf(fh, "local gRecovT = {} ~%") $
+for i : 1 thru 2*N*N do printf(fh, "~a ~%", float(subst(subListT, gRecovYSol[i]))) $
+printf(fh, "~%") $
+printf(fh, "local gRecovB = {} ~%") $
+for i : 1 thru 2*N*N do printf(fh, "~a ~%", float(subst(subListB, gRecovYSol[i]))) $
+printf(fh, "~%") $
+
+gyyfRecovYEqList : append(
+    calcInnerProdListGen([x,y], [[-dx/2,dx/2], [0,dy]], 1, baTc, gyyfRecovYExp-diff(diff(gRecovYExp, y),y)*doExpand(fT, baTc)),
+    calcInnerProdListGen([x,y], [[-dx/2,dx/2], [-dy,0]], 1, baBc, gyyfRecovYExp-diff(diff(gRecovYExp, y),y)*doExpand(fB, baBc))
+) $
+gyyfRecovYSol : linsolve(gyyfRecovYEqList, makelist(gyyfRecovY[i], i, 1, 2*N*N)) $
+gyyfRecovYSub : fullratsimp(subst(gyyfRecovYSol, gyyfRecovYExp)) $
+
+printf(fh, "local gyyfRecovT = {} ~%") $
+for i : 1 thru 8 do printf(fh, "~a ~%", float(subst(subListT, gyyfRecovYSol[i]))) $
+printf(fh, "~%") $
+printf(fh, "local gyyfRecovB = {} ~%") $
+for i : 1 thru 8 do printf(fh, "~a ~%", float(subst(subListB, gyyfRecovYSol[i]))) $
+printf(fh, "~%") $
+
+surf1T : calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, subst(y=dy/2, baCc),
+  subst(y=0, diff(subst(subListT, gyyfRecovYExp), y))*2/dx) $
+surf1B : calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, subst(y=-dy/2, baCc),
+  subst(y=0, diff(subst(subListB, gyyfRecovYExp), y))*2/dx) $
+surf2T : calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, subst(y=dy/2, diff(baCc, y)),
+  subst(y=0, subst(subListT, gyyfRecovYExp))*2/dx) $
+surf2B : calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, subst(y=-dy/2, diff(baCc, y)),
+  subst(y=0, subst(subListB, gyyfRecovYExp))*2/dx) $
+
+printf(fh, "if isTopEdge then~%") $
+gs : float(expand(-surf1B+surf2B)) $
+for i : 1 thru length(baCc) do printf(fh, "    fOutPtr[~a] = ~a ~%", i, fOutPtr[i] + 0.5*dt*gs[i]) $
+printf(fh, "elseif isBotEdge then~%") $
+gs : float(expand(surf1T-surf2T)) $
+for i : 1 thru length(baCc) do printf(fh, "    fOutPtr[~a] = ~a ~%", i, fOutPtr[i] + 0.5*dt*gs[i]) $
+printf(fh, "else~%") $
+gs : float(expand(surf1T-surf1B-(surf2T-surf2B))) $
+for i : 1 thru length(baCc) do printf(fh, "    fOutPtr[~a] = ~a ~%", i, fOutPtr[i] + 0.5*dt*gs[i]) $
+printf(fh, "end~%~%") $
+
+/* derTe : subst(subListT, subst(y=0, diff(gRecovYExp, y))) $ */
+/* derBe : subst(subListB, subst(y=0, diff(gRecovYExp, y))) $ */
+/* valTe : subst(subListT, subst(y=0, gRecovYExp)) $ */
+/* valBe : subst(subListB, subst(y=0, gRecovYExp)) $ */
+
+/* gRecovXXEqList : append( */
+/*   calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baLe, derLe-subst(x=-dx/2, diff(gRecovXXExp, x))), */
+/*   calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baRe, derRe-subst(x=dx/2, diff(gRecovXXExp, x))), */
+/*   calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baLe, valLe-subst(x=-dx/2, gRecovXXExp)), */
+/*   calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baRe, valRe-subst(x=dx/2, gRecovXXExp)), */
+/*   calcInnerProdListGen([x,y], [[-dx/2,dx/2], [-dy/2,dy/2]], 1, baCc, gRecovXXExp-doExpand(gPtr, baCc)) */
+/* ) $ */
+/* gRecovXXSol : linsolve(gRecovXXEqList, makelist(gRecovXX[i], i, 1, (N+4)*N)) $ */
+/* gRecovXXSub : fullratsimp(subst(gRecovXXSol, gRecovXXExp)) $ */
+
+/* vol : calcInnerProdListGen([x,y], [[-dx/2,dx/2],[-dy/2,dy/2]], 1, diff(diff(baCc, x), x), */
+/*     diff(diff(doExpand(gPtr, baCc), x), x)*doExpand(fPtr, baCc)*4/(dx*dy)) $ */
+/* gs : float(expand(vol)) $ */
+/* for i : 1 thru length(baCc) do printf(fh, "fOutPtr[~a] = ~a ~%", i, fOutPtr[i] + 0.5*dt*gs[i]) $ */
+
+close(fh) $

@@ -77,7 +77,6 @@ plasmaApp = Plasma.App {
       lower      = {vMin,vMin},
       upper      = {vMax,vMax},
       cells      = Nv,
-      decompCuts = {1,1},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, vx, vy = xn[1], xn[2], xn[3]
@@ -102,7 +101,6 @@ plasmaApp = Plasma.App {
   --    lower      = {vMin,vMin},
   --    upper      = {vMax,vMax},
   --    cells      = Nv,
-  --    decompCuts = {1,1},
   --    -- Initial conditions.
   --    init = Plasma.MaxwellianProjection {
   --       density         = nMr,
@@ -125,7 +123,6 @@ plasmaApp = Plasma.App {
       lower      = {vMin,vMin},
       upper      = {vMax,vMax},
       cells      = Nv,
-      decompCuts = {1,1},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, vx, vy = xn[1], xn[2], xn[3]
@@ -150,7 +147,6 @@ plasmaApp = Plasma.App {
   --    lower      = {vMin,vMin},
   --    upper      = {vMax,vMax},
   --    cells      = Nv,
-  --    decompCuts = {1,1},
   --    -- Initial conditions.
   --    init = Plasma.MaxwellianProjection {
   --       density         = nMb,

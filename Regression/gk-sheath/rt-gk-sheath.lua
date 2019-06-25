@@ -88,10 +88,6 @@ plasmaApp = Plasma.App {
    cflFrac     = 0.9,
    restartFrameEvery = .5,
 
-   -- Decomposition for configuration space.
-   decompCuts = {1, 1, 1}, -- Cuts in each configuration direction.
-   useShared = false,      -- If to use shared memory.
-
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
 
@@ -102,7 +98,6 @@ plasmaApp = Plasma.App {
       lower = {-4*vte, 0},
       upper = {4*vte, 12*me*vte^2/(2*B0)},
       cells = {8, 4},
-      decompCuts = {1, 1},
       -- Initial conditions.
       init = {"maxwellian", 
               density = function (t, xn)
@@ -149,7 +144,6 @@ plasmaApp = Plasma.App {
       lower = {-4*vti, 0},
       upper = {4*vti, 12*mi*vti^2/(2*B0)},
       cells = {8, 4},
-      decompCuts = {1, 1},
       -- Initial conditions.
       init = {"maxwellian", 
               density = function (t, xn)

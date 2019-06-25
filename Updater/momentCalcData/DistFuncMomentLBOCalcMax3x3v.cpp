@@ -80,7 +80,7 @@ void VmM1iM2Star3x3vMax(const double *w, const double *dxv, const double *f, dou
   outM1i[0] += tempM0[0]*w[3]; 
   outM1i[1] += tempM0[1]*w[3]; 
   outM1i[2] += tempM0[2]*w[3]; 
-  outM1i[3] += tempM0[3]*w[3]; 
+  outM1i[3] += w[3]*tempM0[3]; 
   outM1i[4] += tempM0[0]*w[4]; 
   outM1i[5] += tempM0[1]*w[4]; 
   outM1i[6] += tempM0[2]*w[4]; 

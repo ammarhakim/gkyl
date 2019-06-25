@@ -6,6 +6,28 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+-- Table structure
+-- 
+-- table RegressionMeta (
+--   guid text,
+--   tstamp text,
+--   GKYL_EXEC text,
+--   GKYL_HG_CHANGESET text,
+--   GKYL_BUILD_DATE text,
+--   ntotal integer,
+--   npass integer,
+--   nfail integer
+-- );
+--
+-- table RegressionData (
+--   guid text,
+--   name text,
+--   status integer,
+--   runtime real,
+--   runlog text
+-- );
+--
+
 local argparse = require "Lib.argparse"
 local sql = require "sqlite3"
 
@@ -92,7 +114,6 @@ local function query_action(args, name)
    local dbMeta = read_metatable()
    local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
 
-
    if args.net_time then
       -- print total time to run all tests specified ID
       local t, nrow = sqlConn:exec(
@@ -135,9 +156,18 @@ end
 -- function to handle delete command
 local function delete_action(args, name)
    configure(args)
-   if args.id < 1 then
+   if tonumber(args.id) < 1 then
       print("No deletions done. Specify run ID as returned by summary command")
    end
+
+   local dbMeta = read_metatable()
+   local idx = #dbMeta-args.id+1 -- meta-list is printed in reverse order
+   local guid = dbMeta[idx].guid 
+
+   sqlConn:exec(
+      string.format("delete from RegressionData where guid=='%s'", guid))
+   sqlConn:exec(
+      string.format("delete from RegressionMeta where guid=='%s'", guid))
 end
 
 -- function to handle history command

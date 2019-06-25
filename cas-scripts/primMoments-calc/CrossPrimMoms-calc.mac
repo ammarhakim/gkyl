@@ -61,7 +61,7 @@ for bInd : 1 thru length(bName) do (
       printf(fh, " ~%"),
 
       funcName : sconcat("VmBGKCrossPrimMoments", c, "x", v, "v", bName[bInd]),
-      calcCrossPrimMomsBGK(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd][c]),
+      calcCrossPrimMomsBGK(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
       close(fh)
     ),
@@ -99,7 +99,7 @@ for bInd : 1 thru length(bName) do (
       printf(fh, " ~%"),
 
       funcName : sconcat("GkBGKCrossPrimMoments", c, "x", v, "v", bName[bInd]),
-      calcCrossPrimMomsBGK(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd][c]),
+      calcCrossPrimMomsBGK(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
       close(fh)
     )

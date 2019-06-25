@@ -35,7 +35,7 @@ void VlasovLagrangeFixSer2x3v1p(double *dm0, double *dm1, double *dm2, double *l
 
 void VlasovLagrangeFixSer2x3v2p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
 
-void VlasovLagrangeFixSer2x3v3p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
+void VlasovLagrangeFixSer3x3v1p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
 
 void VlasovLagrangeFixMax1x1v1p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
 
@@ -66,6 +66,10 @@ void VlasovLagrangeFixMax2x3v1p(double *dm0, double *dm1, double *dm2, double *l
 void VlasovLagrangeFixMax2x3v2p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
 
 void VlasovLagrangeFixMax2x3v3p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
+
+void VlasovLagrangeFixMax3x3v1p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
+
+void VlasovLagrangeFixMax3x3v2p(double *dm0, double *dm1, double *dm2, double *lo, double *L, double *Nv, double *vc, double *f);
 
 } 
 #endif

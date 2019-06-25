@@ -78,7 +78,6 @@ plasmaApp = Plasma.App {
       lower = {-6*vte},
       upper = {6*vte},
       cells = {32},
-      decompCuts = {1},
       -- initial conditions
       initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
          density = function (t, xn)
@@ -116,7 +115,6 @@ plasmaApp = Plasma.App {
       lower = {-6*vti},
       upper = {6*vti},
       cells = {32},
-      decompCuts = {1},
       init = Plasma.Gyrokinetic.MaxwellianProjection {
          density = function (t, xn)
 	    local x = xn[1]

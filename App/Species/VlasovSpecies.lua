@@ -484,7 +484,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1,
 		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
 
-      local densFactor = globalEdgeFlux[0]/100.0--*self.dtGlobal[0] -- Hard-coded L !!
+      local densFactor = globalEdgeFlux[0]/self.sourceSteadyStateLength
       fRhsOut:accumulate(densFactor, self.fSource)
    elseif self.fSource and self.evolveSources then
       -- add source it to the RHS
