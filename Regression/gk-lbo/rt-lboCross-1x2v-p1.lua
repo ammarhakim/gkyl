@@ -14,50 +14,45 @@ eps0 = Constants.EPSILON0
 eV   = Constants.ELEMENTARY_CHARGE
 qe   = -eV
 qi   =  eV
-me   = Constants.ELECTRON_MASS
+me   = Constants.ELECTRON_MASS --*1836.0
 mi   = Constants.PROTON_MASS   -- Hydrogen ions.
 
 B0  = 0.5     -- Magnetic field amplitude [T].
 
 n0  = 7e19    -- Number density [1/m^3].
 
-Te0 = 40*eV   -- Electron temperature.
-Ti0 = 80*eV   -- Ion temperature.
+Te0 = 300*eV   -- Electron temperature.
+Ti0 = 200*eV   -- Ion temperature.
 
 -- Thermal speeds.
 vti = math.sqrt(Ti0/mi)
 vte = math.sqrt(Te0/me)
 
 -- Bulk flow speed along B-field.
-uPare = math.sqrt(mi/me)*vti
-uPari = 0.0
+uPare = 0.5*math.sqrt(me/mi)*vte
+uPari = 50.0*(me/mi)*vti
 
 nuFrac       = 1.0
 -- Electron collision frequency.
 logLambdaElc = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Te0/eV)
 nuElc        = nuFrac*logLambdaElc*(eV^4)*n0
-              /(6*math.sqrt(2)*(math.pi^(3/2))*(eps0^2)*math.sqrt(me)*(Te0)^(3/2))
+              /(12*math.sqrt(2)*(math.pi^(3/2))*(eps0^2)*math.sqrt(me)*(Te0^(3/2)))
 -- Ion collision frequency.
 logLambdaIon = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Ti0/eV)
 nuIon        = nuFrac*logLambdaIon*(eV^4)*n0
-              /(12*(math.pi^(3/2))*(eps0^2)*math.sqrt(mi)*((Ti0)^(3/2)))
+              /(12*math.sqrt(2)*(math.pi^(3/2))*(eps0^2)*math.sqrt(mi)*(Ti0^(3/2)))
 -- Electron-Ion collision frequency.
-nuElcIon     = nuElc/1.96
+nuElcIon     = nuElc*2.0
 nuIonElc     = me*nuElcIon/mi -- Ion-electron collision frequency.
 
--- Box size
+-- Box size.
 Lx = 4 -- [m]
-
-print(' ')
-print('Electron-ion collision period: ', 1.0/nuElcIon)
-print('tEnd: ', 0.1/nuElcIon)
-print(' ')
 
 plasmaApp = Plasma.App {
    logToFile = false,
    
    tEnd        = 0.10/nuElcIon,    -- End time.
-   nFrame      = 2,              -- Number of frames to write.
+   nFrame      = 1,              -- Number of frames to write.
    lower       = {-Lx/2},         -- Configuration space lower coordinate.
    upper       = { Lx/2},         -- Configuration space upper coordinate.
    cells       = {12},            -- Configuration space cells.
@@ -73,14 +68,13 @@ plasmaApp = Plasma.App {
    -- Boundary conditions for configuration space.
    periodicDirs = {1},            -- Periodic directions.
 
-   -- Electrons.
+   -- Neutral species with a rectangular/square IC.
    elc = Plasma.Species {
       charge = qe, mass = me,
       -- Velocity space grid.
-      lower      = {-4*vte, 0.0},
-      upper      = { 6*vte, 12*me*(vte^2)/(2*B0)},
+      lower      = {-5*vte, 0.0},
+      upper      = { 5*vte, 12*me*(vte^2)/(2*B0)},
       cells      = {16, 8},
-      decompCuts = {1,1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)
@@ -96,30 +90,33 @@ plasmaApp = Plasma.App {
             return Te0
          end,
       },
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
+      --bcx = { Plasma.GkSpecies.bcOpen,
+      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
+      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
-         collideWith = {"elc", "ion", },
-         frequencies = {nuElc, nuElcIon, },
+         collideWith = { "elc", "ion" },
+         frequencies = { nuElc, nuElcIon },
+--         collideWith = { "elc" },
+--         frequencies = { nuElc },
+--         collideWith = { "ion" },
+--         frequencies = { nuElcIon },
          -- Optional arguments:
-         --crossOption = "Greene", -- or crossOption="Greene"
-         --betaGreene  = 1.0,
+--         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
    },
 
-   -- Ions.
+   -- Neutral species with a bump in the tail.
    ion = Plasma.Species {
       charge = qi, mass = mi,
       -- Velocity space grid.
-      lower      = {-4*vti, 0.0},
-      upper      = { 4*vti, 12*mi*(vti^2)/(2*B0)},
+      lower      = {-5*vti, 0.0},
+      upper      = { 5*vti, 12*mi*(vti^2)/(2*B0)},
       cells      = {16, 8},
-      decompCuts = {1,1},
       -- Initial conditions.
       init = {"maxwellian",
          density = function (t, xn)
@@ -135,19 +132,23 @@ plasmaApp = Plasma.App {
             return Ti0
          end,
       },
-      --bcx = { Plasma.Species.bcOpen,
-      --        Plasma.Species.bcOpen },
+      --bcx = { Plasma.GkSpecies.bcOpen,
+      --        Plasma.GkSpecies.bcOpen },
       -- Evolve species?
       evolve = true,
       -- Diagnostic moments.
-      diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
+      diagnosticMoments = { "GkM0", "GkM1", "GkM2", "GkUpar", "GkVtSq" },
+      diagnosticIntegratedMoments = { "intM0", "intM1", "intM2" },
       -- Collisions.
       coll = Plasma.LBOCollisions {
-         collideWith = {"ion", "elc"},
-         frequencies = {nuIon, nuIonElc},
+         collideWith = { "ion", "elc" },
+         frequencies = { nuIon, nuIonElc },
+--         collideWith = { "ion" },
+--         frequencies = { nuIon },
+--         collideWith = { "elc" },
+--         frequencies = { nuIonElc },
          -- Optional arguments:
-         --crossOption = "Greene", -- or crossOption="Greene"
-         --betaGreene  = 1.0,
+--         betaGreene  = 1.0,    -- Free parameter, must be >-1.
       },
    },
 
@@ -160,15 +161,15 @@ plasmaApp = Plasma.App {
    
    -- Magnetic geometry.
    funcField = Plasma.Geometry {
-      -- background magnetic field
+      -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
          return B0
       end,
-      -- geometry is not time-dependent
+      -- Geometry is not time-dependent.
       evolve = false,
    },
 
 }
--- run application
+-- Run application.
 plasmaApp:run()

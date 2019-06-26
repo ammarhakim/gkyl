@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen',
+    opt.load('gkyl luajit mpi adios eigen zmq',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -35,6 +35,7 @@ def configure(conf):
     conf.check_mpi()
     conf.check_adios()
     conf.check_eigen()
+    conf.check_zmq()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -63,13 +64,15 @@ def build(bld):
     bld.add_to_group(hgTip)
     
     # recurse down directories and build C++ code
-    bld.recurse("Lib") 
     bld.recurse("Comm")
-    bld.recurse("Unit")
-    bld.recurse("Updater")
     bld.recurse("DataStruct")
     bld.recurse("Eq")
     bld.recurse("Grid")
+    bld.recurse("Lib")
+    bld.recurse("Proto")
+    bld.recurse("Unit")
+    bld.recurse("Updater")
+    bld.recurse("sqlite3")    
 
     # build executable
     buildExec(bld)    
@@ -94,8 +97,37 @@ def build(bld):
     Unit_dir = bld.path.find_dir('Unit')
     bld.install_files(
         "${PREFIX}/bin/Unit",
-        ["Unit/unit.lua", "Unit/init.lua"],
+        Unit_dir.ant_glob('**/*.lua'),
         cwd=Unit_dir, relative_trick=True)
+    bld.install_files(
+        "${PREFIX}/bin/Unit",
+        ['Unit/t2-two-stream_elc_10.bp'],
+        cwd=Unit_dir, relative_trick=True)    
+
+    # - Regression
+    Regression_dir = bld.path.find_dir('Regression')
+    bld.install_files(
+        "${PREFIX}/bin/Regression",
+        Regression_dir.ant_glob('**/*.lua'),
+        cwd=Regression_dir, relative_trick=True)
+
+    # - Tool
+    Tool_dir = bld.path.find_dir('Tool')
+    bld.install_files(
+        "${PREFIX}/bin/Tool",
+        Tool_dir.ant_glob('**/*.lua'),
+        cwd=Tool_dir, relative_trick=True)
+    bld.install_files(
+        "${PREFIX}/bin/Tool",
+        Tool_dir.ant_glob('**/*.md'),
+        cwd=Tool_dir, relative_trick=True)
+
+    # - Sqlite3
+    Sqlite_dir = bld.path.find_dir('sqlite3')
+    bld.install_files(
+        "${PREFIX}/bin/sqlite3",
+        Sqlite_dir.ant_glob('**/*.lua'),
+        cwd=Sqlite_dir, relative_trick=True)    
 
     # - Lib
     Lib_dir = bld.path.find_dir('Lib')
@@ -160,6 +192,13 @@ def build(bld):
         Basis_dir.ant_glob('**/*.lua'),
         cwd=Basis_dir, relative_trick=True)
 
+    # - Proto/Fpo
+    Fpo_dir = bld.path.find_dir('Proto/Fpo')
+    bld.install_files(
+        "${PREFIX}/bin/Proto/Fpo",
+        Fpo_dir.ant_glob('**/*.lua'),
+        cwd=Fpo_dir, relative_trick=True)
+
 def buildExec(bld):
     r"""Build top-level executable"""
     if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
@@ -173,11 +212,15 @@ def buildExec(bld):
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
 
+    useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    if bld.env['ZMQ_FOUND']:
+        useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN ZMQ MPI M DL'
+        
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
-        use='lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL',
+        use = useList,
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
         lib = 'pthread'

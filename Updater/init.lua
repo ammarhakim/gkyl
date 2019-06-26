@@ -7,6 +7,7 @@
 
 -- Gkyl modules
 local Bc = require "Updater.Bc"
+local StairSteppedBc = require "Updater.StairSteppedBc"
 local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
@@ -36,6 +37,7 @@ local WavePropagation = require "Updater.WavePropagation"
 
 return {
    Bc = Bc,
+   StairSteppedBc = StairSteppedBc,
    BgkCollisions = BgkCollisions,
    CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,

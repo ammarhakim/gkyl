@@ -31,7 +31,7 @@ xSource      = R -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
 -- Parameters for collisions.
-nuFrac = 1.0
+nuFrac = 0.1
 -- Electron collision freq.
 logLambdaElc = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Te0/eV)
 nuElc = nuFrac*logLambdaElc*eV^4*n0/(6*math.sqrt(2)*math.pi^(3/2)*eps0^2*math.sqrt(me)*(Te0)^(3/2))
@@ -77,7 +77,7 @@ randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+63--os.time()
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 1e-6,                     -- End time.
+   tEnd        = .5e-6,                     -- End time.
    nFrame      = 1,                     -- Number of output frames.
    lower       = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
@@ -85,12 +85,8 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.3,
-   restartFrameEvery = .1,
-
-   -- Decomposition for configuration space.
-   decompCuts = {1, 1, 1}, -- Cuts in each configuration direction.
-   useShared = false,      -- If to use shared memory.
+   cflFrac     = 0.9,
+   restartFrameEvery = .5,
 
    -- Boundary conditions for configuration space.
    periodicDirs = {2},     -- Periodic in y only.
@@ -102,7 +98,6 @@ plasmaApp = Plasma.App {
       lower = {-4*vte, 0},
       upper = {4*vte, 12*me*vte^2/(2*B0)},
       cells = {8, 4},
-      decompCuts = {1, 1},
       -- Initial conditions.
       init = {"maxwellian", 
               density = function (t, xn)
@@ -127,10 +122,13 @@ plasmaApp = Plasma.App {
                  end
               end,
       },
-      --coll   = Plasma.GkLBOCollisions { collFreq = nuElc },
+      coll   = Plasma.GkLBOCollisions {
+         collideWith = {'electron'},
+         frequencies = {nuElc},
+      },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      applyPositivity = true,
+      --applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -146,7 +144,6 @@ plasmaApp = Plasma.App {
       lower = {-4*vti, 0},
       upper = {4*vti, 12*mi*vti^2/(2*B0)},
       cells = {8, 4},
-      decompCuts = {1, 1},
       -- Initial conditions.
       init = {"maxwellian", 
               density = function (t, xn)
@@ -171,10 +168,13 @@ plasmaApp = Plasma.App {
                  end
               end,
       },
-      --coll   = Plasma.GkLBOCollisions { collFreq = nuIon },
+      coll   = Plasma.GkLBOCollisions {
+         collideWith = {'ion'},
+         frequencies = {nuIon},
+      },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      applyPositivity = true,
+      --applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -187,11 +187,14 @@ plasmaApp = Plasma.App {
       -- Dirichlet in x.
       phiBcLeft  = { T ="D", V = 0.0},
       phiBcRight = { T ="D", V = 0.0},
+      aparBcLeft  = { T ="D", V = 0.0},
+      aparBcRight = { T ="D", V = 0.0},
       -- Periodic in y. --
       -- No bc in z.
       phiBcBack  = { T ="N", V = 0.0},
       phiBcFront = { T ="N", V = 0.0},
       evolve     = true, -- Evolve fields?
+      isElectromagnetic = true,
    },
 
    -- Magnetic geometry.

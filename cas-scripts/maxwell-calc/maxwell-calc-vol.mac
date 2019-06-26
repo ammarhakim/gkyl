@@ -15,12 +15,12 @@ dxInv : [dx0, dx1, dx2]$
 
 lhs : [outEx, outEy, outEz, outBx, outBy, outBz, outPh, outPs]$
 
-calcMaxVolUpdater(fh, funcNm, cdim, basisFun) := block([],
+calcMaxVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
 kill(varsC, varsP, basisC, basisP, basisConstant),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
 load(modNm),
 printf(fh, "#include <MaxwellModDecl.h> ~%"),
-for p : 1 thru 4 do (
+for p : 1 thru pMax do (
   bC : if p = 0 then basisConstant else basisC[p],
   nbasis : length(bC),
   
@@ -76,3 +76,8 @@ for p : 1 thru 4 do (
   printf(fh, "  return cflFreq; ~%"),
   printf(fh, "} ~%")
 ))$
+
+calcMaxwellVolUpdater(fh, funcNm, cdim, basisFun) := block([],
+  printf(fh, "#include <MaxwellModDecl.h> ~%"),
+  for dir : 1 thru cdim do ( calcMaxVolUpdater(dir, fh, funcNm, cdim, basisFun, pMax) )
+)$

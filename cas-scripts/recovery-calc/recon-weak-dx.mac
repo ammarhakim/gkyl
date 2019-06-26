@@ -7,7 +7,7 @@ eta(xc,dx,b) := subst(z=x,
 
 /* Flags to indicate what we are matching (one can match both) */
 matchSlope : true $
-matchValue : false $
+matchValue : true $
 
 /* Reconstruction across two cells of size dx each */
 bCC : basisC[1]$
@@ -112,7 +112,7 @@ calcOrder(dx, errorDx) := float(makelist(
   log(errorDx[i]/errorDx[i+1])/log(dx[i]/dx[i+1]),
   i, 1, length(dx)-1))$
 
-g : dsin(x-1/2,10)$
+g :  dsin(x-1/2,20)$ /* 1-(x-1/2)^2 */
 
 /* Make list of errors */
 dxVal : [2, 1, 1/2, 1/4, 1/8]$

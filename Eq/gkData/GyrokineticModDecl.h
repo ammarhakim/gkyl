@@ -587,6 +587,7 @@ double GyrokineticSurfPositivity3x2vSer_Vpar_P2_Bvars_1_3(const double q_, const
 double EmGyrokineticSurfPositivity3x2vSer_Vpar_P2_Bvars_1_3(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr); 
 double EmGyrokineticSurfPositivity3x2vSerStep2_Vpar_P2_Bvars_1_3(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr); 
 
+void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl);
 
 } 
 #endif 

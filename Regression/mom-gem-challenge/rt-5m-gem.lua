@@ -44,10 +44,6 @@ momentApp = Moments.App {
    cells = {64, 32},
    timeStepper = "fvDimSplit",
 
-   -- decomposition for configuration space
-   decompCuts = {1, 1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
-
    -- boundary conditions for configuration space
    periodicDirs = {1}, -- periodic directions
 
@@ -123,7 +119,7 @@ momentApp = Moments.App {
 
    emSource = Moments.CollisionlessEmSource {
       species = {"elc", "ion"},
-      timeStepper = "time-centered-direct",
+      timeStepper = "direct",
    },   
 
 }

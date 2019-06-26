@@ -99,6 +99,23 @@ function MomentSpecies:createSolver(hasE, hasB)
          }
       end
    end
+
+   -- This perhaps should go to createBCs but at that point _inOut is not
+   -- created yet
+   if (self._hasSsBnd) then
+      local function handleSsBc(dir, bcList)
+         for _, bc in ipairs(bcList) do
+            if bc then
+               self:appendSsBoundaryConditions(dir, self._inOut, bc)
+            end
+         end
+      end
+
+      for d = 1, ndim do
+         handleSsBc(d, self.ssBc)
+      end
+   end
+
 end
 
 function MomentSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
@@ -135,11 +152,39 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 end
 
+-- TODO: merge into appendBoundaryConditions
+function MomentSpecies:appendSsBoundaryConditions(dir, inOut, bcType)
+   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
+
+   if bcType == SP_BC_COPY then
+      table.insert(self.ssBoundaryConditions,
+		   self:makeSsBcUpdater(dir, inOut, { bcCopyFunc }))
+   elseif bcType == SP_BC_WALL then
+     -- FIXME better to define and use self.equation.bcWall
+     local bcWall
+     if self.nMoments == 5 then
+       bcWall = Euler.bcWall
+     elseif self.nMoments == 10 then
+       bcWall = TenMoment.bcWall
+     else
+       assert(false, "MomentSpecies: bcWall not provided by the equation!")
+     end
+      table.insert(self.ssBoundaryConditions,
+		   self:makeSsBcUpdater(dir, inOut, bcWall))
+   elseif type(bcType) == "table" then
+      -- bcType can be literally a list of functions
+      table.insert(self.ssBoundaryConditions,
+		   self:makeSsBcUpdater(dir, inOut, bcType ))
+   else
+      assert(false, "MomentSpecies: Unsupported BC type!")
+   end
+end
+
 function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
    local status, dtSuggested = true, GKYL_MAX_DOUBLE
    local tryInv_next = false
    if self.evolve then
-      self:applyBc(tCurr, fIn)
+      self:applyBc(tCurr, fIn, dir)
       assert(self:checkInv(fIn))
       if self.forceInv or tryInv then
          self.hyperSlvrInv[dir]:setDtAndCflRate(dt, nil)

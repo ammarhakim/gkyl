@@ -58,10 +58,6 @@ plasmaApp = Plasma.App {
    timeStepper = "rk3", -- one of "rk2" or "rk3"
    cflFrac = .9,
 
-   -- decomposition for configuration space
-   decompCuts = {1, 1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
-
    -- boundary conditions for configuration space
    periodicDirs = {1,2}, -- periodic directions
    deltaF = true, -- only apply BCs to fluctuations, and use perturbed moments in field solve
@@ -74,7 +70,6 @@ plasmaApp = Plasma.App {
       lower = {VPAR_LOWER, MU_LOWER},
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
-      decompCuts = {1, 1},
       -- initial conditions
       initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
          density = function (t, xn)

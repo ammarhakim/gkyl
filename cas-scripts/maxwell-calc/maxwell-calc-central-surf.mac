@@ -1,0 +1,131 @@
+load("modal-basis");
+load("out-scripts");
+load("maxwell-calc/maxwell-rp-central");
+load(stringproc)$
+fpprec : 24$
+
+/* For simpliciations */
+let (c^2, c2);
+let (c2*chi, c2chi);
+let (c2*gamma, c2gamma);
+
+cvars : [X, Y, Z]$
+outr : [outExr, outEyr, outEzr, outBxr, outByr, outBzr, outPhr, outPsr]$
+outl : [outExl, outEyl, outEzl, outBxl, outByl, outBzl, outPhl, outPsl]$
+
+/* Define variables and fluxes */
+V : [Ex, Ey, Ez, Bx, By, Bz, phi, psi]$
+
+flux : [
+ [c^2*chi*phi, c^2*Bz, -c^2*By, gamma*psi, -Ez, Ey, chi*Ex, c^2*gamma*Bx],
+ [-c^2*Bz, c^2*chi*phi, c^2*Bx, Ez, gamma*psi, -Ex, chi*Ey, c^2*gamma*By],
+ [c^2*By, -c^2*Bx, c^2*chi*phi, -Ey, Ex, gamma*psi, chi*Ez, c^2*gamma*Bz]
+]$
+
+calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
+kill(varsC, basisC),
+modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+load(modNm),
+for p : 1 thru pMax do(
+  bC : if p = 0 then basisConstant else basisC[p],
+  nbasis : length(bC),
+  
+  printf(fh, "double ~a_~a_P~a(const MaxwellEq_t *meq, const double *wl, const double *wr, const double *dxl, const double *dxr, const double tau, const double *ql, const double *qr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], p),
+
+  printf(fh, "  const double c = meq->c, chi = meq->chi, gamma = meq->gamma; ~%"),
+  printf(fh, "  const double c2 = c*c; ~%"),
+  printf(fh, "  const double c2chi = c2*chi, c2gamma = c2*gamma; ~% ~%"),
+  printf(fh, "  const double dxl1 = 2.0/dxl[~a]; ~%", dir-1),
+  printf(fh, "  const double dxr1 = 2.0/dxr[~a]; ~%", dir-1),
+  
+  printf(fh, "  const double *exl = &ql[~a]; ~%", 0*nbasis),
+  printf(fh, "  const double *eyl = &ql[~a]; ~%", 1*nbasis),
+  printf(fh, "  const double *ezl = &ql[~a]; ~%", 2*nbasis),
+  printf(fh, "  const double *bxl = &ql[~a]; ~%", 3*nbasis),
+  printf(fh, "  const double *byl = &ql[~a]; ~%", 4*nbasis),
+  printf(fh, "  const double *bzl = &ql[~a]; ~%", 5*nbasis),
+  printf(fh, "  const double *phl = &ql[~a]; ~%", 6*nbasis),
+  printf(fh, "  const double *psl = &ql[~a]; ~% ~%", 7*nbasis),
+
+  printf(fh, "  double *outExl = &outl[~a]; ~%", 0*nbasis),
+  printf(fh, "  double *outEyl = &outl[~a]; ~%", 1*nbasis),
+  printf(fh, "  double *outEzl = &outl[~a]; ~%", 2*nbasis),
+  printf(fh, "  double *outBxl = &outl[~a]; ~%", 3*nbasis),
+  printf(fh, "  double *outByl = &outl[~a]; ~%", 4*nbasis),
+  printf(fh, "  double *outBzl = &outl[~a]; ~%", 5*nbasis),
+  printf(fh, "  double *outPhl = &outl[~a]; ~%", 6*nbasis),
+  printf(fh, "  double *outPsl = &outl[~a]; ~% ~%", 7*nbasis),
+
+  printf(fh, "  const double *exr = &qr[~a]; ~%", 0*nbasis),
+  printf(fh, "  const double *eyr = &qr[~a]; ~%", 1*nbasis),
+  printf(fh, "  const double *ezr = &qr[~a]; ~%", 2*nbasis),
+  printf(fh, "  const double *bxr = &qr[~a]; ~%", 3*nbasis),
+  printf(fh, "  const double *byr = &qr[~a]; ~%", 4*nbasis),
+  printf(fh, "  const double *bzr = &qr[~a]; ~%", 5*nbasis),
+  printf(fh, "  const double *phr = &qr[~a]; ~%", 6*nbasis),
+  printf(fh, "  const double *psr = &qr[~a]; ~% ~%", 7*nbasis),
+
+  printf(fh, "  double *outExr = &outr[~a]; ~%", 0*nbasis),
+  printf(fh, "  double *outEyr = &outr[~a]; ~%", 1*nbasis),
+  printf(fh, "  double *outEzr = &outr[~a]; ~%", 2*nbasis),
+  printf(fh, "  double *outBxr = &outr[~a]; ~%", 3*nbasis),
+  printf(fh, "  double *outByr = &outr[~a]; ~%", 4*nbasis),
+  printf(fh, "  double *outBzr = &outr[~a]; ~%", 5*nbasis),
+  printf(fh, "  double *outPhr = &outr[~a]; ~%", 6*nbasis),
+  printf(fh, "  double *outPsr = &outr[~a]; ~% ~%", 7*nbasis),
+
+  printf(fh, "  double incr[~a]; ~% ~%", nbasis),
+
+  Exll : doExpand1(exl,bC),
+  Eyll : doExpand1(eyl,bC),
+  Ezll : doExpand1(ezl,bC),
+  Bxll : doExpand1(bxl,bC),
+  Byll : doExpand1(byl,bC),
+  Bzll : doExpand1(bzl,bC),
+  phll : doExpand1(phl,bC),
+  psll : doExpand1(psl,bC),
+
+  Exrl : doExpand1(exr,bC),
+  Eyrl : doExpand1(eyr,bC),
+  Ezrl : doExpand1(ezr,bC),
+  Bxrl : doExpand1(bxr,bC),
+  Byrl : doExpand1(byr,bC),
+  Bzrl : doExpand1(bzr,bC),
+  phrl : doExpand1(phr,bC),
+  psrl : doExpand1(psr,bC),
+
+  cv : varsC[dir],
+
+  subListL : subst(cv=1, [ExL=Exll, EyL=Eyll, EzL=Ezll, BxL=Bxll, ByL=Byll, BzL=Bzll, phiL=phll, psiL=psll]),
+  subListR : subst(cv=-1, [ExR=Exrl, EyR=Eyrl, EzR=Ezrl, BxR=Bxrl, ByR=Byrl, BzR=Bzrl, phiR=phrl, psiR=psrl]),
+  numFlux : subst(append(subListL, subListR), calcNumFlux(V, flux[dir], dir)),
+
+  surfVars : delete(cv,varsC),
+
+  clst : [c2, gamma, chi, c2gamma, c2chi],
+
+  for m : 1 thru 8 do (
+    fhat : letsimp(numFlux[m]),
+
+    incr_r : calcInnerProdList(surfVars, 1, subst(cv=-1, bC), fhat),
+    writeCExprsDoubleCollect1lhsc(incr, incr_r, clst),
+    printf(fh, "~%"),
+    incr_s : makelist(incr[i-1], i, 1, nbasis),
+    writeCIncrExprs1(outr[m], dxr1*incr_s),
+    printf(fh, "~%"),
+    
+    incr_l : -calcInnerProdList(surfVars, 1, subst(cv=1, bC), fhat),
+    signs : fullratsimp(incr_l/incr_r),
+    incr_s : makelist(signs[i]*incr[i-1], i, 1, nbasis),
+    writeCIncrExprs1(outl[m], dxl1*incr_s),
+    printf(fh, "~% ~%")
+  ),
+
+  printf(fh, "  return c; ~%"),
+  printf(fh, "} ~%")
+))$
+
+calcMaxwellCentralSurfUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
+  printf(fh, "#include <MaxwellModDecl.h> ~%"),
+  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) )
+)$

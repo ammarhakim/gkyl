@@ -43,7 +43,6 @@ plasmaApp = Plasma.App {
       lower = {-6.0*vDriftElc},
       upper = {6.0*vDriftElc},
       cells = {64},
-      decompCuts = {1},
       -- initial conditions
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
@@ -62,7 +61,6 @@ plasmaApp = Plasma.App {
       lower = {-32.0*vtIon},
       upper = {32.0*vtIon},
       cells = {64},
-      decompCuts = {1},
       -- initial conditions
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]

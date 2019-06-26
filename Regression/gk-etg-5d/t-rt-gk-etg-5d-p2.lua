@@ -73,7 +73,6 @@ plasmaApp = Plasma.App {
       lower = {VPAR_LOWER, MU_LOWER},
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
-      decompCuts = {1, 1},
       -- initial conditions
       initBackground = {"maxwellian", 
               density = function (t, xn)

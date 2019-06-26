@@ -1,4 +1,5 @@
-load("primMoments-calc/CrossPrimMoms")$
+load("primMoments-calc/CrossPrimMomsLBO")$
+load("primMoments-calc/CrossPrimMomsBGK")$
 load(stringproc)$
 
 /* ...... USER INPUTS........ */
@@ -32,10 +33,11 @@ for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
     /* Vlasov cross-collision primitive moments. */
-    for v : maxVdim[bInd] thru maxVdim[bInd] do (
+    for v : minVdim[bInd] thru maxVdim[bInd] do (
 
-      disp(printf(false,sconcat("Creating VmCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
-      fname : sconcat("~/max-out/VmCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+      /* For Lenard-Bernstein operator. */
+      disp(printf(false,sconcat("Creating VmLBOCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/VmLBOCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
 
       printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
@@ -43,11 +45,23 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "using namespace Eigen; ~%"),
       printf(fh, " ~%"),
 
-      funcName : sconcat("VmCrossPrimMomentsGreene", c, "x", v, "v", bName[bInd]),
-      calcCrossPrimMomsGreene(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      funcName : sconcat("VmLBOCrossPrimMoments", c, "x", v, "v", bName[bInd]),
+      calcCrossPrimMomsLBO(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
-      funcName : sconcat("VmCrossPrimMomentsHeavyIon", c, "x", v, "v", bName[bInd]),
-      calcCrossPrimMomsHeavyIon(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      close(fh),
+
+      /* For BGK operator. */
+      disp(printf(false,sconcat("Creating VmBGKCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/VmBGKCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+
+      printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+      printf(fh, " ~%"),
+      printf(fh, "using namespace Eigen; ~%"),
+      printf(fh, " ~%"),
+
+      funcName : sconcat("VmBGKCrossPrimMoments", c, "x", v, "v", bName[bInd]),
+      calcCrossPrimMomsBGK(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
       close(fh)
     ),
@@ -59,8 +73,9 @@ for bInd : 1 thru length(bName) do (
 
       v : gkVdims[c][gkV],
 
-      disp(printf(false,sconcat("Creating GkCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
-      fname : sconcat("~/max-out/GkCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+      /* For Lenard-Bernstein operator. */
+      disp(printf(false,sconcat("Creating GkLBOCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/GkLBOCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
       fh : openw(fname),
 
       printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
@@ -68,11 +83,24 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "using namespace Eigen; ~%"),
       printf(fh, " ~%"),
 
-      funcName : sconcat("GkCrossPrimMomentsGreene", c, "x", v, "v", bName[bInd]),
-      calcCrossPrimMomsGreene(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      funcName : sconcat("GkLBOCrossPrimMoments", c, "x", v, "v", bName[bInd]),
+      calcCrossPrimMomsLBO(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
 
-      funcName : sconcat("GkCrossPrimMomentsHeavyIon", c, "x", v, "v", bName[bInd]),
-      calcCrossPrimMomsHeavyIon(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+      close(fh),
+
+      /* For BGK operator. */
+      disp(printf(false,sconcat("Creating GkBGKCrossPrimMoments ~ax~av", bName[bInd]),c,v)),
+      fname : sconcat("~/max-out/GkBGKCrossPrimMoments", bName[bInd], c, "x", v, "v", ".cpp"),
+      fh : openw(fname),
+
+      printf(fh, "#include <PrimMomentsModDecl.h> ~%"),
+      printf(fh, " ~%"),
+      printf(fh, "using namespace Eigen; ~%"),
+      printf(fh, " ~%"),
+
+      funcName : sconcat("GkBGKCrossPrimMoments", c, "x", v, "v", bName[bInd]),
+      calcCrossPrimMomsBGK(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
+
       close(fh)
     )
   )

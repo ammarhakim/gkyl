@@ -65,6 +65,8 @@ function MaxwellField:fullInit(appTbl)
    self.mu0 = tbl.mu0
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
+   -- by default, do not write data if evolve is false
+   self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
 
    self.ce = tbl.elcErrorSpeedFactor and tbl.elcErrorSpeedFactor or 0.0
    self.cb = tbl.mgnErrorSpeedFactor and tbl.mgnErrorSpeedFactor or 1.0
@@ -73,8 +75,10 @@ function MaxwellField:fullInit(appTbl)
 
    self.lightSpeed = 1/math.sqrt(self.epsilon0*self.mu0)
 
-   -- tau parameter used for adding extra (less) diffusion to Ampere-Maxwell, while adding less (more) diffusion to Faraday equation
-   -- if no tau parameter is specified, Eq object defaults to the speed of light
+   -- tau parameter used for adding extra (less) diffusion to
+   -- Ampere-Maxwell, while adding less (more) diffusion to Faraday
+   -- equation if no tau parameter is specified, Eq object defaults to
+   -- the speed of light
    self.tau = tbl.tau
 
    -- create triggers to write fields
@@ -136,6 +140,11 @@ function MaxwellField:fullInit(appTbl)
 
    self.limiter = self.tbl.limiter and self.tbl.limiter or "monotonized-centered"
 
+   -- numFlux used for selecting which type of numerical flux function to use
+   -- defaults to "upwind" in Eq object, supported options: "central," "upwind"
+   -- only used for DG Maxwell
+   self.numFlux = tbl.numFlux
+
    self._isFirst = true
 end
 
@@ -172,13 +181,17 @@ function MaxwellField:alloc(nRkDup)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
       method = self.ioMethod,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }
 
    -- array with one component per cell to store cflRate in each cell
    self.cflRateByCell = DataStruct.Field {
 	onGrid = self.grid,
 	numComponents = 1,
-	ghost = {0, 0},
+	ghost = {1, 1},
    }
    self.cflRateByCell:clear(0.0)
    self.cflRatePtr = self.cflRateByCell:get(1)
@@ -193,6 +206,7 @@ function MaxwellField:createSolver()
       elcErrorSpeedFactor = self.ce,
       mgnErrorSpeedFactor = self.cb,
       tau = self.tau,
+      numFlux = self.numFlux,
       basis = self.basis:numBasis() > 1 and self.basis or nil,
    }
 
@@ -364,7 +378,7 @@ function MaxwellField:initField()
 end
 
 function MaxwellField:write(tm, force)
-   if self.evolve then
+   if self.evolve or self.forceWrite then
       local tmStart = Time.clock()
       -- compute EM energy integrated over domain
       if self.calcIntEMQuantFlag == false then
@@ -376,7 +390,7 @@ function MaxwellField:write(tm, force)
       end
       -- time computation of integrated moments
       self.integratedEMTime = self.integratedEMTime + Time.clock() - tmStart
-      
+
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em[1], string.format("field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 self.emEnergy:write(string.format("fieldEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -409,6 +423,8 @@ function MaxwellField:readRestart()
    self.ioFrame = fr
    -- iterate triggers
    self.ioTrigger(tm)
+
+   return tm
 end
 
 function MaxwellField:rkStepperFields()
@@ -428,14 +444,6 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
       for i = 1, nFlds do -- accumulate rest of the fields
          self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
       end	 
-   end
-
-   -- Barrier after accumulate since applyBc has different loop structure
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-
-   if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
-      -- only applyBc on forwardEuler combine
-      self:applyBc(nil, self:rkStepperFields()[outIdx])
    end
 end
 
@@ -547,6 +555,10 @@ function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    return status, dtSuggested   
 end
 
+function MaxwellField:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[idx])
+end 
+
 function MaxwellField:applyBc(tCurr, emIn)
    local tmStart = Time.clock()
    if self.hasNonPeriodicBc then
@@ -654,7 +666,7 @@ function FuncMaxwellField:initField()
 end
 
 function FuncMaxwellField:write(tm, force)
-   if self.evolve then
+   if self.evolve or self.forceWrite then
       if self.ioTrigger(tm) or force then
 	 self.fieldIo:write(self.em, string.format("func_field_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 
@@ -688,7 +700,12 @@ function FuncMaxwellField:advance(tCurr)
    local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, {}, {emOut})
+      self:applyBc(tCurr, emOut)
    end
+end
+
+function FuncMaxwellField:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
 function FuncMaxwellField:applyBc(tCurr, emIn)

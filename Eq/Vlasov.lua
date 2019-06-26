@@ -14,14 +14,6 @@ local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
 
--- for incrementing in updater
-ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
-
--- compute emOut = q/m*emIn
-local function rescaleEmField(qbym, emIn, emOut)
-   ffiC.vlasovIncr(#emOut, emIn:data(), qbym, emOut:data())
-end
-
 -- Vlasov equation on a rectangular mesh
 local Vlasov = Proto(EqBase)
 
@@ -74,18 +66,6 @@ function Vlasov:init(tbl)
    self._emField = nil
    -- (these will be set on the first call to setAuxFields() method)
    self._emPtr, self._emIdxr = nil, nil
-   self._emAccel = nil
-
-   self._hasConstGrav = false
-   self._gravAccelIdx, self._gravAccelCoeff = 1, 0.0
-   -- check if we have gravity terms
-   if tbl.constGravity then
-      self._hasConstGrav = true
-      -- gravAccelIdx is the index location to add gravitational
-      -- acceleration term
-      self._gravAccelIdx = 1+self._confBasis:numBasis()*(tbl.constGravity.dir-1)
-      self._gravAccelCoeff = math.sqrt(2^self._cdim)*tbl.constGravity.accel
-   end
 
    -- flag to indicate if we are being called for first time
    self._isFirst = true
@@ -129,11 +109,7 @@ function Vlasov:volTerm(w, dx, idx, q, out)
    local cflFreq = 0.0
    if self._hasForceTerm then
       self._emField:fill(self._emIdxr(idx), self._emPtr) -- get pointer to EM field
-      rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
-      if self._hasConstGrav then
-	 self._emAccel[self._gravAccelIdx] = self._emAccel[self._gravAccelIdx]+self._gravAccelCoeff
-      end
-      cflFreq = self._volUpdate(w:data(), dx:data(), self._emAccel:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(w:data(), dx:data(), self._emPtr:data(), q:data(), out:data())
    else
       -- if no force, only update streaming term
       cflFreq = self._volUpdate(w:data(), dx:data(), q:data(), out:data())
@@ -152,14 +128,10 @@ function Vlasov:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql
    else
       if self._hasForceTerm then
 	 -- force term
-	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field
-	 rescaleEmField(self._qbym, self._emPtr, self._emAccel) -- multiply EM field by q/m
-	 if self._hasConstGrav then
-	    self._emAccel[self._gravAccelIdx] = self._emAccel[self._gravAccelIdx]+self._gravAccelCoeff
-	 end	 
+	 self._emField:fill(self._emIdxr(idxl), self._emPtr) -- get pointer to EM field 
 	 amax = self._surfForceUpdate[dir-self._cdim](
 	    wl:data(), wr:data(), dxl:data(), dxr:data(), maxs,
-	    self._emAccel:data(), ql:data(), qr:data(), outl:data(), outr:data())
+	    self._emPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return amax
@@ -173,7 +145,6 @@ function Vlasov:setAuxFields(auxFields)
       if self._isFirst then
 	 self._emPtr = self._emField:get(1)
 	 self._emIdxr = self._emField:genIndexer()
-	 self._emAccel = Lin.Vec(self._emField:numComponents())
 	 self._isFirst = false -- no longer first time
       end
    end

@@ -6,6 +6,7 @@
 
 -- Gkyl libraries.
 local GaussQuadRules = require "Lib.GaussQuadRules"
+local LinearDecomp   = require "Lib.LinearDecomp"
 local Lin            = require "Lib.Linalg"
 local Proto          = require "Proto"
 local Range          = require "Lib.Range"
@@ -34,13 +35,16 @@ function BgkCollisions:init(tbl)
    local varNuIn       = tbl.varyingNu           -- Specify if collisionality varies spatially.
    local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
+  -- Dimension of phase space.
+   self._pDim = self._phaseBasis:ndim()
+
    -- The default is spatially constant collisionality.
    if varNuIn==nil then
       self._varNu       = false
       self._cellConstNu = true
    else
       self._varNu       = varNuIn
-      if cellConstNuIn==nil then
+      if cellConstNuIn == nil then
          self._cellConstNu = true
       else
          self._cellConstNu = cellConstNuIn
@@ -54,21 +58,21 @@ function BgkCollisions:init(tbl)
    local numConfDims   = self._confBasis:ndim()
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/(math.sqrt(2.0^numConfDims))
-
 end
 
 ----------------------------------------------------------------------
 -- Updater Advance ---------------------------------------------------
 function BgkCollisions:_advance(tCurr, inFld, outFld)
+   local grid = self._phaseGrid
    local numPhaseBasis = self._phaseBasis:numBasis()
-
+   local pDim = self._pDim
    -- Get the inputs and outputs.
-   local fIn      = assert(inFld[1],
+   local fIn           = assert(inFld[1],
       "BgkCollisions.advance: Must specify an input distribution function field as input[1]")
-   local fMaxwell = assert(inFld[2],
-      "BgkCollisions.advance: Must specify the Maxwellian distribution function field as input[2]")
-   local nuIn     = assert(inFld[3],
-      "BgkCollisions.advance: Must specify the collisionality as input[3]")
+   local sumNufMaxwell = assert(inFld[2],
+      "BgkCollisions.advance: Must specify sum(nu*Maxwellian) field as input[2]")
+   local sumNuIn       = assert(inFld[3],
+      "BgkCollisions.advance: Must specify the sum of collisionalities as input[3]")
    local nuFrac = 1.0
    if inFld[4] then
       nuFrac = inFld[4]
@@ -76,39 +80,52 @@ function BgkCollisions:_advance(tCurr, inFld, outFld)
 
    local fRhsOut = assert(outFld[1], "BgkCollisions.advance: Must specify an output field")
 
-   local fInItr      = fIn:get(1)
-   local fMaxwellItr = fMaxwell:get(1)
+   local fInItr           = fIn:get(1)
+   local sumNufMaxwellItr = sumNufMaxwell:get(1)
 
-   local nu = 0.0    -- Assigned below if cellConstNu=true.
+   local sumNu = 0.0    -- Assigned below if cellConstNu=true.
    if self._varNu then
-      self._nuPtr  = nuIn:get(1)
-      self._nuIdxr = nuIn:genIndexer()
+      self._sumNuPtr  = sumNuIn:get(1)
+      self._sumNuIdxr = sumNuIn:genIndexer()
    else
-      nu = nuIn
+      sumNu = sumNuIn
    end
 
-   local fRhsOutItr  = fRhsOut:get(1)
-
+   local fRhsOutItr   = fRhsOut:get(1)
+   local phaseRange = fRhsOut:localRange()
    -- Get the range to loop over the domain.
    local phaseIndexer = fRhsOut:genIndexer()
 
+   -- Get the interface for setting global CFL frequencies
+   local cflRateByCell = self._cflRateByCell
+   local cflRateByCellIdxr = cflRateByCell:genIndexer()
+   local cflRateByCellPtr = cflRateByCell:get(1)
+
+   -- Construct range for shared memory.
+   local phaseRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phaseRange:selectFirst(pDim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
    -- Phase space loop.
-   for phaseIdx in fRhsOut:localRangeIter() do
-      fIn:fill(phaseIndexer(phaseIdx), fInItr)
-      fMaxwell:fill(phaseIndexer(phaseIdx), fMaxwellItr)
-      fRhsOut:fill(phaseIndexer(phaseIdx), fRhsOutItr)
+   for pIdx in phaseRangeDecomp:rowMajorIter(tId) do
+      fIn:fill(phaseIndexer(pIdx), fInItr)
+      sumNufMaxwell:fill(phaseIndexer(pIdx), sumNufMaxwellItr)
+      fRhsOut:fill(phaseIndexer(pIdx), fRhsOutItr)
+
+      cflRateByCell:fill(cflRateByCellIdxr(pIdx), cflRateByCellPtr)
 
       if self._cellConstNu then
          -- This code assumes nu is cell-wise constant.
          if self._varNu then
-            nuIn:fill(self._nuIdxr(phaseIdx), self._nuPtr)    -- Get pointer to nu field.
-            nu = self._nuPtr[1]*self._cellAvFac
+            sumNuIn:fill(self._sumNuIdxr(pIdx), self._sumNuPtr)    -- Get pointer to sumNu field.
+            sumNu = self._sumNuPtr[1]*self._cellAvFac
          end
          for k = 1, numPhaseBasis do
-            if fMaxwellItr[k] == fMaxwellItr[k] then -- NaN check.
-               fRhsOutItr[k] = fRhsOutItr[k] + nuFrac*nu*(fMaxwellItr[k] - fInItr[k])
+            if sumNufMaxwellItr[k] == sumNufMaxwellItr[k] then -- NaN check.
+               fRhsOutItr[k] = fRhsOutItr[k] + nuFrac*(sumNufMaxwellItr[k] - sumNu*fInItr[k])
             end
          end
+	 cflRateByCellPtr:data()[0] = cflRateByCellPtr:data()[0] + sumNu
       end
    end
 end
