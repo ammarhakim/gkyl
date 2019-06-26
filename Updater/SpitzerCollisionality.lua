@@ -12,6 +12,7 @@
 
 -- Gkyl libraries.
 local UpdaterBase   = require "Updater.Base"
+local LinearDecomp  = require "Lib.LinearDecomp"
 local Proto         = require "Lib.Proto"
 local SpitzerNuDecl = require "Updater.spitzerNuCalcData.SpitzerNuModDecl"
 local xsys          = require "xsys"
@@ -85,24 +86,27 @@ function SpitzerCollisionality:_advance(tCurr, inFld, outFld)
       massFac    = mass
    end
 
-   local m0FldIndexer   = m0Fld:genIndexer()
+   local confIndexer   = m0Fld:genIndexer()
    local m0FldItr       = m0Fld:get(1)
-   local vtSqFldIndexer = vtSqFld:genIndexer()
    local vtSqFldItr     = vtSqFld:get(1)
 
    local nuOut          = outFld[1]
-   local nuOutIndexer   = nuOut:genIndexer()
    local nuOutItr       = nuOut:get(1)
 
    local confRange      = m0Fld:localRange()
    if self.onGhosts then confRange = m0Fld:localExtRange() end
 
-   for confIdx in confRange:rowMajorIter() do
-      grid:setIndex(confIdx)
+   -- construct ranges for nested loops
+   local confRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = confRange:selectFirst(self._cDim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId() -- local thread ID
 
-      m0Fld:fill(m0FldIndexer(confIdx), m0FldItr)
-      vtSqFld:fill(vtSqFldIndexer(confIdx), vtSqFldItr)
-      nuOut:fill(nuOutIndexer(confIdx), nuOutItr)
+   for cIdx in confRangeDecomp:rowMajorIter(tId) do
+      grid:setIndex(cIdx)
+
+      m0Fld:fill(confIndexer(cIdx), m0FldItr)
+      vtSqFld:fill(confIndexer(cIdx), vtSqFldItr)
+      nuOut:fill(confIndexer(cIdx), nuOutItr)
 
       self._SpitzerNuCalc(firstInput, massFac, massSq, chargeR4, self._epsilon0Sq, m0FldItr:data(), vtSqFldItr:data(), nuOutItr:data())
    end

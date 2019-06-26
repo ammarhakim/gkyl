@@ -8,6 +8,7 @@
 
 local SourceBase = require "App.Sources.SourceBase"
 local DataStruct = require "DataStruct"
+local Basis = require "Basis"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
@@ -36,10 +37,21 @@ function CollisionlessEmSource:fullInit(appTbl)
    self.slvr = nil
 
    self.speciesList = tbl.species -- list of species to update
+   self.evolve = tbl.evolve
 
    -- (MAKE SURE NAME IS MATCHING ONE IN UPDATERS!!)
    self.timeStepper = tbl.timeStepper -- time-stepper to use
    self.linSolType = tbl.linSolType
+
+   self.hasStaticField = tbl.hasStaticField
+   self.hasPressure = tbl.hasPressureField
+   self.hasSigmaField = tbl.hasSigmaField
+   self.hasAuxSourceFunction = tbl.hasAuxSourceFunction
+   self.auxSourceFunction = tbl.auxSourceFunction
+
+   self.hasStaticEm = tbl.hasStaticEm
+   self.staticEmFunc = tbl.staticEmFunction
+   self.staticEm = nil
 end
 
 function CollisionlessEmSource:setName(nm)
@@ -56,19 +68,44 @@ end
 function CollisionlessEmSource:createSolver(species, field)
    local numSpecies = #self.speciesList
    local mass, charge = {}, {}
-   local evolve = {}
+   local evolve = self.evolve
 
    local source_type
    for i, nm in ipairs(self.speciesList) do
       mass[i] = species[nm]:getMass()
       charge[i] = species[nm]:getCharge()
-      evolve[i] = species[nm]:getEvolve()
       if not source_type then
          source_type = species[nm].nMoments
       else
          -- FIXME Currently all species must have the same moments.
          assert(source_type == species[nm].nMoments)
       end
+   end
+   if not evolve then
+      evolve = {}
+      for i, nm in ipairs(self.speciesList) do
+         evolve[i] = species[nm]:getEvolve()
+      end
+   end
+
+   local hasStaticEm = false
+   if self.hasStaticEm then
+      local ndim = self.grid:ndim()
+      local polyOrder = 0
+      self.basis = Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
+      self.staticEm = DataStruct.Field {
+         onGrid = self.grid,
+         numComponents = 6,
+         ghost = {2, 2}
+      }
+      local project = Updater.ProjectOnBasis {
+         onGrid = self.grid,
+         basis = self.basis,
+         evaluate = self.staticEmFunc,
+         projectOnGhosts = true,
+      }
+      project:advance(0.0, {}, {self.staticEm})
+      hasStaticEm = true
    end
 
    if source_type == 5 then
@@ -83,6 +120,13 @@ function CollisionlessEmSource:createSolver(species, field)
          mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
          linSolType = self.linSolType,
          scheme = self.timeStepper,
+         hasStaticField = self.hasStaticField,
+         hasPressure = self.hasPressureField,
+         hasSigmaField = self.hasSigmaField,
+         sigmaField = self.sigmaField,
+         hasAuxSourceFunction = self.hasAuxSourceFunction,
+         auxSourceFunction = self.auxSourceFunction,
+         hasStaticField = hasStaticEm,
       }
    elseif source_type == 10 then
       self.slvr = Updater.TenMomentSrc {
@@ -96,6 +140,13 @@ function CollisionlessEmSource:createSolver(species, field)
          mgnErrorSpeedFactor = field:getMgnErrorSpeedFactor(),
          linSolType = self.linSolType,
          scheme = self.timeStepper,
+         hasStaticField = self.hasStaticField,
+         hasPressure = self.hasPressureField,
+         hasSigmaField = self.hasSigmaField,
+         sigmaField = self.sigmaField,
+         hasAuxSourceFunction = self.hasAuxSourceFunction,
+         auxSourceFunction = self.auxSourceFunction,
+         hasStaticField = hasStaticEm,
       }
    else
       assert(false, string.format("source_type %s not supported.", source_type))
@@ -114,7 +165,7 @@ function CollisionlessEmSource:updateSource(tCurr, dt, speciesVar, fieldVar)
    end
    outVars[#self.speciesList+1] = fieldVar
    self.slvr:setDtAndCflRate(dt, nil)
-   return self.slvr:advance(tCurr, {}, outVars)
+   return self.slvr:advance(tCurr, {self.staticEm}, outVars)
 end
 
 function CollisionlessEmSource:write(tm, frame)

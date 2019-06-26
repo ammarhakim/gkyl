@@ -9,12 +9,15 @@ CXX=g++
 MPICC=mpicc
 MPICXX=mpicxx
 
-# by default, don't build anything. will check later to see if things should be installed.
+# by default, don't build anything. will check later to see if things
+# should be installed.
 BUILD_LUAJIT=
 BUILD_LUAROCKS=
 BUILD_ADIOS=
 BUILD_OPENMPI=
 BUILD_EIGEN=
+BUILD_ZMQ=
+BUILD_CZMQ=
 
 # ----------------------------------------------------------------------------
 # FUNCTION DEFINITIONS
@@ -51,6 +54,8 @@ and C++ compilers to use.
 --build-adios               Should we build ADIOS?
 --build-openmpi             Should we build OpenMPI?
 --build-eigen               Should we build Eigen?
+--build-zmq                 Should we build ZeroMQ?
+--build-czmq                Should we build C interface to ZeroMQ?
 
 The behavior of the flags for library xxx is as follows:
 --build-xxx=no              Don't build xxx, even if it can't be found in PREFIXDIR
@@ -147,6 +152,14 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAROCKS="$value"
       ;;
+   --build-czmq)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_CZMQ="$value"
+      ;;   
+   --build-zmq)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_ZMQ="$value"
+      ;;
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -228,6 +241,22 @@ build_luarocks() {
     fi
 }
 
+build_zmq() {
+    if [ "$BUILD_ZMQ" = "yes" ]
+    then    
+	echo "Building ZMQ"
+	./build-zmq.sh
+    fi
+}
+
+build_czmq() {
+    if [ "$BUILD_CZMQ" = "yes" ]
+    then    
+	echo "Building CZMQ"
+	./build-czmq.sh
+    fi
+}
+
 echo "Installations will be in $PREFIX"
 
 build_openmpi
@@ -236,3 +265,5 @@ build_luajit_beta3
 build_luarocks
 build_adios
 build_eigen
+build_zmq
+build_czmq

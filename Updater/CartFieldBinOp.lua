@@ -71,7 +71,7 @@ function CartFieldBinOp:init(tbl)
       if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder) end
    else
       assert(false, string.format(
-		"CartFieldBinOp: Operation must be one of Multiply, Divide. Requested %s instead.", op))
+		"CartFieldBinOp: Operation must be one of Multiply, Divide, DotProduct. Requested %s instead.", op))
    end
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)

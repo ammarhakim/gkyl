@@ -15,6 +15,12 @@ local new, typeof = xsys.from(ffi,
      "new, typeof")
 
 local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
+
+-- global count of barriers
+local numMpiBarrier = 0
+-- time spent in barrier function
+local timeMpiBarrier = 0.0
 
 local _M = {}
 
@@ -390,7 +396,7 @@ end
 function _M.Irecv(buf, count, datatype, source, tag, comm)
    local req = new_MPI_Request()
    local _ = ffiC.MPI_Irecv(
-      buf, count, datatype, source, tag, getObj(comm, "MPI_Comm[1]"), req)
+      buf, count, getObj(datatype, "MPI_Datatype[1]"), source, tag, getObj(comm, "MPI_Comm[1]"), req)
    return req
 end
 -- MPI_Wait
@@ -407,7 +413,10 @@ end
 
 -- MPI_Barrier
 function _M.Barrier(comm)
+   numMpiBarrier = numMpiBarrier+1
+   local tm = Time.clock()
    local _ = ffiC.MPI_Barrier(getObj(comm, "MPI_Comm[1]"))
+   timeMpiBarrier = timeMpiBarrier + (Time.clock() - tm)
 end
 -- MPI_Abort
 function _M.Abort(comm, errCode)
@@ -509,49 +518,45 @@ function _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype
    end
 end
 
--- Constructs block offsets and sizes from range object
-function _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
+-- Constructs block offsets and sizes from range and a specified
+-- sub-range. Sub-range must be completely inside the range
+function _M.createBlockInfoFromRangeAndSubRange(subRange, range, numComponent, ordering)
    local indexer = range:genIndexer(ordering)
-   local rFace = range:shorten(dir, nlayer)
-   local lo = rFace:lowerAsVec()
-   local up = rFace:upperAsVec()
+   local lo = subRange:lowerAsVec()
+   local up = subRange:upperAsVec()
 
-   local blockSize, blockOffset = {}, {}
-
+   -- check if subRange is contiguous subset of range
    local dist = indexer(up)-indexer(lo)+1
-   if dist == rFace:volume() then
-      blockSize[1] = rFace:volume()*numComponent
-      blockOffset[1] = 0
-   else
-      -- determine size of each block and its zero-based index (MPI
-      -- expects zero-based indices)
-      local currBlockSize, lastLinIdx, lastOffset
-      local count = 0
-      for idx in rFace:iter(ordering) do
-	 if count == 0 then
-	    -- reset things if first time in this loop
-	    count = 1
-	    currBlockSize = 1
-	    lastLinIdx = indexer(idx)
-	    lastOffset = 0
-	 else
-	    local linIdx = indexer(idx)
-	    if linIdx-lastLinIdx == 1 then -- indices are contiguous
-	       currBlockSize = currBlockSize+1
-	    else
-	       -- store size and index
-	       blockSize[count] = currBlockSize*numComponent
-	       blockOffset[count] = lastOffset
+   if dist == subRange:volume() then
+      return { subRange:volume()*numComponent }, { 0 }
+   end
 
-	       -- prep for next round
-	       currBlockSize = 1
-	       lastOffset = (linIdx-1)*numComponent
-	       count = count+1
-	    end
-	    lastLinIdx = linIdx -- for next round
+   local firstOffset = indexer(lo)
+   local blockSize, blockOffset = {}, {}   
+   local currBlockSize, currOffset = 1, indexer(subRange:lowerAsVec())
+   local count = 0
+   local lastLinIdx = indexer(lo)
+   
+   for idx in subRange:iter(ordering) do
+      if count == 0 then
+	 count = 1
+      else
+	 local linIdx = indexer(idx)
+	 if linIdx-lastLinIdx == 1 then -- indices are contiguous
+	    currBlockSize = currBlockSize+1
+	 else
+	    -- store size and index
+	    blockSize[count] = currBlockSize*numComponent
+	    blockOffset[count] = (currOffset-firstOffset)*numComponent
+	    
+	    -- prep for next round
+	    currBlockSize = 1
+	    currOffset = linIdx
+	    count = count+1
 	 end
+	 lastLinIdx = linIdx -- for next round
 	 blockSize[count] = currBlockSize*numComponent
-	 blockOffset[count] = lastOffset
+	 blockOffset[count] = (currOffset-firstOffset)*numComponent
       end
    end
    return blockSize, blockOffset
@@ -564,10 +569,29 @@ end
 -- 'nlayer' is number of layers in range to include in datatype and
 -- 'numComponent' is the number of components in field (usually 1)
 function _M.createDataTypeFromRange(dir, range, nlayer, numComponent, ordering, oldtype)
-   local blockSize, blockOffset = _M.createBlockInfoFromRange(dir, range, nlayer, numComponent, ordering)
+   local blockSize, blockOffset = _M.createBlockInfoFromRangeAndSubRange(
+	 range:shorten(dir, nlayer), range, numComponent, ordering)
    return _M.Type_commit(
       _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
    )
 end
+
+-- Creates an MPI_Datatype object from a range and its subRange object.
+-- 'ordering' must be one of Range.rowMajor or Range.colMajor.
+--
+-- 'numComponent' is the number of components in field (usually 1)
+function _M.createDataTypeFromRangeAndSubRange(subRange, range, numComponent, ordering, oldtype)
+   local blockSize, blockOffset = _M.createBlockInfoFromRangeAndSubRange(
+      subRange, range, numComponent, ordering)
+   return _M.Type_commit(
+      _M.createDataTypeFromBlockSizeAndOffset(blockSize, blockOffset, oldtype)
+   )
+end
+
+-- Gets total number of barriers called in system
+function _M.getNumBarriers()  return numMpiBarrier end
+
+-- Gets total time spent in barriers
+function _M.getTimeBarriers()  return timeMpiBarrier end
 
 return _M

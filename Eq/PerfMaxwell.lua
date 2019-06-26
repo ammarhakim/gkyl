@@ -67,7 +67,18 @@ function PerfMaxwell:init(tbl)
    if self._basis then
       local nm, ndim, p = self._basis:id(), self._basis:ndim(), self._basis:polyOrder()
       self._volTerm = MaxwellModDecl.selectVol(nm, ndim, p)
-      self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
+
+      -- numFlux used for selecting which type of numerical flux function to use
+      -- default is "upwind," supported options: "central," "upwind"
+      self._numFlux = tbl.numFlux and tbl.numFlux or "upwind"
+      if self._numFlux == "upwind" then
+         self._surfTerms = MaxwellModDecl.selectSurf(nm, ndim, p)
+      elseif self._numFlux == "central" then
+         print("selecting central fluxes")
+         self._surfTerms = MaxwellModDecl.selectCentralSurf(nm, ndim, p)
+      else
+         assert(self._numFLux, "Eq.PerfMaxwell: Incorrect numerical flux specified, options supported: 'central' and 'upwind' ")
+      end
    end
 
    -- maximum characteristic speed
@@ -106,6 +117,8 @@ end
 function PerfMaxwell:rp(dir, delta, ql, qr, waves, s)
    local d = dirShuffle[dir] -- shuffle indices for `dir`
    local c, c1 = self._c, 1/self._c
+   local v = c
+   local a = 0.5 * (v/c - 1)
 
    -- compute projections of jump (generated from Maxima)
    local a1 = 0.5*(delta[d[4]]-delta[8]*c1)
@@ -148,22 +161,40 @@ function PerfMaxwell:rp(dir, delta, ql, qr, waves, s)
    local w = waves[5]
    w[d[2]] = a5
    w[d[3]] = a6
-   w[d[5]] = a6*c1
-   w[d[6]] = -a5*c1
+   w[d[5]] = a6*c1 + a * delta[d[5]]
+   w[d[6]] = -a5*c1 + a * delta[d[6]]
    s[5] = -c
 
    -- wave 6: (two waves with EV c, c lumped into one)
    local w = waves[6]
    w[d[2]] = a7
    w[d[3]] = a8
-   w[d[5]] = -a8*c1
-   w[d[6]] = a7*c1
+   w[d[5]] = -a8*c1 + a * delta[d[5]]
+   w[d[6]] = a7*c1 + a * delta[d[6]]
    s[6] = c
 end
 
 -- Compute q-fluctuations
 function PerfMaxwell:qFluctuations(dir, ql, qr, waves, s, amdq, apdq)
    qFluctuations(dir, waves, s, amdq, apdq)
+
+   local c = s[6]
+   local v = c
+   local d = dirShuffle[dir] -- shuffle indices for `dir`
+   -- for _,i in ipairs({2, 3, 5, 6}) do
+   for _,i in ipairs({5, 6}) do
+      apdq[d[i]] = apdq[d[i]] + 0.5 * (v-c) * (qr[d[i]] - ql[d[i]])
+      amdq[d[i]] = amdq[d[i]] - 0.5 * (v-c) * (qr[d[i]] - ql[d[i]])
+   end
+   local v = c
+   local d = dirShuffle[dir] -- shuffle indices for `dir`
+   -- for _,i in ipairs({2, 3, 5, 6}) do
+   -- for _,i in ipairs({5, 6}) do
+   for _,i in ipairs({2, 3}) do
+      apdq[d[i]] = apdq[d[i]] + 0.5 * (v-c) * (qr[d[i]] - ql[d[i]])
+      amdq[d[i]] = amdq[d[i]] - 0.5 * (v-c) * (qr[d[i]] - ql[d[i]])
+   end
+
 end
 
 -- Maximum wave speed

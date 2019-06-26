@@ -62,7 +62,6 @@ plasmaApp = Plasma.App {
       lower = {-4, 0},
       upper = {4, 4},
       cells = {8, 8},
-      decompCuts = {1, 1},
       -- Initial conditions.
       init = {"maxwellian",
               density     = squareHat,

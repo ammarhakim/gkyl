@@ -29,7 +29,6 @@ sim = Plasma.App {
       lower = {-6.0},
       upper = { 6.0},
       cells = {8},
-      decompCuts = {1},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
@@ -46,7 +45,7 @@ sim = Plasma.App {
       diagnosticIntegratedMoments = { "intM0", "intM1i",
 				      "intM2Flow", "intM2Thermal" },
       -- Collisions.
-      bgk = Plasma.BgkCollisions {
+      bgk = Plasma.BGKCollisions {
          collideWith = {"neut"},
 	 frequencies = {1.0},
       },

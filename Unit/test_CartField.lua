@@ -435,6 +435,9 @@ function test_12()
       onGrid = grid,
       numComponents = 3,
       ghost = {1, 2},
+      metaData = {
+	 polyOrder = 2, basisType = "ms"
+      }
    }
    field:clear(10.25)
 

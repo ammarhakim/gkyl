@@ -28,7 +28,9 @@ function SpeciesBase:createDiagnostics() end
 function SpeciesBase:rkStepperFields() return { nil } end
 function SpeciesBase:suggestDt() end
 function SpeciesBase:clearCFL() end
+function SpeciesBase:clearMomentFlags(species) end
 function SpeciesBase:initDist() end
+function SpeciesBase:initCrossSpeciesCoupling() end
 function SpeciesBase:calcCouplingMoments() end
 function SpeciesBase:write(tm) end
 function SpeciesBase:writeRestart(tm) end
@@ -38,6 +40,7 @@ end
 function SpeciesBase:updateInDirection(dir, tCurr, dt, fIn, fOut)
    return true, GKYL_MAX_DOUBLE
 end
+function SpeciesBase:applyBcIdx(tCurr, idx) end
 function SpeciesBase:applyBc(tCurr, fld) end
 function SpeciesBase:totalSolverTime() return 0.0 end
 function SpeciesBase:momCalcTime() return 0.0 end

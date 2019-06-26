@@ -77,7 +77,6 @@ plasmaApp = Plasma.App {
       lower = {VPAR_LOWER, MU_LOWER},
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
-      decompCuts = {1, 1},
       -- initial conditions
       initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)
@@ -118,7 +117,6 @@ plasmaApp = Plasma.App {
       lower = {VPAR_LOWER*vti/vte, MU_LOWER*mi*vti*vti/me/vte/vte},
       upper = {VPAR_UPPER*vti/vte, MU_UPPER*mi*vti*vti/me/vte/vte},
       cells = {N_VPAR, N_MU},
-      decompCuts = {1, 1},
       -- initial conditions
       initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
               density = function (t, xn)

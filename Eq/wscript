@@ -46,16 +46,19 @@ def build(bld):
     lboData/VmLBOconstNuMax1x3v.cpp
     lboData/VmLBOconstNuMax2x2v.cpp
     lboData/VmLBOconstNuMax2x3v.cpp
+    lboData/VmLBOconstNuMax3x3v.cpp
     lboData/VmLBOconstNuSurfMax1x1v.cpp
     lboData/VmLBOconstNuSurfMax1x2v.cpp
     lboData/VmLBOconstNuSurfMax1x3v.cpp
     lboData/VmLBOconstNuSurfMax2x2v.cpp
     lboData/VmLBOconstNuSurfMax2x3v.cpp
+    lboData/VmLBOconstNuSurfMax3x3v.cpp
     lboData/VmLBOconstNuBoundarySurfMax1x1v.cpp
     lboData/VmLBOconstNuBoundarySurfMax1x2v.cpp
     lboData/VmLBOconstNuBoundarySurfMax1x3v.cpp
     lboData/VmLBOconstNuBoundarySurfMax2x2v.cpp
     lboData/VmLBOconstNuBoundarySurfMax2x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfMax3x3v.cpp
 
     constDiffusionData/ConstDiffusionSer1x.cpp
     constDiffusionData/ConstDiffusionSer2x.cpp
@@ -73,6 +76,10 @@ def build(bld):
     maxwellData/MaxwellSurfSer2x.cpp
     maxwellData/MaxwellSurfSer3x.cpp
 
+    maxwellData/MaxwellCentralSurfSer1x.cpp
+    maxwellData/MaxwellCentralSurfSer2x.cpp
+    maxwellData/MaxwellCentralSurfSer3x.cpp
+
     maxwellData/MaxwellVolMax1x.cpp
     maxwellData/MaxwellVolMax2x.cpp
     maxwellData/MaxwellVolMax3x.cpp
@@ -81,11 +88,18 @@ def build(bld):
     maxwellData/MaxwellSurfMax2x.cpp
     maxwellData/MaxwellSurfMax3x.cpp
 
+    maxwellData/MaxwellCentralSurfMax1x.cpp
+    maxwellData/MaxwellCentralSurfMax2x.cpp
+    maxwellData/MaxwellCentralSurfMax3x.cpp
+
     maxwellData/MaxwellVolTensor1x.cpp
     maxwellData/MaxwellVolTensor2x.cpp
 
     maxwellData/MaxwellSurfTensor1x.cpp
     maxwellData/MaxwellSurfTensor2x.cpp
+
+    maxwellData/MaxwellCentralSurfTensor1x.cpp
+    maxwellData/MaxwellCentralSurfTensor2x.cpp
 
     vlasovData/VlasovStreamMax1x1v.cpp
     vlasovData/VlasovStreamMax1x2v.cpp

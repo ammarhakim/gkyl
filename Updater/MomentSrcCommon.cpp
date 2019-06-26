@@ -45,7 +45,7 @@ static const int PARTIAL_PIV_LU = 1;
 #define eidx(c) (3 * nFluids + (c))
 
 void
-gkylMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em)
+gkylMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
   std::vector<double> f1(5), em1(8), curr(3);
@@ -121,7 +121,7 @@ gkylMomentSrcRk3(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, d
 }
 
 void
-gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
   double dt1 = 0.5 * dt;
@@ -175,6 +175,13 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
     // add gravity source term for current
     rhs(fidx(n, sd->gravityDir)) += qbym*f[RHO]*sd->gravity*dt1;
 
+    // add auxiliary source for current
+    if (sd->hasAuxSrc) {
+      rhs(fidx(n, X)) += auxSrc[n*3+0]*dt1;
+      rhs(fidx(n, Y)) += auxSrc[n*3+1]*dt1;
+      rhs(fidx(n, Z)) += auxSrc[n*3+2]*dt1;
+    }
+
     // set current contribution to electric field equation
     lhs(eidx(X), fidx(n,X)) = dt2;
     lhs(eidx(Y), fidx(n,Y)) = dt2;
@@ -190,6 +197,13 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
   rhs(eidx(EX)) = em[EX];
   rhs(eidx(EY)) = em[EY];
   rhs(eidx(EZ)) = em[EZ];
+
+  // add auxiliary source for current
+  if (sd->hasAuxSrc) {
+    rhs(eidx(EX)) += auxSrc[nFluids*3+0]*dt1;
+    rhs(eidx(EY)) += auxSrc[nFluids*3+1]*dt1;
+    rhs(eidx(EZ)) += auxSrc[nFluids*3+2]*dt1;
+  }
 
   // invert to find solution
   if (sd->linSolType == COL_PIV_HOUSEHOLDER_QR)
@@ -218,13 +232,19 @@ gkylMomentSrcTimeCentered(MomentSrcData_t *sd, FluidData_t *fd, double dt, doubl
   em[EY] = 2*sol(eidx(Y)) - em[EY];
   em[EZ] = 2*sol(eidx(Z)) - em[EZ];
 
+  if (sd->hasSigma) {
+    em[EX] = em[EX]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EY] = em[EY]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EZ] = em[EZ]*std::exp(-sigma[0]*dt/sd->epsilon0);
+  }
+
   //------------> update correction potential
   double crhoc = sd->chi_e*chargeDens/sd->epsilon0;
   em[PHIE] += dt*crhoc;
 }
 
 void
-gkylMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   // based on Smithe (2007) with corrections
   unsigned nFluids = sd->nFluids;
@@ -291,6 +311,12 @@ gkylMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt
   em[EY] = (coeff_e*fk[EY] + coeff_dot*B(1)*B.dot(fk) + coeff_cross*(B.cross(fk)(1)) )/denom; 
   em[EZ] = (coeff_e*fk[EZ] + coeff_dot*B(2)*B.dot(fk) + coeff_cross*(B.cross(fk)(2)) )/denom; 
 
+  if (sd->hasSigma) {
+    em[EX] = em[EX]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EY] = em[EY]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EZ] = em[EZ]*std::exp(-sigma[0]*dt/sd->epsilon0);
+  }
+
   // update the stored E field to E_n+1/2
   E(0) = (em[EX] + E(0))/2.0;
   E(1) = (em[EY] + E(1))/2.0;
@@ -327,7 +353,7 @@ gkylMomentSrcTimeCenteredDirect2(MomentSrcData_t *sd, FluidData_t *fd, double dt
 }
 
 void
-gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm)
+gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt, double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   // based on Smithe (2007) with corrections
   // but using Hakim (2019) notations
@@ -399,6 +425,12 @@ gkylMomentSrcTimeCenteredDirect(MomentSrcData_t *sd, FluidData_t *fd, double dt,
   em[EX] = F_new[0] / epsilon0;
   em[EY] = F_new[1] / epsilon0;
   em[EZ] = F_new[2] / epsilon0;
+
+  if (sd->hasSigma) {
+    em[EX] = em[EX]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EY] = em[EY]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EZ] = em[EZ]*std::exp(-sigma[0]*dt/sd->epsilon0);
+  }
 
   double chargeDens = 0.0;
   for (unsigned n = 0; n < nFluids; ++n)
@@ -649,7 +681,7 @@ rotate(const Eigen::Vector3d &v, const double cosa, const double cosah,
 
 void
 gkylMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt,
-                       double **ff, double *em, double *staticEm)
+                       double **ff, double *em, double *staticEm, double *sigma, double *auxSrc)
 {
   unsigned nFluids = sd->nFluids;
   double epsilon0 = sd->epsilon0;
@@ -789,6 +821,12 @@ gkylMomentSrcExact(MomentSrcData_t *sd, FluidData_t *fd, double dt,
         f[MX + d] = q_par[n + 1] * Pnorm[n];
       }
     }
+  }
+
+  if (sd->hasSigma) {
+    em[EX] = em[EX]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EY] = em[EY]*std::exp(-sigma[0]*dt/sd->epsilon0);
+    em[EZ] = em[EZ]*std::exp(-sigma[0]*dt/sd->epsilon0);
   }
 
   //------------> update correction potential

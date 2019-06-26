@@ -49,7 +49,8 @@ function FluidSpecies:fullInit(appTbl)
    self.mass = tbl.mass and tbl.mass or 1.0
    self.ioMethod = "MPI"
    self.evolve = xsys.pickBool(tbl.evolve, true) -- by default, evolve species
-   self.basis = nil -- Will be set later
+   -- by default, do not write species if it is not evolved
+   self.forceWrite = xsys.pickBool(tbl.forceWrite, false)
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
                                             self.evolve)
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve)
@@ -90,8 +91,14 @@ function FluidSpecies:fullInit(appTbl)
       self.bcz[1], self.bcz[2] = tbl.bcz[1], tbl.bcz[2]
       self.hasNonPeriodicBc = true
    end
+   
+   self.ssBc = {}
+   if tbl.ssBc then
+      self.ssBc[1] = tbl.ssBc[1]
+   end
 
    self.boundaryConditions = { } -- list of Bcs to apply
+   self.ssBoundaryConditions = { } -- list of stair-stepped Bcs to apply
    self.zeroFluxDirections = {}
 
    self.bcTime = 0.0 -- timer for BCs
@@ -228,6 +235,16 @@ function FluidSpecies:makeBcUpdater(dir, edge, bcList)
    }
 end
 
+-- function to construct a stair-stepped BC updater
+function FluidSpecies:makeSsBcUpdater(dir, inOut, bcList)
+   return Updater.StairSteppedBc {
+      onGrid = self.grid,
+      inOut = inOut,
+      boundaryConditions = bcList,
+      dir = dir,
+   }
+end
+
 function FluidSpecies:createBCs()
    -- functions to make life easier while reading in BCs to apply
    -- note: appendBoundaryConditions defined in sub-classes
@@ -316,18 +333,6 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
-
-   -- Barrier after accumulate since applyBc has different loop structure
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-
-   if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
-      -- only applyBc on forwardEuler combine
-      self:applyBc(nil, self:rkStepperFields()[outIdx])
-      -- only positivity diffuse on forwardEuler combine
-      if self.positivityDiffuse then
-         self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
-      end
-   end
 end
 
 function FluidSpecies:suggestDt()
@@ -366,14 +371,30 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function FluidSpecies:applyBc(tCurr, fIn)
+function FluidSpecies:applyBcIdx(tCurr, idx)
+  for dir = 1, self.ndim do
+     self:applyBc(tCurr, self:rkStepperFields()[idx], dir)
+  end
+  if self.positivityDiffuse then
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  end
+end
+
+function FluidSpecies:applyBc(tCurr, fIn, dir)
    local tmStart = Time.clock()
    if self.evolve then
       if self.hasNonPeriodicBc then
          for _, bc in ipairs(self.boundaryConditions) do
-            bc:advance(tCurr, {}, {fIn})
+            if (not dir) or dir == bc:getDir() then
+               bc:advance(tCurr, {}, {fIn})
+            end
          end
       end
+      for _, bc in ipairs(self.ssBoundaryConditions) do
+         if (not dir) or dir == bc:getDir() then
+             bc:advance(tCurr, {}, {fIn})
+          end
+       end
       fIn:sync()
    end
    self.bcTime = self.bcTime + Time.clock()-tmStart
@@ -389,13 +410,13 @@ function FluidSpecies:createDiagnostics()
    }
 end
 
-function FluidSpecies:write(tm)
-   if self.evolve then
+function FluidSpecies:write(tm, force)
+   if self.evolve or self.forceWrite then
       -- compute integrated diagnostics
       self.intMom2Calc:advance(tm, { self.moments[1] }, { self.integratedMoments })
       
       -- only write stuff if triggered
-      if self.diagIoTrigger(tm) then
+      if self.diagIoTrigger(tm) or force then
 	 self.momIo:write(
 	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
@@ -423,8 +444,13 @@ function FluidSpecies:readRestart()
    self.diagIoFrame = fr -- reset internal frame counter
    self.integratedMoments:read(string.format("%s_intMom_restart.bp", self.name))   
    
-   self:applyBc(tm, 0.0, self.moments[1])
+   for dir = 1, self.ndim do
+      self:applyBc(tm, self.moments[1], dir)
+   end
    self.moments[1]:sync() -- must get all ghost-cell data correct
+
+   -- iterate triggers
+   self.diagIoTrigger(tm)
 
    return tm
 end

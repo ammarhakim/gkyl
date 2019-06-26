@@ -47,10 +47,7 @@ function Gyrokinetic:init(tbl)
 
    -- for sheath BCs
    if tbl.hasSheathBcs then
-      -- create struct containing binOp arrays and allocate
-      self._binOpData = ffiC.new_binOpData_t(self._confBasis:numBasis(), 1)
-      self._calcSheathDeltaPhi = GyrokineticModDecl.selectSheathDeltaPhi(nm, self._cdim, p)
-      self._calcSheathPartialReflection = GyrokineticModDecl.selectSheathPartialReflection(nm, self._cdim, self._vdim, p)
+      self._calcSheathReflection = GyrokineticModDecl.selectSheathReflection(nm, self._cdim, self._vdim, p)
    end
 
    if self._isElectromagnetic then
@@ -218,15 +215,11 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    return res
 end
 
--- calculate deltaPhi at domain edge for sheath BCs
-function Gyrokinetic:calcSheathDeltaPhi(idx, edgeVal) 
+function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, idx, f, fRefl)
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
    self.phiWall:fill(self.phiWallIdxr(idx), self.phiWallPtr)
-   return self._calcSheathDeltaPhi(self.phiPtr:data(), self.phiWallPtr:data(), edgeVal)
-end
--- calculate deltaPhi at domain edge for sheath BCs
-function Gyrokinetic:calcSheathPartialReflection(w, dv, edgeVal, vcut, f, fhat)
-   return self._calcSheathPartialReflection(self._binOpData, w, dv, edgeVal, vcut, f:data(), fhat:data())
+   return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, 
+                                            self.phiPtr:data(), self.phiWallPtr:data(), f:data(), fRefl:data())
 end
 
 local GyrokineticStep2 = Proto(EqBase)

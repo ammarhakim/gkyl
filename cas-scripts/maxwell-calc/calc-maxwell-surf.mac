@@ -1,4 +1,4 @@
-load("maxwell-calc/maxwell-calc-surf-mod")$
+load("maxwell-calc/maxwell-calc-central-surf")$
 load(stringproc)$
 /* This script calls the functions which calculate the
    updates from the volume term contributions. */
@@ -32,10 +32,10 @@ maxVdim      : [maxVdim_Ser, maxVdim_Max, maxVdim_Tensor]$
 for bInd : 1 thru length(bName) do (
   for d : minCdim[bInd] thru maxCdim[bInd] do (
       disp(printf(false,sconcat("Creating surface Maxwell",bName[bInd]," ~ax"),d)),
-      fname : sconcat("~/max-out/MaxwellSurf", bName[bInd], d, "x", ".cpp"),
+      fname : sconcat("~/max-out/MaxwellCentralSurf", bName[bInd], d, "x", ".cpp"),
       fh : openw(fname),
-      funcName : sconcat("MaxwellSurf", d, "x", bName[bInd]),
-      calcMaxwellSurfUpdater(fh, funcName, d, bName[bInd], maxPolyOrder[bInd]),
+      funcName : sconcat("MaxwellCentralSurf", d, "x", bName[bInd]),
+      calcMaxwellCentralSurfUpdater(fh, funcName, d, bName[bInd], maxPolyOrder[bInd]),
       close(fh)
   )
 );
