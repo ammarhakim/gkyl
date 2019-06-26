@@ -28,6 +28,8 @@ return function(tbl)
    local lower = tbl.lower
    local upper = tbl.upper
 
+   local periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
+
    local tmRosen, tmFpo = 0.0, 0.0
 
    ----------------------
@@ -37,7 +39,7 @@ return function(tbl)
       lower = {lower[1], lower[2]},
       upper = {upper[1], upper[2]},
       cells = {cells[1], cells[2]},
-      periodicDirs = {},
+      periodicDirs = periodicDirs,
    }
 
    -- basis functions
@@ -123,7 +125,6 @@ return function(tbl)
    }
    initDist:advance(0.0, {}, {f})
    applyBc(f)
-   f:write("f_0.bp", 0.0, 0)
 
    local poisson = Updater.FemPerpPoisson {
       onGrid = grid,
@@ -141,12 +142,14 @@ return function(tbl)
    local initDrag = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
-      evaluate = initDragFunc
+      evaluate = initDragFunc,
+      projectOnGhosts = true,
    }
    local initDiff = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
-      evaluate = initDiffFunc
+      evaluate = initDiffFunc,
+      projectOnGhosts = true,
    }
 
    local function updateRosenbluthDrag(fIn, hOut)
@@ -154,9 +157,6 @@ return function(tbl)
       fs:combine(-1.0, fIn)
       if updatePotentials then
 	 poisson:advance(0.0, {fs}, {hOut})
-      else
-	 initDrag:advance(0.0, {}, {hOut})
-	 applyBc(hOut)
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -164,18 +164,18 @@ return function(tbl)
       local tmStart = Time.clock()
       if updatePotentials then
 	 poisson:advance(0.0, {hIn}, {gOut})
-      else
-	 initDiff:advance(0.0, {}, {gOut})
-	 applyBc(gOut)
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
 
    -- update Rosenbluth potentials
-   updateRosenbluthDrag(f, h)
-   updateRosenbluthDiffusion(h, g)
-   h:write('h_0.bp', 0.0, 0)
-   g:write('g_0.bp', 0.0, 0)
+   if updatePotentials then
+      updateRosenbluthDrag(f, h)
+      updateRosenbluthDiffusion(h, g)
+   else
+      initDrag:advance(0.0, {}, {h})
+      initDiff:advance(0.0, {}, {g})
+   end
 
    local M0Calc = Updater.CartFieldIntegratedQuantCalc {
       onGrid = grid,
@@ -183,7 +183,16 @@ return function(tbl)
       numComponents = 1,
       quantity = "V"
    }
-   if writeDiagnostics then M0:write("f_M0_0.bp", 0.0) end
+
+   local function writeData(fr, tm)
+      if writeDiagnostics then M0:write(string.format("f_M0_%d.bp", fr), tm) end
+      h:write(string.format('h_%d.bp', fr), tm)
+      g:write(string.format('g_%d.bp', fr), tm)
+      f:write(string.format("f_%d.bp", fr), tm)
+   end
+
+   -- write initial conditions
+   writeData(0, 0.0)
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
@@ -289,8 +298,7 @@ return function(tbl)
 	 f:copy(fNew)
 	 if writeDiagnostics then M0Calc:advance(tCurr+dt, { f }, { M0 }) end
 	 if tCurr >= nextFrame*frameInt then
-	    f:write(string.format("f_%d.bp", nextFrame), tCurr, nextFrame)
-	    if writeDiagnostics then M0:write(string.format("f_M0_%d.bp", nextFrame)) end
+	    writeData(nextFrame, tCurr)
 	    nextFrame = nextFrame+1
 	 end
 	 step = step+1
