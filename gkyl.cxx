@@ -305,6 +305,7 @@ main(int argc, char **argv) {
   insertInfo(toolList, "help", "help.lua", "Gkeyll help system");
   insertInfo(toolList, "examples", "examples.lua", "Example input files");
   insertInfo(toolList, "runtests", "runtests.lua", "Run unit/regression tests");
+  insertInfo(toolList, "queryrdb", "queryrdb.lua", "Query/modify regression test DB");
 
   if (argc < 2) {
     showUsage(toolList);

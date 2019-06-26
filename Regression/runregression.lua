@@ -38,6 +38,9 @@ local sqlConn = nil
 local insertRegressionDataProc = nil
 local insertRegressionMetaProc = nil
 
+-- Name of configuration file
+local confFile = os.getenv("HOME") .. "/runregression.config.lua"
+
 -- UUID generator
 math.randomseed( os.time() )
 local function uuid()
@@ -78,7 +81,7 @@ local runDate = date(false):fmt("${iso}")
 
 -- loads configuration file
 local function loadConfigure(args)
-   local f = loadfile("runregression.config.lua")
+   local f = loadfile(confFile)
    if not f then
       log("Regression tests not configured! Run config command first\n")
       os.exit(1)
@@ -208,7 +211,7 @@ local function configure(prefix, mpiExec, args)
    end
 
    -- write information into config file
-   local fn = io.open("runregression.config.lua", "w")
+   local fn = io.open(confFile, "w")
    fn:write("return {\n")
    fn:write(string.format("mpiExec = \"%s\",\n", mpiExec))
    fn:write(string.format("results_dir = \"%s/gkyl-results\",\n", prefix))
