@@ -90,25 +90,25 @@ return function(tbl)
 
    local bcT = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { openFunc },
+      boundaryConditions = { copyFunc },
       dir = 2,
       edge = "upper",
    }
    local bcB = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { openFunc },
+      boundaryConditions = { copyFunc },
       dir = 2,
       edge = "lower",
    }
    local bcL = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { openFunc },
+      boundaryConditions = { copyFunc },
       dir = 1,
       edge = "lower",
    }
    local bcR = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { openFunc },
+      boundaryConditions = { copyFunc },
       dir = 1,
       edge = "upper",
    }
@@ -300,15 +300,15 @@ return function(tbl)
 	 print(string.format("Step %d at time %g with dt %g ...", step, tCurr, dt))
 	 rk3(dt, f, fNew)
 	 f:copy(fNew)
+
 	 if writeDiagnostics then M0Calc:advance(tCurr+dt, { f }, { M0 }) end
 
+	 tCurr = tCurr+dt	 
 	 if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
 	    writeData(nextFrame, tCurr)
 	    nextFrame = nextFrame+1
 	 end
-	 
-	 step = step+1
-	 tCurr = tCurr+dt
+	 step = step+1	 
       end
       local tmTotal = Time.clock()-tmStart
 
