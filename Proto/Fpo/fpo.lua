@@ -54,6 +54,10 @@ return function(tbl)
 	 onGrid = grid,
 	 numComponents = basis:numBasis(),
 	 ghost = {1, 1},
+	 metaData = {
+	    polyOrder = basis:polyOrder(),
+	    basisType = basis:id(),
+	 },
       }
    end
    local f = getField()
@@ -185,10 +189,10 @@ return function(tbl)
    }
 
    local function writeData(fr, tm)
-      if writeDiagnostics then M0:write(string.format("f_M0_%d.bp", fr), tm) end
-      h:write(string.format('h_%d.bp', fr), tm)
-      g:write(string.format('g_%d.bp', fr), tm)
-      f:write(string.format("f_%d.bp", fr), tm)
+      if writeDiagnostics then M0:write(string.format("f_M0_%d.bp", fr), tm, fr) end
+      h:write(string.format('h_%d.bp', fr), tm, fr)
+      g:write(string.format('g_%d.bp', fr), tm, fr)
+      f:write(string.format("f_%d.bp", fr), tm, fr)
    end
 
    -- write initial conditions
@@ -297,10 +301,12 @@ return function(tbl)
 	 rk3(dt, f, fNew)
 	 f:copy(fNew)
 	 if writeDiagnostics then M0Calc:advance(tCurr+dt, { f }, { M0 }) end
-	 if tCurr >= nextFrame*frameInt then
+
+	 if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
 	    writeData(nextFrame, tCurr)
 	    nextFrame = nextFrame+1
 	 end
+	 
 	 step = step+1
 	 tCurr = tCurr+dt
       end
