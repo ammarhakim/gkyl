@@ -8,7 +8,7 @@
 
 -- Table structure
 -- 
--- create table RegressionMeta (
+-- table RegressionMeta (
 --   guid text,
 --   tstamp text,
 --   GKYL_EXEC text,
@@ -19,7 +19,7 @@
 --   nfail integer
 -- );
 --
--- create table RegressionData (
+-- table RegressionData (
 --   guid text,
 --   name text,
 --   status integer,
@@ -29,6 +29,7 @@
 --
 
 local argparse = require "Lib.argparse"
+local Logger = require "Lib.Logger"
 local sql = require "sqlite3"
 
 -- SQLite connection handle
@@ -36,13 +37,21 @@ local sqlConn = nil
 -- status code -> string
 local statusToString = { [-2] = "create", [-1] = "skip", [0] = "fail", [1] = "pass" }
 
+-- Name of configuration file
+local confFile = os.getenv("HOME") .. "/runregression.config.lua"
+print(confFile)
+
+local log = Logger { logToFile = true }
+local verboseLog = function (msg) end -- default no messages are written
+local verboseLogger = function (msg) log(msg) end
+
 -- configure query system
 local function configure(args)
    if args.db then
       sqlConn = sql.open(args.db)
    else
       -- load configuration file created by regression testing system
-      local f = loadfile("runregression.config.lua")
+      local f = loadfile(confFile)
       if not f then
 	 log("Regression tests not configured! Run config command first\n")
 	 os.exit(1)
@@ -221,7 +230,7 @@ local c_query = parser:command("query", "Query individual run of regression syst
 c_query:option("-i --id", "Print information for regression run with this ID", 1)
 c_query:flag("-f --fail-only", "Print only failed tests", false)
 c_query:option("-t --test", "Print log for specified test number", 0)
-c_query:flag("--net-time", "Print total time it too to run all tests", false)
+c_query:flag("--net-time", "Print total time it took to run all tests", false)
 
 -- delete command
 local c_delete = parser:command("delete", "Delete run data from regression system")
