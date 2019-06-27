@@ -43,20 +43,29 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd = .5e-6, -- end time
-   nFrame = 2, -- number of output frames
+   nFrame = 1, -- number of output frames
    lower = {r0 - 0.001*dr/2, -dr/2}, -- configuration space lower left
    upper = {r0 + 0.001*dr/2,  dr/2}, -- configuration space upper right
    cells = {1, 8}, -- configuration space cells
    mapc2p = function(xc)
-      local r, y = xc[1], xc[2]
-      local X = r+R0
-      local Y = y
+      -- field-aligned coordinates (x,y)
+      local x, y = xc[1], xc[2]
+      -- cylindrical coordinates (R,phi)
+      local R = x+R0
+      local phi = y/(R0+r0)
+      -- cartesian coordinates (X,Y)
+      local X = R*math.cos(phi)
+      local Y = R*math.sin(phi)
       return X, Y
    end,
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
-   cflFrac = .9,
+   cflFrac = 0.9,
+
+   -- decomposition for configuration space
+   decompCuts = {1, 1}, -- cuts in each configuration direction
+   useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
    periodicDirs = {1,2}, -- periodic directions
@@ -70,6 +79,7 @@ plasmaApp = Plasma.App {
       lower = {VPAR_LOWER, MU_LOWER},
       upper = {VPAR_UPPER, MU_UPPER},
       cells = {N_VPAR, N_MU},
+      decompCuts = {1, 1},
       -- initial conditions
       initBackground = Plasma.Gyrokinetic.MaxwellianProjection {
          density = function (t, xn)
@@ -131,4 +141,4 @@ plasmaApp = Plasma.App {
 }
 -- run application
 plasmaApp:run()
---print("expected growth rate = 2.92349*omega_de = ", 2.92349*omegade)
+print("expected growth rate = 2.92349*omega_de = ", 2.92349*omegade)

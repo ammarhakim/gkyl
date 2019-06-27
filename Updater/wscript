@@ -202,6 +202,7 @@ def build(bld):
     PositivityRescaleImpl.cpp
 
     ProjectOnBasisImpl.cpp
+    EvalOnNodesImpl.cpp
 
     """,
     includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
