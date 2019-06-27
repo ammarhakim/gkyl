@@ -1,0 +1,363 @@
+/* Generate kernels that assign matrix elements and re-distribute
+   solutions for problem arising from global spectral transforms. */
+
+/* We use Eigen to solve the system. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+varsV : [vx, vy, vz]$
+
+/* Print method allocating the matrices used to solve the linear problems. */
+calcAllocateObjects(fh) := block([],
+  printf(fh,"spectralTransform::spectralTransform(const int nModes, const int nSurfB) ~%{ ~%"),
+  printf(fh,"  // nModes: number of spectral modes represented. ~%"),
+  printf(fh,"  // nSurfB: number of surface (un-transformed dimensions) basis elements. ~%"),
+  printf(fh," ~%"),
+
+  printf(fh,"  // Declare stiffness matrix A as an Eigen Matrix (emA) containing the ~%"),
+  printf(fh,"  // inner product of the DG bases with the global spectral bases. ~%"),
+  printf(fh,"  // We will also store the inverse of this matrix in-place. ~%"),
+  printf(fh,"  emA = Eigen::MatrixXd::Zero(nModes,nModes); ~%"),
+  printf(fh,"  // Declare right-hand side vector B as an Eigen Vector (evB) ~%"),
+  printf(fh,"  // which contains the coefficients of the DG expansion. ~%"),
+  printf(fh,"  // Create one vector for each surface basis element. ~%"),
+  printf(fh,"  emB = Eigen::MatrixXd::Zero(nModes, nSurfB); ~%"),
+  printf(fh,"  // Declare Eigen Vector 'U' (evU) with solution to system of equations. ~%"),
+  printf(fh,"  emU = Eigen::MatrixXd::Zero(nModes, nSurfB); ~%"),
+
+  printf(fh,"}~%")
+)$
+
+/* C wrapper for new_spectralTransform method.*/
+allocateObjectsWrapper(fh) := block([],
+  printf(fh,"extern \"C\" void* new_spectralTransform(int nModes, int nSurfB) ~%"),
+  printf(fh,"{ ~%"),
+  printf(fh,"  spectralTransform* b = new spectralTransform(nModes, nSurfB); ~%"),
+  printf(fh,"  return reinterpret_cast<void*>(b); ~%"),
+  printf(fh,"} ~%")
+)$
+
+/* Print method which assigns DG coefficients of projected spectral basis to
+   entries in the left-side mass matrix. */
+calcAssignMassMatrix(fh, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  /* Load a 1D basis only (doing 1D transforms at a time). */
+  load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+
+  printf(fh,"void spectralTransform::assignMassMatrix~a(const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn) ~%{ ~%", basisFun),
+  printf(fh,"  // pOrder:          polynomial order. ~%"),
+  printf(fh,"  // cellIdx:         index of current cell (1-indexed because 0 is a ghost cell). ~%"),
+  printf(fh,"  // spectralIdx:     index of current spectral basis elements (0-indexed). ~%"),
+  printf(fh,"  // spectralBasisIn: DG coefficients of spectral basis elements. ~%"),
+  printf(fh," ~%"),
+
+  printf(fh,"  // Element in row (p+1)i+k and column m corresponds to the k-th coefficient in the i-th cell of the projection of the m-th spectral basis. ~%"),
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    NC : length(bC),
+  
+    /* DG coefficients of spectral basis. */
+    spectralBasisIn_c : makelist(spectralBasisIn[i], i, 0, NC-1),
+
+    if (polyOrder = 1) then (
+      printf(fh,"  if (pOrder == ~a) { ~%",polyOrder)
+    ) else (
+      printf(fh,"  } else if (pOrder == ~a) { ~%",polyOrder)
+    ),
+
+    for k : 0 thru NC-1 do (
+      /* Recall Eigen is zero-indexed. */
+      printf(fh,"    emA(~a,~a) = ~a; ~%", NC*(cellIdx-1)+k, spectralIdx, spectralBasisIn_c[k+1])
+    )
+
+  ),
+  printf(fh,"  } ~%"),
+
+  printf(fh," ~%"),
+  printf(fh,"} ~%")
+
+)$
+
+/* C wrapper for assignMassMatrix method.*/
+assignMassMatrixWrapper(fh, basisFun) := block([],
+  printf(fh,"extern \"C\" void assignLHSMatrix~a(spectralTransform *sTransObj, const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn) ~%", basisFun),
+  printf(fh,"{ ~%"),
+  printf(fh,"  sTransObj->assignMassMatrix~a(pOrder, cellIdx, spectralIdx, spectralBasisIn); ~%", basisFun),
+  printf(fh,"} ~%")
+)$
+
+/* Method to compute the inverse of the mass matrix. */
+calcGetMassMatrixInverse(fh) := block([],
+  printf(fh,"void spectralTransform::getMassMatrixInverse() ~%{ ~%"),
+  printf(fh," ~%"),
+  printf(fh,"  emA = emA.inverse();~%"), 
+  printf(fh," ~%"),
+  printf(fh,"} ~%")
+)$
+
+/* C wrapper for getMassMatrixInverse method.*/
+getMassMatrixInverseWrapper(fh) := block([],
+  printf(fh,"extern \"C\" void getLHSMatrixInverse(spectralTransform *sTransObj) ~%"),
+  printf(fh,"{ ~%"),
+  printf(fh,"  sTransObj->getMassMatrixInverse(); ~%"),
+  printf(fh,"} ~%")
+)$
+
+/* Print method which assigns DG coefficients of the function we wish to
+   transform to entries in the right-side matrix (i.e. an array of vectors,
+   one vector for each surface basis). */
+calcAssignRHSMatrix(fh, basisFun, cdim, vdim, pMax) := block([],
+
+  totDim : cdim+vdim,
+
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+
+    /* Load a 1D basis and save it (doing 1D transforms at a time). */
+    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+    bC1 : basisC[polyOrder],
+    NC1 : length(bC1),
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Now load the basis of the field we wish to transform. */
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+    for opDim : 1 thru totDim do (
+      /* Will use a different method for each dimensionality, polyOrder
+         and each transform along a different dimension. */
+
+      printf(fh,"void spectralTransform::assignSourceMatrix~ax~av~a_P~aOpDir~a(const int cellIdx, const double *fDG) ~%{ ~%", cdim, vdim, basisFun, polyOrder, opDim),
+      printf(fh,"  // cellIdx: index of current cell (1-indexed because 0 is a ghost cell).~%"),
+      printf(fh,"  // fDG:     DG coefficients of function we wish to transform.~%"),
+      printf(fh," ~%"),
+
+      bP : basisP[polyOrder],
+      NP : length(bP),
+      
+      /* Expand function in phase-space basis. */
+      fDG_e : doExpand1(fDG, bP),
+
+      /* Obtain the surface basis. */
+      if (opDim > cdim) then (
+        vv : varsV[opDim-cdim]
+      ) else (
+        vv : varsC[opDim]
+      ),
+      surfVars : delete(vv,varsP),
+      bSurf    : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
+      NSurf    : length(bSurf),
+
+      /* Project DG function onto the surface basis. */
+      fDGsurf_c : calcInnerProdList(surfVars,1.0,bSurf,fDG_e),
+
+      printf(fh,"  // Element in row (p+1)i+k and column n corresponds to the k-th coefficient in the i-th cell of the projection of the DG function onto the n-th surface basis. ~%"),
+
+      bC1 : subst(x=vv,bC1),
+      for iSurf : 1 thru NSurf do (
+
+        /* Project each function (for each surface basis element)
+           onto the 1D basis to obtain the coefficients needed for the
+           transform corresponding to that surfBasis element. */
+        transCoeffs_c : calcInnerProdList([vv],1.0,bC1,fDGsurf_c[iSurf]),
+
+        /* These coefficients go into the iSurf column of the right-side matrix. */
+        for k : 0 thru polyOrder do (
+          /* Recall Eigen is zero-indexed. */
+          expr : float(expand(transCoeffs_c[k+1])),
+          if (expr # 0.0) then (
+            printf(fh,"  emB(~a,~a) = ~a; ~%", NC1*(cellIdx-1)+k, iSurf-1, expr)
+          )
+        )
+
+      ),
+
+      printf(fh,"} ~%"),
+      printf(fh," ~%")
+    )
+
+  )
+
+)$
+
+/* C wrapper for assignMassMatrix method.*/
+assignRHSMatrixWrapper(fh, basisFun, cdim, vdim, pMax) := block([],
+  totDim : cdim+vdim,
+  for polyOrder : 1 thru pMax do (
+    for opDim : 1 thru totDim do (
+      printf(fh,"extern \"C\" void assignRHSMatrix~ax~av~a_P~aOpDir~a(spectralTransform *sTransObj, const int cellIdx, const double *fDG) ~%", cdim, vdim, basisFun, polyOrder, opDim),
+      printf(fh,"{ ~%"),
+      printf(fh,"  sTransObj->assignSourceMatrix~ax~av~a_P~aOpDir~a(cellIdx, fDG); ~%", cdim, vdim, basisFun, polyOrder, opDim),
+      printf(fh,"} ~%"),
+      printf(fh," ~%")
+    )
+  )
+)$
+
+/* Print method solving the linear system. */
+calcSolveLinearProblem(fh) := block([],
+  printf(fh,"void spectralTransform::solveLinearProblem() ~%{ ~%"),
+  printf(fh," ~%"),
+  printf(fh,"  emU = emA*emB;~%"), 
+  printf(fh," ~%"),
+  printf(fh,"} ~%")
+)$
+
+/* C wrapper for solveLinearProblem method.*/
+solveLinearProblemWrapper(fh) := block([],
+  printf(fh,"extern \"C\" void solveTransform(spectralTransform *sTransObj) ~%"),
+  printf(fh,"{ ~%"),
+  printf(fh,"  sTransObj->solveLinearProblem(); ~%"),
+  printf(fh,"} ~%")
+)$
+
+/* Print method which re-distributes solution into a Gkeyll CartField.
+   We will store them in the same order they are stored in the solution
+   matrix, i.e. the fastest changing index indicates the surface-basis element. */
+calcRedistributeSolution(fh, basisFun, cdim, vdim, pMax) := block([],
+  totDim : cdim+vdim,
+
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+
+    /* Load a 1D basis and save it (doing 1D transforms at a time). */
+    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+    bC1 : basisC[polyOrder],
+    NC1 : length(bC1),
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Now load the basis of the field we wish to transform. */
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+    printf(fh,"void spectralTransform::redistributeSolution~ax~av~a_P~a(const int cellIdx, double *fSpectral) ~%{ ~%", cdim, vdim, basisFun, polyOrder),
+    printf(fh,"  // cellIdx:   index of current cell (1-indexed because 0 is a ghost cell).~%"),
+    printf(fh,"  // fSpectral: spectral coefficients of transformed function.~%"),
+    printf(fh," ~%"),
+
+    bP : basisP[polyOrder],
+    NP : length(bP),
+    
+    /* Obtain a surface basis (any, we just want the number of elements). */
+    vv    : varsC[1],
+    bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
+    NSurf : length(bSurf),
+
+    printf(fh,"  Eigen::Map<Eigen::MatrixXd>(fSpectral,~a,~a) = emU.block(~a,~a,~a,~a); ~%", polyOrder+1, NSurf, (polyOrder+1)*(cellIdx-1), 0, polyOrder+1, NSurf),
+    printf(fh," ~%"),
+
+    printf(fh,"} ~%")
+  )
+)$
+
+/* C wrapper for redistributeSolution method.*/
+redistributeSolutionWrapper(fh, basisFun, cdim, vdim, pMax) := block([],
+  totDim : cdim+vdim,
+  for polyOrder : 1 thru pMax do (
+    printf(fh,"extern \"C\" void getSolution~ax~av~a_P~a(spectralTransform *sTransObj, const int cellIdx, double *fSpectral) ~%", cdim, vdim, basisFun, polyOrder),
+    printf(fh,"{ ~%"),
+    printf(fh,"  sTransObj->redistributeSolution~ax~av~a_P~a(cellIdx, fSpectral); ~%", cdim, vdim, basisFun, polyOrder),
+    printf(fh,"} ~%"),
+    printf(fh," ~%")
+  )
+)$
+
+/* ~~~~~~~~~~~~~~~~~ END OF METHODS AND WRAPPERS ~~~~~~~~~~~~~~ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+minVdim_Ser : 1$
+maxCdim_Ser : 1$
+maxVdim_Ser : 1$
+
+bName : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
+
+/* ................ CONSTRUCT FILE WITH ALL METHODS .................... */
+
+fname   : sconcat("~/max-out/CartFieldSpectralTransformImpl.cpp")$
+fHandle : openw(fname)$
+
+printf(fHandle,"#include <CartFieldSpectralTransformImpl.h>~%")$
+printf(fHandle," ~%")$
+
+calcAllocateObjects(fHandle)$
+printf(fHandle," ~%")$
+
+for bInd : 1 thru length(bName) do (
+  calcAssignMassMatrix(fHandle, bName[bInd], maxPolyOrder[bInd]),
+  printf(fHandle," ~%")
+)$
+
+calcGetMassMatrixInverse(fHandle)$
+printf(fHandle," ~%")$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      calcAssignRHSMatrix(fHandle, bName[bInd], c, v, maxPolyOrder[bInd]),
+      printf(fHandle," ~%")
+    )
+  )
+)$
+
+calcSolveLinearProblem(fHandle)$
+printf(fHandle," ~%")$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      calcRedistributeSolution(fHandle, bName[bInd], c, v, maxPolyOrder[bInd]),
+      printf(fHandle," ~%")
+    )
+  )
+)$
+
+flush_output(fHandle),
+printf(fHandle,"// C wrappers for interfacing with spectralTransform class. ~%"),
+
+allocateObjectsWrapper(fHandle)$
+printf(fHandle," ~%")$
+
+assignMassMatrixWrapper(fHandle, bName[1])$
+printf(fHandle," ~%")$
+
+getMassMatrixInverseWrapper(fHandle)$
+printf(fHandle," ~%")$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      assignRHSMatrixWrapper(fHandle, bName[bInd], c, v, maxPolyOrder[bInd]),
+      printf(fHandle," ~%")
+    )
+  )
+)$
+
+solveLinearProblemWrapper(fHandle)$
+printf(fHandle," ~%")$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      redistributeSolutionWrapper(fHandle, bName[bInd], c, v, maxPolyOrder[bInd]),
+      printf(fHandle," ~%")
+    )
+  )
+)$
+
+close(fHandle)$
+
+/* ............ FINISH CONSTRUCTING FILE WITH ALL METHODS ............... */
+
+

@@ -1,0 +1,143 @@
+/* Generate kernels that assign matrix elements and re-distribute
+   solutions for problem arising from global spectral transforms. */
+
+/* We use Eigen to solve the system. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+minVdim_Ser : 1$
+maxCdim_Ser : 1$
+maxVdim_Ser : 1$
+
+bName : ["Ser"]$
+maxPolyOrder : [maxPolyOrder_Ser]$
+minCdim      : [minCdim_Ser]$
+minVdim      : [minVdim_Ser]$
+maxCdim      : [maxCdim_Ser]$
+maxVdim      : [maxVdim_Ser]$
+
+/* ................ CONSTRUCT FILE WITH ALL METHODS .................... */
+
+fname   : sconcat("~/max-out/CartFieldSpectralTransformImpl.h")$
+fHandle : openw(fname)$
+
+printf(fHandle,"#ifndef CART_FIELD_SPECTRAL_TRANSFORM_H~%")$
+printf(fHandle,"#define CART_FIELD_SPECTRAL_TRANSFORM_H~%")$
+printf(fHandle," ~%")$
+
+printf(fHandle,"// Eigen include statements.~%")$
+printf(fHandle,"#include <Eigen/Dense>~%")$
+printf(fHandle," ~%")$
+
+printf(fHandle,"class spectralTransform;~%")$
+printf(fHandle," ~%")$
+
+printf(fHandle,"extern \"C\" {~%")$
+printf(fHandle," ~%")$
+
+printf(fHandle,"  // C wrappers that interface with spectralTransform class.~%")$
+printf(fHandle,"  void* new_spectralTransform(const int nModes, const int nSurfB);~%")$
+
+printf(fHandle,"  // Assign elements (coefficients of projection of spectral basis)~%")$
+printf(fHandle,"  // of the left-side mass matrix.~%")$
+for bInd : 1 thru length(bName) do (
+  printf(fHandle,"  void assignLHSMatrix~a(spectralTransform *sTransObj, const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn);~%", bName[bInd])
+)$
+
+printf(fHandle,"  // Obtain the inverse of the mass matrix.~%")$
+printf(fHandle,"  void getLHSMatrixInverse(spectralTransform *sTransObj);~%")$
+
+printf(fHandle,"  // The right-side (source) vector is actually a matrix: one vector~%")$
+printf(fHandle,"  // for each element of the surface (un-transformed) basis.~%")$
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      totDim : c+v,
+      for polyOrder : 1 thru maxPolyOrder[bInd] do (
+        for opDim : 1 thru totDim do (
+          printf(fHandle,"  void assignRHSMatrix~ax~av~a_P~aOpDir~a(spectralTransform *sTransObj, const int cellIdx, const double *fDG);~%", c, v, bName[bInd], polyOrder, opDim)
+        )
+      )
+    )
+  )
+)$
+
+printf(fHandle,"  // Solve the spectral transform linear problem.~%")$
+printf(fHandle,"  void solveTransform(spectralTransform *sTransObj);~%")$
+
+printf(fHandle,"  // Take solution from matrix and put it in a Gkeyll CartField.~%")$
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      for polyOrder : 1 thru maxPolyOrder[bInd] do (
+        printf(fHandle,"  void getSolution~ax~av~a_P~a(spectralTransform *sTransObj, const int cellIdx, double *fSpectral);~%", c, v, bName[bInd], polyOrder)
+      )
+    )
+  )
+)$
+printf(fHandle," ~%")$
+
+printf(fHandle,"}~%")$
+
+printf(fHandle,"class spectralTransform~%")$
+printf(fHandle,"{~%")$
+
+printf(fHandle,"  public:~%")$
+printf(fHandle,"  spectralTransform(const int nModes, const int nSurfB);~%")$
+printf(fHandle,"  ~~spectralTransform();~%")$
+printf(fHandle,"  ~%")$
+
+for bInd : 1 thru length(bName) do (
+  printf(fHandle,"  void assignMassMatrix~a(const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn);~%", bName[bInd])
+)$
+
+printf(fHandle,"  void getMassMatrixInverse();~%")$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      totDim : c+v,
+      for polyOrder : 1 thru maxPolyOrder[bInd] do (
+        for opDim : 1 thru totDim do (
+          printf(fHandle,"  void assignSourceMatrix~ax~av~a_P~aOpDir~a(const int cellIdx, const double *fDG);~%", c, v, bName[bInd], polyOrder, opDim)
+        )
+      )
+    )
+  )
+)$
+
+printf(fHandle,"  void solveLinearProblem();~%")$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    for v : c thru maxVdim[bInd] do (
+      for polyOrder : 1 thru maxPolyOrder[bInd] do (
+        printf(fHandle,"  void redistributeSolution~ax~av~a_P~a(const int cellIdx, double *fSpectral);~%", c, v, bName[bInd], polyOrder)
+      )
+    )
+  )
+)$
+printf(fHandle,"~%")$
+
+printf(fHandle,"  private:~%")$
+printf(fHandle,"  Eigen::MatrixXd emA;~%")$
+printf(fHandle,"  Eigen::MatrixXd emB;~%")$
+printf(fHandle,"  Eigen::MatrixXd emU;~%")$
+
+printf(fHandle,"};~%")$
+printf(fHandle,"~%")$
+
+printf(fHandle,"#endif~%")$
+
+close(fHandle)$
+
+/* ............ FINISH CONSTRUCTING FILE WITH ALL METHODS ............... */
+
+
