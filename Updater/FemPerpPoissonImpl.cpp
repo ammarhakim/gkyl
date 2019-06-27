@@ -938,7 +938,7 @@ void FemPerpPoisson::allgatherGlobalStiff(MPI_Comm comm)
     for (unsigned i=0; i<nprocs; i++) {
       totalsize += sizes[i];
       if (i==0) displs[i] = 0;
-      else displs[i] = sizes[i-1];
+      else displs[i] = displs[i-1] + sizes[i-1];
     }
     stiffTripletListGathered.resize(totalsize); // this resize is required.. just need to make sure to reserve enough space
   }
