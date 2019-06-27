@@ -1,0 +1,34 @@
+em:true$
+pmin:1$
+pmax:2$
+for pos: 0 thru 1 do (
+if pos=0 then positivity:false
+else positivity:true,
+if positivity then posString : "Positivity"
+else posString : "",
+for c : 1 thru 3 do (
+for v: 1 thru 2 do (
+if c=1 or (c>1 and v=2) then (
+pmaxc:pmax,
+if c=1 then (pmaxc:2),
+if positivity then pmaxc:1,
+for p:pmin thru pmaxc do (
+/* separate file for positivity implementation */
+if em then fname : sconcat("~/max-out/EmGyrokineticSurf", posString, "Ser", c, "x", v, "vP", p, ".cpp")
+else fname : sconcat("~/max-out/GyrokineticSurf", posString, "Ser", c, "x", v, "vP", p, ".cpp"),
+fh : openw(fname),
+printf(fh, "// not yet generated! ~%"),
+close(fh)
+)))),
+if em=false then (
+c:2,
+v:0,
+pmaxc:pmax,
+if positivity then pmaxc:1,
+for p:pmin thru pmaxc do (
+fname : sconcat("~/max-out/GyrokineticSurf", posString, "Ser", c, "x", v, "vP", p, ".cpp"),
+fh : openw(fname),
+printf(fh, "// not yet generated! ~%"),
+close(fh)
+)
+))$

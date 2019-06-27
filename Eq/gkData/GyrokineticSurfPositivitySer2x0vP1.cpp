@@ -1,30 +1,31 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
   double dfac_y = 2.0/dxv[1]; 
   double wx = w[0]; 
   double wy = w[1]; 
+  double dfac_x2 = dfac_x*dfac_x; 
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = -0.125*BmagInv[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
+  double alpha0 = -0.125*geoZ[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
 
   double alpha[2]; 
-  alpha[0] = -0.3535533905932737*BmagInv[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
+  alpha[0] = -0.3535533905932737*geoZ[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
   double f0Quad[2]; 
   double f1Quad[2]; 
   double limQuad[2]; 
   double alphaQuad; 
   // determine upwinding at each surface quadrature node 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[0] = 0.25*((1.414213562373095*fr[2]-1.414213562373095*(fl[2]+fr[0])+1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[2]+fl[2])+1.414213562373095*(fr[0]+fl[0])); 
-  f1Quad[0] = 0.25*((1.414213562373095*(fr[3]+fl[3])-1.414213562373095*(fr[1]+fl[1]))*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*(fl[3]+fr[1])-1.414213562373095*fl[1]); 
+  f0Quad[0] = 0.3535533905932737*((fr[2]-1.0*(fl[2]+fr[0])+fl[0])*sgn(alphaQuad)-1.0*(fr[2]+fl[2])+fr[0]+fl[0]); 
+  f1Quad[0] = 0.3535533905932737*((fr[3]+fl[3]-1.0*(fr[1]+fl[1]))*sgn(alphaQuad)-1.0*fr[3]+fl[3]+fr[1]-1.0*fl[1]); 
   limQuad[0] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[1] = -0.25*((1.414213562373095*fr[2]-1.414213562373095*fl[2]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[2]+fl[2]+fr[0]+fl[0])); 
-  f1Quad[1] = -0.25*(1.414213562373095*(fr[3]+fl[3]+fr[1]+fl[1])*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*fl[3]-1.414213562373095*fr[1]+1.414213562373095*fl[1]); 
+  f0Quad[1] = -0.3535533905932737*((fr[2]-1.0*fl[2]+fr[0]-1.0*fl[0])*sgn(alphaQuad)-1.0*(fr[2]+fl[2]+fr[0]+fl[0])); 
+  f1Quad[1] = -0.3535533905932737*((fr[3]+fl[3]+fr[1]+fl[1])*sgn(alphaQuad)-1.0*fr[3]+fl[3]-1.0*fr[1]+fl[1]); 
   limQuad[1] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
   double fhat[4]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
@@ -65,32 +66,33 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
   double dfac_y = 2.0/dxv[1]; 
   double wx = w[0]; 
   double wy = w[1]; 
+  double dfac_x2 = dfac_x*dfac_x; 
   double q2 = q_*q_; 
   double incr[4]; 
   // surface-averaged phase velocity in this direction 
-  double alpha0 = 0.125*BmagInv[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
+  double alpha0 = 0.125*geoZ[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
 
   double alpha[2]; 
-  alpha[0] = 0.3535533905932737*BmagInv[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
+  alpha[0] = 0.3535533905932737*geoZ[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
   double f0Quad[2]; 
   double f1Quad[2]; 
   double limQuad[2]; 
   double alphaQuad; 
   // determine upwinding at each surface quadrature node 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[0] = 0.25*((1.414213562373095*fr[1]-1.414213562373095*(fl[1]+fr[0])+1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[1]+fl[1])+1.414213562373095*(fr[0]+fl[0])); 
-  f1Quad[0] = 0.25*((1.414213562373095*(fr[3]+fl[3])-1.414213562373095*(fr[2]+fl[2]))*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*(fl[3]+fr[2])-1.414213562373095*fl[2]); 
+  f0Quad[0] = 0.3535533905932737*((fr[1]-1.0*(fl[1]+fr[0])+fl[0])*sgn(alphaQuad)-1.0*(fr[1]+fl[1])+fr[0]+fl[0]); 
+  f1Quad[0] = 0.3535533905932737*((fr[3]+fl[3]-1.0*(fr[2]+fl[2]))*sgn(alphaQuad)-1.0*fr[3]+fl[3]+fr[2]-1.0*fl[2]); 
   limQuad[0] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[1] = -0.25*((1.414213562373095*fr[1]-1.414213562373095*fl[1]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[1]+fl[1]+fr[0]+fl[0])); 
-  f1Quad[1] = -0.25*(1.414213562373095*(fr[3]+fl[3]+fr[2]+fl[2])*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*fl[3]-1.414213562373095*fr[2]+1.414213562373095*fl[2]); 
+  f0Quad[1] = -0.3535533905932737*((fr[1]-1.0*fl[1]+fr[0]-1.0*fl[0])*sgn(alphaQuad)-1.0*(fr[1]+fl[1]+fr[0]+fl[0])); 
+  f1Quad[1] = -0.3535533905932737*((fr[3]+fl[3]+fr[2]+fl[2])*sgn(alphaQuad)-1.0*fr[3]+fl[3]-1.0*fr[2]+fl[2]); 
   limQuad[1] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
   double fhat[4]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
