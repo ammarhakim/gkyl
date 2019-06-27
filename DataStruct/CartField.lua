@@ -9,8 +9,8 @@
 local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
-local new, copy, sizeof, typeof, metatype = xsys.from(ffi,
-						      "new, copy, sizeof, typeof, metatype")
+local new, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, sizeof, typeof, metatype")
 
 -- Gkyl libraries
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
@@ -48,13 +48,6 @@ genIndexerMakerFuncs[colMajLayout] = Range.makeColMajorGenIndexer
 -- helper to check if two field are compatible
 local function field_compatible(y, x)
    return y:localRange() == x:localRange() and y:numComponents() == x:numComponents()
-end
-
--- copy field x into field y
-local function field_memcpy(y, x)
-   assert(field_compatible(y,x), "Can't copy incompatible fields")
-   local sz = y:size()
-   copy(y._data, x._data, sizeof(y:elemType())*sz)
 end
 
 -- return local start and num times to bump
@@ -135,7 +128,7 @@ local function Field_meta_ctor(elct)
       -- local and global ranges
       local globalRange = grid:globalRange()
       local localRange = grid:localRange()
-      
+
       -- various communicators for use in shared allocator
       local shmComm = grid:commSet().sharedComm
 
@@ -168,11 +161,11 @@ local function Field_meta_ctor(elct)
       
       self._layout = defaultLayout -- default layout is column-major
       if tbl.layout then
-      	 if tbl.layout == "row-major" then
-      	    self._layout = rowMajLayout
+	 if tbl.layout == "row-major" then
+	    self._layout = rowMajLayout
 	 else
 	    self._layout = colMajLayout
-      	 end
+	 end
       end
 
       self._shmIndex = Mpi.Comm_rank(shmComm)+1 -- our local index on SHM comm (one more than rank)
@@ -240,17 +233,18 @@ local function Field_meta_ctor(elct)
       self._sendLowerPerMPILoc, self._recvLowerPerMPILoc = {}, {}
       self._sendUpperPerMPILoc, self._recvUpperPerMPILoc = {}, {}
 
-      -- Following loop allocates memory for periodic directions. This
-      -- is complicated as one needs to treat lower -> upper transfers
-      -- differently than upper -> lower as the number of ghost cells
-      -- may be different on each lower/upper side. (AHH)
+      -- Following loop creates Datatypes for periodic
+      -- directions. This is complicated as one needs to treat lower
+      -- -> upper transfers differently than upper -> lower as the
+      -- number of ghost cells may be different on each lower/upper
+      -- side. (AHH)
       for dir = 1, self._ndim do
 	 if grid:isDirPeriodic(dir) then
 	    local skelIds = decomposedRange:boundarySubDomainIds(dir)
 	    for i = 1, #skelIds do
 	       local loId, upId = skelIds[i].lower, skelIds[i].upper
 
-	       -- only allocate if we are on proper ranks
+	       -- only create if we are on proper ranks
 	       if myId == loId then
 		  local rgnSend = decomposedRange:subDomain(loId):lowerSkin(dir, self._upperGhost)
 		  local idx = rgnSend:lowerAsVec()
@@ -258,7 +252,7 @@ local function Field_meta_ctor(elct)
 		  self._sendLowerPerMPILoc[dir] = (indexer(idx)-1)*self._numComponents
                   self._sendLowerPerMPIDataType[dir] = Mpi.createDataTypeFromRangeAndSubRange(
 		     rgnSend, localExtRange, self._numComponents, self._layout, elctCommType)
-		 
+		  
 		  local rgnRecv = decomposedRange:subDomain(loId):lowerGhost(dir, self._lowerGhost)
 		  local idx = rgnRecv:lowerAsVec()
 		  -- set idx to starting point of region you want to recv
@@ -446,8 +440,8 @@ local function Field_meta_ctor(elct)
       read = function (self, fName) --> time-stamp, frame-number
 	 return self._adiosIo:read(self, fName)
       end,
-      sync = function (self, syncPeriodicDirs)
-         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs, true)
+      sync = function (self, syncPeriodicDirs_)
+         local syncPeriodicDirs = xsys.pickBool(syncPeriodicDirs_, true)
 	 -- this barrier is needed as when using MPI-SHM some
 	 -- processors will get to the sync method before others
          -- this is especially troublesome in the RK combine step
@@ -501,7 +495,6 @@ local function Field_meta_ctor(elct)
 	 -- blocking sends, (3) Complete recv and copy data into ghost
 	 -- cells
 
-	 local decomposedRange = self._grid:decomposedRange()
 	 local myId = self._grid:subGridId() -- grid ID on this processor
 	 local neigIds = self._decompNeigh:neighborData(myId) -- list of neighbors
 	 local tag = 42 -- Communicator tag for regular (non-periodic) messages
@@ -565,7 +558,7 @@ local function Field_meta_ctor(elct)
 	    if grid:isDirPeriodic(dir) then
 	       local skelIds = decomposedRange:boundarySubDomainIds(dir)
 	       for i = 1, #skelIds do
-	 	  local loId, upId = skelIds[i].lower, skelIds[i].upper
+		  local loId, upId = skelIds[i].lower, skelIds[i].upper
 
 		  if myId == loId then
 		     local loTag = basePerTag+dir+10
@@ -610,13 +603,13 @@ local function Field_meta_ctor(elct)
 	 end
 
 	 -- complete recv for periodic directions
-         -- since MPI DataTypes eliminate the need for buffers, 
+	 -- since MPI DataTypes eliminate the need for buffers,
          -- all we have to do is wait for non-blocking receives to finish
 	 for dir = 1, self._ndim do
 	    if grid:isDirPeriodic(dir) then
 	       local skelIds = decomposedRange:boundarySubDomainIds(dir)
 	       for i = 1, #skelIds do
-	 	  local loId, upId = skelIds[i].lower, skelIds[i].upper
+		  local loId, upId = skelIds[i].lower, skelIds[i].upper
 		  if myId == loId then
 		     Mpi.Wait(recvLowerReq[dir], nil)
 		  end

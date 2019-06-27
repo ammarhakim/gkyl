@@ -98,7 +98,7 @@ class FemPerpPoisson
   /** Eigen vectors for source and dirichlet modifications to source*/
   Eigen::VectorXd globalSrc, sourceModVec;
   /** Eigen vector for solution */
-  Eigen::VectorXd x, x_zm1;
+  Eigen::VectorXd x;
   /** Eigen solver method */
   //Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;

@@ -64,14 +64,15 @@ def build(bld):
     bld.add_to_group(hgTip)
     
     # recurse down directories and build C++ code
-    bld.recurse("sqlite3")    
-    bld.recurse("Lib")
     bld.recurse("Comm")
-    bld.recurse("Unit")
-    bld.recurse("Updater")
     bld.recurse("DataStruct")
     bld.recurse("Eq")
     bld.recurse("Grid")
+    bld.recurse("Lib")
+    bld.recurse("Proto")
+    bld.recurse("Unit")
+    bld.recurse("Updater")
+    bld.recurse("sqlite3")    
 
     # build executable
     buildExec(bld)    
@@ -190,6 +191,13 @@ def build(bld):
         "${PREFIX}/bin/Basis",
         Basis_dir.ant_glob('**/*.lua'),
         cwd=Basis_dir, relative_trick=True)
+
+    # - Proto/Fpo
+    Fpo_dir = bld.path.find_dir('Proto/Fpo')
+    bld.install_files(
+        "${PREFIX}/bin/Proto/Fpo",
+        Fpo_dir.ant_glob('**/*.lua'),
+        cwd=Fpo_dir, relative_trick=True)
 
 def buildExec(bld):
     r"""Build top-level executable"""
