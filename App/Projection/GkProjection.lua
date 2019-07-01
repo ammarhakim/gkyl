@@ -20,7 +20,11 @@ function FunctionProjection:run(tProj, distf)
    if self.species.jacobPhaseFunc and self.vdim > 1 then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
-         local J = self.species.jacobPhaseFunc(t,xn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobPhaseFunc(t,xconf)
          local f = initFuncWithoutJacobian(t,xn)
          return J*f
       end
@@ -28,7 +32,11 @@ function FunctionProjection:run(tProj, distf)
    if self.species.jacobGeoFunc then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
-         local J = self.species.jacobGeoFunc(t,xn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobGeoFunc(t,xconf)
          local f = initFuncWithoutJacobian(t,xn)
          return J*f
       end
@@ -444,17 +452,30 @@ function MaxwellianProjection:run(tProj, distf)
    if self.species.jacobPhaseFunc and self.vdim > 1 then
       local initFuncWithoutJacobian = self.initFunc
       self.initFunc = function (t, xn)
-         local J = self.species.jacobPhaseFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobPhaseFunc(t,xconf)
+         -- divide the initial maxwellian by the density to get a unit density
+         -- because we are going to rescale the density anyways, and it is easier
+         -- to weak-divide by something close to unity
+         local f = initFuncWithoutJacobian(t,xn)/self.density(t, xn, sp)
          return J*f
       end
    end
+   -- for geometry jacobian, scale density function so that jacobian factor
+   -- is retained even after rescaling distf
    if self.species.jacobGeoFunc then
-      local initFuncWithoutJacobian = self.initFunc
-      self.initFunc = function (t, xn)
-         local J = self.species.jacobGeoFunc(t,xn)
-         local f = initFuncWithoutJacobian(t,xn)
-         return J*f
+      local densityWithoutJacobian = self.density
+      self.density = function (t, xn, sp)
+         local xconf = {}
+         for d = 1, self.cdim do
+            xconf[d] = xn[d]
+         end
+         local J = self.species.jacobGeoFunc(t,xconf)
+         local n = densityWithoutJacobian(t,xn,sp)
+         return J*n
       end
    end
    -- note: don't use self.project as this does not have jacobian factors in initFunc

@@ -138,6 +138,33 @@ local function buildApplication(self, tbl)
       end
    end
 
+   -- configuration space decomp object (eventually, this will be
+   -- slaved to the phase-space decomp)
+   local decomp = DecompRegionCalc.CartProd {
+      cuts = decompCuts,
+      useShared = useShared,
+   }
+
+   -- pick grid ctor based on uniform/non-uniform grid
+   local GridConstructor = Grid.RectCart
+   if tbl.coordinateMap then
+      GridConstructor = Grid.NonUniformRectCart
+   elseif tbl.mapc2p then 
+      GridConstructor = Grid.MappedCart
+   end
+   -- setup configuration space grid
+   local confGrid = GridConstructor {
+      lower = tbl.lower,
+      upper = tbl.upper,
+      cells = tbl.cells,
+      periodicDirs = periodicDirs,
+      decomposition = decomp,
+      mappings = tbl.coordinateMap,
+      mapc2p = tbl.mapc2p,
+   }
+   --confGrid:write("grid.bp")
+
+
    -- Read in information about each species.
    local species = {}
    for nm, val in pairs(tbl) do
@@ -151,10 +178,13 @@ local function buildApplication(self, tbl)
 
    -- Setup each species.
    for _, s in pairs(species) do
-      s:createGrid(tbl.lower, tbl.upper, tbl.cells, decompCuts,
-		   periodicDirs, tbl.coordinateMap)
+      -- set up conf grid and basis
+      s:setConfGrid(confGrid)
       s:setConfBasis(confBasis)
+      -- set up phase grid and basis
+      s:createGrid(confGrid)
       s:createBasis(basisNm, polyOrder)
+      s:alloc(stepperNumFields[timeStepperNm])
    end
 
    -- Read in information about each species.
@@ -167,40 +197,12 @@ local function buildApplication(self, tbl)
       end
    end
 
-   -- Configuration space decomp object (eventually, this will be
-   -- slaved to the phase-space decomp).
-   local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
-      useShared = useShared,
-   }
-
-   -- Pick grid ctor based on uniform/non-uniform grid.
-   local GridConstructor = Grid.RectCart
-   if tbl.coordinateMap then
-      GridConstructor = Grid.NonUniformRectCart
-   end
-   -- Setup configuration space grid.
-   local grid = GridConstructor {
-      lower = tbl.lower,
-      upper = tbl.upper,
-      cells = tbl.cells,
-      periodicDirs = periodicDirs,
-      decomposition = decomp,
-      mappings = tbl.coordinateMap,
-   }
-
-   -- Add grid to app object.
-   self._confGrid = grid
-
-   -- Set conf grid for each species.
-   for _, s in pairs(species) do
-      s:setConfGrid(grid)
-      s:alloc(stepperNumFields[timeStepperNm])
-   end
+   -- add grid to app object
+   self._confGrid = confGrid
 
    -- Set conf grid for each source.
    for _, s in pairs(sources) do
-      s:setConfGrid(grid)
+      s:setConfGrid(confGrid)
    end   
 
    local cflMin = GKYL_MAX_DOUBLE
@@ -216,7 +218,7 @@ local function buildApplication(self, tbl)
       fld:fullInit(tbl) -- Complete initialization.
       fld:setIoMethod(ioMethod)
       fld:setBasis(confBasis)
-      fld:setGrid(grid)
+      fld:setGrid(confGrid)
       do
 	 local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
 	 if fld.isElliptic then

@@ -212,6 +212,18 @@ modToNod:(
 nodToMod:float(invert(transpose(modToNod)))
 )$
 
+calcNodToMod(ndim, p) := block([],
+kill(varsC, varsP, basisC, basisP),
+if ndim<=3 then modNm : sconcat("basis-precalc/basisSer", ndim, "x")
+else modNm : sconcat("basis-precalc/basisSer", ndim-2, "x", 2, "v"),
+load(modNm),
+if ndim<=3 then (vars : varsC, basis : basisC[p])
+else (vars : varsP, basis : basisP[p]),
+nodes : eval_string(sconcat("nodes", ndim, "xp", p)),
+modToNod : calcModToNodPhaseWithNodesAndBasis(nodes, basis, vars),
+nodToMod:float(invert(transpose(modToNod)))
+)$
+
 calcMassMatrix2(vars, w, basis, basis2) := block([n, mass],
                 n : length(basis),
 		mass : (mass : zeromatrix(n,n), 
