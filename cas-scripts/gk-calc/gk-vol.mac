@@ -3,53 +3,19 @@ load("out-scripts")$
 load(stringproc)$
 load("scifac")$
 load("fem-calc/femMatrices")$
+load("gk-calc/gk-stuff")$
 fpprec : 24$
-
-wc : [wx, wy, wz, wv, wm]$
-wc2 : [wx2, wy2, wz2, wv2, wm2]$
-derivfac : [dfac_x, dfac_y, dfac_z, dfac_v, dfac_m]$
-derivfac2 : [dfac_x2, dfac_y2, dfac_z2, dfac_v2, dfac_m2]$
-gkvsub:[vx=vpar,vy=mu]$
-
-let (wv^2, wv2)$
-let (dfac_v^2, dfac_v2)$
-
-doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
-doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
-
-/* set up some vector calculus functions */
-load("vect")$
-fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
-
-gkPB(f,g):=1/m_*(Bstar_by_Bmag_expd.fgrad(f)*dfac_v*diff(g,vpar)-Bstar_by_Bmag_expd.fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
 
 calcGKVolUpdater(fh, funcNm, cdim, vdim, basisFun, i, emflag, bvarslist) := block([],
 kill(varsC, varsP, basisC, basisP),
-if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
-else modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
-load(modNm),
-  if cdim = 1 then (
-    label:["x", "v", "m"]
-  ),
-  if cdim = 2 then (
-    label:["x", "y", "v", "m"]
-  ),
-  if cdim = 3 then (
-    label:["x", "y", "z", "v", "m"]
-  ),
-  bC : basisC[i],
-  if vdim=0 then bP : bC
-  else bP : subst(gkvsub, basisP[i]),
-  if vdim=0 then varsP : varsC
-  else varsP : subst(gkvsub, varsP),
-  numC : length(bC),
 
-  if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
-  else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
+  loadGKbasis(cdim, vdim, i),
+
+  if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *Apar, const double* dApardt, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
+  else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *jacobTotInv, const double *Gradpar, const double *geoX, const double *geoY, const double *geoZ, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
 
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
   volfac : 1,
-  cellCenter : makelist(varsP[d]=0, d, 1, length(varsP)),
   /* set up ignorable variables for Bmag */
   Bignorevars: flatten(makelist([varsC[d]^2=var2,var2=1/3,varsC[d]=0], d, 1, length(varsC))),
   if bvarslist # [0] then (
@@ -60,9 +26,6 @@ load(modNm),
   /* for grad and curl expressions */
   scalefactors(varsC),
   derivfacsC : makelist(derivfac[d], d, 1, length(varsC)),
-  derivfacsV : makelist(derivfac[d], d, 4, 5),
-  wC : makelist(wc[d], d, 1, length(varsC)),
-  wV : makelist(wc[d], d, 4, 5),
 
   for dir : 1 thru cdim+vdim do (
     printf(fh, "  double dfac_~a = 2.0/dxv[~a]; ~%", label[dir], dir-1)
@@ -71,6 +34,7 @@ load(modNm),
   for dir : 1 thru cdim+vdim do (
     printf(fh, "  double w~a = w[~a]; ~%", label[dir], dir-1)
   ),
+  /*printf(fh, "  double dfac_x2 = dfac_x*dfac_x; ~%"),*/
   if vdim>0 then (
     printf(fh, "  double wv2 = wv*wv; ~%"),
     printf(fh, "  double dfac_v2 = dfac_v*dfac_v; ~%")
@@ -79,54 +43,12 @@ load(modNm),
   printf(fh, "  double m2 = m_*m_; ~%"),
   flush_output(fh),
 
-  /* expand background magnetic field Bmag, assuming it only varies in x */
-  Bmag_expd:subst(Bignorevars,doExpand1(Bmag,bC)),
-  BmagInv_expd:subst(Bignorevars,doExpand1(BmagInv,bC)),
-  /* expand Phi */
-  Phi_expd:doExpand1(Phi,bC),
-  if emflag then (
-    /* expand Apar */
-    Apar_expd:doExpand1(Apar,bC),
-    dAdt_expd:doExpand1(dApardt,bC)
-  )
-  else (
-    Apar_expd : 0,
-    dAdt_expd : 0
-  ),
+  calcAndWriteHamil(),
 
-  /* calculate full expansion expression for Hamiltonian. */
-  H_full: q_*Phi_expd,
-  if vdim > 0 then H_full : H_full + 1/2*m_*(wv + vpar/dfac_v)^2,
-  if vdim > 1 then H_full : H_full + (wm+mu/dfac_m)*Bmag_expd,
-
-  /* project Hamiltonian onto basis functions */
-  H_k:fullratsimp(innerProd(varsP, 1, bP, H_full)),
-  /* expand projected Hamiltonian on basis */
-  H_expd:H_k.bP,
+  calcAndWriteBstar_by_Bmag(),
 
   /* expand distribution function on basis */
   f_expd:doExpand1(f,bP),
-
-  /* expand BstarZ/Bmag = bhat.grad(z) = Gradpar on basis */
-  BstarZ_by_Bmag_expd : subst(Bignorevars, doExpand1(Gradpar, bC)),
-
-  /* expand BdriftX = 1/B*curl(bhat)*grad(x) on basis */
-  BdriftX_expd : subst(Bignorevars, doExpand1(BdriftX, bC)),
-  /* expand BdriftY = 1/B*curl(bhat)*grad(y) on basis */
-  BdriftY_expd : subst(Bignorevars, doExpand1(BdriftY, bC)),
-  /* expand BstarX/Bmag = ( m/q vpar + Apar ) BdriftX = (m/q vpar + Apar)/B*curl(bhat)*grad(x) on basis */
-  BstarX_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftX_expd,
-  /* expand BstarY/Bmag = ( m/q vpar + Apar ) BdriftY = (m/q vpar + Apar)/B*curl(bhat)*grad(y) on basis */
-  BstarY_by_Bmag_expd : (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*BdriftY_expd,
-  /* make vApar = -1/B*bhatXgrad(Apar) vector */
-  if cdim = 1 then vApar_expd : [0], 
-  if cdim = 2 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x]*BmagInv_expd,
-  if cdim = 3 then vApar_expd : [diff(Apar_expd, y)*dfac_y, -diff(Apar_expd,x)*dfac_x, 0]*BmagInv_expd, 
-
-  /* make Bstar/Bmag vector */
-  if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
-  if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd] + vApar_expd,
-  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd] + vApar_expd,
 
   /* calculate cflFeq = sum_d alpha_d / dxv[d] */
   printf(fh, "  double cflFreq = 0.0; ~%"), 
@@ -138,28 +60,23 @@ load(modNm),
   if vdim = 0 then vd : 0
   else vd : 1,
   for d : 1 thru cdim+vd do (
-    if d>cdim then (
-      wD : wV[d-cdim],
-      derivfacsD : derivfacsV[d-cdim]
-    ) 
-    else (
-      wD : wC[d],
-      derivfacsD : derivfacsC[d]
-    ),
+    wD : wc[d],
+    dfac_d : derivfac[d],
+
     /* calculate phase space velocity alpha_d = {z[d], H} = dz[d]/dt*/
-    alpha_expd : gkPB(wD + varsP[d]/derivfacsD, H_expd),
+    alpha_expd : calcAlpha(d, true),
 
     /* project alpha on basis and write to array */
     printf(fh, "  double alpha~a[~a]; ~%", label[d], length(bP)),
-    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)*derivfacsD),
+    alpha_k : fullratsimp(innerProd(varsP, 1, bP, alpha_expd)*dfac_d),
     alphalabel : eval_string(sconcat(alpha, label[d])),
-    writeCExprsNoExpand1(alphalabel, gcfac(expand(facsum(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], alpha_k),derivfac)))),
+    writeCExprsNoExpand1(alphalabel, gcfac(expand(facsum(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], alpha_k),derivfac)))),
     flush_output(fh),
     
     alphaNoZero_k : doMakeExprLst(alpha_k, alphalabel),
     alpha_expd : doExpandLst(alphaNoZero_k, bP),
 
-    /* note: factor of derivfacsD already included in alpha_expd */
+    /* note: factor of dfac_d already included in alpha_expd */
     alphaDotGradBasis_expd : alpha_expd*diff(bP, varsP[d]),
 
     /* accumulate alpha.grad(w) in this direction to the direction-summed alpha.grad(w) */
@@ -179,12 +96,12 @@ load(modNm),
 
     /* evaluate cfl by surface averaging */
     printf(fh, "#if cflType == SURFAVG ~%"),
-    /* note: factor of derivfacsD already included in alpha_expd */
+    /* note: factor of dfac_d already included in alpha_expd */
     alphaL0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaL, subst(varsP[d]=-1, bP[1]))*bP[1]),
     printf(fh, "  // evaluate surface-averaged alpha on left ~%"),
     printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaL0))),
     printf(fh, "  cflFreq += -0.5*(alphaL-std::abs(alphaL)); ~%"),
-    /* note: factor of derivfacsD already included in alpha_expd */
+    /* note: factor of dfac_d already included in alpha_expd */
     alphaR0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaR, subst(varsP[d]=1, bP[1]))*bP[1]),
     printf(fh, "  // evaluate surface-averaged alpha on right ~%"),
     printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaR0))),
@@ -206,6 +123,8 @@ load(modNm),
       printf(fh, "  cflFreq += 0.5*(alphaR+std::abs(alphaR)); ~%")
     ),
     printf(fh, "#endif ~%"),
+
+    flush_output(fh),
 
     printf(fh, "~%")
     
@@ -306,7 +225,7 @@ load(modNm),
 )$
 
 pmax:1$
-em:true$
+em:false$
 
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (
@@ -321,7 +240,7 @@ printf(fh, "#include <GyrokineticModDecl.h> ~%"),
    note that we assume axisymmetry, which means B cannot depend on y */
 if c=1 then bvarslist : [[0], [1]],
 if c=2 then bvarslist : [[0], [1]],
-if c=3 then bvarslist : [[0], [1]/*, [3], [1,3]*/],
+if c=3 then bvarslist : [[0], [1], [3], [1,3]],
 for b : 1 thru length(bvarslist) do (
 if em then (
 funcName : sconcat("EmGyrokineticVol", c, "x", v, "v", "Ser"),
@@ -349,4 +268,3 @@ calcGKVolUpdater(fh, funcName, c, v, "Ser", p, false, [0]),
 close(fh)
 )
 )$
-

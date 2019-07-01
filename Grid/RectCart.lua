@@ -139,6 +139,7 @@ end
 function RectCart:localRange() return self._localRange end
 function RectCart:globalRange() return self._globalRange end
 function RectCart:isDirPeriodic(dir) return self._isDirPeriodic[dir] end
+function RectCart:getPeriodicDirs() return self._periodicDirs end
 function RectCart:cuts(dir) return self._cuts[dir] end
 function RectCart:setIndex(idxIn)
    if type(idxIn) == "cdata" then
@@ -176,6 +177,10 @@ function RectCart:gridVolume() return self._gridVol end
 
 function RectCart:write(fName)
    -- nothing to write
+end
+
+function RectCart:getMappings(dir)
+   return nil
 end
 
 local _numMetricElems = { 1, 3, 6 }

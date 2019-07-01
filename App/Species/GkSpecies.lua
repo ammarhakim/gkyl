@@ -82,6 +82,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       end
       self.bmag    = assert(funcField.geo.bmag, "nil bmag")
       self.bmagInv = funcField.geo.bmagInv
+      self.jacobGeoInv = funcField.geo.jacobGeoInv
    end
 
    if self.gyavg then
@@ -672,6 +673,8 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:createDiagnostics()
+   GkSpecies.super.createDiagnostics(self)
+   
    local function isIntegratedMomentNameGood(nm)
       if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL2" then
          return true
