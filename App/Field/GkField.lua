@@ -1344,7 +1344,6 @@ function GkGeometry:initField()
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
 
-<<<<<<< working copy
    -- smooth all geo quantities
    -- note bmag is only one that is required to be smooth, but
    -- for others would need to pass R and L values in surface kernels if not smooth
@@ -1364,8 +1363,6 @@ function GkGeometry:initField()
 
    --self.weakDivision:advance(0.0, {self.geo.jacobTot, self.unitWeight}, {self.geo.jacobTotInv})
    --self.weakDivision:advance(0.0, {self.geo.jacobGeo, self.unitWeight}, {self.geo.jacobGeoInv})
-=======
->>>>>>> merge rev
 
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
