@@ -475,7 +475,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       local flux = self:fluidMoments()[2]
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
       for idx in flux:localRangeIter() do
-	 if idx[1] == self.grid:upper(1) then
+	 if idx[1] == self.grid:numCells(1) then
 	    flux:fill(fluxIndexer(idx), fluxItr)
 	    localEdgeFlux[0] = fluxItr[1] / math.sqrt(2)
 	 end
