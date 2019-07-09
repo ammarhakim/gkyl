@@ -1291,6 +1291,7 @@ function GkGeometry:createSolver()
       gridCenter[dir] = self.grid:mid(dir) -- reset so we can check other vars
    end
    if self.bmagVars[1] == nil then self.bmagVars[1] = 0 end
+   if self.ndim == 3 then self.bmagVars = {1,3} end
 
    self.smoother = Updater.FemPoisson {
      onGrid = self.grid,
