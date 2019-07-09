@@ -393,7 +393,7 @@ wxy_expd : doExpandLst(wxyNoZero_k, basis),
 wyyNoZero_k : doMakeExprLst(wyy_k, wyy),
 wyy_expd : doExpandLst(wyyNoZero_k, basis),
 modToNod : calcModToNod(cdim, p),
-stiffPerpMod:dfacx2*calcWeightedStiffMatrix(x,varsC,wxx_expd,basis)+dfacy2*calcWeightedStiffMatrix(y,varsC,wyy_expd,basis)+2*dfacxy*calcWeightedStiffMatrixCross(x,y,varsC,wxy_expd,basis),
+stiffPerpMod:dfacx2*calcWeightedStiffMatrix(x,varsC,wxx_expd,basis)+dfacy2*calcWeightedStiffMatrix(y,varsC,wyy_expd,basis)+dfacxy*calcWeightedStiffMatrixCross(x,y,varsC,wxy_expd,basis)+dfacxy*calcWeightedStiffMatrixCross(y,x,varsC,wxy_expd,basis),
 stiffPerpNod:float(expand(ratsimp(ratsimp(invert(modToNod)).stiffPerpMod.ratsimp(invert(transpose(modToNod)))))),
 return(stiffPerpNod)
 )$
