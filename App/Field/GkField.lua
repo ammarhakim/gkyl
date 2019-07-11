@@ -24,6 +24,8 @@ local Constants = require "Lib.Constants"
 
 local GkField = Proto(FieldBase.FieldBase)
 
+local EM_BC_OPEN = 1
+
 -- this ctor simply stores what is passed to it and defers actual
 -- construction to the fullInit() method below
 function GkField:init(tbl)
@@ -455,6 +457,59 @@ function GkField:createSolver(species, funcField)
    elseif self.isElectromagnetic then
       self.nstep = 2
    end
+
+   -- function to construct a BC updater
+   local function makeBcUpdater(dir, edge, bcList)
+      return Updater.Bc {
+	 onGrid = self.grid,
+	 boundaryConditions = bcList,
+	 dir = dir,
+	 edge = edge,
+      }
+   end
+
+   -- various functions to apply BCs of different types
+   local function bcOpen(dir, tm, idxIn, fIn, fOut)
+      -- Requires skinLoop = "pointwise".
+      self.basis:flipSign(dir, fIn, fOut)
+   end
+
+   -- functions to make life easier while reading in BCs to apply
+   self.boundaryConditions = { } -- list of Bcs to apply
+   local function appendBoundaryConditions(dir, edge, bcType)
+      if bcType == EM_BC_OPEN then
+	 table.insert(self.boundaryConditions,
+		      makeBcUpdater(dir, edge, { bcOpen }))
+      else
+	 assert(false, "GkField: Unsupported BC type!")
+      end
+   end
+
+   local function handleBc(dir, bc)
+      if bc[1] then
+	 appendBoundaryConditions(dir, "lower", bc[1])
+      end
+      if bc[2] then
+	 appendBoundaryConditions(dir, "upper", bc[2])
+      end
+   end
+
+   local function contains(table, element)
+     for _, value in pairs(table) do
+       if value == element then
+         return true
+       end
+     end
+     return false
+   end
+   
+   -- for non-periodic dirs, use BC_OPEN to make sure values on edge of ghost cells match values on edge of skin cells, 
+   -- so that field is continuous across skin-ghost boundary
+   for dir = 1, self.ndim do
+      if not contains(self.periodicDirs, dir) then 
+         handleBc(dir, {EM_BC_OPEN, EM_BC_OPEN}) 
+      end
+   end
 end
 
 function GkField:createDiagnostics()
@@ -623,6 +678,10 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
 
       -- apply BCs
       local tmStart = Time.clock()
+      -- make sure phi is continuous across skin-ghost boundary
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:advance(tCurr, {}, {potCurr.phi})
+      end
       potCurr.phi:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
  
@@ -783,13 +842,15 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
 end
 
 function GkField:applyBcIdx(tCurr, idx)
-   -- don't do anything here. global boundary conditions handled by solvers. 
-   -- syncs to update interproc ghost already done at end of advance steps
+   -- don't do anything here. BCs handled in advance steps.
 end
 
 -- NOTE: global boundary conditions handled by solver. this just updates interproc ghosts.
 function GkField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
+   for _, bc in ipairs(self.boundaryConditions) do
+      bc:advance(tCurr, {}, {potIn.phi})
+   end
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
      potIn.apar:sync(true) 
