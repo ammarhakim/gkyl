@@ -43,7 +43,7 @@ printf(fHandle,"extern \"C\" {~%")$
 printf(fHandle," ~%")$
 
 printf(fHandle,"  // C wrappers that interface with spectralTransform class.~%")$
-printf(fHandle,"  void* new_spectralTransform(const int nModes, const int nSurfB);~%")$
+printf(fHandle,"  void* new_spectralTransform(const int nModes, const int nCells, const int pOrder, const int nSurfB);~%")$
 
 printf(fHandle,"  // Assign elements (coefficients of projection of spectral basis)~%")$
 printf(fHandle,"  // of the left-side mass matrix.~%")$
@@ -90,7 +90,7 @@ printf(fHandle,"class spectralTransform~%")$
 printf(fHandle,"{~%")$
 
 printf(fHandle,"  public:~%")$
-printf(fHandle,"  spectralTransform(const int nModes, const int nSurfB);~%")$
+printf(fHandle,"  spectralTransform(const int nModes, const int nCells, const int pOrder, const int nSurfB);~%")$
 printf(fHandle,"  ~~spectralTransform();~%")$
 printf(fHandle,"  ~%")$
 

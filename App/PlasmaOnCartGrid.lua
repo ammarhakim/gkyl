@@ -297,7 +297,7 @@ local function buildApplication(self, tbl)
 
    -- Function to write data to file.
    local function writeData(tCurr, force)
-      for _, s in pairs(species) do s:write(tCurr, force) end
+      for _, s in pairs(species) do s:write(tCurr, force, species) end
       field:write(tCurr, force)
       funcField:write(tCurr, force)
    end

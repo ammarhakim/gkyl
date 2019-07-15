@@ -1,6 +1,6 @@
 #include <CartFieldSpectralTransformImpl.h>
  
-spectralTransform::spectralTransform(const int nModes, const int nSurfB) 
+spectralTransform::spectralTransform(const int nModes, const int nCells, const int pOrder, const int nSurfB) 
 { 
   // nModes: number of spectral modes represented. 
   // nSurfB: number of surface (un-transformed dimensions) basis elements. 
@@ -8,11 +8,16 @@ spectralTransform::spectralTransform(const int nModes, const int nSurfB)
   // Declare stiffness matrix A as an Eigen Matrix (emA) containing the 
   // inner product of the DG bases with the global spectral bases. 
   // We will also store the inverse of this matrix in-place. 
-  emA = Eigen::MatrixXd::Zero(nModes,nModes); 
+  emA = Eigen::MatrixXd::Zero(nCells*(pOrder+1),nModes); 
+  // Store the decomposition of matrix emA in-place. Need the object emAlu.
+  // NOTE: various methods exist for doing the decomposition and
+  //       more testing is need to understand their impact and best choice.
+  //Eigen::FullPivHouseholderQR<Eigen::Ref<Eigen::MatrixXd> > emAlu(emA);
+  emAlu = Eigen::FullPivHouseholderQR<Eigen::MatrixXd>(); // emAlu(emA);
   // Declare right-hand side vector B as an Eigen Vector (evB) 
   // which contains the coefficients of the DG expansion. 
   // Create one vector for each surface basis element. 
-  emB = Eigen::MatrixXd::Zero(nModes, nSurfB); 
+  emB = Eigen::MatrixXd::Zero(nCells*(pOrder+1), nSurfB); 
   // Declare Eigen Vector 'U' (evU) with solution to system of equations. 
   emU = Eigen::MatrixXd::Zero(nModes, nSurfB); 
 }
@@ -39,7 +44,10 @@ void spectralTransform::assignMassMatrixSer(const int pOrder, const int cellIdx,
 void spectralTransform::getMassMatrixInverse() 
 { 
  
-  emA = emA.inverse();
+  //emA = emA.inverse();
+  //emA = emA.ldlt();
+  emAlu.compute(emA);
+  //Eigen::FullPivHouseholderQR<Eigen::Ref<Eigen::MatrixXd> > emAlu(emA);
  
 } 
  
@@ -103,7 +111,9 @@ void spectralTransform::assignSourceMatrix1x1vSer_P2OpDir2(const int cellIdx, co
 void spectralTransform::solveLinearProblem() 
 { 
  
-  emU = emA*emB;
+  //emU = emA.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(emB);
+  //emU = emA.fullPivHouseholderQr().solve(emB);
+  emU = emAlu.solve(emB);
  
 } 
  
@@ -125,9 +135,9 @@ void spectralTransform::redistributeSolution1x1vSer_P2(const int cellIdx, double
 } 
  
 // C wrappers for interfacing with spectralTransform class. 
-extern "C" void* new_spectralTransform(int nModes, int nSurfB) 
+extern "C" void* new_spectralTransform(int nModes, const int nCells, const int pOrder, int nSurfB) 
 { 
-  spectralTransform* b = new spectralTransform(nModes, nSurfB); 
+  spectralTransform* b = new spectralTransform(nModes, nCells, pOrder, nSurfB); 
   return reinterpret_cast<void*>(b); 
 } 
  
