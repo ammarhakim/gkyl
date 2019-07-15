@@ -9,7 +9,7 @@ class spectralTransform;
 extern "C" {
  
   // C wrappers that interface with spectralTransform class.
-  void* new_spectralTransform(const int nModes, const int nSurfB);
+  void* new_spectralTransform(const int nModes, const int nCells, const int pOrder, const int nSurfB);
   // Assign elements (coefficients of projection of spectral basis)
   // of the left-side mass matrix.
   void assignLHSMatrixSer(spectralTransform *sTransObj, const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn);
@@ -31,7 +31,7 @@ extern "C" {
 class spectralTransform
 {
   public:
-  spectralTransform(const int nModes, const int nSurfB);
+  spectralTransform(const int nModes, const int nCells, const int pOrder, const int nSurfB);
   ~spectralTransform();
   
   void assignMassMatrixSer(const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn);
@@ -46,6 +46,8 @@ class spectralTransform
 
   private:
   Eigen::MatrixXd emA;
+//  Eigen::Ref<Eigen::MatrixXd> emAlu = emA;
+  Eigen::FullPivHouseholderQR<Eigen::MatrixXd> emAlu; //(Eigen::MatrixXd emA); //(Eigen::MatrixXd emA);
   Eigen::MatrixXd emB;
   Eigen::MatrixXd emU;
 };

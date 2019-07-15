@@ -753,10 +753,10 @@ function VlasovSpecies:createDiagnostics()
                onGrid        = self.grid,
                numComponents = self.basis:numBasis(),
                ghost         = {1, 1},
-   	    metaData = {
-   	       polyOrder = self.basis:polyOrder(),
-   	       basisType = self.basis:id()
-   	    },	    	    
+   	       metaData = {
+   	          polyOrder = self.basis:polyOrder(),
+   	          basisType = self.basis:id()
+   	       },	    	    
             }
    
             self.distDiagnosticUpdaters[diag] = Updater.CartFieldSpectralTransform {

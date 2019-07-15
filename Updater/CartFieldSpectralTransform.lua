@@ -15,6 +15,8 @@
 --      the resulting 1D-like expansion to the corresponding Eigen vectors.
 --  4b. Perform the Eigen multiplication A^{-1} b.
 --  4c. Re-distribute data.
+--
+--
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
@@ -29,13 +31,14 @@ local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local DataStruct     = require "DataStruct"
 local Basis          = require "Basis"
 local Grid           = require "Grid"
+local Hermite        = require "Lib.Hermite"
 -- System libraries.
 local ffi           = require "ffi"
 local ffiC          = ffi.C
 
 ffi.cdef[[
   typedef struct spectralTransform spectralTransform;
-  spectralTransform* new_spectralTransform(const int nModes, const int nSurfB);
+  spectralTransform* new_spectralTransform(const int nModes, const int nCells, const int pOrder, const int nSurfB);
   void assignLHSMatrixSer(spectralTransform *sTransObj, const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn);
   void getLHSMatrixInverse(spectralTransform *sTransObj);
   void assignRHSMatrix1x1vSer_P1OpDir1(spectralTransform *sTransObj, const int cellIdx, const double *fDG);
@@ -93,9 +96,9 @@ function CartFieldSpectralTransform:init(tbl)
    end
 
    -- Number of spectral modes represented in each 'opDir' direction.
-   local numSpectralModes = {}
+   self._numSpectralModes = {}
    for iDir = 1,#opDir do
-      numSpectralModes[iDir] = (self._polyOrder+1)*self._onGrid:numCells(opDir[iDir])
+      self._numSpectralModes[iDir] = 44 --(self._polyOrder+1)*self._onGrid:numCells(opDir[iDir])
    end
 
    -- Function to create basis functions.
@@ -109,8 +112,8 @@ function CartFieldSpectralTransform:init(tbl)
       end
    end
    -- Number of surface basis elements. Equivalent to number of elements of one lower dimension.
-   local surfBasis    = createBasis(self._basisID, self._wDim-1, self._polyOrder)
-   local numSurfBasis = surfBasis:numBasis()
+   local surfBasis          = createBasis(self._basisID, self._wDim-1, self._polyOrder)
+   self._numSurfBasis = surfBasis:numBasis()
 
    for iOp = 1,#op do
       if isTransformNameGood(op[iOp]) then
@@ -133,7 +136,8 @@ function CartFieldSpectralTransform:init(tbl)
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 
    -- Create struct containing allocated SpectralTransform arrays for solving the linear global problem.
-   self._transformObj = ffiC.new_spectralTransform(numSpectralModes[1], numSurfBasis) 
+   self._transformObj = ffiC.new_spectralTransform(self._numSpectralModes[1], self._onGrid:numCells(opDir[1]),
+                                                   self._polyOrder, self._numSurfBasis) 
 
    -- Create projection updater to project the spectral basis functions onto our basis. 
    -- Need to create a 1D grid to project the spectral basis onto.
@@ -142,7 +146,7 @@ function CartFieldSpectralTransform:init(tbl)
    if self._onGrid:isDirPeriodic(opDir[1]) then    -- Only one transform for now.
       opDirPeriodic[1] = 1
    end
-   local grid1D = Grid.RectCart {
+   self._grid1D = Grid.RectCart {
       lower         = {self._onGrid:lower(opDir[1])},
       upper         = {self._onGrid:upper(opDir[1])},
       cells         = {self._onGrid:numCells(opDir[1])},
@@ -151,27 +155,27 @@ function CartFieldSpectralTransform:init(tbl)
 --      decomposition = self.decomp,
 --      mappings      = coordinateMap,
    }
-   local project = ProjectOnBasis {
-      onGrid   = grid1D,
+   self._project = ProjectOnBasis {
+      onGrid   = self._grid1D,
       basis    = basis1D,
       evaluate = function (t,xn)  -- The function is set below with the setFuncMethod.
                     return 1.0
                  end,
-      projectOnGhosts = false
+      projectOnGhosts = false,
    }
    -- Create a weak field for the basis element.
    local ghostCells = {0,0}
    if self.onGhosts then ghostCells = {1,1} end
-   local spectralBasisE = DataStruct.Field {
-      onGrid        = grid1D,
+   self._spectralBasisE = DataStruct.Field {
+      onGrid        = self._grid1D,
       numComponents = basis1D:numBasis(),
       ghost         = ghostCells,
    }
 
-   local spectralBasisEIndexer = spectralBasisE:genIndexer()
-   local spectralBasisEPtr     = spectralBasisE:get(1)
-
-   local spectralBasisERange   = spectralBasisE:localRange()
+--   self._spectralBasisEIndexer = self._spectralBasisE:genIndexer()
+--   self._spectralBasisEPtr     = self._spectralBasisE:get(1)
+--
+--   self._spectralBasisERange   = self._spectralBasisE:localRange()
 --   if self.onGhosts then    -- Extend range to config-space ghosts.
 --      spectralBasisERange = spectralBasisERange:extendDir(1, spectralBasisE:lowerGhost(), spectralBasisE:upperGhost())
 --   end
@@ -184,54 +188,33 @@ function CartFieldSpectralTransform:init(tbl)
 
    local iDir = 1      -- Only one transform for now.
    if op[iDir] == "Hermite" then
-      local function hermiteBasis(mmax, x)
-        -- Function returning the mmmax Hermite basis (normalized and weighted by exponential).
-        local hmx = { [0] = math.exp(-(x^2))/math.sqrt(math.pi),
-                            math.exp(-(x^2))*math.sqrt(2.0/math.pi)*x
-        }
-      
-        local function _hermiteBasis(m,x)
-           if m == 0 then
-              return hmx[0]
-           elseif m == 1 then
-              return hmx[1]
-           end
-           return (math.sqrt(2.0/m))*x*hmx[m-1]-math.sqrt((m-1.0)/m)*hmx[m-2]
-        end
-      
-        for m = 2, mmax do
-           hmx[m] = _hermiteBasis(m,x)
-        end
-        return hmx[mmax]
-      end
 
-      local spectralRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = spectralBasisERange:selectFirst(1), numSplit = grid1D:numSharedProcs() }
-      local tId = grid1D:subGridSharedId()    -- Local thread ID.
-
-      for mH = 0, numSpectralModes[iDir]-1 do
-         -- For each Hermite basis function need to:
-         --   1) Project the Hermite basis function onto DG basis.
-         --   2) Assign its coefficients to the corresponding matrix element.
-
-         -- Project m-th hermite basis onto DG basis.
-         project:setFunc(function (t,xn) return hermiteBasis(mH,xn[1]) end )
-         project:advance(0.0, {}, {spectralBasisE})
-
-         -- Loop over 1D space assigning elements to matrix for 1D spectral transform.
-         for sIdx in spectralRangeDecomp:rowMajorIter(tId) do
-
-            grid1D:setIndex(sIdx)
-            spectralBasisE:fill(spectralBasisEIndexer(sIdx), spectralBasisEPtr)
-
-            ffiC.assignLHSMatrixSer(self._transformObj, self._polyOrder, sIdx[iDir], mH, spectralBasisEPtr:data())
-
-         end
-      end
-
-
-      -- Invert the left-side mass matrix.
-      ffiC.getLHSMatrixInverse(self._transformObj)
+--      local spectralRangeDecomp = LinearDecomp.LinearDecompRange {
+--         range = spectralBasisERange:selectFirst(1), numSplit = self._grid1D:numSharedProcs() }
+--      local tId = self._grid1D:subGridSharedId()    -- Local thread ID.
+--
+--      for mH = 0, self._numSpectralModes[iDir]-1 do
+--         -- For each Hermite basis function need to:
+--         --   1) Project the Hermite basis function onto DG basis.
+--         --   2) Assign its coefficients to the corresponding matrix element.
+--
+--         -- Project m-th hermite basis onto DG basis.
+--         project:setFunc(function (t,xn) return Hermite.H(mH,xn[1]) end )
+--         project:advance(0.0, {}, {spectralBasisE})
+--
+--         -- Loop over 1D space assigning elements to matrix for 1D spectral transform.
+--         for sIdx in spectralRangeDecomp:rowMajorIter(tId) do
+--
+--            self._grid1D:setIndex(sIdx)
+--            spectralBasisE:fill(spectralBasisEIndexer(sIdx), spectralBasisEPtr)
+--
+--            ffiC.assignLHSMatrixSer(self._transformObj, self._polyOrder, sIdx[iDir], mH, spectralBasisEPtr:data())
+--
+--         end
+--      end
+--
+--      -- Invert the left-side mass matrix.
+--      ffiC.getLHSMatrixInverse(self._transformObj)
 
 -- Only Hermite is supported for now.
 --   elseif op[iDir] == "Laguerre" then
@@ -266,9 +249,41 @@ function CartFieldSpectralTransform:_advance(tCurr, inFld, outFld)
    local dgFldPtr       = dgFld:get(1)
    local spectralFldPtr = spectralFld:get(1)
 
+   local spectralBasisEIndexer = self._spectralBasisE:genIndexer()
+   local spectralBasisEPtr     = self._spectralBasisE:get(1)
+
+   local spectralBasisERange   = self._spectralBasisE:localRange()
+
+   local spectralRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = spectralBasisERange:selectFirst(1), numSplit = self._grid1D:numSharedProcs() }
+   local tId = self._grid1D:subGridSharedId()    -- Local thread ID.
+
    -- Outer loop is threaded and over configuration space.
    -- This will later be over perpendicular dimensions.
    for cIdx in confRangeDecomp:rowMajorIter(tId) do
+
+      for mH = 0, self._numSpectralModes[1]-1 do
+         -- For each Hermite basis function need to:
+         --   1) Project the Hermite basis function onto DG basis.
+         --   2) Assign its coefficients to the corresponding matrix element.
+
+         -- Project m-th hermite basis onto DG basis.
+         self._project:setFunc(function (t,xn) return Hermite.H(mH,xn[1]) end )
+         self._project:advance(0.0, {}, {self._spectralBasisE})
+
+         -- Loop over 1D space assigning elements to matrix for 1D spectral transform.
+         for sIdx in spectralRangeDecomp:rowMajorIter(tId) do
+
+            self._grid1D:setIndex(sIdx)
+            self._spectralBasisE:fill(spectralBasisEIndexer(sIdx), spectralBasisEPtr)
+
+            ffiC.assignLHSMatrixSer(self._transformObj, self._polyOrder, sIdx[1], mH, spectralBasisEPtr:data())
+
+         end
+      end
+
+      -- Invert the left-side mass matrix.
+      ffiC.getLHSMatrixInverse(self._transformObj)
 
       cIdx:copyInto(self.idx)
 
@@ -306,7 +321,8 @@ function CartFieldSpectralTransform:_advance(tCurr, inFld, outFld)
             ffiC.solveTransform(self._transformObj)
 
             -- Loop over transform dimension and re-distribute solution into a CartField.
-            for i = dirLoIdx, dirUpIdx do     -- This loop is over cells.
+            --for i = dirLoIdx, dirUpIdx do     -- This loop is over cells.
+            for i = 1, self._numSpectralModes[1]/(self._numBasis-self._numSurfBasis) do     -- This loop is over cells.
                self.idx[cDim+vDir] = i
 
                grid:setIndex(self.idx)
