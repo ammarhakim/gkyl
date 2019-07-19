@@ -8,6 +8,7 @@ local DataStruct = require "DataStruct"
 local Time = require "Lib.Time"
 local Basis = require "Basis"
 local Updater = require "Updater"
+local Lin = require "Lib.Linalg"
 local xsys = require "xsys"
 
 local dragStencil = require "Proto.Fpo.dragStencil"
@@ -51,13 +52,13 @@ return function(tbl)
    -- fields
    local function getField()
       return DataStruct.Field {
-	 onGrid = grid,
-	 numComponents = basis:numBasis(),
-	 ghost = {1, 1},
-	 metaData = {
-	    polyOrder = basis:polyOrder(),
-	    basisType = basis:id(),
-	 },
+         onGrid = grid,
+         numComponents = basis:numBasis(),
+         ghost = {1, 1},
+         metaData = {
+            polyOrder = basis:polyOrder(),
+            basisType = basis:id(),
+         },
       }
    end
    local f = getField()
@@ -70,18 +71,19 @@ return function(tbl)
    local g = getField()
 
    local M0 = DataStruct.DynVector { numComponents = 1 }
+   local conserv = DataStruct.DynVector { numComponents = 3 }
 
    --------------
    -- Updaters --
    --------------
    local function absorbFunc(dir, tm, idxIn, fIn, fOut)
       for i = 1, basis:numBasis() do
-	 fOut[i] = 0.0
+         fOut[i] = 0.0
       end
    end
    local function copyFunc(dir, tm, idxIn, fIn, fOut)
       for i = 1, basis:numBasis() do
-	 fOut[i] = fIn[i]
+         fOut[i] = fIn[i]
       end
    end
    local function openFunc(dir, tm, idxIn, fIn, fOut)
@@ -142,7 +144,7 @@ return function(tbl)
    -- check if drag/diff functions are provided
    local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
    local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, xn) return 0.0 end
-   
+
    local initDrag = Updater.ProjectOnBasis {
       onGrid = grid,
       basis = basis,
@@ -160,14 +162,14 @@ return function(tbl)
       local tmStart = Time.clock()
       fs:combine(-1.0, fIn)
       if updatePotentials then
-	 poisson:advance(0.0, {fs}, {hOut})
+         poisson:advance(0.0, {fs}, {hOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
    local function updateRosenbluthDiffusion(hIn, gOut)
       local tmStart = Time.clock()
       if updatePotentials then
-	 poisson:advance(0.0, {hIn}, {gOut})
+         poisson:advance(0.0, {hIn}, {gOut})
       end
       tmRosen = tmRosen + Time.clock()-tmStart
    end
@@ -188,11 +190,35 @@ return function(tbl)
       quantity = "V"
    }
 
+   local function calcConservDiag(tCurr, fIn, hIn, gIn, diagVec)
+      local dx, dy = grid:dx(1), grid:dx(2)
+      local localRange = fIn:localRange()
+      local indexer = fIn:genIndexer()
+      local out = Lin.Vec(3)
+      out[1] = 0.0
+      out[2] = 0.0
+      out[3] = 0.0
+
+      local vol = dx*dy/4.0
+
+      for idxs in localRange:colMajorIter() do
+         local fPtr = fIn:get(indexer(idxs))
+         local hPtr = hIn:get(indexer(idxs))
+         local gPtr = gIn:get(indexer(idxs))
+         out[1] = out[1] + vol*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))
+         out[2] = out[2] + vol*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))
+      end
+      diagVec:appendData(tCurr, out)
+   end
+
    local function writeData(fr, tm)
-      if writeDiagnostics then M0:write(string.format("f_M0_%d.bp", fr), tm, fr) end
       h:write(string.format('h_%d.bp', fr), tm, fr)
       g:write(string.format('g_%d.bp', fr), tm, fr)
       f:write(string.format("f_%d.bp", fr), tm, fr)
+      if writeDiagnostics then
+         M0:write(string.format("f_M0_%d.bp", fr), tm, fr)
+         conserv:write(string.format("conserv_%d.bp", fr), tm, fr)
+      end
    end
 
    -- write initial conditions
@@ -208,52 +234,52 @@ return function(tbl)
       local idxsT, idxsB = {}, {}
 
       for idxs in localRange:colMajorIter() do
-	 idxsR[1] = idxs[1]+1
-	 idxsL[1] = idxs[1]-1
-	 idxsR[2] = idxs[2]
-	 idxsL[2] = idxs[2]
-	 idxsT[1] = idxs[1]
-	 idxsB[1] = idxs[1]
-	 idxsT[2] = idxs[2]+1
-	 idxsB[2] = idxs[2]-1
+         idxsR[1] = idxs[1]+1
+         idxsL[1] = idxs[1]-1
+         idxsR[2] = idxs[2]
+         idxsL[2] = idxs[2]
+         idxsT[1] = idxs[1]
+         idxsB[1] = idxs[1]
+         idxsT[2] = idxs[2]+1
+         idxsB[2] = idxs[2]-1
 
-	 local isTopEdge, isBotEdge = false, false
-	 local isLeftEdge, isRightEdge = false, false
+         local isTopEdge, isBotEdge = false, false
+         local isLeftEdge, isRightEdge = false, false
 
-	 if idxs[1] == 1 then isLeftEdge = true end
-	 if idxs[1] == cells[1] then isRightEdge = true end
-	 if idxs[2] == 1 then isBotEdge = true end
-	 if idxs[2] == cells[2] then isTopEdge = true end
+         if idxs[1] == 1 then isLeftEdge = true end
+         if idxs[1] == cells[1] then isRightEdge = true end
+         if idxs[2] == 1 then isBotEdge = true end
+         if idxs[2] == cells[2] then isTopEdge = true end
 
-	 local fPtr = fIn:get(indexer(idxs))
-	 local fRPtr = fIn:get(indexer(idxsR))
-	 local fLPtr = fIn:get(indexer(idxsL))
-	 local fTPtr = fIn:get(indexer(idxsT))
-	 local fBPtr = fIn:get(indexer(idxsB))
+         local fPtr = fIn:get(indexer(idxs))
+         local fRPtr = fIn:get(indexer(idxsR))
+         local fLPtr = fIn:get(indexer(idxsL))
+         local fTPtr = fIn:get(indexer(idxsT))
+         local fBPtr = fIn:get(indexer(idxsB))
 
-	 local hPtr = hIn:get(indexer(idxs))
-	 local hRPtr = hIn:get(indexer(idxsR))
-	 local hLPtr = hIn:get(indexer(idxsL))
-	 local hTPtr = hIn:get(indexer(idxsT))
-	 local hBPtr = hIn:get(indexer(idxsB))
+         local hPtr = hIn:get(indexer(idxs))
+         local hRPtr = hIn:get(indexer(idxsR))
+         local hLPtr = hIn:get(indexer(idxsL))
+         local hTPtr = hIn:get(indexer(idxsT))
+         local hBPtr = hIn:get(indexer(idxsB))
 
-	 local gPtr = gIn:get(indexer(idxs))
-	 local gRPtr = gIn:get(indexer(idxsR))
-	 local gLPtr = gIn:get(indexer(idxsL))
-	 local gTPtr = gIn:get(indexer(idxsT))
-	 local gBPtr = gIn:get(indexer(idxsB))
+         local gPtr = gIn:get(indexer(idxs))
+         local gRPtr = gIn:get(indexer(idxsR))
+         local gLPtr = gIn:get(indexer(idxsL))
+         local gTPtr = gIn:get(indexer(idxsT))
+         local gBPtr = gIn:get(indexer(idxsB))
 
-	 local fOutPtr= fOut:get(indexer(idxs))
+         local fOutPtr= fOut:get(indexer(idxs))
 
-	 dragStencil(dt, dx, dy,
-	 	     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-	 	     hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
-	 	     fOutPtr)
-	 diffStencil(dt, dx, dy,
-		     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-		     gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
-		     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		     fOutPtr)
+         dragStencil(dt, dx, dy,
+                     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
+                     hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
+                     fOutPtr)
+         diffStencil(dt, dx, dy,
+                     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
+                     gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
+                     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+                     fOutPtr)
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
@@ -293,22 +319,28 @@ return function(tbl)
 
       local tmStart = Time.clock()
       while not isDone do
-	 if (tCurr+dt >= tEnd) then
-	    isDone = true
-	    dt = tEnd-tCurr
-	 end
-	 print(string.format("Step %d at time %g with dt %g ...", step, tCurr, dt))
-	 rk3(dt, f, fNew)
-	 f:copy(fNew)
+         if (tCurr+dt >= tEnd) then
+            isDone = true
+            dt = tEnd-tCurr
+         end
+         print(string.format("Step %d at time %g with dt %g ...", step, tCurr, dt))
+         rk3(dt, f, fNew)
+         f:copy(fNew)
 
-	 if writeDiagnostics then M0Calc:advance(tCurr+dt, { f }, { M0 }) end
+         if writeDiagnostics then
+            M0Calc:advance(tCurr+dt, { f }, { M0 })
 
-	 tCurr = tCurr+dt	 
-	 if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
-	    writeData(nextFrame, tCurr)
-	    nextFrame = nextFrame+1
-	 end
-	 step = step+1	 
+            updateRosenbluthDrag(f, h)
+            updateRosenbluthDiffusion(h, g)
+            calcConservDiag(tCurr+dt, f, h, g, conserv)
+         end
+
+         tCurr = tCurr+dt
+         if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
+            writeData(nextFrame, tCurr)
+            nextFrame = nextFrame+1
+         end
+         step = step+1
       end
       local tmTotal = Time.clock()-tmStart
 
