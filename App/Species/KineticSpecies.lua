@@ -138,7 +138,8 @@ function KineticSpecies:fullInit(appTbl)
    end
    self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false)
    if self.sourceSteadyState then
-      self.sourceSteadyStateLength = tbl.sourceSteadyStateLength
+      self.sourceSteadyStateLength = assert(tbl.sourceSteadyStateLength,
+					    "KineticSpecies: Must specify sourceSteadyStateLength when sourceSteadyState is true.")
    end
    if tbl.sourceTimeDependence then 
       self.sourceTimeDependence = tbl.sourceTimeDependence 

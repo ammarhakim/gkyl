@@ -14,6 +14,7 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local ffi            = require "ffi"
+local Lin            = require "Lib.Linalg"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
@@ -430,7 +431,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if emField then totalEmField:accumulate(qbym, emField) end
    if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
-   
+
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    if self.vlasovExtForceFunc then
       local vExtForce = self.vExtForce
@@ -472,12 +473,31 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       localEdgeFlux[0] = 0.0
       localEdgeFlux[1] = 0.0
       localEdgeFlux[2] = 0.0
+
+      local numConfDims = self.confBasis:ndim()
+      assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
+      local numConfBasis = self.confBasis:numBasis()
+      local lower, upper = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
+      lower[1], upper[1] = -1.0, 1.0
+      local basisUpper = Lin.Vec(numConfBasis)
+      local basisLower = Lin.Vec(numConfBasis)
+
+      self.confBasis:evalBasis(upper, basisUpper)
+      self.confBasis:evalBasis(lower, basisLower)
+
       local flux = self:fluidMoments()[2]
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
       for idx in flux:localRangeIter() do
 	 if idx[1] == self.grid:numCells(1) then
 	    flux:fill(fluxIndexer(idx), fluxItr)
-	    localEdgeFlux[0] = fluxItr[1] / math.sqrt(2)
+	    for k = 1, numConfBasis do
+	       localEdgeFlux[0] = localEdgeFlux[0] + fluxItr[k]*basisUpper[k]
+	    end
+	 elseif idx[1] == 1 then
+	    flux:fill(fluxIndexer(idx), fluxItr)
+	    for k = 1, numConfBasis do
+	       localEdgeFlux[0] = localEdgeFlux[0] - fluxItr[k]*basisLower[k]
+	    end
 	 end
       end
       local globalEdgeFlux = ffi.new("double[3]")
