@@ -30,6 +30,11 @@ return function(tbl)
    local upper = tbl.upper
 
    local periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
+   local periodicX, periodicY = false, false
+   for i = 1, #periodicDirs do
+      if periodicDirs[i] == 1 then periodicX = true end
+      if periodicDirs[i] == 2 then periodicY = true end
+   end
 
    local tmRosen, tmFpo = 0.0, 0.0
 
@@ -246,10 +251,14 @@ return function(tbl)
          local isTopEdge, isBotEdge = false, false
          local isLeftEdge, isRightEdge = false, false
 
-         if idxs[1] == 1 then isLeftEdge = true end
-         if idxs[1] == cells[1] then isRightEdge = true end
-         if idxs[2] == 1 then isBotEdge = true end
-         if idxs[2] == cells[2] then isTopEdge = true end
+         if periodicX == false then
+            if idxs[1] == 1 then isLeftEdge = true end
+            if idxs[1] == cells[1] then isRightEdge = true end
+         end
+         if periodicY == false then
+            if idxs[2] == 1 then isBotEdge = true end
+            if idxs[2] == cells[2] then isTopEdge = true end
+         end
 
          local fPtr = fIn:get(indexer(idxs))
          local fRPtr = fIn:get(indexer(idxsR))
@@ -274,6 +283,7 @@ return function(tbl)
          dragStencil(dt, dx, dy,
                      fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
                      hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
+                     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
                      fOutPtr)
          diffStencil(dt, dx, dy,
                      fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
