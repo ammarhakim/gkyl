@@ -194,7 +194,7 @@ plasmaApp = Plasma.App {
       phiBcBack  = { T ="N", V = 0.0},
       phiBcFront = { T ="N", V = 0.0},
       evolve     = true, -- Evolve fields?
-      isElectromagnetic = true,
+      --isElectromagnetic = true,
    },
 
    -- Magnetic geometry.
