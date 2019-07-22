@@ -61,10 +61,11 @@ for p : 1 thru pmax do (
   fReflXYMuQ_expd : makelist(0, i,1,length(bMu)),
   /* evaluate and write vcut^2 at x,y quadrature nodes */
   vcutSqQ:gcfac(float(fullratsimp(-2*q_/m_*deltaPhiQ))),
-  printf(fh, "  double vcutSq_i; long double xc, b, rVal; ~%"),
+  printf(fh, "  double vcutSq_i; long double xc, b, rVal, fac; ~%"),
   printf(fh, "  double fReflXYQuad[~a][~a]; ~%", length(nodesXY), length(bVpMu)),
   printf(fh, "  double fReflXYMuQuad[~a][~a]; ~%", length(nodesMu), length(bVp)),
-  printf(fh, "  ~%~%"),
+  printf(fh, "  ~%"),
+  printf(fh, "  //feenableexcept(FE_DIVBYZERO | FE_OVERFLOW);~%  feclearexcept(FE_ALL_EXCEPT);~%~%"),
   /* for each x,y quadrature node, determine and write coefficients fReflXYQuad for vpar,mu modal basis (bVpMu) */
   for i:1 thru length(nodesXY) do (
     printf(fh, "// quadrature node (x,y)_i=~a ~%", i),
@@ -92,19 +93,23 @@ for p : 1 thru pmax do (
         printf(fh, "   b = ~a; ~%", beta),
         printf(fh, "   if(wv > 0) {~%"),
         printf(fh, "    xc = ~a; ~%", 2*(sqrt(vcutSq_i)-wv)/dv),
-        fReflfacs : [ "(exp(b*xc)-exp(-b))/2/sinh(b)", 
-            "((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))",
+        fReflfacs : [ "b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b))", 
+            "(b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b))",
             "(((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
         for k:1 thru length(bVp) do (
-        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+        printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
+        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,1: b = \%Le, sinh(b) = \%Le\\n\", b, sinh(b)); throw \"Overflow!\";}~%",j,k),
+        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])))
         ),
         printf(fh, "   } else { ~%"),
         printf(fh, "    xc = ~a; ~%", 2*(-sqrt(vcutSq_i)-wv)/dv),
-        fReflfacs : [ "(exp(b)-exp(b*xc))/2/sinh(b)", 
-            "((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))", 
+        fReflfacs : [ "b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b))", 
+            "b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b))", 
             "((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
         for k:1 thru length(bVp) do (
-        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+        printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
+        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,2: b = \%Le, sinh(b) = \%Le\\n\", b, sinh(b)); throw \"Overflow!\";}~%",j,k),
+        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])))
         ),
         printf(fh, "   } ~%"),
         printf(fh, "  } ~%"),
@@ -132,6 +137,7 @@ for p : 1 thru pmax do (
 fname : "~/max-out/GkSheathFuncsSer.cpp";
 fh : openw(fname);
 printf(fh, "#include <cmath> ~%");
+printf(fh, "#include <fenv.h> ~%");
 printf(fh, "#include <GyrokineticModDecl.h> ~%");
 printf(fh, "// approximation for inverse Langevin function ~%");
 printf(fh, "long double invL(long double x) { ~%");
