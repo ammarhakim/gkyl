@@ -197,6 +197,7 @@ return function(tbl)
 
    local function calcConservDiag(tCurr, fIn, hIn, gIn, diagVec)
       local dx, dy = grid:dx(1), grid:dx(2)
+      local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
       local out = Lin.Vec(3)
@@ -207,19 +208,25 @@ return function(tbl)
       local vol = dx*dy/4.0
 
       for idxs in localRange:colMajorIter() do
+	 grid:setIndex(idxs)
+	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
-         local gPtr = gIn:get(indexer(idxs))
+         local gPtr = gIn:get(indexer(idxs))	 
+
          out[1] = out[1] + vol*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))
          out[2] = out[2] + vol*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))
+	 out[3] = out[3] + vol*(0.125*(((6.0*vc[2]+8.0)*fPtr[4]+6.928203230275509*vc[1]*fPtr[3]+6.928203230275509*fPtr[2]*vc[2]+6.928203230275509*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+(2.0*fPtr[4]+1.732050807568877*fPtr[2])*gPtr[4]+(3.464101615137754*hPtr[2]+1.732050807568877*gPtr[2])*fPtr[4]+((6.0*vc[2]+4.0)*fPtr[3]+6.928203230275509*fPtr[1]*vc[2]+3.464101615137754*fPtr[1])*hPtr[3]+(2.0*fPtr[3]+1.732050807568877*fPtr[1])*gPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*gPtr[1])*fPtr[3]+(4.0*fPtr[2]+6.928203230275509*fPtr[1]*vc[1])*hPtr[2]+2.0*fPtr[2]*gPtr[2]+2.0*fPtr[1]*gPtr[1])-0.125*(((6.0*vc[2]-8.0)*fPtr[4]-6.928203230275509*vc[1]*fPtr[3]-6.928203230275509*fPtr[2]*vc[2]+6.928203230275509*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+(1.732050807568877*fPtr[2]-2.0*fPtr[4])*gPtr[4]+(3.464101615137754*hPtr[2]+1.732050807568877*gPtr[2])*fPtr[4]+((6.0*vc[2]-4.0)*fPtr[3]-6.928203230275509*fPtr[1]*vc[2]+3.464101615137754*fPtr[1])*hPtr[3]+(1.732050807568877*fPtr[1]-2.0*fPtr[3])*gPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*gPtr[1])*fPtr[3]+((-4.0*fPtr[2])-6.928203230275509*fPtr[1]*vc[1])*hPtr[2]-2.0*fPtr[2]*gPtr[2]-2.0*fPtr[1]*gPtr[1]))
       end
       diagVec:appendData(tCurr, out)
    end
 
    local function writeData(fr, tm)
-      h:write(string.format('h_%d.bp', fr), tm, fr)
-      g:write(string.format('g_%d.bp', fr), tm, fr)
       f:write(string.format("f_%d.bp", fr), tm, fr)
+      if updatePotentials then
+	 h:write(string.format('h_%d.bp', fr), tm, fr)
+	 g:write(string.format('g_%d.bp', fr), tm, fr)
+      end
       if writeDiagnostics then
          M0:write(string.format("f_M0_%d.bp", fr), tm, fr)
          conserv:write(string.format("conserv_%d.bp", fr), tm, fr)
@@ -228,6 +235,10 @@ return function(tbl)
 
    -- write initial conditions
    writeData(0, 0.0)
+   if updatePotentials == false then
+      h:write(string.format('h_%d.bp', 0), 0.0, 0)
+      g:write(string.format('g_%d.bp', 0), 0.0, 0)
+   end
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
