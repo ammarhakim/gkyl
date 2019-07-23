@@ -1,12 +1,12 @@
 kill(all) $
 load("modal-basis")$
-load("basis-precalc/basisSer1x1v")$
+load("basis-precalc/basisSer2x")$
 assume(dx>0, dy>0)$
 vars : subst(vx=y, varsP) $
 polyOrder : 1 $
 basisX : basisC[polyOrder] $
 basisY : subst(x=y, basisC[polyOrder]) $
-basisXY : subst(vx=y, basisP[polyOrder]) $
+basisXY : basisP[polyOrder] $
 eta(xc, yc, dx, dy, basis) := subst([wx=x, wy=y], subst([x=(wx-xc)/(dx/2), y=(wy-yc)/(dy/2)] , basis)) $
 baLc : eta(-dx/2, 0, dx, dy, basisXY) $
 baRc : eta(dx/2, 0, dx, dy, basisXY) $
