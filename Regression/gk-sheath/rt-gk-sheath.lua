@@ -3,6 +3,7 @@
 local Plasma = require "App.PlasmaOnCartGrid"
 local Constants = require "Lib.Constants"
 local Mpi = require "Comm.Mpi"
+local math = require("sci.math").generic
 
 -- Universal constant parameters.
 eps0         = Constants.EPSILON0
@@ -21,13 +22,13 @@ n0           = 7e18  -- [1/m^3]
 B_axis       = 0.5   -- [T]
 R0           = 0.85  -- [m]
 a0           = 0.15   -- [m]
-R            = R0 + a0
-B0           = B_axis*(R0/R) -- [T]
+Rc           = R0 + a0
+B0           = B_axis*(R0/Rc) -- [T]
 
 -- Source parameters.
 P_SOL        = 8.1e5 -- [W] 
 S0           = 5.7691e23
-xSource      = R -- [m], source start coordinate
+xSource      = Rc -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
 -- Parameters for collisions.
@@ -49,7 +50,9 @@ rho_s    = c_s/omega_ci
 -- Box size.
 Lx = 50*rho_s
 Ly = 100*rho_s
-Lz = 4 -- [m]
+Lz = 8 -- [m]
+
+sintheta = 2.4/Lz
 
 -- Source profiles.
 sourceDensity = function (t, xn)
@@ -79,13 +82,26 @@ plasmaApp = Plasma.App {
 
    tEnd        = .5e-6,                     -- End time.
    nFrame      = 1,                     -- Number of output frames.
-   lower       = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
-   upper       = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
+   lower       = {Rc - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
+   upper       = {Rc + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
    cells       = {4, 1, 8},              -- Configuration space cells.
+   mapc2p = function(xc)
+      -- field-aligned coordinates (x,y,z)
+      -- use "eric" mapping, which includes no magnetic shear
+      local x, y, z = xc[1], xc[2], xc[3]
+      -- cylindrical coordinates (R,phi,Z)
+      local R = x
+      local Z = z*sintheta
+      local phi = y/sintheta/Rc + z*math.sqrt(1-sintheta^2)/R
+      -- cartesian coordinates (X,Y,Z)
+      local X = R*math.cos(phi)
+      local Y = R*math.sin(phi)
+      return X, Y, Z
+   end,
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.9,
+   cflFrac     = 0.4,
    restartFrameEvery = .5,
 
    -- Boundary conditions for configuration space.
@@ -202,7 +218,7 @@ plasmaApp = Plasma.App {
       -- Background magnetic field.
       bmag = function (t, xn)
          local x = xn[1]
-         return B0*R/x
+         return B0*Rc/x
       end,
 
       -- Geometry is not time-dependent.
