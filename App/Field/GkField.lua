@@ -379,9 +379,9 @@ function GkField:createSolver(species, funcField)
        bcTop = self.aparBcTop,
        periodicDirs = self.periodicDirs,
        zContinuous = not self.discontinuousApar,
-       gxx = gxx,
-       gxy = gxy,
-       gyy = gyy,
+       gxx = funcField.geo.gxxJ,
+       gxy = funcField.geo.gxyJ,
+       gyy = funcField.geo.gyyJ,
      }
      if ndim==1 then
         laplacianConstant = 0.0
@@ -404,9 +404,9 @@ function GkField:createSolver(species, funcField)
        bcTop = self.aparBcTop,
        periodicDirs = self.periodicDirs,
        zContinuous = not self.discontinuousApar,
-       gxx = gxx,
-       gxy = gxy,
-       gyy = gyy,
+       gxx = funcField.geo.gxxJ,
+       gxy = funcField.geo.gxyJ,
+       gyy = funcField.geo.gyyJ,
      }
      if ndim==1 then
         laplacianConstant = 0.0
@@ -431,9 +431,9 @@ function GkField:createSolver(species, funcField)
           bcTop = self.aparBcTop,
           periodicDirs = self.periodicDirs,
           zContinuous = not self.discontinuousApar,
-          gxx = gxx,
-          gxy = gxy,
-          gyy = gyy,
+          gxx = funcField.geo.gxxJ,
+          gxy = funcField.geo.gxyJ,
+          gyy = funcField.geo.gyyJ,
         }
         if ndim==1 then
            laplacianConstant = 0.0
@@ -757,6 +757,10 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
 
       -- apply BCs
       local tmStart = Time.clock()
+      -- make sure dApardt is continuous across skin-ghost boundary
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:advance(tCurr, {}, {potCurr.dApardt})
+      end
       dApardt:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
@@ -833,6 +837,10 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
 
       -- apply BCs
       local tmStart = Time.clock()
+      -- make sure dApardt is continuous across skin-ghost boundary
+      for _, bc in ipairs(self.boundaryConditions) do
+         bc:advance(tCurr, {}, {potCurr.dApardt})
+      end
       dApardt:sync(true)
       self.bcTime = self.bcTime + (Time.clock()-tmStart)
 
@@ -853,7 +861,15 @@ function GkField:applyBc(tCurr, potIn)
    end
    potIn.phi:sync(true)
    if self.isElectromagnetic then 
+     -- make sure apar is continuous across skin-ghost boundary
+     for _, bc in ipairs(self.boundaryConditions) do
+        bc:advance(tCurr, {}, {potIn.apar})
+     end
      potIn.apar:sync(true) 
+     -- make sure dApardt is continuous across skin-ghost boundary
+     for _, bc in ipairs(self.boundaryConditions) do
+        bc:advance(tCurr, {}, {potIn.dApardt})
+     end
      potIn.dApardt:sync(true) 
    end
    self.bcTime = self.bcTime + (Time.clock()-tmStart)
