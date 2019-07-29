@@ -2,6 +2,7 @@
 local Plasma = require "App.PlasmaOnCartGrid"
 local Constants = require "Lib.Constants"
 local Logger = require "Lib.Logger"
+local math = require("sci.math").generic
 
 -- physical parameters
 eV = Constants.ELEMENTARY_CHARGE
@@ -52,10 +53,22 @@ MU_UPPER = 16*me*vte*vte/B/2
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd = 3*L_n/vti/2, -- end time
+   tEnd = 3*L_n/vti, -- end time
    nFrame = 1, -- number of output frames
    lower = {r0 - .01*dr/2, -dr/2, -L_parallel/2}, -- configuration space lower left
    upper = {r0 + .01*dr/2,  dr/2, L_parallel/2}, -- configuration space upper right
+   mapc2p = function(xc)
+      -- field-aligned coordinates (x,y)
+      local x, y, z = xc[1], xc[2], xc[3]
+      -- cylindrical coordinates (R,phi)
+      local R = x+R0
+      local phi = y/(R0+r0)
+      -- cartesian coordinates (X,Y)
+      local X = R*math.cos(phi)
+      local Y = R*math.sin(phi)
+      local Z = z
+      return X, Y, Z
+   end,
    cells = {1, 8, 8}, -- configuration space cells
    basis = "serendipity", -- one of "serendipity" or "maximal-order"
    polyOrder = 1, -- polynomial order
@@ -63,7 +76,6 @@ plasmaApp = Plasma.App {
    cflFrac = 1.0,
 
    -- decomposition for configuration space
-   decompCuts = {1, 1, 1}, -- cuts in each configuration direction
    useShared = false, -- if to use shared memory
 
    -- boundary conditions for configuration space
