@@ -45,7 +45,7 @@ kill(varsC, varsP, basisC, basisP),
 
   calcAndWriteHamil(),
 
-  calcAndWriteBstar_by_Bmag(),
+  calcAndWriteBstar_by_Bmag(0),
 
   /* expand distribution function on basis */
   f_expd:doExpand1(f,bP),
@@ -140,21 +140,7 @@ kill(varsC, varsP, basisC, basisP),
 
 calcGKStep2VolUpdater(fh, funcNm, cdim, vdim, basisFun, i) := block([],
 kill(varsC, varsP, basisC, basisP),
-modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
-load(modNm),
-  if cdim = 1 then (
-    label:["x", "v", "m"]
-  ),
-  if cdim = 2 then (
-    label:["x", "y", "v", "m"]
-  ),
-  if cdim = 3 then (
-    label:["x", "y", "z", "v", "m"]
-  ),
-  bP : subst(gkvsub, basisP[i]),
-  bC : basisC[i],
-  varsP : subst(gkvsub, varsP),
-  numC : length(bC),
+  loadGKbasis(cdim, vdim, i),
 
   printf(fh, "double ~aP~a(const double q_, const double m_, const double *w, const double *dxv, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, i),
 
@@ -225,7 +211,7 @@ load(modNm),
 )$
 
 pmax:1$
-em:false$
+em:true$
 
 for c : 1 thru 3 do (
 for v: 1 thru 2 do (

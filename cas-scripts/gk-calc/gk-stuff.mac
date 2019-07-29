@@ -56,12 +56,24 @@ calcAndWriteHamil() := block([],
     Apar_expd:doExpand1(Apar,bC),
     /* expand dApar/dt */
     dAdt_expd:doExpand1(dApardt,bC),
-    dAdtPrev_expd:doExpand1(dApardtPrev,bC)
+    dAdtPrev_expd:doExpand1(dApardtPrev,bC),
     /* NOTE: even though Apar and dApar/dt are allowed
        to be discontinuous in the parallel (z) direction,
        the surface term in the z direction does not involve
        Apar. since Apar is continuous in the other directions,
        it does not matter if we use the right or left value */
+ 
+    if cdim#2 then (
+      /* for z direction only, also expand Apar in left cell */  
+      AparL_expd:doExpand1(AparL,bC),
+      /* 
+         usually to evaluate a left expansion at the boundary we would need to evaluate at z=1,
+         but all other quantities will be right expansions and evaluated at z=-1.
+         so let's flip AparL in z so that evaluating at z=-1 will give the boundary value 
+      */
+      AparL_expd:subst(varsC[cdim]=-varsC[cdim], AparL_expd)
+    )
+    
   )
   else (
     Apar_expd : 0,
@@ -85,7 +97,7 @@ calcAndWriteHamil() := block([],
   H_expd:HnoZero_k.bP
 )$
 
-calcAndWriteBstar_by_Bmag() := block([],
+calcAndWriteBstar_by_Bmag(surfDir) := block([],
   /* expand geometric quantities on basis */
   geoX_expd : subst(Bignorevars, doExpand1(geoX, bC)),
   geoY_expd : subst(Bignorevars, doExpand1(geoY, bC)),
@@ -99,41 +111,63 @@ calcAndWriteBstar_by_Bmag() := block([],
   BstarY_by_Bmag_expd : (-(m_/q_*(wv+vpar/dfac_v) + Apar_expd)*(dfac_x*diff(geoZ_expd,x) - dfac_z*diff(geoX_expd,z)) - geoZ_expd*dfac_x*diff(Apar_expd,x) + geoX_expd*dfac_z*diff(Apar_expd,z))*jacobTotInv_expd,
   /* expand BstarZ/Bmag on basis */
   BstarZ_by_Bmag_expd : (gradpar_expd + (m_/q_*(wv+vpar/dfac_v) + Apar_expd)*dfac_x*diff(geoY_expd,x) + geoY_expd*dfac_x*diff(Apar_expd,x) - geoX_expd*dfac_y*diff(Apar_expd,y))*jacobTotInv_expd,
+  if (surfDir = cdim and emflag and cdim#2) then (
+    BstarZ_by_BmagL_expd : (gradpar_expd + (m_/q_*(wv+vpar/dfac_v) + AparL_expd)*dfac_x*diff(geoY_expd,x) + geoY_expd*dfac_x*diff(AparL_expd,x) - geoX_expd*dfac_y*diff(AparL_expd,y))*jacobTotInv_expd
+  ),
+ 
 
   /* project Bstar's onto basis, and print to arrays */
-  printf(fh, "  double BstarX_by_Bmag[~a]; ~%", length(bP)),
-  printf(fh, "  double BstarY_by_Bmag[~a]; ~%", length(bP)),
-  printf(fh, "  double BstarZ_by_Bmag[~a]; ~%", length(bP)),
-
   if cdim # 1 then (
-  BstarX_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarX_by_Bmag_expd)),
-  writeCExprsNoExpand1(BstarX_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarX_by_Bmag_k))),
-  printf(fh, "~%"),
-  flush_output(fh),
-  BstarX_by_Bmag_noZero_k : doMakeExprLst(BstarX_by_Bmag_k, BstarX_by_Bmag),
-  BstarX_by_Bmag_expd:BstarX_by_Bmag_noZero_k.bP,
+    if (surfDir = 0 or surfDir = 1 or surfDir = cdim+1) then (
+      printf(fh, "  double BstarX_by_Bmag[~a]; ~%", length(bP)),
+      BstarX_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarX_by_Bmag_expd)),
+      writeCExprsNoExpand1(BstarX_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarX_by_Bmag_k))),
+      printf(fh, "~%"),
+      flush_output(fh),
+      BstarX_by_Bmag_noZero_k : doMakeExprLst(BstarX_by_Bmag_k, BstarX_by_Bmag),
+      BstarX_by_Bmag_expd:BstarX_by_Bmag_noZero_k.bP
+    ),
 
-  BstarY_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarY_by_Bmag_expd)),
-  writeCExprsNoExpand1(BstarY_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarY_by_Bmag_k))),
-  printf(fh, "~%"),
-  flush_output(fh),
-  BstarY_by_Bmag_noZero_k : doMakeExprLst(BstarY_by_Bmag_k, BstarY_by_Bmag),
-  BstarY_by_Bmag_expd:BstarY_by_Bmag_noZero_k.bP
+    if (surfDir = 0 or surfDir = 2 or surfDir = cdim+1) then (
+      printf(fh, "  double BstarY_by_Bmag[~a]; ~%", length(bP)),
+      BstarY_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarY_by_Bmag_expd)),
+      writeCExprsNoExpand1(BstarY_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarY_by_Bmag_k))),
+      printf(fh, "~%"),
+      flush_output(fh),
+      BstarY_by_Bmag_noZero_k : doMakeExprLst(BstarY_by_Bmag_k, BstarY_by_Bmag),
+      BstarY_by_Bmag_expd:BstarY_by_Bmag_noZero_k.bP
+    )
   ),
 
-  if cdim # 2 then (
-  BstarZ_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarZ_by_Bmag_expd)),
-  writeCExprsNoExpand1(BstarZ_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarZ_by_Bmag_k))),
-  printf(fh, "~%"),
-  flush_output(fh),
-  BstarZ_by_Bmag_noZero_k : doMakeExprLst(BstarZ_by_Bmag_k, BstarZ_by_Bmag),
-  BstarZ_by_Bmag_expd:BstarZ_by_Bmag_noZero_k.bP
+  if (cdim # 2 and (surfDir=0 or surfDir>=cdim)) then (
+    printf(fh, "  double BstarZ_by_Bmag[~a]; ~%", length(bP)),
+    BstarZ_by_Bmag_k:fullratsimp(innerProd(varsP, 1, bP, BstarZ_by_Bmag_expd)),
+    writeCExprsNoExpand1(BstarZ_by_Bmag, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarZ_by_Bmag_k))),
+    printf(fh, "~%"),
+    flush_output(fh),
+    BstarZ_by_Bmag_noZero_k : doMakeExprLst(BstarZ_by_Bmag_k, BstarZ_by_Bmag),
+    BstarZ_by_Bmag_expd:BstarZ_by_Bmag_noZero_k.bP,
+	
+    if (surfDir = cdim and emflag) then (
+      printf(fh, "  double BstarZ_by_BmagL[~a]; ~%", length(bP)),
+      BstarZ_by_BmagL_k:fullratsimp(innerProd(varsP, 1, bP, BstarZ_by_BmagL_expd)),
+      writeCExprsNoExpand1(BstarZ_by_BmagL, gcfac(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2,dfac_x^2=dfac_x2], BstarZ_by_BmagL_k))),
+      printf(fh, "~%"),
+      flush_output(fh),
+      BstarZ_by_BmagL_noZero_k : doMakeExprLst(BstarZ_by_BmagL_k, BstarZ_by_BmagL),
+      BstarZ_by_BmagL_expd:BstarZ_by_BmagL_noZero_k.bP
+    )
   ),
 
   /* make Bstar/Bmag vector */
   if cdim = 1 then Bstar_by_Bmag_expd : [BstarZ_by_Bmag_expd],
   if cdim = 2 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd],
-  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd]
+  if cdim = 3 then Bstar_by_Bmag_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_Bmag_expd],
+  if (surfDir = cdim and emflag and cdim#2) then (
+    if cdim = 1 then Bstar_by_BmagL_expd : [BstarZ_by_BmagL_expd],
+    if cdim = 3 then Bstar_by_BmagL_expd : [BstarX_by_Bmag_expd, BstarY_by_Bmag_expd, BstarZ_by_BmagL_expd],
+    Bstar_by_BmagR_expd : Bstar_by_Bmag_expd
+  )
 )$
 
 calcAlpha(d, usePB) := block([w, dfac],
@@ -141,6 +175,19 @@ calcAlpha(d, usePB) := block([w, dfac],
   dfac : derivfac[d],
  
   alpha_expd : gkPB(w + varsP[d]/dfac, H_expd),
+  if (surfDir = cdim and emflag and cdim#2) then (
+    /* alpha_expd calculated above is R value */
+    alphaR_expd : alpha_expd,
+    /* redefine Bstar_by_Bmag_expd to L value */
+    Bstar_by_Bmag_expd : Bstar_by_BmagL_expd,
+    /* use in PB to calculate alphaL_expd */
+    alphaL_expd : gkPB(w + varsP[d]/dfac, H_expd),
+    /* reset Bstar_by_Bmag_expd to R value for later use */
+    Bstar_by_Bmag_expd : Bstar_by_BmagR_expd,
+
+    /* just use mean of L and R values for now */
+    alpha_expd : 0.5*(alphaL_expd + alphaR_expd)
+  ),
 
   if usePB = false then (
     zvpar : wv + vpar/dfac_v,

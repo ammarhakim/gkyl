@@ -80,7 +80,7 @@ randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+63--os.time()
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = .5e-6,                     -- End time.
+   tEnd        = 1e-6,                     -- End time.
    nFrame      = 1,                     -- Number of output frames.
    lower       = {Rc - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {Rc + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
@@ -101,7 +101,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.4,
+   cflFrac     = 1.0,
    restartFrameEvery = .5,
 
    -- Boundary conditions for configuration space.
@@ -210,7 +210,7 @@ plasmaApp = Plasma.App {
       phiBcBack  = { T ="N", V = 0.0},
       phiBcFront = { T ="N", V = 0.0},
       evolve     = true, -- Evolve fields?
-      --isElectromagnetic = true,
+      isElectromagnetic = true,
    },
 
    -- Magnetic geometry.
