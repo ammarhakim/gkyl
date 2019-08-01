@@ -195,7 +195,7 @@ return function(tbl)
       quantity = "V"
    }
 
-   local function calcConservDiag(tCurr, fIn, hIn, gIn, diagVec)
+   local function calcConservDiag(tCurr, fIn, hIn, diagVec)
       local dx, dy = grid:dx(1), grid:dx(2)
       local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
@@ -211,12 +211,11 @@ return function(tbl)
 	 grid:setIndex(idxs)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-         local hPtr = hIn:get(indexer(idxs))
-         local gPtr = gIn:get(indexer(idxs))	 
+         local hPtr = hIn:get(indexer(idxs)) 
 
          out[1] = out[1] + vol*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))
          out[2] = out[2] + vol*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))
-	 out[3] = out[3] + vol*(0.125*(((6.0*vc[2]+8.0)*fPtr[4]+6.928203230275509*vc[1]*fPtr[3]+6.928203230275509*fPtr[2]*vc[2]+6.928203230275509*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+(2.0*fPtr[4]+1.732050807568877*fPtr[2])*gPtr[4]+(3.464101615137754*hPtr[2]+1.732050807568877*gPtr[2])*fPtr[4]+((6.0*vc[2]+4.0)*fPtr[3]+6.928203230275509*fPtr[1]*vc[2]+3.464101615137754*fPtr[1])*hPtr[3]+(2.0*fPtr[3]+1.732050807568877*fPtr[1])*gPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*gPtr[1])*fPtr[3]+(4.0*fPtr[2]+6.928203230275509*fPtr[1]*vc[1])*hPtr[2]+2.0*fPtr[2]*gPtr[2]+2.0*fPtr[1]*gPtr[1])-0.125*(((6.0*vc[2]-8.0)*fPtr[4]-6.928203230275509*vc[1]*fPtr[3]-6.928203230275509*fPtr[2]*vc[2]+6.928203230275509*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+(1.732050807568877*fPtr[2]-2.0*fPtr[4])*gPtr[4]+(3.464101615137754*hPtr[2]+1.732050807568877*gPtr[2])*fPtr[4]+((6.0*vc[2]-4.0)*fPtr[3]-6.928203230275509*fPtr[1]*vc[2]+3.464101615137754*fPtr[1])*hPtr[3]+(1.732050807568877*fPtr[1]-2.0*fPtr[3])*gPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*gPtr[1])*fPtr[3]+((-4.0*fPtr[2])-6.928203230275509*fPtr[1]*vc[1])*hPtr[2]-2.0*fPtr[2]*gPtr[2]-2.0*fPtr[1]*gPtr[1]))
+	 out[3] = out[3] + vol*(0.125*(((6.0*vc[2]+10.0)*fPtr[4]+6.928203230275509*vc[1]*fPtr[3]+6.928203230275509*fPtr[2]*vc[2]+8.660254037844386*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+((6.0*vc[2]+6.0)*fPtr[3]+6.928203230275509*fPtr[1]*vc[2]+5.196152422706631*fPtr[1])*hPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*hPtr[1])*fPtr[3]+(6.0*fPtr[2]+6.928203230275509*fPtr[1]*vc[1])*hPtr[2]+2.0*fPtr[1]*hPtr[1])-0.125*(((6.0*vc[2]-10.0)*fPtr[4]-6.928203230275509*vc[1]*fPtr[3]-6.928203230275509*fPtr[2]*vc[2]+8.660254037844386*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+((6.0*vc[2]-6.0)*fPtr[3]-6.928203230275509*fPtr[1]*vc[2]+5.196152422706631*fPtr[1])*hPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*hPtr[1])*fPtr[3]+((-6.0*fPtr[2])-6.928203230275509*fPtr[1]*vc[1])*hPtr[2]-2.0*fPtr[1]*hPtr[1]))
       end
       diagVec:appendData(tCurr, out)
    end
@@ -352,8 +351,7 @@ return function(tbl)
             M0Calc:advance(tCurr+dt, { f }, { M0 })
 
             updateRosenbluthDrag(f, h)
-            updateRosenbluthDiffusion(h, g)
-            calcConservDiag(tCurr+dt, f, h, g, conserv)
+            calcConservDiag(tCurr+dt, f, h, conserv)
          end
 
          tCurr = tCurr+dt
