@@ -1,0 +1,77 @@
+kill(all) $
+load("modal-basis") $
+assume(dx>0, dy>0) $
+
+polyOrder : 1 $
+N : polyOrder + 1 $
+load("basis-precalc/basisSer1x") $
+basis1D : subst(x=y, basisC[polyOrder]) $
+load("basis-precalc/basisSer2x") $
+basis2D : basisC[polyOrder] $
+
+eta(xc, yc, dx, dy, basis) := subst([wx=x, wy=y], subst([x=(wx-xc)/(dx/2), y=(wy-yc)/(dy/2)] , basis)) $
+/* dx : 2 $ */
+/* dy : 2 $ */
+baC : eta(0, 0, dx, dy, basis2D) $
+baT : eta(0, dy/2, dx, dy, basis1D) $
+baB : eta(0, -dy/2, dx, dy, basis1D) $
+
+rExp : doExpand(r, makelist(y^i, i, 0, 2*N-1)) $
+recEqList : append(
+  calcInnerProdListGen([y], [[-dy,0]], 1, baB, rExp-doExpand(q1B, baB)),
+  calcInnerProdListGen([y], [[0,dy]], 1, baT, rExp-doExpand(q1T, baT))
+) $
+rSol : linsolve(recEqList, makelist(r[i], i, 1, 2*N)) $
+rSub : fullratsimp(subst(rSol, rExp)) $
+
+projCoeff : calcInnerProdList([y], 1, basis1D, doExpand(q2, basis2D)) $
+q1TProj : subst(makelist(q2[i]=q2T[i], i, 1, length(basis2D)), projCoeff) $
+q1BProj : subst(makelist(q2[i]=q2B[i], i, 1, length(basis2D)), projCoeff) $
+
+projSubList : append (
+  makelist(q1T[i]=q1TProj[i], i, 1, N),
+  makelist(q1B[i]=q1BProj[i], i, 1, N)
+) $
+r2Sub : subst(projSubList, rSub) $
+
+hTSubList : append(
+  makelist(q2T[i]=hTPtr[i], i, 1, length(basis2D)),
+  makelist(q2B[i]=hPtr[i], i, 1, length(basis2D))
+) $
+hBSubList : append(
+  makelist(q2T[i]=hPtr[i], i, 1, length(basis2D)),
+  makelist(q2B[i]=hBPtr[i], i, 1, length(basis2D))
+) $
+fTSubList : append(
+  makelist(q2T[i]=fTPtr[i], i, 1, length(basis2D)),
+  makelist(q2B[i]=fPtr[i], i, 1, length(basis2D))
+) $
+fBSubList : append(
+  makelist(q2T[i]=fPtr[i], i, 1, length(basis2D)),
+  makelist(q2B[i]=fBPtr[i], i, 1, length(basis2D))
+) $
+
+surfT : calcInnerProdListGen([x], [[-dx/2, dx/2]], 1, subst(y=dy/2, baC),
+  subst(y=0, diff(subst(hTSubList, r2Sub), y)*subst(fTSubList, r2Sub))*2/dx) $
+surfB : calcInnerProdListGen([x], [[-dx/2, dx/2]], 1, subst(y=-dy/2, baC),
+  subst(y=0, diff(subst(hBSubList, r2Sub), y)*subst(fBSubList, r2Sub))*2/dx) $
+
+fh : openw("~/max-out/drag_y")$
+printf(fh, "if isTopEdge then~%") $
+gs : float(expand(-surfB)) $
+for i : 1 thru length(baC) do printf(fh, "    fOutPtr[~a] = ~a~%", i, fOutPtr[i] - dt*gs[i]) $
+printf(fh, "elseif isBotEdge then~%") $
+gs : float(expand(surfT)) $
+for i : 1 thru length(baC) do printf(fh, "    fOutPtr[~a] = ~a~%", i, fOutPtr[i] - dt*gs[i]) $
+printf(fh, "else~%") $
+gs : float(expand(surfT-surfB)) $
+for i : 1 thru length(baC) do printf(fh, "    fOutPtr[~a] = ~a~%", i, fOutPtr[i] - dt*gs[i]) $
+printf(fh, "end~%~%") $
+
+vol : calcInnerProdListGen([x,y], [[-dx/2, dx/2],[-dy/2, dy/2]], 1, diff(baC, y),
+    diff(doExpand(hPtr, baC), y)*doExpand(fPtr, baC)*4/(dx*dy)) $
+  
+gs : float(expand(vol)) $
+for i : 1 thru length(baC) do printf(fh, "fOutPtr[~a] = ~a~%", i, fOutPtr[i] + dt*gs[i]) $
+
+close(fh) $
