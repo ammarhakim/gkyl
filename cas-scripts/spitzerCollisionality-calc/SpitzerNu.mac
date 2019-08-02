@@ -54,7 +54,7 @@ writeCExprsCollect1r(lhs, rhs, clst) := block([expr],
       outStr : ssubst("gkyl_ipow(vtSqB[0],2)","vtSqB[0]^2",outStr),
       outStr : ssubst("gkyl_ipow(vtSqA[0],3)","vtSqA[0]^3",outStr),
       outStr : ssubst("gkyl_ipow(vtSqB[0],3)","vtSqB[0]^3",outStr),
-      printf(fh, "  ~a = ~a; ~%", lhs[i-1], outStr)
+      printf(fh, "    ~a = ~a; ~%", lhs[i-1], outStr)
     )
   )
 )$
@@ -225,7 +225,11 @@ calcCellAvSpitzerNuScale(fh, funcNm, cdim, basisFun, pMax) := block([],
     radexpand: false,
     nu_c : nuFrac*normNu*calcInnerProdList(varsC,1.0,bC,m0Bav/sqrt((vtSqAav+vtSqBav)^3)),
 
+    printf(fh, "  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {~%"),
     writeCExprsCollect1r(nu,nu_c,[normNu]),
+    printf(fh, "  } else {~%"),
+    printf(fh, "    nu[0] = 0.0;~%"),
+    printf(fh, "  }~%"),
     printf(fh, " ~%"),
 
     printf(fh, "} ~%"),
@@ -316,7 +320,11 @@ calcCellAvSpitzerNuBuild(fh, funcNm, cdim, basisFun, pMax) := block([],
     radexpand: false,
     nu_c : nuFrac*calcInnerProdList(varsC,1.0,bC,(nB0/massA)*(1/massA+1/massB)*(qA^2)*(qB^2)*logLambda/(3.0*sqrt((2*%pi)^3)*(eps0^2)*sqrt((vtSqA0+vtSqB0)^3))),
 
+    printf(fh, "  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {~%"),
     writeCExprsCollect1r(nu,nu_c,[charge,eps0]),
+    printf(fh, "  } else {~%"),
+    printf(fh, "    nu[0] = 0.0;~%"),
+    printf(fh, "  }~%"),
     printf(fh, " ~%"),
 
     printf(fh, "} ~%"),

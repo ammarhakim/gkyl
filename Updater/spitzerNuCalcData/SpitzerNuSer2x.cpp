@@ -19,7 +19,11 @@ void SpitzerNuCellAvScale2xSer_P1(const double elemCharge, const double eps0, co
   // Bmag[4]:    magnetic field magnitude. 
   // nu[4]:      collisionality. 
  
-  nu[0] = (m0B[0]*normNu*nuFrac)/sqrt(0.125*gkyl_ipow(vtSqB[0],3)+0.375*vtSqA[0]*gkyl_ipow(vtSqB[0],2)+0.375*gkyl_ipow(vtSqA[0],2)*vtSqB[0]+0.125*gkyl_ipow(vtSqA[0],3)); 
+  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {
+    nu[0] = (m0B[0]*normNu*nuFrac)/sqrt(0.125*gkyl_ipow(vtSqB[0],3)+0.375*vtSqA[0]*gkyl_ipow(vtSqB[0],2)+0.375*gkyl_ipow(vtSqA[0],2)*vtSqB[0]+0.125*gkyl_ipow(vtSqA[0],3)); 
+  } else {
+    nu[0] = 0.0;
+  }
  
 } 
  
@@ -40,7 +44,11 @@ void SpitzerNuCellAvScale2xSer_P2(const double elemCharge, const double eps0, co
   // Bmag[8]:    magnetic field magnitude. 
   // nu[8]:      collisionality. 
  
-  nu[0] = (m0B[0]*normNu*nuFrac)/sqrt(0.125*gkyl_ipow(vtSqB[0],3)+0.375*vtSqA[0]*gkyl_ipow(vtSqB[0],2)+0.375*gkyl_ipow(vtSqA[0],2)*vtSqB[0]+0.125*gkyl_ipow(vtSqA[0],3)); 
+  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {
+    nu[0] = (m0B[0]*normNu*nuFrac)/sqrt(0.125*gkyl_ipow(vtSqB[0],3)+0.375*vtSqA[0]*gkyl_ipow(vtSqB[0],2)+0.375*gkyl_ipow(vtSqA[0],2)*vtSqB[0]+0.125*gkyl_ipow(vtSqA[0],3)); 
+  } else {
+    nu[0] = 0.0;
+  }
  
 } 
  
@@ -61,7 +69,11 @@ void SpitzerNuCellAvScale2xSer_P3(const double elemCharge, const double eps0, co
   // Bmag[12]:    magnetic field magnitude. 
   // nu[12]:      collisionality. 
  
-  nu[0] = (m0B[0]*normNu*nuFrac)/sqrt(0.125*gkyl_ipow(vtSqB[0],3)+0.375*vtSqA[0]*gkyl_ipow(vtSqB[0],2)+0.375*gkyl_ipow(vtSqA[0],2)*vtSqB[0]+0.125*gkyl_ipow(vtSqA[0],3)); 
+  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {
+    nu[0] = (m0B[0]*normNu*nuFrac)/sqrt(0.125*gkyl_ipow(vtSqB[0],3)+0.375*vtSqA[0]*gkyl_ipow(vtSqB[0],2)+0.375*gkyl_ipow(vtSqA[0],2)*vtSqB[0]+0.125*gkyl_ipow(vtSqA[0],3)); 
+  } else {
+    nu[0] = 0.0;
+  }
  
 } 
  
@@ -94,7 +106,11 @@ void SpitzerNuCellAvBuild2xSer_P1(const double elemCharge, const double eps0, co
   double rMaxB = 1.0/sqrt((gkyl_ipow(Bmag0,2)*gkyl_ipow(qA,2))/(3.0*gkyl_ipow(massA,2)*vtSqB0+gkyl_ipow(massA,2)*vtSqA0)+(nA0*gkyl_ipow(qA,2))/(3.0*eps0*massA*vtSqB0+eps0*massA*vtSqA0)+(0.25*nB0*gkyl_ipow(qB,2))/(eps0*massB*vtSqB0)+(0.25*gkyl_ipow(Bmag0,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massB,2)*vtSqB0)); 
   double rMin = std::max((0.07957747154594767*std::abs(qA*qB))/(eps0*massAB*gkyl_ipow(uRel,2)),(0.3032653298563167*hBar)/(massAB*uRel)); 
   logLambda = 0.5*log(rMaxB/rMin)+0.5*log(rMaxA/rMin); 
-  nu[0] = ((0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(massA*massB*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3)))+(0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massA,2)*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3))))/gkyl_ipow(eps0,2); 
+  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {
+    nu[0] = ((0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(massA*massB*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3)))+(0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massA,2)*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3))))/gkyl_ipow(eps0,2); 
+  } else {
+    nu[0] = 0.0;
+  }
  
 } 
  
@@ -127,7 +143,11 @@ void SpitzerNuCellAvBuild2xSer_P2(const double elemCharge, const double eps0, co
   double rMaxB = 1.0/sqrt((gkyl_ipow(Bmag0,2)*gkyl_ipow(qA,2))/(3.0*gkyl_ipow(massA,2)*vtSqB0+gkyl_ipow(massA,2)*vtSqA0)+(nA0*gkyl_ipow(qA,2))/(3.0*eps0*massA*vtSqB0+eps0*massA*vtSqA0)+(0.25*nB0*gkyl_ipow(qB,2))/(eps0*massB*vtSqB0)+(0.25*gkyl_ipow(Bmag0,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massB,2)*vtSqB0)); 
   double rMin = std::max((0.07957747154594767*std::abs(qA*qB))/(eps0*massAB*gkyl_ipow(uRel,2)),(0.3032653298563167*hBar)/(massAB*uRel)); 
   logLambda = 0.5*log(rMaxB/rMin)+0.5*log(rMaxA/rMin); 
-  nu[0] = ((0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(massA*massB*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3)))+(0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massA,2)*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3))))/gkyl_ipow(eps0,2); 
+  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {
+    nu[0] = ((0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(massA*massB*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3)))+(0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massA,2)*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3))))/gkyl_ipow(eps0,2); 
+  } else {
+    nu[0] = 0.0;
+  }
  
 } 
  
@@ -160,7 +180,11 @@ void SpitzerNuCellAvBuild2xSer_P3(const double elemCharge, const double eps0, co
   double rMaxB = 1.0/sqrt((gkyl_ipow(Bmag0,2)*gkyl_ipow(qA,2))/(3.0*gkyl_ipow(massA,2)*vtSqB0+gkyl_ipow(massA,2)*vtSqA0)+(nA0*gkyl_ipow(qA,2))/(3.0*eps0*massA*vtSqB0+eps0*massA*vtSqA0)+(0.25*nB0*gkyl_ipow(qB,2))/(eps0*massB*vtSqB0)+(0.25*gkyl_ipow(Bmag0,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massB,2)*vtSqB0)); 
   double rMin = std::max((0.07957747154594767*std::abs(qA*qB))/(eps0*massAB*gkyl_ipow(uRel,2)),(0.3032653298563167*hBar)/(massAB*uRel)); 
   logLambda = 0.5*log(rMaxB/rMin)+0.5*log(rMaxA/rMin); 
-  nu[0] = ((0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(massA*massB*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3)))+(0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massA,2)*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3))))/gkyl_ipow(eps0,2); 
+  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {
+    nu[0] = ((0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(massA*massB*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3)))+(0.04232909062282731*logLambda*nB0*nuFrac*gkyl_ipow(qA,2)*gkyl_ipow(qB,2))/(gkyl_ipow(massA,2)*sqrt(gkyl_ipow(vtSqB0,3)+3.0*vtSqA0*gkyl_ipow(vtSqB0,2)+3.0*gkyl_ipow(vtSqA0,2)*vtSqB0+gkyl_ipow(vtSqA0,3))))/gkyl_ipow(eps0,2); 
+  } else {
+    nu[0] = 0.0;
+  }
  
 } 
  
