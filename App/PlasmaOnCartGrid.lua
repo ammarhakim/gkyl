@@ -29,6 +29,7 @@ local date             = require "xsys.date"
 local lfs              = require "lfs"
 local lume             = require "Lib.lume"
 local xsys             = require "xsys"
+math = require("sci.math").generic -- this is global so that it affects input file
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
