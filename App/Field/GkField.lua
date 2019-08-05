@@ -1082,6 +1082,10 @@ function GkGeometry:alloc()
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.geo.bmag:elemType(),
       method = self.ioMethod,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }   
 end
 
