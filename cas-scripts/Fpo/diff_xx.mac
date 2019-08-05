@@ -10,8 +10,8 @@ load("basis-precalc/basisSer2x") $
 basis2D : basisC[polyOrder] $
 
 eta(xc, yc, dx, dy, basis) := subst([wx=x, wy=y], subst([x=(wx-xc)/(dx/2), y=(wy-yc)/(dy/2)] , basis)) $
-/* dx : 2 $ */
-/* dy : 2 $ */
+dx : 2 $
+dy : 2 $
 baC : eta(0, 0, dx, dy, basis2D) $
 baL : eta(-dx/2, 0, dx, dy, basis1D) $
 baR : eta(dx/2, 0, dx, dy, basis1D) $
