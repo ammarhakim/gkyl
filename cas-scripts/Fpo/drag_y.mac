@@ -10,8 +10,8 @@ load("basis-precalc/basisSer2x") $
 basis2D : basisC[polyOrder] $
 
 eta(xc, yc, dx, dy, basis) := subst([wx=x, wy=y], subst([x=(wx-xc)/(dx/2), y=(wy-yc)/(dy/2)] , basis)) $
-/* dx : 2 $ */
-/* dy : 2 $ */
+dx : 2 $
+dy : 2 $
 baC2D : eta(0, 0, dx, dy, basis2D) $
 baC1D : eta(0, 0, dx, dy, basis1D) $
 baT1D : eta(0, dy/2, dx, dy, basis1D) $
@@ -94,10 +94,10 @@ for i : 1 thru length(basis2D) do printf(fh, "    fOutPtr[~a] = ~a~%", i, fOutPt
 printf(fh, "end~%~%") $
 
 /* Putting together the volume term */
-/* vol : calcInnerProdListGen([x,y], [[-dx/2, dx/2], [-dy/2, dy/2]], 1, diff(baC2D, y), */
-/*   diff(subst(hCSubList, rr2Sub), y)*doExpand(fPtr, baC2D)*4/(dx*dy)) $ */
 vol : calcInnerProdListGen([x,y], [[-dx/2, dx/2], [-dy/2, dy/2]], 1, diff(baC2D, y),
-  diff(doExpand(hPtr, baC2D), y)*doExpand(fPtr, baC2D)*4/(dx*dy)) $
+  diff(subst(hCSubList, rr2Sub), y)*doExpand(fPtr, baC2D)*4/(dx*dy)) $
+/* vol : calcInnerProdListGen([x,y], [[-dx/2, dx/2], [-dy/2, dy/2]], 1, diff(baC2D, y), */
+/*   diff(doExpand(hPtr, baC2D), y)*doExpand(fPtr, baC2D)*4/(dx*dy)) $ */
 
 /* Writting the volume term */
 gs : float(expand(vol)) $
