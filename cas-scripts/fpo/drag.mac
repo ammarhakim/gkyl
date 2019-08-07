@@ -1,0 +1,121 @@
+kill(all) $
+load("modal-basis")$
+load("basis-precalc/basisSer1x1v")$
+assume(dx>0, dy>0)$
+vars : subst(vx=y, varsP) $
+polyOrder : 1 $
+basisX : basisC[polyOrder] $
+basisY : subst(x=y, basisC[polyOrder]) $
+basisXY : subst(vx=y, basisP[polyOrder]) $
+eta(xc, yc, dx, dy, basis) := subst([wx=x, wy=y], subst([x=(wx-xc)/(dx/2), y=(wy-yc)/(dy/2)] , basis)) $
+baLc : eta(-dx/2, 0, dx, dy, basisXY) $
+baRc : eta(dx/2, 0, dx, dy, basisXY) $
+baTc : eta(0, dy/2, dx, dy, basisXY) $
+baBc : eta(0, -dy/2, dx, dy, basisXY) $
+baLe : eta(-dx/2, 0, dx, dy, basisY) $
+baRe : eta(dx/2, 0, dx, dy, basisY) $
+baTe : eta(0, dy/2, dx, dy, basisX) $
+baBe : eta(0, -dy/2, dx, dy, basisX) $
+
+r1Xp : doExpand(r1X, create_list(x^i*y^j, i, 0, 3, j, 0, 1)) $
+r1Yp : doExpand(r1Y, create_list(x^i*y^j, i, 0, 1, j, 0, 3)) $
+eqL : calcInnerProdListGen([x,y], [[-dx,0], [-dy/2,dy/2]], 1, baLc, r1Xp-doExpand(qL, baLc)) $
+eqR : calcInnerProdListGen([x,y], [[0,dx], [-dy/2,dy/2]], 1, baRc, r1Xp-doExpand(qR, baRc)) $
+eqT : calcInnerProdListGen([x,y], [[-dx/2,dx/2], [0,dy]], 1, baTc, r1Yp-doExpand(qT, baTc)) $
+eqB : calcInnerProdListGen([x,y], [[-dx/2,dx/2], [-dy,0]], 1, baBc, r1Yp-doExpand(qB, baBc)) $
+eqListX : append(eqL, eqR) $
+r1XSol : linsolve(eqListX, makelist(r1X[i], i, 1, 8)) $
+r1Xs : fullratsimp(subst(r1XSol, r1Xp)) $
+eqListY : append(eqT, eqB) $
+r1YSol : linsolve(eqListY, makelist(r1Y[i], i, 1, 8)) $
+r1Ys : fullratsimp(subst(r1YSol, r1Yp)) $
+
+derX : subst(x=0, diff(r1Xs, x)) $
+derY : subst(y=0, diff(r1Ys, y)) $
+valX : subst(x=0, r1Xs) $
+valY : subst(y=0, r1Ys) $
+
+baCc : eta(0, 0, dx, dy, basisXY) $
+qh : sum(q(jx,jy,i)*baCc[i], i, 1, 4) $
+
+subListR : append(
+  makelist(qL[i]=q(jx,jy,i), i,1,4), makelist(qR[i]=q(jx+1,jy,i), i,1,4)
+) $
+subListL : append(
+  makelist(qL[i]=q(jx-1,jy,i), i,1,4), makelist(qR[i]=q(jx,jy,i), i,1,4)
+) $
+subListT : append(
+  makelist(qT[i]=q(jx,jy+1,i), i,1,4), makelist(qB[i]=q(jx,jy,i), i,1,4)
+) $
+subListB : append(
+  makelist(qT[i]=q(jx,jy,i), i,1,4), makelist(qB[i]=q(jx,jy-1,i), i,1,4)
+) $
+
+derTe : subst(subListT, derY) $
+derBe : subst(subListB, derY) $
+derLe : subst(subListL, derX) $
+derRe : subst(subListR, derX) $
+valTe : subst(subListT, valY) $
+valBe : subst(subListB, valY) $
+valLe : subst(subListL, valX) $
+valRe : subst(subListR, valX) $
+
+r2Xp : doExpand(r2X, create_list(x^i*y^j, i, 0, 5, j, 0, 1)) $
+r2Yp : doExpand(r2Y, create_list(x^i*y^j, i, 0, 1, j, 0, 5)) $
+
+eqList2X : append(
+  calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baLe, derLe-subst(x=-dx/2, diff(r2Xp, x))),
+  calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baRe, derRe-subst(x=dx/2, diff(r2Xp, x))),
+  calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baLe, valLe-subst(x=-dx/2, r2Xp)),
+  calcInnerProdListGen([y], [[-dy/2,dy/2]], 1, baRe, valRe-subst(x=dx/2, r2Xp)),
+  calcInnerProdListGen([x,y], [[-dx/2,dx/2], [-dy/2,dy/2]], 1, baCc, r2Xp-qh)
+) $
+r2XSol : linsolve(eqList2X, makelist(r2X[i], i, 1, 12)) $
+r2Xs : fullratsimp(subst(r2XSol, r2Xp)) $
+
+eqList2Y : append(
+  calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, baTe, derTe-subst(y=dy/2, diff(r2Yp, y))),
+  calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, baBe, derBe-subst(y=-dy/2, diff(r2Yp, y))),
+  calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, baTe, valTe-subst(y=dy/2, r2Yp)),
+  calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, baBe, valBe-subst(y=-dy/2, r2Yp)),
+  calcInnerProdListGen([x,y], [[-dx/2,dx/2], [-dy/2,dy/2]], 1, baCc, r2Yp-qh)
+) $
+r2YSol : linsolve(eqList2Y, makelist(r2Y[i], i, 1, 12)) $
+r2Ys : fullratsimp(subst(r2YSol, r2Yp)) $
+
+subListH : append(
+    makelist(q(jx,jy,i)=h(jx,jy,i), i,1,4),
+    makelist(q(jx+1,jy,i)=h(jx+1,jy,i), i,1,4),
+    makelist(q(jx-1,jy,i)=h(jx-1,jy,i), i,1,4),
+    makelist(q(jx,jy+1,i)=h(jx,jy+1,i), i,1,4),
+    makelist(q(jx,jy-1,i)=h(jx,jy-1,i), i,1,4)
+) $
+subListF : append(
+    makelist(q(jx,jy,i)=f(jx,jy,i), i,1,4),
+    makelist(q(jx+1,jy,i)=f(jx+1,jy,i), i,1,4),
+    makelist(q(jx-1,jy,i)=f(jx-1,jy,i), i,1,4),
+    makelist(q(jx,jy+1,i)=f(jx,jy+1,i), i,1,4),
+    makelist(q(jx,jy-1,i)=f(jx,jy-1,i), i,1,4)
+) $
+
+gridStencilX : calcInnerProdListGen([x, y], [[-dx/2,dx/2],[-dy/2,dy/2]], 1, baCc,
+  diff(diff(subst(subListH, r2Xs), x)*subst(subListF, r2Xs), x))*4/(dx*dy) $
+gridStencilY : calcInnerProdListGen([x, y], [[-dx/2,dx/2],[-dy/2,dy/2]], 1, baCc,
+  diff(diff(subst(subListH, r2Ys), y)*subst(subListF, r2Ys), y))*4/(dx*dy) $
+substList : append(
+  makelist(h(jx,jy,i)=hPtr[i], i,1,length(baCc)),
+  makelist(h(jx+1,jy,i)=hRPtr[i], i,1,length(baCc)),
+  makelist(h(jx-1,jy,i)=hLPtr[i], i,1,length(baCc)),
+  makelist(h(jx,jy+1,i)=hTPtr[i], i,1,length(baCc)),
+  makelist(h(jx,jy-1,i)=hBPtr[i], i,1,length(baCc)),
+  makelist(f(jx,jy,i)=fPtr[i], i,1,length(baCc)),
+  makelist(f(jx+1,jy,i)=fRPtr[i], i,1,length(baCc)),
+  makelist(f(jx-1,jy,i)=fLPtr[i], i,1,length(baCc)),
+  makelist(f(jx,jy+1,i)=fTPtr[i], i,1,length(baCc)),
+  makelist(f(jx,jy-1,i)=fBPtr[i], i,1,length(baCc))
+)$
+
+gs : float(expand(subst(substList, gridStencilX+gridStencilY)))$
+fh : openw("~/max-out/stencil")$
+for i : 1 thru length(baCc) do printf(fh, "fOutPtr[~a] = ~a ~%", i, fPtr[i] - dt*gs[i]) $
+close(fh)$

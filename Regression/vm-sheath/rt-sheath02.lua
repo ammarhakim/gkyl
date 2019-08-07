@@ -50,7 +50,6 @@ sim = Plasma.App {
       lower = {-6.0*vth_e},
       upper = {6.0*vth_e},
       cells = {16},
-      decompCuts = {1},
       -- initial conditions
       init = {"maxwellian", 
               density = function (t, xn)
@@ -75,7 +74,6 @@ sim = Plasma.App {
       lower = {-6.0*vth_i},
       upper = {6.0*vth_i},
       cells = {16},
-      decompCuts = {1},
       -- initial conditions
       init = {"maxwellian", 
               density = function (t, xn)

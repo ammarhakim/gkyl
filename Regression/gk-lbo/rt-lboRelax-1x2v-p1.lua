@@ -82,7 +82,6 @@ plasmaApp = Plasma.App {
       lower      = {vMin,muMin},
       upper      = {vMax,muMax},
       cells      = Nv,
-      decompCuts = {1,1},
       -- Initial conditions.
       init = function (t, xn)
 	 local x, vpar, mu = xn[1], xn[2], xn[3]
@@ -109,7 +108,6 @@ plasmaApp = Plasma.App {
       lower      = {vMin,muMin},
       upper      = {vMax,muMax},
       cells      = Nv,
-      decompCuts = {1,1},
       -- Initial conditions.
       init = function (t, xn)
    	 local x, vpar, mu = xn[1], xn[2], xn[3]

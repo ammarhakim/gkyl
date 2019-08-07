@@ -39,21 +39,21 @@ double EmGyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const
   alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
-  alphaL = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_-1.0*alphav[0]*m_))/m_; 
+  alphaL = 0.25*alphav[0]; 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
-  alphaR = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_-1.0*alphav[0]*m_))/m_; 
+  alphaR = 0.25*alphav[0]; 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
-  alphaL = 0.25*(0.5*alphav[0]-(1.0*(0.7071067811865475*dApardt[0]-0.7071067811865475*dApardt[1])*dfac_v*q_)/m_); 
+  alphaL = 0.125*alphav[0]; 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.25*(0.5*alphav[0]-(0.7071067811865475*(dApardt[1]+dApardt[0])*dfac_v*q_)/m_); 
+  alphaL = 0.125*alphav[0]; 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
-  alphaR = 0.25*(0.5*alphav[0]-(1.0*(0.7071067811865475*dApardt[0]-0.7071067811865475*dApardt[1])*dfac_v*q_)/m_); 
+  alphaR = 0.125*alphav[0]; 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.25*(0.5*alphav[0]-(0.7071067811865475*(dApardt[1]+dApardt[0])*dfac_v*q_)/m_); 
+  alphaR = 0.125*alphav[0]; 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
@@ -68,7 +68,29 @@ double EmGyrokineticStep2Vol1x1vSerP1(const double q_, const double m_, const do
   double dfac_v = 2.0/dxv[1]; 
   out[2] += -(1.224744871391589*(dApardt[1]*f[1]+dApardt[0]*f[0])*dfac_v*q_)/m_; 
   out[3] += -(1.224744871391589*(dApardt[0]*f[1]+f[0]*dApardt[1])*dfac_v*q_)/m_; 
-  return 0.0; 
+  double cflFreq = 0.0; 
+  double alphaL = 0.0; 
+  double alphaR = 0.0; 
+#if cflType == SURFAVG 
+  // evaluate surface-averaged alpha on left 
+  alphaL = -(0.3535533905932737*dApardt[0]*dfac_v*q_)/m_; 
+  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  // evaluate surface-averaged alpha on right 
+  alphaR = -(0.3535533905932737*dApardt[0]*dfac_v*q_)/m_; 
+  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+#elif cflType == QUAD 
+  // evaluate alpha at left surface quadrature points 
+  alphaL = -(0.25*(0.7071067811865475*dApardt[0]-0.7071067811865475*dApardt[1])*dfac_v*q_)/m_; 
+  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  alphaL = -(0.1767766952966369*(dApardt[1]+dApardt[0])*dfac_v*q_)/m_; 
+  cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
+  // evaluate alpha at right surface quadrature points 
+  alphaR = -(0.25*(0.7071067811865475*dApardt[0]-0.7071067811865475*dApardt[1])*dfac_v*q_)/m_; 
+  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+  alphaR = -(0.1767766952966369*(dApardt[1]+dApardt[0])*dfac_v*q_)/m_; 
+  cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
+#endif 
+return cflFreq; 
 } 
 double EmGyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out) 
 { 
@@ -112,21 +134,21 @@ double EmGyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const
   alphav[1] = -(1.732050807568877*Gradpar[1]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
 #if cflType == SURFAVG 
   // evaluate surface-averaged alpha on left 
-  alphaL = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_-1.0*alphav[0]*m_))/m_; 
+  alphaL = 0.25*alphav[0]; 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate surface-averaged alpha on right 
-  alphaR = -(0.25*(1.414213562373095*dApardt[0]*dfac_v*q_-1.0*alphav[0]*m_))/m_; 
+  alphaR = 0.25*alphav[0]; 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #elif cflType == QUAD 
   // evaluate alpha at left surface quadrature points 
-  alphaL = 0.25*((-(1.0*(0.7071067811865475*dApardt[0]-0.7071067811865475*dApardt[1])*dfac_v*q_)/m_)-0.5*alphav[1]+0.5*alphav[0]); 
+  alphaL = 0.25*(0.5*alphav[0]-0.5*alphav[1]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
-  alphaL = 0.25*(0.5*(alphav[1]+alphav[0])-(0.7071067811865475*(dApardt[1]+dApardt[0])*dfac_v*q_)/m_); 
+  alphaL = 0.125*(alphav[1]+alphav[0]); 
   cflFreq += -0.5*(alphaL-std::abs(alphaL)); 
   // evaluate alpha at right surface quadrature points 
-  alphaR = 0.25*((-(1.0*(0.7071067811865475*dApardt[0]-0.7071067811865475*dApardt[1])*dfac_v*q_)/m_)-0.5*alphav[1]+0.5*alphav[0]); 
+  alphaR = 0.25*(0.5*alphav[0]-0.5*alphav[1]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
-  alphaR = 0.25*(0.5*(alphav[1]+alphav[0])-(0.7071067811865475*(dApardt[1]+dApardt[0])*dfac_v*q_)/m_); 
+  alphaR = 0.125*(alphav[1]+alphav[0]); 
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 

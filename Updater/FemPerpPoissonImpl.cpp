@@ -615,7 +615,8 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
   if(ndim==3) nlocal_z += polyOrder;
 
 // construct SparseMatrix from triplets
-  SparseMatrix<double,RowMajor> stiffMatRowMajor(nglobal, nglobal);
+  // only allocate on first time
+  if(_first) stiffMatRowMajor = SparseMatrix<double,RowMajor>(nglobal, nglobal);
   stiffMatRowMajor.setFromTriplets(stiffTripletList.begin(), stiffTripletList.end());
   stiffTripletList.resize(0);
 
@@ -681,17 +682,18 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
 // create column major copy of stiffMat so that we can zero columns
   stiffMat = SparseMatrix<double,ColMajor>(stiffMatRowMajor);
 // de-allocate row major copy
-  stiffMatRowMajor.resize(0,0);
+  //stiffMatRowMajor.resize(0,0);
 
 // create matrix for modifying source when there are Dirichlet BCs
 // this matrix will have nonzero entries only for the blocks consisting
 // of Dirichlet cols and non-Dirichlet rows
-  SparseMatrix<double,ColMajor> sourceModMat(nglobal, nglobal);
+  sourceModMat = SparseMatrix<double,ColMajor>(nglobal, nglobal);
 
 // sparse matrix for identity blocks in rows/cols corresponding to Dirichlet BCs
-  SparseMatrix<double,ColMajor> dirichletIdentity(nglobal, nglobal);
-  std::vector<Triplet<double> > identityTripletList;
-  identityTripletList.reserve(nDirichlet); // estimate number of nonzero elements
+  if(_first) {
+    dirichletIdentity = SparseMatrix<double,ColMajor>(nglobal, nglobal);
+    identityTripletList.reserve(nDirichlet); // estimate number of nonzero elements
+  }
 
   for (int d=0; d<2; ++d)
   {
@@ -710,86 +712,10 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
   // in stiffMat, set cols corresponding to Dirichlet BCs to zero
           stiffMat.middleCols(start, nCols) = SparseMatrix<double,ColMajor>(stiffMat.rows(), nCols);
   // set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
-          for(int i=start; i<start+nCols; i++) {
-            identityTripletList.push_back(Triplet<double>(i, i, 1.)); 
-          } 
-        }
-      }
-    }
-  }
-
-// handle Dirichlet corners
-  // bottom left
-  // also make this corner effectively Dirichlet if all periodic BCs
-  if((bc[DX][LO].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC) || adjustSource) {
-    for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
-      unsigned corner = bc[DY][LO].cornerstart[zblock];
-// copy cols corresponding to Dirichlet BCs to sourceModMat
-      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
-// in stiffMat, set cols corresponding to Dirichlet BCs to zero
-      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
-// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
-      identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
-    }
-  }
-  // bottom right
-  if((bc[DX][HI].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC)) {
-    for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
-      unsigned corner = bc[DY][LO].cornerend[zblock];
-// copy cols corresponding to Dirichlet BCs to sourceModMat
-      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
-// in stiffMat, set cols corresponding to Dirichlet BCs to zero
-      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
-// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
-      identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
-    }
-  }
-  // top left
-  if(bc[DX][LO].type==DIRICHLET_BC || bc[DY][HI].type==DIRICHLET_BC) {
-    for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
-      unsigned corner = bc[DY][HI].cornerstart[zblock];
-// copy cols corresponding to Dirichlet BCs to sourceModMat
-      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
-// in stiffMat, set cols corresponding to Dirichlet BCs to zero
-      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
-// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
-      identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
-    }
-  }
-  // top right
-  if(bc[DX][HI].type==DIRICHLET_BC || bc[DY][HI].type==DIRICHLET_BC) {
-    for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
-      unsigned corner = bc[DY][HI].cornerend[zblock];
-// copy cols corresponding to Dirichlet BCs to sourceModMat
-      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
-// in stiffMat, set cols corresponding to Dirichlet BCs to zero
-      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
-// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
-      identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
-    }
-  }
-
-  // this ensures no duplicates, so that entries for these rows are at most equal to 1
-  dirichletIdentity.setFromTriplets(identityTripletList.begin(), identityTripletList.end(), take_last);
-
-  //if (modifierConstant!=0.0 && laplacianConstant==0.0) {
-  //  stiffMat+=modifierConstant*dirichletIdentity;
-  //} else {
-    stiffMat+=dirichletIdentity;
-  //}
-
-// create vector of Dirichlet values
-  SparseVector<double> dirichletVec(nglobal);
-  dirichletVec.reserve(nDirichlet);
-  for (int d=0; d<2; ++d)
-  {
-    for (int side=0; side<2; ++side)
-    {
-      if (bc[d][side].isSet && bc[d][side].type == DIRICHLET_BC)
-      {
-        for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
-          for(unsigned i=bc[d][side].istart[zblock]; i<=bc[d][side].iend[zblock]; i++) {
-            dirichletVec.coeffRef(i) = bc[d][side].value;
+          if(_first) {
+            for(int i=start; i<start+nCols; i++) {
+              identityTripletList.push_back(Triplet<double>(i, i, 1.)); 
+            } 
           }
         }
       }
@@ -802,29 +728,117 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
   if((bc[DX][LO].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC) || adjustSource) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc[DY][LO].cornerstart[zblock];
-      dirichletVec.coeffRef(corner) = bc[DX][LO].type==DIRICHLET_BC ? bc[DX][LO].value : bc[DY][LO].value;
-      if(adjustSource) dirichletVec.coeffRef(corner) = cornerval;
+// copy cols corresponding to Dirichlet BCs to sourceModMat
+      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
+// in stiffMat, set cols corresponding to Dirichlet BCs to zero
+      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
+// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
+      if(_first) {
+        identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
+      }
     }
   }
   // bottom right
   if((bc[DX][HI].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC)) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc[DY][LO].cornerend[zblock];
-      dirichletVec.coeffRef(corner) = bc[DX][HI].type==DIRICHLET_BC ? bc[DX][HI].value : bc[DY][LO].value;
+// copy cols corresponding to Dirichlet BCs to sourceModMat
+      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
+// in stiffMat, set cols corresponding to Dirichlet BCs to zero
+      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
+// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
+      if(_first) {
+        identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
+      }
     }
   }
   // top left
   if(bc[DX][LO].type==DIRICHLET_BC || bc[DY][HI].type==DIRICHLET_BC) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc[DY][HI].cornerstart[zblock];
-      dirichletVec.coeffRef(corner) = bc[DX][LO].type==DIRICHLET_BC ? bc[DX][LO].value : bc[DY][HI].value;
+// copy cols corresponding to Dirichlet BCs to sourceModMat
+      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
+// in stiffMat, set cols corresponding to Dirichlet BCs to zero
+      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
+// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
+      if(_first) {
+        identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
+      }
     }
   }
   // top right
   if(bc[DX][HI].type==DIRICHLET_BC || bc[DY][HI].type==DIRICHLET_BC) {
     for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
       unsigned corner = bc[DY][HI].cornerend[zblock];
-      dirichletVec.coeffRef(corner) = bc[DX][HI].type==DIRICHLET_BC ? bc[DX][HI].value : bc[DY][HI].value;
+// copy cols corresponding to Dirichlet BCs to sourceModMat
+      sourceModMat.middleCols(corner, 1) = stiffMat.middleCols(corner, 1);
+// in stiffMat, set cols corresponding to Dirichlet BCs to zero
+      stiffMat.middleCols(corner, 1) = SparseMatrix<double,ColMajor>(stiffMat.rows(), 1);
+// set diagonal of rows/cols corresponding to Dirichlet BCs to 1 (identity block)
+      if(_first) {
+        identityTripletList.push_back(Triplet<double>(corner, corner, 1.));
+      }
+    }
+  }
+
+  // this ensures no duplicates, so that entries for these rows are at most equal to 1
+  if(_first) dirichletIdentity.setFromTriplets(identityTripletList.begin(), identityTripletList.end(), take_last);
+
+  //if (modifierConstant!=0.0 && laplacianConstant==0.0) {
+  //  stiffMat+=modifierConstant*dirichletIdentity;
+  //} else {
+    stiffMat+=dirichletIdentity;
+  //}
+
+// create vector of Dirichlet values
+  if(_first) {
+    dirichletVec = SparseVector<double>(nglobal);
+    dirichletVec.reserve(nDirichlet);
+    for (int d=0; d<2; ++d)
+    {
+      for (int side=0; side<2; ++side)
+      {
+        if (bc[d][side].isSet && bc[d][side].type == DIRICHLET_BC)
+        {
+          for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
+            for(unsigned i=bc[d][side].istart[zblock]; i<=bc[d][side].iend[zblock]; i++) {
+              dirichletVec.coeffRef(i) = bc[d][side].value;
+            }
+          }
+        }
+      }
+    }
+  
+  // handle Dirichlet corners
+    // bottom left
+    // also make this corner effectively Dirichlet if all periodic BCs
+    if((bc[DX][LO].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC) || adjustSource) {
+      for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
+        unsigned corner = bc[DY][LO].cornerstart[zblock];
+        dirichletVec.coeffRef(corner) = bc[DX][LO].type==DIRICHLET_BC ? bc[DX][LO].value : bc[DY][LO].value;
+        if(adjustSource) dirichletVec.coeffRef(corner) = cornerval;
+      }
+    }
+    // bottom right
+    if((bc[DX][HI].type==DIRICHLET_BC || bc[DY][LO].type==DIRICHLET_BC)) {
+      for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
+        unsigned corner = bc[DY][LO].cornerend[zblock];
+        dirichletVec.coeffRef(corner) = bc[DX][HI].type==DIRICHLET_BC ? bc[DX][HI].value : bc[DY][LO].value;
+      }
+    }
+    // top left
+    if(bc[DX][LO].type==DIRICHLET_BC || bc[DY][HI].type==DIRICHLET_BC) {
+      for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
+        unsigned corner = bc[DY][HI].cornerstart[zblock];
+        dirichletVec.coeffRef(corner) = bc[DX][LO].type==DIRICHLET_BC ? bc[DX][LO].value : bc[DY][HI].value;
+      }
+    }
+    // top right
+    if(bc[DX][HI].type==DIRICHLET_BC || bc[DY][HI].type==DIRICHLET_BC) {
+      for(unsigned zblock=0; zblock<nlocal_z; ++zblock) {
+        unsigned corner = bc[DY][HI].cornerend[zblock];
+        dirichletVec.coeffRef(corner) = bc[DX][HI].type==DIRICHLET_BC ? bc[DX][HI].value : bc[DY][HI].value;
+      }
     }
   }
 
@@ -858,7 +872,7 @@ void FemPerpPoisson::finishGlobalPerpStiffnessMatrix()
 // from prevous calls, which is of course not what we want.
 void FemPerpPoisson::zeroGlobalSrc() {
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
-  globalSrc.setZero(nglobal);
+  globalSrc = VectorXd::Zero(nglobal);
 }
 
 // called within an indexer loop over idx and idy
@@ -892,16 +906,18 @@ void FemPerpPoisson::createGlobalSrc(double* localSrcPtr, int idx, int idy, doub
   {
     globalSrc.coeffRef(lgMap[i]) += localMassSrc[i];
   }
-  if (writeMatrix)
-  {
-    std::string outName = "poisson-src-beforeBCs-";
-    //outName += std::to_string(ndim) + "d";
-    saveMarket(globalSrc, outName);
-  }
 }
 
 void FemPerpPoisson::allreduceGlobalSrc(MPI_Comm comm)
 {
+  if (writeMatrix)
+  {
+    std::string outName = "poisson-src-beforeBCs";
+    int rank;
+    MPI_Comm_rank(comm, &rank);
+    outName += "-" + std::to_string(rank);
+    saveMarket(globalSrc, outName);
+  }
   int nglobal = getNumPerpGlobalNodes(nx, ny, ndim, polyOrder, periodicFlgs);
   // all reduce (sum) globalSrc
   MPI_Allreduce(MPI_IN_PLACE, globalSrc.data(), nglobal, MPI_DOUBLE, MPI_vectorSum_op, comm);
@@ -910,11 +926,23 @@ void FemPerpPoisson::allreduceGlobalSrc(MPI_Comm comm)
 void FemPerpPoisson::allgatherGlobalStiff(MPI_Comm comm)
 {
   // all gather (concatenate) stiffTripletList
-  std::vector<Triplet<double> > stiffTripletListGathered;
-  int nprocs;
-  MPI_Comm_size(comm, &nprocs);
-  stiffTripletListGathered.resize(stiffTripletList.size()*nprocs); // this resize is required.. just need to make sure to reserve enough space
-  MPI_Allgather(stiffTripletList.data(), stiffTripletList.size(), MPI_triplet_t, stiffTripletListGathered.data(), stiffTripletList.size(), MPI_triplet_t, comm);
+  if(_first) {
+    int nprocs;
+    MPI_Comm_size(comm, &nprocs);
+    sizes.resize(nprocs);
+    displs.resize(nprocs);
+    // get sizes of stiffTripletList from all procs
+    int size = stiffTripletList.size();
+    MPI_Allgather(&size, 1, MPI_INT, sizes.data(), 1, MPI_INT, comm);
+    int totalsize = 0;
+    for (unsigned i=0; i<nprocs; i++) {
+      totalsize += sizes[i];
+      if (i==0) displs[i] = 0;
+      else displs[i] = displs[i-1] + sizes[i-1];
+    }
+    stiffTripletListGathered.resize(totalsize); // this resize is required.. just need to make sure to reserve enough space
+  }
+  MPI_Allgatherv(stiffTripletList.data(), stiffTripletList.size(), MPI_triplet_t, stiffTripletListGathered.data(), sizes.data(), displs.data(), MPI_triplet_t, comm);
   stiffTripletList = stiffTripletListGathered;
 }
 
@@ -1001,6 +1029,8 @@ void FemPerpPoisson::solve()
     //outName += std::to_string(ndim) + "d";
     saveMarket(x, outName);
   }
+
+  if(_first) _first = false;
 }
 
 void FemPerpPoisson::getSolution(double* solPtr, int idx, int idy)

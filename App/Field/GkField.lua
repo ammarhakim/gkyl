@@ -11,6 +11,7 @@ local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 local Constants = require "Lib.Constants"
 local DataStruct = require "DataStruct"
 local LinearTrigger = require "LinearTrigger"
+local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Updater = require "Updater"
 local xsys = require "xsys"
@@ -202,19 +203,55 @@ function GkField:initField(species)
       self:advance(0.0, species, 1, 1)
    end
 
+   local polyOrder = self.basis:polyOrder()
+
    if self.isElectromagnetic then
       -- solve for initial Apar
+      local apar = self.potentials[1].apar
       self.currentDens:clear(0.0)
       for nm, s in pairs(species) do
          self.currentDens:accumulate(s:getCharge(), s:getMomDensity())
       end
-      self.aparSlvr:advance(0.0, {self.currentDens}, {self.potentials[1].apar})
+      self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
+
+      -- decrease effective polynomial order in z of apar by setting the highest order z coefficients to 0
+      if self.ndim == 1 or self.ndim == 3 then -- only have z direction in 1d or 3d (2d is assumed to be x,y)
+         local localRange = apar:localRange()
+         local indexer = apar:genIndexer()
+         local ptr = apar:get(1)
+
+         -- loop over all cells
+         for idx in localRange:rowMajorIter() do
+            self.grid:setIndex(idx)
+            
+            apar:fill(indexer(idx), ptr)
+            if self.ndim == 1 then
+               ptr:data()[polyOrder] = 0.0
+            else -- ndim == 3
+               if polyOrder == 1 then
+                  ptr:data()[3] = 0.0
+                  ptr:data()[5] = 0.0
+                  ptr:data()[6] = 0.0
+                  ptr:data()[7] = 0.0
+               elseif polyOrder == 2 then
+                  ptr:data()[9] = 0.0
+                  ptr:data()[13] = 0.0
+                  ptr:data()[14] = 0.0
+                  ptr:data()[15] = 0.0
+                  ptr:data()[16] = 0.0
+                  ptr:data()[17] = 0.0
+                  ptr:data()[18] = 0.0
+                  ptr:data()[19] = 0.0
+               end
+            end
+         end
+      end
 
       -- clear dApar/dt ... will be solved for before being used
       self.potentials[1].dApardt:clear(0.0)
    end
 
-   -- apply BCs 
+   -- apply BCs and update ghosts
    self:applyBc(0, self.potentials[1])
 end
 
@@ -369,6 +406,34 @@ function GkField:createSolver(species, funcField)
      self.modifierWeight:combine(modifierConstant, self.unitWeight)
      if laplacianConstant ~= 0 then self.dApardtSlvr:setLaplacianWeight(self.laplacianWeight) end
      if modifierConstant ~= 0 then self.dApardtSlvr:setModifierWeight(self.modifierWeight) end
+
+     -- separate solver for additional step for p=1
+     if self.basis:polyOrder() == 1 then
+        self.dApardtSlvr2 = Updater.FemPoisson {
+          onGrid = self.grid,
+          basis = self.basis,
+          bcLeft = self.aparBcLeft,
+          bcRight = self.aparBcRight,
+          bcBottom = self.aparBcBottom,
+          bcTop = self.aparBcTop,
+          periodicDirs = self.periodicDirs,
+          zContinuous = not self.discontinuousApar,
+          gxx = gxx,
+          gxy = gxy,
+          gyy = gyy,
+        }
+        if ndim==1 then
+           laplacianConstant = 0.0
+           modifierConstant = 1.0
+        else
+           laplacianConstant = -1.0/self.mu0
+           modifierConstant = 1.0
+        end
+        self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
+        self.modifierWeight:combine(modifierConstant, self.unitWeight)
+        if laplacianConstant ~= 0 then self.dApardtSlvr2:setLaplacianWeight(self.laplacianWeight) end
+        if modifierConstant ~= 0 then self.dApardtSlvr2:setModifierWeight(self.modifierWeight) end
+     end
    end
 
    -- need to set this flag so that field calculated self-consistently at end of full RK timestep
@@ -386,7 +451,11 @@ function GkField:createDiagnostics()
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.potentials[1].phi:elemType(),
       method = self.ioMethod,
-      writeGhost = self.writeGhost
+      writeGhost = self.writeGhost,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }
 
    -- updaters for computing integrated quantities
@@ -417,9 +486,13 @@ function GkField:write(tm, force)
       if self.isElectromagnetic then 
         self.int2Calc:advance(tm, { self.potentials[1].apar }, { self.apar2 })
       end
-      local esEnergyFac = .5*self.polarizationWeight
-      if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
-      if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy }) end
+      if self.linearizedPolarization then
+         local esEnergyFac = .5*self.polarizationWeight
+         if self.ndim == 1 then esEnergyFac = esEnergyFac*self.kperp2 end
+         if self.energyCalc then self.energyCalc:advance(tm, { self.potentials[1].phi, esEnergyFac }, { self.esEnergy }) end
+      else
+         -- something
+      end
       if self.isElectromagnetic then 
         local emEnergyFac = .5/self.mu0
         if self.ndim == 1 then emEnergyFac = emEnergyFac*self.kperp2 end
@@ -461,8 +534,6 @@ function GkField:writeRestart(tm)
    self.fieldIo:write(self.phiSlvr:getModifierWeight(), "modifierWeight_restart.bp", tm, self.ioFrame, false)
    if self.isElectromagnetic then
      self.fieldIo:write(self.potentials[1].apar, "apar_restart.bp", tm, self.ioFrame, false)
-     self.fieldIo:write(self.potentials[1].dApardt, "dApardt_restart.bp", tm, self.ioFrame, false)
-     self.fieldIo:write(self.dApardtSlvr:getModifierWeight(), "modifierWeightEM_restart.bp", tm, self.ioFrame, false)
    end
 
    -- (the final "false" prevents flushing of data after write)
@@ -484,9 +555,6 @@ function GkField:readRestart()
 
    if self.isElectromagnetic then
       self.fieldIo:read(self.potentials[1].apar, "apar_restart.bp")
-      self.fieldIo:read(self.potentials[1].dApardt, "dApardt_restart.bp")
-      self.fieldIo:read(self.modifierWeight, "modifierWeightEM_restart.bp")
-      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
    end
 
    self:applyBc(0, self.potentials[1])
@@ -649,10 +717,10 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
            self.currentDens:accumulate(s:getCharge(), s:getMomProjDensity(outIdx))
         end
       end
-      self.dApardtSlvr:setModifierWeight(self.modifierWeight)
+      self.dApardtSlvr2:setModifierWeight(self.modifierWeight)
       -- dApar/dt solve
       local dApardt = potCurr.dApardt
-      self.dApardtSlvr:advance(tCurr, {self.currentDens}, {dApardt}) 
+      self.dApardtSlvr2:advance(tCurr, {self.currentDens}, {dApardt}) 
       
       -- decrease effective polynomial order in z of dApar/dt by setting the highest order z coefficients to 0
       -- this ensures that dApar/dt is in the same space as dPhi/dz
@@ -698,6 +766,11 @@ function GkField:advanceStep3(tCurr, species, inIdx, outIdx)
    end
 end
 
+function GkField:applyBcIdx(tCurr, idx)
+   -- don't do anything here. global boundary conditions handled by solvers. 
+   -- syncs to update interproc ghost already done at end of advance steps
+end
+
 -- NOTE: global boundary conditions handled by solver. this just updates interproc ghosts.
 function GkField:applyBc(tCurr, potIn)
    local tmStart = Time.clock()
@@ -714,6 +787,7 @@ function GkField:totalSolverTime()
      local time = self.phiSlvr.totalTime
      if self.isElectromagnetic and self.aparSlvr then time = time + self.aparSlvr.totalTime end
      if self.isElectromagnetic and self.dApardtSlvr then time = time + self.dApardtSlvr.totalTime end
+     if self.isElectromagnetic and self.dApardtSlvr2 then time = time + self.dApardtSlvr2.totalTime end
      return time
    end
    return 0.0
@@ -784,7 +858,7 @@ function GkGeometry:alloc()
       onGrid = self.grid,
       numComponents = self.basis:numBasis(),
       ghost = {1, 1},
-      syncPeriodicDirs = false
+      syncPeriodicDirs = false,
    }
 
    -- bmagInv ~ 1/B
@@ -1112,6 +1186,7 @@ function GkGeometry:initField()
    else self.geo.bdriftY:clear(0.0) end
    if self.setPhiWall then self.setPhiWall:advance(0.0, {}, {self.geo.phiWall})
    else self.geo.phiWall:clear(0.0) end
+
    -- sync ghost cells. these calls do not enforce periodicity because
    -- these fields initialized with syncPeriodicDirs = false
    self.geo.bmag:sync(false)
@@ -1157,6 +1232,10 @@ function GkGeometry:advance(tCurr)
    if self.evolve then 
       self.setPhiWall:advance(tCurr, {}, self.geo.phiWall)
    end 
+end
+
+function GkGeometry:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
 function GkGeometry:applyBc(tCurr, geoIn)

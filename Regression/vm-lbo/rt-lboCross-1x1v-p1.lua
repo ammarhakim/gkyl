@@ -19,15 +19,6 @@ nu22 = vt2/K2
 nu21 = 2*vt2/K2
 nu12 = (m2/m1)*nu21
 
-print(" ")
-print("tEnd = ", 0.5)
-print(" ")
-print('1-1 collision period: ', 1.0/nu11)
-print('2-2 collision period: ', 1.0/nu22)
-print('1-2 collision period: ', 1.0/nu12)
-print('2-1 collision period: ', 1.0/nu21)
-print(' ')
-
 vlasovApp = Plasma.App {
    logToFile = false,
 
@@ -57,7 +48,6 @@ vlasovApp = Plasma.App {
       lower = {-6.0*vt1},
       upper = { 6.0*vt1},
       cells = {32},
-      decompCuts = {1},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection{
          density = function (t, zn)
@@ -76,7 +66,7 @@ vlasovApp = Plasma.App {
          exactLagFixM012 = false,
       },
       evolve = true,
-      --evolveCollisions = false,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "M0", "M1i", "M2", "u", "vtSq" },
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal" },
@@ -100,7 +90,6 @@ vlasovApp = Plasma.App {
       lower = {-6.0*vt2},
       upper = { 6.0*vt2},
       cells = {32},
-      decompCuts = {1},
       -- Initial conditions.
       init = Plasma.MaxwellianProjection{
          density = function (t, zn)
@@ -119,7 +108,7 @@ vlasovApp = Plasma.App {
          exactLagFixM012 = false,
       },
       evolve = true,
-      --evolveCollisions = false,
+      evolveCollisionless = false,
       -- Diagnostic moments.
       diagnosticMoments = { "M0", "M1i", "M2", "u", "vtSq" },
       diagnosticIntegratedMoments = { "intM0", "intM1i", "intM2Flow", "intM2Thermal" },

@@ -7,14 +7,14 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Alloc       = require "Lib.Alloc"
-local Lin         = require "Lib.Linalg"
-local MomDecl     = require "Updater.momentCalcData.DistFuncMomentCalcModDecl"
-local Mpi         = require "Comm.Mpi"
-local Proto       = require "Lib.Proto"
-local Range       = require "Lib.Range"
-local UpdaterBase = require "Updater.Base"
-local ffi         = require "ffi"
+local Alloc        = require "Lib.Alloc"
+local LinearDecomp = require "Lib.LinearDecomp"
+local Lin          = require "Lib.Linalg"
+local Mpi          = require "Comm.Mpi"
+local Proto        = require "Lib.Proto"
+local Range        = require "Lib.Range"
+local UpdaterBase  = require "Updater.Base"
+local ffi          = require "ffi"
 
 local ffiC = ffi.C
 ffi.cdef [[
@@ -76,12 +76,16 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
       self.globalVals[i] = 0.0
    end
 
+   -- Construct range for shared memory.
+   local fieldRange = field:localRange()
+   local fieldRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = fieldRange:selectFirst(ndim), numSplit = grid:numSharedProcs() }
+   local tId = grid:subGridSharedId()    -- Local thread ID.
+
    -- Loop, computing integrated moments in each cell.
-   for idx in field:localRangeIter() do
+   for idx in fieldRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(idx)
-      for d = 1, ndim do
-	 self.dxv[d] = grid:dx(d)
-      end
+      grid:getDx(self.dxv)
 
       field:fill(fieldIndexer(idx), fieldItr)
       -- Compute integrated quantities.

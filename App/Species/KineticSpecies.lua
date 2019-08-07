@@ -75,14 +75,8 @@ function KineticSpecies:fullInit(appTbl)
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    
    self.decompCuts = {}
-   -- Parallel decomposition stuff.
-   if tbl.decompCuts then
-      assert(self.vdim == #tbl.decompCuts, "decompCuts should have exactly " .. self.vdim .. " entries")
-      self.decompCuts = tbl.decompCuts
-   else
-      -- If not specified, use 1 processor.
-      for d = 1, self.vdim do self.decompCuts[d] = 1 end
-   end
+   -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
+   for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
    -- Create triggers to write distribution functions and moments.
    if tbl.nDistFuncFrame then
@@ -142,7 +136,11 @@ function KineticSpecies:fullInit(appTbl)
 	 self.projections[nm] = val
       end
    end
-   self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false) 
+   self.sourceSteadyState = xsys.pickBool(tbl.sourceSteadyState, false)
+   if self.sourceSteadyState then
+      self.sourceSteadyStateLength = assert(tbl.sourceSteadyStateLength,
+					    "KineticSpecies: Must specify sourceSteadyStateLength when sourceSteadyState is true.")
+   end
    if tbl.sourceTimeDependence then 
       self.sourceTimeDependence = tbl.sourceTimeDependence 
    else 
@@ -468,12 +466,17 @@ function KineticSpecies:alloc(nRkDup)
    self.distf = {}
    for i = 1, nRkDup do
       self.distf[i] = self:allocDistf()
+      self.distf[i]:clear(0.0)
    end
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
       method     = self.ioMethod,
-      writeGhost = self.writeGhost
+      writeGhost = self.writeGhost,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }
 
    if self.positivity then
@@ -537,8 +540,6 @@ function KineticSpecies:initDist()
 	    self.f0 = self:allocDistf()
 	 end
 	 self.f0:accumulate(1.0, self.distf[2])
-         --Barrier before sync() call. 
-         Mpi.Barrier(self.grid:commSet().sharedComm)
 	 self.f0:sync(syncPeriodicDirs)
 	 backgroundCnt = backgroundCnt + 1
       end
@@ -605,15 +606,6 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
- 
-   if a<=self.dtGlobal[0] then -- This should be sufficient to determine if this combine is a forwardEuler step.
-      -- Only applyBc on forwardEuler combine.
-      self:applyBc(nil, self:rkStepperFields()[outIdx])
-      -- Only positivity diffuse on forwardEuler combine.
-      if self.positivityDiffuse then
-         self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
-      end
-   end
 end
 
 function KineticSpecies:suggestDt()
@@ -656,6 +648,13 @@ function KineticSpecies:clearMomentFlags(species)
    end
 end
 
+function KineticSpecies:applyBcIdx(tCurr, idx)
+  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  if self.positivityDiffuse then
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  end
+end
+
 function KineticSpecies:applyBc(tCurr, fIn)
    -- fIn is total distribution function.
    local tmStart = Time.clock()
@@ -675,20 +674,12 @@ function KineticSpecies:applyBc(tCurr, fIn)
          end
       end
 
-      -- This barrier is needed as when using MPI-SHM some
-      -- processes will get to sync() method before RK step is finished.
-      Mpi.Barrier(self.grid:commSet().sharedComm)
       -- Apply periodic BCs (to only fluctuations if fluctuation BCs)
       fIn:sync(syncPeriodicDirsTrue)
 
       if self.fluctuationBCs then
         -- Put back together total distribution
         fIn:accumulate(1.0, self.f0)
-
-        -- Possibly needed Barrier for fluctuation-only BCs with shared memory on
-        -- there is a barrier at the end of sync(), but need a barrier between accumulate and sync()
-        -- needs to be tested, but I think this is needed -- Jimmy Juno 02/28/19.
-        Mpi.Barrier(self.grid:commSet().sharedComm)
 
         -- Update ghosts in total distribution, without enforcing periodicity.
         fIn:sync(not syncPeriodicDirsTrue)
@@ -821,8 +812,10 @@ function KineticSpecies:write(tm, force)
 end
 
 function KineticSpecies:writeRestart(tm)
-   -- (The final "false" prevents writing of ghost cells).
-   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, false)
+   -- (The final "true/false" determines writing of ghost cells).
+   local writeGhosts = false
+   if self.hasSheathBcs or self.fluctuationBCs then writeGhosts = true end
+   self.distIo:write(self.distf[1], string.format("%s_restart.bp", self.name), tm, self.distIoFrame, writeGhosts)
    for i, mom in ipairs(self.diagnosticMoments) do
       self.diagnosticMomentFields[mom]:write(
 	 string.format("%s_%s_restart.bp", self.name, mom), tm, self.diagIoFrame, false)
@@ -836,9 +829,14 @@ function KineticSpecies:writeRestart(tm)
 end
 
 function KineticSpecies:readRestart()
-   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name))
+   local readGhosts = false
+   if self.hasSheathBcs or self.fluctuationBCs then readGhosts = true end
+   local tm, fr = self.distIo:read(self.distf[1], string.format("%s_restart.bp", self.name), readGhosts)
 
-   self:applyBc(tm, self.distf[1]) -- Apply BCs and set ghost-cell data.
+   -- Apply BCs and set ghost-cell data (unless ghosts have been read because of special BCs)
+   if not self.hasSheathBcs and not self.fluctuationBCs then 
+      self:applyBc(tm, self.distf[1]) 
+   end 
    
    self.distIoFrame = fr -- Reset internal frame counter.
    for i, mom in ipairs(self.diagnosticIntegratedMoments) do

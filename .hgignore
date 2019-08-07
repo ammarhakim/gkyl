@@ -9,6 +9,8 @@ install-deps/eigen-*
 install-deps/adios*
 install-deps/luarocks*
 install-deps/openmpi*
+install-deps/zeromq*
+install-deps/czmq*
 install-deps/build-opts.sh
 */*.pyc
 Unit/*.bp

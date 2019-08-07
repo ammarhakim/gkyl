@@ -1,13 +1,15 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Plasma solver on a Cartesian grid. Works in arbitrary CDIM/VDIM
--- (VDIM>=CDIM) with either Vlasov, gyrokinetic, fuilds and Maxwell,
+-- (VDIM>=CDIM) with either Vlasov, gyrokinetic, fluids and Maxwell,
 -- Poisson or specified EM fields.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local Alloc            = require "Alloc"
+local AllocShared      = require "AllocShared"
 local Basis            = require "Basis"
 local Collisions       = require "App.Collisions"
 local DataStruct       = require "DataStruct"
@@ -18,15 +20,15 @@ local Lin              = require "Lib.Linalg"
 local LinearTrigger    = require "Lib.LinearTrigger"
 local Logger           = require "Lib.Logger"
 local Mpi              = require "Comm.Mpi"
+local Projection       = require "App.Projection"
 local Proto            = require "Lib.Proto"
 local Sources          = require "App.Sources"
 local Species          = require "App.Species"
 local Time             = require "Lib.Time"
 local date             = require "xsys.date"
+local lfs              = require "lfs"
 local lume             = require "Lib.lume"
 local xsys             = require "xsys"
-local Projection       = require "App.Projection"
-local lfs              = require "lfs"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -110,15 +112,20 @@ local function buildApplication(self, tbl)
    local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
 
    -- Parallel decomposition stuff.
+   local useShared = xsys.pickBool(tbl.useShared, false)   
    local decompCuts = tbl.decompCuts
    if tbl.decompCuts then
       assert(cdim == #tbl.decompCuts, "decompCuts should have exactly " .. cdim .. " entries")
    else
-      -- If not specified, use 1 processor.
-      decompCuts = {}
-      for d = 1, cdim do decompCuts[d] = 1 end
+      if not useShared then
+	 -- if not specified and not using shared, construct a
+	 -- decompCuts automatically
+	 local numRanks = Mpi.Comm_size(Mpi.COMM_WORLD)
+	 decompCuts = DecompRegionCalc.makeCuts(cdim, numRanks, tbl.cells)
+      else
+	 assert(false, "Must specify decompCuts when useShared = true")
+      end
    end
-   local useShared = xsys.pickBool(tbl.useShared, false)
 
    -- Extract periodic directions.
    local periodicDirs = {}
@@ -343,6 +350,12 @@ local function buildApplication(self, tbl)
       end
       field:combineRk(outIdx, a, aIdx, ...)
    end
+   local function applyBc(tCurr, idx)
+      for nm, s in pairs(species) do
+         s:applyBcIdx(tCurr, idx)
+      end
+      field:applyBcIdx(tCurr, idx)
+   end
 
    -- Function to take a single forward-euler time-step.
    local function forwardEuler(tCurr, dt, inIdx, outIdx)
@@ -399,10 +412,15 @@ local function buildApplication(self, tbl)
          end
       else 
          dtSuggested = dt -- From argument list.
+         -- If calcCflFlag not being used, need to barrier before doing the RK combine.
+         -- When running with calcCflFlag, an all-reduce is done on the time-step to find
+         -- the smallest time step, giving us an implicit barrier before we combine RK steps.
+         Mpi.Barrier(self._confGrid:commSet().sharedComm)
       end
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      applyBc(tCurr, outIdx)
 
       return dtSuggested
    end
@@ -784,7 +802,11 @@ local function buildApplication(self, tbl)
 
       local tmTotal = tmSimEnd-tmSimStart
       local tmAccounted = 0.0
-      log(string.format("\nTotal number of time-steps %s\n\n", step))
+      log(string.format("\nTotal number of time-steps %s\n", step))
+      log(string.format(
+	     "Number of barriers %d barriers (%g barriers/step)\n\n",
+	     Mpi.getNumBarriers(), Mpi.getNumBarriers()/step))
+      
       log(string.format(
 	     "Solver took				%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     tmSlvr, tmSlvr/step, 100*tmSlvr/tmTotal))
@@ -832,14 +854,18 @@ local function buildApplication(self, tbl)
       log(string.format(
 	     "Stepper combine/copy took		%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n",
 	     stepperTime, stepperTime/step, 100*stepperTime/tmTotal))
+      log(string.format(
+      	     "Time spent in barrier function		%9.5f sec   (%7.6f s/step)   (%6.f%%)\n",
+      	     Mpi.getTimeBarriers(), Mpi.getTimeBarriers()/step, 100*Mpi.getTimeBarriers()/tmTotal))      
       tmAccounted = tmAccounted + stepperTime
       tmUnaccounted = tmTotal - tmAccounted
       log(string.format(
 	     "[Unaccounted for]			%9.5f sec   (%7.6f s/step)   (%6.3f%%)\n\n",
 	     tmUnaccounted, tmUnaccounted/step, 100*tmUnaccounted/tmTotal))
+      
       log(string.format(
 	     "Main loop completed in			%9.5f sec   (%7.6f s/step)   (%6.f%%)\n\n",
-	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))
+	     tmTotal, tmTotal/step, 100*tmTotal/tmTotal))      
       log(date(false):fmt()); log("\n") -- Time-stamp for sim end.
 
       if file_exists(stopfile) then os.remove(stopfile) end -- Clean up.
@@ -870,34 +896,37 @@ function App:run()
 end
 
 return {
-   AdiabaticSpecies = Species.AdiabaticSpecies,
-   App = App,
-   BgkCollisions = Collisions.BgkCollisions,   
-   FluidDiffusion = Collisions.FluidDiffusion,
-   FuncMaxwellField = Field.FuncMaxwellField,
-   FuncVlasovSpecies = Species.FuncVlasovSpecies,
-   GkField = Field.GkField,
-   GkGeometry = Field.GkGeometry,
-   GkLBOCollisions = Collisions.GkLBOCollisions,
-   GkSpecies = Species.GkSpecies,
+   AdiabaticSpecies   = Species.AdiabaticSpecies,
+   App                = App,
+   FluidDiffusion     = Collisions.FluidDiffusion,
+   FuncMaxwellField   = Field.FuncMaxwellField,
+   FuncVlasovSpecies  = Species.FuncVlasovSpecies,
+   GkBGKCollisions    = Collisions.GKLBOCollisions,   
+   GkField            = Field.GkField,
+   GkGeometry         = Field.GkGeometry,
+   GkLBOCollisions    = Collisions.GkLBOCollisions,
+   GkSpecies          = Species.GkSpecies,
    HamilVlasovSpecies = Species.HamilVlasovSpecies,
    IncompEulerSpecies = Species.IncompEulerSpecies,
-   MaxwellField = Field.MaxwellField,
-   MomentSpecies = Species.MomentSpecies,
-   NoField = Field.NoField,
-   Projection = Projection,
-   VlasovSpecies = Species.VlasovSpecies,
-   VmLBOCollisions = Collisions.VmLBOCollisions,
-   VoronovIonization = Collisions.VoronovIonization,
+   MaxwellField       = Field.MaxwellField,
+   MomentSpecies      = Species.MomentSpecies,
+   NoField            = Field.NoField,
+   Projection         = Projection,
+   VlasovSpecies      = Species.VlasovSpecies,
+   VmBGKCollisions    = Collisions.VmLBOCollisions,   
+   VmLBOCollisions    = Collisions.VmLBOCollisions,
+   VoronovIonization  = Collisions.VoronovIonization,
 
    -- Valid pre-packaged species-field systems.
    Gyrokinetic = {
       App = App, Species = Species.GkSpecies, Field = Field.GkField, Geometry = Field.GkGeometry,
-      FunctionProjection = Projection.GkProjection.FunctionProjection, 
+      FunctionProjection   = Projection.GkProjection.FunctionProjection, 
       MaxwellianProjection = Projection.GkProjection.MaxwellianProjection,
-      BgkCollisions = Collisions.BgkCollisions,
-      LBOCollisions = Collisions.GkLBOCollisions,
-      AdiabaticSpecies = Species.AdiabaticSpecies,
+      BGKCollisions        = Collisions.GkBGKCollisions,
+      LBOCollisions        = Collisions.GkLBOCollisions,
+      BgkCollisions        = Collisions.GkBGKCollisions,
+      LboCollisions        = Collisions.GkLBOCollisions,
+      AdiabaticSpecies     = Species.AdiabaticSpecies,
    },
    IncompEuler = {
       App = App, Species = Species.IncompEulerSpecies, Field = Field.GkField,
@@ -905,15 +934,17 @@ return {
    },
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
-      Field = Field.MaxwellField,
-      FunctionProjection = Projection.VlasovProjection.FunctionProjection, 
+      Field                = Field.MaxwellField,
+      FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
-      BgkCollisions = Collisions.BgkCollisions,
-      LBOCollisions = Collisions.VmLBOCollisions,
+      BGKCollisions        = Collisions.VmBGKCollisions,
+      LBOCollisions        = Collisions.VmLBOCollisions,
+      BgkCollisions        = Collisions.VmBGKCollisions,
+      LboCollisions        = Collisions.VmLBOCollisions,
    },
    Moments = {
       App = App, Species = Species.MomentSpecies, Field = Field.MaxwellField,
       CollisionlessEmSource = Sources.CollisionlessEmSource,
-      TenMomentRelaxSource = Sources.TenMomentRelaxSource
+      TenMomentRelaxSource  = Sources.TenMomentRelaxSource
    } 
 }

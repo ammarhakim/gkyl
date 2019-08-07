@@ -334,20 +334,6 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    for i = 1, nFlds do -- accumulate rest of the fields
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
-
-   -- Barrier after accumulate since applyBc has different loop structure
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-
-   if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
-      -- only applyBc on forwardEuler combine
-      for dir = 1, self.ndim do
-         self:applyBc(nil, self:rkStepperFields()[outIdx], dir)
-      end
-      -- only positivity diffuse on forwardEuler combine
-      if self.positivityDiffuse then
-         self.posRescaler:advance(self.tCurr, {self:rkStepperFields()[outIdx]}, {self:rkStepperFields()[outIdx]})
-      end
-   end
 end
 
 function FluidSpecies:suggestDt()
@@ -384,6 +370,15 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          -- collisions
       end
    end
+end
+
+function FluidSpecies:applyBcIdx(tCurr, idx)
+  for dir = 1, self.ndim do
+     self:applyBc(tCurr, self:rkStepperFields()[idx], dir)
+  end
+  if self.positivityDiffuse then
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  end
 end
 
 function FluidSpecies:applyBc(tCurr, fIn, dir)

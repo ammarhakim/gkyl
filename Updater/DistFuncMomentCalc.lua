@@ -110,7 +110,6 @@ function DistFuncMomentCalc:init(tbl)
    if tbl.gkfacs then
       self.mass        = tbl.gkfacs[1]
       self.bmag        = assert(tbl.gkfacs[2], "DistFuncMomentCalc: must provide bmag in gkfacs")
-      self.bmagIndexer = self.bmag:genIndexer()
       self.bmagItr     = self.bmag:get(1)
    end
 
@@ -158,8 +157,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       end
    end
 
-   local distfIndexer      = distf:genIndexer()
-   local mom1Indexer       = mom1:genIndexer()
+   local phaseIndexer      = distf:genIndexer()
+   local confIndexer       = mom1:genIndexer()
    local distfItr, mom1Itr = distf:get(1), mom1:get(1)
 
    -- Construct ranges for nested loops.
@@ -169,25 +168,18 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
    local tId      = grid:subGridSharedId()    -- Local thread ID.
 
    local mom2, mom3
-   local mom2Indexer, mom3Indexer
    local mom2Itr, mom3Itr
    mom1:scale(0.0) -- Zero out moments.
 
    local cMomB, cEnergyB
    local m0Star, m1Star, m2Star
-   local cMomBIndexer, cEnergyBIndexer
-   local m0StarIndexer, m1StarIndexer, m2StarIndexer
    local cMomBItr, cEnergyBItr
    local m0StarItr, m1StarItr, m2StarItr
    local distfItrP, distfItrM
-   local distfP, distfM   
    local uCorrection, vtSqCorrection, StarM0Calc    -- Kernel pointers.
    if self._fiveMoments then 
       mom2 = outFld[2]
       mom3 = outFld[3] 
-
-      mom2Indexer = mom2:genIndexer()
-      mom3Indexer = mom3:genIndexer() 
 
       mom2Itr = mom2:get(1)
       mom3Itr = mom3:get(1) 
@@ -197,9 +189,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
       if self._fiveMomentsLBO then 
          cMomB    = outFld[4]
          cEnergyB = outFld[5] 
-
-         cMomBIndexer    = cMomB:genIndexer()
-         cEnergyBIndexer = cEnergyB:genIndexer()
 
          cMomBItr    = cMomB:get(1) 
          cEnergyBItr = cEnergyB:get(1) 
@@ -211,17 +200,11 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
          -- Distribution functions left and right of a cell-boundary.
          distfItrP = distf:get(1)
          distfItrM = distf:get(1)
-         distfP    = Lin.Vec(self._numBasisP)
-         distfM    = Lin.Vec(self._numBasisP)
 
          if self._polyOrder == 1 then
             m0Star = outFld[6]
             m1Star = outFld[7]
-            m2Star = outFld[8] 
-
-            m0StarIndexer = m0Star:genIndexer()
-            m1StarIndexer = m1Star:genIndexer()
-            m2StarIndexer = m2Star:genIndexer()
+            m2Star = outFld[8]
 
             m0StarItr = m0Star:get(1) 
             m1StarItr = m1Star:get(1) 
@@ -242,17 +225,17 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
          cIdx:copyInto(self.idxP)
 
-         mom1:fill(mom1Indexer(self.idxP), mom1Itr)
-         mom2:fill(mom2Indexer(self.idxP), mom2Itr)
-         mom3:fill(mom3Indexer(self.idxP), mom3Itr)
+         mom1:fill(confIndexer(cIdx), mom1Itr)
+         mom2:fill(confIndexer(cIdx), mom2Itr)
+         mom3:fill(confIndexer(cIdx), mom3Itr)
 
          if self._isGk then
-            self.bmag:fill(self.bmagIndexer(self.idxP), self.bmagItr)
+            self.bmag:fill(confIndexer(cIdx), self.bmagItr)
          end
 
          -- Now loop over velocity space boundary surfaces to compute boundary corrections.
-         cMomB:fill(cMomBIndexer(cIdx), cMomBItr)
-         cEnergyB:fill(cEnergyBIndexer(cIdx), cEnergyBItr)
+         cMomB:fill(confIndexer(cIdx), cMomBItr)
+         cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
 
          -- Only when the contributions to m0Star from the first direction
          -- are collected, do we collect contributions to m1Star and m2Star.
@@ -270,9 +253,9 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
          -- To have energy conservation with piece-wise linear, we must use
          -- star moments in the second equation of the weak system solved
          -- in SelfPrimMoments.
-         m0Star:fill(m0StarIndexer(cIdx), m0StarItr)
-         m1Star:fill(m1StarIndexer(cIdx), m1StarItr)
-         m2Star:fill(m2StarIndexer(cIdx), m2StarItr)
+         m0Star:fill(confIndexer(cIdx), m0StarItr)
+         m1Star:fill(confIndexer(cIdx), m1StarItr)
+         m2Star:fill(confIndexer(cIdx), m2StarItr)
 
          for vDir = 1, vDim do
             if (not self._isGk) or (self._isGk and firstDir) then
@@ -313,8 +296,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                   grid:getDx(self.dxP)
                   grid:cellCenter(self.xcP)
       
-                  distf:fill(distfIndexer(self.idxM), distfItrM)
-                  distf:fill(distfIndexer(self.idxP), distfItrP)
+                  distf:fill(phaseIndexer(self.idxM), distfItrM)
+                  distf:fill(phaseIndexer(self.idxP), distfItrP)
       
                   if i>dirLoIdx and i<dirUpIdx then
                      if (self._isGk) then
@@ -380,22 +363,22 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             grid:cellCenter(self.xcP)
             grid:getDx(self.dxP)
          
-            distf:fill(distfIndexer(self.idxP), distfItr)
-            mom1:fill(mom1Indexer(self.idxP), mom1Itr)
+            distf:fill(phaseIndexer(self.idxP), distfItr)
+            mom1:fill(confIndexer(cIdx), mom1Itr)
 
             if self._isGk then
-               self.bmag:fill(self.bmagIndexer(self.idxP), self.bmagItr)
+               self.bmag:fill(confIndexer(cIdx), self.bmagItr)
                if self._fiveMoments then
-                  mom2:fill(mom2Indexer(self.idxP), mom2Itr)
-                  mom3:fill(mom3Indexer(self.idxP), mom3Itr)
+                  mom2:fill(confIndexer(cIdx), mom2Itr)
+                  mom3:fill(confIndexer(cIdx), mom3Itr)
                   self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), 
                    		mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
                else
                   self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItr:data(), mom1Itr:data())
                end
             elseif self._fiveMoments then 
-               mom2:fill(mom2Indexer(self.idxP), mom2Itr)
-               mom3:fill(mom3Indexer(self.idxP), mom3Itr)
+               mom2:fill(confIndexer(cIdx), mom2Itr)
+               mom3:fill(confIndexer(cIdx), mom3Itr)
                self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItr:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
             else
                self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItr:data(), mom1Itr:data())
@@ -404,8 +387,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
          if self._fiveMomentsLBO then  -- and polyOrder>1.
             -- Now loop over velocity space boundary surfaces to compute boundary corrections.
-            cMomB:fill(cMomBIndexer(cIdx), cMomBItr)
-            cEnergyB:fill(cEnergyBIndexer(cIdx), cEnergyBItr)
+            cMomB:fill(confIndexer(cIdx), cMomBItr)
+            cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
 
             -- Only when the contributions to m0Star from the first direction
             -- are collected, do we collect contributions to m1Star and m2Star.
@@ -446,7 +429,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                      grid:getDx(self.dxP)
                      grid:cellCenter(self.xcP)
       
-                     distf:fill(distfIndexer(self.idxP), distfItrP)
+                     distf:fill(phaseIndexer(self.idxP), distfItrP)
       
                      local vBound = 0.0
                      if isLo then

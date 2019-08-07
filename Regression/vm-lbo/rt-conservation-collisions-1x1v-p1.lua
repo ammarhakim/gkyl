@@ -64,7 +64,6 @@ plasmaApp = Plasma.App {
       lower = {-5.0*vtElc1},
       upper = {7.0*vtElc1},
       cells = {12},
-      decompCuts = {1}, -- Do not change, no parallelization in velocity space currently.
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
@@ -93,7 +92,6 @@ plasmaApp = Plasma.App {
       lower = {-6.0*vtIon1+vtElc1},
       upper = { 6.0*vtIon1+vtElc1},
       cells = {12},
-      decompCuts = {1},    -- Do not change, no parallelization in velocity space currently.
       -- Initial conditions.
       init = function (t, xn)
 	 local x, v = xn[1], xn[2]
