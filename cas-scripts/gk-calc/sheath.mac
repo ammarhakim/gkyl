@@ -1,218 +1,143 @@
 load("modal-basis");
 load("out-scripts");
 load(stringproc)$
+load("fem-calc/femMatrices")$
 fpprec : 24$
 
 gkvsub:[vx=vpar,vy=mu];
 
+
 calcGkSheathFuncs(fh, cdim, vdim, basisFun, pmax) := block([],
 kill(varsC, varsP, basisC, basisP),
+load("basis-precalc/basisSer1x"),
+basisVp : subst([x=vx],basisC),
+basisMu : subst([x=vy],basisC),
+load("basis-precalc/basisSer2x"),
+basisXY : basisC,
+basisVpMu : subst([x=vx,y=vy],basisC),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
-  bP : subst(gkvsub, basisP[p]),
+  bP : basisP[p],
   bC : basisC[p],
-
-/* function to compute surface-average deltaPhi */
-  funcNm : sconcat("calcSheathDeltaPhi", cdim, "x", basisFun),
+  bXY : basisXY[p],
+  bVp : basisVp[p],
+  bMu : basisMu[p],
+  bVpMu : basisVpMu[p],
 
   /* get name of last config space dimension, which is assumed to be z */
   zVar : varsC[cdim],
+  surfVars : delete(zVar, varsP),
+  surfVarsC : delete(zVar, varsC),
+  surfVarsP : delete(vx, surfVars),
 
+  funcNm : sconcat("calcSheathReflection", cdim, "x", vdim, "v", basisFun),
+  printf(fh, "void ~a_P~a(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl) ~%{ ~%", funcNm, p),
+
+  /* calculate expansion for deltaPhi */
   phiSheath_expd : subst(zVar=zVal,doExpand1(phi, bC)),
-  /* assume wall potential specified without z dependence */
-  phiWall_expd : subst(zVar=0,doExpand1(phiWall, bC)),
+  phiWall_expd : subst(zVar=zVal,doExpand1(phiWall, bC)),
 
   deltaPhi_expd : phiSheath_expd - phiWall_expd,
-  /* we will use surface-center value. we already got rid of zVar, but we need to set other config coords to 0 */
-  deltaPhi0 : subst([x=0,y=0,z=0], deltaPhi_expd),
-  /* only print for vdim==2 so that don't duplicate */
-  if vdim=2 then (
-  printf(fh, "double ~a_P~a(const double *phi, const double *phiWall, const double zVal) ~%{ ~%", funcNm, p),
-  if p=2 then printf(fh, "  double zVal2 = zVal*zVal; ~%"),
-  printf(fh, "  return ~a; ~%", subst(zVal^2=zVal2, float(deltaPhi0))),
-  printf(fh, "}~%~%")
+
+  /* set up quadrature nodes */
+  if p=1 then quad:1/(3),
+  if p=2 then quad:sqrt(3/5),
+  nodesXY : eval_string(sconcat("nodes2xp", p))*quad,
+  nodesXYsub(f) := makelist(subst(makelist(surfVarsC[j]=nodesXY[i][j],j,1,length(surfVarsC)),f),i,1,length(nodesXY)),
+  nodesMu : eval_string(sconcat("nodes1xp", p))*quad,
+  nodesMusub(f) := makelist(subst(makelist(vy=nodesMu[i][j],j,1,1),f),i,1,length(nodesMu)),
+
+  /* evaluate deltaPhi at x,y quadrature nodes */
+  deltaPhiQ : nodesXYsub(deltaPhi_expd),
+
+  /* evaluate f at z surface, and x,y quadrature nodes */
+  fSurf_expd : subst(zVar=zVal, doExpand1(f, bP)),
+  fXYQ_expd : nodesXYsub(fSurf_expd),
+  
+  kill(fReflXYQ_expd),
+  kill(fReflXYMuQ_expd),
+  fReflXYQ_expd : makelist(0, i,1,length(bVpMu)),
+  fReflXYMuQ_expd : makelist(0, i,1,length(bMu)),
+  /* evaluate and write vcut^2 at x,y quadrature nodes */
+  vcutSqQ:gcfac(float(fullratsimp(-2*q_/m_*deltaPhiQ))),
+  printf(fh, "  double vcutSq_i; long double xc, b, rVal; ~%"),
+  printf(fh, "  double fReflXYQuad[~a][~a]; ~%", length(nodesXY), length(bVpMu)),
+  printf(fh, "  double fReflXYMuQuad[~a][~a]; ~%", length(nodesMu), length(bVp)),
+  printf(fh, "  ~%~%"),
+  /* for each x,y quadrature node, determine and write coefficients fReflXYQuad for vpar,mu modal basis (bVpMu) */
+  for i:1 thru length(nodesXY) do (
+    printf(fh, "// quadrature node (x,y)_i=~a ~%", i),
+    printf(fh, "  vcutSq_i = ~a; ~%", vcutSqQ[i]),
+    printf(fh, "  if(vcutSq_i <= vlowerSq) { // absorb (no reflection) ~%"),
+    writeCExprsWithZerosNoExpand1(fReflXYQuad[i-1], makelist(0.,j,1,length(bVpMu))),
+    printf(fh, "  } else if(vcutSq_i > vupperSq) { // full reflection ~%"),
+    /* project f at this (x,y)_i quad node onto vpar,mu basis (bVpMu) */
+    fXYQ_VpMu_c : gcfac(fullratsimp(innerProd([vx,vy], 1, bVpMu, fXYQ_expd[i]))),
+    /* set fRefl bVpMu coefficients to f bVpMu coefficients */
+    writeCExprsNoExpand1(fReflXYQuad[i-1], fXYQ_VpMu_c),
+    printf(fh, "  } else { // partial reflection ~%"),
+      /* also evaluate at mu quad nodes */
+      fXYMuQ_expd : nodesMusub(fXYQ_expd[i]),
+      for j:1 thru length(nodesMu) do (
+        /* project f at this (x,y)_i,mu_j quad node onto vpar basis (bVp) */
+        fXYMuQ_Vp_c : gcfac(fullratsimp(innerProd([vx], 1, bVp, fXYMuQ_expd[j]))),
+        r: gcfac(float(fXYMuQ_Vp_c[2]/sqrt(3)/fXYMuQ_Vp_c[1])),
+        printf(fh, "  rVal = ~a; ~%", r),
+        printf(fh, "  // if f is not realizable, no reflection ~%"),
+        printf(fh, "  if(std::abs(rVal)>=.99 || ~a < 0.) { ~%", gcfac(float(fXYMuQ_Vp_c[1]))),
+        writeCExprsWithZerosNoExpand1(fReflXYMuQuad[j-1],makelist(0.,j,1,length(bVp))),
+        printf(fh, "  } else {~%"),
+        beta:invL(rVal),
+        printf(fh, "   b = ~a; ~%", beta),
+        printf(fh, "   if(wv > 0) {~%"),
+        printf(fh, "    xc = ~a; ~%", 2*(sqrt(vcutSq_i)-wv)/dv),
+        fReflfacs : [ "(exp(b*xc)-exp(-b))/2/sinh(b)", 
+            "((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))",
+            "(((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
+        for k:1 thru length(bVp) do (
+        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+        ),
+        printf(fh, "   } else { ~%"),
+        printf(fh, "    xc = ~a; ~%", 2*(-sqrt(vcutSq_i)-wv)/dv),
+        fReflfacs : [ "(exp(b)-exp(b*xc))/2/sinh(b)", 
+            "((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))", 
+            "((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
+        for k:1 thru length(bVp) do (
+        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+        ),
+        printf(fh, "   } ~%"),
+        printf(fh, "  } ~%"),
+        fReflXYMuQ_expd[j] : makelist(fReflXYMuQuad[j-1][k-1],k,1,length(bVp)).bVp
+      ),
+      modToNodMu:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodesMu, bMu, [vy])),
+      fReflXYQ_VpMu_expd : fullratsimp(bMu.fullratsimp(invert(transpose(float(modToNodMu))).fReflXYMuQ_expd)),
+      /* project fRefl at this (x,y)_i quad node onto vpar,mu basis (bVpMu) */
+      fReflXYQ_VpMu_c : gcfac(fullratsimp(innerProd([vx,vy], 1, bVpMu, fReflXYQ_VpMu_expd))),
+      writeCExprsNoExpand1(fReflXYQuad[i-1], fReflXYQ_VpMu_c),
+    printf(fh, "  } ~%~%"),
+    /* expansion of fRefl at each x,y quad node */
+    fReflXYQ_expd[i] : makelist(fReflXYQuad[i-1][j-1],j,1,length(bVpMu)).bVpMu,
+    printf(fh, " ~%")
   ),
 
-/* function to compute scaled partially-reflected distribution fhat */
-
-  funcNm : sconcat("calcSheathPartialReflectionScaled", cdim, "x", vdim, "v", basisFun),
-  printf(fh, "void ~a_P~a(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
-
-  varsP : subst(gkvsub, varsP),
-  if vdim=1 then varsV:[vpar] else varsV:[vpar,mu],
-
-  edgesub : [zVar=zVal],
-
-  printf(fh, "  double u[~a]; ~%", length(bC)),
-  printf(fh, "  double uhat[~a]; ~%", length(bC)),
-  printf(fh, "  double c[~a]; ~%", length(bC)),
-
-  powersimp:[zVal^2=zVal2, wv^2=wv2, wv^3=wv3, wv^4=wv4, wv^5=wv5, vcut^2=vcut2, vcut^3=vcut3, vcut^4=vcut4, vcut^5=vcut5, dv^2=dv2, dv^3=dv3, dv^4=dv4, dv^5=dv5],
-  printf(fh, "  double zVal2 = zVal*zVal; ~%"),
-  printf(fh, "  double wv2 = wv*wv; ~%"),
-  printf(fh, "  double wv3 = wv2*wv; ~%"),
-  printf(fh, "  double wv4 = wv3*wv; ~%"),
-  printf(fh, "  double wv5 = wv4*wv; ~%"),
-  printf(fh, "  double dv2 = dv*dv; ~%"),
-  printf(fh, "  double dv3 = dv2*dv; ~%"),
-  printf(fh, "  double dv4 = dv3*dv; ~%"),
-  printf(fh, "  double dv5 = dv4*dv; ~%"),
-  printf(fh, "  double vcut2 = vcut*vcut; ~%"),
-  printf(fh, "  double vcut3 = vcut2*vcut; ~%"),
-  printf(fh, "  double vcut4 = vcut3*vcut; ~%"),
-  printf(fh, "  double vcut5 = vcut4*vcut; ~%"),
-
-  /* expand f and fhat */
-  f_expd : doExpand1(f, bP),
-
-  /* make sure velocity integration vars are first, and remove z from integral */
-  /* we do this in case vcut depends on x and y at some point */
-  intVars : flatten([varsV,varsC]),
-  lims : makelist([-1,1],i,1,length(varsP)),
-  cutlims : makelist([-1,1],i,1,length(varsP)),
-
-  /* kinetic energy */
-  kE_full : (wv + dv/2*vpar)^2/2,
-  kE_k:fullratsimp(innerProd(varsP, 1, bP, kE_full)),
-  /* expand projected KE on basis */
-  kE_expd:kE_k.bP,
-  vpar_proj : 2/dv*diff(kE_expd, vpar),
-  
-  /* flux projected onto conf basis evaluated at z surface */
-  u_k:fullratsimp(innerProdGen(intVars,lims,bC, vpar_proj, subst(edgesub,f_expd))),
-  writeCExprsWithZerosNoExpand1(u, fullratsimp(subst(powersimp, u_k))),
-
-  printf(fh, "  if(wv > 0) {~%"),
-  /* first velocity dim is always vpar, and we need to modify the upper integration limit */
-  cutlims[1] : [-1,2*(vcut-wv)/dv],
-  /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
-  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, vpar_proj, subst(edgesub,f_expd))),
-  writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
-  printf(fh, "  } else {~%"),
-  /* first velocity dim is always vpar, and we need to modify the upper integration limit */
-  cutlims[1] : [2*(-vcut-wv)/dv,1],
-  /* flux projected onto conf basis, but with modified upper vpar limit, evaluated at z surface */
-  uhat_k:fullratsimp(innerProdGen(intVars,cutlims,bC, vpar_proj, subst(edgesub,f_expd))),
-  writeCExprsWithZerosNoExpand1(uhat, fullratsimp(subst(powersimp, uhat_k))),
-  printf(fh, "  }~%~%"),
-  printf(fh, "  // calculate c = uhat/u ~%"),
-  printf(fh, "  CartFieldBinOpDivide~ax~a_P~a(binOpData, u, uhat, 1, 1, c); ~%", cdim, basisFun, p),
-
-  printf(fh, "  // calculate fhat = c*f ~%"),
-  printf(fh, "  CartFieldBinOpMultiply~ax~av~a_P~a(binOpData, c, f, 1, 1, fhat); ~%", cdim, vdim, basisFun, p),
-
-  printf(fh, "  // account for rare positivity issues ~%"),
-  printf(fh, "  if (fhat[0]<0) {~%"),
-  printf(fh, "    if(wv > 0) {~%"),
-  vleft : wv - dv/2,
-  alpha : (vcut - vleft)/dv,
-  printf(fh, "      double alpha = ~a; ~%", alpha),
-  printf(fh, "      for(int k=0; k<~a; k++) { ~%", length(bP)),
-  printf(fh, "        fhat[k] = alpha*f[k]; ~%"),
-  printf(fh, "      } ~%"),
-  printf(fh, "    } else {~%"),
-  vright : wv + dv/2,
-  alpha : (vright + vcut)/dv,
-  printf(fh, "      double alpha = ~a; ~%", alpha),
-  printf(fh, "      for(int k=0; k<~a; k++) { ~%", length(bP)),
-  printf(fh, "        fhat[k] = alpha*f[k]; ~%"),
-  printf(fh, "      } ~%"),
-  printf(fh, "    } ~%"),
-  printf(fh, "  } ~%~%"),
-
-  printf(fh, "} ~%~%"),
-
-/* function to compute weak-equivalent partially-reflected distribution fhat */
-
-writeWeakEquiv:false,
-
-if writeWeakEquiv then (
-  funcNm : sconcat("calcSheathPartialReflectionWeakEquiv", cdim, "x", vdim, "v", basisFun),
-  printf(fh, "void ~a_P~a(binOpData_t* binOpData, const double wv, const double dv, const double zVal, const double vcut, const double *f, double *fhat) ~%{ ~%", funcNm, p),
-
-  varsP : subst(gkvsub, varsP),
-  if vdim=1 then varsV:[vpar] else varsV:[vpar,mu],
-
-  edgesub : [zVar=zVal],
-
-  /* expand f at upper z edge */
-  f_expd : subst(edgesub, doExpand1(f, bP)),
-  /* we also expand fhat at the upper z edge, but we don't care about
-     z dependence of fhat, so we just take z=0 in the expansion */
-  fhat_expd : subst(zVar=0, doExpand1(fhat, bP)),
-
-  /* make sure velocity integration vars are first, and remove z from integral */
-  /* we do this in case vcut depends on x and y at some point */
-  intVars : flatten([varsV,delete(zVar,varsC)]),
-  lims : makelist([-1,1],i,1,length(varsP)-1),
-  cutlims : makelist([-1,1],i,1,length(varsP)-1),
-  /* first velocity dim is always vpar, and we need to modify the upper integration limit */
-  cutlims[1] : [-1,2*(vcut-wv)/dv],
-
-  bPz : subst(edgesub,bP),
-  
-  /* project f onto basis at z surface */
-  f_k:fullratsimp(innerProdGen(intVars,lims,1,bPz,f_expd)),
-
-  /* project fhat onto basis at z surface, but with modified upper vpar limit */
-  fhat_k:fullratsimp(innerProdGen(intVars,cutlims,1,bPz,fhat_expd)),
-
-  /* set up system to solve weak-equivalence */
-  eqns : makelist(f_k[i]=fhat_k[i],i,1,length(fhat_k)),
-  sol : fullratsimp(linsolve(eqns,makelist(fhat[i],i,0,length(fhat_k)-1))),
-
-  /* substitute fhat solution into fhat expansion, and then 
-     project onto entire basis (instead of just basis at surface)
-     this gets rid of any redundancy in solution */
-  sol_k : fullratsimp(innerProd(varsP, 1, bP, subst(sol, fhat_expd))),
-  /* get common denominator */
-  denomExpr : denom(fullratsimp(subst(sol,fhat_expd))),
-
-  powersimp:[zVal^2=zVal2, wv^2=wv2, wv^3=wv3, wv^4=wv4, wv^5=wv5, wv^6=wv6, wv^7=wv7, wv^8=wv8, wv^9=wv9, vcut^2=vcut2, vcut^3=vcut3, vcut^4=vcut4, vcut^5=vcut5, vcut^6=vcut6, vcut^7=vcut7, vcut^8=vcut8, vcut^9=vcut9, dv^2=dv2, dv^3=dv3, dv^4=dv4, dv^5=dv5, dv^6=dv6, dv^7=dv7, dv^8=dv8, dv^9=dv9, dv^10=dv10],
-  printf(fh, "  double zVal2 = zVal*zVal; ~%"),
-  printf(fh, "  double wv2 = wv*wv; ~%"),
-  printf(fh, "  double wv3 = wv2*wv; ~%"),
-  printf(fh, "  double wv4 = wv3*wv; ~%"),
-  printf(fh, "  double wv5 = wv4*wv; ~%"),
-  printf(fh, "  double wv6 = wv5*wv; ~%"),
-  printf(fh, "  double wv7 = wv6*wv; ~%"),
-  printf(fh, "  double wv8 = wv7*wv; ~%"),
-  printf(fh, "  double wv9 = wv8*wv; ~%"),
-  printf(fh, "  double dv2 = dv*dv; ~%"),
-  printf(fh, "  double dv3 = dv2*dv; ~%"),
-  printf(fh, "  double dv4 = dv3*dv; ~%"),
-  printf(fh, "  double dv5 = dv4*dv; ~%"),
-  printf(fh, "  double dv6 = dv5*dv; ~%"),
-  printf(fh, "  double dv7 = dv6*dv; ~%"),
-  printf(fh, "  double dv8 = dv7*dv; ~%"),
-  printf(fh, "  double dv9 = dv8*dv; ~%"),
-  printf(fh, "  double dv10 = dv9*dv; ~%"),
-  printf(fh, "  double vcut2 = vcut*vcut; ~%"),
-  printf(fh, "  double vcut3 = vcut2*vcut; ~%"),
-  printf(fh, "  double vcut4 = vcut3*vcut; ~%"),
-  printf(fh, "  double vcut5 = vcut4*vcut; ~%"),
-  printf(fh, "  double vcut6 = vcut5*vcut; ~%"),
-  printf(fh, "  double vcut7 = vcut6*vcut; ~%"),
-  printf(fh, "  double vcut8 = vcut7*vcut; ~%"),
-  printf(fh, "  double vcut9 = vcut8*vcut; ~%"),
-
-  printf(fh, "  double denom = ~a; ~%", subst(powersimp, denomExpr)),
-  writeCExprsWithZerosNoExpand1(fhat, fullratsimp(subst(powersimp, expand(sol_k*denomExpr/denom)))),
-
-  printf(fh, "} ~%~%")
+  modToNodXY:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodesXY,bXY,[x,y])),
+  fRefl_expd : fullratsimp(bXY . fullratsimp(invert(transpose(float(modToNodXY))).fReflXYQ_expd)),
+  fRefl_c : fullratsimp(innerProd(varsP, 1, bP, fRefl_expd)),
+  writeCExprsWithZerosNoExpand1(fRefl, fRefl_c),
+  printf(fh, "}~%")
 )
-))$
+)$
 
 fname : "~/max-out/GkSheathFuncsSer.cpp";
 fh : openw(fname);
+printf(fh, "#include <cmath> ~%");
 printf(fh, "#include <GyrokineticModDecl.h> ~%");
-printf(fh, "#include <CartFieldBinOpModDecl.h> ~%");
-for c : 1 thru 3 do (
-for v: 1 thru 2 do (
-if c=1 or (c>1 and v=2) then (
-pmax:2,
-if c=1 and v=1 then (pmax:2),
-calcGkSheathFuncs(fh, c, v, "Ser", pmax)
-)));
+printf(fh, "// approximation for inverse Langevin function ~%");
+printf(fh, "long double invL(long double x) { ~%");
+printf(fh, "  // from Kroger ~%");
+printf(fh, "  return (3.*x-x*x*x*(6. + x*x - 2.*x*x*x*x)/5.)/(1.-x*x); ~%");
+printf(fh, "}~%~%");
+calcGkSheathFuncs(fh, 3, 2, "Ser", 1);
 close(fh);
+

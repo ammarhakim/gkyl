@@ -80,11 +80,21 @@ class FemPerpPoisson
   bool allPeriodic;
   const bool adjustSource;
   double cornerval;
+  bool _first = true;
+  std::vector<int> sizes, displs;
   MPI_Datatype MPI_triplet_t;
   MPI_Op MPI_vectorSum_op;
   std::vector<Eigen::Triplet<double> > stiffTripletList;
+  std::vector<Eigen::Triplet<double> > stiffTripletListGathered;
+  std::vector<Eigen::Triplet<double> > identityTripletList;
   /** Eigen sparse matrix to store stiffness matrix */
   Eigen::SparseMatrix<double,Eigen::ColMajor> stiffMat;
+  /** row major copy of stiffness matrix */
+  Eigen::SparseMatrix<double,Eigen::RowMajor> stiffMatRowMajor;
+  /** matrix for modifying source when there are Dirichlet BCs */
+  Eigen::SparseMatrix<double,Eigen::ColMajor> sourceModMat;
+  Eigen::SparseMatrix<double,Eigen::ColMajor> dirichletIdentity;
+  Eigen::SparseVector<double> dirichletVec;
   /** Eigen vectors for source and dirichlet modifications to source*/
   Eigen::VectorXd globalSrc, sourceModVec;
   /** Eigen vector for solution */

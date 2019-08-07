@@ -96,40 +96,31 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local uOut           = outFld[1]
    local vtSqOut        = outFld[2]
 
-   local uOutIndexer    = uOut:genIndexer()
    local uOutItr        = uOut:get(1)
-   local vtSqOutIndexer = vtSqOut:genIndexer()
    local vtSqOutItr     = vtSqOut:get(1)
 
    -- Moments used for all polyOrders.
    local m0, m1 = inFld[1], inFld[2]
-   local m0Indexer   = m0:genIndexer()
+   local confIndexer   = m0:genIndexer()
    local m0Itr       = m0:get(1)
-   local m1Indexer   = m1:genIndexer()
    local m1Itr       = m1:get(1)
 
    -- Boundary corrections.
    local cMomB, cEnergyB = inFld[4], inFld[5]
-   local cMomBIndexer    = cMomB:genIndexer()
    local cMomBItr        = cMomB:get(1)
-   local cEnergyBIndexer = cEnergyB:genIndexer()
    local cEnergyBItr     = cEnergyB:get(1)
 
-   local m2, m2Indexer, m2Itr
-   local m0Star, m0StarIndexer, m0StarItr
-   local m1Star, m1StarIndexer, m1StarItr
-   local m2Star, m2StarIndexer, m2StarItr
+   local m2, m2Itr
+   local m0Star, m0StarItr
+   local m1Star, m1StarItr
+   local m2Star, m2StarItr
    if self._polyOrder > 1 then
       m2         = inFld[3]
-      m2Indexer  = m2:genIndexer()
       m2Itr      = m2:get(1)
    else
       m0Star, m1Star, m2Star  = inFld[6], inFld[7], inFld[8]
-      m0StarIndexer = m0Star:genIndexer()
       m0StarItr     = m0Star:get(1)
-      m1StarIndexer = m1Star:genIndexer()
       m1StarItr     = m1Star:get(1)
-      m2StarIndexer = m2Star:genIndexer()
       m2StarItr     = m2Star:get(1)
    end
 
@@ -150,14 +141,14 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
          grid:setIndex(cIdx)
 
-         m0:fill(m0Indexer(cIdx), m0Itr)
-         m1:fill(m1Indexer(cIdx), m1Itr)
-         m2:fill(m2Indexer(cIdx), m2Itr)
-         cMomB:fill(cMomBIndexer(cIdx), cMomBItr)
-         cEnergyB:fill(cEnergyBIndexer(cIdx), cEnergyBItr)
+         m0:fill(confIndexer(cIdx), m0Itr)
+         m1:fill(confIndexer(cIdx), m1Itr)
+         m2:fill(confIndexer(cIdx), m2Itr)
+         cMomB:fill(confIndexer(cIdx), cMomBItr)
+         cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
 
-         uOut:fill(uOutIndexer(cIdx), uOutItr)
-         vtSqOut:fill(vtSqOutIndexer(cIdx), vtSqOutItr)
+         uOut:fill(confIndexer(cIdx), uOutItr)
+         vtSqOut:fill(confIndexer(cIdx), vtSqOutItr)
 
          self._SelfPrimMomentsCalc(self._binOpData, m0Itr:data(), m1Itr:data(), m2Itr:data(), cMomBItr:data(), cEnergyBItr:data(), uOutItr:data(), vtSqOutItr:data())
       end
@@ -167,16 +158,16 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
          grid:setIndex(cIdx)
 
-         m0:fill(m0Indexer(cIdx), m0Itr)
-         m1:fill(m1Indexer(cIdx), m1Itr)
-         cMomB:fill(cMomBIndexer(cIdx), cMomBItr)
-         cEnergyB:fill(cEnergyBIndexer(cIdx), cEnergyBItr)
-         m0Star:fill(m0StarIndexer(cIdx), m0StarItr)
-         m1Star:fill(m1StarIndexer(cIdx), m1StarItr)
-         m2Star:fill(m2StarIndexer(cIdx), m2StarItr)
+         m0:fill(confIndexer(cIdx), m0Itr)
+         m1:fill(confIndexer(cIdx), m1Itr)
+         cMomB:fill(confIndexer(cIdx), cMomBItr)
+         cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
+         m0Star:fill(confIndexer(cIdx), m0StarItr)
+         m1Star:fill(confIndexer(cIdx), m1StarItr)
+         m2Star:fill(confIndexer(cIdx), m2StarItr)
 
-         uOut:fill(uOutIndexer(cIdx), uOutItr)
-         vtSqOut:fill(vtSqOutIndexer(cIdx), vtSqOutItr)
+         uOut:fill(confIndexer(cIdx), uOutItr)
+         vtSqOut:fill(confIndexer(cIdx), vtSqOutItr)
 
          self._SelfPrimMomentsCalc(self._binOpData, m0Itr:data(), m1Itr:data(), m0StarItr:data(), m1StarItr:data(), m2StarItr:data(), cMomBItr:data(), cEnergyBItr:data(), uOutItr:data(), vtSqOutItr:data())
       end

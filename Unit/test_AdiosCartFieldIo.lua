@@ -41,7 +41,13 @@ function test_1w(comm)
    field:clear(10.5)
 
    -- I/O object
-   local adiosIo = AdiosCartFieldIo { elemType = field:elemType() }
+   local adiosIo = AdiosCartFieldIo {
+      elemType = field:elemType(),
+      metaData = {
+	 polyOrder = 2, basisType = "ms",
+	 weight = 1.5,
+      }
+   }
 
    adiosIo:write(field, "field.bp", 3.1, 42)
 end
@@ -59,7 +65,9 @@ function test_1r(comm)
    }
 
    -- I/O object
-   local adiosIo = AdiosCartFieldIo { elemType = field:elemType() }
+   local adiosIo = AdiosCartFieldIo {
+      elemType = field:elemType()
+   }
 
    local tmStamp, frNum = adiosIo:read(field, "field.bp")
 

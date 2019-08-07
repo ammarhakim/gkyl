@@ -53,10 +53,6 @@ vlasovApp = Vlasov.App {
    polyOrder = 1, -- polynomial order
    timeStepper = "rk3", -- one of "rk2" or "rk3"
 
-   -- decomposition for configuration space
-   decompCuts = {1}, -- cuts in each configuration direction
-   useShared = false, -- if to use shared memory
-
    -- boundary conditions for configuration space
    periodicDirs = {1}, -- periodic directions
 
@@ -67,7 +63,6 @@ vlasovApp = Vlasov.App {
       lower = {-1.0, -1.0},
       upper = {1.0, 1.0},
       cells = {16, 16},
-      decompCuts = {1, 1},
       -- initial conditions
       init = function (t, xn)
 	 local x, vx, vy = xn[1], xn[2], xn[3]

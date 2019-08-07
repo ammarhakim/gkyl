@@ -71,12 +71,43 @@ function AdiosCartFieldIo:init(tbl)
    self._outBuff = self._allocator(1) -- this will be resized on an actual write()
 
    self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
+
+   -- if we have meta-data to write out, store it
+   self._metaData = {
+      -- we always write out input file contents (encoded as base64 string)
+      ["inputfile"] = {
+	 value = GKYL_INP_FILE_CONTENTS, vType = "string"
+      }
+   }
+   if tbl.metaData then
+      -- store value and its type for each piece of data
+      for k,v in pairs(tbl.metaData) do
+	 if type(v) == "number" then
+	    -- check if this is an integer or float
+	    if math.floor(math.abs(v)) == math.abs(v) then
+	       self._metaData[k] = {
+		  value = new("int[1]", v), vType = "integer",
+	       }
+	    else
+	       self._metaData[k] = {
+		  value = new("double[1]", v), vType = "double",
+	       }	       
+	    end
+	 elseif type(v) == "string" then
+	    self._metaData[k] = {
+	       value = v, vType = "string"
+	    }
+	 end
+      end
+   end
 end
 
 -- Writes field to file.
 -- fName: file name
 -- tmStamp: time-stamp
 -- frNum: frame number
+-- writeGhost: Flag to indicate if we should write ghost-cells
+-- 
 function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    local _writeGhost = self._writeGhost
    if writeGhost ~= nil then _writeGhost = writeGhost end
@@ -156,6 +187,17 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    end
    Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
 
+   -- write meta-data for this file
+   for attrNm, v in pairs(self._metaData) do
+      if v.vType == "integer" then
+	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.integer, 1, v.value)
+      elseif v.vType == "double" then
+	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.double, 1, v.value)
+      elseif v.vType == "string" then
+	 Adios.define_attribute_byvalue(grpId, attrNm, "", Adios.string, 1, v.value)
+      end
+   end
+
    -- define data to write
    Adios.define_var(
       grpId, "frame", "", Adios.integer, "", "", "")
@@ -187,7 +229,9 @@ end
 
 -- Read field from file.
 -- fName: file name
-function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
+function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-number
+   local _readGhost = self._writeGhost
+   if readGhost ~= nil then _readGhost = readGhost end
    local comm =  Mpi.getComm(field:grid():commSet().nodeComm)
    local shmComm = Mpi.getComm(field:grid():commSet().sharedComm)
    -- (the extra getComm() is needed as Lua has no concept of
@@ -204,12 +248,18 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
       local ndim = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
 
+      if readGhost then
+         localRange = field:localExtRange() 
+         globalRange = field:globalExtRange() 
+      end
+
       -- for use in ADIOS output
       local _adLocalSz, _adGlobalSz, _adOffset = {}, {}, {}
       for d = 1, ndim do
 	 _adLocalSz[d] = localRange:shape(d)
 	 _adGlobalSz[d] = globalRange:shape(d)
 	 _adOffset[d] = localRange:lower(d)-1
+         if _readGhost then _adOffset[d] = _adOffset[d] + 1 end
       end
       _adLocalSz[ndim+1] = field:numComponents()
       _adGlobalSz[ndim+1] = field:numComponents()
@@ -240,11 +290,17 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
       Adios.define_attribute_byvalue(grpId, "numCells", "", Adios.integer, ndim, cells)
 
       local lower = new("double[?]", ndim)
-      for d = 1, ndim do lower[d-1] = field:grid():lower(d) end
+      for d = 1, ndim do 
+         lower[d-1] = field:grid():lower(d)
+         if _readGhost then lower[d-1] = lower[d-1] - field:lowerGhost()*field:grid():dx(d) end
+      end
       Adios.define_attribute_byvalue(grpId, "lowerBounds", "", Adios.double, ndim, lower)
 
       local upper = new("double[?]", ndim)
-      for d = 1, ndim do upper[d-1] = field:grid():upper(d) end
+      for d = 1, ndim do 
+         upper[d-1] = field:grid():upper(d) 
+         if _readGhost then upper[d-1] = upper[d-1] + field:upperGhost()*field:grid():dx(d) end
+      end
       Adios.define_attribute_byvalue(grpId, "upperBounds", "", Adios.double, ndim, upper)
 
       -- define data to read
@@ -267,7 +323,7 @@ function AdiosCartFieldIo:read(field, fName) --> time-stamp, frame-number
       Adios.close(fd) -- no reads actually happen unless one closes file!
 
       -- copy output buffer into field
-      field:_copy_to_field_region(field:localRange(), self._outBuff)
+      field:_copy_to_field_region(localRange, self._outBuff)
 
       Adios.finalize(rank)
 

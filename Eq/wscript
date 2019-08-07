@@ -48,16 +48,19 @@ def build(bld):
     lboData/VmLBOconstNuMax1x3v.cpp
     lboData/VmLBOconstNuMax2x2v.cpp
     lboData/VmLBOconstNuMax2x3v.cpp
+    lboData/VmLBOconstNuMax3x3v.cpp
     lboData/VmLBOconstNuSurfMax1x1v.cpp
     lboData/VmLBOconstNuSurfMax1x2v.cpp
     lboData/VmLBOconstNuSurfMax1x3v.cpp
     lboData/VmLBOconstNuSurfMax2x2v.cpp
     lboData/VmLBOconstNuSurfMax2x3v.cpp
+    lboData/VmLBOconstNuSurfMax3x3v.cpp
     lboData/VmLBOconstNuBoundarySurfMax1x1v.cpp
     lboData/VmLBOconstNuBoundarySurfMax1x2v.cpp
     lboData/VmLBOconstNuBoundarySurfMax1x3v.cpp
     lboData/VmLBOconstNuBoundarySurfMax2x2v.cpp
     lboData/VmLBOconstNuBoundarySurfMax2x3v.cpp
+    lboData/VmLBOconstNuBoundarySurfMax3x3v.cpp
 
     constDiffusionData/ConstDiffusionSer1x.cpp
     constDiffusionData/ConstDiffusionSer2x.cpp

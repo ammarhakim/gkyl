@@ -1,0 +1,366 @@
+/* Generate kernels for the updater that computes the Spitzer
+   collision frequency nu. */
+/* Obtaining a full expansion for nu is likely to be a complex
+   operation, so we will probably need a dedicated updater. For
+   now only use cell average nu. */
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+load("scifac")$
+fpprec : 24$
+
+/* Select which form of the Coulomb logarithm you wish to use.
+     = 0   Braginskii's 1965 paper.
+     = 1   G. Hammett's 1989 expressions (similar to NRL).
+*/
+coulombLogOption : 1$
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 3$
+minCdim_Ser : 1$
+maxCdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 3$
+minCdim_Max : 1$
+maxCdim_Max : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+
+writeCExprsCollect1r(lhs, rhs, clst) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      param : cons(expr[i], clst),
+      e : apply(collectterms, param),
+      ep : string(e),
+      outStr : ssubst("gkyl_ipow(Bmag0,2)","Bmag0^2",ep),
+      outStr : ssubst("gkyl_ipow(qB,2)","qB^2",outStr),
+      outStr : ssubst("gkyl_ipow(massB,2)","massB^2",outStr),
+      outStr : ssubst("gkyl_ipow(qA,2)","qA^2",outStr),
+      outStr : ssubst("gkyl_ipow(massA,2)","massA^2",outStr),
+      outStr : ssubst("gkyl_ipow(uRel,2)","uRel^2",outStr),
+      outStr : ssubst("gkyl_ipow(eps0,2)","eps0^2",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqA0,2)","vtSqA0^2",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqA0,3)","vtSqA0^3",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqB0,2)","vtSqB0^2",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqB0,3)","vtSqB0^3",outStr),
+      outStr : ssubst("std::max","Cmax",outStr),
+      outStr : ssubst("std::abs","Cabs",outStr),
+      outStr : ssubst("gkyl_ipow(vtSq[0],3)","vtSq[0]^3",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqA[0],2)","vtSqA[0]^2",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqB[0],2)","vtSqB[0]^2",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqA[0],3)","vtSqA[0]^3",outStr),
+      outStr : ssubst("gkyl_ipow(vtSqB[0],3)","vtSqB[0]^3",outStr),
+      printf(fh, "    ~a = ~a; ~%", lhs[i-1], outStr)
+    )
+  )
+)$
+
+declareWriteCExprsC(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    outStr : ssubst("gkyl_ipow(Bmag0,2)","Bmag0^2",ep),
+    outStr : ssubst("gkyl_ipow(qB,2)","qB^2",outStr),
+    outStr : ssubst("gkyl_ipow(massB,2)","massB^2",outStr),
+    outStr : ssubst("gkyl_ipow(qA,2)","qA^2",outStr),
+    outStr : ssubst("gkyl_ipow(massA,2)","massA^2",outStr),
+    outStr : ssubst("gkyl_ipow(uRel,2)","uRel^2",outStr),
+    outStr : ssubst("gkyl_ipow(eps0,2)","eps0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqA0,2)","vtSqA0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqA0,3)","vtSqA0^3",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqB0,2)","vtSqB0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqB0,3)","vtSqB0^3",outStr),
+    outStr : ssubst("std::max","Cmax",outStr),
+    outStr : ssubst("std::abs","Cabs",outStr),
+    outStr : ssubst("gkyl_ipow(vtSq[0],3)","vtSq[0]^3",outStr),
+    printf(fh, "  double ~a = ~a; ~%", lhs, outStr)
+  )
+)$
+
+writeCExprsCs(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    outStr : ssubst("gkyl_ipow(Bmag0,2)","Bmag0^2",ep),
+    outStr : ssubst("gkyl_ipow(qB,2)","qB^2",outStr),
+    outStr : ssubst("gkyl_ipow(massB,2)","massB^2",outStr),
+    outStr : ssubst("gkyl_ipow(qA,2)","qA^2",outStr),
+    outStr : ssubst("gkyl_ipow(massA,2)","massA^2",outStr),
+    outStr : ssubst("gkyl_ipow(uRel,2)","uRel^2",outStr),
+    outStr : ssubst("gkyl_ipow(eps0,2)","eps0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqA0,2)","vtSqA0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqA0,3)","vtSqA0^3",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqB0,2)","vtSqB0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqB0,3)","vtSqB0^3",outStr),
+    outStr : ssubst("std::max","Cmax",outStr),
+    outStr : ssubst("std::abs","Cabs",outStr),
+    outStr : ssubst("gkyl_ipow(vtSq[0],3)","vtSq[0]^3",outStr),
+    printf(fh, "    ~a = ~a; ~%", lhs, outStr)
+  )
+)$
+
+writeCExprsCnos(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  if expr # 0.0 then (
+    ep : string(expr),
+    outStr : ssubst("gkyl_ipow(Bmag0,2)","Bmag0^2",ep),
+    outStr : ssubst("gkyl_ipow(qB,2)","qB^2",outStr),
+    outStr : ssubst("gkyl_ipow(massB,2)","massB^2",outStr),
+    outStr : ssubst("gkyl_ipow(qA,2)","qA^2",outStr),
+    outStr : ssubst("gkyl_ipow(massA,2)","massA^2",outStr),
+    outStr : ssubst("gkyl_ipow(uRel,2)","uRel^2",outStr),
+    outStr : ssubst("gkyl_ipow(eps0,2)","eps0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqA0,2)","vtSqA0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqA0,3)","vtSqA0^3",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqB0,2)","vtSqB0^2",outStr),
+    outStr : ssubst("gkyl_ipow(vtSqB0,3)","vtSqB0^3",outStr),
+    outStr : ssubst("std::max","Cmax",outStr),
+    outStr : ssubst("std::abs","Cabs",outStr),
+    outStr : ssubst("gkyl_ipow(vtSq[0],3)","vtSq[0]^3",outStr),
+    printf(fh, "  ~a = ~a; ~%", lhs, outStr)
+  )
+)$
+
+calcSpitzerNu(fh, funcNm, cdim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+    bC  : basisC[polyOrder],
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double normNu, const double m_, const double *m0, const double *vtSq, double *nu) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // nuNorm:  collisionality normalized by (T_0^(3/2)/n_0). ~%"),
+    printf(fh, "  // m_:      mass. ~%"),
+    printf(fh, "  // m0[~a]:   number density. ~%", cdim),
+    printf(fh, "  // vtSq[~a]: squared thermal speed, sqrt(T/m). ~%", cdim),
+    printf(fh, "  // nu[~a]:   collisionality. ~%", cdim),
+    printf(fh, " ~%"),
+
+    /* List vtSq coefficients and expand in conf basis. */
+    vtSq_c : makelist(vtSq[i],i,0,NC-1),
+    vtSq_e : doExpand1(vtSq,bC),
+    /* Expand density in conf basis. */
+    m0_e : doExpand1(m0,bC),
+
+    printf(fh, "  double temp[~a]; ~%", NC),
+    writeCExprs1(temp,m_*vtSq_c),
+    printf(fh, " ~%"),
+
+    /* Expand temperature in conf basis. */
+    temp_e : doExpand1(temp,bC),
+
+    /* Expand sqrt of the temperature in conf basis. */
+    printf(fh, "  double sqrtT[~a]; ~%", NC),
+    sqrtT_c : calcInnerProdList(varsC,1.0,bC,sqrt(temp_e)),
+    writeCExprs1(sqrtT,sqrtT_c),
+    printf(fh, " ~%"),
+
+    /* Expand sqrt of temperature in conf basis. */
+    sqrtT_e : doExpand1(sqrtT,bC),
+
+    /* Expand reciprocal of the temperature in conf basis. */
+    printf(fh, "  double rSqrtT[~a]; ~%", NC),
+    rSqrtT_c : calcInnerProdList(varsC,1.0,bC,1.0/sqrtT_e),
+    print("here"),
+    writeCExprs1(rSqrtT,rSqrtT_c),
+    printf(fh, " ~%"),
+
+    /* Expand reciprocal of sqrt temperature in conf basis. */
+    rSqrtT_e : doExpand1(rSqrtT,bC),
+
+    nu_c : normNu*calcInnerProdList(varsC,1.0,bC,m0_e*(rSqrtT_e^3)),
+
+    writeCExprsCollect1(nu,nu_c,[normNu]),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcCellAvSpitzerNuScale(fh, funcNm, cdim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+    bC  : basisC[polyOrder],
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // elemCharge: elementary charge (J - eV conversion factor). ~%"),
+    printf(fh, "  // eps0:       vacuum permittivity. ~%"),
+    printf(fh, "  // hBar:       Planck's constant h, divided by 2pi. ~%"),
+    printf(fh, "  // nuFrac:     scaling factor. ~%"),
+    printf(fh, "  // qA:         charge of species A. ~%"),
+    printf(fh, "  // massA:      mass of species A. ~%"),
+    printf(fh, "  // m0A[~a]:     number density of species A. ~%", NC),
+    printf(fh, "  // vtSqA[~a]:   squared thermal speed, sqrt(T/m), of species A. ~%", NC),
+    printf(fh, "  // qB:         charge of species B. ~%"),
+    printf(fh, "  // massB:      mass of species B. ~%"),
+    printf(fh, "  // m0B[~a]:     number density of species B. ~%", NC),
+    printf(fh, "  // vtSqB[~a]:   squared thermal speed, sqrt(T/m), of species B. ~%", NC),
+    printf(fh, "  // Bmag[~a]:    magnetic field magnitude. ~%", NC),
+    printf(fh, "  // nu[~a]:      collisionality. ~%", NC),
+    printf(fh, " ~%"),
+
+    m0B_e   : doExpand1(m0B,bC),
+    vtSqA_e : doExpand1(vtSqA,bC),
+    vtSqB_e : doExpand1(vtSqB,bC),
+
+    m0Bav    : innerProd(varsC,1.0,1.0,m0B_e)/innerProd(varsC,1.0,1.0,1.0),
+    vtSqAav  : innerProd(varsC,1.0,1.0,vtSqA_e)/innerProd(varsC,1.0,1.0,1.0),
+    vtSqBav  : innerProd(varsC,1.0,1.0,vtSqB_e)/innerProd(varsC,1.0,1.0,1.0),
+
+    radexpand: false,
+    nu_c : nuFrac*normNu*calcInnerProdList(varsC,1.0,bC,m0Bav/sqrt((vtSqAav+vtSqBav)^3)),
+
+    printf(fh, "  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {~%"),
+    writeCExprsCollect1r(nu,nu_c,[normNu]),
+    printf(fh, "  } else {~%"),
+    printf(fh, "    nu[0] = 0.0;~%"),
+    printf(fh, "  }~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcCellAvSpitzerNuBuild(fh, funcNm, cdim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+    bC  : basisC[polyOrder],
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // elemCharge: elementary charge (J - eV conversion factor). ~%"),
+    printf(fh, "  // eps0:       vacuum permittivity. ~%"),
+    printf(fh, "  // hBar:       Planck's constant h, divided by 2pi. ~%"),
+    printf(fh, "  // nuFrac:     scaling factor. ~%"),
+    printf(fh, "  // qA:         charge of species A. ~%"),
+    printf(fh, "  // massA:      mass of species A. ~%"),
+    printf(fh, "  // m0A[~a]:     number density of species A. ~%", NC),
+    printf(fh, "  // vtSqA[~a]:   squared thermal speed, sqrt(T/m), of species A. ~%", NC),
+    printf(fh, "  // qB:         charge of species B. ~%"),
+    printf(fh, "  // massB:      mass of species B. ~%"),
+    printf(fh, "  // m0B[~a]:     number density of species B. ~%", NC),
+    printf(fh, "  // vtSqB[~a]:   squared thermal speed, sqrt(T/m), of species B. ~%", NC),
+    printf(fh, "  // Bmag[~a]:    magnetic field magnitude. ~%", NC),
+    printf(fh, "  // nu[~a]:      collisionality. ~%", NC),
+    printf(fh, " ~%"),
+
+    m0A_e   : doExpand1(m0A,bC),
+    vtSqA_e : doExpand1(vtSqA,bC),
+    m0B_e   : doExpand1(m0B,bC),
+    vtSqB_e : doExpand1(vtSqB,bC),
+    Bmag_e  : doExpand1(Bmag,bC),
+
+    m0Aav    : innerProd(varsC,1.0,1.0,m0A_e)/innerProd(varsC,1.0,1.0,1.0),
+    vtSqAav  : innerProd(varsC,1.0,1.0,vtSqA_e)/innerProd(varsC,1.0,1.0,1.0),
+    m0Bav    : innerProd(varsC,1.0,1.0,m0B_e)/innerProd(varsC,1.0,1.0,1.0),
+    vtSqBav  : innerProd(varsC,1.0,1.0,vtSqB_e)/innerProd(varsC,1.0,1.0,1.0),
+    Bmagav   : innerProd(varsC,1.0,1.0,Bmag_e)/innerProd(varsC,1.0,1.0,1.0),
+
+    declareWriteCExprsC(nA0, m0Aav),
+    declareWriteCExprsC(vtSqA0, vtSqAav),
+    declareWriteCExprsC(nB0, m0Bav),
+    declareWriteCExprsC(vtSqB0, vtSqBav),
+    declareWriteCExprsC(Bmag0, Bmagav),
+
+    printf(fh, "  double logLambda;~%"),
+    if (coulombLogOption = 0) then (
+      /* These are the expressions from Braginskii's 1965 paper. */
+      declareWriteCExprsC(TA0, vtSqAav*massA/elemCharge),
+      declareWriteCExprsC(TB0, vtSqBav*massB/elemCharge),
+      printf(fh, "  if (TB0 < 50.0) {~%"),
+      logLambdaL : 23.4-1.15*log10(nB0*1.0e-6)+3.45*log10(TB0),
+      writeCExprsCs(logLambda, logLambdaL),
+      printf(fh, "  } else {~%"),
+      logLambdaU : 25.3-1.15*log10(nB0*1.0e-6)+2.3*log10(TB0),
+      writeCExprsCs(logLambda, logLambdaU),
+      printf(fh, "  }~%")
+    ) elseif (coulombLogOption = 1) then (
+      /* Expression from a Fortran subroutine in G. Hammett's website. */
+      declareWriteCExprsC(massAB, massA*massB/(massA+massB)),
+      declareWriteCExprsC(uRel, 3*(vtSqB0+vtSqA0)),
+
+      rmaxSumA : (nA0*(qA^2)/(eps0*massA)+(qA*Bmag0/massA)^2)/(vtSqA0+3*vtSqA0)
+               +(nB0*(qB^2)/(eps0*massB)+(qB*Bmag0/massB)^2)/(vtSqB0+3*vtSqA0),
+      rmaxA : 1.0/sqrt(rmaxSumA),
+
+      rmaxSumB : (nA0*(qA^2)/(eps0*massA)+(qA*Bmag0/massA)^2)/(vtSqA0+3*vtSqB0)
+               +(nB0*(qB^2)/(eps0*massB)+(qB*Bmag0/massB)^2)/(vtSqB0+3*vtSqB0),
+      rmaxB : 1.0/sqrt(rmaxSumB),
+
+      rmin : Cmax(Cabs(qA*qB)/(4.0*%pi*eps0*massAB*(uRel^2)), hBar/(2.0*exp(0.5)*massAB*uRel)),
+
+      declareWriteCExprsC(rMaxA, rmaxA),
+      declareWriteCExprsC(rMaxB, rmaxB),
+      declareWriteCExprsC(rMin, rmin),
+
+      writeCExprsCnos(logLambda, 0.5*(log(rMaxA/rMin)+log(rMaxB/rMin)))
+    ),
+
+    radexpand: false,
+    nu_c : nuFrac*calcInnerProdList(varsC,1.0,bC,(nB0/massA)*(1/massA+1/massB)*(qA^2)*(qB^2)*logLambda/(3.0*sqrt((2*%pi)^3)*(eps0^2)*sqrt((vtSqA0+vtSqB0)^3))),
+
+    printf(fh, "  if ((m0B[0]>0.0) && (vtSqA[0]>0.0) && (vtSqB[0]>0.0)) {~%"),
+    writeCExprsCollect1r(nu,nu_c,[charge,eps0]),
+    printf(fh, "  } else {~%"),
+    printf(fh, "    nu[0] = 0.0;~%"),
+    printf(fh, "  }~%"),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+minVdim      : [minVdim_Ser, minVdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    disp(printf(false,sconcat("Creating SpitzerNu",bName[bInd]," ~ax"),c)),
+    fname : sconcat("~/max-out/SpitzerNu", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+
+    printf(fh, "#include <SpitzerNuModDecl.h> ~%"),
+    printf(fh, "#include <math.h> ~%"),
+    printf(fh, "#include <../../Lib/gkyl_ipow.h> ~%~%"),
+
+    /*.Full expansion just projecting n/T^(3/2) onto basis. */
+    /*funcName : sconcat("SpitzerNu", c, "x", bName[bInd]),
+    calcSpitzerNu(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]), */
+
+    /*.Using cell-average values of n and T. */
+    funcName : sconcat("SpitzerNuCellAvScale", c, "x", bName[bInd]),
+    calcCellAvSpitzerNuScale(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+
+    /*.Build cell-average collisionality from scratch. */
+    funcName : sconcat("SpitzerNuCellAvBuild", c, "x", bName[bInd]),
+    calcCellAvSpitzerNuBuild(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    close(fh)
+  )
+)$
+

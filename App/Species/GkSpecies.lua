@@ -8,6 +8,7 @@
 
 local Proto          = require "Lib.Proto"
 local KineticSpecies = require "App.Species.KineticSpecies"
+local Mpi            = require "Comm.Mpi"
 local Gk             = require "Eq.Gyrokinetic"
 local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
@@ -412,9 +413,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNm].collFreqs[specInd]
                      else
+                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                         if (species[sN].collisions[collNm].userInputNormNu) then
-                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                            self.collPairs[sN][sO].normNu = species[sN].collisions[collNm].normNuIn[specInd]
+                        else
+                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                         end
                      end
                   end
@@ -448,9 +451,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
                      else
+                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                         if (species[sN].collisions[collNmN].userInputNormNu) then
-                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                            self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
+                        else
+                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                         end
                      end
                   end
@@ -465,9 +470,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                            end
                         end
                      end
@@ -489,9 +496,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0
                            end
                         end
                      end
@@ -505,17 +514,22 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- Determine if self primitive moments and boundary corrections are needed.
    -- If a pair of species only has cross-species collisions (no self-collisions)
    -- then the self-primitive moments may be computed without boundary corrections.
+   -- Boundary corrections are only needed if there are LBO self-species collisions.
    self.needSelfPrimMom          = false
    self.needCorrectedSelfPrimMom = false
    local needVarNu               = false    -- Also check if spatially varying nu is needed.
    if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
-      self.needCorrectedSelfPrimMom = true
+      if (self.collPairs[self.name][self.name].kind=="GkLBO") or
+         (self.collPairs[self.name][self.name].kind=="VmLBO") then
+         self.needCorrectedSelfPrimMom = true
+      end
    end
    for sO, _ in pairs(species) do
       if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
          self.needSelfPrimMom = true
-         if self.collPairs[sO][sO].on then
+         if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].kind=="GkLBO" or
+                                             self.collPairs[self.name][self.name].kind=="VmLBO") ) then
             self.needCorrectedSelfPrimMom = true
          end
 
@@ -625,6 +639,8 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if self.fSource and self.evolveSources then
       -- Add source it to the RHS.
+      -- Barrier over shared communicator before accumulate.
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
@@ -827,7 +843,11 @@ function GkSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    
          }
          self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
             onGrid     = self.grid,
@@ -845,7 +865,11 @@ function GkSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -872,7 +896,11 @@ function GkSpecies:createDiagnostics()
       self.diagnosticMomentFields[mom] = DataStruct.Field {
          onGrid        = self.confGrid,
          numComponents = self.confBasis:numBasis(),
-         ghost         = {1, 1}
+         ghost         = {1, 1},
+	 metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	 },	    
       }
    end
 end
@@ -908,6 +936,8 @@ function GkSpecies:calcDiagnosticWeakMoments()
       self.weakMultiplication:advance(0.0,
            {self.diagnosticMomentFields["GkUpar"], self.diagnosticMomentFields["GkUpar"]}, 
            {self.momDensityAux})
+      -- Barrier over shared communicator before accumulate.
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       self.diagnosticMomentFields["GkVtSq"]:accumulate(-self.weakMomentScaleFac["GkVtSq"], self.momDensityAux)
    end
    -- Need to subtract m*Upar^2 from GkTemp and GkTpar.
@@ -916,6 +946,8 @@ function GkSpecies:calcDiagnosticWeakMoments()
            {self.diagnosticMomentFields["GkUpar"], self.diagnosticMomentFields["GkUpar"]}, 
            {self.momDensityAux})
    end
+   -- Barrier over shared communicator before accumulate.
+   Mpi.Barrier(self.grid:commSet().sharedComm)
    if self.diagnosticWeakMoments["GkTemp"] then
       self.diagnosticMomentFields["GkTemp"]:accumulate(-self.weakMomentScaleFac["GkTemp"], self.momDensityAux)
    end
@@ -977,50 +1009,33 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
       -- so we need to evaluate basis functions at z=1.
       edgeVal = 1 
    end
-   local gkEqn = self.gkEqn
-   -- Calculate deltaPhi = phi - phiWall.
-   -- Note: this gives surface-averaged scalar value of deltaPhi in this cell.
-   local deltaPhi = gkEqn:calcSheathDeltaPhi(idxIn, edgeVal)
-
    -- Get vpar limits of cell.
    local vpardir = self.cdim+1
    local gridIn = self.grid
    gridIn:setIndex(idxIn)
    local vL = gridIn:cellLowerInDir(vpardir)
    local vR = gridIn:cellUpperInDir(vpardir)
-   local vlower, vupper
+   local vlowerSq, vupperSq
    -- This makes it so that we only need to deal with absolute values of vpar.
    if math.abs(vR)>=math.abs(vL) then
-      vlower = math.abs(vL)
-      vupper = math.abs(vR)
+      vlowerSq = vL*vL
+      vupperSq = vR*vR
    else
-      vlower = math.abs(vR)
-      vupper = math.abs(vL)
+      vlowerSq = vR*vR
+      vupperSq = vL*vL
    end
-   if -self.charge*deltaPhi > 0 then
-      -- Calculate cutoff velocity for reflection.
-      local vcut = math.sqrt(-2*self.charge*deltaPhi/self.mass)
-      if vcut > vupper then
-         -- Reflect if vcut is above the velocities in this cell.
-         self:bcReflectFunc(dir, tm, nil, fIn, fOut)
-      elseif vcut > vlower then
-          -- Partial reflect if vcut is in this velocity cell.
-          local fhat = self.fhatSheathPtr
-          self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
-          local w = gridIn:cellCenterInDir(vpardir)
-          local dv = gridIn:dx(vpardir)
-          -- Calculate weak-equivalent distribution fhat.
-          gkEqn:calcSheathPartialReflection(w, dv, edgeVal, vcut, fIn, fhat)
-          -- Reflect fhat into skin cells.
-          self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
-      else
-         -- Absorb if vcut is below the velocities in this cell.
-         self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
-      end
-   else 
-      -- Entire species (usually ions) is lost.
-      self:bcAbsorbFunc(dir, tm, nil, fIn, fOut)
-   end
+   local w = gridIn:cellCenterInDir(vpardir)
+   local dv = gridIn:dx(vpardir)
+   local fhat = self.fhatSheathPtr -- distribution function to be reflected
+   self.fhatSheath:fill(self.fhatSheathIdxr(idxIn), fhat)
+   -- calculate reflected distribution function fhat
+   -- note: reflected distribution can be 
+   -- 1) fhat=0 (no reflection, i.e. absorb), 
+   -- 2) fhat=f (full reflection)
+   -- 3) fhat=c*f (partial reflection)
+   self.gkEqn:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, self.charge, self.mass, idxIn, fIn, fhat)
+   -- reflect fhat into skin cells
+   self:bcReflectFunc(dir, tm, nil, fhat, fOut) 
 end
 
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
@@ -1083,6 +1098,8 @@ function GkSpecies:calcCouplingMoments(tCurr, rkIdx)
             -- Compute self-primitive moments with binOp updaters.
             self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uParSelf})
             self.confMul:advance(tCurr, {self.uParSelf, self.momDensity}, {self.numDensityAux})
+            -- Barrier over shared communicator before combine
+            Mpi.Barrier(self.grid:commSet().sharedComm)
             self.momDensityAux:combine( 1.0/self.vDegFreedom, self.ptclEnergy,
                                        -1.0/self.vDegFreedom, self.numDensityAux )
             self.confDiv:advance(tCurr, {self.numDensity, self.momDensityAux}, {self.vtSqSelf})

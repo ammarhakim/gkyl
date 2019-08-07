@@ -181,13 +181,17 @@ function MaxwellField:alloc(nRkDup)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em[1]:elemType(),
       method = self.ioMethod,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
    }
 
    -- array with one component per cell to store cflRate in each cell
    self.cflRateByCell = DataStruct.Field {
 	onGrid = self.grid,
 	numComponents = 1,
-	ghost = {0, 0},
+	ghost = {1, 1},
    }
    self.cflRateByCell:clear(0.0)
    self.cflRatePtr = self.cflRateByCell:get(1)
@@ -441,14 +445,6 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
          self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
       end	 
    end
-
-   -- Barrier after accumulate since applyBc has different loop structure
-   Mpi.Barrier(self.grid:commSet().sharedComm)
-
-   if a<=self.dtGlobal[0] then -- this should be sufficient to determine if this combine is a forwardEuler step
-      -- only applyBc on forwardEuler combine
-      self:applyBc(nil, self:rkStepperFields()[outIdx])
-   end
 end
 
 function MaxwellField:suggestDt()
@@ -558,6 +554,10 @@ function MaxwellField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    end
    return status, dtSuggested   
 end
+
+function MaxwellField:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[idx])
+end 
 
 function MaxwellField:applyBc(tCurr, emIn)
    local tmStart = Time.clock()
@@ -700,7 +700,12 @@ function FuncMaxwellField:advance(tCurr)
    local emOut = self:rkStepperFields()[1]
    if self.evolve then
       self.fieldSlvr:advance(tCurr, {}, {emOut})
+      self:applyBc(tCurr, emOut)
    end
+end
+
+function FuncMaxwellField:applyBcIdx(tCurr, idx)
+   self:applyBc(tCurr, self:rkStepperFields()[1])
 end
 
 function FuncMaxwellField:applyBc(tCurr, emIn)

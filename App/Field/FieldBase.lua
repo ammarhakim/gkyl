@@ -53,6 +53,7 @@ end
 function NoField:updateInDirection(dir, tCurr, dt, fIn, fOut)
    return true, GKYL_MAX_DOUBLE
 end
+function NoField:applyBcIdx(tCurr, idx) end
 function NoField:applyBc(tCurr, emIn) end
 function NoField:totalSolverTime() return 0.0 end
 function NoField:totalBcTime() return 0.0 end

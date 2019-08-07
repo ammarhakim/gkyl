@@ -14,6 +14,7 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local ffi            = require "ffi"
+local Lin            = require "Lib.Linalg"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
@@ -269,9 +270,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
                      else
+                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                         if (species[sN].collisions[collNmN].userInputNormNu) then
-                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                            self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
+                        else
+                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                         end
                      end
                   end
@@ -286,9 +289,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                            end
                         end
                      end
@@ -310,9 +315,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                            end
                         end
                      end
@@ -326,17 +333,22 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
    -- Determine if self primitive moments and boundary corrections are needed.
    -- If a pair of species only has cross-species collisions (no self-collisions)
    -- then the self-primitive moments may be computed without boundary corrections.
+   -- Boundary corrections are only needed if there are LBO self-species collisions.
    self.needSelfPrimMom          = false
    self.needCorrectedSelfPrimMom = false
    local needVarNu               = false    -- Also check if spatially varying nu is needed.
    if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
-      self.needCorrectedSelfPrimMom = true
+      if (self.collPairs[self.name][self.name].kind=="GkLBO") or
+         (self.collPairs[self.name][self.name].kind=="VmLBO") then
+         self.needCorrectedSelfPrimMom = true
+      end
    end
    for sO, _ in pairs(species) do
       if self.collPairs[self.name][sO].on or self.collPairs[sO][self.name].on then
          self.needSelfPrimMom = true
-         if self.collPairs[sO][sO].on then 
+         if ( self.collPairs[sO][sO].on and (self.collPairs[self.name][self.name].kind=="GkLBO" or
+                                             self.collPairs[self.name][self.name].kind=="VmLBO") ) then
             self.needCorrectedSelfPrimMom = true
          end
 
@@ -425,7 +437,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if emField then totalEmField:accumulate(qbym, emField) end
    if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
-   
+
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    if self.vlasovExtForceFunc then
       local vExtForce = self.vExtForce
@@ -467,22 +479,43 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       localEdgeFlux[0] = 0.0
       localEdgeFlux[1] = 0.0
       localEdgeFlux[2] = 0.0
+
+      local numConfDims = self.confBasis:ndim()
+      assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
+      local numConfBasis = self.confBasis:numBasis()
+      local lower, upper = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
+      lower[1], upper[1] = -1.0, 1.0
+      local basisUpper = Lin.Vec(numConfBasis)
+      local basisLower = Lin.Vec(numConfBasis)
+
+      self.confBasis:evalBasis(upper, basisUpper)
+      self.confBasis:evalBasis(lower, basisLower)
+
       local flux = self:fluidMoments()[2]
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
       for idx in flux:localRangeIter() do
-	 if idx[1] == self.grid:upper(1) then
+	 if idx[1] == self.grid:numCells(1) then
 	    flux:fill(fluxIndexer(idx), fluxItr)
-	    localEdgeFlux[0] = fluxItr[1] / math.sqrt(2)
+	    for k = 1, numConfBasis do
+	       localEdgeFlux[0] = localEdgeFlux[0] + fluxItr[k]*basisUpper[k]
+	    end
+	 elseif idx[1] == 1 then
+	    flux:fill(fluxIndexer(idx), fluxItr)
+	    for k = 1, numConfBasis do
+	       localEdgeFlux[0] = localEdgeFlux[0] - fluxItr[k]*basisLower[k]
+	    end
 	 end
       end
       local globalEdgeFlux = ffi.new("double[3]")
       Mpi.Allreduce(localEdgeFlux, globalEdgeFlux, 1,
 		    Mpi.DOUBLE, Mpi.MAX, self.grid:commSet().comm)
 
-      local densFactor = globalEdgeFlux[0]/100.0--*self.dtGlobal[0] -- Hard-coded L !!
+      local densFactor = globalEdgeFlux[0]/self.sourceSteadyStateLength
       fRhsOut:accumulate(densFactor, self.fSource)
    elseif self.fSource and self.evolveSources then
       -- add source it to the RHS
+      -- Barrier over shared communicator before accumulate
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.fSource)
    end
 end
@@ -650,7 +683,11 @@ function VlasovSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },
          }
          self.diagnosticMomentUpdaters[mom] = Updater.DistFuncMomentCalc {
             onGrid     = self.grid,
@@ -668,7 +705,11 @@ function VlasovSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp[mom],
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    	    
          }
       else
          assert(false, string.format("Moment %s not valid", mom))
@@ -687,13 +728,22 @@ function VlasovSpecies:createDiagnostics()
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis()*numComp["uCross"],
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    
+
          }
       else
          self.diagnosticMomentFields[mom] = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.confBasis:numBasis(),
-            ghost         = {1, 1}
+            ghost         = {1, 1},
+	    metaData = {
+	       polyOrder = self.basis:polyOrder(),
+	       basisType = self.basis:id()
+	    },	    
          }
       end
    end
@@ -775,6 +825,8 @@ function VlasovSpecies:calcCouplingMoments(tCurr, rkIdx)
          -- Compute self-primitive moments with binOp updater.
          self.confDiv:advance(tCurr, {self.numDensity, self.momDensity}, {self.uSelf})
          self.confDotProduct:advance(tCurr, {self.uSelf, self.momDensity}, {self.kineticEnergyDensity})
+         -- Barrier over shared communicator before combine
+         Mpi.Barrier(self.grid:commSet().sharedComm)
          self.thermalEnergyDensity:combine( 1.0/self.vdim, self.ptclEnergy,
                                            -1.0/self.vdim, self.kineticEnergyDensity )
          self.confDiv:advance(tCurr, {self.numDensity, self.thermalEnergyDensity}, {self.vtSqSelf})
@@ -802,7 +854,8 @@ function VlasovSpecies:calcDiagnosticIntegratedMoments(tCurr)
    -- Compute n*u^2 from n*u and n.
    self.confDiv:advance(0., {self.numDensity, self.momDensity}, {self.flow})
    self.confDotProduct:advance(0., {self.flow, self.momDensity}, {self.kineticEnergyDensity})
-
+   -- Barrier over shared communicator before combine
+   Mpi.Barrier(self.grid:commSet().sharedComm)
    -- Compute VDIM*n*T from M2 and kinetic energy density.
    self.thermalEnergyDensity:combine(1.0, self.ptclEnergy, -1.0, self.kineticEnergyDensity)
 
@@ -833,6 +886,8 @@ function VlasovSpecies:calcDiagnosticWeakMoments()
       -- u is calculated in KineticEnergySpecies:calcDiagnositcWeakMoments().
       self.weakDotProduct:advance(0.0,
          {self.diagnosticMomentFields["u"], self.diagnosticMomentFields["u"]}, {self.kineticEnergyDensity})
+      -- Barrier over shared communicator before accumulate
+      Mpi.Barrier(self.grid:commSet().sharedComm)
       self.diagnosticMomentFields["vtSq"]:accumulate(-self.weakMomentScaleFac["vtSq"], self.kineticEnergyDensity)
    end
 end

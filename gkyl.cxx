@@ -20,6 +20,7 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string>
+#include <tuple>
 
 #if defined(__clang__)
 // nothing to include
@@ -41,9 +42,14 @@
 #include <Eigen/Core>
 #endif
 
+#ifdef HAVE_ZMQ_H
+#include <zmq.h>
+#endif
+
 // Gkyl includes
 #include <lfs.h>
 #include <whereami.h>
+#include <base64.h>
 
 // A simple logger for parallel simulations
 class Logger {
@@ -100,9 +106,46 @@ findExecPath() {
   return execPath;
 }
 
+// Get ZMQ version
+std::tuple<int, int, int>
+getZmqVersion() {
+#ifdef HAVE_ZMQ_H
+  int major, minor, patch;
+  zmq_version (&major, &minor, &patch);
+  return std::make_tuple(major, minor, patch);
+#endif
+  return std::make_tuple(0, 0, 0);
+}
+
+// read contents of inpFile
+std::string
+readInputFile(const std::string& inpFile) {
+  int size;
+  std::string buffer;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);  
+  if (rank == 0) {
+    std::ifstream inpf(inpFile.c_str()); 
+    inpf.seekg(0, std::ios::end);
+    size = inpf.tellg();
+    buffer = std::string(size, ' ');
+    inpf.seekg(0);
+    inpf.read(&buffer[0], size);
+  }
+
+  MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  if (rank > 0)
+    buffer = std::string(size, ' ');
+  MPI_Bcast(&buffer[0], size, MPI_CHAR, 0, MPI_COMM_WORLD);
+
+  return buffer;
+}
+
 // Create top-level variable definitions
 std::string
 createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
+  const std::string& inpFileContents,
   const std::map<std::string, GkToolInfo>& toolList) {
   // load compile-time constants into Lua compiler so they become
   // available to scripts
@@ -143,6 +186,20 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
 #else
   varDefs << "GKYL_HAVE_EIGEN = false" << std::endl;
 #endif
+
+#ifdef HAVE_ZMQ_H
+  varDefs << "GKYL_HAVE_ZMQ = true" << std::endl;
+  // get ZMQ version and store it so scripts can get at it
+  int zmajor, zminor, zpatch;
+  std::tie(zmajor, zminor, zpatch) = getZmqVersion();
+  varDefs << "GKYL_ZMQ_VERSION = { ";
+  varDefs << "major = " << zmajor << ", ";
+  varDefs << "minor = " << zminor << ", ";
+  varDefs << "patch = " << zpatch << ", ";
+  varDefs << "}" << std::endl;
+#else
+  varDefs << "GKYL_HAVE_ZMQ = false" << std::endl;
+#endif
   
   // numeric limits
   varDefs << "GKYL_MIN_DOUBLE = " << std::numeric_limits<double>::min() << std::endl;
@@ -152,7 +209,7 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
   varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
   
   // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=20', 'loopunroll=60', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
+  varDefs << "jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
           << std::endl;
 
   // This is change from commit e2448fa. Rerolling it back because of unforseen consequences
@@ -173,7 +230,12 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
     snm.erase(trunc, snm.size());
   varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
 
-  //std::cout << snm << std::endl;
+  // we need to base64 encode file contents to avoid issues with Lua
+  // loadstr method getting confused with embedded strings etc
+  std::string inpfEncoded = base64_encode(
+    reinterpret_cast<const unsigned char*>(inpFileContents.c_str()), inpFileContents.length());
+
+  varDefs << "GKYL_INP_FILE_CONTENTS = \"" << inpfEncoded  << "\" " << std::endl;
 
   varDefs << "GKYL_COMMANDS = {}" << std::endl;
   // just append list of commands 
@@ -187,7 +249,7 @@ createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
             << tool.second.script  << "\", \"" << tool.second.description
             << "\" }" << std::endl;
 
-  //std::cout << varDefs.str() << std::endl;
+  // std::cout << varDefs.str() << std::endl;
     
   return varDefs.str();
 }
@@ -243,6 +305,7 @@ main(int argc, char **argv) {
   insertInfo(toolList, "help", "help.lua", "Gkeyll help system");
   insertInfo(toolList, "examples", "examples.lua", "Example input files");
   insertInfo(toolList, "runtests", "runtests.lua", "Run unit/regression tests");
+  insertInfo(toolList, "queryrdb", "queryrdb.lua", "Query/modify regression test DB");
 
   if (argc < 2) {
     showUsage(toolList);
@@ -279,8 +342,10 @@ main(int argc, char **argv) {
   luaL_openlibs(L);  // open standard libraries
   luaopen_lfs(L); // open lua file-system library
   lua_gc(L, LUA_GCRESTART, -1); // restart GC
-  
-  std::string topDefs = createTopLevelDefs(argc, argv, inpFile, toolList);
+
+  // read complete input file and make it available to Lua
+  std::string inpFileContents = readInputFile(inpFile);
+  std::string topDefs = createTopLevelDefs(argc, argv, inpFile, inpFileContents, toolList);
 
   // load variable definitions etc
   if (luaL_loadstring(L, topDefs.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
@@ -292,7 +357,7 @@ main(int argc, char **argv) {
   }
 
   // load and run input file
-  if (luaL_loadfile(L, inpFile.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
+  if (luaL_loadstring(L, inpFileContents.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
     // some error occured
     const char* ret = lua_tostring(L, -1);
     std::cerr << "*** ERROR *** " << ret << std::endl;

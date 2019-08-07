@@ -11,14 +11,14 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries
-local BinOpDecl   = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
-local Lin         = require "Lib.Linalg"
+local BinOpDecl    = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
+local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local Proto       = require "Lib.Proto"
-local UpdaterBase = require "Updater.Base"
-local xsys        = require "xsys"
-local ffi         = require "ffi"
-local ffiC = ffi.C
+local Proto        = require "Lib.Proto"
+local UpdaterBase  = require "Updater.Base"
+local xsys         = require "xsys"
+local ffi          = require "ffi"
+local ffiC         = ffi.C
 
 -- function to check if moment name is correct
 local function isOpNameGood(nm)
