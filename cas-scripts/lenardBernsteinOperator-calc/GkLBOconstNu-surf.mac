@@ -11,7 +11,7 @@ fpprec : 24$
 
 /* Numerical flux option. Only applicable when not using positivity.
      =0 global Lax-Friedrichs,
-     =1 local (quadrature point) Lax-Friedrichs. */
+     =1 (for p<3 only) local (quadrature point) Lax-Friedrichs. */
 numFluxOp : 1$
 
 cvars : [x, y, z]$
