@@ -331,6 +331,8 @@ local function buildApplication(self, tbl)
       tStart = readRestart()
    else
       writeData(0.0) -- Write initial conditions.
+      local gridFullNm = GKYL_OUT_PREFIX .. "_grid.bp"
+      self._confGrid:write(gridFullNm)
    end
 
    -- Determine whether we need two steps in forwardEuler.
