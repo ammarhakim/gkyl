@@ -12,9 +12,8 @@ basis2D : basisC[polyOrder] $
 eta(xc, yc, dx, dy, basis) := subst([wx=x, wy=y], subst([x=(wx-xc)/(dx/2), y=(wy-yc)/(dy/2)] , basis)) $
 dx : 2 $
 dy : 2 $
-baC2D : eta(0, 0, dx, dy, basis2D) $
-baC1D : eta(0, 0, dx, dy, basis1D) $
 baL1D : eta(-dx/2, 0, dx, dy, basis1D) $
+baC1D : eta(0, 0, dx, dy, basis1D) $
 baR1D : eta(dx/2, 0, dx, dy, basis1D) $
 
 /* 1-step 2-cell 1D recovery */
@@ -31,24 +30,40 @@ qLSubList : makelist(q1R[i]=q1C[i], i, 1, length(basis1D)) $
 qRSubList : makelist(q1L[i]=q1C[i], i, 1, length(basis1D)) $
 rrExp : doExpand(rr, makelist(x^i, i, 0, (N-1)+2)) $
 recEqList : append(
-  [subst(x=0, subst(qLSubList, rSub))-subst(x=-dx/2, rrExp)],
-  [subst(x=0, subst(qRSubList, rSub))-subst(x=dx/2, rrExp)],
-  calcInnerProdListGen([x], [[-dx/2,dx/2]], 1, baC1D, rrExp-doExpand(q1C, baC1D))
+  [subst(x=0, subst(qLSubList, rSub)) - subst(x=-dx/2, rrExp)],
+  [subst(x=0, subst(qRSubList, rSub)) - subst(x=dx/2, rrExp)],
+  calcInnerProdListGen([x], [[-dx/2, dx/2]], 1, baC1D, rrExp-doExpand(q1C, baC1D))
 ) $
 rrSol : linsolve(recEqList, makelist(rr[i], i, 1, N+2)) $
 rrSub : fullratsimp(subst(rrSol, rrExp)) $
 
-/* Creating substitution lists to get the y-dependance */
-projCoeff : calcInnerProdList([x], 1, basis1D, doExpand(q2, basis2D)) $
-q1LProj : subst(makelist(q2[i]=q2L[i], i, 1, length(basis2D)), projCoeff) $
-q1CProj : subst(makelist(q2[i]=q2C[i], i, 1, length(basis2D)), projCoeff) $
-q1RProj : subst(makelist(q2[i]=q2R[i], i, 1, length(basis2D)), projCoeff) $
+/* Creating substitution lists to get the y-dependence */
+baL1D : eta(-dx/2, 0, dx, dy, basis1D) $
+baL2D : eta(-dx/2, 0, dx, dy, basis2D) $
+baR1D : eta(dx/2, 0, dx, dy, basis1D) $
+baR2D : eta(dx/2, 0, dx, dy, basis2D) $
+q1LProj : calcInnerProdListGen([x], [[-dx, 0]], 1, baL1D, doExpand(q2L, baL2D)) * 2/dx $
+q1RProj : calcInnerProdListGen([x], [[0, dx]], 1, baR1D, doExpand(q2R, baR2D)) * 2/dx $
+projSubList : append (
+  makelist(q1L[i]=q1LProj[i], i, 1, N),
+  makelist(q1R[i]=q1RProj[i], i, 1, N)
+) $
+r2Sub : subst(projSubList, rSub) $
+
+baL1D : eta(-dx, 0, dx, dy, basis1D) $
+baL2D : eta(-dx, 0, dx, dy, basis2D) $
+baC1D : eta(0, 0, dx, dy, basis1D) $
+baC2D : eta(0, 0, dx, dy, basis2D) $
+baR1D : eta(dx, 0, dx, dy, basis1D) $
+baR2D : eta(dx, 0, dx, dy, basis2D) $
+q1LProj : calcInnerProdListGen([x], [[-3*dx/2, -dx/2]], 1, baL1D, doExpand(q2L, baL2D)) * 2/dx  $
+q1CProj : calcInnerProdListGen([x], [[-dx/2, dx/2]], 1, baC1D, doExpand(q2C, baC2D)) * 2/dx  $
+q1RProj : calcInnerProdListGen([x], [[dx/2, 3*dx/2]], 1, baR1D, doExpand(q2R, baR2D)) * 2/dx  $
 projSubList : append (
   makelist(q1L[i]=q1LProj[i], i, 1, N),
   makelist(q1C[i]=q1CProj[i], i, 1, N),
   makelist(q1R[i]=q1RProj[i], i, 1, N)
 ) $
-r2Sub : subst(projSubList, rSub) $
 rr2Sub : subst(projSubList, rrSub) $
 
 /* h and g substitions for q */
@@ -62,7 +77,7 @@ hCSubList : append(
   makelist(q2R[i]=hRPtr[i], i, 1, length(basis2D))
 ) $
 hRSubList : append(
-  makelist(q2L[i]=hPtr[i], i, 1, length(basis2D)),
+  makelist(q2L[i]=hPtr[i], i, 1, length(basis2D)),chro
   makelist(q2R[i]=hRPtr[i], i, 1, length(basis2D))
 ) $
 fLSubList : append(
@@ -75,10 +90,11 @@ fRSubList : append(
 ) $
 
 /* Putting together the surface terms and integration over y */
-surfR : calcInnerProdListGen([y], [[-dy/2, dy/2]], 1, subst(x=dx/2, baC2D),
-  subst(x=0, diff(subst(hRSubList, r2Sub), x)*subst(fRSubList, r2Sub))*2/dy) $
+baC2D : eta(0, 0, dx, dy, basis2D) $
 surfL : calcInnerProdListGen([y], [[-dy/2, dy/2]], 1, subst(x=-dx/2, baC2D),
-  subst(x=0, diff(subst(hLSubList, r2Sub), x)*subst(fLSubList, r2Sub))*2/dy) $
+  subst(x=0, diff(subst(hLSubList, r2Sub), x)*subst(fLSubList, r2Sub))) * 2/dy $
+surfR : calcInnerProdListGen([y], [[-dy/2, dy/2]], 1, subst(x=dx/2, baC2D),
+  subst(x=0, diff(subst(hRSubList, r2Sub), x)*subst(fRSubList, r2Sub))) * 2/dy $
 
 /* Writting surface terms */
 fh : openw("~/max-out/drag_x")$
@@ -95,7 +111,7 @@ printf(fh, "end~%~%") $
 
 /* Putting together the volume term */
 vol : calcInnerProdListGen([x,y], [[-dx/2, dx/2], [-dy/2, dy/2]], 1, diff(baC2D, x),
-    diff(subst(hCSubList, rr2Sub), x)*doExpand(fPtr, baC2D)*4/(dx*dy)) $
+    diff(subst(hCSubList, rr2Sub), x)*doExpand(fPtr, baC2D)) * 4/(dx*dy) $
 /* vol : calcInnerProdListGen([x,y], [[-dx/2, dx/2], [-dy/2, dy/2]], 1, diff(baC2D, x), */
 /*   diff(doExpand(hPtr, baC2D), x)*doExpand(fPtr, baC2D)*4/(dx*dy)) $ */
 
