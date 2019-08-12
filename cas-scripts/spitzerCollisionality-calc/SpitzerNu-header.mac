@@ -1,0 +1,44 @@
+cvars : [X, Y, Z]$
+
+polyOrderMax : 3$
+
+fh : openw("~/max-out/SpitzerNuModDecl.h")$
+
+printf(fh, "#ifndef SPITZERNU_MOD_DELC_H ~%")$
+printf(fh, "#define SPITZERNU_MOD_DELC_H ~%")$
+printf(fh, "#include <cmath> ~%~%")$
+printf(fh, "#include <algorithm> ~%~%")$
+printf(fh, "#include <../../Lib/gkyl_ipow.h> ~%~%")$
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, "double gkyl_ipow(double base, int exp);~%~%")$
+
+bName   : ["Ser","Max"]$
+gkVdims : [[1,2], [2], [2]]$
+
+for bInd : 1 thru length(bName) do (
+
+   for pi : 1 thru polyOrderMax do (
+     for ci : 1 thru 3 do (
+       printf(fh, "void SpitzerNuCellAvScale~ax~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu); ~%", ci, bName[bInd], pi),
+       printf(fh, "~%")      
+     ),
+     printf(fh, "~%")
+   ),
+
+   for pi : 1 thru polyOrderMax do (
+     for ci : 1 thru 3 do (
+       printf(fh, "void SpitzerNuCellAvBuild~ax~a_P~a(const double elemCharge, const double eps0, const double hBar, const double nuFrac, const double qA, const double massA, const double *m0A, const double *vtSqA, const double qB, const double massB, const double *m0B, const double *vtSqB, const double normNu, const double *Bmag, double *nu); ~%", ci, bName[bInd], pi),
+       printf(fh, "~%")      
+     ),
+     printf(fh, "~%")
+   )
+
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$
