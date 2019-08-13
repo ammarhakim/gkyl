@@ -87,7 +87,7 @@ fRSubList : append(
 ) $
 
 /* Putting together the surface terms and integration over y */
-J : 4/(dx*dy) $
+J : (2/dx)^2 $
 baC2D : eta(0, 0, basis2D) $
 surfL : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, baC2D),
   subst(x=0, diff(subst(hLSubList, r2Sub), x)*subst(fLSubList, r2Sub))) * J $
