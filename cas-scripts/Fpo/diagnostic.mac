@@ -1,0 +1,22 @@
+kill(all) $
+load("modal-basis") $
+load("basis-precalc/basisSer2x") $
+assume(dx>0, dy>0) $
+polyOrder : 1 $
+
+fExp : doExpand(fPtr, basisC[polyOrder]) $
+hExp : doExpand(hPtr, basisC[polyOrder]) $
+
+diag0 : integrate(integrate(diff(hExp, x)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+diag1 : integrate(integrate(diff(hExp, y)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+diag2 : integrate(integrate(((x*dx/2+vc[1])*diff(hExp, x)*2/dx + (y*dy/2+vc[2])*diff(hExp, y)*2/dx + hExp/2)*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+
+fh : openw("~/max-out/diag0")$
+printf(fh, "~a", float(diag0)) $
+close(fh) $
+fh : openw("~/max-out/diag1")$
+printf(fh, "~a", float(diag1)) $
+close(fh) $
+fh : openw("~/max-out/diag2")$
+printf(fh, "~a", float(diag2)) $
+close(fh) $
