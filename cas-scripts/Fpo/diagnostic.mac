@@ -7,16 +7,33 @@ polyOrder : 1 $
 fExp : doExpand(fPtr, basisC[polyOrder]) $
 hExp : doExpand(hPtr, basisC[polyOrder]) $
 
-diag0 : integrate(integrate(diff(hExp, x)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
-diag1 : integrate(integrate(diff(hExp, y)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
-diag2 : integrate(integrate(((x*dx/2+vc[1])*diff(hExp, x)*2/dx + (y*dy/2+vc[2])*diff(hExp, y)*2/dx + hExp/2)*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+M0 : integrate(integrate(fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+M1x : integrate(integrate((x*dx/2+vc[1])*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+M1y : integrate(integrate((y*dy/2+vc[2])*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+M2 : integrate(integrate(((x*dx/2+vc[1])^2+(y*dy/2+vc[2])^2)*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+diagM1x : integrate(integrate(diff(hExp, x)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+diagM1y : integrate(integrate(diff(hExp, y)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+diagM2 : integrate(integrate(((x*dx/2+vc[1])*diff(hExp, x)*2/dx + (y*dy/2+vc[2])*diff(hExp, y)*2/dx + hExp/2)*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
 
-fh : openw("~/max-out/diag0")$
-printf(fh, "~a", float(diag0)) $
+fh : openw("~/max-out/M0")$
+printf(fh, "~a", float(M0)) $
 close(fh) $
-fh : openw("~/max-out/diag1")$
-printf(fh, "~a", float(diag1)) $
+fh : openw("~/max-out/M1x")$
+printf(fh, "~a", float(M1x)) $
 close(fh) $
-fh : openw("~/max-out/diag2")$
-printf(fh, "~a", float(diag2)) $
+fh : openw("~/max-out/M1y")$
+printf(fh, "~a", float(M1y)) $
+close(fh) $
+fh : openw("~/max-out/M2")$
+printf(fh, "~a", float(M2)) $
+close(fh) $
+
+fh : openw("~/max-out/diagM1x")$
+printf(fh, "~a", float(diadM1x)) $
+close(fh) $
+fh : openw("~/max-out/diagM1y")$
+printf(fh, "~a", float(diagM1y)) $
+close(fh) $
+fh : openw("~/max-out/diagM2")$
+printf(fh, "~a", float(diagM2)) $
 close(fh) $
