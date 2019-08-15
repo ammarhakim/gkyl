@@ -75,7 +75,6 @@ return function(tbl)
    local h = getField()
    local g = getField()
 
-   local M0 = DataStruct.DynVector { numComponents = 1 }
    local diag = DataStruct.DynVector { numComponents = 7 }
 
    --------------
@@ -188,12 +187,6 @@ return function(tbl)
       initDiff:advance(0.0, {}, {g})
    end
 
-   local M0Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = grid,
-      basis = basis,
-      numComponents = 1,
-      quantity = "V"
-   }
    local function calcDiag(tCurr, fIn, hIn, diagVec)
       local dx, dy = grid:dx(1), grid:dx(2)
       local vc = Lin.Vec(3)
@@ -233,7 +226,6 @@ return function(tbl)
 	 g:write(string.format('g_%d.bp', fr), tm, fr)
       end
       if writeDiagnostics then
-         M0:write(string.format("f_M0_%d.bp", fr), tm, fr)
          diag:write(string.format("diag_%d.bp", fr), tm, fr)
       end
    end
@@ -354,8 +346,6 @@ return function(tbl)
          f:copy(fNew)
 
          if writeDiagnostics then
-            M0Calc:advance(tCurr+dt, { f }, { M0 })
-
             updateRosenbluthDrag(f, h)
             calcDiag(tCurr+dt, f, h, diag)
          end
