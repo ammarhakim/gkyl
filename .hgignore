@@ -5,6 +5,7 @@ build-*/*
 .waf*
 .lock-waf*
 install-deps/luajit*
+install-deps/LuaJIT*
 install-deps/eigen-*
 install-deps/adios*
 install-deps/luarocks*
