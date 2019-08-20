@@ -11,6 +11,7 @@ M0 : integrate(integrate(fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
 M1x : integrate(integrate((x*dx/2+vc[1])*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
 M1y : integrate(integrate((y*dy/2+vc[2])*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
 M2 : integrate(integrate(((x*dx/2+vc[1])^2+(y*dy/2+vc[2])^2)*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
+
 diagM1x : integrate(integrate(diff(hExp, x)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
 diagM1y : integrate(integrate(diff(hExp, y)*2/dx*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
 diagM2 : integrate(integrate(((x*dx/2+vc[1])*diff(hExp, x)*2/dx + (y*dy/2+vc[2])*diff(hExp, y)*2/dx + hExp/2)*fExp, x, -1, 1), y, -1, 1) * dx*dy/4 $
