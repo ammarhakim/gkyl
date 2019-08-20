@@ -23,6 +23,9 @@ return function(tbl)
    local tEnd = tbl.tEnd
    local nFrames = tbl.nFrames
    local updatePotentials = xsys.pickBool(tbl.updatePotentials, true)
+   local doughertyPotentials = xsys.pickBool(tbl.doughertyPotentials, false)
+   -- Not sure about this logic...
+   if doughertyPotentials then updatePotentials = false end
    local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
 
    local cells = tbl.cells
@@ -38,8 +41,9 @@ return function(tbl)
 
    local tmRosen, tmFpo = 0.0, 0.0
 
+
    ----------------------
-   -- Grids and fields --
+   -- Grids and Fields --
    ----------------------
    local grid = Grid.RectCart {
       lower = {lower[1], lower[2]},
@@ -75,7 +79,9 @@ return function(tbl)
    local h = getField()
    local g = getField()
 
-   local diag = DataStruct.DynVector { numComponents = 7 }
+   local moms = DataStruct.DynVector { numComponents = 4 }
+   local diag = DataStruct.DynVector { numComponents = 3 }
+
 
    --------------
    -- Updaters --
@@ -133,8 +139,6 @@ return function(tbl)
       basis = basis,
       evaluate = tbl.init,
    }
-   initDist:advance(0.0, {}, {f})
-   applyBc(f)
 
    local poisson = Updater.FemPerpPoisson {
       onGrid = grid,
@@ -143,23 +147,6 @@ return function(tbl)
       bcTop = { T = "D", V = 0.0 },
       bcLeft = { T = "D", V = 0.0 },
       bcRight = { T = "D", V = 0.0 },
-   }
-
-   -- check if drag/diff functions are provided
-   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
-   local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, xn) return 0.0 end
-
-   local initDrag = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      evaluate = initDragFunc,
-      projectOnGhosts = true,
-   }
-   local initDiff = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      evaluate = initDiffFunc,
-      projectOnGhosts = true,
    }
 
    local function updateRosenbluthDrag(fIn, hOut)
@@ -178,13 +165,36 @@ return function(tbl)
       tmRosen = tmRosen + Time.clock()-tmStart
    end
 
-   -- update Rosenbluth potentials
-   if updatePotentials then
-      updateRosenbluthDrag(f, h)
-      updateRosenbluthDiffusion(h, g)
-   else
-      initDrag:advance(0.0, {}, {h})
-      initDiff:advance(0.0, {}, {g})
+   -----------------
+   -- Diagnostics --
+   -----------------
+   local function calcMoms(tCurr, fIn, momVec)
+      local dx, dy = grid:dx(1), grid:dx(2)
+      local vc = Lin.Vec(3)
+      local localRange = fIn:localRange()
+      local indexer = fIn:genIndexer()
+      local out = Lin.Vec(4)
+      out[1] = 0.0
+      out[2] = 0.0
+      out[3] = 0.0
+      out[4] = 0.0
+
+      for idxs in localRange:colMajorIter() do
+	 grid:setIndex(idxs)
+	 grid:cellCenter(vc)
+         local fPtr = fIn:get(indexer(idxs))
+
+	 -- M0
+	 out[1] = out[1] + 0.25*(0.5*(1.732050807568877*fPtr[3]+2.0*fPtr[1])-0.5*(1.732050807568877*fPtr[3]-2.0*fPtr[1]))*dx*dy
+	 -- M1x
+	 out[2] = out[2] + 0.25*dx*(0.08333333333333333*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]+12.0*fPtr[1]*vc[1])-0.08333333333333333*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]-12.0*fPtr[1]*vc[1]))*dy
+	 -- M1y
+	 out[3] = out[3] + 0.25*dx*dy*(0.08333333333333333*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*dy+10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2])+0.08333333333333333*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*dy-10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2]))
+	 -- M2
+	 out[4] = out[4] + 0.25*dx*dy*(0.02083333333333333*((5.196152422706631*fPtr[3]+4.0*fPtr[1])*dy^2+(27.71281292110204*vc[2]*fPtr[3]+24.0*fPtr[1]*vc[2])*dy+(3.464101615137754*fPtr[3]+4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]+27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]+48.0*fPtr[1]*vc[2]^2+48.0*fPtr[1]*vc[1]^2)-0.02083333333333333*((5.196152422706631*fPtr[3]-4.0*fPtr[1])*dy^2+(24.0*fPtr[1]*vc[2]-27.71281292110204*vc[2]*fPtr[3])*dy+(3.464101615137754*fPtr[3]-4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]-27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]-48.0*fPtr[1]*vc[2]^2-48.0*fPtr[1]*vc[1]^2))
+      end
+      momVec:appendData(tCurr, out)
+      return out
    end
 
    local function calcDiag(tCurr, fIn, hIn, diagVec)
@@ -196,10 +206,6 @@ return function(tbl)
       out[1] = 0.0
       out[2] = 0.0
       out[3] = 0.0
-      out[4] = 0.0
-      out[5] = 0.0
-      out[6] = 0.0
-      out[7] = 0.0
 
       for idxs in localRange:colMajorIter() do
 	 grid:setIndex(idxs)
@@ -207,21 +213,12 @@ return function(tbl)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
 
-	 -- M0
-	 out[1] = out[1] + 0.25*(0.5*(1.732050807568877*fPtr[3]+2.0*fPtr[1])-0.5*(1.732050807568877*fPtr[3]-2.0*fPtr[1]))*dx*dy
-	 -- M1x
-	 out[2] = out[2] + 0.25*dx*(0.08333333333333333*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]+12.0*fPtr[1]*vc[1])-0.08333333333333333*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]-12.0*fPtr[1]*vc[1]))*dy
-	 -- M1y
-	 out[3] = out[3] + 0.25*dx*dy*(0.08333333333333333*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*dy+10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2])+0.08333333333333333*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*dy-10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2]))
-	 -- M2
-	 out[4] = out[4] + 0.25*dx*dy*(0.02083333333333333*((5.196152422706631*fPtr[3]+4.0*fPtr[1])*dy^2+(27.71281292110204*vc[2]*fPtr[3]+24.0*fPtr[1]*vc[2])*dy+(3.464101615137754*fPtr[3]+4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]+27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]+48.0*fPtr[1]*vc[2]^2+48.0*fPtr[1]*vc[1]^2)-0.02083333333333333*((5.196152422706631*fPtr[3]-4.0*fPtr[1])*dy^2+(24.0*fPtr[1]*vc[2]-27.71281292110204*vc[2]*fPtr[3])*dy+(3.464101615137754*fPtr[3]-4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]-27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]-48.0*fPtr[1]*vc[2]^2-48.0*fPtr[1]*vc[1]^2))
-
 	 -- \int h_{,x} f dv 
-         out[5] = out[5] + 0.5*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))*dy
+         out[1] = out[1] + 0.5*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))*dy
 	 -- \int h_{,y} f dv 
-         out[6] = out[6] + 0.5*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))*dy
+         out[2] = out[2] + 0.5*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))*dy
 	 -- \int (v_x h_{,x} + v_y h_{,y} + h/2) f dv 
-	 out[7] = out[7] + 0.25*dx*dy*((0.125*(((4.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]+5.196152422706631*fPtr[2])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]+1.732050807568877*fPtr[1])*hPtr[3]+1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+(12.0*vc[2]*fPtr[4]+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]+12.0*fPtr[1]*vc[1])*hPtr[4]+(12.0*vc[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[2])*hPtr[3]+12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx+(0.125*(((4.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]-5.196152422706631*fPtr[2])*hPtr[4]-5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]-1.732050807568877*fPtr[1])*hPtr[3]-1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+((-12.0*vc[2]*fPtr[4])+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]-12.0*fPtr[1]*vc[1])*hPtr[4]+(13.85640646055102*fPtr[1]*vc[2]-12.0*vc[2]*fPtr[3])*hPtr[3]-12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx)
+	 out[3] = out[3] + 0.25*dx*dy*((0.125*(((4.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]+5.196152422706631*fPtr[2])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]+1.732050807568877*fPtr[1])*hPtr[3]+1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+(12.0*vc[2]*fPtr[4]+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]+12.0*fPtr[1]*vc[1])*hPtr[4]+(12.0*vc[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[2])*hPtr[3]+12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx+(0.125*(((4.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]-5.196152422706631*fPtr[2])*hPtr[4]-5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]-1.732050807568877*fPtr[1])*hPtr[3]-1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+((-12.0*vc[2]*fPtr[4])+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]-12.0*fPtr[1]*vc[1])*hPtr[4]+(13.85640646055102*fPtr[1]*vc[2]-12.0*vc[2]*fPtr[3])*hPtr[3]-12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx)
       end
       diagVec:appendData(tCurr, out)
    end
@@ -233,8 +230,59 @@ return function(tbl)
 	 g:write(string.format('g_%d.bp', fr), tm, fr)
       end
       if writeDiagnostics then
+	 moms:write(string.format("moms_%d.bp", fr), tm, fr)
          diag:write(string.format("diag_%d.bp", fr), tm, fr)
       end
+   end
+
+
+   --------------------
+   -- Initialization --
+   --------------------
+   initDist:advance(0.0, {}, {f})
+   applyBc(f)
+   local momVec = Lin.Vec(4)
+   momVec = calcMoms(0, f, moms)
+
+   -- Check if drag/diff functions are provided
+   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
+   local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, xn) return 0.0 end
+
+   -- Overwrite the init functions if the the Dougherty potentials are turned on
+   if doughertyPotentials then
+      initDragFunc = function (t, z)
+	 local ux = momVec[2]/momVec[1]
+	 local uy = momVec[3]/momVec[1]
+	 return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
+      end
+      initDiffFunc = function (t, z)
+	 local ux = momVec[2]/momVec[1]
+	 local uy = momVec[3]/momVec[1]
+	 local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
+	 return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
+      end
+   end
+
+   local initDrag = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = initDragFunc,
+      projectOnGhosts = true,
+   }
+   local initDiff = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = initDiffFunc,
+      projectOnGhosts = true,
+   }
+
+   -- update Rosenbluth potentials
+   if updatePotentials then
+      updateRosenbluthDrag(f, h)
+      updateRosenbluthDiffusion(h, g)
+   else
+      initDrag:advance(0.0, {}, {h})
+      initDiff:advance(0.0, {}, {g})
    end
 
    -- write initial conditions
@@ -357,6 +405,7 @@ return function(tbl)
          f:copy(fNew)
 
          if writeDiagnostics then
+	    calcMoms(tCurr+dt, f, moms)
             updateRosenbluthDrag(f, h)
             calcDiag(tCurr+dt, f, h, diag)
          end
