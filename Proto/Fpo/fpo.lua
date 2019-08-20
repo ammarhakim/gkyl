@@ -207,13 +207,20 @@ return function(tbl)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
 
+	 -- M0
 	 out[1] = out[1] + 0.25*(0.5*(1.732050807568877*fPtr[3]+2.0*fPtr[1])-0.5*(1.732050807568877*fPtr[3]-2.0*fPtr[1]))*dx*dy
+	 -- M1x
 	 out[2] = out[2] + 0.25*dx*(0.08333333333333333*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]+12.0*fPtr[1]*vc[1])-0.08333333333333333*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]-12.0*fPtr[1]*vc[1]))*dy
+	 -- M1y
 	 out[3] = out[3] + 0.25*dx*dy*(0.08333333333333333*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*dy+10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2])+0.08333333333333333*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*dy-10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2]))
+	 -- M2
 	 out[4] = out[4] + 0.25*dx*dy*(0.02083333333333333*((5.196152422706631*fPtr[3]+4.0*fPtr[1])*dy^2+(27.71281292110204*vc[2]*fPtr[3]+24.0*fPtr[1]*vc[2])*dy+(3.464101615137754*fPtr[3]+4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]+27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]+48.0*fPtr[1]*vc[2]^2+48.0*fPtr[1]*vc[1]^2)-0.02083333333333333*((5.196152422706631*fPtr[3]-4.0*fPtr[1])*dy^2+(24.0*fPtr[1]*vc[2]-27.71281292110204*vc[2]*fPtr[3])*dy+(3.464101615137754*fPtr[3]-4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]-27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]-48.0*fPtr[1]*vc[2]^2-48.0*fPtr[1]*vc[1]^2))
 
+	 -- \int h_{,x} f dv 
          out[5] = out[5] + 0.5*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))*dy
+	 -- \int h_{,y} f dv 
          out[6] = out[6] + 0.5*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))*dy
+	 -- \int (v_x h_{,x} + v_y h_{,y} + h/2) f dv 
 	 out[7] = out[7] + 0.25*dx*dy*((0.125*(((4.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]+5.196152422706631*fPtr[2])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]+1.732050807568877*fPtr[1])*hPtr[3]+1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+(12.0*vc[2]*fPtr[4]+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]+12.0*fPtr[1]*vc[1])*hPtr[4]+(12.0*vc[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[2])*hPtr[3]+12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx+(0.125*(((4.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]-5.196152422706631*fPtr[2])*hPtr[4]-5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]-1.732050807568877*fPtr[1])*hPtr[3]-1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+((-12.0*vc[2]*fPtr[4])+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]-12.0*fPtr[1]*vc[1])*hPtr[4]+(13.85640646055102*fPtr[1]*vc[2]-12.0*vc[2]*fPtr[3])*hPtr[3]-12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx)
       end
       diagVec:appendData(tCurr, out)
@@ -231,11 +238,15 @@ return function(tbl)
    end
 
    -- write initial conditions
+   if writeDiagnostics then
+      calcDiag(0, f, h, diag)
+   end
    writeData(0, 0.0)
    if updatePotentials == false then
       h:write(string.format('h_%d.bp', 0), 0.0, 0)
       g:write(string.format('g_%d.bp', 0), 0.0, 0)
    end
+
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
