@@ -11,13 +11,27 @@ local Updater = require "Updater"
 local Lin = require "Lib.Linalg"
 local xsys = require "xsys"
 
-local dragStencil = require "Proto.Fpo.dragStencil"
-local diffStencil = require "Proto.Fpo.diffStencil"
-
 return function(tbl)
-
    -- Simulation parameters
    local polyOrder = tbl.polyOrder -- polynomial order
+   local dragKernel = nil
+   local diffKernel = nil
+   local momsKernel = nil
+   local diagKernel = nil
+   if polyOrder == 1 then
+      dragKernel = require "Proto.Fpo.dragKernelP1"
+      diffKernel = require "Proto.Fpo.diffKernelP1"
+      momsKernel = require "Proto.Fpo.momsKernelP1"
+      diagKernel = require "Proto.Fpo.diagKernelP1"
+   elseif polyOrder == 2 then
+      dragKernel = require "Proto.Fpo.dragKernelP2"
+      diffKernel = require "Proto.Fpo.diffKernelP2"
+      momsKernel = require "Proto.Fpo.momsKernelP2"
+      diagKernel = require "Proto.Fpo.diagKernelP2"
+   else
+      print('WHAAAAAAAAAAAAAAAAGHH')
+   end
+
    local cflFrac = tbl.cflFrac and tbl.cflFrac or 1.0
    local cfl = cflFrac*0.5/(2*polyOrder+1) -- CFL number
    local tEnd = tbl.tEnd
@@ -183,15 +197,7 @@ return function(tbl)
 	 grid:setIndex(idxs)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-
-	 -- M0
-	 out[1] = out[1] + 0.25*(0.5*(1.732050807568877*fPtr[3]+2.0*fPtr[1])-0.5*(1.732050807568877*fPtr[3]-2.0*fPtr[1]))*dx*dy
-	 -- M1x
-	 out[2] = out[2] + 0.25*dx*(0.08333333333333333*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]+12.0*fPtr[1]*vc[1])-0.08333333333333333*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*dx+10.39230484541326*vc[1]*fPtr[3]-12.0*fPtr[1]*vc[1]))*dy
-	 -- M1y
-	 out[3] = out[3] + 0.25*dx*dy*(0.08333333333333333*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*dy+10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2])+0.08333333333333333*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*dy-10.39230484541326*vc[2]*fPtr[3]+12.0*fPtr[1]*vc[2]))
-	 -- M2
-	 out[4] = out[4] + 0.25*dx*dy*(0.02083333333333333*((5.196152422706631*fPtr[3]+4.0*fPtr[1])*dy^2+(27.71281292110204*vc[2]*fPtr[3]+24.0*fPtr[1]*vc[2])*dy+(3.464101615137754*fPtr[3]+4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]+27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]+48.0*fPtr[1]*vc[2]^2+48.0*fPtr[1]*vc[1]^2)-0.02083333333333333*((5.196152422706631*fPtr[3]-4.0*fPtr[1])*dy^2+(24.0*fPtr[1]*vc[2]-27.71281292110204*vc[2]*fPtr[3])*dy+(3.464101615137754*fPtr[3]-4.0*fPtr[1])*dx^2+(24.0*vc[1]*fPtr[4]-27.71281292110204*vc[1]*fPtr[2])*dx+(41.56921938165305*vc[2]^2+41.56921938165305*vc[1]^2)*fPtr[3]-48.0*fPtr[1]*vc[2]^2-48.0*fPtr[1]*vc[1]^2))
+	 momsKernel(dx, dy, vc, fPtr, out) 
       end
       momVec:appendData(tCurr, out)
       return out
@@ -212,13 +218,7 @@ return function(tbl)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
-
-	 -- \int h_{,x} f dv 
-         out[1] = out[1] + 0.5*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))*dy
-	 -- \int h_{,y} f dv 
-         out[2] = out[2] + 0.5*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))*dy
-	 -- \int (v_x h_{,x} + v_y h_{,y} + h/2) f dv 
-	 out[3] = out[3] + 0.25*dx*dy*((0.125*(((4.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]+5.196152422706631*fPtr[2])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]+1.732050807568877*fPtr[1])*hPtr[3]+1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+(12.0*vc[2]*fPtr[4]+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]+12.0*fPtr[1]*vc[1])*hPtr[4]+(12.0*vc[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[2])*hPtr[3]+12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx+(0.125*(((4.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(4.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3])*dy+((6.0*fPtr[4]-5.196152422706631*fPtr[2])*hPtr[4]-5.196152422706631*hPtr[2]*fPtr[4]+(2.0*fPtr[3]-1.732050807568877*fPtr[1])*hPtr[3]-1.732050807568877*hPtr[1]*fPtr[3]+6.0*fPtr[2]*hPtr[2]+2.0*fPtr[1]*hPtr[1])*dx+((-12.0*vc[2]*fPtr[4])+13.85640646055102*vc[1]*fPtr[3]+13.85640646055102*fPtr[2]*vc[2]-12.0*fPtr[1]*vc[1])*hPtr[4]+(13.85640646055102*fPtr[1]*vc[2]-12.0*vc[2]*fPtr[3])*hPtr[3]-12.0*vc[1]*hPtr[2]*fPtr[3]+13.85640646055102*fPtr[1]*vc[1]*hPtr[2]))/dx)
+	 diagKernel(dx, dy, vc, fPtr, hPtr, out) 
       end
       diagVec:appendData(tCurr, out)
    end
@@ -241,8 +241,7 @@ return function(tbl)
    --------------------
    initDist:advance(0.0, {}, {f})
    applyBc(f)
-   local momVec = Lin.Vec(4)
-   momVec = calcMoms(0, f, moms)
+   local momVec = calcMoms(0, f, moms)
 
    -- Check if drag/diff functions are provided
    local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
@@ -347,16 +346,16 @@ return function(tbl)
 
          local fOutPtr= fOut:get(indexer(idxs))
 
-         dragStencil(dt, dx, dy,
-                     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-                     hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
-                     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-                     fOutPtr)
-         diffStencil(dt, dx, dy,
-                     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-                     gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
-                     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-                     fOutPtr)
+         dragKernel(dt, dx, dy,
+		    fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
+		    hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
+		    isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+		    fOutPtr)
+         diffKernel(dt, dx, dy,
+		    fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
+		    gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
+		    isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+		    fOutPtr)
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
