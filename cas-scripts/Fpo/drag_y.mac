@@ -1,7 +1,7 @@
 kill(all) $
 load("modal-basis") $
 
-polyOrder : 1 $
+polyOrder : 2 $
 N : polyOrder + 1 $
 load("basis-precalc/basisSer1x") $
 basis1D : subst(x=y, basisC[polyOrder]) $

@@ -1,8 +1,8 @@
-function diffStencilFunc(dt, dx, dy,
-			 fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-			 gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
-			 isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-			 fOutPtr) 
+function diffKernelFunc(dt, dx, dy,
+			fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
+			gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
+			isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+			fOutPtr) 
 
    -------------------------------------------------------------------
    -- Surface term in the x-direction --------------------------------
@@ -43,5 +43,5 @@ function diffStencilFunc(dt, dx, dy,
    end
 end
 
-return diffStencilFunc
+return diffKernelFunc
    

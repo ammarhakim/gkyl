@@ -2,7 +2,7 @@ kill(all) $
 load("modal-basis") $
 load("basis-precalc/basisSer2x") $
 assume(dx>0, dy>0) $
-polyOrder : 1 $
+polyOrder : 2 $
 
 fExp : doExpand(fPtr, basisC[polyOrder]) $
 hExp : doExpand(hPtr, basisC[polyOrder]) $

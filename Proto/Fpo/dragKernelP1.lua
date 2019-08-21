@@ -1,8 +1,8 @@
-local function dragStencilFunc(dt, dx, dy,
-			       fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-			       hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
-			       isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-			       fOutPtr)
+local function dragKernelFunc(dt, dx, dy,
+			      fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
+			      hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
+			      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+			      fOutPtr)
 
    -------------------------------------------------------------------
    -- Surface term in the x-direction --------------------------------
@@ -57,4 +57,4 @@ local function dragStencilFunc(dt, dx, dy,
    fOutPtr[4] = dt*((-(1.732050807568877*fPtr[3]*hTPtr[4])/dy^2)-(1.0*fPtr[1]*hTPtr[4])/dy^2+(2.0*fPtr[1]*hPtr[4])/dy^2+(1.732050807568877*fPtr[3]*hBPtr[4])/dy^2-(1.0*fPtr[1]*hBPtr[4])/dy^2-(1.732050807568877*hTPtr[3]*fPtr[4])/dy^2+(1.732050807568877*hBPtr[3]*fPtr[4])/dy^2+(1.5*hTPtr[1]*fPtr[4])/dy^2-(3.0*hPtr[1]*fPtr[4])/dy^2+(1.5*hBPtr[1]*fPtr[4])/dy^2-(1.0*fPtr[2]*hTPtr[3])/dy^2+(2.0*fPtr[2]*hPtr[3])/dy^2-(1.0*fPtr[2]*hBPtr[3])/dy^2+(1.5*hTPtr[2]*fPtr[3])/dy^2-(3.0*hPtr[2]*fPtr[3])/dy^2+(1.5*hBPtr[2]*fPtr[3])/dy^2+(0.8660254037844386*fPtr[1]*hTPtr[2])/dy^2-(0.8660254037844386*fPtr[1]*hBPtr[2])/dy^2+(0.8660254037844386*hTPtr[1]*fPtr[2])/dy^2-(0.8660254037844386*hBPtr[1]*fPtr[2])/dy^2)+fOutPtr[4]
 end
 
-return dragStencilFunc
+return dragKernelFunc
