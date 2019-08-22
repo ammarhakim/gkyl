@@ -112,10 +112,12 @@ gs : float(expand((surfTa-surfTb-surfBa+surfBb)/2)) $
 for i : 1 thru length(basis2D) do printf(fh, "    fOutPtr[~a] = ~a~%", i, fOutPtr[i] + dt*gs[i]) $
 printf(fh, "end~%~%") $
 
-/* vol : calcInnerProdListGen([x,y], [[-dx/2, dx/2],[-dy/2, dy/2]], 1, diff(baC, x), */
-/*     diff(doExpand(hPtr, baC), x)*doExpand(fPtr, baC)*4/(dx*dy)) $ */
-  
-/* gs : float(expand(vol)) $ */
-/* for i : 1 thru length(baC) do printf(fh, "fOutPtr[~a] = ~a~%", i, fOutPtr[i] + dt*gs[i]) $ */
+/* Putting together the volume term */
+vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(baC2D, y), y),
+    diff(diff(subst(gCSubList, rr2Sub), y), y)*doExpand(fPtr, baC2D)) * J $
+
+/* Writting the volume term */
+gs : float(expand(vol/2)) $
+for i : 1 thru length(basis2D) do printf(fh, "fOutPtr[~a] = ~a~%", i, fOutPtr[i] + dt*gs[i]) $
 
 close(fh) $
