@@ -314,7 +314,7 @@ function FluidSpecies:initDist()
    project:advance(0.0, {}, {self.moments[1]})
 
    if self.positivityRescale or self.positivityDiffuse then
-     self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]})
+     self.posChecker:rescale(0.0, {self.moments[1]}, {self.moments[1]})
    end
 end
 
@@ -352,7 +352,7 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
       if self.positivityRescale then
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
+         self.posChecker:rescale(tCurr, {fIn}, {self.fPos})
          self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
       else
          self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
@@ -377,8 +377,19 @@ function FluidSpecies:applyBcIdx(tCurr, idx)
      self:applyBc(tCurr, self:rkStepperFields()[idx], dir)
   end
   if self.positivityDiffuse then
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+     self.posChecker:rescale(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
   end
+  if self.positivity then
+     self.posChecker:checkControlNodes(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  end
+end
+
+function FluidSpecies:checkPositivity(tCurr, idx)
+  local status = true
+  if self.positivity then
+     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  end
+  return status
 end
 
 function FluidSpecies:applyBc(tCurr, fIn, dir)

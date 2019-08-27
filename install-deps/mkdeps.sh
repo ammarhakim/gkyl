@@ -12,6 +12,8 @@ MPICXX=mpicxx
 # by default, don't build anything. will check later to see if things
 # should be installed.
 BUILD_LUAJIT=
+BUILD_LUAJIT_BETA3=
+BUILD_LUAJIT_PPCLE=
 BUILD_LUAROCKS=
 BUILD_ADIOS=
 BUILD_OPENMPI=
@@ -50,6 +52,7 @@ and C++ compilers to use.
 
 --build-luajit              Should we build LuaJIT?
 --build-luajit-beta3        Should we build LuaJIT-beta3?
+--build-luajit-ppcle        Should we build LuaJIT for PPC64 LE?
 --build-luarocks            Should we build Luarocks?
 --build-adios               Should we build ADIOS?
 --build-openmpi             Should we build OpenMPI?
@@ -144,6 +147,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT_BETA3="$value"
       ;;   
+   --build-luajit-ppcle)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_LUAJIT_PPCLE="$value"
+      ;;   
    --build-adios)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADIOS="$value"
@@ -225,6 +232,14 @@ build_luajit_beta3() {
     fi
 }
 
+build_luajit_ppcle() {
+    if [[ "$BUILD_LUAJIT_PPCLE" = "yes" ]]
+    then    
+	echo "Building LuaJIT=beta3"
+	./build-luajit-ppcle.sh
+    fi
+}
+
 build_adios() {
     if [[ ! "$BUILD_ADIOS" = "no" && ("$BUILD_ADIOS" = "yes" || ! -f $PREFIX/adios/include/adios.h) ]]
     then    
@@ -262,6 +277,7 @@ echo "Installations will be in $PREFIX"
 build_openmpi
 build_luajit
 build_luajit_beta3
+build_luajit_ppcle
 build_luarocks
 build_adios
 build_eigen

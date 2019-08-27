@@ -358,7 +358,7 @@ local function buildApplication(self, tbl)
    end
 
    -- Function to take a single forward-euler time-step.
-   local function forwardEuler(tCurr, dt, inIdx, outIdx)
+   local function forwardEuler(tCurr, dt, inIdx, outIdx, dtReducSuggested)
       local calcCflFlag = false
       local dtSuggested
       if dt == nil then calcCflFlag = true end
@@ -408,8 +408,9 @@ local function buildApplication(self, tbl)
          
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
-            dtSuggested = math.min(dtSuggested, s:suggestDt())
+            dtSuggested = math.min(dtSuggested, s:suggestDt(inIdx, outIdx))
          end
+         dtSuggested = dtSuggested*dtReducSuggested
       else 
          dtSuggested = dt -- From argument list.
          -- If calcCflFlag not being used, need to barrier before doing the RK combine.
@@ -444,6 +445,7 @@ local function buildApplication(self, tbl)
    -- Function to advance solution using SSP-RK2 scheme (mildly
    -- unstable and in general should not be used).
    function timeSteppers.rk2(tCurr)
+      local status = true
       -- RK stage 1.
       local dt = forwardEuler(tCurr, nil, 1, 2)
 
@@ -451,16 +453,21 @@ local function buildApplication(self, tbl)
       forwardEuler(tCurr+dt, dt, 2, 3)
       local tm = Time.clock()
       combine(2, 1.0/2.0, 1, 1.0/2.0, 3)
-      copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      return true, dt
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 2)
+      end
+      if status then copy(1, 2) end
+
+      return status, dt
    end
 
    -- Function to advance solution using SSP-RK3 scheme.
-   function timeSteppers.rk3(tCurr)
+   function timeSteppers.rk3(tCurr, dtReducSuggested)
+      local status = true
       -- RK stage 1.
-      local dt = forwardEuler(tCurr, nil, 1, 2)
+      local dt = forwardEuler(tCurr, nil, 1, 2, dtReducSuggested)
 
       -- RK stage 2.
       forwardEuler(tCurr+dt, dt, 2, 3)
@@ -472,16 +479,21 @@ local function buildApplication(self, tbl)
       forwardEuler(tCurr+dt/2, dt, 2, 3)
       tm = Time.clock()
       combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
-      copy(1, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      return true, dt
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 2)
+      end
+      if status then copy(1, 2) end
+ 
+      return status, dt
    end
 
    -- Function to advance solution using 4-stage SSP-RK3 scheme.
-   function timeSteppers.rk3s4(tCurr)
+   function timeSteppers.rk3s4(tCurr, dtReducSuggested)
+      local status = true
       -- RK stage 1.
-      local dt = forwardEuler(tCurr, nil, 1, 2)
+      local dt = forwardEuler(tCurr, nil, 1, 2, dtReducSuggested)
       local tm = Time.clock()
       combine(3, 1.0/2.0, 1, 1.0/2.0, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
@@ -501,10 +513,16 @@ local function buildApplication(self, tbl)
       -- RK stage 4.
       forwardEuler(tCurr+dt/2, dt, 4, 3)
       tm = Time.clock()
-      combine(1, 1.0/2.0, 4, 1.0/2.0, 3)
+      combine(2, 1.0/2.0, 4, 1.0/2.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
 
-      return true, dt
+      for nm, s in pairs(species) do
+         local myStatus = s:checkPositivity(tCurr, 2)
+         status = status and myStatus
+      end
+      if status then copy(1,2) end
+
+      return status, dt
    end
 
    -- Update solution in specified direction.
@@ -709,6 +727,7 @@ local function buildApplication(self, tbl)
          tryInv[s] = false
       end
       local isInv = true
+      local dtReducSuggested = 1.0
       -- Main simulation loop.
       while true do
 	 -- Call time-stepper.
@@ -716,8 +735,13 @@ local function buildApplication(self, tbl)
          if timeStepperNm == "fvDimSplit" then
 	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
          else
-            status, myDt = timeSteppers[timeStepperNm](tCurr)
+            status, myDt = timeSteppers[timeStepperNm](tCurr, dtReducSuggested)
             dtSuggested = myDt
+            -- if timestep failed (because of cell average positivity violation), reduce timestep by .5
+            if not status then
+               dtReducSuggested = 0.5*dtReducSuggested
+               dtSuggested = dtSuggested*dtReducSuggested
+            end
          end
     
          -- If stopfile exists, break.
@@ -731,7 +755,8 @@ local function buildApplication(self, tbl)
 	 if status and isInv then
             if first then 
                log(string.format(" Step 0 at time %g. Time step %g. Completed 0%%\n", tCurr, myDt))
-               initDt = math.min(maxDt, dtSuggested); first = false
+               initDt = myDt
+               first = false
             end
             -- Track dt.
             dtPtr:data()[0] = myDt
@@ -747,14 +772,13 @@ local function buildApplication(self, tbl)
 	    end	    
 	    
 	    tCurr = tCurr + myDt
-	    myDt = math.min(dtSuggested, maxDt)
 	    step = step + 1
+            dtReducSuggested = 1.0
 	    if (tCurr >= tEnd) then
 	       break
 	    end
 	 elseif not status then
-	    log (string.format(" ** Time step %g too large! Will retake with dt %g\n", myDt, dtSuggested))
-	    myDt = dtSuggested
+	    log (string.format(" ** Time step %g too large at time %g! Will retake with dt %g\n", myDt, tCurr, dtSuggested))
 	 elseif not isInv then
 	    log (string.format(" ** Invalid values detected! Will retake with dt %g\n", dtSuggested))
 	    myDt = dtSuggested
