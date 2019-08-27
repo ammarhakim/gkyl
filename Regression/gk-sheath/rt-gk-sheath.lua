@@ -31,7 +31,7 @@ xSource      = R -- [m], source start coordinate
 lambdaSource = 0.005 -- [m], characteristic length scale of density and temperature
 
 -- Parameters for collisions.
-nuFrac = 0.1
+nuFrac = 1.0
 -- Electron collision freq.
 logLambdaElc = 6.6 - 0.5*math.log(n0/1e20) + 1.5*math.log(Te0/eV)
 nuElc = nuFrac*logLambdaElc*eV^4*n0/(6*math.sqrt(2)*math.pi^(3/2)*eps0^2*math.sqrt(me)*(Te0)^(3/2))
@@ -54,7 +54,7 @@ Lz = 4 -- [m]
 -- Source profiles.
 sourceDensity = function (t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
-   local sourceFloor = 0.1
+   local sourceFloor = 0.001
    if math.abs(z) < Lz/4 then
       return 0.90625*S0*math.max(math.exp(-(x-xSource)^2/(2*lambdaSource)^2), sourceFloor)
    else
@@ -85,7 +85,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.9,
+   cflFrac     = 0.5,
    restartFrameEvery = .5,
 
    -- Boundary conditions for configuration space.
@@ -128,7 +128,7 @@ plasmaApp = Plasma.App {
       },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      --applyPositivity = true,
+      applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -174,7 +174,7 @@ plasmaApp = Plasma.App {
       },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
-      --applyPositivity = true,
+      applyPositivity = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -194,7 +194,7 @@ plasmaApp = Plasma.App {
       phiBcBack  = { T ="N", V = 0.0},
       phiBcFront = { T ="N", V = 0.0},
       evolve     = true, -- Evolve fields?
-      isElectromagnetic = true,
+      --isElectromagnetic = true,
    },
 
    -- Magnetic geometry.
