@@ -56,15 +56,16 @@ function _M:advance(tCurr, inFld, outFld)
    self.totalTime = self.totalTime + (Time.clock()-tmStart)
 
    -- reduce across processors ...
-   if status ~= nil and dtSuggested ~= nil then 
+   if status ~= nil then 
       self._myStatus[0] = status and 1 or 0
-      self._myDtSuggested[0] = dtSuggested
-
       Mpi.Allreduce(self._myStatus, self._status, 1, Mpi.INT, Mpi.LAND, self._comm)
-      Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
-      
-      return self._status[0] == 1 and true or false, self._dtSuggested[0]
    end
+   if dtSuggested ~= nil then
+      self._myDtSuggested[0] = dtSuggested
+      Mpi.Allreduce(self._myDtSuggested, self._dtSuggested, 1, Mpi.DOUBLE, Mpi.MIN, self._comm)
+   end
+      
+   return self._status[0] == 1 and true or false, self._dtSuggested[0]
 end
 
 -- set up pointers to dt and cflRateByCell

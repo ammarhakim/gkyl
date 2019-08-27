@@ -327,7 +327,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    self.tmCouplingMom = 0.0      -- For timer.
 
    if self.positivityRescale or self.positivityDiffuse then 
-      self.posRescaler = Updater.PositivityRescale {
+      self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
          basis = self.basis,
       }
@@ -615,7 +615,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Rescale slopes.
    if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
+      self.posChecker:advance(tCurr, {fIn}, {self.fPos})
       fIn = self.fPos
    end
 
@@ -1259,7 +1259,7 @@ function GkSpecies:totalSolverTime()
    local timer = self.solver.totalTime
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
    if self.solverStep3 then timer = timer + self.solverStep3.totalTime end
-   if self.posRescaler then timer = timer + self.posRescaler.totalTime end
+   if self.posChecker then timer = timer + self.posChecker.totalTime end
    return timer
 end
 

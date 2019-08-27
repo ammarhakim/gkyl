@@ -30,6 +30,11 @@ return function(tbl)
    local upper = tbl.upper
 
    local periodicDirs = tbl.periodicDirs and tbl.periodicDirs or {}
+   local periodicX, periodicY = false, false
+   for i = 1, #periodicDirs do
+      if periodicDirs[i] == 1 then periodicX = true end
+      if periodicDirs[i] == 2 then periodicY = true end
+   end
 
    local tmRosen, tmFpo = 0.0, 0.0
 
@@ -190,8 +195,9 @@ return function(tbl)
       quantity = "V"
    }
 
-   local function calcConservDiag(tCurr, fIn, hIn, gIn, diagVec)
+   local function calcConservDiag(tCurr, fIn, hIn, diagVec)
       local dx, dy = grid:dx(1), grid:dx(2)
+      local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
       local out = Lin.Vec(3)
@@ -202,19 +208,24 @@ return function(tbl)
       local vol = dx*dy/4.0
 
       for idxs in localRange:colMajorIter() do
+	 grid:setIndex(idxs)
+	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-         local hPtr = hIn:get(indexer(idxs))
-         local gPtr = gIn:get(indexer(idxs))
+         local hPtr = hIn:get(indexer(idxs)) 
+
          out[1] = out[1] + vol*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))
          out[2] = out[2] + vol*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))
+	 out[3] = out[3] + vol*(0.125*(((6.0*vc[2]+10.0)*fPtr[4]+6.928203230275509*vc[1]*fPtr[3]+6.928203230275509*fPtr[2]*vc[2]+8.660254037844386*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+((6.0*vc[2]+6.0)*fPtr[3]+6.928203230275509*fPtr[1]*vc[2]+5.196152422706631*fPtr[1])*hPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*hPtr[1])*fPtr[3]+(6.0*fPtr[2]+6.928203230275509*fPtr[1]*vc[1])*hPtr[2]+2.0*fPtr[1]*hPtr[1])-0.125*(((6.0*vc[2]-10.0)*fPtr[4]-6.928203230275509*vc[1]*fPtr[3]-6.928203230275509*fPtr[2]*vc[2]+8.660254037844386*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+((6.0*vc[2]-6.0)*fPtr[3]-6.928203230275509*fPtr[1]*vc[2]+5.196152422706631*fPtr[1])*hPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*hPtr[1])*fPtr[3]+((-6.0*fPtr[2])-6.928203230275509*fPtr[1]*vc[1])*hPtr[2]-2.0*fPtr[1]*hPtr[1]))
       end
       diagVec:appendData(tCurr, out)
    end
 
    local function writeData(fr, tm)
-      h:write(string.format('h_%d.bp', fr), tm, fr)
-      g:write(string.format('g_%d.bp', fr), tm, fr)
       f:write(string.format("f_%d.bp", fr), tm, fr)
+      if updatePotentials then
+	 h:write(string.format('h_%d.bp', fr), tm, fr)
+	 g:write(string.format('g_%d.bp', fr), tm, fr)
+      end
       if writeDiagnostics then
          M0:write(string.format("f_M0_%d.bp", fr), tm, fr)
          conserv:write(string.format("conserv_%d.bp", fr), tm, fr)
@@ -223,6 +234,10 @@ return function(tbl)
 
    -- write initial conditions
    writeData(0, 0.0)
+   if updatePotentials == false then
+      h:write(string.format('h_%d.bp', 0), 0.0, 0)
+      g:write(string.format('g_%d.bp', 0), 0.0, 0)
+   end
 
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
@@ -246,10 +261,14 @@ return function(tbl)
          local isTopEdge, isBotEdge = false, false
          local isLeftEdge, isRightEdge = false, false
 
-         if idxs[1] == 1 then isLeftEdge = true end
-         if idxs[1] == cells[1] then isRightEdge = true end
-         if idxs[2] == 1 then isBotEdge = true end
-         if idxs[2] == cells[2] then isTopEdge = true end
+         if periodicX == false then
+            if idxs[1] == 1 then isLeftEdge = true end
+            if idxs[1] == cells[1] then isRightEdge = true end
+         end
+         if periodicY == false then
+            if idxs[2] == 1 then isBotEdge = true end
+            if idxs[2] == cells[2] then isTopEdge = true end
+         end
 
          local fPtr = fIn:get(indexer(idxs))
          local fRPtr = fIn:get(indexer(idxsR))
@@ -274,6 +293,7 @@ return function(tbl)
          dragStencil(dt, dx, dy,
                      fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
                      hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
+                     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
                      fOutPtr)
          diffStencil(dt, dx, dy,
                      fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
@@ -331,8 +351,7 @@ return function(tbl)
             M0Calc:advance(tCurr+dt, { f }, { M0 })
 
             updateRosenbluthDrag(f, h)
-            updateRosenbluthDiffusion(h, g)
-            calcConservDiag(tCurr+dt, f, h, g, conserv)
+            calcConservDiag(tCurr+dt, f, h, conserv)
          end
 
          tCurr = tCurr+dt
