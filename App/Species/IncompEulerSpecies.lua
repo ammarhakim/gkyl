@@ -13,6 +13,7 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Updater = require "Updater"
 local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
+local Lin = require "Lib.Linalg"
 
 local IncompEulerSpecies = Proto(FluidSpecies)
 
@@ -67,7 +68,7 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
    }
 
    if self.positivity then 
-      self.posRescaler = Updater.PositivityRescale {
+      self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
          basis = self.basis,
       }
@@ -93,7 +94,7 @@ function IncompEulerSpecies:getNumDensity(rkIdx)
    end
 end
 
-function IncompEulerSpecies:suggestDt()
+function IncompEulerSpecies:suggestDt(inIdx, outIdx)
    -- loop over local region 
    local grid = self.grid
    self.dt[0] = GKYL_MAX_DOUBLE
@@ -102,14 +103,52 @@ function IncompEulerSpecies:suggestDt()
    local localRangeDecomp = LinearDecomp.LinearDecompRange {
 	 range = localRange, numSplit = grid:numSharedProcs() }
 
+   local fIn = self:rkStepperFields()[inIdx]
+   local fRhs = self:rkStepperFields()[outIdx]
+   local fInPtr = fIn:get(1)
+   local fRhsPtr = fRhs:get(1)
+   local fIdxr = fIn:genIndexer()
+   local posDt = GKYL_MAX_DOUBLE
+   local posIdx = Lin.IntVec(self.grid:ndim()) 
+
    for idx in localRangeDecomp:rowMajorIter(tId) do
-      -- calculate local min dt from local cflRates
-      self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
-      self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
+     -- calculate local min dt from local cflRates
+     self.cflRateByCell:fill(self.cflRateIdxr(idx), self.cflRatePtr)
+     self.dt[0] = math.min(self.dt[0], self.cfl/self.cflRatePtr:data()[0])
+
+     -- if using positivity, limit dt so that cell avg does not go negative, 
+     -- but goes to exactly 0  
+     if self.positivity then 
+        fIn:fill(fIdxr(idx), fInPtr)
+        fRhs:fill(fIdxr(idx), fRhsPtr)
+        if fRhsPtr:data()[0]<0. and fInPtr:data()[0]>0. then
+           -- calculate dt that will make cell avg go to exactly 0
+           local dt = -fInPtr:data()[0]/fRhsPtr:data()[0] 
+           -- if this positivity-limited dt is smaller than the cfl-calculated dt, use it
+           self.dt[0] = math.min(self.dt[0], dt)
+           if self.dt[0] == dt then 
+              -- keep track of which cell (posIdx) the positivity-limited dt came from
+              idx:copyInto(posIdx)
+              posDt = dt
+           end
+        end
+     end
    end
 
    -- all reduce to get global min dt
    Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
+
+   -- in cell where positivity-limited dt came from (posIdx), set all coeffs of fIn and fRhs to 0
+   -- setting cell avg to 0 just avoids round-off errors, but setting other coeffs to 0 
+   -- introduces a bit of diffusion (in this cell only)
+   if self.positivity and posDt == self.dtGlobal[0] then
+      fIn:fill(fIdxr(posIdx), fInPtr)
+      fRhs:fill(fIdxr(posIdx), fRhsPtr)
+      for i = 0, self.basis:numBasis()-1 do
+        fInPtr:data()[i] = 0.
+        fRhsPtr:data()[i] = 0.
+      end
+   end
 
    return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
 end
