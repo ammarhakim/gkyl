@@ -3,34 +3,29 @@
 --
 --------------------------------------------------------------------------------
 
-local Grid = require "Grid"
-local DataStruct = require "DataStruct"
-local Time = require "Lib.Time"
 local Basis = require "Basis"
-local Updater = require "Updater"
+local DataStruct = require "DataStruct"
+local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
+local Updater = require "Updater"
+local ffi = require "ffi"
 local xsys = require "xsys"
+
+local _ = require "Proto.Fpo.fpoKernelsCdef"
 
 return function(tbl)
    -- Simulation parameters
    local polyOrder = tbl.polyOrder -- polynomial order
-   local dragKernel = nil
-   local diffKernel = nil
-   local momsKernel = nil
-   local diagKernel = nil
-   if polyOrder == 1 then
-      dragKernel = require "Proto.Fpo.dragKernelP1"
-      diffKernel = require "Proto.Fpo.diffKernelP1"
-      momsKernel = require "Proto.Fpo.momsKernelP1"
-      diagKernel = require "Proto.Fpo.diagKernelP1"
-   elseif polyOrder == 2 then
-      dragKernel = require "Proto.Fpo.dragKernelP2"
-      diffKernel = require "Proto.Fpo.diffKernelP2"
-      momsKernel = require "Proto.Fpo.momsKernelP2"
-      diagKernel = require "Proto.Fpo.diagKernelP2"
-   else
-      print('WHAAAAAAAAAAAAAAAAGHH')
-   end
+
+   local dragKernelNm = string.format("fpoDragKernelP%d", polyOrder)
+   local dragKernelFn = ffi.C[dragKernelNm]
+   local diffKernelNm = string.format("fpoDiffKernelP%d", polyOrder)
+   local diffKernelFn = ffi.C[diffKernelNm]
+   local momsKernelNm = string.format("fpoMomsKernelP%d", polyOrder)
+   local momsKernelFn = ffi.C[momsKernelNm]
+   local diagKernelNm = string.format("fpoDiagKernelP%d", polyOrder)
+   local diagKernelFn = ffi.C[diagKernelNm]
 
    local cflFrac = tbl.cflFrac and tbl.cflFrac or 1.0
    local cfl = cflFrac*0.5/(2*polyOrder+1) -- CFL number
@@ -183,7 +178,8 @@ return function(tbl)
    -- Diagnostics --
    -----------------
    local function calcMoms(tCurr, fIn, momVec)
-      local dx, dy = grid:dx(1), grid:dx(2)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2] = grid:dx(1), grid:dx(2)
       local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
@@ -197,18 +193,19 @@ return function(tbl)
 	 grid:setIndex(idxs)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-	 momsKernel(dx, dy, vc, fPtr, out) 
+	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data()) 
       end
       momVec:appendData(tCurr, out)
       return out
    end
 
    local function calcDiag(tCurr, fIn, hIn, diagVec)
-      local dx, dy = grid:dx(1), grid:dx(2)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2] = grid:dx(1), grid:dx(2)
       local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
-      local out = Lin.Vec(7)
+      local out = Lin.Vec(3)
       out[1] = 0.0
       out[2] = 0.0
       out[3] = 0.0
@@ -218,7 +215,7 @@ return function(tbl)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
-	 diagKernel(dx, dy, vc, fPtr, hPtr, out) 
+	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data()) 
       end
       diagVec:appendData(tCurr, out)
    end
@@ -298,7 +295,8 @@ return function(tbl)
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
 
-      local dx, dy = grid:dx(1), grid:dx(2)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2] = grid:dx(1), grid:dx(2)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
       local idxsR, idxsL = {}, {}
@@ -314,16 +312,16 @@ return function(tbl)
          idxsT[2] = idxs[2]+1
          idxsB[2] = idxs[2]-1
 
-         local isTopEdge, isBotEdge = false, false
-         local isLeftEdge, isRightEdge = false, false
+         local isTopEdge, isBotEdge = 0, 0
+         local isLeftEdge, isRightEdge = 0, 0
 
          if periodicX == false then
-            if idxs[1] == 1 then isLeftEdge = true end
-            if idxs[1] == cells[1] then isRightEdge = true end
+            if idxs[1] == 1 then isLeftEdge = 1 end
+            if idxs[1] == cells[1] then isRightEdge = 1 end
          end
          if periodicY == false then
-            if idxs[2] == 1 then isBotEdge = true end
-            if idxs[2] == cells[2] then isTopEdge = true end
+            if idxs[2] == 1 then isBotEdge = 1 end
+            if idxs[2] == cells[2] then isTopEdge = 1 end
          end
 
          local fPtr = fIn:get(indexer(idxs))
@@ -346,16 +344,16 @@ return function(tbl)
 
          local fOutPtr= fOut:get(indexer(idxs))
 
-         dragKernel(dt, dx, dy,
-		    fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-		    hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
-		    isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		    fOutPtr)
-         diffKernel(dt, dx, dy,
-		    fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-		    gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
-		    isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		    fOutPtr)
+         dragKernelFn(dt, dv:data(),
+		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
+		      hPtr:data(), hLPtr:data(), hRPtr:data(), hTPtr:data(), hBPtr:data(),
+		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+		      fOutPtr:data())
+         diffKernelFn(dt, dv:data(),
+		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
+		      gPtr:data(), gLPtr:data(), gRPtr:data(), gTPtr:data(), gBPtr:data(),
+		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+		      fOutPtr:data())
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
