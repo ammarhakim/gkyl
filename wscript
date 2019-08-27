@@ -192,12 +192,12 @@ def build(bld):
         Basis_dir.ant_glob('**/*.lua'),
         cwd=Basis_dir, relative_trick=True)
 
-    # - Proto/Fpo
-    Fpo_dir = bld.path.find_dir('Proto/Fpo')
+    # - Proto/
+    Proto_dir = bld.path.find_dir('Proto')
     bld.install_files(
-        "${PREFIX}/bin/Proto/Fpo",
-        Fpo_dir.ant_glob('**/*.lua'),
-        cwd=Fpo_dir, relative_trick=True)
+        "${PREFIX}/bin/Proto",
+        Proto_dir.ant_glob('**/*.lua'),
+        cwd=Proto_dir, relative_trick=True)
 
 def buildExec(bld):
     r"""Build top-level executable"""
@@ -212,9 +212,9 @@ def buildExec(bld):
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
 
-    useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    useList = 'sqlite3 lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['ZMQ_FOUND']:
-        useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN ZMQ MPI M DL'
+        useList = 'sqlite3 lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN ZMQ MPI M DL'
         
     # build gkyl executable
     bld.program(
