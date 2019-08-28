@@ -448,6 +448,10 @@ local function buildApplication(self, tbl)
       local status = true
       -- RK stage 1.
       local dt = forwardEuler(tCurr, nil, 1, 2)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 2)
+      end
+      if not status then return status, dt end
 
       -- RK stage 2.
       forwardEuler(tCurr+dt, dt, 2, 3)
@@ -468,19 +472,26 @@ local function buildApplication(self, tbl)
       local status = true
       -- RK stage 1.
       local dt = forwardEuler(tCurr, nil, 1, 2, dtReducSuggested)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 2)
+      end
+      if not status then return status, dt end
 
       -- RK stage 2.
       forwardEuler(tCurr+dt, dt, 2, 3)
       local tm = Time.clock()
       combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 2)
+      end
+      if not status then return status, dt end
 
       -- RK stage 3.
       forwardEuler(tCurr+dt/2, dt, 2, 3)
       tm = Time.clock()
       combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
-
       for nm, s in pairs(species) do
          status = status and s:checkPositivity(tCurr, 2)
       end
@@ -497,25 +508,36 @@ local function buildApplication(self, tbl)
       local tm = Time.clock()
       combine(3, 1.0/2.0, 1, 1.0/2.0, 2)
       stepperTime = stepperTime + (Time.clock() - tm)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 3)
+      end
+      if not status then return status, dt end
 
       -- RK stage 2.
       forwardEuler(tCurr+dt/2, dt, 3, 4)
       tm = Time.clock()
       combine(2, 1.0/2.0, 3, 1.0/2.0, 4)
       stepperTime = stepperTime + (Time.clock() - tm)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 2)
+      end
+      if not status then return status, dt end
 
       -- RK stage 3.
       forwardEuler(tCurr+dt, dt, 2, 3)
       tm = Time.clock()
       combine(4, 2.0/3.0, 1, 1.0/6.0, 2, 1.0/6.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 4)
+      end
+      if not status then return status, dt end
 
       -- RK stage 4.
       forwardEuler(tCurr+dt/2, dt, 4, 3)
       tm = Time.clock()
       combine(2, 1.0/2.0, 4, 1.0/2.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
-
       for nm, s in pairs(species) do
          local myStatus = s:checkPositivity(tCurr, 2)
          status = status and myStatus
