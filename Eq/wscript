@@ -23,6 +23,8 @@ def build(bld):
     lboData/GkLBOconstNuBoundarySurfSer3x2v.cpp
     lboData/GkLBOconstNuSurfPositivitySer1x1v.cpp
     lboData/GkLBOconstNuSurfPositivitySer1x2v.cpp
+    lboData/GkLBOconstNuSurfPositivitySer2x2v.cpp
+    lboData/GkLBOconstNuSurfPositivitySer3x2v.cpp
     
     lboData/VmLBOconstNuSer1x1v.cpp
     lboData/VmLBOconstNuSer1x2v.cpp
