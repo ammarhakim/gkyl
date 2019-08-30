@@ -285,6 +285,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                   for collNmO, _ in pairs(species[sO].collisions) do
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
+                        -- Collision operator kind.
+                        self.collPairs[sO][sN].kind  = species[sO].collisions[collNmO].collKind
+                        -- Collision frequency type (e.g. constant, spatially varying).
+                        self.collPairs[sO][sN].varNu = species[sO].collisions[collNmO].varNu
                         if (not self.collPairs[sO][sN].varNu) then
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
