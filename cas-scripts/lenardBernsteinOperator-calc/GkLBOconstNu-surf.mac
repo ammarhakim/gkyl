@@ -245,7 +245,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       /* Surface basis. Equivalent to basis of one lower
       ** dimensionality without surface variable. */
       bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
-      /* Project alphaDrag evaluatated at interior surface onto surf basis. */
+      /* Project alphaDrag evaluated at interior surface onto surf basis. */
       alphaDrSurf_c : fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=1,alphaDr))),
       alst          : doMakeExprLst(alphaDrSurf_c, alphaDrSurf),
       alphaDrSurf_e : doExpandLst(alst, bSurf),
@@ -301,6 +301,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
 
     /*   Calculate Ghat (drag+diffusion) projected on the phase basis. */
     Ghat_c : fullratsimp(GhatDrag_c+rdv*calcInnerProdList(varsP,1,bP,Gdiff_e)),
+    GhatNoDiff_c : fullratsimp(GhatDrag_c),
 
     /* Ghat_c (coefficients of Ghat) is what gets written. From here
     ** on we can simply refer to Ghat. */
@@ -380,21 +381,38 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
     printf(fh, "  }; ~%"),
     printf(fh, "~%"),
 
-    /* Populate Ghat. */
+    printf(fh, "  double incr2[~a]; ~%", NP),
+    /* Evaluate recovery polynomial at the boundary, and if it's
+       negative simply set it to zero. */
+    hsolQuadP : hsol[2],
+    hsolQuadM : hsol[2],
+    for i : 1 thru length(surfVars) do (
+      hsolQuadP : subst(surfVars[i]=1/sqrt(3), hsolQuadP),
+      hsolQuadM : subst(surfVars[i]=-1/sqrt(3),hsolQuadM)
+    ),
+    printf(fh, " if ((~a<0.0) || (~a<0.0)) {~%",float(expand(hsolQuadP)),float(expand(hsolQuadM))),
+    writeCExprsWithZeros1(incr2, makelist(0.0,i,1,length(incr_r2))),
+    printf(fh, "~%"),
+    /* Populate Ghat without diffusion contribution. */
+    clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
+    writeCExprsCollect1(Ghat, GhatNoDiff_c, clst),
+
+    printf(fh, "  } else {~%"),
+
+    clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
+    writeCExprsCollect1c(incr2, radcan(incr_r2)),
+    printf(fh, "~%"),
+    /* Populate Ghat including the diffusion term. */
     clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
     writeCExprsCollect1(Ghat, Ghat_c, clst),
+    printf(fh, "  };~%"),
     printf(fh, "~%"),
 
-    /* Write out increments. */
+    /* Write out increment 1. */
     printf(fh, "  double incr1[~a]; ~%", NP),
     writeCExprsCollect1(incr1, incr_r1, clst),
     printf(fh, "~%"),
 
-    printf(fh, "  double incr2[~a]; ~%", NP),
-    clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
-    writeCExprsCollect1c(incr2, radcan(incr_r2)),
-    printf(fh, "~%"),
-  
     incr_s1 : makelist(incr1[i-1], i, 1, NP),
     incr_s2 : makelist(incr2[i-1], i, 1, NP),
     /* Don't do coefficients where the increment is zero */
