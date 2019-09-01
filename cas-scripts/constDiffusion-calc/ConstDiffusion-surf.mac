@@ -11,8 +11,113 @@ cvars : [X, Y, Z]$
 
 cidx(cdim) := makelist(i,i,0,cdim-1)$
 
-calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
-  for polyOrder : 1 thru pMax do (
+writeCExprsCollect1s(lhs, rhs, clst, nSpaces) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      param : cons(expr[i], clst),
+      e : apply(collectterms, param),
+      ep : string(e),
+      ep : ssubst("g1Sq","g1^2",ep),
+      ep : ssubst("std::sinh","sinh",ep),
+      printf(fh, sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], ep)
+    )
+  )
+)$
+
+writeCIncrExprs1s(lhs, rhs, nSpaces) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    ep : string(expr[i]),
+    ep : ssubst("g1Sq","g1^2",ep),
+    ep : ssubst("std::sinh","sinh",ep),
+    if expr[i] # 0.0 then printf(fh, sconcat(smake(nSpaces," "),"  ~a += ~a; ~%"), lhs[i-1], ep)
+  )
+)$
+
+writeCIncrCollect1s(lhs, rhs, clst, nSpaces) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      param : cons(expr[i], clst),
+      e  : gcfac(apply(collectterms, param)),
+      ep : string(e),
+      ep : ssubst("g1Sq","g1^2",ep),
+      ep : ssubst("std::sinh","sinh",ep),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a += ~a; ~%"), lhs[i-1], ep)
+    )
+  )
+)$
+
+/* Given the value of the recovery polynomial (fRec) and its derivative
+   (frecP) at the interface, this function computes the increments and
+   writes them to the kernel file. */
+compWriteIncr(fRec, fRecP, nSpaces) := block([incr_s1,incr_s2],
+
+    /* Contribution to vector to the left and right of the boundary. */
+    /* incr_r2 has 3 minus signs. One comes from the second integration
+    ** by parts, another from evaluating at upper surface Minus lower
+    ** surface, and the last one from evaluating at cv=-1. */
+    incr_l1 : calcInnerProdList(surfVars,1,subst(cv=1,bC),fRecP),
+    incr_l2 : calcInnerProdList(surfVars,-2,subst(cv=1,bCp),fRec),
+
+    incr_r1 : -calcInnerProdList(surfVars,1,subst(cv=-1,bC),fRecP),
+    incr_r2 : -calcInnerProdList(surfVars,-2,subst(cv=-1,bCp),fRec),
+    
+    clst : [wxr, dvxr],
+    writeCExprsCollect1s(incr1, incr_r1, clst, nSpaces),
+    printf(fh,"~%"),
+    writeCExprsCollect1s(incr2, incr_r2, clst, nSpaces),
+    printf(fh, "~%"),
+
+    incr_s1 : makelist(incr1[i-1], i, 1, N),
+    incr_s2 : makelist(incr2[i-1], i, 1, N),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru N do (
+      if (incr_r1[i] = 0) then
+        incr_s1[i] : 0,
+      if (incr_r2[i] = 0) then
+        incr_s2[i] : 0
+    ), 
+    writeCIncrExprs1s(outr, rdxSq2nur*(incr_s1+incr_s2), nSpaces),
+    printf(fh, "~%"),
+  
+    signs1 : makelist(1,i,1,N),
+    signs2 : makelist(1,i,1,N),
+    for i : 1 thru N do (
+        if (incr_r1[i] = 0) then
+          false
+        else
+          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i]),
+        if (incr_r2[i] = 0) then
+          false
+        else
+          signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
+    ),
+    incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, N),
+    incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, N),
+    /* Don't do coefficients where the increment is zero */
+    for i : 1 thru N do (
+      if (incr_r1[i] = 0) then
+        incr_s1[i] : 0
+    ), 
+    for i : 1 thru N do (
+      if (incr_r2[i] = 0) then
+        incr_s2[i] : 0
+    ), 
+    writeCIncrExprs1s(outl, rdxSq2nul*(incr_s1+incr_s2),nSpaces)
+)$
+
+calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
+
+  /* Positivity preserving algorithm only for p=1 for now. */
+  if applyPos then (
+    pOrderMax : 1
+  ) else (
+    pOrderMax : pMax
+  ),
+
+  for polyOrder : 1 thru pOrderMax do (
 
     kill(varsC, varsP, basisC, basisP),
 
@@ -80,9 +185,108 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
 
     /*............. RECOVERY DONE ..............................*/
 
+    /* Make references to fl and fr in hsol zero-indexed. */
+    hsol : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),hsol),
+
     printf(fh,"void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
-    printf(fh,"// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. nu[NDIM]: diffusion coefficient (collisionality). fl/fr: Distribution function in left/right cells ~%"),
-    printf(fh,"// outl/outr: Incremented distribution function in left/right cells ~%"),
+    printf(fh,"  // w[~a]:      Cell-center coordinates.~%",cdim),
+    printf(fh,"  // dxv[~a]:    Cell spacing.~%",cdim),
+    printf(fh,"  // nu[~a]:     diffusion coefficient (collisionality).~%",cdim),
+    printf(fh,"  // fl/fr:     Distribution function in left/right cells.~%"),
+    printf(fh,"  // outl/outr: Incremented distribution function in left/right cells ~%"),
+    cid : cidx(cdim),
+    printf(fh,"  double rdxSq2nul = 2.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh,"  double rdxSq2nur = 2.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
+    printf(fh,"~%"),
+  
+    printf(fh,"  double incr1[~a]; ~%", length(bC)),
+    printf(fh,"  double incr2[~a]; ~%", length(bC)),
+    printf(fh,"~%"),
+
+    if (not applyPos) then (
+
+      compWriteIncr(hsol[1], hsol[2], 0)
+
+    ) else (
+
+      /* For positivity: If value of recovery polynomial at the interface
+         is below zero, use its exponential representation. */
+      printf(fh,"  if (~a >= 0.0) {~%", float(expand(hsol[1]))),
+
+      compWriteIncr(hsol[1], hsol[2], 2),
+
+      printf(fh,"  } else {~%"),
+      printf(fh,"~%"),
+      printf(fh,"    double xBar = ~a;~%",float((expand(hsol[2]+3*hsol[4]/5)/(3*hsol[1]+hsol[3])))),
+      printf(fh,"    double xBarSq = xBar*xBar;~%"),
+      printf(fh,"    double g1 = ~a;~%",float(expand(xBar*(3-xBarSq)/(1-xBarSq)))),
+      printf(fh,"~%"),
+      /* When the function is very flat we need to compute the exponential
+         differently so that 1/sinh(g1) doesn't blow up. */
+      printf(fh,"    if (std::abs(g1) > 1.0e-15) {~%"),
+
+      printf(fh,"      double g1Sq = g1*g1;~%"),
+
+      hsol[1] : g1*(hsol[1]+hsol[3]/3)/sinh(g1),
+      hsol[2] : g1*hsol[1],
+
+      compWriteIncr(hsol[1], hsol[2], 4),
+
+      printf(fh,"    } else {~%"),
+
+      hsol[1] : hsol[1]+hsol[3]/3,
+      hsol[2] : 0,
+
+      compWriteIncr(hsol[1], hsol[2], 4),
+
+      printf(fh,"    };~%"),
+      printf(fh, "~%"),
+
+      printf(fh,"  };~%")
+    ),
+    printf(fh, "~%"),
+  
+  
+    printf(fh, "} ~%")
+));
+
+calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
+
+  /* Positivity preserving algorithm only for p=1 for now. */
+  if applyPos then (
+    pOrderMax : 1
+  ) else (
+    pOrderMax : pMax
+  ),
+
+  for polyOrder : 1 thru pOrderMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+
+    /* Load basis of dimensionality requested. */
+    modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
+    load(modNm),
+
+    /* Variables. */
+    cv : varsC[dir],
+    surfVars : delete(cv,varsC),
+
+    /* Polynomial basis and its derivatives. */
+    bC  : basisC[polyOrder],
+    N   : length(bC),
+    bCp : diff(bC,cv),
+
+    /* Function expanded in basis. */
+    fl_e : doExpand1(fl, bC),
+    fr_e : doExpand1(fr, bC),
+
+    printf(fh,"void ~a_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, cvars[dir], polyOrder),
+    printf(fh,"  // w[~a]:      Cell-center coordinates.~%",cdim),
+    printf(fh,"  // dxv[~a]:    Cell spacing.~%",cdim),
+    printf(fh,"  // idx[~a]:    current grid index.~%",cdim),
+    printf(fh,"  // nu[~a]:     diffusion coefficient (collisionality).~%",cdim),
+    printf(fh,"  // fl/fr:     Distribution function in left/right cells.~%"),
+    printf(fh,"  // outl/outr: Incremented distribution function in left/right cells ~%"),
     cid : cidx(cdim),
     printf(fh,"  double rdxSq2nul = 2.0*nu[~a]/(dxvl[~a]*dxvl[~a]); ~%", cid[dir], cid[dir], cid[dir]),
     printf(fh,"  double rdxSq2nur = 2.0*nu[~a]/(dxvr[~a]*dxvr[~a]); ~%", cid[dir], cid[dir], cid[dir]),
@@ -90,120 +294,43 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
   
     /* Contribution to vector to the left and right of the boundary. */
     /* incr_r2 has 3 minus signs. One comes from the second integration
-    ** by parts, another from evaluating at upper surface Minus lower
-    ** surface, and the last one from evaluating at cv=-1. */
-    incr_l1 : calcInnerProdList(surfVars,1,subst(cv=1,bC),hsol[2]),
-    incr_l2 : calcInnerProdList(surfVars,-2,subst(cv=1,bCp),hsol[1]),
+       by parts, another from evaluating at upper surface Minus lower
+       surface, and the last one from evaluating at cv=-1. */
+    incr_l2 : calcInnerProdList(surfVars,-2,subst(cv=1,bCp),subst(cv=1,fl_e)),
 
-    incr_r1 : -calcInnerProdList(surfVars,1,subst(cv=-1,bC),hsol[2]),
-    incr_r2 : -calcInnerProdList(surfVars,-2,subst(cv=-1,bCp),hsol[1]),
-    /* Make these two zero indexed for C++ */
-    incr_l1 : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l1),
-    incr_l2 : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l2),
-    incr_r1 : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r1),
-    incr_r2 : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r2),
+    incr_r2 : -calcInnerProdList(surfVars,-2,subst(cv=-1,bCp),subst(cv=-1,fr_e)),
     
-    /* If value of recovery polynomial at the interface is below zero,
-       use its exponential representation. */
-    hsol0 : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),hsol),
-    printf(fh,"  double incr1[~a]; ~%", length(bC)),
-    printf(fh,"  double incr2[~a]; ~%", length(bC)),
-    printf(fh,"  if (~a >= 0.0) {~%", float(expand(hsol0[1]))),
-
     clst : [wxr, dvxr],
-    writeCExprsCollect1(incr1, incr_r1, clst),
-    printf(fh,"~%"),
 
-    writeCExprsCollect1(incr2, incr_r2, clst),
-    printf(fh,"~%"),
-
-    printf(fh,"  } else {~%"),
-    printf(fh,"  double xBar = ~a;~%",float((expand(hsol0[2]+3*hsol0[4]/5)/(3*hsol0[1]+hsol0[3])))),
-    printf(fh,"  double xBarSq = xBar*xBar;~%"),
-    printf(fh,"  double g1 = ~a;~%",float(expand(xBar*(3-xBarSq)/(1-xBarSq)))),
-    printf(fh,"  if (std::abs(g1) > 1.0e-15) {~%"),
-    hsol[1] : g1*(hsol[1]+hsol[3]/3)/sinh(g1),
-    hsol[2] : g1*hsol[1],
-    incr_l1E : calcInnerProdList(surfVars,1,subst(cv=1,bC),hsol[2]),
-    incr_l2E : calcInnerProdList(surfVars,-2,subst(cv=1,bCp),hsol[1]),
-    incr_r1E : -calcInnerProdList(surfVars,1,subst(cv=-1,bC),hsol[2]),
-    incr_r2E : -calcInnerProdList(surfVars,-2,subst(cv=-1,bCp),hsol[1]),
-    incr_l1E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l1E),
-    incr_l2E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l2E),
-    incr_r1E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r1E),
-    incr_r2E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r2E),
-
-    clst : [wxr, dvxr],
-    writeCExprsCollect1(incr1, incr_r1E, clst),
-    printf(fh,"~%"),
-    writeCExprsCollect1(incr2, incr_r2E, clst),
-    printf(fh,"~%"),
-    printf(fh,"  } else {~%"),
-    hsol[1] : hsol[1]+hsol[3]/3,
-    hsol[2] : 0,
-    incr_l1E : calcInnerProdList(surfVars,1,subst(cv=1,bC),hsol[2]),
-    incr_l2E : calcInnerProdList(surfVars,-2,subst(cv=1,bCp),hsol[1]),
-    incr_r1E : -calcInnerProdList(surfVars,1,subst(cv=-1,bC),hsol[2]),
-    incr_r2E : -calcInnerProdList(surfVars,-2,subst(cv=-1,bCp),hsol[1]),
-    incr_l1E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l1E),
-    incr_l2E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_l2E),
-    incr_r1E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r1E),
-    incr_r2E : psubst(append(makelist(fr[i]=fr[i-1],i,1,N),makelist(fl[i]=fl[i-1],i,1,N)),incr_r2E),
-
-    clst : [wxr, dvxr],
-    writeCExprsCollect1(incr1, incr_r1E, clst),
-    printf(fh,"~%"),
-    writeCExprsCollect1(incr2, incr_r2E, clst),
-    printf(fh,"~%"),
-    printf(fh,"  };~%"),
+    printf(fh, "  if (idxr[~a] == 1) {~%", dir),
     printf(fh, "~%"),
-    printf(fh,"  };~%"),
+
+    /* Write out contribution right cell. */
+    writeCIncrCollect1s(outr, rdxSq2nur*incr_r2, clst, 2),
+    printf(fh, "~%"),
+
+    printf(fh, "  } else {~%"),
+    printf(fh, "~%"),
+
+    /* Write out contribution to left cell. */
+    writeCIncrCollect1s(outl, rdxSq2nul*incr_l2, clst, 2),
+    printf(fh, "~%"),
+
+    printf(fh, "  }~%"),
+
     printf(fh, "~%"),
   
-    incr_s1 : makelist(incr1[i-1], i, 1, N),
-    incr_s2 : makelist(incr2[i-1], i, 1, N),
-    /* Don't do coefficients where the increment is zero */
-    for i : 1 thru N do (
-      if (incr_r1[i] = 0) then
-        incr_s1[i] : 0,
-      if (incr_r2[i] = 0) then
-        incr_s2[i] : 0
-    ), 
-    writeCIncrExprs1(outr, rdxSq2nur*(incr_s1+incr_s2)),
-    printf(fh, "~%"),
-  
-/*    signs : fullratsimp(incr_l/incr_r), */
-    signs1 : makelist(1,i,1,N),
-    signs2 : makelist(1,i,1,N),
-    for i : 1 thru N do (
-        if (incr_r1[i] = 0) then
-          false
-        else
-          signs1[i] : fullratsimp(incr_l1[i]/incr_r1[i]),
-        if (incr_r2[i] = 0) then
-          false
-        else
-          signs2[i] : fullratsimp(incr_l2[i]/incr_r2[i])
-    ),
-    incr_s1 : makelist(signs1[i]*incr1[i-1], i, 1, N),
-    incr_s2 : makelist(signs2[i]*incr2[i-1], i, 1, N),
-    /* Don't do coefficients where the increment is zero */
-    for i : 1 thru N do (
-      if (incr_r1[i] = 0) then
-        incr_s1[i] : 0
-    ), 
-    for i : 1 thru N do (
-      if (incr_r2[i] = 0) then
-        incr_s2[i] : 0
-    ), 
-    writeCIncrExprs1(outl, rdxSq2nul*(incr_s1+incr_s2)),
-    printf(fh, "~%"),
   
     printf(fh, "} ~%")
 ));
 
-calcConstDiffusionSurfUpdater(fh, funcNm, cdim, basisFun, polyOrderMax) := block([],
+calcConstDiffusionSurfUpdater(fh, funcNm, cdim, basisFun, polyOrderMax, usePos) := block([],
   printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
-  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, polyOrderMax) )
+  for dir : 1 thru cdim do ( calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, polyOrderMax, usePos) )
+)$
+
+calcConstDiffusionBoundarySurfUpdater(fh, funcNm, cdim, basisFun, polyOrderMax, usePos) := block([],
+  printf(fh, "#include <ConstDiffusionModDecl.h> ~%"),
+  for dir : 1 thru cdim do ( calcBoundaryUpdateInDir(dir, fh, funcNm, cdim, basisFun, polyOrderMax, usePos) )
 )$
 

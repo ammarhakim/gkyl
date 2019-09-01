@@ -2,16 +2,24 @@ cvars : [X, Y, Z]$
 
 fh : openw("~/max-out/ConstDiffusionModDecl.h")$
 
+polyOrderMax : 3$
+
 printf(fh, "#ifndef CONSTDIFFUSION_MOD_DELC_H ~%")$
 printf(fh, "#define CONSTDIFFUSION_MOD_DELC_H ~%")$
 printf(fh, "#include <cmath> ~%")$
 printf(fh, "extern \"C\" { ~%")$
 
+/* Maximal order basis. */
 for ci : 1 thru 3 do (
-    for pi : 1 thru 4 do (
-      printf(fh, "double ConstDiffusionVol~axMaxP~a(const double *w, const double *dxv, const double nu, const double *f, double *out); ~%", ci, pi),
+    for pi : 1 thru polyOrderMax do (
+      printf(fh, "double ConstDiffusionVol~axMaxP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out); ~%", ci, pi),
       for si : 1 thru ci do (
-        printf(fh, "void ConstDiffusionSurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+        printf(fh, "void ConstDiffusionSurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
+        printf(fh, "void ConstDiffusionBoundarySurf~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
+          if pi=1 then (
+            /* Add kernels for positivity preserving algorithm. */
+            printf(fh, "void ConstDiffusionSurfPositivity~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+          )
       ),
       printf(fh, "~%")      
     ),
@@ -20,11 +28,17 @@ for ci : 1 thru 3 do (
 
 printf(fh, "~% ~%")$
 
+/* Serendipity basis. */
 for ci : 1 thru 3 do (
     for pi : 1 thru 4 do (
-      printf(fh, "double ConstDiffusionVol~axSerP~a(const double *w, const double *dxv, const double nu, const double *f, double *out); ~%", ci, pi),
+      printf(fh, "double ConstDiffusionVol~axSerP~a(const double *w, const double *dxv, const double *nu, const double *f, double *out); ~%", ci, pi),
       for si : 1 thru ci do (
-        printf(fh, "void ConstDiffusionSurf~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+        printf(fh, "void ConstDiffusionSurf~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
+        printf(fh, "void ConstDiffusionBoundarySurf~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const int *idxl, const int *idxr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi),
+          if pi=1 then (
+            /* Add kernels for positivity preserving algorithm. */
+            printf(fh, "void ConstDiffusionSurfPositivity~axSer_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
+          )
       ),
       printf(fh, "~%")
     ),
