@@ -43,7 +43,7 @@ void ConstDiffusionSurfPositivity1xSer_X_P1(const double *wl, const double *wr, 
       outl[1] += incr1[1]*rdxSq2nul-1.0*incr2[1]*rdxSq2nul; 
     } else {
 
-      incr2[1] = (0.8660254037844386*fr[0]*g1)/std::sinh(g1)+(0.8660254037844386*fl[0]*g1)/std::sinh(g1)+fr[1]-1.0*fl[1]; 
+      incr2[1] = 0.8660254037844386*fr[0]+0.8660254037844386*fl[0]; 
 
       outr[1] += incr2[1]*rdxSq2nur; 
 
