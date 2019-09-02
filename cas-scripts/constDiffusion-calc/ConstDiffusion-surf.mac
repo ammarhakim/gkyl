@@ -227,17 +227,17 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
 
       printf(fh,"      double g1Sq = g1*g1;~%"),
 
-      hsol[1] : g1*(hsol[1]+hsol[3]/3)/sinh(g1),
-      hsol[2] : g1*hsol[1],
+      expg0  : g1*(hsol[1]+hsol[3]/3)/sinh(g1),
+      gprime : g1*expg0,
 
-      compWriteIncr(hsol[1], hsol[2], 4),
+      compWriteIncr(expg0, gprime, 4),
 
       printf(fh,"    } else {~%"),
 
-      hsol[1] : hsol[1]+hsol[3]/3,
-      hsol[2] : 0,
+      expg0  : hsol[1]+hsol[3]/3,
+      gprime : 0,
 
-      compWriteIncr(hsol[1], hsol[2], 4),
+      compWriteIncr(expg0, gprime, 4),
 
       printf(fh,"    };~%"),
       printf(fh, "~%"),

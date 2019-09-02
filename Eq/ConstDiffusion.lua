@@ -79,8 +79,8 @@ end
 
 -- Volume integral term for use in DG scheme.
 function ConstDiffusion:volTerm(w, dx, idx, q, out)
-   local cflFreqDiffusion = self._volTerm(w:data(), dx:data(), self._nu:data(), q:data(), out:data())
-   return cflFreqDiffusion
+   local cflFreq = self._volTerm(w:data(), dx:data(), self._nu:data(), q:data(), out:data())
+   return cflFreq
 end
 
 -- Surface integral term for use in DG scheme.

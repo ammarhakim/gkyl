@@ -67,13 +67,13 @@ calcConstDiffusionVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
     printf(fh,"~%"),
 
     if cdim = 1 then (
-      printf(fh,"  return rdxSq4nu[0]*0.5; ~%")
+      printf(fh,"  return rdxSq4nu[0]*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
     ),
     if cdim = 2 then (
-      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1])*0.5; ~%")
+      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1])*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
     ),
     if cdim = 3 then (
-      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1]+rdxSq4nu[2])*0.5; ~%")
+      printf(fh,"  return (rdxSq4nu[0]+rdxSq4nu[1]+rdxSq4nu[2])*0.5*~a; ~%",float(((polyOrder+1)**2)/(2*polyOrder+1)))
     ),
     printf(fh,"~%"),
   

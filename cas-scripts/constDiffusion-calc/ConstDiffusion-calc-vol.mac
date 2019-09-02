@@ -8,12 +8,12 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 3$
 minCdim_Ser : 1$
-maxCdim_Ser : 2$
+maxCdim_Ser : 3$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 3$
 minCdim_Max : 1$
-maxCdim_Max : 2$
+maxCdim_Max : 3$
 
 /* ...... END OF USER INPUTS........ */
 
