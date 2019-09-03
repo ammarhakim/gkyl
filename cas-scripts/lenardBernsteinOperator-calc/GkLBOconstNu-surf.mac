@@ -158,12 +158,52 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
        1D recovery polynomial coefficients computed above. */
     hsol : psubst(append(makelist(fl[i]=fls[i], i, 1, N1), makelist(fr[i]=frs[i], i, 1, N1)), hsol1),
     
+    /* Because f's in hsol are index-1, we need to switch to
+       0-indexed for C++. */
+    subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
+    hsol : psubst(subList,hsol),
+
     /* Write out the full recovery polynomial and its derivative. */
     h : sum(hsol[i]*vv^(i-1), i, 1, 2*N1),
     hp : diff(h,vv),
     /* Evaluate the recovery polynomial at the discontinuity. */
     hsol0 : subst(vv=0,h),
     hsolp0 : subst(vv=0,diff(h,vv)),
+
+    /*............. Positivity-preserving recovery .............*/
+
+    if (applyPos) then ( 
+      /* In order to preserve positivity we will first use an exponential
+         representation to the recovery polynomial when the interaface
+         value falls below zero. But in this case the interface is a
+         hypersurface. We will evaluate the recovery polynomial at all
+         the quadrature points for now (other options are corners and
+         positivity control points).*/
+
+
+      /* This function evaluates at all combinations of quadrature points. */
+      hsolEv : makelist(0,i,1,2^(cdim+vdim-1)),
+      iHe : 1,
+      quadEval(fIn,evalVars) := block([v1,otherVars,fSub],
+        v1        : evalVars[1],
+        otherVars : delete(v1,evalVars),
+        for iQ : -1 step 2 thru 1 do (
+          fSub : subst(v1=iQ*(1/sqrt(3)),fIn),
+          if length(otherVars)>0 then (
+            quadEval(fSub,otherVars)
+          ) else (
+            hsolEv[iHe] : fSub,
+            iHe : iHe + 1
+          )
+        )
+      ),
+      quadEval(hsol[1],surfVars),
+
+      xBarC  : (hsol[2]+3*hsol[4]/5)/(3*hsol[1]+hsol[3]),
+      g1     : xBar*(3-xBarSq)/(1-xBarSq),
+      expg0  : g1*(hsol[1]+hsol[3]/3)/sinh(g1),
+      gprime : g1*expg0
+    ),
 
     /*............. RECOVERY DONE ..............................*/
 
@@ -232,11 +272,8 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
     /* Separate out diffusion part of Ghat to simplify Ghat assignment.
        Leave the rdv factor out for later multiplication. */
     Gdiff_c : fullratsimp(calcInnerProdList(varsP,1,bP,diffFac_e*hsol[2])),
-    /* Because f's in hsol are index-1, we need to switch to
-       0-indexed for C++. */
-    subList : append(makelist(fr[i]=fr[i-1],i,1,NP),makelist(fl[i]=fl[i-1],i,1,NP)),
-    Gdiff_c : psubst(subList,Gdiff_c),
-    Gdiff_e : doExpand(Gdiff_c, bP),
+    alst    : doMakeExprLst(Gdiff_c, Gdiff),
+    Gdiff_e : doExpand(alst, bP),
     
     if applyPos then (
       /* Function expanded in basis. */
@@ -310,18 +347,11 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
     Ghat_final : subst(vv=1, Ghat_e),
 
     /* Increments to the right cell (some dimensional factors missing).
-    ** Here incr_r1 and incr_r2 have separate left/right symmetry. */
+       incr_r1 and incr_r2 (farther below) have separate left/right symmetry. */
     incr_r1 :  calcInnerProdList(surfVars, -1, subst(vv=-1, bP), Ghat_final),
-    incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*hsol[1])),
 
     /* Increments to the left cell (some dimensional factors missing). */
     incr_l1 :  calcInnerProdList(surfVars, 1, subst(vv=1, bP), Ghat_final),
-    incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*hsol[1])),
-
-    /* Because f's in hsol are index-1, we need to switch to
-    ** 0-indexed for C++. */
-    incr_l2 : psubst(subList,incr_l2),
-    incr_r2 : psubst(subList,incr_r2),
 
     if (not applyPos) then (
       if numFluxOp=0 then (
@@ -374,38 +404,79 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       printf(fh, "~%")
     ),
 
-    /* Declare and zero out Ghat. */
+    /* Write the diffusive part of Ghat into its own variable. */
+    printf(fh, "  double Gdiff[~a]; ~%", NP),
+
+    /* Declare Ghat. */
     printf(fh, "  double Ghat[~a]; ~%", NP),
-    printf(fh, "  for(unsigned short int i=0; i<~a; ++i){ ~%", NP),
-    printf(fh, "    Ghat[i]=0.0; ~%", 0),
-    printf(fh, "  }; ~%"),
-    printf(fh, "~%"),
 
+    /* Declare variable with contribution from second integration by parts. */
     printf(fh, "  double incr2[~a]; ~%", NP),
-    /* Evaluate recovery polynomial at the boundary, and if it's
-       negative simply set it to zero. */
-    hsolQuadP : hsol[2],
-    hsolQuadM : hsol[2],
-    for i : 1 thru length(surfVars) do (
-      hsolQuadP : subst(surfVars[i]=1/sqrt(3), hsolQuadP),
-      hsolQuadM : subst(surfVars[i]=-1/sqrt(3),hsolQuadM)
+    printf(fh, "~%"),
+
+    if (not applyPos) then (
+
+      print(hsol),
+
+      incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*hsol[1])),
+      incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*hsol[1])),
+
+      clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
+      writeCExprsCollect1c(incr2, radcan(incr_r2)),
+      printf(fh, "~%"),
+
+      clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
+      writeCExprsCollect1c(Gdiff, Gdiff_c),
+      printf(fh, "~%"),
+
+      /* Populate Ghat including the diffusion term. */
+      clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
+      writeCExprsCollect1(Ghat, Ghat_c, clst)
+
+    ) else (
+      /* If the recovery polynomial is negative at some key points
+         (hsolEv above) use an exponential representation. */
+      hsolEvIfCond : "((",
+      for iS : 1 thru length(hsolEv) do ( 
+        hsolEvIfCond : sconcat(string(float(expand(hsolEv[iS]))),">=0.0)"),
+        if iS=length(hsolEv) then (
+          hsolEvIfCond : sconcat(hsolEvIfCond,")")
+        ) else (
+          hsolEvIfCond : sconcat(hsolEvIfCond," && (")
+        )
+      ),
+
+      printf(fh, " if ~a {~%",hsolEvIfCond),
+
+      /* Recovery poly is positive at key points.
+         Do the same as if no positivity is applied. */
+      incr_r2 :  fullratsimp(-calcInnerProdList(surfVars, -1, subst(vv=-1, bPp), diffFac_e*hsol[1])),
+      incr_l2 :  fullratsimp(-calcInnerProdList(surfVars, 1, subst(vv=1, bPp), diffFac_e*hsol[1])),
+
+      clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
+      writeCExprsCollect1c(incr2, radcan(incr_r2)),
+      printf(fh, "~%"),
+
+      clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
+      writeCExprsCollect1c(Gdiff, Gdiff_c),
+      printf(fh, "~%"),
+
+      clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
+      writeCExprsCollect1(Ghat, Ghat_c, clst),
+
+      printf(fh,"  } else {~%"),
+
+      /* Need to perform multidimensional exponential reconstruction. */
+      writeCExprsWithZeros1(incr2, makelist(0.0,i,1,length(incr_r2))),
+      printf(fh, "~%"),
+
+      /* Populate Ghat without diffusion contribution. */
+      clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
+      writeCExprsCollect1(Ghat, GhatNoDiff_c, clst),
+
+      printf(fh,"  };~%")
+  
     ),
-    printf(fh, " if ((~a<0.0) || (~a<0.0)) {~%",float(expand(hsolQuadP)),float(expand(hsolQuadM))),
-    writeCExprsWithZeros1(incr2, makelist(0.0,i,1,length(incr_r2))),
-    printf(fh, "~%"),
-    /* Populate Ghat without diffusion contribution. */
-    clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
-    writeCExprsCollect1(Ghat, GhatNoDiff_c, clst),
-
-    printf(fh, "  } else {~%"),
-
-    clst : append(makelist(nuVtSqSum[i],i,0,NC-1), makelist(BmagInv[i],i,0,NC-1)),
-    writeCExprsCollect1c(incr2, radcan(incr_r2)),
-    printf(fh, "~%"),
-    /* Populate Ghat including the diffusion term. */
-    clst : append([rdv], makelist(alphaDrag[i],i,0,NC-1)),
-    writeCExprsCollect1(Ghat, Ghat_c, clst),
-    printf(fh, "  };~%"),
     printf(fh, "~%"),
 
     /* Write out increment 1. */

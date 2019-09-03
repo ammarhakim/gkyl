@@ -217,7 +217,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
 
       printf(fh,"  } else {~%"),
       printf(fh,"~%"),
-      printf(fh,"    double xBar = ~a;~%",float((expand(hsol[2]+3*hsol[4]/5)/(3*hsol[1]+hsol[3])))),
+      printf(fh,"    double xBar = ~a;~%",float(expand((hsol[2]+3*hsol[4]/5)/(3*hsol[1]+hsol[3])))),
       printf(fh,"    double xBarSq = xBar*xBar;~%"),
       printf(fh,"    double g1 = ~a;~%",float(expand(xBar*(3-xBarSq)/(1-xBarSq)))),
       printf(fh,"~%"),
