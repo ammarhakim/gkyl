@@ -142,7 +142,7 @@ function GkLBO:volTerm(w, dx, idx, q, out)
       local nuUParSum0 = self._nuUSumPtr[1]*self._cellAvFac
       local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-          (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
+          (nuVtSqSum0>=0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
          cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
       else
          cflFreq = 0.0
@@ -206,7 +206,7 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
          local nuUParSum0 = self._nuUSumPtr[1]*self._cellAvFac
          local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
-             (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
+             (nuVtSqSum0>=0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
             vMuMidMax = self._boundarySurfUpdate[dir-self._cdim](
                self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
@@ -246,6 +246,8 @@ function GkLBO:setAuxFields(auxFields)
 
       self._isFirst = false -- No longer first time.
    end
+
+   self._nuVtSqSum:clear(0.)
 end
 
 function GkLBO:pdim() return self._pdim end

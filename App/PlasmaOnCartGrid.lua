@@ -479,22 +479,22 @@ local function buildApplication(self, tbl)
 
       -- RK stage 2.
       forwardEuler(tCurr+dt, dt, 2, 3)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 3)
+      end
       local tm = Time.clock()
       combine(2, 3.0/4.0, 1, 1.0/4.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
-      for nm, s in pairs(species) do
-         status = status and s:checkPositivity(tCurr, 2)
-      end
       if not status then return status, dt end
 
       -- RK stage 3.
       forwardEuler(tCurr+dt/2, dt, 2, 3)
+      for nm, s in pairs(species) do
+         status = status and s:checkPositivity(tCurr, 3)
+      end
       tm = Time.clock()
       combine(2, 1.0/3.0, 1, 2.0/3.0, 3)
       stepperTime = stepperTime + (Time.clock() - tm)
-      for nm, s in pairs(species) do
-         status = status and s:checkPositivity(tCurr, 2)
-      end
       if status then copy(1, 2) end
  
       return status, dt

@@ -85,7 +85,7 @@ plasmaApp = Plasma.App {
    basis       = "serendipity",            -- One of "serendipity" or "maximal-order".
    polyOrder   = 1,                        -- Polynomial order.
    timeStepper = "rk3",                    -- One of "rk2" or "rk3".
-   cflFrac     = 0.5,
+   cflFrac     = 1.,
    restartFrameEvery = .5,
 
    -- Boundary conditions for configuration space.
