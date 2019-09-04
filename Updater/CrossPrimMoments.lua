@@ -94,7 +94,7 @@ function CrossPrimMoments:init(tbl)
    -- To obtain the cell average, multiply the zeroth coefficient by this factor.
    self._cellAvFac = 1.0/math.sqrt(2.0^self._cDim)
 
-   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
 end
 
 -- Advance method.
@@ -220,8 +220,8 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
                   nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
                   nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
 
-                  nuSelf  = nuSelfItr[0]*self._cellAvFac 
-                  nuOther = nuOtherItr[0]*self._cellAvFac 
+                  nuSelf  = nuSelfItr[1]*self._cellAvFac 
+                  nuOther = nuOtherItr[1]*self._cellAvFac 
                else
                   nuSelf  = nuSelfIn
                   nuOther = nuOtherIn
@@ -266,8 +266,8 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
                   nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
                   nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
 
-                  nuSelf  = nuSelfItr[0]*self._cellAvFac 
-                  nuOther = nuOtherItr[0]*self._cellAvFac 
+                  nuSelf  = nuSelfItr[1]*self._cellAvFac 
+                  nuOther = nuOtherItr[1]*self._cellAvFac 
                else
                   nuSelf  = nuSelfIn
                   nuOther = nuOtherIn
@@ -299,8 +299,8 @@ function CrossPrimMoments:_advance(tCurr, inFld, outFld)
                nuSelfIn:fill(confIndexer(cIdx), nuSelfItr)
                nuOtherIn:fill(confIndexer(cIdx), nuOtherItr)
 
-               nuSelf  = nuSelfItr[0]*self._cellAvFac 
-               nuOther = nuOtherItr[0]*self._cellAvFac 
+               nuSelf  = nuSelfItr[1]*self._cellAvFac 
+               nuOther = nuOtherItr[1]*self._cellAvFac 
             else
                nuSelf  = nuSelfIn
                nuOther = nuOtherIn
