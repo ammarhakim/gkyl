@@ -31,14 +31,14 @@ getRecov2Cell(dir, numDims, polyOrder, qM, qP) := block(
     dimProjM : calcInnerProdListGen([dir], [[-2, 0]], 1, baM1D, doExpand(qM, baMND)),
     dimProjP : calcInnerProdListGen([dir], [[0, 2]], 1, baP1D, doExpand(qP, baPND)),
     projSubList : append (
-      makelist(qM1D[i]=dimProjM[i], i, 1, N),
-      makelist(qP1D[i]=dimProjP[i], i, 1, N)
+      makelist(qM1D[i]=dimProjM[i], i, 1, length(basis1D)),
+      makelist(qP1D[i]=dimProjP[i], i, 1, length(basis1D))
       )
     )
   else (
     projSubList : append (
-      makelist(qM1D[i]=qM[i], i, 1, N),
-      makelist(qP1D[i]=qP[i], i, 1, N)
+      makelist(qM1D[i]=qM[i], i, 1, length(basis1D)),
+      makelist(qP1D[i]=qP[i], i, 1, length(basis1D))
       )
     ),
 
@@ -79,27 +79,27 @@ getRecov3Cell(dir, numDims, polyOrder, C, qM, qC, qP) := block(
   
   if numDims > 1 then (
     /* Creating substitution lists to get the y-dependence */
-    baM1D : eta1D(-2, 0, basis1D),
-    baP1D : eta1D(2, 0, basis1D),
+    baM1D : eta1D(dir, -2, basis1D),
+    baP1D : eta1D(dir, 2, basis1D),
     load(sconcat("basis-precalc/basisSer", numDims, "x")),
     basisND : basisC[polyOrder],
-    baMND : eta1D(-2, 0, basisND),
+    baMND : eta1D(dir, -2, basisND),
     baCND : basisND,
-    baPND : eta1D(22, 0, basisND),
+    baPND : eta1D(dir, 2, basisND),
     dimProjM : calcInnerProdListGen([dir], [[-3, -1]], 1, baM1D, doExpand(qM, baMND)),
     dimProjC : calcInnerProdListGen([dir], [[-1, 1]], 1, baC1D, doExpand(qC, baCND)),
     dimProjP : calcInnerProdListGen([dir], [[1, 3]], 1, baP1D, doExpand(qP, baPND)),
     projSubList : append (
-      makelist(qM1D[i]=dimProjM[i], i, 1, N),
-      makelist(qC1D[i]=dimProjC[i], i, 1, N),
-      makelist(qP1D[i]=dimProjP[i], i, 1, N)
+      makelist(qM1D[i]=dimProjM[i], i, 1, length(basis1D)),
+      makelist(qC1D[i]=dimProjC[i], i, 1, length(basis1D)),
+      makelist(qP1D[i]=dimProjP[i], i, 1, length(basis1D))
       )
     )
   else (
     projSubList : append (
-      makelist(qM1D[i]=qM[i], i, 1, N),
-      makelist(qC1D[i]=qC[i], i, 1, N),
-      makelist(qP1D[i]=qP[i], i, 1, N)
+      makelist(qM1D[i]=qM[i], i, 1, length(basis1D)),
+      makelist(qC1D[i]=qC[i], i, 1, length(basis1D)),
+      makelist(qP1D[i]=qP[i], i, 1, length(basis1D))
       )
     ),
 
