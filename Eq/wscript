@@ -71,7 +71,9 @@ def build(bld):
     constDiffusionData/ConstDiffusionSurfSer2x.cpp
     constDiffusionData/ConstDiffusionSurfSer3x.cpp
     constDiffusionData/ConstDiffusionBoundarySurfSer1x.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer2x.cpp
     constDiffusionData/ConstDiffusionSurfPositivitySer1x.cpp
+    constDiffusionData/ConstDiffusionSurfPositivitySer2x.cpp
 
     maxwellData/MaxwellVolSer1x.cpp
     maxwellData/MaxwellVolSer2x.cpp

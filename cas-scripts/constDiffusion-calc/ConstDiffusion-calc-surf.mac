@@ -8,12 +8,12 @@ load(stringproc)$
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
-maxCdim_Ser : 1$
+maxCdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
 minCdim_Max : 1$
-maxCdim_Max : 1$
+maxCdim_Max : 2$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -24,7 +24,7 @@ minCdim      : [minCdim_Ser,minCdim_Max]$
 maxCdim      : [maxCdim_Ser,maxCdim_Max]$
 
 for bInd : 1 thru length(bName) do (
-  for c : 1 thru 1 do (
+  for c : 1 thru maxCdim[bInd] do (
 
     /* Kernels without positivity fix. */
     usePositivity : false,
