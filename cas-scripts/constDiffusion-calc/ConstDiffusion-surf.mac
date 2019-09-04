@@ -49,6 +49,63 @@ writeCIncrCollect1s(lhs, rhs, clst, nSpaces) := block([expr],
   )
 )$
 
+writeCExprs1s(lhs, rhs, nSpaces) := block([expr],
+  expr : expand(float(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("std::sinh","sinh",ep),
+      for iC : 0 thru Ncp-1 do (
+        ep : ssubst(sconcat("xBarSq[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^2"),ep),
+        ep : ssubst(sconcat("g1Sq"),
+                    sconcat("g1[",string(iC),"]^2"),ep)
+      ),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], ep)
+    )
+  )
+)$
+
+writeCExprs1sI(lhs, iOut, rhs, nSpaces) := block([expr],
+  expr : expand(float(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      ep : ssubst("std::sinh","sinh",ep),
+      for iC : 0 thru Ncp-1 do (
+        ep : ssubst(sconcat("xBarSq[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^2"),ep),
+        ep : ssubst(sconcat("g1Sq"),
+                    sconcat("g1[",string(iC),"]^2"),ep)
+      ),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[iOut], ep)
+    )
+  )
+)$
+
+writeCExprs1so(lhs, rhs, nSpaces) := block([expr],
+  for i : 1 thru length(rhs) do (
+    expr : float(expand(num(rhs[i]))/denom(rhs[i])),
+    if expr # 0 then (
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], expr)
+    )
+  )
+)$
+
+writeCExprs1sP(lhs, rhs, nSpaces) := block([expr],
+  expr : expand(float(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      for iC : 0 thru Ncp-1 do (
+        ep : ssubst(sconcat("xBar[",string(iC),"]*xBar[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^2"),ep)
+      ),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[i-1], ep)
+    )
+  )
+)$
+
 /* Given the value of the recovery polynomial (fRec) and its derivative
    (frecP) at the interface, this function computes the increments and
    writes them to the kernel file. */
@@ -209,38 +266,117 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
 
     ) else (
 
-      /* For positivity: If value of recovery polynomial at the interface
-         is below zero, use its exponential representation. */
-      printf(fh,"  if (~a >= 0.0) {~%", float(expand(hsol[1]))),
+      /* Evaluate the coefficients of the recovery polynomial at all
+         combinations of (+/- evalPoint) points. */
+      pointEval(fEvOut,fIn,evalVars,evalPoint,compIn) := block([v1,otherVars,fSub],
+        v1        : evalVars[1],
+        otherVars : delete(v1,evalVars),
+        for iQ : -1 step 2 thru 1 do (
+          fSub : subst(v1=iQ*evalPoint,fIn),
+          if length(otherVars)>0 then (
+            pointEval(fSub,otherVars,evalPoint,compIn)
+          ) else (
+            fEvOut[compIn][iHe] : fSub,
+            iHe : iHe + 1
+          )
+        )
+      ),
+
+      /* Evaluate boundary value of recovery polynomial at key (control) points. */
+      Ncp : 2^(cdim-1),  /* Number of control points. */
+      hsolKP: [makelist(0,j,1,Ncp)],
+      iHe : 1,
+      if (length(surfVars)>0) then (
+        pointEval(hsolKP,hsol[1],surfVars,1/3,1)
+      ) else (
+        hsolKP[1][iHe] : hsol[1]
+      ),
+
+
+      /* If value of recovery polynomial at the interface, evaluated at key
+         points, is below zero, use its exponential representation. */
+      hsolKPifCond : "(",
+      for iS : 1 thru length(hsolKP[1]) do (
+        hsolKPifCond : sconcat(hsolKPifCond,string(float(expand(hsolKP[1][iS]))),">=0.0)"),
+        if iS<length(hsolKP[1]) then (
+          hsolKPifCond : sconcat(hsolKPifCond," && (")
+        )
+      ),
+      printf(fh,"  if ( ~a ) {~%",hsolKPifCond),
 
       compWriteIncr(hsol[1], hsol[2], 2),
 
       printf(fh,"  } else {~%"),
       printf(fh,"~%"),
-      printf(fh,"    double xBar = ~a;~%",float(expand((hsol[2]+3*hsol[4]/5)/(3*hsol[1]+hsol[3])))),
-      printf(fh,"    double xBarSq = xBar*xBar;~%"),
-      printf(fh,"    double g1 = ~a;~%",float(expand(xBar*(3-xBarSq)/(1-xBarSq)))),
+
+      Ncp : 2^(cdim-1),  /* Number of control points. */
+      hsolEv : makelist(makelist(0,j,1,Ncp),i,1,4),
+      for iC : 1 thru 4 do (
+        iHe : 1,
+        if (length(surfVars)>0) then (
+          pointEval(hsolEv,hsol[iC],surfVars,1/3,iC)
+        ) else (
+          hsolEv[iC][iHe] : hsol[iC]
+        )
+      ),
+
+      /* At each point we evaluated the recovery poly, need to reconstruct
+         an exponential, for which we need xBar, xBarSq and g1. */
+      xBars : makelist(0,i,1,Ncp),
+      for iCP : 1 thru Ncp do (
+        xBars[iCP] : (hsolEv[2][iCP]+3*hsolEv[4][iCP]/5)/(3*hsolEv[1][iCP]+hsolEv[3][iCP])
+      ),
+
+      xBarsSq : makelist(xBar[i]*xBar[i],i,0,Ncp-1),
+      g1s     : makelist(xBar[i]*(3-xBarSq[i])/(1-xBarSq[i]),i,0,Ncp-1),
+
+      printf(fh,"    double xBar[~a];~%",Ncp),
+      writeCExprs1so(xBar,xBars,2),
       printf(fh,"~%"),
-      /* When the function is very flat we need to compute the exponential
-         differently so that 1/sinh(g1) doesn't blow up. */
-      printf(fh,"    if (std::abs(g1) > 1.0e-15) {~%"),
 
-      printf(fh,"      double g1Sq = g1*g1;~%"),
+      printf(fh,"    double xBarSq[~a];~%", Ncp),
+      writeCExprs1sP(xBarSq,xBarsSq,2),
+      printf(fh,"~%"),
 
-      expg0  : g1*(hsol[1]+hsol[3]/3)/sinh(g1),
-      gprime : g1*expg0,
+      printf(fh,"    double g1[~a];~%",Ncp),
+      writeCExprs1s(g1,g1s,2),
+      printf(fh,"~%"),
 
-      compWriteIncr(expg0, gprime, 4),
+      printf(fh,"    double gBound[~a];~%",Ncp),
+      printf(fh,"    double gBoundP[~a];~%",Ncp),
+      printf(fh,"~%"),
 
-      printf(fh,"    } else {~%"),
+      for iCP : 1 thru Ncp do (
+        /* When the function is very flat we need to compute the exponential
+           differently so that 1/sinh(g1) doesn't blow up. */
+        printf(fh,"    if (std::abs(g1[~a]) > 1.0e-15) {~%",iCP-1),
 
-      expg0  : hsol[1]+hsol[3]/3,
-      gprime : 0,
+        printf(fh,"      double g1Sq = g1[~a]*g1[~a];~%",iCP-1,iCP-1),
 
-      compWriteIncr(expg0, gprime, 4),
+        expg0  : [g1[iCP-1]*(hsolEv[1][iCP]+hsolEv[3][iCP]/3)/sinh(g1[iCP-1])],
+        gprime : [g1[iCP-1]*expg0[1]],
 
-      printf(fh,"    };~%"),
-      printf(fh, "~%"),
+        writeCExprs1sI(gBound,iCP-1,expg0,4),
+        writeCExprs1sI(gBoundP,iCP-1,gprime,4),
+
+        printf(fh,"    } else {~%"),
+
+        expg0  : [hsolEv[1][iCP]+hsolEv[3][iCP]/3],
+        gprime : [0.0],
+
+        writeCExprs1sI(gBound,iCP-1,expg0,4),
+        writeCExprs1sI(gBoundP,iCP-1,gprime,4),
+
+        printf(fh,"    };~%"),
+        printf(fh, "~%")
+      ),
+
+      if (cdim=1) then (
+        compWriteIncr(gBound[0], gBoundP[0], 2)
+      ) else if (cdim=2) then (
+        compWriteIncr((gBound[0]+gBound[1])/2+3*(gBound[0]-gBound[1])*surfVars[1]/2,
+                      (gBoundP[0]+gBoundP[1])/2+3*(gBoundP[0]-gBoundP[1])*surfVars[1]/2,2)
+      ), 
 
       printf(fh,"  };~%")
     ),
