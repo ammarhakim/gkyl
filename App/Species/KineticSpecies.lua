@@ -693,9 +693,9 @@ function KineticSpecies:applyBcIdx(tCurr, idx)
 end
 
 function KineticSpecies:checkPositivity(tCurr, idx)
-  --if self.positivity then
-  --   self.posChecker:checkControlNodes(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
-  --end
+  if self.positivity then
+     self.posChecker:checkControlNodes(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  end
   local status = true
   if self.positivity then
      status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})

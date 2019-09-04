@@ -7,10 +7,10 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 2$
-minCdim_Ser : 1$
-minVdim_Ser : 1$
-maxCdim_Ser : 2$
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 3$
+minVdim_Ser : 2$
+maxCdim_Ser : 3$
 maxVdim_Ser : 2$
 
 /* Maximal order basis. */
@@ -32,8 +32,8 @@ maxVdim      : [maxVdim_Ser]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
-
+    if c=3 then vmin:2 else vmin:c,
+    for v : vmin thru maxVdim[bInd] do (
      usePositivity : false,
      disp(printf(false,sconcat("Creating surface GKLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
      fname : sconcat("~/max-out/GkLBOconstNuSurf", bName[bInd], c, "x", v, "v", ".cpp"),

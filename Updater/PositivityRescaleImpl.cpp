@@ -108,7 +108,7 @@ bool check(const double *fIn, int ndim, int numBasis, int *idx, double tCurr)
   }
 
   double fmin = findMinNodalValue(fIn, ndim);
-  if (fmin < 0.) {
+  if (fmin < 0. and status) {
      if(ndim == 1) {
        printf("warning: negative control node %e in cell %2d, tCurr = %e \n", fmin, idx[0], tCurr);
      } else if(ndim == 2) {
