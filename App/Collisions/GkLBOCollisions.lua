@@ -156,6 +156,8 @@ function GkLBOCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
+   self.usePositivity = speciesTbl.applyPositivity    -- Use positivity preserving algorithms.
+
    self.tmEvalMom = 0.0
 end
 
@@ -261,6 +263,7 @@ function GkLBOCollisions:createSolver(funcField)
       varyingNu        = self.varNu,
       useCellAverageNu = self.cellConstNu,
       mass             = self.mass,
+      positivity       = self.usePositivity,
    }
    self.collisionSlvr = Updater.HyperDisCont {
       onGrid             = self.phaseGrid,

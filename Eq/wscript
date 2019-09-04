@@ -21,6 +21,10 @@ def build(bld):
     lboData/GkLBOconstNuBoundarySurfSer1x2v.cpp
     lboData/GkLBOconstNuBoundarySurfSer2x2v.cpp
     lboData/GkLBOconstNuBoundarySurfSer3x2v.cpp
+    lboData/GkLBOconstNuSurfPositivitySer1x1v.cpp
+    lboData/GkLBOconstNuSurfPositivitySer1x2v.cpp
+    lboData/GkLBOconstNuSurfPositivitySer2x2v.cpp
+    lboData/GkLBOconstNuSurfPositivitySer3x2v.cpp
     
     lboData/VmLBOconstNuSer1x1v.cpp
     lboData/VmLBOconstNuSer1x2v.cpp
@@ -63,10 +67,13 @@ def build(bld):
     constDiffusionData/ConstDiffusionSer1x.cpp
     constDiffusionData/ConstDiffusionSer2x.cpp
     constDiffusionData/ConstDiffusionSer3x.cpp
-
     constDiffusionData/ConstDiffusionSurfSer1x.cpp
     constDiffusionData/ConstDiffusionSurfSer2x.cpp
     constDiffusionData/ConstDiffusionSurfSer3x.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer1x.cpp
+    constDiffusionData/ConstDiffusionBoundarySurfSer2x.cpp
+    constDiffusionData/ConstDiffusionSurfPositivitySer1x.cpp
+    constDiffusionData/ConstDiffusionSurfPositivitySer2x.cpp
 
     maxwellData/MaxwellVolSer1x.cpp
     maxwellData/MaxwellVolSer2x.cpp
