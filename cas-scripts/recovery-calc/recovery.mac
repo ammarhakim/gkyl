@@ -1,0 +1,107 @@
+load("modal-basis") $
+assume(dv[0]>0, dv[1]>0, dv[2]>0) $
+
+eta1D(dir, center, basis) := subst(tmp=dir, subst(dir=(tmp-center), basis)) $
+
+getRecov2Cell(dir, numDims, polyOrder, qM, qP) := block(
+  [N, basis1D, basisND,
+  baM1D, baMND, baP1D, baPND,
+  r, rExp, rSol, rSub, recEqList, qM1D, qP1D],
+  load("basis-precalc/basisSer1x"),
+  basis1D : subst(x=dir, basisC[polyOrder]),
+  N : polyOrder + 1,
+  baM1D : eta1D(dir, -1, basis1D),
+  baP1D : eta1D(dir, 1, basis1D),
+  
+  /* Forming and solving the equation system */
+  rExp : doExpand(r, makelist(dir^i, i, 0, 2*N-1)),
+  recEqList : append(
+    calcInnerProdListGen([dir], [[-2, 0]], 1, baM1D, rExp-doExpand(qM1D, baM1D)),
+    calcInnerProdListGen([dir], [[0, 2]], 1, baP1D, rExp-doExpand(qP1D, baP1D))
+    ),
+  rSol : linsolve(recEqList, makelist(r[i], i, 1, 2*N)),
+  rSub : fullratsimp(subst(rSol, rExp)),
+  
+  if numDims > 1 then (
+    /* Creating substitution lists to get the y-dependence */
+    load(sconcat("basis-precalc/basisSer", numDims, "x")),
+    basisND : basisC[polyOrder],
+    baMND : eta1D(dir, -1, basisND),
+    baPND : eta1D(dir, 1, basisND),
+    dimProjM : calcInnerProdListGen([dir], [[-2, 0]], 1, baM1D, doExpand(qM, baMND)),
+    dimProjP : calcInnerProdListGen([dir], [[0, 2]], 1, baP1D, doExpand(qP, baPND)),
+    projSubList : append (
+      makelist(qM1D[i]=dimProjM[i], i, 1, N),
+      makelist(qP1D[i]=dimProjP[i], i, 1, N)
+      )
+    )
+  else (
+    projSubList : append (
+      makelist(qM1D[i]=qM[i], i, 1, N),
+      makelist(qP1D[i]=qP[i], i, 1, N)
+      )
+    ),
+
+  return(subst(projSubList, rSub))
+  ) $
+
+getRecov3Cell(dir, numDims, polyOrder, C, qM, qC, qP) := block(
+  [N, basis1D, basisND,
+  baM1D, baMND, baC1D, baCND, baP1D, baPND,
+  r, rExp, rSol, rSub, recEqList, qM1D, qC1D, qP1D,
+  rM, rP],
+  load("basis-precalc/basisSer1x"),
+  basis1D : subst(x=dir, basisC[polyOrder]),
+  N : polyOrder + 1,
+  baC1D : basis1D,
+  
+  N : polyOrder + 3,
+  if C = 1 then N : N + 2,
+  
+  /* Forming and solving the equation system */
+  rExp : doExpand(r, makelist(dir^i, i, 0, N-1)),
+  rM : getRecov2Cell(dir, 1, polyOrder, qM1D, qC1D),
+  rP : getRecov2Cell(dir, 1, polyOrder, qC1D, qP1D),
+  recEqList : append(
+    [subst(dir=0, rM) - subst(dir=-1, rExp)],
+    [subst(dir=0, rP) - subst(dir=1, rExp)],
+    calcInnerProdListGen([dir], [[-1, 1]], 1, baC1D, rExp-doExpand(qC1D, baC1D))
+    ),
+  if C = 1 then (
+    recEqList : append(
+      recEqList,
+      [subst(dir=0, diff(rM, dir)) - subst(dir=-1, diff(rExp, dir))],
+      [subst(dir=0, diff(rP, dir)) - subst(dir=1, diff(rExp, dir))]
+      )
+    ),
+  rSol : linsolve(recEqList, makelist(r[i], i, 1, N)),
+  rSub : fullratsimp(subst(rSol, rExp)),
+  
+  if numDims > 1 then (
+    /* Creating substitution lists to get the y-dependence */
+    baM1D : eta1D(-2, 0, basis1D),
+    baP1D : eta1D(2, 0, basis1D),
+    load(sconcat("basis-precalc/basisSer", numDims, "x")),
+    basisND : basisC[polyOrder],
+    baMND : eta1D(-2, 0, basisND),
+    baCND : basisND,
+    baPND : eta1D(22, 0, basisND),
+    dimProjM : calcInnerProdListGen([dir], [[-3, -1]], 1, baM1D, doExpand(qM, baMND)),
+    dimProjC : calcInnerProdListGen([dir], [[-1, 1]], 1, baC1D, doExpand(qC, baCND)),
+    dimProjP : calcInnerProdListGen([dir], [[1, 3]], 1, baP1D, doExpand(qP, baPND)),
+    projSubList : append (
+      makelist(qM1D[i]=dimProjM[i], i, 1, N),
+      makelist(qC1D[i]=dimProjC[i], i, 1, N),
+      makelist(qP1D[i]=dimProjP[i], i, 1, N)
+      )
+    )
+  else (
+    projSubList : append (
+      makelist(qM1D[i]=qM[i], i, 1, N),
+      makelist(qC1D[i]=qC[i], i, 1, N),
+      makelist(qP1D[i]=qP[i], i, 1, N)
+      )
+    ),
+
+  return(subst(projSubList, rSub))
+  ) $
