@@ -98,7 +98,7 @@ function CartFieldSpectralTransform:init(tbl)
    -- Number of spectral modes represented in each 'opDir' direction.
    self._numSpectralModes = {}
    for iDir = 1,#opDir do
-      self._numSpectralModes[iDir] = 44 --(self._polyOrder+1)*self._onGrid:numCells(opDir[iDir])
+      self._numSpectralModes[iDir] = 35 --(self._polyOrder+1)*self._onGrid:numCells(opDir[iDir])
    end
 
    -- Function to create basis functions.

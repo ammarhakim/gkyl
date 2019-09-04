@@ -477,8 +477,6 @@ function KineticSpecies:alloc(nRkDup)
       self.distf[i] = self:allocDistf()
       self.distf[i]:clear(0.0)
    end
-   self.tmpDistF = self:allocDistf()
-   self.tmpDistF:clear(0.0)
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
@@ -729,19 +727,10 @@ function KineticSpecies:calcDiagnosticIntegratedMoments()
 end
 
 function KineticSpecies:calcDistDiagnostics(species)
-   self.tmpDistF:copy(self.distf[1])
-   local hm0 
-   for nm, s in pairs(species) do
-      if (nm == 'h0spec') then
-         hm0 = s.distf[1]
-      end
-   end
-   if (self.name=='neut') then
-      self.tmpDistF:accumulate(-1.0,hm0)
-   end
+   local f = self.distf[1]
    for diag, _ in pairs(self.distDiagnostics) do
       self.distDiagnosticUpdaters[diag]:advance(
-	 0.0, {self.tmpDistF}, {self.distDiagnosticFields[diag]})
+	 0.0, {f}, {self.distDiagnosticFields[diag]})
    end
 end
 
