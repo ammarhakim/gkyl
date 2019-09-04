@@ -1,0 +1,57 @@
+/* For single integration by parts use ConstDiffusionSIBP-surf,
+   for double integration by parts use ConstDiffusion-surf */
+load("constDiffusion-calc/ConstDiffusion-surf")$
+load(stringproc)$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 2$
+minCdim_Ser : 1$
+maxCdim_Ser : 2$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 2$
+minCdim_Max : 1$
+maxCdim_Max : 2$
+
+/* ...... END OF USER INPUTS........ */
+
+/* To generate other bases, just add corresponding column to arrays below. */
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser,maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser,minCdim_Max]$
+maxCdim      : [maxCdim_Ser,maxCdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : 1 thru maxCdim[bInd] do (
+
+    /* Kernels without positivity fix. */
+    usePositivity : false,
+    disp(printf(false,sconcat("Creating surface ConstDiffusion",bName[bInd]," ~ax"),c)),
+    fname : sconcat("~/max-out/ConstDiffusionSurf", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+    funcName : sconcat("ConstDiffusionSurf", c, "x", bName[bInd]),
+    calcConstDiffusionSurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
+    close(fh),
+
+     /* boundarySurf kernels compute surface contribution that we
+        do not want to zero-out at the boundary. */
+     disp(printf(false,sconcat("Creating boundary surface ConstDiffusion",bName[bInd]," ~ax"),c)),
+     fname : sconcat("~/max-out/ConstDiffusionBoundarySurf", bName[bInd], c, "x", ".cpp"),
+     fh : openw(fname),
+     funcName : sconcat("ConstDiffusionBoundarySurf", c, "x", bName[bInd]),
+     calcConstDiffusionBoundarySurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
+     close(fh),
+  
+    /* Positivity preserving kernels. */
+    usePositivity : true,
+    disp(printf(false,sconcat("Creating positivity surface ConstDiffusion",bName[bInd]," ~ax"),c)),
+    fname : sconcat("~/max-out/ConstDiffusionSurfPositivity", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+    funcName : sconcat("ConstDiffusionSurfPositivity", c, "x", bName[bInd]),
+    calcConstDiffusionSurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
+    close(fh)
+
+  )
+);
