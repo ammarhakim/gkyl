@@ -267,7 +267,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
         for iQ : -1 step 2 thru 1 do (
           fSub : subst(v1=iQ*evalPoint,fIn),
           if length(otherVars)>0 then (
-            pointEval(fSub,otherVars,evalPoint,compIn)
+            pointEval(fEvOut,fSub,otherVars,evalPoint,compIn)
           ) else (
             fEvOut[compIn][iHe] : fSub,
             iHe : iHe + 1
