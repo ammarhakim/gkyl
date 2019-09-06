@@ -22,33 +22,17 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local Lin            = require "Lib.Linalg"
-local LinearDecomp   = require "Lib.LinearDecomp"
-local Proto          = require "Lib.Proto"
-local UpdaterBase    = require "Updater.Base"
-local xsys           = require "xsys"
-local ProjectOnBasis = require "Updater.ProjectOnBasis"
-local DataStruct     = require "DataStruct"
-local Basis          = require "Basis"
-local Grid           = require "Grid"
-local Hermite        = require "Lib.Hermite"
--- System libraries.
-local ffi           = require "ffi"
-local ffiC          = ffi.C
-
-ffi.cdef[[
-  typedef struct spectralTransform spectralTransform;
-  spectralTransform* new_spectralTransform(const int nModes, const int nCells, const int pOrder, const int nSurfB);
-  void assignLHSMatrixSer(spectralTransform *sTransObj, const int pOrder, const int cellIdx, const int spectralIdx, const double *spectralBasisIn);
-  void getLHSMatrixInverse(spectralTransform *sTransObj);
-  void assignRHSMatrix1x1vSer_P1OpDir1(spectralTransform *sTransObj, const int cellIdx, const double *fDG);
-  void assignRHSMatrix1x1vSer_P1OpDir2(spectralTransform *sTransObj, const int cellIdx, const double *fDG);
-  void assignRHSMatrix1x1vSer_P2OpDir1(spectralTransform *sTransObj, const int cellIdx, const double *fDG);
-  void assignRHSMatrix1x1vSer_P2OpDir2(spectralTransform *sTransObj, const int cellIdx, const double *fDG);
-  void solveTransform(spectralTransform *sTransObj);
-  void getSolution1x1vSer_P1(spectralTransform *sTransObj, const int cellIdx, double *fSpectral);
-  void getSolution1x1vSer_P2(spectralTransform *sTransObj, const int cellIdx, double *fSpectral);
-]]
+local Lin              = require "Lib.Linalg"
+local LinearDecomp     = require "Lib.LinearDecomp"
+local Proto            = require "Lib.Proto"
+local UpdaterBase      = require "Updater.Base"
+local TransformModDecl = require "Updater.spectralTransformCalcData.CartFieldSpectralTransformModDecl"
+local xsys             = require "xsys"
+local ProjectOnBasis   = require "Updater.ProjectOnBasis"
+local DataStruct       = require "DataStruct"
+local Basis            = require "Basis"
+local Grid             = require "Grid"
+local Hermite          = require "Lib.Hermite"
 
 -- Function to check if transform name is correct.
 local function isTransformNameGood(nm)
@@ -98,7 +82,7 @@ function CartFieldSpectralTransform:init(tbl)
    -- Number of spectral modes represented in each 'opDir' direction.
    self._numSpectralModes = {}
    for iDir = 1,#opDir do
-      self._numSpectralModes[iDir] = 35 --(self._polyOrder+1)*self._onGrid:numCells(opDir[iDir])
+      self._numSpectralModes[iDir] = 30 --(self._polyOrder+1)*self._onGrid:numCells(opDir[iDir])
    end
 
    -- Function to create basis functions.
@@ -136,8 +120,9 @@ function CartFieldSpectralTransform:init(tbl)
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 
    -- Create struct containing allocated SpectralTransform arrays for solving the linear global problem.
-   self._transformObj = ffiC.new_spectralTransform(self._numSpectralModes[1], self._onGrid:numCells(opDir[1]),
-                                                   self._polyOrder, self._numSurfBasis) 
+   initNewTransform   = TransformModDecl.selectNewTransform(op,self._basisID,self._wDim,self._polyOrder) 
+   self._transformObj = initNewTransform(self._numSpectralModes[1], self._onGrid:numCells(opDir[1]),
+                                         self._polyOrder, self._numSurfBasis) 
 
    -- Create projection updater to project the spectral basis functions onto our basis. 
    -- Need to create a 1D grid to project the spectral basis onto.
@@ -221,6 +206,17 @@ function CartFieldSpectralTransform:init(tbl)
 --   elseif op[iDir] == "Fourier" then
    end
 
+   -- Select kernel that assigns elements of mass matrix.
+   self._assignLHSmatrix = TransformModDecl.selectLHSMatrixAssign(op,self._basisID,self._wDim,self._polyOrder)
+   -- Select C++ function that computes the inverse of the matrix.
+   self._getMatrixInverse = TransformModDecl.selectMatrixInverseCalc(op,self._basisID,self._wDim,self._polyOrder)
+   -- Select kernel that assigns elements of the RHS object.
+   self._rhsAssign = TransformModDecl.selectRHSassign(op,self._basisID,self._cDim,self._vDim,self._polyOrder,opDir[1])
+   -- Select C++ function that solves the linear problem.
+   self._transformSolve = TransformModDecl.selectTransformSolve(op,self._basisID,self._cDim,self._vDim,self._polyOrder)
+   -- Select kernel that translates solution from Eigen to Gkeyll CartField data type.
+   self._solutionReOrg = TransformModDecl.selectSolutionReOrg(op,self._basisID,self._cDim,self._vDim,self._polyOrder,opDir[1])
+
 end
 
 -- Advance method.
@@ -277,13 +273,13 @@ function CartFieldSpectralTransform:_advance(tCurr, inFld, outFld)
             self._grid1D:setIndex(sIdx)
             self._spectralBasisE:fill(spectralBasisEIndexer(sIdx), spectralBasisEPtr)
 
-            ffiC.assignLHSMatrixSer(self._transformObj, self._polyOrder, sIdx[1], mH, spectralBasisEPtr:data())
+            self._assignLHSmatrix(self._transformObj, self._polyOrder, sIdx[1], mH, spectralBasisEPtr:data())
 
          end
       end
 
       -- Invert the left-side mass matrix.
-      ffiC.getLHSMatrixInverse(self._transformObj)
+      self._getMatrixInverse(self._transformObj)
 
       cIdx:copyInto(self.idx)
 
@@ -314,11 +310,11 @@ function CartFieldSpectralTransform:_advance(tCurr, inFld, outFld)
                grid:setIndex(self.idx)
 
                dgFld:fill(dgFldIndexer(self.idx), dgFldPtr)
-               ffiC.assignRHSMatrix1x1vSer_P1OpDir2(self._transformObj, i, dgFldPtr:data())
+               self._rhsAssign(self._transformObj, i, dgFldPtr:data())
             end
 
             -- Solve the linear transform problem.
-            ffiC.solveTransform(self._transformObj)
+            self._transformSolve(self._transformObj)
 
             -- Loop over transform dimension and re-distribute solution into a CartField.
             --for i = dirLoIdx, dirUpIdx do     -- This loop is over cells.
@@ -328,7 +324,7 @@ function CartFieldSpectralTransform:_advance(tCurr, inFld, outFld)
                grid:setIndex(self.idx)
 
                spectralFld:fill(spectralFldIndexer(self.idx), spectralFldPtr)
-               ffiC.getSolution1x1vSer_P1(self._transformObj, i, spectralFldPtr:data())
+               self._solutionReOrg(self._transformObj, i, spectralFldPtr:data())
             end    -- end loop over transform dimension.
          end    -- end loop over perpendicular dimensions.
       end    -- end loop over velocity dimensions.
