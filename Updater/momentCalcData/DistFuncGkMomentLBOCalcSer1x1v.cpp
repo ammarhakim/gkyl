@@ -1,5 +1,5 @@
 #include <DistFuncMomentCalcModDecl.h> 
-#include <cmath>
+#include <cmath> 
 void GkM0Star1x1vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out) 
 { 
   // intFac:  =2pi/m for gyrokinetics (not used in Vlasov). 
@@ -59,7 +59,7 @@ void GkM0StarPositivity1x1vSer_VX(const double intFac, const double *wl, const d
     };
 
     out[0] += (0.7071067811865475*gBound[1]+0.7071067811865475*gBound[0])*dS; 
-    out[1] += (1.224744871391589*gBound[0]-1.224744871391589*gBound[1])*dS; 
+    out[1] += (1.224744871391589*gBound[1]-1.224744871391589*gBound[0])*dS; 
   };
  
 } 

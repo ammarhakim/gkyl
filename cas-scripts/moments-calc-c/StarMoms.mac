@@ -211,14 +211,15 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
 
 
     /* This function evaluates the coefficients of the recovery polynomial
-        at all combinations of (+/- evalPoint) points. */
+        (fIn) in variables evalVars at all combinations of (+/- evalPoint)
+        points, and places it in the list fEvOut. */
     pointEval(fEvOut,fIn,evalVars,evalPoint,compIn) := block([v1,otherVars,fSub],
       v1        : evalVars[1],
       otherVars : delete(v1,evalVars),
       for iQ : -1 step 2 thru 1 do (
         fSub : subst(v1=iQ*evalPoint,fIn),
         if length(otherVars)>0 then (
-          pointEval(fEvOut,fEvfSub,otherVars,evalPoint,compIn)
+          pointEval(fEvOut,fSub,otherVars,evalPoint,compIn)
         ) else (
           fEvOut[compIn][iHe] : fSub,
           iHe : iHe + 1
@@ -341,7 +342,22 @@ calcStarM0Dir(dir, fh, funcNm, cdim, vdim, basisFun, applyPos) := block([],
       printf(fh, "~%")
     ),
 
-    iM0star : calcInnerProdList(surfVars, 1, bC, (gBound[0]+gBound[1])/2+3*(gBound[0]-gBound[1])*surfVars[1]/2),
+    /*........... Create nodal to modal transform matrix .......... */
+    /* Surface basis: basis of one lower dimensionality w/o surf variable. */
+    bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
+    gFsurf : doExpand(gF,bSurf),
+    /* Evaluate the g-Function at various combinations of control points. */
+    gFsurfCP : [makelist(0,i,1,Ncp)],
+    iHe      : 1,
+    pointEval(gFsurfCP,gFsurf,surfVars,1/3,1),
+    /* Construct the nodal-to-modal matrix. */
+    n2m : invert(coefmatrix(gFsurfCP[1],makelist(gF[i],i,1,length(bSurf)))),
+    /*........... Built nodal to modal transform matrix .......... */
+
+    modalV  : n2m . makelist(gBound[i-1],i,1,Ncp),
+    gRec0   : doExpand(makelist(modalV[i][1],i,1,length(bSurf)),bSurf),
+
+    iM0star : calcInnerProdList(surfVars, 1, bC, gRec0),
     writeCIncrExprsCollect1r(out, dS*iM0star,[dS], cdim, vdim, 2),
 
     printf(fh,"  };~%")
@@ -521,8 +537,10 @@ calcStarMomContributions(fh, funcNmRoot, cdim, vdim, basisFun) := block([],
     funcNm : sconcat(funcNmRoot,"M0Star", c, "x", v, "v", basisFun),
     calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, false),
 
-    funcNm : sconcat(funcNmRoot,"M0StarPositivity", c, "x", v, "v", basisFun),
-    calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, true),
+    if (basisFun = "Ser") then (
+      funcNm : sconcat(funcNmRoot,"M0StarPositivity", c, "x", v, "v", basisFun),
+      calcStarM0Dir(1, fh, funcNm, cdim, vdim, basisFun, true)
+    ),
 
     funcNm : sconcat(funcNmRoot,"M1iM2Star", c, "x", v, "v", basisFun),
     calcGkStarM1iM2(fh, funcNm, cdim, vdim, basisFun)

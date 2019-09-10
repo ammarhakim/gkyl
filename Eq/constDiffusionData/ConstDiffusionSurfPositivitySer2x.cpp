@@ -65,11 +65,11 @@ void ConstDiffusionSurfPositivity2xSer_X_P1(const double *wl, const double *wr, 
 
     incr1[0] = (-0.5*gBoundP[1])-0.5*gBoundP[0]; 
     incr1[1] = 0.8660254037844386*gBoundP[1]+0.8660254037844386*gBoundP[0]; 
-    incr1[2] = 0.8660254037844386*gBoundP[1]-0.8660254037844386*gBoundP[0]; 
-    incr1[3] = 1.5*gBoundP[0]-1.5*gBoundP[1]; 
+    incr1[2] = 0.8660254037844386*gBoundP[0]-0.8660254037844386*gBoundP[1]; 
+    incr1[3] = 1.5*gBoundP[1]-1.5*gBoundP[0]; 
 
     incr2[1] = 1.732050807568877*gBound[1]+1.732050807568877*gBound[0]; 
-    incr2[3] = 3.0*gBound[0]-3.0*gBound[1]; 
+    incr2[3] = 3.0*gBound[1]-3.0*gBound[0]; 
 
     outr[0] += incr1[0]*rdxSq2nur; 
     outr[1] += incr2[1]*rdxSq2nur+incr1[1]*rdxSq2nur; 
@@ -148,12 +148,12 @@ void ConstDiffusionSurfPositivity2xSer_Y_P1(const double *wl, const double *wr, 
     };
 
     incr1[0] = (-0.5*gBoundP[1])-0.5*gBoundP[0]; 
-    incr1[1] = 0.8660254037844386*gBoundP[1]-0.8660254037844386*gBoundP[0]; 
+    incr1[1] = 0.8660254037844386*gBoundP[0]-0.8660254037844386*gBoundP[1]; 
     incr1[2] = 0.8660254037844386*gBoundP[1]+0.8660254037844386*gBoundP[0]; 
-    incr1[3] = 1.5*gBoundP[0]-1.5*gBoundP[1]; 
+    incr1[3] = 1.5*gBoundP[1]-1.5*gBoundP[0]; 
 
     incr2[2] = 1.732050807568877*gBound[1]+1.732050807568877*gBound[0]; 
-    incr2[3] = 3.0*gBound[0]-3.0*gBound[1]; 
+    incr2[3] = 3.0*gBound[1]-3.0*gBound[0]; 
 
     outr[0] += incr1[0]*rdxSq2nur; 
     outr[1] += incr1[1]*rdxSq2nur; 

@@ -266,15 +266,16 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
 
     ) else (
 
-      /* Evaluate the coefficients of the recovery polynomial at all
-         combinations of (+/- evalPoint) points. */
+      /* This function evaluates the coefficients of the recovery polynomial
+         (fIn) in variables evalVars at all combinations of (+/- evalPoint)
+         points, and places it in the list fEvOut. */
       pointEval(fEvOut,fIn,evalVars,evalPoint,compIn) := block([v1,otherVars,fSub],
         v1        : evalVars[1],
         otherVars : delete(v1,evalVars),
         for iQ : -1 step 2 thru 1 do (
           fSub : subst(v1=iQ*evalPoint,fIn),
           if length(otherVars)>0 then (
-            pointEval(fSub,otherVars,evalPoint,compIn)
+            pointEval(fEvOut,fSub,otherVars,evalPoint,compIn)
           ) else (
             fEvOut[compIn][iHe] : fSub,
             iHe : iHe + 1
@@ -373,9 +374,27 @@ calcUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax, applyPos) := block([],
 
       if (cdim=1) then (
         compWriteIncr(gBound[0], gBoundP[0], 2)
-      ) else if (cdim=2) then (
-        compWriteIncr((gBound[0]+gBound[1])/2+3*(gBound[0]-gBound[1])*surfVars[1]/2,
-                      (gBoundP[0]+gBoundP[1])/2+3*(gBoundP[0]-gBoundP[1])*surfVars[1]/2,2)
+      ) else (
+
+        /*........... Create nodal to modal transform matrix .......... */
+        /* Surface basis: basis of one lower dimensionality w/o surf variable. */
+        bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsC,1,bC,subst(cv=0,bC)))*bC),
+        gFsurf : doExpand(gF,bSurf),
+        /* Evaluate the g-Function at various combinations of control points. */
+        gFsurfCP : [makelist(0,i,1,Ncp)],
+        iHe      : 1,
+        pointEval(gFsurfCP,gFsurf,surfVars,1/3,1),
+        /* Construct the nodal-to-modal matrix. */
+        n2m : invert(coefmatrix(gFsurfCP[1],makelist(gF[i],i,1,length(bSurf)))),
+        /*........... Built nodal to modal transform matrix .......... */
+
+        modalV  : n2m . makelist(gBound[i-1],i,1,Ncp),
+        gRec0   : doExpand(makelist(modalV[i][1],i,1,length(bSurf)),bSurf),
+
+        modalV  : n2m . makelist(gBoundP[i-1],i,1,Ncp),
+        gRecP0  : doExpand(makelist(modalV[i][1],i,1,length(bSurf)),bSurf),
+
+        compWriteIncr(gRec0,gRecP0,2)
       ), 
 
       printf(fh,"  };~%")
