@@ -1,7 +1,7 @@
 /* define C functions needed for positivity implementation */
 #include <Positivity.h>
 #include <iostream>
-#define extraType PATCHFIT
+#define extraType COHEN
 
 double patchFit(double r, double x) {
    double val = 0.0;
@@ -30,6 +30,9 @@ double limTheta(double r, double x) {
    return std::exp(2*r*x/3)*(1+r*x/3);
 #elif extraType == PATCHFIT
    return patchFit(r, x);
+#elif extraType == COHEN
+   long double beta = r/3*(3-r*r/9)/(1-std::min(0.999,r*r/9));
+   return (beta*r/3+1)*std::exp(beta*x)/std::cosh(beta);
 #else
    return 0.0;
 #endif

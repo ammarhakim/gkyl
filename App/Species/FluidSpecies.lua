@@ -118,7 +118,7 @@ function FluidSpecies:fullInit(appTbl)
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    self.positivity = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
+   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
    self.deltaF = xsys.pickBool(appTbl.deltaF, false)
 
    self.tCurr = 0.0
@@ -433,6 +433,11 @@ function FluidSpecies:write(tm, force)
 	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
             string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+
+         if self.positivityDiffuse then
+            self.posChecker:write(tm, self.diagIoFrame, self.name)
+         end
+
          self.diagIoFrame = self.diagIoFrame+1
       end
    else
