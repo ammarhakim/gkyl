@@ -30,8 +30,8 @@
 # include <xmmintrin.h>
 #endif
 
-# include <mpi.h>
-# include <GkMpiFuncs.h>
+#include <mpi.h>
+#include <GkMpiFuncs.h>
 
 #ifdef HAVE_ADIOS_H
 # include <adios.h>
