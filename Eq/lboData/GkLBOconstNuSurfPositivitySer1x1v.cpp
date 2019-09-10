@@ -106,11 +106,11 @@ double GkLBOconstNuSurfPositivity1x1vSer_Vpar_P1(const double m_, const double c
       gBound[1] = 0.1443375672974065*fr[1]+0.1443375672974065*fl[1]+0.25*fr[0]+0.25*fl[0]; 
     };
 
-    incr2[2] = (1.060660171779821*gBound[0]-1.060660171779821*gBound[1])*nuVtSqSum[1]+0.6123724356957944*nuVtSqSum[0]*(gBound[1]+gBound[0]); 
-    incr2[3] = 0.6123724356957944*(gBound[1]+gBound[0])*nuVtSqSum[1]+nuVtSqSum[0]*(1.060660171779821*gBound[0]-1.060660171779821*gBound[1]); 
+    incr2[2] = (1.060660171779821*gBound[1]-1.060660171779821*gBound[0])*nuVtSqSum[1]+0.6123724356957944*nuVtSqSum[0]*(gBound[1]+gBound[0]); 
+    incr2[3] = 0.6123724356957944*(gBound[1]+gBound[0])*nuVtSqSum[1]+nuVtSqSum[0]*(1.060660171779821*gBound[1]-1.060660171779821*gBound[0]); 
 
-    Gdiff[0] = (1.224744871391589*gBoundP[0]-1.224744871391589*gBoundP[1])*nuVtSqSum[1]+0.7071067811865475*nuVtSqSum[0]*(gBoundP[1]+gBoundP[0]); 
-    Gdiff[1] = 0.7071067811865475*(gBoundP[1]+gBoundP[0])*nuVtSqSum[1]+nuVtSqSum[0]*(1.224744871391589*gBoundP[0]-1.224744871391589*gBoundP[1]); 
+    Gdiff[0] = (1.224744871391589*gBoundP[1]-1.224744871391589*gBoundP[0])*nuVtSqSum[1]+0.7071067811865475*nuVtSqSum[0]*(gBoundP[1]+gBoundP[0]); 
+    Gdiff[1] = 0.7071067811865475*(gBoundP[1]+gBoundP[0])*nuVtSqSum[1]+nuVtSqSum[0]*(1.224744871391589*gBoundP[1]-1.224744871391589*gBoundP[0]); 
 
     Ghat[0] = Gdiff[0]*rdv+alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0]; 
     Ghat[1] = Gdiff[1]*rdv+alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]; 
