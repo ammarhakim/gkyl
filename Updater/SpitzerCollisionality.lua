@@ -71,7 +71,7 @@ function SpitzerCollisionality:init(tbl)
         self._SpitzerNuCalc = SpitzerNuDecl.selectSpitzerNuBuild(self._basisID, self._cDim, self._polyOrder)
       end
    end
-   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
 
    self._BmagZero = Lin.Vec(self._numBasisC)
    for iC = 1,self._numBasisC do

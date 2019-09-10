@@ -499,10 +499,11 @@ function KineticSpecies:alloc(nRkDup)
    self:createBCs()
 
    -- Create a table of flags to indicate whether moments have been computed.
-   -- At first we consider 5 flags quantities: coupling moments (M0, M1i, M2)
+   -- At first we consider 6 flags: coupling moments (M0, M1i, M2)
    -- boundary corrections (m1Correction, m2Correction), star moments
    -- (m0Star, m1Star, m2Star), self primitive moments (uSelf, vtSqSelf),
-   -- and cross primitive moments (uCross, vtSqCross).
+   -- cross primitive moments (uCross, vtSqCross), and spatially varying
+   -- cross-species collisionality (varNuXCross).
    self.momentFlags = {}
    for iF = 1,4 do
       self.momentFlags[iF] = false
@@ -664,6 +665,7 @@ function KineticSpecies:clearMomentFlags(species)
    for sN, _ in pairs(species) do
       if sN ~= self.name then
          self.momentFlags[5][sN] = false
+         self.momentFlags[6][sN] = false
       end
    end
 end

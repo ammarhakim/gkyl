@@ -3,26 +3,38 @@
 --
 --------------------------------------------------------------------------------
 
-local Grid = require "Grid"
-local DataStruct = require "DataStruct"
-local Time = require "Lib.Time"
 local Basis = require "Basis"
-local Updater = require "Updater"
+local DataStruct = require "DataStruct"
+local Grid = require "Grid"
 local Lin = require "Lib.Linalg"
+local Time = require "Lib.Time"
+local Updater = require "Updater"
+local ffi = require "ffi"
 local xsys = require "xsys"
 
-local dragStencil = require "Proto.Fpo.dragStencil"
-local diffStencil = require "Proto.Fpo.diffStencil"
+local _ = require "Proto.Fpo.fpoKernelsCdef"
 
 return function(tbl)
-
    -- Simulation parameters
    local polyOrder = tbl.polyOrder -- polynomial order
+
+   local dragKernelNm = string.format("fpoDragKernelP%d", polyOrder)
+   local dragKernelFn = ffi.C[dragKernelNm]
+   local diffKernelNm = string.format("fpoDiffKernelP%d", polyOrder)
+   local diffKernelFn = ffi.C[diffKernelNm]
+   local momsKernelNm = string.format("fpoMomsKernelP%d", polyOrder)
+   local momsKernelFn = ffi.C[momsKernelNm]
+   local diagKernelNm = string.format("fpoDiagKernelP%d", polyOrder)
+   local diagKernelFn = ffi.C[diagKernelNm]
+
    local cflFrac = tbl.cflFrac and tbl.cflFrac or 1.0
    local cfl = cflFrac*0.5/(2*polyOrder+1) -- CFL number
    local tEnd = tbl.tEnd
    local nFrames = tbl.nFrames
    local updatePotentials = xsys.pickBool(tbl.updatePotentials, true)
+   local doughertyPotentials = xsys.pickBool(tbl.doughertyPotentials, false)
+   -- Not sure about this logic...
+   if doughertyPotentials then updatePotentials = false end
    local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
 
    local cells = tbl.cells
@@ -38,8 +50,9 @@ return function(tbl)
 
    local tmRosen, tmFpo = 0.0, 0.0
 
+
    ----------------------
-   -- Grids and fields --
+   -- Grids and Fields --
    ----------------------
    local grid = Grid.RectCart {
       lower = {lower[1], lower[2]},
@@ -75,8 +88,9 @@ return function(tbl)
    local h = getField()
    local g = getField()
 
-   local M0 = DataStruct.DynVector { numComponents = 1 }
-   local conserv = DataStruct.DynVector { numComponents = 3 }
+   local moms = DataStruct.DynVector { numComponents = 4 }
+   local diag = DataStruct.DynVector { numComponents = 3 }
+
 
    --------------
    -- Updaters --
@@ -134,8 +148,6 @@ return function(tbl)
       basis = basis,
       evaluate = tbl.init,
    }
-   initDist:advance(0.0, {}, {f})
-   applyBc(f)
 
    local poisson = Updater.FemPerpPoisson {
       onGrid = grid,
@@ -144,23 +156,6 @@ return function(tbl)
       bcTop = { T = "D", V = 0.0 },
       bcLeft = { T = "D", V = 0.0 },
       bcRight = { T = "D", V = 0.0 },
-   }
-
-   -- check if drag/diff functions are provided
-   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
-   local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, xn) return 0.0 end
-
-   local initDrag = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      evaluate = initDragFunc,
-      projectOnGhosts = true,
-   }
-   local initDiff = Updater.ProjectOnBasis {
-      onGrid = grid,
-      basis = basis,
-      evaluate = initDiffFunc,
-      projectOnGhosts = true,
    }
 
    local function updateRosenbluthDrag(fIn, hOut)
@@ -179,24 +174,34 @@ return function(tbl)
       tmRosen = tmRosen + Time.clock()-tmStart
    end
 
-   -- update Rosenbluth potentials
-   if updatePotentials then
-      updateRosenbluthDrag(f, h)
-      updateRosenbluthDiffusion(h, g)
-   else
-      initDrag:advance(0.0, {}, {h})
-      initDiff:advance(0.0, {}, {g})
+   -----------------
+   -- Diagnostics --
+   -----------------
+   local function calcMoms(tCurr, fIn, momVec)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2] = grid:dx(1), grid:dx(2)
+      local vc = Lin.Vec(3)
+      local localRange = fIn:localRange()
+      local indexer = fIn:genIndexer()
+      local out = Lin.Vec(4)
+      out[1] = 0.0
+      out[2] = 0.0
+      out[3] = 0.0
+      out[4] = 0.0
+
+      for idxs in localRange:colMajorIter() do
+	 grid:setIndex(idxs)
+	 grid:cellCenter(vc)
+         local fPtr = fIn:get(indexer(idxs))
+	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data()) 
+      end
+      momVec:appendData(tCurr, out)
+      return out
    end
 
-   local M0Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = grid,
-      basis = basis,
-      numComponents = 1,
-      quantity = "V"
-   }
-
-   local function calcConservDiag(tCurr, fIn, hIn, diagVec)
-      local dx, dy = grid:dx(1), grid:dx(2)
+   local function calcDiag(tCurr, fIn, hIn, diagVec)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2] = grid:dx(1), grid:dx(2)
       local vc = Lin.Vec(3)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
@@ -205,17 +210,12 @@ return function(tbl)
       out[2] = 0.0
       out[3] = 0.0
 
-      local vol = dx*dy/4.0
-
       for idxs in localRange:colMajorIter() do
 	 grid:setIndex(idxs)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-         local hPtr = hIn:get(indexer(idxs)) 
-
-         out[1] = out[1] + vol*(0.25*((3.464101615137754*fPtr[3]+3.0*fPtr[1])*hPtr[4]+3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2])+0.25*((3.464101615137754*fPtr[3]-3.0*fPtr[1])*hPtr[4]-3.0*hPtr[2]*fPtr[3]+3.464101615137754*fPtr[1]*hPtr[2]))
-         out[2] = out[2] + vol*(0.25*((3.0*fPtr[4]+3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]+3.464101615137754*fPtr[1])*hPtr[3])-0.25*((3.0*fPtr[4]-3.464101615137754*fPtr[2])*hPtr[4]+(3.0*fPtr[3]-3.464101615137754*fPtr[1])*hPtr[3]))
-	 out[3] = out[3] + vol*(0.125*(((6.0*vc[2]+10.0)*fPtr[4]+6.928203230275509*vc[1]*fPtr[3]+6.928203230275509*fPtr[2]*vc[2]+8.660254037844386*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+((6.0*vc[2]+6.0)*fPtr[3]+6.928203230275509*fPtr[1]*vc[2]+5.196152422706631*fPtr[1])*hPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*hPtr[1])*fPtr[3]+(6.0*fPtr[2]+6.928203230275509*fPtr[1]*vc[1])*hPtr[2]+2.0*fPtr[1]*hPtr[1])-0.125*(((6.0*vc[2]-10.0)*fPtr[4]-6.928203230275509*vc[1]*fPtr[3]-6.928203230275509*fPtr[2]*vc[2]+8.660254037844386*fPtr[2]+6.0*fPtr[1]*vc[1])*hPtr[4]+5.196152422706631*hPtr[2]*fPtr[4]+((6.0*vc[2]-6.0)*fPtr[3]-6.928203230275509*fPtr[1]*vc[2]+5.196152422706631*fPtr[1])*hPtr[3]+(6.0*vc[1]*hPtr[2]+1.732050807568877*hPtr[1])*fPtr[3]+((-6.0*fPtr[2])-6.928203230275509*fPtr[1]*vc[1])*hPtr[2]-2.0*fPtr[1]*hPtr[1]))
+         local hPtr = hIn:get(indexer(idxs))
+	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data()) 
       end
       diagVec:appendData(tCurr, out)
    end
@@ -227,22 +227,76 @@ return function(tbl)
 	 g:write(string.format('g_%d.bp', fr), tm, fr)
       end
       if writeDiagnostics then
-         M0:write(string.format("f_M0_%d.bp", fr), tm, fr)
-         conserv:write(string.format("conserv_%d.bp", fr), tm, fr)
+	 moms:write(string.format("moms_%d.bp", fr), tm, fr)
+         diag:write(string.format("diag_%d.bp", fr), tm, fr)
       end
    end
 
+
+   --------------------
+   -- Initialization --
+   --------------------
+   initDist:advance(0.0, {}, {f})
+   applyBc(f)
+   local momVec = calcMoms(0, f, moms)
+
+   -- Check if drag/diff functions are provided
+   local initDragFunc = tbl.initDrag and tbl.initDrag or function(t, xn) return 0.0 end
+   local initDiffFunc = tbl.initDiff and tbl.initDiff or function(t, xn) return 0.0 end
+
+   -- Overwrite the init functions if the the Dougherty potentials are turned on
+   if doughertyPotentials then
+      initDragFunc = function (t, z)
+	 local ux = momVec[2]/momVec[1]
+	 local uy = momVec[3]/momVec[1]
+	 return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
+      end
+      initDiffFunc = function (t, z)
+	 local ux = momVec[2]/momVec[1]
+	 local uy = momVec[3]/momVec[1]
+	 local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
+	 return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
+      end
+   end
+
+   local initDrag = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = initDragFunc,
+      projectOnGhosts = true,
+   }
+   local initDiff = Updater.ProjectOnBasis {
+      onGrid = grid,
+      basis = basis,
+      evaluate = initDiffFunc,
+      projectOnGhosts = true,
+   }
+
+   -- update Rosenbluth potentials
+   if updatePotentials then
+      updateRosenbluthDrag(f, h)
+      updateRosenbluthDiffusion(h, g)
+   else
+      initDrag:advance(0.0, {}, {h})
+      initDiff:advance(0.0, {}, {g})
+   end
+
    -- write initial conditions
+   if writeDiagnostics then
+      calcDiag(0, f, h, diag)
+   end
    writeData(0, 0.0)
    if updatePotentials == false then
       h:write(string.format('h_%d.bp', 0), 0.0, 0)
       g:write(string.format('g_%d.bp', 0), 0.0, 0)
    end
 
+
    local function forwardEuler(dt, fIn, hIn, gIn, fOut)
       local tmStart = Time.clock()
 
-      local dx, dy = grid:dx(1), grid:dx(2)
+      local dv = Lin.Vec(3)
+      dv[1], dv[2] = grid:dx(1), grid:dx(2)
       local localRange = fIn:localRange()
       local indexer = fIn:genIndexer()
       local idxsR, idxsL = {}, {}
@@ -258,16 +312,16 @@ return function(tbl)
          idxsT[2] = idxs[2]+1
          idxsB[2] = idxs[2]-1
 
-         local isTopEdge, isBotEdge = false, false
-         local isLeftEdge, isRightEdge = false, false
+         local isTopEdge, isBotEdge = 0, 0
+         local isLeftEdge, isRightEdge = 0, 0
 
          if periodicX == false then
-            if idxs[1] == 1 then isLeftEdge = true end
-            if idxs[1] == cells[1] then isRightEdge = true end
+            if idxs[1] == 1 then isLeftEdge = 1 end
+            if idxs[1] == cells[1] then isRightEdge = 1 end
          end
          if periodicY == false then
-            if idxs[2] == 1 then isBotEdge = true end
-            if idxs[2] == cells[2] then isTopEdge = true end
+            if idxs[2] == 1 then isBotEdge = 1 end
+            if idxs[2] == cells[2] then isTopEdge = 1 end
          end
 
          local fPtr = fIn:get(indexer(idxs))
@@ -290,16 +344,16 @@ return function(tbl)
 
          local fOutPtr= fOut:get(indexer(idxs))
 
-         dragStencil(dt, dx, dy,
-                     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-                     hPtr, hLPtr, hRPtr, hTPtr, hBPtr,
-                     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-                     fOutPtr)
-         diffStencil(dt, dx, dy,
-                     fPtr, fLPtr, fRPtr, fTPtr, fBPtr,
-                     gPtr, gLPtr, gRPtr, gTPtr, gBPtr,
-                     isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-                     fOutPtr)
+         dragKernelFn(dt, dv:data(),
+		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
+		      hPtr:data(), hLPtr:data(), hRPtr:data(), hTPtr:data(), hBPtr:data(),
+		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+		      fOutPtr:data())
+         diffKernelFn(dt, dv:data(),
+		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
+		      gPtr:data(), gLPtr:data(), gRPtr:data(), gTPtr:data(), gBPtr:data(),
+		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+		      fOutPtr:data())
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
@@ -348,10 +402,9 @@ return function(tbl)
          f:copy(fNew)
 
          if writeDiagnostics then
-            M0Calc:advance(tCurr+dt, { f }, { M0 })
-
+	    calcMoms(tCurr+dt, f, moms)
             updateRosenbluthDrag(f, h)
-            calcConservDiag(tCurr+dt, f, h, conserv)
+            calcDiag(tCurr+dt, f, h, diag)
          end
 
          tCurr = tCurr+dt
