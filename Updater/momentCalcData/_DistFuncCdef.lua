@@ -394,6 +394,7 @@ void GkMomentCalc3x2vSer_M3par_P1(const double *w, const double *dxv, const doub
 void GkMomentCalc3x2vSer_M3perp_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out); 
 void GkMomentCalc3x2vSer_ThreeMoments_P1(const double *w, const double *dxv, const double m_, const double *Bmag, const double *f, double *out1, double *out2, double *out3); 
 void GkM0Star3x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
+void GkM0StarPositivity3x2vSer_VX(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); 
 void GkM1iM2Star3x2vSer(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); 
 void GkBoundaryIntegral3x2vSer_F_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 void GkBoundaryIntegral3x2vSer_vF_VX_P1(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
@@ -1221,4 +1222,5 @@ void GkBoundaryIntegral3x2vTensor_vF_VX_P2(const bool atLower, const double intF
 void GkBoundaryIntegral3x2vTensor_vF_VY_P2(const bool atLower, const double intFac, const double vBoundary, const double *dxv, const double *fIn, double *out); 
 
 
-]] 
+ 
+]]
