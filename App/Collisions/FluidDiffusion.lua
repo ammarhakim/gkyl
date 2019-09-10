@@ -39,6 +39,8 @@ function FluidDiffusion:fullInit(speciesTbl)
    self.diffCoeff = assert(tbl.coefficient, 
       "App.FluidDiffusion: Must specify the diffusion coefficient (vector) in 'coefficient'.")
 
+   self.usePositivity = speciesTbl.applyPositivity    -- Use positivity preserving algorithms.
+
    self.tmEvalMom = 0.0
 end
 
@@ -80,6 +82,7 @@ function FluidDiffusion:createSolver()
    local constDiffusionCalc = ConstDiffusionEq {
       Dcoeff = self.diffCoeff,
       basis  = self.confBasis,
+      positivity = self.usePositivity,
    }
    self.diffusionSlvr = Updater.HyperDisCont {
       onGrid             = self.confGrid,

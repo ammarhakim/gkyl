@@ -139,6 +139,8 @@ function DistFuncMomentCalc:init(tbl)
       end
    end
 
+   self.applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
+
    self.onGhosts = xsys.pickBool(tbl.onGhosts, true)
 end
 
@@ -259,7 +261,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
 
          for vDir = 1, vDim do
             if (not self._isGk) or (self._isGk and firstDir) then
-               StarM0Calc  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim)
+               StarM0Calc  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim, self.applyPositivity)
                uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
             end
             vtSqCorrection = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
