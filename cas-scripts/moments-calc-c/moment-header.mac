@@ -74,6 +74,9 @@ for bInd : 1 thru length(bName) do (
         /* For piecewise linear compute m0Star moment. */
        if (pi=1) then (
          printf(fh, "void GkM0Star~ax~av~a_V~a(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); ~%", ci, vi, bName[bInd], cvars[1]),
+           if (bName[bInd] = "Ser") then (
+             printf(fh, "void GkM0StarPositivity~ax~av~a_V~a(const double intFac, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *fl, const double *fr, double *out); ~%", ci, vi, bName[bInd], cvars[1])
+           ),
          printf(fh, "void GkM1iM2Star~ax~av~a(const double *w, const double *dxv, const double intFac, const double m_, const double *Bmag, const double *f, double *outM1i, double *outM2); ~%", ci, vi, bName[bInd])
        ),
 
