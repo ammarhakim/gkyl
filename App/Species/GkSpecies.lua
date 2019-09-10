@@ -297,6 +297,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis  = self.confBasis,
          moment     = "GkThreeMomentsLBO",
          gkfacs     = {self.mass, self.bmag},
+         positivity = self.positivity,
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {

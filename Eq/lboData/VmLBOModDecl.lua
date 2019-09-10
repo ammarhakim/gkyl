@@ -7,17 +7,17 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Eq.lboData._VmLBOCdef"
+local _   = require "Eq.lboData._VmLBOCdef"
 
--- "do nothing" function
+-- "do nothing" function.
 local function nullFunc(...) end
 
--- map of basis function name -> function encoding
+-- Map of basis function name -> function encoding.
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
 
 local _M = {}
 
--- select function to compute volume terms
+-- Select function to compute volume terms.
 function _M.selectVol(basisNm, CDIM, VDIM, polyOrder)
    local funcNm = string.format("VmLBOVol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
@@ -27,7 +27,7 @@ function _M.selectConstNuVol(basisNm, CDIM, VDIM, polyOrder)
    return ffi.C[funcNm]
 end
 
--- select functions to compute surface terms (output is a table of functions)
+-- Select functions to compute surface terms (output is a table of functions).
 function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder)
    if VDIM == 1 then
       local funcNmX = string.format("VmLBOSurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
@@ -59,7 +59,7 @@ function _M.selectConstNuSurf(basisNm, CDIM, VDIM, polyOrder)
    end
 end
 
--- select functions to compute boundary surface terms (output is a table of functions)
+-- Select functions to compute boundary surface terms (output is a table of functions).
 function _M.selectBoundarySurf(basisNm, CDIM, VDIM, polyOrder)
    if VDIM == 1 then
       local funcNmX = string.format("VmLBOBoundarySurf%dx%dv%s_VX_P%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
