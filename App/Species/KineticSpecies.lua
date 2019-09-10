@@ -551,7 +551,7 @@ function KineticSpecies:initDist()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
-           self.posChecker:advance(0.0, {self.fSource}, {self.fSource})
+           self.posChecker:rescale(0.0, {self.fSource}, {self.fSource})
          end
       end
       if pr.isReservoir then

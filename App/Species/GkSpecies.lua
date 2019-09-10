@@ -616,7 +616,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Rescale slopes.
    if self.positivityRescale then
-      self.posChecker:advance(tCurr, {fIn}, {self.fPos})
+      self.posChecker:rescale(tCurr, {fIn}, {self.fPos})
       fIn = self.fPos
    end
 
