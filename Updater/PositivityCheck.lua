@@ -10,6 +10,7 @@
 local DataStruct = require "DataStruct"
 local Proto = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
+local Mpi = require "Comm.Mpi"
 local ffi = require "ffi"
 local ffiC = ffi.C
 
@@ -111,17 +112,17 @@ function PositivityCheck:rescale(tCurr, inFld, outFld, pr)
    end
 
    if pr then print(self.del2Change) end
-   --self.del2ChangeL:appendData(tCurr, {self.del2Change})
+   self.del2ChangeL:appendData(tCurr, {self.del2Change})
    --self.del2ChangeG:appendData(tCurr, {0.0})
 end
 
 
 function PositivityCheck:write(tm, frame, nm)
-   Mpi.Allreduce(self.del2ChangeL:data():data(), self.del2ChangeG:data():data(), self.del2ChangeG:size(),
-                 Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-   self.del2ChangeG:write(string.format("%s_%s_%d.bp", nm, "del2Change", frame), tm, frame, true)
-   self.del2ChangeL:clear(0.0)
-   self.del2ChangeG:clear(0.0)
+   --Mpi.Allreduce(self.del2ChangeL:data():data(), self.del2ChangeG:data():data(), self.del2ChangeL:size(),
+                 --Mpi.DOUBLE, Mpi.SUM, self.onGrid:commSet().comm)
+   self.del2ChangeL:write(string.format("%s_%s_%d.bp", nm, "del2Change", frame), tm, frame, true)
+   --self.del2ChangeL:clear(0.0)
+   --self.del2ChangeG:clear(0.0)
 end
 
 return PositivityCheck

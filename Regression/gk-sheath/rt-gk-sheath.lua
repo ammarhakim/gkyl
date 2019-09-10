@@ -54,7 +54,7 @@ Lz = 4 -- [m]
 -- Source profiles.
 sourceDensity = function (t, xn)
    local x, y, z = xn[1], xn[2], xn[3]
-   local sourceFloor = 0.001
+   local sourceFloor = 1e-10
    if math.abs(z) < Lz/4 then
       return 0.90625*S0*math.max(math.exp(-(x-xSource)^2/(2*lambdaSource)^2), sourceFloor)
    else
@@ -77,7 +77,7 @@ randomseed = 100000*Mpi.Comm_rank(Mpi.COMM_WORLD)+63--os.time()
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = .5e-6,                     -- End time.
+   tEnd        = 2.e-6,                     -- End time.
    nFrame      = 1,                     -- Number of output frames.
    lower       = {R - Lx/2, -Ly/2, -Lz/2}, -- Configuration space lower left.
    upper       = {R + Lx/2, Ly/2, Lz/2},   -- Configuration space upper right.
@@ -129,6 +129,8 @@ plasmaApp = Plasma.App {
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
       applyPositivity = true,
+      positivityDiffuse = true,
+      positivityRescale = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,
@@ -175,6 +177,8 @@ plasmaApp = Plasma.App {
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
       applyPositivity = true,
+      positivityDiffuse = true,
+      positivityRescale = true,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2"},
       randomseed = randomseed,

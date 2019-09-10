@@ -256,8 +256,8 @@ function KineticSpecies:fullInit(appTbl)
 
    self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
    self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
-   
+   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, self.positivity)
+
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
 
@@ -636,33 +636,16 @@ function KineticSpecies:suggestDt(inIdx, outIdx)
         fIn:fill(fIdxr(idx), fInPtr)
         fRhs:fill(fIdxr(idx), fRhsPtr)
         if fRhsPtr:data()[0]<0. and fInPtr:data()[0]>0. then
-           -- calculate dt that will make cell avg go to exactly 0
-           local dt = -fInPtr:data()[0]/fRhsPtr:data()[0] 
+           -- calculate dt that will make cell avg go to exactly half its current value
+           local dt = -fInPtr:data()[0]/fRhsPtr:data()[0]/2
            -- if this positivity-limited dt is smaller than the cfl-calculated dt, use it
            self.dt[0] = math.min(self.dt[0], dt)
-           if self.dt[0] == dt then 
-              -- keep track of which cell (posIdx) the positivity-limited dt came from
-              idx:copyInto(posIdx)
-              posDt = dt
-           end
         end
      end
    end
 
    -- all reduce to get global min dt
    Mpi.Allreduce(self.dt, self.dtGlobal, 1, Mpi.DOUBLE, Mpi.MIN, grid:commSet().comm)
-
-   -- in cell where positivity-limited dt came from (posIdx), set all coeffs of fIn and fRhs to 0
-   -- setting cell avg to 0 just avoids round-off errors, but setting other coeffs to 0 
-   -- introduces a bit of diffusion (in this cell only)
-   if self.positivity and posDt == self.dtGlobal[0] then
-      fIn:fill(fIdxr(posIdx), fInPtr)
-      fRhs:fill(fIdxr(posIdx), fRhsPtr)
-      for i = 0, self.basis:numBasis()-1 do
-        fInPtr:data()[i] = 0.
-        fRhsPtr:data()[i] = 0.
-      end
-   end
 
    return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
 end

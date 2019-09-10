@@ -28,11 +28,12 @@ plasmaApp = Plasma.App {
 	 local x, y       = xn[1], xn[2]
 	 local x0, y0, r0 = 0.25, 0.5, 0.15
 	 local r          = math.min(math.sqrt((x-x0)^2+(y-y0)^2), r0)/r0
-	 return 0.25*(1+math.cos(math.pi*r))
+	 return .25*(1+math.cos(math.pi*r)+1e-10)
       end,
       evolve          = true, -- Evolve species?
       applyPositivity = true,
       positivityDiffuse = true,
+      positivityRescale = true,
    },
 
    -- Field solver.

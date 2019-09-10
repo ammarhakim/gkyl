@@ -13,21 +13,21 @@ local function cylinder(t, xn)
    if r2 < 0.25^2 then
       return 1.0
    end
-   return 1.0e-5
+   return 1e-10
 end
 local function step(t, xn)
    local r2 = (xn[1]-0.5)^2
    if r2 < 0.25^2 then
       return 1.0
    end
-   return 1.0e-5
+   return 1e-10
 end
 local function squareHat(t, xn)
    local rx2, ry2 = (xn[1]-0.5)^2, (xn[2]-0.5)^2
    if rx2 < 0.25^2 and ry2 < 0.25^2 then
       return 1.0
    end
-   return 1.0e-5
+   return 1e-10
 end
 local function expTent(t, xn)
    local r = math.sqrt((xn[1]-0.5)^2 + (xn[2]-0.5)^2)
@@ -38,7 +38,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd        = 1.0,              -- End time.
-   nFrame      = 1,                -- Number of output frames.
+   nFrame      = 10,                -- Number of output frames.
    lower       = {0, 0},           -- Configuration space lower left.
    upper       = {1.0, 1.0},       -- Configuration space upper right.
    cells       = {16, 16},         -- Configuration space cells.
@@ -60,6 +60,8 @@ plasmaApp = Plasma.App {
       init            = squareHat,
       evolve          = true, -- Evolve species?
       applyPositivity = true,
+      positivityDiffuse = true,
+      positivityRescale = true,
    },
 
    -- Field solver.
