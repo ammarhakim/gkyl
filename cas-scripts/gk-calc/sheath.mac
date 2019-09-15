@@ -15,6 +15,9 @@ basisMu : subst([x=vy],basisC),
 load("basis-precalc/basisSer2x"),
 basisXY : basisC,
 basisVpMu : subst([x=vx,y=vy],basisC),
+basisZVp : subst([x=z,y=vx],basisC),
+load("basis-precalc/basisSer3x"),
+basisZVpMu : psubst([x=z,y=vx,z=vy],basisC),
 modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v"),
 load(modNm),
 for p : 1 thru pmax do (
@@ -22,8 +25,10 @@ for p : 1 thru pmax do (
   bC : basisC[p],
   bXY : basisXY[p],
   bVp : basisVp[p],
+  bZVp : basisZVp[p],
   bMu : basisMu[p],
   bVpMu : basisVpMu[p],
+  bZVpMu : basisZVpMu[p],
 
   /* get name of last config space dimension, which is assumed to be z */
   zVar : varsC[cdim],
@@ -41,7 +46,7 @@ for p : 1 thru pmax do (
   deltaPhi_expd : phiSheath_expd - phiWall_expd,
 
   /* set up quadrature nodes */
-  if p=1 then quad:1/(3),
+  if p=1 then quad:1/(3), /* use control nodes instead of quadrature nodes for p=1, for positivity */
   if p=2 then quad:sqrt(3/5),
   nodesXY : eval_string(sconcat("nodes2xp", p))*quad,
   nodesXYsub(f) := makelist(subst(makelist(surfVarsC[j]=nodesXY[i][j],j,1,length(surfVarsC)),f),i,1,length(nodesXY)),
@@ -52,41 +57,42 @@ for p : 1 thru pmax do (
   deltaPhiQ : nodesXYsub(deltaPhi_expd),
 
   /* evaluate f at z surface, and x,y quadrature nodes */
-  fSurf_expd : subst(zVar=zVal, doExpand1(f, bP)),
+  /*fSurf_expd : subst(zVar=zVal, doExpand1(f, bP)),*/
+  fSurf_expd : doExpand1(f, bP),
   fXYQ_expd : nodesXYsub(fSurf_expd),
   
   kill(fReflXYQ_expd),
   kill(fReflXYMuQ_expd),
-  fReflXYQ_expd : makelist(0, i,1,length(bVpMu)),
-  fReflXYMuQ_expd : makelist(0, i,1,length(bMu)),
+  fReflXYQ_expd : makelist(0, i,1,length(nodesXY)),
+  fReflXYMuQ_expd : makelist(0, i,1,length(nodesMu)),
   /* evaluate and write vcut^2 at x,y quadrature nodes */
   vcutSqQ:gcfac(float(fullratsimp(-2*q_/m_*deltaPhiQ))),
   printf(fh, "  double vcutSq_i; long double xc, b, rVal; ~%"),
-  printf(fh, "  double fReflXYQuad[~a][~a]; ~%", length(nodesXY), length(bVpMu)),
-  printf(fh, "  double fReflXYMuQuad[~a][~a]; ~%", length(nodesMu), length(bVp)),
+  printf(fh, "  double fReflXYQuad[~a][~a]; ~%", length(nodesXY), length(bZVpMu)),
+  printf(fh, "  double fReflXYMuQuad[~a][~a]; ~%", length(nodesMu), length(bZVp)),
   printf(fh, "  ~%~%"),
-  /* for each x,y quadrature node, determine and write coefficients fReflXYQuad for vpar,mu modal basis (bVpMu) */
+  /* for each x,y quadrature node, determine and write coefficients fReflXYQuad for z,vpar,mu modal basis (bZVpMu) */
   for i:1 thru length(nodesXY) do (
     printf(fh, "// quadrature node (x,y)_i=~a ~%", i),
     printf(fh, "  vcutSq_i = ~a; ~%", vcutSqQ[i]),
     printf(fh, "  if(vcutSq_i <= vlowerSq) { // absorb (no reflection) ~%"),
-    writeCExprsWithZerosNoExpand1(fReflXYQuad[i-1], makelist(0.,j,1,length(bVpMu))),
+    writeCExprsWithZerosNoExpand1(fReflXYQuad[i-1], makelist(0.,j,1,length(bZVpMu))),
     printf(fh, "  } else if(vcutSq_i > vupperSq) { // full reflection ~%"),
-    /* project f at this (x,y)_i quad node onto vpar,mu basis (bVpMu) */
-    fXYQ_VpMu_c : gcfac(fullratsimp(innerProd([vx,vy], 1, bVpMu, fXYQ_expd[i]))),
-    /* set fRefl bVpMu coefficients to f bVpMu coefficients */
-    writeCExprsNoExpand1(fReflXYQuad[i-1], fXYQ_VpMu_c),
+    /* project f at this (x,y)_i quad node onto z,vpar,mu basis (bZVpMu) */
+    fXYQ_ZVpMu_c : gcfac(fullratsimp(innerProd([z,vx,vy], 1, bZVpMu, fXYQ_expd[i]))),
+    /* set fRefl bZVpMu coefficients to f bZVpMu coefficients */
+    writeCExprsNoExpand1(fReflXYQuad[i-1], fXYQ_ZVpMu_c),
     printf(fh, "  } else { // partial reflection ~%"),
       /* also evaluate at mu quad nodes */
       fXYMuQ_expd : nodesMusub(fXYQ_expd[i]),
       for j:1 thru length(nodesMu) do (
         /* project f at this (x,y)_i,mu_j quad node onto vpar basis (bVp) */
-        fXYMuQ_Vp_c : gcfac(fullratsimp(innerProd([vx], 1, bVp, fXYMuQ_expd[j]))),
-        r: gcfac(float(fXYMuQ_Vp_c[2]/sqrt(3)/fXYMuQ_Vp_c[1])),
+        fXYMuQ_ZVp_c : gcfac(fullratsimp(innerProd([z,vx], 1, bZVp, fXYMuQ_expd[j]))),
+        r: gcfac(float(fXYMuQ_ZVp_c[2]/sqrt(3)/fXYMuQ_ZVp_c[1])),
         printf(fh, "  rVal = ~a; ~%", r),
         printf(fh, "  // if f is not realizable, no reflection ~%"),
-        printf(fh, "  if(std::abs(rVal)>=.99 || ~a < 0.) { ~%", gcfac(float(fXYMuQ_Vp_c[1]))),
-        writeCExprsWithZerosNoExpand1(fReflXYMuQuad[j-1],makelist(0.,j,1,length(bVp))),
+        printf(fh, "  if(std::abs(rVal)>=.99 || ~a < 0.) { ~%", gcfac(float(fXYMuQ_ZVp_c[1]))),
+        writeCExprsWithZerosNoExpand1(fReflXYMuQuad[j-1],makelist(0.,j,1,length(bZVp))),
         printf(fh, "  } else {~%"),
         beta:invL(rVal),
         printf(fh, "   b = ~a; ~%", beta),
@@ -96,7 +102,7 @@ for p : 1 thru pmax do (
             "((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))",
             "(((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3-(2*(b*b+3*(b+1))*exp(-b))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
         for k:1 thru length(bVp) do (
-        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_ZVp_c[k])), fReflfacs[k])
         ),
         printf(fh, "   } else { ~%"),
         printf(fh, "    xc = ~a; ~%", 2*(-sqrt(vcutSq_i)-wv)/dv),
@@ -104,26 +110,26 @@ for p : 1 thru pmax do (
             "((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))", 
             "((2*(b*b+3*(1-b))*exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*exp(b*xc))/3)/(-4*b*cosh(b) + 4/3*(3 + b*b)*sinh(b))"],
         for k:1 thru length(bVp) do (
-        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_Vp_c[k])), fReflfacs[k])
+        printf(fh, "    fReflXYMuQuad[~a][~a] = (~a)*(~a); ~%", j-1, k-1, gcfac(float(fXYMuQ_ZVp_c[k])), fReflfacs[k])
         ),
         printf(fh, "   } ~%"),
         printf(fh, "  } ~%"),
-        fReflXYMuQ_expd[j] : makelist(fReflXYMuQuad[j-1][k-1],k,1,length(bVp)).bVp
+        fReflXYMuQ_expd[j] : makelist(fReflXYMuQuad[j-1][k-1],k,1,length(bZVp)).bZVp
       ),
       modToNodMu:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodesMu, bMu, [vy])),
-      fReflXYQ_VpMu_expd : fullratsimp(bMu.fullratsimp(invert(transpose(float(modToNodMu))).fReflXYMuQ_expd)),
-      /* project fRefl at this (x,y)_i quad node onto vpar,mu basis (bVpMu) */
-      fReflXYQ_VpMu_c : gcfac(fullratsimp(innerProd([vx,vy], 1, bVpMu, fReflXYQ_VpMu_expd))),
-      writeCExprsNoExpand1(fReflXYQuad[i-1], fReflXYQ_VpMu_c),
+      fReflXYQ_ZVpMu_expd : fullratsimp(bMu.fullratsimp(invert(transpose(float(modToNodMu))).fReflXYMuQ_expd)),
+      /* project fRefl at this (x,y)_i quad node onto z,vpar,mu basis (bZVpMu) */
+      fReflXYQ_ZVpMu_c : gcfac(fullratsimp(innerProd([z,vx,vy], 1, bZVpMu, fReflXYQ_ZVpMu_expd))),
+      writeCExprsNoExpand1(fReflXYQuad[i-1], fReflXYQ_ZVpMu_c),
     printf(fh, "  } ~%~%"),
     /* expansion of fRefl at each x,y quad node */
-    fReflXYQ_expd[i] : makelist(fReflXYQuad[i-1][j-1],j,1,length(bVpMu)).bVpMu,
+    fReflXYQ_expd[i] : makelist(fReflXYQuad[i-1][j-1],j,1,length(bZVpMu)).bZVpMu,
     printf(fh, " ~%")
   ),
 
   modToNodXY:fullratsimp(calcModToNodPhaseWithNodesAndBasis(nodesXY,bXY,[x,y])),
   fRefl_expd : fullratsimp(bXY . fullratsimp(invert(transpose(float(modToNodXY))).fReflXYQ_expd)),
-  fRefl_c : fullratsimp(innerProd(varsP, 1, bP, fRefl_expd)),
+  fRefl_c : gcfac(fullratsimp(innerProd(varsP, 1, bP, fRefl_expd))),
   writeCExprsWithZerosNoExpand1(fRefl, fRefl_c),
   printf(fh, "}~%")
 )
