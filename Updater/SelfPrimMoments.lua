@@ -82,7 +82,7 @@ function SelfPrimMoments:init(tbl)
    end
 
    self._SelfPrimMomentsCalc = PrimMomentsDecl.selectSelfPrimMomentsCalc(self._kinSpecies, self._basisID, self._cDim, self._vDim, self._polyOrder)
-   self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
+   self.onGhosts = xsys.pickBool(false, tbl.onGhosts)
    
    self._binOpData = ffiC.new_binOpData_t(self._numBasisC*(uDim+1), 0) 
 end

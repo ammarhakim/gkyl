@@ -51,7 +51,7 @@ function VmBGKCollisions:fullInit(speciesTbl)
 
    self.collidingSpecies = assert(
       tbl.collideWith,
-      "App.VmLBOCollisions: Must specify names of species to collide with in 'collideWith'.")
+      "App.VmBGKCollisions: Must specify names of species to collide with in 'collideWith'.")
 
    -- First determine if self-species and/or cross-species collisions take place,
    -- and (if cross-collisions=true) put the names of the other colliding species in a list.
@@ -89,7 +89,7 @@ function VmBGKCollisions:fullInit(speciesTbl)
       self.mass   = speciesTbl.mass      -- Mass of this species.
       self.charge = speciesTbl.charge    -- Charge of this species.
       -- For now only cell-wise constant nu is implemented.
-      -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
+      -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.VmBGKCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
       self.cellConstNu = true
       -- If no constant collision frequencies provided ('frequencies'), user can specify 'normNu'
       -- list of collisionalities normalized by (T_0^(3/2)/n_0) evaluated somewhere in the
@@ -106,8 +106,6 @@ function VmBGKCollisions:fullInit(speciesTbl)
             self.normNuCross = lume.clone(self.normNuIn)
             table.remove(self.normNuCross, selfSpecInd)
          end
-         self.epsilon0   = Constants.EPSILON0
-         self.elemCharge = Constants.ELEMENTARY_CHARGE
       else
          self.userInputNormNu = false
          if self.selfCollisions then
@@ -118,12 +116,27 @@ function VmBGKCollisions:fullInit(speciesTbl)
             table.remove(self.normNuCross, selfSpecInd)
             for i, _ in ipairs(self.normNuCross) do self.normNuCross[i] = 0.0 end
          end
-         self.epsilon0 = assert(
-            tbl.epsilon0, "Updater.VmLBOCollisions: Must specify vacuum permittivity 'epsilon0' ('frequencies' and 'normNu' are not specified, so nu is calculated via Spitzer).")
-         self.elemCharge = assert(
-            tbl.elemCharge, "Updater.VmLBOCollisions: Must specify elementary charge with 'elemCharge' ('frequencies' and 'normNu' are not specified, so nu is calculated via Spitzer).")
 --         self.coulombLog = assert(
 --      	    tbl.coulombLog, "Updater.VmBGKCollisions: Must specify Coulomb logaritm with 'coulombLog' ('frequencies' and 'normNu' are not specified, so nu is calculated via Spitzer).")
+      end
+      -- Check for constants epsilon_0, elementary charge e, and Planck's constant/2pi. If not use default value.
+      local epsilon0In = tbl.epsilon0
+      if epsilon0In then
+         self.epsilon0 = epsilon0In
+      else
+         self.epsilon0   = Constants.EPSILON0
+      end
+      local elemChargeIn = tbl.elemCharge
+      if elemChargeIn then
+         self.elemCharge = elemChargeIn
+      else
+         self.elemCharge = Constants.ELEMENTARY_CHARGE
+      end
+      local hBarIn = tbl.hBar
+      if hBarIn then
+         self.hBar = hBarIn
+      else
+         self.hBar       = Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
       end
    end
 
@@ -230,6 +243,8 @@ function VmBGKCollisions:createSolver()
          willInputNormNu  = self.userInputNormNu,
          elemCharge       = self.elemCharge,
          epsilon0         = self.epsilon0,
+         hBar             = self.hBar,
+         nuFrac           = self.nuFrac,
       }
       -- Weak multiplication to multiply nu(x) with fMaxwell
       self.phaseMul = Updater.CartFieldBinOp {
@@ -265,11 +280,13 @@ function VmBGKCollisions:createSolver()
       end
       -- Updater to compute cross-species primitive moments.
       self.primMomCross = Updater.CrossPrimMoments {
-         onGrid     = self.confGrid,
-         phaseBasis = self.phaseBasis,
-         confBasis  = self.confBasis,
-         operator   = "VmBGK",
-         betaGreene = self.betaGreene,
+         onGrid           = self.confGrid,
+         phaseBasis       = self.phaseBasis,
+         confBasis        = self.confBasis,
+         operator         = "VmBGK",
+         betaGreene       = self.betaGreene,
+         varyingNu        = self.varNu,
+         useCellAverageNu = self.cellConstNu,
       }
       if self.exactLagFixM012 then
          -- Will need the 1st and 2nd moment of the cross-species Maxwellian.
@@ -339,8 +356,8 @@ function VmBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
 
       if self.varNu then
          -- Compute the collisionality
-         self.spitzerNu:advance(tCurr, {self.mass, self.charge, selfMom[1], primMomSelf[2], self.normNuSelf},
-				{self.nuSum})
+         self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                        self.charge, self.mass, selfMom[1], primMomSelf[2], self.normNuSelf}, {self.nuSum})
          self.phaseMul:advance(tCurr, {self.nuSum, self.nufMaxwellSum},
 			       {self.nufMaxwellSum})
       else
@@ -366,16 +383,17 @@ function VmBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
          if self.varNu then
             -- Compute the collisionality if another species hasn't
             -- already done so.
+            local chargeOther = species[otherNm]:getCharge()
             if (not species[self.speciesName].momentFlags[6][otherNm]) then
-               self.spitzerNu:advance(tCurr, {self.mass, self.charge, otherMom[1], primMomSelf[2], self.normNuCross[sInd]},
-                                      {species[self.speciesName].nuVarXCross[otherNm]})
+               self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                              chargeOther, mOther, otherMom[1], primMomOther[2], self.normNuCross[sInd]},
+                                             {species[self.speciesName].nuVarXCross[otherNm]})
                species[self.speciesName].momentFlags[6][otherNm] = true
             end
             if (not species[otherNm].momentFlags[6][self.speciesName]) then
-               local chargeOther = species[otherNm]:getCharge()
-               self.spitzerNu:advance(tCurr, {mOther, chargeOther, selfMom[1], primMomOther[2],
-                                              species[otherNm].collPairs[otherNm][self.speciesName].normNu},
-                                      {species[otherNm].nuVarXCross[self.speciesName]})
+               self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
+                                              self.charge, self.mass, selfMom[1], primMomSelf[2], species[otherNm].collPairs[otherNm][self.speciesName].normNu},
+                                             {species[otherNm].nuVarXCross[self.speciesName]})
                species[otherNm].momentFlags[6][self.speciesName] = true
             end
             self.nuCrossSelf:copy(species[self.speciesName].nuVarXCross[otherNm])

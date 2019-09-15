@@ -14,6 +14,7 @@ local Updater        = require "Updater"
 local DataStruct     = require "DataStruct"
 local Time           = require "Lib.Time"
 local ffi            = require "ffi"
+local Lin            = require "Lib.Linalg"
 
 local VlasovSpecies = Proto(KineticSpecies)
 
@@ -269,9 +270,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
                      else
+                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                         if (species[sN].collisions[collNmN].userInputNormNu) then
-                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                            self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
+                        else
+                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                         end
                      end
                   end
@@ -282,13 +285,19 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                   for collNmO, _ in pairs(species[sO].collisions) do
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
+                        -- Collision operator kind.
+                        self.collPairs[sO][sN].kind  = species[sO].collisions[collNmO].collKind
+                        -- Collision frequency type (e.g. constant, spatially varying).
+                        self.collPairs[sO][sN].varNu = species[sO].collisions[collNmO].varNu
                         if (not self.collPairs[sO][sN].varNu) then
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                            end
                         end
                      end
@@ -310,9 +319,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                            end
                         end
                      end
@@ -430,7 +441,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    if emField then totalEmField:accumulate(qbym, emField) end
    if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
-   
+
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
    if self.vlasovExtForceFunc then
       local vExtForce = self.vExtForce
@@ -472,12 +483,31 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       localEdgeFlux[0] = 0.0
       localEdgeFlux[1] = 0.0
       localEdgeFlux[2] = 0.0
+
+      local numConfDims = self.confBasis:ndim()
+      assert(numConfDims==1, "VlasovSpecies: The steady state source is available only for 1X.")
+      local numConfBasis = self.confBasis:numBasis()
+      local lower, upper = Lin.Vec(numConfDims), Lin.Vec(numConfDims)
+      lower[1], upper[1] = -1.0, 1.0
+      local basisUpper = Lin.Vec(numConfBasis)
+      local basisLower = Lin.Vec(numConfBasis)
+
+      self.confBasis:evalBasis(upper, basisUpper)
+      self.confBasis:evalBasis(lower, basisLower)
+
       local flux = self:fluidMoments()[2]
       local fluxIndexer, fluxItr = flux:genIndexer(), flux:get(1)
       for idx in flux:localRangeIter() do
-	 if idx[1] == self.grid:upper(1) then
+	 if idx[1] == self.grid:numCells(1) then
 	    flux:fill(fluxIndexer(idx), fluxItr)
-	    localEdgeFlux[0] = fluxItr[1] / math.sqrt(2)
+	    for k = 1, numConfBasis do
+	       localEdgeFlux[0] = localEdgeFlux[0] + fluxItr[k]*basisUpper[k]
+	    end
+	 elseif idx[1] == 1 then
+	    flux:fill(fluxIndexer(idx), fluxItr)
+	    for k = 1, numConfBasis do
+	       localEdgeFlux[0] = localEdgeFlux[0] - fluxItr[k]*basisLower[k]
+	    end
 	 end
       end
       local globalEdgeFlux = ffi.new("double[3]")
