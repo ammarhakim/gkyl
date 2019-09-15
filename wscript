@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen zmq',
+    opt.load('gkyl luajit mpi adios eigen zmq sqlite3',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -35,6 +35,7 @@ def configure(conf):
     conf.check_mpi()
     conf.check_adios()
     conf.check_eigen()
+    conf.check_sqlite3()
     conf.check_zmq()
 
     # standard install location for dependencies
@@ -72,7 +73,13 @@ def build(bld):
     bld.recurse("Proto")
     bld.recurse("Unit")
     bld.recurse("Updater")
-    bld.recurse("sqlite3")    
+
+    # Sometimes there is an issue with an existing build of sqlite on
+    # a Linux machine. In that case, sqlite support can be
+    # disabled. WARNING: This means the regression testing system
+    # won't work.
+    if bld.env['USE_SQLITE']:
+        bld.recurse("sqlite3")
 
     # build executable
     buildExec(bld)    
@@ -192,12 +199,12 @@ def build(bld):
         Basis_dir.ant_glob('**/*.lua'),
         cwd=Basis_dir, relative_trick=True)
 
-    # - Proto/Fpo
-    Fpo_dir = bld.path.find_dir('Proto/Fpo')
+    # - Proto/
+    Proto_dir = bld.path.find_dir('Proto')
     bld.install_files(
-        "${PREFIX}/bin/Proto/Fpo",
-        Fpo_dir.ant_glob('**/*.lua'),
-        cwd=Fpo_dir, relative_trick=True)
+        "${PREFIX}/bin/Proto",
+        Proto_dir.ant_glob('**/*.lua'),
+        cwd=Proto_dir, relative_trick=True)
 
 def buildExec(bld):
     r"""Build top-level executable"""
@@ -212,9 +219,11 @@ def buildExec(bld):
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
 
-    useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    if bld.env['USE_SQLITE']:
+        useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
-        useList = 'sqlite3 lib datastruct eq unit comm updater basis grid LUAJIT ADIOS EIGEN ZMQ MPI M DL'
+        useList = 'ZMQ ' + useList
         
     # build gkyl executable
     bld.program(

@@ -115,6 +115,7 @@ function GkField:alloc(nRkDup)
    -- allocate fields needed in RK update
    -- nField is related to number of RK stages
    self.potentials = {}
+   self.nRkDup = nRkDup
    for i = 1, nRkDup do
       self.potentials[i] = {}
       self.potentials[i].phi = DataStruct.Field {
@@ -200,7 +201,9 @@ function GkField:initField(species)
          evaluate = self.initPhiFunc,
          projectOnGhosts = true
       }
-      project:advance(0.0, {}, {self.potentials[1].phi})
+      for i = 1, self.nRkDup do
+         project:advance(0.0, {}, {self.potentials[i].phi})
+      end
    else
       -- solve for initial phi
       self:advance(0.0, species, 1, 1)

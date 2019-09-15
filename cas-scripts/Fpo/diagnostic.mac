@@ -1,0 +1,54 @@
+kill(all) $
+load("modal-basis") $
+load("basis-precalc/basisSer2x") $
+assume(dv[1]>0, dv[2]>0) $
+numDims : 2 $
+
+for polyOrder : 1 thru 2 do (
+  fExp : doExpand(f, basisC[polyOrder]),
+  hExp : doExpand(h, basisC[polyOrder]),
+  
+  M0 : integrate(integrate(fExp, x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4,
+  M1x : integrate(integrate((x*dv[1]/2+vc[1])*fExp, x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4,
+  M1y : integrate(integrate((y*dv[2]/2+vc[2])*fExp, x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4,
+  M2 : integrate(integrate(((x*dv[1]/2+vc[1])^2+(y*dv[2]/2+vc[2])^2)*fExp, x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4,
+  
+  diagM1x : integrate(integrate(diff(hExp, x)*2/dv[1]*fExp, x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4,
+  diagM1y : integrate(integrate(diff(hExp, y)*2/dv[2]*fExp, x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4,
+  diagM2 : integrate(integrate(((x*dv[1]/2+vc[1])*diff(hExp, x)*2/dv[1] + (y*dv[2]/2+vc[2])*diff(hExp, y)*2/dv[2] + hExp/2)*fExp, x, -1, 1), y, -1, 1) * dv[1]*dv[2]/4,
+  
+  /* 1-index to 0-index substitution */
+  indexSubList : append(
+    makelist(dv[i]=dv[i-1], i, 1, numDims),
+    makelist(vc[i]=vc[i-1], i, 1, numDims),
+    makelist(f[i]=f[i-1], i, 1, length(basisC[polyOrder])),
+    makelist(h[i]=h[i-1], i, 1, length(basisC[polyOrder]))
+  ),
+
+  fname : sconcat("~/max-out/fpoMomsKernelP", polyOrder, ".cpp"),
+  fh : openw(fname),
+  printf(fh, "#include <math.h>~%"),
+  printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
+
+  printf(fh, "void fpoMomsKernelP~a(const double *dv, const double *vc, const double *f, double *out) {~%", polyOrder),
+  
+  printf(fh, "  out[0] += ~a;~%", subst(gkyl_ipow, "^", float(subst(indexSubList, fullratsimp(M0))))),
+  printf(fh, "  out[1] += ~a;~%", subst(gkyl_ipow, "^", float(subst(indexSubList, fullratsimp(M1x))))),
+  printf(fh, "  out[2] += ~a;~%", subst(gkyl_ipow, "^", float(subst(indexSubList, fullratsimp(M1y))))),
+  printf(fh, "  out[3] += ~a;~%", subst(gkyl_ipow, "^", float(subst(indexSubList, fullratsimp(M2))))),
+  printf(fh, "}"),
+  close(fh),
+  
+  fname : sconcat("~/max-out/fpoDiagKernelP", polyOrder, ".cpp"),
+  fh : openw(fname),
+  printf(fh, "#include <math.h>~%"),
+  printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
+  
+  printf(fh, "void fpoDiagKernelP~a(const double *dv, const double *vc, const double *f, const double *h, double *out) {~%", polyOrder),
+  
+  printf(fh, "  out[0] += ~a;~%", subst(gkyl_ipow, "^", float(subst(indexSubList, fullratsimp(diagM1x))))),
+  printf(fh, "  out[1] += ~a;~%", subst(gkyl_ipow, "^", float(subst(indexSubList, fullratsimp(diagM1y))))),
+  printf(fh, "  out[2] += ~a;~%", subst(gkyl_ipow, "^", float(subst(indexSubList, fullratsimp(diagM2))))),
+  printf(fh, "}"),
+  close(fh)
+)

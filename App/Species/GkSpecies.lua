@@ -414,9 +414,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNm].collFreqs[specInd]
                      else
+                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                         if (species[sN].collisions[collNm].userInputNormNu) then
-                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                            self.collPairs[sN][sO].normNu = species[sN].collisions[collNm].normNuIn[specInd]
+                        else
+                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                         end
                      end
                   end
@@ -450,9 +452,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
                      else
+                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                         if (species[sN].collisions[collNmN].userInputNormNu) then
-                           -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                            self.collPairs[sN][sO].normNu = species[sN].collisions[collNmN].normNuIn[specInd]
+                        else
+                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                         end
                      end
                   end
@@ -467,9 +471,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                            end
                         end
                      end
@@ -491,9 +497,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                            -- Constant collisionality. Record it.
                            self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
                         else
+                           -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
-                              -- Normalized collisionality to be scaled (e.g. by n/T^(3/2)).
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
+                           else
+                              self.collPairs[sN][sO].normNu = 0.0
                            end
                         end
                      end
