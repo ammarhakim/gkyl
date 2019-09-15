@@ -10,14 +10,14 @@ load("out-scripts");
 load(stringproc)$
 fpprec : 24$
 
-writeCExprsB(lhs, rhs) := block([expr],
+writeCExprsB(lhs, rhs, nSpaces) := block([expr],
   expr : float(expand(rhs)),
   for i : 1 thru length(expr) do (
-    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", sremove("\\", ssubst(")","]",ssubst("(","[",string(lhs[i])))), expr[i])
+    if expr[i] # 0.0 then printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), sremove("\\", ssubst(")","]",ssubst("(","[",string(lhs[i])))), expr[i])
   )
 )$
 
-writeEVExprs(lhs, rhs) := block([expr],
+writeEVExprs(lhs, rhs, nSpaces) := block([expr],
   len   : length(rhs),
   digs  : slength(string(len)),
 /*  start : len+(len-1)+5+len*digs+6*(len-1)+digs*(len-1)+1, */
@@ -26,7 +26,7 @@ writeEVExprs(lhs, rhs) := block([expr],
   for k : 1 thru (len-1) do (
     start : start+slength(string(k))
   ),
-  printf(fh, "    ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+  printf(fh,sconcat(smake(nSpaces," "),"    ~a << ~a; ~%"), lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
 )$
 
 writeEVExprsS(lhs, rhs) := block([expr],
@@ -48,11 +48,45 @@ writeCExprs1s(lhs, rhs) := block([expr],
   )
 )$
 
-calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E],
+writeCExprs1d(lhs,rhs,dir,Npoints,nSpaces) := block([expr],
+  expr : expand(float(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then (
+      ep : string(expr[i]),
+      for iC : (dir-1)*Npoints thru dir*Npoints-1 do (
+        ep : ssubst(sconcat("xBar[",string(iC),"]*xBar[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^2"),ep),
+        ep : ssubst(sconcat("xBar[",string(iC),"]*xBar[",string(iC),"]*xBar[",string(iC),"]"),
+                    sconcat("xBar[",string(iC),"]^3"),ep)
+      ),
+      printf(fh,sconcat(smake(nSpaces," "),"  ~a = ~a; ~%"), lhs[(dir-1)*Npoints+i-1], ep)
+    )
+  )
+)$
+
+/* Convert exponentials into hyperbolic function. */
+toHyper(expr,vars) := block([],
+  for iv : 1 thru length(vars) do (
+    expr : subst(vars[iv]=vars[iv]/%i,demoivre(subst(vars[iv]=%i*vars[iv],expr)))
+  )
+)$
+
+calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax, applyPos) := block([Elhs,Eflat,Ef,eq,E],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  if applyPos then (
+    pOrderMax : 1,
+    load(sconcat("basis-precalc/basis", basisFun, 1, "x")),
+    bC1 : basisC[1]    /* Save 1D basis for later use. */
+  ) else (
+    pOrderMax : pMax
+  ),
+
   kill(varsC, varsP, basisC, basisP),
   modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
   load(modNm),
-  for polyOrder : 1 thru pMax do (
+  for polyOrder : 1 thru pOrderMax do (
     bC : basisC[polyOrder],
     N  : length(bC),
   
@@ -65,30 +99,58 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E]
     printf(fh, "  // out:     output field (same number of components as B). ~%"),
     printf(fh, " ~%"),
 
-    /* In order to avoid dividing by very small, negative or zero numbers
-       use the cell average of A when A<0 at one of the corners. */
-    printf(fh, "  // If a corner value is below zero, use cell average A.~%"),
-    printf(fh, "  bool avgA = false;~%"),
-    for v1 : -1 step 2 thru 1 do (
-      cornerA : subst(varsC[1]=v1,doExpand1(A,bC)),
-      if cdim > 1 then (
-        for v2 : -1 step 2 thru 1 do (
-          cornerA : subst(varsC[2]=v2,cornerA),
-          if cdim > 2 then (
-            for v3 : -1 step 2 thru 1 do (
-              cornerA : subst(varsC[3]=v3,cornerA),
-              printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-              printf(fh, "    avgA = true;~%"),
-              printf(fh, "  }~%")
-            )
-          ) else (
-            printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
-            printf(fh, "    avgA = true;~%"),
-            printf(fh, "  }~%")
-          )
+    /* This function evaluates the denominator (fIn, expanded in
+        variables evalVars) at all combinations of (+/- evalPoint)
+        points, and places it in the list fEvOut. */
+    pointEval(fEvOut,fIn,evalVars,evalPoint) := block([v1,otherVars,fSub],
+      v1        : evalVars[1],
+      otherVars : delete(v1,evalVars),
+      for iQ : -1 step 2 thru 1 do (
+        fSub : subst(v1=iQ*evalPoint,fIn),
+        if length(otherVars)>0 then (
+          pointEval(fEvOut,fSub,otherVars,evalPoint)
+        ) else (
+          fEvOut[iHe] : fSub,
+          iHe : iHe + 1
         )
-      ) else (
-        printf(fh, "  if (~a < 0) { ~%",float(expand(cornerA))),
+      )
+    ),
+
+    /* List of A evaluated at the corners. */
+    cornerAs : makelist(0,i,1,2^cdim),
+    iHe : 1,
+    pointEval(cornerAs,doExpand1(A,bC),varsC,1),
+
+    /* List of A evaluated close to positivity control points. */
+    controlAs : makelist(0,i,1,2^cdim),
+    iHe : 1,
+    pointEval(controlAs,doExpand1(A,bC),varsC,2/5),
+
+    if (not applyPos) then (
+      /* In order to avoid dividing by very small, negative or zero numbers
+         use the cell average of A when A<0 at one of the corners. */
+      printf(fh, "  // If a corner value is below zero, use cell average A.~%"),
+      printf(fh, "  bool avgA = false;~%"),
+      for i : 1 thru 2^cdim do (
+        printf(fh, "  if (~a < 0.0) { ~%",float(expand(cornerAs[i]))),
+        printf(fh, "    avgA = true;~%"),
+        printf(fh, "  }~%")
+      )
+    ) else (
+      /* If A<0.0 at one of the corners we will switch to exponential
+         representation of A. If A<0 close to the control points, we will
+         switch to cell-average division. */
+      printf(fh, "  // If A<0 at corners, but A>0 near positivity control points, use cell average A.~%"),
+      printf(fh, "  bool expA = false;~%"),
+      printf(fh, "  bool avgA = false;~%"),
+      for i : 1 thru 2^cdim do (
+        printf(fh, "  if ((~a < 0.0) && (~a > 0.0)) { ~%",float(expand(cornerAs[i])),float(expand(controlAs[i]))),
+        printf(fh, "    expA = true;~%"),
+        printf(fh, "  }~%")
+      ),
+      printf(fh, "  // If A is zero near positivity control points, use cell average A.~%"),
+      for i : 1 thru 2^cdim do (
+        printf(fh, "  if (~a < 0.0) { ~%",float(expand(controlAs[i]))),
         printf(fh, "    avgA = true;~%"),
         printf(fh, "  }~%")
       )
@@ -128,42 +190,172 @@ calcBinOpDivideS(fh, funcNm, cdim, basisFun, pMax) := block([Elhs,Eflat,Ef,eq,E]
     un : makelist(u[i],i,0,N-1),
 
     kill(eq,E,Eflat,Ef,Elhs),
-    eq : calcInnerProdList(varsC,ue,bC,Ae),
-  
-    E : fullratsimp(coefmatrix(eq,un)),
-    /* Flatten E for WriteCExprsB. */
-    Eflat : list_matrix_entries(E),
 
-    /* Make a list of the LHS matrix assignments. */
-    /* Note: Eigen defaults to Column-major order. */
-    Ef[i,j] := "data->AEM_S"[i,j],
-    Elhs : list_matrix_entries(genmatrix(Ef,N-1,N-1,0,0)),
+    eigenMassMatrix(Amat,nSpaces) := block([],
+      /* Flatten E for WriteCExprsB. */
+      Eflat : list_matrix_entries(Amat),
 
-    printf(fh, "  // Fill AEM matrix. ~%"),
-    printf(fh, "  data->AEM_S = Eigen::MatrixXd::Zero(~a,~a); ~%", N, N),
-    writeCExprsB(Elhs,Eflat),
-    printf(fh, " ~%"),
+      /* Make a list of the LHS matrix assignments. */
+      /* Note: Eigen defaults to Column-major order. */
+      Ef[i,j] := "data->AEM_S"[i,j],
+      Elhs : list_matrix_entries(genmatrix(Ef,N-1,N-1,0,0)),
 
-    printf(fh, "  for(unsigned short int vd=0; vd<Ncomp; vd++) ~%"),
-    printf(fh, "  { ~%"),
+      printf(fh,sconcat(smake(nSpaces," "),"  // Fill AEM matrix. ~%")),
+      printf(fh,sconcat(smake(nSpaces," "),"  data->AEM_S = Eigen::MatrixXd::Zero(~a,~a); ~%"), N, N),
+      writeCExprsB(Elhs,Eflat,nSpaces),
+      printf(fh,"~%")
+    ),
 
-    printf(fh, "    b0 = ~a*vd; ~%", N),
-    printf(fh, "    // Fill BEV. ~%"),
-/*    printf(fh, "    Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", N), */
-/*  Something like this is only needed if the BEV vector is pre-initialized during init. */
-/*    printf(fh, "    ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", N), */
-    writeEVExprs("data->BEV_S",makelist(Bs[i],i,b0+0,b0+N-1)),
-    printf(fh, " ~%"),
+    eigenDiv(nSpaces) := block([],
 
-    printf(fh, "    // Solve the system of equations. ~%"),
-    printf(fh, "    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); ~%"),
-    printf(fh, " ~%"),
+      printf(fh,sconcat(smake(nSpaces," "),"  for(unsigned short int vd=0; vd<Ncomp; vd++) ~%")),
+      printf(fh,sconcat(smake(nSpaces," "),"  { ~%")),
 
-    printf(fh, "    // Copy data from Eigen vector. ~%"),
-    printf(fh, "    Eigen::Map<VectorXd>(out+vd*~a,~a,1) = data->u_S; ~%", N, N),
-    printf(fh, "  } ~%"),
-    printf(fh, "} ~%"),
-    printf(fh, " ~%")
+      printf(fh,sconcat(smake(nSpaces," "),"    b0 = ~a*vd; ~%"), N),
+      printf(fh,sconcat(smake(nSpaces," "),"    // Fill BEV. ~%")),
+/*      printf(fh, "    Eigen::Map<const VectorXd> BEV(B+0,~a); ~%", N), */
+/*    Something like this is only needed if the BEV vector is pre-initialized during init. */
+/*      printf(fh, "    ::new (&BEV) Eigen::Map<const VectorXd>(B,~a); ~%", N), */
+      writeEVExprs("data->BEV_S",makelist(Bs[i],i,b0+0,b0+N-1),nSpaces),
+      printf(fh,"~%"),
+
+      printf(fh,sconcat(smake(nSpaces," "),"    // Solve the system of equations. ~%")),
+      printf(fh,sconcat(smake(nSpaces," "),"    data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); ~%")),
+      printf(fh," ~%"),
+
+      printf(fh,sconcat(smake(nSpaces," "),"    // Copy data from Eigen vector. ~%")),
+      printf(fh,sconcat(smake(nSpaces," "),"    Eigen::Map<VectorXd>(out+vd*~a,~a,1) = data->u_S; ~%"), N, N),
+      printf(fh,sconcat(smake(nSpaces," "),"  } ~%"))
+    ),
+
+    if (not applyPos) then (
+
+      eq : calcInnerProdList(varsC,ue,bC,Ae),
+      E  : fullratsimp(coefmatrix(eq,un)),
+
+      eigenMassMatrix(E,0),
+      eigenDiv(0)
+
+    ) else (
+
+      printf(fh, "  if ((avgA) || (!expA)) {~%"),
+
+      eq : calcInnerProdList(varsC,ue,bC,Ae),
+      E  : fullratsimp(coefmatrix(eq,un)),
+
+      eigenMassMatrix(E,2),
+      eigenDiv(2),
+
+      printf(fh, "  } else {~%"),
+
+      Aexp : 0,
+      E    : zeromatrix(N,N),
+      Ncp  : 2^(cdim-1),  /* Number of control points. */
+      printf(fh,"    double xBar[~a];~%",Ncp*cdim),
+      printf(fh,"    double g1[~a];~%",Ncp*cdim),
+      for iDir : 1 thru cdim do (
+        cv : varsC[iDir],
+        surfVars : delete(cv,varsC),
+
+        /* Evaluate A at all control points on surface perp to iDir. */
+        cpA : makelist(0,j,1,Ncp),
+        iHe : 1,
+        if (length(surfVars)>0) then (
+          pointEval(cpA,Ae,surfVars,1/3)
+        ) else (
+          cpA[iHe] : Ae
+        ),
+
+        /* At each control point, need to reconstruct an exponential,
+           for which we need xBar, xBarSq and g1. */
+        xBars : makelist(0,i,1,Ncp),
+        for iCP : 1 thru Ncp do (
+          f0exp : fullratsimp(innerProd([cv],1,subst(x=cv,bC1[1]),cpA[iCP])),
+          f1exp : fullratsimp(innerProd([cv],1,subst(x=cv,bC1[2]),cpA[iCP])),
+          xBars[iCP] : f1exp/(sqrt(3)*f0exp)
+        ),
+
+        g1s : makelist(xBar[i]*(3-xBar[i]*xBar[i])/(1-xBar[i]*xBar[i]),i,(iDir-1)*Ncp,iDir*Ncp-1),
+
+        /* Write xBars and g1s. */
+        writeCExprs1d(xBar,xBars,iDir,Ncp,2),
+        printf(fh,"~%"),
+        writeCExprs1d(g1,g1s,iDir,Ncp,2),
+        printf(fh,"~%"),
+
+        /* Construct the symbolic exponential A. */
+
+        if (cdim=1) then (
+          Aexp : expg0[0]*exp(g1[0]*cv)
+        ) else (
+          /*........... Create nodal to modal transform matrix .......... */
+          /* Surface basis: basis of one lower dimensionality w/o surf variable. */
+          bSurf  : sqrt(2)*delete(0,fullratsimp(innerProd(varsC,1,bC,subst(cv=0,bC)))*bC),
+          gFsurf : doExpand(gF,bSurf),
+          /* Evaluate the g-Function at various combinations of control points. */
+          gFsurfCP : makelist(0,i,1,Ncp),
+          iHe      : 1,
+          pointEval(gFsurfCP,gFsurf,surfVars,1/3),
+          /* Construct the nodal-to-modal matrix. */
+          /*n2m : invert(coefmatrix(gFsurfCP,makelist(gF[i],i,1,length(bSurf)))),*/
+          /*........... Built nodal to modal transform matrix .......... */
+          /*
+          modalV : n2m . makelist(expg0[(iDir-1)*Ncp+i-1]*exp(g1[(iDir-1)*Ncp+i-1]*cv),i,1,Ncp), 
+          */
+          /* Computing the inverse takes too much memory. Try linsolve. */
+          rhs : makelist(expg0[(iDir-1)*Ncp+i-1]*exp(g1[(iDir-1)*Ncp+i-1]*cv),i,1,Ncp),
+          eqList : [ gFsurfCP[1] = rhs[1] ], 
+          for iCP : 2 thru Ncp do (
+            eqList : append(eqList, [ gFsurfCP[iCP] = rhs[iCP] ]) 
+          ),
+          modalV : linsolve(eqList, makelist(gF[i],i,1,length(bSurf))),
+
+          Aexp : (1/cdim)*doExpand(makelist(rhs(modalV[i]),i,1,length(bSurf)),bSurf)
+
+        ),
+      
+        eq   : calcInnerProdList(varsC,ue,bC,Aexp),
+        Emat : fullratsimp(coefmatrix(eq,un)),
+
+        /* We will simply the expressions in Emat in order
+           to remove exponentials of g1. */
+        for iCP : 1 thru Ncp do (
+
+          /* This is the corresponding 'zeroth' and 'first' coefficient. */
+          f0exp : fullratsimp(innerProd([cv],1,subst(x=cv,bC1[1]),cpA[iCP])),
+          f1exp : fullratsimp(innerProd([cv],1,subst(x=cv,bC1[2]),cpA[iCP])),
+
+          i : (iDir-1)*Ncp+iCP-1,
+
+          /* These three relations arise from the weak equivalence of the
+             exponential and polynomial representations (assume Ser basis). */
+          expWeak1 : exp(2*g1[i])-1 = sqrt(2)*f0exp*g1[i]*exp(g1[i])/expg0[i],
+          expWeak2 : (1/g1[i])*(exp(-g1[i])*(1+g1[i])-exp(g1[i])*(1-g1[i])) = sqrt(2/3)*(g1[i]/expg0[i])*f1exp,
+          expWeak3 : -(3*exp(g1[i])*expg0[i])/(g1[i]^2)-(3*exp(-g1[i])*expg0[i])/(g1[i]^2) = -(3*sqrt(2)/(g1[i]^2))*(f1exp*g1[i]/sqrt(3)+f0exp),
+          
+          Emat : scsimp(Emat,expWeak2,expWeak1,expWeak3),
+
+          /* The above scsimp doesn't always remove all exponentials, so use a
+             direct substitution to remove left over exponentials of g1. */
+          expMg1 : exp(-g1[i]) = (1/(sqrt(2)*expg0[i]))*(g1[i]*f1exp/sqrt(3)+f0exp-f0exp*g1[i]),
+          expg1  : exp(g1[i])  = (1/(sqrt(2)*expg0[i]))*(g1[i]*f1exp/sqrt(3)+f0exp+f0exp*g1[i]),
+          Emat : fullratsimp(subst([expMg1,expg1],Emat))
+
+        ),
+        print(Emat[1][1]),
+
+        E : E+Emat
+
+      ),
+
+
+      eigenMassMatrix(E,2),
+      eigenDiv(2),
+
+      printf(fh, "  };~%")
+    ),
+    printf(fh, "}~%"),
+    printf(fh, "~%")
   )
 )$
 
@@ -250,7 +442,7 @@ calcBinOpDivideD(fh, funcNm, cdim, vdim, basisFun, pMax) := block([Elhs,Eflat,Ef
 
     printf(fh, "  // Fill AEM matrix. ~%"),
     printf(fh, "  data->AEM_D = Eigen::MatrixXd::Zero(~a,~a); ~%", NP, NP),
-    writeCExprsB(Elhs,Eflat),
+    writeCExprsB(Elhs,Eflat,0),
     printf(fh, " ~%"),
 
     printf(fh, "  // Fill BEV. ~%"),

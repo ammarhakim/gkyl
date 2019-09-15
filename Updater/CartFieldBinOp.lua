@@ -10,7 +10,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
+-- Gkyl libraries.
 local BinOpDecl    = require "Updater.binOpCalcData.CartFieldBinOpModDecl"
 local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
@@ -20,7 +20,7 @@ local xsys         = require "xsys"
 local ffi          = require "ffi"
 local ffiC         = ffi.C
 
--- function to check if moment name is correct
+-- Function to check if moment name is correct.
 local function isOpNameGood(nm)
    if nm == "Multiply" or nm == "Divide" or nm=="DotProduct" then
       return true
@@ -32,7 +32,7 @@ end
 local CartFieldBinOp = Proto(UpdaterBase)
 
 function CartFieldBinOp:init(tbl)
-   CartFieldBinOp.super.init(self, tbl) -- setup base object.
+   CartFieldBinOp.super.init(self, tbl) -- Setup base object.
 
    self._onGrid = assert(
       tbl.onGrid, "Updater.CartFieldBinOp: Must provide grid object using 'onGrid'.")
@@ -44,16 +44,18 @@ function CartFieldBinOp:init(tbl)
    local op = assert(
       tbl.operation, "Updater.CartFieldBinOp: Must provide an operation using 'operation'.")
 
-   -- dimension of spaces.
+   local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
+
+   -- Dimension of spaces.
    self._wDim = weakBasis:ndim()
    if fieldBasis then
-     -- dealing with phase space simulation.
-     -- ensure sanity.
+     -- Dealing with phase space simulation.
+     -- Ensure sanity.
      assert(weakBasis:polyOrder() == fieldBasis:polyOrder(),
             "Polynomial orders of weak and field basis must match.")
      assert(weakBasis:id() == fieldBasis:id(),
             "Type of weak and field basis must match.")
-     -- determine configuration and velocity space dims.
+     -- Determine configuration and velocity space dims.
      self._cDim = fieldBasis:ndim()
      self._vDim = self._wDim - self._cDim
    else
@@ -65,9 +67,9 @@ function CartFieldBinOp:init(tbl)
 
    local id, polyOrder = weakBasis:id(), weakBasis:polyOrder()
 
-   -- function to compute specified operation.
+   -- Function to compute specified operation.
    if isOpNameGood(op) then
-      self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, polyOrder)
+      self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, polyOrder, applyPositivity)
       if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder) end
    else
       assert(false, string.format(
@@ -76,7 +78,7 @@ function CartFieldBinOp:init(tbl)
 
    self.onGhosts = xsys.pickBool(true, tbl.onGhosts)
 
-   -- create struct containing allocated binOp arrays
+   -- Create struct containing allocated binOp arrays.
    if fieldBasis then 
       self._binOpData = ffiC.new_binOpData_t(fieldBasis:numBasis(), self._numBasis) 
    else 
@@ -84,7 +86,7 @@ function CartFieldBinOp:init(tbl)
    end
 end
 
--- advance method
+-- Advance method.
 function CartFieldBinOp:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    -- Multiplication: Afld * Bfld (can be scalar*scalar, vector*scalar or scalar*vector,
@@ -143,8 +145,8 @@ function CartFieldBinOp:_advance(tCurr, inFld, outFld)
      self._BinOpCalc = self._BinOpCalcD
    end
 
-   local tId = grid:subGridSharedId() -- local thread ID   
-   -- loop, computing binOp in each cell
+   local tId = grid:subGridSharedId() -- Local thread ID.
+   -- Loop, computing binOp in each cell.
    for idx in localBRangeDecomp:rowMajorIter(tId) do
       grid:setIndex(idx)
 
