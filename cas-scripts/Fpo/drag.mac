@@ -4,8 +4,6 @@ load("recovery-calc/recovery") $
 assume(dv[0]>0, dv[1]>0, dv[2]>0) $
 numDims : 2 $
 
-/*eta(xc, yc, basis) := subst([wx=x, wy=y], subst([x=(wx-xc), y=(wy-yc)] , basis)) $*/
-
 for polyOrder : 1 thru 2 do (
   load("basis-precalc/basisSer1x"),
   basis1D : basisC[polyOrder],
