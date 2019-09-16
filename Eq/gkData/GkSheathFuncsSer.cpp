@@ -1,4 +1,5 @@
 #include <cmath> 
+#include <fenv.h> 
 #include <GyrokineticModDecl.h> 
 // approximation for inverse Langevin function 
 long double invL(long double x) { 
@@ -8,9 +9,10 @@ long double invL(long double x) {
 
 void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double zVal, const double q_, const double m_, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
-  double vcutSq_i; long double xc, b, rVal; 
+  double vcutSq_i; long double xc, b, rVal, fac; 
   double fReflXYQuad[4][8]; 
   double fReflXYMuQuad[2][4]; 
+  feclearexcept(FE_ALL_EXCEPT); 
   
 
 // quadrature node (x,y)_i=1 
@@ -45,12 +47,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]-3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])-9.0*f[0]))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]-3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])-9.0*f[3]))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]-3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])-9.0*f[0]))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]-3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])-9.0*f[3]))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]-3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])-9.0*f[0]))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]-3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])-9.0*f[3]))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]-3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])-9.0*f[0]))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]-3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])-9.0*f[3]))*fac; 
    } 
   } 
   rVal = (0.5773502691896258*(1.732050807568877*f[27]+3.0*(f[16]-1.0*(f[22]+f[21]))+5.196152422706631*(f[14]-1.0*(f[8]+f[7]))+9.0*f[3]))/(1.732050807568877*f[20]+3.0*(f[6]-1.0*(f[13]+f[12]))+5.196152422706631*(f[5]-1.0*(f[2]+f[1]))+9.0*f[0]); 
@@ -64,12 +74,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[6]-1.0*(f[13]+f[12]))+5.196152422706631*(f[5]-1.0*(f[2]+f[1]))+9.0*f[0]))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[16]-1.0*(f[22]+f[21]))+5.196152422706631*(f[14]-1.0*(f[8]+f[7]))+9.0*f[3]))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[6]-1.0*(f[13]+f[12]))+5.196152422706631*(f[5]-1.0*(f[2]+f[1]))+9.0*f[0]))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[16]-1.0*(f[22]+f[21]))+5.196152422706631*(f[14]-1.0*(f[8]+f[7]))+9.0*f[3]))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[6]-1.0*(f[13]+f[12]))+5.196152422706631*(f[5]-1.0*(f[2]+f[1]))+9.0*f[0]))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[16]-1.0*(f[22]+f[21]))+5.196152422706631*(f[14]-1.0*(f[8]+f[7]))+9.0*f[3]))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[6]-1.0*(f[13]+f[12]))+5.196152422706631*(f[5]-1.0*(f[2]+f[1]))+9.0*f[0]))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[16]-1.0*(f[22]+f[21]))+5.196152422706631*(f[14]-1.0*(f[8]+f[7]))+9.0*f[3]))*fac; 
    } 
   } 
   fReflXYQuad[0][0] = 0.7071067811865468*(fReflXYMuQuad[1][0]+fReflXYMuQuad[0][0]); 
@@ -115,12 +133,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*(f[12]+f[6]))+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))+9.0*f[0]))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*(f[21]+f[16]))+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))+9.0*f[3]))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*(f[12]+f[6]))+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))+9.0*f[0]))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*(f[21]+f[16]))+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))+9.0*f[3]))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*(f[12]+f[6]))+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))+9.0*f[0]))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*(f[21]+f[16]))+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))+9.0*f[3]))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*(f[12]+f[6]))+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))+9.0*f[0]))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*(f[21]+f[16]))+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))+9.0*f[3]))*fac; 
    } 
   } 
   rVal = (0.5773502691896258*(1.732050807568877*f[27]+3.0*(f[22]-1.0*f[21]+f[16])+5.196152422706631*(f[8]-1.0*f[14])-1.0*(5.196152422706631*f[7]+9.0*f[3])))/(1.732050807568877*f[20]+3.0*(f[13]-1.0*f[12]+f[6])+5.196152422706631*(f[2]-1.0*f[5])-1.0*(5.196152422706631*f[1]+9.0*f[0])); 
@@ -134,12 +160,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*f[12]+f[6])+5.196152422706631*(f[2]-1.0*f[5])-1.0*(5.196152422706631*f[1]+9.0*f[0])))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*f[21]+f[16])+5.196152422706631*(f[8]-1.0*f[14])-1.0*(5.196152422706631*f[7]+9.0*f[3])))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*f[12]+f[6])+5.196152422706631*(f[2]-1.0*f[5])-1.0*(5.196152422706631*f[1]+9.0*f[0])))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*f[21]+f[16])+5.196152422706631*(f[8]-1.0*f[14])-1.0*(5.196152422706631*f[7]+9.0*f[3])))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*f[12]+f[6])+5.196152422706631*(f[2]-1.0*f[5])-1.0*(5.196152422706631*f[1]+9.0*f[0])))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*f[21]+f[16])+5.196152422706631*(f[8]-1.0*f[14])-1.0*(5.196152422706631*f[7]+9.0*f[3])))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]-1.0*f[12]+f[6])+5.196152422706631*(f[2]-1.0*f[5])-1.0*(5.196152422706631*f[1]+9.0*f[0])))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]-1.0*f[21]+f[16])+5.196152422706631*(f[8]-1.0*f[14])-1.0*(5.196152422706631*f[7]+9.0*f[3])))*fac; 
    } 
   } 
   fReflXYQuad[1][0] = 0.7071067811865468*(fReflXYMuQuad[1][0]+fReflXYMuQuad[0][0]); 
@@ -185,12 +219,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]-1.0*f[6])+5.196152422706631*((-1.0*f[5])+f[2]-1.0*f[1])+9.0*f[0]))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]-1.0*f[16])+5.196152422706631*((-1.0*f[14])+f[8]-1.0*f[7])+9.0*f[3]))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]-1.0*f[6])+5.196152422706631*((-1.0*f[5])+f[2]-1.0*f[1])+9.0*f[0]))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]-1.0*f[16])+5.196152422706631*((-1.0*f[14])+f[8]-1.0*f[7])+9.0*f[3]))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]-1.0*f[6])+5.196152422706631*((-1.0*f[5])+f[2]-1.0*f[1])+9.0*f[0]))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]-1.0*f[16])+5.196152422706631*((-1.0*f[14])+f[8]-1.0*f[7])+9.0*f[3]))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]-1.0*f[6])+5.196152422706631*((-1.0*f[5])+f[2]-1.0*f[1])+9.0*f[0]))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]-1.0*f[16])+5.196152422706631*((-1.0*f[14])+f[8]-1.0*f[7])+9.0*f[3]))*fac; 
    } 
   } 
   rVal = (0.5773502691896258*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]+f[16])+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))-9.0*f[3]))/(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]+f[6])+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))-9.0*f[0]); 
@@ -204,12 +246,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]+f[6])+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))-9.0*f[0]))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]+f[16])+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))-9.0*f[3]))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]+f[6])+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))-9.0*f[0]))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]+f[16])+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))-9.0*f[3]))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]+f[6])+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))-9.0*f[0]))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]+f[16])+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))-9.0*f[3]))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*((-1.0*f[13])+f[12]+f[6])+5.196152422706631*(f[1]-1.0*(f[5]+f[2]))-9.0*f[0]))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*((-1.0*f[22])+f[21]+f[16])+5.196152422706631*(f[7]-1.0*(f[14]+f[8]))-9.0*f[3]))*fac; 
    } 
   } 
   fReflXYQuad[2][0] = 0.7071067811865468*(fReflXYMuQuad[1][0]+fReflXYMuQuad[0][0]); 
@@ -255,12 +305,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]-1.0*f[6])+5.196152422706631*f[5]-1.0*(5.196152422706631*(f[2]+f[1])+9.0*f[0])))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]-1.0*f[16])+5.196152422706631*f[14]-1.0*(5.196152422706631*(f[8]+f[7])+9.0*f[3])))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]-1.0*f[6])+5.196152422706631*f[5]-1.0*(5.196152422706631*(f[2]+f[1])+9.0*f[0])))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]-1.0*f[16])+5.196152422706631*f[14]-1.0*(5.196152422706631*(f[8]+f[7])+9.0*f[3])))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]-1.0*f[6])+5.196152422706631*f[5]-1.0*(5.196152422706631*(f[2]+f[1])+9.0*f[0])))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]-1.0*f[16])+5.196152422706631*f[14]-1.0*(5.196152422706631*(f[8]+f[7])+9.0*f[3])))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][0] = (-0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]-1.0*f[6])+5.196152422706631*f[5]-1.0*(5.196152422706631*(f[2]+f[1])+9.0*f[0])))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("1,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[0][1] = (-0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]-1.0*f[16])+5.196152422706631*f[14]-1.0*(5.196152422706631*(f[8]+f[7])+9.0*f[3])))*fac; 
    } 
   } 
   rVal = (0.5773502691896258*(1.732050807568877*f[27]+3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])+9.0*f[3]))/(1.732050807568877*f[20]+3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])+9.0*f[0]); 
@@ -274,12 +332,20 @@ void calcSheathReflection3x2vSer_P1(const double wv, const double dv, const doub
    b = invL(rVal); 
    if(wv > 0) {
     xc = (2*(sqrt(vcutSq_i)-wv))/dv; 
-    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])+9.0*f[0]))*((exp(b*xc)-exp(-b))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])+9.0*f[3]))*(((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 0. : b<-500? 1. : abs(b)<1e-10? (1.+xc)/2. : (exp(b*xc)-exp(-b))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])+9.0*f[0]))*fac; 
+    fac = (b>500 || abs(b)<1e-10)? 0. : b<-500? 1. : ((b*xc-1)*exp(b*xc)+(b+1)*exp(-b))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,1: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])+9.0*f[3]))*fac; 
    } else { 
     xc = (2*((-wv)-sqrt(vcutSq_i)))/dv; 
-    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])+9.0*f[0]))*((exp(b)-exp(b*xc))/2/sinh(b)); 
-    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])+9.0*f[3]))*(((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2/(b*cosh(b)-sinh(b))); 
+    fac = b>500? 1. : b<-500? 0. : abs(b)<1e-10? (1.-xc)/2. : (exp(b)-exp(b*xc))/(2.*sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,1,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][0] = (0.0392837100659193*(1.732050807568877*f[20]+3.0*(f[13]+f[12]+f[6])+5.196152422706631*(f[5]+f[2]+f[1])+9.0*f[0]))*fac; 
+    fac = b>500? 1. : (b<-500 || abs(b)<1e-10)? 0. : ((b-1)*exp(b)-(b*xc-1)*exp(b*xc))/2./(b*cosh(b)-sinh(b)); 
+    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf("2,2,2: b = %Le, sinh(b) = %Le\n", b, sinh(b)); throw "Overflow!";}
+    fReflXYMuQuad[1][1] = (0.0392837100659193*(1.732050807568877*f[27]+3.0*(f[22]+f[21]+f[16])+5.196152422706631*(f[14]+f[8]+f[7])+9.0*f[3]))*fac; 
    } 
   } 
   fReflXYQuad[3][0] = 0.7071067811865468*(fReflXYMuQuad[1][0]+fReflXYMuQuad[0][0]); 
