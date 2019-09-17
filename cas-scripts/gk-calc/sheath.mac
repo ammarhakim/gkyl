@@ -95,6 +95,7 @@ for p : 1 thru pmax do (
         /* project f at this (x,y)_i,(z,mu)_j quad node onto vpar basis (bVp) */
         fXYZMuQ_Vp_c : gcfac(fullratsimp(innerProd([vx], 1, bVp, fXYZMuQ_expd[j]))),
         r: gcfac(float(fXYZMuQ_Vp_c[2]/sqrt(3)/fXYZMuQ_Vp_c[1])),
+        printf(fh, "  rVal = ~a; ~%", r),
         printf(fh, "  // if f is not realizable, no reflection from this quadrature point ~%"),
         printf(fh, "  if(std::abs(rVal)>=.99 || ~a < 0.) { ~%", gcfac(float(fXYZMuQ_Vp_c[1]))),
         writeCExprsWithZerosNoExpand1(fReflXYZMuQuad[j-1],makelist(0.,j,1,length(bVp))),
