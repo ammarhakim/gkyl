@@ -11,7 +11,7 @@ for polyOrder : 1 thru 2 do (
   basis2D : basisC[polyOrder],
   
   recx2Cell : getRecov2CellGen(x, [2, 2], polyOrder, qL, qR),
-  recx3Cell : getRecov3CellGen(x, [2, 2], polyOrder, 0, qL, qC, qR),
+  /*recx3Cell : getRecov3CellGen(x, [2, 2], polyOrder, 0, qL, qC, qR),*/
   
   /* h and g substitions for q; accounting for C 0-indexes */
   gLSubList : append(
@@ -49,8 +49,10 @@ for polyOrder : 1 thru 2 do (
     subst(x=0, diff(diff(subst(gRSubList, recx2Cell), x), x)*subst(fRSubList, recx2Cell))) * J,
 
   /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), x),
+    diff(diff(subst(gCSubList, recx3Cell), x), x)*doExpand1(f, basis2D)) * J,*/
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), x),
-    diff(diff(subst(gCSubList, recx3Cell), x), x)*doExpand1(f, basis2D)) * J,
+    diff(diff(doExpand1(g, basis2D), x), x)*doExpand1(f, basis2D)) * J,
   
   /* Writting surface terms */
   fname : sconcat("~/max-out/fpoDiffKernelP", polyOrder, ".cpp"),
@@ -87,8 +89,10 @@ for polyOrder : 1 thru 2 do (
     subst(x=0, diff(diff(subst(gRSubList, recx2Cell), x), y)*subst(fRSubList, recx2Cell))) * J,
 
   /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), y),
+    diff(diff(subst(gCSubList, recx3Cell), x), y)*doExpand1(f, basis2D)) * J,*/
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), y),
-    diff(diff(subst(gCSubList, recx3Cell), x), y)*doExpand1(f, basis2D)) * J,
+    diff(diff(doExpand1(g, basis2D), x), y)*doExpand1(f, basis2D)) * J,
 
   printf(fh, "  if (isLeftEdge) {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb)/2))),
@@ -107,7 +111,7 @@ for polyOrder : 1 thru 2 do (
   printf(fh, "~%"),
   
   recy2Cell : getRecov2CellGen(y, [2, 2], polyOrder, qB, qT),
-  recy3Cell : getRecov3CellGen(y, [2, 2], polyOrder, 0, qB, qC, qT),
+  /*recy3Cell : getRecov3CellGen(y, [2, 2], polyOrder, 0, qB, qC, qT),*/
   
   /* g and f substitions for q; accounting for C 0-indexes */
   gBSubList : append(
@@ -145,8 +149,10 @@ for polyOrder : 1 thru 2 do (
     subst(y=0, diff(diff(subst(gTSubList, recy2Cell), y), y)*subst(fTSubList, recy2Cell))) * J,
 
   /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), y),
+    diff(diff(subst(gCSubList, recy3Cell), y), y)*doExpand1(f, basis2D)) * J,*/
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), y),
-    diff(diff(subst(gCSubList, recy3Cell), y), y)*doExpand1(f, basis2D)) * J,
+    diff(diff(doExpand1(g, basis2D), y), y)*doExpand1(f, basis2D)) * J,
   
   /* Writting surface terms */
   printf(fh, "  if (isBotEdge) {~%"),
@@ -175,8 +181,10 @@ for polyOrder : 1 thru 2 do (
     subst(y=0, diff(diff(subst(gTSubList, recy2Cell), y), x)*subst(fTSubList, recy2Cell))) * J,
 
   /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), x),
+    diff(diff(subst(gCSubList, recy3Cell), y), x)*doExpand1(f, basis2D)) * J,*/
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), x),
-    diff(diff(subst(gCSubList, recy3Cell), y), x)*doExpand1(f, basis2D)) * J,
+    diff(diff(doExpand1(g, basis2D), y), x)*doExpand1(f, basis2D)) * J,
   
   /* Writting surface terms */
   printf(fh, "  if (isBotEdge) {~%"),
