@@ -73,41 +73,29 @@ calcDxxUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     pR : eta( 1/2,1,bC1),
 
     /*... Compute 1D recovery polynomial coefficients into hsol ...*/
+
+    hOrder : 2*polyOrder+1-recoveryOp,
+
+    /* Recovery polynomial expanded in w. */
+    h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
+      
+    /* LHS of system of equations arising from weak equivalence relations */
+    eqL : makelist(integrate(h1*pL[i],w,-1,0), i, 1, polyOrder+1),
+    eqR : makelist(integrate(h1*pR[i],w, 0,1), i, 1, polyOrder+1),
+    LHS : append(eqL,eqR),
+    A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
+      
+    /* RHS is similar to the mass matrix */
+    RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
+
     if (recoveryOp = 0) then (
       /* Seek maximal order polynomial through weak equalities. */
-      hOrder : 2*polyOrder+1,
-
-      /* Recovery polynomial expanded in z */
-      h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
       
-      /* LHS of system of equations arising from weak equivalence relations */
-      eqL : makelist(integrate(h1*pL[i],w,-1,0), i,1,polyOrder+1),
-      eqR : makelist(integrate(h1*pR[i],w,0,1), i,1,polyOrder+1),
-      LHS : append(eqL,eqR),
-      A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
-      
-      /* RHS is similar to the mass matrix */
-      RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
-      
-      /* solve system of equations for coefficients of h */
-      S     : fullratsimp(invert(A) . RHS),
-      hsol1 : makelist(S[i][1],i,1,hOrder+1)
+      /* Solve system of equations for coefficients of h */
+      S     : fullratsimp(invert(A) . RHS)
   
     ) elseif (recoveryOp=1 or recoveryOp=2) then (
       /* Seek quadratic or linear polynomial through weak equalities (least squares). */
-      hOrder : 2*polyOrder+1-recoveryOp,
-
-      /* Recovery polynomial expanded in w. */
-      h1 : doExpand1(hn,makelist(w^i,i,0,hOrder)),
-      
-      /* LHS of system of equations arising from weak equivalence relations */
-      eqL : makelist(integrate(h1*pL[i],w,-1,0), i, 1, polyOrder+1),
-      eqR : makelist(integrate(h1*pR[i],w, 0,1), i, 1, polyOrder+1),
-      LHS : append(eqL,eqR),
-      A   : coefmatrix(LHS, makelist(hn[i],i,0,hOrder)),
-      
-      /* RHS is similar to the mass matrix */
-      RHS : transpose(append(makelist(fl[i]/2,i,1,N1), makelist(fr[i]/2,i,1,N1))),
 
       /* Compute the transpose of the left-side matrix. */
       AT : transpose(A),
@@ -116,10 +104,11 @@ calcDxxUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
       RHSnew : AT.RHS,
 
       /* Solve for coefficients of the (least-squares) recovery polynomial. */
-      S : fullratsimp(invert(AT.A) . RHSnew),
-      hsol1 : makelist(S[i][1],i,1,hOrder+1)
+      S : fullratsimp(invert(AT.A) . RHSnew)
       
     ),
+    
+    hsol1 : makelist(S[i][1],i,1,hOrder+1),
 
     /*... Recovery polynomial coefficients of requested dimensionality ...*/
     kill(varsC, basisC),
