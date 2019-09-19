@@ -269,6 +269,18 @@ function FluidSpecies:createSolver(funcField)
    for _, c in pairs(self.collisions) do
       c:createSolver(funcField)
    end
+
+   if self.positivity then
+      self.posChecker = Updater.PositivityCheck {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+
+      self.posRescaler = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+   end
 end
 
 function FluidSpecies:alloc(nRkDup)
@@ -314,7 +326,7 @@ function FluidSpecies:initDist()
    project:advance(0.0, {}, {self.moments[1]})
 
    if self.positivityRescale or self.positivityDiffuse then
-     self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]})
+     self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
    end
 end
 
@@ -352,7 +364,7 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
       if self.positivityRescale then
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
+         self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
          self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
       else
          self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
@@ -372,12 +384,23 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
 end
 
-function FluidSpecies:applyBcIdx(tCurr, idx)
+function FluidSpecies:checkPositivity(tCurr, idx)
+  local status = true
+  if self.positivity then
+     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+  end
+  return status
+end
+
+function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
+  if self.positivityDiffuse then
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
+  end
   for dir = 1, self.ndim do
      self:applyBc(tCurr, self:rkStepperFields()[idx], dir)
   end
-  if self.positivityDiffuse then
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+  if self.positivity then
+     self:checkPositivity(tCurr, idx)
   end
 end
 
@@ -422,6 +445,11 @@ function FluidSpecies:write(tm, force)
 	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
             string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+
+         if self.positivityDiffuse then
+            self.posRescaler:write(tm, self.diagIoFrame, self.name)
+         end
+ 
          self.diagIoFrame = self.diagIoFrame+1
       end
    else

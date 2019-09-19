@@ -86,23 +86,63 @@ double findMinNodalValue(const double *fIn, int ndim) {
   return fmin; 
 }
 
-double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr)
+// check positivity of cell average and control nodes
+bool check(const double *fIn, int ndim, int numBasis, int *idx, double tCurr, int rkIdx)
 {
   double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
+  bool status = true;
 
   if(f0 < 0.) {
      if(ndim == 1) {
        printf("WARNING: negative cell avg %e in cell %2d, tCurr = %e\n", f0, idx[0], tCurr);
      } else if( ndim == 2) {
-       printf("WARNING: negative cell avg %e in cell %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], tCurr);
+       printf("WARNING: negative cell avg %e in cell %2d %2d, tCurr = %e, rkIdx = %d\n", f0, idx[0], idx[1], tCurr, rkIdx);
      } else if( ndim == 3) {
        printf("WARNING: negative cell avg %e in cell %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], tCurr);
      } else if( ndim == 4) {
        printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], tCurr);
      } else if( ndim == 5) {
-       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr);
+       printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d %2d, tCurr = %e, rkIdx = %d\n", f0, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr, rkIdx);
+     }
+     status = false;
+  }
+
+  double fmin = findMinNodalValue(fIn, ndim);
+  if (fmin < 0. && status) {
+     if(ndim == 1) {
+       printf("warning: negative control node %e in cell %2d, tCurr = %e \n", fmin, idx[0], tCurr);
+     } else if(ndim == 2) {
+       printf("warning: negative control node %e in cell %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], tCurr);
+     } else if(ndim == 3) {
+       printf("warning: negative control node %e in cell %2d %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], idx[2], tCurr);
+     } else if(ndim == 4) {
+       printf("warning: negative control node %e in cell %2d %2d %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], idx[2], idx[3], tCurr);
+     } else if(ndim == 5) {
+       printf("warning: negative control node %e in cell %2d %2d %2d %2d %2d, tCurr = %e\n", fmin, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr);
      }
   }
+  return status;
+}
+
+
+double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr)
+{
+  double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
+  if (f0 < 0.) return 0.;
+
+  //if(f0 < 0.) {
+  //   if(ndim == 1) {
+  //     printf("WARNING: negative cell avg %e in cell %2d, tCurr = %e\n", f0, idx[0], tCurr);
+  //   } else if( ndim == 2) {
+  //     printf("WARNING: negative cell avg %e in cell %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], tCurr);
+  //   } else if( ndim == 3) {
+  //     printf("WARNING: negative cell avg %e in cell %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], tCurr);
+  //   } else if( ndim == 4) {
+  //     printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], tCurr);
+  //   } else if( ndim == 5) {
+  //     printf("WARNING: negative cell avg %e in cell %2d %2d %2d %2d %2d, tCurr = %e\n", f0, idx[0], idx[1], idx[2], idx[3], idx[4], tCurr);
+  //   }
+  //}
 
   double fmin = findMinNodalValue(fIn, ndim);
   //if (fmin < 0) {
@@ -129,5 +169,5 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
     fOut[i] = theta*fIn[i];
   }
   
-  return del2ChangeCell*(1-theta*theta);
+  return del2ChangeCell*(1-theta)*(1-theta);
 }
