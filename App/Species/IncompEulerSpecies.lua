@@ -65,13 +65,6 @@ function IncompEulerSpecies:createSolver(hasE, hasB)
       equation = eqn,
       zeroFluxDirections = self.zeroFluxDirections,
    }
-
-   if self.positivity then 
-      self.posRescaler = Updater.PositivityRescale {
-         onGrid = self.grid,
-         basis = self.basis,
-      }
-   end
 end
 
 -- nothing to calculate, just copy

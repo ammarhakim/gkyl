@@ -459,6 +459,18 @@ function KineticSpecies:createSolver(funcField)
    for _, c in pairs(self.collisions) do
       c:createSolver(funcField)
    end
+
+   if self.positivity then
+      self.posChecker = Updater.PositivityCheck {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+
+      self.posRescaler = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+   end
 end
 
 function KineticSpecies:alloc(nRkDup)
@@ -550,7 +562,7 @@ function KineticSpecies:initDist()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
-           self.posRescaler:advance(0.0, {self.fSource}, {self.fSource})
+           self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
          end
       end
       if pr.isReservoir then
@@ -650,10 +662,21 @@ function KineticSpecies:clearMomentFlags(species)
    end
 end
 
-function KineticSpecies:applyBcIdx(tCurr, idx)
-  self:applyBc(tCurr, self:rkStepperFields()[idx])
+function KineticSpecies:checkPositivity(tCurr, idx)
+  local status = true
+  if self.positivity then
+     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+  end
+  return status
+end
+
+function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   if self.positivityDiffuse then
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
+  end
+  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  if self.positivity then
+     self:checkPositivity(tCurr, idx)
   end
 end
 
@@ -796,6 +819,10 @@ function KineticSpecies:write(tm, force)
             for _, c in pairs(self.collisions) do
                c:write(tm, self.diagIoFrame)
             end
+         end
+
+         if self.positivityDiffuse then
+            self.posRescaler:write(tm, self.diagIoFrame, self.name)
          end
 
          self.diagIoFrame = self.diagIoFrame+1

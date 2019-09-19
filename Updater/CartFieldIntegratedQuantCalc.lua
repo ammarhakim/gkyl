@@ -44,8 +44,13 @@ function CartFieldIntegratedQuantCalc:init(tbl)
    -- Number of components to set.
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
 
-   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV" or tbl.quantity == "GradPerpV2",
+   self.sqrt = false
+
+   assert(tbl.quantity == "V" or tbl.quantity == "V2" or tbl.quantity == "AbsV" or tbl.quantity == "GradPerpV2" or tbl.quantity == "RmsV",
 	  "CartFieldIntegratedQuantCalc: quantity must be one of V, V2, AbsV, GradPerpV2")
+
+   if tbl.quantity == "RmsV" then self.sqrt = true; tbl.quantity = "V2" end
+
    self.updateFunc = ffiC["gkylCartFieldIntQuant"..tbl.quantity]
 
    if tbl.quantity == "GradPerpV2" then assert(self.numComponents==1 and self.basis:polyOrder()==1, 
@@ -97,9 +102,10 @@ function CartFieldIntegratedQuantCalc:_advance(tCurr, inFld, outFld)
    Mpi.Allreduce(
       self.localVals:data(), self.globalVals:data(), nvals, Mpi.DOUBLE, Mpi.SUM, self:getComm())
 
-   if multfac then 
+   if multfac or self.sqrt then 
       for i = 1, nvals do
-         self.globalVals[i] = self.globalVals[i]*multfac
+         if self.sqrt then self.globalVals[i] = math.sqrt(self.globalVals[i]) end
+         if multfac then self.globalVals[i] = self.globalVals[i]*multfac end
       end
    end
 

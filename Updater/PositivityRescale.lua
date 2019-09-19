@@ -35,17 +35,22 @@ function PositivityRescale:init(tbl)
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
    assert(self.numComponents == 1, "Updater.PositivityRescale only implemented for fields with numComponents = 1")
 
-   self.del2ChangeL = DataStruct.DynVector {
+   self.delChangeL = DataStruct.DynVector {
       numComponents = 1,
    }
-   self.del2ChangeG = DataStruct.DynVector {
+   self.delChangeG = DataStruct.DynVector {
       numComponents = 1,
    }
-   self.del2Change = 0.0
+   self.rescaledCellsL = DataStruct.DynVector {
+      numComponents = 1,
+   }
+   self.delChange = 0.0
+   self.rescaledCells = 0.0
+   self.tCurrOld = 0.0
 end   
 
 -- advance method
-function PositivityRescale:_advance(tCurr, inFld, outFld)
+function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zeroOut)
    local grid = self.onGrid
    local fIn, fOut = inFld[1], outFld[1]
 
@@ -57,10 +62,20 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
    local fOutIndexer = fOut:genIndexer()
    local fOutPtr = fOut:get(1)
 
-   self.del2Change = 0.0
+   if computeDiagnostics == nil then computeDiagnostics = true end
+
+   if zeroOut then 
+      if computeDiagnostics and tCurr > 0 then 
+         self.delChangeL:appendData(self.tCurrOld, {self.delChange}) 
+         self.rescaledCellsL:appendData(self.tCurrOld, {self.rescaledCells}) 
+      end
+      self.delChange = 0.
+      self.rescaledCells = 0.0
+      self.tCurrOld = tCurr
+   end
  
-   -- this should be ext range since rescaling might be done after applyBc
-   local localRange = fIn:localExtRange()   
+   local localRange = fIn:localRange()   
+   local del2Change = 0.
    for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
 
@@ -68,19 +83,24 @@ function PositivityRescale:_advance(tCurr, inFld, outFld)
       fOut:fill(fOutIndexer(idx), fOutPtr)
 
       local del2ChangeCell = ffiC.rescale(fInPtr:data(), fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
-      self.del2Change = self.del2Change + del2ChangeCell
+      if computeDiagnostics then 
+         del2Change = del2Change + del2ChangeCell*grid:cellVolume()
+         if del2ChangeCell ~= 0. then self.rescaledCells = self.rescaledCells + 1 end
+      end
    end
 
-   --self.del2ChangeL:appendData(tCurr, {self.del2Change})
+   self.delChange = self.delChange + math.sqrt(del2Change)
+
    --self.del2ChangeG:appendData(tCurr, {0.0})
 end
 
 function PositivityRescale:write(tm, frame, nm)
-   Mpi.Allreduce(self.del2ChangeL:data():data(), self.del2ChangeG:data():data(), self.del2ChangeG:size(),
-                 Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
-   self.del2ChangeG:write(string.format("%s_%s_%d.bp", nm, "del2Change", frame), tm, frame, true)
-   self.del2ChangeL:clear(0.0)
-   self.del2ChangeG:clear(0.0)
+   --Mpi.Allreduce(self.del2ChangeL:data():data(), self.del2ChangeG:data():data(), self.del2ChangeG:size(),
+   --              Mpi.DOUBLE, Mpi.SUM, self.confGrid:commSet().comm)
+   self.delChangeL:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
+   self.rescaledCellsL:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
+   --self.del2ChangeL:clear(0.0)
+   --self.del2ChangeG:clear(0.0)
 end
 
 return PositivityRescale
