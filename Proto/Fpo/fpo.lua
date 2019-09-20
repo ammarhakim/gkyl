@@ -36,7 +36,12 @@ return function(tbl)
    -- Not sure about this logic...
    if doughertyPotentials then updatePotentials = false end
    local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
-
+   local cross = xsys.pickBool(tbl.cross, true)
+   if cross then
+      cross = 1
+   else
+      cross = 0
+   end
    local cells = tbl.cells
    local lower = tbl.lower
    local upper = tbl.upper
@@ -352,7 +357,7 @@ return function(tbl)
          diffKernelFn(dt, dv:data(),
 		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
 		      gPtr:data(), gLPtr:data(), gRPtr:data(), gTPtr:data(), gBPtr:data(),
-		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge, cross,
 		      fOutPtr:data())
       end
 
