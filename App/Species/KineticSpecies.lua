@@ -242,7 +242,7 @@ function KineticSpecies:fullInit(appTbl)
    self.bcTime = 0.0 -- Timer for BCs.
    self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
 
-   -- Collisions/Sources.
+   -- Collisions.
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
@@ -393,9 +393,9 @@ function KineticSpecies:allocMoment()
 end
 function KineticSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
-	onGrid = self.confGrid,
+	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
-	ghost = {1, 1},
+	ghost         = {1, 1},
    }
    m:clear(0.0)
    return m
@@ -424,15 +424,15 @@ end
 function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
 				      hasExtFld)
    return Updater.Bc {
-      onGrid = self.grid,
+      onGrid             = self.grid,
       boundaryConditions = bcList,
-      dir = dir,
-      vdir = vdir,
-      edge = edge,
-      skinLoop = skinLoop,
-      cdim = self.cdim,
-      vdim = self.vdim,
-      hasExtFld = hasExtFld,
+      dir                = dir,
+      vdir               = vdir,
+      edge               = edge,
+      skinLoop           = skinLoop,
+      cdim               = self.cdim,
+      vdim               = self.vdim,
+      hasExtFld          = hasExtFld,
    }
 end
 
@@ -562,7 +562,7 @@ function KineticSpecies:initDist()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
-           self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
+            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
          end
       end
       if pr.isReservoir then
