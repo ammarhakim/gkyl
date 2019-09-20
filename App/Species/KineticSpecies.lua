@@ -162,7 +162,7 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function (t, zn)
 	    return tbl.initBackground(t, zn, self)
 	 end,
-	 isInit = false,
+	 isInit       = false,
 	 isBackground = true,
       }
    end
@@ -171,46 +171,46 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function (t, zn)
 	    return tbl.source(t, zn, self)
 	 end,
-	 isInit = false,
+	 isInit   = false,
 	 isSource = true,
       }
    end
    -- >> LEGACY CODE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
    if type(tbl.init) == "table" and tbl.init[1] == "maxwellian" then 
       self.projections["init"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.init.density,
-	 driftSpeed = tbl.init.driftSpeed,
-	 temperature = tbl.init.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.init.density,
+	 driftSpeed      = tbl.init.driftSpeed,
+	 temperature     = tbl.init.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = true,
+	 isInit          = true,
       }
    end 
    if type(tbl.initBackground) == "table" and tbl.initBackground[1] == "maxwellian" then 
       self.projections["initBackground"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.initBackground.density,
-	 driftSpeed = tbl.initBackground.driftSpeed,
-	 temperature = tbl.initBackground.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.initBackground.density,
+	 driftSpeed      = tbl.initBackground.driftSpeed,
+	 temperature     = tbl.initBackground.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = false,
-	 isBackground = true,
+	 isInit          = false,
+	 isBackground    = true,
       }
    end 
    if type(tbl.source) == "table" and tbl.source[1] == "maxwellian" then 
       self.projections["initSource"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.source.density,
-	 driftSpeed = tbl.source.driftSpeed,
-	 temperature = tbl.source.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.source.density,
+	 driftSpeed      = tbl.source.driftSpeed,
+	 temperature     = tbl.source.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = false,
-	 isSource = true,
+	 isInit          = false,
+	 isSource        = true,
       }
    end 
    -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-   self.deltaF = xsys.pickBool(appTbl.deltaF, false)
+   self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
