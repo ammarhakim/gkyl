@@ -127,6 +127,11 @@ function FluidSpecies:fullInit(appTbl)
          self.projections[nm] = val
       end
    end
+   if tbl.sourceTimeDependence then
+      self.sourceTimeDependence = tbl.sourceTimeDependence
+   else
+      self.sourceTimeDependence = function (t) return 1.0 end
+   end
    -- It is possible to use the keyword 'initSource' to specify a
    -- function directly without using a Projection object.
    if type(tbl.init) == "function" then
@@ -259,12 +264,18 @@ function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
 end
 
 -- Function to construct a BC updater.
-function FluidSpecies:makeBcUpdater(dir, edge, bcList)
+function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
+                                      hasExtFld)
+                                      
    return Updater.Bc {
       onGrid             = self.grid,
       boundaryConditions = bcList,
       dir                = dir,
       edge               = edge,
+      skinLoop           = skinLoop,
+      cdim               = self.cdim,
+      vdim               = self.vdim,
+      hasExtFld          = hasExtFld,
    }
 end
 
@@ -283,10 +294,10 @@ function FluidSpecies:createBCs()
    -- Note: appendBoundaryConditions defined in sub-classes.
    local function handleBc(dir, bc)
       if bc[1] then
-	 self:appendBoundaryConditions(dir, "lower", bc[1])
+	 self:appendBoundaryConditions(dir, 'lower', bc[1])
       end
       if bc[2] then
-	 self:appendBoundaryConditions(dir, "upper", bc[2])
+	 self:appendBoundaryConditions(dir, 'upper', bc[2])
       end
    end
 
@@ -377,7 +388,7 @@ function FluidSpecies:initDist()
    self.moments[2]:clear(0.0)
 
    if self.positivityRescale or self.positivityDiffuse then
-     self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
+      self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
    end
 end
 
@@ -421,7 +432,7 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
       end
    else
-      fRhsOut:clear(0.0) -- no RHS.
+      fRhsOut:clear(0.0) -- No RHS.
    end
 
    -- Perform the collision (diffusion) update.
@@ -432,6 +443,13 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          -- The full 'species' list is needed for the cross-species
          -- collisions.
       end
+   end
+
+   if self.mSource and self.evolveSources then
+      -- Add source term to the RHS.
+      -- Barrier over shared communicator before accumulate.
+      Mpi.Barrier(self.grid:commSet().sharedComm)
+      fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.mSource)
    end
 end
 
@@ -499,6 +517,10 @@ function FluidSpecies:write(tm, force)
 
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
+         end
+
+         if tm == 0.0 and self.mSource then
+            self.momIo:write(self.mSource, string.format("%s_mSource_0.bp", self.name), tm, self.diagIoFrame)
          end
  
          self.diagIoFrame = self.diagIoFrame+1
