@@ -478,6 +478,6 @@ end
 
 ----------------------------------------------------------------------
 return {
-   FunctionProjection = FunctionProjection,
+   FunctionProjection   = FunctionProjection,
    MaxwellianProjection = MaxwellianProjection,
 }
