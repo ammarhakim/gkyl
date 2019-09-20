@@ -10,43 +10,47 @@ for polyOrder : 1 thru 2 do (
   load("basis-precalc/basisSer2x"),
   basis2D : basisC[polyOrder],
   
-  recx2Cell : getRecov2CellGen(x, [2, 2], polyOrder, qL, qR),
-  /*recx3Cell : getRecov3CellGen(x, [2, 2], polyOrder, 0, qL, qC, qR),*/
-  
-  /* h and g substitions for q; accounting for C 0-indexes */
-  gLSubList : append(
-    makelist(qL[i]=gL[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=g[i-1], i, 1, length(basis2D))
+  gSubList : append(
+    makelist(qTL[i]=gTL[i-1], i, 1, length(basis2D)),
+    makelist(qTC[i]=gTC[i-1], i, 1, length(basis2D)),
+    makelist(qTR[i]=gTR[i-1], i, 1, length(basis2D)),
+    makelist(qCL[i]=gCL[i-1], i, 1, length(basis2D)),
+    makelist(qCC[i]=g[i-1], i, 1, length(basis2D)),
+    makelist(qCR[i]=gCR[i-1], i, 1, length(basis2D)),
+    makelist(qBL[i]=gBL[i-1], i, 1, length(basis2D)),
+    makelist(qBC[i]=gBC[i-1], i, 1, length(basis2D)),
+    makelist(qBR[i]=gBR[i-1], i, 1, length(basis2D))
     ),
-  gCSubList : append(
-    makelist(qL[i]=gL[i-1], i, 1, length(basis2D)),
-    makelist(qC[i]=g[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=gR[i-1], i, 1, length(basis2D))
-    ),
-  gRSubList : append(
-    makelist(qL[i]=g[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=gR[i-1], i, 1, length(basis2D))
-    ),
-  fLSubList : append(
-    makelist(qL[i]=fL[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=f[i-1], i, 1, length(basis2D))
-    ),
-  fRSubList : append(
-    makelist(qL[i]=f[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=fR[i-1], i, 1, length(basis2D))
-    ),
+  fSubList : append(
+    makelist(qTL[i]=fTL[i-1], i, 1, length(basis2D)),
+    makelist(qTC[i]=fTC[i-1], i, 1, length(basis2D)),
+    makelist(qTR[i]=fTR[i-1], i, 1, length(basis2D)),
+    makelist(qCL[i]=fCL[i-1], i, 1, length(basis2D)),
+    makelist(qCC[i]=f[i-1], i, 1, length(basis2D)),
+    makelist(qCR[i]=fCR[i-1], i, 1, length(basis2D)),
+    makelist(qBL[i]=fBL[i-1], i, 1, length(basis2D)),
+    makelist(qBC[i]=fBC[i-1], i, 1, length(basis2D)),
+    makelist(qBR[i]=fBR[i-1], i, 1, length(basis2D)),
+  ),
+
+  recL : getRecov6CellGen(y, [2, 2], polyOrder, 0, [0, 0], qTL, qTC, qCL, qCC, qBL, qBC),
+  recLxx : getRecov6CellGen(y, [2, 2], polyOrder, 0, [2, 0], qTL, qTC, qCL, qCC, qBL, qBC),
+  recLxy : getRecov6CellGen(y, [2, 2], polyOrder, 0, [1, 1], qTL, qTC, qCL, qCC, qBL, qBC),
+  recR : getRecov6CellGen(y, [2, 2], polyOrder, 0, [0, 0], qTC, qTR, qCC, qCR, qBC, qBR),
+  recRxx : getRecov6CellGen(y, [2, 2], polyOrder, 0, [2, 0], qTC, qTR, qCC, qCR, qBC, qBR),
+  recRxy : getRecov6CellGen(y, [2, 2], polyOrder, 0, [1, 1], qTC, qTR, qCC, qCR, qBC, qBR),
   
   /* Putting together the surface terms and integration over y */
   J : (2/dv[0])^4,
   surfLa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, basis2D),
-    subst(x=0, diff(diff(diff(subst(gLSubList, recx2Cell), x), x)*subst(fLSubList, recx2Cell), x))) * J,
+    diff(subst(gSubList, recLxx)*subst(fSubList, recL), x)) * J,
   surfLb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, diff(basis2D, x)),
-    subst(x=0, diff(diff(subst(gLSubList, recx2Cell), x), x)*subst(fLSubList, recx2Cell))) * J,
+    subst(gSubList, recLxx)*subst(fSubList, recL)) * J,
   
   surfRa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, basis2D),
-    subst(x=0, diff(diff(diff(subst(gRSubList, recx2Cell), x), x)*subst(fRSubList, recx2Cell), x))) * J,
+    diff(subst(gSubList, recRxx)*subst(fSubList, recR), x)) * J,
   surfRb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, diff(basis2D, x)),
-    subst(x=0, diff(diff(subst(gRSubList, recx2Cell), x), x)*subst(fRSubList, recx2Cell))) * J,
+    subst(gSubList, recRxx)*subst(fSubList, recR)) * J,
 
   /* Putting together the volume term */
   /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), x),
@@ -55,12 +59,12 @@ for polyOrder : 1 thru 2 do (
     diff(diff(doExpand1(g, basis2D), x), x)*doExpand1(f, basis2D)) * J,
   
   /* Writting surface terms */
-  fname : sconcat("~/max-out/fpoDiffKernelP", polyOrder, ".cpp"),
+  fname : sconcat("~/max-out/fpoDiffKernelP", polyOrder, "_9C.cpp"),
   fh : openw(fname),
   printf(fh, "#include <math.h>~%"),
   printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
 
-  printf(fh, "void fpoDiffKernelP~a(const double dt, const double *dv, const double *f, const double *fL, const double *fR, const double *fT, const double *fB, const double *g, const double *gL, const double *gR, const double *gT, const double *gB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, int cross, double *fOut) {~%", polyOrder),
+  printf(fh, "void fpoDiffKernelP~a_9C(const double dt, const double *dv, const double *fTL, const double *fTC, const double *fTR, const double *fCL, const double *f, const double *fCR, const double *fBL, const double *fBC, const double *fBR, const double *gTL, const double *gTC, const double *gTR, const double *gCL, const double *g, const double *gCR, const double *gBL, const double *gBC, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
 
   printf(fh, "  if (isLeftEdge) {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb)/2))),
@@ -76,16 +80,15 @@ for polyOrder : 1 thru 2 do (
   /* Writting the volume term */
   gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
   for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "~%~%"),
+  printf(fh, "~%"),
 
-  J : (2/dv[0])^2*(2/dv[1])^2,
   surfLa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, basis2D),
-    subst(x=0, diff(diff(diff(subst(gLSubList, recx2Cell), x), y)*subst(fLSubList, recx2Cell), y))) * J,
+    diff(subst(gSubList, recLxy)*subst(fSubList, recL), y)) * J,
   surfLb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, diff(basis2D, y)),
-    subst(x=0, diff(diff(subst(gLSubList, recx2Cell), x), y)*subst(fLSubList, recx2Cell))) * J,
+    subst(gSubList, recLxy)*subst(fSubList, recL)) * J,
   
   surfRa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, basis2D),
-    subst(x=0, diff(diff(diff(subst(gRSubList, recx2Cell), x), y)*subst(fRSubList, recx2Cell), y))) * J,
+    diff(subst(gSubList, recRxy)*subst(fSubList, recR), y))) * J,
   surfRb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, diff(basis2D, y)),
     subst(x=0, diff(diff(subst(gRSubList, recx2Cell), x), y)*subst(fRSubList, recx2Cell))) * J,
 
@@ -94,23 +97,22 @@ for polyOrder : 1 thru 2 do (
     diff(diff(subst(gCSubList, recx3Cell), x), y)*doExpand1(f, basis2D)) * J,*/
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), y),
     diff(diff(doExpand1(g, basis2D), x), y)*doExpand1(f, basis2D)) * J,
-  
-  printf(fh, "  if (cross) {~%"),
-  printf(fh, "    if (isLeftEdge) {~%"),
+
+  printf(fh, "  if (isLeftEdge) {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb)/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "      fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "    } else if (isRightEdge) {~%"),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else if (isRightEdge) {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((-surfLa+surfLb)/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "      fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "    } else {~%"),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb-surfLa+surfLb)/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "      fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "    }~%"),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  }~%~%"),
   
   /* Writting the volume term */
   gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "  }~%~%"),
+  for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "~%"),
   
   recy2Cell : getRecov2CellGen(y, [2, 2], polyOrder, qB, qT),
   /*recy3Cell : getRecov3CellGen(y, [2, 2], polyOrder, 0, qB, qC, qT),*/
@@ -171,9 +173,7 @@ for polyOrder : 1 thru 2 do (
   /* Writting the volume term */
   gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
   for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "~%"),
-
-  J : (2/dv[0])^2*(2/dv[1])^2,
+  
   surfBa : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, basis2D),
     subst(y=0, diff(diff(diff(subst(gBSubList, recy2Cell), y), x)*subst(fBSubList, recy2Cell), x))) * J,
   surfBb : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, diff(basis2D, x)),
@@ -191,24 +191,21 @@ for polyOrder : 1 thru 2 do (
     diff(diff(doExpand1(g, basis2D), y), x)*doExpand1(f, basis2D)) * J,
   
   /* Writting surface terms */
-  printf(fh, "  if (cross) {~%"),
-  printf(fh, "    if (isBotEdge) {~%"),
+  printf(fh, "  if (isBotEdge) {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((surfTa-surfTb)/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "      fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "    } else if (isTopEdge) {~%"),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else if (isTopEdge) {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((-surfBa+surfBb)/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "      fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "    } else {~%"),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp((surfTa-surfTb-surfBa+surfBb)/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "      fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "    }~%"),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  }~%~%"),
   
   /* Writting the volume term */
   gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
-  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
-  printf(fh, "  }~%"),
-
-
+  for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  
   printf(fh, "}"),
   close(fh)
   )

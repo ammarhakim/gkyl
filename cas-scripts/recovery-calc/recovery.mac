@@ -133,7 +133,7 @@ getRecov3CellGen(dir, dx, polyOrder, C, qM, qC, qP) := block(
   ) $
 
 
-getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBR, qBL) := block(
+getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBL, qBR) := block(
   [N, basis1D, basisND, numDims, dIdx,
   baM1D, baMND, baP1D, baPND, 
   r, rExp, rSol, rSub, recEqList, qM1D, qP1D],
@@ -161,88 +161,136 @@ getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBR, qBL) := block(
   N : polyOrder + 1,
   rExp : doExpand(r, create_list(dirs[1]^i*dirs[2]^j, i, 0, 2*N-1, j, 0, 2*N-1)),
   recEqList : append(
-    calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [0, dx[dIdx2]]], 1, baTL2D, rExp-doExpand(qTL2D, baTL2D)),
-    calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [0, dx[dIdx2]]], 1, baTR2D, rExp-doExpand(qTR2D, baTR2D)),
-    calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [-dx[dIdx2], 0]], 1, baBR2D, rExp-doExpand(qBR2D, baBR2D)),
-    calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [-dx[dIdx2], 0]], 1, baBL2D, rExp-doExpand(qBL2D, baBL2D))
+    calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [0, dx[dIdx2]]], 1, baTL2D, rExp-doExpand(qTL, baTL2D)),
+    calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [0, dx[dIdx2]]], 1, baTR2D, rExp-doExpand(qTR, baTR2D)),
+    calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [-dx[dIdx2], 0]], 1, baBL2D, rExp-doExpand(qBL, baBL2D)),
+    calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [-dx[dIdx2], 0]], 1, baBR2D, rExp-doExpand(qBR, baBR2D))
     ),
   rSol : linsolve(recEqList, makelist(r[i], i, 1, 4*N*N)),
   rSub : fullratsimp(subst(rSol, rExp)),
 
-  if numDims > 2 then (
-    /* Creating substitution lists to get the y-dependence */
-    load(sconcat("basis-precalc/basisSer", numDims, "x")),
-    basisND : basisC[polyOrder],
-    xc : [0, 0, 0],
-    xc[dIdx1] : -dx[dIdx1]/2,
-    xc[dIdx2] : dx[dIdx2]/2,
-    baTLND : eta(xc, dx, basisND),
-    xc[dIdx1] : dx[dIdx1]/2,
-    xc[dIdx2] : dx[dIdx2]/2,
-    baTRND : eta(xc, dx, basisND),
-    xc[dIdx1] : dx[dIdx1]/2,
-    xc[dIdx2] : -dx[dIdx2]/2,
-    baBRND : eta(xc, dx, basisND),
-    xc[dIdx1] : -dx[dIdx1]/2,
-    xc[dIdx2] : -dx[dIdx2]/2,
-    baBLND : eta(xc, dx, basisND),
+  /* if numDims > 2 then ( */
+  /*   /\* Creating substitution lists to get the y-dependence *\/ */
+  /*   load(sconcat("basis-precalc/basisSer", numDims, "x")), */
+  /*   basisND : basisC[polyOrder], */
+  /*   xc : [0, 0, 0], */
+  /*   xc[dIdx1] : -dx[dIdx1]/2, */
+  /*   xc[dIdx2] : dx[dIdx2]/2, */
+  /*   baTLND : eta(xc, dx, basisND), */
+  /*   xc[dIdx1] : dx[dIdx1]/2, */
+  /*   xc[dIdx2] : dx[dIdx2]/2, */
+  /*   baTRND : eta(xc, dx, basisND), */
+  /*   xc[dIdx1] : dx[dIdx1]/2, */
+  /*   xc[dIdx2] : -dx[dIdx2]/2, */
+  /*   baBRND : eta(xc, dx, basisND), */
+  /*   xc[dIdx1] : -dx[dIdx1]/2, */
+  /*   xc[dIdx2] : -dx[dIdx2]/2, */
+  /*   baBLND : eta(xc, dx, basisND), */
     
-    dimProjTL : calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [0, dx[dIdx2]]], 1, baTL2D, doExpand(qTL, baTLND)),
-    dimProjTR : calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [0, dx[dIdx2]]], 1, baTR2D, doExpand(qTR, baTRND)),
-    dimProjBR : calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [-dx[dIdx2], 0]], 1, baBR2D, doExpand(qBR, baBRND)),
-    dimProjTL : calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [-dx[dIdx2], 0]], 1, baBL2D, doExpand(qBL, baBLND)),
-    projSubList : append (
-      makelist(qTL2D[i]=dimProjTL[i], i, 1, length(basis2D)),
-      makelist(qTR2D[i]=dimProjTR[i], i, 1, length(basis2D)),
-      makelist(qBR2D[i]=dimProjBR[i], i, 1, length(basis2D)),
-      makelist(qBL2D[i]=dimProjBL[i], i, 1, length(basis2D))
-      )
-    )
-  else (
-    projSubList : append (
-      makelist(qTL2D[i]=qTL[i], i, 1, length(basis2D)),
-      makelist(qTR2D[i]=qTR[i], i, 1, length(basis2D)),
-      makelist(qBR2D[i]=qBR[i], i, 1, length(basis2D)),
-      makelist(qBL2D[i]=qBL[i], i, 1, length(basis2D))
-      )
-    ),
+  /*   dimProjTL : calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [0, dx[dIdx2]]], 1, baTL2D, doExpand(qTL, baTLND)), */
+  /*   dimProjTR : calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [0, dx[dIdx2]]], 1, baTR2D, doExpand(qTR, baTRND)), */
+  /*   dimProjBR : calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [-dx[dIdx2], 0]], 1, baBR2D, doExpand(qBR, baBRND)), */
+  /*   dimProjTL : calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [-dx[dIdx2], 0]], 1, baBL2D, doExpand(qBL, baBLND)), */
+  /*   projSubList : append ( */
+  /*     makelist(qTL2D[i]=dimProjTL[i], i, 1, length(basis2D)), */
+  /*     makelist(qTR2D[i]=dimProjTR[i], i, 1, length(basis2D)), */
+  /*     makelist(qBR2D[i]=dimProjBR[i], i, 1, length(basis2D)), */
+  /*     makelist(qBL2D[i]=dimProjBL[i], i, 1, length(basis2D)) */
+  /*     ) */
+  /*   ) */
+  /* else ( */
+  /*   projSubList : append ( */
+  /*     makelist(qTL2D[i]=qTL[i], i, 1, length(basis2D)), */
+  /*     makelist(qTR2D[i]=qTR[i], i, 1, length(basis2D)), */
+  /*     makelist(qBR2D[i]=qBR[i], i, 1, length(basis2D)), */
+  /*     makelist(qBL2D[i]=qBL[i], i, 1, length(basis2D)) */
+  /*     ) */
+  /*   ), */
 
-  return(subst(projSubList, rSub))
+/*  return(subst(projSubList, rSub))*/
+  return(rSub)
   ) $
 
 
-getRecov6CellGen(dirs, dx, polyOrder, C, qTL, qTC, qTR, qBR, qBC, qBL) := block(
+getRecov6CellGen(dominantDir, dx, polyOrder, C, der, q1, q2, q3, q4, q5, q6) := block(
   [N, basis1D, basisND, numDims, dIdx,
   baM1D, baMND, baP1D, baPND, 
   r, rExp, rSol, rSub, recEqList, qM1D, qP1D],
   
-  rL : getRecov4CellGen(dirs, dx, polyOrder, qTL, qTC, qBC, qBL),
-  rC : getRecov2CellGen(dirs[2], dx, polyOrder, qBC, qTC),
-  rR : getRecov4CellGen(dirs, dx, polyOrder, qTC, qTR, qBR, qBC),
+  dirs : [x, y],
   
-  numDims : length(dx),
-  dIdx : getDirIdx(dirs[1], numDims),
-  load("basis-precalc/basisSer1x"),
-  basis1D : subst(x=dirs[1], basisC[polyOrder]),
-  baC1D : etaDir(dirs[1], 0, dx[dIdx], basis1D),
-
-  N : polyOrder + 3,
-  if C = 1 then N : N + 2,
-  /* Forming and solving the equation system */
-  rExp : doExpand(r, makelist(dirs[1]^i, i, 0, N-1)),
-  recEqList : append(
-    [subst([dirs[1]=0, dirs[2]=0], rL) - subst(dirs[1]=-dx[dIdx]/2, rExp)],
-    [subst([dirs[1]=0, dirs[2]=0], rR) - subst(dirs[1]=dx[dIdx]/2, rExp)],
-    calcInnerProdListGen([dirs[1]], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baC1D, rExp-subst(dirs[2]=0, rC))
-    ),
-  if C = 1 then (
+  if dominantDir = x then (
+    rL : getRecov4CellGen(dirs, dx, polyOrder, q1, q2, q4, q5),
+    rC : getRecov2CellGen(dirs[2], dx, polyOrder, q5, q2),
+    for d : 1 thru der[2] do (
+      rC : diff(rC, dirs[2])
+      ),
+    rR : getRecov4CellGen(dirs, dx, polyOrder, q2, q3, q5, q6),
+    
+    /* numDims : length(dx), */
+    dIdx : getDirIdx(dirs[1], numDims),
+    load("basis-precalc/basisSer1x"),
+    basis1D : subst(x=dirs[1], basisC[polyOrder]),
+    baC1D : etaDir(dirs[1], 0, dx[dIdx], basis1D),
+    
+    N : polyOrder + 3,
+    if C = 1 then N : N + 2,
+    /* Forming and solving the equation system */
+    rExp : doExpand(r, makelist(dirs[1]^i, i, 0, N-1)),
     recEqList : append(
-      recEqList,
-      [subst([dirs[1]=0, dirs[2]=0], diff(rL, dirs[1])) - subst(dirs[1]=-dx[dIdx]/2, diff(rExp, dirs[1]))],
-      [subst([dirs[1]=0, dirs[2]=0], diff(rR, dirs[1])) - subst(dirs[1]=dx[dIdx]/2, diff(rExp, dirs[1]))]
+      [subst([dirs[1]=0, dirs[2]=0], rL) - subst(dirs[1]=-dx[dIdx]/2, rExp)],
+      [subst([dirs[1]=0, dirs[2]=0], rR) - subst(dirs[1]=dx[dIdx]/2, rExp)],
+      calcInnerProdListGen([dirs[1]], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baC1D, rExp-subst(dirs[2]=0, rC))
+      ),
+    if C = 1 then (
+      recEqList : append(
+        recEqList,
+        [subst([dirs[1]=0, dirs[2]=0], diff(rL, dirs[1])) - subst(dirs[1]=-dx[dIdx]/2, diff(rExp, dirs[1]))],
+        [subst([dirs[1]=0, dirs[2]=0], diff(rR, dirs[1])) - subst(dirs[1]=dx[dIdx]/2, diff(rExp, dirs[1]))]
+        )
+      ),
+    rSol : linsolve(recEqList, makelist(r[i], i, 1, N)),
+    rSub : fullratsimp(subst(rSol, rExp)),
+    for d : 1 thru der[1] do (
+      rSub : diff(rSub, dirs[1])
       )
     ),
-  rSol : linsolve(recEqList, makelist(r[i], i, 1, N)),
-  rSub : fullratsimp(subst(rSol, rExp)),
+  if dominantDir = y then (
+    rB : getRecov4CellGen(dirs, dx, polyOrder, q3, q4, q5, q6),
+    rC : getRecov2CellGen(dirs[1], dx, polyOrder, q3, q4),
+    for d : 1 thru der[1] do (
+      rC : diff(rC, dirs[1])
+      ),
+    rT : getRecov4CellGen(dirs, dx, polyOrder, q1, q2, q3, q4),
+    
+    /* numDims : length(dx), */
+    dIdx : getDirIdx(dirs[2], numDims),
+    load("basis-precalc/basisSer1x"),
+    basis1D : subst(x=dirs[2], basisC[polyOrder]),
+    baC1D : etaDir(dirs[2], 0, dx[dIdx], basis1D),
+    
+    N : polyOrder + 3,
+    if C = 1 then N : N + 2,
+    /* Forming and solving the equation system */
+    rExp : doExpand(r, makelist(dirs[2]^i, i, 0, N-1)),
+    recEqList : append(
+      [subst([dirs[1]=0, dirs[2]=0], rB) - subst(dirs[2]=-dx[dIdx]/2, rExp)],
+      [subst([dirs[1]=0, dirs[2]=0], rT) - subst(dirs[2]=dx[dIdx]/2, rExp)],
+      calcInnerProdListGen([dirs[2]], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baC1D, rExp-subst(dirs[1]=0, rC))
+      ),
+    if C = 1 then (
+      recEqList : append(
+        recEqList,
+        [subst([dirs[1]=0, dirs[2]=0], diff(rB, dirs[2])) - subst(dirs[2]=-dx[dIdx]/2, diff(rExp, dirs[2]))],
+        [subst([dirs[1]=0, dirs[2]=0], diff(rT, dirs[2])) - subst(dirs[2]=dx[dIdx]/2, diff(rExp, dirs[2]))]
+        )
+      ),
+    rSol : linsolve(recEqList, makelist(r[i], i, 1, N)),
+    rSub : fullratsimp(subst(rSol, rExp)),
+    for d : 1 thru der[2] do (
+      rSub : diff(rSub, dirs[2])
+      )
+    ),
+
   return(rSub)
   ) $
