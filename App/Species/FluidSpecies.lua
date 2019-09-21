@@ -266,7 +266,6 @@ end
 -- Function to construct a BC updater.
 function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
                                       hasExtFld)
-                                      
    return Updater.Bc {
       onGrid             = self.grid,
       boundaryConditions = bcList,
@@ -282,10 +281,10 @@ end
 -- Function to construct a stair-stepped BC updater.
 function FluidSpecies:makeSsBcUpdater(dir, inOut, bcList)
    return Updater.StairSteppedBc {
-      onGrid = self.grid,
-      inOut = inOut,
+      onGrid             = self.grid,
+      inOut              = inOut,
       boundaryConditions = bcList,
-      dir = dir,
+      dir                = dir,
    }
 end
 
@@ -316,12 +315,12 @@ function FluidSpecies:createSolver(funcField)
    if self.positivity then
       self.posChecker = Updater.PositivityCheck {
          onGrid = self.grid,
-         basis = self.basis,
+         basis  = self.basis,
       }
 
       self.posRescaler = Updater.PositivityRescale {
          onGrid = self.grid,
-         basis = self.basis,
+         basis  = self.basis,
       }
    end
 end
@@ -337,6 +336,10 @@ function FluidSpecies:alloc(nRkDup)
    self.momIo = AdiosCartFieldIo {
       elemType = self.moments[1]:elemType(),
       method   = self.ioMethod,
+      metaData = {
+         polyOrder = self.basis:polyOrder(),
+         basisType = self.basis:id()
+      },
    }
    self.couplingMoments   = self:allocVectorMoment(self.nMoments)
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
