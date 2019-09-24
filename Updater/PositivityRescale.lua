@@ -106,6 +106,7 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
          self.del2ChangeL[4]:appendData(self.tCurrOld, {self.del2Change[4]}) 
          self.del2ChangeG[4]:appendData(self.tCurrOld, {0})
          self.rescaledCellsL:appendData(self.tCurrOld, {self.rescaledCells}) 
+         self.rescaledCellsG:appendData(self.tCurrOld, {0}) 
       end
       self.delChange = 0.
       self.rescaledCells = 0.0
@@ -148,6 +149,8 @@ function PositivityRescale:write(tm, frame, nm)
    
    self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
    self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
+   self.rescaledCellsL:clear()
+   self.rescaledCellsG:clear()
 end
 
 return PositivityRescale
