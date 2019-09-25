@@ -8,23 +8,23 @@
 -- System libraries
 local xsys = require "xsys"
 
--- Gkyl libraries
-local Lin = require "Lib.Linalg"
+-- Gkyl libraries.
+local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local UpdaterBase = require "Updater.Base"
+local Proto        = require "Lib.Proto"
+local Range        = require "Lib.Range"
+local UpdaterBase  = require "Updater.Base"
 
--- Boundary condition updater
+-- Boundary condition updater.
 local Bc = Proto(UpdaterBase)
 
 function Bc:init(tbl)
-   Bc.super.init(self, tbl) -- setup base object
+   Bc.super.init(self, tbl) -- Setup base object.
 
-   self._isFirst = true -- will be reset first time _advance() is called
+   self._isFirst = true -- Will be reset first time _advance() is called.
 
    self._grid = assert(tbl.onGrid, "Updater.Bc: Must specify grid to use with 'onGrid''")
-   self._dir = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
+   self._dir  = assert(tbl.dir, "Updater.Bc: Must specify direction to apply BCs with 'dir'")
 
    self._edge = assert(
       tbl.edge, "Updater.Bc: Must specify edge to apply BCs with 'edge'. Must be one of 'upper', or 'lower'.")
@@ -54,7 +54,7 @@ function Bc:init(tbl)
 	 "Updater.Bc: Must specify the number of components of the field using 'numComps'")
    end
 
-   self._ghostRangeDecomp = nil -- will be constructed on first call to advance
+   self._ghostRangeDecomp = nil -- Will be constructed on first call to advance.
 
    self.hasExtFld = xsys.pickBool(tbl.hasExtFld, false)
 end
@@ -62,9 +62,9 @@ end
 function Bc:getGhostRange(global, globalExt)
    local lv, uv = globalExt:lowerAsVec(), globalExt:upperAsVec()
    if self._edge == "lower" then
-      uv[self._dir] = global:lower(self._dir)-1 -- for ghost cells on "left"
+      uv[self._dir] = global:lower(self._dir)-1 -- For ghost cells on "left".
    else
-      lv[self._dir] = global:upper(self._dir)+1 -- for ghost cells on "right"
+      lv[self._dir] = global:upper(self._dir)+1 -- For ghost cells on "right".
    end
    return Range.Range(lv, uv)
 end
@@ -72,36 +72,36 @@ end
 function Bc:_advance(tCurr, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "Bc.advance: Must-specify an output field")
-   local qIn = inFld[1]
+   local qIn  = inFld[1]
 
    local dir, edge = self._dir, self._edge
-   local vdir = self._vdir
-   local global = qOut:globalRange()
+   local vdir      = self._vdir
+   local global    = qOut:globalRange()
 
    if self._isFirst then
-      local globalExt = qOut:globalExtRange()
+      local globalExt     = qOut:globalExtRange()
       local localExtRange = qOut:localExtRange()
-      local ghostRng = localExtRange:intersect(
-   	 self:getGhostRange(global, globalExt)) -- range spanning ghost cells
+      local ghostRng      = localExtRange:intersect(
+   	 self:getGhostRange(global, globalExt)) -- Range spanning ghost cells.
       if self._skinLoop == "integrate" then
    	 self._skin = qOut:localRange():selectLast(self._vdim)
       end
-      -- decompose ghost region into threads
+      -- Decompose ghost region into threads.
       self._ghostRangeDecomp = LinearDecomp.LinearDecompRange {
    	 range = ghostRng, numSplit = grid:numSharedProcs() }
    end
 
-   local qG, qS = qOut:get(1), qOut:get(1) -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
+   local qG, qS = qOut:get(1), qOut:get(1) -- Get pointers to (re)use inside inner loop [G: Ghost, S: Skin].
    if self.hasExtFld then qS = qIn:get(1) end
-   local idxS = Lin.IntVec(grid:ndim()) -- prealloc this
+   local idxS = Lin.IntVec(grid:ndim()) -- Prealloc this.
    local indexer = qOut:genIndexer()
 
-   local tId = self._grid:subGridSharedId() -- local thread ID
-   for idxG in self._ghostRangeDecomp:rowMajorIter(tId) do -- loop, applying BCs
+   local tId = self._grid:subGridSharedId() -- Local thread ID.
+   for idxG in self._ghostRangeDecomp:rowMajorIter(tId) do -- Loop, applying BCs.
       idxG:copyInto(idxS)
-      -- if an in-field is specified the same indexes are used (gS
+      -- If an in-field is specified the same indexes are used (gS
       -- points to the ghost layer of the in-field); otherwise, move
-      -- the ghost index to point into the skin layer
+      -- the ghost index to point into the skin layer.
       if not self.hasExtFld then
 	 idxS[dir] = edge == "lower" and global:lower(dir) or global:upper(dir)
 	 if self._skinLoop == "flip" then
@@ -126,7 +126,7 @@ function Bc:_advance(tCurr, inFld, outFld)
 	    qIn:fill(indexer(idxS), qS)
 	 end
          for _, bc in ipairs(self._bcList) do
-            bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
+            bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES.
          end
       end
    end

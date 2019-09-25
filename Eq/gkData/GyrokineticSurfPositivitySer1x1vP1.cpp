@@ -21,13 +21,25 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_0(const double q_, const doub
   double alphaQuad; 
   // determine upwinding at each surface quadrature node 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[0] = 0.25*((1.414213562373095*fr[2]-1.414213562373095*(fl[2]+fr[0])+1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[2]+fl[2])+1.414213562373095*(fr[0]+fl[0])); 
-  f1Quad[0] = 0.25*((1.414213562373095*(fr[3]+fl[3])-1.414213562373095*(fr[1]+fl[1]))*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*(fl[3]+fr[1])-1.414213562373095*fl[1]); 
-  limQuad[0] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[0] = -0.7071067811865475*(fl[2]-1.0*fl[0]); 
+     f1Quad[0] = 0.7071067811865475*(fl[3]-1.0*fl[1]); 
+     limQuad[0] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[0] = -0.7071067811865475*(fr[2]-1.0*fr[0]); 
+     f1Quad[0] = -0.7071067811865475*(fr[3]-1.0*fr[1]); 
+     limQuad[0] = fr[0]/cflR*0.5; 
+  } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[1] = -0.25*((1.414213562373095*fr[2]-1.414213562373095*fl[2]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[2]+fl[2]+fr[0]+fl[0])); 
-  f1Quad[1] = -0.25*(1.414213562373095*(fr[3]+fl[3]+fr[1]+fl[1])*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*fl[3]-1.414213562373095*fr[1]+1.414213562373095*fl[1]); 
-  limQuad[1] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[1] = 0.7071067811865475*(fl[2]+fl[0]); 
+     f1Quad[1] = -0.7071067811865475*(fl[3]+fl[1]); 
+     limQuad[1] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[1] = 0.7071067811865475*(fr[2]+fr[0]); 
+     f1Quad[1] = 0.7071067811865475*(fr[3]+fr[1]); 
+     limQuad[1] = fr[0]/cflR*0.5; 
+  } 
   double fhat[4]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
   fhat[1] = 0.7071067811865475*(f1Quad[1]+f1Quad[0]); 
@@ -44,8 +56,8 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_0(const double q_, const doub
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[2]; 
-  fhatALQuad[0] = std::max(0.0, std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0.0, std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
 
@@ -89,13 +101,25 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_0(const double q_, const d
   double alphaQuad; 
   // determine upwinding at each surface quadrature node 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[0] = 0.25*((1.414213562373095*fr[1]-1.414213562373095*(fl[1]+fr[0])+1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[1]+fl[1])+1.414213562373095*(fr[0]+fl[0])); 
-  f1Quad[0] = 0.25*((1.414213562373095*(fr[3]+fl[3])-1.414213562373095*(fr[2]+fl[2]))*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*(fl[3]+fr[2])-1.414213562373095*fl[2]); 
-  limQuad[0] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[0] = -0.7071067811865475*(fl[1]-1.0*fl[0]); 
+     f1Quad[0] = 0.7071067811865475*(fl[3]-1.0*fl[2]); 
+     limQuad[0] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[0] = -0.7071067811865475*(fr[1]-1.0*fr[0]); 
+     f1Quad[0] = -0.7071067811865475*(fr[3]-1.0*fr[2]); 
+     limQuad[0] = fr[0]/cflR*0.5; 
+  } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[1] = -0.25*((1.414213562373095*fr[1]-1.414213562373095*fl[1]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[1]+fl[1]+fr[0]+fl[0])); 
-  f1Quad[1] = -0.25*(1.414213562373095*(fr[3]+fl[3]+fr[2]+fl[2])*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*fl[3]-1.414213562373095*fr[2]+1.414213562373095*fl[2]); 
-  limQuad[1] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[1] = 0.7071067811865475*(fl[1]+fl[0]); 
+     f1Quad[1] = -0.7071067811865475*(fl[3]+fl[2]); 
+     limQuad[1] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[1] = 0.7071067811865475*(fr[1]+fr[0]); 
+     f1Quad[1] = 0.7071067811865475*(fr[3]+fr[2]); 
+     limQuad[1] = fr[0]/cflR*0.5; 
+  } 
   double fhat[4]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
   fhat[1] = 0.7071067811865475*(f0Quad[1]-1.0*f0Quad[0]); 
@@ -112,8 +136,8 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_0(const double q_, const d
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[2]; 
-  fhatALQuad[0] = std::max(0.0, std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0.0, std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
 
@@ -157,13 +181,25 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_1(const double q_, const doub
   double alphaQuad; 
   // determine upwinding at each surface quadrature node 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[0] = 0.25*((1.414213562373095*fr[2]-1.414213562373095*(fl[2]+fr[0])+1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[2]+fl[2])+1.414213562373095*(fr[0]+fl[0])); 
-  f1Quad[0] = 0.25*((1.414213562373095*(fr[3]+fl[3])-1.414213562373095*(fr[1]+fl[1]))*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*(fl[3]+fr[1])-1.414213562373095*fl[1]); 
-  limQuad[0] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[0] = -0.7071067811865475*(fl[2]-1.0*fl[0]); 
+     f1Quad[0] = 0.7071067811865475*(fl[3]-1.0*fl[1]); 
+     limQuad[0] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[0] = -0.7071067811865475*(fr[2]-1.0*fr[0]); 
+     f1Quad[0] = -0.7071067811865475*(fr[3]-1.0*fr[1]); 
+     limQuad[0] = fr[0]/cflR*0.5; 
+  } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
-  f0Quad[1] = -0.25*((1.414213562373095*fr[2]-1.414213562373095*fl[2]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[2]+fl[2]+fr[0]+fl[0])); 
-  f1Quad[1] = -0.25*(1.414213562373095*(fr[3]+fl[3]+fr[1]+fl[1])*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*fl[3]-1.414213562373095*fr[1]+1.414213562373095*fl[1]); 
-  limQuad[1] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[1] = 0.7071067811865475*(fl[2]+fl[0]); 
+     f1Quad[1] = -0.7071067811865475*(fl[3]+fl[1]); 
+     limQuad[1] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[1] = 0.7071067811865475*(fr[2]+fr[0]); 
+     f1Quad[1] = 0.7071067811865475*(fr[3]+fr[1]); 
+     limQuad[1] = fr[0]/cflR*0.5; 
+  } 
   double fhat[4]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
   fhat[1] = 0.7071067811865475*(f1Quad[1]+f1Quad[0]); 
@@ -180,8 +216,8 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_1(const double q_, const doub
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[2]; 
-  fhatALQuad[0] = std::max(0.0, std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0.0, std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
 
@@ -226,13 +262,25 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_1(const double q_, const d
   double alphaQuad; 
   // determine upwinding at each surface quadrature node 
   alphaQuad = 0.7071067811865475*alpha[0]-0.7071067811865475*alpha[1]; 
-  f0Quad[0] = 0.25*((1.414213562373095*fr[1]-1.414213562373095*(fl[1]+fr[0])+1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[1]+fl[1])+1.414213562373095*(fr[0]+fl[0])); 
-  f1Quad[0] = 0.25*((1.414213562373095*(fr[3]+fl[3])-1.414213562373095*(fr[2]+fl[2]))*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*(fl[3]+fr[2])-1.414213562373095*fl[2]); 
-  limQuad[0] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[0] = -0.7071067811865475*(fl[1]-1.0*fl[0]); 
+     f1Quad[0] = 0.7071067811865475*(fl[3]-1.0*fl[2]); 
+     limQuad[0] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[0] = -0.7071067811865475*(fr[1]-1.0*fr[0]); 
+     f1Quad[0] = -0.7071067811865475*(fr[3]-1.0*fr[2]); 
+     limQuad[0] = fr[0]/cflR*0.5; 
+  } 
   alphaQuad = 0.7071067811865475*(alpha[1]+alpha[0]); 
-  f0Quad[1] = -0.25*((1.414213562373095*fr[1]-1.414213562373095*fl[1]+1.414213562373095*fr[0]-1.414213562373095*fl[0])*sgn(alphaQuad)-1.414213562373095*(fr[1]+fl[1]+fr[0]+fl[0])); 
-  f1Quad[1] = -0.25*(1.414213562373095*(fr[3]+fl[3]+fr[2]+fl[2])*sgn(alphaQuad)-1.414213562373095*fr[3]+1.414213562373095*fl[3]-1.414213562373095*fr[2]+1.414213562373095*fl[2]); 
-  limQuad[1] = .5*(fl[0]/cflL+fr[0]/cflR + sgn(alphaQuad)*(fl[0]/cflL-fr[0]/cflR))*0.5; 
+  if(alphaQuad > 0) {
+     f0Quad[1] = 0.7071067811865475*(fl[1]+fl[0]); 
+     f1Quad[1] = -0.7071067811865475*(fl[3]+fl[2]); 
+     limQuad[1] = fl[0]/cflL*0.5; 
+  } else {
+     f0Quad[1] = 0.7071067811865475*(fr[1]+fr[0]); 
+     f1Quad[1] = 0.7071067811865475*(fr[3]+fr[2]); 
+     limQuad[1] = fr[0]/cflR*0.5; 
+  } 
   double fhat[4]; // (volume) mode coefficients of fhat 
   fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
   fhat[1] = 0.7071067811865475*(f0Quad[1]-1.0*f0Quad[0]); 
@@ -249,8 +297,8 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_1(const double q_, const d
   fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
   // enforce limiters at surface quadrature nodes 
   double fhatALQuad[2]; 
-  fhatALQuad[0] = std::max(0.0, std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0.0, std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
 

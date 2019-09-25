@@ -8,18 +8,18 @@
 --------------------------------------------------------------------------------
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
-local Constants = require "Lib.Constants"
-local DataStruct = require "DataStruct"
-local LinearTrigger = require "LinearTrigger"
-local Mpi = require "Comm.Mpi"
-local Proto = require "Lib.Proto"
-local Updater = require "Updater"
-local xsys = require "xsys"
-local FieldBase = require "App.Field.FieldBase"
-local Species = require "App.Species"
-local Time = require "Lib.Time"
-local math = require("sci.math").generic
-local diff = require("sci.diff")
+local Constants        = require "Lib.Constants"
+local DataStruct       = require "DataStruct"
+local LinearTrigger    = require "LinearTrigger"
+local Mpi              = require "Comm.Mpi"
+local Proto            = require "Lib.Proto"
+local Updater          = require "Updater"
+local xsys             = require "xsys"
+local FieldBase        = require "App.Field.FieldBase"
+local Species          = require "App.Species"
+local Time             = require "Lib.Time"
+local math             = require("sci.math").generic
+local diff             = require("sci.diff")
 
 local GkField = Proto(FieldBase.FieldBase)
 
@@ -53,26 +53,26 @@ function GkField:fullInit(appTbl)
 
    -- get boundary condition settings
    -- these will be checked for consistency when the solver is initialized
-   if tbl.phiBcLeft then self.phiBcLeft = tbl.phiBcLeft end
-   if tbl.phiBcRight then self.phiBcRight = tbl.phiBcRight end
-   if tbl.phiBcBottom then self.phiBcBottom = tbl.phiBcBottom end
-   if tbl.phiBcTop then self.phiBcTop = tbl.phiBcTop end
-   if tbl.phiBcBack then self.phiBcBack = tbl.phiBcBack end
-   if tbl.phiBcFront then self.phiBcFront = tbl.phiBcFront end
-   if tbl.aparBcLeft then self.aparBcLeft = tbl.aparBcLeft end
-   if tbl.aparBcRight then self.aparBcRight = tbl.aparBcRight end
-   if tbl.aparBcBottom then self.aparBcBottom = tbl.aparBcBottom end
-   if tbl.aparBcTop then self.aparBcTop = tbl.aparBcTop end
+   if tbl.phiBcLeft then self.phiBcLeft          = tbl.phiBcLeft end
+   if tbl.phiBcRight then self.phiBcRight        = tbl.phiBcRight end
+   if tbl.phiBcBottom then self.phiBcBottom      = tbl.phiBcBottom end
+   if tbl.phiBcTop then self.phiBcTop            = tbl.phiBcTop end
+   if tbl.phiBcBack then self.phiBcBack          = tbl.phiBcBack end
+   if tbl.phiBcFront then self.phiBcFront        = tbl.phiBcFront end
+   if tbl.aparBcLeft then self.aparBcLeft        = tbl.aparBcLeft end
+   if tbl.aparBcRight then self.aparBcRight      = tbl.aparBcRight end
+   if tbl.aparBcBottom then self.aparBcBottom    = tbl.aparBcBottom end
+   if tbl.aparBcTop then self.aparBcTop          = tbl.aparBcTop end
    if appTbl.periodicDirs then self.periodicDirs = appTbl.periodicDirs end
 
    -- for storing integrated energies
-   self.phi2 = DataStruct.DynVector { numComponents = 1 }
-   self.apar2 = DataStruct.DynVector { numComponents = 1 }
+   self.phi2     = DataStruct.DynVector { numComponents = 1 }
+   self.apar2    = DataStruct.DynVector { numComponents = 1 }
    self.esEnergy = DataStruct.DynVector { numComponents = 1 }
    self.emEnergy = DataStruct.DynVector { numComponents = 1 }
 
    self.adiabatic = false
-   self.discontinuousPhi = xsys.pickBool(tbl.discontinuousPhi, false)
+   self.discontinuousPhi  = xsys.pickBool(tbl.discontinuousPhi, false)
    self.discontinuousApar = xsys.pickBool(tbl.discontinuousApar, true)
 
    -- for ndim=1 only
@@ -84,7 +84,7 @@ function GkField:fullInit(appTbl)
    -- determine whether to use linearized polarization term in poisson equation, which uses background density in polarization weight
    -- if not, uses full time-dependent density in polarization weight 
    self.linearizedPolarization = xsys.pickBool(tbl.linearizedPolarization, true)
-   self.uniformPolarization = xsys.pickBool(tbl.uniformPolarization, true)
+   self.uniformPolarization    = xsys.pickBool(tbl.uniformPolarization, true)
 
    if self.isElectromagnetic then
       self.mu0 = tbl.mu0 or Constants.MU0
@@ -97,7 +97,7 @@ function GkField:fullInit(appTbl)
 
    self.bcTime = 0.0 -- timer for BCs
 
-   self._first = true
+   self._first     = true
    self._firstStep = true
 end
 
@@ -112,24 +112,25 @@ function GkField:alloc(nRkDup)
    -- allocate fields needed in RK update
    -- nField is related to number of RK stages
    self.potentials = {}
+   self.nRkDup = nRkDup
    for i = 1, nRkDup do
       self.potentials[i] = {}
       self.potentials[i].phi = DataStruct.Field {
-            onGrid = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost = {1, 1}
+         onGrid        = self.grid,
+         numComponents = self.basis:numBasis(),
+         ghost         = {1, 1}
       }
       self.potentials[i].phi:clear(0.0)
       if self.isElectromagnetic then
          self.potentials[i].apar = DataStruct.Field {
-               onGrid = self.grid,
-               numComponents = self.basis:numBasis(),
-               ghost = {1, 1}
+            onGrid        = self.grid,
+            numComponents = self.basis:numBasis(),
+            ghost         = {1, 1}
          }
          self.potentials[i].dApardt = DataStruct.Field {
-               onGrid = self.grid,
-               numComponents = self.basis:numBasis(),
-               ghost = {1, 1}
+            onGrid        = self.grid,
+            numComponents = self.basis:numBasis(),
+            ghost         = {1, 1}
          }
          self.potentials[i].apar:clear(0.0)
          self.potentials[i].dApardt:clear(0.0)
@@ -137,31 +138,31 @@ function GkField:alloc(nRkDup)
    end
 
    self.dApardtProv = DataStruct.Field {
-            onGrid = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost = {1, 1}
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1, 1}
    }
 
    -- create fields for total charge and current densities
    self.chargeDens = DataStruct.Field {
-            onGrid = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost = {1, 1}
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1, 1}
    }
    self.currentDens = DataStruct.Field {
-            onGrid = self.grid,
-            numComponents = self.basis:numBasis(),
-            ghost = {1, 1}
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1, 1}
    }
    -- set up constant dummy field
    self.unitWeight = DataStruct.Field {
-        onGrid = self.grid,
-        numComponents = self.basis:numBasis(),
-        ghost = {1, 1},
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1, 1},
    }
    local initUnit = Updater.ProjectOnBasis {
-      onGrid = self.grid,
-      basis = self.basis,
+      onGrid   = self.grid,
+      basis    = self.basis,
       evaluate = function (t,xn)
                     return 1.0
                  end,
@@ -171,42 +172,44 @@ function GkField:alloc(nRkDup)
 
    -- set up some other fields
    self.weight = DataStruct.Field {
-        onGrid = self.grid,
-        numComponents = self.basis:numBasis(),
-        ghost = {1, 1},
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1, 1},
    }
    self.laplacianWeight = DataStruct.Field {
-        onGrid = self.grid,
-        numComponents = self.basis:numBasis(),
-        ghost = {1, 1},
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1, 1},
    }
    self.modifierWeight = DataStruct.Field {
-        onGrid = self.grid,
-        numComponents = self.basis:numBasis(),
-        ghost = {1, 1},
+      onGrid        = self.grid,
+      numComponents = self.basis:numBasis(),
+      ghost         = {1, 1},
    }
 end
 
--- solve for initial fields self-consistently 
--- from initial distribution function
+-- Solve for initial fields self-consistently 
+-- from initial distribution function.
 function GkField:initField(species)
    if self.initPhiFunc then
       local project = Updater.ProjectOnBasis {
-         onGrid = self.grid,
-         basis = self.basis,
-         evaluate = self.initPhiFunc,
+         onGrid          = self.grid,
+         basis           = self.basis,
+         evaluate        = self.initPhiFunc,
          projectOnGhosts = true
       }
-      project:advance(0.0, {}, {self.potentials[1].phi})
+      for i = 1, self.nRkDup do
+         project:advance(0.0, {}, {self.potentials[i].phi})
+      end
    else
-      -- solve for initial phi
+      -- Solve for initial phi.
       self:advance(0.0, species, 1, 1)
    end
 
    local polyOrder = self.basis:polyOrder()
 
    if self.isElectromagnetic then
-      -- solve for initial Apar
+      -- Solve for initial Apar.
       local apar = self.potentials[1].apar
       self.currentDens:clear(0.0)
       for nm, s in pairs(species) do
@@ -214,27 +217,27 @@ function GkField:initField(species)
       end
       self.aparSlvr:advance(0.0, {self.currentDens}, {apar})
 
-      -- decrease effective polynomial order in z of apar by setting the highest order z coefficients to 0
-      if self.ndim == 1 or self.ndim == 3 then -- only have z direction in 1d or 3d (2d is assumed to be x,y)
+      -- Decrease effective polynomial order in z of apar by setting the highest order z coefficients to 0.
+      if self.ndim == 1 or self.ndim == 3 then -- Only have z direction in 1d or 3d (2d is assumed to be x,y).
          local localRange = apar:localRange()
-         local indexer = apar:genIndexer()
-         local ptr = apar:get(1)
+         local indexer    = apar:genIndexer()
+         local ptr        = apar:get(1)
 
-         -- loop over all cells
+         -- Loop over all cells.
          for idx in localRange:rowMajorIter() do
             self.grid:setIndex(idx)
             
             apar:fill(indexer(idx), ptr)
             if self.ndim == 1 then
                ptr:data()[polyOrder] = 0.0
-            else -- ndim == 3
+            else -- ndim == 3.
                if polyOrder == 1 then
                   ptr:data()[3] = 0.0
                   ptr:data()[5] = 0.0
                   ptr:data()[6] = 0.0
                   ptr:data()[7] = 0.0
                elseif polyOrder == 2 then
-                  ptr:data()[9] = 0.0
+                  ptr:data()[9]  = 0.0
                   ptr:data()[13] = 0.0
                   ptr:data()[14] = 0.0
                   ptr:data()[15] = 0.0
@@ -247,11 +250,11 @@ function GkField:initField(species)
          end
       end
 
-      -- clear dApar/dt ... will be solved for before being used
+      -- Clear dApar/dt ... will be solved for before being used.
       self.potentials[1].dApardt:clear(0.0)
    end
 
-   -- apply BCs and update ghosts
+   -- Apply BCs and update ghosts.
    self:applyBc(0, self.potentials[1])
 end
 
@@ -259,19 +262,19 @@ function GkField:rkStepperFields()
    return self.potentials
 end
 
--- for RK timestepping for non-elliptic fields (e.g. only apar)
+-- For RK timestepping for non-elliptic fields (e.g. only apar).
 function GkField:copyRk(outIdx, aIdx)
    if self.isElectromagnetic and self:rkStepperFields()[aIdx] then 
       self:rkStepperFields()[outIdx].apar:copy(self:rkStepperFields()[aIdx].apar)
    end
 end
--- for RK timestepping for non-elliptic fields (e.g. only apar)
+-- For RK timestepping for non-elliptic fields (e.g. only apar).
 function GkField:combineRk(outIdx, a, aIdx, ...)
    if self.isElectromagnetic and self:rkStepperFields()[aIdx] then
-      local args = {...} -- package up rest of args as table
+      local args = {...} -- Package up rest of args as table.
       local nFlds = #args/2
       self:rkStepperFields()[outIdx].apar:combine(a, self:rkStepperFields()[aIdx].apar)
-      for i = 1, nFlds do -- accumulate rest of the fields
+      for i = 1, nFlds do -- Accumulate rest of the fields.
          self:rkStepperFields()[outIdx].apar:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]].apar)
       end	 
    end
@@ -284,7 +287,7 @@ function GkField:clearCFL()
 end
 
 function GkField:createSolver(species, funcField)
-   -- get adiabatic species info
+   -- Get adiabatic species info.
    for nm, s in pairs(species) do
       if Species.AdiabaticSpecies.is(s) then
          self.adiabatic = true
@@ -293,7 +296,7 @@ function GkField:createSolver(species, funcField)
    end
    assert((self.adiabatic and self.isElectromagnetic) == false, "GkField: cannot use adiabatic response for electromagnetic case")
 
-   -- set up FEM solver for Poisson equation to solve for phi
+   -- Set up FEM solver for Poisson equation to solve for phi.
    local gxx, gxy, gyy
    if funcField.geo then 
      gxx = funcField.geo.gxx
@@ -301,14 +304,14 @@ function GkField:createSolver(species, funcField)
      gyy = funcField.geo.gyy
    end
    self.phiSlvr = Updater.FemPoisson {
-     onGrid = self.grid,
-     basis = self.basis,
-     bcLeft = self.phiBcLeft,
-     bcRight = self.phiBcRight,
+     onGrid   = self.grid,
+     basis    = self.basis,
+     bcLeft   = self.phiBcLeft,
+     bcRight  = self.phiBcRight,
      bcBottom = self.phiBcBottom,
-     bcTop = self.phiBcTop,
+     bcTop    = self.phiBcTop,
      periodicDirs = self.periodicDirs,
-     zContinuous = not self.discontinuousPhi,
+     zContinuous  = not self.discontinuousPhi,
      gxx = gxx,
      gxy = gxy,
      gyy = gyy,
@@ -358,14 +361,14 @@ function GkField:createSolver(species, funcField)
      -- NOTE: aparSlvr only used to solve for initial Apar
      -- at all other times Apar is timestepped using dApar/dt
      self.aparSlvr = Updater.FemPoisson {
-       onGrid = self.grid,
-       basis = self.basis,
-       bcLeft = self.aparBcLeft,
-       bcRight = self.aparBcRight,
+       onGrid   = self.grid,
+       basis    = self.basis,
+       bcLeft   = self.aparBcLeft,
+       bcRight  = self.aparBcRight,
        bcBottom = self.aparBcBottom,
-       bcTop = self.aparBcTop,
+       bcTop    = self.aparBcTop,
        periodicDirs = self.periodicDirs,
-       zContinuous = not self.discontinuousApar,
+       zContinuous  = not self.discontinuousApar,
        gxx = gxx,
        gxy = gxy,
        gyy = gyy,
@@ -383,24 +386,24 @@ function GkField:createSolver(species, funcField)
      if modifierConstant ~= 0 then self.aparSlvr:setModifierWeight(self.modifierWeight) end
 
      self.dApardtSlvr = Updater.FemPoisson {
-       onGrid = self.grid,
-       basis = self.basis,
-       bcLeft = self.aparBcLeft,
-       bcRight = self.aparBcRight,
+       onGrid   = self.grid,
+       basis    = self.basis,
+       bcLeft   = self.aparBcLeft,
+       bcRight  = self.aparBcRight,
        bcBottom = self.aparBcBottom,
-       bcTop = self.aparBcTop,
+       bcTop    = self.aparBcTop,
        periodicDirs = self.periodicDirs,
-       zContinuous = not self.discontinuousApar,
+       zContinuous  = not self.discontinuousApar,
        gxx = gxx,
        gxy = gxy,
        gyy = gyy,
      }
      if ndim==1 then
         laplacianConstant = 0.0
-        modifierConstant = 1.0
+        modifierConstant  = 1.0
      else
         laplacianConstant = -1.0/self.mu0
-        modifierConstant = 1.0
+        modifierConstant  = 1.0
      end
      self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
      self.modifierWeight:combine(modifierConstant, self.unitWeight)
@@ -410,24 +413,24 @@ function GkField:createSolver(species, funcField)
      -- separate solver for additional step for p=1
      if self.basis:polyOrder() == 1 then
         self.dApardtSlvr2 = Updater.FemPoisson {
-          onGrid = self.grid,
-          basis = self.basis,
-          bcLeft = self.aparBcLeft,
-          bcRight = self.aparBcRight,
+          onGrid   = self.grid,
+          basis    = self.basis,
+          bcLeft   = self.aparBcLeft,
+          bcRight  = self.aparBcRight,
           bcBottom = self.aparBcBottom,
-          bcTop = self.aparBcTop,
+          bcTop    = self.aparBcTop,
           periodicDirs = self.periodicDirs,
-          zContinuous = not self.discontinuousApar,
+          zContinuous  = not self.discontinuousApar,
           gxx = gxx,
           gxy = gxy,
           gyy = gyy,
         }
         if ndim==1 then
            laplacianConstant = 0.0
-           modifierConstant = 1.0
+           modifierConstant  = 1.0
         else
            laplacianConstant = -1.0/self.mu0
-           modifierConstant = 1.0
+           modifierConstant  = 1.0
         end
         self.laplacianWeight:combine(laplacianConstant, self.unitWeight)
         self.modifierWeight:combine(modifierConstant, self.unitWeight)
@@ -436,7 +439,7 @@ function GkField:createSolver(species, funcField)
      end
    end
 
-   -- need to set this flag so that field calculated self-consistently at end of full RK timestep
+   -- Need to set this flag so that field calculated self-consistently at end of full RK timestep.
    self.isElliptic = true
 
    if self.isElectromagnetic and self.basis:polyOrder() == 1 then 
@@ -447,33 +450,33 @@ function GkField:createSolver(species, funcField)
 end
 
 function GkField:createDiagnostics()
-   -- create Adios object for field I/O
+   -- Create Adios object for field I/O.
    self.fieldIo = AdiosCartFieldIo {
-      elemType = self.potentials[1].phi:elemType(),
-      method = self.ioMethod,
+      elemType   = self.potentials[1].phi:elemType(),
+      method     = self.ioMethod,
       writeGhost = self.writeGhost,
-      metaData = {
+      metaData   = {
 	 polyOrder = self.basis:polyOrder(),
 	 basisType = self.basis:id()
       },
    }
 
-   -- updaters for computing integrated quantities
+   -- Updaters for computing integrated quantities.
    self.int2Calc = Updater.CartFieldIntegratedQuantCalc {
-      onGrid = self.grid,
-      basis = self.basis,
+      onGrid   = self.grid,
+      basis    = self.basis,
       quantity = "V2"
    }
    if self.ndim == 1 then
       self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,
-         basis = self.basis,
+         onGrid   = self.grid,
+         basis    = self.basis,
          quantity = "V2"
       }
    elseif self.basis:polyOrder()==1 then -- GradPerpV2 only implemented for p=1 currently
       self.energyCalc = Updater.CartFieldIntegratedQuantCalc {
-         onGrid = self.grid,
-         basis = self.basis,
+         onGrid   = self.grid,
+         basis    = self.basis,
          quantity = "GradPerpV2"
       }
    end

@@ -350,9 +350,9 @@ local function buildApplication(self, tbl)
       end
       field:combineRk(outIdx, a, aIdx, ...)
    end
-   local function applyBc(tCurr, idx)
+   local function applyBc(tCurr, idx, ...)
       for nm, s in pairs(species) do
-         s:applyBcIdx(tCurr, idx)
+         s:applyBcIdx(tCurr, idx, ...)
       end
       field:applyBcIdx(tCurr, idx)
    end
@@ -420,7 +420,7 @@ local function buildApplication(self, tbl)
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
       combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
-      applyBc(tCurr, outIdx)
+      applyBc(tCurr, outIdx, calcCflFlag)
 
       return dtSuggested
    end
