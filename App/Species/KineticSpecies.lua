@@ -162,7 +162,7 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function (t, zn)
 	    return tbl.initBackground(t, zn, self)
 	 end,
-	 isInit = false,
+	 isInit       = false,
 	 isBackground = true,
       }
    end
@@ -171,46 +171,46 @@ function KineticSpecies:fullInit(appTbl)
 	 func = function (t, zn)
 	    return tbl.source(t, zn, self)
 	 end,
-	 isInit = false,
+	 isInit   = false,
 	 isSource = true,
       }
    end
    -- >> LEGACY CODE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
    if type(tbl.init) == "table" and tbl.init[1] == "maxwellian" then 
       self.projections["init"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.init.density,
-	 driftSpeed = tbl.init.driftSpeed,
-	 temperature = tbl.init.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.init.density,
+	 driftSpeed      = tbl.init.driftSpeed,
+	 temperature     = tbl.init.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = true,
+	 isInit          = true,
       }
    end 
    if type(tbl.initBackground) == "table" and tbl.initBackground[1] == "maxwellian" then 
       self.projections["initBackground"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.initBackground.density,
-	 driftSpeed = tbl.initBackground.driftSpeed,
-	 temperature = tbl.initBackground.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.initBackground.density,
+	 driftSpeed      = tbl.initBackground.driftSpeed,
+	 temperature     = tbl.initBackground.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = false,
-	 isBackground = true,
+	 isInit          = false,
+	 isBackground    = true,
       }
    end 
    if type(tbl.source) == "table" and tbl.source[1] == "maxwellian" then 
       self.projections["initSource"] = Projection.GkProjection.MaxwellianProjection {
-	 density = tbl.source.density,
-	 driftSpeed = tbl.source.driftSpeed,
-	 temperature = tbl.source.temperature,
-	 exactScaleM0 = true,
+	 density         = tbl.source.density,
+	 driftSpeed      = tbl.source.driftSpeed,
+	 temperature     = tbl.source.temperature,
+	 exactScaleM0    = true,
 	 exactLagFixM012 = false,
-	 isInit = false,
-	 isSource = true,
+	 isInit          = false,
+	 isSource        = true,
       }
    end 
    -- <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-   self.deltaF = xsys.pickBool(appTbl.deltaF, false)
+   self.deltaF         = xsys.pickBool(appTbl.deltaF, false)
    self.fluctuationBCs = xsys.pickBool(tbl.fluctuationBCs, false)
    if self.deltaF then self.fluctuationBCs = true end
 
@@ -242,7 +242,7 @@ function KineticSpecies:fullInit(appTbl)
    self.bcTime = 0.0 -- Timer for BCs.
    self.integratedMomentsTime = 0.0 -- Timer for integrated moments.
 
-   -- Collisions/Sources.
+   -- Collisions.
    self.collisions = {}
    for nm, val in pairs(tbl) do
       if Collisions.CollisionsBase.is(val) then
@@ -393,9 +393,9 @@ function KineticSpecies:allocMoment()
 end
 function KineticSpecies:allocVectorMoment(dim)
    local m = DataStruct.Field {
-	onGrid = self.confGrid,
+	onGrid        = self.confGrid,
 	numComponents = self.confBasis:numBasis()*dim,
-	ghost = {1, 1},
+	ghost         = {1, 1},
    }
    m:clear(0.0)
    return m
@@ -424,15 +424,15 @@ end
 function KineticSpecies:makeBcUpdater(dir, vdir, edge, bcList, skinLoop,
 				      hasExtFld)
    return Updater.Bc {
-      onGrid = self.grid,
+      onGrid             = self.grid,
       boundaryConditions = bcList,
-      dir = dir,
-      vdir = vdir,
-      edge = edge,
-      skinLoop = skinLoop,
-      cdim = self.cdim,
-      vdim = self.vdim,
-      hasExtFld = hasExtFld,
+      dir                = dir,
+      vdir               = vdir,
+      edge               = edge,
+      skinLoop           = skinLoop,
+      cdim               = self.cdim,
+      vdim               = self.vdim,
+      hasExtFld          = hasExtFld,
    }
 end
 
@@ -458,6 +458,18 @@ function KineticSpecies:createSolver(funcField)
    -- Create solvers for collisions.
    for _, c in pairs(self.collisions) do
       c:createSolver(funcField)
+   end
+
+   if self.positivity then
+      self.posChecker = Updater.PositivityCheck {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
+
+      self.posRescaler = Updater.PositivityRescale {
+         onGrid = self.grid,
+         basis = self.basis,
+      }
    end
 end
 
@@ -550,7 +562,7 @@ function KineticSpecies:initDist()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
          if self.positivityRescale then
-           self.posRescaler:advance(0.0, {self.fSource}, {self.fSource})
+            self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
          end
       end
       if pr.isReservoir then
@@ -650,10 +662,21 @@ function KineticSpecies:clearMomentFlags(species)
    end
 end
 
-function KineticSpecies:applyBcIdx(tCurr, idx)
-  self:applyBc(tCurr, self:rkStepperFields()[idx])
+function KineticSpecies:checkPositivity(tCurr, idx)
+  local status = true
+  if self.positivity then
+     status = self.posChecker:advance(tCurr, {self:rkStepperFields()[idx]}, {})
+  end
+  return status
+end
+
+function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   if self.positivityDiffuse then
-     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]})
+     self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
+  end
+  self:applyBc(tCurr, self:rkStepperFields()[idx])
+  if self.positivity then
+     self:checkPositivity(tCurr, idx)
   end
 end
 
@@ -796,6 +819,10 @@ function KineticSpecies:write(tm, force)
             for _, c in pairs(self.collisions) do
                c:write(tm, self.diagIoFrame)
             end
+         end
+
+         if self.positivityDiffuse then
+            self.posRescaler:write(tm, self.diagIoFrame, self.name)
          end
 
          self.diagIoFrame = self.diagIoFrame+1
