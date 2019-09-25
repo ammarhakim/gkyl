@@ -327,13 +327,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
 
    self.tmCouplingMom = 0.0      -- For timer.
 
-   if self.positivityRescale or self.positivityDiffuse then 
-      self.posRescaler = Updater.PositivityRescale {
-         onGrid = self.grid,
-         basis = self.basis,
-      }
-   end
-
    assert(self.n0, "Must specify background density as global variable 'n0' in species table as 'n0 = ...'")
 end
 
@@ -616,7 +609,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- Rescale slopes.
    if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {fIn}, {self.fPos})
+      self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
       fIn = self.fPos
    end
 
@@ -682,7 +675,7 @@ end
 
 function GkSpecies:createDiagnostics()
    local function isIntegratedMomentNameGood(nm)
-      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL2" then
+      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL1" or nm == "intL2" then
          return true
       end
       return false
@@ -700,7 +693,14 @@ function GkSpecies:createDiagnostics()
                onGrid        = self.grid,
                basis         = self.basis,
                numComponents = 1,
-               quantity      = "V2"
+               quantity      = "RmsV"
+            }
+         elseif mom == "intL1" then
+            self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
+               onGrid        = self.grid,
+               basis         = self.basis,
+               numComponents = 1,
+               quantity      = "AbsV"
             }
          else
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
@@ -922,6 +922,9 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
       elseif mom == "intM2" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.ptclEnergy}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intL1" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
       elseif mom == "intL2" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
