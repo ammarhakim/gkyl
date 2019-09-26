@@ -36,6 +36,8 @@ function GkLBO:init(tbl)
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'.")
    self._inMass = tbl.mass
 
+   local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
+
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
    self._vdim = self._pdim-self._cdim
@@ -66,12 +68,12 @@ function GkLBO:init(tbl)
    -- Functions to perform LBO updates.
    if self._cellConstNu then
       self._volUpdate  = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
    else
       self._volUpdate  = GkLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
    end
 
    -- Collisionality and inverse magnetic field amplitude passed as auxiliary fields.
@@ -174,12 +176,12 @@ function GkLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
              (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
-               self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               self._inMass, cfll, cflr, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       else
          self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr)          -- Get pointer to sum(nu) field.
          vMuMidMax = self._surfUpdate[dir-self._cdim](
-            self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            self._inMass, cfll, cflr, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return vMuMidMax
