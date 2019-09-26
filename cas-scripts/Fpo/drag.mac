@@ -9,43 +9,49 @@ for polyOrder : 1 thru 2 do (
   basis1D : basisC[polyOrder],
   load("basis-precalc/basisSer2x"),
   basis2D : basisC[polyOrder],
+  basis2DL : eta([-1,0], [2,2], basis2D),
+  basis2DR : eta([1,0], [2,2], basis2D),
+  basis2DT : eta([0,1], [2,2], basis2D),
+  basis2DB : eta([0,-1], [2,2], basis2D),
   
-  recx2Cell : getRecov2CellGen(x, [2,2], polyOrder, qL, qR),
-  recx3Cell : getRecov3CellGen(x, [2,2], polyOrder, 0, qL, qC, qR),
-  
-  /* h and g substitions for q; accounting for C 0-indexes */
+  xRecov : getRecov2CellGen(x, [2,2], polyOrder, qL, qR),
+  /* h substitions for q; accounting for C 0-indexes */
   hLSubList : append(
     makelist(qL[i]=hL[i-1], i, 1, length(basis2D)),
     makelist(qR[i]=h[i-1], i, 1, length(basis2D))
-    ),
-  hCSubList : append(
-    makelist(qL[i]=hL[i-1], i, 1, length(basis2D)),
-    makelist(qC[i]=h[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=hR[i-1], i, 1, length(basis2D))
     ),
   hRSubList : append(
     makelist(qL[i]=h[i-1], i, 1, length(basis2D)),
     makelist(qR[i]=hR[i-1], i, 1, length(basis2D))
     ),
-  fLSubList : append(
-    makelist(qL[i]=fL[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=f[i-1], i, 1, length(basis2D))
+  hxfLL : calcInnerProdListGen([x, y], [[-2,0], [-1,1]], 1, basis2DL,
+    diff(subst(hLSubList, xRecov), x)*doExpand1(fL, basis2DL)),
+  hxfLC : calcInnerProdListGen([x, y], [[0,2], [-1,1]], 1, basis2DR,
+    diff(subst(hLSubList, xRecov), x)*doExpand1(f, basis2DR)),
+  hxfRC : calcInnerProdListGen([x, y], [[-2,0], [-1,1]], 1, basis2DL,
+    diff(subst(hRSubList, xRecov), x)*doExpand1(f, basis2DL)),
+  hxfRR : calcInnerProdListGen([x, y], [[0,2], [-1,1]], 1, basis2DR,
+    diff(subst(hRSubList, xRecov), x)*doExpand1(fR, basis2DR)),
+
+  hxfLSubList : append(
+    makelist(qL[i]=hxfLL[i], i, 1, length(basis2D)),
+    makelist(qR[i]=hxfLC[i], i, 1, length(basis2D))
     ),
-  fRSubList : append(
-    makelist(qL[i]=f[i-1], i, 1, length(basis2D)),
-    makelist(qR[i]=fR[i-1], i, 1, length(basis2D))
+  hxfRSubList : append(
+    makelist(qL[i]=hxfRC[i], i, 1, length(basis2D)),
+    makelist(qR[i]=hxfRR[i], i, 1, length(basis2D))
     ),
   
   /* Putting together the surface terms and integration over y */
   J : (2/dv[0])^2, /* !!!! 0-indexed !!!! */
   surfL : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, basis2D),
-    subst(x=0, diff(subst(hLSubList, recx2Cell), x)*subst(fLSubList, recx2Cell))) * J,
+    subst(x=0, subst(hxfLSubList, xRecov))) * J,
   surfR : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, basis2D),
-    subst(x=0, diff(subst(hRSubList, recx2Cell), x)*subst(fRSubList, recx2Cell))) * J,
+    subst(x=0, subst(hxfRSubList, xRecov))) * J,
   
   /* Putting together the volume term */
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(basis2D, x),
-    diff(subst(hCSubList, recx3Cell), x)*doExpand1(f, basis2D)) * J,
+    diff(doExpand1(h, basis2D), x)*doExpand1(f, basis2D)) * J,
   
   /* Writting surface terms */
   fname : sconcat("~/max-out/fpoDragKernelP", polyOrder, ".cpp"),
@@ -71,42 +77,43 @@ for polyOrder : 1 thru 2 do (
   for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
   printf(fh, "~%"),
 
-  recy2Cell : getRecov2CellGen(y, [2,2], polyOrder, qB, qT),
-  recy3Cell : getRecov3CellGen(y, [2,2], polyOrder, 0, qB, qC, qT),
-  
-  /* h and g substitions for q; accounting for C 0-indexes */
+  yRecov : getRecov2CellGen(y, [2,2], polyOrder, qB, qT),
+  /* h substitions for q; accounting for C 0-indexes */
   hBSubList : append(
     makelist(qB[i]=hB[i-1], i, 1, length(basis2D)),
     makelist(qT[i]=h[i-1], i, 1, length(basis2D))
-    ),
-  hCSubList : append(
-    makelist(qB[i]=hB[i-1], i, 1, length(basis2D)),
-    makelist(qC[i]=h[i-1], i, 1, length(basis2D)),
-    makelist(qT[i]=hT[i-1], i, 1, length(basis2D))
     ),
   hTSubList : append(
     makelist(qB[i]=h[i-1], i, 1, length(basis2D)),
     makelist(qT[i]=hT[i-1], i, 1, length(basis2D))
     ),
-  fBSubList : append(
-    makelist(qB[i]=fB[i-1], i, 1, length(basis2D)),
-    makelist(qT[i]=f[i-1], i, 1, length(basis2D))
-    ),
-  fTSubList : append(
-    makelist(qB[i]=f[i-1], i, 1, length(basis2D)),
-    makelist(qT[i]=fT[i-1], i, 1, length(basis2D))
-    ),
   
+  hyfBB : calcInnerProdListGen([x, y], [[-1,1], [-2,0]], 1, basis2DB,
+    diff(subst(hBSubList, yRecov), y)*doExpand1(fB, basis2DB)),
+  hyfBC : calcInnerProdListGen([x, y], [[-1,1], [0,2]], 1, basis2DT,
+    diff(subst(hBSubList, yRecov), y)*doExpand1(f, basis2DT)),
+  hyfTC : calcInnerProdListGen([x, y], [[-1,1], [-2,0]], 1, basis2DB,
+    diff(subst(hTSubList, yRecov), y)*doExpand1(f, basis2DB)),
+  hyfTT : calcInnerProdListGen([x, y], [[-1,1], [0,2]], 1, basis2DT,
+    diff(subst(hTSubList, yRecov), y)*doExpand1(fT, basis2DT)),
+  hyfBSubList : append(
+    makelist(qB[i]=hyfBB[i], i, 1, length(basis2D)),
+    makelist(qT[i]=hyfBC[i], i, 1, length(basis2D))
+    ),
+  hyfTSubList : append(
+    makelist(qB[i]=hyfTC[i], i, 1, length(basis2D)),
+    makelist(qT[i]=hyfTT[i], i, 1, length(basis2D))
+    ),
   /* Putting together the surface terms and integration over y */
   J : (2/dv[1])^2, /* !!!! 0-indexed !!!! */
   surfB : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, basis2D),
-    subst(y=0, diff(subst(hBSubList, recy2Cell), y)*subst(fBSubList, recy2Cell))) * J,
+    subst(y=0, subst(hyfBSubList, yRecov))) * J,
   surfT : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=1, basis2D),
-    subst(y=0, diff(subst(hTSubList, recy2Cell), y)*subst(fTSubList, recy2Cell))) * J,
+    subst(y=0, subst(hyfTSubList, yRecov))) * J,
 
   /* Putting together the volume term */
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(basis2D, y),
-    diff(subst(hCSubList, recy3Cell), y)*doExpand1(f, basis2D)) * J,
+    diff(doExpand1(h, basis2D), y)*doExpand1(f, basis2D)) * J,
   
   /* Writting surface terms */
   printf(fh, "  if (isBotEdge) {~%"),
