@@ -165,11 +165,16 @@ function PositivityRescale:write(tm, frame, nm)
       end
       self.delChangeG:appendData(self.del2ChangeG[1]:timeMesh():data()[j-1], {delChange})
    end
+   for i=1, 4 do
+      self.del2ChangeL[i]:clear()
+      self.del2ChangeG[i]:clear()
+   end
    
    self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
    self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
    self.rescaledCellsL:clear()
    self.rescaledCellsG:clear()
+   self.delChangeG:clear()
 end
 
 return PositivityRescale
