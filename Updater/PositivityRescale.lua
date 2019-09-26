@@ -150,7 +150,7 @@ end
 
 function PositivityRescale:write(tm, frame, nm)
 
-   self.del2ChangeByCell:write(string.format("%s_%s_%d.bp", nm, "del2ChangeByCell", frame), tm, frame, true)
+   self.del2ChangeByCell:write(string.format("%s_%s_%d.bp", nm, "del2ChangeByCell", frame), tm, frame, false)
 
    Mpi.Allreduce(self.rescaledCellsL:data():data(), self.rescaledCellsG:data():data(), self.rescaledCellsG:size()*2,
                  Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
