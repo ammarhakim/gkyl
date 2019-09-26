@@ -14,24 +14,24 @@ load(stringproc)$
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 2$
-minCdim_Ser : 1$
+minCdim_Ser : 3$
 minVdim_Ser : 1$
 maxCdim_Ser : 3$
-maxVdim_Ser : 3$
+maxVdim_Ser : 0$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 2$
 minCdim_Max : 1$
 minVdim_Max : 1$
-maxCdim_Max : 3$
-maxVdim_Max : 3$
+maxCdim_Max : 0$
+maxVdim_Max : 0$
 
 /* Tensor product basis. */
 maxPolyOrder_Tensor : 2$
 minCdim_Tensor : 1$
 minVdim_Tensor : 1$
-maxCdim_Tensor : 2$
-maxVdim_Tensor : 3$
+maxCdim_Tensor : 0$
+maxVdim_Tensor : 0$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -59,12 +59,23 @@ for bInd : 1 thru length(bName) do (
     printf(fh, " ~%"),
     
     funcName : sconcat("CartFieldBinOpMultiply", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on CartFieldBinOpMultiply", c, "x", bName[bInd]))),
     calcBinOpMultiplyS(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
     
+    usePositivity : false,
     funcName : sconcat("CartFieldBinOpDivide", c, "x", bName[bInd]),
-    calcBinOpDivideS(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
+    disp(printf(false,sconcat("Working on CartFieldBinOpDivide", c, "x", bName[bInd]))),
+    calcBinOpDivideS(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
+
+    if (bName[bInd]="Ser") then (
+      usePositivity : true,
+      funcName : sconcat("CartFieldBinOpDividePositivity", c, "x", bName[bInd]),
+      disp(printf(false,sconcat("Working on CartFieldBinOpDividePositivity", c, "x", bName[bInd]))),
+      calcBinOpDivideS(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity)
+    ),
    
     funcName : sconcat("CartFieldBinOpDotProduct", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on CartFieldBinOpDotProduct", c, "x", bName[bInd]))),
     calcBinOpDotProduct(fh, funcName, c, bName[bInd],maxPolyOrder[bInd]),
    
     close(fh)
@@ -95,11 +106,12 @@ for bInd : 1 thru length(bName) do (
   
       close(fh)
     )
-  ),
+  )
   
   
   /* Generate the 3x2v case (mostly for gyrokinetics). */
 
+/*
   if bName[bInd]="Ser" or bName[bInd]="Max" then (
   c : 3,
   v : 2,
@@ -122,6 +134,7 @@ for bInd : 1 thru length(bName) do (
   
   close(fh)
   )
+  */
 
   
 )$
