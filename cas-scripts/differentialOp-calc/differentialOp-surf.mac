@@ -13,7 +13,7 @@ maxCdim_Ser : 1$
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
 minCdim_Max : 1$
-maxCdim_Max : 1$
+maxCdim_Max : 0$
 
 /* ...... END OF USER INPUTS........ */
 
