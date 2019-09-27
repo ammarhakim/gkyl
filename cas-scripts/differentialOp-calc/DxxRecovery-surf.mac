@@ -109,6 +109,13 @@ calcDxxUpdateInDir(dir, fh, funcNm, cdim, basisFun, pMax) := block([],
     ),
     
     hsol1 : makelist(S[i][1],i,1,hOrder+1),
+    /* This recovery quadratic arises from matching the cell averages,
+       and obtaining a least-squares solution to matching the slopes. */
+    /*
+    hsol1 : [(3*fl[1]+sqrt(3)*fl[2]+3*fr[1]-sqrt(3)*fr[2])/(6*sqrt(2)), 
+             (sqrt(2)/2)*(fr[1]-fl[1]),
+             sqrt(3/2)*(fr[2]-fl[1])/2],
+    */
 
     /*... Recovery polynomial coefficients of requested dimensionality ...*/
     kill(varsC, basisC),
