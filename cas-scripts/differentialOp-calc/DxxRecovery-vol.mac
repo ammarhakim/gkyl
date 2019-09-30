@@ -1,0 +1,51 @@
+load("modal-basis")$
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+/* This script generates the kernels for the volume term
+   contribution from computing derivative operations
+   of a function. */
+
+doMakeExprLst(vals, S) := makelist(if vals[i] # 0 then S[i-1] else 0, i, 1, length(vals))$
+doExpandLst(lst, basis) := sum(lst[i]*basis[i], i, 1, length(basis))$
+
+calcDxxVolUpdater(fh, funcNm, cdim, basisFun, pMax) := block([],
+  printf(fh, "#include <CartFieldDifferentialOpModDecl.h> ~%"),
+  for polyOrder : 1 thru pMax do (
+
+    kill(varsC, varsP, basisC, basisP),
+    /* Load basis of dimensionality requested. */
+    load(sconcat("basis-precalc/basis", basisFun, cdim, "x")),
+
+    /* Polynomial basis and its derivatives. */
+    bC  : basisC[polyOrder],
+    NC  : length(bC),
+
+    /* Expand function f in basis. */
+    f_e : doExpand1(f, bC),
+
+    /* Volume increment. */
+    incr : rdxSq4[0]*calcInnerProdList(varsC,1.0,diff(bC,x,2),f_e),
+
+    printf(fh, "void ~a_P~a(const double *w, const double *dx, const int *idx, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // w[~a]:   Cell-center coordinates. ~%", cdim),
+    printf(fh, "  // dx[~a]:  Cell spacing. ~%", cdim),
+    printf(fh, "  // idx[~a]: Current grid index.~%", cdim),
+    printf(fh, "  // f:      Input function. ~%"),
+    printf(fh, "  // out:    Incremented output ~%"),
+    printf(fh, "  double rdx2[~a]; ~%", cdim),
+    printf(fh, "  double rdxSq4[~a]; ~%", cdim),
+    for dir : 1 thru cdim do (
+      printf(fh, "  rdx2[~a] = 2.0/dx[~a]; ~%", dir-1, dir-1),
+      printf(fh, "  rdxSq4[~a] = 4.0/(dx[~a]*dx[~a]); ~%", dir-1, dir-1, dir-1)
+    ),
+    printf(fh, "~%"),
+
+    clst : append(makelist(rdx2[i],i,0,cdim-1),makelist(rdxSq4[i],i,0,cdim-1)),
+    writeCIncrExprsCollect1(out, incr, clst),
+    printf(fh, "~%"),
+
+    printf(fh, "} ~%")
+));
+

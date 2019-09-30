@@ -1,0 +1,39 @@
+/* Call functions to calculate volume contributions due
+   to a constant diffusion term. */
+
+/* For single integration by parts use ConstDiffusionSIBP-vol,
+   for double integration by parts use ConstDiffusion-vol */
+load("constDiffusion-calc/ConstDiffusion-vol")$
+load(stringproc)$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 4$
+minCdim_Ser : 1$
+maxCdim_Ser : 3$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 4$
+minCdim_Max : 1$
+maxCdim_Max : 3$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+
+    disp(printf(false,sconcat("Creating volume ConstDiffusion",bName[bInd]," ~ax"),c)),
+    fname : sconcat("~/max-out/ConstDiffusion", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+    funcName : sconcat("ConstDiffusionVol", c, "x", bName[bInd]),
+    calcConstDiffusionVolUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    close(fh)
+
+  )
+);
