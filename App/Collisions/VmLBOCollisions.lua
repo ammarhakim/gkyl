@@ -274,7 +274,7 @@ function VmLBOCollisions:createSolver()
             onGrid          = self.confGrid,
             basis           = self.confBasis,
             evaluate        = self.collFreqSelf,
-            projectOnGhosts = true
+            projectOnGhosts = false
          }
          projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
       end
