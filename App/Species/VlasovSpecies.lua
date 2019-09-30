@@ -434,7 +434,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
             onGrid          = self.confGrid,
             basis           = self.confBasis,
             evaluate        = function(t,xn) return 0.0 end, -- Function is set below.
-            projectOnGhosts = true,
+            projectOnGhosts = false,
          }
       end
       for sN, _ in pairs(species) do
