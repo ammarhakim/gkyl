@@ -10,6 +10,7 @@ local Bc = require "Updater.Bc"
 local StairSteppedBc = require "Updater.StairSteppedBc"
 local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
+local CartFieldDifferentialOp = require "Updater.CartFieldDifferentialOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local ConfToPhase = require "Updater.ConfToPhase"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
@@ -40,6 +41,7 @@ return {
    StairSteppedBc = StairSteppedBc,
    BgkCollisions = BgkCollisions,
    CartFieldBinOp = CartFieldBinOp,
+   CartFieldDifferentialOp = CartFieldDifferentialOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    ConfToPhase = ConfToPhase,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,

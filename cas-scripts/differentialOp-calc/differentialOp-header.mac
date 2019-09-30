@@ -1,0 +1,59 @@
+cvars : [X, Y, Z]$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 1$
+maxCdim_Ser : 1$
+minVdim_Ser : 1$    /* see beginning of v loop below though. */
+maxVdim_Ser : 1$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 1$
+minCdim_Max : 1$
+maxCdim_Max : 1$
+minVdim_Max : 1$    /* see begining of v loop below though. */
+maxVdim_Max : 1$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+minVdim      : [minVdim_Ser, minVdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+maxVdim      : [maxVdim_Ser, maxVdim_Max]$
+
+
+fh : openw("~/max-out/CartFieldDifferentialOpModDecl.h")$
+
+printf(fh, "#ifndef CART_FIELD_DIFFERENTIALOP_MOD_DECL_H ~%")$
+printf(fh, "#define CART_FIELD_DIFFERENTIALOP_MOD_DECL_H ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+
+for bInd : 1 thru length(bName) do (
+
+  for ci : minCdim[bInd] thru maxCdim[bInd] do (
+    for pi : 1 thru maxPolyOrder[bInd] do (
+      printf(fh, "void CartFieldDifferentialOpDxxRecoveryVol~ax~a_P~a(const double *w, const double *dx, const int *idx, const double *f, double *out); ~%", ci, bName[bInd], pi),
+      for si : 1 thru ci do (
+        printf(fh, "void CartFieldDifferentialOpDxxRecoverySurf~ax~a_~a_P~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, bName[bInd], cvars[si], pi),
+        printf(fh, "void CartFieldDifferentialOpDxxRecoveryBoundarySurf~ax~a_~a_P~a(const double *wl, const double *wr, const double *dxl, const double *dxr, const int *idxl, const int *idxr, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, bName[bInd], cvars[si], pi)
+      ),
+      printf(fh, "~%")      
+    ),
+    printf(fh, "~%")
+  ),
+  printf(fh, "~%")
+
+)$
+
+printf(fh, "~% ~%")$
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

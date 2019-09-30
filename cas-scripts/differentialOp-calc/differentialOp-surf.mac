@@ -1,0 +1,49 @@
+load("differentialOp-calc/DxxRecovery-surf")$
+load(stringproc)$
+/* This script calls the functions which calculate the
+   updates from the surface term contributions. */
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 1$
+maxCdim_Ser : 1$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 1$
+minCdim_Max : 1$
+maxCdim_Max : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max]$
+minCdim      : [minCdim_Ser, minCdim_Max]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max]$
+
+for bInd : 1 thru length(bName) do (
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    
+     disp(printf(false,sconcat("Creating surface CartFieldDifferentialOpDxxRecovery",bName[bInd]," ~ax"),c)),
+     fname    : sconcat("~/max-out/CartFieldDifferentialOpSurf", bName[bInd], c, "x", ".cpp"),
+     fh       : openw(fname),
+     funcName : sconcat("CartFieldDifferentialOpDxxRecoverySurf", c, "x", bName[bInd]),
+     calcDxxSurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+     close(fh)
+     
+     /* boundarySurf kernels compute surface contribution that we
+        do not want to zero-out at the boundary of velocity domain. */
+/*
+     disp(printf(false,sconcat("Creating boundary surfaceCartFieldDifferentialOpDxxRecovery",bName[bInd]," ~ax"),c)),
+     fname    : sconcat("~/max-out/CartFieldDifferentialOpDxxBoundarySurf",bName[bInd], c, "x", ".cpp"),
+     fh       : openw(fname),
+     funcName : sconcat("CartFieldDifferentialOpDxxRecoveryBoundarySurf", c, "x", bName[bInd]),
+     calcCartFieldDifferentialOpDxxBoundarySurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+     close(fh)
+*/
+     
+  )
+);
+
+
