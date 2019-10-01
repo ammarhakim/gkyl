@@ -1,8 +1,12 @@
 load("modal-basis") $
 assume(dv[0]>0, dv[1]>0, dv[2]>0) $
 
+/* A helper function to shift basis functions in only one direction.
+Example: etaDir(y, dy/2, dy, basis) */  
 etaDir(dir, xc, dx, basis) := subst(td=dir, subst(dir=2*(td-xc)/dx, basis)) $
 
+/* A helper function to shift basis functions in all directions together
+Example: eta([x, y], [dx/2, -dy/2], [dx, dy], basis( */
 eta(xc, dx, basis) := block([out, tx, ty, tz],
   out : subst(tx=x, subst(x=2*(tx-xc[1])/dx[1], basis)),
   if length(dx) > 1 then ( out : subst(ty=y, subst(y=2*(ty-xc[2])/dx[2], out)) ),
@@ -10,6 +14,7 @@ eta(xc, dx, basis) := block([out, tx, ty, tz],
   return(out)
   ) $
 
+/* A simple helper function to convert x, y, or z to indices 1, 2, or 3 respectively */
 getDirIdx(dir, numDims) := block([],
   if numDims = 1 then return(1),
   if dir = x then return(1),
@@ -17,40 +22,50 @@ getDirIdx(dir, numDims) := block([],
   if dir = z then return(3)
   ) $
 
+/* Returns recovered polynomial across two neigbouring cells in terms of expansion coefficients at the minus side (qM) and the plus side (qP).
+Inputs:
+  dir : direction of the recovery (x, y, or z)
+  dx : a list of cell sizes; if the specified length is greater than zero, the no-recovered direction are backsubstitued to the output
+  polyOrder : polynomial order of the inputs
+  qM : expansion coeficients of the recovered quatity at the minus side
+  qP : expansion coeficients of the recovered quatity at the plus side
+Outputs:
+  a polynomial in terms of qM and qP
+*/
 getRecov2CellGen(dir, dx, polyOrder, qM, qP) := block(
   [N, basis1D, basisND, numDims, dIdx,
   baM1D, baMND, baP1D, baPND, 
   r, rExp, rSol, rSub, recEqList, qM1D, qP1D],
   
   numDims : length(dx),
-  dIdx : getDirIdx(dir, numDims),
-  load("basis-precalc/basisSer1x"),
+  dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
+  load("basis-precalc/basisSer1x"), /* Loading basis functions */
   basis1D : subst(x=dir, basisC[polyOrder]),
   baM1D : etaDir(dir, -dx[dIdx]/2, dx[dIdx], basis1D),
   baP1D : etaDir(dir, dx[dIdx]/2, dx[dIdx], basis1D),
   
   /* Forming and solving the equation system */
-  N : polyOrder + 1,
-  rExp : doExpand(r, makelist(dir^i, i, 0, 2*N-1)),
-  recEqList : append(
+  N : polyOrder + 1, /* Number of degrees of freedom */
+  rExp : doExpand(r, makelist(dir^i, i, 0, 2*N-1)), /* Recovery polynomial */
+  recEqList : append( /* Equations frm the weak equality */
     calcInnerProdListGen([dir], [[-dx[dIdx], 0]], 1, baM1D, rExp-doExpand(qM1D, baM1D)),
     calcInnerProdListGen([dir], [[0, dx[dIdx]]], 1, baP1D, rExp-doExpand(qP1D, baP1D))
     ),
   rSol : linsolve(recEqList, makelist(r[i], i, 1, 2*N)),
   rSub : fullratsimp(subst(rSol, rExp)),
-
+  
+  /* Backsubstitute the non-recovered directtions if needed */
   if numDims > 1 then (
-    /* Creating substitution lists to get the y-dependence */
-    load(sconcat("basis-precalc/basisSer", numDims, "x")),
+    load(sconcat("basis-precalc/basisSer", numDims, "x")), /* Loading higher dimensional basis */
     basisND : basisC[polyOrder],
     xc : [0, 0, 0],
     xc[dIdx] : -dx[dIdx]/2,
-    baMND : eta(xc, dx, basisND),
+    baMND : eta(xc, dx, basisND), /* Shifting the multi-D basis in only one direction */
     xc[dIdx] : dx[dIdx]/2,
-    baPND : eta(xc, dx, basisND),
+    baPND : eta(xc, dx, basisND), /* Shifting the multi-D basis in only one direction */
     dimProjM : calcInnerProdListGen([dir], [[-dx[dIdx], 0]], 1, baM1D, doExpand(qM, baMND)),
     dimProjP : calcInnerProdListGen([dir], [[0, dx[dIdx]]], 1, baP1D, doExpand(qP, baPND)),
-    projSubList : append (
+    projSubList : append ( /* Substitution list fot the backprojection */
       makelist(qM1D[i]=dimProjM[i], i, 1, length(basis1D)),
       makelist(qP1D[i]=dimProjP[i], i, 1, length(basis1D))
       )
@@ -65,6 +80,19 @@ getRecov2CellGen(dir, dx, polyOrder, qM, qP) := block(
   return(subst(projSubList, rSub))
   ) $
 
+/* Returns recovered polynomial across three cells in terms of expansion coefficients at the minus side (qM), center (qC), and the plus side (qP).
+This is done in two stages. In the first stage, getRecov2CellGen is used to calculate recovery polynomials at the two pairs of cells. These are then evaluated at the interfaces (only values for C=0; values and first derivatives for C=1). This addition information is then used to recover higher order solution in the central cell. 
+Inputs:
+  dir : direction of the recovery (x, y, or z)
+  dx : a list of cell sizes; if the specified length is greater than zero, the no-recovered direction are backsubstitued to the output
+  polyOrder : polynomial order of the inputs
+  C : continuity of the recovered solution (either 0 or 1)
+  qM : expansion coeficients of the recovered quatity at the minus side
+  qC : expansion coeficients of the recovered quatity in the central cell
+  qP : expansion coeficients of the recovered quatity at the plus side
+Outputs:
+  a polynomial in terms of qM, qC, and qP
+*/
 getRecov3CellGen(dir, dx, polyOrder, C, qM, qC, qP) := block(
   [N, basis1D, basisND, numDims,
   baM1D, baMND, baC1D, baCND, baP1D, baPND,
@@ -78,15 +106,16 @@ getRecov3CellGen(dir, dx, polyOrder, C, qM, qC, qP) := block(
   baC1D : etaDir(dir, 0, dx[dIdx], basis1D),
 
   N : polyOrder + 3,
-  if C = 1 then N : N + 2,
+  if C = 1 then N : N + 2, /* Increase the final namuber of degrees of freedom for C_1 continuity */
   /* Forming and solving the equation system */
-  rExp : doExpand(r, makelist(dir^i, i, 0, N-1)),
+  rExp : doExpand(r, makelist(dir^i, i, 0, N-1)), /* Final recovery polynomial */
+  /* Recover solutions across two pairs of cells */
   rM : getRecov2CellGen(dir, [dx[dIdx]], polyOrder, qM1D, qC1D),
   rP : getRecov2CellGen(dir, [dx[dIdx]], polyOrder, qC1D, qP1D),
   recEqList : append(
-    [subst(dir=0, rM) - subst(dir=-dx[dIdx]/2, rExp)],
-    [subst(dir=0, rP) - subst(dir=dx[dIdx]/2, rExp)],
-    calcInnerProdListGen([dir], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baC1D, rExp-doExpand(qC1D, baC1D))
+    [subst(dir=0, rM) - subst(dir=-dx[dIdx]/2, rExp)], /* Prescribing solution at the minus interface */
+    [subst(dir=0, rP) - subst(dir=dx[dIdx]/2, rExp)], /* Prescribing solution at the plus interface */
+    calcInnerProdListGen([dir], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baC1D, rExp-doExpand(qC1D, baC1D)) /* New solution is weakly equal to the original representation */
     ),
   if C = 1 then (
     recEqList : append(
@@ -98,8 +127,8 @@ getRecov3CellGen(dir, dx, polyOrder, C, qM, qC, qP) := block(
   rSol : linsolve(recEqList, makelist(r[i], i, 1, N)),
   rSub : fullratsimp(subst(rSol, rExp)),
   
+  /* Backsubstitute the non-recovered directtions if needed */
   if numDims > 1 then (
-    /* Creating substitution lists to get the y-dependence */
     baM1D : etaDir(dir, -dx[dIdx], dx[dIdx], basis1D),
     baP1D : etaDir(dir, dx[dIdx], dx[dIdx], basis1D),
     load(sconcat("basis-precalc/basisSer", numDims, "x")),
