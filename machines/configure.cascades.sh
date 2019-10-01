@@ -13,7 +13,7 @@ PREFIX=$HOME/cascades/gkylsoft/gkyl
 # Compile flags (set optimization/debug flags here)
 CC=icc
 CXX=icpc
-CXXFLAGS='-O3,-std=c++14'
+CXXFLAGS='-O3,-std=c++17'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/cascades/gkylsoft/luajit/include/luajit-2.1
