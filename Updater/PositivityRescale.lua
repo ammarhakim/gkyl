@@ -25,7 +25,7 @@ function PositivityRescale:init(tbl)
    PositivityRescale.super.init(self, tbl) -- setup base object
 
    -- grid and basis
-   self.onGrid = assert(
+   self.grid = assert(
       tbl.onGrid, "Updater.PositivityRescale: Must provide grid object using 'onGrid'")
    self.basis = assert(
       tbl.basis,
@@ -35,6 +35,12 @@ function PositivityRescale:init(tbl)
    -- number of components to set
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
    assert(self.numComponents == 1, "Updater.PositivityRescale only implemented for fields with numComponents = 1")
+
+   self.del2ChangeByCell =  DataStruct.Field {
+      onGrid        = self.grid,
+      numComponents = 4,
+      ghost         = {1, 1},
+   }
 
    self.del2ChangeL = {
       DataStruct.DynVector {
@@ -77,21 +83,28 @@ function PositivityRescale:init(tbl)
    self.delChange = 0.0
    self.rescaledCells = 0.0
    self.tCurrOld = 0.0
-   self.i = 1
+   self.rkIdx = 1
+
+   self._first = true
 end   
 
 -- advance method
 function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zeroOut)
-   local grid = self.onGrid
+   local grid = self.grid
    local fIn, fOut = inFld[1], outFld[1]
 
    local ndim = self.basis:ndim()
    local numBasis = self.basis:numBasis()
 
-   local fInIndexer = fIn:genIndexer()
-   local fInPtr = fIn:get(1)
-   local fOutIndexer = fOut:genIndexer()
-   local fOutPtr = fOut:get(1)
+   if self._first then 
+      self.fInIndexer = fIn:genIndexer()
+      self.fInPtr = fIn:get(1)
+      self.fOutIndexer = fOut:genIndexer()
+      self.fOutPtr = fOut:get(1)
+      self.del2ChangeIndexer = self.del2ChangeByCell:genIndexer()
+      self.del2ChangePtr = self.del2ChangeByCell:get(1)
+      self._first = false
+   end
 
    if computeDiagnostics == nil then computeDiagnostics = true end
 
@@ -111,33 +124,39 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       self.delChange = 0.
       self.rescaledCells = 0.0
       self.tCurrOld = tCurr
-      self.i=1
+      self.rkIdx=1
    end
  
    local localRange = fIn:localRange()   
-   self.del2Change[self.i] = 0.
+   self.del2Change[self.rkIdx] = 0.
+
    for idx in localRange:rowMajorIter() do
       grid:setIndex(idx)
 
-      fIn:fill(fInIndexer(idx), fInPtr)
-      fOut:fill(fOutIndexer(idx), fOutPtr)
+      fIn:fill(self.fInIndexer(idx), self.fInPtr)
+      fOut:fill(self.fOutIndexer(idx), self.fOutPtr)
 
-      local del2ChangeCell = ffiC.rescale(fInPtr:data(), fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
+      local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
       if computeDiagnostics then 
-         self.del2Change[self.i] = self.del2Change[self.i] + del2ChangeCell*grid:cellVolume()
+         self.del2ChangeByCell:fill(self.del2ChangeIndexer(idx), self.del2ChangePtr)
+         self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell*grid:cellVolume()
+         self.del2Change[self.rkIdx] = self.del2Change[self.rkIdx] + del2ChangeCell*grid:cellVolume()
          if del2ChangeCell ~= 0. then self.rescaledCells = self.rescaledCells + 1 end
       end
    end
 
-   self.i = self.i+1
+   self.rkIdx = self.rkIdx+1
 end
 
 function PositivityRescale:write(tm, frame, nm)
+
+   self.del2ChangeByCell:write(string.format("%s_%s_%d.bp", nm, "del2ChangeByCell", frame), tm, frame, false)
+
    Mpi.Allreduce(self.rescaledCellsL:data():data(), self.rescaledCellsG:data():data(), self.rescaledCellsG:size()*2,
-                 Mpi.DOUBLE, Mpi.SUM, self.onGrid:commSet().comm)
+                 Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
    for i=1, 4 do
       Mpi.Allreduce(self.del2ChangeL[i]:data():data(), self.del2ChangeG[i]:data():data(), self.del2ChangeG[i]:size()*2,
-                    Mpi.DOUBLE, Mpi.SUM, self.onGrid:commSet().comm)
+                    Mpi.DOUBLE, Mpi.SUM, self.grid:commSet().comm)
    end
    for j=1, self.del2ChangeG[1]:size() do
       local delChange = 0.
@@ -146,11 +165,16 @@ function PositivityRescale:write(tm, frame, nm)
       end
       self.delChangeG:appendData(self.del2ChangeG[1]:timeMesh():data()[j-1], {delChange})
    end
+   for i=1, 4 do
+      self.del2ChangeL[i]:clear()
+      self.del2ChangeG[i]:clear()
+   end
    
    self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
    self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
    self.rescaledCellsL:clear()
    self.rescaledCellsG:clear()
+   self.delChangeG:clear()
 end
 
 return PositivityRescale
