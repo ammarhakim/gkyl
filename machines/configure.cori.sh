@@ -15,7 +15,7 @@ MPICXX=CC
 OUT=build
 
 # Compile flags (set optimization/debug flags here)
-CXXFLAGS='-O3,-std=c++14,-fast'
+CXXFLAGS='-O3,-std=c++17,-fast'
 
 # MPI options
 ENABLE_MPI="--enable-mpi"
