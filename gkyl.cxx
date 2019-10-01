@@ -46,10 +46,12 @@
 #include <zmq.h>
 #endif
 
-// Gkyl includes
+// Gkyl/Lib includes
 #include <lfs.h>
 #include <whereami.h>
 #include <base64.h>
+#include <CLI11.hpp>
+#include <sol.hpp>
 
 // A simple logger for parallel simulations
 class Logger {
