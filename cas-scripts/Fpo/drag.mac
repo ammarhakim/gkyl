@@ -5,6 +5,12 @@ assume(dv[0]>0, dv[1]>0, dv[2]>0) $
 numDims : 2 $
 
 for polyOrder : 1 thru 2 do (
+  fname : sconcat("~/max-out/fpoDragKernelP", polyOrder, ".cpp"),
+  fh : openw(fname),
+  printf(fh, "#include <math.h>~%"),
+  printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
+
+  printf(fh, "void fpoDragKernelP~a(const double dt, const double *dv, const double *f, const double *fL, const double *fR, const double *fT, const double *fB, const double *h, const double *hL, const double *hR, const double *hT, const double *hB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
   load("basis-precalc/basisSer1x"),
   basis1D : basisC[polyOrder],
   load("basis-precalc/basisSer2x"),
@@ -52,14 +58,6 @@ for polyOrder : 1 thru 2 do (
   /* Putting together the volume term */
   vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(basis2D, x),
     diff(doExpand1(h, basis2D), x)*doExpand1(f, basis2D)) * J,
-  
-  /* Writting surface terms */
-  fname : sconcat("~/max-out/fpoDragKernelP", polyOrder, ".cpp"),
-  fh : openw(fname),
-  printf(fh, "#include <math.h>~%"),
-  printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
-
-  printf(fh, "void fpoDragKernelP~a(const double dt, const double *dv, const double *f, const double *fL, const double *fR, const double *fT, const double *fB, const double *h, const double *hL, const double *hR, const double *hT, const double *hB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
   
   printf(fh, "  if (isLeftEdge) {~%"),
   gs : subst(gkyl_ipow, "^", float(fullratsimp(surfR))),
