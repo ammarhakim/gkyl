@@ -15,12 +15,12 @@
 #endif
 
 // std includes
-#include <fenv.h> 
+#include <cfenv>
 #include <iostream>
 #include <list>
+#include <stdexcept>
 #include <string>
 #include <unistd.h>
-#include <vector>
 
 // includes for denormalized floats
 #if defined(__clang__)
@@ -55,7 +55,7 @@ void showUsage() {
   std::cout << "This is the Gkeyll code. See gkeyll.rtfd.io for details." << std::endl;
   std::cout << std::endl;
 
-  std::cout << "gkyl [OPTIONS] app/tool [OPTIONS]" << std::endl;
+  std::cout << "gkyl [OPTIONS] app/tool [APP-OPTIONS]" << std::endl;
   std::cout << "Available options are" << std::endl;
   std::cout << "  -e chunk   Execute string 'chunk'" << std::endl;
   std::cout << "  -t         Show list of registered tools" << std::endl;
@@ -94,6 +94,13 @@ void showVersion() {
   std::cout << std::endl;
 }
 
+// show tool list
+void showToolList(const std::vector<std::pair<std::string, std::string>>& toolList) {
+  std::cout << "Following tools are available. Query tool help for more information." << std::endl;
+  for (auto t : toolList)
+    std::cout << " " << t.first << "  " << t.second << std::endl;
+}
+
 int
 main(int argc, char **argv) {
   // This prevents denormalized floats from occuring in
@@ -109,7 +116,7 @@ main(int argc, char **argv) {
 
   MPI_Init(&argc, &argv);
 
-  bool showToolList = false;
+  bool optShowToolList = false;
   std::string luaExpr;
   // parse options: I am not using any heavy-duty tools as basic
   // requirements are very simple. Sadly, even "sophisticated" tools
@@ -129,7 +136,7 @@ main(int argc, char **argv) {
           return finish(0);
 
       case 't':
-          showToolList = true;
+          optShowToolList = true;
           break;
 
       case 'e':
@@ -146,17 +153,22 @@ main(int argc, char **argv) {
     argRest.push_back(argv[optind]);
 
   std::string inpFile;
-  // get input file name or tool (if any)
   if (argRest.size() > 0) {
-    inpFile = argRest.front();
+    inpFile = argRest.front(); // first remaining argument is input file
     argRest.pop_front();
   }
 
+  int status = 0;
   // create top-level object
-  Gkyl app(luaExpr, inpFile, argRest);
-
-  if (showToolList)
-    app.showToolList();
-  
-  return finish(app.run());
+  try {
+    Gkyl app(luaExpr, inpFile, argRest);
+    // we need to handle tool-list show here as list of tools is
+    // constructed in app
+    if (optShowToolList) showToolList(app.getToolList());
+    status = app.run();
+  }
+  catch (const std::runtime_error& e) {
+    std::cout << e.what() << std::endl;
+  }
+  return finish(status);
 }
