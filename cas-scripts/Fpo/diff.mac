@@ -5,7 +5,6 @@ assume(dv[0]>0, dv[1]>0, dv[2]>0) $
 numDims : 2 $
 
 for polyOrder : 1 thru 1 do (
-  /* Writting surface terms */
   fname : sconcat("~/max-out/fpoDiffKernelP", polyOrder, ".cpp"),
   fh : openw(fname),
   printf(fh, "#include <math.h>~%"),
