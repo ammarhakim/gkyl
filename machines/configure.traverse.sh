@@ -5,7 +5,7 @@ module load pgi/19.5/64
 module load openmpi/pgi-19.5/3.1.4/64
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/gkylsoft/gkyl
 

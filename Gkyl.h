@@ -45,7 +45,7 @@
 #include <base64.h>
 
 /**
- * Top-level object representing the complete simulation.
+ * Top-level object representing complete simulation.
  */
 class Gkyl {
   public:

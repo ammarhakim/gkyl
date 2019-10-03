@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/gkylsoft/gkyl
 

@@ -5,7 +5,7 @@ module load intel/18.0.2
 module load impi/18.0.2
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/gkylsoft/gkyl
 

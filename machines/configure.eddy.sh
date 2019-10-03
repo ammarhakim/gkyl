@@ -5,7 +5,7 @@ module load intel
 module load intel-mpi
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/gkylsoft/gkyl
 

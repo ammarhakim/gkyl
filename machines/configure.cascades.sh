@@ -6,7 +6,7 @@ module load intel/17.0
 module load openmpi/3.1.2
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/cascades/gkylsoft/gkyl
 
