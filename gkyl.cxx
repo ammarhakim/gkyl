@@ -31,6 +31,15 @@
 # include <xmmintrin.h>
 #endif
 
+// These dummy calls are a hack to force the linker to pull in symbols
+// from static libraries. There must be a better way to do this ...
+#ifdef HAVE_ADIOS_H
+int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
+ADIOS_FILE*
+_adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm comm)
+{ return adios_read_open_file(fname, method, comm); }
+#endif
+
 // Finish simulation
 int finish(int err) {
   int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -49,6 +58,7 @@ void showUsage() {
   std::cout << "gkyl [OPTIONS] app/tool [OPTIONS]" << std::endl;
   std::cout << "Available options are" << std::endl;
   std::cout << "  -e chunk   Execute string 'chunk'" << std::endl;
+  std::cout << "  -t         Show list of registered tools" << std::endl;
   std::cout << "  -v         Show version information" << std::endl;
   std::cout << std::endl;
 
@@ -99,13 +109,14 @@ main(int argc, char **argv) {
 
   MPI_Init(&argc, &argv);
 
+  bool showToolList = false;
   std::string luaExpr;
   // parse options: I am not using any heavy-duty tools as basic
   // requirements are very simple. Sadly, even "sophisticated" tools
   // do not support very special need of gkeyll in which app or tool
   // can have complex command parsers of their own
   char c;
-  while ((c = getopt(argc, argv, "hve:")) != -1)
+  while ((c = getopt(argc, argv, "hvte:")) != -1)
     switch (c)
     {
       case 'h':
@@ -116,6 +127,10 @@ main(int argc, char **argv) {
       case 'v':
           showVersion();
           return finish(0);
+
+      case 't':
+          showToolList = true;
+          break;
 
       case 'e':
           luaExpr.append(optarg);
@@ -137,6 +152,11 @@ main(int argc, char **argv) {
     argRest.pop_front();
   }
 
+  // create top-level object
   Gkyl app(luaExpr, inpFile, argRest);
-  return app.run();
+
+  if (showToolList)
+    app.showToolList();
+  
+  return finish(app.run());
 }
