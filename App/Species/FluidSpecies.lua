@@ -141,6 +141,13 @@ function FluidSpecies:fullInit(appTbl)
          end,
          isInit = true,
       }
+   elseif type(tbl.init) == "string" then
+      -- Specify the suffix of the file with the initial condition (including the extension).
+      -- The prefix is assumed to be the name of the input file.
+      self.projections["init"] = Projection.FluidProjection.ReadInput {
+         inputFile = tbl.init,
+         isInit    = true,
+      }
    end
    if type(tbl.source) == "function" then
       self.projections["initSource"] = Projection.FluidProjection.FunctionProjection {
@@ -149,6 +156,14 @@ function FluidSpecies:fullInit(appTbl)
          end,
          isInit   = false,
          isSource = true,
+      }
+   elseif type(tbl.source) == "string" then
+      -- Specify the suffix of the file with the source (including the extension).
+      -- The prefix is assumed to be the name of the input file.
+      self.projections["initSource"] = Projection.FluidProjection.ReadInput {
+         inputFile = tbl.source,
+         isInit    = false,
+         isSource  = true,
       }
    end
 
@@ -272,7 +287,7 @@ end
 function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut, fpBC)
    -- Impose f'=fpBC at the boundary.
    fOut[1] = fIn[1]
-   fOut[2] = -(2^(5/2)*math.sqrt(3)*fpBC+15*fIn[2])/15
+   fOut[2] = -(2^(5/2)*math.sqrt(3)*fpBC*self.grid:dx(dir)+15*fIn[2])/15
 end
 
 -- Function to construct a BC updater.
