@@ -60,7 +60,8 @@ double IncompEulerSurf2xSer_X_P2(const double q_, const double m_, const double 
   outl[5] += -1.0*incr[5]; 
   outl[6] += -1.0*incr[6]; 
   outl[7] += incr[7]; 
-return std::abs(alpha0); 
+
+  return std::abs(alpha0); 
 } 
 double IncompEulerSurf2xSer_Y_P2(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
@@ -123,5 +124,6 @@ double IncompEulerSurf2xSer_Y_P2(const double q_, const double m_, const double 
   outl[5] += -1.0*incr[5]; 
   outl[6] += incr[6]; 
   outl[7] += -1.0*incr[7]; 
-return std::abs(alpha0); 
+
+  return std::abs(alpha0); 
 } 

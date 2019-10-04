@@ -254,8 +254,10 @@ calcUpdateInDir(surfDir, fh, funcNm, cdim, basisFun, i, pureUpwind) := block([],
     signs  : fullratsimp(incr_l/incr_r),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bC)),
     writeCIncrExprsNoExpand1(outl, incr_s),
+    printf(fh, "~%"),
+
     /* Return alpha0 so that we can find global value. */
-    printf(fh, "return std::abs(alpha0); ~%"),
+    printf(fh, "  return std::abs(alpha0); ~%"),
     
     printf(fh, "} ~%"),
     flush_output(fh)

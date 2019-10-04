@@ -115,8 +115,8 @@ function Bc:_advance(tCurr, inFld, outFld)
          for idx in self._skin:rowMajorIter() do
    	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
    	    qOut:fill(indexer(idxS), qS)
-            for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr, idxS, qS, qG, self._bcList)
+            for _, bc in ipairs(self._bcList[1]) do
+               bc(dir, tCurr, idxS, qS, qG, self._bcList[2])
             end
          end
       else
@@ -125,8 +125,8 @@ function Bc:_advance(tCurr, inFld, outFld)
 	 else
 	    qIn:fill(indexer(idxS), qS)
 	 end
-         for _, bc in ipairs(self._bcList) do
-            bc(dir, tCurr, idxS, qS, qG, self._bcList) -- TODO: PASS COORDINATES.
+         for _, bc in ipairs(self._bcList[1]) do
+            bc(dir, tCurr, idxS, qS, qG, self._bcList[2]) -- TODO: PASS COORDINATES.
          end
       end
    end

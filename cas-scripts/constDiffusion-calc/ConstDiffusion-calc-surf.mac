@@ -28,12 +28,14 @@ for bInd : 1 thru length(bName) do (
 
     /* Kernels without positivity fix. */
     usePositivity : false,
+    /*
     disp(printf(false,sconcat("Creating surface ConstDiffusion",bName[bInd]," ~ax"),c)),
     fname : sconcat("~/max-out/ConstDiffusionSurf", bName[bInd], c, "x", ".cpp"),
     fh : openw(fname),
     funcName : sconcat("ConstDiffusionSurf", c, "x", bName[bInd]),
     calcConstDiffusionSurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
     close(fh),
+    */
 
     /* boundarySurf kernels compute surface contribution that we
        do not want to zero-out at the boundary. */
@@ -47,11 +49,20 @@ for bInd : 1 thru length(bName) do (
     /* Positivity preserving kernels. */
     if (bName[bInd]="Ser") then (
       usePositivity : true,
+      /*
       disp(printf(false,sconcat("Creating positivity surface ConstDiffusion",bName[bInd]," ~ax"),c)),
       fname : sconcat("~/max-out/ConstDiffusionSurfPositivity", bName[bInd], c, "x", ".cpp"),
       fh : openw(fname),
       funcName : sconcat("ConstDiffusionSurfPositivity", c, "x", bName[bInd]),
       calcConstDiffusionSurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
+      close(fh),
+      */
+
+      disp(printf(false,sconcat("Creating positivity boundary surface ConstDiffusion",bName[bInd]," ~ax"),c)),
+      fname : sconcat("~/max-out/ConstDiffusionBoundarySurfPositivity", bName[bInd], c, "x", ".cpp"),
+      fh : openw(fname),
+      funcName : sconcat("ConstDiffusionBoundarySurfPositivity", c, "x", bName[bInd]),
+      calcConstDiffusionBoundarySurfUpdater(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], usePositivity),
       close(fh)
     )
 
