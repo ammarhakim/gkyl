@@ -5,14 +5,14 @@ module load intel/18.0.2
 module load impi/18.0.2
 
 # Build directory
-OUT=build-par
+OUT=build
 # Install location
 PREFIX=$HOME/gkylsoft/gkyl
 
 # Compile flags (set optimization/debug flags here)
 CC=icc
 CXX=icpc
-CXXFLAGS='-O3,-std=c++14,-axCORE-AVX512,-qopt-zmm-usage=high'
+CXXFLAGS='-O3,-std=c++17,-axCORE-AVX512,-qopt-zmm-usage=high'
 
 # LuaJIT options
 LUAJIT_INC_DIR=$HOME/gkylsoft/luajit/include/luajit-2.1

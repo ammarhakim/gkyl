@@ -23,6 +23,7 @@ def check_sqlite3(conf):
         conf.env['USE_SQLITE'] = False
         conf.end_msg("Not using Sqlite3")
     else:
+        conf.define("USING_SQLITE3", 1)
         conf.end_msg("Using Sqlite3")
     
     return 1

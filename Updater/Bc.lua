@@ -116,7 +116,7 @@ function Bc:_advance(tCurr, inFld, outFld)
    	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
    	    qOut:fill(indexer(idxS), qS)
             for _, bc in ipairs(self._bcList) do
-               bc(dir, tCurr, idxS, qS, qG)
+               bc(dir, tCurr, idxS, qS, qG, self._bcList)
             end
          end
       else
@@ -126,7 +126,7 @@ function Bc:_advance(tCurr, inFld, outFld)
 	    qIn:fill(indexer(idxS), qS)
 	 end
          for _, bc in ipairs(self._bcList) do
-            bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES.
+            bc(dir, tCurr, idxS, qS, qG, self._bcList) -- TODO: PASS COORDINATES.
          end
       end
    end

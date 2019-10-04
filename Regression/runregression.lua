@@ -6,6 +6,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+if GKYL_HAVE_SQLITE3 == false then
+   -- can't run without SQLITE3
+   print("Sorry, runregression needs Sqlite3. This executable was built without it.")
+   print("Rebuild with Sqlite3 enabled. See ./waf configure --help")
+   return 1
+end
+
 local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
@@ -420,34 +427,41 @@ local function create_action(test)
    return -2
 end
 
--- function to compare floats (NOT SURE IF THIS IS BEST WAY TO DO
--- THINGS)
-local function check_equal_numeric(expected, actual)
-   if math.abs(actual) < 1e-15 then
-      if math.abs(expected-actual) > 1e-12 then
-	 return false
-      end
-   else
-      if math.abs(1-expected/actual) > 1e-12 then
-	 return false
-      end
+-- function to compare floats: the comparison is normalized to the
+-- maximum value of the field being compared. Perhaps this is too
+-- "coarse" but a direct comparison of floats is very tricky.
+local function check_equal_numeric(expected, actual, maxVal)
+   if maxVal < GKYL_MIN_DOUBLE then
+      return math.max(expected-actual) > 10*GKYL_MIN_DOUBLE
+   end
+   if math.max(expected-actual)/maxVal > 1e-12 then
+      return false
    end
    return true
 end
 
 -- relative difference between two numbers (NOT SURE IF THIS IS BEST
 -- WAY TO DO THINGS)
-local function get_relative_numeric(expected, actual)
-   if math.abs(actual) < 1e-15 then
-      return math.abs(expected-actual)
+local function get_relative_numeric(expected, actual, maxVal)
+   if maxVal < 1e-15 then
+      return math.max(expected-actual)
    else
-      return math.abs(1-expected/actual)
+      return math.abs(expected-actual)/maxVal
    end
+end
+
+-- calculates maximum value in supplied field
+local function maxValueInField(fld)
+   local maxVal = 0.0
+   for i = 1, fld:size() do
+      maxVal = math.max(maxVal, math.abs(fld[i]))
+   end
+   return maxVal
 end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   --verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
+   -- verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
@@ -468,9 +482,11 @@ local function compareFiles(f1, f2)
 		       " ... CartGridField in files %s and %s not the same size!\n", f1, f2))
 	 return false
       end
+
+      local maxVal = maxValueInField(d1) -- maximum value (for numeric comparison)
       for i = 1, d1:size() do
-	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
+	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
 	    cmpPass = false
 	 end
       end
@@ -482,9 +498,11 @@ local function compareFiles(f1, f2)
 		       " ... DynVector in files %s and %s not the same size!\n", f1, f2))
 	 return false
       end
+
+      local maxVal = maxValueInField(d1) -- maximum value (for numeric comparison)
       for i = 1, d1:size() do
-	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
+	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
 	    cmpPass = false
 	 end
       end

@@ -9,6 +9,12 @@ def build(bld):
     bld.objects(source = r"""
     TenMomentImpl.cpp
 
+    incompEulerData/IncompEulerSer2xP1.cpp
+    incompEulerData/IncompEulerSer2xP2.cpp
+    incompEulerData/IncompEulerSurfSer2xP1.cpp
+    incompEulerData/IncompEulerSurfSer2xP2.cpp
+    incompEulerData/IncompEulerSurfPositivitySer2xP1.cpp
+
     lboData/GkLBOconstNuSer1x1v.cpp
     lboData/GkLBOconstNuSer1x2v.cpp
     lboData/GkLBOconstNuSer2x2v.cpp
@@ -251,6 +257,6 @@ def build(bld):
     Positivity.cpp
 
     """,
-    target = 'eq', use='EIGEN', includes = '. lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
+    target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
     )
 
