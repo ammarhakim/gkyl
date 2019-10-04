@@ -6,6 +6,13 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+if GKYL_HAVE_SQLITE3 == false then
+   -- can't run without SQLITE3
+   print("Sorry, runregression needs Sqlite3. This executable was built without it.")
+   print("Rebuild with Sqlite3 enabled. See ./waf configure --help")
+   return 1
+end
+
 local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
