@@ -20,16 +20,19 @@ for polyOrder : 1 thru 2 do (
   baB : eta([0,-1], [2,2], baC),
     
   indexSubList : append(
+    /* drag potential */
     makelist(hC[i]=hC[i-1], i, 1, length(baC)),
     makelist(hL[i]=hL[i-1], i, 1, length(baC)),
     makelist(hR[i]=hR[i-1], i, 1, length(baC)),
     makelist(hB[i]=hB[i-1], i, 1, length(baC)),
     makelist(hT[i]=hT[i-1], i, 1, length(baC)),
+    /* distribution functions */
     makelist(fC[i]=fC[i-1], i, 1, length(baC)),
     makelist(fL[i]=fL[i-1], i, 1, length(baC)),
     makelist(fR[i]=fR[i-1], i, 1, length(baC)),
     makelist(fB[i]=fB[i-1], i, 1, length(baC)),
     makelist(fT[i]=fT[i-1], i, 1, length(baC)),
+    /* convolutions */
     makelist(hxfLm[i]=hxfLm[i-1], i, 1, length(baC)),
     makelist(hxfLp[i]=hxfLp[i-1], i, 1, length(baC)),
     makelist(hxfRm[i]=hxfRm[i-1], i, 1, length(baC)),
@@ -38,9 +41,11 @@ for polyOrder : 1 thru 2 do (
     makelist(hyfBp[i]=hyfBp[i-1], i, 1, length(baC)),
     makelist(hyfTm[i]=hyfTm[i-1], i, 1, length(baC)),
     makelist(hyfTp[i]=hyfTp[i-1], i, 1, length(baC)),
+    /* cell size */
     makelist(dv[i]=dv[i-1], i, 1, 3)
     ),
-  
+
+
   /* Setting up recoveries of h */
   hRecL : getRecov2CellGen(x, [2,2], polyOrder, hL, hC),
   hRecR : getRecov2CellGen(x, [2,2], polyOrder, hC, hR),
@@ -114,20 +119,22 @@ for polyOrder : 1 thru 2 do (
 
   Jx : (2/dv[1])^2,
   Jy : (2/dv[2])^2,
-  /* Putting together the surface terms */
-  hxfPhiSurL : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, baC),
+  /* Putting together the surface terms at x */
+  hxfPhiSurL : calcInnerProdListGen([y], [[-1,1]], 1, subst(x=-1, baC),
     subst(x=0, hxfRecL)) * Jx,
-  hxfPhiSurR : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, baC),
+  hxfPhiSurR : calcInnerProdListGen([y], [[-1,1]], 1, subst(x=1, baC),
     subst(x=0, hxfRecR)) * Jx,
-  hyfPhiSurB : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, baC),
+  /* Putting together the surface terms at y */
+  hyfPhiSurB : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=-1, baC),
     subst(y=0, hyfRecB)) * Jy,
-  hyfPhiSurT : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=1, baC),
+  hyfPhiSurT : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=1, baC),
     subst(y=0, hyfRecT)) * Jy,
-  /* Putting together the volume term */
-  hxfPhixVol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(baC, x),
+  /* Putting together the volume terms */
+  hxfPhixVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], 1, diff(baC, x),
     diff(doExpand(hC, baC), x)*doExpand(fC, baC)) * Jx,
-  hyfPhiyVol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(baC, y),
+  hyfPhiyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], 1, diff(baC, y),
     diff(doExpand(hC, baC), y)*doExpand(fC, baC)) * Jy,
+  
   
   printf(fh, "  if (isLeftEdge) {~%"),
   tmp : -(hxfPhiSurR),
@@ -162,9 +169,10 @@ for polyOrder : 1 thru 2 do (
   printf(fh, "  }~%~%"),
   
   /* Writting the volume term */
-  tmp : hxfPhixVol+hyfPhiyVol,
+  tmp : hxfPhixVol + hyfPhiyVol,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
+
 
   printf(fh, "}"),
   close(fh)
