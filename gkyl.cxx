@@ -22,23 +22,36 @@
 #include <string>
 #include <unistd.h>
 
-// Compiler specific includes/defines
+// Compiler specific includes
+#if defined(__clang__)
+// nothing to include
+#elif defined(__powerpc__)
+// nothing to include
+#elif defined(__GNUC__) || defined(__GNUG__)
+# include <xmmintrin.h>
+#endif
+
+// Compiler specificd defines
+
+// (We need to have this first as both Intel and PGI define __GNUC__
+// flags)
+#if defined(__GNUC__) || defined(__GNUG__)
+#define GKYL_COMPILER_ID "GCC"
+#endif
+
 #if defined(__clang__)
 #if defined(__APPLE__)
 #define GKYL_COMPILER_ID "Apple Clang"
 #else
 #define GKYL_COMPILER_ID "Clang"
 #endif
-#elif defined(__powerpc__)
-// nothing to include
-#elif defined(__GNUC__) || defined(__GNUG__)
-#define GKYL_COMPILER_ID "GCC"
-# include <xmmintrin.h>
-#elif defined(__ICC)
+#endif
+
+#if defined(__ICC)
 #define GKYL_COMPILER_ID "Intel"
-#elif defined(__ICC)
-#define GKYL_COMPILER_ID "Intel"
-#elif defined(__PGI)
+#endif
+
+#if defined(__PGI)
 #define GKYL_COMPILER_ID "PGI"
 #endif
 
