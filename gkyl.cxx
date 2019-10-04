@@ -22,13 +22,24 @@
 #include <string>
 #include <unistd.h>
 
-// includes for denormalized floats
+// Compiler specific includes/defines
 #if defined(__clang__)
-// nothing to include
+#if defined(__APPLE__)
+#define GKYL_COMPILER_ID "Apple Clang"
+#else
+#define GKYL_COMPILER_ID "Clang"
+#endif
 #elif defined(__powerpc__)
 // nothing to include
 #elif defined(__GNUC__) || defined(__GNUG__)
+#define GKYL_COMPILER_ID "GCC"
 # include <xmmintrin.h>
+#elif defined(__ICC)
+#define GKYL_COMPILER_ID "Intel"
+#elif defined(__ICC)
+#define GKYL_COMPILER_ID "Intel"
+#elif defined(__PGI)
+#define GKYL_COMPILER_ID "PGI"
 #endif
 
 // These dummy calls are a hack to force the linker to pull in symbols
@@ -75,7 +86,7 @@ void showUsage() {
 void showVersion() {
   std::cout << "Changeset: " << GKYL_HG_CHANGESET << std::endl;
   std::cout << "Built on: " << __DATE__ << " " << __TIME__ << std::endl;
-  std::cout << "Built with:";
+  std::cout << "Built with: " << GKYL_COMPILER_ID << " compiler and";
 #ifdef HAVE_MPI_H
   std::cout << " MPI";
 #endif      
