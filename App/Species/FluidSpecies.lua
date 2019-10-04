@@ -249,7 +249,7 @@ function FluidSpecies:allocMomCouplingFields()
    return {self:allocVectorMoment(self.nMoments)}
 end
 
-function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
+function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut, fBC)
    -- Note that for bcAbsorb there is no operation on fIn,
    -- so skinLoop (which determines indexing of fIn) does not matter.
    for i = 1, self.nMoments*self.basis:numBasis() do
@@ -257,15 +257,27 @@ function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
    end
 end
 
-function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
+function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut, fBC)
    for i = 1, self.nMoments*self.basis:numBasis() do
       fOut[i] = fIn[i]
    end
 end
 
+function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut, fBC)
+   -- Impose f=fBC at the boundary.
+   fOut[1] = 2^(3/2)*fBC-fIn[1]
+   fOut[2] = fIn[2]
+end
+
+function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut, fpBC)
+   -- Impose f'=fpBC at the boundary.
+   fOut[1] = fIn[1]
+   fOut[2] = -(2^(5/2)*math.sqrt(3)*fpBC+15*fIn[2])/15
+end
+
 -- Function to construct a BC updater.
 function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
-                                      hasExtFld)
+                                    hasExtFld)
    return Updater.Bc {
       onGrid             = self.grid,
       boundaryConditions = bcList,
