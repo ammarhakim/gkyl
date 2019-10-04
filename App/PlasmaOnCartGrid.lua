@@ -630,8 +630,8 @@ local function buildApplication(self, tbl)
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
-   -- Read some info about restarts (default is to write restarts 1/5 of sim).
-   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 0.2
+   -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim).
+   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 1/20.0
    local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
 
    local dtTracker = DataStruct.DynVector {
