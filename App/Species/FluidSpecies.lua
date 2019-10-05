@@ -280,16 +280,12 @@ end
 
 function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut, fBC)
    -- Impose f=fBC at the boundary.
---   fOut[1] = 2^(3/2)*fBC-fIn[1]
---   fOut[2] = fIn[2]
-   fOut[1] = -5*2^(3/2)*fBC-4*3^(3/2)*fIn[2]+11*fIn[1]
-   fOut[2] = 2^(3/2)*3^(3/2)*fBC+19*fIn[2]-2*3^(3/2)*fIn[1]
+   fOut[1] = 2^(3/2)*fBC-fIn[1]
+   fOut[2] = fIn[2]
 end
 
 function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut, fpBC)
-   -- Impose f'=fpBC at the boundary.
---   fOut[1] = fIn[1]
---   fOut[2] = -(2^(5/2)*math.sqrt(3)*fpBC*self.grid:dx(dir)+15*fIn[2])/15
+   -- NeumannOp2.
    fOut[1] = (2^(9/2)*self.grid:dx(dir)*fpBC+10*math.sqrt(3)*fIn[2]+21*fIn[1])/21
    fOut[2] = (2^(5/2)*math.sqrt(3)*self.grid:dx(dir)*fpBC-3*fIn[2])/21
 end
