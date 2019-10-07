@@ -36,11 +36,19 @@ for polyOrder : 1 thru 2 do (
     makelist(gxxfLm[i]=gxxfLm[i-1], i, 1, length(baC)),
     makelist(gxxfLp[i]=gxxfLp[i-1], i, 1, length(baC)),
     makelist(gxxfRm[i]=gxxfRm[i-1], i, 1, length(baC)),
-    makelist(gxxfRp[i]=gxxfRp[i-1], i, 1, length(baC)),
+    makelist(gxxfRp[i]=gxxfRp[i-1], i, 1, length(baC)),  
+    makelist(gxyfLm[i]=gxyfLm[i-1], i, 1, length(baC)),
+    makelist(gxyfLp[i]=gxyfLp[i-1], i, 1, length(baC)),
+    makelist(gxyfRm[i]=gxyfRm[i-1], i, 1, length(baC)),
+    makelist(gxyfRp[i]=gxyfRp[i-1], i, 1, length(baC)),
     makelist(gyyfBm[i]=gyyfBm[i-1], i, 1, length(baC)),
     makelist(gyyfBp[i]=gyyfBp[i-1], i, 1, length(baC)),
     makelist(gyyfTm[i]=gyyfTm[i-1], i, 1, length(baC)),
     makelist(gyyfTp[i]=gyyfTp[i-1], i, 1, length(baC)),
+    makelist(gyxfBm[i]=gyxfBm[i-1], i, 1, length(baC)),
+    makelist(gyxfBp[i]=gyxfBp[i-1], i, 1, length(baC)),
+    makelist(gyxfTm[i]=gyxfTm[i-1], i, 1, length(baC)),
+    makelist(gyxfTp[i]=gyxfTp[i-1], i, 1, length(baC)),
     /* cell size */
     makelist(dv[i]=dv[i-1], i, 1, 3)
     ),
@@ -52,6 +60,7 @@ for polyOrder : 1 thru 2 do (
   gRecT : getRecov2CellGen(y, [2,2], polyOrder, gC, gT),
   
 
+  /* xx -------------------------------------------------- */
   tmp : calcInnerProdListGen([x, y], [[-2,0], [-1,1]], 1, baL,
     diff(gRecL, x, 2)*doExpand(fL, baL)),
   printf(fh, "  double gxxfLp[~a];~%", length(baC)),
@@ -81,6 +90,37 @@ for polyOrder : 1 thru 2 do (
   printf(fh, "~%"),
 
 
+  /* xy -------------------------------------------------- */
+  tmp : calcInnerProdListGen([x, y], [[-2,0], [-1,1]], 1, baL,
+    diff(diff(gRecL, x), y)*doExpand(fL, baL)),
+  printf(fh, "  double gxyfLp[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gxyfLp[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y], [[0,2], [-1,1]], 1, baR,
+    diff(diff(gRecL, x), y)*doExpand(fC, baR)),
+  printf(fh, "  double gxyfLm[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gxyfLm[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y], [[-2,0], [-1,1]], 1, baL,
+    diff(diff(gRecR, x), y)*doExpand(fC, baL)),
+  printf(fh, "  double gxyfRm[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gxyfRm[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y], [[0,2], [-1,1]], 1, baR,
+    diff(diff(gRecR, x), y)*doExpand(fR, baR)),
+  printf(fh, "  double gxyfRp[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gxyfRp[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+
+  /* yy -------------------------------------------------- */
   tmp : calcInnerProdListGen([x, y], [[-1,1], [-2,0]], 1, baB,
     diff(gRecB, y, 2)*doExpand(fB, baB)),
   printf(fh, "  double gyyfBp[~a];~%", length(baC)),
@@ -110,10 +150,44 @@ for polyOrder : 1 thru 2 do (
   printf(fh, "~%"),
 
 
+  /* yx -------------------------------------------------- */
+  tmp : calcInnerProdListGen([x, y], [[-1,1], [-2,0]], 1, baB,
+    diff(diff(gRecB, y), x)*doExpand(fB, baB)),
+  printf(fh, "  double gyxfBp[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gyxfBp[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y], [[-1,1], [0,2]], 1, baT,
+    diff(diff(gRecB, y), x)*doExpand(fC, baT)),
+  printf(fh, "  double gyxfBm[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gyxfBm[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+  
+  tmp : calcInnerProdListGen([x, y], [[-1,1], [-2,0]], 1, baB,
+    diff(diff(gRecT, y), x)*doExpand(fC, baB)),
+  printf(fh, "  double gyxfTm[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gyxfTm[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+  tmp : calcInnerProdListGen([x, y], [[-1,1], [0,2]], 1, baT,
+    diff(diff(gRecT, y), x)*doExpand(fT, baT)),
+  printf(fh, "  double gyxfTp[~a];~%", length(baC)),
+  out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
+  for i : 1 thru length(baC) do printf(fh, "  gyxfTp[~a] = ~a;~%", i-1, out[i]),
+  printf(fh, "~%"),
+
+
   gxxfRecL : getRecov2CellGen(x, [2,2], polyOrder, gxxfLp, gxxfLm),
   gxxfRecR : getRecov2CellGen(x, [2,2], polyOrder, gxxfRm, gxxfRp),
+  gxyfRecL : getRecov2CellGen(x, [2,2], polyOrder, gxyfLp, gxyfLm),
+  gxyfRecR : getRecov2CellGen(x, [2,2], polyOrder, gxyfRm, gxyfRp),
   gyyfRecB : getRecov2CellGen(y, [2,2], polyOrder, gyyfBp, gyyfBm),
   gyyfRecT : getRecov2CellGen(y, [2,2], polyOrder, gyyfTm, gyyfTp),
+  gyxfRecB : getRecov2CellGen(y, [2,2], polyOrder, gyxfBp, gyxfBm),
+  gyxfRecT : getRecov2CellGen(y, [2,2], polyOrder, gyxfTm, gyxfTp),
   
 
   Jxx : (2/dv[1])^4,
@@ -128,6 +202,16 @@ for polyOrder : 1 thru 2 do (
     subst(x=0, diff(gxxfRecR, x))) * Jxx,
   gxxfPhixSurR : calcInnerProdListGen([y], [[-1,1]], 1, subst(x=1, diff(baC, x)),
     subst(x=0, gxxfRecR)) * Jxx,
+  
+  gxyfyPhiSurL : calcInnerProdListGen([y], [[-1,1]], 1, subst(x=-1, baC),
+    subst(x=0, diff(gxyfRecL, y))) * Jxy,
+  gxyfPhiySurL : calcInnerProdListGen([y], [[-1,1]], 1, subst(x=-1, diff(baC, y)),
+    subst(x=0, gxyfRecL)) * Jxy,
+  gxyfyPhiSurR : calcInnerProdListGen([y], [[-1,1]], 1, subst(x=1, baC),
+    subst(x=0, diff(gxyfRecR, y))) * Jxy,
+  gxyfPhiySurR : calcInnerProdListGen([y], [[-1,1]], 1, subst(x=1, diff(baC, y)),
+    subst(x=0, gxyfRecR)) * Jxy,
+  
   /* Putting together the surface terms at y */
   gyyfyPhiSurB : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=-1, baC),
     subst(y=0, diff(gyyfRecB, y))) * Jyy,
@@ -137,47 +221,60 @@ for polyOrder : 1 thru 2 do (
     subst(y=0, diff(gyyfRecT, y))) * Jyy,
   gyyfPhiySurT : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=1, diff(baC, y)),
     subst(y=0, gyyfRecT)) * Jyy,
+  
+  gyxfxPhiSurB : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=-1, baC),
+    subst(y=0, diff(gyxfRecB, x))) * Jxy,
+  gyxfPhixSurB : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=-1, diff(baC, x)),
+    subst(y=0, gyxfRecB)) * Jxy,
+  gyxfxPhiSurT : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=1, baC),
+    subst(y=0, diff(gyxfRecT, x))) * Jxy,
+  gyxfPhixSurT : calcInnerProdListGen([x], [[-1,1]], 1, subst(y=1, diff(baC, x)),
+    subst(y=0, gyxfRecT)) * Jxy,
+  
   /* Putting together the volume terms */
   gxxfPhixxVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], 1, diff(baC, x, 2),
     diff(doExpand(gC, baC), x, 2)*doExpand(fC, baC)) * Jxx,
   gyyfPhiyyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], 1, diff(baC, y, 2),
     diff(doExpand(gC, baC), y, 2)*doExpand(fC, baC)) * Jyy,
-
+  gxyfPhixyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], 1, diff(diff(baC, x), y),
+    diff(diff(doExpand(gC, baC), x), y)*doExpand(fC, baC)) * Jxy,
 
   printf(fh, "  if (isLeftEdge) {~%"),
-  tmp : (gxxfxPhiSurR-gxxfPhixSurR)/2,
+  tmp : (gxxfxPhiSurR-gxxfPhixSurR + gxyfyPhiSurR-gxyfPhiySurR)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
 
   printf(fh, "  } else if (isRightEdge) {~%"),
-  tmp : (-gxxfxPhiSurL+gxxfPhixSurL)/2,
+  tmp : (-gxxfxPhiSurL+gxxfPhixSurL - gxyfyPhiSurL+gxyfPhiySurL)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
 
   printf(fh, "  } else {~%"),
-  tmp : (gxxfxPhiSurR-gxxfPhixSurR - gxxfxPhiSurL+gxxfPhixSurL)/2,
+  tmp : (gxxfxPhiSurR-gxxfPhixSurR - gxxfxPhiSurL+gxxfPhixSurL +
+    gxyfyPhiSurR-gxyfPhiySurR - gxyfyPhiSurL+gxyfPhiySurL)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
   printf(fh, "  }~%~%"),
 
   printf(fh, "  if (isBotEdge) {~%"),
-  tmp : (gyyfyPhiSurT-gyyfPhiySurT)/2,
+  tmp : (gyyfyPhiSurT-gyyfPhiySurT + gyxfxPhiSurT-gyxfPhixSurT)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
 
   printf(fh, "  } else if (isTopEdge) {~%"),
-  tmp : (-gyyfyPhiSurB+gyyfPhiySurB)/2,
+  tmp : (-gyyfyPhiSurB+gyyfPhiySurB - gyxfxPhiSurB+gyxfPhixSurB)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
   
   printf(fh, "  } else {~%"),
-  tmp : (gyyfyPhiSurT-gyyfPhiySurT - gyyfyPhiSurB+gyyfPhiySurB)/2,
+  tmp : (gyyfyPhiSurT-gyyfPhiySurT - gyyfyPhiSurB+gyyfPhiySurB +
+    gyxfxPhiSurT-gyxfPhixSurT - gyxfxPhiSurB+gyxfPhixSurB)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]),
   printf(fh, "  }~%~%"),
   
   /* Writting the volume term */
-  tmp : (gxxfPhixxVol + gyyfPhiyyVol)/2,
+  tmp : (gxxfPhixxVol + gyyfPhiyyVol + 2*gxyfPhixyVol)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
 
