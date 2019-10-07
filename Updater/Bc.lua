@@ -93,7 +93,7 @@ function Bc:_advance(tCurr, inFld, outFld)
 
    local qG, qS = qOut:get(1), qOut:get(1) -- Get pointers to (re)use inside inner loop [G: Ghost, S: Skin].
    if self.hasExtFld then qS = qIn:get(1) end
-   local idxS = Lin.IntVec(grid:ndim()) -- Prealloc this.
+   local idxS    = Lin.IntVec(grid:ndim()) -- Prealloc this.
    local indexer = qOut:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.

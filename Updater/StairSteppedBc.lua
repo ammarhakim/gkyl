@@ -76,7 +76,7 @@ end
 function StairSteppedBc:_advance(tCurr, inFld, outFld)
    local grid = self._grid
    local qOut = assert(outFld[1], "StairSteppedBc.advance: Must-specify an output field")
-
+   
    local dir = self._dir
    local localRange = grid:localRange()
 
@@ -133,7 +133,7 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
                qOut:fill(indexer(idxL), qS)
             end
             for _, bc in ipairs(self._bcList[1]) do
-               bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
+               bc(dir, tCurr, idxS, qS, qG, self._bcList[2]) -- TODO: PASS COORDINATES
             end
          end
       end

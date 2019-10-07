@@ -135,17 +135,17 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, { {bcCopyFunc} }))
    elseif bcType == SP_BC_WALL then
-     -- FIXME better to define and use self.equation.bcWall.
-     local bcWall
-     if self.nMoments == 5 then
-       bcWall = Euler.bcWall
-     elseif self.nMoments == 10 then
-       bcWall = TenMoment.bcWall
-     else
-       assert(false, "MomentSpecies: bcWall not provided by the equation!")
-     end
+      -- FIXME better to define and use self.equation.bcWall.
+      local bcWall
+      if self.nMoments == 5 then
+         bcWall = Euler.bcWall
+      elseif self.nMoments == 10 then
+         bcWall = TenMoment.bcWall
+      else
+         assert(false, "MomentSpecies: bcWall not provided by the equation!")
+      end
       table.insert(self.boundaryConditions,
-		   self:makeBcUpdater(dir, edge, bcWall))
+                   self:makeBcUpdater(dir, edge, bcWall))
    elseif type(bcType) == "table" then
       -- bcType can be literally a list of functions.
       table.insert(self.boundaryConditions,
@@ -163,15 +163,15 @@ function MomentSpecies:appendSsBoundaryConditions(dir, inOut, bcType)
       table.insert(self.ssBoundaryConditions,
 		   self:makeSsBcUpdater(dir, inOut, { {bcCopyFunc} }))
    elseif bcType == SP_BC_WALL then
-     -- FIXME better to define and use self.equation.bcWall.
-     local bcWall
-     if self.nMoments == 5 then
-       bcWall = Euler.bcWall
-     elseif self.nMoments == 10 then
-       bcWall = TenMoment.bcWall
-     else
-       assert(false, "MomentSpecies: bcWall not provided by the equation!")
-     end
+      -- FIXME better to define and use self.equation.bcWall.
+      local bcWall
+      if self.nMoments == 5 then
+        bcWall = Euler.bcWall
+      elseif self.nMoments == 10 then
+        bcWall = TenMoment.bcWall
+      else
+        assert(false, "MomentSpecies: bcWall not provided by the equation!")
+      end
       table.insert(self.ssBoundaryConditions,
 		   self:makeSsBcUpdater(dir, inOut, bcWall))
    elseif type(bcType) == "table" then
