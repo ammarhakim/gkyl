@@ -1,22 +1,22 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- A species object with fluid moments specified as functions
+-- A species object with fluid moments specified as functions.
 -- 
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
 local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
-local Basis = require "Basis"
-local DataStruct = require "DataStruct"
+local Basis            = require "Basis"
+local DataStruct       = require "DataStruct"
 local DecompRegionCalc = require "Lib.CartDecomp"
-local Grid = require "Grid"
-local LinearTrigger = require "Lib.LinearTrigger"
-local Proto = require "Lib.Proto"
-local SpeciesBase = require "App.Species.SpeciesBase"
-local Time = require "Lib.Time"
-local Updater = require "Updater"
-local xsys = require "xsys"
+local Grid             = require "Grid"
+local LinearTrigger    = require "Lib.LinearTrigger"
+local Proto            = require "Lib.Proto"
+local SpeciesBase      = require "App.Species.SpeciesBase"
+local Time             = require "Lib.Time"
+local Updater          = require "Updater"
+local xsys             = require "xsys"
 
 local FuncVlasovSpecies = Proto(SpeciesBase)
 
@@ -28,13 +28,13 @@ end
 function FuncVlasovSpecies:fullInit(appTbl)
    local tbl = self.tbl
 
-   self.evolve = xsys.pickBool(tbl.evolve, true) -- by default evolve field
+   self.evolve    = xsys.pickBool(tbl.evolve, true) -- by default evolve field
    self.confBasis = nil -- Will be set later
-   self.charge = tbl.charge and tbl.charge or 1.0
-   self.mass = tbl.mass and tbl.mass or 1.0   
+   self.charge    = tbl.charge and tbl.charge or 1.0
+   self.mass      = tbl.mass and tbl.mass or 1.0   
 
    self.momDenFunc = tbl.momentumDensity
-   self.vdim = #{ self.momDenFunc(0.0, appTbl.lower) }
+   self.vdim       = #{ self.momDenFunc(0.0, appTbl.lower) }
 end
 
 function FuncVlasovSpecies:getNdim()
@@ -58,9 +58,9 @@ end
 
 function FuncVlasovSpecies:allocVectorMoment(dim)
    return DataStruct.Field {
-      onGrid = self.confGrid,
+      onGrid        = self.confGrid,
       numComponents = self.confBasis:numBasis()*dim,
-      ghost = {1, 1}
+      ghost         = {1, 1}
    }
 end
 
@@ -74,8 +74,8 @@ end
 
 function FuncVlasovSpecies:createSolver()
    self.momDensitySlvr = Updater.ProjectOnBasis {
-      onGrid = self.confGrid,
-      basis = self.confBasis,
+      onGrid   = self.confGrid,
+      basis    = self.confBasis,
       evaluate = self.momDenFunc,
    }
 end

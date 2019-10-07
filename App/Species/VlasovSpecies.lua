@@ -772,40 +772,40 @@ end
 
 function VlasovSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- Need to wrap member functions so that self is passed.
-   local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
-   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
-   local function bcOpenFunc(...) return self:bcOpenFunc(...) end
+   local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
+   local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
+   local function bcOpenFunc(...)    return self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
-   local function bcExternFunc(...) return self:bcExternFunc(...) end
+   local function bcExternFunc(...)  return self:bcExternFunc(...) end
 
    local vdir = dir + self.cdim
 
    if bcType == SP_BC_ABSORB then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcAbsorbFunc }, "pointwise", false))
+				      { {bcAbsorbFunc} }, "pointwise", false))
    elseif bcType == SP_BC_OPEN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", false))
+				      { {bcCopyFunc} }, "pointwise", false))
    elseif bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", false))
+				      { {bcCopyFunc} }, "pointwise", false))
    elseif bcType == SP_BC_REFLECT then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcReflectFunc }, "flip", false))
+				      { {bcReflectFunc} }, "flip", false))
    elseif bcType == SP_BC_EXTERN then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcExternFunc }, "flip", false))
+				      { {bcExternFunc} }, "flip", false))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
    elseif bcType == SP_BC_RESERVOIR then
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, vdir, edge,
-				      { bcCopyFunc }, "pointwise", true))
+				      { {bcCopyFunc} }, "pointwise", true))
    else
       assert(false, "VlasovSpecies: Unsupported BC type!")
    end

@@ -1,12 +1,12 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Ten-moment equations in 3D
+-- Ten-moment equations in 3D.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- system libraries
-local ffi = require "ffi"
+-- System libraries.
+local ffi  = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
@@ -15,7 +15,7 @@ local BoundaryCondition = require "Updater.BoundaryCondition"
 
 local _M = {}
 
--- C interfaces
+-- C interfaces.
 ffi.cdef [[
 
 /* TenMoment equations */
@@ -32,7 +32,7 @@ typedef struct {
   void gkylTenMomentQFluct(double *waves, double *s, double *amdq, double *apdq);
 ]]
 
--- pre-defined constants to make life a little easier
+-- Pre-defined constants to make life a little easier.
 local R, U, V, W, PXX, PXY, PXZ, PYY, PYZ, PZZ = 1, 1, 2, 3, 1, 2, 3, 4, 5, 6
 
 -- Resuffle indices for various direction Riemann problem. The first
@@ -129,9 +129,9 @@ end
 -- make object callable, and redirect call to the :new method
 setmetatable(TenMoment, { __call = function (self, o) return self.new(self, o) end })
 
-local bcWallCopy = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
-local bcWallFlip = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
+local bcWallCopy       = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
+local bcWallFlip       = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
 local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
-TenMoment.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
+TenMoment.bcWall = { {bcWallCopy}, {bcWallFlip}, {bcWallZeroNormal} }
 
 return TenMoment
