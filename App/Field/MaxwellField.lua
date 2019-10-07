@@ -329,16 +329,16 @@ function MaxwellField:createSolver()
    local function appendBoundaryConditions(dir, edge, bcType)
       if bcType == EM_BC_OPEN then
 	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { {bcCopy} }))
+		      makeBcUpdater(dir, edge, { bcCopy }))
       elseif bcType == EM_BC_COPY then
 	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { {bcCopy} }))
+		      makeBcUpdater(dir, edge, { bcCopy }))
       elseif bcType == EM_BC_REFLECT then
 	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { {bcReflect} }))
+		      makeBcUpdater(dir, edge, { bcReflect }))
       elseif bcType == EM_BC_SYMMETRY then
 	 table.insert(self.boundaryConditions,
-		      makeBcUpdater(dir, edge, { {bcSymmetry} }))
+		      makeBcUpdater(dir, edge, { bcSymmetry }))
       elseif type(bcType) == "table" then
 	 table.insert(self.boundaryConditions,
 		      makeBcUpdater(dir, edge, bcType))

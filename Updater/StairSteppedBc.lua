@@ -132,8 +132,8 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
                qOut:fill(indexer(idxR), qG)
                qOut:fill(indexer(idxL), qS)
             end
-            for _, bc in ipairs(self._bcList[1]) do
-               bc(dir, tCurr, idxS, qS, qG, self._bcList[2]) -- TODO: PASS COORDINATES
+            for _, bc in ipairs(self._bcList) do
+               bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
             end
          end
       end

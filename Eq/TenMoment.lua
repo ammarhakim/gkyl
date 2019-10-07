@@ -132,6 +132,6 @@ setmetatable(TenMoment, { __call = function (self, o) return self.new(self, o) e
 local bcWallCopy       = BoundaryCondition.Copy { components = {1, 5, 8, 9, 10} }
 local bcWallFlip       = BoundaryCondition.Copy { components = {6, 7}, fact = {-1, -1} }
 local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
-TenMoment.bcWall = { {bcWallCopy}, {bcWallFlip}, {bcWallZeroNormal} }
+TenMoment.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
 
 return TenMoment
