@@ -9,15 +9,15 @@
 local xsys = require "xsys"
 
 -- Gkyl libraries
-local Alloc = require "Lib.Alloc"
-local Lin = require "Lib.Linalg"
+local Alloc        = require "Lib.Alloc"
+local Lin          = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Lib.Proto"
-local Range = require "Lib.Range"
-local UpdaterBase = require "Updater.Base"
+local Proto        = require "Lib.Proto"
+local Range        = require "Lib.Range"
+local UpdaterBase  = require "Updater.Base"
 
--- system libraries
-local ffi = require "ffi"
+-- System libraries.
+local ffi  = require "ffi"
 local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 "new, copy, fill, sizeof, typeof, metatype")
@@ -58,7 +58,7 @@ function StairSteppedBc:init(tbl)
    self._isFirst = true -- will be reset first time _advance() is called
 
    self._grid = assert(tbl.onGrid, "Updater.StairSteppedBc: Must specify grid to use with 'onGrid''")
-   self._dir = assert(tbl.dir, "Updater.StairSteppedBc: Must specify direction to apply BCs with 'dir'")
+   self._dir  = assert(tbl.dir, "Updater.StairSteppedBc: Must specify direction to apply BCs with 'dir'")
 
    self._bcList = assert(
    tbl.boundaryConditions, "Updater.StairSteppedBc: Must specify boundary conditions to apply with 'boundaryConditions'")
@@ -82,23 +82,23 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
 
    if self._isFirst then
       self._perpRangeDecomp = LinearDecomp.LinearDecompRange {
-         range = localRange:shorten(dir), -- range orthogonal to 'dir'
-         numSplit = grid:numSharedProcs(),
+         range      = localRange:shorten(dir), -- range orthogonal to 'dir'
+         numSplit   = grid:numSharedProcs(),
          threadComm = self:getSharedComm()
       }
    end
 
    -- get pointers to (re)use inside inner loop [G: Ghost, S: Skin]
-   local qG, qS = qOut:get(1), qOut:get(1)
-   local idxL = Lin.IntVec(grid:ndim())
-   local idxR = Lin.IntVec(grid:ndim())
+   local qG, qS  = qOut:get(1), qOut:get(1)
+   local idxL    = Lin.IntVec(grid:ndim())
+   local idxR    = Lin.IntVec(grid:ndim())
    local indexer = qOut:genIndexer()
 
-   local inOut = self._inOut
+   local inOut          = self._inOut
    local inOutL, inOutR = inOut:get(1), inOut:get(1)
-   local inOutIdxr = inOut:genIndexer()
-   local isGhostL = self._isGhostL
-   local isGhostR = self._isGhostR
+   local inOutIdxr      = inOut:genIndexer()
+   local isGhostL       = self._isGhostL
+   local isGhostR       = self._isGhostR
 
    local tId = self._grid:subGridSharedId() -- local thread ID
 
@@ -132,7 +132,7 @@ function StairSteppedBc:_advance(tCurr, inFld, outFld)
                qOut:fill(indexer(idxR), qG)
                qOut:fill(indexer(idxL), qS)
             end
-            for _, bc in ipairs(self._bcList) do
+            for _, bc in ipairs(self._bcList[1]) do
                bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES
             end
          end
