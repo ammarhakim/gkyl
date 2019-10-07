@@ -1,18 +1,18 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to rescale field at nodes to ensure positivity
+-- Updater to rescale field at nodes to ensure positivity.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
-local DataStruct = require "DataStruct"
-local Proto = require "Lib.Proto"
+-- Gkyl libraries.
+local DataStruct  = require "DataStruct"
+local Proto       = require "Lib.Proto"
 local UpdaterBase = require "Updater.Base"
-local Mpi = require "Comm.Mpi"
-local ffi = require "ffi"
-local ffiC = ffi.C
+local Mpi         = require "Comm.Mpi"
+local ffi         = require "ffi"
+local ffiC        = ffi.C
 
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
