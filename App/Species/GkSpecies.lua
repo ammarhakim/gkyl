@@ -1057,23 +1057,23 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    end
 
    if bcType == SP_BC_ABSORB then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { {bcAbsorbFunc} }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_OPEN then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { {bcOpenFunc} }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcOpenFunc }, "pointwise"))
    -- Note: reflection and sheath BCs only make sense in z direction,
    -- which is always last config space direction, i.e. dir = self.cdim.
    elseif bcType == SP_BC_REFLECT and dir==self.cdim then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { {bcReflectFunc} }, "flip"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflectFunc }, "flip"))
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
       self.fhatSheath = self:allocDistf()
       self.fhatSheathPtr = self.fhatSheath:get(1)
       self.fhatSheathIdxr = self.fhatSheath:genIndexer()
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { {bcSheathFunc} }, "flip"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
       self.hasSheathBcs = true
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
    elseif bcType == SP_BC_COPY then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { {bcCopyFunc} }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcCopyFunc }, "pointwise"))
    else
       assert(false, "GkSpecies: Unsupported BC type!")
    end

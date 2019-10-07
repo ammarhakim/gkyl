@@ -133,7 +133,7 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
 
    if bcType == SP_BC_COPY then
       table.insert(self.boundaryConditions,
-		   self:makeBcUpdater(dir, edge, { {bcCopyFunc} }))
+		   self:makeBcUpdater(dir, edge, { bcCopyFunc }))
    elseif bcType == SP_BC_WALL then
       -- FIXME better to define and use self.equation.bcWall.
       local bcWall
@@ -161,7 +161,7 @@ function MomentSpecies:appendSsBoundaryConditions(dir, inOut, bcType)
 
    if bcType == SP_BC_COPY then
       table.insert(self.ssBoundaryConditions,
-		   self:makeSsBcUpdater(dir, inOut, { {bcCopyFunc} }))
+		   self:makeSsBcUpdater(dir, inOut, { bcCopyFunc }))
    elseif bcType == SP_BC_WALL then
       -- FIXME better to define and use self.equation.bcWall.
       local bcWall
