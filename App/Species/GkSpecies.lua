@@ -297,6 +297,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis  = self.confBasis,
          moment     = "GkThreeMomentsLBO",
          gkfacs     = {self.mass, self.bmag},
+         positivity = self.positivity,
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {
@@ -747,10 +748,11 @@ function GkSpecies:createDiagnostics()
       onGhosts  = true,
    }
    self.weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid     = self.confGrid,
+      weakBasis  = self.confBasis,
+      operation  = "Divide",
+      onGhosts   = true,
+      positivity = self.positivity,
    }
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments, and diagnosticAuxMoments.
    for i, mom in pairs(self.diagnosticMoments) do
