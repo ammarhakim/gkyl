@@ -19,7 +19,13 @@ for ci : 1 thru 3 do (
           if pi=1 then (
             /* Add kernels for positivity preserving algorithm. */
             printf(fh, "void ConstDiffusionSurfPositivity~axMax_~a_P~a(const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *nu, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, cvars[si], pi)
-          )
+          ),
+
+        /* Kernels that implement BCs for constDiffusion term. */
+        printf(fh, "void ConstDiffusionBC~axSerDirichlet_~alower_P~a(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", ci, cvars[si], pi),
+        printf(fh, "void ConstDiffusionBC~axSerDirichlet_~aupper_P~a(const double dx, const double *fSkin, const double fBC, double *fGhost);~%", ci, cvars[si], pi),
+        printf(fh, "void ConstDiffusionBC~axSerNeumann_~alower_P~a(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", ci, cvars[si], pi),
+        printf(fh, "void ConstDiffusionBC~axSerNeumann_~aupper_P~a(const double dx, const double *fSkin, const double fpBC, double *fGhost);~%", ci, cvars[si], pi)
       ),
       printf(fh, "~%")      
     ),
