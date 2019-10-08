@@ -1,0 +1,34 @@
+/** Linearization of multi-fluid equations (isothermal, Euler, tenmoment) */
+load(itensor)$
+
+/**** Euler Equations in primitive form */
+dn : u(1)*D(n) + n*D(u(1))$ /* Density */
+du(i) := u(1)*D(u(i)) + 1/(m*n)*D(p)*kdelta([],[i,1])$ /* Velocity */
+dp : u(1)*D(p) + gamma*p*D(u(1))$ /* Pressure */
+
+/* Collect into lists */
+eqList : [dn, du(1), du(2), du(3), dp]$
+diffList : [D(n), D(u(1)), D(u(2)), D(u(3)), D(p)]$
+
+/* Construct coefficient matrix */
+AEuler : coefmatrix(eqList, diffList)$
+
+/**** Isothermal Euler */
+du(i) := u(1)*D(u(i)) + T/(m*n)*D(n)*kdelta([],[i,1])$ /* Velocity */
+
+/* Collect into lists */
+eqList : [dn, du(1), du(2), du(3)]$
+diffList : [D(n), D(u(1)), D(u(2)), D(u(3))]$
+
+/* Construct coefficient matrix */
+AIsoEuler : coefmatrix(eqList, diffList)$
+
+/**** Maxwell equations */
+eqList : [0, c^2*dB(3), -c^2*dB(2), 0, -dE(3), dE(2)]$
+diffList : [dE(1), dE(2), dE(3), dB(1), dB(2), dB(3)]$
+
+AMaxwell : coefmatrix(eqList, diffList)$
+
+
+
+
