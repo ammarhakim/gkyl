@@ -116,25 +116,25 @@ return function(tbl)
 
    local bcT = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { {copyFunc} },
+      boundaryConditions = { copyFunc },
       dir = 2,
       edge = "upper",
    }
    local bcB = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { {copyFunc} },
+      boundaryConditions = { copyFunc },
       dir = 2,
       edge = "lower",
    }
    local bcL = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { {copyFunc} },
+      boundaryConditions = { copyFunc },
       dir = 1,
       edge = "lower",
    }
    local bcR = Updater.Bc {
       onGrid = grid,
-      boundaryConditions = { {copyFunc} },
+      boundaryConditions = { copyFunc },
       dir = 1,
       edge = "upper",
    }
