@@ -95,6 +95,16 @@ function GkField:fullInit(appTbl)
       print("GkField: warning... specifying initPhiFunc will make initial phi inconsistent with f") 
    end
 
+   -- This allows us to input an external potential, which may be a function of space and time.
+   self.phiExternal = tbl.externalPhi
+   if self.phiExternal and self.initPhiFunc then
+      assert(nil, "App.GkField: cannot specify both an phiExternal and initPhiFunc.")
+   elseif (not self.initPhiFunc) then 
+      -- Constant phiExternal is the same as using initPhiFunc.
+      self.initPhiFunc = self.phiExternal
+      print("GkField: warning... specifying initPhiFunc will make initial phi inconsistent with f") 
+   end
+
    self.bcTime = 0.0 -- Timer for BCs.
 
    self._first     = true
@@ -192,14 +202,14 @@ end
 -- from initial distribution function.
 function GkField:initField(species)
    if self.initPhiFunc then
-      local project = Updater.ProjectOnBasis {
+      self.projectPhi = Updater.ProjectOnBasis {
          onGrid          = self.grid,
          basis           = self.basis,
          evaluate        = self.initPhiFunc,
          projectOnGhosts = true
       }
       for i = 1, self.nRkDup do
-         project:advance(0.0, {}, {self.potentials[i].phi})
+         self.projectPhi:advance(0.0, {}, {self.potentials[i].phi})
       end
    else
       -- Solve for initial phi.
@@ -574,46 +584,50 @@ end
 -- Solve for electrostatic potential phi.
 function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
-   local potRhs = self:rkStepperFields()[outIdx]
+   local potRhs  = self:rkStepperFields()[outIdx]
    
    if self.evolve or (self._first and not self.initPhiFunc) then
-      self.chargeDens:clear(0.0)
-      for nm, s in pairs(species) do
-         self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
-      end
-      -- If not using linearized polarization term, set up laplacian weight.
-      if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
-         self.weight:clear(0.0)
+      if self.phiExternal then
+         self.projectPhi:advance(tCurr, {}, {potCurr.phi})
+      else
+         self.chargeDens:clear(0.0)
          for nm, s in pairs(species) do
-            if Species.GkSpecies.is(s) then
-               self.weight:accumulate(1.0, s:getPolarizationWeight(false))
+            self.chargeDens:accumulate(s:getCharge(), s:getNumDensity())
+         end
+         -- If not using linearized polarization term, set up laplacian weight.
+         if not self.linearizedPolarization or (self._first and not self.uniformPolarization) then
+            self.weight:clear(0.0)
+            for nm, s in pairs(species) do
+               if Species.GkSpecies.is(s) then
+                  self.weight:accumulate(1.0, s:getPolarizationWeight(false))
+               end
             end
-         end
-         if self.ndim == 1 then
-            self.modifierWeight:combine(self.kperp2, self.weight)
-         else
-            self.modifierWeight:clear(0.0)
-            self.laplacianWeight:combine(-1.0, self.weight)
-         end
+            if self.ndim == 1 then
+               self.modifierWeight:combine(self.kperp2, self.weight)
+            else
+               self.modifierWeight:clear(0.0)
+               self.laplacianWeight:combine(-1.0, self.weight)
+            end
 
-         if self.adiabatic then
-            self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFac(false))
-         end
+            if self.adiabatic then
+               self.modifierWeight:accumulate(1.0, self.adiabSpec:getQneutFac(false))
+            end
 
-         if self.ndim > 1 then
-            self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
+            if self.ndim > 1 then
+               self.phiSlvr:setLaplacianWeight(self.laplacianWeight)
+            end
+            if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
          end
-         if self.adiabatic or self.ndim == 1 then self.phiSlvr:setModifierWeight(self.modifierWeight) end
-      end
-      -- phi solve (elliptic, so update potCurr.phi).
-      self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phi})
+         -- phi solve (elliptic, so update potCurr.phi).
+         self.phiSlvr:advance(tCurr, {self.chargeDens}, {potCurr.phi})
 
-      -- Apply BCs.
-      local tmStart = Time.clock()
-      potCurr.phi:sync(true)
-      self.bcTime = self.bcTime + (Time.clock()-tmStart)
+         -- Apply BCs.
+         local tmStart = Time.clock()
+         potCurr.phi:sync(true)
+         self.bcTime = self.bcTime + (Time.clock()-tmStart)
  
-      self._first = false
+         self._first = false
+      end
    else
       -- Just copy stuff over.
       if self.isElectromagnetic then 

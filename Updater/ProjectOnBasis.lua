@@ -8,21 +8,21 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
-local Alloc = require "Lib.Alloc"
+-- Gkyl libraries.
+local Alloc          = require "Lib.Alloc"
 local GaussQuadRules = require "Lib.GaussQuadRules"
-local Lin = require "Lib.Linalg"
-local LinearDecomp = require "Lib.LinearDecomp"
-local Proto = require "Proto"
-local Range = require "Lib.Range"
-local UpdaterBase = require "Updater.Base"
+local Lin            = require "Lib.Linalg"
+local LinearDecomp   = require "Lib.LinearDecomp"
+local Proto          = require "Proto"
+local Range          = require "Lib.Range"
+local UpdaterBase    = require "Updater.Base"
 
--- system libraries
+-- System libraries.
 local ffi = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
 
--- Template for function to map computional space -> physical space
+-- Template for function to map computional space -> physical space.
 local compToPhysTempl = xsys.template([[
 return function (eta, dx, xc, xOut)
 |for i = 1, NDIM do
@@ -31,7 +31,7 @@ return function (eta, dx, xc, xOut)
 end
 ]])
 
--- Template for function to compute value of function at specified coordinates
+-- Template for function to compute value of function at specified coordinates.
 local evalFuncTempl = xsys.template([[
 return function (tCurr, xn, func, fout)
 |for i = 1, M-1 do
@@ -45,7 +45,7 @@ ffi.cdef[[
   void projectF(double* f, double* weights, double* basisAtOrdinates, double* fv, int numVal, int numBasis, int numOrd);
 ]]
 
--- Projection  updater object
+-- Projection  updater object.
 local ProjectOnBasis = Proto(UpdaterBase)
 
 function ProjectOnBasis:setFunc(func)
@@ -53,18 +53,18 @@ function ProjectOnBasis:setFunc(func)
 end
 
 function ProjectOnBasis:init(tbl)
-   ProjectOnBasis.super.init(self, tbl) -- setup base object
+   ProjectOnBasis.super.init(self, tbl) -- Setup base object.
 
-   self._isFirst = true -- for use in advance()
+   self._isFirst = true -- For use in advance().
 
    self._onGrid = assert(tbl.onGrid, "Updater.ProjectOnBasis: Must provide grid object using 'onGrid'")
-   self._basis = assert(tbl.basis, "Updater.ProjectOnBasis: Must specify basis functions to use using 'basis'")
-   local ev = assert(tbl.evaluate, "Updater.ProjectOnBasis: Must specify function to project using 'evaluate'")
+   self._basis  = assert(tbl.basis, "Updater.ProjectOnBasis: Must specify basis functions to use using 'basis'")
+   local ev     = assert(tbl.evaluate, "Updater.ProjectOnBasis: Must specify function to project using 'evaluate'")
    self:setFunc(ev)
 
    assert(self._onGrid:ndim() == self._basis:ndim(), "Dimensions of basis and grid must match")
 
-   local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- number of quadrature points in each direction
+   local N = tbl.numQuad and tbl.numQuad or self._basis:polyOrder()+1 -- Number of quadrature points in each direction
 
    -- As of 09/21/2018 it has been determined that ProjectOnBasis for
    -- p = 3 simulations behaves "strangely" when numQuad is an even
@@ -85,14 +85,14 @@ function ProjectOnBasis:init(tbl)
    local ndim = self._basis:ndim()
    local l, u = {}, {}
    for d = 1, ndim do l[d], u[d] = 1, N end
-   local quadRange = Range.Range(l, u) -- for looping over quadrature nodes
+   local quadRange = Range.Range(l, u) -- For looping over quadrature nodes.
 
-   local numOrdinates = quadRange:volume() -- number of ordinates
+   local numOrdinates = quadRange:volume() -- Number of ordinates.
    
-   -- construct weights and ordinates for integration in multiple dimensions
+   -- Construct weights and ordinates for integration in multiple dimensions.
    self._ordinates = Lin.Mat(numOrdinates, ndim)
-   self._weights = Lin.Vec(numOrdinates)
-   local nodeNum = 1
+   self._weights   = Lin.Vec(numOrdinates)
+   local nodeNum   = 1
    for idx in quadRange:rowMajorIter() do
       self._weights[nodeNum] = 1.0
       for d = 1, ndim do
@@ -104,7 +104,7 @@ function ProjectOnBasis:init(tbl)
 
    local numBasis = self._basis:numBasis()
    self._basisAtOrdinates = Lin.Mat(numOrdinates, numBasis)
-   -- pre-compute values of basis functions at quadrature nodes
+   -- Pre-compute values of basis functions at quadrature nodes.
    if numBasis > 1 then
       for n = 1, numOrdinates do
 	 self._basis:evalBasis(self._ordinates[n], self._basisAtOrdinates[n])
@@ -115,31 +115,31 @@ function ProjectOnBasis:init(tbl)
       end
    end
       
-   -- construct various functions from template representations
+   -- Construct various functions from template representations.
    self._compToPhys = loadstring(compToPhysTempl {NDIM = ndim} )()
 end
 
--- advance method
+-- Advance method.
 function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
    local qOut = assert(outFld[1], "ProjectOnBasis.advance: Must specify an output field")
 
-   local ndim = grid:ndim()
-   local numOrd = #self._weights
+   local ndim     = grid:ndim()
+   local numOrd   = #self._weights
    local numBasis = self._basis:numBasis()
-   local numVal = qOut:numComponents()/numBasis
+   local numVal   = qOut:numComponents()/numBasis
 
    if self._isFirst then
-      -- construct function to evaluate function at specified coorindate
+      -- Construct function to evaluate function at specified coorindate.
       self._evalFunc = loadstring(evalFuncTempl { M = numVal } )()
    end
 
    -- sanity check: ensure number of variables, components and basis functions are consistent
    assert(qOut:numComponents() % numBasis == 0, "ProjectOnBasis:advance: Incompatible input field")
 
-   local dx = Lin.Vec(ndim) -- cell shape
-   local xc = Lin.Vec(ndim) -- cell center
-   local fv = Lin.Mat(numOrd, numVal) -- function values at ordinates
+   local dx  = Lin.Vec(ndim) -- cell shape
+   local xc  = Lin.Vec(ndim) -- cell center
+   local fv  = Lin.Mat(numOrd, numVal) -- function values at ordinates
    local xmu = Lin.Vec(ndim) -- coordinate at ordinate
 
    local tId = grid:subGridSharedId() -- local thread ID
@@ -154,7 +154,7 @@ function ProjectOnBasis:_advance(tCurr, inFld, outFld)
    end
 
    local indexer = qOut:genIndexer()
-   local fItr = qOut:get(1)
+   local fItr    = qOut:get(1)
 
    -- loop, computing projections in each cell
    for idx in localRangeDecomp:colMajorIter(tId) do
