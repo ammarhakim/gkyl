@@ -97,10 +97,10 @@ function GkField:fullInit(appTbl)
    assert(not tbl.initPhiFunc, "GkField: initPhiFunc deprecated. Use externalPhi.")
 
    -- This allows us to apply a multiplicative time dependence to externalPhi.
-   if tbl.phiTimeDependence then
-      self.phiTimeDependence = tbl.phiTimeDependence
+   if tbl.externalPhiTimeDependence then
+      self.externalPhiTimeDependence = tbl.externalPhiTimeDependence
    else
-      self.phiTimeDependence = false
+      self.externalPhiTimeDependence = false
    end
 
    self.bcTime = 0.0 -- Timer for BCs.
@@ -206,17 +206,17 @@ function GkField:initField(species)
          evaluate        = self.externalPhi,
          projectOnGhosts = true
       }
-      self.initPhi = DataStruct.Field {
+      self.externalPhiFld = DataStruct.Field {
          onGrid        = self.grid,
          numComponents = self.basis:numBasis(),
          ghost         = {1, 1}
       }
-      evalOnNodes:advance(0.0, {}, {self.initPhi})
+      evalOnNodes:advance(0.0, {}, {self.externalPhiFld})
       for i = 1, self.nRkDup do
-         if self.phiTimeDependence then
-            self.potentials[i].phi:combine(self.phiTimeDependence(0.0),self.initPhi)
+         if self.externalPhiTimeDependence then
+            self.potentials[i].phi:combine(self.externalPhiTimeDependence(0.0),self.externalPhiFld)
          else
-            self.potentials[i].phi:copy(self.initPhi)
+            self.potentials[i].phi:copy(self.externalPhiFld)
          end
       end
    else
@@ -595,8 +595,8 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    local potRhs  = self:rkStepperFields()[outIdx]
    
    if self.evolve or (self._first and not self.externalPhi) then
-      if self.phiTimeDependence then
-         potCurr.phi:combine(self.phiTimeDependence(tCurr), self.initPhi)
+      if self.externalPhiTimeDependence then
+         potCurr.phi:combine(self.externalPhiTimeDependence(tCurr), self.externalPhiFld)
       else
          self.chargeDens:clear(0.0)
          for nm, s in pairs(species) do
