@@ -23,6 +23,26 @@ diffList : [D(n), D(u(1)), D(u(2)), D(u(3))]$
 /* Construct coefficient matrix */
 AIsoEuler : coefmatrix(eqList, diffList)$
 
+/**** Tenmoment equations */
+decsym(P,2,0,[sym(all)],[]);
+decsym(Q,3,0,[sym(all)],[]);
+
+/* Number density */
+dn : n*D(u(1)) + u(1)*D(n);
+/* Velocity */
+du(i) := 1/n*D(P([1,i],[])) + u(1)*D(u(i));
+/* Pressure */
+dP(i,j) := P([i,j],[])*D(u(1)) + D(u(i))*P([j,1],[]) + D(u(j))*P([i,1],[]) + u(1)*D(P([i,j],[]));
+
+/* Construct list of equations and derviatives */
+eqList : map(canform, [dn, du(1), du(2), du(3), dP(1,1), dP(1,2), dP(1,3), dP(2,2), dP(2,3), dP(3,3)]);
+diffList : map(D, [n, 
+  u(1), u(2), u(3), 
+  P([1,1],[]), P([1,2],[]), P([1,3],[]), P([2,2],[]), P([2,3],[]), P([3,3],[])]);
+
+/* Construct coefficient matrix */
+ATenMoment : coefmatrix(eqList, diffList)$
+
 /**** Maxwell equations */
 eqList : [0, c^2*dB(3), -c^2*dB(2), 0, -dE(3), dE(2)]$
 diffList : [dE(1), dE(2), dE(3), dB(1), dB(2), dB(3)]$

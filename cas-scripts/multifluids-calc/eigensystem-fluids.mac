@@ -40,6 +40,9 @@ AIsoEuler : coefmatrix(eqList, diffList)$
 [isoEulerVals, vects] : eigenvectors(AIsoEuler)$
 isoEulerRev : getRightEv(isoEulerVals, vects)$
 
+/** Tenmoment equations */
+
+
 /**** Maxwell equations */
 assume(c>0)$
 eqList : [0, c^2*dB(3), -c^2*dB(2), 0, -dE(3), dE(2)]$
