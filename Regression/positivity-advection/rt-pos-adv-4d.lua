@@ -78,7 +78,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve = false, -- Evolve field?
       -- u = {dphi/dy, -dphi/dx}
-      initPhiFunc = function (t, xn)
+      externalPhi = function (t, xn)
          local x, y = xn[1], xn[2]
          return -uy*x + ux*y 
       end, 
