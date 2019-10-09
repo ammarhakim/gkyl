@@ -1045,11 +1045,11 @@ end
 
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- Need to wrap member functions so that self is passed.
-   local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
-   local function bcOpenFunc(...) return  self:bcOpenFunc(...) end
+   local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
+   local function bcOpenFunc(...)    return  self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
-   local function bcSheathFunc(...) return self:bcSheathFunc(...) end
-   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
+   local function bcSheathFunc(...)  return self:bcSheathFunc(...) end
+   local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
    
    local vdir = nil
    if dir==self.cdim then 

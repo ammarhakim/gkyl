@@ -93,7 +93,7 @@ function Bc:_advance(tCurr, inFld, outFld)
 
    local qG, qS = qOut:get(1), qOut:get(1) -- Get pointers to (re)use inside inner loop [G: Ghost, S: Skin].
    if self.hasExtFld then qS = qIn:get(1) end
-   local idxS = Lin.IntVec(grid:ndim()) -- Prealloc this.
+   local idxS    = Lin.IntVec(grid:ndim()) -- Prealloc this.
    local indexer = qOut:genIndexer()
 
    local tId = self._grid:subGridSharedId() -- Local thread ID.
@@ -115,8 +115,8 @@ function Bc:_advance(tCurr, inFld, outFld)
          for idx in self._skin:rowMajorIter() do
    	    for d = 1, self._vdim do idxS[self._cdim + d] = idx[d] end
    	    qOut:fill(indexer(idxS), qS)
-            for _, bc in ipairs(self._bcList[1]) do
-               bc(dir, tCurr, idxS, qS, qG, self._bcList[2])
+            for _, bc in ipairs(self._bcList) do
+               bc(dir, tCurr, idxS, qS, qG, self._bcList)
             end
          end
       else
@@ -125,8 +125,8 @@ function Bc:_advance(tCurr, inFld, outFld)
 	 else
 	    qIn:fill(indexer(idxS), qS)
 	 end
-         for _, bc in ipairs(self._bcList[1]) do
-            bc(dir, tCurr, idxS, qS, qG, self._bcList[2]) -- TODO: PASS COORDINATES.
+         for _, bc in ipairs(self._bcList) do
+            bc(dir, tCurr, idxS, qS, qG) -- TODO: PASS COORDINATES.
          end
       end
    end

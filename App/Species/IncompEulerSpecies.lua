@@ -42,15 +42,15 @@ function IncompEulerSpecies:appendBoundaryConditions(dir, edge, bcType)
    local function bcNeumannFunc(...)   return self:bcNeumannFunc(...) end
 
    if bcType == SP_BC_ABSORB then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { {bcAbsorbFunc}, }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcAbsorbFunc }, "pointwise"))
    elseif bcType == SP_BC_COPY then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { {bcCopyFunc}, }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcCopyFunc }, "pointwise"))
    elseif bcType == SP_BC_ZEROFLUX then
       table.insert(self.zeroFluxDirections, dir)
    elseif bcType[1] == SP_BC_DIRICHLET then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { {bcDirichletFunc}, bcType[2], bcType[1] }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcDirichletFunc, bcType[1] }, "pointwise"))
    elseif bcType[1] == SP_BC_NEUMANN then
-      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { {bcNeumannFunc}, bcType[2], bcType[1] }, "pointwise"))
+      table.insert(self.boundaryConditions, self:makeBcUpdater(dir, edge, { bcNeumannFunc, bcType[1] }, "pointwise"))
    else
       assert(false, "IncompEulerSpecies: Unsupported BC type!")
    end

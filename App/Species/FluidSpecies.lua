@@ -265,7 +265,7 @@ function FluidSpecies:allocMomCouplingFields()
    return {self:allocVectorMoment(self.nMoments)}
 end
 
-function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut, fBC)
+function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut)
    -- Note that for bcAbsorb there is no operation on fIn,
    -- so skinLoop (which determines indexing of fIn) does not matter.
    for i = 1, self.nMoments*self.basis:numBasis() do
@@ -273,27 +273,27 @@ function FluidSpecies:bcAbsorbFunc(dir, tm, idxIn, fIn, fOut, fBC)
    end
 end
 
-function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut, fBC)
+function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
    for i = 1, self.nMoments*self.basis:numBasis() do
       fOut[i] = fIn[i]
    end
 end
 
-function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut, fBC)
+function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f=fBC at the boundary.
    if (idxIn == 1) then
-      self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(), fBC, fOut:data())
+      self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
-      self.constDiffDirichletBCs[dir][2](self.grid:dx(dir),fIn:data(), fBC, fOut:data())
+      self.constDiffDirichletBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
    end
 end
 
-function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut, fpBC)
+function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut)
    -- Impose f'=fpBC at the boundary.
    if (idxIn == 1) then
-      self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(), fpBC, fOut:data())
+      self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
    else
-      self.constDiffNeumannBCs[dir][2](self.grid:dx(dir),fIn:data(), fpBC, fOut:data())
+      self.constDiffNeumannBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
    end
 end
 
@@ -302,12 +302,14 @@ function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
                                     hasExtFld)
 
    -- If BC is Dirichlet or Neumann select appropriate kernels.
-   if (bcList[3] == 5) then
+   if (bcList[2] == 5) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
       self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Dirichlet")
-   elseif (bcList[3] == 6) then
+      table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
+   elseif (bcList[2] == 6) then
       local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
       self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Neumann")
+      table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
    end
 
    return Updater.Bc {
@@ -333,14 +335,25 @@ function FluidSpecies:makeSsBcUpdater(dir, inOut, bcList)
 end
 
 function FluidSpecies:createBCs()
+   -- Create a table to store auxiliary values needed by BCs
+   -- and provided by the user in the input file.
+   self.auxBCvalues = {}
+
    -- Functions to make life easier while reading in BCs to apply.
    -- Note: appendBoundaryConditions defined in sub-classes.
    local function handleBc(dir, bc)
+      table.insert(self.auxBCvalues,{nil,nil})
       if bc[1] then
 	 self:appendBoundaryConditions(dir, 'lower', bc[1])
+         if type(bc[1]) == "table" then
+            self.auxBCvalues[dir][1] = bc[1][2]
+         end
       end
       if bc[2] then
 	 self:appendBoundaryConditions(dir, 'upper', bc[2])
+         if type(bc[2]) == "table" then
+            self.auxBCvalues[dir][2] = bc[2][2]
+         end
       end
    end
 
