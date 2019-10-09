@@ -90,12 +90,13 @@ function GkField:fullInit(appTbl)
       self.mu0 = tbl.mu0 or Constants.MU0
    end
 
-   self.initPhiFunc = tbl.initPhiFunc
-   if self.initPhiFunc and self.evolve then 
-      print("GkField: warning... specifying initPhiFunc will make initial phi inconsistent with f") 
+   self.externalPhi = tbl.externalPhi
+   if self.externalPhi and self.evolve then 
+      print("GkField: warning... specifying externalPhi will make initial phi inconsistent with f") 
    end
+   assert(not tbl.initPhiFunc, "GkField: initPhiFunc deprecated. Use externalPhi.")
 
-   -- This allows us to apply a multiplicative time dependence to initPhiFunc.
+   -- This allows us to apply a multiplicative time dependence to externalPhi.
    if tbl.phiTimeDependence then
       self.phiTimeDependence = tbl.phiTimeDependence
    else
@@ -198,11 +199,11 @@ end
 -- Solve for initial fields self-consistently 
 -- from initial distribution function.
 function GkField:initField(species)
-   if self.initPhiFunc then
-      self.evalInitPhi = Updater.EvalOnNodes {
+   if self.externalPhi then
+      local evalOnNodes = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
-         evaluate        = self.initPhiFunc,
+         evaluate        = self.externalPhi,
          projectOnGhosts = true
       }
       self.initPhi = DataStruct.Field {
@@ -210,7 +211,7 @@ function GkField:initField(species)
          numComponents = self.basis:numBasis(),
          ghost         = {1, 1}
       }
-      self.evalInitPhi:advance(0.0, {}, {self.initPhi})
+      evalOnNodes:advance(0.0, {}, {self.initPhi})
       for i = 1, self.nRkDup do
          if self.phiTimeDependence then
             self.potentials[i].phi:combine(self.phiTimeDependence(0.0),self.initPhi)
@@ -593,7 +594,7 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    local potCurr = self:rkStepperFields()[inIdx]
    local potRhs  = self:rkStepperFields()[outIdx]
    
-   if self.evolve or (self._first and not self.initPhiFunc) then
+   if self.evolve or (self._first and not self.externalPhi) then
       if self.phiTimeDependence then
          potCurr.phi:combine(self.phiTimeDependence(tCurr), self.initPhi)
       else

@@ -38,7 +38,7 @@ plasmaApp = Plasma.App {
    logToFile = true,
 
    tEnd        = 1.0,              -- End time.
-   nFrame      = 100,                -- Number of output frames.
+   nFrame      = 1,                -- Number of output frames.
    lower       = {0, 0},           -- Configuration space lower left.
    upper       = {1.0, 1.0},       -- Configuration space upper right.
    cells       = {16, 16},         -- Configuration space cells.
@@ -66,7 +66,7 @@ plasmaApp = Plasma.App {
    field = Plasma.Field {
       evolve = false, -- Evolve field?
       -- u = {dphi/dy, -dphi/dx}
-      initPhiFunc = function (t, xn)
+      externalPhi = function (t, xn)
          local x, y = xn[1], xn[2]
          return -uy*x + ux*y 
       end, 
