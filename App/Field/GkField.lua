@@ -95,22 +95,11 @@ function GkField:fullInit(appTbl)
       print("GkField: warning... specifying initPhiFunc will make initial phi inconsistent with f") 
    end
 
-   -- This allows us to input an external potential, which may be a function of space and time.
-   self.phiExternalFunc = tbl.externalPhi
-   if self.phiExternalFunc and self.initPhiFunc then
-      assert(nil, "App.GkField: cannot specify both an phiExternal and initPhiFunc.")
-   elseif (not self.initPhiFunc) then 
-      -- Constant phiExternal is the same as using initPhiFunc.
-      self.initPhiFunc = self.phiExternalFunc
-      print("GkField: warning... specifying initPhiFunc will make initial phi inconsistent with f") 
-   end
-
-   -- This allows us to separate the timependence from phiExternal so that
-   -- the projection/evaluation on only happens once.
-   if tbl.potentialTimeDependence then
-      self.phiTimeDependence = tbl.potentialTimeDependence
+   -- This allows us to apply a multiplicative time dependence to initPhiFunc.
+   if tbl.phiTimeDependence then
+      self.phiTimeDependence = tbl.phiTimeDependence
    else
-      self.phiTimeDependence = function (t) return 1.0 end
+      self.phiTimeDependence = false
    end
 
    self.bcTime = 0.0 -- Timer for BCs.
@@ -210,20 +199,24 @@ end
 -- from initial distribution function.
 function GkField:initField(species)
    if self.initPhiFunc then
-      self.evalExternalPhi = Updater.EvalOnNodes {
+      self.evalInitPhi = Updater.EvalOnNodes {
          onGrid          = self.grid,
          basis           = self.basis,
          evaluate        = self.initPhiFunc,
          projectOnGhosts = true
       }
-      self.externalPhi = DataStruct.Field {
+      self.initPhi = DataStruct.Field {
          onGrid        = self.grid,
          numComponents = self.basis:numBasis(),
          ghost         = {1, 1}
       }
-      self.evalExternalPhi:advance(0.0, {}, {self.externalPhi})
+      self.evalInitPhi:advance(0.0, {}, {self.initPhi})
       for i = 1, self.nRkDup do
-         self.potentials[i].phi:combine(self.phiTimeDependence(0.0),self.externalPhi)
+         if self.phiTimeDependence then
+            self.potentials[i].phi:combine(self.phiTimeDependence(0.0),self.initPhi)
+         else
+            self.potentials[i].phi:copy(self.initPhi)
+         end
       end
    else
       -- Solve for initial phi.
@@ -601,8 +594,8 @@ function GkField:advance(tCurr, species, inIdx, outIdx)
    local potRhs  = self:rkStepperFields()[outIdx]
    
    if self.evolve or (self._first and not self.initPhiFunc) then
-      if self.phiExternalFunc then
-         potCurr.phi:combine(self.phiTimeDependence(tCurr), self.externalPhi)
+      if self.phiTimeDependence then
+         potCurr.phi:combine(self.phiTimeDependence(tCurr), self.initPhi)
       else
          self.chargeDens:clear(0.0)
          for nm, s in pairs(species) do
