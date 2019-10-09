@@ -532,18 +532,21 @@ local function check_action(test)
    local testPrefix = string.gsub(
       string.sub(test, 3, -5), "(%W)", "%%%1") .. "_"
 
-   local passed = true
+   local passed, count = true, 0
    for fn in lfs.dir(outDirName) do
       local fullNm = outDirName .. fn
       local attr = lfs.attributes(fullNm)
       if attr.mode == "file" then
 	 if string.find(fullNm, testPrefix) and string.sub(fullNm, -3, -1) == ".bp" then
+	    count = count + 1 -- increment number of files compared
 	    local acceptedFileNm = fullResultsDir .. "/" .. string.sub(fullNm, vloc+1, -1)
 	    local status = compareFiles(acceptedFileNm, fullNm)
 	    passed = passed and status
 	 end
       end
    end
+   -- THIS IS A HACK TO ENSURE TESTS DONT PASS WHEN GKEYLL CRASHES
+   if count == 0 then passed = false end
    if passed then
       numPassedTests = numPassedTests+1
       log("... passed.\n")

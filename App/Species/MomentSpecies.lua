@@ -135,19 +135,19 @@ function MomentSpecies:appendBoundaryConditions(dir, edge, bcType)
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, { bcCopyFunc }))
    elseif bcType == SP_BC_WALL then
-     -- FIXME better to define and use self.equation.bcWall.
-     local bcWall
-     if self.nMoments == 5 then
-       bcWall = Euler.bcWall
-     elseif self.nMoments == 10 then
-       bcWall = TenMoment.bcWall
-     else
-       assert(false, "MomentSpecies: bcWall not provided by the equation!")
-     end
+      -- FIXME better to define and use self.equation.bcWall.
+      local bcWall
+      if self.nMoments == 5 then
+         bcWall = Euler.bcWall
+      elseif self.nMoments == 10 then
+         bcWall = TenMoment.bcWall
+      else
+         assert(false, "MomentSpecies: bcWall not provided by the equation!")
+      end
       table.insert(self.boundaryConditions,
-		   self:makeBcUpdater(dir, edge, bcWall))
+                   self:makeBcUpdater(dir, edge, bcWall))
    elseif type(bcType) == "table" then
-      -- bcType can be literally a list of functions
+      -- bcType can be literally a list of functions.
       table.insert(self.boundaryConditions,
 		   self:makeBcUpdater(dir, edge, bcType ))
    else
@@ -163,15 +163,15 @@ function MomentSpecies:appendSsBoundaryConditions(dir, inOut, bcType)
       table.insert(self.ssBoundaryConditions,
 		   self:makeSsBcUpdater(dir, inOut, { bcCopyFunc }))
    elseif bcType == SP_BC_WALL then
-     -- FIXME better to define and use self.equation.bcWall.
-     local bcWall
-     if self.nMoments == 5 then
-       bcWall = Euler.bcWall
-     elseif self.nMoments == 10 then
-       bcWall = TenMoment.bcWall
-     else
-       assert(false, "MomentSpecies: bcWall not provided by the equation!")
-     end
+      -- FIXME better to define and use self.equation.bcWall.
+      local bcWall
+      if self.nMoments == 5 then
+        bcWall = Euler.bcWall
+      elseif self.nMoments == 10 then
+        bcWall = TenMoment.bcWall
+      else
+        assert(false, "MomentSpecies: bcWall not provided by the equation!")
+      end
       table.insert(self.ssBoundaryConditions,
 		   self:makeSsBcUpdater(dir, inOut, bcWall))
    elseif type(bcType) == "table" then
@@ -192,7 +192,7 @@ function MomentSpecies:updateInDirection(dir, tCurr, dt, fIn, fOut, tryInv)
       if self.forceInv or tryInv then
          self.hyperSlvrInv[dir]:setDtAndCflRate(dt, nil)
          status, dtSuggested = self.hyperSlvrInv[dir]:advance(tCurr, {fIn}, {fOut})
-         -- if result is OK, do not try to use invariant eqn. in next step
+         -- If result is OK, do not try to use invariant eqn. in next step.
          tryInv_next = not status
          if status and (not self:checkInv(fOut)) then
             assert(false, "** Invalid output using Lax flux!")
