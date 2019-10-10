@@ -913,7 +913,7 @@ return {
    NoField            = Field.NoField,
    Projection         = Projection,
    VlasovSpecies      = Species.VlasovSpecies,
-   VmBGKCollisions    = Collisions.VmLBOCollisions,   
+   VmBGKCollisions    = Collisions.VmBGKCollisions,   
    VmLBOCollisions    = Collisions.VmLBOCollisions,
    VoronovIonization  = Collisions.VoronovIonization,
 
