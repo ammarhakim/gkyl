@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to evaluate an analytic function nodes. 
+-- Updater to evaluate an analytic function on nodes. 
 -- For now it only evaluates on Serendipity nodes.
 --
 --    _______     ___
