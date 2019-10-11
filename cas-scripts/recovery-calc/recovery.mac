@@ -34,8 +34,9 @@ Outputs:
 */
 getRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
   [N, basis1D, basisND, numDims, dIdx,
-  baLo1D, baLoND, baUp1D, baUpND, 
-  r, rExp, rSol, rSub, recEqList, qLo1D, qUp1D],
+  baLo1D, baLoND, baUp1D, baUpND,
+  dimProjM, dimProjP, projSubList,
+  r, rExp, rSol, rSub, recEqList, qLo1D, qUp1D, xc],
   
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
@@ -94,7 +95,7 @@ Outputs:
   a polynomial in terms of qLo, qCe, and qUp
 */
 getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp) := block(
-  [N, basis1D, basisND, numDims,
+  [N, basis1D, basisND, numDims, xc,
   baLo1D, baLoND, baC1D, baCND, baUp1D, baUpND,
   r, rExp, rSol, rSub, recEqList, qLo1D, qCe1D, qUp1D,
   rM, rP],
@@ -164,7 +165,7 @@ getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp) := block(
 
 getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBL, qBR) := block(
   [N, basis1D, basisND, numDims, dIdx,
-  baLo1D, baLoND, baUp1D, baUpND, 
+  baLo1D, baLoND, baUp1D, baUpND, xc,
   r, rExp, rSol, rSub, recEqList, qLo1D, qUp1D],
   
   numDims : length(dx),
