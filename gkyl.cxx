@@ -15,6 +15,7 @@
 #endif
 
 // std includes
+#include <algorithm>
 #include <cfenv>
 #include <iostream>
 #include <list>
@@ -120,9 +121,12 @@ void showVersion() {
 
 // show tool list
 void showToolList(const std::vector<std::pair<std::string, std::string>>& toolList) {
+  size_t maxSz = 0;
+  for (auto t : toolList) maxSz = std::max(maxSz, t.first.length());
+  
   std::cout << "Following tools are available. Query tool help for more information." << std::endl;
   for (auto t : toolList)
-    std::cout << " " << t.first << "  " << t.second << std::endl;
+    std::cout << " " << t.first << std::string(maxSz-t.first.length() + 2, ' ') << t.second << std::endl;
 }
 
 int
