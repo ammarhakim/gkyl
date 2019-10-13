@@ -638,7 +638,11 @@ When adding new tests it is that developer's responsibility to
 ensure that the results produced are correct. Obviously, others
 may not be able to determine just looking at output that the
 results make sense.
-]]
+
+The runregression tool can only be run from the gkyl/Regression
+directory in the source code repo.
+
+ ]]
 
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
 parser:flag("-a --all", "Run all tests, even those in ignoretests file")
