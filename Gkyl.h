@@ -1,6 +1,6 @@
 // Gkyl ------------------------------------------------------------------------
 //
-// Class representing the top Gkeyll application (executable)
+// Class representing the top Gkeyll executable
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ Gkyl::Gkyl(const std::string& luaExpr, const std::string& inpFileNm, const std::
   : hasInpFile(!inpFileNm.empty()), luaExpr(luaExpr), inpFile(inpFileNm), args(args), execPath(findExecPath())
 {
   toolList = {
-    { "help", { "help.lua", "    Gkeyll help system" } },
+    { "help", { "help.lua", "Gkeyll help system" } },
     { "examples", {"examples.lua", "Example input files"} },
     { "queryrdb", {"queryrdb.lua", "Query/modify regression test DB"} },
     { "runregression", {"runregression.lua", "Run regression/unit tests"} }
