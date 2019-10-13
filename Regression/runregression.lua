@@ -6,10 +6,19 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local lfs = require "lfs"
+
 if GKYL_HAVE_SQLITE3 == false then
    -- can't run without SQLITE3
    print("Sorry, runregression needs Sqlite3. This executable was built without it.")
    print("Rebuild with Sqlite3 enabled. See ./waf configure --help")
+   return 1
+end
+
+local currDir = lfs.currentdir()
+if not string.match(currDir, "gkyl/Regression$") then
+   -- only run when in gkyl/Regression directory
+   print("Can only run from gkyl/Regression source directory.")
    return 1
 end
 
@@ -18,7 +27,6 @@ local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
 local date = require "xsys.date"
-local lfs = require "lfs"
 local lume = require "Lib.lume"
 local sql = require "sqlite3"
 
