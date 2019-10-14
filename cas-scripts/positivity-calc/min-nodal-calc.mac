@@ -6,7 +6,8 @@ fh : openw("~/max-out/PositivityRescaleImpl.cpp")$
 header : openw("~/max-out/PositivityRescaleImpl.h")$
 printf(header, "#include <algorithm> ~%")$
 printf(header, "extern \"C\" { ~%")$
-printf(header, "double findMinNodalValue(double *fIn, int ndim); ~%")$
+printf(header, "double findMinNodalValue(const double *fIn, int ndim); ~%")$
+printf(header, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim); ~%")$
 printf(header, "}; ~%")$
 printf(fh, "#include <PositivityRescaleImpl.h> ~%")$
 printf(fh, "double findMinNodalValue(const double *fIn, int ndim) { ~%")$
@@ -29,6 +30,39 @@ for d : 1 thru 5 do (
   else printf(fh, "  else if(ndim == ~a) { ~%", d),
   printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
   writeCExprsNoExpand1(fVal, gcfac(float(fullratsimp(nodesub(doExpand1(fIn, basis)))))),
+  printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
+  printf(fh, "  } ~%")
+)$
+printf(fh, "  return fmin; ~%")$
+printf(fh, "}~%")$
+
+printf(fh, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim) { ~%")$
+printf(fh, "  double fmin = 0.0; ~%")$
+for d : 1 thru 5 do (
+  if d>3 then modNm : sconcat("basis-precalc/basisSer", d-2, "x2v")
+  else modNm : sconcat("basis-precalc/basisSer", d, "x"),
+  load(modNm),
+  if d>3 then (
+    basis : basisP[1],
+    vars : varsP
+  ) else (
+    basis : basisC[1],
+    vars : varsC
+  ),
+  nodes : eval_string(sconcat("nodes", d, "xp1")),
+  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]/3,j,1,length(vars)),f),i,1,length(nodes)),
+  
+  if d=1 then printf(fh, "  if (ndim == ~a) { ~%", d)
+  else printf(fh, "  else if(ndim == ~a) { ~%", d),
+  printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
+  printf(fh, "  double num, denom; ~%"),
+  for i:1 thru length(basis) do (
+  printf(fh, "  num = ~a; ~%", gcfac(float(fullratsimp(nodesub(doExpand1(fNum, basis))[i])))),
+  printf(fh, "  denom = ~a; ~%", gcfac(float(fullratsimp(nodesub(doExpand1(fDenom, basis))[i])))),
+  printf(fh, "  if (denom >= 0.) fVal[~a] = 1.; ~%", i-1),
+  printf(fh, "  else if (std::abs(num) < EPSILON) fVal[~a] = 0.; ~%", i-1),
+  printf(fh, "  else fVal[~a] = -fac*num/denom; ~%", i-1)
+  ),
   printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
   printf(fh, "  } ~%")
 )$
