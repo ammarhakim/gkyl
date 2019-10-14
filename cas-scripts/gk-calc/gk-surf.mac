@@ -207,7 +207,7 @@ load(modNm),
   )
   else if pureUpwind or i=1 then (
     if positivity then ( 
-      fhatSurf_expd : subst(gkvsub, fhatALgenUpwind2(subst(gkvsubInv,fL_expd), 
+      fhatSurf_expd : subst(gkvsub, fhatALgenUpwind3(subst(gkvsubInv,fL_expd), 
               subst(gkvsubInv,fR_expd), subst(gkvsubInv,alphaUpSurf_expd), 
               subst(gkvsubInv,surfVar), cflL, cflR, cdim, vdim, i)),
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
@@ -724,6 +724,7 @@ calcGKSurfUpdater(fh, funcName, c, v, "Ser", p, false, bvarslist[b])
 )),
 close(fh)
 )))),
+
 if em=false then (
 c:2,
 v:0,
