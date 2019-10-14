@@ -16,9 +16,9 @@ if GKYL_HAVE_SQLITE3 == false then
 end
 
 local currDir = lfs.currentdir()
-if not string.match(currDir, "gkyl/Regression$") then
-   -- only run when in gkyl/Regression directory
-   print("Can only run from gkyl/Regression source directory.")
+if not string.match(currDir, "Regression$") then
+   -- only run when in Regression directory
+   print("Can only run from Regression source directory.")
    return 1
 end
 
