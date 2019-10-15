@@ -25,7 +25,7 @@ getDirIdx(dir, numDims) := block([],
 getBasis(name, polyOrder) := block(
   [varsC, basisC, basisConstant],
   load(name),
-  if polyOrder > 1 then (
+  if polyOrder > 0 then (
     return(basisC[polyOrder])
     )
   else (
@@ -169,15 +169,13 @@ getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp) := block(
 
 
 getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBL, qBR) := block(
-  [N, basis1D, basisND, numDims, dIdx,
-  baLo1D, baLoND, baUp1D, baUpND, xc,
-  r, rExp, rSol, rSub, recEqList, qLo1D, qUp1D],
+  [numDims, dIdx1, dIdx2, basisC, baC, xc, baTL, baTR, baBR, baBL, N, rExp, recEqList, rSol, rSub],
   
   numDims : length(dx),
   dIdx1 : getDirIdx(dirs[1], numDims),
   dIdx2 : getDirIdx(dirs[2], numDims),
-  load("basis-precalc/basisSer2x"),
-  baC : subst([x=dirs[1], y=dirs[2]], basisC[polyOrder]),
+  basisC : getBasis("basis-precalc/basisSer2x", polyOrder),
+  baC : subst([x=dirs[1], y=dirs[2]], basisC),
   xc : [0, 0, 0],
   xc[dIdx1] : -dx[dIdx1]/2,
   xc[dIdx2] : dx[dIdx2]/2,
@@ -208,9 +206,7 @@ getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBL, qBR) := block(
 
 
 getRecov6CellGen(dominantDir, dx, polyOrder, C, der, q1, q2, q3, q4, q5, q6) := block(
-  [N, basis1D, basisND, numDims, dIdx,
-  baLo1D, baLoND, baUp1D, baUpND, 
-  r, rExp, rSol, rSub, recEqList, qLo1D, qUp1D],
+  [dirs, rL, basisND, xc, baLoND, baUpND, dimProjM, dimProjP, rC, rR, dIdx, basisC, basis1D, baC1D, N, rExp, recEqList, rSol, rSub],
   
   dirs : [x, y],
   
@@ -224,8 +220,8 @@ getRecov6CellGen(dominantDir, dx, polyOrder, C, der, q1, q2, q3, q4, q5, q6) := 
     
     /* numDims : length(dx), */
     dIdx : getDirIdx(dirs[1], numDims),
-    load("basis-precalc/basisSer1x"),
-    basis1D : subst(x=dirs[1], basisC[polyOrder]),
+    basisC : getBasis("basis-precalc/basisSer1x", polyOrder),
+    basis1D : subst(x=dirs[1], basisC),
     baC1D : etaDir(dirs[1], 0, dx[dIdx], basis1D),
     
     N : polyOrder + 3,
@@ -260,8 +256,8 @@ getRecov6CellGen(dominantDir, dx, polyOrder, C, der, q1, q2, q3, q4, q5, q6) := 
     
     /* numDims : length(dx), */
     dIdx : getDirIdx(dirs[2], numDims),
-    load("basis-precalc/basisSer1x"),
-    basis1D : subst(x=dirs[2], basisC[polyOrder]),
+    basisC : getBasis("basis-precalc/basisSer1x", polyOrder),
+    basis1D : subst(x=dirs[2], basisC),
     baC1D : etaDir(dirs[2], 0, dx[dIdx], basis1D),
     
     N : polyOrder + 3,
