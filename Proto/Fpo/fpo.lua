@@ -372,6 +372,29 @@ return function(tbl)
          local gTPtr = gIn:get(indexer(idxsT))
          local gBPtr = gIn:get(indexer(idxsB))
 
+	 idxsTL[1] = idxs[1]-1
+	 idxsTL[2] = idxs[2]+1
+	 idxsTR[1] = idxs[1]+1
+	 idxsTR[2] = idxs[2]+1
+	 idxsBL[1] = idxs[1]-1
+	 idxsBL[2] = idxs[2]-1
+	 idxsBR[1] = idxs[1]+1
+	 idxsBR[2] = idxs[2]-1
+
+	 -- if idxs[1] == 1 and idxs[2] == 1 then 
+	 --    idxsBL[1] = idxs[1]
+	 --    idxsBL[2] = idxs[2]
+	 -- elseif idxs[1] == 1 and idxs[2] == cells[2] then 
+	 --    idxsBR[1] = idxs[1]
+	 --    idxsBR[2] = idxs[2]
+	 -- elseif idxs[1] == cells[1] and idxs[2] == 1 then 
+	 --    idxsTL[1] = idxs[1]
+	 --    idxsTL[2] = idxs[2]
+	 -- elseif idxs[1] == cells[1] and idxs[2] == cells[2] then 
+	 --    idxsTR[1] = idxs[1]
+	 --    idxsTR[2] = idxs[2]
+	 -- end
+
 	 local gTLPtr = gIn:get(indexer(idxsTL))
 	 local gTRPtr = gIn:get(indexer(idxsTR))
 	 local gBLPtr = gIn:get(indexer(idxsBL))

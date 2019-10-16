@@ -4,7 +4,7 @@ load("recovery-calc/recovery") $
 assume(dv[0]>0, dv[1]>0, dv[2]>0) $
 numDims : 2 $
 
-for polyOrder : 1 thru 2 do (
+for polyOrder : 1 thru 1 do (
   fname : sconcat("~/max-out/fpoDiffKernelP", polyOrder, ".cpp"),
   fh : openw(fname),
   printf(fh, "#include <math.h>~%"),
@@ -86,21 +86,21 @@ for polyOrder : 1 thru 2 do (
   gxyExpL : doExpand(gxyRecL, makelist(y^i, i, 0, N-2)),
   
   
-  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [2, 0], gT, gTR, gC, gR, gB, gBL),
+  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [2, 0], gT, gTR, gC, gR, gB, gBR),
   printf(fh, "  double gxxRecR[~a];~%", N),
   out : subst(indexSubList, float(expand(fullratsimp(tmp)))),
   for i : 1 thru N do printf(fh, "  gxxRecR[~a] = ~a;~%", i-1, coeff(out, y, i-1)),
   printf(fh, "~%"),
   gxxExpR : doExpand(gxxRecR, makelist(y^i, i, 0, N-1)),
   
-  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [3, 0], gT, gTR, gC, gR, gB, gBL),
+  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [3, 0], gT, gTR, gC, gR, gB, gBR),
   printf(fh, "  double gxxxRecR[~a];~%", N),
   out : subst(indexSubList, float(expand(fullratsimp(tmp)))),
   for i : 1 thru N do printf(fh, "  gxxxRecR[~a] = ~a;~%", i-1, coeff(out, y, i-1)),
   printf(fh, "~%"),
   gxxxExpR : doExpand(gxxxRecR, makelist(y^i, i, 0, N-1)),
   
-  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [1, 1], gT, gTR, gC, gR, gB, gBL),
+  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [1, 1], gT, gTR, gC, gR, gB, gBR),
   printf(fh, "  double gxyRecR[~a];~%", N-1),
   out : subst(indexSubList, float(expand(fullratsimp(tmp)))),
   for i : 1 thru N-1 do printf(fh, "  gxyRecR[~a] = ~a;~%", i-1,  coeff(out, y, i-1)),
@@ -167,14 +167,15 @@ for polyOrder : 1 thru 2 do (
   printf(fh, "~%"),
   fxExpL : doExpand(fxRecL, makelist(y^i, i, 0, N-1)),
   
-  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [0, 0], fT, fTR, fC, fR, fB, fBL),
+  
+  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [0, 0], fT, fTR, fC, fR, fB, fBR),
   printf(fh, "  double fRecR[~a];~%", N),
   out : subst(indexSubList, float(expand(fullratsimp(tmp)))),
   for i : 1 thru N do printf(fh, "  fRecR[~a] = ~a;~%", i-1, coeff(out, y, i-1)),
   printf(fh, "~%"),
   fExpR : doExpand(fRecR, makelist(y^i, i, 0, N-1)),
   
-  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [1, 0], fT, fTR, fC, fR, fB, fBL),
+  tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [1, 0], fT, fTR, fC, fR, fB, fBR),
   printf(fh, "  double fxRecR[~a];~%", N),
   out : subst(indexSubList, float(expand(fullratsimp(tmp)))),
   for i : 1 thru N do printf(fh, "  fxRecR[~a] = ~a;~%", i-1, coeff(out, y, i-1)),
