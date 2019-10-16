@@ -14,11 +14,9 @@ for polyOrder : 1 thru 2 do (
   
   load("basis-precalc/basisSer2x"),
   baC : basisC[polyOrder],
-  baL : eta([-1,0], [2,2], baC),
-  baR : eta([1,0], [2,2], baC),
-  baT : eta([0,1], [2,2], baC),
-  baB : eta([0,-1], [2,2], baC),
 
+  N : polyOrder + 3,
+  
   indexSubList : append(
     /* diff potential */
     makelist(gC[i]=gC[i-1], i, 1, length(baC)),
@@ -26,34 +24,44 @@ for polyOrder : 1 thru 2 do (
     makelist(gR[i]=gR[i-1], i, 1, length(baC)),
     makelist(gB[i]=gB[i-1], i, 1, length(baC)),
     makelist(gT[i]=gT[i-1], i, 1, length(baC)),
+    makelist(gTL[i]=gTL[i-1], i, 1, length(baC)),
+    makelist(gTR[i]=gTR[i-1], i, 1, length(baC)),
+    makelist(gBL[i]=gBL[i-1], i, 1, length(baC)),
+    makelist(gBR[i]=gBR[i-1], i, 1, length(baC)),	
     /* distribution functions */
     makelist(fC[i]=fC[i-1], i, 1, length(baC)),
     makelist(fL[i]=fL[i-1], i, 1, length(baC)),
     makelist(fR[i]=fR[i-1], i, 1, length(baC)),
     makelist(fB[i]=fB[i-1], i, 1, length(baC)),
     makelist(fT[i]=fT[i-1], i, 1, length(baC)),
-    /* convolutions */
-    makelist(gxxfLm[i]=gxxfLm[i-1], i, 1, length(baC)),
-    makelist(gxxfLp[i]=gxxfLp[i-1], i, 1, length(baC)),
-    makelist(gxxfRm[i]=gxxfRm[i-1], i, 1, length(baC)),
-    makelist(gxxfRp[i]=gxxfRp[i-1], i, 1, length(baC)),  
-    makelist(gxyfLm[i]=gxyfLm[i-1], i, 1, length(baC)),
-    makelist(gxyfLp[i]=gxyfLp[i-1], i, 1, length(baC)),
-    makelist(gxyfRm[i]=gxyfRm[i-1], i, 1, length(baC)),
-    makelist(gxyfRp[i]=gxyfRp[i-1], i, 1, length(baC)),
-    makelist(gyyfBm[i]=gyyfBm[i-1], i, 1, length(baC)),
-    makelist(gyyfBp[i]=gyyfBp[i-1], i, 1, length(baC)),
-    makelist(gyyfTm[i]=gyyfTm[i-1], i, 1, length(baC)),
-    makelist(gyyfTp[i]=gyyfTp[i-1], i, 1, length(baC)),
-    makelist(gyxfBm[i]=gyxfBm[i-1], i, 1, length(baC)),
-    makelist(gyxfBp[i]=gyxfBp[i-1], i, 1, length(baC)),
-    makelist(gyxfTm[i]=gyxfTm[i-1], i, 1, length(baC)),
-    makelist(gyxfTp[i]=gyxfTp[i-1], i, 1, length(baC)),
+    makelist(fTL[i]=fTL[i-1], i, 1, length(baC)),
+    makelist(fTR[i]=fTR[i-1], i, 1, length(baC)),
+    makelist(fBL[i]=fBL[i-1], i, 1, length(baC)),
+    makelist(fBR[i]=fBR[i-1], i, 1, length(baC)),	
+    /* recoveries */
+    makelist(gxxRecL[i]=gxxRecL[i-1], i, 1, N),
+    makelist(gxxxRecL[i]=gxxxRecL[i-1], i, 1, N),
+    makelist(gxyRecL[i]=gxyRecL[i-1], i, 1, N),
+    makelist(gxxRecR[i]=gxxRecR[i-1], i, 1, N),
+    makelist(gxxxRecR[i]=gxxxRecR[i-1], i, 1, N),
+    makelist(gxyRecR[i]=gxyRecR[i-1], i, 1, N),
+    makelist(gyyRecT[i]=gyyRecT[i-1], i, 1, N),
+    makelist(gyyyRecT[i]=gyyyRecT[i-1], i, 1, N),
+    makelist(gyxRecT[i]=gyxRecT[i-1], i, 1, N),
+    makelist(gyyRecB[i]=gyyRecB[i-1], i, 1, N),
+    makelist(gyyyRecB[i]=gyyyRecB[i-1], i, 1, N),
+    makelist(gyxRecB[i]=gyxRecB[i-1], i, 1, N),
+    makelist(fRecL[i]=fRecL[i-1], i, 1, N),
+    makelist(fxRecL[i]=fxRecL[i-1], i, 1, N),
+    makelist(fRecR[i]=fRecR[i-1], i, 1, N),
+    makelist(fxRecR[i]=fxRecR[i-1], i, 1, N),
+    makelist(fRecT[i]=fRecT[i-1], i, 1, N),
+    makelist(fyRecT[i]=fyRecT[i-1], i, 1, N),
+    makelist(fRecB[i]=fRecB[i-1], i, 1, N),
+    makelist(fyRecB[i]=fyRecB[i-1], i, 1, N),
     /* cell size */
     makelist(dv[i]=dv[i-1], i, 1, 3)
     ),
-
-  N : polyOrder + 3,
 
   /* Setting up recoveries of g */
   tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [2, 0], gTL, gT, gL, gC, gBL, gB),
@@ -157,8 +165,7 @@ for polyOrder : 1 thru 2 do (
   out : subst(indexSubList, float(expand(fullratsimp(tmp)))),
   for i : 1 thru N do printf(fh, "  fxRecL[~a] = ~a;~%", i-1, coeff(out, y, i-1)),
   printf(fh, "~%"),
-  fxExpL : doExpand(fRecL, makelist(y^i, i, 0, N-1)),
-  
+  fxExpL : doExpand(fxRecL, makelist(y^i, i, 0, N-1)),
   
   tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [0, 0], fT, fTR, fC, fR, fB, fBL),
   printf(fh, "  double fRecR[~a];~%", N),
