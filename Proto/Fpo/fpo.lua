@@ -36,12 +36,6 @@ return function(tbl)
    -- Not sure about this logic...
    if doughertyPotentials then updatePotentials = false end
    local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
-   local cross = xsys.pickBool(tbl.cross, true)
-   if cross then
-      cross = 1
-   else
-      cross = 0
-   end
    local cells = tbl.cells
    local lower = tbl.lower
    local upper = tbl.upper
@@ -198,7 +192,7 @@ return function(tbl)
 	 grid:setIndex(idxs)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data()) 
+	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
       end
       momVec:appendData(tCurr, out)
       return out
@@ -220,7 +214,7 @@ return function(tbl)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
-	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data()) 
+	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
       end
       diagVec:appendData(tCurr, out)
    end
@@ -306,6 +300,7 @@ return function(tbl)
       local indexer = fIn:genIndexer()
       local idxsR, idxsL = {}, {}
       local idxsT, idxsB = {}, {}
+      local idxsTL, idxsTR, idxsBL, idxsBR = {}, {}, {}, {}
 
       for idxs in localRange:colMajorIter() do
          idxsR[1] = idxs[1]+1
@@ -317,16 +312,41 @@ return function(tbl)
          idxsT[2] = idxs[2]+1
          idxsB[2] = idxs[2]-1
 
+	 idxsTL[1] = idxs[1]-1
+	 idxsTL[2] = idxs[2]+1
+	 idxsTR[1] = idxs[1]+1
+	 idxsTR[2] = idxs[2]+1
+	 idxsBL[1] = idxs[1]-1
+	 idxsBL[2] = idxs[2]-1
+	 idxsBR[1] = idxs[1]+1
+	 idxsBR[2] = idxs[2]-1
+
          local isTopEdge, isBotEdge = 0, 0
          local isLeftEdge, isRightEdge = 0, 0
 
          if periodicX == false then
             if idxs[1] == 1 then isLeftEdge = 1 end
             if idxs[1] == cells[1] then isRightEdge = 1 end
+	 else
+	    if idxs[1] == 1 then 
+	       idxsTL[1] = cells[1]
+	       idxsBL[1] = cells[1]
+	    elseif idxs[1] == cells[1] then
+	       idxsTR[1] = 1
+	       idxsBR[1] = 1
+	    end
          end
          if periodicY == false then
             if idxs[2] == 1 then isBotEdge = 1 end
             if idxs[2] == cells[2] then isTopEdge = 1 end
+	 else
+	    if idxs[2] == 1 then
+	       idxsBL[2] = cells[2]
+	       idxsBR[2] = cells[2]
+	    elseif idxs[2] == cells[2] then
+	       idxsTL[2] = 1
+	       idxsTR[2] = 1
+	    end
          end
 
          local fPtr = fIn:get(indexer(idxs))
@@ -334,6 +354,11 @@ return function(tbl)
          local fLPtr = fIn:get(indexer(idxsL))
          local fTPtr = fIn:get(indexer(idxsT))
          local fBPtr = fIn:get(indexer(idxsB))
+
+	 local fTLPtr = fIn:get(indexer(idxsTL))
+	 local fTRPtr = fIn:get(indexer(idxsTR))
+	 local fBLPtr = fIn:get(indexer(idxsBL))
+	 local fBRPtr = fIn:get(indexer(idxsBR))
 
          local hPtr = hIn:get(indexer(idxs))
          local hRPtr = hIn:get(indexer(idxsR))
@@ -347,6 +372,11 @@ return function(tbl)
          local gTPtr = gIn:get(indexer(idxsT))
          local gBPtr = gIn:get(indexer(idxsB))
 
+	 local gTLPtr = gIn:get(indexer(idxsTL))
+	 local gTRPtr = gIn:get(indexer(idxsTR))
+	 local gBLPtr = gIn:get(indexer(idxsBL))
+	 local gBRPtr = gIn:get(indexer(idxsBR))
+
          local fOutPtr= fOut:get(indexer(idxs))
 
          dragKernelFn(dt, dv:data(),
@@ -355,9 +385,13 @@ return function(tbl)
 		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
 		      fOutPtr:data())
          diffKernelFn(dt, dv:data(),
-		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
-		      gPtr:data(), gLPtr:data(), gRPtr:data(), gTPtr:data(), gBPtr:data(),
-		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge, cross,
+		      fTLPtr:data(), fTPtr:data(), fTRPtr:data(),
+		      fLPtr:data(), fPtr:data(), fRPtr:data(),
+		      fBLPtr:data(), fBPtr:data(), fBRPtr:data(),
+		      gTLPtr:data(), gTPtr:data(), gTRPtr:data(),
+		      gLPtr:data(), gPtr:data(), gRPtr:data(),
+		      gBLPtr:data(), gBPtr:data(), gBRPtr:data(),
+		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
 		      fOutPtr:data())
       end
 

@@ -10,7 +10,7 @@ for polyOrder : 1 thru 2 do (
   printf(fh, "#include <math.h>~%"),
   printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
 
-  printf(fh, "void fpoDiffKernelP~a(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, int cross, double *fOut) {~%", polyOrder),
+  printf(fh, "void fpoDiffKernelP~a(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
   
   load("basis-precalc/basisSer2x"),
   baC : basisC[polyOrder],
@@ -76,7 +76,7 @@ for polyOrder : 1 thru 2 do (
   out : subst(indexSubList, float(expand(fullratsimp(tmp)))),
   for i : 1 thru N do printf(fh, "  gxxxRecL[~a] = ~a;~%", i-1, coeff(out, y, i-1)),
   printf(fh, "~%"),
-  gxxxExpL : doExpand(gxxRecL, makelist(y^i, i, 0, N-1)),
+  gxxxExpL : doExpand(gxxxRecL, makelist(y^i, i, 0, N-1)),
   
   tmp : getRecov6CellGen(y, [2,2], polyOrder, 0, [1, 1], gTL, gT, gL, gC, gBL, gB),
   printf(fh, "  double gxyRecL[~a];~%", N-1),
