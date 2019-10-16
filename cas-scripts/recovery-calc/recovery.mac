@@ -200,7 +200,7 @@ getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBL, qBR) := block(
     calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [-dx[dIdx2], 0]], 1, baBR, rExp-doExpand(qBR, baBR))
     ),
   rSol : linsolve(recEqList, makelist(r[i], i, 1, 4*N*N)),
-  rSub : fullratsimp(subst(rSol, rExp)),
+  rSub : expand(fullratsimp(subst(rSol, rExp))),
   return(rSub)
   ) $
 
