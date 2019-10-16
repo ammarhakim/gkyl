@@ -935,6 +935,7 @@ return {
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
       Field                = Field.MaxwellField,
+      FuncField            = Field.FuncMaxwellField,
       FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BGKCollisions        = Collisions.VmBGKCollisions,
