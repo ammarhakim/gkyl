@@ -232,7 +232,7 @@ def buildExec(bld):
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
         rpath = bld.env.RPATH,
-        lib = 'pthread'
+        lib = 'pthread ' + bld.env.EXTRALIBS
     )
 
 def dist(ctx):
