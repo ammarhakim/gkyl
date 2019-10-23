@@ -482,10 +482,10 @@ function KineticSpecies:alloc(nRkDup)
    end
 
    if self.positivity then
-      self.distfPos = {}
+      self.fDelPos = {}
       for i = 1, nRkDup do
-         self.distfPos[i] = self:allocDistf()
-         self.distfPos[i]:clear(0.0)
+         self.fDelPos[i] = self:allocDistf()
+         self.fDelPos[i]:clear(0.0)
       end
    end
 
@@ -623,7 +623,7 @@ end
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
    if self.positivity then
-      self.distfPos[outIdx]:copy(self.distfPos[aIdx])
+      self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
    end
 end
 -- For RK timestepping.
@@ -636,9 +636,9 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    end
 
    if self.positivity then
-      self.distfPos[outIdx]:combine(a, self.distfPos[aIdx])
+      self.fDelPos[outIdx]:combine(a, self.fDelPos[aIdx])
       for i = 1, nFlds do -- Accumulate rest of the fields.
-         self.distfPos[outIdx]:accumulate(args[2*i-1], self.distfPos[args[2*i]])
+         self.fDelPos[outIdx]:accumulate(args[2*i-1], self.fDelPos[args[2*i]])
       end
    end
 end
@@ -694,9 +694,9 @@ end
 
 function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   if self.positivityDiffuse then
-     self.distfPos[idx]:combine(-1.0, self:rkStepperFields()[idx])
+     self.fDelPos[idx]:combine(-1.0, self:rkStepperFields()[idx])
      self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
-     self.distfPos[idx]:accumulate(1.0, self:rkStepperFields()[idx])
+     self.fDelPos[idx]:accumulate(1.0, self:rkStepperFields()[idx])
   end
   self:applyBc(tCurr, self:rkStepperFields()[idx])
   if self.positivity then
