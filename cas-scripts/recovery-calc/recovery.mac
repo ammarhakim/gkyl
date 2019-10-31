@@ -44,7 +44,7 @@ Outputs:
   a polynomial in terms of qLo and qUp
 */
 getRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
-  [numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, N, rExp, recEqList, rSol, rSub, projSubList],
+  [numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, N, rExp, recEqList, rSol, rSub, projSubList,basisND,xc,baLoND,baUpND,dimProjM,dimProjP],
   
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
@@ -103,7 +103,7 @@ Outputs:
   a polynomial in terms of qLo, qCe, and qUp
 */
 getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp) := block(
-  [numDims, dIdx, basisC, basis1D, baC1D, N, rExp, rM, rP, recEqList, rSol, rSub, projSubList],
+  [numDims, dIdx, basisC, basis1D, baC1D, N, rExp, rM, rP, recEqList, rSol, rSub, projSubList,baLo1D,baUp1D,basisND,xc,baLoND,baCND,baUpND,dimProjM,dimProjC,dimProjP],
   
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims),
@@ -168,120 +168,26 @@ getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp) := block(
   ) $
 
 
-getRecov4CellGen(dirs, dx, polyOrder, qTL, qTR, qBL, qBR) := block(
-  [numDims, dIdx1, dIdx2, basisC, baC, xc, baTL, baTR, baBR, baBL, N, rExp, recEqList, rSol, rSub],
-  
-  numDims : length(dx),
-  dIdx1 : getDirIdx(dirs[1], numDims),
-  dIdx2 : getDirIdx(dirs[2], numDims),
-  basisC : getBasis("basis-precalc/basisSer2x", polyOrder),
-  baC : subst([x=dirs[1], y=dirs[2]], basisC),
-  xc : [0, 0, 0],
-  xc[dIdx1] : -dx[dIdx1]/2,
-  xc[dIdx2] : dx[dIdx2]/2,
-  baTL : eta(xc, dx, baC),
-  xc[dIdx1] : dx[dIdx1]/2,
-  xc[dIdx2] : dx[dIdx2]/2,
-  baTR : eta(xc, dx, baC),
-  xc[dIdx1] : dx[dIdx1]/2,
-  xc[dIdx2] : -dx[dIdx2]/2,
-  baBR : eta(xc, dx, baC),
-  xc[dIdx1] : -dx[dIdx1]/2,
-  xc[dIdx2] : -dx[dIdx2]/2,
-  baBL : eta(xc, dx, baC),
-  
-  /* Forming and solving the equation system */
-  N : polyOrder + 1,
-  rExp : doExpand(r, create_list(dirs[1]^i*dirs[2]^j, i, 0, 2*N-1, j, 0, 2*N-1)),
-  recEqList : append(
-    calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [0, dx[dIdx2]]], 1, baTL, rExp-doExpand(qTL, baTL)),
-    calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [0, dx[dIdx2]]], 1, baTR, rExp-doExpand(qTR, baTR)),
-    calcInnerProdListGen(dirs, [[-dx[dIdx1], 0], [-dx[dIdx2], 0]], 1, baBL, rExp-doExpand(qBL, baBL)),
-    calcInnerProdListGen(dirs, [[0, dx[dIdx1]], [-dx[dIdx2], 0]], 1, baBR, rExp-doExpand(qBR, baBR))
-    ),
-  rSol : linsolve(recEqList, makelist(r[i], i, 1, 4*N*N)),
-  rSub : expand(fullratsimp(subst(rSol, rExp))),
-  return(rSub)
-  ) $
 
+getRecov6CellGen(dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
+  [perpDir,dirIdx,rLo,rCe,rUp,basisC,baLo,baCe,baUp,rLoCoef,rCeCoef,rUpCoef,r],
+  if dir = x then perpDir : y else perpDir : x,
+  dirIdx : getDirIdx(dir, 2),
 
-getRecov6CellGen(dominantDir, dx, polyOrder, C, der, q1, q2, q3, q4, q5, q6) := block(
-  [dirs, rL, basisND, xc, baLoND, baUpND, dimProjM, dimProjP, rC, rR, dIdx, basisC, basis1D, baC1D, N, rExp, recEqList, rSol, rSub],
+  rLo : getRecov2CellGen(perpDir, dx, polyOrder, qLL, qLU),
+  rCe : getRecov2CellGen(perpDir, dx, polyOrder, qCL, qCU),
+  rUp : getRecov2CellGen(perpDir, dx, polyOrder, qUL, qUU),
   
-  dirs : [x, y],
+  basisC : subst(x=dir, getBasis("basis-precalc/basisSer1x", polyOrder)),
+  baLo : etaDir(dir, -2, dx[dirIdx], basisC),
+  baCe : etaDir(dir, 0, dx[dirIdx], basisC),
+  baUp : etaDir(dir, 2, dx[dirIdx], basisC),
   
-  if dominantDir = x then (
-    rL : getRecov4CellGen(dirs, dx, polyOrder, q1, q2, q4, q5),
-    rC : getRecov2CellGen(dirs[2], dx, polyOrder, q5, q2),
-    for d : 1 thru der[2] do (
-      rC : diff(rC, dirs[2])
-      ),
-    rR : getRecov4CellGen(dirs, dx, polyOrder, q2, q3, q5, q6),
-    
-    /* numDims : length(dx), */
-    dIdx : getDirIdx(dirs[1], numDims),
-    basisC : getBasis("basis-precalc/basisSer1x", polyOrder),
-    basis1D : subst(x=dirs[1], basisC),
-    baC1D : etaDir(dirs[1], 0, dx[dIdx], basis1D),
-    
-    N : polyOrder + 3,
-    if C = 1 then N : N + 2,
-    /* Forming and solving the equation system */
-    rExp : doExpand(r, makelist(dirs[1]^i, i, 0, N-1)),
-    recEqList : append(
-      [subst([dirs[1]=0, dirs[2]=0], rL) - subst(dirs[1]=-dx[dIdx]/2, rExp)],
-      [subst([dirs[1]=0, dirs[2]=0], rR) - subst(dirs[1]=dx[dIdx]/2, rExp)],
-      calcInnerProdListGen([dirs[1]], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baC1D, rExp-subst(dirs[2]=0, rC))
-      ),
-    if C = 1 then (
-      recEqList : append(
-        recEqList,
-        [subst([dirs[1]=0, dirs[2]=0], diff(rL, dirs[1])) - subst(dirs[1]=-dx[dIdx]/2, diff(rExp, dirs[1]))],
-        [subst([dirs[1]=0, dirs[2]=0], diff(rR, dirs[1])) - subst(dirs[1]=dx[dIdx]/2, diff(rExp, dirs[1]))]
-        )
-      ),
-    rSol : linsolve(recEqList, makelist(r[i], i, 1, N)),
-    rSub : fullratsimp(subst(rSol, rExp)),
-    for d : 1 thru der[1] do (
-      rSub : diff(rSub, dirs[1])
-      )
-    ),
-  if dominantDir = y then (
-    rB : getRecov4CellGen(dirs, dx, polyOrder, q3, q4, q5, q6),
-    rC : getRecov2CellGen(dirs[1], dx, polyOrder, q3, q4),
-    for d : 1 thru der[1] do (
-      rC : diff(rC, dirs[1])
-      ),
-    rT : getRecov4CellGen(dirs, dx, polyOrder, q1, q2, q3, q4),
-    
-    /* numDims : length(dx), */
-    dIdx : getDirIdx(dirs[2], numDims),
-    basisC : getBasis("basis-precalc/basisSer1x", polyOrder),
-    basis1D : subst(x=dirs[2], basisC),
-    baC1D : etaDir(dirs[2], 0, dx[dIdx], basis1D),
-    
-    N : polyOrder + 3,
-    if C = 1 then N : N + 2,
-    /* Forming and solving the equation system */
-    rExp : doExpand(r, makelist(dirs[2]^i, i, 0, N-1)),
-    recEqList : append(
-      [subst([dirs[1]=0, dirs[2]=0], rB) - subst(dirs[2]=-dx[dIdx]/2, rExp)],
-      [subst([dirs[1]=0, dirs[2]=0], rT) - subst(dirs[2]=dx[dIdx]/2, rExp)],
-      calcInnerProdListGen([dirs[2]], [[-dx[dIdx]/2, dx[dIdx]/2]], 1, baC1D, rExp-subst(dirs[1]=0, rC))
-      ),
-    if C = 1 then (
-      recEqList : append(
-        recEqList,
-        [subst([dirs[1]=0, dirs[2]=0], diff(rB, dirs[2])) - subst(dirs[2]=-dx[dIdx]/2, diff(rExp, dirs[2]))],
-        [subst([dirs[1]=0, dirs[2]=0], diff(rT, dirs[2])) - subst(dirs[2]=dx[dIdx]/2, diff(rExp, dirs[2]))]
-        )
-      ),
-    rSol : linsolve(recEqList, makelist(r[i], i, 1, N)),
-    rSub : fullratsimp(subst(rSol, rExp)),
-    for d : 1 thru der[2] do (
-      rSub : diff(rSub, dirs[2])
-      )
-    ),
+  rLoCoef : calcInnerProdListGen([dir], [[-3*dx[dirIdx]/2,-dx[dirIdx]/2]], 1, baLo, subst(perpDir=0, rLo)),
+  rCeCoef : calcInnerProdListGen([dir], [[-dx[dirIdx]/2,dx[dirIdx]/2]], 1, baCe, subst(perpDir=0, rCe)),
+  rUpCoef : calcInnerProdListGen([dir], [[dx[dirIdx]/2,3*dx[dirIdx]/2]], 1, baUp, subst(perpDir=0, rUp)),
+  
+  r : getRecov3CellGen(dir, [dx[dirIdx]], polyOrder, C, rLoCoef, rCeCoef, rUpCoef),  
 
-  return(rSub)
+  return(r)
   ) $
