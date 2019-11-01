@@ -139,6 +139,38 @@ return function(tbl)
       bcL:advance(0.0, {}, {fld})
       bcR:advance(0.0, {}, {fld})
       fld:sync()
+
+      -- need to manually sync corners for now
+      local globalRange = fld:globalRange()
+      local xlo, xup = globalRange:lower(1), globalRange:upper(1)
+      local ylo, yup = globalRange:lower(2), globalRange:upper(2)
+      
+      local indexer = fld:indexer()
+      local idxSkin, idxGhost
+      
+      -- lower-left
+      idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
+      
+      -- lower-right
+      idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
+      
+      -- upper-left
+      idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
+      
+      -- upper-right
+      idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
    end
 
    -- projection to apply ICs
@@ -303,50 +335,25 @@ return function(tbl)
       local idxsTL, idxsTR, idxsBL, idxsBR = {}, {}, {}, {}
 
       for idxs in localRange:colMajorIter() do
-         idxsR[1] = idxs[1]+1
-         idxsL[1] = idxs[1]-1
-         idxsR[2] = idxs[2]
-         idxsL[2] = idxs[2]
-         idxsT[1] = idxs[1]
-         idxsB[1] = idxs[1]
-         idxsT[2] = idxs[2]+1
-         idxsB[2] = idxs[2]-1
+         idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
+         idxsL[1], idxsL[2] = idxs[1]-1, idxs[2]
+         idxsT[1], idxsT[2] = idxs[1], idxs[2]+1
+         idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
 
-	 idxsTL[1] = idxs[1]-1
-	 idxsTL[2] = idxs[2]+1
-	 idxsTR[1] = idxs[1]+1
-	 idxsTR[2] = idxs[2]+1
-	 idxsBL[1] = idxs[1]-1
-	 idxsBL[2] = idxs[2]-1
-	 idxsBR[1] = idxs[1]+1
-	 idxsBR[2] = idxs[2]-1
+	 idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
+	 idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
+	 idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
+	 idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
 
          local isTopEdge, isBotEdge = 0, 0
          local isLeftEdge, isRightEdge = 0, 0
-
          if periodicX == false then
             if idxs[1] == 1 then isLeftEdge = 1 end
             if idxs[1] == cells[1] then isRightEdge = 1 end
-	 else
-	    if idxs[1] == 1 then 
-	       idxsTL[1] = cells[1]
-	       idxsBL[1] = cells[1]
-	    elseif idxs[1] == cells[1] then
-	       idxsTR[1] = 1
-	       idxsBR[1] = 1
-	    end
          end
          if periodicY == false then
             if idxs[2] == 1 then isBotEdge = 1 end
             if idxs[2] == cells[2] then isTopEdge = 1 end
-	 else
-	    if idxs[2] == 1 then
-	       idxsBL[2] = cells[2]
-	       idxsBR[2] = cells[2]
-	    elseif idxs[2] == cells[2] then
-	       idxsTL[2] = 1
-	       idxsTR[2] = 1
-	    end
          end
 
          local fPtr = fIn:get(indexer(idxs))
@@ -371,29 +378,6 @@ return function(tbl)
          local gLPtr = gIn:get(indexer(idxsL))
          local gTPtr = gIn:get(indexer(idxsT))
          local gBPtr = gIn:get(indexer(idxsB))
-
-	 idxsTL[1] = idxs[1]-1
-	 idxsTL[2] = idxs[2]+1
-	 idxsTR[1] = idxs[1]+1
-	 idxsTR[2] = idxs[2]+1
-	 idxsBL[1] = idxs[1]-1
-	 idxsBL[2] = idxs[2]-1
-	 idxsBR[1] = idxs[1]+1
-	 idxsBR[2] = idxs[2]-1
-
-	 -- if idxs[1] == 1 and idxs[2] == 1 then 
-	 --    idxsBL[1] = idxs[1]
-	 --    idxsBL[2] = idxs[2]
-	 -- elseif idxs[1] == 1 and idxs[2] == cells[2] then 
-	 --    idxsBR[1] = idxs[1]
-	 --    idxsBR[2] = idxs[2]
-	 -- elseif idxs[1] == cells[1] and idxs[2] == 1 then 
-	 --    idxsTL[1] = idxs[1]
-	 --    idxsTL[2] = idxs[2]
-	 -- elseif idxs[1] == cells[1] and idxs[2] == cells[2] then 
-	 --    idxsTR[1] = idxs[1]
-	 --    idxsTR[2] = idxs[2]
-	 -- end
 
 	 local gTLPtr = gIn:get(indexer(idxsTL))
 	 local gTRPtr = gIn:get(indexer(idxsTR))
