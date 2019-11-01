@@ -179,9 +179,9 @@ getRecov6CellGen(dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
   rUp : getRecov2CellGen(perpDir, dx, polyOrder, qUL, qUU),
   
   basisC : subst(x=dir, getBasis("basis-precalc/basisSer1x", polyOrder)),
-  baLo : etaDir(dir, -2, dx[dirIdx], basisC),
+  baLo : etaDir(dir, -dx[dirIdx], dx[dirIdx], basisC),
   baCe : etaDir(dir, 0, dx[dirIdx], basisC),
-  baUp : etaDir(dir, 2, dx[dirIdx], basisC),
+  baUp : etaDir(dir, dx[dirIdx], dx[dirIdx], basisC),
   
   rLoCoef : calcInnerProdListGen([dir], [[-3*dx[dirIdx]/2,-dx[dirIdx]/2]], 1, baLo, subst(perpDir=0, rLo)),
   rCeCoef : calcInnerProdListGen([dir], [[-dx[dirIdx]/2,dx[dirIdx]/2]], 1, baCe, subst(perpDir=0, rCe)),
