@@ -15,7 +15,7 @@ printf(fh, "void alloc_binOpData(binOpData_t* data, int nbasis); ~%"),
 for bInd : 1 thru length(bName) do (
   for ci : 1 thru 3 do (
     for pi : 1 thru polyOrderMax do (
-         printf(fh, "void CartFieldBinOpMultiply~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
+      printf(fh, "void CartFieldBinOpMultiply~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
       printf(fh, "~%") 
     ),
     printf(fh, "~%")
@@ -23,15 +23,16 @@ for bInd : 1 thru length(bName) do (
   
   for ci : 1 thru 3 do (
     for pi : 1 thru polyOrderMax do (
-         printf(fh, "void CartFieldBinOpDivide~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
+      printf(fh, "void CartFieldBinOpDivide~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
       printf(fh, "~%") 
     ),
+    printf(fh, "void CartFieldBinOpDividePositivity~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], 1),
     printf(fh, "~%")
   ),
   
   for ci : 1 thru 3 do (
     for pi : 1 thru polyOrderMax do (
-         printf(fh, "void CartFieldBinOpDotProduct~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
+      printf(fh, "void CartFieldBinOpDotProduct~ax~a_P~a(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out); ~%", ci, bName[bInd], pi),
       printf(fh, "~%") 
     ),
     printf(fh, "~%")

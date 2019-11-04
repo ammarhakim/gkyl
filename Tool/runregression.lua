@@ -6,12 +6,27 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
+local lfs = require "lfs"
+
+if GKYL_HAVE_SQLITE3 == false then
+   -- can't run without SQLITE3
+   print("Sorry, runregression needs Sqlite3. This executable was built without it.")
+   print("Rebuild with Sqlite3 enabled. See ./waf configure --help")
+   return 1
+end
+
+local currDir = lfs.currentdir()
+if not string.match(currDir, "Regression$") then
+   -- only run when in Regression directory
+   print("Can only run from Regression source directory.")
+   return 1
+end
+
 local AdiosReader = require "Io.AdiosReader"
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
 local date = require "xsys.date"
-local lfs = require "lfs"
 local lume = require "Lib.lume"
 local sql = require "sqlite3"
 
@@ -420,34 +435,41 @@ local function create_action(test)
    return -2
 end
 
--- function to compare floats (NOT SURE IF THIS IS BEST WAY TO DO
--- THINGS)
-local function check_equal_numeric(expected, actual)
-   if math.abs(actual) < 1e-15 then
-      if math.abs(expected-actual) > 1e-12 then
-	 return false
-      end
-   else
-      if math.abs(1-expected/actual) > 1e-12 then
-	 return false
-      end
+-- function to compare floats: the comparison is normalized to the
+-- maximum value of the field being compared. Perhaps this is too
+-- "coarse" but a direct comparison of floats is very tricky.
+local function check_equal_numeric(expected, actual, maxVal)
+   if maxVal < GKYL_MIN_DOUBLE then
+      return math.max(expected-actual) > 10*GKYL_MIN_DOUBLE
+   end
+   if math.max(expected-actual)/maxVal > 1e-12 then
+      return false
    end
    return true
 end
 
 -- relative difference between two numbers (NOT SURE IF THIS IS BEST
 -- WAY TO DO THINGS)
-local function get_relative_numeric(expected, actual)
-   if math.abs(actual) < 1e-15 then
-      return math.abs(expected-actual)
+local function get_relative_numeric(expected, actual, maxVal)
+   if maxVal < 1e-15 then
+      return math.max(expected-actual)
    else
-      return math.abs(1-expected/actual)
+      return math.abs(expected-actual)/maxVal
    end
+end
+
+-- calculates maximum value in supplied field
+local function maxValueInField(fld)
+   local maxVal = 0.0
+   for i = 1, fld:size() do
+      maxVal = math.max(maxVal, math.abs(fld[i]))
+   end
+   return maxVal
 end
 
 -- function to compare files
 local function compareFiles(f1, f2)
-   --verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
+   -- verboseLog(string.format("Comparing %s %s ...\n", f1, f2))   
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
 		    " ... files %s and/or %s do not exist!\n", f1, f2))
@@ -468,9 +490,11 @@ local function compareFiles(f1, f2)
 		       " ... CartGridField in files %s and %s not the same size!\n", f1, f2))
 	 return false
       end
+
+      local maxVal = maxValueInField(d1) -- maximum value (for numeric comparison)
       for i = 1, d1:size() do
-	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
+	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
 	    cmpPass = false
 	 end
       end
@@ -482,9 +506,11 @@ local function compareFiles(f1, f2)
 		       " ... DynVector in files %s and %s not the same size!\n", f1, f2))
 	 return false
       end
+
+      local maxVal = maxValueInField(d1) -- maximum value (for numeric comparison)
       for i = 1, d1:size() do
-	 if check_equal_numeric(d1[i], d2[i]) == false then
-	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i]))
+	 if check_equal_numeric(d1[i], d2[i], maxVal) == false then
+	    currMaxDiff = math.max(currMaxDiff, get_relative_numeric(d1[i], d2[i], maxVal))
 	    cmpPass = false
 	 end
       end
@@ -514,18 +540,21 @@ local function check_action(test)
    local testPrefix = string.gsub(
       string.sub(test, 3, -5), "(%W)", "%%%1") .. "_"
 
-   local passed = true
+   local passed, count = true, 0
    for fn in lfs.dir(outDirName) do
       local fullNm = outDirName .. fn
       local attr = lfs.attributes(fullNm)
       if attr.mode == "file" then
 	 if string.find(fullNm, testPrefix) and string.sub(fullNm, -3, -1) == ".bp" then
+	    count = count + 1 -- increment number of files compared
 	    local acceptedFileNm = fullResultsDir .. "/" .. string.sub(fullNm, vloc+1, -1)
 	    local status = compareFiles(acceptedFileNm, fullNm)
 	    passed = passed and status
 	 end
       end
    end
+   -- THIS IS A HACK TO ENSURE TESTS DONT PASS WHEN GKEYLL CRASHES
+   if count == 0 then passed = false end
    if passed then
       numPassedTests = numPassedTests+1
       log("... passed.\n")
@@ -609,7 +638,11 @@ When adding new tests it is that developer's responsibility to
 ensure that the results produced are correct. Obviously, others
 may not be able to determine just looking at output that the
 results make sense.
-]]
+
+The runregression tool can only be run from the gkyl/Regression
+directory in the source code repo.
+
+ ]]
 
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
 parser:flag("-a --all", "Run all tests, even those in ignoretests file")

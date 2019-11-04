@@ -33,14 +33,16 @@ function _M.selectIntMomCalc(basisNm, CDIM, VDIM, polyOrder)
 end
 
 -- With piecewise linear selfPrimMoments needs the star moments.
-function _M.selectStarM0Calc(dir, kinSpecies, basisNm, CDIM, VDIM)
+function _M.selectStarM0Calc(dir, kinSpecies, basisNm, CDIM, VDIM, applyPos)
+   local posString = ""
+   if applyPos then posString = "Positivity" end
    local funcNm = ""
    if dir == 1 then
-      funcNm = string.format("%sM0Star%dx%dv%s_VX", kinSpecies, CDIM, VDIM, basisNmMap[basisNm])
-   elseif dir == 2 then
-      funcNm = string.format("%sM0Star%dx%dv%s_VY", kinSpecies, CDIM, VDIM, basisNmMap[basisNm])
-   elseif dir == 3 then
-      funcNm = string.format("%sM0Star%dx%dv%s_VZ", kinSpecies, CDIM, VDIM, basisNmMap[basisNm])
+      funcNm = string.format("%sM0Star%s%dx%dv%s_VX", kinSpecies, posString, CDIM, VDIM, basisNmMap[basisNm])
+   elseif dir == 2 then                                                      
+      funcNm = string.format("%sM0Star%s%dx%dv%s_VY", kinSpecies, posString, CDIM, VDIM, basisNmMap[basisNm])
+   elseif dir == 3 then                                                      
+      funcNm = string.format("%sM0Star%s%dx%dv%s_VZ", kinSpecies, posString, CDIM, VDIM, basisNmMap[basisNm])
    end
    return ffi.C[funcNm]
 end

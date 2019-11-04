@@ -6,22 +6,23 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
-local Basis            = require "Basis"
-local Collisions       = require "App.Collisions"
-local DataStruct       = require "DataStruct"
-local DecompRegionCalc = require "Lib.CartDecomp"
-local Grid             = require "Grid"
-local LinearTrigger    = require "Lib.LinearTrigger"
-local Mpi              = require "Comm.Mpi"
-local Proto            = require "Lib.Proto"
-local Projection       = require "App.Projection"
-local ProjectionBase   = require "App.Projection.ProjectionBase"
-local SpeciesBase      = require "App.Species.SpeciesBase"
-local Time             = require "Lib.Time"
-local Updater          = require "Updater"
-local ffi              = require "ffi"
-local xsys             = require "xsys"
+local AdiosCartFieldIo      = require "Io.AdiosCartFieldIo"
+local Basis                 = require "Basis"
+local Collisions            = require "App.Collisions"
+local DataStruct            = require "DataStruct"
+local DecompRegionCalc      = require "Lib.CartDecomp"
+local Grid                  = require "Grid"
+local LinearTrigger         = require "Lib.LinearTrigger"
+local Mpi                   = require "Comm.Mpi"
+local Proto                 = require "Lib.Proto"
+local Projection            = require "App.Projection"
+local ProjectionBase        = require "App.Projection.ProjectionBase"
+local SpeciesBase           = require "App.Species.SpeciesBase"
+local Time                  = require "Lib.Time"
+local Updater               = require "Updater"
+local ffi                   = require "ffi"
+local xsys                  = require "xsys"
+local ConstDiffusionModDecl = require "Eq.constDiffusionData.ConstDiffusionModDecl"
 
 -- Function to create basis functions.
 local function createBasis(nm, ndim, polyOrder)
@@ -141,6 +142,13 @@ function FluidSpecies:fullInit(appTbl)
          end,
          isInit = true,
       }
+   elseif type(tbl.init) == "string" then
+      -- Specify the suffix of the file with the initial condition (including the extension).
+      -- The prefix is assumed to be the name of the input file.
+      self.projections["init"] = Projection.FluidProjection.ReadInput {
+         inputFile = tbl.init,
+         isInit    = true,
+      }
    end
    if type(tbl.source) == "function" then
       self.projections["initSource"] = Projection.FluidProjection.FunctionProjection {
@@ -149,6 +157,14 @@ function FluidSpecies:fullInit(appTbl)
          end,
          isInit   = false,
          isSource = true,
+      }
+   elseif type(tbl.source) == "string" then
+      -- Specify the suffix of the file with the source (including the extension).
+      -- The prefix is assumed to be the name of the input file.
+      self.projections["initSource"] = Projection.FluidProjection.ReadInput {
+         inputFile = tbl.source,
+         isInit    = false,
+         isSource  = true,
       }
    end
 
@@ -263,9 +279,39 @@ function FluidSpecies:bcCopyFunc(dir, tm, idxIn, fIn, fOut)
    end
 end
 
+function FluidSpecies:bcDirichletFunc(dir, tm, idxIn, fIn, fOut)
+   -- Impose f=fBC at the boundary.
+   if (idxIn == 1) then
+      self.constDiffDirichletBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
+   else
+      self.constDiffDirichletBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
+   end
+end
+
+function FluidSpecies:bcNeumannFunc(dir, tm, idxIn, fIn, fOut)
+   -- Impose f'=fpBC at the boundary.
+   if (idxIn == 1) then
+      self.constDiffNeumannBCs[dir][1](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][1],fOut:data())
+   else
+      self.constDiffNeumannBCs[dir][2](self.grid:dx(dir),fIn:data(),self.auxBCvalues[dir][2],fOut:data())
+   end
+end
+
 -- Function to construct a BC updater.
 function FluidSpecies:makeBcUpdater(dir, edge, bcList, skinLoop,
-                                      hasExtFld)
+                                    hasExtFld)
+
+   -- If BC is Dirichlet or Neumann select appropriate kernels.
+   if (bcList[2] == 5) then
+      local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
+      self.constDiffDirichletBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Dirichlet")
+      table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
+   elseif (bcList[2] == 6) then
+      local nm, ndim, p = self.basis:id(), self.basis:ndim(), self.basis:polyOrder()
+      self.constDiffNeumannBCs = ConstDiffusionModDecl.selectBCs(nm, ndim, p, "Neumann")
+      table.remove(bcList,2) -- Remove the bcType. Updater.Bc expects a table with just a function.
+   end
+
    return Updater.Bc {
       onGrid             = self.grid,
       boundaryConditions = bcList,
@@ -289,14 +335,25 @@ function FluidSpecies:makeSsBcUpdater(dir, inOut, bcList)
 end
 
 function FluidSpecies:createBCs()
+   -- Create a table to store auxiliary values needed by BCs
+   -- and provided by the user in the input file.
+   self.auxBCvalues = {}
+
    -- Functions to make life easier while reading in BCs to apply.
    -- Note: appendBoundaryConditions defined in sub-classes.
    local function handleBc(dir, bc)
+      table.insert(self.auxBCvalues,{nil,nil})
       if bc[1] then
 	 self:appendBoundaryConditions(dir, 'lower', bc[1])
+         if type(bc[1]) == "table" then
+            self.auxBCvalues[dir][1] = bc[1][2]
+         end
       end
       if bc[2] then
 	 self:appendBoundaryConditions(dir, 'upper', bc[2])
+         if type(bc[2]) == "table" then
+            self.auxBCvalues[dir][2] = bc[2][2]
+         end
       end
    end
 
