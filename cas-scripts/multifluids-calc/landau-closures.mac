@@ -1,0 +1,41 @@
+/** 1D Closures */
+
+assume(n0>0)$
+assume(p0>0)$
+assume(m>0)$
+assume(mu1>0)$
+assume(mu1<2)$
+
+/** Exact integrate response */
+resEx : integrate(exp(-t^2/2), t, 0, inf)$
+
+/* Function to extract right eigenvectors from result returned from eigenvectors() command */
+getRightEv(vals, vects) := block([Rev],
+  Rev : (Rev : matrix([]), for i from 1 thru length (vals[1]) 
+    do (for j from 1 thru vals[2][i] 
+      do ( (Rev : addcol(Rev, transpose(matrix(vects[i][j])))))), Rev),
+  return (Rev)
+  )$
+
+/** 2+1 closure */
+A21 : matrix( [0, n0], [1/n0, -mu1*%i] )$
+[vals, vects] : eigenvectors(A21)$
+Rev : getRightEv(vals, vects)$
+Lev : invert(Rev)$
+
+/** Compute expansion coefficients */
+expandCoeff : Lev . transpose( alpha*matrix([n0, 0]) )$
+/** Express general solution in terms of expansion coefficients */
+sol : sum( expandCoeff[i][1]*exp(-%i*vals[1][i]*t)*col(Rev,i), i, 1, 2 )$
+
+/** Now determine final solution for number density evolution */
+nSol : fullratsimp( realpart(sol[1][1])/(alpha*n0) );
+
+/** Compute net response */
+res21 : integrate(nSol, t, 0, inf);
+res : solve([res21=resEx], mu1);
+nSolRes : subst(res, nSol)$
+
+/** Plot result */
+draw2d(color=red, explicit(exp(-t^2/2), t, 0, 10),
+  color=black, explicit(nSolRes, t, 0, 10))$

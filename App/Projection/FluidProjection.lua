@@ -6,10 +6,11 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ProjectionBase = require "App.Projection.ProjectionBase"
-local Proto          = require "Lib.Proto"
-local Updater        = require "Updater"
-local xsys           = require "xsys"
+local ProjectionBase   = require "App.Projection.ProjectionBase"
+local Proto            = require "Lib.Proto"
+local Updater          = require "Updater"
+local xsys             = require "xsys"
+local AdiosCartFieldIo = require "Io.AdiosCartFieldIo"
 
 -- Shell class for fluid projections.
 local FluidProjection = Proto(ProjectionBase)
@@ -23,13 +24,13 @@ end
 function FluidProjection:fullInit(species)
    self.species = species
 
-   self.confBasis  = species.confBasis
-   self.confGrid   = species.grid
+   self.confBasis = species.confBasis
+   self.confGrid  = species.grid
 
    self.cdim = self.confGrid:ndim()
 
-   self.isInit       = xsys.pickBool(self.tbl.isInit, true)
-   self.isSource     = xsys.pickBool(self.tbl.isSource, false)
+   self.isInit   = xsys.pickBool(self.tbl.isInit, true)
+   self.isSource = xsys.pickBool(self.tbl.isSource, false)
    if self.isSource then self.isInit = false end
 end
 
@@ -59,8 +60,30 @@ end
 function FunctionProjection:run(t, distf)
    self.project:advance(t, {}, {distf})
 end
+----------------------------------------------------------------------
+-- Base class for reading an initial condition.
+local ReadInput = Proto(FluidProjection)
 
+function ReadInput:fullInit(species)
+   ReadInput.super.fullInit(self, species)
+
+   self.userInputFile  = self.tbl.inputFile
+end
+function ReadInput:run(t, distf)
+   self.momIoRead = AdiosCartFieldIo {
+      elemType = distf:elemType(),
+      method   = "MPI",
+      metaData = {
+         polyOrder = self.confBasis:polyOrder(),
+         basisType = self.confBasis:id()
+      },
+   }
+
+   local readGhosts = false
+   local tm, fr     = self.momIoRead:read(distf, string.format("%s",self.userInputFile), readGhosts)
+end
 ----------------------------------------------------------------------
 return {
    FunctionProjection = FunctionProjection,
+   ReadInput          = ReadInput,
 }

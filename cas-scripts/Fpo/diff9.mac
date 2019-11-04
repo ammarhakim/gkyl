@@ -1,0 +1,211 @@
+kill(all) $
+load("modal-basis") $
+load("recovery-calc/recovery") $
+assume(dv[0]>0, dv[1]>0, dv[2]>0) $
+numDims : 2 $
+
+for polyOrder : 1 thru 2 do (
+  load("basis-precalc/basisSer1x"),
+  basis1D : basisC[polyOrder],
+  load("basis-precalc/basisSer2x"),
+  basis2D : basisC[polyOrder],
+  
+  gSubList : append(
+    makelist(qTL[i]=gTL[i-1], i, 1, length(basis2D)),
+    makelist(qTC[i]=gTC[i-1], i, 1, length(basis2D)),
+    makelist(qTR[i]=gTR[i-1], i, 1, length(basis2D)),
+    makelist(qCL[i]=gCL[i-1], i, 1, length(basis2D)),
+    makelist(qCC[i]=g[i-1], i, 1, length(basis2D)),
+    makelist(qCR[i]=gCR[i-1], i, 1, length(basis2D)),
+    makelist(qBL[i]=gBL[i-1], i, 1, length(basis2D)),
+    makelist(qBC[i]=gBC[i-1], i, 1, length(basis2D)),
+    makelist(qBR[i]=gBR[i-1], i, 1, length(basis2D))
+    ),
+  fSubList : append(
+    makelist(qTL[i]=fTL[i-1], i, 1, length(basis2D)),
+    makelist(qTC[i]=fTC[i-1], i, 1, length(basis2D)),
+    makelist(qTR[i]=fTR[i-1], i, 1, length(basis2D)),
+    makelist(qCL[i]=fCL[i-1], i, 1, length(basis2D)),
+    makelist(qCC[i]=f[i-1], i, 1, length(basis2D)),
+    makelist(qCR[i]=fCR[i-1], i, 1, length(basis2D)),
+    makelist(qBL[i]=fBL[i-1], i, 1, length(basis2D)),
+    makelist(qBC[i]=fBC[i-1], i, 1, length(basis2D)),
+    makelist(qBR[i]=fBR[i-1], i, 1, length(basis2D)),
+  ),
+
+  recL : getRecov6CellGen(y, [2, 2], polyOrder, 0, [0, 0], qTL, qTC, qCL, qCC, qBL, qBC),
+  recLxx : getRecov6CellGen(y, [2, 2], polyOrder, 0, [2, 0], qTL, qTC, qCL, qCC, qBL, qBC),
+  recLxy : getRecov6CellGen(y, [2, 2], polyOrder, 0, [1, 1], qTL, qTC, qCL, qCC, qBL, qBC),
+  recR : getRecov6CellGen(y, [2, 2], polyOrder, 0, [0, 0], qTC, qTR, qCC, qCR, qBC, qBR),
+  recRxx : getRecov6CellGen(y, [2, 2], polyOrder, 0, [2, 0], qTC, qTR, qCC, qCR, qBC, qBR),
+  recRxy : getRecov6CellGen(y, [2, 2], polyOrder, 0, [1, 1], qTC, qTR, qCC, qCR, qBC, qBR),
+  
+  /* Putting together the surface terms and integration over y */
+  J : (2/dv[0])^4,
+  surfLa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, basis2D),
+    diff(subst(gSubList, recLxx)*subst(fSubList, recL), x)) * J,
+  surfLb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, diff(basis2D, x)),
+    subst(gSubList, recLxx)*subst(fSubList, recL)) * J,
+  
+  surfRa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, basis2D),
+    diff(subst(gSubList, recRxx)*subst(fSubList, recR), x)) * J,
+  surfRb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, diff(basis2D, x)),
+    subst(gSubList, recRxx)*subst(fSubList, recR)) * J,
+
+  /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), x),
+    diff(diff(subst(gCSubList, recx3Cell), x), x)*doExpand1(f, basis2D)) * J,*/
+  vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), x),
+    diff(diff(doExpand1(g, basis2D), x), x)*doExpand1(f, basis2D)) * J,
+  
+  /* Writting surface terms */
+  fname : sconcat("~/max-out/fpoDiffKernelP", polyOrder, "_9C.cpp"),
+  fh : openw(fname),
+  printf(fh, "#include <math.h>~%"),
+  printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
+
+  printf(fh, "void fpoDiffKernelP~a_9C(const double dt, const double *dv, const double *fTL, const double *fTC, const double *fTR, const double *fCL, const double *f, const double *fCR, const double *fBL, const double *fBC, const double *fBR, const double *gTL, const double *gTC, const double *gTR, const double *gCL, const double *g, const double *gCR, const double *gBL, const double *gBC, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
+
+  printf(fh, "  if (isLeftEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else if (isRightEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((-surfLa+surfLb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb-surfLa+surfLb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  }~%~%"),
+  
+  /* Writting the volume term */
+  gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "~%"),
+
+  surfLa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, basis2D),
+    diff(subst(gSubList, recLxy)*subst(fSubList, recL), y)) * J,
+  surfLb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=-1, diff(basis2D, y)),
+    subst(gSubList, recLxy)*subst(fSubList, recL)) * J,
+  
+  surfRa : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, basis2D),
+    diff(subst(gSubList, recRxy)*subst(fSubList, recR), y))) * J,
+  surfRb : calcInnerProdListGen([y], [[-1, 1]], 1, subst(x=1, diff(basis2D, y)),
+    subst(x=0, diff(diff(subst(gRSubList, recx2Cell), x), y)*subst(fRSubList, recx2Cell))) * J,
+
+  /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), y),
+    diff(diff(subst(gCSubList, recx3Cell), x), y)*doExpand1(f, basis2D)) * J,*/
+  vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, x), y),
+    diff(diff(doExpand1(g, basis2D), x), y)*doExpand1(f, basis2D)) * J,
+
+  printf(fh, "  if (isLeftEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else if (isRightEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((-surfLa+surfLb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfRa-surfRb-surfLa+surfLb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  }~%~%"),
+  
+  /* Writting the volume term */
+  gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "~%"),
+  
+  recy2Cell : getRecov2CellGen(y, [2, 2], polyOrder, qB, qT),
+  /*recy3Cell : getRecov3CellGen(y, [2, 2], polyOrder, 0, qB, qC, qT),*/
+  
+  /* g and f substitions for q; accounting for C 0-indexes */
+  gBSubList : append(
+    makelist(qB[i]=gB[i-1], i, 1, length(basis2D)),
+    makelist(qT[i]=g[i-1], i, 1, length(basis2D))
+    ),
+  gCSubList : append(
+    makelist(qB[i]=gB[i-1], i, 1, length(basis2D)),
+    makelist(qC[i]=g[i-1], i, 1, length(basis2D)),
+    makelist(qT[i]=gT[i-1], i, 1, length(basis2D))
+    ),
+  gTSubList : append(
+    makelist(qB[i]=g[i-1], i, 1, length(basis2D)),
+    makelist(qT[i]=gT[i-1], i, 1, length(basis2D))
+    ),
+  fBSubList : append(
+    makelist(qB[i]=fB[i-1], i, 1, length(basis2D)),
+    makelist(qT[i]=f[i-1], i, 1, length(basis2D))
+    ),
+  fTSubList : append(
+    makelist(qB[i]=f[i-1], i, 1, length(basis2D)),
+    makelist(qT[i]=fT[i-1], i, 1, length(basis2D))
+    ),
+  
+  /* Putting together the surface terms and integration over x */
+  J : (2/dv[1])^4, /* !!!! 0-indexed !!!! */
+  surfBa : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, basis2D),
+    subst(y=0, diff(diff(diff(subst(gBSubList, recy2Cell), y), y)*subst(fBSubList, recy2Cell), y))) * J,
+  surfBb : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, diff(basis2D, y)),
+    subst(y=0, diff(diff(subst(gBSubList, recy2Cell), y), y)*subst(fBSubList, recy2Cell))) * J,
+  
+  surfTa : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=1, basis2D),
+    subst(y=0, diff(diff(diff(subst(gTSubList, recy2Cell), y), y)*subst(fTSubList, recy2Cell), y))) * J,
+  surfTb : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=1, diff(basis2D, y)),
+    subst(y=0, diff(diff(subst(gTSubList, recy2Cell), y), y)*subst(fTSubList, recy2Cell))) * J,
+
+  /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), y),
+    diff(diff(subst(gCSubList, recy3Cell), y), y)*doExpand1(f, basis2D)) * J,*/
+  vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), y),
+    diff(diff(doExpand1(g, basis2D), y), y)*doExpand1(f, basis2D)) * J,
+  
+  /* Writting surface terms */
+  printf(fh, "  if (isBotEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfTa-surfTb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else if (isTopEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((-surfBa+surfBb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfTa-surfTb-surfBa+surfBb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  }~%~%"),
+  
+  /* Writting the volume term */
+  gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  
+  surfBa : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, basis2D),
+    subst(y=0, diff(diff(diff(subst(gBSubList, recy2Cell), y), x)*subst(fBSubList, recy2Cell), x))) * J,
+  surfBb : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=-1, diff(basis2D, x)),
+    subst(y=0, diff(diff(subst(gBSubList, recy2Cell), y), x)*subst(fBSubList, recy2Cell))) * J,
+  
+  surfTa : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=1, basis2D),
+    subst(y=0, diff(diff(diff(subst(gTSubList, recy2Cell), y), x)*subst(fTSubList, recy2Cell), x))) * J,
+  surfTb : calcInnerProdListGen([x], [[-1, 1]], 1, subst(y=1, diff(basis2D, x)),
+    subst(y=0, diff(diff(subst(gTSubList, recy2Cell), y), x)*subst(fTSubList, recy2Cell))) * J,
+
+  /* Putting together the volume term */
+  /*vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), x),
+    diff(diff(subst(gCSubList, recy3Cell), y), x)*doExpand1(f, basis2D)) * J,*/
+  vol : calcInnerProdListGen([x,y], [[-1, 1], [-1, 1]], 1, diff(diff(basis2D, y), x),
+    diff(diff(doExpand1(g, basis2D), y), x)*doExpand1(f, basis2D)) * J,
+  
+  /* Writting surface terms */
+  printf(fh, "  if (isBotEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfTa-surfTb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else if (isTopEdge) {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((-surfBa+surfBb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  } else {~%"),
+  gs : subst(gkyl_ipow, "^", float(fullratsimp((surfTa-surfTb-surfBa+surfBb)/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  printf(fh, "  }~%~%"),
+  
+  /* Writting the volume term */
+  gs : subst(gkyl_ipow, "^", float(fullratsimp(vol/2))),
+  for i : 1 thru length(basis2D) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*gs[i]),
+  
+  printf(fh, "}"),
+  close(fh)
+  )

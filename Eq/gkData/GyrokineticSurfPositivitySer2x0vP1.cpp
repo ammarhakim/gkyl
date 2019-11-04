@@ -13,49 +13,36 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
 
   double alpha[2]; 
   alpha[0] = -0.3535533905932737*BmagInv[0]*(1.732050807568877*Phi[2]-3.0*Phi[3])*dfac_y; 
-  double f0Quad[2]; 
-  double f1Quad[2]; 
-  double limQuad[2]; 
+  double rCtrlL[2], rCtrlR[2];  // rCtrl=f1/f0 at each control node in dimensions other than x 
+  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[1]))/(1.732050807568877*(2.0*EPSILON+fl[0])-1.0*fl[2]); 
+  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[1])/(1.732050807568877*(2.0*EPSILON+fl[0])+fl[2]); 
+  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[1]))/(1.732050807568877*(2.0*EPSILON+fr[0])-1.0*fr[2]); 
+  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[1])/(1.732050807568877*(2.0*EPSILON+fr[0])+fr[2]); 
+  double fCtrlL[2], fCtrlR[2];  // fCtrl = anti-limited f evaluated at each control node on x surface 
+  fCtrlL[0] = 0.2886751345948129*(1.732050807568877*fl[0]-1.0*fl[2])*limTheta(rCtrlL[0],1.0); 
+  fCtrlL[1] = 0.2886751345948129*(fl[2]+1.732050807568877*fl[0])*limTheta(rCtrlL[1],1.0); 
+  fCtrlR[0] = 0.2886751345948129*(1.732050807568877*fr[0]-1.0*fr[2])*limTheta(rCtrlR[0],-1.0); 
+  fCtrlR[1] = 0.2886751345948129*(fr[2]+1.732050807568877*fr[0])*limTheta(rCtrlR[1],-1.0); 
+  double fL_AL[2], fR_AL[2];  // f_AL = mode coefficients of anti-limited f on surface 
+  fL_AL[0] = 0.7071067811865475*(fCtrlL[1]+fCtrlL[0]); 
+  fL_AL[1] = 1.224744871391589*(fCtrlL[1]-1.0*fCtrlL[0]); 
+  fR_AL[0] = 0.7071067811865475*(fCtrlR[1]+fCtrlR[0]); 
+  fR_AL[1] = 1.224744871391589*(fCtrlR[1]-1.0*fCtrlR[0]); 
   double alphaQuad; 
-  // determine upwinding at each surface quadrature node 
+  // determine upwinding and enforce limiters at each surface quadrature node 
+  double fhatALQuad[2], fhatAL[2]; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-     f0Quad[0] = -0.7071067811865475*(fl[2]-1.0*fl[0]); 
-     f1Quad[0] = 0.7071067811865475*(fl[3]-1.0*fl[1]); 
-     limQuad[0] = fl[0]/cflL*0.5; 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fL_AL[0]-1.414213562373095*fL_AL[1]), fl[0]/cflL*0.5)); 
   } else {
-     f0Quad[0] = -0.7071067811865475*(fr[2]-1.0*fr[0]); 
-     f1Quad[0] = -0.7071067811865475*(fr[3]-1.0*fr[1]); 
-     limQuad[0] = fr[0]/cflR*0.5; 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fR_AL[0]-1.414213562373095*fR_AL[1]), fr[0]/cflR*0.5)); 
   } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-     f0Quad[1] = 0.7071067811865475*(fl[2]+fl[0]); 
-     f1Quad[1] = -0.7071067811865475*(fl[3]+fl[1]); 
-     limQuad[1] = fl[0]/cflL*0.5; 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fL_AL[1]+fL_AL[0]), fl[0]/cflL*0.5)); 
   } else {
-     f0Quad[1] = 0.7071067811865475*(fr[2]+fr[0]); 
-     f1Quad[1] = 0.7071067811865475*(fr[3]+fr[1]); 
-     limQuad[1] = fr[0]/cflR*0.5; 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fR_AL[1]+fR_AL[0]), fr[0]/cflR*0.5)); 
   } 
-  double fhat[4]; // (volume) mode coefficients of fhat 
-  fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
-  fhat[1] = 0.7071067811865475*(f1Quad[1]+f1Quad[0]); 
-  fhat[2] = 0.7071067811865475*(f0Quad[1]-1.0*f0Quad[0]); 
-  fhat[3] = 0.7071067811865475*(f1Quad[1]-1.0*f1Quad[0]); 
-  double rCtrl[2];  // rCtrl=f1/f0 at each control node in dimensions other than x 
-  rCtrl[0] = -(1.0*(1.732050807568877*fhat[3]-3.0*fhat[1]))/(1.732050807568877*(2.0*EPSILON+fhat[0])-1.0*fhat[2]); 
-  rCtrl[1] = (1.732050807568877*fhat[3]+3.0*fhat[1])/(1.732050807568877*(2.0*EPSILON+fhat[0])+fhat[2]); 
-  double fhatCtrl[2];  // fhatCtrl = anti-limited fhat evaluated at each control node on x surface 
-  fhatCtrl[0] = 0.2886751345948129*(1.732050807568877*fhat[0]-1.0*fhat[2])*limTheta(rCtrl[0],-1.0); 
-  fhatCtrl[1] = 0.2886751345948129*(fhat[2]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0); 
-  double fhatAL[2];  // fhatAL = mode coefficients of anti-limited f on surface 
-  fhatAL[0] = 0.7071067811865475*(fhatCtrl[1]+fhatCtrl[0]); 
-  fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
-  // enforce limiters at surface quadrature nodes 
-  double fhatALQuad[2]; 
-  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
 
@@ -91,49 +78,36 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
 
   double alpha[2]; 
   alpha[0] = 0.3535533905932737*BmagInv[0]*(1.732050807568877*Phi[1]-3.0*Phi[3])*dfac_x; 
-  double f0Quad[2]; 
-  double f1Quad[2]; 
-  double limQuad[2]; 
+  double rCtrlL[2], rCtrlR[2];  // rCtrl=f1/f0 at each control node in dimensions other than y 
+  rCtrlL[0] = -(1.0*(1.732050807568877*fl[3]-3.0*fl[2]))/(1.732050807568877*(2.0*EPSILON+fl[0])-1.0*fl[1]); 
+  rCtrlL[1] = (1.732050807568877*fl[3]+3.0*fl[2])/(1.732050807568877*(2.0*EPSILON+fl[0])+fl[1]); 
+  rCtrlR[0] = -(1.0*(1.732050807568877*fr[3]-3.0*fr[2]))/(1.732050807568877*(2.0*EPSILON+fr[0])-1.0*fr[1]); 
+  rCtrlR[1] = (1.732050807568877*fr[3]+3.0*fr[2])/(1.732050807568877*(2.0*EPSILON+fr[0])+fr[1]); 
+  double fCtrlL[2], fCtrlR[2];  // fCtrl = anti-limited f evaluated at each control node on y surface 
+  fCtrlL[0] = 0.2886751345948129*(1.732050807568877*fl[0]-1.0*fl[1])*limTheta(rCtrlL[0],1.0); 
+  fCtrlL[1] = 0.2886751345948129*(fl[1]+1.732050807568877*fl[0])*limTheta(rCtrlL[1],1.0); 
+  fCtrlR[0] = 0.2886751345948129*(1.732050807568877*fr[0]-1.0*fr[1])*limTheta(rCtrlR[0],-1.0); 
+  fCtrlR[1] = 0.2886751345948129*(fr[1]+1.732050807568877*fr[0])*limTheta(rCtrlR[1],-1.0); 
+  double fL_AL[2], fR_AL[2];  // f_AL = mode coefficients of anti-limited f on surface 
+  fL_AL[0] = 0.7071067811865475*(fCtrlL[1]+fCtrlL[0]); 
+  fL_AL[1] = 1.224744871391589*(fCtrlL[1]-1.0*fCtrlL[0]); 
+  fR_AL[0] = 0.7071067811865475*(fCtrlR[1]+fCtrlR[0]); 
+  fR_AL[1] = 1.224744871391589*(fCtrlR[1]-1.0*fCtrlR[0]); 
   double alphaQuad; 
-  // determine upwinding at each surface quadrature node 
+  // determine upwinding and enforce limiters at each surface quadrature node 
+  double fhatALQuad[2], fhatAL[2]; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-     f0Quad[0] = -0.7071067811865475*(fl[1]-1.0*fl[0]); 
-     f1Quad[0] = 0.7071067811865475*(fl[3]-1.0*fl[2]); 
-     limQuad[0] = fl[0]/cflL*0.5; 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fL_AL[0]-1.414213562373095*fL_AL[1]), fl[0]/cflL*0.5)); 
   } else {
-     f0Quad[0] = -0.7071067811865475*(fr[1]-1.0*fr[0]); 
-     f1Quad[0] = -0.7071067811865475*(fr[3]-1.0*fr[2]); 
-     limQuad[0] = fr[0]/cflR*0.5; 
+  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fR_AL[0]-1.414213562373095*fR_AL[1]), fr[0]/cflR*0.5)); 
   } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-     f0Quad[1] = 0.7071067811865475*(fl[1]+fl[0]); 
-     f1Quad[1] = -0.7071067811865475*(fl[3]+fl[2]); 
-     limQuad[1] = fl[0]/cflL*0.5; 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fL_AL[1]+fL_AL[0]), fl[0]/cflL*0.5)); 
   } else {
-     f0Quad[1] = 0.7071067811865475*(fr[1]+fr[0]); 
-     f1Quad[1] = 0.7071067811865475*(fr[3]+fr[2]); 
-     limQuad[1] = fr[0]/cflR*0.5; 
+  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fR_AL[1]+fR_AL[0]), fr[0]/cflR*0.5)); 
   } 
-  double fhat[4]; // (volume) mode coefficients of fhat 
-  fhat[0] = 0.7071067811865475*(f0Quad[1]+f0Quad[0]); 
-  fhat[1] = 0.7071067811865475*(f0Quad[1]-1.0*f0Quad[0]); 
-  fhat[2] = 0.7071067811865475*(f1Quad[1]+f1Quad[0]); 
-  fhat[3] = 0.7071067811865475*(f1Quad[1]-1.0*f1Quad[0]); 
-  double rCtrl[2];  // rCtrl=f1/f0 at each control node in dimensions other than y 
-  rCtrl[0] = -(1.0*(1.732050807568877*fhat[3]-3.0*fhat[2]))/(1.732050807568877*(2.0*EPSILON+fhat[0])-1.0*fhat[1]); 
-  rCtrl[1] = (1.732050807568877*fhat[3]+3.0*fhat[2])/(1.732050807568877*(2.0*EPSILON+fhat[0])+fhat[1]); 
-  double fhatCtrl[2];  // fhatCtrl = anti-limited fhat evaluated at each control node on y surface 
-  fhatCtrl[0] = 0.2886751345948129*(1.732050807568877*fhat[0]-1.0*fhat[1])*limTheta(rCtrl[0],-1.0); 
-  fhatCtrl[1] = 0.2886751345948129*(fhat[1]+1.732050807568877*fhat[0])*limTheta(rCtrl[1],-1.0); 
-  double fhatAL[2];  // fhatAL = mode coefficients of anti-limited f on surface 
-  fhatAL[0] = 0.7071067811865475*(fhatCtrl[1]+fhatCtrl[0]); 
-  fhatAL[1] = 1.224744871391589*(fhatCtrl[1]-1.0*fhatCtrl[0]); 
-  // enforce limiters at surface quadrature nodes 
-  double fhatALQuad[2]; 
-  fhatALQuad[0] = std::max(0., std::min(0.5*(1.414213562373095*fhatAL[0]-1.414213562373095*fhatAL[1]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0., std::min(0.7071067811865476*(fhatAL[1]+fhatAL[0]), limQuad[1])); 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
 

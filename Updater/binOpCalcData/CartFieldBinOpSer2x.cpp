@@ -112,16 +112,16 @@ void CartFieldBinOpDivide2xSer_P1(binOpData_t* data, const double *A, const doub
  
   // If a corner value is below zero, use cell average A.
   bool avgA = false;
-  if (1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if (1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-1.5*A[3])+0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-1.5*A[3])-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-1.5*A[3])-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-1.5*A[3])-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.5*A[3]+0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
  
@@ -157,7 +157,7 @@ void CartFieldBinOpDivide2xSer_P1(binOpData_t* data, const double *A, const doub
   } 
  
   // Fill AEM matrix. 
-  data->AEM_S = Eigen::MatrixXd::Zero(4,4);
+  data->AEM_S = Eigen::MatrixXd::Zero(4,4); 
   data->AEM_S(0,0) = 0.5*As[0]; 
   data->AEM_S(0,1) = 0.5*As[1]; 
   data->AEM_S(0,2) = 0.5*As[2]; 
@@ -174,21 +174,21 @@ void CartFieldBinOpDivide2xSer_P1(binOpData_t* data, const double *A, const doub
   data->AEM_S(3,1) = 0.5*As[2]; 
   data->AEM_S(3,2) = 0.5*As[1]; 
   data->AEM_S(3,3) = 0.5*As[0]; 
- 
+
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 4*vd; 
     // Fill BEV. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
- 
+
     // Solve the system of equations. 
     data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*4,4,1) = data->u_S; 
   } 
-} 
- 
+}
+
 void CartFieldBinOpDivide2xSer_P2(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
@@ -199,16 +199,16 @@ void CartFieldBinOpDivide2xSer_P2(binOpData_t* data, const double *A, const doub
  
   // If a corner value is below zero, use cell average A.
   bool avgA = false;
-  if ((-1.936491673103709*A[7])-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-1.936491673103709*A[7])-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-1.936491673103709*A[7])-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-1.936491673103709*A[7])+1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]+0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if (1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if (1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (1.936491673103709*A[7]+1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]+0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
  
@@ -260,7 +260,7 @@ void CartFieldBinOpDivide2xSer_P2(binOpData_t* data, const double *A, const doub
   } 
  
   // Fill AEM matrix. 
-  data->AEM_S = Eigen::MatrixXd::Zero(8,8);
+  data->AEM_S = Eigen::MatrixXd::Zero(8,8); 
   data->AEM_S(0,0) = 0.5*As[0]; 
   data->AEM_S(0,1) = 0.5*As[1]; 
   data->AEM_S(0,2) = 0.5*As[2]; 
@@ -323,21 +323,21 @@ void CartFieldBinOpDivide2xSer_P2(binOpData_t* data, const double *A, const doub
   data->AEM_S(7,5) = 0.31943828249997*As[7]+0.5000000000000001*As[1]; 
   data->AEM_S(7,6) = 0.4*As[3]; 
   data->AEM_S(7,7) = 0.31943828249997*As[5]+0.4472135954999579*As[4]+0.5*As[0]; 
- 
+
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 8*vd; 
     // Fill BEV. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7]; 
- 
+
     // Solve the system of equations. 
     data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*8,8,1) = data->u_S; 
   } 
-} 
- 
+}
+
 void CartFieldBinOpDivide2xSer_P3(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       denominator field (must be a scalar field). 
@@ -348,16 +348,16 @@ void CartFieldBinOpDivide2xSer_P3(binOpData_t* data, const double *A, const doub
  
   // If a corner value is below zero, use cell average A.
   bool avgA = false;
-  if (2.29128784747792*A[11]+2.29128784747792*A[10]-1.322875655532295*A[9]-1.322875655532295*A[8]-1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (2.29128784747792*A[11]+2.29128784747792*A[10]-1.322875655532295*A[9]-1.322875655532295*A[8]-1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if (2.29128784747792*A[11]+2.29128784747792*A[10]-1.322875655532295*A[9]-1.322875655532295*A[8]-1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-2.29128784747792*A[11])-2.29128784747792*A[10]+1.322875655532295*A[9]-1.322875655532295*A[8]-1.936491673103709*A[7]+1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]+0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-2.29128784747792*A[11])-2.29128784747792*A[10]-1.322875655532295*A[9]+1.322875655532295*A[8]+1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if ((-2.29128784747792*A[11])-2.29128784747792*A[10]-1.322875655532295*A[9]+1.322875655532295*A[8]+1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
-  if ((-2.29128784747792*A[11])-2.29128784747792*A[10]-1.322875655532295*A[9]+1.322875655532295*A[8]+1.936491673103709*A[7]-1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]-1.5*A[3]-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0) { 
+  if (2.29128784747792*A[11]+2.29128784747792*A[10]+1.322875655532295*A[9]+1.322875655532295*A[8]+1.936491673103709*A[7]+1.936491673103709*A[6]+1.118033988749895*A[5]+1.118033988749895*A[4]+1.5*A[3]+0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) { 
     avgA = true;
   }
  
@@ -425,7 +425,7 @@ void CartFieldBinOpDivide2xSer_P3(binOpData_t* data, const double *A, const doub
   } 
  
   // Fill AEM matrix. 
-  data->AEM_S = Eigen::MatrixXd::Zero(12,12);
+  data->AEM_S = Eigen::MatrixXd::Zero(12,12); 
   data->AEM_S(0,0) = 0.5*As[0]; 
   data->AEM_S(0,1) = 0.5*As[1]; 
   data->AEM_S(0,2) = 0.5*As[2]; 
@@ -552,21 +552,170 @@ void CartFieldBinOpDivide2xSer_P3(binOpData_t* data, const double *A, const doub
   data->AEM_S(11,7) = 0.2981423969999719*As[9]+0.3927922024247863*As[6]+0.4391550328268399*As[2]; 
   data->AEM_S(11,9) = 0.2981423969999719*As[7]+0.5*As[1]; 
   data->AEM_S(11,11) = 0.2981423969999719*As[5]+0.4472135954999579*As[4]+0.5*As[0]; 
- 
+
   for(unsigned short int vd=0; vd<Ncomp; vd++) 
   { 
     b0 = 12*vd; 
     // Fill BEV. 
     data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3],Bs[b0+4],Bs[b0+5],Bs[b0+6],Bs[b0+7],Bs[b0+8],Bs[b0+9],Bs[b0+10],Bs[b0+11]; 
- 
+
     // Solve the system of equations. 
     data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  
     // Copy data from Eigen vector. 
     Eigen::Map<VectorXd>(out+vd*12,12,1) = data->u_S; 
   } 
-} 
+}
+
+void CartFieldBinOpDividePositivity2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
+{ 
+  // A:       denominator field (must be a scalar field). 
+  // B:       numerator field (can be scalar or vector). 
+  // Ncomp:   number of components of B (could be 1D, 2D, 3D, vector). 
+  // eqNcomp: =1 if A:numComponents=B:numComponents, =0 else. 
+  // out:     output field (same number of components as B). 
  
+  // If A<0 at corners, but A>0 near positivity control points, use cell average A.
+  bool expA = false;
+  bool avgA = false;
+  if ((1.5*A[3]-0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) && (0.24*A[3]-0.3464101615137755*A[2]-0.3464101615137755*A[1]+0.5*A[0] > 0.0)) { 
+    expA = true;
+  }
+  if (((-1.5*A[3])+0.8660254037844386*A[2]-0.8660254037844386*A[1]+0.5*A[0] < 0.0) && ((-0.24*A[3])+0.3464101615137755*A[2]-0.3464101615137755*A[1]+0.5*A[0] > 0.0)) { 
+    expA = true;
+  }
+  if (((-1.5*A[3])-0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) && ((-0.24*A[3])-0.3464101615137755*A[2]+0.3464101615137755*A[1]+0.5*A[0] > 0.0)) { 
+    expA = true;
+  }
+  if ((1.5*A[3]+0.8660254037844386*A[2]+0.8660254037844386*A[1]+0.5*A[0] < 0.0) && (0.24*A[3]+0.3464101615137755*A[2]+0.3464101615137755*A[1]+0.5*A[0] > 0.0)) { 
+    expA = true;
+  }
+  // If A is zero near positivity control points, use cell average A.
+  if (0.24*A[3]-0.3464101615137755*A[2]-0.3464101615137755*A[1]+0.5*A[0] < 0.0) { 
+    avgA = true;
+  }
+  if ((-0.24*A[3])+0.3464101615137755*A[2]-0.3464101615137755*A[1]+0.5*A[0] < 0.0) { 
+    avgA = true;
+  }
+  if ((-0.24*A[3])-0.3464101615137755*A[2]+0.3464101615137755*A[1]+0.5*A[0] < 0.0) { 
+    avgA = true;
+  }
+  if (0.24*A[3]+0.3464101615137755*A[2]+0.3464101615137755*A[1]+0.5*A[0] < 0.0) { 
+    avgA = true;
+  }
+ 
+  unsigned short int b0; 
+  double As[4]; 
+  double Bs[4*Ncomp]; 
+  if (avgA) { 
+    As[0] = A[0]; 
+    As[1] = 0.0; 
+    As[2] = 0.0; 
+    As[3] = 0.0; 
+    for(unsigned short int vd=0; vd<Ncomp; vd++) 
+    { 
+      b0 = 4*vd; 
+      Bs[b0] = B[b0]; 
+      Bs[b0+1] = 0.0; 
+      Bs[b0+2] = 0.0; 
+      Bs[b0+3] = 0.0; 
+    } 
+  } else { 
+    As[0] = A[0]; 
+    As[1] = A[1]; 
+    As[2] = A[2]; 
+    As[3] = A[3]; 
+    for(unsigned short int vd=0; vd<Ncomp; vd++) 
+    { 
+      b0 = 4*vd; 
+      Bs[b0] = B[b0]; 
+      Bs[b0+1] = B[b0+1]; 
+      Bs[b0+2] = B[b0+2]; 
+      Bs[b0+3] = B[b0+3]; 
+    } 
+  } 
+ 
+  if ((avgA) || (!expA)) {
+    // Fill AEM matrix. 
+    data->AEM_S = Eigen::MatrixXd::Zero(4,4); 
+    data->AEM_S(0,0) = 0.5*As[0]; 
+    data->AEM_S(0,1) = 0.5*As[1]; 
+    data->AEM_S(0,2) = 0.5*As[2]; 
+    data->AEM_S(0,3) = 0.5*As[3]; 
+    data->AEM_S(1,0) = 0.5*As[1]; 
+    data->AEM_S(1,1) = 0.5*As[0]; 
+    data->AEM_S(1,2) = 0.5*As[3]; 
+    data->AEM_S(1,3) = 0.5*As[2]; 
+    data->AEM_S(2,0) = 0.5*As[2]; 
+    data->AEM_S(2,1) = 0.5*As[3]; 
+    data->AEM_S(2,2) = 0.5*As[0]; 
+    data->AEM_S(2,3) = 0.5*As[1]; 
+    data->AEM_S(3,0) = 0.5*As[3]; 
+    data->AEM_S(3,1) = 0.5*As[2]; 
+    data->AEM_S(3,2) = 0.5*As[1]; 
+    data->AEM_S(3,3) = 0.5*As[0]; 
+
+    for(unsigned short int vd=0; vd<Ncomp; vd++) 
+    { 
+      b0 = 4*vd; 
+      // Fill BEV. 
+      data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
+
+      // Solve the system of equations. 
+      data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
+ 
+      // Copy data from Eigen vector. 
+      Eigen::Map<VectorXd>(out+vd*4,4,1) = data->u_S; 
+    } 
+  } else {
+    double xBar[4];
+    double g1[4];
+    xBar[0] = (1.0*As[3])/(1.732050807568877*As[2]-3.0*As[0])-(1.732050807568878*As[1])/(1.732050807568877*As[2]-3.0*As[0]); 
+    xBar[1] = (1.0*As[3])/(1.732050807568877*As[2]+3.0*As[0])+(1.732050807568878*As[1])/(1.732050807568877*As[2]+3.0*As[0]); 
+
+    g1[0] = (3.0*xBar[0])/(1.0-1.0*xBar[0]*xBar[0])-(1.0*xBar[0]*xBar[0]*xBar[0])/(1.0-1.0*xBar[0]*xBar[0]); 
+    g1[1] = (3.0*xBar[1])/(1.0-1.0*xBar[1]*xBar[1])-(1.0*xBar[1]*xBar[1]*xBar[1])/(1.0-1.0*xBar[1]*xBar[1]); 
+
+    xBar[2] = (1.0*As[3])/(1.732050807568877*As[1]-3.0*As[0])-(1.732050807568878*As[2])/(1.732050807568877*As[1]-3.0*As[0]); 
+    xBar[3] = (1.0*As[3])/(1.732050807568877*As[1]+3.0*As[0])+(1.732050807568878*As[2])/(1.732050807568877*As[1]+3.0*As[0]); 
+
+    g1[2] = (3.0*xBar[2])/(1.0-1.0*xBar[2]*xBar[2])-(1.0*xBar[2]*xBar[2]*xBar[2])/(1.0-1.0*xBar[2]*xBar[2]); 
+    g1[3] = (3.0*xBar[3])/(1.0-1.0*xBar[3]*xBar[3])-(1.0*xBar[3]*xBar[3]*xBar[3])/(1.0-1.0*xBar[3]*xBar[3]); 
+
+    // Fill AEM matrix. 
+    data->AEM_S = Eigen::MatrixXd::Zero(4,4); 
+    data->AEM_S(0,0) = 0.5*As[0]; 
+    data->AEM_S(0,1) = 0.5*As[1]; 
+    data->AEM_S(0,2) = 0.5*As[2]; 
+    data->AEM_S(0,3) = 0.5*As[3]; 
+    data->AEM_S(1,0) = 0.5*As[1]; 
+    data->AEM_S(1,1) = (-(0.25*As[3])/g1[1])+(0.25*As[3])/g1[0]-(0.4330127018922193*As[1])/g1[1]-(0.4330127018922193*As[1])/g1[0]+As[0]; 
+    data->AEM_S(1,2) = 0.5*As[3]; 
+    data->AEM_S(1,3) = (-(0.4330127018922193*As[3])/g1[1])-(0.4330127018922193*As[3])/g1[0]+As[2]-(0.75*As[1])/g1[1]+(0.75*As[1])/g1[0]; 
+    data->AEM_S(2,0) = 0.5*As[2]; 
+    data->AEM_S(2,1) = 0.5*As[3]; 
+    data->AEM_S(2,2) = (-(0.25*As[3])/g1[3])-(0.4330127018922193*As[2])/g1[3]+(0.25*As[3])/g1[2]-(0.4330127018922193*As[2])/g1[2]+As[0]; 
+    data->AEM_S(2,3) = (-(0.4330127018922193*As[3])/g1[3])-(0.75*As[2])/g1[3]-(0.4330127018922193*As[3])/g1[2]+(0.75*As[2])/g1[2]+As[1]; 
+    data->AEM_S(3,0) = 0.5*As[3]; 
+    data->AEM_S(3,1) = (-(0.4330127018922193*As[3])/g1[1])-(0.4330127018922193*As[3])/g1[0]+As[2]-(0.75*As[1])/g1[1]+(0.75*As[1])/g1[0]; 
+    data->AEM_S(3,2) = (-(0.4330127018922193*As[3])/g1[3])-(0.75*As[2])/g1[3]-(0.4330127018922193*As[3])/g1[2]+(0.75*As[2])/g1[2]+As[1]; 
+    data->AEM_S(3,3) = (-(0.25*As[3])/g1[3])-(0.4330127018922193*As[2])/g1[3]+(0.25*As[3])/g1[2]-(0.25*As[3])/g1[1]+(0.25*As[3])/g1[0]-(0.4330127018922193*As[2])/g1[2]-(0.4330127018922193*As[1])/g1[1]-(0.4330127018922193*As[1])/g1[0]+1.5*As[0]; 
+
+    for(unsigned short int vd=0; vd<Ncomp; vd++) 
+    { 
+      b0 = 4*vd; 
+      // Fill BEV. 
+      data->BEV_S << Bs[b0],Bs[b0+1],Bs[b0+2],Bs[b0+3]; 
+
+      // Solve the system of equations. 
+      data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
+ 
+      // Copy data from Eigen vector. 
+      Eigen::Map<VectorXd>(out+vd*4,4,1) = data->u_S; 
+    } 
+  };
+}
+
 void CartFieldBinOpDotProduct2xSer_P1(binOpData_t* data, const double *A, const double *B, const short int Ncomp, const short int eqNcomp, double *out) 
 { 
   // A:       scalar/vector field. 

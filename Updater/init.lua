@@ -14,6 +14,7 @@ local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCa
 local ConfToPhase = require "Updater.ConfToPhase"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
+local EvalOnNodes = require "Updater.EvalOnNodes"
 local FemGyroaverage = require "Updater.FemGyroaverage"
 local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
@@ -44,6 +45,7 @@ return {
    ConfToPhase = ConfToPhase,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
+   EvalOnNodes = EvalOnNodes,
    FemGyroaverage = FemGyroaverage,
    FemParPoisson = FemParPoisson,
    FemPerpPoisson = FemPerpPoisson,

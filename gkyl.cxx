@@ -5,23 +5,25 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
+// gkyl includes
 #include <gkylconfig.h>
 #include <gkylhgtip.h>
+#include <Gkyl.h>
 
-// library includes
-#include <lua.hpp>
+#ifdef HAVE_MPI_H
+# include <mpi.h>
+#endif
 
-// std include
-#include <fenv.h> 
-#include <fstream>
+// std includes
+#include <algorithm>
+#include <cfenv>
 #include <iostream>
-#include <limits>
-#include <map>
-#include <sstream>
-#include <stdlib.h>
+#include <list>
+#include <stdexcept>
 #include <string>
-#include <tuple>
+#include <unistd.h>
 
+// Compiler specific includes
 #if defined(__clang__)
 // nothing to include
 #elif defined(__powerpc__)
@@ -30,233 +32,32 @@
 # include <xmmintrin.h>
 #endif
 
-#include <mpi.h>
-#include <GkMpiFuncs.h>
+// Compiler specificd defines
 
-#ifdef HAVE_ADIOS_H
-# include <adios.h>
-# include <adios_read.h>
+// (We need to have this first as both Intel and PGI define __GNUC__
+// flags)
+#if defined(__GNUC__) || defined(__GNUG__)
+#define GKYL_COMPILER_ID "GCC"
 #endif
 
-#ifdef HAVE_EIGEN_CORE
-#include <Eigen/Core>
-#endif
-
-#ifdef HAVE_ZMQ_H
-#include <zmq.h>
-#endif
-
-// Gkyl includes
-#include <lfs.h>
-#include <whereami.h>
-#include <base64.h>
-
-// A simple logger for parallel simulations
-class Logger {
-  public:
-    Logger() : rank(0) {
-#ifdef HAVE_MPI_H
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-#endif      
-    }
-    void log(const char *m) const {
-      if (rank == 0)
-        std::cout << m << std::endl;
-    }
-  private:
-    int rank;
-};
-
-// Class to store information about various tools
-class GkToolInfo {
-  public:
-    GkToolInfo(const std::string& script, const std::string& description)
-      : script(script), description(description) {
-    }
-
-    // Name of script and short description
-    std::string script, description;
-};
-
-// Finish simulation
-int finish(int err) {
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-  if (err != 0) {
-    MPI_Abort(MPI_COMM_WORLD, err);
-  }
-  else {
-    MPI_Finalize();
-  }
-
-  return err;
-}
-
-// Find location of executable
-std::string
-findExecPath() {
-  int len = wai_getExecutablePath(NULL, 0, NULL);
-  char *path = (char*) malloc(len+1);
-  int dirname_len;
-  wai_getExecutablePath(path, len, &dirname_len);
-  path[len] = '\0';
-  std::string execPath = std::string(path, dirname_len);
-  free(path);
-  return execPath;
-}
-
-// Get ZMQ version
-std::tuple<int, int, int>
-getZmqVersion() {
-#ifdef HAVE_ZMQ_H
-  int major, minor, patch;
-  zmq_version (&major, &minor, &patch);
-  return std::make_tuple(major, minor, patch);
-#endif
-  return std::make_tuple(0, 0, 0);
-}
-
-// read contents of inpFile
-std::string
-readInputFile(const std::string& inpFile) {
-  int size;
-  std::string buffer;
-
-  int rank;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);  
-  if (rank == 0) {
-    std::ifstream inpf(inpFile.c_str()); 
-    inpf.seekg(0, std::ios::end);
-    size = inpf.tellg();
-    buffer = std::string(size, ' ');
-    inpf.seekg(0);
-    inpf.read(&buffer[0], size);
-  }
-
-  MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
-  if (rank > 0)
-    buffer = std::string(size, ' ');
-  MPI_Bcast(&buffer[0], size, MPI_CHAR, 0, MPI_COMM_WORLD);
-
-  return buffer;
-}
-
-// Create top-level variable definitions
-std::string
-createTopLevelDefs(int argc, char **argv, const std::string& inpFile,
-  const std::string& inpFileContents,
-  const std::map<std::string, GkToolInfo>& toolList) {
-  // load compile-time constants into Lua compiler so they become
-  // available to scripts
-  std::ostringstream varDefs;
-
-  // find executable location and modify package paths
-  auto execPath = findExecPath();
-  varDefs << "package.path = package.path .. \";"
-          << execPath << "/?.lua;"
-          << execPath << "/Lib/?.lua;" // we need add Lib to allow using external libraries
-          << execPath << "/?/init.lua" << "\"" << std::endl;
-
-  varDefs << "package.cpath = package.cpath .. \";"
-          << execPath << "/../lib/lib?.so;"
-          << execPath << "/../lib/lib?.dylib;"
-          << "\"" << std::endl;
-
-  // info about build
-  varDefs << "GKYL_EXEC_PATH = \"" << execPath << "\"" << std::endl;
-  varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
-  varDefs << "GKYL_HG_CHANGESET = \"" << GKYL_HG_CHANGESET << "\"" << std::endl;
-  varDefs << "GKYL_BUILD_DATE = \"" << __DATE__ << " " << __TIME__ << "\"" << std::endl;
-  
-#ifdef HAVE_MPI_H
-  varDefs << "GKYL_HAVE_MPI = true" << std::endl;
+#if defined(__clang__)
+#if defined(__APPLE__)
+#define GKYL_COMPILER_ID "Apple Clang"
 #else
-  varDefs << "GKYL_HAVE_MPI = false" << std::endl;
+#define GKYL_COMPILER_ID "Clang"
+#endif
 #endif
 
-#ifdef HAVE_ADIOS_H
-  varDefs << "GKYL_HAVE_ADIOS = true" << std::endl;
-#else
-  varDefs << "GKYL_HAVE_ADIOS = false" << std::endl;
+#if defined(__ICC)
+#define GKYL_COMPILER_ID "Intel"
 #endif
 
-#ifdef HAVE_EIGEN_CORE
-  varDefs << "GKYL_HAVE_EIGEN = true" << std::endl;
-#else
-  varDefs << "GKYL_HAVE_EIGEN = false" << std::endl;
+#if defined(__PGI)
+#define GKYL_COMPILER_ID "PGI"
 #endif
-
-#ifdef HAVE_ZMQ_H
-  varDefs << "GKYL_HAVE_ZMQ = true" << std::endl;
-  // get ZMQ version and store it so scripts can get at it
-  int zmajor, zminor, zpatch;
-  std::tie(zmajor, zminor, zpatch) = getZmqVersion();
-  varDefs << "GKYL_ZMQ_VERSION = { ";
-  varDefs << "major = " << zmajor << ", ";
-  varDefs << "minor = " << zminor << ", ";
-  varDefs << "patch = " << zpatch << ", ";
-  varDefs << "}" << std::endl;
-#else
-  varDefs << "GKYL_HAVE_ZMQ = false" << std::endl;
-#endif
-  
-  // numeric limits
-  varDefs << "GKYL_MIN_DOUBLE = " << std::numeric_limits<double>::min() << std::endl;
-  varDefs << "GKYL_MIN_FLOAT = " << std::numeric_limits<float>::min() << std::endl;
-  varDefs << "GKYL_MAX_DOUBLE = " << std::numeric_limits<double>::max() << std::endl;
-  varDefs << "GKYL_MAX_FLOAT = " << std::numeric_limits<float>::max() << std::endl;
-  varDefs << "GKYL_EPSILON = " << std::numeric_limits<double>::epsilon() << std::endl;
-  
-  // set some JIT parameters to fiddle around with optimizations
-  varDefs << "jit.opt.start('callunroll=40', 'loopunroll=80', 'maxmcode=40960', 'maxtrace=8000', 'maxrecord=16000', 'minstitch=3')"
-          << std::endl;
-
-  // This is change from commit e2448fa. Rerolling it back because of unforseen consequences
-  // std::string myInpFile(inpFile);
-
-  // // figure out output prefix. This is complicated by the fact the
-  // // input file (or tool file) may be specified via full path
-  // auto const slashPos = myInpFile.find_last_of('/');
-  // if (std::string::npos != slashPos)
-  //   myInpFile = myInpFile.substr(slashPos+1);
-
-  // std::string snm(myInpFile);
-  // auto const trunc = myInpFile.find_last_of(".", snm.size());
-  // if (std::string::npos != trunc)
-  std::string snm(inpFile);
-  auto const trunc = inpFile.find_last_of(".", snm.size());
-  if (std::string::npos != trunc)
-    snm.erase(trunc, snm.size());
-  varDefs << "GKYL_OUT_PREFIX = '" << snm << "'" << std::endl;
-
-  // we need to base64 encode file contents to avoid issues with Lua
-  // loadstr method getting confused with embedded strings etc
-  std::string inpfEncoded = base64_encode(
-    reinterpret_cast<const unsigned char*>(inpFileContents.c_str()), inpFileContents.length());
-
-  varDefs << "GKYL_INP_FILE_CONTENTS = \"" << inpfEncoded  << "\" " << std::endl;
-
-  varDefs << "GKYL_COMMANDS = {}" << std::endl;
-  // just append list of commands 
-  for (unsigned i=2; i<argc; ++i)
-    varDefs << "GKYL_COMMANDS[" << i-1 << "] = \"" << argv[i]  << "\"" << std::endl;
-
-  varDefs << "GKYL_TOOLS = {}" << std::endl;
-  // append list of tools
-  for (auto tool : toolList)
-    varDefs << "GKYL_TOOLS." << tool.first << " = { \""
-            << tool.second.script  << "\", \"" << tool.second.description
-            << "\" }" << std::endl;
-
-  // std::cout << varDefs.str() << std::endl;
-    
-  return varDefs.str();
-}
 
 // These dummy calls are a hack to force the linker to pull in symbols
-// from static libraries. There is a better way to do this, I just do
-// not know it yet.
+// from static libraries. There must be a better way to do this ...
 #ifdef HAVE_ADIOS_H
 int _adios_init(const char *cf, MPI_Comm comm) { return adios_init(cf, comm); }
 ADIOS_FILE*
@@ -264,16 +65,68 @@ _adios_read_open_file(const char *fname, enum ADIOS_READ_METHOD method, MPI_Comm
 { return adios_read_open_file(fname, method, comm); }
 #endif
 
-void
-showUsage(const std::map<std::string, GkToolInfo>& tlist) {
-  Logger logger;
-  
-  std::cout << "Usage: gkyl <tool> ..." << std::endl;
-  std::cout << "Usage: gkyl LUA-SCRIPT <cmd> ..." << std::endl;
+// Finish simulation
+int finish(int err) {
+  int rank; MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (0 != err)
+    MPI_Abort(MPI_COMM_WORLD, err);
+  else 
+    MPI_Finalize();
+  return err;
+}
+
+// show usage
+void showUsage() {
+  std::cout << "This is the Gkeyll code. See gkeyll.rtfd.io for details." << std::endl;
   std::cout << std::endl;
-  std::cout << "Supported tools are" << std::endl;
-  for (auto tool : tlist)
-    std::cout << " " << tool.first << ": " << tool.second.description << std::endl;
+
+  std::cout << "gkyl [OPTIONS] app/tool [APP-OPTIONS]" << std::endl;
+  std::cout << "Available options are" << std::endl;
+  std::cout << "  -e chunk   Execute string 'chunk'" << std::endl;
+  std::cout << "  -t         Show list of registered tools" << std::endl;
+  std::cout << "  -v         Show version information" << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "Most app input files take the following commands:" << std::endl;
+  std::cout << "  run        Run simulation. Default if nothing specified" << std::endl;
+  std::cout << "  init       Only initialize simulation but do not run it" << std::endl;
+  std::cout << "  restart    Restart simulation from last saved restart frame" << std::endl;
+  std::cout << std::endl;
+
+  std::cout << "Individual tools may take other options and commands. See their specific help." << std::endl;
+}
+
+// show version information
+void showVersion() {
+  std::cout << "Changeset: " << GKYL_HG_CHANGESET << std::endl;
+  std::cout << "Built on: " << __DATE__ << " " << __TIME__ << std::endl;
+  std::cout << "Built with: " << GKYL_COMPILER_ID << " compiler and";
+#ifdef HAVE_MPI_H
+  std::cout << " MPI";
+#endif      
+#ifdef HAVE_ADIOS_H
+  std::cout << " Adios";
+#endif    
+#ifdef HAVE_EIGEN_CORE
+  std::cout << " Eigen";
+#endif
+#ifdef USING_SQLITE3
+  std::cout << " Sqlite3";
+#endif    
+#ifdef HAVE_ZMQ_H
+  std::cout << " ZeroMQ";
+#endif
+  std::cout << std::endl;
+}
+
+// show tool list
+void showToolList(const std::vector<std::pair<std::string, std::string>>& toolList) {
+  size_t maxSz = 0;
+  for (auto t : toolList) maxSz = std::max(maxSz, t.first.length());
+  
+  std::cout << "Following tools are available. Query tool help for more information." << std::endl;
+  for (auto t : toolList)
+    std::cout << " " << t.first << std::string(maxSz-t.first.length() + 2, ' ') << t.second << std::endl;
 }
 
 int
@@ -290,81 +143,60 @@ main(int argc, char **argv) {
 #endif
 
   MPI_Init(&argc, &argv);
-  
-  Logger logger;
 
-  // list of tools
-  std::map<std::string, GkToolInfo> toolList;
-  // function to make inserting into list easier
-  auto insertInfo = [](std::map<std::string, GkToolInfo>& tl,
-    const std::string& nm, const std::string& script, const std::string& descr ) {
-    tl.insert(
-      std::pair<std::string, GkToolInfo>(nm, GkToolInfo(script, descr)));
-  };
-  // register various tools  
-  insertInfo(toolList, "help", "help.lua", "Gkeyll help system");
-  insertInfo(toolList, "examples", "examples.lua", "Example input files");
-  insertInfo(toolList, "runtests", "runtests.lua", "Run unit/regression tests");
-  insertInfo(toolList, "queryrdb", "queryrdb.lua", "Query/modify regression test DB");
+  bool optShowToolList = false;
+  std::string luaExpr;
+  // parse options: I am not using any heavy-duty tools as basic
+  // requirements are very simple. Sadly, even "sophisticated" tools
+  // do not support very special need of gkeyll in which app or tool
+  // can have complex command parsers of their own
+  char c;
+  while ((c = getopt(argc, argv, "+hvte:")) != -1)
+    switch (c)
+    {
+      case 'h':
+          showUsage();
+          return finish(0);
+          break;
 
-  if (argc < 2) {
-    showUsage(toolList);
-    return finish(0);
+      case 'v':
+          showVersion();
+          return finish(0);
+
+      case 't':
+          optShowToolList = true;
+          break;
+
+      case 'e':
+          luaExpr.append(optarg);
+          break;
+
+      case '?':
+          return finish(0);
+    }
+
+  std::list<std::string> argRest;
+  // collect remaining options into a list
+  for (; optind < argc; ++optind)
+    argRest.push_back(argv[optind]);
+
+  std::string inpFile;
+  if (argRest.size() > 0) {
+    inpFile = argRest.front(); // first remaining argument is input file
+    argRest.pop_front();
   }
 
-  std::string inpFile(argv[1]);
-  // check if we should use a tool
-  auto tool = toolList.find(argv[1]);
-  if (toolList.end() != tool) {
-    auto execPath = findExecPath(); // path of tool is wrt to executable location
-    inpFile =  execPath + "/Tool/" + tool->second.script;
+  int status = 0;
+  // create top-level object
+  try {
+    Gkyl app(luaExpr, inpFile, argRest);
+    // we need to handle tool-list show here as list of tools is
+    // constructed in app
+    if (optShowToolList) showToolList(app.getToolList());
+    status = app.run();
   }
-
-  // check if file exists  
-  std::ifstream f(inpFile.c_str());
-  if (!f.good()) {
-    std::cerr << "Unable to open input file '" << inpFile << "'" << std::endl;
-    showUsage(toolList);
-    return finish(1);
+  catch (const std::runtime_error& e) {
+    std::cout << e.what() << std::endl;
   }
-  f.close();
-
-  // initialize LuaJIT and load libraries
-  lua_State *L = luaL_newstate();
-  if (NULL == L) {
-    // NOTE: we need to use cerr and not 'logger' when something goes
-    // wrong in top-level executable. Otherwise error message won't
-    // appear anywhere.
-    std::cerr << "Unable to create a new LuaJIT interpreter state. Quitting" << std::endl;
-    return finish(1);
-  }
-  lua_gc(L, LUA_GCSTOP, 0);  // stop GC during initialization
-  luaL_openlibs(L);  // open standard libraries
-  luaopen_lfs(L); // open lua file-system library
-  lua_gc(L, LUA_GCRESTART, -1); // restart GC
-
-  // read complete input file and make it available to Lua
-  std::string inpFileContents = readInputFile(inpFile);
-  std::string topDefs = createTopLevelDefs(argc, argv, inpFile, inpFileContents, toolList);
-
-  // load variable definitions etc
-  if (luaL_loadstring(L, topDefs.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
-    // some error occured
-    const char* ret = lua_tostring(L, -1);
-    std::cerr << "*** LOAD ERROR *** " << ret << std::endl;
-    lua_close(L);
-    return finish(1);    
-  }
-
-  // load and run input file
-  if (luaL_loadstring(L, inpFileContents.c_str()) || lua_pcall(L, 0, LUA_MULTRET, 0)) {
-    // some error occured
-    const char* ret = lua_tostring(L, -1);
-    std::cerr << "*** ERROR *** " << ret << std::endl;
-    lua_close(L);
-    return finish(1);
-  }
-  lua_close(L);
-
-  return finish(0);
+  return finish(status);
 }

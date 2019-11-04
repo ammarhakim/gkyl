@@ -410,6 +410,9 @@ local function buildApplication(self, tbl)
          for nm, s in pairs(species) do
             dtSuggested = math.min(dtSuggested, s:suggestDt())
          end
+         for nm, s in pairs(species) do
+            s.dtGlobal[0] = dtSuggested
+         end
       else 
          dtSuggested = dt -- From argument list.
          -- If calcCflFlag not being used, need to barrier before doing the RK combine.
@@ -630,8 +633,8 @@ local function buildApplication(self, tbl)
    local tmEnd = Time.clock()
    log(string.format("Initializing completed in %g sec\n\n", tmEnd-tmStart))
 
-   -- Read some info about restarts (default is to write restarts 1/5 of sim).
-   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 0.2
+   -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim).
+   local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 1/20.0
    local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
 
    local dtTracker = DataStruct.DynVector {
@@ -913,7 +916,7 @@ return {
    NoField            = Field.NoField,
    Projection         = Projection,
    VlasovSpecies      = Species.VlasovSpecies,
-   VmBGKCollisions    = Collisions.VmLBOCollisions,   
+   VmBGKCollisions    = Collisions.VmBGKCollisions,   
    VmLBOCollisions    = Collisions.VmLBOCollisions,
    VoronovIonization  = Collisions.VoronovIonization,
 
@@ -935,6 +938,7 @@ return {
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
       Field                = Field.MaxwellField,
+      FuncField            = Field.FuncMaxwellField,
       FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BGKCollisions        = Collisions.VmBGKCollisions,

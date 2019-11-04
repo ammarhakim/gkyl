@@ -42,6 +42,12 @@ function GkSpecies:alloc(nRkDup)
    self.momDensity         = self:allocMoment()
    self.momDensityAux      = self:allocMoment()
    self.ptclEnergy         = self:allocMoment()
+   self.ptclEnergyAux      = self:allocMoment()
+   if self.positivity then
+      self.numDensityPos      = self:allocMoment()
+      self.momDensityPos      = self:allocMoment()
+      self.ptclEnergyPos      = self:allocMoment()
+   end
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 
    if self.gyavg then
@@ -55,6 +61,8 @@ function GkSpecies:alloc(nRkDup)
    else
       self.vDegFreedom = 3.0
    end
+
+   self.first = true
 end
 
 function GkSpecies:allocMomCouplingFields()
@@ -297,6 +305,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          confBasis  = self.confBasis,
          moment     = "GkThreeMomentsLBO",
          gkfacs     = {self.mass, self.bmag},
+         positivity = self.positivity,
       }
       if self.needCorrectedSelfPrimMom then
          self.primMomSelf = Updater.SelfPrimMoments {
@@ -674,7 +683,9 @@ end
 
 function GkSpecies:createDiagnostics()
    local function isIntegratedMomentNameGood(nm)
-      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL1" or nm == "intL2" then
+      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL1" or nm == "intL2"
+      or nm == "intDelM0" or nm == "intDelM2" or nm == "intDelL2"
+      or nm == "intDelPosM0" or nm == "intDelPosM2" or nm == "intDelPosL2" then
          return true
       end
       return false
@@ -687,7 +698,7 @@ function GkSpecies:createDiagnostics()
          self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
             numComponents = 1,
          }
-         if mom == "intL2" then
+         if mom == "intL2" or "intDelL2" or "intDelPosL2" then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid        = self.grid,
                basis         = self.basis,
@@ -747,10 +758,11 @@ function GkSpecies:createDiagnostics()
       onGhosts  = true,
    }
    self.weakDivision = Updater.CartFieldBinOp {
-      onGrid    = self.confGrid,
-      weakBasis = self.confBasis,
-      operation = "Divide",
-      onGhosts  = true,
+      onGrid     = self.confGrid,
+      weakBasis  = self.confBasis,
+      operation  = "Divide",
+      onGhosts   = true,
+      positivity = self.positivity,
    }
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments, and diagnosticAuxMoments.
    for i, mom in pairs(self.diagnosticMoments) do
@@ -910,6 +922,18 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
    local fIn = self:rkStepperFields()[1]
    self.threeMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
 
+   local fDel = self:rkStepperFields()[2]
+   fDel:combine(1, fIn, -1, self.fPrev)
+   if self.positivity then
+      fDel:accumulate(-1, self.fDelPos[1])
+   end
+   self.fPrev:copy(fIn)
+   self.threeMomentsCalc:advance(tCurr, {fDel}, { self.numDensityAux, self.momDensityAux, self.ptclEnergyAux })
+
+   if self.positivity then
+      self.threeMomentsCalc:advance(tCurr, {self.fDelPos[1]}, { self.numDensityPos, self.momDensityPos, self.ptclEnergyPos })
+   end
+
    for i, mom in pairs(self.diagnosticIntegratedMoments) do
       if mom == "intM0" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
@@ -926,6 +950,24 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
       elseif mom == "intL2" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intDelM0" then 
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.numDensityAux}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intDelM2" then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.ptclEnergyAux}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intDelL2" then 
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {fDel}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intDelPosL2" and self.positivity then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.fDelPos[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intDelPosM0" and self.positivity then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.numDensityPos}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intDelPosM2" and self.positivity then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.ptclEnergyPos}, {self.diagnosticIntegratedMomentFields[mom]})
       end
    end
 
@@ -1043,11 +1085,11 @@ end
 
 function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    -- Need to wrap member functions so that self is passed.
-   local function bcAbsorbFunc(...) return self:bcAbsorbFunc(...) end
-   local function bcOpenFunc(...) return  self:bcOpenFunc(...) end
+   local function bcAbsorbFunc(...)  return self:bcAbsorbFunc(...) end
+   local function bcOpenFunc(...)    return  self:bcOpenFunc(...) end
    local function bcReflectFunc(...) return self:bcReflectFunc(...) end
-   local function bcSheathFunc(...) return self:bcSheathFunc(...) end
-   local function bcCopyFunc(...) return self:bcCopyFunc(...) end
+   local function bcSheathFunc(...)  return self:bcSheathFunc(...) end
+   local function bcCopyFunc(...)    return self:bcCopyFunc(...) end
    
    local vdir = nil
    if dir==self.cdim then 
