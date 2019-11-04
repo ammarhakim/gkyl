@@ -75,7 +75,22 @@ function GkBGKCollisions:fullInit(speciesTbl)
    -- For constant nu, separate self and cross collision frequencies.
    self.collFreqs = tbl.frequencies -- List of collision frequencies, if using spatially constant nu.
    if self.collFreqs then
-      self.varNu = false  -- Not spatially varying nu.
+      -- Collisionality, provided by user, will remain constant in time.
+      self.timeDepNu = false
+
+      -- Ensure that collFreqs inputs are either all numbers, or all functions.
+      local collFreqType = type(self.collFreqs[1])
+      if (#self.collFreqs>1) then
+         for iC = 2,#self.collFreqs do
+            assert(collFreqType == type(self.collFreqs[iC]), "LBOCollisions: frequencies must either all be numbers, or all be functions")
+         end
+      end
+      if (collFreqType == "number") then
+         self.varNu         = false    -- Not spatially varying nu.
+      else -- collFreqType must be a function, which we assume to be spatially dependent.
+         self.varNu         = true
+      end
+      -- For now only cell-wise constant nu is implemented.
       self.cellConstNu = true  -- Cell-wise constant nu?
       if self.selfCollisions then
          self.collFreqSelf = self.collFreqs[selfSpecInd]
@@ -85,16 +100,19 @@ function GkBGKCollisions:fullInit(speciesTbl)
          table.remove(self.collFreqCross, selfSpecInd)
       end
    else
+      -- Collisionality not provided by user. It will be calculated in time.
+      self.timeDepNu = true
+
       self.varNu  = true                 -- Spatially varying nu.
       self.mass   = speciesTbl.mass      -- Mass of this species.
       self.charge = speciesTbl.charge    -- Charge of this species.
       -- For now only cell-wise constant nu is implemented.
-      -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
-      self.cellConstNu = true
-      -- If no constant collision frequencies provided ('frequencies'), user can specify 'normNu'
-      -- list of collisionalities normalized by (T_0^(3/2)/n_0) evaluated somewhere in the
-      -- simulation. Otherwise code compute Spitzer collisionality from scratch.
-      self.normNuIn = tbl.normNu
+      self.cellConstNu  = true     -- Cell-wise constant nu?
+      -- If no time-constant collision frequencies provided ('frequencies'), user can specify
+      -- 'normNu' list of collisionalities normalized by T_0^(3/2)/n_0 evaluated somewhere in the
+      -- simulation (see Gkeyll website for exact normalization). Otherwise code compute Spitzer
+      -- collisionality from scratch.
+      self.normNuIn     = tbl.normNu
       -- normNuSelf, epsilon0 and elemCharge may not used, but are
       -- initialized below to avoid if-statements in advance method.
       if self.normNuIn then
@@ -233,20 +251,32 @@ function GkBGKCollisions:createSolver()
    }
 
    if self.varNu then
-      -- Collisionality, nu, summed over all species pairs
+      -- Self-species collisionality, which varies in space.
+      self.nuVarXSelf = createConfFieldComp1()
+      -- Collisionality, nu, summed over all species pairs.
       self.nuSum = createConfFieldComp1()
-      -- Updater to compute spatially varying (Spitzer) nu
-      self.spitzerNu = Updater.SpitzerCollisionality {
-         onGrid = self.confGrid,
-         confBasis        = self.confBasis,
-         useCellAverageNu = self.cellConstNu,
-         willInputNormNu  = self.userInputNormNu,
-         elemCharge       = self.elemCharge,
-         epsilon0         = self.epsilon0,
-         hBar             = self.hBar,
-         nuFrac           = self.nuFrac,
-      }
-      -- Weak multiplication to multiply nu(x) with fMaxwell
+      if self.timeDepNu then
+         -- Updater to compute spatially varying (Spitzer) nu.
+         self.spitzerNu = Updater.SpitzerCollisionality {
+            onGrid = self.confGrid,
+            confBasis        = self.confBasis,
+            useCellAverageNu = self.cellConstNu,
+            willInputNormNu  = self.userInputNormNu,
+            elemCharge       = self.elemCharge,
+            epsilon0         = self.epsilon0,
+            hBar             = self.hBar,
+            nuFrac           = self.nuFrac,
+         }
+      elseif self.selfCollisions then
+         local projectUserNu = Updater.ProjectOnBasis {
+            onGrid          = self.confGrid,
+            basis           = self.confBasis,
+            evaluate        = self.collFreqSelf,
+            projectOnGhosts = false
+         }
+         projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
+      end
+      -- Weak multiplication to multiply nu(x) with fMaxwell.
       self.phaseMul = Updater.CartFieldBinOp {
          onGrid     = self.phaseGrid,
          weakBasis  = self.phaseBasis,
@@ -254,24 +284,24 @@ function GkBGKCollisions:createSolver()
          operation  = "Multiply",
       }
    else
-      self.nuSum = 0.0  -- Assigned in advance method
+      self.nuSum = 0.0  -- Assigned in advance method.
    end
 
    if self.crossCollisions then
-      -- Cross-collision Maxwellian multiplied by collisionality
+      -- Cross-collision Maxwellian multiplied by collisionality.
       self.nufMaxwellCross = DataStruct.Field {
          onGrid        = self.phaseGrid,
          numComponents = self.phaseBasis:numBasis(),
          ghost         = {1, 1},
       }
-      -- Dummy fields for the primitive moment calculator
+      -- Dummy fields for the primitive moment calculator.
       self.uCrossSq = DataStruct.Field {
          onGrid        = self.confGrid,
          numComponents = self.confBasis:numBasis(),
          ghost         = {1, 1},
       }
       if self.varNu then
-         -- Temporary collisionality field
+         -- Temporary collisionality fields.
          self.nuCrossSelf  = createConfFieldComp1()
          self.nuCrossOther = createConfFieldComp1()
       else
@@ -355,15 +385,19 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
       end
 
       if self.varNu then
-         -- Compute the collisionality
-         self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                        self.charge, self.mass, selfMom[1], primMomSelf[2], self.normNuSelf}, {self.nuSum})
+         if self.timeDepNu then
+            -- Compute the collisionality.
+            self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                           self.charge, self.mass, selfMom[1], primMomSelf[2], self.normNuSelf}, {self.nuSum})
+         else
+            self.nuSum:copy(self.nuVarXSelf)
+         end
          self.phaseMul:advance(tCurr, {self.nuSum, self.nufMaxwellSum},
 			       {self.nufMaxwellSum})
       else
          self.nuSum = self.collFreqSelf
-         -- Barrier before scaling by the collisionality
-         -- Note that this is not necessary when nu varies because the scaling is done via advance methods
+         -- Barrier before scaling by the collisionality.
+         -- Note that this is not necessary when nu varies because the scaling is done via advance methods.
          Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
          self.nufMaxwellSum:scale(self.collFreqSelf)
       end
@@ -381,20 +415,21 @@ function GkBGKCollisions:advance(tCurr, fIn, species, fRhsOut)
          -- crossPrimMom in case we want to generalize Greene without
          -- m_s*n_s*nu_sr=m_r*n_r*nu_rs.
          if self.varNu then
-            -- Compute the collisionality if another species hasn't
-            -- already done so.
-            local chargeOther = species[otherNm]:getCharge()
-            if (not species[self.speciesName].momentFlags[6][otherNm]) then
-               self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                              chargeOther, mOther, otherMom[1], primMomOther[2], self.normNuCross[sInd]},
-                                             {species[self.speciesName].nuVarXCross[otherNm]})
-               species[self.speciesName].momentFlags[6][otherNm] = true
-            end
-            if (not species[otherNm].momentFlags[6][self.speciesName]) then
-               self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
-                                              self.charge, self.mass, selfMom[1], primMomSelf[2], species[otherNm].collPairs[otherNm][self.speciesName].normNu},
-                                             {species[otherNm].nuVarXCross[self.speciesName]})
-               species[otherNm].momentFlags[6][self.speciesName] = true
+            if self.timeDepNu then
+               -- Compute the collisionality if another species hasn't already done so.
+               local chargeOther = species[otherNm]:getCharge()
+               if (not species[self.speciesName].momentFlags[6][otherNm]) then
+                  self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                                 chargeOther, mOther, otherMom[1], primMomOther[2], self.normNuCross[sInd]},
+                                                {species[self.speciesName].nuVarXCross[otherNm]})
+                  species[self.speciesName].momentFlags[6][otherNm] = true
+               end
+               if (not species[otherNm].momentFlags[6][self.speciesName]) then
+                  self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
+                                                 self.charge, self.mass, selfMom[1], primMomSelf[2], species[otherNm].collPairs[otherNm][self.speciesName].normNu},
+                                                {species[otherNm].nuVarXCross[self.speciesName]})
+                  species[otherNm].momentFlags[6][self.speciesName] = true
+               end
             end
             self.nuCrossSelf:copy(species[self.speciesName].nuVarXCross[otherNm])
             self.nuCrossOther:copy(species[otherNm].nuVarXCross[self.speciesName])
