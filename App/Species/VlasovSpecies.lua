@@ -217,7 +217,7 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
       self.collPairs[sN] = {}
       for sO, _ in pairs(species) do
          self.collPairs[sN][sO] = {}
-         -- Need next below because species[].collisions is createded as an empty table. 
+         -- Need next below because species[].collisions is created as an empty table. 
          if species[sN].collisions and next(species[sN].collisions) then 
             -- This species collides with someone.
             local selfColl, crossColl, collSpecs = false, false, {}

@@ -353,7 +353,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       return #tblIn+1    -- If not found return a number larger than the length of the table.
    end
 
-   -- Function to concatenate to tables.
+   -- Function to concatenate two tables.
    local function tableConcat(t1,t2)
       for i=1,#t2 do
          t1[#t1+1] = t2[i]
@@ -365,8 +365,9 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- In this table we will encode information about that collition such as:
    --   * does the collision take place?
    --   * Operator modeling the collision.
-   --   * Does it use constant collisionality or spatially varying.
-   --   * If using constant collisionality, what is its value.
+   --   * Is the collisionality constant in time?
+   --   * Does it use spatially varying collisionality?
+   --   * If using homogeneous collisionality, record its value/profile.
    -- Other features of a collision may be added in the future, such as
    -- velocity dependent collisionality, FLR effects, or some specific
    -- neutral/impurity effect.
@@ -375,15 +376,15 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       self.collPairs[sN] = {}
       for sO, _ in pairs(species) do
          self.collPairs[sN][sO] = {}
-         -- Need next below because species[].collisions is createded as an empty table.
-         if next(species[sN].collisions) then
+         -- Need next below because species[].collisions is created as an empty table.
+         if species[sN].collisions and next(species[sN].collisions) then
             -- This species collides with someone.
             local selfColl, crossColl, collSpecs = false, false, {}
             -- Obtain the boolean indicating if self/cross collisions affect the sN species.
-            for nm, _ in pairs(species[sN].collisions) do
-               selfColl  = selfColl or species[sN].collisions[nm].selfCollisions
-               crossColl = crossColl or species[sN].collisions[nm].crossCollisions
-               collSpecs = tableConcat(collSpecs, species[sN].collisions[nm].collidingSpecies)
+            for collNm, _ in pairs(species[sN].collisions) do
+               selfColl  = selfColl or species[sN].collisions[collNm].selfCollisions
+               crossColl = crossColl or species[sN].collisions[collNm].crossCollisions
+               collSpecs = tableConcat(collSpecs, species[sN].collisions[collNm].collidingSpecies)
             end
 
             -- Record if a specific binary collision is turned on.
@@ -401,30 +402,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                   self.collPairs[sN][sO].on = false
                end
             end
-            -- Find the kind of a specific collision, and the collision frequency it uses.
-            -- Can use this loop to record other properties of a specific collition in collPairs.
-            for collNm, _ in pairs(species[sN].collisions) do
-               if self.collPairs[sN][sO].on then
-                  local specInd = findInd(species[sN].collisions[collNm].collidingSpecies, sO)
-                  if specInd < (#species[sN].collisions[collNm].collidingSpecies+1) then
-                     -- Collision operator kind.
-                     self.collPairs[sN][sO].kind  = species[sN].collisions[collNm].collKind
-                     -- Collision frequency type (e.g. constant, spatially varying).
-                     self.collPairs[sN][sO].varNu = species[sN].collisions[collNm].varNu
-                     if (not self.collPairs[sN][sO].varNu) then
-                        -- Constant collisionality. Record it.
-                        self.collPairs[sN][sO].nu = species[sN].collisions[collNm].collFreqs[specInd]
-                     else
-                        -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
-                        if (species[sN].collisions[collNm].userInputNormNu) then
-                           self.collPairs[sN][sO].normNu = species[sN].collisions[collNm].normNuIn[specInd]
-                        else
-                           self.collPairs[sN][sO].normNu = 0.0    -- Not used.
-                        end
-                     end
-                  end
-               end
-            end
 
          else
 
@@ -437,8 +414,8 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 
    -- Here we wish to record some properties of each collision in collPairs.
    for sN, _ in pairs(species) do
-      -- Need next below because species[].collisions is createded as an empty table.
-      if next(species[sN].collisions) then
+      -- Need next below because species[].collisions is created as an empty table.
+      if species[sN].collisions and next(species[sN].collisions) then
          for sO, _ in pairs(species) do
             -- Find the kind of a specific collision, and the collision frequency it uses.
             for collNmN, _ in pairs(species[sN].collisions) do
@@ -447,9 +424,11 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                   if specInd < (#species[sN].collisions[collNmN].collidingSpecies+1) then
                      -- Collision operator kind.
                      self.collPairs[sN][sO].kind  = species[sN].collisions[collNmN].collKind
-                     -- Collision frequency type (e.g. constant, spatially varying).
+                     -- Collision frequency time dependence (e.g. constant, time-varying).
+                     self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
+                     -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
                      self.collPairs[sN][sO].varNu = species[sN].collisions[collNmN].varNu
-                     if (not self.collPairs[sN][sO].varNu) then
+                     if (not self.collPairs[sN][sO].timeDepNu) then
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
                      else
@@ -468,9 +447,20 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                   for collNmO, _ in pairs(species[sO].collisions) do
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        if (not self.collPairs[sO][sN].varNu) then
+                        -- Collision operator kind.
+                        self.collPairs[sO][sN].kind  = species[sO].collisions[collNmO].collKind
+                        -- Collision frequency time dependence (e.g. constant, time-varying).
+                        self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
+                        -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
+                        self.collPairs[sO][sN].varNu = species[sO].collisions[collNmO].varNu
+                        if (not self.collPairs[sO][sN].timeDepNu) then
                            -- Constant collisionality. Record it.
-                           self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                           if (self.collPairs[sN][sO].varNu) then
+                              -- We will need to first project the nu we do have, and later scale it by the mass ratio.
+                              self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
+                           else
+                              self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                           end
                         else
                            -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
@@ -486,7 +476,7 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          end    -- end if next(species[sN].collisions) statement.
       else
          for sO, _ in pairs(species) do
-            if next(species[sO].collisions) then
+            if species[sO].collisions and next(species[sO].collisions) then
                for collNmO, _ in pairs(species[sO].collisions) do
                   if self.collPairs[sO][sN].on then
                      -- Species sO collides with sN. For computing cross-primitive moments,
@@ -494,15 +484,21 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                      -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
-                        if (not self.collPairs[sO][sN].varNu) then
+                        self.collPairs[sN][sO].varNu = species[sO].collisions[collNmO].varNu
+                        if (not self.collPairs[sO][sN].timeDepNu) then
                            -- Constant collisionality. Record it.
-                           self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                           if (self.collPairs[sN][sO].varNu) then
+                              -- We will need to first project the nu we do have, and later scale it by the mass ratio.
+                              self.collPairs[sN][sO].nu = species[sO].collisions[collNmO].collFreqs[specInd]
+                           else
+                              self.collPairs[sN][sO].nu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].collFreqs[specInd]
+                           end
                         else
                            -- Normalized collisionality to be scaled (e.g. by n_r/(v_{ts}^2+v_{tr}^2)^(3/2)).
                            if (species[sO].collisions[collNmO].userInputNormNu) then
                               self.collPairs[sN][sO].normNu = (species[sO]:getMass()/species[sN]:getMass())*species[sO].collisions[collNmO].normNuIn[specInd]
                            else
-                              self.collPairs[sN][sO].normNu = 0.0
+                              self.collPairs[sN][sO].normNu = 0.0    -- Not used.
                            end
                         end
                      end
@@ -519,7 +515,10 @@ function GkSpecies:initCrossSpeciesCoupling(species)
    -- Boundary corrections are only needed if there are LBO self-species collisions.
    self.needSelfPrimMom          = false
    self.needCorrectedSelfPrimMom = false
-   local needVarNu               = false    -- Also check if spatially varying nu is needed.
+   -- Also check if spatially varying nu is needed, and if the user inputed a spatial
+   -- profile for the collisionality (which needs to be projected).
+   local needVarNu               = false
+   local userInputNuProfile      = false
    if self.collPairs[self.name][self.name].on then
       self.needSelfPrimMom          = true
       if (self.collPairs[self.name][self.name].kind=="GkLBO") or
@@ -537,6 +536,9 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 
          if self.collPairs[self.name][sO].varNu or self.collPairs[sO][self.name].varNu then
             needVarNu = true
+            if (not self.collPairs[self.name][sO].timeDepNu) or (not self.collPairs[sO][self.name].timeDepNu) then
+               userInputNuProfile = true
+            end
          end
       end
    end
@@ -585,6 +587,15 @@ function GkSpecies:initCrossSpeciesCoupling(species)
 
    if needVarNu then
       self.nuVarXCross = {}    -- Collisionality varying in configuration space.
+      local projectNuX = nil
+      if userInputNuProfile then
+         projectNuX = Updater.ProjectOnBasis {
+            onGrid          = self.confGrid,
+            basis           = self.confBasis,
+            evaluate        = function(t,xn) return 0.0 end, -- Function is set below.
+            projectOnGhosts = false,
+         }
+      end
       for sN, _ in pairs(species) do
          if sN ~= self.name then
             -- Sixth moment flag is to indicate if spatially varying collisionality has been computed.
@@ -598,6 +609,14 @@ function GkSpecies:initCrossSpeciesCoupling(species)
                otherNm = string.gsub(sO .. sN, self.name, "")
                if self.nuVarXCross[otherNm] == nil then
                   self.nuVarXCross[otherNm] = self:allocMoment()
+                  if ((not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
+                     projectNuX:setFunc(self.collPairs[sN][sO].nu)
+                     projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
+                     if (not self.collPairs[sN][sO].on) then
+                        self.nuVarXCross[otherNm]:scale(species[sO]:getMass()/species[sN]:getMass())
+                     end
+                     self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
+                  end
                end
             end
          end
