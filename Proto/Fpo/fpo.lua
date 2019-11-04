@@ -356,50 +356,50 @@ return function(tbl)
             if idxs[2] == cells[2] then isTopEdge = 1 end
          end
 
-         local fPtr = fIn:get(indexer(idxs))
-         local fRPtr = fIn:get(indexer(idxsR))
-         local fLPtr = fIn:get(indexer(idxsL))
-         local fTPtr = fIn:get(indexer(idxsT))
-         local fBPtr = fIn:get(indexer(idxsB))
+         local fC = fIn:get(indexer(idxs))
+         local fR = fIn:get(indexer(idxsR))
+         local fL = fIn:get(indexer(idxsL))
+         local fT = fIn:get(indexer(idxsT))
+         local fB = fIn:get(indexer(idxsB))
 
-	 local fTLPtr = fIn:get(indexer(idxsTL))
-	 local fTRPtr = fIn:get(indexer(idxsTR))
-	 local fBLPtr = fIn:get(indexer(idxsBL))
-	 local fBRPtr = fIn:get(indexer(idxsBR))
+	 local fTL = fIn:get(indexer(idxsTL))
+	 local fTR = fIn:get(indexer(idxsTR))
+	 local fBL = fIn:get(indexer(idxsBL))
+	 local fBR = fIn:get(indexer(idxsBR))
 
-         local hPtr = hIn:get(indexer(idxs))
-         local hRPtr = hIn:get(indexer(idxsR))
-         local hLPtr = hIn:get(indexer(idxsL))
-         local hTPtr = hIn:get(indexer(idxsT))
-         local hBPtr = hIn:get(indexer(idxsB))
+         local hC = hIn:get(indexer(idxs))
+         local hR = hIn:get(indexer(idxsR))
+         local hL = hIn:get(indexer(idxsL))
+         local hT = hIn:get(indexer(idxsT))
+         local hB = hIn:get(indexer(idxsB))
 
-         local gPtr = gIn:get(indexer(idxs))
-         local gRPtr = gIn:get(indexer(idxsR))
-         local gLPtr = gIn:get(indexer(idxsL))
-         local gTPtr = gIn:get(indexer(idxsT))
-         local gBPtr = gIn:get(indexer(idxsB))
+         local gC = gIn:get(indexer(idxs))
+         local gR = gIn:get(indexer(idxsR))
+         local gL = gIn:get(indexer(idxsL))
+         local gT = gIn:get(indexer(idxsT))
+         local gB = gIn:get(indexer(idxsB))
 
-	 local gTLPtr = gIn:get(indexer(idxsTL))
-	 local gTRPtr = gIn:get(indexer(idxsTR))
-	 local gBLPtr = gIn:get(indexer(idxsBL))
-	 local gBRPtr = gIn:get(indexer(idxsBR))
+	 local gTL = gIn:get(indexer(idxsTL))
+	 local gTR = gIn:get(indexer(idxsTR))
+	 local gBL = gIn:get(indexer(idxsBL))
+	 local gBR = gIn:get(indexer(idxsBR))
 
-         local fOutPtr= fOut:get(indexer(idxs))
+         local fOutP= fOut:get(indexer(idxs))
 
          dragKernelFn(dt, dv:data(),
-		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
-		      hPtr:data(), hLPtr:data(), hRPtr:data(), hTPtr:data(), hBPtr:data(),
+		      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
+		      hC:data(), hL:data(), hR:data(), hT:data(), hB:data(),
 		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		      fOutPtr:data())
+		      fOutP:data())
          diffKernelFn(dt, dv:data(),
-		      fTLPtr:data(), fTPtr:data(), fTRPtr:data(),
-		      fLPtr:data(), fPtr:data(), fRPtr:data(),
-		      fBLPtr:data(), fBPtr:data(), fBRPtr:data(),
-		      gTLPtr:data(), gTPtr:data(), gTRPtr:data(),
-		      gLPtr:data(), gPtr:data(), gRPtr:data(),
-		      gBLPtr:data(), gBPtr:data(), gBRPtr:data(),
+		      fTL:data(), fT:data(), fTR:data(),
+		      fL:data(), fC:data(), fR:data(),
+		      fBL:data(), fB:data(), fBR:data(),
+		      gTL:data(), gT:data(), gTR:data(),
+		      gL:data(), gC:data(), gR:data(),
+		      gBL:data(), gB:data(), gBR:data(),
 		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		      fOutPtr:data())
+		      fOutP:data())
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
