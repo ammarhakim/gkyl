@@ -84,7 +84,7 @@ function VmLBOCollisions:fullInit(speciesTbl)
       local collFreqType = type(self.collFreqs[1])
       if (#self.collFreqs>1) then
          for iC = 2,#self.collFreqs do
-            assert(collFreqType == type(self.collFreqs[iC]), "LBOCollisions: frequencies must either all be numbers, or all be functions")
+            assert(collFreqType == type(self.collFreqs[iC]), "App.VmLBOCollisions: frequencies must either all be numbers, or all be functions")
          end
       end
       if (collFreqType == "number") then
