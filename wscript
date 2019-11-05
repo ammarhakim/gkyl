@@ -59,10 +59,12 @@ class HgTip(Task.Task):
 
 def build(bld):
 
-    # determine Mercurial version
-    hgTip = HgTip(env=bld.env)
-    hgTip.set_outputs(bld.path.find_or_declare('gkylhgtip.h'))
-    bld.add_to_group(hgTip)
+    # determine Mercurial version (THIS NEEDS TO UPDATED TO WORK WITH
+    # GIT)
+
+    ## hgTip = HgTip(env=bld.env)
+    ## hgTip.set_outputs(bld.path.find_or_declare('gkylhgtip.h'))
+    ## bld.add_to_group(hgTip)
     
     # recurse down directories and build C++ code
     bld.recurse("Comm")

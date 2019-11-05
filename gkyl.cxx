@@ -7,7 +7,6 @@
 
 // gkyl includes
 #include <gkylconfig.h>
-#include <gkylhgtip.h>
 #include <Gkyl.h>
 
 #ifdef HAVE_MPI_H
@@ -98,7 +97,7 @@ void showUsage() {
 
 // show version information
 void showVersion() {
-  std::cout << "Changeset: " << GKYL_HG_CHANGESET << std::endl;
+  std::cout << "Changeset: " << "UNKNOWN" << std::endl;
   std::cout << "Built on: " << __DATE__ << " " << __TIME__ << std::endl;
   std::cout << "Built with: " << GKYL_COMPILER_ID << " compiler and";
 #ifdef HAVE_MPI_H
