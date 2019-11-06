@@ -283,9 +283,12 @@ for polyOrder : 1 thru 2 do (
   fxT : diff(fRecT6, x),
   
 
-  Jxx : (2/dv[1])^4,
-  Jyy : (2/dv[2])^4,
-  Jxy : (2/dv[1])^2*(2/dv[2])^2,
+  /* Jxx : (2/dv[1])^4, */
+  /* Jyy : (2/dv[2])^4, */
+  /* Jxy : (2/dv[1])^2*(2/dv[2])^2, */
+  Jxx : (2/dv[1])^2,
+  Jyy : (2/dv[2])^2,
+  Jxy : (2/dv[1])*(2/dv[2]),
   /* Putting together the surface terms at x */
   gxxfxPhiSurL : calcInnerProdListGen([y], [[-1,1]], Jxx, subst(x=-1, baC), fxL),
   gxxfPhixSurL : calcInnerProdListGen([y], [[-1,1]], Jxx, subst(x=-1, diff(baC, x)), subst(x=0, fRecL2)),
@@ -312,7 +315,10 @@ for polyOrder : 1 thru 2 do (
   gxxfPhixxVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxx, diff(baC, x, 2), doExpand(fC, baC)),
   gyyfPhiyyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jyy, diff(baC, y, 2), doExpand(fC, baC)),
   gxyfPhixyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxy, diff(diff(baC, x), y), doExpand(fC, baC)),
-
+  
+  Dxx : 1,
+  Dyy : 1,
+  Dxy : 1,
 
   /* printf(fh, "  if (isLeftEdge) {~%"), */
   /* tmp : (gxxfxPhiSurR-gxxfPhixSurR + gxyfyPhiSurR-gxyfPhiySurR)/2, */
@@ -325,8 +331,10 @@ for polyOrder : 1 thru 2 do (
   /* for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]), */
 
   /* printf(fh, "  } else {~%"), */
-  tmp : (gxxfxPhiSurR-gxxfPhixSurR - gxxfxPhiSurL+gxxfPhixSurL +
-    (gxyfyPhiSurR-gxyfPhiySurR - gxyfyPhiSurL+gxyfPhiySurL)/6)/2,
+  tmp : (
+    Dxx*(gxxfxPhiSurR-gxxfPhixSurR - gxxfxPhiSurL+gxxfPhixSurL) +
+    Dxy*(gxyfyPhiSurR-gxyfPhiySurR - gxyfyPhiSurL+gxyfPhiySurL)
+    ),
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
   /* printf(fh, "  }~%~%"), */
@@ -342,14 +350,16 @@ for polyOrder : 1 thru 2 do (
   /* for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]), */
   
   /* printf(fh, "  } else {~%"), */
-  tmp : (gyyfyPhiSurT-gyyfPhiySurT - gyyfyPhiSurB+gyyfPhiySurB +
-    (gyxfxPhiSurT-gyxfPhixSurT - gyxfxPhiSurB+gyxfPhixSurB)/6)/2,
+  tmp : (
+    Dyy*(gyyfyPhiSurT-gyyfPhiySurT - gyyfyPhiSurB+gyyfPhiySurB) +
+    Dxy*(gyxfxPhiSurT-gyxfPhixSurT - gyxfxPhiSurB+gyxfPhixSurB)
+    ),
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
   /* printf(fh, "  }~%~%"), */
   
   /* Writting the volume term */
-  tmp : (gxxfPhixxVol + gyyfPhiyyVol + 2*gxyfPhixyVol/6)/2,
+  tmp : (Dxx*gxxfPhixxVol + Dyy*gyyfPhiyyVol + 2*Dxy*gxyfPhixyVol),
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
 
