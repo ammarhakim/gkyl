@@ -349,7 +349,7 @@ for polyOrder : 1 thru 2 do (
   /* printf(fh, "  }~%~%"), */
   
   /* Writting the volume term */
-  tmp : (gxxfPhixxVol + gyyfPhiyyVol + 2*gxyfPhixyVol)/2,
+  tmp : (gxxfPhixxVol + gyyfPhiyyVol + 2*gxyfPhixyVol/6)/2,
   out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
 

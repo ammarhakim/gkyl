@@ -33,6 +33,7 @@ getBasis(name, polyOrder) := block(
     )
   ) $
 
+
 /* Returns recovered polynomial across two neigbouring cells in terms of expansion coefficients at the minus side (qLo) and the plus side (qUp).
 Inputs:
   dir : direction of the recovery (x, y, or z)
@@ -88,6 +89,7 @@ getRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
 
   return(subst(projSubList, rSub))
   ) $
+
 
 /* Returns recovered polynomial across three cells in terms of expansion coefficients at the minus side (qLo), center (qCe), and the plus side (qUp).
 This is done in two stages. In the first stage, getRecov2CellGen is used to calculate recovery polynomials at the two pairs of cells. These are then evaluated at the interfaces (only values for C=0; values and first derivatives for C=1). This addition information is then used to recover higher order solution in the central cell. 
@@ -170,9 +172,10 @@ getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp) := block(
 
 
 getRecov6CellGen(dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
-  [perpDir,dirIdx,rLo,rCe,rUp,basisC,baLo,baCe,baUp,rLoCoef,rCeCoef,rUpCoef,r],
-  if dir = x then perpDir : y else perpDir : x,
-  dirIdx : getDirIdx(dir, 2),
+  [perpDir, dirIdx, rLo, rCe, rUp, basisC, baLo, baCe, baUp, rLoCoef, rCeCoef, rUpCoef, r],
+  if dir = x then perpDir : y else perpDir : x, /* Hard-coded; needs generalization for 3D */
+  numDims : length(dx),
+  dirIdx : getDirIdx(dir, numDims),
 
   rLo : getRecov2CellGen(perpDir, dx, polyOrder, qLL, qLU),
   rCe : getRecov2CellGen(perpDir, dx, polyOrder, qCL, qCU),
@@ -183,9 +186,12 @@ getRecov6CellGen(dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
   baCe : etaDir(dir, 0, dx[dirIdx], basisC),
   baUp : etaDir(dir, dx[dirIdx], dx[dirIdx], basisC),
   
-  rLoCoef : calcInnerProdListGen([dir], [[-3*dx[dirIdx]/2,-dx[dirIdx]/2]], 1, baLo, subst(perpDir=0, rLo)),
+  /* rLoCoef : calcInnerProdListGen([dir], [[-3*dx[dirIdx]/2,-dx[dirIdx]/2]], 1, baLo, subst(perpDir=0, rLo)), */
+  /* rCeCoef : calcInnerProdListGen([dir], [[-dx[dirIdx]/2,dx[dirIdx]/2]], 1, baCe, subst(perpDir=0, rCe)), */
+  /* rUpCoef : calcInnerProdListGen([dir], [[dx[dirIdx]/2,3*dx[dirIdx]/2]], 1, baUp, subst(perpDir=0, rUp)), */
+  rLoCoef : calcInnerProdListGen([dir], [[-dx[dirIdx]/2,dx[dirIdx]/2]], 1, baCe, subst(perpDir=0, rLo)),
   rCeCoef : calcInnerProdListGen([dir], [[-dx[dirIdx]/2,dx[dirIdx]/2]], 1, baCe, subst(perpDir=0, rCe)),
-  rUpCoef : calcInnerProdListGen([dir], [[dx[dirIdx]/2,3*dx[dirIdx]/2]], 1, baUp, subst(perpDir=0, rUp)),
+  rUpCoef : calcInnerProdListGen([dir], [[-dx[dirIdx]/2,dx[dirIdx]/2]], 1, baCe, subst(perpDir=0, rUp)),
   
   r : getRecov3CellGen(dir, [dx[dirIdx]], polyOrder, C, rLoCoef, rCeCoef, rUpCoef),  
 
