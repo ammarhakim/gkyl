@@ -431,7 +431,7 @@ return function(tbl)
    return function ()
       local tCurr = 0.0
       local step = 1
-      local dt = cfl*grid:dx(1)
+      local dt = 0.0001--cfl*grid:dx(1)
 
       local frameInt = tEnd/nFrames
       local nextFrame = 1
