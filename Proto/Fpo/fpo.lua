@@ -384,7 +384,7 @@ return function(tbl)
 	 local gBL = gIn:get(indexer(idxsBL))
 	 local gBR = gIn:get(indexer(idxsBR))
 
-         local fOutP= fOut:get(indexer(idxs))
+         local fOutP = fOut:get(indexer(idxs))
 
          dragKernelFn(dt, dv:data(),
 		      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
@@ -431,7 +431,7 @@ return function(tbl)
    return function ()
       local tCurr = 0.0
       local step = 1
-      local dt = 0.0001--cfl*grid:dx(1)
+      local dt = cfl*grid:dx(1)
 
       local frameInt = tEnd/nFrames
       local nextFrame = 1
