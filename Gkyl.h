@@ -204,7 +204,7 @@ std::string Gkyl::createTopLevelDefs() const {
   // info about build
   varDefs << "GKYL_EXEC_PATH = \"" << execPath << "\"" << std::endl;
   varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
-  //varDefs << "GKYL_HG_CHANGESET = \"" << GKYL_HG_CHANGESET << "\"" << std::endl;
+  varDefs << "GKYL_HG_CHANGESET = \"" << "UNKNOWN" << "\"" << std::endl;
   varDefs << "GKYL_BUILD_DATE = \"" << __DATE__ << " " << __TIME__ << "\"" << std::endl;
   
 #ifdef HAVE_MPI_H
