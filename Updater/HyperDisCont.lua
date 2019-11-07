@@ -9,6 +9,7 @@
 
 -- Gkyl libraries
 local Alloc = require "Lib.Alloc"
+local DataStruct = require "DataStruct"
 local Lin = require "Lib.Linalg"
 local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
@@ -90,6 +91,12 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
    local qRhsOut = assert(outFld[1], "HyperDisCont.advance: Must specify an output field")
+   -- separate surface and volume terms if there are two outFlds
+   local separateVolTerm = false
+   if outFld[2] then 
+      qVolOut = outFld[2]
+      separateVolTerm = true
+   end
 
    -- pass aux fields to equation object
    for i = 1, #inFld-1 do
@@ -115,6 +122,10 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    -- pointers for (re)use in update
    local qInM, qInP = qIn:get(1), qIn:get(1)
    local qRhsOutM, qRhsOutP = qRhsOut:get(1), qRhsOut:get(1)
+   
+   local qVolOutP
+   if separateVolTerm then qVolOutP = qVolOut:get(1) end
+ 
    local cflRateByCellP = cflRateByCell:get(1)
    local cflRateByCellM = cflRateByCell:get(1)
 
@@ -123,6 +134,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    -- accumulate the volume contribution once, skipping it for other
    -- directions
    local firstDir = true
+   local dirlabel = {"X", "Y", "Z", "V", "M"}
 
    -- use maximum characteristic speeds from previous step as penalty
    for d = 1, ndim do
@@ -133,12 +145,18 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    local tId = grid:subGridSharedId() -- local thread ID
 
    -- clear output field before computing vol/surf increments
-   if self._clearOut then qRhsOut:clear(0.0) end
+   if self._clearOut then 
+      qRhsOut:clear(0.0) 
+      if separateVolTerm then
+         qVolOut:clear(0.0)
+      end
+   end
+
    -- accumulate contributions from volume and surface integrals
    local cflRate
    -- iterate through updateDirs backwards so that a zero flux dir is first in kinetics
-   for i = #self._updateDirs, 1, -1 do 
-      local dir = self._updateDirs[i]
+   for d = 1, #self._updateDirs do 
+      local dir = self._updateDirs[d] or 1
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
       local dirLoSurfIdx, dirUpSurfIdx = dirLoIdx, dirUpIdx
@@ -184,20 +202,23 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 
 	    qRhsOut:fill(qRhsOutIdxr(idxm), qRhsOutM)
 	    qRhsOut:fill(qRhsOutIdxr(idxp), qRhsOutP)
+ 
+            if separateVolTerm then 
+               qVolOut:fill(qRhsOutIdxr(idxp), qVolOutP) 
+            else 
+               qVolOutP = qRhsOutP 
+            end
+ 
             cflRateByCell:fill(cflRateByCellIdxr(idxm), cflRateByCellM)
             cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
 
 	    if firstDir and i<=dirUpIdx-1 and self._updateVolumeTerm then
-	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qRhsOutP)
+	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qVolOutP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
-	    if i >= dirLoSurfIdx and i <= dirUpSurfIdx then
-               local cflp = cflRateByCellP:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
-               local cflm = cflRateByCellM:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
-               if cflp == 0.0 then cflp = math.min(1.5*cflm, cfl) end
-               if cflm == 0.0 then cflm = math.min(1.5*cflp, cfl) end
+	    if d>0 and i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
-		  dir, cflm, cflp, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		  dir, 0., 0., xcm, xcp, dxm, dxp, dt, idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
 	       if self._zeroFluxFlags[dir] then
@@ -210,7 +231,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	    end
 	 end
       end
-      if firstDir then cflRateByCell:sync() end
+      if firstDir then cflRateByCell:sync(); self._equation:sync() end
       firstDir = false
    end
 

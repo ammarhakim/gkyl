@@ -6,7 +6,7 @@ local L = 10.0
 plasmaApp = Plasma.App {
    logToFile = true,
 
-   tEnd        = 100.0,            -- End time.
+   tEnd        = 100,            -- End time.
    nFrame      = 1,                -- Number of output frames.
    lower       = {0, 0},           -- Configuration space lower left.
    upper       = {L, L},           -- Configuration space upper right.
@@ -38,7 +38,7 @@ plasmaApp = Plasma.App {
       evolve          = true, -- Evolve species?
       applyPositivity = true,
       positivityDiffuse = true,
-      positivityRescale = false,
+      positivityRescale = true,
    },
 
    -- Field solver.

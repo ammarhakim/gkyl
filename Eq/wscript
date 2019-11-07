@@ -257,7 +257,16 @@ def build(bld):
 
     Positivity.cpp
 
+    passiveAdvectionData/PassiveAdvectionSer1xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSer2xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSer3xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer1xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer2xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfSer3xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfPositivitySer2xP1.cpp
+    passiveAdvectionData/PassiveAdvectionSurfPositivitySer3xP1.cpp
+
     """,
-    target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
+    target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData passiveAdvectionData ../Updater'
     )
 

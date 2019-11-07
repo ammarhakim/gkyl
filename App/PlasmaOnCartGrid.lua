@@ -408,7 +408,10 @@ local function buildApplication(self, tbl)
          
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
-            dtSuggested = math.min(dtSuggested, s:suggestDt())
+            dtSuggested = math.min(dtSuggested, s:suggestDt(inIdx, outIdx))
+         end
+         for nm, s in pairs(species) do
+            s.dtGlobal[0] = dtSuggested
          end
       else 
          dtSuggested = dt -- From argument list.
@@ -419,7 +422,12 @@ local function buildApplication(self, tbl)
       end
       -- Take forward Euler step in fields and species
       -- NOTE: order of these arguments matters... outIdx must come before inIdx.
-      combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      
+      --combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      for nm, s in pairs(species) do
+         s:forwardEuler(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      end
+      field:combineRk(outIdx, dtSuggested, outIdx, 1.0, inIdx)
       applyBc(tCurr, outIdx, calcCflFlag)
 
       return dtSuggested
@@ -912,6 +920,7 @@ return {
    MomentSpecies      = Species.MomentSpecies,
    NoField            = Field.NoField,
    Projection         = Projection,
+   PassiveAdvectionSpecies = Species.PassiveAdvectionSpecies,
    VlasovSpecies      = Species.VlasovSpecies,
    VmBGKCollisions    = Collisions.VmBGKCollisions,   
    VmLBOCollisions    = Collisions.VmLBOCollisions,

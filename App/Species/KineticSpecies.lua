@@ -480,6 +480,15 @@ function KineticSpecies:alloc(nRkDup)
       self.distf[i] = self:allocDistf()
       self.distf[i]:clear(0.0)
    end
+
+   if self.positivity then
+      self.distfPos = {}
+      for i = 1, nRkDup do
+         self.distfPos[i] = self:allocDistf()
+         self.distfPos[i]:clear(0.0)
+      end
+   end
+
    -- Create Adios object for field I/O.
    self.distIo = AdiosCartFieldIo {
       elemType   = self.distf[1]:elemType(),
@@ -610,6 +619,9 @@ end
 -- For RK timestepping.
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
+   if self.positivity then
+      self.distfPos[outIdx]:copy(self.distfPos[aIdx])
+   end
 end
 -- For RK timestepping.
 function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
@@ -618,6 +630,25 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+   end
+
+   if self.positivity then
+      self.distfPos[outIdx]:combine(a, self.distfPos[aIdx])
+      for i = 1, nFlds do -- Accumulate rest of the fields.
+         self.distfPos[outIdx]:accumulate(args[2*i-1], self.distfPos[args[2*i]])
+      end
+   end
+end
+
+function KineticSpecies:forwardEuler(outIdx, dt, rhsIdx, a, inIdx)
+   --print(outIdx, dt, rhsIdx, a, inIdx)
+   self:combineRk(outIdx, dt, rhsIdx, a, inIdx)
+   if self.positivityRescale then
+      -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
+      -- because volume term is stored separately in self.fPos
+      -- now compute scaling factor for volume term so that control nodes stay positive. 
+      self.posRescaler:rescaleVolTerm(self:rkStepperFields()[outIdx], dt, self.fPos)
+      self:rkStepperFields()[outIdx]:accumulate(dt, self.fPos)
    end
 end
 
@@ -672,7 +703,9 @@ end
 
 function KineticSpecies:applyBcIdx(tCurr, idx, isFirstRk)
   if self.positivityDiffuse then
+     self.distfPos[idx]:combine(-1.0, self:rkStepperFields()[idx])
      self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
+     self.distfPos[idx]:accumulate(1.0, self:rkStepperFields()[idx])
   end
   self:applyBc(tCurr, self:rkStepperFields()[idx])
   if self.positivity then
@@ -821,8 +854,10 @@ function KineticSpecies:write(tm, force)
             end
          end
 
+         -- write local cfl number by cell
+         self.cflRateByCell:scale(self.dtGlobal[0])
          self.cflRateByCell:write(
-             string.format("%s_%s_%d.bp", self.name, "cflRate", self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
+             string.format("%s_%s_%d.bp", self.name, "cflByCell", self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
 
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)

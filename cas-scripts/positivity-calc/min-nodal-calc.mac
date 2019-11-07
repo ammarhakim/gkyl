@@ -10,6 +10,7 @@ printf(header, "double findMinNodalValue(const double *fIn, int ndim); ~%")$
 printf(header, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim); ~%")$
 printf(header, "}; ~%")$
 printf(fh, "#include <PositivityRescaleImpl.h> ~%")$
+printf(fh, "#define NODE ~a ~%", float(1/sqrt(3)))$
 printf(fh, "double findMinNodalValue(const double *fIn, int ndim) { ~%")$
 printf(fh, "  double fmin = 0.0; ~%")$
 for d : 1 thru 5 do (
@@ -24,7 +25,7 @@ for d : 1 thru 5 do (
     vars : varsC
   ),
   nodes : eval_string(sconcat("nodes", d, "xp1")),
-  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]/3,j,1,length(vars)),f),i,1,length(nodes)),
+  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]*NODE,j,1,length(vars)),f),i,1,length(nodes)),
   
   if d=1 then printf(fh, "  if (ndim == ~a) { ~%", d)
   else printf(fh, "  else if(ndim == ~a) { ~%", d),
@@ -50,7 +51,7 @@ for d : 1 thru 5 do (
     vars : varsC
   ),
   nodes : eval_string(sconcat("nodes", d, "xp1")),
-  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]/3,j,1,length(vars)),f),i,1,length(nodes)),
+  nodesub(f):=makelist(subst(makelist(vars[j]=nodes[i][j]*NODE,j,1,length(vars)),f),i,1,length(nodes)),
   
   if d=1 then printf(fh, "  if (ndim == ~a) { ~%", d)
   else printf(fh, "  else if(ndim == ~a) { ~%", d),
