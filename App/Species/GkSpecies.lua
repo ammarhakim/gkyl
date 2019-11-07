@@ -42,6 +42,7 @@ function GkSpecies:alloc(nRkDup)
    self.momDensity         = self:allocMoment()
    self.momDensityAux      = self:allocMoment()
    self.ptclEnergy         = self:allocMoment()
+   self.ptclEnergyAux      = self:allocMoment()
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 
    if self.gyavg then
@@ -608,10 +609,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local emFunc = emIn[2]:rkStepperFields()[1]
 
    -- Rescale slopes.
-   if self.positivityRescale then
-      self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
-      fIn = self.fPos
-   end
+   --if self.positivityRescale then
+   --   self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
+   --   fIn = self.fPos
+   --end
 
    fRhsOut:clear(0.0)
 
@@ -626,7 +627,11 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      if self.positivityRescale then
+         self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.fPos})
+      else
+         self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      end
    else
       self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
    end
@@ -675,7 +680,7 @@ end
 
 function GkSpecies:createDiagnostics()
    local function isIntegratedMomentNameGood(nm)
-      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL1" or nm == "intL2" then
+      if nm == "intM0" or nm == "intM1" or nm == "intM2" or nm == "intL1" or nm == "intL2" or "intPosL2" or "intPosM0" or "intPosM2" then
          return true
       end
       return false
@@ -688,7 +693,7 @@ function GkSpecies:createDiagnostics()
          self.diagnosticIntegratedMomentFields[mom] = DataStruct.DynVector {
             numComponents = 1,
          }
-         if mom == "intL2" then
+         if mom == "intL2" or mom == "intPosL2" then
             self.diagnosticIntegratedMomentUpdaters[mom] = Updater.CartFieldIntegratedQuantCalc {
                onGrid        = self.grid,
                basis         = self.basis,
@@ -911,6 +916,9 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
    -- First compute M0, M1, M2.
    local fIn = self:rkStepperFields()[1]
    self.threeMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
+   if self.positivity then
+      self.threeMomentsCalc:advance(tCurr, {self.distfPos[1]}, { self.numDensityAux, self.momDensityAux, self.ptclEnergyAux })
+   end
 
    for i, mom in pairs(self.diagnosticIntegratedMoments) do
       if mom == "intM0" then
@@ -928,6 +936,15 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
       elseif mom == "intL2" then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.distf[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intPosL2" and self.positivity then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.distfPos[1]}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intPosM0" and self.positivity then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.numDensityAux}, {self.diagnosticIntegratedMomentFields[mom]})
+      elseif mom == "intPosM2" and self.positivity then
+         self.diagnosticIntegratedMomentUpdaters[mom]:advance(
+            tCurr, {self.ptclEnergyAux}, {self.diagnosticIntegratedMomentFields[mom]})
       end
    end
 

@@ -16,7 +16,9 @@ local ffiC        = ffi.C
 
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
+  double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim);
   double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
+  double rescaleVolTerm(const double *fOutSurf, const double dt, double *fVol, int ndim, int numBasis, int *idx);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -139,17 +141,36 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
       if computeDiagnostics then 
          self.del2ChangeByCell:fill(self.del2ChangeIndexer(idx), self.del2ChangePtr)
-         self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell*grid:cellVolume()
+         self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell
          self.del2Change[self.rkIdx] = self.del2Change[self.rkIdx] + del2ChangeCell*grid:cellVolume()
          if del2ChangeCell ~= 0. then self.rescaledCells = self.rescaledCells + 1 end
       end
    end
-
    self.rkIdx = self.rkIdx+1
 end
 
-function PositivityRescale:write(tm, frame, nm)
+function PositivityRescale:rescaleVolTerm(fOutSurf, dt, fVol)
+   local localRange = fOutSurf:localRange()   
+   local fOutSurfPtr = fOutSurf:get(1)
+   local fVolPtr = fVol:get(1)
+   local fOutSurfIndexer = fOutSurf:genIndexer()
+   local fVolIndexer = fVol:genIndexer()
 
+   for idx in localRange:rowMajorIter() do
+      fOutSurf:fill(fOutSurfIndexer(idx), fOutSurfPtr)
+      fVol:fill(fVolIndexer(idx), fVolPtr)
+
+      local minOutSurf = ffiC.findMinNodalValue(fOutSurfPtr:data(), self.basis:ndim())
+      if minOutSurf < -GKYL_EPSILON then print("warning: surface terms making control node negative, with value = ", minOutSurf) end
+      local scaler = ffiC.rescaleVolTerm(fOutSurfPtr:data(), dt, fVolPtr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
+   end
+end
+
+function PositivityRescale:findMinNodalRatio(fInPtr, fRhsSurfPtr, fac, ndim, idxPtr)
+   return ffiC.findMinNodalRatio(fInPtr, fRhsSurfPtr, fac, ndim, idxPtr)
+end
+
+function PositivityRescale:write(tm, frame, nm)
    self.del2ChangeByCell:write(string.format("%s_%s_%d.bp", nm, "del2ChangeByCell", frame), tm, frame, false)
 
    Mpi.Allreduce(self.rescaledCellsL:data():data(), self.rescaledCellsG:data():data(), self.rescaledCellsG:size()*2,
@@ -165,13 +186,13 @@ function PositivityRescale:write(tm, frame, nm)
       end
       self.delChangeG:appendData(self.del2ChangeG[1]:timeMesh():data()[j-1], {delChange})
    end
+   
+   self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
+   self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
    for i=1, 4 do
       self.del2ChangeL[i]:clear()
       self.del2ChangeG[i]:clear()
    end
-   
-   self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
-   self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
    self.rescaledCellsL:clear()
    self.rescaledCellsG:clear()
    self.delChangeG:clear()

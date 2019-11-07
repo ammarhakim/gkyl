@@ -18,19 +18,19 @@ fhatAL(fhat_expd,surfVar,surfVal,cfl,cdim,vdim,p):=block([limTheta,modNm,basis,v
   avgAndSlope:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fhat_expd)),
   r:fullratsimp(nodesub(fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])))),
   /* print r */
-  printf(fh,"  double rVal[~a];  // rVal=f1/f0 at each control node in dimensions other than ~a.~%",length(r),surfVar),
+  printf(fh,"  double rVal[~a];  // rVal=f1/f0 at each control node in dimensions other than ~a ~%",length(r),surfVar),
   writeCExprsNoExpand1(rVal,gcfac(r)),
   flush_output(fh),
   fq:fullratsimp(nodesub(avgAndSlope[1])*makelist(limTheta(rVal[i-1],surfVal,cfl),i,1,length(r))),
   /* print fq */
-  printf(fh,"  double fqVal[~a];  // fqVal = anti-limited f evaluated at each control node on ~a surface.~%",length(fq),surfVar),
+  printf(fh,"  double fqVal[~a];  // fqVal = anti-limited f evaluated at each control node on ~a surface ~%",length(fq),surfVar),
   writeCExprsNoExpand1(fqVal,gcfac(fq)),
   flush_output(fh),
   if cdim+vdim-1<=3 then modToNod:calcModToNodPhase(cdim+vdim-1,0,p)
   else modToNod:calcModToNodPhase(cdim-1,vdim,p),
   fhatAL_k:fullratsimp(invert(transpose(modToNod)).makelist(fqVal[i-1],i,1,length(fq))),
   fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
-  printf(fh,"  double fhatALVal[~a];  // fhatALVal = mode coefficients of anti-limited f.~%",length(fq)),
+  printf(fh,"  double fhatALVal[~a];  // fhatALVal = mode coefficients of anti-limited f ~%",length(fq)),
   writeCExprsNoExpand1(fhatALVal, fhatAL_k),
   flush_output(fh),
   surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
@@ -57,10 +57,10 @@ fhatALgenUpwind(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):
   frQ:nodesub(fR_expd),
   flQ:nodesub(fL_expd), 
   
-  printf(fh, "  double rVal;  // rVal=f1/f0 at each control node in dimensions other than.~a ~%",surfVar),
-  printf(fh, "  double fqVal[~a];  // fqVal = anti-limited f evaluated at each control node on ~a surface.~%",length(nodes),surfVar),
+  printf(fh, "  double rVal;  // rVal=f1/f0 at each control node in dimensions other than ~a ~%",surfVar),
+  printf(fh, "  double fqVal[~a];  // fqVal = anti-limited f evaluated at each control node on ~a surface ~%",length(nodes),surfVar),
 
-  printf(fh, "  // Determine upwinding at each surface control node.~%"),
+  printf(fh, "  // determine upwinding at each surface control node ~%"),
   for i:1 thru length(alphaq) do (
   printf(fh, "  if(~a > 0) {~%", gcfac(float(alphaq[i]))),
   /* integrate in surfVar to find avg and slope */
@@ -82,7 +82,7 @@ fhatALgenUpwind(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):
   else modToNod:calcModToNodPhaseWithNodes(cdim-1,vdim,p,nodes),
   fhatAL_k:fullratsimp(invert(transpose(modToNod)).makelist(fqVal[i-1],i,1,length(nodes))),
   fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
-  printf(fh,"  double fhatALVal[~a];  // fhatALVal = mode coefficients of anti-limited f.~%",length(nodes)),
+  printf(fh,"  double fhatALVal[~a];  // fhatALVal = mode coefficients of anti-limited f ~%",length(nodes)),
   writeCExprsNoExpand1(fhatALVal, fhatAL_k),
   flush_output(fh),
   surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
@@ -117,7 +117,7 @@ fhatALgenUpwind2(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   printf(fh, "  double f1Quad[~a]; ~%", length(alphaSurfQ)),
   printf(fh, "  double limQuad[~a]; ~%", length(alphaSurfQ)),
   printf(fh, "  double alphaQuad; ~%"),
-  printf(fh, "  // Determine upwinding at each surface quadrature node.~%"),
+  printf(fh, "  // determine upwinding at each surface quadrature node ~%"),
   for i:1 thru length(alphaSurfQ) do (
     /* project in surfVar at each surface quadrature node */
     printf(fh, "  alphaQuad = ~a; ~%", gcfac(float(alphaSurfQ[i]))),
@@ -153,10 +153,8 @@ fhatALgenUpwind2(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   else modToNodQ:calcModToNodPhaseWithNodes(cdim-1,vdim,p,qSurfNodes),
   fhatSurf_k : expand(invert(transpose(modToNodQ)).fhatSurfQ),
   fhat_expd : expand(surfBasis.fhatSurf_k),
-
-  printf(fh,"~%"),
   /* project fhat onto volume basis and print coefficients */
-  printf(fh, "  double fhat[~a]; // (Volume) mode coefficients of fhat.~%", length(basis)),
+  printf(fh, "  double fhat[~a]; // (volume) mode coefficients of fhat ~%", length(basis)),
   fhat_k : fullratsimp(innerProd(vars, 1, basis, fhat_expd)),
   writeCExprsNoExpand1(fhat, gcfac(fhat_k)),
   fhat_k : makelist(fhat[i-1],i,1,length(fhat_k)),
@@ -166,17 +164,13 @@ fhatALgenUpwind2(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/3,
   avgAndSlope:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fhat_expd)),
   rSurfC:fullratsimp(nodesub(fullratsimp(avgAndSlope[2]/(EPSILON + avgAndSlope[1])),cSurfNodes)),
-
-  printf(fh,"~%"),
   /* print rSurfC */
-  printf(fh,"  double rCtrl[~a];  // rCtrl=f1/f0 at each control node in dimensions other than ~a.~%",length(rSurfC),surfVar),
+  printf(fh,"  double rCtrl[~a];  // rCtrl=f1/f0 at each control node in dimensions other than ~a ~%",length(rSurfC),surfVar),
   writeCExprsNoExpand1(rCtrl,gcfac(rSurfC)),
   flush_output(fh),
   fhatSurfC:fullratsimp(nodesub(avgAndSlope[1],cSurfNodes)*makelist(limTheta(rCtrl[i-1],surfVal),i,1,length(rSurfC))),
-
-  printf(fh,"~%"),
   /* print fhatSurfC */
-  printf(fh,"  double fhatCtrl[~a];  // fhatCtrl = anti-limited fhat evaluated at each control node on ~a surface.~%",length(fhatSurfC),surfVar),
+  printf(fh,"  double fhatCtrl[~a];  // fhatCtrl = anti-limited fhat evaluated at each control node on ~a surface ~%",length(fhatSurfC),surfVar),
   writeCExprsNoExpand1(fhatCtrl,gcfac(fhatSurfC)),
   flush_output(fh),
   if cdim+vdim-1<=3 then modToNodC:calcModToNodPhaseWithNodes(cdim+vdim-1,0,p,cSurfNodes)
@@ -184,35 +178,32 @@ fhatALgenUpwind2(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   /* get mode coefficients of fhat from control nodal values */
   fhatAL_k:fullratsimp(invert(transpose(modToNodC)).makelist(fhatCtrl[i-1],i,1,length(fhatSurfC))),
   fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
-
-  printf(fh,"~%"),
-  printf(fh,"  double fhatAL[~a];  // fhatAL = mode coefficients of anti-limited f on surface.~%",length(fhatSurfC)),
+  printf(fh,"  double fhatAL[~a];  // fhatAL = mode coefficients of anti-limited f on surface ~%",length(fhatSurfC)),
   writeCExprsNoExpand1(fhatAL, fhatAL_k),
   flush_output(fh),
   surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
   fhatAL_expd:fullratsimp(surfBasis.makelist(fhatAL[i-1],i,1,length(fhatAL_k))),
 
-  printf(fh,"~%"),
-  /* Evaluate at surface quadrature nodes and enforce limiters. */
-  printf(fh, "  // Enforce limiters at surface quadrature nodes.~%"),
+  /* evaluate at surface quadrature nodes and enforce limiters */
+  printf(fh, "  // enforce limiters at surface quadrature nodes ~%"),
   printf(fh, "  double fhatALQuad[~a]; ~%", length(qSurfNodes)),
   fhatALSurfQ:nodesub(fhatAL_expd,qSurfNodes),
   for i:1 thru length(qSurfNodes) do (
     printf(fh, "  fhatALQuad[~a] = std::max(0., std::min(~a, limQuad[~a])); ~%", i-1, gcfac(float(fhatALSurfQ[i])), i-1)
   ),
-  /* Get mode coefficients of fhat from quadrature nodal values. */
+  /* get mode coefficients of fhat from quadrature nodal values */
   fhatAL_k:fullratsimp(invert(transpose(modToNodQ)).makelist(fhatALQuad[i-1],i,1,length(qSurfNodes))),
   fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
   writeCExprsNoExpand1(fhatAL, fhatAL_k),
   flush_output(fh),
   fhatAL_expd:fullratsimp(surfBasis.makelist(fhatAL[i-1],i,1,length(fhatAL_k))),
-  printf(fh, "~%  // Begin surface update.~% ~%"),
+  printf(fh, "~%  // begin surface update ~% ~%"),
   
   flush_output(fh),
   return(fhatAL_expd)
 )$
 
-fhatALgenUpwind3(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):=block([limTheta,modNm,basis,vars,varsP,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
+fhatALgenUpwindNoLim(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):=block([limTheta,modNm,basis,vars,varsP,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
   load("basis-precalc/basisSer1x"),
   basis1d:subst(x=surfVar,basisC[1]),
   if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
@@ -239,20 +230,94 @@ fhatALgenUpwind3(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   flush_output(fh),
   fLSurfC:fullratsimp(nodesub(avgAndSlopeL[1],cSurfNodes)*makelist(limTheta(rCtrlL[i-1],1),i,1,length(rLSurfC))),
   fRSurfC:fullratsimp(nodesub(avgAndSlopeR[1],cSurfNodes)*makelist(limTheta(rCtrlR[i-1],-1),i,1,length(rRSurfC))),
-  alphaLim:nodesub(alphaSurf_expd, cSurfNodes),
+  /* print fhatSurfC */
+  printf(fh,"  double fCtrlL[~a], fCtrlR[~a];  // fCtrl = anti-limited f evaluated at each control node on ~a surface ~%",length(fLSurfC), length(fLSurfC),surfVar),
+  for i:1 thru length(cSurfNodes) do (
+    printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[i]), 
+    printf(fh, "  fCtrlL[~a] = ~a; ~%", i-1, gcfac(float(fLSurfC[i]))),
+    printf(fh, "  fCtrlR[~a] = ~a; ~%", i-1, gcfac(float(fRSurfC[i])))
+  ),
+  flush_output(fh),
+  if cdim+vdim-1<=3 then modToNodC:calcModToNodPhaseWithNodes(cdim+vdim-1,0,p,cSurfNodes)
+  else modToNodC:calcModToNodPhaseWithNodes(cdim-1,vdim,p,cSurfNodes),
+  /* get mode coefficients of anti-limited fL,fR from control nodal values */
+  fL_AL_k:fullratsimp(invert(transpose(modToNodC)).makelist(fCtrlL[i-1],i,1,length(fLSurfC))),
+  fR_AL_k:fullratsimp(invert(transpose(modToNodC)).makelist(fCtrlR[i-1],i,1,length(fRSurfC))),
+  fL_AL_k:gcfac(makelist(fL_AL_k[i][1],i,1,length(fL_AL_k))),
+  fR_AL_k:gcfac(makelist(fR_AL_k[i][1],i,1,length(fR_AL_k))),
+  printf(fh,"  double fL_AL[~a], fR_AL[~a];  // f_AL = mode coefficients of anti-limited f on surface ~%",length(fLSurfC),length(fLSurfC)),
+  writeCExprsNoExpand1(fL_AL, fL_AL_k),
+  writeCExprsNoExpand1(fR_AL, fR_AL_k),
+  flush_output(fh),
+  surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
+  fL_AL_expd:fullratsimp(surfBasis.makelist(fL_AL[i-1],i,1,length(fL_AL_k))),
+  fR_AL_expd:fullratsimp(surfBasis.makelist(fR_AL[i-1],i,1,length(fR_AL_k))),
+
+  /* evaluate at surface quadrature nodes to determine upwinding and enforce limiters */
+  /* surface quadrature nodes */
+  qSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/sqrt(3),
+  alphaSurfQ:nodesub(alphaSurf_expd,qSurfNodes),
+  printf(fh, "  double alphaQuad; ~%"),
+  printf(fh, "  // determine upwinding and enforce limiters at each surface quadrature node ~%"),
+  printf(fh, "  double fhatALQuad[~a], fhatAL[~a]; ~%", length(qSurfNodes), length(qSurfNodes)),
+  fL_ALSurfQ:fullratsimp(nodesub(fL_AL_expd,qSurfNodes)),
+  fR_ALSurfQ:fullratsimp(nodesub(fR_AL_expd,qSurfNodes)),
+  for i:1 thru length(qSurfNodes) do (
+    printf(fh, "  alphaQuad = ~a; ~%", gcfac(float(alphaSurfQ[i]))),
+    printf(fh, "  if(alphaQuad > 0) {~%"),
+    printf(fh, "  fhatALQuad[~a] = std::max(0., ~a); ~%", i-1, gcfac(float(fL_ALSurfQ[i]))),
+    printf(fh, "  } else {~%"),
+    printf(fh, "  fhatALQuad[~a] = std::max(0., ~a); ~%", i-1, gcfac(float(fR_ALSurfQ[i]))),
+    printf(fh, "  } ~%")
+  ),
+  /* get mode coefficients of fhat from quadrature nodal values */
+  modToNodQ : calcModToNodPhaseWithNodesAndBasis(qSurfNodes, surfBasis, surfIntVars),
+  fhatAL_k:fullratsimp(invert(transpose(modToNodQ)).makelist(fhatALQuad[i-1],i,1,length(qSurfNodes))),
+  fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
+  writeCExprsNoExpand1(fhatAL, fhatAL_k),
+  flush_output(fh),
+  fhatAL_expd:fullratsimp(surfBasis.makelist(fhatAL[i-1],i,1,length(fhatAL_k))),
+
+  fhatALC : fullratsimp(nodesub(fhatAL_expd, cSurfNodes)),
+
+  printf(fh, "~%  // begin surface update ~% ~%"),
+  
+  flush_output(fh),
+  return(fhatAL_expd)
+)$
+
+fhatALgenUpwindCellAvgLim(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):=block([limTheta,modNm,basis,vars,varsP,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
+  load("basis-precalc/basisSer1x"),
+  basis1d:subst(x=surfVar,basisC[1]),
+  if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
+  else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
+  load(modNm),
+  if vdim=0 then basis : basisC[p]
+  else basis : basisP[p],
+  if vdim=0 then vars : varsC else vars : varsP,
+  surfIntVars : delete(surfVar, vars),
+  surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
+  nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
+  ndim:cdim+vdim,
+  
+  /* positivity evaluation at control nodes */
+  cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/3,
+  avgAndSlopeL:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fL_expd)),
+  avgAndSlopeR:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fR_expd)),
+  rLSurfC:fullratsimp(nodesub(fullratsimp(avgAndSlopeL[2]/(EPSILON + avgAndSlopeL[1])),cSurfNodes)),
+  rRSurfC:fullratsimp(nodesub(fullratsimp(avgAndSlopeR[2]/(EPSILON + avgAndSlopeR[1])),cSurfNodes)),
+  /* print rSurfC */
+  printf(fh,"  double rCtrlL[~a], rCtrlR[~a];  // rCtrl=f1/f0 at each control node in dimensions other than ~a ~%",length(rLSurfC), length(rLSurfC),surfVar),
+  writeCExprsNoExpand1(rCtrlL,gcfac(rLSurfC)),
+  writeCExprsNoExpand1(rCtrlR,gcfac(rRSurfC)),
+  flush_output(fh),
+  fLSurfC:fullratsimp(nodesub(avgAndSlopeL[1],cSurfNodes)*makelist(limTheta(rCtrlL[i-1],1),i,1,length(rLSurfC))),
+  fRSurfC:fullratsimp(nodesub(avgAndSlopeR[1],cSurfNodes)*makelist(limTheta(rCtrlR[i-1],-1),i,1,length(rRSurfC))),
   /* print fhatSurfC */
   printf(fh,"  double fCtrlL[~a], fCtrlR[~a];  // fCtrl = anti-limited f evaluated at each control node on ~a surface ~%",length(fLSurfC), length(fLSurfC),surfVar),
   printf(fh,"  double flimL, flimR; ~%"),
   for i:1 thru length(cSurfNodes) do (
     printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[i]), 
-/*
-    flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[i])/(cflL*alphaLim[2]*dfac2)))),
-    printf(fh, "  flimL = ~a; ~%", flimL),
-    flimR:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,cSurfNodes)[i])/sqrt(2)^ndim/cflR))),
-    printf(fh, "  flimR = ~a; ~%", flimR),
-    printf(fh, "  fCtrlL[~a] = std::min(~a, flimL); ~%", i-1, gcfac(float(fLSurfC[i]))),
-    printf(fh, "  fCtrlR[~a] = std::min(~a, flimR); ~%", i-1, gcfac(float(fRSurfC[i])))
-*/
     printf(fh, "  fCtrlL[~a] = ~a; ~%", i-1, gcfac(float(fLSurfC[i]))),
     printf(fh, "  fCtrlR[~a] = ~a; ~%", i-1, gcfac(float(fRSurfC[i])))
   ),
@@ -288,13 +353,6 @@ fhatALgenUpwind3(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
     printf(fh, "  } else {~%"),
     printf(fh, "  fhatALQuad[~a] = std::max(0., std::min(~a, fr[0]/cflR*~a)); ~%", i-1, gcfac(float(fR_ALSurfQ[i])), float(1/sqrt(2)^ndim)),
     printf(fh, "  } ~%")
-/*
-    printf(fh, "  if(alphaQuad > 0) {~%"),
-    printf(fh, "  fhatALQuad[~a] = ~a; ~%", i-1, gcfac(float(fL_ALSurfQ[i]))),
-    printf(fh, "  } else {~%"),
-    printf(fh, "  fhatALQuad[~a] = ~a; ~%", i-1, gcfac(float(fR_ALSurfQ[i]))),
-    printf(fh, "  } ~%")
-*/
   ),
   /* get mode coefficients of fhat from quadrature nodal values */
   modToNodQ : calcModToNodPhaseWithNodesAndBasis(qSurfNodes, surfBasis, surfIntVars),
@@ -305,6 +363,147 @@ fhatALgenUpwind3(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p)
   fhatAL_expd:fullratsimp(surfBasis.makelist(fhatAL[i-1],i,1,length(fhatAL_k))),
 
   fhatALC : fullratsimp(nodesub(fhatAL_expd, cSurfNodes)),
+
+  printf(fh, "~%  // begin surface update ~% ~%"),
+  
+  flush_output(fh),
+  return(fhatAL_expd)
+)$
+
+fhatALgenUpwindCtrlLim(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):=block([limTheta,modNm,basis,vars,varsP,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
+  load("basis-precalc/basisSer1x"),
+  basis1d:subst(x=surfVar,basisC[1]),
+  if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
+  else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
+  load(modNm),
+  if vdim=0 then basis : basisC[p]
+  else basis : basisP[p],
+  if vdim=0 then vars : varsC else vars : varsP,
+  surfIntVars : delete(surfVar, vars),
+  surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
+  nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
+  ndim:cdim+vdim,
+  
+  /* positivity evaluation at control nodes */
+  cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/3,
+  avgAndSlopeL:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fL_expd)),
+  avgAndSlopeR:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fR_expd)),
+  rLSurfC:fullratsimp(nodesub(fullratsimp(avgAndSlopeL[2]/(EPSILON + avgAndSlopeL[1])),cSurfNodes)),
+  rRSurfC:fullratsimp(nodesub(fullratsimp(avgAndSlopeR[2]/(EPSILON + avgAndSlopeR[1])),cSurfNodes)),
+  /* print rSurfC */
+  printf(fh,"  double rCtrlL[~a], rCtrlR[~a];  // rCtrl=f1/f0 at each control node in dimensions other than ~a ~%",length(rLSurfC), length(rLSurfC),surfVar),
+  writeCExprsNoExpand1(rCtrlL,gcfac(rLSurfC)),
+  writeCExprsNoExpand1(rCtrlR,gcfac(rRSurfC)),
+  flush_output(fh),
+  fLSurfC:fullratsimp(nodesub(avgAndSlopeL[1],cSurfNodes)*makelist(limTheta(rCtrlL[i-1],1),i,1,length(rLSurfC))),
+  fRSurfC:fullratsimp(nodesub(avgAndSlopeR[1],cSurfNodes)*makelist(limTheta(rCtrlR[i-1],-1),i,1,length(rRSurfC))),
+  /* print fhatSurfC */
+  printf(fh,"  double fCtrlL[~a], fCtrlR[~a];  // fCtrl = anti-limited f evaluated at each control node on ~a surface ~%",length(fLSurfC), length(fLSurfC),surfVar),
+  printf(fh,"  double flimL, flimR; ~%"),
+  for i:1 thru length(cSurfNodes) do (
+    printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[i]), 
+    flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[i])/sqrt(2)^ndim/cflL))),
+    printf(fh, "  flimL = ~a; ~%", flimL),
+    flimR:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,cSurfNodes)[i])/sqrt(2)^ndim/cflR))),
+    printf(fh, "  flimR = ~a; ~%", flimR),
+    printf(fh, "  fCtrlL[~a] = std::min(~a, flimL); ~%", i-1, gcfac(float(fLSurfC[i]))),
+    printf(fh, "  fCtrlR[~a] = std::min(~a, flimR); ~%", i-1, gcfac(float(fRSurfC[i])))
+  ),
+  flush_output(fh),
+  if cdim+vdim-1<=3 then modToNodC:calcModToNodPhaseWithNodes(cdim+vdim-1,0,p,cSurfNodes)
+  else modToNodC:calcModToNodPhaseWithNodes(cdim-1,vdim,p,cSurfNodes),
+  /* get mode coefficients of anti-limited fL,fR from control nodal values */
+  fL_AL_k:fullratsimp(invert(transpose(modToNodC)).makelist(fCtrlL[i-1],i,1,length(fLSurfC))),
+  fR_AL_k:fullratsimp(invert(transpose(modToNodC)).makelist(fCtrlR[i-1],i,1,length(fRSurfC))),
+  fL_AL_k:gcfac(makelist(fL_AL_k[i][1],i,1,length(fL_AL_k))),
+  fR_AL_k:gcfac(makelist(fR_AL_k[i][1],i,1,length(fR_AL_k))),
+  printf(fh,"  double fL_AL[~a], fR_AL[~a];  // f_AL = mode coefficients of anti-limited f on surface ~%",length(fLSurfC),length(fLSurfC)),
+  writeCExprsNoExpand1(fL_AL, fL_AL_k),
+  writeCExprsNoExpand1(fR_AL, fR_AL_k),
+  flush_output(fh),
+  surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
+  fL_AL_expd:fullratsimp(surfBasis.makelist(fL_AL[i-1],i,1,length(fL_AL_k))),
+  fR_AL_expd:fullratsimp(surfBasis.makelist(fR_AL[i-1],i,1,length(fR_AL_k))),
+
+  /* evaluate at surface quadrature nodes to determine upwinding and enforce limiters */
+  /* surface quadrature nodes */
+  qSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/sqrt(3),
+  alphaSurfQ:nodesub(alphaSurf_expd,qSurfNodes),
+  printf(fh, "  double alphaQuad; ~%"),
+  printf(fh, "  // determine upwinding and enforce limiters at each surface quadrature node ~%"),
+  printf(fh, "  double fhatALQuad[~a], fhatAL[~a]; ~%", length(qSurfNodes), length(qSurfNodes)),
+  fL_ALSurfQ:fullratsimp(nodesub(fL_AL_expd,qSurfNodes)),
+  fR_ALSurfQ:fullratsimp(nodesub(fR_AL_expd,qSurfNodes)),
+  for i:1 thru length(qSurfNodes) do (
+    printf(fh, "  alphaQuad = ~a; ~%", gcfac(float(alphaSurfQ[i]))),
+    printf(fh, "  if(alphaQuad > 0) {~%"),
+    printf(fh, "  fhatALQuad[~a] = ~a; ~%", i-1, gcfac(float(fL_ALSurfQ[i]))),
+    printf(fh, "  } else {~%"),
+    printf(fh, "  fhatALQuad[~a] = ~a; ~%", i-1, gcfac(float(fR_ALSurfQ[i]))),
+    printf(fh, "  } ~%")
+  ),
+  /* get mode coefficients of fhat from quadrature nodal values */
+  modToNodQ : calcModToNodPhaseWithNodesAndBasis(qSurfNodes, surfBasis, surfIntVars),
+  fhatAL_k:fullratsimp(invert(transpose(modToNodQ)).makelist(fhatALQuad[i-1],i,1,length(qSurfNodes))),
+  fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
+  writeCExprsNoExpand1(fhatAL, fhatAL_k),
+  flush_output(fh),
+  fhatAL_expd:fullratsimp(surfBasis.makelist(fhatAL[i-1],i,1,length(fhatAL_k))),
+
+  fhatALC : fullratsimp(nodesub(fhatAL_expd, cSurfNodes)),
+
+  printf(fh, "~%  // begin surface update ~% ~%"),
+  
+  flush_output(fh),
+  return(fhatAL_expd)
+)$
+
+fhatALgenUpwindQuad(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdim,p):=block([limTheta,modNm,basis,vars,varsP,nodes,modToNod,avgAndSlope,nodesub,r,fq,fhatAL_k,fhatAL_expd, surfIntVars],
+  load("basis-precalc/basisSer1x"),
+  basis1d:subst(x=surfVar,basisC[1]),
+  if vdim=0 then modNm : sconcat("basis-precalc/basisSer", cdim, "x")
+  else modNm : sconcat("basis-precalc/basisSer", cdim, "x", vdim, "v"),
+  load(modNm),
+  if vdim=0 then basis : basisC[p]
+  else basis : basisP[p],
+  if vdim=0 then vars : varsC else vars : varsP,
+  surfIntVars : delete(surfVar, vars),
+  surfBasis:sqrt(2)*delete(0,fullratsimp(innerProd(vars,1,basis,subst(surfVar=0,basis)))*basis),
+  nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
+  ndim:cdim+vdim,
+  
+  /* evaluate at surface quadrature nodes to determine upwinding and enforce limiters */
+  /* surface quadrature nodes */
+  qSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/sqrt(3),
+  alphaSurfQ:nodesub(alphaSurf_expd,qSurfNodes),
+  avgAndSlopeL:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fL_expd)),
+  avgAndSlopeR:fullratsimp(innerProd([surfVar],1,[1/2,3/2*surfVar],fR_expd)),
+  rLSurfQ:gcfac(float(fullratsimp(nodesub(fullratsimp(avgAndSlopeL[2]/(EPSILON + avgAndSlopeL[1])),qSurfNodes)))),
+  rRSurfQ:gcfac(float(fullratsimp(nodesub(fullratsimp(avgAndSlopeR[2]/(EPSILON + avgAndSlopeR[1])),qSurfNodes)))),
+  fLSurfQ:gcfac(float(fullratsimp(nodesub(avgAndSlopeL[1],qSurfNodes)*limTheta(rCtrl,1)))),
+  fRSurfQ:gcfac(float(fullratsimp(nodesub(avgAndSlopeR[1],qSurfNodes)*limTheta(rCtrl,-1)))),
+  flimLQ:gcfac(float(fullratsimp(subst(surfVar=1/sqrt(3),nodesub(fL_expd,qSurfNodes))/sqrt(2)/(1+sqrt(3))/cflL))),
+  flimRQ:gcfac(float(fullratsimp(subst(surfVar=-1/sqrt(3),nodesub(fR_expd,qSurfNodes))/sqrt(2)/(1+sqrt(3))/cflR))),
+  printf(fh, "  double alphaQuad, rCtrl; ~%"),
+  printf(fh, "  // determine upwinding and enforce limiters at each surface quadrature node ~%"),
+  printf(fh, "  double fhatALQuad[~a], fhatAL[~a]; ~%", length(qSurfNodes), length(qSurfNodes)),
+  for i:1 thru length(qSurfNodes) do (
+    printf(fh, "  alphaQuad = ~a; ~%", gcfac(float(alphaSurfQ[i]))),
+    printf(fh, "  if(alphaQuad > 0) {~%"),
+    printf(fh, "  rCtrl = ~a; ~%", gcfac(rLSurfQ[i])),
+    printf(fh, "  fhatALQuad[~a] = std::max(0.,std::min(~a, fl[0]/cflL*~a)); ~%", i-1, gcfac(float(fLSurfQ[i])), float(1/sqrt(2)^ndim)),
+    printf(fh, "  } else {~%"),
+    printf(fh, "  rCtrl = ~a; ~%", gcfac(rRSurfQ[i])),
+    printf(fh, "  fhatALQuad[~a] = std::max(0.,std::min(~a, fr[0]/cflR*~a)); ~%", i-1, gcfac(float(fRSurfQ[i])), float(1/sqrt(2)^ndim)),
+    printf(fh, "  } ~%")
+  ),
+  /* get mode coefficients of fhat from quadrature nodal values */
+  modToNodQ : calcModToNodPhaseWithNodesAndBasis(qSurfNodes, surfBasis, surfIntVars),
+  fhatAL_k:fullratsimp(invert(transpose(modToNodQ)).makelist(fhatALQuad[i-1],i,1,length(qSurfNodes))),
+  fhatAL_k:gcfac(makelist(fhatAL_k[i][1],i,1,length(fhatAL_k))),
+  writeCExprsNoExpand1(fhatAL, fhatAL_k),
+  flush_output(fh),
+  fhatAL_expd:fullratsimp(surfBasis.makelist(fhatAL[i-1],i,1,length(fhatAL_k))),
 
   printf(fh, "~%  // begin surface update ~% ~%"),
   
