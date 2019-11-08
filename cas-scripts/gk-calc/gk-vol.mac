@@ -45,7 +45,7 @@ load(modNm),
   numC : length(bC),
 
   if emflag then printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_"))
-  else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, const double dt, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
+  else printf(fh, "double ~aP~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, double *cflRateCtrl, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) ~%{ ~%", funcNm, i, simplode(bvarslist,"_")),
 
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
   volfac : 1,
@@ -134,6 +134,9 @@ load(modNm),
   printf(fh, "  double alphaR = 0.0; ~%"), 
   
   /* note: no contribution from mu */
+  volCtrlNodes : eval_string(sconcat("nodes", cdim+vdim, "xp", p))/3,
+  nodesubVol(f,node):=subst(makelist(varsP[j]=node[j],j,1,length(varsP)),f),
+  printf(fh, "  double alphaCtrl;~%"),
   alphaSum_expd : 0,
   if vdim = 0 then vd : 0
   else vd : 1,
@@ -207,9 +210,27 @@ load(modNm),
     ),
     printf(fh, "#endif ~%"),
 
+    printf(fh, "~%"),
+
+    for i:1 thru length(volCtrlNodes) do (
+        surfNode : copy(volCtrlNodes[i]),
+        surfNode[d] : surfNode[d]*3,
+
+        alphaC : nodesubVol(alpha_expd, surfNode),
+        printf(fh, "  alphaCtrl = ~a; ~%", gcfac(float(alphaC))),
+        if surfNode[d]>0 then (
+          if d=1 then printf(fh, "  cflRateCtrl[~a] = 0.5*(alphaCtrl+std::abs(alphaCtrl)); ~%", i-1)
+          else printf(fh, "  cflRateCtrl[~a] += 0.5*(alphaCtrl+std::abs(alphaCtrl)); ~%", i-1)
+        ) else (
+          if d=1 then printf(fh, "  cflRateCtrl[~a] = -0.5*(alphaCtrl-std::abs(alphaCtrl)); ~%", i-1)
+          else printf(fh, "  cflRateCtrl[~a] += -0.5*(alphaCtrl-std::abs(alphaCtrl)); ~%", i-1)
+        )
+    ),
     printf(fh, "~%")
     
   ),
+
+
   gkVolTerm_k : fullratsimp(innerProd(varsP, 1, f_expd, alphaSum_expd)),
   writeCIncrExprsNoExpand(gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac))))),
   flush_output(fh),

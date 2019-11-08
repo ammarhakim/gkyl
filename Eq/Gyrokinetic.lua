@@ -82,6 +82,13 @@ function Gyrokinetic:init(tbl)
    -- timers
    self.totalVolTime = 0.0
    self.totalSurfTime = 0.0
+
+   self.cflRateCtrl = DataStruct.Field {
+      onGrid        = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   self.cflRateCtrlIdxr = self.cflRateCtrl:genIndexer()
 end
 
 function Gyrokinetic:setAuxFields(auxFields)
@@ -169,20 +176,25 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    self.gradpar:fill(self.gradparIdxr(idx), self.gradparPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idx), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
+
+   local cflRateCtrlPtr = self.cflRateCtrl:get(1)
+   self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idx), cflRateCtrlPtr)
+
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idx), self.aparPtr)
      self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
      res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    else 
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), 1., self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), cflRateCtrlPtr:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
+   --print(cflRateCtrlPtr:data()[0], cflRateCtrlPtr:data()[1], cflRateCtrlPtr:data()[2], cflRateCtrlPtr:data()[3])
    return res
 end
 
 -- Surface integral term for use in DG scheme
-function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    if self._gyavg then 
       local idmu = idxr[self._ndim]
@@ -196,15 +208,21 @@ function Gyrokinetic:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idx
    self.gradpar:fill(self.gradparIdxr(idxr), self.gradparPtr)
    self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
+
+   local cflRateCtrlL = self.cflRateCtrl:get(1)
+   local cflRateCtrlR = self.cflRateCtrl:get(1)
+   self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxl), cflRateCtrlL)
+   self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxr), cflRateCtrlR)
+
    local res
    if self._isElectromagnetic then
      self.apar:fill(self.aparIdxr(idxr), self.aparPtr)
      self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
      self.emMod:fill(self.emModIdxr(idxl), self.emModPtrL)
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
-     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
+     res = self._surfTerms[dir](self.charge, self.mass, dtApprox, wr:data(), dxr:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
-     res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, cflRateCtrlL:data(), cflRateCtrlR:data(), wr:data(), dxr:data(), dtApprox, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
@@ -215,6 +233,10 @@ function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_
    self.phiWall:fill(self.phiWallIdxr(idx), self.phiWallPtr)
    return self._calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_, m_, 
                                             self.phiPtr:data(), self.phiWallPtr:data(), f:data(), fRefl:data())
+end
+
+function Gyrokinetic:sync()
+   self.cflRateCtrl:sync()
 end
 
 local GyrokineticStep2 = Proto(EqBase)
@@ -300,7 +322,7 @@ end
 
 -- Surface integral term for use in DG scheme 
 -- NOTE: only vpar direction for this term
-function GyrokineticStep2:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function GyrokineticStep2:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
    self.bmag:fill(self.bmagIdxr(idxr), self.bmagPtr)
@@ -312,7 +334,7 @@ function GyrokineticStep2:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl
    self.dApardt:fill(self.dApardtIdxr(idxr), self.dApardtPtr)
    self.dApardtProv:fill(self.dApardtIdxr(idxr), self.dApardtProvPtr)
 
-   local res = self._surfTerm(self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
+   local res = self._surfTerm(self.charge, self.mass, dtApprox, wr:data(), dxr:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), nil, nil)
 
    return res
 end

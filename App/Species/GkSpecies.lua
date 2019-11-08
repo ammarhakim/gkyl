@@ -615,6 +615,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    --end
 
    fRhsOut:clear(0.0)
+   if self.positivityRescale then self.fPos:clear(0.0) end
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then

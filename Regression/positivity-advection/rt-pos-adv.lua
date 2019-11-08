@@ -2,7 +2,7 @@
 local Plasma = require("App.PlasmaOnCartGrid")
 
 local ux = 1
-local uy = 1
+local uy = 0
 
 local Lx = 1
 local Ly = 1
