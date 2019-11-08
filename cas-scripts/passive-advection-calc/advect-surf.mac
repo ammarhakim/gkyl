@@ -36,7 +36,7 @@ load(modNm),
   surfac : fullratsimp(volfac*dfacSurf),
 
   print("Working on ", funcNm, "_", dirlabel, "_P", i),
-  printf(fh, "double ~a_~a_P~a(const double *cflFreqCtrlL, const double *cflFreqCtrlR, const double *w, const double *dxv, const double dt, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
+  printf(fh, "double ~a_~a_P~a(const double *cflRateCtrlL, const double *cflRateCtrlR, const double *w, const double *dxv, const double dtApprox, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. ~%"),
 
   for dir : 1 thru cdim do (
@@ -101,27 +101,8 @@ load(modNm),
       nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
       GhatC : nodesub(Ghat_expd, cSurfNodes), 
       printf(fh, "  double GhatCtrl[~a];~%", length(cSurfNodes)),
-      /*printf(fh, "  double Glim, alphaSurfQ;~%"),*/
       for i:1 thru length(cSurfNodes) do (
         printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[i]), 
-/*
-        printf(fh, "  if(~a > 0.) {~%", gcfac(float(GhatC[i]))),
-        Glim:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[i]/dt/cdim)))),
-        printf(fh, "  Glim = ~a;~%", Glim),
-        printf(fh, "  } else {~%"),
-        Glim:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,cSurfNodes)[i]/dt/cdim)))),
-        printf(fh, "  Glim = ~a;~%", Glim),
-        printf(fh, "  }~%"),
-*/
-/*
-        printf(fh, "  alphaSurfQ = ~a;~%", gcfac(float(nodesub(alphaSurf_expd,qSurfNodes)[i]/2^cdim))),
-        printf(fh, "  if(alphaSurfQ > 0.) {~%"),
-        printf(fh, "  Glim *= alphaSurfQ/cflL;~%"),
-        printf(fh, "  } else {~%"),
-        printf(fh, "  Glim *= alphaSurfQ/cflR;~%"),
-        printf(fh, "  }~%"),
-*/
-        
         printf(fh, "  GhatCtrl[~a] = ~a; ~%", i-1, gcfac(float(GhatC[i]))),
         printf(fh, "  if(std::abs(GhatCtrl[~a]) < EPSILON) GhatCtrl[~a] = 0.; ~%", i-1, i-1)
       ),
@@ -146,19 +127,19 @@ load(modNm),
         if incrC_r[i]#0.0 then (
            printf(fh, "  if(~a<-EPSILON) {~%", incrC_r[i]),
            printf(fh, "    alphaCtrl = ~a; ~%", gcfac(float(nodesubVol(alphaSurf_expd, cVolNodes)[i]))),
-           printf(fh, "    uFrac = ~a; ~%", gcfac(float(surfac*alphaCtrl/cflFreqCtrlR[i-1]))),
+           printf(fh, "    uFrac = ~a; ~%", gcfac(float(surfac*alphaCtrl/cflRateCtrlR[i-1]))),
            printf(fh, "    fCtrl = ~a; ~%", GlimR),
            printf(fh, "    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) ~a = 0.;~%", incrC_r[i]),
-           printf(fh, "    else ~a = -std::min(std::abs(~a), std::abs(uFrac)*fCtrl/dt);~%", incrC_r[i], incrC_r[i]),
+           printf(fh, "    else ~a = -std::min(std::abs(~a), std::abs(uFrac)*fCtrl/dtApprox);~%", incrC_r[i], incrC_r[i]),
            printf(fh, "  }~%")
         ),
         if incrC_l[i]#0.0 then (
            printf(fh, "  if(~a>EPSILON) {~%", fullratsimp(-incrC_l[i])),
            printf(fh, "    alphaCtrl = ~a; ~%", gcfac(float(nodesubVol(alphaSurf_expd, cVolNodes)[i]))),
-           printf(fh, "    uFrac = ~a; ~%", gcfac(float(surfac*alphaCtrl/cflFreqCtrlL[i-1]))),
+           printf(fh, "    uFrac = ~a; ~%", gcfac(float(surfac*alphaCtrl/cflRateCtrlL[i-1]))),
            printf(fh, "    fCtrl = ~a; ~%", GlimL),
            printf(fh, "    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) ~a = 0.;~%", fullratsimp(-incrC_l[i])),
-           printf(fh, "    else ~a = std::min(~a, std::abs(uFrac)*fCtrl/dt);~%", fullratsimp(-incrC_l[i]), fullratsimp(-incrC_l[i])),
+           printf(fh, "    else ~a = std::min(~a, std::abs(uFrac)*fCtrl/dtApprox);~%", fullratsimp(-incrC_l[i]), fullratsimp(-incrC_l[i])),
            printf(fh, "  }~%")
         )
       ), 

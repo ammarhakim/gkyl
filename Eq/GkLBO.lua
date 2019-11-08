@@ -156,7 +156,7 @@ function GkLBO:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme.
-function GkLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- Set pointer to BmagInv, sum(nu*u) and sum(nu*vtSq) fields.
    self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr)          -- Get pointer to BmagInv field.
@@ -176,12 +176,12 @@ function GkLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql,
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
              (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
-               self._inMass, cfll, cflr, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNuSum, maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               self._inMass, 0., 0., wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNuSum, dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       else
          self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr)          -- Get pointer to sum(nu) field.
          vMuMidMax = self._surfUpdate[dir-self._cdim](
-            self._inMass, cfll, cflr, wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            self._inMass, 0., 0., wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return vMuMidMax

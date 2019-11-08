@@ -59,14 +59,14 @@ function PassiveAdvection:volTerm(w, dx, idx, f, out)
 end
 
 -- Surface integral term for use in DG scheme
-function PassiveAdvection:surfTerm(dir, cflL, cflR, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function PassiveAdvection:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    local res
    local cflRateCtrlL = self.cflRateCtrl:get(1)
    local cflRateCtrlR = self.cflRateCtrl:get(1)
    self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxl), cflRateCtrlL)
    self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxr), cflRateCtrlR)
-   res = self._surfTerms[dir](cflRateCtrlL:data(), cflRateCtrlR:data(), wr:data(), dxr:data(), maxs, fl:data(), fr:data(), outl:data(), outr:data())
+   res = self._surfTerms[dir](cflRateCtrlL:data(), cflRateCtrlR:data(), wr:data(), dxr:data(), dtApprox, fl:data(), fr:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
 end

@@ -86,7 +86,7 @@ end
 -- advance method
 function HyperDisCont:_advance(tCurr, inFld, outFld)
    local grid = self._onGrid
-   local dt = self._dt
+   local dtApprox = self._dt
    local cflRateByCell = self._cflRateByCell
 
    local qIn = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
@@ -134,7 +134,6 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    -- accumulate the volume contribution once, skipping it for other
    -- directions
    local firstDir = true
-   local dirlabel = {"X", "Y", "Z", "V", "M"}
 
    -- use maximum characteristic speeds from previous step as penalty
    for d = 1, ndim do
@@ -155,7 +154,7 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
    -- accumulate contributions from volume and surface integrals
    local cflRate
    -- iterate through updateDirs backwards so that a zero flux dir is first in kinetics
-   for d = 1, #self._updateDirs do 
+   for d = 0, #self._updateDirs do 
       local dir = self._updateDirs[d] or 1
       -- lower/upper bounds in direction 'dir': these are edge indices (one more edge than cell)
       local dirLoIdx, dirUpIdx = localRange:lower(dir), localRange:upper(dir)+1
@@ -218,9 +217,9 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
 	    end
 	    if d>0 and i >= dirLoSurfIdx and i <= dirUpSurfIdx then
 	       local maxs = self._equation:surfTerm(
-		  dir, 0., 0., xcm, xcp, dxm, dxp, dt, idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
+		  dir, dtApprox, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
-            else
+            elseif d>0 then
 	       if self._zeroFluxFlags[dir] then
 	          -- we need to give equations a chance to apply partial
 	          -- surface updates even when the zeroFlux BCs have been

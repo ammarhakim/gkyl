@@ -7,7 +7,7 @@ for ci : 1 thru 3 do (
       printf(fh, "double PassiveAdvectionVol~axSerP~a(const double *w, const double *dxv, double *cfl, const double *f, double *out); ~%", ci, pi),
       for si : 1 thru ci do (
         dirlabel : cvars[si],
-        printf(fh, "double PassiveAdvectionSurf~axSer_~a_P~a(const double *cflL, const double *cflR, const double *w, const double *dxv, const double dt, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi),
+        printf(fh, "double PassiveAdvectionSurf~axSer_~a_P~a(const double *cflL, const double *cflR, const double *w, const double *dxv, const double dtApprox, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi),
         printf(fh, "double PassiveAdvectionSurfPositivity~axSer_~a_P~a(const double *cflL, const double *cflR, const double *w, const double *dxv, const double dt, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi)
       ),
     printf(fh, "~%")

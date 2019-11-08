@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, const double dt, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, double *cflRateCtrl, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -13,6 +13,7 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
+  double alphaCtrl;
   double alphax[4]; 
   alphax[0] = 1.414213562373095*Gradpar[0]*dfac_x*wv; 
 #if cflType == SURFAVG 
@@ -35,6 +36,14 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  alphaCtrl = 0.5*alphax[0]; 
+  cflRateCtrl[0] = -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphax[0]; 
+  cflRateCtrl[1] = 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphax[0]; 
+  cflRateCtrl[2] = -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphax[0]; 
+  cflRateCtrl[3] = 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
   double alphav[4]; 
   alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
 #if cflType == SURFAVG 
@@ -57,12 +66,20 @@ double GyrokineticVol1x1vSerP1_Bvars_0(const double q_, const double m_, const d
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  alphaCtrl = 0.5*alphav[0]; 
+  cflRateCtrl[0] += -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphav[0]; 
+  cflRateCtrl[1] += -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphav[0]; 
+  cflRateCtrl[2] += 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphav[0]; 
+  cflRateCtrl[3] += 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
   out[1] += 0.8660254037844386*alphax[0]*f[0]; 
   out[2] += 0.8660254037844386*alphav[0]*f[0]; 
   out[3] += 0.8660254037844386*(alphax[0]*f[2]+alphav[0]*f[1]); 
   return cflFreq; 
 } 
-double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, const double dt, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
+double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const double *w, const double *dxv, double *cflRateCtrl, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *f, double *out) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -76,6 +93,7 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
   double cflFreq = 0.0; 
   double alphaL = 0.0; 
   double alphaR = 0.0; 
+  double alphaCtrl;
   double alphax[4]; 
   alphax[0] = 1.414213562373095*Gradpar[0]*dfac_x*wv; 
   alphax[1] = 1.414213562373095*Gradpar[1]*dfac_x*wv; 
@@ -99,6 +117,14 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  alphaCtrl = 0.5*alphax[0]-0.8660254037844386*alphax[1]; 
+  cflRateCtrl[0] = -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.8660254037844386*alphax[1]+0.5*alphax[0]; 
+  cflRateCtrl[1] = 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphax[0]-0.8660254037844386*alphax[1]; 
+  cflRateCtrl[2] = -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.8660254037844386*alphax[1]+0.5*alphax[0]; 
+  cflRateCtrl[3] = 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
   double alphav[4]; 
   alphav[0] = -(1.732050807568877*Gradpar[0]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
   alphav[1] = -(1.732050807568877*Gradpar[1]*Phi[1]*dfac_v*dfac_x*q_)/m_; 
@@ -122,6 +148,14 @@ double GyrokineticVol1x1vSerP1_Bvars_1(const double q_, const double m_, const d
   cflFreq += 0.5*(alphaR+std::abs(alphaR)); 
 #endif 
 
+  alphaCtrl = 0.5*alphav[0]-0.2886751345948129*alphav[1]; 
+  cflRateCtrl[0] += -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.2886751345948129*alphav[1]+0.5*alphav[0]; 
+  cflRateCtrl[1] += -0.5*(alphaCtrl-std::abs(alphaCtrl)); 
+  alphaCtrl = 0.5*alphav[0]-0.2886751345948129*alphav[1]; 
+  cflRateCtrl[2] += 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
+  alphaCtrl = 0.2886751345948129*alphav[1]+0.5*alphav[0]; 
+  cflRateCtrl[3] += 0.5*(alphaCtrl+std::abs(alphaCtrl)); 
   out[1] += 0.8660254037844386*(alphax[1]*f[1]+alphax[0]*f[0]); 
   out[2] += 0.8660254037844386*(alphav[1]*f[1]+alphav[0]*f[0]); 
   out[3] += 0.8660254037844386*(alphax[1]*f[3]+alphax[0]*f[2]+alphav[0]*f[1]+f[0]*alphav[1]); 
