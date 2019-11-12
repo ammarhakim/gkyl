@@ -1,5 +1,5 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *cflRateCtrlL, const double *cflRateCtrlR, const double *w, const double *dxv, const double dtApprox, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -59,32 +59,24 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   if(std::abs(GhatCtrl[1]) < EPSILON) GhatCtrl[1] = 0.; 
   double uFrac = 0., fCtrl = 0., alphaCtrl = 0.;
   if(GhatCtrl[0]<-EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_x)/cflRateCtrlR[0]; 
+    uFrac = cflRateByDirR[0] == 0. ? 0.3333333333333333 : cflRateByDirR[1]/cflRateByDirR[0]; 
     fCtrl = 0.1666666666666667*fr[3]-0.2886751345948129*(fr[2]+fr[1])+0.5*fr[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[0] = 0.;
-    else GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac)*fCtrl/dtApprox);
   }
   if(GhatCtrl[0]>EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_x)/cflRateCtrlL[1]; 
+    uFrac = cflRateByDirL[0] == 0. ? 0.3333333333333333 : cflRateByDirL[1]/cflRateByDirL[0]; 
     fCtrl = (-0.1666666666666667*fl[3])-0.2886751345948129*fl[2]+0.2886751345948129*fl[1]+0.5*fl[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[0] = 0.;
-    else GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac)*fCtrl/dtApprox);
   }
   if(GhatCtrl[1]<-EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_x)/cflRateCtrlR[2]; 
+    uFrac = cflRateByDirR[0] == 0. ? 0.3333333333333333 : cflRateByDirR[1]/cflRateByDirR[0]; 
     fCtrl = (-0.1666666666666667*fr[3])+0.2886751345948129*fr[2]-0.2886751345948129*fr[1]+0.5*fr[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[1] = 0.;
-    else GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac)*fCtrl/dtApprox);
   }
   if(GhatCtrl[1]>EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_x)/cflRateCtrlL[3]; 
+    uFrac = cflRateByDirL[0] == 0. ? 0.3333333333333333 : cflRateByDirL[1]/cflRateByDirL[0]; 
     fCtrl = 0.1666666666666667*fl[3]+0.2886751345948129*(fl[2]+fl[1])+0.5*fl[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[1] = 0.;
-    else GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac)*fCtrl/dtApprox);
   }
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0]); 
@@ -103,7 +95,7 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *cflRateCtrlL, const double *cflRateCtrlR, const double *w, const double *dxv, const double dtApprox, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -163,32 +155,24 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
   if(std::abs(GhatCtrl[1]) < EPSILON) GhatCtrl[1] = 0.; 
   double uFrac = 0., fCtrl = 0., alphaCtrl = 0.;
   if(GhatCtrl[0]<-EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_y)/cflRateCtrlR[0]; 
+    uFrac = cflRateByDirR[0] == 0. ? 0.3333333333333333 : cflRateByDirR[2]/cflRateByDirR[0]; 
     fCtrl = 0.1666666666666667*fr[3]-0.2886751345948129*(fr[2]+fr[1])+0.5*fr[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[0] = 0.;
-    else GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac)*fCtrl/dtApprox);
   }
   if(GhatCtrl[1]<-EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_y)/cflRateCtrlR[1]; 
+    uFrac = cflRateByDirR[0] == 0. ? 0.3333333333333333 : cflRateByDirR[2]/cflRateByDirR[0]; 
     fCtrl = (-0.1666666666666667*fr[3])-0.2886751345948129*fr[2]+0.2886751345948129*fr[1]+0.5*fr[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[1] = 0.;
-    else GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac)*fCtrl/dtApprox);
   }
   if(GhatCtrl[0]>EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_y)/cflRateCtrlL[2]; 
+    uFrac = cflRateByDirL[0] == 0. ? 0.3333333333333333 : cflRateByDirL[2]/cflRateByDirL[0]; 
     fCtrl = (-0.1666666666666667*fl[3])+0.2886751345948129*fl[2]-0.2886751345948129*fl[1]+0.5*fl[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[0] = 0.;
-    else GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac)*fCtrl/dtApprox);
   }
   if(GhatCtrl[1]>EPSILON) {
-    alphaCtrl = 0.7071067811865475*alpha[0]; 
-    uFrac = (alphaCtrl*dfac_y)/cflRateCtrlL[3]; 
+    uFrac = cflRateByDirL[0] == 0. ? 0.3333333333333333 : cflRateByDirL[2]/cflRateByDirL[0]; 
     fCtrl = 0.1666666666666667*fl[3]+0.2886751345948129*(fl[2]+fl[1])+0.5*fl[0]; 
-    if(std::abs(alphaCtrl)<EPSILON || std::abs(fCtrl)<EPSILON) GhatCtrl[1] = 0.;
-    else GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac)*fCtrl/dtApprox);
+    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac)*fCtrl/dtApprox);
   }
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0]); 
