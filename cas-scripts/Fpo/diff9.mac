@@ -32,21 +32,29 @@ getSurfTerm(fh, dir, edge, polyOrder,
   perpDir : getPerpDir(dir),
   /*if edge = -1 then edgeNm : "L" else edgeNm : "U",*/
   ba : getBasis("basis-precalc/basisSer2x", polyOrder),
-  
-  [giifCL, giifCU] : fgConvolution(dir, [dir,dir], polyOrder, fCL, fCU, gCL, gCU),
+
   [gijfLL, gijfLU] : fgConvolution(dir, [dir,perpDir], polyOrder, fLL, fLU, gLL, gLU),
+  [giifCL, giifCU] : fgConvolution(dir, [dir,dir],     polyOrder, fCL, fCU, gCL, gCU),
   [gijfCL, gijfCU] : fgConvolution(dir, [dir,perpDir], polyOrder, fCL, fCU, gCL, gCU),
   [gijfUL, gijfUU] : fgConvolution(dir, [dir,perpDir], polyOrder, fUL, fUU, gUL, gUU),
 
-  rec2 : getRecov2CellGen(dir, [2,2], polyOrder, giifCL, giifCU),
+  /* rec2 : getRecov2CellGen(dir, [2,2], polyOrder, giifCL, giifCU), */
+  /* giif : subst(dir=0, rec2), */
+  /* giifi : subst(dir=0, diff(rec2, dir)), */
+  
+  /* rec2 : getRecov2CellGen(dir, [2,2], polyOrder, gijfCL, gijfCU), */
+  /* gijf : subst(dir=0, rec2), */
+  /* rec6 : getRecov6CellGen(perpDir, [2,2], polyOrder, 0, */
+  /*   gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijfUU), */
+  /* gijfj : diff(rec6, perpDir), */
+
+  rec2 : getRecov2CellGen(dir, [2,2], polyOrder, fCL, fCU),
   giif : subst(dir=0, rec2),
   giifi : subst(dir=0, diff(rec2, dir)),
   
-  rec2 : getRecov2CellGen(dir, [2,2], polyOrder, gijfCL, gijfCU),
   gijf : subst(dir=0, rec2),
-  
   rec6 : getRecov6CellGen(perpDir, [2,2], polyOrder, 0,
-    gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijfUU),
+    fLL, fLU, fCL, fCU, fUL, fUU),
   gijfj : diff(rec6, perpDir),
   
   Jii : eval_string(sconcat("J", dir, dir)),
@@ -69,7 +77,6 @@ for polyOrder : 1 thru 1 do (
   baC : getBasis("basis-precalc/basisSer2x", polyOrder),
 
   /* N : polyOrder + 3, */
-  
   indexSubList : append(
     /* diff potential */
     makelist(gC[i]=gC[i-1], i, 1, length(baC)),
@@ -94,56 +101,38 @@ for polyOrder : 1 thru 1 do (
     /* recoveries */
     ),
   
-  printf(fh, "  double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);~%"),
-  printf(fh, "  double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);~%"),
-  printf(fh, "  double Jxy = 16/(dv[0]*dv[0]*dv[1]*dv[1]);~%"),
+  /* printf(fh, "  double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);~%"), */
+  /* printf(fh, "  double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);~%"), */
+  /* printf(fh, "  double Jxy = 16/(dv[0]*dv[0]*dv[1]*dv[1]);~%"), */
+  /* printf(fh, "  double Jyx = Jxy;~%~%"), */
+  printf(fh, "  double Jxx = 4/(dv[0]*dv[0]);~%"),
+  printf(fh, "  double Jyy = 4/(dv[1]*dv[1]);~%"),
+  printf(fh, "  double Jxy = 4/(dv[0]*dv[1]);~%"),
   printf(fh, "  double Jyx = Jxy;~%~%"),
-
-  /* Putting together the volume terms */
-  gxxfPhixxVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxx, diff(baC, x, 2),
-    diff(doExpand(gC, baC), x, 2)*doExpand(fC, baC)),
-  gyyfPhiyyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jyy, diff(baC, y, 2),
-    diff(doExpand(gC, baC), y, 2)*doExpand(fC, baC)),
-  gxyfPhixyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxy, diff(diff(baC, x), y),
-    diff(diff(doExpand(gC, baC), x), y)*doExpand(fC, baC)),
   
   surfT : getSurfTerm(fh, y, 1, polyOrder, fL, fTL, fC, fT, fR, fTR, gL, gTL, gC, gT, gR, gTR),
   surfB : getSurfTerm(fh, y, -1, polyOrder, fBL, fL, fB, fC, fBR, fR, gBL, gL, gB, gC, gBR, gR),
   surfL : getSurfTerm(fh, x, -1, polyOrder, fBL, fB, fL, fC, fTL, fT, gBL, gB, gL, gC, gTL, gT),
   surfR : getSurfTerm(fh, x, 1, polyOrder, fB, fBR, fC, fR, fT, fTR, gB, gBR, gC, gR, gT, gTR),
 
-  /* printf(fh, "  if (isLeftEdge) {~%"), */
-  /* tmp : (gxxfxPhiSurR-gxxfPhixSurR + gxyfyPhiSurR-gxyfPhiySurR)/2, */
-  /* out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))), */
-  /* for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]), */
-
-  /* printf(fh, "  } else if (isRightEdge) {~%"), */
-  /* tmp : (-gxxfxPhiSurL+gxxfPhixSurL - gxyfyPhiSurL+gxyfPhiySurL)/2, */
-  /* out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))), */
-  /* for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]), */
-
-  /* printf(fh, "  } else {~%"), */
   tmp : (surfR - surfL + surfT - surfB)/2,
   out : subst(indexSubList, expand(float(fullratsimp(tmp)))),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
-  /* printf(fh, "  }~%~%"), */
 
-  /* printf(fh, "  if (isBotEdge) {~%"), */
-  /* tmp : (gyyfyPhiSurT-gyyfPhiySurT + gyxfxPhiSurT-gyxfPhixSurT)/2, */
-  /* out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))), */
-  /* for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]), */
-
-  /* printf(fh, "  } else if (isTopEdge) {~%"), */
-  /* tmp : (-gyyfyPhiSurB+gyyfPhiySurB - gyxfxPhiSurB+gyxfPhixSurB)/2, */
-  /* out : subst(indexSubList, subst(gkyl_ipow, "^", float(expand(fullratsimp(tmp))))), */
-  /* for i : 1 thru length(baC) do printf(fh, "    fOut[~a] += ~a;~%", i-1, dt*out[i]), */
-  
-  /* printf(fh, "  } else {~%"), */
-  /* tmp : ()/2, */
-  /* out : subst(indexSubList, float(expand(fullratsimp(tmp)))), */
-  /* for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]), */
-  /* printf(fh, "  }~%~%"), */
-  
+  /* Putting together the volume terms */
+  /* gxxfPhixxVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxx, diff(baC, x, 2), */
+  /*   diff(doExpand(gC, baC), x, 2)*doExpand(fC, baC)), */
+  /* gyyfPhiyyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jyy, diff(baC, y, 2), */
+  /*   diff(doExpand(gC, baC), y, 2)*doExpand(fC, baC)), */
+  /* gxyfPhixyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxy, diff(diff(baC, x), y), */
+  /*   diff(diff(doExpand(gC, baC), x), y)*doExpand(fC, baC)),  */
+  gxxfPhixxVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxx, diff(baC, x, 2),
+    doExpand(fC, baC)),
+  gyyfPhiyyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jyy, diff(baC, y, 2),
+    doExpand(fC, baC)),
+  gxyfPhixyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxy, diff(diff(baC, x), y),
+    doExpand(fC, baC)),
+ 
   /* Writting the volume term */
   tmp : (gxxfPhixxVol + gyyfPhiyyVol + 2*gxyfPhixyVol)/2,
   out : subst(indexSubList, expand(float(fullratsimp(tmp)))),
