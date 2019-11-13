@@ -188,12 +188,14 @@ load(modNm),
     alphaL0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaL, subst(varsP[d]=-1, bP[1]))*bP[1]),
     printf(fh, "  // evaluate surface-averaged alpha on left ~%"),
     printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaL0))),
-    printf(fh, "  cflRateByDir[~a] += -0.5*(alphaL-std::abs(alphaL)); ~%", d),
+    printf(fh, "  cflRateByDir[~a] += std::abs(alphaL); ~%", d),
+    printf(fh, "  cflRate += -0.5*(alphaL-std::abs(alphaL)); ~%"),
     /* note: factor of derivfacsD already included in alpha_expd */
     alphaR0 : fullratsimp(innerProd(delete(varsP[d],varsP), 1, alphaR, subst(varsP[d]=1, bP[1]))*bP[1]),
     printf(fh, "  // evaluate surface-averaged alpha on right ~%"),
     printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaR0))),
-    printf(fh, "  cflRateByDir[~a] += 0.5*(alphaR+std::abs(alphaR)); ~%", d),
+    printf(fh, "  cflRateByDir[~a] += std::abs(alphaR); ~%", d),
+    printf(fh, "  cflRate += 0.5*(alphaR+std::abs(alphaR)); ~%"),
     flush_output(fh),
 
     /* evaluate cfl by evaluating at all surface quadrature points */
@@ -203,12 +205,14 @@ load(modNm),
     printf(fh, "  // evaluate alpha at left surface quadrature points ~%"),
     for i:1 thru length(alphaLquad) do (
       printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
-      printf(fh, "  cflRateByDir[~a] += -0.5*(alphaL-std::abs(alphaL)); ~%", d)
+      printf(fh, "  cflRateByDir[~a] += std::abs(alphaL); ~%", d),
+      printf(fh, "  cflRate += -0.5*(alphaL-std::abs(alphaL)); ~%")
     ),
     printf(fh, "  // evaluate alpha at right surface quadrature points ~%"),
     for i:1 thru length(alphaRquad) do (
       printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]))),
-      printf(fh, "  cflRateByDir[~a] += 0.5*(alphaR+std::abs(alphaR)); ~%", d)
+      printf(fh, "  cflRateByDir[~a] += std::abs(alphaR); ~%", d),
+      printf(fh, "  cflRate += 0.5*(alphaR+std::abs(alphaR)); ~%")
     ),
     printf(fh, "#endif ~%"),
     printf(fh, "  cflRateByDir[0] += cflRateByDir[~a];", d),
@@ -221,7 +225,7 @@ load(modNm),
   writeCIncrExprsNoExpand(gcfac(float(subst([wv^2=wv2,dfac_v^2=dfac_v2, m_^2=m2, q_^2=q2], facsum(gkVolTerm_k,derivfac))))),
   flush_output(fh),
 
-  printf(fh, "  return cflRateByDir[0]; ~%"),
+  printf(fh, "  return cflRate; ~%"),
   printf(fh, "} ~%"),
   flush_output(fh)
 )$
