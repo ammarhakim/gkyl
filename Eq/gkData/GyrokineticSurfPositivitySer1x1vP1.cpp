@@ -63,22 +63,26 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_0(const double q_, const doub
   if(GhatCtrl[0]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
     fCtrl = 0.1666666666666667*fr[3]-0.2886751345948129*(fr[2]+fr[1])+0.5*fr[0]; 
-    GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[0]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
     fCtrl = (-0.1666666666666667*fl[3])-0.2886751345948129*fl[2]+0.2886751345948129*fl[1]+0.5*fl[0]; 
-    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
     fCtrl = (-0.1666666666666667*fr[3])+0.2886751345948129*fr[2]-0.2886751345948129*fr[1]+0.5*fr[0]; 
-    GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
     fCtrl = 0.1666666666666667*fl[3]+0.2886751345948129*(fl[2]+fl[1])+0.5*fl[0]; 
-    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
   }
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0]); 
@@ -161,22 +165,26 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_0(const double q_, const d
   if(GhatCtrl[0]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[2]/cflRateByDirR[0]; 
     fCtrl = 0.1666666666666667*fr[3]-0.2886751345948129*(fr[2]+fr[1])+0.5*fr[0]; 
-    GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[2]/cflRateByDirR[0]; 
     fCtrl = (-0.1666666666666667*fr[3])-0.2886751345948129*fr[2]+0.2886751345948129*fr[1]+0.5*fr[0]; 
-    GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[0]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[2]/cflRateByDirL[0]; 
     fCtrl = (-0.1666666666666667*fl[3])+0.2886751345948129*fl[2]-0.2886751345948129*fl[1]+0.5*fl[0]; 
-    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[2]/cflRateByDirL[0]; 
     fCtrl = 0.1666666666666667*fl[3]+0.2886751345948129*(fl[2]+fl[1])+0.5*fl[0]; 
-    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
   }
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0]); 
@@ -259,22 +267,26 @@ double GyrokineticSurfPositivity1x1vSer_X_P1_Bvars_1(const double q_, const doub
   if(GhatCtrl[0]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
     fCtrl = 0.1666666666666667*fr[3]-0.2886751345948129*(fr[2]+fr[1])+0.5*fr[0]; 
-    GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[0]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
     fCtrl = (-0.1666666666666667*fl[3])-0.2886751345948129*fl[2]+0.2886751345948129*fl[1]+0.5*fl[0]; 
-    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
     fCtrl = (-0.1666666666666667*fr[3])+0.2886751345948129*fr[2]-0.2886751345948129*fr[1]+0.5*fr[0]; 
-    GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
     fCtrl = 0.1666666666666667*fl[3]+0.2886751345948129*(fl[2]+fl[1])+0.5*fl[0]; 
-    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
   }
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0]); 
@@ -358,22 +370,26 @@ double GyrokineticSurfPositivity1x1vSer_Vpar_P1_Bvars_1(const double q_, const d
   if(GhatCtrl[0]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[2]/cflRateByDirR[0]; 
     fCtrl = 0.1666666666666667*fr[3]-0.2886751345948129*(fr[2]+fr[1])+0.5*fr[0]; 
-    GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = -std::min(std::abs(GhatCtrl[0]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]<-EPSILON) {
     uFrac = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[2]/cflRateByDirR[0]; 
     fCtrl = (-0.1666666666666667*fr[3])-0.2886751345948129*fr[2]+0.2886751345948129*fr[1]+0.5*fr[0]; 
-    GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = -std::min(std::abs(GhatCtrl[1]), std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[0]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[2]/cflRateByDirL[0]; 
     fCtrl = (-0.1666666666666667*fl[3])+0.2886751345948129*fl[2]-0.2886751345948129*fl[1]+0.5*fl[0]; 
-    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[0] = 0.; 
+    else GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(uFrac*fCtrl/dtApprox));
   }
   if(GhatCtrl[1]>EPSILON) {
     uFrac = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[2]/cflRateByDirL[0]; 
     fCtrl = 0.1666666666666667*fl[3]+0.2886751345948129*(fl[2]+fl[1])+0.5*fl[0]; 
-    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
+    if(std::abs(fCtrl) < EPSILON) GhatCtrl[1] = 0.; 
+    else GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(uFrac*fCtrl/dtApprox));
   }
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0]); 

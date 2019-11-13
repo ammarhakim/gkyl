@@ -245,14 +245,16 @@ load(modNm),
            printf(fh, "  if(~a<-EPSILON) {~%", incrC_r[i]),
            printf(fh, "    uFrac = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), surfDir),
            printf(fh, "    fCtrl = ~a; ~%", GlimR),
-           printf(fh, "    ~a = -std::min(std::abs(~a), std::abs(uFrac*fCtrl/dtApprox));~%", incrC_r[i], incrC_r[i]),
+           printf(fh, "    if(std::abs(fCtrl) < EPSILON) ~a = 0.; ~%", incrC_r[i]),
+           printf(fh, "    else ~a = -std::min(std::abs(~a), std::abs(uFrac*fCtrl/dtApprox));~%", incrC_r[i], incrC_r[i]),
            printf(fh, "  }~%")
         ),
         if incrC_l[i]#0.0 then (
            printf(fh, "  if(~a>EPSILON) {~%", fullratsimp(-incrC_l[i])),
            printf(fh, "    uFrac = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), surfDir),
            printf(fh, "    fCtrl = ~a; ~%", GlimL),
-           printf(fh, "    ~a = std::min(~a, std::abs(uFrac*fCtrl/dtApprox));~%", fullratsimp(-incrC_l[i]), fullratsimp(-incrC_l[i])),
+           printf(fh, "    if(std::abs(fCtrl) < EPSILON) ~a = 0.; ~%", fullratsimp(-incrC_l[i])),
+           printf(fh, "    else ~a = std::min(~a, std::abs(uFrac*fCtrl/dtApprox));~%", fullratsimp(-incrC_l[i]), fullratsimp(-incrC_l[i])),
            printf(fh, "  }~%")
         )
       ), 
