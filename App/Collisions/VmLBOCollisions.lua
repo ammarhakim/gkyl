@@ -21,8 +21,9 @@ local lume           = require "Lib.lume"
 
 -- VmLBOCollisions ---------------------------------------------------------------
 --
--- Lenard-Bernstein Collision operator
+-- Lenard-Bernstein Collision operator.
 -- Actually dates back to Lord Rayleigh, Philos. Mag. 32, 424 (1891).
+-- Really LBO=the Dougherty operator.
 --------------------------------------------------------------------------------
 
 local VmLBOCollisions = Proto(CollisionsBase)
@@ -76,7 +77,22 @@ function VmLBOCollisions:fullInit(speciesTbl)
    -- For constant nu, separate self and cross collision frequencies.
    self.collFreqs          = tbl.frequencies -- List of collision frequencies, if using spatially constant nu.
    if self.collFreqs then
-      self.varNu            = false    -- Not spatially varying nu.
+      -- Collisionality, provided by user, will remain constant in time.
+      self.timeDepNu = false
+
+      -- Ensure that collFreqs inputs are either all numbers, or all functions.
+      local collFreqType = type(self.collFreqs[1])
+      if (#self.collFreqs>1) then
+         for iC = 2,#self.collFreqs do
+            assert(collFreqType == type(self.collFreqs[iC]), "App.VmLBOCollisions: frequencies must either all be numbers, or all be functions")
+         end
+      end
+      if (collFreqType == "number") then
+         self.varNu         = false    -- Not spatially varying nu.
+      else -- collFreqType must be a function, which we assume to be spatially dependent. 
+         self.varNu         = true
+      end
+      -- For now only cell-wise constant nu is implemented.
       self.cellConstNu      = true     -- Cell-wise constant nu?
       if self.selfCollisions then
          self.collFreqSelf  = self.collFreqs[selfSpecInd]
@@ -86,16 +102,19 @@ function VmLBOCollisions:fullInit(speciesTbl)
          table.remove(self.collFreqCross, selfSpecInd)
       end
    else
-      self.varNu       = true                 -- Spatially varying nu.
-      self.mass        = speciesTbl.mass      -- Mass of this species.
-      self.charge      = speciesTbl.charge    -- Charge of this species.
+      -- Collisionality not provided by user. It will be calculated in time.
+      self.timeDepNu = true
+
+      self.varNu        = true                 -- Spatially varying nu.
+      self.mass         = speciesTbl.mass      -- Mass of this species.
+      self.charge       = speciesTbl.charge    -- Charge of this species.
       -- For now only cell-wise constant nu is implemented.
-      -- self.cellConstNu = assert(tbl.cellAvFrequencies, "App.GkLBOCollisions: Must specify 'useCellAverageNu=true/false' for using cellwise constant/expanded spatially varying collisionality.")
-      self.cellConstNu = true
-      -- If no constant collision frequencies provided ('frequencies'), user can specify 'normNu'
-      -- list of collisionalities normalized by (T_0^(3/2)/n_0) evaluated somewhere in the
-      -- simulation. Otherwise code compute Spitzer collisionality from scratch.
-      self.normNuIn   = tbl.normNu
+      self.cellConstNu  = true     -- Cell-wise constant nu?
+      -- If no time-constant collision frequencies provided ('frequencies'), user can specify
+      -- 'normNu' list of collisionalities normalized by T_0^(3/2)/n_0 evaluated somewhere in the
+      -- simulation (see Gkeyll website for exact normalization). Otherwise code compute Spitzer
+      -- collisionality from scratch.
+      self.normNuIn     = tbl.normNu
       -- normNuSelf, epsilon0 and elemCharge may not used, but are
       -- initialized to avoid if-statements in advance method.
       if self.normNuIn then
@@ -123,7 +142,7 @@ function VmLBOCollisions:fullInit(speciesTbl)
       if epsilon0In then
          self.epsilon0 = epsilon0In
       else
-         self.epsilon0   = Constants.EPSILON0
+         self.epsilon0 = Constants.EPSILON0
       end
       local elemChargeIn = tbl.elemCharge
       if elemChargeIn then
@@ -135,7 +154,7 @@ function VmLBOCollisions:fullInit(speciesTbl)
       if hBarIn then
          self.hBar = hBarIn
       else
-         self.hBar       = Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
+         self.hBar = Constants.PLANCKS_CONSTANT_H/(2.0*Constants.PI)
       end
    end
 
@@ -226,23 +245,39 @@ function VmLBOCollisions:createSolver()
    end
 
    if self.varNu then
+      -- Self-species collisionality, which varies in space.
+      self.nuVarXSelf = DataStruct.Field {
+         onGrid        = self.confGrid,
+         numComponents = self.cNumBasis,
+         ghost         = {1, 1},
+      }
       -- Collisionality, nu, summed over all species pairs.
       self.nuSum = DataStruct.Field {
          onGrid        = self.confGrid,
          numComponents = self.cNumBasis,
          ghost         = {1, 1},
       }
-      -- Updater to compute spatially varying (Spitzer) nu.
-      self.spitzerNu = Updater.SpitzerCollisionality {
-         onGrid           = self.confGrid,
-         confBasis        = self.confBasis,
-         useCellAverageNu = self.cellConstNu,
-         willInputNormNu  = self.userInputNormNu,
-         elemCharge       = self.elemCharge,
-         epsilon0         = self.epsilon0,
-         hBar             = self.hBar,
-         nuFrac           = self.nuFrac,
-      }
+      if self.timeDepNu then 
+         -- Updater to compute spatially varying (Spitzer) nu.
+         self.spitzerNu = Updater.SpitzerCollisionality {
+            onGrid           = self.confGrid,
+            confBasis        = self.confBasis,
+            useCellAverageNu = self.cellConstNu,
+            willInputNormNu  = self.userInputNormNu,
+            elemCharge       = self.elemCharge,
+            epsilon0         = self.epsilon0,
+            hBar             = self.hBar,
+            nuFrac           = self.nuFrac,
+         }
+      elseif self.selfCollisions then
+         local projectUserNu = Updater.ProjectOnBasis {
+            onGrid          = self.confGrid,
+            basis           = self.confBasis,
+            evaluate        = self.collFreqSelf,
+            projectOnGhosts = false
+         }
+         projectUserNu:advance(0.0, {}, {self.nuVarXSelf})
+      end
       -- Weak multiplication to multiply nu(x) with u or vtSq.
       self.confMul = Updater.CartFieldBinOp {
          onGrid    = self.confGrid,
@@ -270,7 +305,7 @@ function VmLBOCollisions:createSolver()
    }
    if self.crossCollisions then
       if self.varNu then
-         -- Temporary collisionality field.
+         -- Temporary collisionality fields.
          self.nuCrossSelf = DataStruct.Field {
             onGrid        = self.confGrid,
             numComponents = self.cNumBasis,
@@ -367,9 +402,13 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
       --self.primMomLimitCrossings:appendData(tCurr+dt, self.primMomCrossLimitG)
 
       if self.varNu then
-         -- Compute the collisionality.
-         self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                        self.charge, self.mass, selfMom[1], primMomSelf[2], self.normNuSelf}, {self.nuSum})
+         if self.timeDepNu then
+            -- Compute the Spitzer collisionality.
+            self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                           self.charge, self.mass, selfMom[1], primMomSelf[2], self.normNuSelf}, {self.nuSum})
+         else
+            self.nuSum:copy(self.nuVarXSelf)
+         end
          self.confMul:advance(tCurr, {self.nuSum, primMomSelf[1]}, {self.nuUSum})
          self.confMul:advance(tCurr, {self.nuSum, primMomSelf[2]}, {self.nuVtSqSum})
       else
@@ -393,19 +432,21 @@ function VmLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
          local starMomOther      = species[otherNm]:starMoments()
 
          if self.varNu then
-            -- Compute the collisionality if another species hasn't already done so.
-            local chargeOther = species[otherNm]:getCharge()
-            if (not species[self.speciesName].momentFlags[6][otherNm]) then
-               self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
-                                              chargeOther, mOther, otherMom[1], primMomOther[2], self.normNuCross[sInd]},
-                                             {species[self.speciesName].nuVarXCross[otherNm]})
-               species[self.speciesName].momentFlags[6][otherNm] = true
-            end
-            if (not species[otherNm].momentFlags[6][self.speciesName]) then
-               self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
-                                              self.charge, self.mass, selfMom[1], primMomSelf[2], species[otherNm].collPairs[otherNm][self.speciesName].normNu},
-                                             {species[otherNm].nuVarXCross[self.speciesName]})
-               species[otherNm].momentFlags[6][self.speciesName] = true
+            if self.timeDepNu then
+               -- Compute the Spitzer collisionality if another species hasn't already done so.
+               local chargeOther = species[otherNm]:getCharge()
+               if (not species[self.speciesName].momentFlags[6][otherNm]) then
+                  self.spitzerNu:advance(tCurr, {self.charge, self.mass, selfMom[1], primMomSelf[2],
+                                                 chargeOther, mOther, otherMom[1], primMomOther[2], self.normNuCross[sInd]},
+                                                {species[self.speciesName].nuVarXCross[otherNm]})
+                  species[self.speciesName].momentFlags[6][otherNm] = true
+               end
+               if (not species[otherNm].momentFlags[6][self.speciesName]) then
+                  self.spitzerNu:advance(tCurr, {chargeOther, mOther, otherMom[1], primMomOther[2],
+                                                 self.charge, self.mass, selfMom[1], primMomSelf[2], species[otherNm].collPairs[otherNm][self.speciesName].normNu},
+                                                {species[otherNm].nuVarXCross[self.speciesName]})
+                  species[otherNm].momentFlags[6][self.speciesName] = true
+               end
             end
             self.nuCrossSelf:copy(species[self.speciesName].nuVarXCross[otherNm])
             self.nuCrossOther:copy(species[otherNm].nuVarXCross[self.speciesName])
