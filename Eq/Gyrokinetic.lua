@@ -213,7 +213,6 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
    local cflRateCtrlR = self.cflRateCtrl:get(1)
    self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxl), cflRateCtrlL)
    self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxr), cflRateCtrlR)
-   --if idxl[1] == 4 and idxl[2] == 1 and idxl[3] == 8 and idxl[4] == 8 and idxl[5] == 1 then print(cflRateCtrlL:data()[1]/cflRateCtrlL:data()[0], cflRateCtrlL:data()[2]/cflRateCtrlL:data()[0], cflRateCtrlL:data()[3]/cflRateCtrlL:data()[0], cflRateCtrlL:data()[4]/cflRateCtrlL:data()[0]) end
 
    local res
    if self._isElectromagnetic then
