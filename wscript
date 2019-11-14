@@ -221,7 +221,8 @@ def buildExec(bld):
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
 
-    useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    #useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    useList = 'lib datastruct eq comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
