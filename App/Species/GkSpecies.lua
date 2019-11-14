@@ -945,9 +945,6 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
    -- First compute M0, M1, M2.
    local fIn = self:rkStepperFields()[1]
    self.threeMomentsCalc:advance(tCurr, {fIn}, { self.numDensity, self.momDensity, self.ptclEnergy })
-   if self.positivity then
-      self.threeMomentsCalc:advance(tCurr, {self.distfPos[1]}, { self.numDensityAux, self.momDensityAux, self.ptclEnergyAux })
-   end
 
    local fDel = self:rkStepperFields()[2]
    fDel:combine(1, fIn, -1, self.fPrev)
