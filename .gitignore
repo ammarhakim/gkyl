@@ -1,4 +1,3 @@
-syntax: glob
 *~
 build/*
 build-*/*
@@ -16,6 +15,7 @@ install-deps/build-opts.sh
 */*.pyc
 Unit/*.bp
 */*.bp
+Regression/*/*.bp
 *.swp
 *.log
 .DS_Store
@@ -24,3 +24,4 @@ Eq/.DS_Store
 cas-scripts/.DS_Store
 Regression/runregression.config.lua
 runregression.config.lua
+waf_tools/__pycache__/

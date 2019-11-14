@@ -16,6 +16,8 @@ def options(opt):
                    action='store_true', default=False)
     opt.add_option('--prefix', type='string', help='Install path', dest='prefix',
                    default=os.path.expandvars('$HOME/gkylsoft/gkyl'))
+    opt.add_option('--extra-link-libs', type='string', help='Extra libraries to link to', dest='extralibs',
+                   default='')
 
 @conf
 def check_gkyl(conf):
@@ -32,7 +34,9 @@ def check_gkyl(conf):
     if conf.options.gkdebug:
       conf.env.append_value('CXXFLAGS', '-g')
       conf.env.append_value('CFLAGS', '-g')
-     
+
+    conf.env.EXTRALIBS = ' '.join(conf.options.extralibs.split(','))
+      
     #conf.start_msg("Checking if CXXFLAGS work")
     #conf.check_cxx(fragment="""#include<stdio.h>\nint main(){return 0;}\n""", execute=True)
     #conf.end_msg("Flags work (%s)" % conf.options.gkcxxflags)

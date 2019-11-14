@@ -413,6 +413,9 @@ local function buildApplication(self, tbl)
          for nm, s in pairs(species) do
             s.dtGlobal[0] = dtSuggested
          end
+         for nm, s in pairs(species) do
+            s.dtGlobal[0] = dtSuggested
+         end
       else 
          dtSuggested = dt -- From argument list.
          -- If calcCflFlag not being used, need to barrier before doing the RK combine.
@@ -944,6 +947,7 @@ return {
    VlasovMaxwell = {
       App = App, Species = Species.VlasovSpecies, FuncSpecies = Species.FuncVlasovSpecies,
       Field                = Field.MaxwellField,
+      FuncField            = Field.FuncMaxwellField,
       FunctionProjection   = Projection.VlasovProjection.FunctionProjection, 
       MaxwellianProjection = Projection.VlasovProjection.MaxwellianProjection,
       BGKCollisions        = Collisions.VmBGKCollisions,
