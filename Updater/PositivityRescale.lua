@@ -149,7 +149,7 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
    self.rkIdx = self.rkIdx+1
 end
 
-function PositivityRescale:rescaleVolTerm(fOutSurf, dt, fVol)
+function PositivityRescale:rescaleVolTerm(tCurr, fOutSurf, dt, fVol)
    local localRange = fOutSurf:localRange()   
    local fOutSurfPtr = fOutSurf:get(1)
    local fVolPtr = fVol:get(1)
@@ -161,7 +161,7 @@ function PositivityRescale:rescaleVolTerm(fOutSurf, dt, fVol)
       fVol:fill(fVolIndexer(idx), fVolPtr)
 
       local minOutSurf = ffiC.findMinNodalValue(fOutSurfPtr:data(), self.basis:ndim())
-      if minOutSurf < -GKYL_EPSILON then print("warning: surface terms making control node negative, with value = ", minOutSurf, " at idx = ", idx[1], idx[2], idx[3], idx[4], idx[5]) end
+      if minOutSurf < -GKYL_EPSILON then print("warning: at time ", tCurr, ", surface terms making control node negative, with value = ", minOutSurf, " at idx = ", idx[1], idx[2], idx[3], idx[4], idx[5]) end
       local scaler = ffiC.rescaleVolTerm(fOutSurfPtr:data(), dt, fVolPtr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
    end
 end

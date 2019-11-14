@@ -640,14 +640,14 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
    end
 end
 
-function KineticSpecies:forwardEuler(outIdx, dt, rhsIdx, a, inIdx)
+function KineticSpecies:forwardEuler(tCurr, outIdx, dt, rhsIdx, a, inIdx)
    --print(outIdx, dt, rhsIdx, a, inIdx)
    self:combineRk(outIdx, dt, rhsIdx, a, inIdx)
    if self.positivityRescale then
       -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
       -- because volume term is stored separately in self.fPos
       -- now compute scaling factor for volume term so that control nodes stay positive. 
-      self.posRescaler:rescaleVolTerm(self:rkStepperFields()[outIdx], dt, self.fPos)
+      self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fPos)
       self:rkStepperFields()[outIdx]:accumulate(dt, self.fPos)
    end
 end

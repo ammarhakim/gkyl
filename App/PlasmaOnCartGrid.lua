@@ -425,7 +425,7 @@ local function buildApplication(self, tbl)
       
       --combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
       for nm, s in pairs(species) do
-         s:forwardEuler(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+         s:forwardEuler(tCurr, outIdx, dtSuggested, outIdx, 1.0, inIdx)
       end
       field:combineRk(outIdx, dtSuggested, outIdx, 1.0, inIdx)
       applyBc(tCurr, outIdx, calcCflFlag)
