@@ -226,14 +226,14 @@ def buildExec(bld):
         useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
         useList = 'ZMQ ' + useList
-        
+
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
-        rpath = bld.env.RPATH,
+        rpath = [bld.env.RPATH, bld.options.prefix + '/lib'],
         lib = 'pthread ' + bld.env.EXTRALIBS
     )
 
