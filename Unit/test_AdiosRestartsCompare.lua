@@ -1,11 +1,10 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test for ADIOS-based restarts.
+-- Compare files for test of ADIOS-based restarts.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local Plasma      = require("App.PlasmaOnCartGrid").VlasovMaxwell
 local lfs         = require "lfs"
 local AdiosReader = require "Io.AdiosReader"
 local Mpi         = require "Comm.Mpi"
@@ -18,73 +17,6 @@ local function log(msg)
 end
 
 local verboseLog = function (msg) log(msg) end
-
-local function twoStreamP2(endTime, frames, decomp, isRestart)
-   if isRestart then
-      GKYL_COMMANDS[1] = "restart"
-   end
-   -- This is the same two-stream p2 simulation as in Regression.
-   knumber      = 0.5    -- Wave-number.
-   elVTerm      = 0.2    -- Electron thermal velocity.
-   vDrift       = 1.0    -- Drift velocity.
-   perturbation = 1.0e-6 -- Distribution function perturbation.
-   elVTerm      = 0.2    -- Electron thermal velocity.
-   
-   vlasovApp = Plasma.App {
-      logToFile = false,
-   
-      tEnd        = endTime,            -- End time.
-      nFrame      = frames,             -- Number of output frames.
-      lower       = {-math.pi/knumber}, -- Configuration space lower left.
-      upper       = { math.pi/knumber}, -- Configuration space upper right.
-      cells       = {64},               -- Configuration space cells.
-      basis       = "serendipity",      -- One of "serendipity" or "maximal-order".
-      polyOrder   = 2,                  -- Polynomial order.
-      timeStepper = "rk3",              -- One of "rk2" or "rk3".
-   
-      -- Decomposition for configuration space.
-      decompCuts = decomp,   -- Cuts in each configuration direction.
-      useShared  = false,    -- If to use shared memory.
-   
-      -- Boundary conditions for configuration space
-      periodicDirs = {1}, -- Periodic directions.
-   
-      -- Electrons.
-      elc = Plasma.Species {
-         charge = -1.0, mass = 1.0,
-         -- Velocity space grid.
-         lower = {-6.0},
-         upper = {6.0},
-         cells = {32},
-         -- Initial conditions.
-         init = function (t, xn)
-            local x, v  = xn[1], xn[2]
-            local alpha = perturbation
-            local k     = knumber
-            local vt    = elVTerm
-   
-            local fv = 1/math.sqrt(8*math.pi*vt^2)*(math.exp(-(v-vDrift )^2/(2*vt^2))+math.exp(-(v+vDrift)^2/(2*vt^2)))
-            return (1+alpha*math.cos(k*x))*fv
-         end,
-         evolve = true, -- Evolve species?
-   
-         diagnosticMoments = { "M0", "M1i", "M2" }
-      },
-   
-      -- Field solver.
-      field = Plasma.Field {
-         epsilon0 = 1.0, mu0 = 1.0,
-         init = function (t, xn)
-            local alpha = perturbation
-            local k     = knumber
-            return -alpha*math.sin(k*xn[1])/k, 0.0, 0.0, 0.0, 0.0, 0.0
-         end,
-         evolve = true, -- Evolve field?
-      },
-   }
-   -- Run application.
-   vlasovApp:run()
-end
 
 -- (from Tool/runregression.lua) function to compare floats: the comparison is normalized to the
 -- maximum value of the field being compared. Perhaps this is too
@@ -118,7 +50,7 @@ local function maxValueInField(fld)
    return maxVal
 end
 
--- Function to compare files (from Tool/runregression.lua).
+-- (from Tool/runregression.lua) Function to compare files (from Tool/runregression.lua).
 local function compareFiles(f1, f2)
    verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
@@ -169,6 +101,8 @@ local function compareFiles(f1, f2)
 
    if cmpPass == false then
       verboseLog(string.format(" ... relative error in file %s is %g ...\n", f2, currMaxDiff))
+   else
+      verboseLog(string.format("     Identical CartGridField field data.\n"))
    end
 
    r1:close(); r2:close()
@@ -176,29 +110,21 @@ local function compareFiles(f1, f2)
    return cmpPass
 end
 
-
--- Run one simulation until the end to produce reference data.
-twoStreamP2(10.0, 2, {1}, false)
--- Copy over the moments and distribution function to reference files. 
-fileName    = {GKYL_OUT_PREFIX .. "_elc_2.bp",
-               GKYL_OUT_PREFIX .. "_elc_M0_2.bp",
-               GKYL_OUT_PREFIX .. "_elc_M1i_2.bp",
-               GKYL_OUT_PREFIX .. "_elc_M2_2.bp"}
-fileNameRef = {GKYL_OUT_PREFIX .. "_elc_2ref.bp",
-               GKYL_OUT_PREFIX .. "_elc_M0_2ref.bp",
-               GKYL_OUT_PREFIX .. "_elc_M1i_2ref.bp",
-               GKYL_OUT_PREFIX .. "_elc_M2_2ref.bp"}
-for i,v in pairs(fileName) do
-   os.execute("cp " .. fileName[i] .. " " .. fileNameRef[i])
-end
-
--- Run first half of the simulation.
-twoStreamP2(5.0,1,{1},false)
--- Restart and run the second half of the simulation.
-twoStreamP2(10.0,2,{1},true)
+-- Names of latest and reference data files.
+-- Note: simulationName is intended to be passed in script/command line.
+fileName    = {simulationName .. "_elc_" .. tostring(compareFrame) .. ".bp",
+               simulationName .. "_elc_M0_" .. tostring(compareFrame) .. ".bp",
+               simulationName .. "_elc_M1i_" .. tostring(compareFrame) .. ".bp",
+               simulationName .. "_elc_M2_" .. tostring(compareFrame) .. ".bp",
+               simulationName .. "_field_" .. tostring(compareFrame) .. ".bp"}
+fileNameRef = {simulationName .. "_elc_" .. tostring(compareFrame) .. "ref.bp",
+               simulationName .. "_elc_M0_" .. tostring(compareFrame) .. "ref.bp",
+               simulationName .. "_elc_M1i_" .. tostring(compareFrame) .. "ref.bp",
+               simulationName .. "_elc_M2_" .. tostring(compareFrame) .. "ref.bp",
+               simulationName .. "_field_" .. tostring(compareFrame) .. "ref.bp"}
 
 print(' ')
--- Compare the outputs of this last run to reference data produced above.
+-- Compare the outputs of this last run to reference data.
 compFlag      = true
 areFilesEqual = true
 for i,v in pairs(fileName) do
