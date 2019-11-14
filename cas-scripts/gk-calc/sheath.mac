@@ -154,7 +154,7 @@ for p : 1 thru pmax do (
             "(((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3-(2*(b*b+3*(b+1))*std::exp(-b))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
         for k:1 thru length(bVp) do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,1: b = \%Le, std::sinh(b) = \%Le\\n\", b, std::sinh(b)); throw \"Overflow!\";}~%",j,k),
+        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,1: b = \%Le, xc = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(-b) = \%Le\\n\", b, xc, std::sinh(b), std::exp(b*xc), std::exp(-b)); throw \"Overflow!\";}~%",j,k),
         printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k])))
         ),
         printf(fh, "   } else { ~%"),
@@ -164,7 +164,7 @@ for p : 1 thru pmax do (
             "((2*(b*b+3*(1-b))*std::exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
         for k:1 thru length(bVp) do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,2: b = \%Le, std::sinh(b) = \%Le\\n\", b, std::sinh(b)); throw \"Overflow!\";}~%",j,k),
+        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,2: b = \%Le, xc = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(b) = \%Le\\n\", b, xc, std::sinh(b), std::exp(b*xc), std::exp(b)); throw \"Overflow!\";}~%",j,k),
         printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k])))
         ),
         printf(fh, "   } ~%"),
