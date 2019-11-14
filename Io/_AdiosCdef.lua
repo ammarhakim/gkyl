@@ -5,7 +5,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local ffi  = require "ffi"
+local ffi = require "ffi"
 local Mpi = require "Comm.Mpi"
 
 -- Cut and paste from ADIOS header file, comments unchanged: Perhaps
