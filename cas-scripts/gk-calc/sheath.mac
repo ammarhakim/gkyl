@@ -88,6 +88,7 @@ for p : 1 thru pmax do (
   printf(fh, "  double fReflXYQuad[~a][~a]; ~%", length(nodes2d), length(bZVpMu)),
   printf(fh, "  double fReflXYZMuQuad[~a][~a]; ~%", length(nodes2d), length(bZVp)),
   printf(fh, "  feclearexcept(FE_ALL_EXCEPT); ~%"),
+  printf(fh, "  int fe;~%"),
   printf(fh, "  ~%~%"),
 
   /* evaluate vcutSqQ = vcut^2 at x,y nodes (deltaPhiQ is evaluated at x,y nodes) */
@@ -136,7 +137,7 @@ for p : 1 thru pmax do (
         printf(fh, "  // if f is not realizable, no reflection from this node ~%"),
         /* if abs(xbar)>=1, then f is not realizable. use .99 as conservative threshold */ 
         /* also not realizable if cell_avg is negative */
-        printf(fh, "  if(std::abs(xbarVal)>=.99 || ~a < 0.) { ~%", gcfac(float(fXYZMuQ_Vp_c[1]))),
+        printf(fh, "  if(std::abs(xbarVal)>=.99 || ~a <= 0.) { ~%", gcfac(float(fXYZMuQ_Vp_c[1]))),
         /* if not realizable, set reflection coeffs to zero so that no reflection from this node */
         writeCExprsWithZerosNoExpand1(fReflXYZMuQuad[j-1],makelist(0.,j,1,length(bVp))),
 
@@ -154,8 +155,9 @@ for p : 1 thru pmax do (
             "(((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3-(2*(b*b+3*(b+1))*std::exp(-b))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
         for k:1 thru length(bVp) do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,1: b = \%Le, std::sinh(b) = \%Le\\n\", b, std::sinh(b)); throw \"Overflow!\";}~%",j,k),
-        printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k])))
+        printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k]))),
+        printf(fh, "    fe = fetestexcept(FE_OVERFLOW | FE_DIVBYZERO);~%"),
+        printf(fh, "    if(fe) {printf(\"~a,~a,1: b = \%Le, xc = \%Le, xbar = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(-b) = \%Le, fac = \%Le, fRefl = \%e, ERRCODE = %d\\n\", b, xc, xbarVal, std::sinh(b), std::exp(b*xc), std::exp(-b), fac, fReflXYZMuQuad[~a][~a], fe); throw;}~%",j,k, j-1,k-1)
         ),
         printf(fh, "   } else { ~%"),
         printf(fh, "    xc = 2.*(-std::sqrt(vcutSq_i)-wv)/dv; ~%"),
@@ -164,8 +166,9 @@ for p : 1 thru pmax do (
             "((2*(b*b+3*(1-b))*std::exp(b))/3-((b*(3*b*xc*xc-(6*xc+b))+6)*std::exp(b*xc))/3)/(-4*b*std::cosh(b) + 4/3*(3 + b*b)*std::sinh(b))"],
         for k:1 thru length(bVp) do (
         printf(fh, "    fac = ~a; ~%", fReflfacs[k]),
-        printf(fh, "    if(fetestexcept(FE_OVERFLOW | FE_DIVBYZERO)) {printf(\"~a,~a,2: b = \%Le, std::sinh(b) = \%Le\\n\", b, std::sinh(b)); throw \"Overflow!\";}~%",j,k),
-        printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k])))
+        printf(fh, "    fReflXYZMuQuad[~a][~a] = (~a)*fac; ~%", j-1, k-1, gcfac(float(fXYZMuQ_Vp_c[k]))),
+        printf(fh, "    fe = fetestexcept(FE_OVERFLOW | FE_DIVBYZERO);~%"),
+        printf(fh, "    if(fe) {printf(\"~a,~a,2: b = \%Le, xc = \%Le, xbar = \%Le, std::sinh(b) = \%Le, std::exp(b*xc) = \%Le, std::exp(b) = \%Le, fac = \%Le, fRefl = \%e, ERRCODE = %d\\n\", b, xc, xbarVal, std::sinh(b), std::exp(b*xc), std::exp(b), fac, fReflXYZMuQuad[~a][~a], fe); throw;}~%",j,k, j-1,k-1)
         ),
         printf(fh, "   } ~%"),
         printf(fh, "  } ~%"),
