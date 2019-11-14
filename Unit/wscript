@@ -6,4 +6,7 @@
 import os
 
 def build(bld):
-    bld.objects(source = 'test_cfuncs.cpp', includes = '.', target = 'unit')
+    bld.shlib(source = 'test_cfuncs.cpp', includes = '.',
+              name = 'unit',
+              vnum = '1.0',
+              target = 'gkunit')
