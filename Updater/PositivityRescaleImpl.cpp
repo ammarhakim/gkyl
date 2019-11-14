@@ -577,7 +577,7 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
 double rescaleVolTerm(const double *fOutSurf, const double dt, double *fVol, int ndim, int numBasis, int *idx)
 {
   double scaler = findMinNodalRatio(fOutSurf, fVol, 1./dt, ndim);
-  if(scaler < 0.) scaler = 1.;
+  if(scaler < 0.) scaler = 0.;
   for(int i=0; i<numBasis; i++) {
     fVol[i] *= scaler;
   }
