@@ -133,8 +133,8 @@ for i,v in pairs(fileName) do
 end
 
 if not areFilesEqual then
-   print(" --> ERROR <--- ")
-   print(" Files are NOT equal => restarts are BROKEN ")
+   print(" --> BEWARE <--- ")
+   print(" Files are NOT equal => restarts are broken OR triggers are causing a small, negligible difference ")
 else
    print(" No errors in restarts detected.")
 end
