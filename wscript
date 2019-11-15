@@ -53,18 +53,19 @@ def configure(conf):
 
 
 from waflib import Task
-class HgTip(Task.Task):
+class GitTip(Task.Task):
     always_run = True # need to force running every time
-    run_str = r'echo \#define GKYL_HG_CHANGESET  \"`hg id -i -n -b`\" > ${TGT}'
+    
+    run_str = r'echo \#define GKYL_GIT_CHANGESET  \"`git describe --abbrev=12 --always --dirty=+`\" > ${TGT}'
 
 def build(bld):
 
     # determine Mercurial version (THIS NEEDS TO UPDATED TO WORK WITH
     # GIT)
 
-    ## hgTip = HgTip(env=bld.env)
-    ## hgTip.set_outputs(bld.path.find_or_declare('gkylhgtip.h'))
-    ## bld.add_to_group(hgTip)
+    gitTip = GitTip(env=bld.env)
+    gitTip.set_outputs(bld.path.find_or_declare('gkylgittip.h'))
+    bld.add_to_group(gitTip)
     
     # recurse down directories and build C++ code
     bld.recurse("Comm")
@@ -221,8 +222,7 @@ def buildExec(bld):
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
 
-    #useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
-    useList = 'lib datastruct eq comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
@@ -234,7 +234,7 @@ def buildExec(bld):
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
-        rpath = [bld.env.RPATH, bld.options.prefix + '/lib'],
+        rpath = [bld.env.RPATH, bld.env.LIBDIR ],
         lib = 'pthread ' + bld.env.EXTRALIBS
     )
 

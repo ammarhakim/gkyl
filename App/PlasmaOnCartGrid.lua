@@ -53,8 +53,8 @@ local function buildApplication(self, tbl)
    }
       
    log(date(false):fmt()); log("\n") -- Time-stamp for sim start.
-   if GKYL_HG_CHANGESET then
-      log(string.format("Gkyl built with %s\n", GKYL_HG_CHANGESET))
+   if GKYL_GIT_CHANGESET then
+      log(string.format("Gkyl built with %s\n", GKYL_GIT_CHANGESET))
    end
    if GKYL_BUILD_DATE then
       log(string.format("Gkyl built on %s\n", GKYL_BUILD_DATE))

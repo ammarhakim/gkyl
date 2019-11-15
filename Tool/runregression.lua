@@ -146,7 +146,7 @@ local function insertRegressionMeta(id, tm, ntotal, npass, nfail)
       id,
       tm,
       GKYL_EXEC,
-      GKYL_HG_CHANGESET,
+      GKYL_GIT_CHANGESET,
       GKYL_BUILD_DATE,      
       ntotal,
       npass,

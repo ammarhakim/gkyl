@@ -162,7 +162,7 @@ function AdiosCartFieldIo:write(field, fName, tmStamp, frNum, writeGhost)
    Adios.select_method(grpId, self._method, "", "")
 
    -- Global attributes for Gkyl build.
-   Adios.define_attribute_byvalue(grpId, "changeset", "", Adios.string, 1, GKYL_HG_CHANGESET)
+   Adios.define_attribute_byvalue(grpId, "changeset", "", Adios.string, 1, GKYL_GIT_CHANGESET)
    Adios.define_attribute_byvalue(grpId, "builddate", "", Adios.string, 1, GKYL_BUILD_DATE)
 
    -- Field attributes.
