@@ -10,7 +10,8 @@ printf(header, "double findMinNodalValue(const double *fIn, int ndim); ~%")$
 printf(header, "double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim); ~%")$
 printf(header, "}; ~%")$
 printf(fh, "#include <PositivityRescaleImpl.h> ~%")$
-printf(fh, "#define NODE ~a ~%", float(1/sqrt(3)))$
+/*printf(fh, "#define NODE ~a ~%", float(1/3))$*/
+NODE:float(1/3)$
 printf(fh, "double findMinNodalValue(const double *fIn, int ndim) { ~%")$
 printf(fh, "  double fmin = 0.0; ~%")$
 for d : 1 thru 5 do (
@@ -30,7 +31,7 @@ for d : 1 thru 5 do (
   if d=1 then printf(fh, "  if (ndim == ~a) { ~%", d)
   else printf(fh, "  else if(ndim == ~a) { ~%", d),
   printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
-  writeCExprsNoExpand1(fVal, gcfac(float(fullratsimp(nodesub(doExpand1(fIn, basis)))))),
+  writeCExprs1(fVal, gcfac(float(fullratsimp(nodesub(doExpand1(fIn, basis)))))),
   printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),
   printf(fh, "  } ~%")
 )$
@@ -58,10 +59,10 @@ for d : 1 thru 5 do (
   printf(fh, "  double fVal[~a]; // fVal = array of vales of fIn evaluated at each node ~%", length(basis)),
   printf(fh, "  double num, denom; ~%"),
   for i:1 thru length(basis) do (
-  printf(fh, "  num = ~a; ~%", gcfac(float(fullratsimp(nodesub(doExpand1(fNum, basis))[i])))),
-  printf(fh, "  denom = ~a; ~%", gcfac(float(fullratsimp(nodesub(doExpand1(fDenom, basis))[i])))),
+  printf(fh, "  num = ~a; ~%", expand(gcfac(float(fullratsimp(nodesub(doExpand1(fNum, basis))[i]))))),
+  printf(fh, "  denom = ~a; ~%", expand(gcfac(float(fullratsimp(nodesub(doExpand1(fDenom, basis))[i]))))),
   printf(fh, "  if (denom >= 0.) fVal[~a] = 1.; ~%", i-1),
-  printf(fh, "  else if (std::abs(num) < EPSILON) fVal[~a] = 0.; ~%", i-1),
+  printf(fh, "  else if (num < EPSILON) fVal[~a] = 0.; ~%", i-1),
   printf(fh, "  else fVal[~a] = -fac*num/denom; ~%", i-1)
   ),
   printf(fh, "  fmin = *std::min_element(fVal, fVal+~a); ~%", length(basis)),

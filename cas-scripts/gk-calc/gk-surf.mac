@@ -211,55 +211,44 @@ load(modNm),
               subst(gkvsubInv,fR_expd), subst(gkvsubInv,alphaUpSurf_expd), 
               subst(gkvsubInv,surfVar), cflL, cflR, cdim, vdim, i)),
 
-      Ghat_k : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, bSurf, fhatSurf_expd),
+      /* compute flux Ghat = < alpha*f > */
+      Ghat_k : calcInnerProdList(surfIntVars, alphaSurf_expd, bSurf, fhatSurf_expd),
       Ghat_expd : Ghat_k.bSurf,
+
+      /* limit flux to preserve positivity of control nodes */
       cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/3,
-      qSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/sqrt(3),
       nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
-      GhatC : nodesub(Ghat_expd, cSurfNodes), 
+      GhatC : nodesub(Ghat_expd, cSurfNodes),
+      printf(fh, "  double fluxFracL = ~a, fluxFracR = ~a, flim = 0.;~%", float(1/(cdim+1)), float(1/(cdim+1))),
       printf(fh, "  double GhatCtrl[~a];~%", length(cSurfNodes)),
-      for i:1 thru length(cSurfNodes) do (
-        printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[i]), 
-        printf(fh, "  GhatCtrl[~a] = ~a; ~%", i-1, gcfac(float(GhatC[i]))),
-        printf(fh, "  if(std::abs(GhatCtrl[~a]) <= EPSILON) GhatCtrl[~a] = 0.; ~%", i-1, i-1)
+      printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), surfDir),
+      printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), surfDir),
+      for c:1 thru length(cSurfNodes) do (
+        printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[c]), 
+        flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[c])))),
+        flimR:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,cSurfNodes)[c])))),
+        printf(fh, "  GhatCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatC[c]))),
+        printf(fh, "  if(GhatCtrl[~a] > EPSILON) {~%", c-1),
+        printf(fh, "    flim = std::max(0., ~a); ~%", flimL),
+        printf(fh, "    GhatCtrl[~a] = std::min(GhatCtrl[~a], std::abs(fluxFracL*flim/dtApprox/~a)); ~%", c-1, c-1, surfac),
+        printf(fh, "  } else if(GhatCtrl[~a] < -EPSILON) {~%", c-1),
+        printf(fh, "    flim = std::max(0., ~a); ~%", flimR),
+        printf(fh, "    GhatCtrl[~a] = -std::min(-GhatCtrl[~a], std::abs(fluxFracR*flim/dtApprox/~a)); ~%", c-1, c-1, surfac),
+        printf(fh, "  } else GhatCtrl[~a] = 0.; ~%", c-1)
       ),
       modToNodC : calcModToNodPhaseWithNodesAndBasis(cSurfNodes, bSurf, surfIntVars),
       Ghat_k:fullratsimp(invert(transpose(modToNodC)).makelist(GhatCtrl[i-1],i,1,length(cSurfNodes))),
       Ghat_k:gcfac(makelist(Ghat_k[i][1],i,1,length(Ghat_k))),
       Ghat_expd : Ghat_k.bSurf,
+      printf(fh, "~%"),
+      /* finished limiting flux */
 
-      t : calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), Ghat_expd),
+      /* compute and write increments */
+      t : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), Ghat_expd),
       incr_r : facsum(fullratsimp(t),dxv),
-      t : calcInnerProdList(surfIntVars, 1, subst(surfVar=1, bP), Ghat_expd),
+      t : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=1, bP), Ghat_expd),
       incr_l : -t,
 
-      cVolNodes : eval_string(sconcat("nodes", cdim+vdim, "xp", p))/3,
-      nodesubVol(f,nodes):=makelist(subst(makelist(varsP[j]=nodes[i][j],j,1,length(varsP)),f),i,1,length(nodes)),
-      incrC_r : gcfac(float(fullratsimp(nodesubVol(incr_r.bP, cVolNodes)))),
-      incrC_l : gcfac(float(fullratsimp(nodesubVol(incr_l.bP, cVolNodes)))),
-      printf(fh, "  double uFrac = 0., fCtrl = 0., alphaCtrl = 0.;~%"),
-      for i:1 thru length(cVolNodes) do (
-        GlimL : gcfac(float(nodesubVol(fL_expd, cVolNodes)[i])),
-        GlimR : gcfac(float(nodesubVol(fR_expd, cVolNodes)[i])),
-        if incrC_r[i]#0.0 then (
-           printf(fh, "  if(~a<-EPSILON) {~%", incrC_r[i]),
-           printf(fh, "    uFrac = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), surfDir),
-           printf(fh, "    fCtrl = ~a; ~%", GlimR),
-           printf(fh, "    if(fCtrl < EPSILON) ~a = 0.; ~%", incrC_r[i]),
-           printf(fh, "    else ~a = -std::min(std::abs(~a), std::abs(uFrac*fCtrl/dtApprox));~%", incrC_r[i], incrC_r[i]),
-           printf(fh, "  }~%")
-        ),
-        if incrC_l[i]#0.0 then (
-           printf(fh, "  if(~a>EPSILON) {~%", fullratsimp(-incrC_l[i])),
-           printf(fh, "    uFrac = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), surfDir),
-           printf(fh, "    fCtrl = ~a; ~%", GlimL),
-           printf(fh, "    if(fCtrl < EPSILON) ~a = 0.; ~%", fullratsimp(-incrC_l[i])),
-           printf(fh, "    else ~a = std::min(~a, std::abs(uFrac*fCtrl/dtApprox));~%", fullratsimp(-incrC_l[i]), fullratsimp(-incrC_l[i])),
-           printf(fh, "  }~%")
-        )
-      ), 
-
-      printf(fh, "~%"),
       flush_output(fh),
       writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
       printf(fh, "~%"),
