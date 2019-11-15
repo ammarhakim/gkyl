@@ -1,11 +1,11 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Lua wrapper for ADIOS
+-- Lua wrapper for ADIOS.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- don't bother if ADIOS is not built in
+-- Don't bother if ADIOS is not built in.
 assert(GKYL_HAVE_ADIOS, "Gkyl was not built with ADIOS!")
 
 local ffi  = require "ffi"
@@ -14,36 +14,39 @@ local xsys = require "xsys"
 local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
-require "Io._AdiosCdef" -- load FFI binding
-require "Io._AdiosReadCdef" -- load FFI binding for read API
+require "Io._AdiosCdef"     -- Load FFI binding.
+require "Io._AdiosReadCdef" -- Load FFI binding for read API.
 
 local _M = {}
 
--- constants from enum ADIOS_FLAG
+-- Constants from enum ADIOS_FLAG.
 _M.flag_yes = ffiC.adios_flag_yes
-_M.flag_no = ffiC.adios_flag_no
--- constants from enum ADIOS_DATATYPES
-_M.unknown = ffiC.adios_unknown
-_M.byte = ffiC.adios_byte
-_M.short = ffiC.adios_short
-_M.integer = ffiC.adios_integer
-_M.long = ffiC.adios_long
-_M.unsigned_byte = ffiC.adios_unsigned_byte
-_M.unsigned_short = ffiC.adios_unsigned_short
+_M.flag_no  = ffiC.adios_flag_no
+-- Constants from enum ADIOS_DATATYPES.
+_M.unknown          = ffiC.adios_unknown
+_M.byte             = ffiC.adios_byte
+_M.short            = ffiC.adios_short
+_M.integer          = ffiC.adios_integer
+_M.long             = ffiC.adios_long
+_M.unsigned_byte    = ffiC.adios_unsigned_byte
+_M.unsigned_short   = ffiC.adios_unsigned_short
 _M.unsigned_integer = ffiC.adios_unsigned_integer
-_M.unsigned_long = ffiC.adios_unsigned_long
-_M.real = ffiC.adios_real
-_M.double = ffiC.adios_double
-_M.long_double = ffiC.adios_long_double
-_M.string = ffiC.adios_string
-_M.complex = ffiC.adios_complex
-_M.double_complex = ffiC.adios_double_complex
-_M.string_array = ffiC.adios_string_array
+_M.unsigned_long    = ffiC.adios_unsigned_long
+_M.real             = ffiC.adios_real
+_M.double           = ffiC.adios_double
+_M.long_double      = ffiC.adios_long_double
+_M.string           = ffiC.adios_string
+_M.complex          = ffiC.adios_complex
+_M.double_complex   = ffiC.adios_double_complex
+_M.string_array     = ffiC.adios_string_array
 
--- ADIOS read methods from adios_read
+-- ADIOS read methods from adios_read.
 _M.read_method_bp = ffiC.ADIOS_READ_METHOD_BP
 
--- adios_init_noxml
+-- ADIOS contiguous block selection.
+_M.selBoundingbox = ffiC.ADIOS_SELECTION_BOUNDINGBOX
+
+-- adios_init_noxml.
 function _M.init_noxml(comm)
    local err = ffiC.adios_init_noxml(comm)
 end
@@ -54,7 +57,7 @@ end
 
 -- adios_declare_group
 function _M.declare_group(name, time_index, stats)
-   local id = new("int64_t[1]")
+   local id  = new("int64_t[1]")
    local err = ffiC.adios_declare_group(id, name, time_index, stats)
    return id
 end
@@ -80,7 +83,7 @@ end
 
 -- adios_open
 function _M.open(group_name, name, mode, comm)
-   local id = new("int64_t[1]")
+   local id  = new("int64_t[1]")
    local err = ffiC.adios_open(id, group_name, name, mode, comm)
    return id
 end
@@ -144,6 +147,11 @@ function _M.selection_boundingbox(ndim, start, count)
    return ffiC.adios_selection_boundingbox(ndim, start:data(), count:data())
 end
 
+-- adios_schedule_read
+function _M.schedule_read(fp, sel, name, from_steps, nsteps, data)
+   return ffiC.adios_schedule_read(fp, sel, name, from_steps, nsteps, data)
+end
+
 -- adios_schedule_read_byid
 function _M.schedule_read_byid(fp, sel, varid, from_steps, nsteps, data)
    return ffiC.adios_schedule_read_byid(fp, sel, varid, from_steps, nsteps, data:data())
@@ -157,7 +165,7 @@ end
 -- adios_get_attr_byid
 function _M.get_attr_byid(fp, attrid) --> type, size, void* to data
    local typePtr, sizePtr = ffi.new("int[1]"), ffi.new("int[1]")
-   local voidPtr = ffi.new(typeof("void *[1]"))
+   local voidPtr          = ffi.new(typeof("void *[1]"))
    ffiC.adios_get_attr_byid(fp, attrid, typePtr, sizePtr, voidPtr)
    return typePtr[0], sizePtr[0], voidPtr[0]
 end

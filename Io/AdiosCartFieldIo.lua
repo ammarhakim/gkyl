@@ -12,10 +12,11 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
      "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries.
-local Mpi = require "Comm.Mpi"
+local Mpi   = require "Comm.Mpi"
 local Adios = require "Io.Adios"
 local Alloc = require "Lib.Alloc"
 local Proto = require "Lib.Proto"
+local Lin   = require "Lib.Linalg"
 
 -- Code from Lua wiki to convert table to comma-seperated-values
 -- string.
@@ -48,9 +49,9 @@ local AdiosCartFieldIo = Proto()
 -- Constructor to make a new uniform grid.
 function AdiosCartFieldIo:init(tbl)
    -- By default, write out doubles.
-   local elct = tbl.elemType and tbl.elemType or typeof("double")
+   local elct     = tbl.elemType and tbl.elemType or typeof("double")
    self._elemType = elct -- element type stored in field
-   self._method = tbl.method and tbl.method or "MPI"
+   self._method   = tbl.method and tbl.method or "MPI"
 
    -- Set ADIOS data-types.
    self._elctIoType = Adios.double
@@ -68,7 +69,7 @@ function AdiosCartFieldIo:init(tbl)
    -- Create memory allocator.
    self._allocator = Alloc.Alloc_meta_ctor(elct)
    -- Allocate memory buffer for use in ADIOS I/O.
-   self._outBuff = self._allocator(1) -- This will be resized on an actual write().
+   self._outBuff   = self._allocator(1) -- This will be resized on an actual write().
 
    self._writeGhost = xsys.pickBool(tbl.writeGhost, false)
 
@@ -312,15 +313,28 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
 	 grpId, "CartGridField", "", self._elctIoType, adLocalSz, adGlobalSz, adOffset)
 
       local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
-      -- Open file to write out group.
-      local fd = Adios.open("CartField", fullNm, "r", comm)
+      -- Open file to read data.
+      local fd = Adios.read_open_file(fullNm, comm)
 
-      Adios.read(fd, "time", tmStampBuff, sizeof("double"))
-      Adios.read(fd, "frame", frNumBuff, sizeof("int"))
+      Adios.schedule_read(fd, Adios.selBoundingBox, "time", 0, 1, tmStampBuff)
+      Adios.schedule_read(fd, Adios.selBoundingBox, "frame", 0, 1, frNumBuff)
 
-      local fieldLocalSz = localRange:volume()*field:numComponents()*sizeof("double")
-      Adios.read(fd, "CartGridField", self._outBuff:data(), fieldLocalSz)
-      Adios.close(fd) -- No reads actually happen unless one closes file!
+      -- ADIOS expects input to be const uint64_t* objects, hence vector
+      -- types below)
+      local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
+      for d = 1, ndim do
+         start[d] = localRange:lower(d)-1
+         count[d] = localRange:shape(d)
+         if _readGhost then start[d] = start[d] + 1 end
+      end
+      count[ndim+1] = field:numComponents()
+      start[ndim+1] = 0
+      local sel = Adios.selection_boundingbox(ndim+1, start, count)
+
+      Adios.schedule_read(fd, sel, "CartGridField", 0, 1, self._outBuff:data())
+      Adios.perform_reads(fd, 1)
+
+      Adios.read_close(fd) -- No reads actually happen unless one closes file!
 
       -- Copy output buffer into field.
       field:_copy_to_field_region(localRange, self._outBuff)
