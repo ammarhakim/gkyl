@@ -143,99 +143,99 @@ double GyrokineticSurfPositivity3x2vSer_X_P1_Bvars_0(const double q_, const doub
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -649,99 +649,99 @@ double GyrokineticSurfPositivity3x2vSer_Y_P1_Bvars_0(const double q_, const doub
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -1153,99 +1153,99 @@ double GyrokineticSurfPositivity3x2vSer_Z_P1_Bvars_0(const double q_, const doub
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -1663,99 +1663,99 @@ double GyrokineticSurfPositivity3x2vSer_Vpar_P1_Bvars_0(const double q_, const d
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = 0.25*(alpha[7]+alpha[6]+alpha[5])-0.25*(alpha[3]+alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[7]-0.25*(alpha[6]+alpha[5]+alpha[3]+alpha[2])+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.25*alpha[7])+0.25*alpha[6]-0.25*(alpha[5]+alpha[3])+0.25*alpha[2]-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = (-0.25*(alpha[7]+alpha[6]))+0.25*alpha[5]-0.25*alpha[3]+0.25*(alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*(alpha[7]+alpha[6]))+0.25*(alpha[5]+alpha[3])-0.25*(alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[7])+0.25*alpha[6]-0.25*alpha[5]+0.25*alpha[3]-0.25*alpha[2]+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[7]-0.25*(alpha[6]+alpha[5])+0.25*(alpha[3]+alpha[2])-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[7]+alpha[6]+alpha[5]+alpha[3]+alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[7]+alpha[6]+alpha[5])-0.25*(alpha[3]+alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[7]-0.25*(alpha[6]+alpha[5]+alpha[3]+alpha[2])+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[7])+0.25*alpha[6]-0.25*(alpha[5]+alpha[3])+0.25*alpha[2]-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*(alpha[7]+alpha[6]))+0.25*alpha[5]-0.25*alpha[3]+0.25*(alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.25*(alpha[7]+alpha[6]))+0.25*(alpha[5]+alpha[3])-0.25*(alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[7])+0.25*alpha[6]-0.25*alpha[5]+0.25*alpha[3]-0.25*alpha[2]+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[7]-0.25*(alpha[6]+alpha[5])+0.25*(alpha[3]+alpha[2])-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[7]+alpha[6]+alpha[5]+alpha[3]+alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -2169,99 +2169,99 @@ double GyrokineticSurfPositivity3x2vSer_X_P1_Bvars_1(const double q_, const doub
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[2]+alpha[0])-0.25*alpha[3]; 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[3]-0.25*alpha[2]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[3]+alpha[2]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -2680,99 +2680,99 @@ double GyrokineticSurfPositivity3x2vSer_Y_P1_Bvars_1(const double q_, const doub
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = 0.25*(alpha[8]+alpha[6]+alpha[5])-0.25*(alpha[4]+alpha[3]+alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0])-0.25*(alpha[8]+alpha[6]+alpha[5]+alpha[4]+alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[8]+alpha[6])-0.25*(alpha[5]+alpha[4]+alpha[3])+0.25*alpha[2]-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = (-0.25*(alpha[8]+alpha[6]))+0.25*alpha[5]-0.25*(alpha[4]+alpha[3])+0.25*(alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[8]-0.25*alpha[6]+0.25*alpha[5]-0.25*alpha[4]+0.25*alpha[3]-0.25*(alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[8])+0.25*alpha[6]-0.25*(alpha[5]+alpha[4])+0.25*alpha[3]-0.25*alpha[2]+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[8]-0.25*(alpha[6]+alpha[5]+alpha[4])+0.25*(alpha[3]+alpha[2])-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[8])+0.25*(alpha[6]+alpha[5])-0.25*alpha[4]+0.25*(alpha[3]+alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.25*alpha[8])+0.25*(alpha[6]+alpha[5]+alpha[4])-0.25*(alpha[3]+alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[8]-0.25*(alpha[6]+alpha[5])+0.25*alpha[4]-0.25*(alpha[3]+alpha[2])+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[8])+0.25*alpha[6]-0.25*alpha[5]+0.25*alpha[4]-0.25*alpha[3]+0.25*alpha[2]-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[8]-0.25*alpha[6]+0.25*(alpha[5]+alpha[4])-0.25*alpha[3]+0.25*(alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.25*(alpha[8]+alpha[6]))+0.25*(alpha[5]+alpha[4]+alpha[3])-0.25*(alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[8]+alpha[6])-0.25*alpha[5]+0.25*(alpha[4]+alpha[3])-0.25*alpha[2]+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.25*(alpha[8]+alpha[6]+alpha[5]))+0.25*(alpha[4]+alpha[3]+alpha[2])-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[8]+alpha[6]+alpha[5]+alpha[4]+alpha[3]+alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -3185,99 +3185,99 @@ double GyrokineticSurfPositivity3x2vSer_Z_P1_Bvars_1(const double q_, const doub
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[0]-0.25*alpha[1]; 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -3698,99 +3698,99 @@ double GyrokineticSurfPositivity3x2vSer_Vpar_P1_Bvars_1(const double q_, const d
   double fhatALQuad[16], fhatAL[16]; 
   alphaQuad = (-0.25*alpha[11])+0.25*(alpha[8]+alpha[7]+alpha[6]+alpha[5])-0.25*(alpha[4]+alpha[3]+alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11])+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11])+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[11]-0.25*alpha[8]+0.25*alpha[7]-0.25*(alpha[6]+alpha[5]+alpha[4]+alpha[3]+alpha[2])+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*(alpha[11]+alpha[8])-0.25*alpha[7]+0.25*alpha[6]-0.25*(alpha[5]+alpha[4]+alpha[3])+0.25*alpha[2]-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = (-0.25*(alpha[11]+alpha[8]+alpha[7]+alpha[6]))+0.25*alpha[5]-0.25*(alpha[4]+alpha[3])+0.25*(alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*(fL_AL[12]+fL_AL[11])+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*(fR_AL[12]+fR_AL[11])+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[11]+alpha[8])-0.25*(alpha[7]+alpha[6])+0.25*alpha[5]-0.25*alpha[4]+0.25*alpha[3]-0.25*(alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[4] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[4] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[4] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[4] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = (-0.25*(alpha[11]+alpha[8]+alpha[7]))+0.25*alpha[6]-0.25*(alpha[5]+alpha[4])+0.25*alpha[3]-0.25*alpha[2]+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[5] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[5] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10])+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[5] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[5] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10])+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[11])+0.25*(alpha[8]+alpha[7])-0.25*(alpha[6]+alpha[5]+alpha[4])+0.25*(alpha[3]+alpha[2])-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[6] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[6] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*(fL_AL[11]+fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[6] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[6] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*(fR_AL[11]+fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[11]-0.25*alpha[8]+0.25*(alpha[7]+alpha[6]+alpha[5])-0.25*alpha[4]+0.25*(alpha[3]+alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[7] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]-1.0*fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[7] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[7] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]-1.0*fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.25*(alpha[11]+alpha[8]))+0.25*(alpha[7]+alpha[6]+alpha[5]+alpha[4])-0.25*(alpha[3]+alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[8] = std::max(0., -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[8] = -0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13]+fL_AL[12])+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]-1.0*(fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4])+fL_AL[3]+fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[8] = std::max(0., -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[8] = -0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13]+fR_AL[12])+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]-1.0*(fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4])+fR_AL[3]+fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[11]+alpha[8]+alpha[7])-0.25*(alpha[6]+alpha[5])+0.25*alpha[4]-0.25*(alpha[3]+alpha[2])+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[9] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[9] = 0.25*(fL_AL[15]+fL_AL[14]-1.0*(fL_AL[13]+fL_AL[12])+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]+fL_AL[7]-1.0*(fL_AL[6]+fL_AL[5])+fL_AL[4]-1.0*(fL_AL[3]+fL_AL[2])+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[9] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[9] = 0.25*(fR_AL[15]+fR_AL[14]-1.0*(fR_AL[13]+fR_AL[12])+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]+fR_AL[7]-1.0*(fR_AL[6]+fR_AL[5])+fR_AL[4]-1.0*(fR_AL[3]+fR_AL[2])+fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = 0.25*alpha[11]-0.25*(alpha[8]+alpha[7])+0.25*alpha[6]-0.25*alpha[5]+0.25*alpha[4]-0.25*alpha[3]+0.25*alpha[2]-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[10] = std::max(0., 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[10] = 0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*(fL_AL[8]+fL_AL[7])+fL_AL[6]-1.0*fL_AL[5]+fL_AL[4]-1.0*fL_AL[3]+fL_AL[2]-1.0*fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[10] = std::max(0., 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[10] = 0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*(fR_AL[8]+fR_AL[7])+fR_AL[6]-1.0*fR_AL[5]+fR_AL[4]-1.0*fR_AL[3]+fR_AL[2]-1.0*fR_AL[1]+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[11])+0.25*alpha[8]-0.25*(alpha[7]+alpha[6])+0.25*(alpha[5]+alpha[4])-0.25*alpha[3]+0.25*(alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[11] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]-1.0*fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8])+fL_AL[7]+fL_AL[6]-1.0*(fL_AL[5]+fL_AL[4])+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[11] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[11] = -0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]-1.0*fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8])+fR_AL[7]+fR_AL[6]-1.0*(fR_AL[5]+fR_AL[4])+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.25*alpha[11]-0.25*(alpha[8]+alpha[7]+alpha[6])+0.25*(alpha[5]+alpha[4]+alpha[3])-0.25*(alpha[2]+alpha[1])+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[12] = std::max(0., 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[12] = 0.25*(fL_AL[15]-1.0*(fL_AL[14]+fL_AL[13])+fL_AL[12]+fL_AL[11]+fL_AL[10]-1.0*(fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6])+fL_AL[5]+fL_AL[4]+fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[12] = std::max(0., 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[12] = 0.25*(fR_AL[15]-1.0*(fR_AL[14]+fR_AL[13])+fR_AL[12]+fR_AL[11]+fR_AL[10]-1.0*(fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6])+fR_AL[5]+fR_AL[4]+fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = (-0.25*alpha[11])+0.25*alpha[8]-0.25*alpha[7]+0.25*alpha[6]-0.25*alpha[5]+0.25*(alpha[4]+alpha[3])-0.25*alpha[2]+0.25*(alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[13] = std::max(0., -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fL_AL[15]+fL_AL[14]-1.0*fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*fL_AL[10]+fL_AL[9]-1.0*fL_AL[8]+fL_AL[7]-1.0*fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3])+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[13] = std::max(0., -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[13] = -0.25*(fR_AL[15]+fR_AL[14]-1.0*fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*fR_AL[10]+fR_AL[9]-1.0*fR_AL[8]+fR_AL[7]-1.0*fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3])+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.25*(alpha[11]+alpha[8]))+0.25*alpha[7]-0.25*(alpha[6]+alpha[5])+0.25*(alpha[4]+alpha[3]+alpha[2])-0.25*alpha[1]+0.25*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[14] = std::max(0., -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[14] = -0.25*(fL_AL[15]-1.0*fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]-1.0*(fL_AL[10]+fL_AL[9])+fL_AL[8]-1.0*fL_AL[7]+fL_AL[6]+fL_AL[5]-1.0*(fL_AL[4]+fL_AL[3]+fL_AL[2])+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[14] = std::max(0., -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[14] = -0.25*(fR_AL[15]-1.0*fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]-1.0*(fR_AL[10]+fR_AL[9])+fR_AL[8]-1.0*fR_AL[7]+fR_AL[6]+fR_AL[5]-1.0*(fR_AL[4]+fR_AL[3]+fR_AL[2])+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.25*(alpha[11]+alpha[8]+alpha[7]+alpha[6]+alpha[5]+alpha[4]+alpha[3]+alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[15] = std::max(0., 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[15] = 0.25*(fL_AL[15]+fL_AL[14]+fL_AL[13]+fL_AL[12]+fL_AL[11]+fL_AL[10]+fL_AL[9]+fL_AL[8]+fL_AL[7]+fL_AL[6]+fL_AL[5]+fL_AL[4]+fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[15] = std::max(0., 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[15] = 0.25*(fR_AL[15]+fR_AL[14]+fR_AL[13]+fR_AL[12]+fR_AL[11]+fR_AL[10]+fR_AL[9]+fR_AL[8]+fR_AL[7]+fR_AL[6]+fR_AL[5]+fR_AL[4]+fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.25*(fhatALQuad[15]+fhatALQuad[14]+fhatALQuad[13]+fhatALQuad[12]+fhatALQuad[11]+fhatALQuad[10]+fhatALQuad[9]+fhatALQuad[8]+fhatALQuad[7]+fhatALQuad[6]+fhatALQuad[5]+fhatALQuad[4]+fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.25*(fhatALQuad[15]-1.0*fhatALQuad[14]+fhatALQuad[13]-1.0*fhatALQuad[12]+fhatALQuad[11]-1.0*fhatALQuad[10]+fhatALQuad[9]-1.0*fhatALQuad[8]+fhatALQuad[7]-1.0*fhatALQuad[6]+fhatALQuad[5]-1.0*fhatALQuad[4]+fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 

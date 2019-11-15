@@ -265,9 +265,9 @@ fhatALgenUpwindNoLim(fL_expd, fR_expd, alphaSurf_expd,surfVar,cflL,cflR,cdim,vdi
   for i:1 thru length(qSurfNodes) do (
     printf(fh, "  alphaQuad = ~a; ~%", gcfac(float(alphaSurfQ[i]))),
     printf(fh, "  if(alphaQuad > 0) {~%"),
-    printf(fh, "  fhatALQuad[~a] = std::max(0., ~a); ~%", i-1, gcfac(float(fL_ALSurfQ[i]))),
+    printf(fh, "  fhatALQuad[~a] = ~a; ~%", i-1, gcfac(float(fL_ALSurfQ[i]))),
     printf(fh, "  } else {~%"),
-    printf(fh, "  fhatALQuad[~a] = std::max(0., ~a); ~%", i-1, gcfac(float(fR_ALSurfQ[i]))),
+    printf(fh, "  fhatALQuad[~a] = ~a; ~%", i-1, gcfac(float(fR_ALSurfQ[i]))),
     printf(fh, "  } ~%")
   ),
   /* get mode coefficients of fhat from quadrature nodal values */

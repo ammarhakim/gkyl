@@ -53,27 +53,27 @@ double GyrokineticSurfPositivity1x2vSer_X_P1_Bvars_0(const double q_, const doub
   double fhatALQuad[4], fhatAL[4]; 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -205,27 +205,27 @@ double GyrokineticSurfPositivity1x2vSer_Vpar_P1_Bvars_0(const double q_, const d
   double fhatALQuad[4], fhatAL[4]; 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -357,27 +357,27 @@ double GyrokineticSurfPositivity1x2vSer_X_P1_Bvars_1(const double q_, const doub
   double fhatALQuad[4], fhatAL[4]; 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -512,27 +512,27 @@ double GyrokineticSurfPositivity1x2vSer_Vpar_P1_Bvars_1(const double q_, const d
   double fhatALQuad[4], fhatAL[4]; 
   alphaQuad = 0.5*alpha[3]-0.5*(alpha[2]+alpha[1])+0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0])); 
+  fhatALQuad[0] = 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0])); 
+  fhatALQuad[0] = 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
   } 
   alphaQuad = 0.5*(alpha[1]+alpha[0])-0.5*(alpha[3]+alpha[2]); 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
   } else {
-  fhatALQuad[1] = std::max(0., -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0]))); 
+  fhatALQuad[1] = -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
   } 
   alphaQuad = (-0.5*alpha[3])+0.5*alpha[2]-0.5*alpha[1]+0.5*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[2] = std::max(0., -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0])); 
+  fhatALQuad[2] = -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
   } else {
-  fhatALQuad[2] = std::max(0., -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0])); 
+  fhatALQuad[2] = -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
   } 
   alphaQuad = 0.5*(alpha[3]+alpha[2]+alpha[1]+alpha[0]); 
   if(alphaQuad > 0) {
-  fhatALQuad[3] = std::max(0., 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[3] = 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[3] = std::max(0., 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[3] = 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 

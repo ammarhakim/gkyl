@@ -35,15 +35,15 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   double fhatALQuad[2], fhatAL[2]; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., -0.5*(1.414213562373095*fL_AL[1]-1.414213562373095*fL_AL[0])); 
+  fhatALQuad[0] = -0.5*(1.414213562373095*fL_AL[1]-1.414213562373095*fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., -0.5*(1.414213562373095*fR_AL[1]-1.414213562373095*fR_AL[0])); 
+  fhatALQuad[0] = -0.5*(1.414213562373095*fR_AL[1]-1.414213562373095*fR_AL[0]); 
   } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., 0.7071067811865476*(fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[1] = 0.7071067811865476*(fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[1] = std::max(0., 0.7071067811865476*(fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[1] = 0.7071067811865476*(fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
@@ -125,15 +125,15 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
   double fhatALQuad[2], fhatAL[2]; 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[0] = std::max(0., -0.5*(1.414213562373095*fL_AL[1]-1.414213562373095*fL_AL[0])); 
+  fhatALQuad[0] = -0.5*(1.414213562373095*fL_AL[1]-1.414213562373095*fL_AL[0]); 
   } else {
-  fhatALQuad[0] = std::max(0., -0.5*(1.414213562373095*fR_AL[1]-1.414213562373095*fR_AL[0])); 
+  fhatALQuad[0] = -0.5*(1.414213562373095*fR_AL[1]-1.414213562373095*fR_AL[0]); 
   } 
   alphaQuad = 0.7071067811865475*alpha[0]; 
   if(alphaQuad > 0) {
-  fhatALQuad[1] = std::max(0., 0.7071067811865476*(fL_AL[1]+fL_AL[0])); 
+  fhatALQuad[1] = 0.7071067811865476*(fL_AL[1]+fL_AL[0]); 
   } else {
-  fhatALQuad[1] = std::max(0., 0.7071067811865476*(fR_AL[1]+fR_AL[0])); 
+  fhatALQuad[1] = 0.7071067811865476*(fR_AL[1]+fR_AL[0]); 
   } 
   fhatAL[0] = 0.7071067811865475*(fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.7071067811865475*(fhatALQuad[1]-1.0*fhatALQuad[0]); 
