@@ -171,10 +171,10 @@ function FluidSpecies:fullInit(appTbl)
    self.first = true
 
    self.useShared         = xsys.pickBool(appTbl.useShared, false)
-   self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
+   self.positivity        = xsys.pickBool(tbl.positivity or tbl.applyPositivity, false)
    if self.positivity then 
-     self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
-     self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
+     self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, false)
+     self.positivityRescaleVolTerm = xsys.pickBool(tbl.positivityRescaleVolTerm, self.positivity)
    end
    self.deltaF            = xsys.pickBool(appTbl.deltaF, false)
 
@@ -412,7 +412,7 @@ function FluidSpecies:alloc(nRkDup)
    }  
 
    if self.positivity then
-      self.fPos = self:allocVectorMoment(self.nMoments)
+      self.fRhsVol = self:allocVectorMoment(self.nMoments)
    end
 
    -- Array with one component per cell to store cflRate in each cell.
@@ -448,7 +448,7 @@ function FluidSpecies:initDist()
             self.mSource = self:allocVectorMoment(self.nMoments)
          end
          self.mSource:accumulate(1.0, self.moments[2])
-         if self.positivityRescale then
+         if self.positivity then
             self.posRescaler:advance(0.0, {self.mSource}, {self.mSource})
          end
       end
@@ -457,7 +457,7 @@ function FluidSpecies:initDist()
           string.format("FluidSpecies: Species '%s' not initialized!", self.name))
    self.moments[2]:clear(0.0)
 
-   if self.positivityRescale or self.positivityDiffuse then
+   if self.positivity then
       self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
    end
 end
@@ -479,16 +479,17 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 end
+-- Take forwardEuler step
+function FluidSpecies:forwardEuler(tCurr, dt, inIdx, outIdx)
+   -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+   self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
 
-function FluidSpecies:forwardEuler(outIdx, dt, rhsIdx, a, inIdx)
-   --print(outIdx, dt, rhsIdx, a, inIdx)
-   self:combineRk(outIdx, dt, rhsIdx, a, inIdx)
-   if self.positivityRescale then
+   if self.positivityRescaleVolTerm then
       -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
-      -- because volume term is stored separately in self.fPos
+      -- because volume term is stored separately in self.fRhsVol
       -- now compute scaling factor for volume term so that control nodes stay positive. 
-      self.posRescaler:rescaleVolTerm(self:rkStepperFields()[outIdx], dt, self.fPos)
-      self:rkStepperFields()[outIdx]:accumulate(dt, self.fPos)
+      self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fRhsVol)
+      self:rkStepperFields()[outIdx]:accumulate(dt, self.fRhsVol)
    end
 end
 
@@ -507,9 +508,10 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      if self.positivityRescale then
-         --self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
-         self.solver:advance(tCurr, {fIn, em}, {fRhsOut, self.fPos})
+      if self.positivityRescaleVolTerm then
+         -- if rescaling vol term, pass second outFld, fRhsVol, to advance 
+         -- so that surface and volume terms are evaluated separately
+         self.solver:advance(tCurr, {fIn, em}, {fRhsOut, self.fRhsVol})
       else
          self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
       end

@@ -2,7 +2,7 @@
 local Plasma = require("App.PlasmaOnCartGrid")
 
 local ux = 1
-local uy = 0
+local uy = 1
 
 local Lx = 1
 local Ly = 1
@@ -68,7 +68,7 @@ plasmaApp = Plasma.App {
       end,
         
       evolve          = true, -- Evolve species?
-      applyPositivity = true,
+      positivity        = true,
       positivityRescale = true,
       positivityDiffuse = true,
    },

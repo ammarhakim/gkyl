@@ -423,14 +423,12 @@ local function buildApplication(self, tbl)
          -- the smallest time step, giving us an implicit barrier before we combine RK steps.
          Mpi.Barrier(self._confGrid:commSet().sharedComm)
       end
+
       -- Take forward Euler step in fields and species
-      -- NOTE: order of these arguments matters... outIdx must come before inIdx.
-      
-      --combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
       for nm, s in pairs(species) do
-         s:forwardEuler(tCurr, outIdx, dtSuggested, outIdx, 1.0, inIdx)
+         s:forwardEuler(tCurr, dtSuggested, inIdx, outIdx)
       end
-      field:combineRk(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      field:forwardEuler(tCurr, dtSuggested, inIdx, outIdx)
       applyBc(tCurr, outIdx, calcCflFlag)
 
       return dtSuggested

@@ -634,14 +634,9 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    local dApardtProv = emIn[1].dApardtProv
    local emFunc = emIn[2]:rkStepperFields()[1]
 
-   -- Rescale slopes.
-   --if self.positivityRescale then
-   --   self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
-   --   fIn = self.fPos
-   --end
-
+   -- solvers specified with clearOut = false, so we need to zero out RHS here
    fRhsOut:clear(0.0)
-   if self.positivityRescale then self.fPos:clear(0.0) end
+   if self.positivityRescaleVolTerm then self.fRhsVol:clear(0.0) end
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
@@ -654,8 +649,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      if self.positivityRescale then
-         self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.fPos})
+      if self.positivityRescaleVolTerm then
+         -- if rescaling vol term, pass second outFld, fRhsVol, to advance 
+         -- so that surface and volume terms are evaluated separately
+         self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.fRhsVol})
       else
          self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
       end
@@ -673,8 +670,8 @@ end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
-   if self.positivityRescale then
-      fIn = self.fPos
+   if self.positivityRescaleVolTerm then
+      fIn = self.fRhsVol
    end
    local fRhsOut = self:rkStepperFields()[outIdx]
 
@@ -690,8 +687,8 @@ end
 
 function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
-   if self.positivityRescale then
-      fIn = self.fPos
+   if self.positivityRescaleVolTerm then
+      fIn = self.fRhsVol
    end
    local fRhsOut = self:rkStepperFields()[outIdx]
 

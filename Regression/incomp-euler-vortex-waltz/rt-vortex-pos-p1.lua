@@ -36,7 +36,7 @@ plasmaApp = Plasma.App {
          return math.exp(-r1/0.8^2) + math.exp(-r2/0.8^2) -- 4.0212385953656/L^2
       end,
       evolve          = true, -- Evolve species?
-      applyPositivity = true,
+      positivity        = true,
       positivityDiffuse = true,
       positivityRescale = true,
    },

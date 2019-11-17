@@ -297,6 +297,11 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
       end	 
    end
 end
+-- Take forwardEuler step for non-elliptic fields (e.g. only apar)
+function GkField:forwardEuler(tCurr, dt, inIdx, outIdx)
+   -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+   self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
+end
 
 function GkField:suggestDt()
    return GKYL_MAX_DOUBLE

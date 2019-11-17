@@ -50,6 +50,10 @@ function SpeciesBase:getCharge() return 0.0 end
 function SpeciesBase:getMass() return 1.0 end
 function SpeciesBase:copyRk(outIdx, aIdx) end
 function SpeciesBase:combineRk() end
+function SpeciesBase:forwardEuler(tCurr, dt, inIdx, outIdx)
+   -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+   return self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
+end
 
 return SpeciesBase
 

@@ -60,6 +60,7 @@ function NoField:totalBcTime() return 0.0 end
 function NoField:energyCalcTime() return 0.0 end
 function NoField:copyRk() end
 function NoField:combineRk() end
+function NoField:forwardEuler() end
 
 return {
    FieldBase     = FieldBase,

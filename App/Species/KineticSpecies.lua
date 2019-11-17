@@ -253,9 +253,9 @@ function KineticSpecies:fullInit(appTbl)
       end
    end
 
-   self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
-   self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
+   self.positivity               = xsys.pickBool(tbl.positivity or tbl.applyPositivity, false)
+   self.positivityDiffuse        = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
+   self.positivityRescaleVolTerm = xsys.pickBool(tbl.positivityRescaleVolTerm, false)
    
    -- for GK only: flag for gyroaveraging.
    self.gyavg = xsys.pickBool(tbl.gyroaverage, false)
@@ -481,7 +481,7 @@ function KineticSpecies:alloc(nRkDup)
       self.distf[i]:clear(0.0)
    end
 
-   if self.positivity then
+   if self.positivityDiffuse then
       self.fDelPos = {}
       for i = 1, nRkDup do
          self.fDelPos[i] = self:allocDistf()
@@ -501,7 +501,7 @@ function KineticSpecies:alloc(nRkDup)
    }
 
    if self.positivity then
-      self.fPos = self:allocDistf()
+      self.fRhsVol = self:allocDistf()
    end
 
    self.fPrev = self:allocDistf()
@@ -573,7 +573,7 @@ function KineticSpecies:initDist()
 	    self.fSource = self:allocDistf()
 	 end
 	 self.fSource:accumulate(1.0, self.distf[2])
-         if self.positivityRescale then
+         if self.positivity then
             self.posRescaler:advance(0.0, {self.fSource}, {self.fSource}, false)
          end
       end
@@ -622,7 +622,7 @@ end
 -- For RK timestepping.
 function KineticSpecies:copyRk(outIdx, aIdx)
    self:rkStepperFields()[outIdx]:copy(self:rkStepperFields()[aIdx])
-   if self.positivity then
+   if self.positivityDiffuse then
       self.fDelPos[outIdx]:copy(self.fDelPos[aIdx])
    end
 end
@@ -635,23 +635,24 @@ function KineticSpecies:combineRk(outIdx, a, aIdx, ...)
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
    end
 
-   if self.positivity then
+   if self.positivityDiffuse then
       self.fDelPos[outIdx]:combine(a, self.fDelPos[aIdx])
       for i = 1, nFlds do -- Accumulate rest of the fields.
          self.fDelPos[outIdx]:accumulate(args[2*i-1], self.fDelPos[args[2*i]])
       end
    end
 end
+-- Take forwardEuler step
+function KineticSpecies:forwardEuler(tCurr, dt, inIdx, outIdx)
+   -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+   self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
 
-function KineticSpecies:forwardEuler(tCurr, outIdx, dt, rhsIdx, a, inIdx)
-   --print(outIdx, dt, rhsIdx, a, inIdx)
-   self:combineRk(outIdx, dt, rhsIdx, a, inIdx)
-   if self.positivityRescale then
+   if self.positivityRescaleVolTerm then
       -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
-      -- because volume term is stored separately in self.fPos
-      -- now compute scaling factor for volume term so that control nodes stay positive. 
-      self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fPos)
-      self:rkStepperFields()[outIdx]:accumulate(dt, self.fPos)
+      -- because volume term is stored separately in self.fRhsVol
+      -- now compute scaling factor for volume term so that all control nodes stay positive. 
+      self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fRhsVol)
+      self:rkStepperFields()[outIdx]:accumulate(dt, self.fRhsVol)
    end
 end
 
@@ -861,10 +862,6 @@ function KineticSpecies:write(tm, force)
          self.cflRateByCell:scale(self.dtGlobal[0])
          self.cflRateByCell:write(
              string.format("%s_%s_%d.bp", self.name, "cflByCell", self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
-
-         if self.positivityDiffuse then
-            self.posRescaler:write(tm, self.diagIoFrame, self.name)
-         end
 
          self.diagIoFrame = self.diagIoFrame+1
       end

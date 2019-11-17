@@ -83,12 +83,12 @@ function Gyrokinetic:init(tbl)
    self.totalVolTime = 0.0
    self.totalSurfTime = 0.0
 
-   self.cflRateCtrl = DataStruct.Field {
+   self.cflRateByDir = DataStruct.Field {
       onGrid        = self._grid,
       numComponents = self._basis:numBasis(),
       ghost         = {1, 1},
    }
-   self.cflRateCtrlIdxr = self.cflRateCtrl:genIndexer()
+   self.cflRateByDirIdxr = self.cflRateByDir:genIndexer()
 end
 
 function Gyrokinetic:setAuxFields(auxFields)
@@ -177,8 +177,8 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
    self.bdriftX:fill(self.bdriftXIdxr(idx), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idx), self.bdriftYPtr)
 
-   local cflRateCtrlPtr = self.cflRateCtrl:get(1)
-   self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idx), cflRateCtrlPtr)
+   local cflRateByDirPtr = self.cflRateByDir:get(1)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), cflRateByDirPtr)
 
    local res
    if self._isElectromagnetic then
@@ -186,10 +186,10 @@ function Gyrokinetic:volTerm(w, dx, idx, f, out)
      self.dApardtProv:fill(self.dApardtIdxr(idx), self.dApardtProvPtr)
      res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtProvPtr:data(), f:data(), out:data())
    else 
-     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), cflRateCtrlPtr:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
+     res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), cflRateByDirPtr:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), f:data(), out:data())
    end
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
-   --print(cflRateCtrlPtr:data()[0], cflRateCtrlPtr:data()[1], cflRateCtrlPtr:data()[2], cflRateCtrlPtr:data()[3])
+   --print(cflRateByDirPtr:data()[0], cflRateByDirPtr:data()[1], cflRateByDirPtr:data()[2], cflRateByDirPtr:data()[3])
    return res
 end
 
@@ -209,10 +209,10 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
    self.bdriftX:fill(self.bdriftXIdxr(idxr), self.bdriftXPtr)
    self.bdriftY:fill(self.bdriftYIdxr(idxr), self.bdriftYPtr)
 
-   local cflRateCtrlL = self.cflRateCtrl:get(1)
-   local cflRateCtrlR = self.cflRateCtrl:get(1)
-   self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxl), cflRateCtrlL)
-   self.cflRateCtrl:fill(self.cflRateCtrlIdxr(idxr), cflRateCtrlR)
+   local cflRateByDirL = self.cflRateByDir:get(1)
+   local cflRateByDirR = self.cflRateByDir:get(1)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), cflRateByDirL)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), cflRateByDirR)
 
    local res
    if self._isElectromagnetic then
@@ -222,7 +222,7 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
      self.emMod:fill(self.emModIdxr(idxr), self.emModPtrR)
      res = self._surfTerms[dir](self.charge, self.mass, dtApprox, wr:data(), dxr:data(), self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), self.aparPtr:data(), self.dApardtPtr:data(), self.dApardtProvPtr:data(), fl:data(), fr:data(), outl:data(), outr:data(), self.emModPtrL:data(), self.emModPtrR:data())
    else 
-     res = self._surfTerms[dir](self.charge, self.mass, cflRateCtrlL:data(), cflRateCtrlR:data(), wr:data(), dxr:data(), dtApprox, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+     res = self._surfTerms[dir](self.charge, self.mass, cflRateByDirL:data(), cflRateByDirR:data(), wr:data(), dxr:data(), dtApprox, self.bmagPtr:data(), self.bmagInvPtr:data(), self.gradparPtr:data(), self.bdriftXPtr:data(), self.bdriftYPtr:data(), self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    end
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
@@ -236,7 +236,7 @@ function Gyrokinetic:calcSheathReflection(w, dv, vlowerSq, vupperSq, edgeVal, q_
 end
 
 function Gyrokinetic:sync()
-   self.cflRateCtrl:sync()
+   self.cflRateByDir:sync()
 end
 
 local GyrokineticStep2 = Proto(EqBase)
