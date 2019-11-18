@@ -45,6 +45,7 @@
 #include <lfs.h>
 #include <whereami.h>
 #include <base64.h>
+#include <gkylgittip.h>
 
 // Find location of executable
 std::string
@@ -204,7 +205,7 @@ std::string Gkyl::createTopLevelDefs() const {
   // info about build
   varDefs << "GKYL_EXEC_PATH = \"" << execPath << "\"" << std::endl;
   varDefs << "GKYL_EXEC = \"" << execPath << "/gkyl\"" << std::endl;
-  varDefs << "GKYL_HG_CHANGESET = \"" << "UNKNOWN" << "\"" << std::endl;
+  varDefs << "GKYL_GIT_CHANGESET = \"" << GKYL_GIT_CHANGESET << "\"" << std::endl;
   varDefs << "GKYL_BUILD_DATE = \"" << __DATE__ << " " << __TIME__ << "\"" << std::endl;
   
 #ifdef HAVE_MPI_H

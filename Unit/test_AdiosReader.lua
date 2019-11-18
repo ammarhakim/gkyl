@@ -80,7 +80,7 @@ function test_1(comm)
 end
 
 function test_2(comm)
-   local reader = AdiosReader.Reader("test_DynVector_test_1.bp", comm)
+   local reader = AdiosReader.Reader("../Unit/test_DynVector_test_1.bp", comm)
 
    assert_equal(true, reader:hasVar("time"), "Checking for 'time'")
    assert_equal(true, reader:hasVar("frame"), "Checking for 'frame'")
