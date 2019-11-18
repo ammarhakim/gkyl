@@ -945,13 +945,13 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
 
    local fDel = self:rkStepperFields()[2]
    fDel:combine(1, fIn, -1, self.fPrev)
-   if self.positivity then
+   if self.positivityDiffuse then
       fDel:accumulate(-1, self.fDelPos[1])
    end
    self.fPrev:copy(fIn)
    self.threeMomentsCalc:advance(tCurr, {fDel}, { self.numDensityAux, self.momDensityAux, self.ptclEnergyAux })
 
-   if self.positivity then
+   if self.positivityDiffuse then
       self.threeMomentsCalc:advance(tCurr, {self.fDelPos[1]}, { self.numDensityPos, self.momDensityPos, self.ptclEnergyPos })
    end
 
@@ -980,13 +980,13 @@ function GkSpecies:calcDiagnosticIntegratedMoments(tCurr)
       elseif mom == "intDelL2" then 
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {fDel}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intDelPosL2" and self.positivity then
+      elseif mom == "intDelPosL2" and self.positivityDiffuse then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.fDelPos[1]}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intDelPosM0" and self.positivity then
+      elseif mom == "intDelPosM0" and self.positivityDiffuse then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.numDensityPos}, {self.diagnosticIntegratedMomentFields[mom]})
-      elseif mom == "intDelPosM2" and self.positivity then
+      elseif mom == "intDelPosM2" and self.positivityDiffuse then
          self.diagnosticIntegratedMomentUpdaters[mom]:advance(
             tCurr, {self.ptclEnergyPos}, {self.diagnosticIntegratedMomentFields[mom]})
       end
