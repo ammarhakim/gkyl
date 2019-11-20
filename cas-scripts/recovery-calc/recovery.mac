@@ -172,7 +172,7 @@ getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp) := block(
 
 
 getRecov6CellGen(dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
-  [perpDir, dirIdx, rLo, rCe, rUp, basisC, baC, rLoCoef, rCeCoef, rUpCoef, r],
+  [perpDir, perpDirIdx, rLo, rCe, rUp, basisC, baC, rLoCoef, rCeCoef, rUpCoef, r],
   if dir = x then perpDir : y else perpDir : x, /* Hard-coded; needs generalization for 3D */
   numDims : length(dx),
   perpDirIdx : getDirIdx(perpDir, numDims),

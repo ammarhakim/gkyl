@@ -134,10 +134,10 @@ return function(tbl)
    }
 
    local function applyBc(fld)
-      bcT:advance(0.0, {}, {fld})
-      bcB:advance(0.0, {}, {fld})
-      bcL:advance(0.0, {}, {fld})
-      bcR:advance(0.0, {}, {fld})
+      -- bcT:advance(0.0, {}, {fld})
+      -- bcB:advance(0.0, {}, {fld})
+      -- bcL:advance(0.0, {}, {fld})
+      -- bcR:advance(0.0, {}, {fld})
       fld:sync()
 
       -- need to manually sync corners for now
@@ -387,19 +387,19 @@ return function(tbl)
          local fOutP = fOut:get(indexer(idxs))
 
          dragKernelFn(dt, dv:data(),
-		      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
-		      hC:data(), hL:data(), hR:data(), hT:data(), hB:data(),
-		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		      fOutP:data())
+	 	      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
+	 	      hC:data(), hL:data(), hR:data(), hT:data(), hB:data(),
+	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+	 	      fOutP:data())
          diffKernelFn(dt, dv:data(),
-		      fTL:data(), fT:data(), fTR:data(),
-		      fL:data(), fC:data(), fR:data(),
-		      fBL:data(), fB:data(), fBR:data(),
-		      gTL:data(), gT:data(), gTR:data(),
-		      gL:data(), gC:data(), gR:data(),
-		      gBL:data(), gB:data(), gBR:data(),
-		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		      fOutP:data())
+	 	      fTL:data(), fT:data(), fTR:data(),
+	 	      fL:data(), fC:data(), fR:data(),
+	 	      fBL:data(), fB:data(), fBR:data(),
+	 	      gTL:data(), gT:data(), gTR:data(),
+	 	      gL:data(), gC:data(), gR:data(),
+	 	      gBL:data(), gB:data(), gBR:data(),
+	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+	 	      fOutP:data())
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
@@ -457,7 +457,7 @@ return function(tbl)
          if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
             writeData(nextFrame, tCurr)
             nextFrame = nextFrame+1
-         end
+	 end
          step = step+1
       end
       local tmTotal = Time.clock()-tmStart

@@ -16,54 +16,54 @@ fgConvolution(dir, der, polyOrder, fL, fU, gL, gU) := block(
   ba : getBasis("basis-precalc/basisSer2x", polyOrder),
   baL : etaDir(dir, -1, 2, ba),
   baU : etaDir(dir, 1, 2, ba),
-  
   perpDir : getPerpDir(dir),
-  outL : calcInnerProdListGen([dir, perpDir], [[-2,0], [-1,1]], 1, baL, gDer*doExpand(fL, baL)),
-  outU : calcInnerProdListGen([dir, perpDir], [[0,2], [-1,1]], 1, baU, gDer*doExpand(fU, baU)),
+  outL : calcInnerProdListGen([dir, perpDir], [[-2,0], [-1,1]], 1, baL,
+    gDer*doExpand(fL, baL)),
+  outU : calcInnerProdListGen([dir, perpDir], [[0,2], [-1,1]], 1, baU,
+    gDer*doExpand(fU, baU)),
   return([outL, outU])
   ) $
 
-getSurfTerm(fh, dir, edge, polyOrder,
+getSurfTerm(dir, edge, polyOrder,
   fLL, fLU, fCL, fCU, fUL, fUU,
   gLL, gLU, gCL, gCU, gUL, gUU) := block(
   [perpDir, edgeNm, ba,
-  giifCL, giifCU, gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijUU,
+  giifCL, giifCU, gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijfUU,
   rec2, rec6, giif, giifi, gijf, gijfj, Jii, Jij, t1, t2, t3, t4],
   perpDir : getPerpDir(dir),
   /*if edge = -1 then edgeNm : "L" else edgeNm : "U",*/
   ba : getBasis("basis-precalc/basisSer2x", polyOrder),
 
-  [gijfLL, gijfLU] : fgConvolution(dir, [dir,perpDir], polyOrder, fLL, fLU, gLL, gLU),
-  [giifCL, giifCU] : fgConvolution(dir, [dir,dir],     polyOrder, fCL, fCU, gCL, gCU),
-  [gijfCL, gijfCU] : fgConvolution(dir, [dir,perpDir], polyOrder, fCL, fCU, gCL, gCU),
-  [gijfUL, gijfUU] : fgConvolution(dir, [dir,perpDir], polyOrder, fUL, fUU, gUL, gUU),
+  [gijfLL, gijfLU] : fgConvolution(dir, [dir, perpDir], polyOrder,
+    fLL, fLU, gLL, gLU),
+  [giifCL, giifCU] : fgConvolution(dir, [dir, dir], polyOrder,
+    fCL, fCU, gCL, gCU),
+  [gijfCL, gijfCU] : fgConvolution(dir, [dir, perpDir], polyOrder,
+    fCL, fCU, gCL, gCU),
+  [gijfUL, gijfUU] : fgConvolution(dir, [dir, perpDir], polyOrder,
+    fUL, fUU, gUL, gUU),
 
-  /* rec2 : getRecov2CellGen(dir, [2,2], polyOrder, giifCL, giifCU), */
-  /* giif : subst(dir=0, rec2), */
-  /* giifi : subst(dir=0, diff(rec2, dir)), */
+  rec2 : getRecov2CellGen(dir, [2,2], polyOrder, giifCL, giifCU),
+  giif : subst(dir=0, rec2), /* Term I */
+  giifi : subst(dir=0, diff(rec2, dir)), /* Term III */
   
-  /* rec2 : getRecov2CellGen(dir, [2,2], polyOrder, gijfCL, gijfCU), */
-  /* gijf : subst(dir=0, rec2), */
-  /* rec6 : getRecov6CellGen(perpDir, [2,2], polyOrder, 0, */
-  /*   gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijfUU), */
-  /* gijfj : diff(rec6, perpDir), */
-
-  rec2 : getRecov2CellGen(dir, [2,2], polyOrder, fCL, fCU),
-  giif : subst(dir=0, rec2),
-  giifi : subst(dir=0, diff(rec2, dir)),
-  
-  gijf : subst(dir=0, rec2),
-  rec6 : getRecov6CellGen(perpDir, [2,2], polyOrder, 0,
-    fLL, fLU, fCL, fCU, fUL, fUU),
-  gijfj : diff(rec6, perpDir),
+  rec2 : getRecov2CellGen(dir, [2,2], polyOrder, gijfCL, gijfCU),
+  gijf : subst(dir=0, rec2), /* Term III */
+  rec6 : getRecov6CellGen(dir, [2,2], polyOrder, 0,
+    gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijfUU),
+  gijfj : diff(rec6, perpDir), /*Term II */
   
   Jii : eval_string(sconcat("J", dir, dir)),
   Jij : eval_string(sconcat("J", dir, perpDir)),
-  t1 : calcInnerProdListGen([perpDir], [[-1,1]], Jii, subst(dir=edge, ba), giifi),
-  t2 : calcInnerProdListGen([perpDir], [[-1,1]], Jii, subst(dir=edge, diff(ba, dir)), giif),
-  t3 : calcInnerProdListGen([perpDir], [[-1,1]], Jij, subst(dir=edge, ba), gijfj),
-  t4 : calcInnerProdListGen([perpDir], [[-1,1]], Jij, subst(dir=edge, diff(ba, perpDir)), gijf),
-  return(t1-t2+t3-t4)
+  t1 : calcInnerProdListGen([perpDir], [[-1,1]], Jii, subst(dir=edge, ba),
+    giifi),
+  t2 : calcInnerProdListGen([perpDir], [[-1,1]], Jii, subst(dir=edge, diff(ba, dir)),
+    giif),
+  t3 : calcInnerProdListGen([perpDir], [[-1,1]], Jij, subst(dir=edge, ba),
+    gijfj),
+  t4 : calcInnerProdListGen([perpDir], [[-1,1]], Jij, subst(dir=edge, diff(ba, perpDir)),
+    gijf),
+  return(t1 - t2 + t3 - t4)
   ) $
 
 for polyOrder : 1 thru 1 do (
@@ -101,44 +101,101 @@ for polyOrder : 1 thru 1 do (
     /* recoveries */
     ),
   
-  /* printf(fh, "  double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);~%"), */
-  /* printf(fh, "  double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);~%"), */
-  /* printf(fh, "  double Jxy = 16/(dv[0]*dv[0]*dv[1]*dv[1]);~%"), */
-  /* printf(fh, "  double Jyx = Jxy;~%~%"), */
-  printf(fh, "  double Jxx = 4/(dv[0]*dv[0]);~%"),
-  printf(fh, "  double Jyy = 4/(dv[1]*dv[1]);~%"),
-  printf(fh, "  double Jxy = 4/(dv[0]*dv[1]);~%"),
-  printf(fh, "  double Jyx = Jxy;~%~%"),
+  fListTL : makelist(fTL[i], i, 1, length(baC)),
+  fListT : makelist(fT[i], i, 1, length(baC)),
+  fListTR : makelist(fTR[i], i, 1, length(baC)),
+  fListL : makelist(fL[i], i, 1, length(baC)),
+  fListC : makelist(fC[i], i, 1, length(baC)),
+  fListR : makelist(fR[i], i, 1, length(baC)),
+  fListBL : makelist(fBL[i], i, 1, length(baC)),
+  fListB : makelist(fB[i], i, 1, length(baC)),
+  fListBR : makelist(fBR[i], i, 1, length(baC)),
   
-  surfT : getSurfTerm(fh, y, 1, polyOrder, fL, fTL, fC, fT, fR, fTR, gL, gTL, gC, gT, gR, gTR),
-  surfB : getSurfTerm(fh, y, -1, polyOrder, fBL, fL, fB, fC, fBR, fR, gBL, gL, gB, gC, gBR, gR),
-  surfL : getSurfTerm(fh, x, -1, polyOrder, fBL, fB, fL, fC, fTL, fT, gBL, gB, gL, gC, gTL, gT),
-  surfR : getSurfTerm(fh, x, 1, polyOrder, fB, fBR, fC, fR, fT, fTR, gB, gBR, gC, gR, gT, gTR),
+  gListTL : makelist(gTL[i], i, 1, length(baC)),
+  gListT : makelist(gT[i], i, 1, length(baC)),
+  gListTR : makelist(gTR[i], i, 1, length(baC)),
+  gListL : makelist(gL[i], i, 1, length(baC)),
+  gListC : makelist(gC[i], i, 1, length(baC)),
+  gListR : makelist(gR[i], i, 1, length(baC)),
+  gListBL : makelist(gBL[i], i, 1, length(baC)),
+  gListB : makelist(gB[i], i, 1, length(baC)),
+  gListBR : makelist(gBR[i], i, 1, length(baC)),
+  
+  printf(fh, "  double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);~%"),
+  printf(fh, "  double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);~%"),
+  printf(fh, "  double Jxy = 16/(dv[0]*dv[0]*dv[1]*dv[1]);~%"),
+  printf(fh, "  double Jyx = Jxy;~%~%"),
+  /* printf(fh, "  double Jxx = 4/(dv[0]*dv[0]);~%"), */
+  /* printf(fh, "  double Jyy = 4/(dv[1]*dv[1]);~%"), */
+  /* printf(fh, "  double Jxy = 4/(dv[0]*dv[1]);~%"), */
+  /* printf(fh, "  double Jyx = Jxy;~%~%"), */
+
+  surfL : getSurfTerm(x, -1, polyOrder,
+    fListBL, fListB, fListL, fListC, fListTL, fListT,
+    gListBL, gListB, gListL, gListC, gListTL, gListT),
+  surfR : getSurfTerm(x, 1, polyOrder,
+    fListB, fListBR, fListC, fListR, fListT, fListTR,
+    gListB, gListBR, gListC, gListR, gListT, gListTR),
+  surfB : getSurfTerm(y, -1, polyOrder,
+    fListBL, fListL, fListB, fListC, fListBR, fListR,
+    gListBL, gListL, gListB, gListC, gListBR, gListR),
+  surfT : getSurfTerm(y, 1, polyOrder,
+    fListL, fListTL, fListC, fListT, fListR, fListTR,
+    gListL, gListTL, gListC, gListT, gListR, gListTR),
 
   tmp : (surfR - surfL + surfT - surfB)/2,
-  out : subst(indexSubList, expand(float(fullratsimp(tmp)))),
-  for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
+  out : subst(indexSubList, expand(tmp)),
+  for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*float(out[i])),
 
   /* Putting together the volume terms */
+  gxxfPhixxVol : calcInnerProdList([x,y], Jxx, diff(baC, x, 2),
+    diff(doExpand(gC, baC), x, 2)*doExpand(fC, baC)),
+  gyyfPhiyyVol : calcInnerProdList([x,y], Jyy, diff(baC, y, 2),
+    diff(doExpand(gC, baC), y, 2)*doExpand(fC, baC)),
+  gxyfPhixyVol : calcInnerProdList([x,y], Jxy, diff(diff(baC, x), y),
+    diff(diff(doExpand(gC, baC), x), y)*doExpand(fC, baC)),
   /* gxxfPhixxVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxx, diff(baC, x, 2), */
-  /*   diff(doExpand(gC, baC), x, 2)*doExpand(fC, baC)), */
+  /*   doExpand(fC, baC)), */
   /* gyyfPhiyyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jyy, diff(baC, y, 2), */
-  /*   diff(doExpand(gC, baC), y, 2)*doExpand(fC, baC)), */
+  /*   doExpand(fC, baC)), */
   /* gxyfPhixyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxy, diff(diff(baC, x), y), */
-  /*   diff(diff(doExpand(gC, baC), x), y)*doExpand(fC, baC)),  */
-  gxxfPhixxVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxx, diff(baC, x, 2),
-    doExpand(fC, baC)),
-  gyyfPhiyyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jyy, diff(baC, y, 2),
-    doExpand(fC, baC)),
-  gxyfPhixyVol : calcInnerProdListGen([x,y], [[-1,1], [-1,1]], Jxy, diff(diff(baC, x), y),
-    doExpand(fC, baC)),
+  /*   doExpand(fC, baC)), */
  
   /* Writting the volume term */
   tmp : (gxxfPhixxVol + gyyfPhiyyVol + 2*gxyfPhixyVol)/2,
-  out : subst(indexSubList, expand(float(fullratsimp(tmp)))),
-  for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*out[i]),
-
+  out : subst(indexSubList, expand(tmp)),
+  for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*float(out[i])),
 
   printf(fh, "}"),
+  close(fh),
+  
+  /* Replicating Ammars stuff */
+  fh : openw("~/max-out/pkernel.lua"),
+  Jlist : append([Jxx=16/dx^4, Jyy=16/dy^4, Jxy=16/dx^2/dy^2, Jyx=16/dx^2/dy^2],
+    makelist(fC[i]=q[i], i, 1, 4),
+    makelist(fT[i]=qT[i], i, 1, 4),
+    makelist(fB[i]=qB[i], i, 1, 4),
+    makelist(fL[i]=qL[i], i, 1, 4),
+    makelist(fR[i]=qR[i], i, 1, 4),
+    makelist(fTL[i]=qTL[i], i, 1, 4),
+    makelist(fTR[i]=qTR[i], i, 1, 4),
+    makelist(fBL[i]=qBL[i], i, 1, 4),
+    makelist(fBR[i]=qBR[i], i, 1, 4),
+    makelist(gC[i]=gs[i], i, 1, 4),
+    makelist(gT[i]=gsT[i], i, 1, 4),
+    makelist(gB[i]=gsB[i], i, 1, 4),
+    makelist(gL[i]=gsL[i], i, 1, 4),
+    makelist(gR[i]=gsR[i], i, 1, 4),
+    makelist(gTL[i]=gsTL[i], i, 1, 4),
+    makelist(gTR[i]=gsTR[i], i, 1, 4),
+    makelist(gBL[i]=gsBL[i], i, 1, 4),
+    makelist(gBR[i]=gsBR[i], i, 1, 4)
+    ),
+
+  tmp : surfB,
+/*  tmp : (surfR - surfL + surfT - surfB) +  2*gxyfPhixyVol,*/
+  out : expand(float(fullratsimp(subst(Jlist, tmp)))),
+  for i : 1 thru length(baC) do printf(fh, "kerOut[~a] = ~a;~%", i, out[i]),
   close(fh)
+
   )
