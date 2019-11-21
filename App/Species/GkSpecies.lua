@@ -642,7 +642,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         c:advance(tCurr, fIn, species, fRhsOut)
+         c:advance(tCurr, fIn, species, fRhsOut, self.fRhsVol)
          -- the full 'species' list is needed for the cross-species
          -- collisions
       end
