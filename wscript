@@ -215,6 +215,12 @@ def buildExec(bld):
         # we need to append special flags to get stuff to work on a 64 bit Mac
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
 
+    # Link flags on Linux
+    if platform.system() == 'Linux':
+        bld.env.LINKFLAGS_cstlib = ['-Wl,-Bstatic,-E']
+        bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
+        bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'        
+
     useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
