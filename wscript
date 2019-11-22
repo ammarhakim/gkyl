@@ -233,7 +233,7 @@ def buildExec(bld):
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
-        rpath = [bld.env.RPATH, bld.env.LIBDIR ],
+        rpath = [bld.env.RPATH, bld.env.LIBDIR, bld.env.LIBPATH_LUAJIT],
         lib = 'pthread ' + bld.env.EXTRALIBS
     )
 
