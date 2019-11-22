@@ -60,9 +60,6 @@ class GitTip(Task.Task):
 
 def build(bld):
 
-    # determine Mercurial version (THIS NEEDS TO UPDATED TO WORK WITH
-    # GIT)
-
     gitTip = GitTip(env=bld.env)
     gitTip.set_outputs(bld.path.find_or_declare('gkylgittip.h'))
     bld.add_to_group(gitTip)
@@ -233,7 +230,7 @@ def buildExec(bld):
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
-        rpath = [bld.env.RPATH, bld.env.LIBDIR, bld.env.LIBPATH_LUAJIT],
+        rpath = [bld.env.LIBDIR, bld.env.LIBPATH_LUAJIT].append(bld.env.RPATH),
         lib = 'pthread ' + bld.env.EXTRALIBS
     )
 
