@@ -224,13 +224,16 @@ def buildExec(bld):
     if bld.env['ZMQ_FOUND']:
         useList = 'ZMQ ' + useList
 
+    # set RPATH (append user specified rpath also)
+    fullRpath = bld.env.RPATH + [bld.env.LIBDIR, bld.env.LIBPATH_LUAJIT]
+
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
-        rpath = [bld.env.LIBDIR, bld.env.LIBPATH_LUAJIT].append(bld.env.RPATH),
+        rpath = fullRpath,
         lib = 'pthread ' + bld.env.EXTRALIBS
     )
 
