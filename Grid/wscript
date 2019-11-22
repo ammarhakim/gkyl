@@ -6,8 +6,8 @@
 import os
 
 def build(bld):
-    bld.objects(
+    bld.shlib(
         source = 'RectCartImpl.cpp',
-        target = 'grid',
+        target = 'gkgrid', name = 'grid', vnum = '1.0',
         includes = '.'
     )

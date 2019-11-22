@@ -6,9 +6,9 @@
 import os
 
 def build(bld):
-    bld.objects(source = r"""
+    bld.shlib(source = r"""
     gkyl_ipow.cpp
     whereami.c
     base64.cpp
     lfs.c""",
-    use = "LUAJIT", includes = '.', target = 'lib')
+              use = "LUAJIT", includes = '.', target = 'gklib', name = 'lib', vnum = '1.0')
