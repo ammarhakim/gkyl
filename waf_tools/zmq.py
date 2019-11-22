@@ -22,11 +22,11 @@ def check_zmq(conf):
 
     # lib directory
     if conf.options.zmqLibDir:
-        conf.env.STLIBPATH_ZMQ = conf.options.zmqLibDir
-        conf.env.STLIB_ZMQ = ["zmq"]
+        conf.env.LIBPATH_ZMQ = conf.options.zmqLibDir
+        conf.env.LIB_ZMQ = ["zmq"]
     else:
-        conf.env.STLIBPATH_ZMQ = [conf.options.gkylDepsDir+'/zeromq/lib']
-        conf.env.STLIB_ZMQ = ["zmq"]
+        conf.env.LIBPATH_ZMQ = [conf.options.gkylDepsDir+'/zeromq/lib']
+        conf.env.LIB_ZMQ = ["zmq"]
          
     conf.start_msg('Checking for ZMQ')
     try:

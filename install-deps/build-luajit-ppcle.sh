@@ -21,9 +21,3 @@ ln -sf $PREFIX $GKYLSOFT/luajit
 # soft-link executable name "lua". This allows running various tools
 # (luarocks) needing lua executable to run
 ln -sf $PREFIX/bin/luajit-2.1.0-ppcle $PREFIX/bin/lua
-
-# delete dynamic libraries
-cmd="rm -rf $PREFIX/lib/*.dylib $PREFIX/lib/*.so*"
-echo $cmd
-$cmd
-
