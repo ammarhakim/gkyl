@@ -206,6 +206,12 @@ def build(bld):
         Proto_dir.ant_glob('**/*.lua'),
         cwd=Proto_dir, relative_trick=True)
 
+def appendToList(target, val):
+    if type(val) == list:
+        target.extend(val)
+    else:
+        target.append(val)
+        
 def buildExec(bld):
     r"""Build top-level executable"""
     if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
@@ -218,14 +224,18 @@ def buildExec(bld):
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'        
 
+    # list of objects to use
     useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
         useList = 'ZMQ ' + useList
 
-    # set RPATH (append user specified rpath also)
-    fullRpath = bld.env.RPATH + [bld.env.LIBDIR, bld.env.LIBPATH_LUAJIT]
+    # set RPATH
+    fullRpath = []
+    appendToList(fullRpath, bld.env.RPATH) # user specified RPATH
+    appendToList(fullRpath, bld.env.LIBDIR)
+    appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
 
     # build gkyl executable
     bld.program(
