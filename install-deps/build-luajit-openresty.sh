@@ -22,8 +22,3 @@ ln -sf $PREFIX $GKYLSOFT/luajit
 # (luarocks) needing lua executable to run
 ln -sf $PREFIX/bin/luajit-2.1.0-beta3 $PREFIX/bin/lua
 
-# delete dynamic libraries
-cmd="rm -rf $PREFIX/lib/*.dylib $PREFIX/lib/*.so*"
-echo $cmd
-$cmd
-

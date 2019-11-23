@@ -6,7 +6,7 @@
 import os
 
 def build(bld):
-    bld.objects(source = r"""
+    bld.shlib(source = r"""
     TenMomentImpl.cpp
 
     incompEulerData/IncompEulerSer2xP1.cpp
@@ -258,6 +258,9 @@ def build(bld):
     Positivity.cpp
 
     """,
-    target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData'
+              name = 'eq',
+              target = 'gkeq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData',
+              vnum = '1.0',
+              
     )
 

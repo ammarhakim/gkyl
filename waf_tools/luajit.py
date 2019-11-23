@@ -21,16 +21,16 @@ def check_luajit(conf):
         conf.env.INCLUDES_LUAJIT = [conf.options.gkylDepsDir+'/luajit/include/luajit-2.1']
         
     if conf.options.luaJitLibDir:
-        conf.env.STLIBPATH_LUAJIT = conf.options.luaJitLibDir
+        conf.env.LIBPATH_LUAJIT = conf.options.luaJitLibDir
     else:
-        conf.env.STLIBPATH_LUAJIT = [conf.options.gkylDepsDir+'/luajit/lib']
+        conf.env.LIBPATH_LUAJIT = [conf.options.gkylDepsDir+'/luajit/lib']
 
     if conf.options.luaJitShrDir:
         conf.env.SHARE_LUAJIT = conf.options.luaJitShrDir
     else:
         conf.env.SHARE_LUAJIT = conf.options.gkylDepsDir+'/luajit/share/luajit'
 
-    conf.env.STLIB_LUAJIT = ["luajit-5.1"]
+    conf.env.LIB_LUAJIT = ["luajit-5.1"]
         
     conf.start_msg('Checking for LUAJIT')
     conf.check(header_name='lua.hpp', features='cxx cxxprogram', use="LUAJIT", mandatory=True)

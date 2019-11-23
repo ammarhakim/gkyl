@@ -6,7 +6,7 @@
 import os
 
 def build(bld):
-    bld.objects(source = r"""
+    bld.shlib(source = r"""
     MomentSrcCommon.cpp
     FiveMomentSrcImpl.cpp
     TenMomentSrcImpl.cpp
@@ -205,5 +205,5 @@ def build(bld):
     EvalOnNodesImpl.cpp
 
     """,
-    includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='EIGEN MPI', target = 'updater')
+              includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'gkupdater', name = 'updater', vum = '1.0')
     
