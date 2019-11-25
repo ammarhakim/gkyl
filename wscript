@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen zmq sqlite3',
+    opt.load('gkyl luajit mpi adios eigen lapack zmq sqlite3',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -30,14 +30,16 @@ def configure(conf):
 
     # load tools
     conf.load('compiler_c compiler_cxx')
-    if platform.system() == 'Darwin':
-        conf.check_cc(framework_name='Accelerate')
-        conf.check_cxx(framework_name='Accelerate')
     conf.check_gkyl()
     conf.check_luajit()
     conf.check_mpi()
     conf.check_adios()
     conf.check_eigen()
+    if platform.system() == 'Darwin':
+        conf.check_cc(framework_name='Accelerate')
+        conf.check_cxx(framework_name='Accelerate')
+    else:
+        conf.check_lapack()
     conf.check_sqlite3()
     conf.check_zmq()
 
@@ -239,6 +241,8 @@ def buildExec(bld):
         useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
         useList = 'ZMQ ' + useList
+    if platform.system() != 'Darwin':
+        useList = 'LAPACK ' + useList
 
     # set RPATH
     fullRpath = []
