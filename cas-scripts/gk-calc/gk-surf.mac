@@ -216,7 +216,7 @@ load(modNm),
       Ghat_expd : Ghat_k.bSurf,
 
       /* limit flux to preserve positivity of control nodes */
-      cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", p))/3,
+      cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", i))/3,
       nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
       GhatC : nodesub(Ghat_expd, cSurfNodes),
       printf(fh, "  double fluxFracL, fluxFracR, flim = 0.;~%"),

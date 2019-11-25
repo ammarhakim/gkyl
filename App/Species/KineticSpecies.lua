@@ -500,7 +500,7 @@ function KineticSpecies:alloc(nRkDup)
       },
    }
 
-   if self.positivity then
+   if self.positivityRescaleVolTerm then
       self.fRhsVol = self:allocDistf()
    end
 
