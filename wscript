@@ -30,6 +30,9 @@ def configure(conf):
 
     # load tools
     conf.load('compiler_c compiler_cxx')
+    if platform.system() == 'Darwin':
+        conf.check_cc(framework_name='Accelerate')
+        conf.check_cxx(framework_name='Accelerate')
     conf.check_gkyl()
     conf.check_luajit()
     conf.check_mpi()
@@ -82,7 +85,7 @@ def build(bld):
         bld.recurse("sqlite3")
 
     # build executable
-    buildExec(bld)    
+    buildExec(bld)
 
     ### install LuaJIT code
 
@@ -217,6 +220,12 @@ def buildExec(bld):
     if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
         # we need to append special flags to get stuff to work on a 64 bit Mac
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
+    if platform.system() == 'Darwin':
+        # Add Accelerate framework to link line: TBH: I am not sure
+        # why one needs to split this on two lines like this. It does
+        # not work otherwise. Weird (AHH Nov 25th 2019)
+        EXTRA_LINK_FLAGS.append('-framework')
+        EXTRA_LINK_FLAGS.append('Accelerate')
 
     # Link flags on Linux
     if platform.system() == 'Linux':
