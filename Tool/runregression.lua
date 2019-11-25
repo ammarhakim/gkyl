@@ -34,10 +34,15 @@ local log = Logger { logToFile = true }
 local verboseLog = function (msg) end -- default no messages are written
 local verboseLogger = function (msg) log(msg) end
 
--- number of passed/failed and total tests
+-- number of passed/failed and total regression tests
 local numFailedTests = 0
 local numPassedTests = 0
 local numTotalTests = 0
+
+-- number of passed/failed and total unit tests
+local numFailedUnitTests = 0
+local numPassedUnitTests = 0
+local numTotalUnitTests = 0
 
 -- flag to indicate if we are configuring system
 local isConfiguring = false
@@ -146,7 +151,7 @@ local function insertRegressionMeta(id, tm, ntotal, npass, nfail)
       id,
       tm,
       GKYL_EXEC,
-      GKYL_HG_CHANGESET,
+      GKYL_GIT_CHANGESET,
       GKYL_BUILD_DATE,      
       ntotal,
       npass,
@@ -326,9 +331,9 @@ local function runLuaUnitTest(test)
    local outPut = f:read("*a")
    if string.find(outPut, "FAILED") then
       log(string.format("... %s FAILED!\n", test))
-      numFailedTests = numFailedTests+1
+      numFailedUnitTests = numFailedUnitTests+1
    else
-      numPassedTests = numPassedTests+1
+      numPassedUnitTests = numPassedUnitTests+1
       log("... passed.\n")
    end
 end
@@ -553,7 +558,7 @@ local function check_action(test)
 	 end
       end
    end
-   -- THIS IS A HACK TO ENSURE TESTS DONT PASS WHEN GKEYLL CRASHES
+   -- THIS IS A HACK TO ENSURE TESTS DONT 'PASS' WHEN GKEYLL CRASHES
    if count == 0 then passed = false end
    if passed then
       numPassedTests = numPassedTests+1
@@ -690,6 +695,7 @@ local c_rununit = parser:command("rununit")
 -- parse command-line args (functionality encoded in command actions)
 local _ = parser:parse(GKYL_COMMANDS)
 
+-- print final test stats for regression tests
 if numPassedTests > 0 then
    log(string.format("\nTotal tests passed: %d\n", numPassedTests))
 end
@@ -699,4 +705,12 @@ end
 
 if numTotalTests>0 then
    insertRegressionMeta(runID, runDate, numTotalTests, numPassedTests, numFailedTests)
+end
+
+-- ... for unit tests
+if numPassedUnitTests > 0 then
+   log(string.format("\nTotal unit tests passed: %d\n", numPassedUnitTests))
+end
+if numFailedUnitTests > 0 then
+   log(string.format("Total unit tests FAILED: %d\n", numFailedUnitTests))
 end

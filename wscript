@@ -53,18 +53,19 @@ def configure(conf):
 
 
 from waflib import Task
-class HgTip(Task.Task):
+class GitTip(Task.Task):
     always_run = True # need to force running every time
-    run_str = r'echo \#define GKYL_HG_CHANGESET  \"`hg id -i -n -b`\" > ${TGT}'
+    
+    run_str = r'echo \#define GKYL_GIT_CHANGESET  \"`git describe --abbrev=12 --always --dirty=+`\" > ${TGT}'
 
 def build(bld):
 
     # determine Mercurial version (THIS NEEDS TO UPDATED TO WORK WITH
     # GIT)
 
-    ## hgTip = HgTip(env=bld.env)
-    ## hgTip.set_outputs(bld.path.find_or_declare('gkylhgtip.h'))
-    ## bld.add_to_group(hgTip)
+    gitTip = GitTip(env=bld.env)
+    gitTip.set_outputs(bld.path.find_or_declare('gkylgittip.h'))
+    bld.add_to_group(gitTip)
     
     # recurse down directories and build C++ code
     bld.recurse("Comm")
@@ -226,14 +227,14 @@ def buildExec(bld):
         useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
         useList = 'ZMQ ' + useList
-        
+
     # build gkyl executable
     bld.program(
         source ='gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
-        rpath = bld.env.RPATH,
+        rpath = [bld.env.RPATH, bld.env.LIBDIR ],
         lib = 'pthread ' + bld.env.EXTRALIBS
     )
 

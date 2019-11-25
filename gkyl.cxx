@@ -6,7 +6,9 @@
 //------------------------------------------------------------------------------
 
 // gkyl includes
+
 #include <gkylconfig.h>
+#include <gkylgittip.h>
 #include <Gkyl.h>
 
 #ifdef HAVE_MPI_H
@@ -31,28 +33,22 @@
 # include <xmmintrin.h>
 #endif
 
-// Compiler specificd defines
-
-// (We need to have this first as both Intel and PGI define __GNUC__
-// flags)
-#if defined(__GNUC__) || defined(__GNUG__)
-#define GKYL_COMPILER_ID "GCC"
-#endif
+// Compiler specifics defines
 
 #if defined(__clang__)
-#if defined(__APPLE__)
-#define GKYL_COMPILER_ID "Apple Clang"
+# if defined(__APPLE__)
+#  define GKYL_COMPILER_ID "Apple Clang"
+# else
+#  define GKYL_COMPILER_ID "Clang"
+# endif
+#elif defined(__ICC)
+# define GKYL_COMPILER_ID "Intel"
+#elif defined(__PGI)
+# define GKYL_COMPILER_ID "PGI"
+#elif (__GNUC__) || defined(__GNUG__)
+# define GKYL_COMPILER_ID "GCC"
 #else
-#define GKYL_COMPILER_ID "Clang"
-#endif
-#endif
-
-#if defined(__ICC)
-#define GKYL_COMPILER_ID "Intel"
-#endif
-
-#if defined(__PGI)
-#define GKYL_COMPILER_ID "PGI"
+# define GKYL_COMPILER_ID "UNKNOWN"
 #endif
 
 // These dummy calls are a hack to force the linker to pull in symbols
@@ -97,7 +93,7 @@ void showUsage() {
 
 // show version information
 void showVersion() {
-  std::cout << "Changeset: " << "UNKNOWN" << std::endl;
+  std::cout << "Changeset: " << GKYL_GIT_CHANGESET << std::endl;
   std::cout << "Built on: " << __DATE__ << " " << __TIME__ << std::endl;
   std::cout << "Built with: " << GKYL_COMPILER_ID << " compiler and";
 #ifdef HAVE_MPI_H
