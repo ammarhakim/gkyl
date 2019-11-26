@@ -222,7 +222,8 @@ def buildExec(bld):
     if platform.system() == 'Linux':
         bld.env.LINKFLAGS_cstlib = ['-Wl,-Bstatic,-E']
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
-        bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'        
+        bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
+        bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
     # list of objects to use
     useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
