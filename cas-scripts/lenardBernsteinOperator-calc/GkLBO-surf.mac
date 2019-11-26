@@ -10,7 +10,7 @@ load(stringproc)$
 maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
 minVdim_Ser : 1$
-maxCdim_Ser : 2$
+maxCdim_Ser : 3$
 maxVdim_Ser : 2$
 
 /* Maximal order basis. */

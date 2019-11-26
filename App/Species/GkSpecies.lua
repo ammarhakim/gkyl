@@ -647,8 +647,6 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
          else
             c:advance(tCurr, fIn, species, fRhsOut)
          end
-         -- the full 'species' list is needed for the cross-species
-         -- collisions
       end
    end
    if self.evolveCollisionless then

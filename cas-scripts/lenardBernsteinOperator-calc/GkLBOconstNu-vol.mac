@@ -1,6 +1,8 @@
 load("modal-basis")$
 load("out-scripts");
 load(stringproc)$
+load("scifac")$
+load("fem-calc/femMatrices")$
 fpprec : 24$
 
 /* This script generates the kernels for the volume term
@@ -84,14 +86,15 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
               +calcInnerProdList(varsP,facMu_e,bPpp,f_e))
     ),
     
-    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "  // w[~a]:      Cell-center coordinates. ~%", cdim+vdim),
-    printf(fh, "  // dxv[~a]:    Cell spacing. ~%", cdim+vdim),
-    printf(fh, "  // nuSum:     collisionalities added (self and cross species collisionalities). ~%"),
-    printf(fh, "  // nuUSum:    sum of bulk velocities times their respective collisionalities. ~%"),
-    printf(fh, "  // nuVtSqSum: sum of thermal speeds squared time their respective collisionalities. ~%"),
-    printf(fh, "  // f[~a]:      Input distribution function. ~%", NP),
-    printf(fh, "  // out[~a]:    Incremented output ~%", NP),
+    printf(fh, "double ~aP~a(const double m_, const double *w, const double *dxv, double *cflRateByDir, const double *BmagInv, const double nuSum, const double *nuUSum, const double *nuVtSqSum, const double *f, double *out) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // w[~a]:            Cell-center coordinates. ~%", cdim+vdim),
+    printf(fh, "  // dxv[~a]:          Cell spacing. ~%", cdim+vdim),
+    printf(fh, "  // cflRatebyDir[~a]: CFL rate in each direction. ~%",cdim+vdim),
+    printf(fh, "  // nuSum:           collisionalities added (self and cross species collisionalities). ~%"),
+    printf(fh, "  // nuUSum:          sum of bulk velocities times their respective collisionalities. ~%"),
+    printf(fh, "  // nuVtSqSum:       sum of thermal speeds squared time their respective collisionalities. ~%"),
+    printf(fh, "  // f[~a]:            Input distribution function. ~%", NP),
+    printf(fh, "  // out[~a]:          Incremented output ~%", NP),
     cid : cidx(cdim),
     printf(fh, "  double rdv2[~a]; ~%", vdim),
     printf(fh, "  double rdvSq4[~a]; ~%", vdim),
@@ -127,6 +130,40 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
         printf(fh, "~%")    
       )
     ),
+
+    /* Compute the CFL rate in each direction. */
+    printf(fh, "  cflRateByDir[0] = 0.; ~%"),
+    printf(fh, "  double alphaL = 0.0; ~%"),
+    printf(fh, "  double alphaR = 0.0; ~%"),
+    for d : 1 thru vdim do (
+      /* Evaluate alpha at left and right edge. */
+      if d=1 then (
+        alphaL : subst(varsV[d]=-1, alphaVpar_e),
+        alphaR : subst(varsV[d]=1, alphaVpar_e)
+      ) else (
+        alphaL : subst(varsV[d]=-1, alphaMu_e),
+        alphaR : subst(varsV[d]=1, alphaMu_e)
+      ),
+      /* Get quadrature nodes on surface. */
+      surfVars : delete(varsV[d], varsP),
+      if polyOrder=1 then quad:1/sqrt(3),
+      if polyOrder=2 then quad:sqrt(3/5),
+      nodes      : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder)),
+      nodeSub(f) := makelist(subst(makelist(surfVars[j]=nodes[i][j]*quad,j,1,length(surfVars)),f),i,1,length(nodes)),
+      alphaLquad : nodeSub(alphaL*subst(varsV[d]=-1,bP[1]))*bP[1],
+      alphaRquad : nodeSub(alphaR*subst(varsV[d]=1,bP[1]))*bP[1],
+      printf(fh, "  // Evaluate alpha at left surface quadrature points. ~%"),
+      for i:1 thru length(alphaLquad) do (
+        printf(fh, "  alphaL = ~a; ~%", gcfac(float(alphaLquad[i]))),
+        printf(fh, "  cflRateByDir[~a] += std::abs(alphaL); ~%", d)
+      ),
+      printf(fh, "  // Evaluate alpha at right surface quadrature points. ~%"),
+      for i:1 thru length(alphaRquad) do (
+        printf(fh, "  alphaR = ~a; ~%", gcfac(float(alphaRquad[i]))),
+        printf(fh, "  cflRateByDir[~a] += std::abs(alphaR); ~%", d)
+      )
+    ),
+    printf(fh, "~%"),
 
     clst : makelist(f[i],i,0,NC-1),
     writeCExprsCollect1c(radcan(incr)),

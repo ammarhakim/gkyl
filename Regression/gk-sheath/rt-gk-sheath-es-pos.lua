@@ -123,15 +123,15 @@ plasmaApp = Plasma.App {
                  end
               end,
       },
-      --coll   = Plasma.GkLBOCollisions {
-      --   collideWith = {'electron'},
-      --   frequencies = {nuElc},
-      --},
+      coll   = Plasma.GkLBOCollisions {
+         collideWith = {'electron'},
+         frequencies = {nuElc},
+      },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
       positivity = true,
       positivityDiffuse = true,
-      positivityRescaleVolTerm = true,
+      positivityRescaleVolTerm = false,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intL1", "intDelPosL2", "intDelL2"},
       randomseed = randomseed,
@@ -171,15 +171,15 @@ plasmaApp = Plasma.App {
                  end
               end,
       },
-      --coll   = Plasma.GkLBOCollisions {
-      --   collideWith = {'ion'},
-      --   frequencies = {nuIon},
-      --},
+      coll   = Plasma.GkLBOCollisions {
+         collideWith = {'ion'},
+         frequencies = {nuIon},
+      },
       source = {"maxwellian", density = sourceDensity, temperature = sourceTemperature},
       evolve = true, -- Evolve species?
       positivity = true,
       positivityDiffuse = true,
-      positivityRescaleVolTerm = true,
+      positivityRescaleVolTerm = false,
       diagnosticMoments = {"GkM0", "GkUpar", "GkTemp"}, 
       diagnosticIntegratedMoments = {"intM0", "intM1", "intM2", "intL1", "intDelPosL2", "intDelL2"},
       randomseed = randomseed,

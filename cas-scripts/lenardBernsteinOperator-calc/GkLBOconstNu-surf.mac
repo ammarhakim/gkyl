@@ -307,15 +307,17 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
 
     /*............. RECOVERY DONE ..............................*/
 
-    printf(fh, "double ~a_~a_P~a(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
-    printf(fh, "  // w[~a]:         Cell-center coordinates. ~%", cdim+vdim),
-    printf(fh, "  // dxv[~a]:       Cell spacing. ~%", cdim+vdim),
-    printf(fh, "  // nuSum:        collisionalities added (self and cross species collisionalities). ~%"),
-    printf(fh, "  // vMuMidMax:    maximum midpoint value of v-u. ~%"),
-    printf(fh, "  // nuUSum[~a]:    sum of bulk velocities times their respective collisionalities. ~%", NC),
-    printf(fh, "  // nuVtSqSum[~a]: sum of thermal speeds squared time their respective collisionalities. ~%", NC),
-    printf(fh, "  // fl/fr:        Distribution function in left/right cells ~%"),
-    printf(fh, "  // outl/outr:    Incremented distribution function in left/right cells ~%"),
+    printf(fh, "double ~a_~a_P~a(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, vVars[dir], polyOrder),
+    printf(fh, "  // m_:              species mass. ~%"),
+    printf(fh, "  // cflRateByDir[~a]: CFL rate in each direction. ~%", cdim+vdim),
+    printf(fh, "  // w[~a]:            Cell-center coordinates. ~%", cdim+vdim),
+    printf(fh, "  // dxv[~a]:          Cell spacing. ~%", cdim+vdim),
+    printf(fh, "  // nuSum:           collisionalities added (self and cross species collisionalities). ~%"),
+    printf(fh, "  // vMuMidMax:       maximum midpoint value of v-u. ~%"),
+    printf(fh, "  // nuUSum[~a]:       sum of bulk velocities times their respective collisionalities. ~%", NC),
+    printf(fh, "  // nuVtSqSum[~a]:    sum of thermal speeds squared time their respective collisionalities. ~%", NC),
+    printf(fh, "  // fl/fr:           Distribution function in left/right cells ~%"),
+    printf(fh, "  // outl/outr:       Incremented distribution function in left/right cells ~%"),
     printf(fh, "  double rdv = 1.0/dxvl[~a]; ~%", vid1[dir]),
     printf(fh, "  double rdv2L = 2.0/dxvl[~a]; ~%", vid1[dir]),
     printf(fh, "  double rdv2R = 2.0/dxvr[~a]; ~%", vid1[dir]),
@@ -413,7 +415,7 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       fl_e : doExpand1(fl, bP),
       fr_e : doExpand1(fr, bP),
       /* Surface basis. Equivalent to basis of one lower
-      ** dimensionality without surface variable. */
+         dimensionality without surface variable. */
       bSurf : sqrt(2)*delete(0,fullratsimp(innerProd(varsP,1,bP,subst(vv=0,bP)))*bP),
       /* Project alphaDrag evaluated at interior surface onto surf basis. */
       alphaDrSurf_c : fullratsimp(innerProd(surfVars, 1, bSurf, subst(vv=1,alphaDr))),
@@ -425,10 +427,43 @@ calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun, pMax, applyPos) := block(
       printf(fh, "~%"),
       /* Here need to change the sign of alphaDrSurf because calculation
          fHatAL assumed a convective term on the left side of the Gyrokinetic equation. */
-      fHatSurf_e    : subst(gkvsub, fhatALgenUpwind2(subst(gkvsubInv,fl_e), subst(gkvsubInv,fr_e), 
-                                                     -subst(gkvsubInv,alphaDrSurf_e), subst(gkvsubInv,vv), 
-                                                     cfll, cflr, cdim, vdim, polyOrder)),
-      GhatDrag_c : calcInnerProdList(varsP,alphaDrSurf_e,bP,fHatSurf_e)
+      fHatSurf_e    : subst(gkvsub, fhatALgenUpwindNoLim( subst(gkvsubInv,fl_e), subst(gkvsubInv,fr_e), 
+                                                         -subst(gkvsubInv,alphaDrSurf_e), subst(gkvsubInv,vv), 
+                                                          cfll, cflr, cdim, vdim, polyOrder )),
+      /*
+      GhatDrag_c    : calcInnerProdList(varsP,alphaDrSurf_e,bP,fHatSurf_e),
+      */
+      GhatDrag_c    : calcInnerProdList(surfVars,alphaDrSurf_e,bSurf,fHatSurf_e),
+      GhatDrag_e    : GhatDrag_c.bSurf,
+
+      /* Limit flux to preserve positivity of control nodes. */
+      cSurfNodes       : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))/3,
+      nodesub(f,nodes) := makelist(subst(makelist(surfVars[j]=nodes[i][j],j,1,length(surfVars)),f),i,1,length(nodes)),
+      GhatDragC        : nodesub(GhatDrag_e, cSurfNodes),
+      printf(fh, "  double fluxFracL, fluxFracR, flim = 0.;~%"),
+      printf(fh, "  double GhatDragCtrl[~a];~%", length(cSurfNodes)),
+      printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), dir),
+      printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), dir),
+      for c:1 thru length(cSurfNodes) do (
+        printf(fh, "  // Control node ~a = ~a. ~%", surfVars, cSurfNodes[c]),
+        flimL:gcfac(float(fullratsimp(subst(vv=1/3,nodesub(fl_e,cSurfNodes)[c])))),
+        flimR:gcfac(float(fullratsimp(subst(vv=-1/3,nodesub(fr_e,cSurfNodes)[c])))),
+        printf(fh, "  GhatDragCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatDragC[c]))),
+        printf(fh, "  if(GhatDragCtrl[~a] > EPSILON) {~%", c-1),
+        printf(fh, "    flim = std::max(0., ~a); ~%", flimL),
+        printf(fh, "    GhatDragCtrl[~a] = std::min(GhatDragCtrl[~a], std::abs(fluxFracL*flim/dtApprox/~a)); ~%", c-1, c-1, rdv2L),
+        printf(fh, "  } else if(GhatDragCtrl[~a] < -EPSILON) {~%", c-1),
+        printf(fh, "    flim = std::max(0., ~a); ~%", flimR),
+        printf(fh, "    GhatDragCtrl[~a] = -std::min(-GhatDragCtrl[~a], std::abs(fluxFracR*flim/dtApprox/~a)); ~%", c-1, c-1, rdv2R),
+        printf(fh, "  } else GhatDragCtrl[~a] = 0.; ~%", c-1)
+      ),
+      modToNodC  : calcModToNodPhaseWithNodesAndBasis(cSurfNodes, bSurf, surfVars),
+      GhatDrag_c : fullratsimp(invert(transpose(modToNodC)).makelist(GhatDragCtrl[i-1],i,1,length(cSurfNodes))),
+      GhatDrag_c : gcfac(makelist(GhatDrag_c[i][1],i,1,length(GhatDrag_c))),
+      GhatDrag_e : GhatDrag_c.bSurf,
+      GhatDrag_c : calcInnerProdList(varsP,1.0,bP,GhatDrag_e),
+      printf(fh, "~%")
+      /* Finished limiting flux. */
 
     ),
 

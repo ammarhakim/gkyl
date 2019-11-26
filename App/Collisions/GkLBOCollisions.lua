@@ -297,6 +297,7 @@ function GkLBOCollisions:createSolver(funcField)
    end
    -- Lenard-Bernstein equation.
    self.gkLBOconstNuCalcEq = GkLBOconstNuEq {
+      onGrid           = self.phaseGrid,
       phaseBasis       = self.phaseBasis,
       confBasis        = self.confBasis,
       vParUpper        = self.vParMax,

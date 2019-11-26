@@ -100,7 +100,13 @@ plasmaApp = Plasma.App {
 	 local x, v = xn[1], xn[2]
          return bumpMaxwell(x,v,n0,u0,vt,ab,ub,sb,vtb)
       end,
-      evolve            = true,
+
+      evolve                   = true,
+      evolveCollisionless      = false,
+      positivity               = true,
+      positivityDiffuse        = false,
+      positivityRescaleVolTerm = true,
+
       diagnosticMoments = { "GkM0", "GkM1", "GkM2" },
       coll = Plasma.LBOCollisions {
          collideWith = {'bump'},

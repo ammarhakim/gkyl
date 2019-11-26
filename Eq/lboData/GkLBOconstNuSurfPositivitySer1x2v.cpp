@@ -1,14 +1,16 @@
 #include <GkLBOModDecl.h> 
-double GkLBOconstNuSurfPositivity1x2vSer_Vpar_P1(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfPositivity1x2vSer_Vpar_P1(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-  // w[3]:         Cell-center coordinates. 
-  // dxv[3]:       Cell spacing. 
-  // nuSum:        collisionalities added (self and cross species collisionalities). 
-  // vMuMidMax:    maximum midpoint value of v-u. 
-  // nuUSum[2]:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum[2]: sum of thermal speeds squared time their respective collisionalities. 
-  // fl/fr:        Distribution function in left/right cells 
-  // outl/outr:    Incremented distribution function in left/right cells 
+  // m_:              species mass. 
+  // cflRateByDir[3]: CFL rate in each direction. 
+  // w[3]:            Cell-center coordinates. 
+  // dxv[3]:          Cell spacing. 
+  // nuSum:           collisionalities added (self and cross species collisionalities). 
+  // vMuMidMax:       maximum midpoint value of v-u. 
+  // nuUSum[2]:       sum of bulk velocities times their respective collisionalities. 
+  // nuVtSqSum[2]:    sum of thermal speeds squared time their respective collisionalities. 
+  // fl/fr:           Distribution function in left/right cells 
+  // outl/outr:       Incremented distribution function in left/right cells 
   double rdv = 1.0/dxvl[1]; 
   double rdv2L = 2.0/dxvl[1]; 
   double rdv2R = 2.0/dxvr[1]; 
@@ -19,69 +21,112 @@ double GkLBOconstNuSurfPositivity1x2vSer_Vpar_P1(const double m_, const double c
   alphaDrSurf[0] = (2.0*wl[1]+dxvl[1])*nuSum-1.414213562373095*nuUSum[0]; 
   alphaDrSurf[1] = -1.414213562373095*nuUSum[1]; 
 
-  double f0Quad[4]; 
-  double f1Quad[4]; 
-  double limQuad[4]; 
+  double rCtrlL[4], rCtrlR[4];  // rCtrl=f1/f0 at each control node in dimensions other than vx 
+  rCtrlL[0] = (1.414213562373095*(3.0*fl[7]-5.196152422706631*(fl[6]+fl[4])+9.0*fl[2]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fl[5]-3.0*(fl[3]+fl[1])+5.196152422706631*fl[0])); 
+  rCtrlL[1] = -(1.414213562373095*(3.0*fl[7]+5.196152422706631*fl[6]-1.0*(5.196152422706631*fl[4]+9.0*fl[2])))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fl[5])+3.0*(fl[1]-1.0*fl[3])+5.196152422706631*fl[0])); 
+  rCtrlL[2] = -(1.414213562373095*(3.0*fl[7]+5.196152422706631*(fl[4]-1.0*fl[6])-9.0*fl[2]))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fl[5])+3.0*(fl[3]-1.0*fl[1])+5.196152422706631*fl[0])); 
+  rCtrlL[3] = (1.414213562373095*(3.0*fl[7]+5.196152422706631*(fl[6]+fl[4])+9.0*fl[2]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fl[5]+3.0*(fl[3]+fl[1])+5.196152422706631*fl[0])); 
+  rCtrlR[0] = (1.414213562373095*(3.0*fr[7]-5.196152422706631*(fr[6]+fr[4])+9.0*fr[2]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fr[5]-3.0*(fr[3]+fr[1])+5.196152422706631*fr[0])); 
+  rCtrlR[1] = -(1.414213562373095*(3.0*fr[7]+5.196152422706631*fr[6]-1.0*(5.196152422706631*fr[4]+9.0*fr[2])))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fr[5])+3.0*(fr[1]-1.0*fr[3])+5.196152422706631*fr[0])); 
+  rCtrlR[2] = -(1.414213562373095*(3.0*fr[7]+5.196152422706631*(fr[4]-1.0*fr[6])-9.0*fr[2]))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fr[5])+3.0*(fr[3]-1.0*fr[1])+5.196152422706631*fr[0])); 
+  rCtrlR[3] = (1.414213562373095*(3.0*fr[7]+5.196152422706631*(fr[6]+fr[4])+9.0*fr[2]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fr[5]+3.0*(fr[3]+fr[1])+5.196152422706631*fr[0])); 
+  double fCtrlL[4], fCtrlR[4];  // fCtrl = anti-limited f evaluated at each control node on vx surface 
+  // control node [x,vy] = [-1/3,-1/3] 
+  fCtrlL[0] = 0.04811252243246882*(2.449489742783178*fl[5]-4.242640687119286*(fl[3]+fl[1])+7.348469228349534*fl[0])*limTheta(rCtrlL[0],1.0); 
+  fCtrlR[0] = 0.04811252243246882*(2.449489742783178*fr[5]-4.242640687119286*(fr[3]+fr[1])+7.348469228349534*fr[0])*limTheta(rCtrlR[0],-1.0); 
+  // control node [x,vy] = [1/3,-1/3] 
+  fCtrlL[1] = -0.04811252243246882*(2.449489742783178*fl[5]+4.242640687119286*fl[3]-4.242640687119286*fl[1]-7.348469228349534*fl[0])*limTheta(rCtrlL[1],1.0); 
+  fCtrlR[1] = -0.04811252243246882*(2.449489742783178*fr[5]+4.242640687119286*fr[3]-4.242640687119286*fr[1]-7.348469228349534*fr[0])*limTheta(rCtrlR[1],-1.0); 
+  // control node [x,vy] = [-1/3,1/3] 
+  fCtrlL[2] = -0.04811252243246882*(2.449489742783178*fl[5]-4.242640687119286*fl[3]+4.242640687119286*fl[1]-7.348469228349534*fl[0])*limTheta(rCtrlL[2],1.0); 
+  fCtrlR[2] = -0.04811252243246882*(2.449489742783178*fr[5]-4.242640687119286*fr[3]+4.242640687119286*fr[1]-7.348469228349534*fr[0])*limTheta(rCtrlR[2],-1.0); 
+  // control node [x,vy] = [1/3,1/3] 
+  fCtrlL[3] = 0.04811252243246882*(2.449489742783178*fl[5]+4.242640687119286*(fl[3]+fl[1])+7.348469228349534*fl[0])*limTheta(rCtrlL[3],1.0); 
+  fCtrlR[3] = 0.04811252243246882*(2.449489742783178*fr[5]+4.242640687119286*(fr[3]+fr[1])+7.348469228349534*fr[0])*limTheta(rCtrlR[3],-1.0); 
+  double fL_AL[4], fR_AL[4];  // f_AL = mode coefficients of anti-limited f on surface 
+  fL_AL[0] = 0.5*(fCtrlL[3]+fCtrlL[2]+fCtrlL[1]+fCtrlL[0]); 
+  fL_AL[1] = 0.8660254037844386*(fCtrlL[3]-1.0*fCtrlL[2]+fCtrlL[1]-1.0*fCtrlL[0]); 
+  fL_AL[2] = 0.8660254037844386*(fCtrlL[3]+fCtrlL[2]-1.0*(fCtrlL[1]+fCtrlL[0])); 
+  fL_AL[3] = 1.5*(fCtrlL[3]-1.0*(fCtrlL[2]+fCtrlL[1])+fCtrlL[0]); 
+  fR_AL[0] = 0.5*(fCtrlR[3]+fCtrlR[2]+fCtrlR[1]+fCtrlR[0]); 
+  fR_AL[1] = 0.8660254037844386*(fCtrlR[3]-1.0*fCtrlR[2]+fCtrlR[1]-1.0*fCtrlR[0]); 
+  fR_AL[2] = 0.8660254037844386*(fCtrlR[3]+fCtrlR[2]-1.0*(fCtrlR[1]+fCtrlR[0])); 
+  fR_AL[3] = 1.5*(fCtrlR[3]-1.0*(fCtrlR[2]+fCtrlR[1])+fCtrlR[0]); 
   double alphaQuad; 
-  // Determine upwinding at each surface quadrature node.
+  // determine upwinding and enforce limiters at each surface quadrature node 
+  double fhatALQuad[4], fhatAL[4]; 
   alphaQuad = 0.5*alphaDrSurf[1]-0.5*alphaDrSurf[0]; 
-  f0Quad[0] = -0.25*((fr[5]-1.0*(fl[5]+fr[3])+fl[3]-1.0*fr[1]+fl[1]+fr[0]-1.0*fl[0])*sgn(alphaQuad)-1.0*(fr[5]+fl[5])+fr[3]+fl[3]+fr[1]+fl[1]-1.0*(fr[0]+fl[0])); 
-  f1Quad[0] = -0.25*((fr[7]+fl[7]-1.0*(fr[6]+fl[6]+fr[4]+fl[4])+fr[2]+fl[2])*sgn(alphaQuad)-1.0*fr[7]+fl[7]+fr[6]-1.0*fl[6]+fr[4]-1.0*(fl[4]+fr[2])+fl[2]); 
-  limQuad[0] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
+  if(alphaQuad > 0) {
+  fhatALQuad[0] = 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
+  } else {
+  fhatALQuad[0] = 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
+  } 
   alphaQuad = -0.5*(alphaDrSurf[1]+alphaDrSurf[0]); 
-  f0Quad[1] = 0.25*((fr[5]-1.0*fl[5]+fr[3]-1.0*(fl[3]+fr[1])+fl[1]-1.0*fr[0]+fl[0])*sgn(alphaQuad)-1.0*(fr[5]+fl[5]+fr[3]+fl[3])+fr[1]+fl[1]+fr[0]+fl[0]); 
-  f1Quad[1] = 0.25*((fr[7]+fl[7]+fr[6]+fl[6]-1.0*(fr[4]+fl[4]+fr[2]+fl[2]))*sgn(alphaQuad)-1.0*fr[7]+fl[7]-1.0*fr[6]+fl[6]+fr[4]-1.0*fl[4]+fr[2]-1.0*fl[2]); 
-  limQuad[1] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
+  if(alphaQuad > 0) {
+  fhatALQuad[1] = -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
+  } else {
+  fhatALQuad[1] = -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
+  } 
   alphaQuad = 0.5*alphaDrSurf[1]-0.5*alphaDrSurf[0]; 
-  f0Quad[2] = 0.25*((fr[5]-1.0*(fl[5]+fr[3])+fl[3]+fr[1]-1.0*(fl[1]+fr[0])+fl[0])*sgn(alphaQuad)-1.0*(fr[5]+fl[5])+fr[3]+fl[3]-1.0*(fr[1]+fl[1])+fr[0]+fl[0]); 
-  f1Quad[2] = 0.25*((fr[7]+fl[7]-1.0*(fr[6]+fl[6])+fr[4]+fl[4]-1.0*(fr[2]+fl[2]))*sgn(alphaQuad)-1.0*fr[7]+fl[7]+fr[6]-1.0*(fl[6]+fr[4])+fl[4]+fr[2]-1.0*fl[2]); 
-  limQuad[2] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
+  if(alphaQuad > 0) {
+  fhatALQuad[2] = -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
+  } else {
+  fhatALQuad[2] = -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
+  } 
   alphaQuad = -0.5*(alphaDrSurf[1]+alphaDrSurf[0]); 
-  f0Quad[3] = -0.25*((fr[5]-1.0*fl[5]+fr[3]-1.0*fl[3]+fr[1]-1.0*fl[1]+fr[0]-1.0*fl[0])*sgn(alphaQuad)-1.0*(fr[5]+fl[5]+fr[3]+fl[3]+fr[1]+fl[1]+fr[0]+fl[0])); 
-  f1Quad[3] = -0.25*((fr[7]+fl[7]+fr[6]+fl[6]+fr[4]+fl[4]+fr[2]+fl[2])*sgn(alphaQuad)-1.0*fr[7]+fl[7]-1.0*fr[6]+fl[6]-1.0*fr[4]+fl[4]-1.0*fr[2]+fl[2]); 
-  limQuad[3] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
-
-  double fhat[8]; // (Volume) mode coefficients of fhat.
-  fhat[0] = 0.5*(f0Quad[3]+f0Quad[2]+f0Quad[1]+f0Quad[0]); 
-  fhat[1] = 0.5*(f0Quad[3]-1.0*f0Quad[2]+f0Quad[1]-1.0*f0Quad[0]); 
-  fhat[2] = 0.5*(f1Quad[3]+f1Quad[2]+f1Quad[1]+f1Quad[0]); 
-  fhat[3] = 0.5*(f0Quad[3]+f0Quad[2]-1.0*(f0Quad[1]+f0Quad[0])); 
-  fhat[4] = 0.5*(f1Quad[3]-1.0*f1Quad[2]+f1Quad[1]-1.0*f1Quad[0]); 
-  fhat[5] = 0.5*(f0Quad[3]-1.0*(f0Quad[2]+f0Quad[1])+f0Quad[0]); 
-  fhat[6] = 0.5*(f1Quad[3]+f1Quad[2]-1.0*(f1Quad[1]+f1Quad[0])); 
-  fhat[7] = 0.5*(f1Quad[3]-1.0*(f1Quad[2]+f1Quad[1])+f1Quad[0]); 
-
-  double rCtrl[4];  // rCtrl=f1/f0 at each control node in dimensions other than vx.
-  rCtrl[0] = (1.414213562373095*(3.0*fhat[7]-5.196152422706631*(fhat[6]+fhat[4])+9.0*fhat[2]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fhat[5]-3.0*(fhat[3]+fhat[1])+5.196152422706631*fhat[0])); 
-  rCtrl[1] = -(1.414213562373095*(3.0*fhat[7]+5.196152422706631*fhat[6]-1.0*(5.196152422706631*fhat[4]+9.0*fhat[2])))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fhat[5])+3.0*(fhat[1]-1.0*fhat[3])+5.196152422706631*fhat[0])); 
-  rCtrl[2] = -(1.414213562373095*(3.0*fhat[7]+5.196152422706631*(fhat[4]-1.0*fhat[6])-9.0*fhat[2]))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fhat[5])+3.0*(fhat[3]-1.0*fhat[1])+5.196152422706631*fhat[0])); 
-  rCtrl[3] = (1.414213562373095*(3.0*fhat[7]+5.196152422706631*(fhat[6]+fhat[4])+9.0*fhat[2]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fhat[5]+3.0*(fhat[3]+fhat[1])+5.196152422706631*fhat[0])); 
-
-  double fhatCtrl[4];  // fhatCtrl = anti-limited fhat evaluated at each control node on vx surface.
-  fhatCtrl[0] = 0.06804138174397717*(1.732050807568877*fhat[5]-3.0*(fhat[3]+fhat[1])+5.196152422706631*fhat[0])*limTheta(rCtrl[0],-1.0); 
-  fhatCtrl[1] = -0.06804138174397717*(1.732050807568877*fhat[5]+3.0*fhat[3]-1.0*(3.0*fhat[1]+5.196152422706631*fhat[0]))*limTheta(rCtrl[1],-1.0); 
-  fhatCtrl[2] = -0.06804138174397717*(1.732050807568877*fhat[5]+3.0*(fhat[1]-1.0*fhat[3])-5.196152422706631*fhat[0])*limTheta(rCtrl[2],-1.0); 
-  fhatCtrl[3] = 0.06804138174397717*(1.732050807568877*fhat[5]+3.0*(fhat[3]+fhat[1])+5.196152422706631*fhat[0])*limTheta(rCtrl[3],-1.0); 
-
-  double fhatAL[4];  // fhatAL = mode coefficients of anti-limited f on surface.
-  fhatAL[0] = 0.5*(fhatCtrl[3]+fhatCtrl[2]+fhatCtrl[1]+fhatCtrl[0]); 
-  fhatAL[1] = 0.8660254037844386*(fhatCtrl[3]-1.0*fhatCtrl[2]+fhatCtrl[1]-1.0*fhatCtrl[0]); 
-  fhatAL[2] = 0.8660254037844386*(fhatCtrl[3]+fhatCtrl[2]-1.0*(fhatCtrl[1]+fhatCtrl[0])); 
-  fhatAL[3] = 1.5*(fhatCtrl[3]-1.0*(fhatCtrl[2]+fhatCtrl[1])+fhatCtrl[0]); 
-
-  // Enforce limiters at surface quadrature nodes.
-  double fhatALQuad[4]; 
-  fhatALQuad[0] = std::max(0.0, std::min(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[2]+fhatAL[0]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0.0, std::min(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3])-1.0*fhatAL[2]+fhatAL[0]), limQuad[1])); 
-  fhatALQuad[2] = std::max(0.0, std::min(0.5*((-1.0*(fhatAL[3]+fhatAL[1]))+fhatAL[2]+fhatAL[0]), limQuad[2])); 
-  fhatALQuad[3] = std::max(0.0, std::min(0.5*(1.0*(fhatAL[3]+fhatAL[1])+fhatAL[2]+fhatAL[0]), limQuad[3])); 
+  if(alphaQuad > 0) {
+  fhatALQuad[3] = 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
+  } else {
+  fhatALQuad[3] = 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
+  } 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
   fhatAL[2] = 0.5*(fhatALQuad[3]+fhatALQuad[2]-1.0*(fhatALQuad[1]+fhatALQuad[0])); 
   fhatAL[3] = 0.5*(fhatALQuad[3]-1.0*(fhatALQuad[2]+fhatALQuad[1])+fhatALQuad[0]); 
 
-  // Begin surface update.
+  // begin surface update 
  
+  double fluxFracL, fluxFracR, flim = 0.;
+  double GhatDragCtrl[4];
+  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
+  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
+  // Control node [x,mu] = [-1/3,-1/3]. 
+  GhatDragCtrl[0] = (-0.1443375672974065*(alphaDrSurf[1]*fhatAL[3]+alphaDrSurf[0]*fhatAL[2]))+0.08333333333333333*(alphaDrSurf[0]*fhatAL[3]+alphaDrSurf[1]*fhatAL[2])+0.25*(alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0])-0.1443375672974065*(alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]); 
+  if(GhatDragCtrl[0] > EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fl[7]-4.242640687119286*fl[6]+4.242640687119286*fl[5]-4.242640687119286*fl[4]-7.348469228349534*fl[3]+7.348469228349534*fl[2]-7.348469228349534*fl[1]+12.72792206135786*fl[0])); 
+    GhatDragCtrl[0] = std::min(GhatDragCtrl[0], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[0] < -EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fr[7]-4.242640687119286*(fr[6]+fr[5]+fr[4])+7.348469228349534*(fr[3]+fr[2]+fr[1])-12.72792206135786*fr[0])); 
+    GhatDragCtrl[0] = -std::min(-GhatDragCtrl[0], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[0] = 0.; 
+  // Control node [x,mu] = [1/3,-1/3]. 
+  GhatDragCtrl[1] = (-0.1443375672974065*(alphaDrSurf[1]*fhatAL[3]+alphaDrSurf[0]*fhatAL[2]))-0.08333333333333333*(alphaDrSurf[0]*fhatAL[3]+alphaDrSurf[1]*fhatAL[2])+0.25*(alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0])+0.1443375672974065*(alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]); 
+  if(GhatDragCtrl[1] > EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fl[7]+4.242640687119286*(fl[6]+fl[5])-4.242640687119286*fl[4]+7.348469228349534*fl[3]-7.348469228349534*(fl[2]+fl[1])-12.72792206135786*fl[0])); 
+    GhatDragCtrl[1] = std::min(GhatDragCtrl[1], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[1] < -EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fr[7]+4.242640687119286*fr[6]-4.242640687119286*(fr[5]+fr[4])-7.348469228349534*(fr[3]+fr[2])+7.348469228349534*fr[1]+12.72792206135786*fr[0])); 
+    GhatDragCtrl[1] = -std::min(-GhatDragCtrl[1], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[1] = 0.; 
+  // Control node [x,mu] = [-1/3,1/3]. 
+  GhatDragCtrl[2] = 0.1443375672974065*(alphaDrSurf[1]*fhatAL[3]+alphaDrSurf[0]*fhatAL[2])-0.08333333333333333*(alphaDrSurf[0]*fhatAL[3]+alphaDrSurf[1]*fhatAL[2])+0.25*(alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0])-0.1443375672974065*(alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]); 
+  if(GhatDragCtrl[2] > EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fl[7]-4.242640687119286*fl[6]+4.242640687119286*(fl[5]+fl[4])-7.348469228349534*(fl[3]+fl[2])+7.348469228349534*fl[1]-12.72792206135786*fl[0])); 
+    GhatDragCtrl[2] = std::min(GhatDragCtrl[2], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[2] < -EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fr[7]-4.242640687119286*(fr[6]+fr[5])+4.242640687119286*fr[4]+7.348469228349534*fr[3]-7.348469228349534*(fr[2]+fr[1])+12.72792206135786*fr[0])); 
+    GhatDragCtrl[2] = -std::min(-GhatDragCtrl[2], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[2] = 0.; 
+  // Control node [x,mu] = [1/3,1/3]. 
+  GhatDragCtrl[3] = 0.1443375672974065*(alphaDrSurf[1]*fhatAL[3]+alphaDrSurf[0]*fhatAL[2])+0.08333333333333333*(alphaDrSurf[0]*fhatAL[3]+alphaDrSurf[1]*fhatAL[2])+0.25*(alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0])+0.1443375672974065*(alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]); 
+  if(GhatDragCtrl[3] > EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fl[7]+4.242640687119286*(fl[6]+fl[5]+fl[4])+7.348469228349534*(fl[3]+fl[2]+fl[1])+12.72792206135786*fl[0])); 
+    GhatDragCtrl[3] = std::min(GhatDragCtrl[3], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[3] < -EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fr[7]+4.242640687119286*fr[6]-4.242640687119286*fr[5]+4.242640687119286*fr[4]-7.348469228349534*fr[3]+7.348469228349534*fr[2]-7.348469228349534*fr[1]-12.72792206135786*fr[0])); 
+    GhatDragCtrl[3] = -std::min(-GhatDragCtrl[3], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[3] = 0.; 
+
   double Gdiff[8]; 
   double Ghat[8]; 
   double incr2[8]; 
@@ -97,10 +142,10 @@ double GkLBOconstNuSurfPositivity1x2vSer_Vpar_P1(const double m_, const double c
     Gdiff[3] = nuVtSqSum[1]*((-1.530931089239486*(fr[7]+fl[7]))+1.590990257669731*fr[5]-1.590990257669731*fl[5])+nuVtSqSum[0]*((-1.530931089239486*(fr[6]+fl[6]))+1.590990257669731*fr[3]-1.590990257669731*fl[3]); 
     Gdiff[5] = nuVtSqSum[0]*((-1.530931089239486*(fr[7]+fl[7]))+1.590990257669731*fr[5]-1.590990257669731*fl[5])+nuVtSqSum[1]*((-1.530931089239486*(fr[6]+fl[6]))+1.590990257669731*fr[3]-1.590990257669731*fl[3]); 
 
-    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*(alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0]); 
-    Ghat[1] = Gdiff[1]*rdv+0.7071067811865475*(alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]); 
-    Ghat[3] = Gdiff[3]*rdv+0.7071067811865475*(alphaDrSurf[1]*fhatAL[3]+alphaDrSurf[0]*fhatAL[2]); 
-    Ghat[5] = Gdiff[5]*rdv+0.7071067811865475*(alphaDrSurf[0]*fhatAL[3]+alphaDrSurf[1]*fhatAL[2]); 
+    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*(GhatDragCtrl[3]+GhatDragCtrl[2]+GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[1] = Gdiff[1]*rdv+1.224744871391589*GhatDragCtrl[3]-1.224744871391589*GhatDragCtrl[2]+1.224744871391589*GhatDragCtrl[1]-1.224744871391589*GhatDragCtrl[0]; 
+    Ghat[3] = Gdiff[3]*rdv+1.224744871391589*(GhatDragCtrl[3]+GhatDragCtrl[2])-1.224744871391589*(GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[5] = Gdiff[5]*rdv+2.121320343559642*GhatDragCtrl[3]-2.121320343559642*(GhatDragCtrl[2]+GhatDragCtrl[1])+2.121320343559642*GhatDragCtrl[0]; 
   } else {
 
     double xBar[4];
@@ -166,10 +211,10 @@ double GkLBOconstNuSurfPositivity1x2vSer_Vpar_P1(const double m_, const double c
     Gdiff[3] = nuVtSqSum[1]*(1.5*gBoundP[3]-1.5*(gBoundP[2]+gBoundP[1])+1.5*gBoundP[0])+nuVtSqSum[0]*(0.8660254037844386*gBoundP[3]-0.8660254037844386*gBoundP[2]+0.8660254037844386*gBoundP[1]-0.8660254037844386*gBoundP[0]); 
     Gdiff[5] = nuVtSqSum[0]*(1.5*gBoundP[3]-1.5*(gBoundP[2]+gBoundP[1])+1.5*gBoundP[0])+nuVtSqSum[1]*(0.8660254037844386*gBoundP[3]-0.8660254037844386*gBoundP[2]+0.8660254037844386*gBoundP[1]-0.8660254037844386*gBoundP[0]); 
 
-    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*(alphaDrSurf[1]*fhatAL[1]+alphaDrSurf[0]*fhatAL[0]); 
-    Ghat[1] = Gdiff[1]*rdv+0.7071067811865475*(alphaDrSurf[0]*fhatAL[1]+fhatAL[0]*alphaDrSurf[1]); 
-    Ghat[3] = Gdiff[3]*rdv+0.7071067811865475*(alphaDrSurf[1]*fhatAL[3]+alphaDrSurf[0]*fhatAL[2]); 
-    Ghat[5] = Gdiff[5]*rdv+0.7071067811865475*(alphaDrSurf[0]*fhatAL[3]+alphaDrSurf[1]*fhatAL[2]); 
+    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*(GhatDragCtrl[3]+GhatDragCtrl[2]+GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[1] = Gdiff[1]*rdv+1.224744871391589*GhatDragCtrl[3]-1.224744871391589*GhatDragCtrl[2]+1.224744871391589*GhatDragCtrl[1]-1.224744871391589*GhatDragCtrl[0]; 
+    Ghat[3] = Gdiff[3]*rdv+1.224744871391589*(GhatDragCtrl[3]+GhatDragCtrl[2])-1.224744871391589*(GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[5] = Gdiff[5]*rdv+2.121320343559642*GhatDragCtrl[3]-2.121320343559642*(GhatDragCtrl[2]+GhatDragCtrl[1])+2.121320343559642*GhatDragCtrl[0]; 
   };
 
   double incr1[8]; 
@@ -202,16 +247,18 @@ double GkLBOconstNuSurfPositivity1x2vSer_Vpar_P1(const double m_, const double c
 
   return std::abs(wl[1]-(0.7071067811865475*nuUSum[0])/nuSum); 
 } 
-double GkLBOconstNuSurfPositivity1x2vSer_Mu_P1(const double m_, const double cfll, const double cflr, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
+double GkLBOconstNuSurfPositivity1x2vSer_Mu_P1(const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *wl, const double *wr, const double *dxvl, const double *dxvr, const double dtApprox, const double *BmagInv, const double nuSum, const double vMuMidMax, const double *nuUSum, const double *nuVtSqSum, const double *fl, const double *fr, double *outl, double *outr) 
 { 
-  // w[3]:         Cell-center coordinates. 
-  // dxv[3]:       Cell spacing. 
-  // nuSum:        collisionalities added (self and cross species collisionalities). 
-  // vMuMidMax:    maximum midpoint value of v-u. 
-  // nuUSum[2]:    sum of bulk velocities times their respective collisionalities. 
-  // nuVtSqSum[2]: sum of thermal speeds squared time their respective collisionalities. 
-  // fl/fr:        Distribution function in left/right cells 
-  // outl/outr:    Incremented distribution function in left/right cells 
+  // m_:              species mass. 
+  // cflRateByDir[3]: CFL rate in each direction. 
+  // w[3]:            Cell-center coordinates. 
+  // dxv[3]:          Cell spacing. 
+  // nuSum:           collisionalities added (self and cross species collisionalities). 
+  // vMuMidMax:       maximum midpoint value of v-u. 
+  // nuUSum[2]:       sum of bulk velocities times their respective collisionalities. 
+  // nuVtSqSum[2]:    sum of thermal speeds squared time their respective collisionalities. 
+  // fl/fr:           Distribution function in left/right cells 
+  // outl/outr:       Incremented distribution function in left/right cells 
   double rdv = 1.0/dxvl[2]; 
   double rdv2L = 2.0/dxvl[2]; 
   double rdv2R = 2.0/dxvr[2]; 
@@ -221,69 +268,112 @@ double GkLBOconstNuSurfPositivity1x2vSer_Mu_P1(const double m_, const double cfl
   double alphaDrSurf[4]; 
   alphaDrSurf[0] = (4.0*wl[2]+2.0*dxvl[2])*nuSum; 
 
-  double f0Quad[4]; 
-  double f1Quad[4]; 
-  double limQuad[4]; 
+  double rCtrlL[4], rCtrlR[4];  // rCtrl=f1/f0 at each control node in dimensions other than vy 
+  rCtrlL[0] = (1.414213562373095*(3.0*fl[7]-5.196152422706631*(fl[6]+fl[5])+9.0*fl[3]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fl[4]-3.0*(fl[2]+fl[1])+5.196152422706631*fl[0])); 
+  rCtrlL[1] = -(1.414213562373095*(3.0*fl[7]+5.196152422706631*fl[6]-1.0*(5.196152422706631*fl[5]+9.0*fl[3])))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fl[4])+3.0*(fl[1]-1.0*fl[2])+5.196152422706631*fl[0])); 
+  rCtrlL[2] = -(1.414213562373095*(3.0*fl[7]+5.196152422706631*(fl[5]-1.0*fl[6])-9.0*fl[3]))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fl[4])+3.0*(fl[2]-1.0*fl[1])+5.196152422706631*fl[0])); 
+  rCtrlL[3] = (1.414213562373095*(3.0*fl[7]+5.196152422706631*(fl[6]+fl[5])+9.0*fl[3]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fl[4]+3.0*(fl[2]+fl[1])+5.196152422706631*fl[0])); 
+  rCtrlR[0] = (1.414213562373095*(3.0*fr[7]-5.196152422706631*(fr[6]+fr[5])+9.0*fr[3]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fr[4]-3.0*(fr[2]+fr[1])+5.196152422706631*fr[0])); 
+  rCtrlR[1] = -(1.414213562373095*(3.0*fr[7]+5.196152422706631*fr[6]-1.0*(5.196152422706631*fr[5]+9.0*fr[3])))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fr[4])+3.0*(fr[1]-1.0*fr[2])+5.196152422706631*fr[0])); 
+  rCtrlR[2] = -(1.414213562373095*(3.0*fr[7]+5.196152422706631*(fr[5]-1.0*fr[6])-9.0*fr[3]))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fr[4])+3.0*(fr[2]-1.0*fr[1])+5.196152422706631*fr[0])); 
+  rCtrlR[3] = (1.414213562373095*(3.0*fr[7]+5.196152422706631*(fr[6]+fr[5])+9.0*fr[3]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fr[4]+3.0*(fr[2]+fr[1])+5.196152422706631*fr[0])); 
+  double fCtrlL[4], fCtrlR[4];  // fCtrl = anti-limited f evaluated at each control node on vy surface 
+  // control node [x,vx] = [-1/3,-1/3] 
+  fCtrlL[0] = 0.04811252243246882*(2.449489742783178*fl[4]-4.242640687119286*(fl[2]+fl[1])+7.348469228349534*fl[0])*limTheta(rCtrlL[0],1.0); 
+  fCtrlR[0] = 0.04811252243246882*(2.449489742783178*fr[4]-4.242640687119286*(fr[2]+fr[1])+7.348469228349534*fr[0])*limTheta(rCtrlR[0],-1.0); 
+  // control node [x,vx] = [1/3,-1/3] 
+  fCtrlL[1] = -0.04811252243246882*(2.449489742783178*fl[4]+4.242640687119286*fl[2]-4.242640687119286*fl[1]-7.348469228349534*fl[0])*limTheta(rCtrlL[1],1.0); 
+  fCtrlR[1] = -0.04811252243246882*(2.449489742783178*fr[4]+4.242640687119286*fr[2]-4.242640687119286*fr[1]-7.348469228349534*fr[0])*limTheta(rCtrlR[1],-1.0); 
+  // control node [x,vx] = [-1/3,1/3] 
+  fCtrlL[2] = -0.04811252243246882*(2.449489742783178*fl[4]-4.242640687119286*fl[2]+4.242640687119286*fl[1]-7.348469228349534*fl[0])*limTheta(rCtrlL[2],1.0); 
+  fCtrlR[2] = -0.04811252243246882*(2.449489742783178*fr[4]-4.242640687119286*fr[2]+4.242640687119286*fr[1]-7.348469228349534*fr[0])*limTheta(rCtrlR[2],-1.0); 
+  // control node [x,vx] = [1/3,1/3] 
+  fCtrlL[3] = 0.04811252243246882*(2.449489742783178*fl[4]+4.242640687119286*(fl[2]+fl[1])+7.348469228349534*fl[0])*limTheta(rCtrlL[3],1.0); 
+  fCtrlR[3] = 0.04811252243246882*(2.449489742783178*fr[4]+4.242640687119286*(fr[2]+fr[1])+7.348469228349534*fr[0])*limTheta(rCtrlR[3],-1.0); 
+  double fL_AL[4], fR_AL[4];  // f_AL = mode coefficients of anti-limited f on surface 
+  fL_AL[0] = 0.5*(fCtrlL[3]+fCtrlL[2]+fCtrlL[1]+fCtrlL[0]); 
+  fL_AL[1] = 0.8660254037844386*(fCtrlL[3]-1.0*fCtrlL[2]+fCtrlL[1]-1.0*fCtrlL[0]); 
+  fL_AL[2] = 0.8660254037844386*(fCtrlL[3]+fCtrlL[2]-1.0*(fCtrlL[1]+fCtrlL[0])); 
+  fL_AL[3] = 1.5*(fCtrlL[3]-1.0*(fCtrlL[2]+fCtrlL[1])+fCtrlL[0]); 
+  fR_AL[0] = 0.5*(fCtrlR[3]+fCtrlR[2]+fCtrlR[1]+fCtrlR[0]); 
+  fR_AL[1] = 0.8660254037844386*(fCtrlR[3]-1.0*fCtrlR[2]+fCtrlR[1]-1.0*fCtrlR[0]); 
+  fR_AL[2] = 0.8660254037844386*(fCtrlR[3]+fCtrlR[2]-1.0*(fCtrlR[1]+fCtrlR[0])); 
+  fR_AL[3] = 1.5*(fCtrlR[3]-1.0*(fCtrlR[2]+fCtrlR[1])+fCtrlR[0]); 
   double alphaQuad; 
-  // Determine upwinding at each surface quadrature node.
+  // determine upwinding and enforce limiters at each surface quadrature node 
+  double fhatALQuad[4], fhatAL[4]; 
   alphaQuad = -0.5*alphaDrSurf[0]; 
-  f0Quad[0] = -0.25*((fr[4]-1.0*(fl[4]+fr[2])+fl[2]-1.0*fr[1]+fl[1]+fr[0]-1.0*fl[0])*sgn(alphaQuad)-1.0*(fr[4]+fl[4])+fr[2]+fl[2]+fr[1]+fl[1]-1.0*(fr[0]+fl[0])); 
-  f1Quad[0] = -0.25*((fr[7]+fl[7]-1.0*(fr[6]+fl[6]+fr[5]+fl[5])+fr[3]+fl[3])*sgn(alphaQuad)-1.0*fr[7]+fl[7]+fr[6]-1.0*fl[6]+fr[5]-1.0*(fl[5]+fr[3])+fl[3]); 
-  limQuad[0] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
+  if(alphaQuad > 0) {
+  fhatALQuad[0] = 0.5*(fL_AL[3]-1.0*(fL_AL[2]+fL_AL[1])+fL_AL[0]); 
+  } else {
+  fhatALQuad[0] = 0.5*(fR_AL[3]-1.0*(fR_AL[2]+fR_AL[1])+fR_AL[0]); 
+  } 
   alphaQuad = -0.5*alphaDrSurf[0]; 
-  f0Quad[1] = 0.25*((fr[4]-1.0*fl[4]+fr[2]-1.0*(fl[2]+fr[1])+fl[1]-1.0*fr[0]+fl[0])*sgn(alphaQuad)-1.0*(fr[4]+fl[4]+fr[2]+fl[2])+fr[1]+fl[1]+fr[0]+fl[0]); 
-  f1Quad[1] = 0.25*((fr[7]+fl[7]+fr[6]+fl[6]-1.0*(fr[5]+fl[5]+fr[3]+fl[3]))*sgn(alphaQuad)-1.0*fr[7]+fl[7]-1.0*fr[6]+fl[6]+fr[5]-1.0*fl[5]+fr[3]-1.0*fl[3]); 
-  limQuad[1] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
+  if(alphaQuad > 0) {
+  fhatALQuad[1] = -0.5*(fL_AL[3]+fL_AL[2]-1.0*(fL_AL[1]+fL_AL[0])); 
+  } else {
+  fhatALQuad[1] = -0.5*(fR_AL[3]+fR_AL[2]-1.0*(fR_AL[1]+fR_AL[0])); 
+  } 
   alphaQuad = -0.5*alphaDrSurf[0]; 
-  f0Quad[2] = 0.25*((fr[4]-1.0*(fl[4]+fr[2])+fl[2]+fr[1]-1.0*(fl[1]+fr[0])+fl[0])*sgn(alphaQuad)-1.0*(fr[4]+fl[4])+fr[2]+fl[2]-1.0*(fr[1]+fl[1])+fr[0]+fl[0]); 
-  f1Quad[2] = 0.25*((fr[7]+fl[7]-1.0*(fr[6]+fl[6])+fr[5]+fl[5]-1.0*(fr[3]+fl[3]))*sgn(alphaQuad)-1.0*fr[7]+fl[7]+fr[6]-1.0*(fl[6]+fr[5])+fl[5]+fr[3]-1.0*fl[3]); 
-  limQuad[2] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
+  if(alphaQuad > 0) {
+  fhatALQuad[2] = -0.5*(fL_AL[3]-1.0*fL_AL[2]+fL_AL[1]-1.0*fL_AL[0]); 
+  } else {
+  fhatALQuad[2] = -0.5*(fR_AL[3]-1.0*fR_AL[2]+fR_AL[1]-1.0*fR_AL[0]); 
+  } 
   alphaQuad = -0.5*alphaDrSurf[0]; 
-  f0Quad[3] = -0.25*((fr[4]-1.0*fl[4]+fr[2]-1.0*fl[2]+fr[1]-1.0*fl[1]+fr[0]-1.0*fl[0])*sgn(alphaQuad)-1.0*(fr[4]+fl[4]+fr[2]+fl[2]+fr[1]+fl[1]+fr[0]+fl[0])); 
-  f1Quad[3] = -0.25*((fr[7]+fl[7]+fr[6]+fl[6]+fr[5]+fl[5]+fr[3]+fl[3])*sgn(alphaQuad)-1.0*fr[7]+fl[7]-1.0*fr[6]+fl[6]-1.0*fr[5]+fl[5]-1.0*fr[3]+fl[3]); 
-  limQuad[3] = .5*(fl[0]/cfll+fr[0]/cflr + sgn(alphaQuad)*(fl[0]/cfll-fr[0]/cflr))*0.3535533905932737; 
-
-  double fhat[8]; // (Volume) mode coefficients of fhat.
-  fhat[0] = 0.5*(f0Quad[3]+f0Quad[2]+f0Quad[1]+f0Quad[0]); 
-  fhat[1] = 0.5*(f0Quad[3]-1.0*f0Quad[2]+f0Quad[1]-1.0*f0Quad[0]); 
-  fhat[2] = 0.5*(f0Quad[3]+f0Quad[2]-1.0*(f0Quad[1]+f0Quad[0])); 
-  fhat[3] = 0.5*(f1Quad[3]+f1Quad[2]+f1Quad[1]+f1Quad[0]); 
-  fhat[4] = 0.5*(f0Quad[3]-1.0*(f0Quad[2]+f0Quad[1])+f0Quad[0]); 
-  fhat[5] = 0.5*(f1Quad[3]-1.0*f1Quad[2]+f1Quad[1]-1.0*f1Quad[0]); 
-  fhat[6] = 0.5*(f1Quad[3]+f1Quad[2]-1.0*(f1Quad[1]+f1Quad[0])); 
-  fhat[7] = 0.5*(f1Quad[3]-1.0*(f1Quad[2]+f1Quad[1])+f1Quad[0]); 
-
-  double rCtrl[4];  // rCtrl=f1/f0 at each control node in dimensions other than vy.
-  rCtrl[0] = (1.414213562373095*(3.0*fhat[7]-5.196152422706631*(fhat[6]+fhat[5])+9.0*fhat[3]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fhat[4]-3.0*(fhat[2]+fhat[1])+5.196152422706631*fhat[0])); 
-  rCtrl[1] = -(1.414213562373095*(3.0*fhat[7]+5.196152422706631*fhat[6]-1.0*(5.196152422706631*fhat[5]+9.0*fhat[3])))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fhat[4])+3.0*(fhat[1]-1.0*fhat[2])+5.196152422706631*fhat[0])); 
-  rCtrl[2] = -(1.414213562373095*(3.0*fhat[7]+5.196152422706631*(fhat[5]-1.0*fhat[6])-9.0*fhat[3]))/(20.78460969082652*EPSILON+1.414213562373095*((-1.732050807568877*fhat[4])+3.0*(fhat[2]-1.0*fhat[1])+5.196152422706631*fhat[0])); 
-  rCtrl[3] = (1.414213562373095*(3.0*fhat[7]+5.196152422706631*(fhat[6]+fhat[5])+9.0*fhat[3]))/(20.78460969082652*EPSILON+1.414213562373095*(1.732050807568877*fhat[4]+3.0*(fhat[2]+fhat[1])+5.196152422706631*fhat[0])); 
-
-  double fhatCtrl[4];  // fhatCtrl = anti-limited fhat evaluated at each control node on vy surface.
-  fhatCtrl[0] = 0.06804138174397717*(1.732050807568877*fhat[4]-3.0*(fhat[2]+fhat[1])+5.196152422706631*fhat[0])*limTheta(rCtrl[0],-1.0); 
-  fhatCtrl[1] = -0.06804138174397717*(1.732050807568877*fhat[4]+3.0*fhat[2]-1.0*(3.0*fhat[1]+5.196152422706631*fhat[0]))*limTheta(rCtrl[1],-1.0); 
-  fhatCtrl[2] = -0.06804138174397717*(1.732050807568877*fhat[4]+3.0*(fhat[1]-1.0*fhat[2])-5.196152422706631*fhat[0])*limTheta(rCtrl[2],-1.0); 
-  fhatCtrl[3] = 0.06804138174397717*(1.732050807568877*fhat[4]+3.0*(fhat[2]+fhat[1])+5.196152422706631*fhat[0])*limTheta(rCtrl[3],-1.0); 
-
-  double fhatAL[4];  // fhatAL = mode coefficients of anti-limited f on surface.
-  fhatAL[0] = 0.5*(fhatCtrl[3]+fhatCtrl[2]+fhatCtrl[1]+fhatCtrl[0]); 
-  fhatAL[1] = 0.8660254037844386*(fhatCtrl[3]-1.0*fhatCtrl[2]+fhatCtrl[1]-1.0*fhatCtrl[0]); 
-  fhatAL[2] = 0.8660254037844386*(fhatCtrl[3]+fhatCtrl[2]-1.0*(fhatCtrl[1]+fhatCtrl[0])); 
-  fhatAL[3] = 1.5*(fhatCtrl[3]-1.0*(fhatCtrl[2]+fhatCtrl[1])+fhatCtrl[0]); 
-
-  // Enforce limiters at surface quadrature nodes.
-  double fhatALQuad[4]; 
-  fhatALQuad[0] = std::max(0.0, std::min(0.5*((-0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3]))-1.0*fhatAL[2]+fhatAL[0]), limQuad[0])); 
-  fhatALQuad[1] = std::max(0.0, std::min(0.5*(0.5773502691896258*(1.732050807568877*fhatAL[1]-1.732050807568877*fhatAL[3])-1.0*fhatAL[2]+fhatAL[0]), limQuad[1])); 
-  fhatALQuad[2] = std::max(0.0, std::min(0.5*((-1.0*(fhatAL[3]+fhatAL[1]))+fhatAL[2]+fhatAL[0]), limQuad[2])); 
-  fhatALQuad[3] = std::max(0.0, std::min(0.5*(1.0*(fhatAL[3]+fhatAL[1])+fhatAL[2]+fhatAL[0]), limQuad[3])); 
+  if(alphaQuad > 0) {
+  fhatALQuad[3] = 0.5*(fL_AL[3]+fL_AL[2]+fL_AL[1]+fL_AL[0]); 
+  } else {
+  fhatALQuad[3] = 0.5*(fR_AL[3]+fR_AL[2]+fR_AL[1]+fR_AL[0]); 
+  } 
   fhatAL[0] = 0.5*(fhatALQuad[3]+fhatALQuad[2]+fhatALQuad[1]+fhatALQuad[0]); 
   fhatAL[1] = 0.5*(fhatALQuad[3]-1.0*fhatALQuad[2]+fhatALQuad[1]-1.0*fhatALQuad[0]); 
   fhatAL[2] = 0.5*(fhatALQuad[3]+fhatALQuad[2]-1.0*(fhatALQuad[1]+fhatALQuad[0])); 
   fhatAL[3] = 0.5*(fhatALQuad[3]-1.0*(fhatALQuad[2]+fhatALQuad[1])+fhatALQuad[0]); 
 
-  // Begin surface update.
+  // begin surface update 
  
+  double fluxFracL, fluxFracR, flim = 0.;
+  double GhatDragCtrl[4];
+  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[2]/cflRateByDirL[0]; 
+  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[2]/cflRateByDirR[0]; 
+  // Control node [x,vpar] = [-1/3,-1/3]. 
+  GhatDragCtrl[0] = alphaDrSurf[0]*(0.08333333333333333*fhatAL[3]-0.1443375672974065*(fhatAL[2]+fhatAL[1])+0.25*fhatAL[0]); 
+  if(GhatDragCtrl[0] > EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fl[7]-4.242640687119286*(fl[6]+fl[5])+4.242640687119286*fl[4]+7.348469228349534*fl[3]-7.348469228349534*(fl[2]+fl[1])+12.72792206135786*fl[0])); 
+    GhatDragCtrl[0] = std::min(GhatDragCtrl[0], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[0] < -EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fr[7]-4.242640687119286*(fr[6]+fr[5]+fr[4])+7.348469228349534*(fr[3]+fr[2]+fr[1])-12.72792206135786*fr[0])); 
+    GhatDragCtrl[0] = -std::min(-GhatDragCtrl[0], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[0] = 0.; 
+  // Control node [x,vpar] = [1/3,-1/3]. 
+  GhatDragCtrl[1] = alphaDrSurf[0]*((-0.08333333333333333*fhatAL[3])-0.1443375672974065*fhatAL[2]+0.1443375672974065*fhatAL[1]+0.25*fhatAL[0]); 
+  if(GhatDragCtrl[1] > EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fl[7]+4.242640687119286*fl[6]-4.242640687119286*fl[5]+4.242640687119286*fl[4]-7.348469228349534*fl[3]+7.348469228349534*fl[2]-7.348469228349534*fl[1]-12.72792206135786*fl[0])); 
+    GhatDragCtrl[1] = std::min(GhatDragCtrl[1], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[1] < -EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fr[7]+4.242640687119286*fr[6]-4.242640687119286*(fr[5]+fr[4])-7.348469228349534*(fr[3]+fr[2])+7.348469228349534*fr[1]+12.72792206135786*fr[0])); 
+    GhatDragCtrl[1] = -std::min(-GhatDragCtrl[1], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[1] = 0.; 
+  // Control node [x,vpar] = [-1/3,1/3]. 
+  GhatDragCtrl[2] = alphaDrSurf[0]*((-0.08333333333333333*fhatAL[3])+0.1443375672974065*fhatAL[2]-0.1443375672974065*fhatAL[1]+0.25*fhatAL[0]); 
+  if(GhatDragCtrl[2] > EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fl[7]-4.242640687119286*fl[6]+4.242640687119286*(fl[5]+fl[4])-7.348469228349534*(fl[3]+fl[2])+7.348469228349534*fl[1]-12.72792206135786*fl[0])); 
+    GhatDragCtrl[2] = std::min(GhatDragCtrl[2], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[2] < -EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fr[7]-4.242640687119286*fr[6]+4.242640687119286*fr[5]-4.242640687119286*fr[4]-7.348469228349534*fr[3]+7.348469228349534*fr[2]-7.348469228349534*fr[1]+12.72792206135786*fr[0])); 
+    GhatDragCtrl[2] = -std::min(-GhatDragCtrl[2], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[2] = 0.; 
+  // Control node [x,vpar] = [1/3,1/3]. 
+  GhatDragCtrl[3] = alphaDrSurf[0]*(0.08333333333333333*fhatAL[3]+0.1443375672974065*(fhatAL[2]+fhatAL[1])+0.25*fhatAL[0]); 
+  if(GhatDragCtrl[3] > EPSILON) {
+    flim = std::max(0., 0.02777777777777778*(2.449489742783178*fl[7]+4.242640687119286*(fl[6]+fl[5]+fl[4])+7.348469228349534*(fl[3]+fl[2]+fl[1])+12.72792206135786*fl[0])); 
+    GhatDragCtrl[3] = std::min(GhatDragCtrl[3], std::abs(fluxFracL*flim/dtApprox/rdv2L)); 
+  } else if(GhatDragCtrl[3] < -EPSILON) {
+    flim = std::max(0., -0.02777777777777778*(2.449489742783178*fr[7]+4.242640687119286*(fr[6]+fr[5])-4.242640687119286*fr[4]+7.348469228349534*fr[3]-7.348469228349534*(fr[2]+fr[1])-12.72792206135786*fr[0])); 
+    GhatDragCtrl[3] = -std::min(-GhatDragCtrl[3], std::abs(fluxFracR*flim/dtApprox/rdv2R)); 
+  } else GhatDragCtrl[3] = 0.; 
+
   double diffFac[2]; 
   diffFac[0] = (BmagInv[1]*nuVtSqSum[1]+BmagInv[0]*nuVtSqSum[0])*(1.414213562373095*wl[2]+0.7071067811865475*dxvl[2])*m_; 
   diffFac[1] = (BmagInv[0]*nuVtSqSum[1]+nuVtSqSum[0]*BmagInv[1])*(1.414213562373095*wl[2]+0.7071067811865475*dxvl[2])*m_; 
@@ -303,10 +393,10 @@ double GkLBOconstNuSurfPositivity1x2vSer_Mu_P1(const double m_, const double cfl
     Gdiff[2] = (-1.530931089239486*(diffFac[1]*(fr[7]+fl[7])+diffFac[0]*(fr[6]+fl[6])))+diffFac[1]*(1.590990257669731*fr[4]-1.590990257669731*fl[4])+diffFac[0]*(1.590990257669731*fr[2]-1.590990257669731*fl[2]); 
     Gdiff[4] = (-1.530931089239486*(diffFac[0]*(fr[7]+fl[7])+diffFac[1]*(fr[6]+fl[6])))+diffFac[0]*(1.590990257669731*fr[4]-1.590990257669731*fl[4])+diffFac[1]*(1.590990257669731*fr[2]-1.590990257669731*fl[2]); 
 
-    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[0]; 
-    Ghat[1] = Gdiff[1]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[1]; 
-    Ghat[2] = Gdiff[2]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[2]; 
-    Ghat[4] = Gdiff[4]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[3]; 
+    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*(GhatDragCtrl[3]+GhatDragCtrl[2]+GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[1] = Gdiff[1]*rdv+1.224744871391589*GhatDragCtrl[3]-1.224744871391589*GhatDragCtrl[2]+1.224744871391589*GhatDragCtrl[1]-1.224744871391589*GhatDragCtrl[0]; 
+    Ghat[2] = Gdiff[2]*rdv+1.224744871391589*(GhatDragCtrl[3]+GhatDragCtrl[2])-1.224744871391589*(GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[4] = Gdiff[4]*rdv+2.121320343559642*GhatDragCtrl[3]-2.121320343559642*(GhatDragCtrl[2]+GhatDragCtrl[1])+2.121320343559642*GhatDragCtrl[0]; 
   } else {
 
     double xBar[4];
@@ -372,10 +462,10 @@ double GkLBOconstNuSurfPositivity1x2vSer_Mu_P1(const double m_, const double cfl
     Gdiff[2] = (1.5*diffFac[1]+0.8660254037844386*diffFac[0])*gBoundP[3]+((-1.5*diffFac[1])-0.8660254037844386*diffFac[0])*gBoundP[2]+(0.8660254037844386*diffFac[0]-1.5*diffFac[1])*gBoundP[1]+gBoundP[0]*(1.5*diffFac[1]-0.8660254037844386*diffFac[0]); 
     Gdiff[4] = (0.8660254037844386*diffFac[1]+1.5*diffFac[0])*gBoundP[3]+((-0.8660254037844386*diffFac[1])-1.5*diffFac[0])*gBoundP[2]+(0.8660254037844386*diffFac[1]-1.5*diffFac[0])*gBoundP[1]+gBoundP[0]*(1.5*diffFac[0]-0.8660254037844386*diffFac[1]); 
 
-    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[0]; 
-    Ghat[1] = Gdiff[1]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[1]; 
-    Ghat[2] = Gdiff[2]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[2]; 
-    Ghat[4] = Gdiff[4]*rdv+0.7071067811865475*alphaDrSurf[0]*fhatAL[3]; 
+    Ghat[0] = Gdiff[0]*rdv+0.7071067811865475*(GhatDragCtrl[3]+GhatDragCtrl[2]+GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[1] = Gdiff[1]*rdv+1.224744871391589*GhatDragCtrl[3]-1.224744871391589*GhatDragCtrl[2]+1.224744871391589*GhatDragCtrl[1]-1.224744871391589*GhatDragCtrl[0]; 
+    Ghat[2] = Gdiff[2]*rdv+1.224744871391589*(GhatDragCtrl[3]+GhatDragCtrl[2])-1.224744871391589*(GhatDragCtrl[1]+GhatDragCtrl[0]); 
+    Ghat[4] = Gdiff[4]*rdv+2.121320343559642*GhatDragCtrl[3]-2.121320343559642*(GhatDragCtrl[2]+GhatDragCtrl[1])+2.121320343559642*GhatDragCtrl[0]; 
   };
 
   double incr1[8]; 

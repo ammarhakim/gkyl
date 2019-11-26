@@ -12,6 +12,7 @@ local GkLBOModDecl = require "Eq.lboData.GkLBOModDecl"
 local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
+local DataStruct   = require "DataStruct"
 
 -- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
@@ -22,14 +23,16 @@ local GkLBO = Proto(EqBase)
 -- ctor.
 function GkLBO:init(tbl)
 
-   self._phaseBasis  = assert(tbl.phaseBasis, 
+   self._grid          = assert(tbl.onGrid, 
+      "Eq.GkLBO: Must specify the grid using 'onGrid'.")
+   self._phaseBasis    = assert(tbl.phaseBasis, 
       "Eq.GkLBO: Must specify phase-space basis functions to use using 'phaseBasis'.")
-   self._confBasis   = assert(tbl.confBasis, 
+   self._confBasis     = assert(tbl.confBasis, 
       "Eq.GkLBO: Must specify configuration-space basis functions to use using 'confBasis'.")
    
-   self._vParMax     = assert(tbl.vParUpper, 
+   self._vParMax       = assert(tbl.vParUpper, 
       "Eq.GkLBO: Must specify maximum velocity of vPar grid in 'vParUpper'.")
-   self._vParMaxSq   = self._vParMax^2
+   self._vParMaxSq     = self._vParMax^2
    local varNuIn       = tbl.varyingNu    -- Specify if collisionality varies spatially.
    local cellConstNuIn = tbl.useCellAverageNu    -- Specify whether to use cell-wise constant collisionality.
 
@@ -92,6 +95,13 @@ function GkLBO:init(tbl)
    self._isFirst = true
 
    self.primMomCrossLimit = 0.0
+
+   self.cflRateByDir = DataStruct.Field {
+      onGrid        = self._grid,
+      numComponents = self._phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   self.cflRateByDirIdxr = self.cflRateByDir:genIndexer()
 end
 
 -- Methods.
@@ -131,6 +141,10 @@ function GkLBO:volTerm(w, dx, idx, q, out)
    self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr)          -- Get pointer to BmagInv field.
    self._nuUSum:fill(self._nuUSumIdxr(idx), self._nuUSumPtr)             -- Get pointer to sum(nu*u) field.
    self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idx), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
+
+   local cflRateByDirPtr = self.cflRateByDir:get(1)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), cflRateByDirPtr)
+
    if self._cellConstNu then
       if self._varNu then
          self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)          -- Get pointer to sum(nu) field.
@@ -143,14 +157,14 @@ function GkLBO:volTerm(w, dx, idx, q, out)
       local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
           (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
-         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
+         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), cflRateByDirPtr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
       else
          cflFreq = 0.0
          self.primMomCrossLimit = self.primMomCrossLimit+1
       end
    else
       self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)             -- Get pointer to sum(nu) field.
-      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), cflRateByDirPtr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
    end
    return cflFreq
 end
@@ -158,11 +172,17 @@ end
 -- Surface integral term for use in DG scheme.
 function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
-   -- Set pointer to BmagInv, sum(nu*u) and sum(nu*vtSq) fields.
-   self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr)          -- Get pointer to BmagInv field.
-   self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)             -- Get pointer to sum(u) field.
-   self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idxl), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
    if dir > self._cdim then
+      -- Set pointer to BmagInv, sum(nu*u) and sum(nu*vtSq) fields.
+      self._BmagInv:fill(self._BmagInvIdxr(idxl), self._BmagInvPtr)          -- Get pointer to BmagInv field.
+      self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)             -- Get pointer to sum(u) field.
+      self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idxl), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
+
+      local cflRateByDirL = self.cflRateByDir:get(1)
+      local cflRateByDirR = self.cflRateByDir:get(1)
+      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), cflRateByDirL)
+      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), cflRateByDirR)
+
       if self._cellConstNu then
          if self._varNu then
             self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr)       -- Get pointer to sum(nu) field.
@@ -176,12 +196,12 @@ function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, q
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
              (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
-               self._inMass, 0., 0., wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._inNuSum, dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               self._inMass, cflRateByDirL:data(), cflRateByDirR:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), dtApprox, self._BmagInvPtr:data(), self._inNuSum, dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
          end
       else
          self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr)          -- Get pointer to sum(nu) field.
          vMuMidMax = self._surfUpdate[dir-self._cdim](
-            self._inMass, 0., 0., wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            self._inMass, cflRateByDirL:data(), cflRateByDirR:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
    return vMuMidMax
