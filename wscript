@@ -60,9 +60,6 @@ class GitTip(Task.Task):
 
 def build(bld):
 
-    # determine Mercurial version (THIS NEEDS TO UPDATED TO WORK WITH
-    # GIT)
-
     gitTip = GitTip(env=bld.env)
     gitTip.set_outputs(bld.path.find_or_declare('gkylgittip.h'))
     bld.add_to_group(gitTip)
@@ -209,24 +206,37 @@ def build(bld):
         Proto_dir.ant_glob('**/*.lua'),
         cwd=Proto_dir, relative_trick=True)
 
+def appendToList(target, val):
+    if type(val) == list:
+        target.extend(val)
+    else:
+        target.append(val)
+        
 def buildExec(bld):
     r"""Build top-level executable"""
     if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
         # we need to append special flags to get stuff to work on a 64 bit Mac
         EXTRA_LINK_FLAGS.append('-pagezero_size 10000 -image_base 100000000')
 
-    # slightly modify Linux linker that thinks that he is smart and is
-    # not exporting the symbols that are only used in the Lua part
+    # Link flags on Linux
     if platform.system() == 'Linux':
         bld.env.LINKFLAGS_cstlib = ['-Wl,-Bstatic,-E']
         bld.env.LINKFLAGS_cxxstlib = ['-Wl,-Bstatic,-E']
         bld.env.STLIB_MARKER = '-Wl,-Bstatic,-E'
+        bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
+    # list of objects to use
     useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['ZMQ_FOUND']:
         useList = 'ZMQ ' + useList
+
+    # set RPATH
+    fullRpath = []
+    appendToList(fullRpath, bld.env.RPATH) # user specified RPATH
+    appendToList(fullRpath, bld.env.LIBDIR)
+    appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
 
     # build gkyl executable
     bld.program(
@@ -234,7 +244,7 @@ def buildExec(bld):
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
-        rpath = [bld.env.RPATH, bld.env.LIBDIR ],
+        rpath = fullRpath,
         lib = 'pthread ' + bld.env.EXTRALIBS
     )
 

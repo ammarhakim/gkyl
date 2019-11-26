@@ -6,7 +6,7 @@
 import os
 
 def build(bld):
-    bld.objects(source = r"""
+    bld.shlib(source = r"""
     Fpo/fpoMomsKernelP1.cpp
     Fpo/fpoMomsKernelP2.cpp
 
@@ -19,20 +19,4 @@ def build(bld):
     Fpo/fpoDiffKernelP1.cpp
     Fpo/fpoDiffKernelP2.cpp
     """,
-    includes = '. Fpo', use='Eigen MPI', target = 'proto')
-
-# def build(bld):
-#     bld.objects(source = r"""
-#     Fpo/fpoMomsKernelP1.cpp
-#     Fpo/fpoMomsKernelP2.cpp
-
-#     Fpo/fpoDiagKernelP1.cpp
-#     Fpo/fpoDiagKernelP2.cpp
-
-#     Fpo/fpoDragKernelP1.cpp
-#     Fpo/fpoDragKernelP2.cpp
-
-#     Fpo/fpoDiffKernelP1.cpp
-#     Fpo/fpoDiffKernelP2.cpp
-#     """,
-#     includes = '. Fpo', use='Eigen MPI', target = 'proto')
+    includes = '. Fpo', use='Eigen MPI lib', target = 'gkproto', name='proto', vnum = '1.0')

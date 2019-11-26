@@ -6,8 +6,8 @@
 import os
 
 def build(bld):
-    bld.objects(
+    bld.shlib(
         source = 'CartFieldImpl.cpp',
-        target = 'datastruct',
+        target = 'gkdatastruct', name = 'datastruct', vnum = '1.0',
         includes = '.'
     )
