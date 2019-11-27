@@ -229,6 +229,9 @@ def buildExec(bld):
     useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
+    if bld.env['CUTOOLS_FOUND']:
+        useList = 'CUTOOLS ' + useList
+    print(useList)
 
     # set RPATH
     fullRpath = []
