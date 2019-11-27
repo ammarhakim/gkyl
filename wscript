@@ -231,7 +231,6 @@ def buildExec(bld):
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
         useList = 'CUTOOLS ' + useList
-    print(useList)
 
     # set RPATH
     fullRpath = []
