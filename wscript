@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen zmq sqlite3',
+    opt.load('gkyl luajit mpi adios eigen sqlite3',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -36,7 +36,6 @@ def configure(conf):
     conf.check_adios()
     conf.check_eigen()
     conf.check_sqlite3()
-    conf.check_zmq()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -229,8 +228,6 @@ def buildExec(bld):
     useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
-    if bld.env['ZMQ_FOUND']:
-        useList = 'ZMQ ' + useList
 
     # set RPATH
     fullRpath = []
