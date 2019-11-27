@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3',
+    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -36,6 +36,7 @@ def configure(conf):
     conf.check_adios()
     conf.check_eigen()
     conf.check_sqlite3()
+    conf.check_cutools()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
