@@ -26,10 +26,14 @@ def check_cutools(conf):
     conf.env.LIB_CUTOOLS = libList.split(',')
     
     conf.start_msg('Checking for NVCC compiler')
-    conf.find_program('nvcc', va='nvcc')
-    conf.end_msg("Found NVCC")
-
-    conf.env['CUTOOLS_FOUND'] = True
+    try:
+        conf.find_program('nvcc', var='nvcc', mandatory=True)
+        conf.end_msg("Found NVCC")
+        conf.env['CUTOOLS_FOUND'] = True
+    except:
+        conf.end_msg("Not found NVCC", "YELLOW")
+        conf.env['CUTOOLS_FOUND'] = False
+        
     return 1
 
 def detect(conf):
