@@ -1,8 +1,11 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load intel
-module load intel-mpi
+module use /home/software/psfc/modulefiles
+module add psfc/config
+module load intel/2017-01
+module load impi/2017-01
+module load psfc/adios/1.13.1
 
 # Build directory
 OUT=build
@@ -29,8 +32,8 @@ MPI_LINK_LIBS="mpi,mpicxx"
 
 # ADIOS options
 ENABLE_ADIOS="--enable-adios" # set to blank to disable ADIOS
-ADIOS_INC_DIR=$HOME/gkylsoft/adios/include
-ADIOS_LIB_DIR=$HOME/gkylsoft/adios/lib
+ADIOS_INC_DIR=$ADIOS_ROOT/include
+ADIOS_LIB_DIR=$ADIOS_ROOT/lib
 
 # EIGEN options
 EIGEN_INC_DIR=$HOME/gkylsoft/eigen3/include/eigen3
