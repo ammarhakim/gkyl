@@ -22,7 +22,7 @@ EXTRA_LINK_FLAGS = []
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3',
+    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -36,6 +36,7 @@ def configure(conf):
     conf.check_adios()
     conf.check_eigen()
     conf.check_sqlite3()
+    conf.check_cutools()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -177,6 +178,13 @@ def build(bld):
         App_dir.ant_glob('**/*.lua'),
         cwd=App_dir, relative_trick=True)
 
+    # - Cuda
+    Cuda_dir = bld.path.find_dir('Cuda')
+    bld.install_files(
+        "${PREFIX}/bin/Cuda",
+        Cuda_dir.ant_glob('**/*.lua'),
+        cwd=Cuda_dir, relative_trick=True)
+
     # - Comm
     Comm_dir = bld.path.find_dir('Comm')
     bld.install_files(
@@ -228,6 +236,8 @@ def buildExec(bld):
     useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
+    if bld.env['CUTOOLS_FOUND']:
+        useList = 'CUTOOLS ' + useList
 
     # set RPATH
     fullRpath = []

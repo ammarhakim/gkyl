@@ -111,6 +111,9 @@ void showVersion() {
 #ifdef HAVE_ZMQ_H
   std::cout << " ZeroMQ";
 #endif
+#ifdef HAVE_CUDA_H
+  std::cout << " Cuda";
+#endif
   std::cout << std::endl;
 }
 
