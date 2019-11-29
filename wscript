@@ -178,6 +178,13 @@ def build(bld):
         App_dir.ant_glob('**/*.lua'),
         cwd=App_dir, relative_trick=True)
 
+    # - Cuda
+    Cuda_dir = bld.path.find_dir('Cuda')
+    bld.install_files(
+        "${PREFIX}/bin/Cuda",
+        Cuda_dir.ant_glob('**/*.lua'),
+        cwd=Cuda_dir, relative_trick=True)
+
     # - Comm
     Comm_dir = bld.path.find_dir('Comm')
     bld.install_files(

@@ -9,6 +9,9 @@ assert(GKYL_HAVE_CUDA, "Gkyl was not built with CUDA!")
 
 local ffi  = require "ffi"
 local ffiC = ffi.C
+local xsys = require "xsys"
+local new, typeof = xsys.from(ffi,
+     "new, typeof")
 
 local _M = {}
 
