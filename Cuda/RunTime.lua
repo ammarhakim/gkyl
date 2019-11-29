@@ -22,7 +22,18 @@ ffi.cdef [[
   // Memory management
   int cudaMalloc(void **devPtr, size_t size);
   int cudaFree(void *ptr);
+
+  // error codes
+  int get_cudaSuccess();
+  int get_cudaErrorInvalidValue();
+  int get_cudaErrorMemoryAllocation();
 ]]
+
+
+-- CUDA runtime error codes
+_M.Success = ffi.C.get_cudaSuccess()
+_M.ErrorInvalidValue = ffi.C.get_cudaErrorInvalidValue()
+_M.ErrorMemoryAllocation = ffi.C.get_cudaErrorMemoryAllocation()
 
 -- some types for use in CUDA functions
 local int_1 = typeof("int[1]")
@@ -33,8 +44,7 @@ local voidp = typeof("void *[1]")
 function _M.Malloc(sz)
    local devPtr = voidp()
    local err = ffiC.cudaMalloc(devPtr, sz)
-   
-   assert(d, "cudaMalloc: Unable to allocate memory!")
+   assert(err == _M.Success, "Unable to allocate device memory")
    return devPtr[0]
 end
 -- cudaFree

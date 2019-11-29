@@ -73,6 +73,8 @@ def build(bld):
     bld.recurse("Proto")
     bld.recurse("Unit")
     bld.recurse("Updater")
+    if bld.env['CUTOOLS_FOUND']:
+        bld.recurse("Cuda")
 
     # Sometimes there is an issue with an existing build of sqlite on
     # a Linux machine. In that case, sqlite support can be
@@ -82,7 +84,7 @@ def build(bld):
         bld.recurse("sqlite3")
 
     # build executable
-    buildExec(bld)    
+    buildExec(bld)
 
     ### install LuaJIT code
 
@@ -237,7 +239,7 @@ def buildExec(bld):
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useList = 'CUTOOLS ' + useList
+        useList = 'cuda CUTOOLS ' + useList
 
     # set RPATH
     fullRpath = []

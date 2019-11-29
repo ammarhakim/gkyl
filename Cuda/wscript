@@ -7,10 +7,10 @@ import os
 
 def build(bld):
     # only build if in parallel
-    if bld.env.MPI_FOUND:
+    if bld.env.CUTOOLS_FOUND:
         bld.shlib(
-            source = 'GkMpiFuncs.cpp',
-            target = 'gkcomm', name = 'comm', vnum = '1.0',
+            source = 'GkCudaFuncs.cpp',
+            target = 'gkcuda', name = 'cuda', vnum = '1.0',
             includes = '.',
-            use = 'MPI'
+            use = 'CUTOOLS'
         )    

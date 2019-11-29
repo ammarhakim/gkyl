@@ -20,8 +20,14 @@ function test_1()
     assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
 end
 
+function test_2()
+   local d = cuda.Malloc(100)
+   cuda.Free(d)
+end
+
 -- Run tests
 test_1()
+test_2()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
