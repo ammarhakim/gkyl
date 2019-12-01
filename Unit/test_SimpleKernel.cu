@@ -1,3 +1,5 @@
+/* -*- c++ -*- */
+
 __global__ void ker_unit_sumArray(int n, double a, double *x, double *y)
 {
   int i = blockIdx.x*blockDim.x + threadIdx.x;
