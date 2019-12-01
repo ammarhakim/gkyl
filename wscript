@@ -20,6 +20,20 @@ out = 'build'
 # extra flags to pass to linker
 EXTRA_LINK_FLAGS = []
 
+from waflib import TaskGen
+# for compiling cu files to object code (this is probably not the best
+# way to do this. Why is this declared globally? Can't figure any
+# other way to do this at present. AHH Dec 1 2019.)
+TaskGen.declare_chain(
+    name = 'nvccc',
+    rule = '${NVCCC} -c -O3 ${SRC} -o ${TGT}',
+    shell = False,
+    ext_in = '.cu',
+    ext_out = '.o',
+    reentrant = True,
+    install_path = False,
+)
+
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
     opt.load('gkyl luajit mpi adios eigen sqlite3 cutools',
@@ -239,7 +253,7 @@ def buildExec(bld):
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useList = 'cuda CUTOOLS ' + useList
+        useList = 'CUTOOLS unit_cuobjs ' + useList
 
     # set RPATH
     fullRpath = []

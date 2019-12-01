@@ -6,6 +6,10 @@
 import os
 
 def build(bld):
+    # CUDA specific code
+    if bld.env['CUTOOLS_FOUND']:
+        bld.objects(source = '_dummy.cpp test_SimpleKernel.cu', name = 'unit_cuobjs')
+
     bld.shlib(source = 'test_cfuncs.cpp', includes = '.',
               name = 'unit',
               vnum = '1.0',

@@ -27,7 +27,7 @@ def check_cutools(conf):
     
     conf.start_msg('Checking for NVCC compiler')
     try:
-        conf.find_program('nvcc', var='NVCC', mandatory=True)
+        conf.find_program('nvcc', var='NVCCC', mandatory=True)
         conf.end_msg("Found NVCC")
         conf.check(header_name='cuda.h', features='cxx cxxprogram', use="CUTOOLS", mandatory=True)
         conf.check(header_name='cuda_runtime.h', features='cxx cxxprogram', use="CUTOOLS", mandatory=True)
