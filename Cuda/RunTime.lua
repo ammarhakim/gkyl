@@ -31,6 +31,7 @@ ffi.cdef [[
   int get_cudaSuccess();
   int get_cudaErrorInvalidValue();
   int get_cudaErrorMemoryAllocation();
+  int get_cudaErrorInvalidMemcpyDirection();
 
   // MemcpyKind flags
   int get_cudaMemcpyHostToHost();
@@ -45,6 +46,7 @@ ffi.cdef [[
 _M.Success = ffi.C.get_cudaSuccess()
 _M.ErrorInvalidValue = ffi.C.get_cudaErrorInvalidValue()
 _M.ErrorMemoryAllocation = ffi.C.get_cudaErrorMemoryAllocation()
+_M.ErrorInvalidMemcpyDirection = ffi.C.get_cudaErrorInvalidMemcpyDirection()
 
 -- CUDA MemcpyKind flags
 _M.MemcpyHostToHost = ffi.C.get_cudaMemcpyHostToHost()
@@ -58,25 +60,26 @@ local int_1 = typeof("int[1]")
 local uint_1 = typeof("unsigned[1]")
 local voidp = typeof("void *[1]")
 
+-- Note: Most functions below return error code as last return value
+
+-- cudaDriverGetVersion
+function _M.DriverGetVersion()
+    local r = int_1()
+    local err = ffiC.cudaDriverGetVersion(r)
+    return r[0], err
+end
+
 -- cudaMalloc
 function _M.Malloc(sz)
    local devPtr = voidp()
    local err = ffiC.cudaMalloc(devPtr, sz)
-   assert(err == _M.Success, "Unable to allocate device memory")
-   return devPtr[0]
+   return devPtr[0], err
 end
 -- cudaFree
 function _M.Free(d)
    if d then
       ffiC.cudaFree(d); d = nil
    end
-end
-
--- cudaDriverGetVersion
-function _M.DriverGetVersion()
-    local r = int_1()
-    local _ = ffiC.cudaDriverGetVersion(r)
-    return r[0]
 end
 
 -- cudaMemcpy

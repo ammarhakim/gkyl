@@ -14,6 +14,7 @@
 GET_CUDA_OBJECT(int, cudaSuccess);
 GET_CUDA_OBJECT(int, cudaErrorInvalidValue);
 GET_CUDA_OBJECT(int, cudaErrorMemoryAllocation);
+GET_CUDA_OBJECT(int, cudaErrorInvalidMemcpyDirection);
 
 // Codes for CudaMemcpy (enum cudaMemcpyKind)
 GET_CUDA_OBJECT(int, cudaMemcpyHostToHost);
