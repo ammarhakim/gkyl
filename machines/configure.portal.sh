@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Edit the paths and options in the following command to suit your system
-module load gcc
+module load gcc/7.3.0
 module load openmpi
 module load cuda
 
@@ -24,8 +24,8 @@ LUAJIT_SHARE_DIR=$HOME/gkylsoft/luajit/share/luajit-2.1.0-beta3
 MPICC=mpicc
 MPICXX=mpicxx
 ENABLE_MPI="--enable-mpi"
-MPI_INC_DIR=/usr/pppl/gcc/9.1-pkgs/openmpi-4.0.1/include
-MPI_LIB_DIR=/usr/pppl/gcc/9.1-pkgs/openmpi-4.0.1/lib
+MPI_INC_DIR=/usr/pppl/gcc/7.3-pkgs/openmpi-3.0.0/include
+MPI_LIB_DIR=/usr/pppl/gcc/7.3-pkgs/openmpi-3.0.0/lib
 MPI_LINK_LIBS="mpi"
 
 # ADIOS options
