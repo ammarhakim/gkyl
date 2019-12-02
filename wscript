@@ -62,12 +62,6 @@ def configure(conf):
     conf.env.LIB_M = ['m']
     conf.env.LIB_DL = ['dl']
 
-    # if we are not using CUDA define some preprocessor directives as
-    # blank
-    if not conf.env['CUTOOLS_FOUND']:
-        conf.define("__global___")
-        conf.define("__device__")
-
     # write out configuration info into header
     conf.write_config_header('gkylconfig.h')
 
