@@ -3,6 +3,7 @@
 -- Updater to compute RHS or forward Euler update for hyperbolic
 -- equations with Discontinuous Galerkin scheme. 
 -- Cell-based update (as opposed to face-based).
+-- This duplicates work in order to avoid race conditions in some threading models.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -152,7 +153,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
       range = globalRange, numSplit = grid:numSharedProcs() }
 
 
-   -- cell-based loop
+   -- cell-based loop, which duplicates work to avoid race conditions in certain threading models
    for idxC in rangeDecomp:rowMajorIter(tId) do
 
       -- volume update
@@ -200,7 +201,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
          local cflR = cflRateByCellR:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
 
          -- left surface update
-         if not (self._zeroFluxFlags[dir] and (idxC[dir] == globalRange:lower(dir) or idxC[dir] == globalRange:upper(dir)+1)) then
+         if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir) ) then
 	    local maxs = self._equation:surfTerm(
 	       dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
 	    self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
@@ -215,7 +216,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
          end
 
          -- right surface update
-         if not (self._zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir)) then
+         if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir) ) then
 	    local maxs = self._equation:surfTerm(
 	       dir, cflC, cflR, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
 	    self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
