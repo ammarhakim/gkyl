@@ -15,12 +15,65 @@ local new, typeof = xsys.from(ffi,
 
 local _M = {}
 
+-- CUDA types and functions
 ffi.cdef [[
   // typedefs for use in API below
   typedef int cudaMemcpyKind;
 
+  typedef struct {
+    char name[256];
+    size_t totalGlobalMem;
+    size_t sharedMemPerBlock;
+    int regsPerBlock;
+    int warpSize;
+    size_t memPitch;
+    int maxThreadsPerBlock;
+    int maxThreadsDim[3];
+    int maxGridSize[3];
+    int clockRate;
+    size_t totalConstMem;
+    int major;
+    int minor;
+    size_t textureAlignment;
+    size_t texturePitchAlignment;
+    int deviceOverlap;
+    int multiProcessorCount;
+    int kernelExecTimeoutEnabled;
+    int integrated;
+    int canMapHostMemory;
+    int computeMode;
+    int concurrentKernels;
+    int ECCEnabled;
+    int asyncEngineCount;
+    int unifiedAddressing;
+    int memoryClockRate;
+    int memoryBusWidth;
+    int l2CacheSize;
+    int maxThreadsPerMultiProcessor;
+    int streamPrioritiesSupported;
+    int globalL1CacheSupported;
+    int localL1CacheSupported;
+    size_t sharedMemPerMultiprocessor;
+    int regsPerMultiprocessor;
+    int managedMemory;
+    int isMultiGpuBoard;
+    int multiGpuBoardGroupID;
+    int singleToDoublePrecisionPerfRatio;
+    int pageableMemoryAccess;
+    int concurrentManagedAccess;
+    int computePreemptionSupported;
+    int canUseHostPointerForRegisteredMem;
+    int cooperativeLaunch;
+    int cooperativeMultiDeviceLaunch;
+    int pageableMemoryAccessUsesHostPageTables;
+    int directManagedMemAccessFromHost;
+  } GkDeviceProp;
+
   // Run-time information
   int cudaDriverGetVersion(int *driverVersion);
+  int cudaGetDevice(int* device);
+  int cudaGetDeviceCount ( int* count );
+  int GkCuda_GetDeviceProp(GkDeviceProp *prop, int dev);
 
   // Memory management
   int cudaMalloc(void **devPtr, size_t size);
@@ -40,7 +93,6 @@ ffi.cdef [[
   int get_cudaMemcpyDeviceToDevice();
   int get_cudaMemcpyDefault();
 ]]
-
 
 -- CUDA runtime error codes
 _M.Success = ffi.C.get_cudaSuccess()
@@ -67,6 +119,21 @@ function _M.DriverGetVersion()
     local r = int_1()
     local err = ffiC.cudaDriverGetVersion(r)
     return r[0], err
+end
+function _M.GetDevice()
+   local r = int_1()
+   local err = ffiC.cudaGetDevice(r)
+   return r[0], err
+end
+function _M.GetDeviceCount()
+   local r = int_1()
+   local err = ffiC.cudaGetDeviceCount(r)
+   return r[0], err
+end
+function _M.GetDeviceProperties(device)
+   local prop = ffi.new("GkDeviceProp[1]")
+   local err = ffiC.GkCuda_GetDeviceProp(prop, device)
+   return prop[0], err
 end
 
 -- cudaMalloc

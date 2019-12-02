@@ -25,6 +25,11 @@ ffi.cdef [[
 
 function test_1()
     assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
+    local devNum = cuda.GetDevice()
+    assert_equal(0, devNum, "Checking device number")
+
+    local prop, err = cuda.GetDeviceProperties(devNum)
+    assert_equal(cuda.Success, err, "Checking of GetDeviceProperties worked")
 end
 
 function test_2()
@@ -34,7 +39,7 @@ function test_2()
    assert_equal(3, cuda.MemcpyDeviceToDevice, "Checking MemcpyKind")
    assert_equal(4, cuda.MemcpyDefault, "Checking MemcpyKind")
 
-   local len = 1e6
+   local len = 1e6 -- 1 million elements
 
    -- allocate memory on host
    local h_x, h_y = Alloc.Double(len), Alloc.Double(len)
