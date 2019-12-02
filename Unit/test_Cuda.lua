@@ -92,9 +92,54 @@ function test_2()
    cuda.Free(d_x); cuda.Free(d_y)
 end
 
+function test_3()
+    local devNum = cuda.GetDevice()
+    local prop, err = cuda.GetDeviceProperties(devNum)
+    -- return if this device does not support managed memory
+    if prop.managedMemory ~= 1 then
+       return 
+    end
+
+    local dtype = ffi.typeof("struct { double *_data; }")
+    local m_x, m_y = ffi.new(dtype), ffi.new(dtype)
+
+    local len = 1e6 
+    -- allocate managed memory
+    local elmSz = ffi.sizeof("double")
+    local err
+    m_x._data, err = cuda.MallocManaged(elmSz*len)
+    assert_equal(cuda.Success, err, "Checking if MallocManaged worked")
+    m_y._data, err = cuda.MallocManaged(elmSz*len)
+    assert_equal(cuda.Success, err, "Checking if MallocManaged worked")
+
+    for i = 1, len do
+       m_x._data[i-1], m_y._data[i-1] = 10.5*i, 0.0
+    end
+
+   -- call kernel to do sum
+   local numThread = 256
+   local numBlock = math.floor(len/numThread)+1
+   ffi.C.unit_sumArray(numBlock, numThread, len, 2.5, m_x._data, m_y._data)
+
+   err = cuda.DeviceSynchronize()
+
+   -- check if kernel worked
+   local pass = true
+   for i = 1, len do
+      if m_y._data[i-1] ~= 2.5*m_x._data[i-1] then
+        pass = false
+        break
+      end
+   end
+   assert_equal(true, pass, "Checking if sumArray kernel worked")
+
+   cuda.Free(m_x._data); cuda.Free(m_y._data)
+end
+
 -- Run tests
 test_1()
 test_2()
+test_3()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

@@ -10,6 +10,8 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <driver_types.h>
+
 #include <GkCudaFuncs.h>
 
 // Error codes (enum cudaError)
@@ -24,6 +26,9 @@ GET_CUDA_OBJECT(int, cudaMemcpyHostToDevice);
 GET_CUDA_OBJECT(int, cudaMemcpyDeviceToHost);
 GET_CUDA_OBJECT(int, cudaMemcpyDeviceToDevice);
 GET_CUDA_OBJECT(int, cudaMemcpyDefault);
+
+GET_CUDA_OBJECT(unsigned, cudaMemAttachGlobal);
+GET_CUDA_OBJECT(unsigned, cudaMemAttachHost);
 
 int
 GkCuda_GetDeviceProp(GkDeviceProp *prop, int dev) {
