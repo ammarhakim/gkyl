@@ -1,6 +1,6 @@
 module purge
 module load gcc/7.3.0
-module load openmpi/4.0.1
+module load openmpi/3.0.0
 # if we are in machines directory, go up a directory
 if [ `dirname "$0"` == "." ] 
   then

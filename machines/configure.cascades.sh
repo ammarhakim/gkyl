@@ -3,7 +3,7 @@
 # Edit the paths and options in the following command to suit your system
 module purge
 module load gcc/7.3.0
-module load openmpi/4.0.1
+module load openmpi/3.0.0
 
 # Build directory
 OUT=build
