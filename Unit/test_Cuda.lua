@@ -24,12 +24,12 @@ ffi.cdef [[
 ]]
 
 function test_1()
-    assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
-    local devNum = cuda.GetDevice()
-    assert_equal(0, devNum, "Checking device number")
+   assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
+   local devNum = cuda.GetDevice()
+   assert_equal(0, devNum, "Checking device number")
 
-    local prop, err = cuda.GetDeviceProperties(devNum)
-    assert_equal(cuda.Success, err, "Checking of GetDeviceProperties worked")
+   local prop, err = cuda.GetDeviceProperties(devNum)
+   assert_equal(cuda.Success, err, "Checking of GetDeviceProperties worked")
 end
 
 function test_2()
@@ -44,7 +44,7 @@ function test_2()
    -- allocate memory on host
    local h_x, h_y = Alloc.Double(len), Alloc.Double(len)
    for i = 1, len do
-       h_x[i], h_y[i] = 10.5*i, 0.0
+      h_x[i], h_y[i] = 10.5*i, 0.0
    end
 
    -- check if kernel worked (this is a null test to ensure that the kernel
@@ -52,8 +52,8 @@ function test_2()
    local pass = true
    for i = 1, h_y:size() do
       if h_y[i] ~= 2.5*h_x[i] then
-        pass = false
-        break
+	 pass = false
+	 break
       end
    end
    assert_equal(false, pass, "Checking if sumArray kernel worked")
@@ -83,8 +83,8 @@ function test_2()
    local pass = true
    for i = 1, h_y:size() do
       if h_y[i] ~= 2.5*h_x[i] then
-        pass = false
-        break
+	 pass = false
+	 break
       end
    end
    assert_equal(true, pass, "Checking if sumArray kernel worked")
@@ -93,28 +93,28 @@ function test_2()
 end
 
 function test_3()
-    local devNum = cuda.GetDevice()
-    local prop, err = cuda.GetDeviceProperties(devNum)
-    -- return if this device does not support managed memory
-    if prop.managedMemory ~= 1 then
-       return 
-    end
+   local devNum = cuda.GetDevice()
+   local prop, err = cuda.GetDeviceProperties(devNum)
+   -- return if this device does not support managed memory
+   if prop.managedMemory ~= 1 then
+      return 
+   end
 
-    local dtype = ffi.typeof("struct { double *_data; }")
-    local m_x, m_y = ffi.new(dtype), ffi.new(dtype)
+   local dtype = ffi.typeof("struct { double *_data; }")
+   local m_x, m_y = ffi.new(dtype), ffi.new(dtype)
 
-    local len = 1e6 
-    -- allocate managed memory
-    local elmSz = ffi.sizeof("double")
-    local err
-    m_x._data, err = cuda.MallocManaged(elmSz*len)
-    assert_equal(cuda.Success, err, "Checking if MallocManaged worked")
-    m_y._data, err = cuda.MallocManaged(elmSz*len)
-    assert_equal(cuda.Success, err, "Checking if MallocManaged worked")
+   local len = 1e6 
+   -- allocate managed memory
+   local elmSz = ffi.sizeof("double")
+   local err
+   m_x._data, err = cuda.MallocManaged(elmSz*len)
+   assert_equal(cuda.Success, err, "Checking if MallocManaged worked")
+   m_y._data, err = cuda.MallocManaged(elmSz*len)
+   assert_equal(cuda.Success, err, "Checking if MallocManaged worked")
 
-    for i = 1, len do
-       m_x._data[i-1], m_y._data[i-1] = 10.5*i, 0.0
-    end
+   for i = 1, len do
+      m_x._data[i-1], m_y._data[i-1] = 10.5*i, 0.0
+   end
 
    -- call kernel to do sum
    local numThread = 256
@@ -127,8 +127,8 @@ function test_3()
    local pass = true
    for i = 1, len do
       if m_y._data[i-1] ~= 2.5*m_x._data[i-1] then
-        pass = false
-        break
+	 pass = false
+	 break
       end
    end
    assert_equal(true, pass, "Checking if sumArray kernel worked")

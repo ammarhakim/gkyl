@@ -11,7 +11,7 @@ local ffi  = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
 local new, typeof = xsys.from(ffi,
-     "new, typeof")
+			      "new, typeof")
 
 local _M = {}
 
@@ -128,9 +128,9 @@ local voidp = typeof("void *[1]")
 
 -- cudaDriverGetVersion
 function _M.DriverGetVersion()
-    local r = int_1()
-    local err = ffiC.cudaDriverGetVersion(r)
-    return r[0], err
+   local r = int_1()
+   local err = ffiC.cudaDriverGetVersion(r)
+   return r[0], err
 end
 -- cudaGetDevice
 function _M.GetDevice()
@@ -181,7 +181,7 @@ end
 
 -- cudaMemcpy
 function _M.Memcpy(dst, src, count, kind)
-    return ffiC.cudaMemcpy(dst, src, count, kind)
+   return ffiC.cudaMemcpy(dst, src, count, kind)
 end
 
 return _M
