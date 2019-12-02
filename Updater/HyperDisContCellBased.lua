@@ -80,7 +80,13 @@ function HyperDisContCellBased:init(tbl)
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRangeDecomp = {} -- perp ranges in each direction      
 
-   self.dummy = Lin.Vec(self._basis:numBasis()):data()
+   self.dummy = Lin.Vec(self._basis:numBasis())
+
+   -- to store grid info
+   local ndim = self._onGrid:ndim()
+   self.dxC, self.dxL, self.dxR = Lin.Vec(ndim), Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
+   self.xcC, self.xcL, self.xcR = Lin.Vec(ndim), Lin.Vec(ndim), Lin.Vec(ndim) -- cell center on right/left
+   self.idxL, self.idxR = Lin.IntVec(ndim), Lin.IntVec(ndim) -- index on right/left
 
    return self
 end
@@ -110,10 +116,9 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
    local qInIdxr, qRhsOutIdxr = qIn:genIndexer(), qRhsOut:genIndexer() -- indexer functions into fields
    local cflRateByCellIdxr = cflRateByCell:genIndexer()
 
-   -- to store grid info
-   local dxC, dxL, dxR = Lin.Vec(ndim), Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
-   local xcC, xcL, xcR = Lin.Vec(ndim), Lin.Vec(ndim), Lin.Vec(ndim) -- cell center on right/left
-   local idxC, idxL, idxR = Lin.IntVec(ndim), Lin.IntVec(ndim), Lin.IntVec(ndim) -- index on right/left
+   local idxL, idxR = self.idxL, self.idxR
+   local dxL, dxC, dxR = self.dxL, self.dxC, self.dxR
+   local xcL, xcC, xcR = self.xcL, self.xcC, self.xcR
 
    -- pointers for (re)use in update
    local qInC = qIn:get(1)
@@ -160,14 +165,17 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
       qRhsOut:fill(qRhsOutIdxr(idxC), qRhsOutC)
       cflRateByCell:fill(cflRateByCellIdxr(idxC), cflRateByCellC)
 
-      cflRate = self._equation:volTerm(xcC, dxC, idxC, qInC, qRhsOutC)
-      cflRateByCellC:data()[0] = cflRateByCellC:data()[0] + cflRate
+      if self._updateVolumeTerm then
+         cflRate = self._equation:volTerm(xcC, dxC, idxC, qInC, qRhsOutC)
+         cflRateByCellC:data()[0] = cflRateByCellC:data()[0] + cflRate
+      end
 
       -- surface update
-      for i = 1, self._updateDirs do
+      for i = 1, #self._updateDirs do
          local dir = self._updateDirs[i]
-          
+
          -- get indexes of cells to left (L) and right (R)
+	 idxC:copyInto(idxL); idxC:copyInto(idxR)
          idxL[dir] = idxC[dir] - 1
          idxR[dir] = idxC[dir] + 1
 
@@ -187,11 +195,12 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
          cflRateByCell:fill(cflRateByCellIdxr(idxL), cflRateByCellL)
          cflRateByCell:fill(cflRateByCellIdxr(idxR), cflRateByCellR)
 
+         local cflC = cflRateByCellC:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
          local cflL = cflRateByCellL:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
          local cflR = cflRateByCellR:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
 
          -- left surface update
-         if not (self._zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir)) then
+         if not (self._zeroFluxFlags[dir] and (idxC[dir] == globalRange:lower(dir) or idxC[dir] == globalRange:upper(dir)+1)) then
 	    local maxs = self._equation:surfTerm(
 	       dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
 	    self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)

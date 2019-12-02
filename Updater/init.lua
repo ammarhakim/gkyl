@@ -23,6 +23,7 @@ local FiveMomentSrc = require "Updater.FiveMomentSrc"
 local TenMomentSrc = require "Updater.TenMomentSrc"
 local TenMomentRelax = require "Updater.TenMomentRelax"
 local HyperDisCont = require "Updater.HyperDisCont"
+local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local LagrangeFix = require "Updater.LagrangeFix"
 local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
@@ -54,6 +55,7 @@ return {
    TenMomentSrc = TenMomentSrc,
    TenMomentRelax = TenMomentRelax,
    HyperDisCont = HyperDisCont,
+   HyperDisContCellBased = HyperDisContCellBased,
    LagrangeFix = LagrangeFix,
    MappedPoisson = MappedPoisson,
    MaxwellianOnBasis = MaxwellianOnBasis,
