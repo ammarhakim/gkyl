@@ -1,7 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Updater to compute RHS or forward Euler update for hyperbolic
--- equations with Discontinuous Galerkin scheme.
+-- equations with Discontinuous Galerkin scheme. 
+-- Cell-based update (as opposed to face-based).
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -18,11 +19,7 @@ local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
 local xsys = require "xsys"
 
-local UPDATE_BOTH  = 0
-local UPDATE_LEFT  = 1
-local UPDATE_RIGHT = 2
-
--- Hyperbolic DG solver updater object
+-- Hyperbolic DG cell-based solver updater object
 local HyperDisContCellBased = Proto(UpdaterBase)
 
 function HyperDisContCellBased:init(tbl)
@@ -82,6 +79,8 @@ function HyperDisContCellBased:init(tbl)
    self._isFirst = true
    self._auxFields = {} -- auxilliary fields passed to eqn object
    self._perpRangeDecomp = {} -- perp ranges in each direction      
+
+   self.dummy = Lin.Vec(self._basis:numBasis()):data()
 
    return self
 end
@@ -194,7 +193,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
          -- left surface update
          if not (self._zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir)) then
 	    local maxs = self._equation:surfTerm(
-	       dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, qRhsOutL, qRhsOutC, UPDATE_RIGHT)
+	       dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
 	    self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
          else
             if self._zeroFluxFlags[dir] then
@@ -202,14 +201,14 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
                -- surface updates even when the zeroFlux BCs have been
                -- applied
                self._equation:boundarySurfTerm(
-                  dir, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, qRhsOutL, qRhsOutC, UPDATE_RIGHT)
+                  dir, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
             end
          end
 
          -- right surface update
          if not (self._zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir)) then
 	    local maxs = self._equation:surfTerm(
-	       dir, cflC, cflR, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, qRhsOutR, UPDATE_LEFT)
+	       dir, cflC, cflR, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
 	    self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
          else
             if self._zeroFluxFlags[dir] then
@@ -217,7 +216,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
                -- surface updates even when the zeroFlux BCs have been
                -- applied
                self._equation:boundarySurfTerm(
-                  dir, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, qRhsOutR, UPDATE_LEFT)
+                  dir, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
             end
          end
       end
