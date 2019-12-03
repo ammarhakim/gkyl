@@ -420,13 +420,15 @@ local function Field_meta_ctor(elct)
 	 end,
       deviceScale = isNumberType and
 	 function (self, fact)
-	    local numThreads = 256
-	    local shape = self._localExtRangeDecomp:shape(self._shmIndex)
-	    local numBlocks = math.floor(shape/numThreads)+1
-	    ffiC.gkylCartFieldDeviceScale(numBlocks, numThreads,  self:_localLower(), self:_localShape(), fact, self:deviceDataPointer())
+	    if self._devData then
+	       local numThreads = GKYL_DEFAULT_NUM_THREADS
+	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local numBlocks = math.floor(shape/numThreads)+1
+	       ffiC.gkylCartFieldDeviceScale(numBlocks, numThreads,  self:_localLower(), self:_localShape(), fact, self:deviceDataPointer())
+	    end
 	 end or
 	 function (self, fact)
-	    assert(false, "CartField:scale: Scale only works on numeric fields")
+	    assert(false, "CartField:deviceScale: Scale only works on numeric fields")
 	 end,      
       abs = isNumberType and
          function (self)

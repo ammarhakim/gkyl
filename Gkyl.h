@@ -252,6 +252,7 @@ std::string Gkyl::createTopLevelDefs() const {
 
 #ifdef HAVE_CUDA_H
   varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
+  varDefs << "GKYL_DEFAULT_NUM_THREADS = 256" << std::endl;  
   int cuDriverVersion;
   cudaDriverGetVersion(&cuDriverVersion);
   varDefs << "GKYL_CUDA_DRIVER_VERSION = " << cuDriverVersion << std::endl;
