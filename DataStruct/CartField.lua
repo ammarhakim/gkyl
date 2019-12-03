@@ -361,6 +361,14 @@ local function Field_meta_ctor(elct)
       clear = function (self, val)
 	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
       end,
+      deviceClear = function (self, val)
+         if self._devData then
+	    local numThreads = GKYL_DEFAULT_NUM_THREADS
+	    local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	    local numBlocks = math.floor(shape/numThreads)+1
+	    ffiC.gkylCartFieldDeviceAssignAll(numBlocks, numThreads, self:_localLower(), self:_localShape(), val, self:deviceDataPointer())
+	 end
+      end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
 	 fc._cdata = self._data+loc
@@ -377,6 +385,15 @@ local function Field_meta_ctor(elct)
 
 	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
+      _deviceAssign = function(self, fact, fld)
+	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
+	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
+
+	 local numThreads = GKYL_DEFAULT_NUM_THREADS
+	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local numBlocks = math.floor(shape/numThreads)+1
+	 ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
+      end,
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
 		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
@@ -386,6 +403,19 @@ local function Field_meta_ctor(elct)
 		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
 	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+      end,
+      _deviceAccumulateOneFld = function(self, fact, fld)
+	 assert(field_compatible(self, fld),
+		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
+	 assert(type(fact) == "number",
+		"CartField:accumulate/combine: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
+
+	 local numThreads = GKYL_DEFAULT_NUM_THREADS
+	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local numBlocks = math.floor(shape/numThreads)+1
+	 ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
       accumulate = isNumberType and
 	 function (self, c1, fld1, ...)
@@ -399,13 +429,41 @@ local function Field_meta_ctor(elct)
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
 	 end,
-      combine = isNumberType and
+      deviceAccumulate = isNumberType and
 	 function (self, c1, fld1, ...)
-	    local args = {...} -- package up rest of args as table
-	    local nFlds = #args/2
-	    self:_assign(c1, fld1) -- assign first field
-	    for i = 1, nFlds do -- accumulate rest of the fields
-	       self:_accumulateOneFld(args[2*i-1], args[2*i])
+	    if self._devData then
+	       local args = {...} -- package up rest of args as table
+	       local nFlds = #args/2
+	       self:_deviceAccumulateOneFld(c1, fld1) -- accumulate first field
+	       for i = 1, nFlds do -- accumulate rest of the fields
+	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
+	       end
+	    end
+	 end or
+	 function (self, c1, fld1, ...)
+	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	 end,
+      combine = isNumberType and
+         function (self, c1, fld1, ...)
+            local args = {...} -- package up rest of args as table
+            local nFlds = #args/2
+            self:_assign(c1, fld1) -- assign first field
+            for i = 1, nFlds do -- accumulate rest of the fields
+               self:_accumulateOneFld(args[2*i-1], args[2*i])
+            end
+         end or
+         function (self, c1, fld1, ...)
+            assert(false, "CartField:combine: Combine only works on numeric fields")
+         end,
+      deviceCombine = isNumberType and
+	 function (self, c1, fld1, ...)
+	    if self._devData then
+	       local args = {...} -- package up rest of args as table
+	       local nFlds = #args/2
+	       self:_deviceAssign(c1, fld1) -- assign first field
+	       for i = 1, nFlds do -- accumulate rest of the fields
+	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
+	       end
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
