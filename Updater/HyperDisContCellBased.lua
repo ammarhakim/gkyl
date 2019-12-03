@@ -87,7 +87,7 @@ function HyperDisContCellBased:init(tbl)
    local ndim = self._onGrid:ndim()
    self.dxC, self.dxL, self.dxR = Lin.Vec(ndim), Lin.Vec(ndim), Lin.Vec(ndim) -- cell shape on right/left
    self.xcC, self.xcL, self.xcR = Lin.Vec(ndim), Lin.Vec(ndim), Lin.Vec(ndim) -- cell center on right/left
-   self.idxL, self.idxR = Lin.IntVec(ndim), Lin.IntVec(ndim) -- index on right/left
+   self.idxC, self.idxL, self.idxR = Lin.IntVec(ndim), Lin.IntVec(ndim), Lin.IntVec(ndim) -- index on right/left
 
    return self
 end
@@ -152,81 +152,177 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
    local rangeDecomp = LinearDecomp.LinearDecompRange {
       range = globalRange, numSplit = grid:numSharedProcs() }
 
+   if noIter then
+      --self._equation:_kernel(grid, rangeDecomp, self._updateDirs, self._zeroFluxFlags, dt, qIn, qRhsOut, cflRateByCell)
 
-   -- cell-based loop, which duplicates work to avoid race conditions in certain threading models
-   for idxC in rangeDecomp:rowMajorIter(tId) do
+      local updateDirs = self._updateDirs
+      local zeroFluxFlags = self._zeroFluxFlags
+      local invIndexer = Range.makeRowMajorInvIndexer(globalRange)
+      local indexer = qRhsOut:genIndexer()
+      local numComponents = self._basis:numBasis()
+      local idxC = self.idxC
 
-      -- volume update
-      grid:setIndex(idxC)
-      grid:getDx(dxC)
-      grid:cellCenter(xcC)
+      for linIdxC1 = 1, grid:totalNumCells() do
+         invIndexer(linIdxC1, idxC)
+         local linIdxC = indexer(idxC)
 
-      qIn:fill(qInIdxr(idxC), qInC)
-      
-      qRhsOut:fill(qRhsOutIdxr(idxC), qRhsOutC)
-      cflRateByCell:fill(cflRateByCellIdxr(idxC), cflRateByCellC)
+         -- volume update
+         grid:setIndex(idxC)
+         grid:getDx(dxC)
+         grid:cellCenter(xcC)
 
-      if self._updateVolumeTerm then
+         local qInC = qIn:get(1)
+         qIn:fill(linIdxC, qInC)
+
+         local qRhsOutC = qRhsOut:get(1)
+         qRhsOut:fill(linIdxC, qRhsOutC)
+
+         local cflRateByCellC = cflRateByCell:get(1)
+         cflRateByCell:fill(linIdxC, cflRateByCellC)
+
          cflRate = self._equation:volTerm(xcC, dxC, idxC, qInC, qRhsOutC)
          cflRateByCellC:data()[0] = cflRateByCellC:data()[0] + cflRate
-      end
 
-      -- surface update
-      for i = 1, #self._updateDirs do
-         local dir = self._updateDirs[i]
+         -- surface update
+         for i = 1, #updateDirs do
+            local dir = updateDirs[i]
 
-         -- get indexes of cells to left (L) and right (R)
-	 idxC:copyInto(idxL); idxC:copyInto(idxR)
-         idxL[dir] = idxC[dir] - 1
-         idxR[dir] = idxC[dir] + 1
+            -- get indexes of cells to left (L) and right (R)
+            idxC:copyInto(idxL); idxC:copyInto(idxR)
+            idxL[dir] = idxC[dir] - 1
+            idxR[dir] = idxC[dir] + 1
 
-         grid:setIndex(idxL)
-         grid:getDx(dxL)
-         grid:cellCenter(xcL)
-         
-         grid:setIndex(idxR)
-         grid:getDx(dxR)
-         grid:cellCenter(xcR)
-         
-         -- get L and R ptrs
-         qIn:fill(qInIdxr(idxL), qInL)
-         qIn:fill(qInIdxr(idxR), qInR)
-         qRhsOut:fill(qRhsOutIdxr(idxL), qRhsOutL)
-         qRhsOut:fill(qRhsOutIdxr(idxR), qRhsOutR)
-         cflRateByCell:fill(cflRateByCellIdxr(idxL), cflRateByCellL)
-         cflRateByCell:fill(cflRateByCellIdxr(idxR), cflRateByCellR)
+            grid:setIndex(idxL)
+            grid:getDx(dxL)
+            grid:cellCenter(xcL)
+            
+            grid:setIndex(idxR)
+            grid:getDx(dxR)
+            grid:cellCenter(xcR)
 
-         local cflC = cflRateByCellC:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
-         local cflL = cflRateByCellL:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
-         local cflR = cflRateByCellR:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
+            -- get linear index for idxL, idxR
+            local linIdxL = indexer(idxL)
+            local linIdxR = indexer(idxR)
 
-         -- left surface update
-         if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir) ) then
-	    local maxs = self._equation:surfTerm(
-	       dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
-	    self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
-         else
-            if self._zeroFluxFlags[dir] then
-               -- we need to give equations a chance to apply partial
-               -- surface updates even when the zeroFlux BCs have been
-               -- applied
-               self._equation:boundarySurfTerm(
-                  dir, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
+            -- get L and R ptrs
+            qIn:fill(linIdxL, qInL)
+            qIn:fill(linIdxR, qInR)
+            qRhsOut:fill(linIdxL, qRhsOutL)
+            qRhsOut:fill(linIdxR, qRhsOutR)
+            cflRateByCell:fill(linIdxL, cflRateByCellL)
+            cflRateByCell:fill(linIdxR, cflRateByCellR)
+
+            local cflC = cflRateByCellC:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
+            local cflL = cflRateByCellL:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
+            local cflR = cflRateByCellR:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
+
+            -- left (of C) surface update. use dummy in place of qRhsOutL (cell to left of surface) so that only current cell (C) is updated.
+            if not ( zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir) ) then
+               local maxs = self._equation:surfTerm(
+                  dir, cflL, cflC, xcL, xcC, dxL, dxC, nil, idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
+               --self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+            else
+               if zeroFluxFlags[dir] then
+                  -- we need to give equations a chance to apply partial
+                  -- surface updates even when the zeroFlux BCs have been
+                  -- applied
+                  self._equation:boundarySurfTerm(
+                     dir, xcL, xcC, dxL, dxC, nil, idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
+               end
+            end
+
+            -- right (of C) surface update. use dummy in place of qRhsOutR (cell to right of surface) so that only current cell (C) is updated.
+            if not ( zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir) ) then
+               local maxs = self._equation:surfTerm(
+                  dir, cflC, cflR, xcC, xcR, dxC, dxR, nil, idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
+               --self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+            else
+               if zeroFluxFlags[dir] then
+                  -- we need to give equations a chance to apply partial
+                  -- surface updates even when the zeroFlux BCs have been
+                  -- applied
+                  self._equation:boundarySurfTerm(
+                     dir, xcC, xcR, dxC, dxR, nil, idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
+               end
             end
          end
+      end
+   else 
+      -- cell-based loop, which duplicates work to avoid race conditions in certain threading models
+      for idxC in rangeDecomp:rowMajorIter(tId) do
 
-         -- right surface update
-         if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir) ) then
-	    local maxs = self._equation:surfTerm(
-	       dir, cflC, cflR, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
-	    self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
-         else
-            if self._zeroFluxFlags[dir] then
-               -- we need to give equations a chance to apply partial
-               -- surface updates even when the zeroFlux BCs have been
-               -- applied
-               self._equation:boundarySurfTerm(
-                  dir, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
+         -- volume update
+         grid:setIndex(idxC)
+         grid:getDx(dxC)
+         grid:cellCenter(xcC)
+
+         qIn:fill(qInIdxr(idxC), qInC)
+         
+         qRhsOut:fill(qRhsOutIdxr(idxC), qRhsOutC)
+         cflRateByCell:fill(cflRateByCellIdxr(idxC), cflRateByCellC)
+
+         if self._updateVolumeTerm then
+            cflRate = self._equation:volTerm(xcC, dxC, idxC, qInC, qRhsOutC)
+            cflRateByCellC:data()[0] = cflRateByCellC:data()[0] + cflRate
+         end
+
+         -- surface update
+         for i = 1, #self._updateDirs do
+            local dir = self._updateDirs[i]
+
+            -- get indexes of cells to left (L) and right (R)
+            idxC:copyInto(idxL); idxC:copyInto(idxR)
+            idxL[dir] = idxC[dir] - 1
+            idxR[dir] = idxC[dir] + 1
+
+            grid:setIndex(idxL)
+            grid:getDx(dxL)
+            grid:cellCenter(xcL)
+            
+            grid:setIndex(idxR)
+            grid:getDx(dxR)
+            grid:cellCenter(xcR)
+            
+            -- get L and R ptrs
+            qIn:fill(qInIdxr(idxL), qInL)
+            qIn:fill(qInIdxr(idxR), qInR)
+            qRhsOut:fill(qRhsOutIdxr(idxL), qRhsOutL)
+            qRhsOut:fill(qRhsOutIdxr(idxR), qRhsOutR)
+            cflRateByCell:fill(cflRateByCellIdxr(idxL), cflRateByCellL)
+            cflRateByCell:fill(cflRateByCellIdxr(idxR), cflRateByCellR)
+
+            local cflC = cflRateByCellC:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
+            local cflL = cflRateByCellL:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
+            local cflR = cflRateByCellR:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
+
+            -- left (of C) surface update. use dummy in place of qRhsOutL (cell to left of surface) so that only current cell (C) is updated.
+            if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir) ) then
+               local maxs = self._equation:surfTerm(
+                  dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
+               self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+            else
+               if self._zeroFluxFlags[dir] then
+                  -- we need to give equations a chance to apply partial
+                  -- surface updates even when the zeroFlux BCs have been
+                  -- applied
+                  self._equation:boundarySurfTerm(
+                     dir, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
+               end
+            end
+
+            -- right (of C) surface update. use dummy in place of qRhsOutR (cell to right of surface) so that only current cell (C) is updated.
+            if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir) ) then
+               local maxs = self._equation:surfTerm(
+                  dir, cflC, cflR, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
+               self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+            else
+               if self._zeroFluxFlags[dir] then
+                  -- we need to give equations a chance to apply partial
+                  -- surface updates even when the zeroFlux BCs have been
+                  -- applied
+                  self._equation:boundarySurfTerm(
+                     dir, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
+               end
             end
          end
       end
