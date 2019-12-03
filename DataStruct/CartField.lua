@@ -21,6 +21,12 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
 
+-- load CUDA allocators (or dummy when CUDA is not found)
+local cuAlloc = require "Cuda.AllocDummy"
+if GKYL_HAVE_CUDA then
+   cuAlloc = require "Cuda.Alloc"
+end
+
 -- C interfaces
 ffi.cdef [[
     // s: start index. nv: number of values
@@ -111,6 +117,11 @@ local function Field_meta_ctor(elct)
       local alloc = AllocShared.AllocShared_meta_ctor(elct)
       return alloc(comm, numElem)
    end
+   -- allocator for use in memory duplication on device
+   local function deviceAllocatorFunc(comm, numElem)
+      local alloc = cuAlloc.Alloc_meta_ctor(elct)
+      return alloc(numElem)
+   end
 
    -- make constructor for Field
    local Field = {}
@@ -139,6 +150,13 @@ local function Field_meta_ctor(elct)
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
       self._allocData = allocator(shmComm, sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
+
+      self._devData = 0 -- by default don't 
+      -- create device memory if needed
+      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
+      if createDeviceCopy then
+	 self._devData, cuErr = deviceAllocatorFunc(shmComm, sz)
+      end
 
       -- for number types fill it with zeros (for others, the
       -- assumption is that users will initialize themselves)
@@ -306,6 +324,18 @@ local function Field_meta_ctor(elct)
       end,
       copy = function (self, fIn)
 	 self:_assign(1.0, fIn)
+      end,
+      copyToDevice = function (self)
+	 if self._devData then
+	    return self._devData:copyFromHost(self._allocData)
+	 end
+	 return 0
+      end,
+      copyFromDevice = function (self)
+	 if self._devData then
+	    return self._devData:copyToHost(self._allocData)
+	 end
+	 return 0
       end,
       clear = function (self, val)
 	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)

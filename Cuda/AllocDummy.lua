@@ -1,12 +1,12 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Allocators for memory on GPU device. The data returned by this
--- can't be directly indexed as it is device memory
+-- A "dummy" object that does (mostly) nothing: this has identical
+-- interface to Cuda.Alloc so the calling code and use this when
+-- Gkeyll is built wihout CUDA
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
-local cuda = require "Cuda.RunTime"
 local ffi  = require "ffi"
 local ffiC = ffi.C
 local xsys = require "xsys"
@@ -15,7 +15,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 
 -- Alloc ----------------------------------------------------------------------
 --
--- A GPU device memory object
+-- A GPU device memory object (DUMMY version)
 --------------------------------------------------------------------------------
 
 local function Alloc_meta_ctor(elct)
@@ -46,19 +46,14 @@ local function Alloc_meta_ctor(elct)
       isNumberType = false
    end   
 
-   -- Use cuda memory allocator to allocate the memory on device
-   --
+   -- Nothing is really allocated
    local function alloc(ct, num)
       local adjBytes, adjNum = calcAdjustedSize(num)
       
       local v = new(ct)
       v._capacity = 0
       local err
-      v._data, err = cuda.Malloc(adjNum*elmSz)
-      -- not exactly sure what to do when cudaMalloc fails: aborting
-      -- perhaps is the best solution but may lead to issues with the
-      -- device
-      assert(cuda.Success == err, "Cuda.Alloc: unable to allocate device memory!")
+      v._data = 0
       v._capacity = adjNum
       v._size = num
       return v
@@ -81,16 +76,15 @@ local function Alloc_meta_ctor(elct)
 	 return self._size
       end,
       copyToHost = function(self, hd)
-	 return cuda.Memcpy(hd:data(), self:data(), self:elemSize()*self:size(), cuda.MemcpyDeviceToHost)
+	 return 0
       end,
       copyFromHost = function(self, hd)
-	 return cuda.Memcpy(self:data(), hd:data(), self:elemSize()*self:size(), cuda.MemcpyHostToDevice)
+	 return 0
       end,
       delete = function (self)
 	 if self._capacity == 0 then
 	    return false
 	 else
-	    cuda.Free(self._data)
 	    self._capacity = 0
 	 end
 	 return true
