@@ -337,6 +337,15 @@ local function Field_meta_ctor(elct)
 	 end
 	 return 0
       end,
+      deviceData = function (self)
+	 return self._devData
+      end,
+      deviceDataPointer = function (self)
+	 return self._devData:data()
+      end,
+      dataPointer = function (self)
+	 return self._allocData:data()
+      end,
       clear = function (self, val)
 	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
       end,
