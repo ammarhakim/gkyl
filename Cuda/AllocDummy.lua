@@ -53,7 +53,6 @@ local function Alloc_meta_ctor(elct)
       local v = new(ct)
       v._capacity = 0
       local err
-      v._data = 0
       v._capacity = adjNum
       v._size = num
       return v
