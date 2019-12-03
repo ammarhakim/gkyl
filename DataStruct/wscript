@@ -6,6 +6,13 @@
 import os
 
 def build(bld):
+    # CUDA specific code
+    if bld.env['CUTOOLS_FOUND']:
+        bld.objects(source = '_dummy.cpp CartFieldDeviceImpl.cu', 
+                    name = 'datastruct_cuobjs',
+                    includes = '.'
+        )
+
     bld.shlib(
         source = 'CartFieldImpl.cpp',
         target = 'gkdatastruct', name = 'datastruct', vnum = '1.0',

@@ -37,6 +37,18 @@ ffi.cdef [[
     void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
     void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
     void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
+
+    void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceScale(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, double *out);
+    void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
+
+    // copy component data from/to field
+    void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c);
+    void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c);
+
+    // assign all elements to specified value
+    void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 ]]
 
 -- Local definitions
@@ -402,6 +414,16 @@ local function Field_meta_ctor(elct)
       scale = isNumberType and
 	 function (self, fact)
 	    ffiC.gkylCartFieldScale(self:_localLower(), self:_localShape(), fact, self._data)
+	 end or
+	 function (self, fact)
+	    assert(false, "CartField:scale: Scale only works on numeric fields")
+	 end,
+      deviceScale = isNumberType and
+	 function (self, fact)
+	    local numThreads = 256
+	    local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	    local numBlocks = math.floor(shape/numThreads)+1
+	    ffiC.gkylCartFieldDeviceScale(numBlocks, numThreads,  self:_localLower(), self:_localShape(), fact, self:deviceDataPointer())
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:scale: Scale only works on numeric fields")
