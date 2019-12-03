@@ -18,7 +18,7 @@ local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
 -- A GPU device memory object
 --------------------------------------------------------------------------------
 
-local function Alloc_meta_ctor(elct)
+local function Alloc_meta_ctor(elct, _isManaged)
    local elmSz = sizeof(elct) -- element size in bytes
    -- block size in bytes
    local blockSz = 2048*elmSz
@@ -29,6 +29,11 @@ local function Alloc_meta_ctor(elct)
       local adjNum = math.floor(adjBytes/elmSz)
       return adjBytes, adjNum
    end
+
+   -- choose appropriate low-level allocator
+   local allocFunc = cuda.Malloc
+   local isManaged = _isManaged -- store this flag
+   if isManaged then allocFunc = cuda.MallocManaged end
 
    -- copy function for non-numeric types: this is used in methods
    -- that set array values if the element type stored is not numeric
@@ -48,13 +53,13 @@ local function Alloc_meta_ctor(elct)
 
    -- Use cuda memory allocator to allocate the memory on device
    --
-   local function alloc(ct, num)
+   local function alloc(ct, num, managed)
       local adjBytes, adjNum = calcAdjustedSize(num)
       
       local v = new(ct)
       v._capacity = 0
       local err
-      v._data, err = cuda.Malloc(adjNum*elmSz)
+      v._data, err = allocFunc(adjNum*elmSz)
       -- not exactly sure what to do when cudaMalloc fails: aborting
       -- perhaps is the best solution but may lead to issues with the
       -- device
@@ -97,16 +102,37 @@ local function Alloc_meta_ctor(elct)
       end,
    }
    local alloc_mt = {
-      __new = function (ct, num)
+      __new = function (ct, num, managed)
+	 local myManaged = managed
+	 if managed == nil then  managed = false end
 	 if num then
-	    return alloc(ct, num)
+	    return alloc(ct, num, managed)
 	 else
-	    return alloc(ct, 0)
+	    return alloc(ct, 0, managed)
 	 end
       end,
-      __index = function (self, k)
-	 return alloc_funcs[k]
-      end,
+      __index = isManaged and 
+	 function (self, k)
+	    if type(k) == "number" then
+	       return self._data[k-1]
+	    else
+	       return alloc_funcs[k]
+	    end
+	 end or
+	 function (self, k)
+	    if type(k) == "number" then
+	       assert(false, "Can't index un-managed device memory!")
+	    else
+	       return alloc_funcs[k]
+	    end 
+	 end,
+      __newindex = isManaged and
+	 function (self, k, v)
+	    self._data[k-1] = v
+	 end or
+	 function (self, k, v)
+	    assert(false, "Can't index un-managed device memory!")
+	 end,
       __gc = function (self)
 	 self:delete()
       end,
@@ -115,14 +141,17 @@ local function Alloc_meta_ctor(elct)
 end
 
 -- function to create an allocator for custom type
-local function createAllocator(typeStr)
-   return Alloc_meta_ctor(ffi.typeof(typeStr))
+local function createAllocator(typeStr, isManaged)
+   return Alloc_meta_ctor(ffi.typeof(typeStr), isManaged)
 end
 
 return {
    Alloc_meta_ctor = Alloc_meta_ctor,
-   Double = createAllocator("double"),
-   Float = createAllocator("float"),
-   Int = createAllocator("int"),
+   Double = createAllocator("double", false),
+   Float = createAllocator("float", false),
+   Int = createAllocator("int", false),
+   ManagedDouble = createAllocator("double", true),
+   ManagedFloat = createAllocator("float", true),
+   ManagedInt = createAllocator("int", true),
    createAllocator = createAllocator,
 }

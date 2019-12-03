@@ -194,11 +194,40 @@ function test_4()
    assert_equal(true, pass, "Checking if sumArray kernel worked")
 end
 
+-- managed mem management via Cuda.Alloc and kernel launches
+function test_5()
+   local len = 1e6
+
+   -- allocate managed memory on host
+   local d_x, d_y = cuAlloc.ManagedDouble(len, true), cuAlloc.ManagedDouble(len, true)
+   for i = 1, len do
+      d_x[i], d_y[i] = 10.5*i, 0.0
+   end
+
+   -- call kernel to do sum
+   local numThread = 256
+   local numBlock = math.floor(len/numThread)+1
+   ffi.C.unit_sumArray(numBlock, numThread, len, 2.5, d_x:data(), d_y:data())
+
+   err = cuda.DeviceSynchronize()
+
+   -- check if kernel worked
+   local pass = true
+   for i = 1, len do
+      if d_y[i] ~= 2.5*d_x[i] then
+   	 pass = false
+   	 break
+      end
+   end
+   assert_equal(true, pass, "Checking if sumArray kernel worked")
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
+test_5()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

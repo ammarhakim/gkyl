@@ -131,7 +131,7 @@ local function Field_meta_ctor(elct)
    end
    -- allocator for use in memory duplication on device
    local function deviceAllocatorFunc(comm, numElem)
-      local alloc = cuAlloc.Alloc_meta_ctor(elct)
+      local alloc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
       return alloc(numElem)
    end
 
