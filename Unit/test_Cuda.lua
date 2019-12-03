@@ -15,6 +15,7 @@ local Unit = require "Unit"
 local Alloc = require "Lib.Alloc"
 local ffi = require "ffi"
 local cuda = require "Cuda.RunTime"
+local cuAlloc = require "Cuda.Alloc"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
@@ -23,6 +24,7 @@ ffi.cdef [[
   void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
 ]]
 
+-- basis tests
 function test_1()
    assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
    local devNum = cuda.GetDevice()
@@ -32,6 +34,7 @@ function test_1()
    assert_equal(cuda.Success, err, "Checking of GetDeviceProperties worked")
 end
 
+-- raw mem management and kernel launches
 function test_2()
    assert_equal(0, cuda.MemcpyHostToHost, "Checking MemcpyKind")
    assert_equal(1, cuda.MemcpyHostToDevice, "Checking MemcpyKind")
@@ -39,7 +42,7 @@ function test_2()
    assert_equal(3, cuda.MemcpyDeviceToDevice, "Checking MemcpyKind")
    assert_equal(4, cuda.MemcpyDefault, "Checking MemcpyKind")
 
-   local len = 1e6 -- 1 million elements
+   local len = 1e6
 
    -- allocate memory on host
    local h_x, h_y = Alloc.Double(len), Alloc.Double(len)
@@ -92,6 +95,7 @@ function test_2()
    cuda.Free(d_x); cuda.Free(d_y)
 end
 
+-- managed mem management and kernel launches
 function test_3()
    local devNum = cuda.GetDevice()
    local prop, err = cuda.GetDeviceProperties(devNum)
@@ -136,10 +140,65 @@ function test_3()
    cuda.Free(m_x._data); cuda.Free(m_y._data)
 end
 
+-- mem management via Cuda.Alloc and kernel launches
+function test_4()
+   local len = 1e6
+
+   -- allocate memory on host
+   local h_x, h_y = Alloc.Double(len), Alloc.Double(len)
+   for i = 1, len do
+      h_x[i], h_y[i] = 10.5*i, 0.0
+   end
+
+   -- check if kernel worked (this is a null test to ensure that the kernel
+   -- call below is not "passing" erroneously
+   local pass = true
+   for i = 1, len do
+      if h_y[i] ~= 2.5*h_x[i] then
+	 pass = false
+	 break
+      end
+   end
+   assert_equal(false, pass, "Checking if sumArray kernel worked")
+
+   -- allocate memory on device
+   local d_x, d_y = cuAlloc.Double(len), cuAlloc.Double(len)
+   assert_equal(len, d_x:size(), "Checking size of cuAlloc")
+   assert_equal(len, d_y:size(), "Checking size of cuAlloc")
+
+   -- Copy from host memory
+   local err = d_x:copyFromHost(h_x)
+   assert_equal(cuda.Success, err, "Checking if Memcpy worked")
+   local err = d_y:copyFromHost(h_y)
+   assert_equal(cuda.Success, err, "Checking if Memcpy worked")
+
+   -- call kernel to do sum
+   local numThread = 256
+   local numBlock = math.floor(len/numThread)+1
+   ffi.C.unit_sumArray(numBlock, numThread, len, 2.5, d_x:data(), d_y:data())
+
+   -- Copy to host memory
+   local err = d_x:copyToHost(h_x)
+   assert_equal(cuda.Success, err, "Checking if Memcpy worked")
+   local err = d_y:copyToHost(h_y)
+   assert_equal(cuda.Success, err, "Checking if Memcpy worked")
+
+   -- check if kernel worked
+   local pass = true
+   for i = 1, len do
+      if h_y[i] ~= 2.5*h_x[i] then
+   	 pass = false
+   	 break
+      end
+   end
+   assert_equal(true, pass, "Checking if sumArray kernel worked")
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
+test_4()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
