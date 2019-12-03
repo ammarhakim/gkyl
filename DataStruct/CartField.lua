@@ -429,14 +429,26 @@ local function Field_meta_ctor(elct)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:deviceScale: Scale only works on numeric fields")
-	 end,      
+	 end,
       abs = isNumberType and
          function (self)
             ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:abs: Abs only works on numeric fields")
-	 end,      
+	 end,
+      deviceAbs = isNumberType and
+	 function (self)
+	    if self._devData then
+	       local numThreads = GKYL_DEFAULT_NUM_THREADS
+	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local numBlocks = math.floor(shape/numThreads)+1
+	       ffiC.gkylCartFieldDeviceAbs(numBlocks, numThreads,  self:_localLower(), self:_localShape(), self:deviceDataPointer())
+	    end
+	 end or
+	 function (self, fact)
+	    assert(false, "CartField:deviceAbs: Abs only works on numeric fields")
+	 end,
       defaultLayout = function (self)
 	 if defaultLayout == rowMajLayout then
 	    return "row-major"

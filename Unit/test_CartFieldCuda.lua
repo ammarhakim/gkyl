@@ -39,7 +39,8 @@ function test_1()
    local err = field:copyToDevice()
    assert_equal(0, err, "Checking if copy to device worked")
 
-   field:deviceScale(0.5)
+   field:deviceScale(-0.5)
+   field:deviceAbs()
    field:copyFromDevice()
 
    for i = localRange:lower(1), localRange:upper(1) do
