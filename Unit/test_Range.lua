@@ -687,6 +687,14 @@ function test_33()
    end   
 end
 
+function test_34()
+   if not GKYL_HAVE_CUDA then return end
+
+   local range = Range.Range({0, 0}, {1, 5})
+   local cuRange, err = Range.copyToDevice(range)
+   assert_equal(0, err, "Checking if range object copied to device")
+end
+
 -- Run tests
 test_1()
 test_2()
@@ -722,6 +730,7 @@ test_30()
 test_31()
 test_32()
 test_33()
+test_34()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))

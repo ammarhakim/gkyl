@@ -253,7 +253,7 @@ def buildExec(bld):
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useList = ' cuda CUTOOLS unit_cuobjs datastruct_cuobjs ' + useList
+        useList = ' cuda CUTOOLS unit_cuobjs lib_cuobjs datastruct_cuobjs ' + useList
 
     # set RPATH
     fullRpath = []

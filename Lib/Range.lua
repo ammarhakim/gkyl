@@ -27,6 +27,7 @@ _M.colMajor = 2
 
 ffi.cdef [[ typedef struct { int32_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; ]]
 local rTy = typeof("Range_t")
+local rSz = sizeof(rTy)
 
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
@@ -542,6 +543,17 @@ function _M.makeColMajorInvIndexer(range)
    local invFunc = invColIndexerFunctions[range:ndim()]
    return function (loc, idx)
       return invFunc(ac, range, loc, idx, div)
+   end
+end
+
+if GKYL_HAVE_CUDA then
+   local cuda = require "Cuda.RunTime"
+
+   -- Copy things to device representation of Range object.
+   function _M.copyToDevice(range)
+      local cuRange, err = cuda.Malloc(rSz)
+      cuda.Memcpy(cuRange, range, rSz, cuda.MemcpyHostToDevice)
+      return cuRange, err
    end
 end
 

@@ -6,9 +6,12 @@
 import os
 
 def build(bld):
-    bld.shlib(source = r"""
-    gkyl_ipow.cpp
-    whereami.c
-    base64.cpp
-    lfs.c""",
+    # CUDA specific code
+    if bld.env['CUTOOLS_FOUND']:
+        bld.objects(source = '_dummy.cpp Range.cu', 
+                    name = 'lib_cuobjs',
+                    includes = '.'
+        )
+
+    bld.shlib(source = "gkyl_ipow.cpp whereami.c base64.cpp lfs.c",
               use = "LUAJIT", includes = '.', target = 'gklib', name = 'lib', vnum = '1.0')
