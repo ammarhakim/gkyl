@@ -8,6 +8,9 @@
 -- system libraries
 local ffi = require "ffi"
 local ffiC = ffi.C
+local xsys = require "xsys"
+local new, copy, fill, sizeof, typeof, metatype = xsys.from(ffi,
+     "new, copy, fill, sizeof, typeof, metatype")
 
 -- Gkyl libraries
 local DecompRegionCalc = require "Lib.CartDecomp"
@@ -16,9 +19,44 @@ local Mpi = require "Comm.Mpi"
 local Proto = require "Lib.Proto"
 local Range = require "Lib.Range"
 
+local cuda = nil
+if GKYL_HAVE_CUDA then
+   cuda = require "Cuda.RunTime"
+end
+
 ffi.cdef [[
   void cellCenter(int ndim, double* lower, int* currIdx, double* dx, double* xc);
+
+  // Uniform Cartesian grid C representation
+  typedef struct {
+    int32_t ndim;
+    int32_t cells[6];
+    double lower[6], upper[6];
+    double vol, dx[6];
+  } RectCart_t;
 ]]
+
+local rectCartSz = sizeof("RectCart_t")
+
+local function getDevicePointerToGrid(grid)
+   if not GKYL_HAVE_CUDA then return nil end
+
+   -- first copy stuff to a C-struct
+   local g = ffi.new("RectCart_t")
+   g.ndim = grid:ndim()
+   g.vol = grid:cellVolume()
+   for i = 1, grid:ndim() do
+      g.cells[i-1] = grid:numCells(i)
+      g.lower[i-1] = grid:lower(i)
+      g.upper[i-1] = grid:upper(i)
+      g.dx[i-1] = grid:dx(i)
+   end
+   
+   -- copy stuff to device
+   local cuGrid, err = cuda.Malloc(rectCartSz)
+   cuda.Memcpy(cuGrid, g, rectCartSz, cuda.MemcpyHostToDevice)
+   return cuGrid, err
+end
 
 -- Determine local domain index. This is complicated by the fact that
 -- when using MPI-SHM the processes that live in shmComm all have the
@@ -214,6 +252,10 @@ end
 
 function RectCart:calcJacobian(xc)
    return 1.0
+end
+
+function RectCart:copyToDevice()
+   return getDevicePointerToGrid(self)
 end
 
 return RectCart

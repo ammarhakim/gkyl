@@ -17,16 +17,24 @@ local ffi = require "ffi"
 local cuda = require "Cuda.RunTime"
 local cuAlloc = require "Cuda.Alloc"
 local Range = require "Lib.Range"
+local Grid = require "Grid"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 ffi.cdef [[
-  typedef struct { int32_t ndim; int32_t lower[6]; int32_t upper[6]; } GkylRange;
-
   void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
   void unit_sayHello();
-  void unit_showRange(GkylRange *range);
+  void unit_showRange(Range_t *range);
+
+    typedef struct {
+        int32_t ndim;
+        int32_t cells[6];
+        double lower[6], upper[6];
+        double vol, dx[6];
+    } GkylRectCart;
+
+  void unit_showGrid(GkylRectCart *grid);
 ]]
 
 -- basis tests
@@ -45,6 +53,14 @@ function test_1()
    ffi.C.unit_showRange(cuRange)
 
    cuda.Free(cuRange)
+
+   local grid = Grid.RectCart {
+      lower = {0.0, 1.0},
+      upper = {2.0, 5.0},
+      cells = {10, 20}
+   }
+   local cuGrid = grid:copyToDevice()
+   ffi.C.unit_showGrid(cuGrid)
 end
 
 -- raw mem management and kernel launches
