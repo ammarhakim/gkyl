@@ -11,7 +11,7 @@
 #include <gkylconfig.h>
 
 #ifndef HAVE_CUDA_H
-# define __gobal__
+# define __global__
 # define __device__
 # define __host__
 #endif
