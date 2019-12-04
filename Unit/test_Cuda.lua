@@ -22,6 +22,7 @@ local stats = Unit.stats
 
 ffi.cdef [[
   void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
+  void unit_sayHello();
 ]]
 
 -- basis tests
@@ -32,6 +33,8 @@ function test_1()
 
    local prop, err = cuda.GetDeviceProperties(devNum)
    assert_equal(cuda.Success, err, "Checking of GetDeviceProperties worked")
+
+   ffi.C.unit_sayHello()
 end
 
 -- raw mem management and kernel launches
