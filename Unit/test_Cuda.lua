@@ -16,13 +16,17 @@ local Alloc = require "Lib.Alloc"
 local ffi = require "ffi"
 local cuda = require "Cuda.RunTime"
 local cuAlloc = require "Cuda.Alloc"
+local Range = require "Lib.Range"
 
 local assert_equal = Unit.assert_equal
 local stats = Unit.stats
 
 ffi.cdef [[
+  typedef struct { int32_t ndim; int32_t lower[6]; int32_t upper[6]; } GkylRange;
+
   void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
   void unit_sayHello();
+  void unit_showRange(GkylRange *range);
 ]]
 
 -- basis tests
@@ -35,6 +39,12 @@ function test_1()
    assert_equal(cuda.Success, err, "Checking of GetDeviceProperties worked")
 
    ffi.C.unit_sayHello()
+   
+   local range = Range.Range({0, 0, 0}, {1, 5, 20})
+   local cuRange = Range.copyToDevice(range)
+   ffi.C.unit_showRange(cuRange)
+
+   cuda.Free(cuRange)
 end
 
 -- raw mem management and kernel launches

@@ -167,7 +167,7 @@ local function Field_meta_ctor(elct)
       -- create device memory if needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
       if createDeviceCopy then
-	 self._devData, cuErr = deviceAllocatorFunc(shmComm, sz)
+	 self._devData = deviceAllocatorFunc(shmComm, sz)
       end
       if not GKYL_HAVE_CUDA then self._devData = nil end
 
