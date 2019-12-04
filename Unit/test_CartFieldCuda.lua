@@ -53,11 +53,13 @@ function test_1()
    field:deviceAccumulate(2.0, field2, 0.5, field2)
    field:copyFromDevice()
 
-   for i = localRange:lower(1), localRange:upper(1) do
-      local fitr = field:get(indexer(i))
-      assert_equal(0.5*(i+1)+2.5, fitr[1], "Checking deviceScale")
-      assert_equal(0.5*(i+2)+2.5, fitr[2], "Checking deviceScale")
-      assert_equal(0.5*(i+3)+2.5, fitr[3], "Checking deviceScale")
+   if GKYL_HAVE_CUDA then
+      for i = localRange:lower(1), localRange:upper(1) do
+	 local fitr = field:get(indexer(i))
+	 assert_equal(0.5*(i+1)+2.5, fitr[1], "Checking deviceScale")
+	 assert_equal(0.5*(i+2)+2.5, fitr[2], "Checking deviceScale")
+	 assert_equal(0.5*(i+3)+2.5, fitr[3], "Checking deviceScale")
+      end
    end
 end
 

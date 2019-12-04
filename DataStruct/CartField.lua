@@ -163,12 +163,13 @@ local function Field_meta_ctor(elct)
       self._allocData = allocator(shmComm, sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
 
-      self._devData = 0 -- by default don't 
+      self._devData = nil -- by default no device memory
       -- create device memory if needed
       local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
       if createDeviceCopy then
 	 self._devData, cuErr = deviceAllocatorFunc(shmComm, sz)
       end
+      if not GKYL_HAVE_CUDA then self._devData = nil end
 
       -- for number types fill it with zeros (for others, the
       -- assumption is that users will initialize themselves)
