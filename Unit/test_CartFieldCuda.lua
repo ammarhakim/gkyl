@@ -42,8 +42,8 @@ function test_1()
    end
 
    -- copy stuff to device
-   local err = field:copyToDevice()
-   local err2 = field2:copyToDevice()
+   local err = field:copyHostToDevice()
+   local err2 = field2:copyHostToDevice()
    assert_equal(0, err, "Checking if copy to device worked")
    assert_equal(0, err2, "Checking if copy to device worked")
 
@@ -51,7 +51,7 @@ function test_1()
    field:deviceAbs()
    field2:deviceClear(1.0)
    field:deviceAccumulate(2.0, field2, 0.5, field2)
-   field:copyFromDevice()
+   field:copyDeviceToHost()
 
    if GKYL_HAVE_CUDA then
       for i = localRange:lower(1), localRange:upper(1) do

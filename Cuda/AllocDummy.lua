@@ -74,10 +74,10 @@ local function Alloc_meta_ctor(elct)
       size = function(self)
 	 return self._size
       end,
-      copyToHost = function(self, hd)
+      copyDeviceToHost = function(self, hd)
 	 return 0
       end,
-      copyFromHost = function(self, hd)
+      copyHostToDevice = function(self, hd)
 	 return 0
       end,
       delete = function (self)

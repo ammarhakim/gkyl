@@ -85,10 +85,10 @@ local function Alloc_meta_ctor(elct, _isManaged)
       size = function(self)
 	 return self._size
       end,
-      copyToHost = function(self, hd)
+      copyDeviceToHost = function(self, hd)
 	 return cuda.Memcpy(hd:data(), self:data(), self:elemSize()*self:size(), cuda.MemcpyDeviceToHost)
       end,
-      copyFromHost = function(self, hd)
+      copyHostToDevice = function(self, hd)
 	 return cuda.Memcpy(self:data(), hd:data(), self:elemSize()*self:size(), cuda.MemcpyHostToDevice)
       end,
       delete = function (self)

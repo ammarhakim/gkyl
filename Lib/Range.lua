@@ -550,7 +550,7 @@ if GKYL_HAVE_CUDA then
    local cuda = require "Cuda.RunTime"
 
    -- Copy things to device representation of Range object.
-   function _M.copyToDevice(range)
+   function _M.copyHostToDevice(range)
       local cuRange, err = cuda.Malloc(rSz)
       cuda.Memcpy(cuRange, range, rSz, cuda.MemcpyHostToDevice)
       return cuRange, err

@@ -49,7 +49,7 @@ function test_1()
    ffi.C.unit_sayHello()
    
    local range = Range.Range({0, 0, 0}, {1, 5, 20})
-   local cuRange = Range.copyToDevice(range)
+   local cuRange = Range.copyHostToDevice(range)
    ffi.C.unit_showRange(cuRange)
 
    cuda.Free(cuRange)
@@ -59,7 +59,7 @@ function test_1()
       upper = {2.0, 5.0},
       cells = {10, 20}
    }
-   local cuGrid = grid:copyToDevice()
+   local cuGrid = grid:copyHostToDevice()
    ffi.C.unit_showGrid(cuGrid)
 end
 
@@ -196,9 +196,9 @@ function test_4()
    assert_equal(len, d_y:size(), "Checking size of cuAlloc")
 
    -- Copy from host memory
-   local err = d_x:copyFromHost(h_x)
+   local err = d_x:copyHostToDevice(h_x)
    assert_equal(cuda.Success, err, "Checking if Memcpy worked")
-   local err = d_y:copyFromHost(h_y)
+   local err = d_y:copyHostToDevice(h_y)
    assert_equal(cuda.Success, err, "Checking if Memcpy worked")
 
    -- call kernel to do sum
@@ -207,9 +207,9 @@ function test_4()
    ffi.C.unit_sumArray(numBlock, numThread, len, 2.5, d_x:data(), d_y:data())
 
    -- Copy to host memory
-   local err = d_x:copyToHost(h_x)
+   local err = d_x:copyDeviceToHost(h_x)
    assert_equal(cuda.Success, err, "Checking if Memcpy worked")
-   local err = d_y:copyToHost(h_y)
+   local err = d_y:copyDeviceToHost(h_y)
    assert_equal(cuda.Success, err, "Checking if Memcpy worked")
 
    -- check if kernel worked

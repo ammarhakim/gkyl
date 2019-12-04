@@ -254,7 +254,7 @@ function RectCart:calcJacobian(xc)
    return 1.0
 end
 
-function RectCart:copyToDevice()
+function RectCart:copyHostToDevice()
    return getDevicePointerToGrid(self)
 end
 

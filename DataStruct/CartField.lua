@@ -338,15 +338,20 @@ local function Field_meta_ctor(elct)
       copy = function (self, fIn)
 	 self:_assign(1.0, fIn)
       end,
-      copyToDevice = function (self)
+      deviceCopy = function (self, fIn)
+         if self._devData then
+	    self:_deviceAssign(1.0, fIn)
+	 end
+      end,
+      copyHostToDevice = function (self)
 	 if self._devData then
-	    return self._devData:copyFromHost(self._allocData)
+	    return self._devData:copyHostToDevice(self._allocData)
 	 end
 	 return 0
       end,
-      copyFromDevice = function (self)
+      copyDeviceToHost = function (self)
 	 if self._devData then
-	    return self._devData:copyToHost(self._allocData)
+	    return self._devData:copyDeviceToHost(self._allocData)
 	 end
 	 return 0
       end,
