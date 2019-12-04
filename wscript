@@ -26,7 +26,7 @@ from waflib import TaskGen
 # other way to do this at present. AHH Dec 1 2019.)
 TaskGen.declare_chain(
     name = 'nvccc',
-    rule = '${NVCCC} -c -O3 --shared  ${SRC} -o ${TGT}',
+    rule = '${NVCCC} -c -O3 --shared ${SRC} -o ${TGT}',
     shell = False,
     ext_in = '.cu',
     ext_out = '.o',
@@ -253,7 +253,7 @@ def buildExec(bld):
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useList = ' cuda CUTOOLS unit_cuobjs lib_cuobjs datastruct_cuobjs ' + useList
+        useList = ' cuda CUTOOLS unit_cuobjs lib_cuobjs datastruct_cuobjs updater_cuobjs ' + useList
 
     # set RPATH
     fullRpath = []
