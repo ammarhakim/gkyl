@@ -157,13 +157,26 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
 
       local updateDirs = self._updateDirs
       local zeroFluxFlags = self._zeroFluxFlags
-      local invIndexer = Range.makeRowMajorInvIndexer(globalRange)
-      local indexer = qRhsOut:genIndexer()
       local numComponents = self._basis:numBasis()
       local idxC = self.idxC
 
+      -- use globalRange for invIndexer. 
+      -- it will take a linear index from 1 to total number of cells
+      -- and convert it to an i,j,k... index
+      local invIndexer = Range.makeRowMajorInvIndexer(globalRange)
+      
+      -- use genIndexer from qRhsOut for indexer. 
+      -- need to use this because qRhsOut has ghost/skin cells
+      -- this will result in a linear index with jumps because of ghost/skin cells
+      local indexer = qRhsOut:genIndexer()
+
+      -- loop over number of (non-ghost/skin) cells
       for linIdxC1 = 1, grid:totalNumCells() do
+         -- get i,j,k... index idxC from invIndexer
          invIndexer(linIdxC1, idxC)
+         -- convert i,j,k... index idxC into a linear index linIdxC
+         -- note that linIdxC != linIdxC1.
+         -- this is because linIdxC will have jumps because of ghost/skin cells
          local linIdxC = indexer(idxC)
 
          -- volume update
