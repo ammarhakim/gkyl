@@ -3,6 +3,33 @@
 #include <cstdio>
 #include "RectCartDeviceImpl.h"
 
+template <unsigned NDIM>
+class SimpleIndexer
+{
+  public:
+    __device__ inline int indexer(const GkylRange_t *range, const int indx[NDIM]) {
+      return 0;
+    }
+};
+
+template <>
+class SimpleIndexer<1>
+{
+  public:
+    __device__ inline int indexer(const GkylRange_t *range, int i1) {
+      return 1;
+    }
+};
+
+template <>
+class SimpleIndexer<2>
+{
+  public:
+    __device__ inline int indexer(const GkylRange_t *range, int i1, int i2) {
+      return 2;
+    }
+};
+
 extern "C" 
 {
     void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
@@ -28,6 +55,12 @@ __global__ void ker_unit_showRange(GkylRange_t *range)
   printf("Range ndim: %d\n", range->ndim);
   for (unsigned i=0; i<range->ndim; ++i)
     printf(" %d, %d\n", range->lower[i], range->upper[i]);
+
+  SimpleIndexer<1> idxr1;
+  SimpleIndexer<2> idxr2;
+  int lin1 = idxr1.indexer(range, 0);
+  int lin2 = idxr2.indexer(range, 0, 1);
+  printf("  --- Calls to indexers %d, %d\n", lin1, lin2);
 }
 
 __global__ void ker_unit_showGrid(RectCart_t *grid)
