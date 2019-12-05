@@ -6,6 +6,13 @@
 import os
 
 def build(bld):
+    # CUDA specific code
+    if bld.env['CUTOOLS_FOUND']:
+        bld.objects(source = 'RectCartDeviceImpl.cu', 
+                    name = 'grid_cuobjs',
+                    includes = '.', features = 'cxx'
+        )
+
     bld.shlib(
         source = 'RectCartImpl.cpp',
         target = 'gkgrid', name = 'grid', vnum = '1.0',

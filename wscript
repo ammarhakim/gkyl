@@ -24,15 +24,15 @@ from waflib import TaskGen
 # for compiling cu files to object code (this is probably not the best
 # way to do this. Why is this declared globally? Can't figure any
 # other way to do this at present. AHH Dec 1 2019.)
-TaskGen.declare_chain(
-    name = 'nvccc',
-    rule = '${NVCCC} -c -O3 --shared ${SRC} -o ${TGT}',
-    shell = False,
-    ext_in = '.cu',
-    ext_out = '.o',
-    reentrant = True,
-    install_path = False,
-)
+#TaskGen.declare_chain(
+#    name = 'nvccc',
+#    rule = '${NVCCC} -c -O3 --shared ${SRC} -o ${TGT}',
+#    shell = False,
+#    ext_in = '.cu',
+#    ext_out = '.o',
+#    reentrant = True,
+#    install_path = False,
+#)
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
@@ -51,6 +51,7 @@ def configure(conf):
     conf.check_eigen()
     conf.check_sqlite3()
     conf.check_cutools()
+    conf.load('cutools', tooldir='waf_tools')
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -253,7 +254,7 @@ def buildExec(bld):
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useList = ' cuda CUTOOLS unit_cuobjs lib_cuobjs datastruct_cuobjs updater_cuobjs ' + useList
+        useList = ' cuda CUTOOLS unit_cuobjs lib_cuobjs datastruct_cuobjs updater_cuobjs grid_cuobjs culink ' + useList
 
     # set RPATH
     fullRpath = []
@@ -261,14 +262,31 @@ def buildExec(bld):
     appendToList(fullRpath, bld.env.LIBDIR)
     appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
 
+    # link cuda object files with nvcc -dlink
+    if bld.env['CUTOOLS_FOUND']:
+       bld.add_group() # make sure objects built already
+       it = bld.path.get_bld().ant_glob('*/*.cu.*.o', remove=False, quiet=True, generator=True)
+       bld(
+           features='cxx',
+           rule='${NVCC} -O3 -dlink ${SRC} ${CXXLNK_TGT_F} ${TGT}',
+           source=it,
+           name = 'culink',
+           target = 'culink.o'
+       )
+
     # build gkyl executable
+    source = ['gkyl.cxx']
+    if bld.env['CUTOOLS_FOUND']:
+       bld.add_group() # make sure nvcc link is done
+       appendToList(source, 'culink.o')
     bld.program(
-        source ='gkyl.cxx', target='gkyl',
+        features = 'cxx',
+        source = source, target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
         rpath = fullRpath,
-        lib = 'pthread ' + bld.env.EXTRALIBS
+        lib = 'pthread ' + bld.env.EXTRALIBS,
     )
 
 def dist(ctx):

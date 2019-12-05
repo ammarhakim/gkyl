@@ -8,9 +8,9 @@ import os
 def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        bld.objects(source = '_dummy.cpp CartFieldDeviceImpl.cu', 
+        bld.objects(source = 'CartFieldDeviceImpl.cu', 
                     name = 'datastruct_cuobjs',
-                    includes = '.'
+                    includes = '.', features = 'cxx'
         )
 
     bld.shlib(
