@@ -25,9 +25,17 @@ _M.colMajor = 2
 -- A range object, representing a ndim integer index set. 
 --------------------------------------------------------------------------------
 
-ffi.cdef [[ typedef struct { int32_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; ]]
+ffi.cdef [[ 
+  typedef struct { int32_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; 
+
+  // this type is for communicating with CUDA
+  typedef struct { 
+    int32_t _ndim; int32_t _lower[6]; int32_t _upper[6];
+    int _rowMajorIndexerCoeff[7], _colMajorIndexerCoeff[7];
+  } GkylRange_t;
+]]
 local rTy = typeof("Range_t")
-local rSz = sizeof(rTy)
+local gRangeSz = sizeof(typeof("GkylRange_t"))
 
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
@@ -362,7 +370,7 @@ local genIndexerFunctions = {
 
 -- create coefficients for row-major indexer  given "range" object
 local function calcRowMajorIndexerCoeff(range)
-   local ac = new("double[7]")
+   local ac = new("int[7]")
    local ndim = range:ndim()
    ac[ndim] = 1
    for i = ndim-1, 1, -1 do
@@ -378,7 +386,7 @@ end
 
 -- create coefficients for column-major indexer  given "range" object
 local function calcColMajorIndexerCoeff(range)
-   local ac = new("double[7]")
+   local ac = new("int[7]")
    local ndim = range:ndim()
    ac[1] = 1
    for i = 2, ndim do
@@ -551,8 +559,21 @@ if GKYL_HAVE_CUDA then
 
    -- Copy things to device representation of Range object.
    function _M.copyHostToDevice(range)
-      local cuRange, err = cuda.Malloc(rSz)
-      cuda.Memcpy(cuRange, range, rSz, cuda.MemcpyHostToDevice)
+      local hoRange = ffi.new(typeof("GkylRange_t"))
+      local row_c, col_c = calcRowMajorIndexerCoeff(range), calcColMajorIndexerCoeff(range)
+
+      hoRange._ndim = range:ndim()
+      for d = 0, range:ndim()-1 do
+	 hoRange._lower[d] = range._lower[d]
+	 hoRange._upper[d] = range._upper[d]
+      end
+      for d = 0, range:ndim() do
+	 hoRange._rowMajorIndexerCoeff[d] = row_c[d]
+	 hoRange._colMajorIndexerCoeff[d] = col_c[d]
+      end
+
+      local cuRange, err = cuda.Malloc(gRangeSz)
+      cuda.Memcpy(cuRange, hoRange, gRangeSz, cuda.MemcpyHostToDevice)
       return cuRange, err
    end
 end

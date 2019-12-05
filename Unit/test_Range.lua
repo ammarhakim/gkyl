@@ -691,7 +691,7 @@ function test_34()
    if not GKYL_HAVE_CUDA then return end
 
    local range = Range.Range({0, 0}, {1, 5})
-   local cuRange, err = Range.copyToDevice(range)
+   local cuRange, err = Range.copyHostToDevice(range)
    assert_equal(0, err, "Checking if range object copied to device")
 end
 

@@ -7,7 +7,7 @@ extern "C"
 {
     void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
     void unit_sayHello();
-    void unit_showRange(Range_t *range);
+    void unit_showRange(GkylRange_t *range);
     void unit_showGrid(RectCart_t *grid);
 }
 
@@ -22,7 +22,7 @@ __global__ void ker_unit_sayHello()
   printf("Hello!\n");
 }
 
-__global__ void ker_unit_showRange(Range_t *range)
+__global__ void ker_unit_showRange(GkylRange_t *range)
 {
   printf("Range ndim: %d\n", range->ndim);
   for (unsigned i=0; i<range->ndim; ++i)
@@ -50,7 +50,7 @@ void unit_sayHello()
   ker_unit_sayHello<<<1, 1>>>();
 }
 
-void unit_showRange(Range_t *devRange)
+void unit_showRange(GkylRange_t *devRange)
 {
   ker_unit_showRange<<<1, 1>>>(devRange);
 }
