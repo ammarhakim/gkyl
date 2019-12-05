@@ -150,20 +150,20 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
    local cflRate
 
    local rangeDecomp = LinearDecomp.LinearDecompRange {
-      range = globalRange, numSplit = grid:numSharedProcs() }
+      range = localRange, numSplit = grid:numSharedProcs() }
 
    if noIter then
-      --self._equation:_kernel(grid, rangeDecomp, self._updateDirs, self._zeroFluxFlags, dt, qIn, qRhsOut, cflRateByCell)
+      --self._equation:_kernel(grid, localRange, localExtRange, self._updateDirs, self._zeroFluxFlags, dt, qIn, qRhsOut, cflRateByCell, self._maxsLocal)
 
       local updateDirs = self._updateDirs
       local zeroFluxFlags = self._zeroFluxFlags
       local numComponents = self._basis:numBasis()
       local idxC = self.idxC
 
-      -- use globalRange for invIndexer. 
+      -- use localRange for invIndexer. 
       -- it will take a linear index from 1 to total number of cells
       -- and convert it to an i,j,k... index
-      local invIndexer = Range.makeRowMajorInvIndexer(globalRange)
+      local invIndexer = Range.makeRowMajorInvIndexer(localRange)
       
       -- use genIndexer from qRhsOut for indexer. 
       -- need to use this because qRhsOut has ghost/skin cells
@@ -171,7 +171,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
       local indexer = qRhsOut:genIndexer()
 
       -- loop over number of (non-ghost/skin) cells
-      for linIdxC1 = 1, grid:totalNumCells() do
+      for linIdxC1 = 1, localRange:volume() do
          -- get i,j,k... index idxC from invIndexer
          invIndexer(linIdxC1, idxC)
          -- convert i,j,k... index idxC into a linear index linIdxC
@@ -230,10 +230,10 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             local cflR = cflRateByCellR:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
 
             -- left (of C) surface update. use dummy in place of qRhsOutL (cell to left of surface) so that only current cell (C) is updated.
-            if not ( zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir) ) then
+            if not ( zeroFluxFlags[dir] and idxC[dir] == localRange:lower(dir) ) then
                local maxs = self._equation:surfTerm(
                   dir, cflL, cflC, xcL, xcC, dxL, dxC, nil, idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
-               --self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+               self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if zeroFluxFlags[dir] then
                   -- we need to give equations a chance to apply partial
@@ -245,10 +245,10 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             end
 
             -- right (of C) surface update. use dummy in place of qRhsOutR (cell to right of surface) so that only current cell (C) is updated.
-            if not ( zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir) ) then
+            if not ( zeroFluxFlags[dir] and idxC[dir] == localRange:upper(dir) ) then
                local maxs = self._equation:surfTerm(
                   dir, cflC, cflR, xcC, xcR, dxC, dxR, nil, idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
-               --self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+               self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if zeroFluxFlags[dir] then
                   -- we need to give equations a chance to apply partial
@@ -309,7 +309,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             local cflR = cflRateByCellR:data()[0]*dt/.9 -- .9 here is conservative, but we are using dt from the prev step
 
             -- left (of C) surface update. use dummy in place of qRhsOutL (cell to left of surface) so that only current cell (C) is updated.
-            if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:lower(dir) ) then
+            if not ( self._zeroFluxFlags[dir] and idxC[dir] == localRange:lower(dir) ) then
                local maxs = self._equation:surfTerm(
                   dir, cflL, cflC, xcL, xcC, dxL, dxC, self._maxsOld[dir], idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
@@ -324,7 +324,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             end
 
             -- right (of C) surface update. use dummy in place of qRhsOutR (cell to right of surface) so that only current cell (C) is updated.
-            if not ( self._zeroFluxFlags[dir] and idxC[dir] == globalRange:upper(dir) ) then
+            if not ( self._zeroFluxFlags[dir] and idxC[dir] == localRange:upper(dir) ) then
                local maxs = self._equation:surfTerm(
                   dir, cflC, cflR, xcC, xcR, dxC, dxR, self._maxsOld[dir], idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
                self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)

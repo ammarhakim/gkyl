@@ -1,9 +1,9 @@
 #include "RectCartDeviceImpl.h"
 
-__device__ void cellCenter(RectCart_t* grid, int* idx, double* xc)
+__device__ void RectCart_t::cellCenter(int* idx, double* xc)
 {
-  for(unsigned int d=0; d<grid->ndim; d++) {
-    xc[d] = grid->lower[d] + (idx[d]-0.5)*grid->dx[d];
+  for(unsigned int d=0; d<this->ndim; d++) {
+    xc[d] = this->lower[d] + (idx[d]-0.5)*this->dx[d];
   }
 }
 

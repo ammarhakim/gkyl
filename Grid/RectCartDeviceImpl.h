@@ -13,9 +13,9 @@ extern "C"
         int32_t cells[6];
         double lower[6], upper[6];
         double vol, dx[6];
+        __device__ void cellCenter(int* idx, double* xc);
     } RectCart_t;
 }
 
-__device__ void cellCenter(RectCart_t* grid, int* idx, double* xc);
 
 #endif // RECT_CART_DEVICE_IMPL_H
