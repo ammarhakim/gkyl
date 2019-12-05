@@ -153,7 +153,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
       range = localRange, numSplit = grid:numSharedProcs() }
 
    if noIter then
-      --self._equation:_kernel(grid, localRange, self._updateDirs, self._zeroFluxFlags, dt, qIn, qRhsOut, cflRateByCell)
+      --self._equation:_kernel(grid, localRange, localExtRange, self._updateDirs, self._zeroFluxFlags, dt, qIn, qRhsOut, cflRateByCell, self._maxsLocal)
 
       local updateDirs = self._updateDirs
       local zeroFluxFlags = self._zeroFluxFlags
@@ -233,7 +233,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             if not ( zeroFluxFlags[dir] and idxC[dir] == localRange:lower(dir) ) then
                local maxs = self._equation:surfTerm(
                   dir, cflL, cflC, xcL, xcC, dxL, dxC, nil, idxL, idxC, qInL, qInC, self.dummy, qRhsOutC)
-               --self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+               self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if zeroFluxFlags[dir] then
                   -- we need to give equations a chance to apply partial
@@ -248,7 +248,7 @@ function HyperDisContCellBased:_advance(tCurr, inFld, outFld)
             if not ( zeroFluxFlags[dir] and idxC[dir] == localRange:upper(dir) ) then
                local maxs = self._equation:surfTerm(
                   dir, cflC, cflR, xcC, xcR, dxC, dxR, nil, idxC, idxR, qInC, qInR, qRhsOutC, self.dummy)
-               --self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
+               self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
             else
                if zeroFluxFlags[dir] then
                   -- we need to give equations a chance to apply partial

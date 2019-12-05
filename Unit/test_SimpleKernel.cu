@@ -37,7 +37,7 @@ __global__ void ker_unit_showGrid(RectCart_t *grid)
 
   double xc[6];
   int idx[6];
-  cellCenter(grid, idx, xc);
+  grid->cellCenter(idx, xc);
 }
 
 void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y)
