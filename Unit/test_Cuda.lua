@@ -27,14 +27,8 @@ ffi.cdef [[
   void unit_sayHello();
   void unit_showRange(GkylRange_t *range);
 
-    typedef struct {
-        int32_t ndim;
-        int32_t cells[6];
-        double lower[6], upper[6];
-        double vol, dx[6];
-    } GkylRectCart;
-
-  void unit_showGrid(GkylRectCart *grid);
+  void unit_showGrid(RectCart_t *grid);
+  void unit_getCellCenter(RectCart_t *grid, int *idx, double *xc);
 ]]
 
 -- basis tests
@@ -48,19 +42,6 @@ function test_1()
 
    ffi.C.unit_sayHello()
    
-   local range = Range.Range({0, 0, 0}, {1, 5, 20})
-   local cuRange = Range.copyHostToDevice(range)
-   ffi.C.unit_showRange(cuRange)
-
-   cuda.Free(cuRange)
-
-   local grid = Grid.RectCart {
-      lower = {0.0, 1.0},
-      upper = {2.0, 5.0},
-      cells = {10, 20}
-   }
-   local cuGrid = grid:copyHostToDevice()
-   ffi.C.unit_showGrid(cuGrid)
 end
 
 -- raw mem management and kernel launches
@@ -251,12 +232,48 @@ function test_5()
    assert_equal(true, pass, "Checking if sumArray kernel worked")
 end
 
+-- range tests
+function test_6()
+   local range = Range.Range({0, 0, 0}, {1, 5, 20})
+   local cuRange = Range.copyHostToDevice(range)
+   ffi.C.unit_showRange(cuRange)
+
+   cuda.Free(cuRange)
+end
+
+-- grid tests
+function test_7()
+   local grid = Grid.RectCart {
+      lower = {0.0, 1.0},
+      upper = {2.0, 5.0},
+      cells = {10, 20}
+   }
+   local cuGrid = grid:copyHostToDevice()
+   ffi.C.unit_showGrid(cuGrid)
+
+   local h_idx = Alloc.Int(2)
+   h_idx[1] = 1
+   h_idx[2] = 2
+   local d_idx = cuAlloc.Int(2)
+   d_idx:copyHostToDevice(h_idx)
+ 
+   local d_xc = cuAlloc.Double(2)
+   ffi.C.unit_getCellCenter(cuGrid, d_idx:data(), d_xc:data())
+
+   local h_xc = Alloc.Double(2)
+   d_xc:copyDeviceToHost(h_xc)
+
+   assert_equal(h_xc[1]==0.1 and h_xc[2]==1.3, true, "Checking cell centers")
+end
+
 -- Run tests
 test_1()
 test_2()
 test_3()
 test_4()
 test_5()
+test_6()
+test_7()
 
 if stats.fail > 0 then
    print(string.format("\nPASSED %d tests", stats.pass))
