@@ -1,3 +1,5 @@
+/* -*- c++ -*- */
+
 #include "RectCartDeviceImpl.h"
 
 __device__ void RectCart_t::cellCenter(int* idx, double* xc)

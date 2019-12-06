@@ -4,11 +4,6 @@
 extern "C" 
 {
     typedef struct {
-      int32_t ndim; int32_t lower[6]; int32_t upper[6];
-      int rowMajorIndexerCoeff[7], colMajorIndexerCoeff[7];
-    } GkylRange_t;
-
-    typedef struct {
         int32_t ndim;
         int32_t cells[6];
         double lower[6], upper[6];

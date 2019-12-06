@@ -26,16 +26,12 @@ _M.colMajor = 2
 --------------------------------------------------------------------------------
 
 ffi.cdef [[ 
-  typedef struct { int32_t _ndim; int32_t _lower[6]; int32_t _upper[6]; } Range_t; 
-
-  // this type is for communicating with CUDA
-  typedef struct { 
-    int32_t _ndim; int32_t _lower[6]; int32_t _upper[6];
+  typedef struct { int32_t _ndim; int32_t _lower[6]; int32_t _upper[6]; 
     int _rowMajorIndexerCoeff[7], _colMajorIndexerCoeff[7];
-  } GkylRange_t;
+  } Range_t; 
 ]]
 local rTy = typeof("Range_t")
-local gRangeSz = sizeof(typeof("GkylRange_t"))
+local rSz = sizeof(typeof("Range_t"))
 
 -- generic iterator function creator: only difference between row- and
 -- col-major order is the order in which the indices are incremented
@@ -559,7 +555,7 @@ if GKYL_HAVE_CUDA then
 
    -- Copy things to device representation of Range object.
    function _M.copyHostToDevice(range)
-      local hoRange = ffi.new(typeof("GkylRange_t"))
+      local hoRange = ffi.new(rTy)
       local row_c, col_c = calcRowMajorIndexerCoeff(range), calcColMajorIndexerCoeff(range)
 
       hoRange._ndim = range:ndim()
@@ -572,8 +568,8 @@ if GKYL_HAVE_CUDA then
 	 hoRange._colMajorIndexerCoeff[d] = col_c[d]
       end
 
-      local cuRange, err = cuda.Malloc(gRangeSz)
-      cuda.Memcpy(cuRange, hoRange, gRangeSz, cuda.MemcpyHostToDevice)
+      local cuRange, err = cuda.Malloc(rSz)
+      cuda.Memcpy(cuRange, hoRange, rSz, cuda.MemcpyHostToDevice)
       return cuRange, err
    end
 end
