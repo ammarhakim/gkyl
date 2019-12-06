@@ -30,14 +30,14 @@ __global__ void ker_unit_showRange(Range_t *range)
   for (unsigned i=0; i<range->ndim; ++i)
     printf(" %d, %d\n", range->lower[i], range->upper[i]);
 
-  Gkyl::Indexer<1> idxr;
-  int lin1 = idxr.index(range, range->lower[0]);
-  int lin2 = idxr.index(range, range->upper[0]);
+  GkylCuda::Indexer<1> idxr(range);
+  int lin1 = idxr.index(range->lower[0]);
+  int lin2 = idxr.index(range->upper[0]);
   printf("  --- Calls to indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
 
   int idx[1];
   for (int i=0; i<range->upper[0]-range->lower[0]+1; ++i) {
-    idxr.invIndex(range, i, idx);
+    idxr.invIndex(i, idx);
     printf("Lin index %d -> index %d\n", i, idx[0]);
   }
 }

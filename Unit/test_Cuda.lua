@@ -209,7 +209,7 @@ function test_5()
    local len = 1e6
 
    -- allocate managed memory on host
-   local d_x, d_y = cuAlloc.ManagedDouble(len, true), cuAlloc.ManagedDouble(len, true)
+   local d_x, d_y = cuAlloc.ManagedDouble(len), cuAlloc.ManagedDouble(len)
    for i = 1, len do
       d_x[i], d_y[i] = 10.5*i, 0.0
    end
