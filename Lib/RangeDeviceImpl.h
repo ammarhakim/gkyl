@@ -45,7 +45,6 @@ namespace Gkyl {
        */
       __device__ __inline__ void invIndex(const Range_t *range, int loc, int *idx) {
         const int *ac = range->rowMajorIndexerCoeff;
-        div_t dout;
         int n = loc;
         for (int i=1; i<=range->ndim; ++i) {
           int quot = n/ac[i];
@@ -69,7 +68,6 @@ namespace Gkyl {
        */
       __device__ __inline__ void invIndex(const Range_t *range, int loc, int idx[NDIM]) {
         const int *ac = range->rowMajorIndexerCoeff;
-        div_t dout;
         int n = loc;
         for (int i=1; i<=NDIM; ++i) {
           int quot = n/ac[i];
@@ -105,7 +103,7 @@ namespace Gkyl {
 
   // 2D indexer
   template <>
-  class Indexer<2> {
+  class Indexer<2> : public _InvIndexer<2> {
     public:
       __device__ __inline__ int index(const Range_t *range, int i1, int i2) {
         const int *ac = range->rowMajorIndexerCoeff;
@@ -115,7 +113,7 @@ namespace Gkyl {
 
   // 3D indexer
   template <>
-  class Indexer<3> {
+  class Indexer<3> : public _InvIndexer<3> {
     public:
       __device__ __inline__ int index(const Range_t *range, int i1, int i2, int i3) {
         const int *ac = range->rowMajorIndexerCoeff;
@@ -125,7 +123,7 @@ namespace Gkyl {
 
   // 4D indexer
   template <>
-  class Indexer<4> {
+  class Indexer<4> : public _InvIndexer<4> {
     public:
       __device__ __inline__ int index(const Range_t *range, int i1, int i2, int i3, int i4) {
         const int *ac = range->rowMajorIndexerCoeff;
@@ -135,7 +133,7 @@ namespace Gkyl {
 
   // 5D indexer
   template <>
-  class Indexer<5> {
+  class Indexer<5> : public _InvIndexer<5> {
     public:
       __device__ __inline__ int index(const Range_t *range, int i1, int i2, int i3, int i4, int i5) {
         const int *ac = range->rowMajorIndexerCoeff;
@@ -145,7 +143,7 @@ namespace Gkyl {
 
   // 6D indexer
   template <>
-  class Indexer<6> {
+  class Indexer<6> : public _InvIndexer<6> {
     public:
       __device__ __inline__ int index(const Range_t *range, int i1, int i2, int i3, int i4, int i5, int i6) {
         const int *ac = range->rowMajorIndexerCoeff;
