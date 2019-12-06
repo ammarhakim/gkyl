@@ -6,7 +6,7 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-#include "CartFieldDeviceImpl.h"
+#include <CartFieldDeviceImpl.h>
 
 __global__ void ker_gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out) 
 {

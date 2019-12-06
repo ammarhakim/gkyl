@@ -77,6 +77,7 @@ ffi.cdef [[
 
   // Device management
   int cudaDeviceSynchronize();
+  int cudaDeviceReset();
 
   // Memory management
   int cudaMalloc(void **devPtr, size_t size);
@@ -153,8 +154,12 @@ end
 
 -- cudaDeviceSynchronize
 function _M.DeviceSynchronize()
-   local err = ffiC.cudaDeviceSynchronize()
-   return err
+   return ffiC.cudaDeviceSynchronize()
+end
+
+-- cudaDeviceReset
+function _M.DeviceReset()
+   return ffiC.cudaDeviceReset()
 end
 
 -- cudaMalloc
