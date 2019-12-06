@@ -234,7 +234,7 @@ end
 
 -- range tests
 function test_6()
-   local range = Range.Range({0, 0, 0}, {1, 5, 20})
+   local range = Range.Range({0}, {20})
    local cuRange = Range.copyHostToDevice(range)
    ffi.C.unit_showRange(cuRange)
 

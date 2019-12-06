@@ -30,11 +30,10 @@ __global__ void ker_unit_showRange(Range_t *range)
   for (unsigned i=0; i<range->ndim; ++i)
     printf(" %d, %d\n", range->lower[i], range->upper[i]);
 
-  Gkyl::Indexer<1> idxr1;
-  Gkyl::Indexer<2> idxr2;
-  int lin1 = idxr1.index(range, 0);
-  int lin2 = idxr2.index(range, 0, 1);
-  printf("  --- Calls to indexers %d, %d\n", lin1, lin2);
+  Gkyl::Indexer<1> idxr;
+  int lin1 = idxr.index(range, range->lower[0]);
+  int lin2 = idxr.index(range, range->upper[0]);
+  printf("  --- Calls to indexers %d, %d (%d)\n", lin1, lin2, lin2-lin1);
 }
 
 __global__ void ker_unit_showGrid(RectCart_t *grid)
