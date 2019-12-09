@@ -607,16 +607,15 @@ function GkSpecies:initCrossSpeciesCoupling(species)
             -- only if some other species collides with it.
             if (sN ~= sO) and (self.collPairs[sN][sO].on or self.collPairs[sO][sN].on) then
                otherNm = string.gsub(sO .. sN, self.name, "")
-               if self.nuVarXCross[otherNm] == nil then
+               if ( (self.nuVarXCross[otherNm] == nil) and (sN == self.name) and
+                    ((not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) ) then
                   self.nuVarXCross[otherNm] = self:allocMoment()
-                  if ((not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
-                     projectNuX:setFunc(self.collPairs[sN][sO].nu)
-                     projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
-                     if (not self.collPairs[sN][sO].on) then
-                        self.nuVarXCross[otherNm]:scale(species[sO]:getMass()/species[sN]:getMass())
-                     end
-                     self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
+                  projectNuX:setFunc(self.collPairs[sN][sO].nu)
+                  projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
+                  if (not self.collPairs[sN][sO].on) then
+                     self.nuVarXCross[otherNm]:scale(species[sO]:getMass()/species[sN]:getMass())
                   end
+                  self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
                end
             end
          end
