@@ -17,6 +17,7 @@ local SpeciesBase      = require "App.Species.SpeciesBase"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local xsys             = require "xsys"
+local ffi              = require "ffi"
 
 local FuncVlasovSpecies = Proto(SpeciesBase)
 
@@ -66,6 +67,8 @@ end
 
 function FuncVlasovSpecies:alloc(nRkDup)
    self.momDensity = self:allocVectorMoment(self.vdim)
+   self.dt          = ffi.new("double[2]")
+   self.dtGlobal    = ffi.new("double[2]")
 end
 
 function FuncVlasovSpecies:allocMomCouplingFields()
