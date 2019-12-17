@@ -67,8 +67,6 @@ end
 
 function FuncVlasovSpecies:alloc(nRkDup)
    self.momDensity = self:allocVectorMoment(self.vdim)
-   self.dt          = ffi.new("double[2]")
-   self.dtGlobal    = ffi.new("double[2]")
 end
 
 function FuncVlasovSpecies:allocMomCouplingFields()

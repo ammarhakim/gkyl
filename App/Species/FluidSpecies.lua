@@ -474,6 +474,10 @@ function FluidSpecies:suggestDt()
    return GKYL_MAX_DOUBLE
 end
 
+function FluidSpecies:setDtGlobal(dtGlobal)
+   self.dtGlobal[0] = dtGlobal
+end
+
 function FluidSpecies:clearCFL()
 end
 

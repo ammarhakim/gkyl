@@ -406,12 +406,15 @@ local function buildApplication(self, tbl)
          dtSuggested = tbl.tEnd - tCurr + 1e-20
          if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
          
+         -- get suggested dt from each field and species
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
             dtSuggested = math.min(dtSuggested, s:suggestDt())
          end
+         
+         -- after deciding global dt, tell species
          for nm, s in pairs(species) do
-            s.dtGlobal[0] = dtSuggested
+            s:setDtGlobal(dtSuggested)
          end
       else 
          dtSuggested = dt -- From argument list.
