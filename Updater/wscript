@@ -7,12 +7,12 @@ import os
 
 def build(bld):
     # CUDA specific code
-#        bld.objects(source = '_dummy.cpp momentCalcData/DistFuncMomentCalcSer1x1v.cu momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu',
-#    if bld.env['CUTOOLS_FOUND']:
-#        bld.objects(source = '_dummy.cpp momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu',
-#                    name = 'updater_cuobjs',
-#                    includes = '. momentCalcData'
-#        )
+    if bld.env['CUTOOLS_FOUND']:
+        bld.objects(source = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu',
+                    name = 'updater_cuobjs',
+                    includes = '. momentCalcData',
+                    features = 'cxx nvcc'
+        )
 
     bld.shlib(source = r"""
     MomentSrcCommon.cpp

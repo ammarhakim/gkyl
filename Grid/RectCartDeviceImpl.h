@@ -10,8 +10,8 @@ extern "C"
         double vol, dx[6];
         __device__ __inline__ void cellCenter(int* idx, double* xc)
         {
-          for(unsigned int d=0; d<this->ndim; d++) {
-            xc[d] = this->lower[d] + (idx[d]-0.5)*this->dx[d];
+          for(unsigned int d=0; d<ndim; d++) {
+            xc[d] = lower[d] + (idx[d]-0.5)*dx[d];
           }
         }
     } RectCart_t;
