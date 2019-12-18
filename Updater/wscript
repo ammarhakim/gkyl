@@ -4,17 +4,10 @@
 ## + 6 @ |||| # P ||| +
 
 import os
+from waflib import Utils
 
 def build(bld):
-    # CUDA specific code
-    if bld.env['CUTOOLS_FOUND']:
-        bld.objects(source = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu',
-                    name = 'updater_cuobjs',
-                    includes = '. momentCalcData',
-                    features = 'cxx nvcc'
-        )
-
-    bld.shlib(source = r"""
+    sources = r"""
     MomentSrcCommon.cpp
     FiveMomentSrcImpl.cpp
     TenMomentSrcImpl.cpp
@@ -211,7 +204,29 @@ def build(bld):
 
     ProjectOnBasisImpl.cpp
     EvalOnNodesImpl.cpp
+    """
+ 
+    tmp = []
+    for x in Utils.to_list(sources):
+       tmp.append(x)
+    sources = tmp
 
-    """,
+    # CUDA specific code
+    cusources = []
+    if bld.env['CUTOOLS_FOUND']:
+        cusources = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu'
+        tmp = []
+        for x in Utils.to_list(cusources):
+           tmp.append(x)
+        cusources = tmp
+        
+        bld.objects(source = cusources,
+                    name = 'updater_cuobjs',
+                    includes = '. momentCalcData',
+                    features = 'cxx nvcc'
+        )
+
+    sources = [x for x in sources if x not in cusources]
+    bld.shlib(source = sources,
               includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'gkupdater', name = 'updater', vum = '1.0')
     
