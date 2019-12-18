@@ -10,7 +10,7 @@ from waflib.Tools import ccroot, c_preproc
 from waflib.Tools.cxx import cxxprogram
 
 class cuda(Task.Task):
-        run_str = '${NVCC} -c -dc -O3 ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
+        run_str = '${NVCC} -c -dc -O3 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
         color   = 'GREEN'
         ext_in  = ['.h']
         vars    = ['CCDEPS']
@@ -18,7 +18,7 @@ class cuda(Task.Task):
         shell   = False
 
 class cudacpp(Task.Task):
-        run_str = '${NVCC} -x cu -c -dc -O3 ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
+        run_str = '${NVCC} -x cu -c -dc -O3 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
         color   = 'GREEN'
         ext_in  = ['.h']
         vars    = ['CCDEPS']
@@ -40,9 +40,19 @@ def change_to_cu(self):
 
     self.source = []
 
-# enable features=culink, so that linking is done with nvcc
-@after_method('process_source')
+# enable features=cushlib, so that cu files linked into shared library
+@feature('cushlib')
+@before_method('process_rule')
+def update_pattern(self):
+    self.env['cushlib_PATTERN'] = self.env['cshlib_PATTERN']
+
+class cushlib(ccroot.link_task):
+    run_str = '${NVCC} -shared ${CXXLNK_SRC_F} ${SRC} ${CXXLNK_TGT_F} ${TGT[0].abspath()}'
+    inst_to = '${LIBDIR}'
+
+# enable features=culink, so that linking is done with nvcc -dlink
 @feature('culink')
+@after_method('process_source')
 def call_apply_link(self):
     pass
 

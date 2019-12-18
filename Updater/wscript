@@ -210,10 +210,10 @@ def build(bld):
     if bld.env['CUTOOLS_FOUND']:
         cusources = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu'
         
-        bld.objects(source = cusources,
+        bld(source = cusources,
                     name = 'updater_cuobjs',
                     includes = '. .. ../Cuda momentCalcData',
-                    features = 'cxx nvcc'
+                    features = 'cxx nvcc cushlib', target='updater_cu'
         )
 
     #sources = [x for x in sources if x not in cusources]

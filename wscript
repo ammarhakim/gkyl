@@ -253,20 +253,8 @@ def buildExec(bld):
 
 
     # build gkyl executable
-    source = ['gkyl.cxx']
-    if bld.env['CUTOOLS_FOUND']:
-        # do device linking
-        bld(
-            target='culink.o',
-            use = useListCuda,
-            features = 'cxx culink',
-            name = 'culink'
-        )
-        bld.add_group() 
-        appendToList(source, 'culink.o')
-
     bld.program(
-        source = source, target='gkyl',
+        source = 'gkyl.cxx', target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
