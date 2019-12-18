@@ -259,7 +259,7 @@ def build(bld):
 
     """,
               name = 'eq',
-              target = 'gkeq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData',
+              target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData',
               vnum = '1.0',
               
     )

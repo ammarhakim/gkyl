@@ -10,7 +10,7 @@ def build(bld):
     if bld.env.MPI_FOUND:
         bld.shlib(
             source = 'GkMpiFuncs.cpp',
-            target = 'gkcomm', name = 'comm', vnum = '1.0',
+            target = 'comm', name = 'comm', vnum = '1.0',
             includes = '.',
             use = 'MPI'
         )    

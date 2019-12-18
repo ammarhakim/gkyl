@@ -9,12 +9,12 @@ def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
         bld(source = 'CartFieldDeviceImpl.cu', 
-                    name = 'datastruct_cuobjs',
-                    includes = '.', features = 'cxx cushlib', target='datastruct_cu'
+            name = 'datastruct_cu', target='datastruct_cu',
+            includes = '.', features = 'cxx cushlib', 
         )
 
     bld.shlib(
         source = 'CartFieldImpl.cpp',
-        target = 'gkdatastruct', name = 'datastruct', vnum = '1.0',
+        target = 'datastruct', name = 'datastruct', vnum = '1.0',
         includes = '.'
     )

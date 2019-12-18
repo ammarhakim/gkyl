@@ -211,9 +211,8 @@ def build(bld):
         cusources = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu'
         
         bld(source = cusources,
-                    name = 'updater_cuobjs',
-                    includes = '. .. ../Cuda momentCalcData',
-                    features = 'cxx nvcc cushlib', target='updater_cu'
+            name = 'updater_cu', target='updater_cu',
+            includes = '. .. ../Cuda momentCalcData', features = 'cxx nvcc cushlib'
         )
 
     #sources = [x for x in sources if x not in cusources]

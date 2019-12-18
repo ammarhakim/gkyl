@@ -9,4 +9,4 @@ def build(bld):
     bldFunc = bld.shlib
     bldFunc(source = r"""
     """,
-    includes = '. ./_data', target = 'gkbasis', vnum="1.0")
+    includes = '. ./_data', target = 'basis', name = 'basis', vnum="1.0")

@@ -8,9 +8,12 @@ import os
 def build(bld):
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        bld(source = 'test_SimpleKernel.cpp', name = 'unit_cuobjs', includes='../Grid ../Lib', features='cxx nvcc cushlib', target='unit_cu')
+        bld(source = 'test_SimpleKernel.cpp', 
+            name = 'unit_cu', target='unit_cu',
+            includes='../Grid ../Lib', features='cxx nvcc cushlib'
+        )
 
     bld.shlib(source = 'test_cfuncs.cpp', includes = '.',
               name = 'unit',
               vnum = '1.0',
-              target = 'gkunit', features='cxx')
+              target = 'unit', features='cxx')

@@ -8,4 +8,4 @@ import os
 def build(bld):
     bld.shlib(source = r"""
     sqlite3.c""",
-    use = "LUAJIT", includes = '.', target = 'gksqlite3', name = 'sqlite3', vnum = '1.0')
+    use = "LUAJIT", includes = '.', target = 'sqlite3', name = 'sqlite3', vnum = '1.0')
