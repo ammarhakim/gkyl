@@ -8,7 +8,7 @@
 //------------------------------------------------------------------------------
 
 #include "DistFuncMomentCalcDevice.h"
-#include "DistFuncMomentCalcModDeclDevice.cu"
+#include "DistFuncMomentCalcModDecl.h"
 
 __inline__ __device__ void warpReduceComponentsSum(double *vals, int nComps) {
   // Perform 'nComps' independent (sum) reductions across a warp,
@@ -49,12 +49,12 @@ __inline__ __device__ void blockReduceComponentsSum(double *vals, int nComps) {
 
 }
 
-__host__ __device__ void MomentCalc1x1vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out)
-{
-  const double volFact = dxv[1]/2;
-  out[0] += 1.414213562373095*f[0]*volFact;
-  out[1] += 1.414213562373095*f[1]*volFact;
-}
+///__host__ __device__ void MomentCalc1x1vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out)
+///{
+///  const double volFact = dxv[1]/2;
+///  out[0] += 1.414213562373095*f[0]*volFact;
+///  out[1] += 1.414213562373095*f[1]*volFact;
+///}
 
 __global__ void d_calcMom1x1vSer_M0_P1(int *nCells, double *w, double *dxv, double *fIn, double *out) {
   // Calculate the zeroth moment of the distribution function. We will first assign

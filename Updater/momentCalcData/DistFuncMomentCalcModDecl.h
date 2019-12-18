@@ -1,7 +1,9 @@
-#ifndef DIST_FUNC_MOMENT_CALC_MOD_DELC_DEVICE_H 
-#define DIST_FUNC_MOMENT_CALC_MOD_DELC_DEVICE_H 
+#include <cuda_runtime.h>
+
+#ifndef DIST_FUNC_MOMENT_CALC_MOD_DECL_H 
+#define DIST_FUNC_MOMENT_CALC_MOD_DECL_H 
 extern "C" { 
-void MomentCalc1x1vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
+__host__ __device__ void MomentCalc1x1vSer_M0_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vSer_M1i_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vSer_M2ij_P1(const double *w, const double *dxv, const double *f, double *out); 
 void MomentCalc1x1vSer_M2_P1(const double *w, const double *dxv, const double *f, double *out); 

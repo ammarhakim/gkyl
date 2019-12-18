@@ -7,9 +7,10 @@ from waflib.Configure import conf
 from waflib import Task
 from waflib.TaskGen import extension, feature, after_method, before_method
 from waflib.Tools import ccroot, c_preproc
+from waflib.Tools.cxx import cxxprogram
 
 class cuda(Task.Task):
-        run_str = '${NVCC} -c -dc -O3 -D USE_CUDA_H=0 ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
+        run_str = '${NVCC} -c -dc -O3 ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
         color   = 'GREEN'
         ext_in  = ['.h']
         vars    = ['CCDEPS']
@@ -17,7 +18,7 @@ class cuda(Task.Task):
         shell   = False
 
 class cudacpp(Task.Task):
-        run_str = '${NVCC} -x cu -c -dc -O3 -D USE_CUDA_H=0 ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
+        run_str = '${NVCC} -x cu -c -dc -O3 ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
         color   = 'GREEN'
         ext_in  = ['.h']
         vars    = ['CCDEPS']
@@ -46,10 +47,7 @@ def call_apply_link(self):
     pass
 
 class culink(ccroot.link_task):
-    run_str = '${NVCC} -O3 -dlink ${SRC} ${CXXLNK_TGT_F} ${TGT} ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${FRAMEWORK_ST:FRAMEWORK} ${ARCH_ST:ARCH} ${STLIBPATH_ST:STLIBPATH} ${STLIB_ST:STLIB} ${LIBPATH_ST:LIBPATH} ${LIB_ST:LIB}'
-    vars    = ['LINKDEPS']
-    ext_out = ['.bin']
-    inst_to = '${BINDIR}'
+    run_str = '${NVCC} -dlink ${CXXLNK_SRC_F} ${SRC} ${CXXLNK_TGT_F} ${TGT[0].abspath()}'
 
 def options(opt):
     opt.add_option('--cuda-inc-dir', type='string', help='Path to CUTOOLS includes', dest='cuIncDir')

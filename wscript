@@ -242,7 +242,8 @@ def buildExec(bld):
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
-        useList = ' cuda CUTOOLS lib_cuobjs datastruct_cuobjs eq_cuobjs unit_cuobjs comm_cuobjs updater_cuobjs proto_cuobjs basis_cuobjs grid_cuobjs ' + useList
+        useListCuda = ' cuda CUTOOLS lib_cuobjs datastruct_cuobjs eq_cuobjs unit_cuobjs comm_cuobjs updater_cuobjs proto_cuobjs basis_cuobjs grid_cuobjs '
+        useList = useListCuda + useList
 
     # set RPATH
     fullRpath = []
@@ -250,13 +251,22 @@ def buildExec(bld):
     appendToList(fullRpath, bld.env.LIBDIR)
     appendToList(fullRpath, bld.env.LIBPATH_LUAJIT)
 
+
     # build gkyl executable
-    features = 'cxx'
+    source = ['gkyl.cxx']
     if bld.env['CUTOOLS_FOUND']:
-        features = features + ' culink'
+        # do device linking
+        bld(
+            target='culink.o',
+            use = useListCuda,
+            features = 'cxx culink',
+            name = 'culink'
+        )
+        bld.add_group() 
+        appendToList(source, 'culink.o')
+
     bld.program(
-        features = features,
-        source = 'gkyl.cxx', target='gkyl',
+        source = source, target='gkyl',
         includes = 'Unit Lib Comm',
         use = useList,
         linkflags = EXTRA_LINK_FLAGS,
