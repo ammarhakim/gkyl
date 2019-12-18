@@ -212,11 +212,11 @@ def build(bld):
         
         bld.objects(source = cusources,
                     name = 'updater_cuobjs',
-                    includes = '. momentCalcData',
+                    includes = '. .. ../Cuda momentCalcData',
                     features = 'cxx nvcc'
         )
 
     #sources = [x for x in sources if x not in cusources]
     bld.shlib(source = sources,
-              includes = '. spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'gkupdater', name = 'updater', vum = '1.0')
+              includes = '. .. ../Cuda spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'gkupdater', name = 'updater', vum = '1.0')
     
