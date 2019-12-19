@@ -215,7 +215,6 @@ def build(bld):
             includes = '. .. ../Cuda momentCalcData', features = 'cxx nvcc cushlib'
         )
 
-    #sources = [x for x in sources if x not in cusources]
     bld.shlib(source = sources,
-              includes = '. .. ../Cuda spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'gkupdater', name = 'updater', vum = '1.0')
+              includes = '. .. ../Cuda spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI CUTOOLS', target = 'updater', name = 'updater', vum = '1.0')
     

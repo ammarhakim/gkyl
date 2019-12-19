@@ -10,7 +10,7 @@ def build(bld):
     if bld.env.CUTOOLS_FOUND:
         bld.shlib(
             source = 'GkCudaFuncs.cpp',
-            target = 'cuda', name = 'cuda', vnum = '1.0',
+            target = 'gkcuda', name = 'cuda', vnum = '1.0',
             includes = '.',
             use = 'CUTOOLS'
         )    

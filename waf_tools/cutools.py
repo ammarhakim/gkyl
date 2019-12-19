@@ -9,15 +9,7 @@ from waflib.TaskGen import extension, feature, after_method, before_method
 from waflib.Tools import ccroot, c_preproc
 from waflib.Tools.cxx import cxxprogram
 
-class cuda(Task.Task):
-        run_str = '${NVCC} -c -dc -O3 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
-        color   = 'GREEN'
-        ext_in  = ['.h']
-        vars    = ['CCDEPS']
-        scan    = c_preproc.scan
-        shell   = False
-
-class cudacpp(Task.Task):
+class nvcc(Task.Task):
         run_str = '${NVCC} -x cu -c -dc -O3 --compiler-options="-fPIC" ${FRAMEWORKPATH_ST:FRAMEWORKPATH} ${CPPPATH_ST:INCPATHS} ${DEFINES_ST:DEFINES} ${CXX_SRC_F} ${SRC} -o ${OUT}/${TGT}'
         color   = 'GREEN'
         ext_in  = ['.h']
@@ -27,23 +19,23 @@ class cudacpp(Task.Task):
 
 @extension('.cu', '.cuda')
 def hook(self, node):
-    self.create_compiled_task('cuda', node)
+    self.create_compiled_task('nvcc', node)
     return self
 
 # this allows cuda compilation of non *.cu files if features=nvcc is passed
 @feature('nvcc')
-@before_method('process_source', 'process_rule')
+@before_method('process_source')
 def change_to_cu(self):
     self.source = self.to_nodes(getattr(self, 'source', []))
     for x in self.source:
-       self.create_compiled_task('cudacpp', x)
+       self.create_compiled_task('nvcc', x)
 
     self.source = []
 
 # enable features=cushlib, so that cu files linked into shared library
-@feature('cushlib')
 @before_method('process_rule')
-def update_pattern(self):
+@feature('cushlib')
+def update_pattern_cushlib(self):
     self.env['cushlib_PATTERN'] = self.env['cshlib_PATTERN']
 
 class cushlib(ccroot.link_task):
@@ -51,10 +43,10 @@ class cushlib(ccroot.link_task):
     inst_to = '${LIBDIR}'
 
 # enable features=culink, so that linking is done with nvcc -dlink
+@before_method('process_rule')
 @feature('culink')
-@after_method('process_source')
-def call_apply_link(self):
-    pass
+def update_pattern_culink(self):
+    self.env['culink_PATTERN'] = "%s.o"
 
 class culink(ccroot.link_task):
     run_str = '${NVCC} -dlink ${CXXLNK_SRC_F} ${SRC} ${CXXLNK_TGT_F} ${TGT[0].abspath()}'
