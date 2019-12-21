@@ -208,11 +208,11 @@ def build(bld):
 
     # CUDA specific code
     if bld.env['CUTOOLS_FOUND']:
-        cusources = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu'
+        cusources = 'momentCalcData/DistFuncMomentCalcSer1x1v.cpp momentCalcData/DistFuncMomentCalcDeviceCommon.cu momentCalcData/DistFuncMomentCalcSer1x1vDevice.cu'
         
         bld(source = cusources,
             name = 'updater_cu', target='updater_cu',
-            includes = '. .. ../Cuda momentCalcData', features = 'cxx nvcc cushlib'
+            includes = '. .. ../Cuda ../Grid ../Lib momentCalcData', features = 'cxx nvcc cushlib'
         )
 
     bld.shlib(source = sources,
