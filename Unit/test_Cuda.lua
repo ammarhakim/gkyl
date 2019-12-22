@@ -1,26 +1,26 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Test for CUDA runtime API wrappers
+-- Test for CUDA runtime API wrappers.
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- don't do anything if we were not built with CUDA
+-- Don't do anything if we were not built with CUDA.
 if GKYL_HAVE_CUDA == false then
    print("**** Can't run CUDA tests without CUDA enabled GPUs!")
    return 0
 end
 
-local Unit = require "Unit"
-local Alloc = require "Lib.Alloc"
-local ffi = require "ffi"
-local cuda = require "Cuda.RunTime"
+local Unit    = require "Unit"
+local Alloc   = require "Lib.Alloc"
+local ffi     = require "ffi"
+local cuda    = require "Cuda.RunTime"
 local cuAlloc = require "Cuda.Alloc"
-local Range = require "Lib.Range"
-local Grid = require "Grid"
+local Range   = require "Lib.Range"
+local Grid    = require "Grid"
 
 local assert_equal = Unit.assert_equal
-local stats = Unit.stats
+local stats        = Unit.stats
 
 ffi.cdef [[
   void unit_sumArray(int numBlocks, int numThreads, int n, double a, double *x, double *y);
@@ -34,8 +34,11 @@ ffi.cdef [[
 -- basis tests
 function test_1()
    assert_equal(GKYL_CUDA_DRIVER_VERSION, cuda.DriverGetVersion(), "Checking CUDA driver version")
-   local devNum = cuda.GetDevice()
+   local devNum, _ = cuda.GetDevice()
    assert_equal(0, devNum, "Checking device number")
+
+   local err = cuda.SetDevice(devNum)
+   assert_equal(cuda.Success, err, "Setting device")
 
    local prop, err = cuda.GetDeviceProperties(devNum)
    assert_equal(cuda.Success, err, "Checking of GetDeviceProperties worked")
@@ -107,7 +110,7 @@ end
 
 -- managed mem management and kernel launches
 function test_3()
-   local devNum = cuda.GetDevice()
+   local devNum, _ = cuda.GetDevice()
    local prop, err = cuda.GetDeviceProperties(devNum)
    -- return if this device does not support managed memory
    if prop.managedMemory ~= 1 then

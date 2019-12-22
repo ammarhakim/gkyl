@@ -76,6 +76,7 @@ ffi.cdef [[
   int GkCuda_GetDeviceProp(GkDeviceProp *prop, int dev);
 
   // Device management
+  int cudaSetDevice(int device);
   int cudaDeviceSynchronize();
   int cudaDeviceReset();
 
@@ -152,6 +153,10 @@ function _M.GetDeviceProperties(device)
    return prop[0], err
 end
 
+-- cudaSetDevice
+function _M.SetDevice(device)
+   return ffiC.cudaSetDevice(device)
+end
 -- cudaDeviceSynchronize
 function _M.DeviceSynchronize()
    return ffiC.cudaDeviceSynchronize()

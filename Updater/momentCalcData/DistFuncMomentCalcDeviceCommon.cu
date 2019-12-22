@@ -7,8 +7,6 @@
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
 
-// a#include "DistFuncMomentCalcDeviceCommon.h"
-
 __inline__ __device__ void warpReduceComponentsSum(double *vals, int nComps) {
   // Perform 'nComps' independent (sum) reductions across a warp,
   // one for each component in 'vals'.
