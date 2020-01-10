@@ -75,10 +75,15 @@ function AdiosCartFieldIo:init(tbl)
 
    -- If we have meta-data to write out, store it.
    self._metaData = {
-      -- We always write out input file contents (encoded as base64 string).
+      -- DISABLING OUTPUT FOR INPUT FILE FOR NOW AT THIS BARFS IT THE
+      -- STRING IS TOO LONG
       ["inputfile"] = {
-	 value = GKYL_INP_FILE_CONTENTS, vType = "string"
+      	 value = "inputfile"
       }
+      -- -- We always write out input file contents (encoded as base64 string).
+      -- ["inputfile"] = {
+      -- 	 value = GKYL_INP_FILE_CONTENTS, vType = "string"
+      -- }
    }
    if tbl.metaData then
       -- Store value and its type for each piece of data.
