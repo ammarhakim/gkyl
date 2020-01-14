@@ -20,9 +20,23 @@ out = 'build'
 # extra flags to pass to linker
 EXTRA_LINK_FLAGS = []
 
+from waflib import TaskGen
+# for compiling cu files to object code (this is probably not the best
+# way to do this. Why is this declared globally? Can't figure any
+# other way to do this at present. AHH Dec 1 2019.)
+TaskGen.declare_chain(
+    name = 'nvccc',
+    rule = '${NVCCC} -c -O3 ${SRC} -o ${TGT}',
+    shell = False,
+    ext_in = '.cu',
+    ext_out = '.o',
+    reentrant = True,
+    install_path = False,
+)
+
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen zmq sqlite3',
+    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -36,7 +50,7 @@ def configure(conf):
     conf.check_adios()
     conf.check_eigen()
     conf.check_sqlite3()
-    conf.check_zmq()
+    conf.check_cutools()
 
     # standard install location for dependencies
     gkydepsDir = os.path.expandvars('$HOME/gkylsoft')
@@ -73,6 +87,8 @@ def build(bld):
     bld.recurse("Proto")
     bld.recurse("Unit")
     bld.recurse("Updater")
+    if bld.env['CUTOOLS_FOUND']:
+        bld.recurse("Cuda")
 
     # Sometimes there is an issue with an existing build of sqlite on
     # a Linux machine. In that case, sqlite support can be
@@ -82,7 +98,7 @@ def build(bld):
         bld.recurse("sqlite3")
 
     # build executable
-    buildExec(bld)    
+    buildExec(bld)
 
     ### install LuaJIT code
 
@@ -178,6 +194,13 @@ def build(bld):
         App_dir.ant_glob('**/*.lua'),
         cwd=App_dir, relative_trick=True)
 
+    # - Cuda
+    Cuda_dir = bld.path.find_dir('Cuda')
+    bld.install_files(
+        "${PREFIX}/bin/Cuda",
+        Cuda_dir.ant_glob('**/*.lua'),
+        cwd=Cuda_dir, relative_trick=True)
+
     # - Comm
     Comm_dir = bld.path.find_dir('Comm')
     bld.install_files(
@@ -226,11 +249,11 @@ def buildExec(bld):
         bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
     # list of objects to use
-    useList = 'lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL'
+    useList = ' lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL '
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
-    if bld.env['ZMQ_FOUND']:
-        useList = 'ZMQ ' + useList
+    if bld.env['CUTOOLS_FOUND']:
+        useList = ' cuda CUTOOLS unit_cuobjs ' + useList
 
     # set RPATH
     fullRpath = []

@@ -39,6 +39,11 @@
 #include <zmq.h>
 #endif
 
+#ifdef HAVE_CUDA_H
+#include <cuda.h>
+#include <cuda_runtime.h>
+#endif
+
 #include <lua.hpp>
 
 // Gkyl/Lib includes
@@ -243,6 +248,15 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_HAVE_SQLITE3 = true" << std::endl;
 #else
   varDefs << "GKYL_HAVE_SQLITE3 = false" << std::endl;
+#endif
+
+#ifdef HAVE_CUDA_H
+  varDefs << "GKYL_HAVE_CUDA = true" << std::endl;
+  int cuDriverVersion;
+  cudaDriverGetVersion(&cuDriverVersion);
+  varDefs << "GKYL_CUDA_DRIVER_VERSION = " << cuDriverVersion << std::endl;
+#else
+  varDefs << "GKYL_HAVE_CUDA = false" << std::endl;
 #endif
   
   // numeric limits
