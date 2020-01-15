@@ -27,6 +27,7 @@ local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local LagrangeFix = require "Updater.LagrangeFix"
 local MappedPoisson = require "Updater.MappedPoisson"
 local MaxwellianOnBasis = require "Updater.MaxwellianOnBasis"
+local MGpoisson = require "Updater.MGpoisson"
 local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
@@ -59,6 +60,7 @@ return {
    LagrangeFix = LagrangeFix,
    MappedPoisson = MappedPoisson,
    MaxwellianOnBasis = MaxwellianOnBasis,
+   MGpoisson = MGpoisson,
    PositivityCheck = PositivityCheck,
    PositivityRescale = PositivityRescale,
    ProjectOnBasis = ProjectOnBasis,

@@ -1,0 +1,57 @@
+/* Generate kernels for the various elements of a multigrid
+   solve of the simple Poisson equation
+       - L(phi) = rho
+   where L is the Laplacian, using DG. */
+
+load(stringproc)$
+load("mgPoisson-calc/intergridOperators")$
+
+/* ...... USER INPUTS........ */
+
+/* Serendipity basis. */
+maxPolyOrder_Ser : 1$
+minCdim_Ser : 1$
+maxCdim_Ser : 1$
+
+/* Maximal order basis. */
+maxPolyOrder_Max : 1$
+minCdim_Max : 1$
+maxCdim_Max : 0$
+
+/* Tensor product basis. */
+maxPolyOrder_Tensor : 1$
+minCdim_Tensor : 1$
+maxCdim_Tensor : 0$
+
+/* ...... END OF USER INPUTS........ */
+
+bName        : ["Ser","Max","Tensor"]$
+maxPolyOrder : [maxPolyOrder_Ser, maxPolyOrder_Max, maxPolyOrder_Tensor]$
+minCdim      : [minCdim_Ser, minCdim_Max, minCdim_Tensor]$
+maxCdim      : [maxCdim_Ser, maxCdim_Max, maxCdim_Tensor]$
+
+for bInd : 1 thru length(bName) do (
+     
+  for c : minCdim[bInd] thru maxCdim[bInd] do (
+    fname : sconcat("~/max-out/MGpoisson", bName[bInd], c, "x", ".cpp"),
+    fh : openw(fname),
+  
+    disp(printf(false,sconcat("Creating ~ax ", bName[bInd]),c)),
+  
+    printf(fh, "#include <MGpoissonModDecl.h> ~%"),
+    printf(fh, " ~%"),
+    
+    funcName : sconcat("MGpoissonProlong", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonProlong", c, "x", bName[bInd]))),
+    calcProlongationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    
+    funcName : sconcat("MGpoissonRestrict", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonRestrict", c, "x", bName[bInd]))),
+    calcRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    
+    close(fh)
+  )
+  
+  
+)$
+

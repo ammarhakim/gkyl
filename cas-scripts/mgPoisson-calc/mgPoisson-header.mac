@@ -1,0 +1,43 @@
+/* Create header file for multigrid Poisson solver. */
+
+fh : openw("~/max-out/MGpoissonModDecl.h")$
+
+polyOrderMax : 1$
+
+bName        : ["Ser"]$
+
+
+VarsC : [X, Y, Z]$
+
+printf(fh, "#ifndef MG_POISSON_MOD_DECL_H ~%")$
+printf(fh, "#define MG_POISSON_MOD_DECL_H ~%")$
+
+printf(fh, " ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, " ~%")$
+
+
+for bInd : 1 thru length(bName) do (
+
+  for pi : 1 thru polyOrderMax do (
+    for ci : 1 thru 1 do (
+
+      /* DG solver kernels, */
+
+      /* Prolongation and restriction operators. */
+      printf(fh, "void MGpoissonProlong~ax~a_P~a(const double *fldC, double *fldFL, double *fldFR);~%", ci, bName[bInd], pi),
+      printf(fh, "void MGpoissonRestrict~ax~a_P~a(const double *fldFL, const double *fldFR, double *fldC);~%", ci, bName[bInd], pi),
+      printf(fh, "~%")
+
+    ),
+    printf(fh, "~%")
+  )
+
+);
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

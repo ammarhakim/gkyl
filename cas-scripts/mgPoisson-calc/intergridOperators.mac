@@ -1,0 +1,88 @@
+/* Generate kernels for inter-grid operators: prolongation and restiction */
+
+load("modal-basis");
+load("out-scripts");
+fpprec : 24$
+
+calcProlongationOp(fh, funcNm, dim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *fldC, double *fldFL, double *fldFR) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // fldC:  coarse-grid field.~%"),
+    printf(fh, "  // fldFL: fine-grid field (left).~%"),
+    printf(fh, "  // fldFR: fine-grid field (right).~%"),
+
+    /* Expand fine and coarse fields in basis. */
+    fFldL_e : doExpand1(fldFL,bC),
+    fFldR_e : doExpand1(fldFR,bC),
+    cFld_e  : doExpand1(fldC,bC),
+    
+    /* Compute the inner product, on fine grid, of the coarse
+       field times the basis fine-grid functions. */
+    IcFldL : calcInnerProdList(varsC,1.0,bC,subst(varsC[1]=(varsC[1]-1)/2,cFld_e)),
+    IcFldR : calcInnerProdList(varsC,1.0,bC,subst(varsC[1]=(varsC[1]+1)/2,cFld_e)),
+
+    writeCExprs1(fldFL,IcFldL),
+    printf(fh, "~%"),
+
+    writeCExprs1(fldFR,IcFldR),
+    printf(fh, "~%"),
+
+    printf(fh, "}~%"),
+    printf(fh, "~%")
+
+  )
+)$
+
+calcRestrictionOp(fh, funcNm, dim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  for polyOrder : 1 thru pMax do (
+    bC : basisC[polyOrder],
+    N  : length(bC),
+
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double *fldFL, const double *fldFR, double *fldC) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // fldFL: fine-grid field (left).~%"),
+    printf(fh, "  // fldFR: fine-grid field (right).~%"),
+    printf(fh, "  // fldC:  coarse-grid field.~%"),
+
+    /* Expand fine and coarse fields in basis. */
+    fFldL_e : doExpand1(fldFL,bC),
+    fFldR_e : doExpand1(fldFR,bC),
+    cFld_e  : doExpand1(fldC,bC),
+    
+    /* Compute the inner product, on fine grid, of the coarse
+       field times the basis fine-grid functions. */
+    IcFldL : calcInnerProdList(varsC,1.0,bC,subst(varsC[1]=(varsC[1]-1)/2,cFld_e)),
+    IcFldR : calcInnerProdList(varsC,1.0,bC,subst(varsC[1]=(varsC[1]+1)/2,cFld_e)),
+
+    /* IcFld gives the prolongation operator transformations.
+       The restriction operator is the transpose of that, times some
+       power of the coarsening factor. */
+    cFld_c  : makelist(fldC[i],i,0,N-1),
+    fFldL_c : makelist(fldFL[i],i,0,N-1),
+    fFldR_c : makelist(fldFR[i],i,0,N-1),
+    IfFld_v : (1/2)*(transpose(coefmatrix(IcFldL,cFld_c))).fFldL_c
+             +(1/2)*(transpose(coefmatrix(IcFldR,cFld_c))).fFldR_c,
+    IfFld   : makelist(IfFld_v[i][1],i,1,N),
+
+    writeCExprs1(fldC,IfFld),
+    printf(fh, "~%"),
+
+    printf(fh, "}~%"),
+    printf(fh, "~%")
+
+  )
+)$
