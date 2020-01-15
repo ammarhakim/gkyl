@@ -6,7 +6,7 @@
 import os
 
 def build(bld):
-    bld.objects(source = r"""
+    bld.shlib(source = r"""
     TenMomentImpl.cpp
 
     incompEulerData/IncompEulerSer2xP1.cpp
@@ -267,6 +267,9 @@ def build(bld):
     passiveAdvectionData/PassiveAdvectionSurfPositivitySer3xP1.cpp
 
     """,
-    target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData passiveAdvectionData ../Updater'
+              name = 'eq',
+              target = 'eq', use='EIGEN', includes = '. incompEulerData lboData constDiffusionData maxwellData vlasovData pbData gkData ../Updater/binOpCalcData passiveAdvectionData ../Updater',
+              vnum = '1.0',
+              
     )
 

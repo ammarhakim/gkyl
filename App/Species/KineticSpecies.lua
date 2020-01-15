@@ -678,6 +678,10 @@ function KineticSpecies:suggestDt()
    return math.min(self.dtGlobal[0], GKYL_MAX_DOUBLE)
 end
 
+function KineticSpecies:setDtGlobal(dtGlobal)
+   self.dtGlobal[0] = dtGlobal
+end
+
 function KineticSpecies:clearCFL()
    -- Clear cflRateByCell for next cfl calculation.
    self.cflRateByCell:clear(0.0)

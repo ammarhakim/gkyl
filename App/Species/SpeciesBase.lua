@@ -22,6 +22,7 @@ function SpeciesBase:createBasis() end
 function SpeciesBase:setConfGrid(grid) end
 function SpeciesBase:alloc(nRkDup) end
 function SpeciesBase:setCfl(cfl) end
+function SpeciesBase:setDtGlobal(dtGlobal) end
 function SpeciesBase:getNdim() return 1 end
 function SpeciesBase:createSolver() end
 function SpeciesBase:createDiagnostics() end

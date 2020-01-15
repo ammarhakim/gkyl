@@ -17,8 +17,3 @@ git checkout v2.1
 make PREFIX=$PREFIX CC=$CC
 make XCFLAGS=-DLUAJIT_ENABLE_GC64 install PREFIX=$PREFIX
 
-# delete dynamic libraries
-cmd="rm -rf $PREFIX/lib/*.dylib $PREFIX/lib/*.so*"
-echo $cmd
-$cmd
-
