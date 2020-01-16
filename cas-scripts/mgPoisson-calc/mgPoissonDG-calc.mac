@@ -5,13 +5,14 @@
 
 load(stringproc)$
 load("mgPoisson-calc/intergridOperators")$
+load("mgPoisson-calc/smoothers")$
 
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
 maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
-maxCdim_Ser : 1$
+maxCdim_Ser : 2$
 
 /* Maximal order basis. */
 maxPolyOrder_Max : 1$
@@ -41,14 +42,26 @@ for bInd : 1 thru length(bName) do (
     printf(fh, "#include <MGpoissonModDecl.h> ~%"),
     printf(fh, " ~%"),
     
+    if (c < 2) then (
     funcName : sconcat("MGpoissonProlong", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonProlong", c, "x", bName[bInd]))),
     calcProlongationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
     funcName : sconcat("MGpoissonRestrict", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonRestrict", c, "x", bName[bInd]))),
-    calcRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd])
+    ),
     
+    /* Regular Jacobi smoother. */
+    funcName : sconcat("MGpoissonJacobi", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonJacobi", c, "x", bName[bInd]))),
+    calcJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
+    
+    /* Damped Jacobi. */
+    funcName : sconcat("MGpoissonDampedJacobi", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDampedJacobi", c, "x", bName[bInd]))),
+    calcJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
+
     close(fh)
   )
   

@@ -26,4 +26,10 @@ function _M.selectProlongation(basisNm, dim, polyOrder)
    return ffi.C[funcNm]
 end
 
+-- Select relaxation kernel.
+function _M.selectRelaxation(basisNm, dim, polyOrder)
+   local funcNm = string.format("MGpoissonJacobi%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
+   return ffi.C[funcNm]
+end
+
 return _M
