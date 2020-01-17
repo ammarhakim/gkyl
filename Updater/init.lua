@@ -7,11 +7,12 @@
 
 -- Gkyl modules
 local Bc = require "Updater.Bc"
-local StairSteppedBc = require "Updater.StairSteppedBc"
 local BgkCollisions = require "Updater.BgkCollisions"
 local CartFieldBinOp = require "Updater.CartFieldBinOp"
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local ConfToPhase = require "Updater.ConfToPhase"
+local CrossPrimMoments = require "Updater.CrossPrimMoments"
+local DiscontPoisson = require "Updater.DiscontPoisson"
 local DistFuncIntegratedMomentCalc = require "Updater.DistFuncIntegratedMomentCalc"
 local DistFuncMomentCalc = require "Updater.DistFuncMomentCalc"
 local EvalOnNodes = require "Updater.EvalOnNodes"
@@ -20,8 +21,6 @@ local FemParPoisson = require "Updater.FemParPoisson"
 local FemPerpPoisson = require "Updater.FemPerpPoisson"
 local FemPoisson = require "Updater.FemPoisson"
 local FiveMomentSrc = require "Updater.FiveMomentSrc"
-local TenMomentSrc = require "Updater.TenMomentSrc"
-local TenMomentRelax = require "Updater.TenMomentRelax"
 local HyperDisCont = require "Updater.HyperDisCont"
 local HyperDisContCellBased = require "Updater.HyperDisContCellBased"
 local LagrangeFix = require "Updater.LagrangeFix"
@@ -31,19 +30,22 @@ local PositivityCheck = require "Updater.PositivityCheck"
 local PositivityRescale = require "Updater.PositivityRescale"
 local ProjectOnBasis = require "Updater.ProjectOnBasis"
 local SelfPrimMoments = require "Updater.SelfPrimMoments"
-local CrossPrimMoments = require "Updater.CrossPrimMoments"
 local SolidSurface = require "Updater.SolidSurface"
 local SpitzerCollisionality = require "Updater.SpitzerCollisionality"
+local StairSteppedBc = require "Updater.StairSteppedBc"
+local TenMomentRelax = require "Updater.TenMomentRelax"
+local TenMomentSrc = require "Updater.TenMomentSrc"
 local VoronovIonization = require "Updater.VoronovIonization"
 local WavePropagation = require "Updater.WavePropagation"
 
 return {
    Bc = Bc,
-   StairSteppedBc = StairSteppedBc,
    BgkCollisions = BgkCollisions,
    CartFieldBinOp = CartFieldBinOp,
    CartFieldIntegratedQuantCalc = CartFieldIntegratedQuantCalc,
    ConfToPhase = ConfToPhase,
+   CrossPrimMoments = CrossPrimMoments,
+   DiscontPoisson = DiscontPoisson,
    DistFuncIntegratedMomentCalc = DistFuncIntegratedMomentCalc,
    DistFuncMomentCalc = DistFuncMomentCalc,
    EvalOnNodes = EvalOnNodes,
@@ -52,8 +54,6 @@ return {
    FemPerpPoisson = FemPerpPoisson,
    FemPoisson = FemPoisson,
    FiveMomentSrc = FiveMomentSrc,
-   TenMomentSrc = TenMomentSrc,
-   TenMomentRelax = TenMomentRelax,
    HyperDisCont = HyperDisCont,
    HyperDisContCellBased = HyperDisContCellBased,
    LagrangeFix = LagrangeFix,
@@ -63,9 +63,11 @@ return {
    PositivityRescale = PositivityRescale,
    ProjectOnBasis = ProjectOnBasis,
    SelfPrimMoments = SelfPrimMoments,
-   CrossPrimMoments = CrossPrimMoments,
    SolidSurface = SolidSurface,
    SpitzerCollisionality = SpitzerCollisionality,
+   StairSteppedBc = StairSteppedBc,
+   TenMomentRelax = TenMomentRelax,
+   TenMomentSrc = TenMomentSrc,
    VoronovIonization = VoronovIonization,
    WavePropagation = WavePropagation,
 }
