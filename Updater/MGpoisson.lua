@@ -24,9 +24,30 @@ local DecompRegionCalc = require "Lib.CartDecomp"
 local LinearDecomp     = require "Lib.LinearDecomp"
 local Lin              = require "Lib.Linalg"
 local ffi              = require "ffi"
+local lume             = require "Lib.lume"
 
 -- Multigrid updater object.
 local MGpoisson = Proto(UpdaterBase)
+
+local relaxationKinds = {
+   "Jacobi", "DampedJacobi"
+}
+local dampedRelaxationKinds = {
+   "DampedJacobi"
+}
+function MGpoisson:isRelaxKindGood(rlx)
+   if lume.find(relaxationKinds, rlx) then
+      return true
+   end
+   return false
+end
+
+function MGpoisson:isRelaxDamped(rlx)
+   if lume.find(dampedRelaxationKinds, rlx) then
+      return true
+   end
+   return false
+end
 
 function MGpoisson:init(tbl)
    MGpoisson.super.init(self, tbl) -- Setup base object.
@@ -37,20 +58,50 @@ function MGpoisson:init(tbl)
    local basis = assert(
       tbl.basis, "Updater.MGpoisson: Must provide the weak basis object using 'basis'.")
 
+   -- Multigrid parameters.
+   local relaxKind = assert(
+      tbl.relaxType, "Updater.MGpoisson: Must provide the type of relaxations using 'relaxType'.")
+   local nus = assert(
+      tbl.relaxNum, "Updater.MGpoisson: Must provide the number of relaxations using 'relaxNum'.")
+   self.gamma = assert(
+      tbl.gamma, "Updater.MGpoisson: Must provide the MG gamma parameter using 'gamma'.")
+   if self:isRelaxKindGood(relaxKind) then
+      if self:isRelaxDamped(relaxKind) then
+         self.omega = assert(
+            tbl.relaxOmega, "Updater.MGpoisson: Must provide the relaxation damping using 'relaxOmega'.")
+      else
+         self.omega = 1.0
+      end
+   else
+      assert(false, "Updater.MGpoisson: relaxType must be one of 'Jacobi', 'DampedJacobi'")
+   end
+
+   -- Number of pre-, post- and coarsest-grid relaxations.
+   self.nu1 = nus[1]
+   self.nu2 = nus[2]
+   self.nu3 = nus[3]
+
    self.dim        = basis:ndim()        -- Dimension of space.
    local polyOrder = basis:polyOrder()   -- Polynomial order.
    local basisID   = basis:id()          -- Basis kind.
-
-   self.mgLevels   = 2   -- Number of multigrid levels (grids).
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
    self.mgGrids     = {}
    self.mgGrids[1]  = topGrid
    periodicDirCount = 0
-   self.rho         = {}   -- Right-side source field at each level.
-   for i = 2, self.mgLevels do
-      -- Determine the parameters of the coarse grid.
+   -- Right-side source and residue fields at each level.
+   self.phiAll     = {}
+   self.rhoAll     = {}
+   self.residueAll = {}
+
+   self.mgLevels       = 1      -- Number of multigrid levels (grids).
+   local notAtCoarsest = true
+   while notAtCoarsest do
+   
+      self.mgLevels = self.mgLevels+1
+
+      -- Determine parameters of the next coarse grid.
       local lowerC        = {}
       local upperC        = {}
       local cellsC        = {}
@@ -65,8 +116,10 @@ function MGpoisson:init(tbl)
          end
 
          -- The following two are more complicated. To be refined later.
-         cellsC[d]      = (self.mgGrids[i-1]:numCells(d))/2
-         decompCutsC[d] = self.mgGrids[i-1]:cuts(d) 
+         cellsC[d]      = (self.mgGrids[self.mgLevels-1]:numCells(d))/2
+         decompCutsC[d] = self.mgGrids[self.mgLevels-1]:cuts(d) 
+
+         if cellsC[d] == 2 then notAtCoarsest = false end
       end
 
       local isSharedC = topGrid:isShared()
@@ -76,16 +129,38 @@ function MGpoisson:init(tbl)
          useShared = useSharedC,
       }
 
-      self.mgGrids[i] = Grid.RectCart {
+      self.mgGrids[self.mgLevels] = Grid.RectCart {
          lower         = lowerC, 
          upper         = upperC,
          cells         = cellsC,
          periodicDirs  = periodicDirsC,
          decomposition = decompC,
       }
+   end
 
-      -- Allocate space for right-side source field, one for each level.
-      self.rho[i] = DataStruct.Field {
+   -- Allocate space for the iterate, right-side source field and
+   -- the residue on each grid level. We don't need to allocate space for
+   -- phi and rho on the top grid because we'll just use the fields
+   -- given to the solver.
+   self.residueAll[1] = DataStruct.Field {
+      onGrid        = self.mgGrids[1],
+      numComponents = basis:numBasis(),   -- NOTE: this will change if we do p-coarsening.
+      ghost         = {1, 1},
+   }
+   for i = 2, self.mgLevels do
+      -- Allocate space for the iterate, right-side source field and
+      -- the residu on each grid level.
+      self.phiAll[i] = DataStruct.Field {
+         onGrid        = self.mgGrids[i],
+         numComponents = basis:numBasis(),   -- NOTE: this will change if we do p-coarsening.
+         ghost         = {1, 1},
+      }
+      self.rhoAll[i] = DataStruct.Field {
+         onGrid        = self.mgGrids[i],
+         numComponents = basis:numBasis(),   -- NOTE: this will change if we do p-coarsening.
+         ghost         = {1, 1},
+      }
+      self.residueAll[i] = DataStruct.Field {
          onGrid        = self.mgGrids[i],
          numComponents = basis:numBasis(),   -- NOTE: this will change if we do p-coarsening.
          ghost         = {1, 1},
@@ -95,8 +170,9 @@ function MGpoisson:init(tbl)
    -- Select restriction and prolongation operator kernels.
    self._restriction  = MGpoissonDecl.selectRestriction(basisID, self.dim, polyOrder)
    self._prolongation = MGpoissonDecl.selectProlongation(basisID, self.dim, polyOrder)
-   -- Select relaction kernel.
-   self._relaxation   = MGpoissonDecl.selectRelaxation(basisID, self.dim, polyOrder)
+   -- Select kernels for relaxation and computing the residue.
+   self._relaxation   = MGpoissonDecl.selectRelaxation(basisID, self.dim, polyOrder, relaxKind)
+   self._calcResidue  = MGpoissonDecl.selectResidueCalc(basisID, self.dim, polyOrder)
 
    -- Intergrid operator stencils: 
    self.igOpStencilWidth = 2
@@ -108,7 +184,7 @@ function MGpoisson:init(tbl)
    end
    -- List of pointers to the data in cells pointed to by the stencil.
    local DoublePtrVec = Lin.new_vec_ct(ffi.typeof("double*"))
-   self.fineFldItr   = DoublePtrVec(self.igOpStencilSize)
+   self.fineFldItr    = DoublePtrVec(self.igOpStencilSize)
 
    -- For now we'll only need one coarse-grid index.
    self.coarseGridIdx = Lin.IntVec(self.dim)
@@ -124,6 +200,7 @@ function MGpoisson:init(tbl)
    self.relaxItr      = DoublePtrVec(self.relaxStencilSize)
    self.relaxDxs      = DoublePtrVec(self.relaxStencilSize)
 
+   self.dxBuf = Lin.Vec(self.dim)    -- A buffer to store cell lengths.
 
    -- Dimensions remaining when a dimension is removed.
    self.dimRemain = {}
@@ -223,13 +300,13 @@ function MGpoisson:relaxStencilIndices(idxIn, stencilType)
 
 end
 
-function MGpoisson:relax(phiFld, rhoFld)
+function MGpoisson:relax(nu, phiFld, rhoFld)
    -- Smoother/relaxation.
 
-   local grid = fld:grid() 
+   local grid = phiFld:grid() 
 
    localRangeDecomp = LinearDecomp.LinearDecompRange {
-      range = fld:localRange(), numSplit = grid:numSharedProcs() }
+      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
    local tId        = grid:subGridSharedId()    -- Local thread ID.
 
    local indexer = phiFld:genIndexer()
@@ -237,26 +314,73 @@ function MGpoisson:relax(phiFld, rhoFld)
    local phiItr = phiFld:get(1)
    local rhoItr = rhoFld:get(1)
 
+   for nuI = 1, nu do    -- Relax nu times.
+      for idx in localRangeDecomp:rowMajorIter(tId) do
+   
+         grid:setIndex(idx)
+   
+         -- Cell lengths and right-side source (rho) in this cell.
+         grid:getDx(self.dxBuf)
+         self.relaxDxs[1] = self.dxBuf:data()
+         rhoFld:fill(indexer(idx), rhoItr)   
+     
+         -- Get with indices of cells used by stencil.
+         self:relaxStencilIndices(idx,{0,{3,3},{0,0}})
+   
+         -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
+         for i = 1, self.relaxStencilSize do
+            grid:setIndex(self.relaxIdx[i])
+            grid:getDx(self.dxBuf)
+            self.relaxDxs[i] = self.dxBuf:data()
+            phiFld:fill(indexer(self.relaxIdx[i]), phiItr)
+            self.relaxItr[i] = phiItr:data()
+         end
+   
+         self._relaxation(self.omega, self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data())
+      end
+   end
+end
+
+function MGpoisson:residue(phiFld, rhoFld, resFld)
+   -- Compute the residue:
+   --     r = rho + L(phi). 
+   -- where L is the Laplacian.
+
+   local grid = phiFld:grid() 
+
+   localRangeDecomp = LinearDecomp.LinearDecompRange {
+      range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
+   local tId        = grid:subGridSharedId()    -- Local thread ID.
+
+   local indexer = phiFld:genIndexer()
+
+   local phiItr = phiFld:get(1)
+   local rhoItr = rhoFld:get(1)
+   local resItr = rhoFld:get(1)
+
    for idx in localRangeDecomp:rowMajorIter(tId) do
-
+   
       grid:setIndex(idx)
-
-      -- Cell lengths and right-side source (rho) in this cell.
-      grid:getDx(self.relaxDxs[1])
+   
+      -- Cell lengths, right-side source (rho) and residue in this cell.
+      grid:getDx(self.dxBuf)
+      self.relaxDxs[1] = self.dxBuf:data()
       rhoFld:fill(indexer(idx), rhoItr)   
-  
+      resFld:fill(indexer(idx), resItr)   
+   
       -- Get with indices of cells used by stencil.
       self:relaxStencilIndices(idx,{0,{3,3},{0,0}})
-
+   
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
-      for i = 1, sI do
+      for i = 1, self.relaxStencilSize do
          grid:setIndex(self.relaxIdx[i])
-         grid:getDx(self.relaxDxs[i])
+         grid:getDx(self.dxBuf)
+         self.relaxDxs[i] = self.dxBuf:data()
          phiFld:fill(indexer(self.relaxIdx[i]), phiItr)
          self.relaxItr[i] = phiItr:data()
       end
-
-      self._relaxation(self.relaxDxs:data(), self.relaxItr:data(), rhoItr:data())
+   
+      self._calcResidue(self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
    end
 end
 
@@ -318,31 +442,66 @@ function MGpoisson:prolong(cFld,fFld)
    end
 end
 
--- Function performing a single gamma-cycle.
---   gamma=1 V-cycle
---   gamma=2 W-cycle
--- What about F cycle? 
-function MGpoisson:gammaCycle()
-  return 0
+function MGpoisson:gammaCycle(lCurr)
+   -- Perform a single gamma-cycle at the lCurr grid level.
+   --   gamma=1 V-cycle
+   --   gamma=2 W-cycle
+   -- What about F cycle? 
+
+   if lCurr == self.mgLevels then
+
+      -- Coarsest grid. Use a direct solver or many iterations.
+      -- The latter is useful if the coarsest grid is large still.
+
+      -- Relax nu3 times.
+      self:relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+
+   else
+
+      -- Relax nu1 times.
+      self:relax(self.nu1, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+
+      -- Compute the residue.
+      self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
+
+      -- Restrict the residue to the next coarsest grid.
+      self:restrict(self.residueAll[lCurr], self.residueAll[lCurr+1])
+
+      -- Solve the problem on the coarser grid, gamma times, with an
+      -- initial guess of zero.
+      self.phiAll[lCurr+1]:clear(0.0)
+      for gamI = 1, self.gamma do
+         self:gammaCycle(lCurr+1) 
+      end
+
+      -- Prolong the error to the finer grid and correct the iterate.
+      self:prolong(self.phiAll[lCurr+1], self.residueAll[lCurr])
+      self.phiAll[lCurr]:accumulate(1.0,self.residueAll[lCurr])
+
+      -- Relax nu2 times.
+      self:relax(self.nu2, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+
+   end
+   
 end
 
 -- Advance method.
 function MGpoisson:_advance(tCurr, inFld, outFld)
 
-   local srcFld  = inFld[1]
+   -- Phi iterate and right-side source fields on finest grid.
+   -- Assume the given phi iterate is an initial guess, unless
+   -- performing a full-multigrid (FMG).
+   self.rhoAll[1] = inFld[1]
+   self.phiAll[1] = outFld[1]
 
    -- Restrict the right-side source field.
-   self.rho[1] = srcFld
    for i = 2, self.mgLevels do
-      self:restrict(self.rho[i-1], self.rho[i])
-      self.rho[i]:write(string.format("rho_%d.bp", i), tCurr, 0)
+      self:restrict(self.rhoAll[i-1], self.rhoAll[i])
+      self.rhoAll[i]:write(string.format("rho_%d.bp", i), tCurr, 0)
    end
 
-
-   -- Prolong the right-side source field (just for testing).
-   self:prolong(self.rho[2], outFld[1])
-
---   outFld[1]:copy(srcFld)   -- Temporary arbitrary output.
+   -- Call a MG gamma-cycle starting at the finest grid.
+   self:gammaCycle(1)
 
 end
 

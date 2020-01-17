@@ -6,6 +6,7 @@
 load(stringproc)$
 load("mgPoisson-calc/intergridOperators")$
 load("mgPoisson-calc/smoothers")$
+load("mgPoisson-calc/residue")$
 
 /* ...... USER INPUTS........ */
 
@@ -42,6 +43,7 @@ for bInd : 1 thru length(bName) do (
     printf(fh, "#include <MGpoissonModDecl.h> ~%"),
     printf(fh, " ~%"),
     
+    /* Inter-grid operators. */
     funcName : sconcat("MGpoissonProlong", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonProlong", c, "x", bName[bInd]))),
     calcProlongationOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
@@ -59,6 +61,11 @@ for bInd : 1 thru length(bName) do (
     funcName : sconcat("MGpoissonDampedJacobi", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonDampedJacobi", c, "x", bName[bInd]))),
     calcJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
+
+    /* Kernel for computing the residue. */
+    funcName : sconcat("MGpoissonResidue", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonResidue", c, "x", bName[bInd]))),
+    calcResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
 
     close(fh)
   )

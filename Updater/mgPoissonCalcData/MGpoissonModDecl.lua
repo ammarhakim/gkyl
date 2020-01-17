@@ -26,9 +26,15 @@ function _M.selectProlongation(basisNm, dim, polyOrder)
    return ffi.C[funcNm]
 end
 
--- Select relaxation kernel.
-function _M.selectRelaxation(basisNm, dim, polyOrder)
-   local funcNm = string.format("MGpoissonJacobi%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
+-- Select relaxation kernels.
+function _M.selectRelaxation(basisNm, dim, polyOrder, kindOfRelax)
+   local funcNm = string.format("MGpoisson%s%dx%s_P%d", kindOfRelax, dim, basisNmMap[basisNm], polyOrder)
+   return ffi.C[funcNm]
+end
+
+-- Select residue kernels.
+function _M.selectResidueCalc(basisNm, dim, polyOrder)
+   local funcNm = string.format("MGpoissonResidue%dx%s_P%d", dim, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 

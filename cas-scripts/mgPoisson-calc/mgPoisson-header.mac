@@ -31,8 +31,12 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%"),
 
       /* Smoothers. */
-      printf(fh, "void MGpoissonJacobi~ax~a_P~a(double **dx, const double *rho, double **phi);~%", ci, bName[bInd], pi),
+      printf(fh, "void MGpoissonJacobi~ax~a_P~a(const double omega, double **dx, const double *rho, double **phi);~%", ci, bName[bInd], pi),
       printf(fh, "void MGpoissonDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *rho, double **phi);~%", ci, bName[bInd], pi),
+      printf(fh, "~%"),
+
+      /* Residue kernels. */
+      printf(fh, "void MGpoissonResidue~ax~a_P~a(double **dx, const double *rho, double **phi, double *resOut);~%", ci, bName[bInd], pi),
       printf(fh, "~%")
 
     ),

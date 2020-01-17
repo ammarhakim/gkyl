@@ -1,7 +1,6 @@
-/* Kernels for the smoothing/relaxation operators for
-   the DG Poisson equation
-         - L(phi) = rho
-   where L=Laplacian. */
+/* Kernels for computing the residue of the DG Poisson equation
+         res = rho + L(phi)
+   where L is the Laplacian. */
 
 load("modal-basis");
 load("out-scripts");
@@ -33,10 +32,10 @@ writeCExprs1sub(lhs, rhs, sublist) := block([expr],
   )
 )$
 
-calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
-  /* Jacobi (and damped Jacobi) relaxation on the Poisson equation
-     using an RDG discretization. Other options involve LDG and
-     interior penalty methods. */
+calcResidue(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
+  /* Residue computation for the Poisson equation using an RDG
+     discretization. Other options involve LDG and interior
+     penalty methods. */
 
   kill(varsC, varsP, basisC, basisP),
 
@@ -101,31 +100,16 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
     rho_e     : doExpand1(rho,bC),
     sourceRHS : 0.5*volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
-    /* Solve for the coefficients of this cell to get the stencil. */
-    stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),
+    /* Subtract the LHS from the right-side source to obtain residue. */
+    residue_c : fullratsimp(sourceRHS - poissonLHS),
 
-    if (isDamped) then (
 
-      /* Damped Jacobi method. */
-      jacStencil : (1-omega)*phiC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N),
-
-      printf(fh, "void ~a_P~a(const double omega, double **dx, const double *rho, double **phi) ~%{ ~%", funcNm, polyOrder),
-      printf(fh, "  // omega:     relaxation parameter.~%")
-
-    ) else (
-
-      /* Regular Jacobi.*/
-      jacStencil : makelist(rhs(stencilSolve[i]),i,1,N),
-
-      printf(fh, "void ~a_P~a(const double omega, double **dx, const double *rho, double **phi) ~%{ ~%", funcNm, polyOrder),
-      printf(fh, "  // omega: relaxation parameter (not used).~%")
-
-    ),
-    jacStencil : fullratsimp(jacStencil),
-
-    printf(fh, "  // dx:    cell lengths of cells pointed to by the stencil.~%"),
-    printf(fh, "  // rho:   right-side source in the current cell.~%"),
-    printf(fh, "  // phi:   iterate cells pointed to by the stencil.~%"),
+    /* Write kernel. */
+    printf(fh, "void ~a_P~a(double **dx, const double *rho, double **phi, double *resOut) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // dx:     cell lengths of cells pointed to by the stencil.~%"),
+    printf(fh, "  // rho:    right-side source in the current cell.~%"),
+    printf(fh, "  // phi:    iterate cells pointed to by the stencil.~%"),
+    printf(fh, "  // resOut: residue in current cell.~%"),
     printf(fh, "~%"),
 
     /* Pointers to the cell lengths in cells pointed to by the stencil. */
@@ -141,7 +125,7 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
     /* This volume factors appears in front of the right-side source term. */
     volumeFac : (1/2)^dim,
     for dir : 1 thru dim do (
-      volumeFac : volumeFac*dxC[dir-1] 
+      volumeFac : volumeFac*dxC[dir-1]
     ),
     printf(fh, "  double volFac = ~a; ~%", float(volumeFac)),
     printf(fh, "~%"),
@@ -203,7 +187,7 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
         sI : sI + 6
       )
     ),
-    writeCExprs1sub(phiC,jacStencil,sublist),
+    writeCExprs1sub(resOut,residue_c,sublist),
     printf(fh, "~%"),
 
     printf(fh, "}~%"),
