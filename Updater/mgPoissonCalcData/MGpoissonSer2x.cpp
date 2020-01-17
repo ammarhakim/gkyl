@@ -1,5 +1,54 @@
 #include <MGpoissonModDecl.h> 
  
+void MGpoissonProlong2xSer_P1(const double *fldC, double **fldF) 
+{ 
+  // fldC: coarse-grid field.
+  // fldF: fine-grid field in cells pointed to by the stencil.
+
+  double *fldF1 = fldF[0];
+  double *fldF2 = fldF[1];
+  double *fldF3 = fldF[2];
+  double *fldF4 = fldF[3];
+
+  fldF1[0] = 0.75*fldC[3]-0.8660254037844386*fldC[2]-0.8660254037844386*fldC[1]+fldC[0]; 
+  fldF1[1] = 0.5*fldC[1]-0.4330127018922193*fldC[3]; 
+  fldF1[2] = 0.5*fldC[2]-0.4330127018922193*fldC[3]; 
+  fldF1[3] = 0.25*fldC[3]; 
+
+  fldF2[0] = (-0.75*fldC[3])-0.8660254037844386*fldC[2]+0.8660254037844386*fldC[1]+fldC[0]; 
+  fldF2[1] = 0.5*fldC[1]-0.4330127018922193*fldC[3]; 
+  fldF2[2] = 0.4330127018922193*fldC[3]+0.5*fldC[2]; 
+  fldF2[3] = 0.25*fldC[3]; 
+
+  fldF3[0] = (-0.75*fldC[3])+0.8660254037844386*fldC[2]-0.8660254037844386*fldC[1]+fldC[0]; 
+  fldF3[1] = 0.4330127018922193*fldC[3]+0.5*fldC[1]; 
+  fldF3[2] = 0.5*fldC[2]-0.4330127018922193*fldC[3]; 
+  fldF3[3] = 0.25*fldC[3]; 
+
+  fldF4[0] = 0.75*fldC[3]+0.8660254037844386*fldC[2]+0.8660254037844386*fldC[1]+fldC[0]; 
+  fldF4[1] = 0.4330127018922193*fldC[3]+0.5*fldC[1]; 
+  fldF4[2] = 0.4330127018922193*fldC[3]+0.5*fldC[2]; 
+  fldF4[3] = 0.25*fldC[3]; 
+
+}
+
+void MGpoissonRestrict2xSer_P1(double **fldF, double *fldC) 
+{ 
+  // fldF: fine-grid field in stencils pointed to by the stencil.
+  // fldC: coarse-grid field.
+
+  double *fldF1 = fldF[0];
+  double *fldF2 = fldF[1];
+  double *fldF3 = fldF[2];
+  double *fldF4 = fldF[3];
+
+  fldC[0] = 0.25*fldF4[0]+0.25*fldF3[0]+0.25*fldF2[0]+0.25*fldF1[0]; 
+  fldC[1] = 0.125*fldF4[1]+0.125*fldF3[1]+0.125*fldF2[1]+0.125*fldF1[1]+0.2165063509461096*fldF4[0]-0.2165063509461096*fldF3[0]+0.2165063509461096*fldF2[0]-0.2165063509461096*fldF1[0]; 
+  fldC[2] = 0.125*fldF4[2]+0.125*fldF3[2]+0.125*fldF2[2]+0.125*fldF1[2]+0.2165063509461096*fldF4[0]+0.2165063509461096*fldF3[0]-0.2165063509461096*fldF2[0]-0.2165063509461096*fldF1[0]; 
+  fldC[3] = 0.0625*fldF4[3]+0.0625*fldF3[3]+0.0625*fldF2[3]+0.0625*fldF1[3]+0.1082531754730548*fldF4[2]-0.1082531754730548*fldF3[2]+0.1082531754730548*fldF2[2]-0.1082531754730548*fldF1[2]+0.1082531754730548*fldF4[1]+0.1082531754730548*fldF3[1]-0.1082531754730548*fldF2[1]-0.1082531754730548*fldF1[1]+0.1875*fldF4[0]-0.1875*fldF3[0]-0.1875*fldF2[0]+0.1875*fldF1[0]; 
+
+}
+
 void MGpoissonJacobi2xSer_P1(double **dx, const double *rho, double **phi) 
 { 
   // dx:  cell lengths of cells pointed to by the stencil.

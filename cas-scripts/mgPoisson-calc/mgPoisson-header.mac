@@ -26,8 +26,8 @@ for bInd : 1 thru length(bName) do (
       /* DG solver kernels, */
 
       /* Prolongation and restriction operators. */
-      printf(fh, "void MGpoissonProlong~ax~a_P~a(const double *fldC, double *fldFL, double *fldFR);~%", ci, bName[bInd], pi),
-      printf(fh, "void MGpoissonRestrict~ax~a_P~a(const double *fldFL, const double *fldFR, double *fldC);~%", ci, bName[bInd], pi),
+      printf(fh, "void MGpoissonProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], pi),
+      printf(fh, "void MGpoissonRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], pi),
       printf(fh, "~%"),
 
       /* Smoothers. */

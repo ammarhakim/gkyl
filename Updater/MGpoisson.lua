@@ -98,7 +98,22 @@ function MGpoisson:init(tbl)
    -- Select relaction kernel.
    self._relaxation   = MGpoissonDecl.selectRelaxation(basisID, self.dim, polyOrder)
 
-   -- Restrict ourselves to 'cross' relaxation stencils for now.
+   -- Intergrid operator stencils: 
+   self.igOpStencilWidth = 2
+   self.igOpStencilSize  = self.igOpStencilWidth^self.dim
+   -- Array of fine grid indexes of cells needed in inter-grid transfer.
+   self.fineGridIdx = {}
+   for i = 1, self.igOpStencilSize do
+      self.fineGridIdx[i] = Lin.IntVec(self.dim)
+   end
+   -- List of pointers to the data in cells pointed to by the stencil.
+   local DoublePtrVec = Lin.new_vec_ct(ffi.typeof("double*"))
+   self.fineFldItr   = DoublePtrVec(self.igOpStencilSize)
+
+   -- For now we'll only need one coarse-grid index.
+   self.coarseGridIdx = Lin.IntVec(self.dim)
+
+   -- Relxation stencil info: restrict ourselves to 'cross' relaxation stencils for now.
    self.relaxStencilWidth = 3
    self.relaxStencilSize  = (self.relaxStencilWidth-1)*self.dim+1
    self.relaxIdx = {}   -- List of cell indices pointed to by the stencil.
@@ -106,17 +121,9 @@ function MGpoisson:init(tbl)
       self.relaxIdx[i] = Lin.IntVec(self.dim)
    end
    -- List of pointers to the data in cells pointed to by the stencil.
-   local DoublePtrVec = Lin.new_vec_ct(ffi.typeof("double*"))
    self.relaxItr      = DoublePtrVec(self.relaxStencilSize)
    self.relaxDxs      = DoublePtrVec(self.relaxStencilSize)
 
-   -- Used to store fine and coarse grid indexes of neighboring cells needed.
-   self.fIdx   = {}
-   self.cIdx   = {}
-   for i = 1, 3^(self.dim) do   -- The size 3^d is a worst case scenario for 2nd order BVPs.
-      self.fIdx[i]   = Lin.IntVec(self.dim)
-      self.cIdx[i]   = Lin.IntVec(self.dim)
-   end
 
    -- Dimensions remaining when a dimension is removed.
    self.dimRemain = {}
@@ -141,31 +148,38 @@ function MGpoisson:restrict(fFld,cFld)
    local cFldItr     = cFld:get(1)
 
    local fFldIndexer = fFld:genIndexer()
-   -- Store pointers to all the neighbors needed. Ideally we would put
-   -- all the data this points to into a single array or struct that
-   -- we can pass to the kernel.
-   local stencilSize = 2
-   local fFldItr     = {}
-   for i = 1, stencilSize do
-      fFldItr[i] = fFld:get(1)
-   end
+   local fFldItr     = fFld:get(1)
 
    for cIdx in localRangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(cIdx)
 
-      -- Given the coarse-grid index, need to obtain the fine-grid index.
-      for d = 1, self.dim do self.fIdx[1][d] = 2*(cIdx[d]-1)+1 end
-      for d = 1, self.dim do self.fIdx[2][d] = self.fIdx[1][d]+1 end
+      -- Given the coarse-grid index, need to obtain the fine-grid index
+      -- the of the cells needed by the coarsening stencil.
+      -- For equal 2x coarsening in all directions, doubling the
+      -- (zero-based) index puts you at the lower-corner
+      -- of the hyper-cube needed in the fine grid. Each cell after that
+      -- can be obtained by iterating through the dimensions, and stepping
+      -- away from the cells already counted (starting with this corner one).
+      for d = 1, self.dim do self.fineGridIdx[1][d] = 2*(cIdx[d]-1)+1 end
+      local fIdxCount = 1
+      for dir = 1, self.dim do
+         for rI = 1, self.igOpStencilWidth^(dir-1) do
+            fIdxCount = fIdxCount + 1
+            for d = 1, self.dim do self.fineGridIdx[fIdxCount][d] = self.fineGridIdx[rI][d] end
+            self.fineGridIdx[fIdxCount][dir] = self.fineGridIdx[rI][dir]+1
+         end
+      end
+      
+      cFld:fill(cFldIndexer(cIdx), cFldItr)  -- Coarse-grid field pointer.
   
-  
-      cFld:fill(cFldIndexer(cIdx), cFldItr)
-  
-      for i = 1, stencilSize do
-         fFld:fill(fFldIndexer(self.fIdx[i]), fFldItr[i])
+      -- Array of pointers to fine-grid field data in cells pointed to by the coarsening stencil. 
+      for i = 1, self.igOpStencilSize do
+         fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
+         self.fineFldItr[i] = fFldItr:data()
       end
   
-      self._restriction(fFldItr[1]:data(), fFldItr[2]:data(), cFldItr:data())
+      self._restriction(self.fineFldItr:data(), cFldItr:data())
    end
 end
 
@@ -246,6 +260,15 @@ function MGpoisson:relax(phiFld, rhoFld)
    end
 end
 
+function MGpoisson:areIndicesOdd(idxIn) 
+   -- Identify if indices in all dimensions are odd.
+   local areOdd = true
+   for d = 1, self.dim do
+      areOdd = areOdd and (idxIn[d] % 2 == 1)
+   end
+   return areOdd
+end
+
 function MGpoisson:prolong(cFld,fFld)
    -- Prolongation of a coarse-grid field (cFld) to a fine-grid field (fFld). 
 
@@ -259,34 +282,38 @@ function MGpoisson:prolong(cFld,fFld)
    local cFldItr     = cFld:get(1)
 
    local fFldIndexer = fFld:genIndexer()
-   -- Store pointers to all the neighbors needed. Ideally we would put
-   -- all the data this points to into a single array or struct that
-   -- we can pass to the kernel.
-   local stencilSize = 2
-   local fFldItr     = {}
-   for i = 1, stencilSize do
-      fFldItr[i] = fFld:get(1)
-   end
+   local fFldItr     = fFld:get(1)
 
    for fIdx in localRangeDecomp:rowMajorIter(tId) do
 
       grid:setIndex(fIdx)
 
-      if (fIdx[1] % 2 == 1) then
-         for d = 1, self.dim do self.fIdx[1][d] = fIdx[d] end
-         for d = 1, self.dim do self.fIdx[2][d] = self.fIdx[1][d]+1 end
+      if self:areIndicesOdd(fIdx) then
+
+         -- Array of fine grid indexes to cells used by stencil.
+         for d = 1, self.dim do self.fineGridIdx[1][d] = fIdx[d] end
+         local fIdxCount = 1
+         for dir = 1, self.dim do
+            for rI = 1, self.igOpStencilWidth^(dir-1) do
+               fIdxCount = fIdxCount + 1
+               for d = 1, self.dim do self.fineGridIdx[fIdxCount][d] = self.fineGridIdx[rI][d] end
+               self.fineGridIdx[fIdxCount][dir] = self.fineGridIdx[rI][dir]+1
+            end
+         end
 
          -- Given the fine-grid index, need to obtain the coarse-grid index.
-         for d = 1, self.dim do self.cIdx[1][d] = (fIdx[d]-1)/2+1 end
+         for d = 1, self.dim do self.coarseGridIdx[d] = (fIdx[d]-1)/2+1 end
   
   
-         cFld:fill(cFldIndexer(self.cIdx[1]), cFldItr)
+         cFld:fill(cFldIndexer(self.coarseGridIdx), cFldItr)   -- Coarse field pointer.
   
-         for i = 1, stencilSize do
-            fFld:fill(fFldIndexer(self.fIdx[i]), fFldItr[i])
+         -- Array of pointers to fine-grid field data by stencil. 
+         for i = 1, self.igOpStencilSize do
+            fFld:fill(fFldIndexer(self.fineGridIdx[i]), fFldItr)
+            self.fineFldItr[i] = fFldItr:data()
          end
   
-         self._prolongation(cFldItr:data(), fFldItr[1]:data(), fFldItr[2]:data())
+         self._prolongation(cFldItr:data(), self.fineFldItr:data())
       end
    end
 end
