@@ -17,9 +17,9 @@ extern "C" {
 
   void fpoDragKernelP2(const double dt, const double *dv, const double *fC, const double *fL, const double *fR, const double *fT, const double *fB, const double *hC, const double *hL, const double *hR, const double *hT, const double *hB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut);
 
-  void fpoDiffKernelP1(const double dt, const double *dv, const double *fC, const double *fL, const double *fR, const double *fT, const double *fB, const double *gC, const double *gL, const double *gR, const double *gT, const double *gB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, const int cross, double *fOut);
-
-  void fpoDiffKernelP2(const double dt, const double *dv, const double *fC, const double *fL, const double *fR, const double *fT, const double *fB, const double *gC, const double *gL, const double *gR, const double *gT, const double *gB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, const int cross, double *fOut);
+  void fpoDiffKernelP1(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut);
+  
+  void fpoDiffKernelP2(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut);
 
 }
 #endif

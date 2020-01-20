@@ -36,12 +36,6 @@ return function(tbl)
    -- Not sure about this logic...
    if doughertyPotentials then updatePotentials = false end
    local writeDiagnostics = xsys.pickBool(tbl.writeDiagnostics, false)
-   local cross = xsys.pickBool(tbl.cross, true)
-   if cross then
-      cross = 1
-   else
-      cross = 0
-   end
    local cells = tbl.cells
    local lower = tbl.lower
    local upper = tbl.upper
@@ -140,11 +134,43 @@ return function(tbl)
    }
 
    local function applyBc(fld)
-      bcT:advance(0.0, {}, {fld})
-      bcB:advance(0.0, {}, {fld})
-      bcL:advance(0.0, {}, {fld})
-      bcR:advance(0.0, {}, {fld})
+      -- bcT:advance(0.0, {}, {fld})
+      -- bcB:advance(0.0, {}, {fld})
+      -- bcL:advance(0.0, {}, {fld})
+      -- bcR:advance(0.0, {}, {fld})
       fld:sync()
+
+      -- need to manually sync corners for now
+      local globalRange = fld:globalRange()
+      local xlo, xup = globalRange:lower(1), globalRange:upper(1)
+      local ylo, yup = globalRange:lower(2), globalRange:upper(2)
+      
+      local indexer = fld:indexer()
+      local idxSkin, idxGhost
+      
+      -- lower-left
+      idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
+      
+      -- lower-right
+      idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
+      
+      -- upper-left
+      idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
+      
+      -- upper-right
+      idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
+      for k = 1, fld:numComponents() do
+	 idxGhost[k] = idxSkin[k]
+      end
    end
 
    -- projection to apply ICs
@@ -198,7 +224,7 @@ return function(tbl)
 	 grid:setIndex(idxs)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data()) 
+	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
       end
       momVec:appendData(tCurr, out)
       return out
@@ -220,7 +246,7 @@ return function(tbl)
 	 grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
-	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data()) 
+	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
       end
       diagVec:appendData(tCurr, out)
    end
@@ -306,20 +332,21 @@ return function(tbl)
       local indexer = fIn:genIndexer()
       local idxsR, idxsL = {}, {}
       local idxsT, idxsB = {}, {}
+      local idxsTL, idxsTR, idxsBL, idxsBR = {}, {}, {}, {}
 
       for idxs in localRange:colMajorIter() do
-         idxsR[1] = idxs[1]+1
-         idxsL[1] = idxs[1]-1
-         idxsR[2] = idxs[2]
-         idxsL[2] = idxs[2]
-         idxsT[1] = idxs[1]
-         idxsB[1] = idxs[1]
-         idxsT[2] = idxs[2]+1
-         idxsB[2] = idxs[2]-1
+         idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
+         idxsL[1], idxsL[2] = idxs[1]-1, idxs[2]
+         idxsT[1], idxsT[2] = idxs[1], idxs[2]+1
+         idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
+
+	 idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
+	 idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
+	 idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
+	 idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
 
          local isTopEdge, isBotEdge = 0, 0
          local isLeftEdge, isRightEdge = 0, 0
-
          if periodicX == false then
             if idxs[1] == 1 then isLeftEdge = 1 end
             if idxs[1] == cells[1] then isRightEdge = 1 end
@@ -329,36 +356,50 @@ return function(tbl)
             if idxs[2] == cells[2] then isTopEdge = 1 end
          end
 
-         local fPtr = fIn:get(indexer(idxs))
-         local fRPtr = fIn:get(indexer(idxsR))
-         local fLPtr = fIn:get(indexer(idxsL))
-         local fTPtr = fIn:get(indexer(idxsT))
-         local fBPtr = fIn:get(indexer(idxsB))
+         local fC = fIn:get(indexer(idxs))
+         local fR = fIn:get(indexer(idxsR))
+         local fL = fIn:get(indexer(idxsL))
+         local fT = fIn:get(indexer(idxsT))
+         local fB = fIn:get(indexer(idxsB))
 
-         local hPtr = hIn:get(indexer(idxs))
-         local hRPtr = hIn:get(indexer(idxsR))
-         local hLPtr = hIn:get(indexer(idxsL))
-         local hTPtr = hIn:get(indexer(idxsT))
-         local hBPtr = hIn:get(indexer(idxsB))
+	 local fTL = fIn:get(indexer(idxsTL))
+	 local fTR = fIn:get(indexer(idxsTR))
+	 local fBL = fIn:get(indexer(idxsBL))
+	 local fBR = fIn:get(indexer(idxsBR))
 
-         local gPtr = gIn:get(indexer(idxs))
-         local gRPtr = gIn:get(indexer(idxsR))
-         local gLPtr = gIn:get(indexer(idxsL))
-         local gTPtr = gIn:get(indexer(idxsT))
-         local gBPtr = gIn:get(indexer(idxsB))
+         local hC = hIn:get(indexer(idxs))
+         local hR = hIn:get(indexer(idxsR))
+         local hL = hIn:get(indexer(idxsL))
+         local hT = hIn:get(indexer(idxsT))
+         local hB = hIn:get(indexer(idxsB))
 
-         local fOutPtr= fOut:get(indexer(idxs))
+         local gC = gIn:get(indexer(idxs))
+         local gR = gIn:get(indexer(idxsR))
+         local gL = gIn:get(indexer(idxsL))
+         local gT = gIn:get(indexer(idxsT))
+         local gB = gIn:get(indexer(idxsB))
+
+	 local gTL = gIn:get(indexer(idxsTL))
+	 local gTR = gIn:get(indexer(idxsTR))
+	 local gBL = gIn:get(indexer(idxsBL))
+	 local gBR = gIn:get(indexer(idxsBR))
+
+         local fOutP = fOut:get(indexer(idxs))
 
          dragKernelFn(dt, dv:data(),
-		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
-		      hPtr:data(), hLPtr:data(), hRPtr:data(), hTPtr:data(), hBPtr:data(),
-		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-		      fOutPtr:data())
+	 	      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
+	 	      hC:data(), hL:data(), hR:data(), hT:data(), hB:data(),
+	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+	 	      fOutP:data())
          diffKernelFn(dt, dv:data(),
-		      fPtr:data(), fLPtr:data(), fRPtr:data(), fTPtr:data(), fBPtr:data(),
-		      gPtr:data(), gLPtr:data(), gRPtr:data(), gTPtr:data(), gBPtr:data(),
-		      isTopEdge, isBotEdge, isLeftEdge, isRightEdge, cross,
-		      fOutPtr:data())
+	 	      fTL:data(), fT:data(), fTR:data(),
+	 	      fL:data(), fC:data(), fR:data(),
+	 	      fBL:data(), fB:data(), fBR:data(),
+	 	      gTL:data(), gT:data(), gTR:data(),
+	 	      gL:data(), gC:data(), gR:data(),
+	 	      gBL:data(), gB:data(), gBR:data(),
+	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+	 	      fOutP:data())
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
@@ -416,7 +457,7 @@ return function(tbl)
          if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
             writeData(nextFrame, tCurr)
             nextFrame = nextFrame+1
-         end
+	 end
          step = step+1
       end
       local tmTotal = Time.clock()-tmStart

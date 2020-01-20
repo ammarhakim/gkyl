@@ -183,6 +183,8 @@ def build(bld):
     FemParPoissonImpl.cpp
     FemMatrices.cpp
     FemGyroaverageImpl.cpp
+
+    DiscontPoissonImpl.cpp
   
     confToPhaseData/ConfToPhaseMax1x1v.cpp
     confToPhaseData/ConfToPhaseMax1x2v.cpp

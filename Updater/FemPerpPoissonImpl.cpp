@@ -20,8 +20,8 @@ static const int DY = 1;
 static const int LO = 0;
 static const int HI = 1;
 
-double take_last(const double &in,const double &b) { return b; }
-void vectorSum(double *in, double *inout, int *len, MPI_Datatype *dptr)
+static double take_last(const double &in,const double &b) { return b; }
+static void vectorSum(double *in, double *inout, int *len, MPI_Datatype *dptr)
 {
   int i;
   for(i=0; i< *len; ++i) {
