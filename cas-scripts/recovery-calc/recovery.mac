@@ -45,8 +45,7 @@ Outputs:
   a polynomial in terms of qLo and qUp
 */
 getRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
-  [numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, N, rExp, recEqList, rSol, rSub, projSubList,basisND,xc,baLoND,baUpND,dimProjM,dimProjP],
-  
+  [numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, N, rExp, recEqList, rSol, rSub, projSubList, basisND, xc, baLoND, baUpND, dimProjM, dimProjP],
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
   basisC : getBasis("basis-precalc/basisSer1x", polyOrder), /* Loading basis functions */
@@ -91,16 +90,17 @@ getRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
   ) $
 
 
-/* Returns recovered polynomial across three cells in terms of expansion coefficients at the minus side (qLo), center (qCe), and the plus side (qUp).
+/* Returns recovered polynomial across three cells in terms of expansion coefficients in the lower cell (qLo), center (qCe), and the upper cell (qUp). Alternatively, qLo and qUp can be used as prescribed Dirichlet or Neumann boundary conditions when [bc] parameter is set (see bellow).
 This is done in two stages. In the first stage, getRecov2CellGen is used to calculate recovery polynomials at the two pairs of cells. These are then evaluated at the interfaces (only values for C=0; values and first derivatives for C=1). This addition information is then used to recover higher order solution in the central cell. 
 Inputs:
   dir : direction of the recovery (x, y, or z)
   dx : a list of cell sizes; if the specified length is greater than zero, the no-recovered direction are backsubstitued to the output
   polyOrder : polynomial order of the inputs
   C : continuity of the recovered solution (either 0 or 1)
-  qLo : expansion coeficients of the recovered quatity at the minus side
+  qLo : expansion coeficients of the recovered quatity in the lower cell (or a prescribed BC)
   qCe : expansion coeficients of the recovered quatity in the central cell
-  qUp : expansion coeficients of the recovered quatity at the plus side
+  qUp : expansion coeficients of the recovered quatity in the upper cell (or a prescribed BC)
+  [bc] : (optional) an optional argument that enables setting boundary conditions; by default, it is set to [0, 0] which uses the 3-cell recovery as explained above; alternatively, 0 can be changed to 1 (Dirichlet) or 2 (Neumann), in that case the recovery in the first step is not performed and the value of qLo (or qUp) is instead used in the second step as the prescribed value or slope at the interface; all the combinations are possible, e.g., [1, 2]; not that when C is set to 1, applying the BC decreases the recover polynomial order as only a value or a slope is imposed at the bounday
 Outputs:
   a polynomial in terms of qLo, qCe, and qUp
 */

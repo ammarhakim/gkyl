@@ -190,6 +190,8 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
                   ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
                end
 
+               local cnt = 2
+--               for d = 1,ndim do
                if idxs[1] > localRange:lower(1) then
                   idxL = stiffMatrixIndexer(idxs[1]-1, idxs[2], l)
                   val = stencilMatrix[2][k][l]

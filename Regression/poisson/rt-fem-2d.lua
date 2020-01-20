@@ -8,10 +8,10 @@ local DataStruct = require "DataStruct"
 local Grid = require "Grid"
 local Updater = require "Updater"
 
-local polyOrder = 2
+local polyOrder = 1
 local lower = {0, 0}
 local upper = {1, 1}
-local cells = {8, 8}
+local cells = {16, 16}
 local periodicDirs = {}
 
 local grid = Grid.RectCart {
