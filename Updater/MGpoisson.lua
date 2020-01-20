@@ -6,9 +6,12 @@
 --
 --
 -- Question/development notes:
+--   0) I think it'd be better if the user does not have to indicate periodicDirs and
+--      BCs in separate tables, but rather periodic is another type within the same table.
 --   1) Do we need to create a grid object for each level? or create pseudo-grid object that is more lightweight and has the information needed?
 --   2) Prolongation: so data doesn't get loaded multiple times, instead of iterating through each fine-grid cell, could we instead make
 --                    the looping stencil-aware?
+--   3) MF: I wish to change the stencil numbering to match kernel IDs.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -25,6 +28,11 @@ local LinearDecomp     = require "Lib.LinearDecomp"
 local Lin              = require "Lib.Linalg"
 local ffi              = require "ffi"
 local lume             = require "Lib.lume"
+
+-- Boundary condition ID numbers.
+local BVP_BC_PERIODIC  = 0
+local BVP_BC_DIRICHLET = 1
+local BVP_BC_NEUMANN   = 2
 
 -- Multigrid updater object.
 local MGpoisson = Proto(UpdaterBase)
@@ -58,6 +66,7 @@ function MGpoisson:init(tbl)
    local basis = assert(
       tbl.basis, "Updater.MGpoisson: Must provide the weak basis object using 'basis'.")
 
+
    -- Multigrid parameters.
    local relaxKind = assert(
       tbl.relaxType, "Updater.MGpoisson: Must provide the type of relaxations using 'relaxType'.")
@@ -84,6 +93,60 @@ function MGpoisson:init(tbl)
    self.dim        = basis:ndim()        -- Dimension of space.
    local polyOrder = basis:polyOrder()   -- Polynomial order.
    local basisID   = basis:id()          -- Basis kind.
+
+   -- Establish periodicity of the domain.
+   local periodicDirs    = {}
+   local nonPeriodicDirs = {}
+   for d = 1, self.dim do nonPeriodicDirs[d] = d end
+   if tbl.periodicDirs then
+      for i, d in ipairs(tbl.periodicDirs) do
+         if d<1 or d>self.dim then
+            assert(false, "Updater.MGpoisson: Directions in periodicDirs table should be 1 (for X), 2 (for Y), or 3 (for Z)")
+         end
+         periodicDirs[i]  = d
+         lume.remove(nonPeriodicDirs, d)
+      end
+   end
+   local isDirPeriodic    = {}
+   for d = 1,self.dim do isDirPeriodic[i]=false end
+   for _, d in ipairs(periodicDirs) do isDirPeriodic[d]=true end
+   local isPeriodicDomain = lume.all(isDirPeriodic)
+
+   -- Read non-periodic boundary conditions.
+   -- Assume the input poissonBCs is a table, one entry for
+   -- each non-periodic BC. Each of these entries is a table
+   -- like {dir, {T = sL, V = vL}, {T = sU, V = vU}}, where these are
+   --    dir:   integer indicating the direction.
+   --    sL,sU: string indicating BC type ("P", "D", "N") on lower and upper boundaries.
+   --    vL,vU: BC values on lower and upper boundaries.
+   local function bcID(strIn)
+      -- Given a string indicating BC type, return the corresponding
+      -- BC ID number, defined a the top of this file.
+      if strIn == "P" then return BVP_BC_PERIODIC
+      elseif strIn == "D" then return BVP_BC_DIRICHLET
+      elseif strIn == "N" then return BVP_BC_NEUMANN
+      else
+         else assert(false, "Updater.MGpoisson: BC type (T) must be one of P, D, or N.")
+      end
+   end
+
+   local topGridBCtypes  = {} 
+   local topGridBCvalues = {} 
+   if (tbl.poissonBCs) then
+      for i = 1, #tbl.poissonBCs do
+         topGridBCtypes[tbl.poissonBCs[i][1]]  = {bcID(tbl.poissonBCs[i][2][T]), bcID(tbl.poissonBCs[i][3][T])}
+         topGridBCvalues[tbl.poissonBCs[i][1]] = {tbl.poissonBCs[i][2][V], tbl.poissonBCs[i][3][V]}
+      end
+      if #topGridBCtypes ~= #nonPeriodicDirs then
+         assert(false, "Updater.MGpoisson: For a non-periodic domain must specify a BC for each non-peridic direction.")
+      end
+   elseif (not isPeriodicDomain) then
+      assert(false, "Updater.MGpoisson: For a non-periodic domain must specify BCs in 'poissonBCs'.")
+   end
+   for _, d in ipairs(periodicDirs) do
+      topGridBCtypes[d]  = {BVP_BC_PERIODIC, BVP_BC_PERIODIC}
+      topGridBCvalues[d] = nil 
+   end
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
@@ -171,8 +234,8 @@ function MGpoisson:init(tbl)
    self._restriction  = MGpoissonDecl.selectRestriction(basisID, self.dim, polyOrder)
    self._prolongation = MGpoissonDecl.selectProlongation(basisID, self.dim, polyOrder)
    -- Select kernels for relaxation and computing the residue.
-   self._relaxation   = MGpoissonDecl.selectRelaxation(basisID, self.dim, polyOrder, relaxKind)
-   self._calcResidue  = MGpoissonDecl.selectResidueCalc(basisID, self.dim, polyOrder)
+   self._relaxation   = MGpoissonDecl.selectRelaxation(basisID, self.dim, polyOrder, relaxKind, topGridBCtypes)
+   self._calcResidue  = MGpoissonDecl.selectResidueCalc(basisID, self.dim, polyOrder, topGridBCtypes)
 
    -- Intergrid operator stencils: 
    self.igOpStencilWidth = 2
@@ -261,6 +324,8 @@ function MGpoisson:restrict(fFld,cFld)
 end
 
 function MGpoisson:relaxStencilIndices(idxIn, stencilType)
+   -- MF update: I wish to change the stencil numbering to match kernel IDs.
+   -----------------
    -- Given the index of the current cell (idxIn), return
    -- a table of indices of the cells in a stencil of
    -- type 'stencilType' used in the relaxtion operator.
@@ -300,10 +365,27 @@ function MGpoisson:relaxStencilIndices(idxIn, stencilType)
 
 end
 
-function MGpoisson:relax(nu, phiFld, rhoFld)
-   -- Smoother/relaxation.
+function MGpoisson:idx2stencil(idxIn, nCellsIn)
+   -- Given a multi-dimensional index (idxIn) to a cell in a grid 
+   -- with nCellsIn cells, return the index of the stencil needed, 
+   -- within the table that holds relaxation/residue stencils.
+   local stencilIdx = 1
+   for d = 1, self.dim do
+      if (idxIn[d] == 1) then                -- First cell.
+         stencilIdx = 2*stencilIdx + 3^(d-1) - 1
+      elseif (idxIn[d] == nCellsIn[d]) then  -- Last cell.
+         stencilIdx = 2*stencilIdx + 3^(d-1)
+      end
+   end
+   return stencilIdx
+end
 
-   local grid = phiFld:grid() 
+function MGpoisson:relax(numRelax, phiFld, rhoFld)
+   -- Perform numRelax relaxations of the Poisson equation,
+
+   local grid   = phiFld:grid() 
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
    localRangeDecomp = LinearDecomp.LinearDecompRange {
       range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
@@ -314,7 +396,7 @@ function MGpoisson:relax(nu, phiFld, rhoFld)
    local phiItr = phiFld:get(1)
    local rhoItr = rhoFld:get(1)
 
-   for nuI = 1, nu do    -- Relax nu times.
+   for nuI = 1, numRelax do    -- Relax numRelax times.
       for idx in localRangeDecomp:rowMajorIter(tId) do
    
          grid:setIndex(idx)
@@ -336,7 +418,7 @@ function MGpoisson:relax(nu, phiFld, rhoFld)
             self.relaxItr[i] = phiItr:data()
          end
    
-         self._relaxation(self.omega, self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data())
+         self._relaxation[idx2stencil(idx,cellsN)](self.omega, self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data())
       end
    end
 end
@@ -347,6 +429,8 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    -- where L is the Laplacian.
 
    local grid = phiFld:grid() 
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
 
    localRangeDecomp = LinearDecomp.LinearDecompRange {
       range = phiFld:localRange(), numSplit = grid:numSharedProcs() }
@@ -380,7 +464,7 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
          self.relaxItr[i] = phiItr:data()
       end
    
-      self._calcResidue(self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
+      self._calcResidue[idx2stencil(idx,cellsN)](self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
    end
 end
 

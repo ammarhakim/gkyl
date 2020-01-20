@@ -8,6 +8,9 @@ load("out-scripts");
 load("recovery-calc/recovery");
 fpprec : 24$
 
+/* This variable obviates some if-statements. */
+boundStrKey : [[-1,"L"],[0,""],[1,"U"]]$
+
 /* Iterate (phi) in lower and upper cells along each direction. */
 phiL : [phiLx, phiLy, phiLz]$
 phiU : [phiUx, phiUy, phiUz]$
@@ -17,6 +20,16 @@ rdxL   : [rdxLx, rdxLy, rdxLz]$
 rdxU   : [rdxUx, rdxUy, rdxUz]$
 rdxLSq : [rdxLxSq, rdxLySq, rdxLzSq]$
 rdxUSq : [rdxUxSq, rdxUySq, rdxUzSq]$
+
+/* Types of boundary conditions for which to generate kernels.
+     =0 periodic
+     =1 Dirichlet
+     =2 Neumann
+   For periodic we'll assume ghost cells are filled accordingly
+   and use an interior stencil. */
+bcTypes  : [0, 1, 2]$
+bcStrs   : ["", "Dirichlet","Neumann"]$
+bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]],[bcTypes[3],bcStrs[3]]]$
 
 writeCExprs1sub(lhs, rhs, sublist) := block([expr],
   /* Perform some substitutions before printing. No expand. */
@@ -105,24 +118,16 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
     stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),
 
     if (isDamped) then (
-
       /* Damped Jacobi method. */
-      jacStencil : (1-omega)*phiC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N),
-
-      printf(fh, "void ~a_P~a(const double omega, double **dx, const double *rho, double **phi) ~%{ ~%", funcNm, polyOrder),
-      printf(fh, "  // omega:     relaxation parameter.~%")
-
+      jacStencil : (1-omega)*phiC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N)
     ) else (
-
       /* Regular Jacobi.*/
-      jacStencil : makelist(rhs(stencilSolve[i]),i,1,N),
-
-      printf(fh, "void ~a_P~a(const double omega, double **dx, const double *rho, double **phi) ~%{ ~%", funcNm, polyOrder),
-      printf(fh, "  // omega: relaxation parameter (not used).~%")
-
+      jacStencil : makelist(rhs(stencilSolve[i]),i,1,N)
     ),
     jacStencil : fullratsimp(jacStencil),
 
+    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *rho, double **phi) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // omega: relaxation parameter.~%"),
     printf(fh, "  // dx:    cell lengths of cells pointed to by the stencil.~%"),
     printf(fh, "  // rho:   right-side source in the current cell.~%"),
     printf(fh, "  // phi:   iterate cells pointed to by the stencil.~%"),
@@ -211,3 +216,115 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
 
   )
 )$
+
+/*
+getBoundaryKernelList(dim) := block([],
+*/
+  /* This function generates a list of the boundary kernels needed.
+     It follows the logic in getStencilStrs of MGpoissonModDecl.lua. */
+
+/*
+)$
+*/
+
+
+calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
+  /* Boundary kernels for Jacobi (and damped Jacobi) relaxation on the
+     Poisson equation using an RDG discretization. */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  /* This will well with (string) variable selection
+     depending on stencil location. */
+  sVarsC : varsC,
+  for d : 1 thru dim do (
+    sVarsC[d] : string(varsC[d])
+  ),
+  condVarsC : [[-1,sVarsC],[0,makelist("",i,1,dim)],[1,sVarsC]],
+
+  /* Create a list with 3^dim elements. Each element is itself an dim-long
+     list indicating whether the cell has a lower (=-1) or upper (=1)
+     boundary, or no boundary (=0) in that direction. */
+  cD : 1,
+  stencilLoc  : [makelist(0,i,1,dim)],  /* Center stencil, all zeros. */
+
+  for dir : 1 thru dim do (
+    /* Loop through cells already added to stencilLoc. */
+    for acI : 1 thru 3^(dir-1) do (
+      /* Loop over lower and upper. */ 
+      for bI : -1 thru 1 step 2 do (
+        stencilLoc : append(stencilLoc, copylist([stencilLoc[acI]])),
+        stencilLoc[length(stencilLoc)][dir] : bI
+      )
+    )
+  ),
+
+  for sI : 2 thru length(stencilLoc) do (
+
+    /* Count the number of non-periodic boundaries. */
+    npBCs : 0,
+    for d : 1 thru dim do (
+      if (stencilLoc[sI][d] # 0) then (
+        npBCs : npBCs + 1
+      )
+    ),
+
+    /* Given npBCs non-periodic BCs, there are bcN^npBCs possible
+       combinations of that cell's stencil (Assuming there are
+       only bcN types of BCs (e.g. Dirichlet, Neumman). */
+    npBCcombos : makelist([bcTypes[i]],i,2,length(bcTypes)),
+    for l : 2 thru npBCs do (
+      tmp : copylist(npBCcombos),
+      npBCcombos : [],
+      for cI : 1 thru length(tmp) do (
+        for bI : 2 thru length(bcTypes) do (
+          npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypes[bI]]) ])
+        )
+      )
+    ),
+
+    /* Loop over BC combinations. Will create a separate kernel for each. */
+    for bcI : 1 thru length(npBCcombos) do (
+
+      currBCs : npBCcombos[bcI],
+      /* It's easier to work with a list of dim elements indicating
+         the BC in each direction (rather than npBCcombos), even if it's periodic. */
+      nInc : 0,
+      for d : 1 thru dim do (
+        if (stencilLoc[sI][d] = 0) then (
+          currBCs : append(firstn(currBCs,d+nInc-1),[0],lastn(currBCs,length(currBCs)-(d+nInc-1))),
+          nInc : nInc+1
+        )
+      ),
+
+      boundaryStr : "",
+      for d : 1 thru dim do (
+        boundaryStr : sconcat(boundaryStr,assoc(stencilLoc[sI][d],boundStrKey),
+                              assoc(stencilLoc[sI][d],condVarsC)[d],assoc(currBCs[d],bcKey))
+      ),
+      boundaryStr : sconcat(boundaryStr,"_"),
+
+      /* Don't forget to loop over polynomial order. */
+      for polyOrder : 1 thru pMax do (
+
+        printf(fh, "void ~a_~aP~a(const double omega, double **dx, double *bcVal, const double *rho, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
+        printf(fh, "  // omega: relaxation parameter.~%"),
+        printf(fh, "  // dx:    cell lengths of cells pointed to by the stencil.~%"),
+        printf(fh, "  // bcVal: values to impose as BCs.~%"),
+        printf(fh, "  // rho:   right-side source in the current cell.~%"),
+        printf(fh, "  // phi:   iterate cells pointed to by the stencil.~%"),
+        printf(fh, "~%"),
+
+
+
+        printf(fh, "}~%"),
+        printf(fh, "~%")
+      )
+    )
+
+  )
+
+)$
+
