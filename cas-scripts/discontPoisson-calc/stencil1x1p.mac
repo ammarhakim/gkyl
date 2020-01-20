@@ -1,0 +1,43 @@
+kill(all)$
+load("recovery-calc/recovery")$
+load("basis-precalc/basisSer1x")$
+
+polyOrder : 1$
+numBasis : length(basisC[polyOrder])$ 
+
+st : diff(getRecov3CellGen(x, [2], polyOrder, 0, hL, hC, hR),x,2)$
+stProj : calcInnerProdListGen([x], [[-1,1]], 1, basisC[polyOrder], st)$
+
+fname : sconcat("~/max-out/discontPoissonStencil1x", polyOrder, "p.lua")$
+fh : openw(fname)$
+
+printf(fh, "local Lin = require \"Lib.Linalg\"~%")$
+printf(fh, "local _M = {}~%~%")$
+
+MC : coefmatrix(stProj, makelist(hC[i], i, 1, numBasis))$
+printf(fh, "_M[1] = Lin.Mat(~a,~a)~%", numBasis, numBasis)$
+for i : 1 thru numBasis do (
+  for j : 1 thru numBasis do (
+    printf(fh, "_M[1][~a][~a] = ~a~%", i, j, float(MC[i][j]))
+    )
+  )$
+
+ML : coefmatrix(stProj, makelist(hL[i], i, 1, numBasis))$
+printf(fh, "_M[2] = Lin.Mat(~a,~a)~%", numBasis, numBasis)$
+for i : 1 thru numBasis do (
+  for j : 1 thru numBasis do (
+    printf(fh, "_M[2][~a][~a] = ~a~%", i, j, float(ML[i][j]))
+    )
+  )$
+
+MR : coefmatrix(stProj, makelist(hR[i], i, 1, numBasis))$
+printf(fh, "_M[3] = Lin.Mat(~a,~a)~%", numBasis, numBasis)$
+for i : 1 thru numBasis do (
+  for j : 1 thru numBasis do (
+    printf(fh, "_M[3][~a][~a] = ~a~%", i, j, float(MR[i][j]))
+    )
+  )$
+    
+printf(fh, "return(_M)")$
+
+close(fh)$
