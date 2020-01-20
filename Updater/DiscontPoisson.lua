@@ -170,8 +170,15 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    -- create region that is effectively 2d and global in x-y directions
    local globalRange = src:globalRange()
    local localRange = src:localRange()
-   local stiffMatrixRange = Range.Range({1,1,1}, {localRange:upper(1), localRange:upper(2), basis:numBasis()})
-   local stiffMatrixIndexer = Range.makeRowMajorIndexer(stiffMatrixRange)
+   local lower, upper = {}, {}
+   for d = 1,ndim do
+      lower[d] = localRange:lower(d)
+      upper[d] = localRange:upper(d)
+   end
+   lower[ndim+1] = 1
+   upper[ndim+1] = basis:numBasis()
+   local stiffMatrixRange = Range.Range(lower, upper)
+   local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
    -- create indexers and pointers for src and sol
    if self._first then 
@@ -181,47 +188,46 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
 
    if self._first then
       for idxs in localRange:colMajorIter() do
+         local idxsExtK, idxsExtL = {}, {}
+         for d = 1,ndim do
+            idxsExtK[d] = idxs[d]
+            idxsExtL[d] = idxs[d]
+         end
          for k = 1,basis:numBasis() do
+            idxsExtK[ndim+1] = k
+            local idxK = stiffMatrixIndexer(idxsExtK)               
             for l = 1,basis:numBasis() do
-               local idxK = stiffMatrixIndexer(idxs[1], idxs[2], k)
-               local idxL = stiffMatrixIndexer(idxs[1], idxs[2], l)
+               idxsExtL[ndim+1] = l
+               local idxL = stiffMatrixIndexer(idxsExtL)
+               
                local val = stencilMatrix[1][k][l]
                if val ~= 0 then
                   ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
                end
 
                local cnt = 2
---               for d = 1,ndim do
-               if idxs[1] > localRange:lower(1) then
-                  idxL = stiffMatrixIndexer(idxs[1]-1, idxs[2], l)
-                  val = stencilMatrix[2][k][l]
-                  if val ~= 0 then
-                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+               for d = 1,ndim do
+                  if idxs[d] > localRange:lower(d) then
+                     idxsExtL[d] = idxsExtL[d]-1
+                     idxL = stiffMatrixIndexer(idxsExtL)
+                     val = stencilMatrix[cnt][k][l]
+                     if val ~= 0 then
+                        ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+                     end
+                     idxsExtL[d] = idxsExtL[d]+1
                   end
-               end
+                  cnt = cnt + 1
 
-               if idxs[1] < localRange:upper(1) then
-                  idxL = stiffMatrixIndexer(idxs[1]+1, idxs[2], l)
-                  val = stencilMatrix[3][k][l]
-                  if val ~= 0 then
-                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+                  if idxs[d] < localRange:upper(d) then
+                     idxsExtL[d] = idxsExtL[d]+1
+                     idxL = stiffMatrixIndexer(idxExtL)
+                     val = stencilMatrix[cnt][k][l]
+                     if val ~= 0 then
+                        ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+                     end
+                     idxsExtL[d] = idxsExtL[d]-1
                   end
-               end
-
-               if idxs[2] > localRange:lower(2) then
-                  idxL = stiffMatrixIndexer(idxs[1], idxs[2]-1, l)
-                  val = stencilMatrix[4][k][l]
-                  if val ~= 0 then
-                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
-                  end
-               end
-               
-               if idxs[2] < localRange:upper(2) then
-                  idxL = stiffMatrixIndexer(idxs[1], idxs[2]+1, l)
-                  val = stencilMatrix[5][k][l]
-                  if val ~= 0 then
-                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
-                  end
+                  cnt = cnt + 1
                end
             end
          end
