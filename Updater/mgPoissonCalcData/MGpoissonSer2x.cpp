@@ -51,7 +51,7 @@ void MGpoissonRestrict2xSer_P1(double **fldF, double *fldC)
 
 void MGpoissonJacobi2xSer_P1(const double omega, double **dx, const double *rho, double **phi) 
 { 
-  // omega: relaxation parameter (not used).
+  // omega: relaxation parameter.
   // dx:    cell lengths of cells pointed to by the stencil.
   // rho:   right-side source in the current cell.
   // phi:   iterate cells pointed to by the stencil.
@@ -129,9 +129,249 @@ void MGpoissonJacobi2xSer_P1(const double omega, double **dx, const double *rho,
 
 }
 
+void MGpoissonJacobi2xSer_LxDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxDirichletLyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxDirichletLyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxNeumannLyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxNeumannLyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxDirichletUyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxDirichletUyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxNeumannUyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_LxNeumannUyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxDirichletLyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxDirichletLyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxNeumannLyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxNeumannLyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxDirichletUyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxDirichletUyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxNeumannUyDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi2xSer_UxNeumannUyNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
 void MGpoissonDampedJacobi2xSer_P1(const double omega, double **dx, const double *rho, double **phi) 
 { 
-  // omega:     relaxation parameter.
+  // omega: relaxation parameter.
   // dx:    cell lengths of cells pointed to by the stencil.
   // rho:   right-side source in the current cell.
   // phi:   iterate cells pointed to by the stencil.

@@ -31,7 +31,7 @@ void MGpoissonRestrict1xSer_P1(double **fldF, double *fldC)
 
 void MGpoissonJacobi1xSer_P1(const double omega, double **dx, const double *rho, double **phi) 
 { 
-  // omega: relaxation parameter (not used).
+  // omega: relaxation parameter.
   // dx:    cell lengths of cells pointed to by the stencil.
   // rho:   right-side source in the current cell.
   // phi:   iterate cells pointed to by the stencil.
@@ -62,9 +62,49 @@ void MGpoissonJacobi1xSer_P1(const double omega, double **dx, const double *rho,
 
 }
 
+void MGpoissonJacobi1xSer_LxDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi1xSer_LxNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi1xSer_UxDirichlet_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
+void MGpoissonJacobi1xSer_UxNeumann_P1(const double omega, double **dx, double *bcVal, const double *rho, double **phi) 
+{ 
+  // omega: relaxation parameter.
+  // dx:    cell lengths of cells pointed to by the stencil.
+  // bcVal: values to impose as BCs.
+  // rho:   right-side source in the current cell.
+  // phi:   iterate cells pointed to by the stencil.
+
+}
+
 void MGpoissonDampedJacobi1xSer_P1(const double omega, double **dx, const double *rho, double **phi) 
 { 
-  // omega:     relaxation parameter.
+  // omega: relaxation parameter.
   // dx:    cell lengths of cells pointed to by the stencil.
   // rho:   right-side source in the current cell.
   // phi:   iterate cells pointed to by the stencil.

@@ -126,7 +126,7 @@ function MGpoisson:init(tbl)
       elseif strIn == "D" then return BVP_BC_DIRICHLET
       elseif strIn == "N" then return BVP_BC_NEUMANN
       else
-         else assert(false, "Updater.MGpoisson: BC type (T) must be one of P, D, or N.")
+         assert(false, "Updater.MGpoisson: BC type (T) must be one of P, D, or N.")
       end
    end
 
