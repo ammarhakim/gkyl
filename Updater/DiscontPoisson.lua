@@ -41,11 +41,11 @@ ffi.cdef[[
   DiscontPoisson* new_DiscontPoisson(int nx, int ny, int ndim, int polyOrder, double dx, double dy, bool periodicFlgs[2], bcdata_t bc[2][2]);
   void delete_DiscontPoisson(DiscontPoisson* f);
 
-  void discontPoisson_pushTripletSet(DiscontPoisson* f, int idxX, int idxY); 
+  void discontPoisson_pushTriplet(DiscontPoisson* f, int idxK, int idxL, double val); 
   void discontPoisson_constructStiffMatrix(DiscontPoisson* f);
-  void discontPoisson_pushSource(DiscontPoisson* f, int idxX, int idxY, double* src);
+  void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* src);
   void discontPoisson_solve(DiscontPoisson* f);
-  void discontPoisson_getSolution(DiscontPoisson* f, int idxX, int idxY, double* sol);
+  void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
 ]]
 local DIRICHLET = 0
 local NEUMANN = 1
@@ -166,9 +166,12 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
 
    local ndim = self._ndim
 
+   local stencilMatrix = require(string.format("Updater.discontPoissonData.discontPoissonStencil%dx%dp", self._ndim, self._p))
    -- create region that is effectively 2d and global in x-y directions
    local globalRange = src:globalRange()
    local localRange = src:localRange()
+   local stiffMatrixRange = Range.Range({1,1,1}, {localRange:upper(1), localRange:upper(2), basis:numBasis()})
+   local stiffMatrixIndexer = Range.makeRowMajorIndexer(stiffMatrixRange)
 
    -- create indexers and pointers for src and sol
    if self._first then 
@@ -178,21 +181,64 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
 
    if self._first then
       for idxs in localRange:colMajorIter() do
-         ffiC.discontPoisson_pushTripletSet(self._poisson, idxs[1]-1, idxs[2]-1)
+         for k = 1,basis:numBasis() do
+            for l = 1,basis:numBasis() do
+               local idxK = stiffMatrixIndexer(idxs[1], idxs[2], k)
+               local idxL = stiffMatrixIndexer(idxs[1], idxs[2], l)
+               local val = stencilMatrix[1][k][l]
+               if val ~= 0 then
+                  ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+               end
+
+               if idxs[1] > localRange:lower(1) then
+                  idxL = stiffMatrixIndexer(idxs[1]-1, idxs[2], l)
+                  val = stencilMatrix[2][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+                  end
+               end
+
+               if idxs[1] < localRange:upper(1) then
+                  idxL = stiffMatrixIndexer(idxs[1]+1, idxs[2], l)
+                  val = stencilMatrix[3][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+                  end
+               end
+
+               if idxs[2] > localRange:lower(2) then
+                  idxL = stiffMatrixIndexer(idxs[1], idxs[2]-1, l)
+                  val = stencilMatrix[4][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+                  end
+               end
+               
+               if idxs[2] < localRange:upper(2) then
+                  idxL = stiffMatrixIndexer(idxs[1], idxs[2]+1, l)
+                  val = stencilMatrix[5][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self._poisson, idxK-1, idxL-1, val)
+                  end
+               end
+            end
+         end
       end
       ffiC.discontPoisson_constructStiffMatrix(self._poisson);
    end
 
    for idxs in localRange:colMajorIter() do
       local srcPtr = src:get(self.srcIndexer(idxs))
-      ffiC.discontPoisson_pushSource(self._poisson, idxs[1]-1, idxs[2]-1, srcPtr:data())
+      local idx = stiffMatrixIndexer(idxs[1], idxs[2], 1)
+      ffiC.discontPoisson_pushSource(self._poisson, idx-1, srcPtr:data())
    end
 
    ffiC.discontPoisson_solve(self._poisson)
 
    for idxs in localRange:colMajorIter() do
       local solPtr = sol:get(self.solIndexer(idxs))
-      ffiC.discontPoisson_getSolution(self._poisson, idxs[1]-1, idxs[2]-1, solPtr:data())
+      local idx = stiffMatrixIndexer(idxs[1], idxs[2], 1)
+      ffiC.discontPoisson_getSolution(self._poisson, idx-1, solPtr:data())
    end
 
    self._first = false

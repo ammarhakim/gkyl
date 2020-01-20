@@ -44,9 +44,10 @@ extern "C" {
   void delete_DiscontPoisson(DiscontPoisson* f);
 
   void discontPoisson_pushTripletSet(DiscontPoisson* f, int idxX, int idxY);
+  void discontPoisson_pushTriplet(DiscontPoisson* f, int i, int j, double val);
   void discontPoisson_constructStiffMatrix(DiscontPoisson* f);
-  void discontPoisson_pushSource(DiscontPoisson* f, int idxX, int idxY, double* src);
-  void discontPoisson_getSolution(DiscontPoisson* f, int idxX, int idxY, double* sol);
+  void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* src);
+  void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
   void discontPoisson_solve(DiscontPoisson* f);
 }
 
@@ -61,9 +62,10 @@ class DiscontPoisson
   int getNumLocalNodes(int ndim, int p);
   unsigned indexer2Dto1D(int i, int j, int basisIdx);
   void pushTripletSet(int idxX, int idxY);
+  void pushTriplet(int i, int j, double val);
   void constructStiffMatrix();
-  void pushSource(int idxX, int idxY, double* src);
-  void getSolution(int idxX, int idxY, double* sol);
+  void pushSource(int idx, double* src);
+  void getSolution(int idx, double* sol);
   void solve();
   
  private:

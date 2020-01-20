@@ -83,6 +83,10 @@ unsigned DiscontPoisson::indexer2Dto1D(int i, int j, int basisIdx) {
   return i*ny*nb + j*nb + basisIdx;
 }
 
+void DiscontPoisson::pushTriplet(int i, int j, double val) {
+  stiffTripletList.push_back(Triplet<double>(i, j, val));
+}
+
 void DiscontPoisson::pushTripletSet(int idxX, int idxY) {
   stiffTripletList.push_back(Triplet<double>(indexer2Dto1D(idxX, idxY, 0), indexer2Dto1D(idxX, idxY, 0), -3.0));
   stiffTripletList.push_back(Triplet<double>(indexer2Dto1D(idxX, idxY, 1), indexer2Dto1D(idxX, idxY, 1), -23.0/2.0));
@@ -152,15 +156,25 @@ void DiscontPoisson::constructStiffMatrix() {
   solver.factorize(stiffMat);
 }
 
-void DiscontPoisson::pushSource(int idxX, int idxY, double* src) {
+//void DiscontPoisson::pushSource(int idxX, int idxY, double* src) {
+//  for (int k = 0; k < nb; ++k) {
+//    globalSrc.coeffRef(indexer2Dto1D(idxX, idxY, k)) = src[k];
+//  }
+//}
+void DiscontPoisson::pushSource(int idx, double* src) {
   for (int k = 0; k < nb; ++k) {
-    globalSrc.coeffRef(indexer2Dto1D(idxX, idxY, k)) = src[k];
+    globalSrc.coeffRef(idx+k) = src[k];
   }
 }
 
-void DiscontPoisson::getSolution(int idxX, int idxY, double* sol) {
+// void DiscontPoisson::getSolution(int idxX, int idxY, double* sol) {
+//   for (int k = 0; k < nb; ++k) {
+//     sol[k] = x.coeffRef(indexer2Dto1D(idxX, idxY, k));
+//   }
+// }
+void DiscontPoisson::getSolution(int idx, double* sol) {
   for (int k = 0; k < nb; ++k) {
-    sol[k] = x.coeffRef(indexer2Dto1D(idxX, idxY, k));
+    sol[k] = x.coeffRef(idx+k);
   }
 }
 
@@ -168,7 +182,7 @@ void DiscontPoisson::solve() {
   saveMarket(globalSrc, "source");
   x = VectorXd::Zero(N);
   x = solver.solve(globalSrc);
-  saveMarket(x, "solution");
+  //saveMarket(x, "solution");
 }
 
 
@@ -189,9 +203,9 @@ extern "C" void discontPoisson_solve(DiscontPoisson* f)
   f->solve();
 }
 
-extern "C" void discontPoisson_pushTripletSet(DiscontPoisson* f, int idxX, int idxY)
+extern "C" void discontPoisson_pushTriplet(DiscontPoisson* f, int i, int j, double val)
 {
-  f->pushTripletSet(idxX, idxY);
+  f->pushTriplet(i, j, val);
 }
 
 extern "C" void discontPoisson_constructStiffMatrix(DiscontPoisson* f)
@@ -199,12 +213,12 @@ extern "C" void discontPoisson_constructStiffMatrix(DiscontPoisson* f)
   f->constructStiffMatrix();
 }
 
-extern "C" void discontPoisson_pushSource(DiscontPoisson* f, int idxX, int idxY, double* src)
+extern "C" void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* src)
 {
-  f->pushSource(idxX, idxY, src);
+  f->pushSource(idx, src);
 }
 
-extern "C" void discontPoisson_getSolution(DiscontPoisson* f, int idxX, int idxY, double* sol)
+extern "C" void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol)
 {
-  f->getSolution(idxX, idxY, sol);
+  f->getSolution(idx, sol);
 }
