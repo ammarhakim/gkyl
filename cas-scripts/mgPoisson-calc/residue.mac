@@ -111,7 +111,7 @@ calcResidue(fh, funcNm, dim, basisFun, pMax) := block([],
     /* The right-hand-side of the Poisson equation is
        just a projection of the source on the basis. */
     rho_e     : doExpand1(rho,bC),
-    sourceRHS : 0.5*volFac*calcInnerProdList(varsC,1,bC,rho_e),
+    sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
     /* Subtract the LHS from the right-side source to obtain residue. */
     residue_c : fullratsimp(sourceRHS - poissonLHS),
@@ -345,7 +345,7 @@ calcResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
         /* The right-hand-side of the Poisson equation is
            just a projection of the source on the basis. */
         rho_e     : doExpand1(rho,bC),
-        sourceRHS : 0.5*volFac*calcInnerProdList(varsC,1,bC,rho_e),
+        sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
   
         /* Subtract the LHS from the right-side source to obtain residue. */
         residue_c : fullratsimp(sourceRHS - poissonLHS),

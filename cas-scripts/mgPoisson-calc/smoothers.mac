@@ -112,7 +112,7 @@ calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
     /* The right-hand-side of the Poisson equation is
        just a projection of the source on the basis. */
     rho_e     : doExpand1(rho,bC),
-    sourceRHS : 0.5*volFac*calcInnerProdList(varsC,1,bC,rho_e),
+    sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
     /* Solve for the coefficients of this cell to get the stencil. */
     stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),
@@ -346,7 +346,7 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([]
           /* Three-cell recovery without integration by parts. */
           phiRec  : getRecov3CellGen(surfVar, ones, polyOrder, 0, phiL_c, phiC_c, phiU_c, dirBC),
 
-          volTerms : volTerms + rdxCp2Sq[dir-1]*calcInnerProdList(varsC,1,bC,diff(phiRec,varsC[dir],2))
+          volTerms : volTerms + rdxCp2[dir-1]*calcInnerProdList(varsC,1,bC,diff(phiRec,varsC[dir],2))
 
         ),
 
@@ -356,7 +356,7 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([]
         /* The right-hand-side of the Poisson equation is
            just a projection of the source on the basis. */
         rho_e     : doExpand1(rho,bC),
-        sourceRHS : 0.5*volFac*calcInnerProdList(varsC,1,bC,rho_e),
+        sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
         /* Solve for the coefficients of this cell to get the stencil. */
         stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),

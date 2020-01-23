@@ -558,7 +558,7 @@ function MGpoisson:gammaCycle(lCurr)
       self:residue(self.phiAll[lCurr], self.rhoAll[lCurr], self.residueAll[lCurr]) 
 
       -- Restrict the residue to the next coarsest grid.
-      self:restrict(self.residueAll[lCurr], self.residueAll[lCurr+1])
+      self:restrict(self.residueAll[lCurr], self.rhoAll[lCurr+1])
 
       -- Solve the problem on the coarser grid, gamma times, with an
       -- initial guess of zero.
@@ -587,14 +587,13 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    self.rhoAll[1] = inFld[1]
    self.phiAll[1] = outFld[1]
 
-   -- Restrict the right-side source field.
-   for i = 2, self.mgLevels do
-      self:restrict(self.rhoAll[i-1], self.rhoAll[i])
-   end
+   -- FMG requires we restrict the right-side source field to all levels.
+--   for i = 2, self.mgLevels do
+--      self:restrict(self.rhoAll[i-1], self.rhoAll[i])
+--   end
 
    -- Call a MG gamma-cycle starting at the finest grid.
    self:gammaCycle(1)
-
 
 end
 
