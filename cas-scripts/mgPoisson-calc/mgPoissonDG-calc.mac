@@ -53,23 +53,22 @@ for bInd : 1 thru length(bName) do (
     calcRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
     /* Regular Jacobi smoother. */
-    funcName : sconcat("MGpoissonJacobi", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on MGpoissonJacobi", c, "x", bName[bInd]))),
-    calcJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
-    calcJacobiOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
+    funcName : sconcat("MGpoissonGaussSeidel", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonGaussSeidel", c, "x", bName[bInd]))),
+    calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
+    calcGaussSeidelOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
     
-    /* Damped Jacobi. */
-    funcName : sconcat("MGpoissonDampedJacobi", c, "x", bName[bInd]),
-    disp(printf(false,sconcat("Working on MGpoissonDampedJacobi", c, "x", bName[bInd]))),
-    calcJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
-    /*
-    calcJacobiOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
-    */
+    /* Damped GaussSeidel. */
+    funcName : sconcat("MGpoissonDampedGaussSeidel", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDampedGaussSeidel", c, "x", bName[bInd]))),
+    calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
+    calcGaussSeidelOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
 
     /* Kernel for computing the residue. */
     funcName : sconcat("MGpoissonResidue", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonResidue", c, "x", bName[bInd]))),
-    calcResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
+    calcResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcResidueBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     close(fh)
   )

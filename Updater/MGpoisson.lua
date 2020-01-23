@@ -38,10 +38,10 @@ local BVP_BC_NEUMANN   = 2
 local MGpoisson = Proto(UpdaterBase)
 
 local relaxationKinds = {
-   "Jacobi", "DampedJacobi"
+   "GaussSeidel", "DampedGaussSeidel"
 }
 local dampedRelaxationKinds = {
-   "DampedJacobi"
+   "DampedGaussSeidel"
 }
 function MGpoisson:isRelaxKindGood(rlx)
    if lume.find(relaxationKinds, rlx) then
@@ -82,7 +82,7 @@ function MGpoisson:init(tbl)
          self.omega = 1.0
       end
    else
-      assert(false, "Updater.MGpoisson: relaxType must be one of 'Jacobi', 'DampedJacobi'")
+      assert(false, "Updater.MGpoisson: relaxType must be one of 'GaussSeidel', 'DampedGaussSeidel'")
    end
 
    -- Number of pre-, post- and coarsest-grid relaxations.
@@ -108,7 +108,7 @@ function MGpoisson:init(tbl)
       end
    end
    local isDirPeriodic    = {}
-   for d = 1,self.dim do isDirPeriodic[i]=false end
+   for d = 1,self.dim do isDirPeriodic[d]=false end
    for _, d in ipairs(periodicDirs) do isDirPeriodic[d]=true end
    local isPeriodicDomain = lume.all(isDirPeriodic)
 
@@ -126,7 +126,7 @@ function MGpoisson:init(tbl)
       elseif strIn == "D" then return BVP_BC_DIRICHLET
       elseif strIn == "N" then return BVP_BC_NEUMANN
       else
-         assert(false, "Updater.MGpoisson: BC type (T) must be one of P, D, or N.")
+         assert(false, "Updater.MGpoisson: BC type (T) must be one of P, D, or N. Used " .. strIn .. " instead.")
       end
    end
 
@@ -134,8 +134,8 @@ function MGpoisson:init(tbl)
    local topGridBCvalues = {} 
    if (tbl.poissonBCs) then
       for i = 1, #tbl.poissonBCs do
-         topGridBCtypes[tbl.poissonBCs[i][1]]  = {bcID(tbl.poissonBCs[i][2][T]), bcID(tbl.poissonBCs[i][3][T])}
-         topGridBCvalues[tbl.poissonBCs[i][1]] = {tbl.poissonBCs[i][2][V], tbl.poissonBCs[i][3][V]}
+         topGridBCtypes[tbl.poissonBCs[i][1]]  = {bcID(tbl.poissonBCs[i][2]["T"]), bcID(tbl.poissonBCs[i][3]["T"])}
+         topGridBCvalues[tbl.poissonBCs[i][1]] = {tbl.poissonBCs[i][2]["V"], tbl.poissonBCs[i][3]["V"]}
       end
       if #topGridBCtypes ~= #nonPeriodicDirs then
          assert(false, "Updater.MGpoisson: For a non-periodic domain must specify a BC for each non-peridic direction.")
@@ -145,8 +145,15 @@ function MGpoisson:init(tbl)
    end
    for _, d in ipairs(periodicDirs) do
       topGridBCtypes[d]  = {BVP_BC_PERIODIC, BVP_BC_PERIODIC}
-      topGridBCvalues[d] = nil 
+      topGridBCvalues[d] = 0.0 
    end
+   -- Translate BCvalues to a vector from which we can pass a pointer.
+   self.topGridBCvals = Lin.Vec(self.dim*2)
+   for d = 1,self.dim do 
+     self.topGridBCvals[2*d-1] = topGridBCvalues[d][1]
+     self.topGridBCvals[2*d]   = topGridBCvalues[d][2]
+   end
+
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
@@ -272,6 +279,7 @@ function MGpoisson:init(tbl)
       for d2 = 1, self.dim do self.dimRemain[d1][d2] = d2 end
       table.remove(self.dimRemain[d1],d1)
    end
+
 
 end
 
@@ -414,11 +422,12 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
             grid:setIndex(self.relaxIdx[i])
             grid:getDx(self.dxBuf)
             self.relaxDxs[i] = self.dxBuf:data()
+
             phiFld:fill(indexer(self.relaxIdx[i]), phiItr)
             self.relaxItr[i] = phiItr:data()
          end
-   
-         self._relaxation[idx2stencil(idx,cellsN)](self.omega, self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data())
+
+         self._relaxation[self:idx2stencil(idx,cellsN)](self.omega, self.relaxDxs:data(), self.topGridBCvals:data(), rhoItr:data(), self.relaxItr:data())
       end
    end
 end
@@ -464,7 +473,7 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
          self.relaxItr[i] = phiItr:data()
       end
    
-      self._calcResidue[idx2stencil(idx,cellsN)](self.relaxDxs:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
+      self._calcResidue[self:idx2stencil(idx,cellsN)](self.relaxDxs:data(), self.topGridBCvals:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
    end
 end
 
@@ -581,11 +590,11 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    -- Restrict the right-side source field.
    for i = 2, self.mgLevels do
       self:restrict(self.rhoAll[i-1], self.rhoAll[i])
-      self.rhoAll[i]:write(string.format("rho_%d.bp", i), tCurr, 0)
    end
 
    -- Call a MG gamma-cycle starting at the finest grid.
    self:gammaCycle(1)
+
 
 end
 
