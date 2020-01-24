@@ -28,6 +28,7 @@ local LinearDecomp     = require "Lib.LinearDecomp"
 local Lin              = require "Lib.Linalg"
 local ffi              = require "ffi"
 local lume             = require "Lib.lume"
+local IntQuantCalc     = require "Updater.CartFieldIntegratedQuantCalc"
 
 -- Boundary condition ID numbers.
 local BVP_BC_PERIODIC  = 0
@@ -74,6 +75,16 @@ function MGpoisson:init(tbl)
       tbl.relaxNum, "Updater.MGpoisson: Must provide the number of relaxations using 'relaxNum'.")
    self.gamma = assert(
       tbl.gamma, "Updater.MGpoisson: Must provide the MG gamma parameter using 'gamma'.")
+   if (tbl.tolerance) then
+      -- User-defined tolerance (stopping point) if given.
+      self.tol            = tbl.tolerance
+      self.numGammaCycles = 1000
+   else
+      -- If not given perform the user-defined number of cycles
+      -- or stop when the relative residual norm is 1e-12.
+      if tbl.numCycles then self.numGammaCycles=tbl.numCycles end
+      self.tol = 1.0e-12
+   end
    if self:isRelaxKindGood(relaxKind) then
       if self:isRelaxDamped(relaxKind) then
          self.omega = assert(
@@ -84,6 +95,8 @@ function MGpoisson:init(tbl)
    else
       assert(false, "Updater.MGpoisson: relaxType must be one of 'GaussSeidel', 'DampedGaussSeidel'")
    end
+   -- Diagnostics flag indicates whether to write diagnostic info.
+   if tbl.diagnostics then self.diagnostics=tbl.diagnostics else self.diagnostics=false end
 
    -- Number of pre-, post- and coarsest-grid relaxations.
    self.nu1 = nus[1]
@@ -280,6 +293,21 @@ function MGpoisson:init(tbl)
       table.remove(self.dimRemain[d1],d1)
    end
 
+   -- Updater to compute the L2-norm of the residue.
+   self.l2Normcalc = IntQuantCalc {
+      onGrid   = topGrid, 
+      basis    = basis,
+      quantity = "RmsV",
+   }
+   self.relResNorm = DataStruct.DynVector {
+      numComponents = 1,
+   }
+   self.residueNorm = DataStruct.DynVector {
+      numComponents = 1,
+   }
+   self.rhoNorm = DataStruct.DynVector {
+      numComponents = 1,
+   }
 
 end
 
@@ -592,8 +620,31 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
 --      self:restrict(self.rhoAll[i-1], self.rhoAll[i])
 --   end
 
-   -- Call a MG gamma-cycle starting at the finest grid.
-   self:gammaCycle(1)
+   -- Compute the norm of the right-side source vector.
+   self.l2Normcalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
+   local _, rhsNorm = self.rhoNorm:lastData()
+
+   local gI          = 0
+   local resNormCurr = 1.0e12
+   -- Call MG gamma-cycles starting at the finest grid.
+   while resNormCurr > self.tol do
+      gI = gI + 1
+      self:gammaCycle(1)
+
+      -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
+      self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
+      self.l2Normcalc:advance(gI,{self.residueAll[1]},{self.residueNorm})
+      local _, resNorm = self.residueNorm:lastData()
+      resNormCurr      = resNorm[1]/rhsNorm[1]
+      self.relResNorm:appendData(gI, {resNormCurr})
+
+      if gI==self.numGammaCycles then break end
+   end
+
+   if self.diagnostics then
+      -- Write out residue norm for each iteration.
+      self.relResNorm:write(string.format("relResidue_RmsV.bp"), 0.0, 0)
+   end
 
 end
 
