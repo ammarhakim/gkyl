@@ -442,7 +442,7 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
          self.relaxDxs[1] = self.dxBuf:data()
          rhoFld:fill(indexer(idx), rhoItr)   
      
-         -- Get with indices of cells used by stencil.
+         -- Get with indices of cells used by stencil. Store them in self.relaxIdx.
          self:relaxStencilIndices(idx,{0,{3,3},{0,0}})
    
          -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
@@ -455,6 +455,7 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
             self.relaxItr[i] = phiItr:data()
          end
 
+         
          self._relaxation[self:idx2stencil(idx,cellsN)](self.omega, self.relaxDxs:data(), self.topGridBCvals:data(), rhoItr:data(), self.relaxItr:data())
       end
    end
@@ -624,8 +625,8 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    self.l2Normcalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
    local _, rhsNorm = self.rhoNorm:lastData()
 
-   local gI          = 0
-   local resNormCurr = 1.0e12
+   local gI          = 0         -- gamma cycle index.
+   local resNormCurr = 1.0e12    -- Current (relative) residue norm.
    -- Call MG gamma-cycles starting at the finest grid.
    while resNormCurr > self.tol do
       gI = gI + 1
