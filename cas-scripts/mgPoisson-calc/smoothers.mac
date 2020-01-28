@@ -345,7 +345,7 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([]
           ),
 
           /* Three-cell recovery without integration by parts. */
-          phiRec   : getRecov3CellGen(surfVar, twos, polyOrder, 0, phiL_c, phiC_c, phiU_c, dirBC),
+          phiRec   : getRecov3CellGen(surfVar, twos, polyOrder, 1, phiL_c, phiC_c, phiU_c, dirBC),
 
           volTerms : volTerms + rdxCp2[dir-1]*calcInnerProdList(varsC,1,bC,diff(phiRec,varsC[dir],2))
 
