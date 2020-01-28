@@ -34,6 +34,7 @@ local IntQuantCalc     = require "Updater.CartFieldIntegratedQuantCalc"
 local BVP_BC_PERIODIC  = 0
 local BVP_BC_DIRICHLET = 1
 local BVP_BC_NEUMANN   = 2
+local BVP_BC_ROBIN     = 3    -- Not supported yet.
 
 -- Multigrid updater object.
 local MGpoisson = Proto(UpdaterBase)
@@ -61,7 +62,7 @@ end
 function MGpoisson:init(tbl)
    MGpoisson.super.init(self, tbl) -- Setup base object.
 
-   local topGrid = assert(
+   local grid = assert(
       tbl.onGrid, "Updater.MGpoisson: Must provide grid object using 'grid'.")
 
    local basis = assert(
@@ -107,31 +108,13 @@ function MGpoisson:init(tbl)
    local polyOrder = basis:polyOrder()   -- Polynomial order.
    local basisID   = basis:id()          -- Basis kind.
 
-   -- Establish periodicity of the domain.
-   local periodicDirs    = {}
-   local nonPeriodicDirs = {}
-   for d = 1, self.dim do nonPeriodicDirs[d] = d end
-   if tbl.periodicDirs then
-      for i, d in ipairs(tbl.periodicDirs) do
-         if d<1 or d>self.dim then
-            assert(false, "Updater.MGpoisson: Directions in periodicDirs table should be 1 (for X), 2 (for Y), or 3 (for Z)")
-         end
-         periodicDirs[i]  = d
-         lume.remove(nonPeriodicDirs, d)
-      end
-   end
-   local isDirPeriodic    = {}
-   for d = 1,self.dim do isDirPeriodic[d]=false end
-   for _, d in ipairs(periodicDirs) do isDirPeriodic[d]=true end
-   local isPeriodicDomain = lume.all(isDirPeriodic)
-
-   -- Read non-periodic boundary conditions.
-   -- Assume the input poissonBCs is a table, one entry for
-   -- each non-periodic BC. Each of these entries is a table
-   -- like {dir, {T = sL, V = vL}, {T = sU, V = vU}}, where these are
-   --    dir:   integer indicating the direction.
-   --    sL,sU: string indicating BC type ("P", "D", "N") on lower and upper boundaries.
-   --    vL,vU: BC values on lower and upper boundaries.
+   -- Read boundary conditions.
+   -- Assume the inputs are two tables, bcLower and bcUpper, with each table
+   -- having a two element table for each dimension, For example, for a 2D sim
+   -- use bcLower = {{T = sT1, V = val1}, {T = sT2, V = val2}} and analogously
+   -- for bcUpper, where these are
+   --    sT:  string indicating BC type ("P", "D", "N", "R").
+   --    val: BC value.
    local function bcID(strIn)
       -- Given a string indicating BC type, return the corresponding
       -- BC ID number, defined a the top of this file.
@@ -143,35 +126,44 @@ function MGpoisson:init(tbl)
       end
    end
 
-   local topGridBCtypes  = {} 
-   local topGridBCvalues = {} 
-   if (tbl.poissonBCs) then
-      for i = 1, #tbl.poissonBCs do
-         topGridBCtypes[tbl.poissonBCs[i][1]]  = {bcID(tbl.poissonBCs[i][2]["T"]), bcID(tbl.poissonBCs[i][3]["T"])}
-         topGridBCvalues[tbl.poissonBCs[i][1]] = {tbl.poissonBCs[i][2]["V"], tbl.poissonBCs[i][3]["V"]}
-      end
-      if #topGridBCtypes ~= #nonPeriodicDirs then
-         assert(false, "Updater.MGpoisson: For a non-periodic domain must specify a BC for each non-peridic direction.")
-      end
-   elseif (not isPeriodicDomain) then
-      assert(false, "Updater.MGpoisson: For a non-periodic domain must specify BCs in 'poissonBCs'.")
+   local bcLower = assert(
+      tbl.bcLower, "Updater.MGpoisson: Must provide lower-boundary BCs along each direction in 'bcLower'.")
+   local bcUpper = assert(
+      tbl.bcUpper, "Updater.MGpoisson: Must provide upper-boundary BCs along each direction in 'bcUpper'.")
+   assert(#bcLower == self.dim, "Updater.MGpoisson: number of lower BCs must equal number of dimensions.")
+   assert(#bcUpper == self.dim, "Updater.MGpoisson: number of lower BCs must equal number of dimensions.")
+   local bcTypes  = {} 
+   local bcValues = {} 
+   for i = 1, self.dim do
+      bcTypes[i]  = {bcID(bcLower[i]["T"]), bcID(bcUpper[i]["T"])}
+      bcValues[i] = {bcLower[i]["V"], bcUpper[i]["V"]}
    end
-   for _, d in ipairs(periodicDirs) do
-      topGridBCtypes[d]  = {BVP_BC_PERIODIC, BVP_BC_PERIODIC}
-      topGridBCvalues[d] = 0.0 
+   -- Establish periodic directions.
+   local periodicDirs    = {}
+   local isDirPeriodic   = {}
+   for d = 1, self.dim do
+      if (bcTypes[d] == 0) then
+         lume.push(periodicDirs,d)
+         isDirPeriodic[d] = true
+         bcValues[d]   = {0.0, 0.0}   -- Not used, but a nil could cause problems.
+      else
+         isDirPeriodic[d] = false
+      end
    end
-   -- Translate BCvalues to a vector from which we can pass a pointer.
-   self.topGridBCvals = Lin.Vec(self.dim*2)
+   local isPeriodicDomain = lume.all(isDirPeriodic)
+
+   -- Translate bcValues to a vector from which we can pass a pointer.
+   self.bcValue = Lin.Vec(self.dim*2)
    for d = 1,self.dim do 
-     self.topGridBCvals[2*d-1] = topGridBCvalues[d][1]
-     self.topGridBCvals[2*d]   = topGridBCvalues[d][2]
+     self.bcValue[2*d-1] = bcValues[d][1]
+     self.bcValue[2*d]   = bcValues[d][2]
    end
 
 
    -- Create a grid for each level.
    -- Not sure this is needed, but in general it probably is (e.g. unstructured, or even nonuniform meshes).
    self.mgGrids     = {}
-   self.mgGrids[1]  = topGrid
+   self.mgGrids[1]  = grid
    periodicDirCount = 0
    -- Right-side source and residue fields at each level.
    self.phiAll     = {}
@@ -191,9 +183,9 @@ function MGpoisson:init(tbl)
       local periodicDirsC = {}
       local decompCutsC   = {}
       for d = 1, self.dim do
-         lowerC[d] = topGrid:lower(d)
-         upperC[d] = topGrid:upper(d)
-         if topGrid:isDirPeriodic(d) then
+         lowerC[d] = grid:lower(d)
+         upperC[d] = grid:upper(d)
+         if grid:isDirPeriodic(d) then
             periodicDirCount = periodicDirCount+1
             periodicDirsC[periodicDirCount] = d
          end
@@ -205,7 +197,7 @@ function MGpoisson:init(tbl)
          if cellsC[d] == 2 then notAtCoarsest = false end
       end
 
-      local isSharedC = topGrid:isShared()
+      local isSharedC = grid:isShared()
 
       local decompC = DecompRegionCalc.CartProd {
          cuts      = decompCutsC,
@@ -254,8 +246,8 @@ function MGpoisson:init(tbl)
    self._restriction  = MGpoissonDecl.selectRestriction(basisID, self.dim, polyOrder)
    self._prolongation = MGpoissonDecl.selectProlongation(basisID, self.dim, polyOrder)
    -- Select kernels for relaxation and computing the residue.
-   self._relaxation   = MGpoissonDecl.selectRelaxation(basisID, self.dim, polyOrder, relaxKind, topGridBCtypes)
-   self._calcResidue  = MGpoissonDecl.selectResidueCalc(basisID, self.dim, polyOrder, topGridBCtypes)
+   self._relaxation   = MGpoissonDecl.selectRelaxation(basisID, self.dim, polyOrder, relaxKind, bcTypes)
+   self._calcResidue  = MGpoissonDecl.selectResidueCalc(basisID, self.dim, polyOrder, bcTypes)
 
    -- Intergrid operator stencils: 
    self.igOpStencilWidth = 2
@@ -295,7 +287,7 @@ function MGpoisson:init(tbl)
 
    -- Updater to compute the L2-norm of the residue.
    self.l2Normcalc = IntQuantCalc {
-      onGrid   = topGrid, 
+      onGrid   = grid, 
       basis    = basis,
       quantity = "RmsV",
    }
@@ -456,7 +448,7 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
          end
 
          
-         self._relaxation[self:idx2stencil(idx,cellsN)](self.omega, self.relaxDxs:data(), self.topGridBCvals:data(), rhoItr:data(), self.relaxItr:data())
+         self._relaxation[self:idx2stencil(idx,cellsN)](self.omega, self.relaxDxs:data(), self.bcValue:data(), rhoItr:data(), self.relaxItr:data())
       end
    end
 end
@@ -502,7 +494,7 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
          self.relaxItr[i] = phiItr:data()
       end
    
-      self._calcResidue[self:idx2stencil(idx,cellsN)](self.relaxDxs:data(), self.topGridBCvals:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
+      self._calcResidue[self:idx2stencil(idx,cellsN)](self.relaxDxs:data(), self.bcValue:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
    end
 end
 
