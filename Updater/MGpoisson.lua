@@ -506,6 +506,23 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    end
 end
 
+function MGpoisson:relResidueNorm(gamIdx)
+   -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
+
+   -- Compute the norm of the right-side source vector.
+   self.l2Normcalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
+   local _, rhsNorm = self.rhoNorm:lastData()
+   -- Compute the norm of the residue.
+   self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
+   self.l2Normcalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
+   -- Compute the relative residue norm and store it in self.relResNorm.
+   local _, resNorm    = self.residueNorm:lastData()
+   local relResNormOut = resNorm[1]/rhsNorm[1]
+   self.relResNorm:appendData(gamIdx, {relResNormOut})
+
+   return relResNormOut
+end
+
 function MGpoisson:areIndicesOdd(idxIn) 
    -- Identify if indices in all dimensions are odd.
    local areOdd = true
@@ -611,33 +628,44 @@ end
 function MGpoisson:_advance(tCurr, inFld, outFld)
 
    -- Phi iterate and right-side source fields on finest grid.
-   -- Assume the given phi iterate is an initial guess, unless
-   -- performing a full-multigrid (FMG).
-   self.rhoAll[1] = inFld[1]
-   self.phiAll[1] = outFld[1]
+   -- Assume the given phi iterate is an initial guess if given
+   -- within inFld. If not it will interpret that to mean that the
+   -- user wishes to perform a full-multigrid (FMG) cycle.
+   self.rhoAll[1]       = inFld[1]
+   local initialGuess   = inFld[2]
+   local isFMG          = false
+   local relResNormCurr = 1.0e12    -- Current (relative) residue norm.
+   if initialGuess then
+      self.phiAll[1]  = initialGuess
+   else
+      isFMG           = true
+      self.phiAll[1]  = outFld[1]
 
-   -- FMG requires we restrict the right-side source field to all levels.
---   for i = 2, self.mgLevels do
---      self:restrict(self.rhoAll[i-1], self.rhoAll[i])
---   end
+      -- FMG requires we restrict the right-side source field to all levels.
+      for i = 2, self.mgLevels do
+         self:restrict(self.rhoAll[i-1], self.rhoAll[i])
+      end
 
-   -- Compute the norm of the right-side source vector.
-   self.l2Normcalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
-   local _, rhsNorm = self.rhoNorm:lastData()
+      -- In FMG we start at the coarsest grid without an initial guess.
+      self.phiAll[self.mgLevels]:clear(0.0)
+      for i = self.mgLevels, 1, -1 do
+         self:gammaCycle(i)
+         if (i > 1) then self:prolong(self.phiAll[i], self.phiAll[i-1]) end
+      end
 
-   local gI          = 0         -- gamma cycle index.
-   local resNormCurr = 1.0e12    -- Current (relative) residue norm.
+   end
+
+   local gI = 0         -- gamma cycle index.
+   -- Compute the relative residue norm. It gets stored in self.relResNorm. 
+   relResNormCurr = self:relResidueNorm(gI)
+
    -- Call MG gamma-cycles starting at the finest grid.
-   while resNormCurr > self.tol do
+   while relResNormCurr > self.tol do
       gI = gI + 1
       self:gammaCycle(1)
 
-      -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
-      self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
-      self.l2Normcalc:advance(gI,{self.residueAll[1]},{self.residueNorm})
-      local _, resNorm = self.residueNorm:lastData()
-      resNormCurr      = resNorm[1]/rhsNorm[1]
-      self.relResNorm:appendData(gI, {resNormCurr})
+      -- Compute the relative residue norm. It gets stored in self.relResNorm. 
+      relResNormCurr = self:relResidueNorm(gI)
 
       if gI==self.numGammaCycles then break end
    end
