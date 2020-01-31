@@ -26,11 +26,12 @@ class DiscontPoisson;
 extern "C" {
 /** Structure to store BC data. */
   // C wrappers for interfacing with DiscontPoisson class
-  void* new_DiscontPoisson(int ncell[3], int ndim, int nbasis, int nnonzero, int polyOrder, double dx[3]);
+  void* new_DiscontPoisson(int ncell[3], int ndim, int nbasis,
+                           int nnonzero, int polyOrder);
   void delete_DiscontPoisson(DiscontPoisson* f);
   void discontPoisson_pushTriplet(DiscontPoisson* f, int i, int j, double val);
   void discontPoisson_constructStiffMatrix(DiscontPoisson* f);
-  void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* src);
+  void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* src, double* srcMod);
   void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
   void discontPoisson_solve(DiscontPoisson* f);
 }
@@ -39,20 +40,19 @@ class DiscontPoisson
 {
  public:
   DiscontPoisson(int ncell[3], int ndim, int nbasis,
-                 int nnonzero, int polyOrder, double dx[3]);
+                 int nnonzero, int polyOrder);
   ~DiscontPoisson();
 
   int getNumLocalNodes(int ndim, int p);
   void pushTriplet(int i, int j, double val);
   void constructStiffMatrix();
-  void pushSource(int idx, double* src);
+  void pushSource(int idx, double* src, double* srcMod);
   void getSolution(int idx, double* sol);
   void solve();
   
  private:
   const int ndim, polyOrder, nbasis, nnonzero;
   int ncell[3];
-  double dx[3];
   int N;
   
   // Eigen triplets
