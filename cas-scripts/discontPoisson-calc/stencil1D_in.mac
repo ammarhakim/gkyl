@@ -1,0 +1,51 @@
+kill(all)$
+load("recovery-calc/recovery")$
+load("basis-precalc/basisSer1x")$
+
+dirs : [x]$
+size : [2]$
+range : [[-1,1]]$
+J : [4/dx[1]^2]$
+
+for d : 1 thru length(dirs) do (
+  for polyOrder : 1 thru 2 do (
+    fname : sconcat("~/max-out/discontPoissonStencil1D_", polyOrder, "p_", dirs[d], ".lua"),
+    fh : openw(fname),
+    printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
+    printf(fh, "local function stencilFn(dx)~%"),
+    printf(fh, "  local _M = {}~%~%"),
+    
+    numBasis : length(basisC[polyOrder]),
+    st : diff(getRecov3CellGen(dirs[d], size, polyOrder, 1, hL, hC, hU), dirs[d], 2)*J[d],
+    stProj : calcInnerProdListGen(dirs, range, 1, basisC[polyOrder], st),
+    
+    ML : coefmatrix(stProj, makelist(hL[i], i, 1, numBasis)),
+    printf(fh, "  _M[1] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+    for i : 1 thru numBasis do (
+      for j : 1 thru numBasis do (
+        printf(fh, "  _M[1][~a][~a] = ~a~%", i, j, float(ML[i][j]))
+        )
+      ),
+    
+    MC : coefmatrix(stProj, makelist(hC[i], i, 1, numBasis)),
+    printf(fh, "  _M[2] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+    for i : 1 thru numBasis do (
+      for j : 1 thru numBasis do (
+        printf(fh, "  _M[2][~a][~a] = ~a~%", i, j, float(MC[i][j]))
+        )
+      ),
+    
+    MU : coefmatrix(stProj, makelist(hU[i], i, 1, numBasis)),
+    printf(fh, "  _M[3] = Lin.Mat(~a,~a)~%", numBasis, numBasis),
+    for i : 1 thru numBasis do (
+      for j : 1 thru numBasis do (
+        printf(fh, "  _M[3][~a][~a] = ~a~%", i, j, float(MU[i][j]))
+        )
+      ),
+    
+    printf(fh, "  return(_M)~%"),
+    printf(fh, "end~%~%"),
+    printf(fh, "return(stencilFn)"),
+    close(fh)
+    )
+  )$
