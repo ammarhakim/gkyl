@@ -123,11 +123,15 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%"),
 
       /* Smoothers. */
-      printf(fh, "void MGpoissonGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phi);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void MGpoissonDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phi);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       /* Boundary smoothers. */
-      findBoundaryStrCombo(fh, "MGpoissonGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phi", bName[bInd], ci),
-      findBoundaryStrCombo(fh, "MGpoissonDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonDampedJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
       printf(fh, "~%"),
 
       /* Residue kernels. */

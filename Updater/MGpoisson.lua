@@ -6,8 +6,6 @@
 --
 --
 -- Question/development notes:
---   0) I think it'd be better if the user does not have to indicate periodicDirs and
---      BCs in separate tables, but rather periodic is another type within the same table.
 --   1) Do we need to create a grid object for each level? or create pseudo-grid object that is more lightweight and has the information needed?
 --   2) Prolongation: so data doesn't get loaded multiple times, instead of iterating through each fine-grid cell, could we instead make
 --                    the looping stencil-aware?
@@ -18,17 +16,18 @@
 --------------------------------------------------------------------------------
 
 -- Gkyl libraries.
-local MGpoissonDecl    = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
-local Proto            = require "Lib.Proto"
-local UpdaterBase      = require "Updater.Base"
-local Grid             = require "Grid"
-local DataStruct       = require "DataStruct"
-local DecompRegionCalc = require "Lib.CartDecomp"
-local LinearDecomp     = require "Lib.LinearDecomp"
-local Lin              = require "Lib.Linalg"
-local ffi              = require "ffi"
-local lume             = require "Lib.lume"
-local IntQuantCalc     = require "Updater.CartFieldIntegratedQuantCalc"
+local MGpoissonDecl         = require "Updater.mgPoissonCalcData.MGpoissonModDecl"
+local Proto                 = require "Lib.Proto"
+local DirectDGPoissonSolver = require "Updater.DiscontPoisson"
+local UpdaterBase           = require "Updater.Base"
+local Grid                  = require "Grid"
+local DataStruct            = require "DataStruct"
+local DecompRegionCalc      = require "Lib.CartDecomp"
+local LinearDecomp          = require "Lib.LinearDecomp"
+local Lin                   = require "Lib.Linalg"
+local ffi                   = require "ffi"
+local lume                  = require "Lib.lume"
+local IntQuantCalc          = require "Updater.CartFieldIntegratedQuantCalc"
 
 -- Boundary condition ID numbers.
 local BVP_BC_PERIODIC  = 0
@@ -40,10 +39,10 @@ local BVP_BC_ROBIN     = 3    -- Not supported yet.
 local MGpoisson = Proto(UpdaterBase)
 
 local relaxationKinds = {
-   "GaussSeidel", "DampedGaussSeidel"
+   "Jacobi", "DampedJacobi", "GaussSeidel", "DampedGaussSeidel"
 }
 local dampedRelaxationKinds = {
-   "DampedGaussSeidel"
+   "DampedJacobi", "DampedGaussSeidel"
 }
 function MGpoisson:isRelaxKindGood(rlx)
    if lume.find(relaxationKinds, rlx) then
@@ -69,13 +68,52 @@ function MGpoisson:init(tbl)
       tbl.basis, "Updater.MGpoisson: Must provide the weak basis object using 'basis'.")
 
 
-   -- Multigrid parameters.
-   local relaxKind = assert(
-      tbl.relaxType, "Updater.MGpoisson: Must provide the type of relaxations using 'relaxType'.")
-   local nus = assert(
-      tbl.relaxNum, "Updater.MGpoisson: Must provide the number of relaxations using 'relaxNum'.")
-   self.gamma = assert(
-      tbl.gamma, "Updater.MGpoisson: Must provide the MG gamma parameter using 'gamma'.")
+   -- ~~............................ Multigrid parameters ..............................~~ --
+   -- Relaxation method. 
+   local relaxKind = ""
+   if tbl.relaxType then
+      relaxKind = tbl.relaxType
+   else
+      relaxKind = "DampedJacobi"
+   end
+   if self:isRelaxKindGood(relaxKind) then
+      if self:isRelaxDamped(relaxKind) then
+         if tbl.relaxOmega then
+            self.omega = tbl.relaxOmega
+         else
+            self.omega = 2.0/3.0   -- Arbitrary. Ideally the user inputs it, or we compute it later.
+         end
+      else
+         self.omega = 1.0   -- No damping. Set to 1.
+      end
+      if (relaxKind == "Jacobi") or (relaxKind == "DampedJacobi") then
+         -- Need to be Jacobi-aware as this involves an extra field copy.
+         self.isJacobiRelax = true
+      else
+         self.isJacobiRelax = false
+      end
+   else
+      assert(false, "Updater.MGpoisson: relaxType must be one of 'Jacobi', 'DampedJacobi', 'GaussSeidel', 'DampedGaussSeidel'")
+   end
+
+   -- Number of pre-, post- and coarsest-grid relaxations.
+   if tbl.relaxNum then
+      self.nu1 = tbl.relaxNum[1]
+      self.nu2 = tbl.relaxNum[2]
+      self.nu3 = tbl.relaxNum[3]
+   else
+      self.nu1 = 2
+      self.nu2 = 2
+      self.nu3 = 1000
+   end
+
+   -- The gamma parameter controls the type of MG cycle: =1 V-cycle, =2 W-cycle.
+   if tbl.gamma then
+      self.gamma = tbl.gamma
+   else
+      self.gamma = 1
+   end
+
    if (tbl.tolerance) then
       -- User-defined tolerance (stopping point) if given.
       self.tol            = tbl.tolerance
@@ -83,26 +121,13 @@ function MGpoisson:init(tbl)
    else
       -- If not given perform the user-defined number of cycles
       -- or stop when the relative residual norm is 1e-12.
-      if tbl.numCycles then self.numGammaCycles=tbl.numCycles end
+      self.numGammaCycles = assert(tbl.numCycles, "Updater.MGpoisson: if 'tolerance' is not specified, must provide the number of cycles with 'numCycles'.")
       self.tol = 1.0e-12
    end
-   if self:isRelaxKindGood(relaxKind) then
-      if self:isRelaxDamped(relaxKind) then
-         self.omega = assert(
-            tbl.relaxOmega, "Updater.MGpoisson: Must provide the relaxation damping using 'relaxOmega'.")
-      else
-         self.omega = 1.0
-      end
-   else
-      assert(false, "Updater.MGpoisson: relaxType must be one of 'GaussSeidel', 'DampedGaussSeidel'")
-   end
+   -- ~~.................... End of user-input multigrid parameters ......................~~ --
+
    -- Diagnostics flag indicates whether to write diagnostic info.
    if tbl.diagnostics then self.diagnostics=tbl.diagnostics else self.diagnostics=false end
-
-   -- Number of pre-, post- and coarsest-grid relaxations.
-   self.nu1 = nus[1]
-   self.nu2 = nus[2]
-   self.nu3 = nus[3]
 
    self.dim        = basis:ndim()        -- Dimension of space.
    local polyOrder = basis:polyOrder()   -- Polynomial order.
@@ -139,13 +164,13 @@ function MGpoisson:init(tbl)
       bcValues[i] = {bcLower[i]["V"], bcUpper[i]["V"]}
    end
    -- Establish periodic directions.
-   local periodicDirs    = {}
-   local isDirPeriodic   = {}
+   local periodicDirs  = {}
+   local isDirPeriodic = {}
    for d = 1, self.dim do
       if (bcTypes[d] == 0) then
          lume.push(periodicDirs,d)
          isDirPeriodic[d] = true
-         bcValues[d]   = {0.0, 0.0}   -- Not used, but a nil could cause problems.
+         bcValues[d]      = {0.0, 0.0}   -- Not used, but a nil could cause problems.
       else
          isDirPeriodic[d] = false
       end
@@ -211,6 +236,15 @@ function MGpoisson:init(tbl)
          periodicDirs  = periodicDirsC,
          decomposition = decompC,
       }
+
+      if not notAtCoarsest then
+         self.directSolver = DirectDGPoissonSolver {
+            onGrid  = self.mgGrids[self.mgLevels],
+            basis   = basis,
+            bcLower = bcLower,
+            bcUpper = bcUpper,
+         }
+      end
    end
 
    -- Allocate space for the iterate, right-side source field and
@@ -224,7 +258,7 @@ function MGpoisson:init(tbl)
    }
    for i = 2, self.mgLevels do
       -- Allocate space for the iterate, right-side source field and
-      -- the residu on each grid level.
+      -- the residue on each grid level.
       self.phiAll[i] = DataStruct.Field {
          onGrid        = self.mgGrids[i],
          numComponents = basis:numBasis(),   -- NOTE: this will change if we do p-coarsening.
@@ -240,6 +274,17 @@ function MGpoisson:init(tbl)
          numComponents = basis:numBasis(),   -- NOTE: this will change if we do p-coarsening.
          ghost         = {1, 1},
       }
+   end
+   if self.isJacobiRelax then
+      self.phiPrevAll = {}
+      for i = 1, self.mgLevels do
+         -- For Jacobi relaxation need an extrac copy of the field iterate.
+         self.phiPrevAll[i] = DataStruct.Field {
+            onGrid        = self.mgGrids[i],
+            numComponents = basis:numBasis(),   -- NOTE: this will change if we do p-coarsening.
+            ghost         = {1, 1},
+         }
+      end
    end
 
    -- Select restriction and prolongation operator kernels.
@@ -264,16 +309,17 @@ function MGpoisson:init(tbl)
    -- For now we'll only need one coarse-grid index.
    self.coarseGridIdx = Lin.IntVec(self.dim)
 
-   -- Relxation stencil info: restrict ourselves to 'cross' relaxation stencils for now.
-   self.relaxStencilWidth = 3
-   self.relaxStencilSize  = (self.relaxStencilWidth-1)*self.dim+1
-   self.relaxIdx = {}   -- List of cell indices pointed to by the stencil.
-   for i = 1, self.relaxStencilSize do
-      self.relaxIdx[i] = Lin.IntVec(self.dim)
+   -- Relaxation stencil info: restrict ourselves to 'cross' relaxation stencils for now.
+   self.opStencilWidth = 3
+   self.opStencilSize  = (self.opStencilWidth-1)*self.dim+1
+   self.opStencilIdx   = {}   -- List of cell indices pointed to by the stencil.
+   for i = 1, self.opStencilSize do
+      self.opStencilIdx[i] = Lin.IntVec(self.dim)
    end
    -- List of pointers to the data in cells pointed to by the stencil.
-   self.relaxItr      = DoublePtrVec(self.relaxStencilSize)
-   self.relaxDxs      = DoublePtrVec(self.relaxStencilSize)
+   self.opStencilItr   = DoublePtrVec(self.opStencilSize)
+   self.opStencilDxs   = DoublePtrVec(self.opStencilSize)
+   self.prevIterateItr = DoublePtrVec(self.opStencilSize)   -- Only used for Jacobi relaxations.
 
    self.dxBuf = Lin.Vec(self.dim)    -- A buffer to store cell lengths.
 
@@ -351,7 +397,7 @@ function MGpoisson:restrict(fFld,cFld)
    end
 end
 
-function MGpoisson:relaxStencilIndices(idxIn, stencilType)
+function MGpoisson:opStencilIndices(idxIn, stencilType)
    -- MF update: I wish to change the stencil numbering to match kernel IDs.
    -----------------
    -- Given the index of the current cell (idxIn), return
@@ -377,16 +423,16 @@ function MGpoisson:relaxStencilIndices(idxIn, stencilType)
 
    -- First copy all indicies since (in higher dimensions)
    -- most of the stay the same for each cell.
-   for i = 1, self.relaxStencilSize do
-      idxIn:copyInto(self.relaxIdx[i])
+   for i = 1, self.opStencilSize do
+      idxIn:copyInto(self.opStencilIdx[i])
    end
 
    if stencilType[1] == 0 then
       local sI = 1
       for d = 1, self.dim do
-         for pm = 1,self.relaxStencilWidth-1 do
+         for pm = 1,self.opStencilWidth-1 do
             sI = sI + 1
-            self.relaxIdx[sI][d] = idxIn[d]-((-1)^(pm % 2))*((self.relaxStencilWidth-1)/2)
+            self.opStencilIdx[sI][d] = idxIn[d]-((-1)^(pm % 2))*((self.opStencilWidth-1)/2)
          end
       end
    end
@@ -408,6 +454,33 @@ function MGpoisson:idx2stencil(idxIn, nCellsIn)
    return stencilIdx
 end
 
+function MGpoisson:jacobiCopyField(fldIn,fldOutAll)
+   -- Need to copy the current iterate (phi). It would be easier
+   -- to do so if the current level (lCurr) was available within
+   -- the relax method, but currently it is not. So for now we will
+   -- compare the grids until we find the right field to copy
+   -- into and return the grid level so relax knows which one to use.
+   local grid   = fldIn:grid()
+   local cellsN = {}
+   for d = 1, self.dim do cellsN[d]=grid:numCells(d) end
+
+   local currLevel
+   for l = 1, self.mgLevels do
+      currLevel = l
+      local otherGrid     = fldOutAll[l]:grid()
+      local areGridsEqual = true
+      for d = 1, self.dim do
+         areGridsEqual = areGridsEqual and (cellsN[d] == otherGrid:numCells(d))
+      end
+      -- We will need to compare polyOrder as well when doing p-coarsening.
+      if areGridsEqual then break end
+   end
+
+   fldOutAll[currLevel]:copy(fldIn)
+
+   return currLevel
+end
+
 function MGpoisson:relax(numRelax, phiFld, rhoFld)
    -- Perform numRelax relaxations of the Poisson equation,
 
@@ -424,31 +497,43 @@ function MGpoisson:relax(numRelax, phiFld, rhoFld)
    local phiItr = phiFld:get(1)
    local rhoItr = rhoFld:get(1)
 
+   local phiPrevItr, currLevel
+
    for nuI = 1, numRelax do    -- Relax numRelax times.
+
+      if self.isJacobiRelax then
+         currLevel  = self:jacobiCopyField(phiFld,self.phiPrevAll) 
+         phiPrevItr = self.phiPrevAll[currLevel]:get(1)
+      end
+
       for idx in localRangeDecomp:rowMajorIter(tId) do
    
          grid:setIndex(idx)
    
          -- Cell lengths and right-side source (rho) in this cell.
          grid:getDx(self.dxBuf)
-         self.relaxDxs[1] = self.dxBuf:data()
+         self.opStencilDxs[1] = self.dxBuf:data()
          rhoFld:fill(indexer(idx), rhoItr)   
      
-         -- Get with indices of cells used by stencil. Store them in self.relaxIdx.
-         self:relaxStencilIndices(idx,{0,{3,3},{0,0}})
+         -- Get with indices of cells used by stencil. Store them in self.opStencilIdx.
+         self:opStencilIndices(idx,{0,{3,3},{0,0}})
    
          -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
-         for i = 1, self.relaxStencilSize do
-            grid:setIndex(self.relaxIdx[i])
+         for i = 1, self.opStencilSize do
+            grid:setIndex(self.opStencilIdx[i])
             grid:getDx(self.dxBuf)
-            self.relaxDxs[i] = self.dxBuf:data()
+            self.opStencilDxs[i] = self.dxBuf:data()
 
-            phiFld:fill(indexer(self.relaxIdx[i]), phiItr)
-            self.relaxItr[i] = phiItr:data()
+            phiFld:fill(indexer(self.opStencilIdx[i]), phiItr)
+            self.opStencilItr[i] = phiItr:data()
+
+            if self.isJacobiRelax then
+               self.phiPrevAll[currLevel]:fill(indexer(self.opStencilIdx[i]), phiPrevItr)
+               self.prevIterateItr[i] = phiPrevItr:data()
+            end
          end
-
          
-         self._relaxation[self:idx2stencil(idx,cellsN)](self.omega, self.relaxDxs:data(), self.bcValue:data(), rhoItr:data(), self.relaxItr:data())
+         self._relaxation[self:idx2stencil(idx,cellsN)](self.omega, self.opStencilDxs:data(), self.bcValue:data(), rhoItr:data(), self.prevIterateItr:data(), self.opStencilItr:data())
       end
    end
 end
@@ -470,7 +555,7 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
 
    local phiItr = phiFld:get(1)
    local rhoItr = rhoFld:get(1)
-   local resItr = rhoFld:get(1)
+   local resItr = resFld:get(1)
 
    for idx in localRangeDecomp:rowMajorIter(tId) do
    
@@ -478,23 +563,23 @@ function MGpoisson:residue(phiFld, rhoFld, resFld)
    
       -- Cell lengths, right-side source (rho) and residue in this cell.
       grid:getDx(self.dxBuf)
-      self.relaxDxs[1] = self.dxBuf:data()
+      self.opStencilDxs[1] = self.dxBuf:data()
       rhoFld:fill(indexer(idx), rhoItr)   
       resFld:fill(indexer(idx), resItr)   
    
       -- Get with indices of cells used by stencil.
-      self:relaxStencilIndices(idx,{0,{3,3},{0,0}})
+      self:opStencilIndices(idx,{0,{3,3},{0,0}})
    
       -- Array of pointers to cell lengths and phi data in cells pointed to by the stencil. 
-      for i = 1, self.relaxStencilSize do
-         grid:setIndex(self.relaxIdx[i])
+      for i = 1, self.opStencilSize do
+         grid:setIndex(self.opStencilIdx[i])
          grid:getDx(self.dxBuf)
-         self.relaxDxs[i] = self.dxBuf:data()
-         phiFld:fill(indexer(self.relaxIdx[i]), phiItr)
-         self.relaxItr[i] = phiItr:data()
+         self.opStencilDxs[i] = self.dxBuf:data()
+         phiFld:fill(indexer(self.opStencilIdx[i]), phiItr)
+         self.opStencilItr[i] = phiItr:data()
       end
    
-      self._calcResidue[self:idx2stencil(idx,cellsN)](self.relaxDxs:data(), self.bcValue:data(), rhoItr:data(), self.relaxItr:data(), resItr:data())
+      self._calcResidue[self:idx2stencil(idx,cellsN)](self.opStencilDxs:data(), self.bcValue:data(), rhoItr:data(), self.opStencilItr:data(), resItr:data())
    end
 end
 
@@ -559,7 +644,6 @@ function MGpoisson:prolong(cFld,fFld)
          -- Given the fine-grid index, need to obtain the coarse-grid index.
          for d = 1, self.dim do self.coarseGridIdx[d] = (fIdx[d]-1)/2+1 end
   
-  
          cFld:fill(cFldIndexer(self.coarseGridIdx), cFldItr)   -- Coarse field pointer.
   
          -- Array of pointers to fine-grid field data by stencil. 
@@ -584,8 +668,13 @@ function MGpoisson:gammaCycle(lCurr)
       -- Coarsest grid. Use a direct solver or many iterations.
       -- The latter is useful if the coarsest grid is large still.
 
-      -- Relax nu3 times.
-      self:relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+      if self.directSolver then
+         -- Call the direct solver.
+         self.directSolver:advance(0.0, {self.rhoAll[lCurr]}, {self.phiAll[lCurr]})
+      else
+         -- Relax nu3 times.
+         self:relax(self.nu3, self.phiAll[lCurr], self.rhoAll[lCurr]) 
+      end
 
    else
 
