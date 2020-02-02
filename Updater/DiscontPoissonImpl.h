@@ -27,7 +27,7 @@ extern "C" {
 /** Structure to store BC data. */
   // C wrappers for interfacing with DiscontPoisson class
   void* new_DiscontPoisson(int ncell[3], int ndim, int nbasis,
-                           int nnonzero, int polyOrder);
+                           int nnonzero, int polyOrder, bool writeMatrix);
   void delete_DiscontPoisson(DiscontPoisson* f);
   void discontPoisson_pushTriplet(DiscontPoisson* f, int i, int j, double val);
   void discontPoisson_constructStiffMatrix(DiscontPoisson* f);
@@ -40,7 +40,7 @@ class DiscontPoisson
 {
  public:
   DiscontPoisson(int ncell[3], int ndim, int nbasis,
-                 int nnonzero, int polyOrder);
+                 int nnonzero, int polyOrder, bool writeMatrix);
   ~DiscontPoisson();
 
   int getNumLocalNodes(int ndim, int p);
@@ -52,6 +52,7 @@ class DiscontPoisson
   
  private:
   const int ndim, polyOrder, nbasis, nnonzero;
+  const bool writeMatrix;
   int ncell[3];
   int N;
   

@@ -15,10 +15,11 @@ local Range = require "Lib.Range"
 local UpdaterBase = require "Updater.Base"
 local ffi = require "ffi"
 local ffiC = ffi.C
+local xsys = require "xsys"
 
 ffi.cdef[[
   typedef struct DiscontPoisson DiscontPoisson;
-  DiscontPoisson* new_DiscontPoisson(int ncells[3], int ndim, int nbasis, int nnonzero, int polyOrder);
+  DiscontPoisson* new_DiscontPoisson(int ncells[3], int ndim, int nbasis, int nnonzero, int polyOrder, bool writeMatrix);
   void delete_DiscontPoisson(DiscontPoisson* f);
 
   void discontPoisson_pushTriplet(DiscontPoisson* f, int idxK, int idxL, double val);
@@ -50,6 +51,8 @@ function DiscontPoisson:init(tbl)
       self.ncell[d-1] = self.grid:numCells(d)
       dx[d] = self.grid:dx(d)
    end
+
+   local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
 
    assert(#tbl.bcLower == self.ndim, "Updater.DiscontPoisson: Must provide lower boundary conditions for all the dimesions using 'bcLower'")
    assert(#tbl.bcUpper == self.ndim, "Updater.DiscontPoisson: Must provide upper boundary conditions for all the dimesions using 'bcUpper'")
@@ -108,7 +111,7 @@ function DiscontPoisson:init(tbl)
    end
 
    self.poisson = ffiC.new_DiscontPoisson(self.ncell, self.ndim, self.nbasis,
-                                          self.nnonzero, polyOrder)
+                                          self.nnonzero, polyOrder, writeMatrix)
 
    return self
 end

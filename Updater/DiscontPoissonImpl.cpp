@@ -13,15 +13,16 @@
 
 using namespace Eigen;
 
-DiscontPoisson::DiscontPoisson(int ncell_[3], int ndim_, int nbasis_,
-                               int nnonzero_, int polyOrder_)
-  : ndim(ndim_), nbasis(nbasis_),
-    nnonzero(nnonzero_), polyOrder(polyOrder_)
+DiscontPoisson::DiscontPoisson(int _ncell[3], int _ndim, int _nbasis,
+                               int _nnonzero, int _polyOrder, bool _writeMatrix)
+  : ndim(_ndim), nbasis(_nbasis),
+    nnonzero(_nnonzero), polyOrder(_polyOrder),
+    writeMatrix(_writeMatrix)
 {
 
   int vol = 1;
   for (int d = 0; d < ndim; ++d) {
-    ncell[d] = ncell_[d];
+    ncell[d] = _ncell[d];
     vol = vol*ncell[d];
   }
   N = vol*nbasis;
@@ -48,6 +49,9 @@ void DiscontPoisson::constructStiffMatrix() {
 
   // create column major copy of stiffMat so that we can zero columns
   stiffMat = SparseMatrix<double,ColMajor>(stiffMatRowMajor);
+  if (writeMatrix) {
+    saveMarket(stiffMat, "stiffMat.mm");
+  }
   // de-allocate row major copy
   stiffMatRowMajor.resize(0,0);
   solver.analyzePattern(stiffMat);
@@ -77,10 +81,10 @@ void DiscontPoisson::solve() {
 
 // C wrappers for interfacing with DiscontPoisson class
 extern "C" void* new_DiscontPoisson(int ncell[3], int ndim, int nbasis,
-                                    int nnonzero, int polyOrder)
+                                    int nnonzero, int polyOrder, bool writeMatrix)
 {
   DiscontPoisson *f = new DiscontPoisson(ncell, ndim, nbasis,
-                                         nnonzero, polyOrder);
+                                         nnonzero, polyOrder, writeMatrix);
   return reinterpret_cast<void*>(f);
 }
 
