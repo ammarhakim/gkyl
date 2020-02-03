@@ -61,7 +61,7 @@ void DiscontPoisson::constructStiffMatrix() {
 
 void DiscontPoisson::pushSource(int idx, double* src, double* srcMod) {
   for (int k = 0; k < nbasis; ++k) {
-    globalSrc.coeffRef(idx+k) = src[k] + srcMod[k];
+    globalSrc.coeffRef(idx+k) = -src[k] + srcMod[k];
   }
 }
 
