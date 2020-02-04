@@ -53,7 +53,7 @@ local initDist = Updater.ProjectOnBasis {
       local d1 = b/12 - 1/2
       local t1 = (1-a*x^2)*(-b*y^4/12 + y^2/2 + d0*y + d1)
       local t2 = (1-b*y^2)*(-a*x^4/12 + x^2/2 + c0*x + c1)
-      return t1+t2
+      return -t1-t2
    end,
 }
 local initExact = Updater.ProjectOnBasis {
