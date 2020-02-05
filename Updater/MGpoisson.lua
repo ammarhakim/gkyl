@@ -190,7 +190,7 @@ function MGpoisson:init(tbl)
    self.mgGrids     = {}
    self.mgGrids[1]  = grid
    periodicDirCount = 0
-   -- Right-side source and residue fields at each level.
+   -- Iterate (phi), right-side source and residue fields at each level.
    self.phiAll     = {}
    self.rhoAll     = {}
    self.residueAll = {}
@@ -332,7 +332,7 @@ function MGpoisson:init(tbl)
    end
 
    -- Updater to compute the L2-norm of the residue.
-   self.l2Normcalc = IntQuantCalc {
+   self.l2NormCalc = IntQuantCalc {
       onGrid   = grid, 
       basis    = basis,
       quantity = "RmsV",
@@ -587,11 +587,11 @@ function MGpoisson:relResidueNorm(gamIdx)
    -- Compute the relative norm of the residue: ||rho + L(phi)||/||rho||.
 
    -- Compute the norm of the right-side source vector.
-   self.l2Normcalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
+   self.l2NormCalc:advance(1,{self.rhoAll[1]},{self.rhoNorm})
    local _, rhsNorm = self.rhoNorm:lastData()
    -- Compute the norm of the residue.
    self:residue(self.phiAll[1], self.rhoAll[1], self.residueAll[1]) 
-   self.l2Normcalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
+   self.l2NormCalc:advance(gamIdx,{self.residueAll[1]},{self.residueNorm})
    -- Compute the relative residue norm and store it in self.relResNorm.
    local _, resNorm    = self.residueNorm:lastData()
    local relResNormOut = resNorm[1]/rhsNorm[1]
@@ -714,12 +714,11 @@ function MGpoisson:_advance(tCurr, inFld, outFld)
    -- user wishes to perform a full-multigrid (FMG) cycle.
    self.rhoAll[1]       = inFld[1]
    local initialGuess   = inFld[2]
-   local isFMG          = false
    local relResNormCurr = 1.0e12    -- Current (relative) residue norm.
    if initialGuess then
       self.phiAll[1]  = initialGuess
    else
-      isFMG           = true
+      -- No initial guess provided. Perform Full Multi-Grid (FMG).
       self.phiAll[1]  = outFld[1]
 
       -- FMG requires we restrict the right-side source field to all levels.

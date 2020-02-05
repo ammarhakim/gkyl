@@ -116,7 +116,6 @@ calcResidue(fh, funcNm, dim, basisFun, pMax) := block([],
     /* Subtract the LHS from the right-side source to obtain residue. */
     residue_c : fullratsimp(sourceRHS - poissonLHS),
 
-
     /* Write kernel. */
     printf(fh, "void ~a_P~a(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut) ~%{ ~%", funcNm, polyOrder),
     printf(fh, "  // dx:     cell lengths of cells pointed to by the stencil.~%"),
@@ -349,7 +348,6 @@ calcResidueBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
   
         /* Subtract the LHS from the right-side source to obtain residue. */
         residue_c : fullratsimp(sourceRHS - poissonLHS),
-
 
         /* Pointers to the cell lengths in cells pointed to by the stencil. */
         printf(fh, "  double *dxC  = dx[0]; ~%"),
