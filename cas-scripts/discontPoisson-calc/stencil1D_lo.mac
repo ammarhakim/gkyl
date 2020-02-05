@@ -8,7 +8,7 @@ range : [[-1,1]]$
 J : [4/dx[1]^2]$
 
 for d : 1 thru length(dirs) do (
-  for polyOrder : 1 thru 2 do (
+  for polyOrder : 1 thru 3 do (
     fname : sconcat("~/max-out/discontPoissonStencil1D_", polyOrder, "p_", dirs[d], "Lo.lua"),
     fh : openw(fname),
     printf(fh, "local Lin = require \"Lib.Linalg\"~%"),
