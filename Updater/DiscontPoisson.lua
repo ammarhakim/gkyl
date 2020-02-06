@@ -30,6 +30,8 @@ ffi.cdef[[
   void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* src, double* srcMod);
   void discontPoisson_solve(DiscontPoisson* f);
   void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
+
+  void discontPoisson_getEigenvalues(DiscontPoisson* f);
 ]]
 
 -- DG Poisson solver updater object.

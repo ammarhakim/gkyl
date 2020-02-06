@@ -1,6 +1,6 @@
 // Gkyl ------------------------------------------------------------------------
 //
-// C++ back-end for 2D discontinuous Poisson solver
+// C++ back-end for discontinuous Poisson direct solver: -Laplacian(phi) = rho.
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
@@ -78,8 +78,19 @@ void DiscontPoisson::solve() {
   //saveMarket(x, "solution");
 }
 
+// Below are some auxiliary functions to probe properties of the
+// left-side matrix, and iteration matrices used by multigrid solver.
+void DiscontPoisson::getEigenvalues() {
+//  VectorXcd eiVals = stiffMatRowMajor.eigenvalues();
+//  EigenSolver<MatrixXd> es(stiffMatRowMajor,false);
+  MatrixXd Atmp = MatrixXd::Random(6,6);
+  EigenSolver<MatrixXd> es(Atmp,false);
+  VectorXcd eiVals = es.eigenvalues();
+//  saveMarketVector(eiVals, "DiscontPoisson_Aeigenvalues.mtx");
+}
 
-// C wrappers for interfacing with DiscontPoisson class
+
+// C wrappers for interfacing with DiscontPoisson class.
 extern "C" void* new_DiscontPoisson(int ncell[3], int ndim, int nbasis,
                                     int nnonzero, int polyOrder, bool writeMatrix)
 {
@@ -116,4 +127,9 @@ extern "C" void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* sr
 extern "C" void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol)
 {
   f->getSolution(idx, sol);
+}
+
+extern "C" void discontPoisson_getEigenvalues(DiscontPoisson* f)
+{
+  f->getEigenvalues();
 }

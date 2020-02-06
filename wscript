@@ -24,7 +24,7 @@ from waflib import TaskGen
 
 def options(opt):
     opt.load('compiler_c compiler_cxx') 
-    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools',
+    opt.load('gkyl luajit mpi adios eigen sqlite3 cutools spectra',
              tooldir='waf_tools')
 
 def configure(conf):
@@ -38,6 +38,7 @@ def configure(conf):
     conf.check_mpi()
     conf.check_adios()
     conf.check_eigen()
+    conf.check_spectra()
     conf.check_sqlite3()
     conf.check_cutools()
 
@@ -238,7 +239,7 @@ def buildExec(bld):
         bld.env.SHLIB_MARKER = '-Wl,-Bdynamic,--no-as-needed'
 
     # list of objects to use
-    useList = ' lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN MPI M DL '
+    useList = ' lib datastruct eq unit comm updater proto basis grid LUAJIT ADIOS EIGEN SPECTRA MPI M DL '
     if bld.env['USE_SQLITE']:
         useList = 'sqlite3 ' + useList
     if bld.env['CUTOOLS_FOUND']:
@@ -264,4 +265,4 @@ def buildExec(bld):
 
 def dist(ctx):
     ctx.algo = "zip" # use ZIP instead of tar.bz2
-    ctx.excl = " **/.waf* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh **/.hg **/.hgignore install-deps/build-opts.sh install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/adios-1.* install-deps/luarocks-2.4.3* install-deps/openmpi-* build build-par build-ser"
+    ctx.excl = " **/.waf* **/*~ **/*.pyc **/*.swp **/.lock-w* configure-par.sh **/.hg **/.hgignore install-deps/build-opts.sh install-deps/luajit-2.0 install-deps/eigen-eigen-* install-deps/spectra* install-deps/adios-1.* install-deps/luarocks-2.4.3* install-deps/openmpi-* build build-par build-ser"

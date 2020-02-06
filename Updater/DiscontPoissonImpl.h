@@ -1,6 +1,6 @@
 // Gkyl ------------------------------------------------------------------------
 //
-// C++ back-end for 2D FEM Poisson solver
+// C++ back-end for discontinuous Poisson direct solver: -Laplacian(phi) = rho.
 //    _______     ___
 // + 6 @ |||| # P ||| +
 //------------------------------------------------------------------------------
@@ -18,8 +18,13 @@
 #include <Eigen/SparseQR>
 #include <Eigen/IterativeLinearSolvers>
 #include <unsupported/Eigen/SparseExtra>
+#include <Eigen/SparseCore>
+#include <Spectra/GenEigsSolver.h>
+#include <Spectra/MatOp/SparseGenMatProd.h>
 
 #include <mpi.h>
+
+using namespace Spectra;
 
 class DiscontPoisson;
 
@@ -34,6 +39,8 @@ extern "C" {
   void discontPoisson_pushSource(DiscontPoisson* f, int idx, double* src, double* srcMod);
   void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
   void discontPoisson_solve(DiscontPoisson* f);
+  // Auxiliary functions for analyzing the left-side matrix.
+  void discontPoisson_getEigenvalues(DiscontPoisson* f);
 }
 
 class DiscontPoisson
@@ -49,6 +56,8 @@ class DiscontPoisson
   void pushSource(int idx, double* src, double* srcMod);
   void getSolution(int idx, double* sol);
   void solve();
+
+  void getEigenvalues();
   
  private:
   const int ndim, polyOrder, nbasis, nnonzero;

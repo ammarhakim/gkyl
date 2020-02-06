@@ -105,6 +105,9 @@ void showVersion() {
 #ifdef HAVE_EIGEN_CORE
   std::cout << " Eigen";
 #endif
+#ifdef HAVE_SPECTRA_H
+  std::cout << " Spectra";
+#endif
 #ifdef USING_SQLITE3
   std::cout << " Sqlite3";
 #endif    

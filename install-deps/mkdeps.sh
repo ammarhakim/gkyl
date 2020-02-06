@@ -18,6 +18,7 @@ BUILD_LUAROCKS=
 BUILD_ADIOS=
 BUILD_OPENMPI=
 BUILD_EIGEN=
+BUILD_SPECTRA=
 BUILD_ZMQ=
 BUILD_CZMQ=
 
@@ -57,6 +58,7 @@ and C++ compilers to use.
 --build-adios               Should we build ADIOS?
 --build-openmpi             Should we build OpenMPI?
 --build-eigen               Should we build Eigen?
+--build-spectra             Should we build Spectra?
 --build-zmq                 Should we build ZeroMQ?
 --build-czmq                Should we build C interface to ZeroMQ?
 
@@ -139,6 +141,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_EIGEN="$value"
       ;;
+   --build-spectra)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_SPECTRA="$value"
+      ;;
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
@@ -216,6 +222,14 @@ build_eigen() {
     fi
 }
 
+build_spectra() {
+    if [[ ! "$BUILD_SPECTRA" = "no" && ("$BUILD_SPECTRA" = "yes" || ! -f $PREFIX/spectra/include/Spectra/GenEigsSolver.h) ]]
+    then
+	echo "Building SPECTRA"
+	./build-spectra.sh
+    fi
+}
+
 build_luajit() {
     if [[ ! "$BUILD_LUAJIT" = "no" && ("$BUILD_LUAJIT" = "yes" || ! -f $PREFIX/luajit/include/luajit-2.1/lua.hpp) ]]
     then    
@@ -281,5 +295,6 @@ build_luajit_ppcle
 build_luarocks
 build_adios
 build_eigen
+build_spectra
 build_zmq
 build_czmq

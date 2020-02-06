@@ -35,6 +35,10 @@
 #include <Eigen/Core>
 #endif
 
+#ifdef HAVE_SPECTRA_H
+#include <Spectra/GenEigsSolver.h>
+#endif
+
 #ifdef HAVE_ZMQ_H
 #include <zmq.h>
 #endif
@@ -229,6 +233,12 @@ std::string Gkyl::createTopLevelDefs() const {
   varDefs << "GKYL_HAVE_EIGEN = true" << std::endl;
 #else
   varDefs << "GKYL_HAVE_EIGEN = false" << std::endl;
+#endif
+
+#ifdef HAVE_SPECTRA_H
+  varDefs << "GKYL_HAVE_SPECTRA = true" << std::endl;
+#else
+  varDefs << "GKYL_HAVE_SPECTRA = false" << std::endl;
 #endif
 
 #ifdef HAVE_ZMQ_H
