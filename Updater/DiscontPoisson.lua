@@ -12,13 +12,13 @@
 
 -- Gkyl libraries.
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
-local Lin                          = require "Lib.Linalg"
-local Proto                        = require "Lib.Proto"
-local Range                        = require "Lib.Range"
-local UpdaterBase                  = require "Updater.Base"
-local ffi                          = require "ffi"
-local ffiC                         = ffi.C
-local xsys                         = require "xsys"
+local Lin = require "Lib.Linalg"
+local Proto = require "Lib.Proto"
+local Range = require "Lib.Range"
+local UpdaterBase = require "Updater.Base"
+local ffi = require "ffi"
+local ffiC = ffi.C
+local xsys = require "xsys"
 
 ffi.cdef[[
   typedef struct DiscontPoisson DiscontPoisson;
@@ -40,20 +40,20 @@ local DiscontPoisson = Proto(UpdaterBase)
 function DiscontPoisson:init(tbl)
    DiscontPoisson.super.init(self, tbl)
 
-   self.grid  = assert(tbl.onGrid, "Updater.DiscontPoisson: Must provide grid object using 'onGrid'")
+   self.grid = assert(tbl.onGrid, "Updater.DiscontPoisson: Must provide grid object using 'onGrid'")
    self.basis = assert(tbl.basis, "Updater.DiscontPoisson: Must specify basis functions to use using 'basis'")
 
    assert(self.basis:id() == "serendipity", "Updater.DiscontPoisson only implemented for modal serendipity basis")
 
    assert(self.grid:ndim() == self.basis:ndim(), "Dimensions of basis and grid must match")
-   self.ndim       = self.grid:ndim()
-   self.nbasis     = self.basis:numBasis()
+   self.ndim = self.grid:ndim()
+   self.nbasis = self.basis:numBasis()
    local polyOrder = self.basis:polyOrder()
-   self.ncell      = ffi.new("int[3]")
-   local dx        = Lin.Vec(3)
+   self.ncell = ffi.new("int[3]")
+   local dx = Lin.Vec(3)
    for d = 1,self.ndim do
       self.ncell[d-1] = self.grid:numCells(d)
-      dx[d]           = self.grid:dx(d)
+      dx[d] = self.grid:dx(d)
    end
 
    local writeMatrix = xsys.pickBool(tbl.writeMatrix, false)
@@ -88,7 +88,7 @@ function DiscontPoisson:init(tbl)
    end
 
    self._first = true
-   local dirs  = {'x','y','z'}
+   local dirs = {'x','y','z'}
    self.stencilMatrix = {}
    self.stencilMatrixLo, self.stencilMatrixUp = {}, {}
    for d = 1, self.ndim do
@@ -123,9 +123,9 @@ end
 function DiscontPoisson:buildStiffMatrix(phi)
    -- Assemble the left-side matrix of the Poisson equation.
 
-   local ndim         = self.ndim
+   local ndim = self.ndim
 
-   local localRange   = phi:localRange()
+   local localRange = phi:localRange()
    local lower, upper = {}, {}
    for d = 1,ndim do
       lower[d] = localRange:lower(d)
@@ -133,12 +133,12 @@ function DiscontPoisson:buildStiffMatrix(phi)
    end
    lower[ndim+1] = 1
    upper[ndim+1] = self.nbasis
-   local stiffMatrixRange   = Range.Range(lower, upper)
+   local stiffMatrixRange = Range.Range(lower, upper)
    local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
    local idxsExtK, idxsExtL = Lin.Vec(ndim+1), Lin.Vec(ndim+1)
-   local cnt, val           = 1, 0.0
-   local idxK, idxL         = 0, 0
+   local cnt, val = 1, 0.0
+   local idxK, idxL = 0, 0
 
    for idxs in localRange:colMajorIter() do
       for d = 1,ndim do
@@ -150,7 +150,7 @@ function DiscontPoisson:buildStiffMatrix(phi)
          idxK = stiffMatrixIndexer(idxsExtK)
          for l = 1,self.basis:numBasis() do
             idxsExtL[ndim+1] = l
-            idxL             = stiffMatrixIndexer(idxsExtL)
+            idxL = stiffMatrixIndexer(idxsExtL)
             
             -- Diagonal blocks
             val = 0.0
@@ -171,32 +171,32 @@ function DiscontPoisson:buildStiffMatrix(phi)
             for d = 1,ndim do
                if idxs[d] == localRange:lower(d) then
                   idxsExtL[d] = idxsExtL[d]+1
-                  idxL        = stiffMatrixIndexer(idxsExtL)
-                  val         = self.stencilMatrixLo[d][3][k][l]
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrixLo[d][3][k][l]
                   if val ~= 0 then
                      ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
                   end
                   idxsExtL[d] = idxsExtL[d]-1
                elseif idxs[d] == localRange:upper(d) then
                   idxsExtL[d] = idxsExtL[d]-1
-                  idxL        = stiffMatrixIndexer(idxsExtL)
-                  val         = self.stencilMatrixUp[d][1][k][l]
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrixUp[d][1][k][l]
                   if val ~= 0 then
                      ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
                   end
                   idxsExtL[d] = idxsExtL[d]+1
                else
                   idxsExtL[d] = idxsExtL[d]-1
-                  idxL        = stiffMatrixIndexer(idxsExtL)
-                  val         = self.stencilMatrix[d][1][k][l]
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrix[d][1][k][l]
                   if val ~= 0 then
                      ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
                   end
                   idxsExtL[d] = idxsExtL[d]+1
                   
                   idxsExtL[d] = idxsExtL[d]+1
-                  idxL        = stiffMatrixIndexer(idxsExtL)
-                  val         = self.stencilMatrix[d][3][k][l]
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrix[d][3][k][l]
                   if val ~= 0 then
                      ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
                   end
@@ -211,12 +211,12 @@ end
 
 -- Advance method.
 function DiscontPoisson:_advance(tCurr, inFld, outFld)
-   local ndim  = self.ndim
+   local ndim = self.ndim
 
    local src = assert(inFld[1], "DiscontPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "DiscontPoisson.advance: Must specify an output field")
 
-   local localRange   = src:localRange()
+   local localRange = src:localRange()
    local lower, upper = {}, {}
    for d = 1,ndim do
       lower[d] = localRange:lower(d)
@@ -224,7 +224,7 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    end
    lower[ndim+1] = 1
    upper[ndim+1] = self.nbasis
-   local stiffMatrixRange   = Range.Range(lower, upper)
+   local stiffMatrixRange = Range.Range(lower, upper)
    local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
    if self._first then
@@ -237,7 +237,7 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
 
    -- Pushing source to the Eigen matrix.
    local idxsExt = Lin.Vec(ndim+1)
-   local srcMod  = Lin.Vec(self.nbasis)
+   local srcMod = Lin.Vec(self.nbasis)
    for idxs in localRange:colMajorIter() do
       for k = 1,self.nbasis do srcMod[k] = 0.0 end
       for d = 1,ndim do
@@ -259,7 +259,7 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    ffiC.discontPoisson_solve(self.poisson)
 
    for idxs in localRange:colMajorIter() do
-      local solPtr  = sol:get(self.solIndexer(idxs))
+      local solPtr = sol:get(self.solIndexer(idxs))
       local idxsExt = Lin.Vec(ndim+1)
       for d = 1,ndim do idxsExt[d] = idxs[d] end
       idxsExt[ndim+1] = 1
@@ -270,13 +270,13 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    self._first = false
 end
 
+function DiscontPoisson:delete()
+  ffiC.delete_DiscontPoisson(self.poisson)
+end
+
 -- Additional methods to evaluate eigenvalues needed by multigrid solver.
 function DiscontPoisson:calcEigenvalues()
    ffiC.discontPoisson_getEigenvalues(self.poisson)
-end
-
-function DiscontPoisson:delete()
-  ffiC.delete_DiscontPoisson(self.poisson)
 end
 
 return DiscontPoisson
