@@ -221,5 +221,5 @@ def build(bld):
         )
 
     bld.shlib(source = sources,
-              includes = '. .. ../Cuda mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN MPI', target = 'updater', name = 'updater', vum = '1.0')
+              includes = '. .. ../Cuda mgPoissonCalcData spitzerNuCalcData primMomentsCalcData binOpCalcData lagrangeFixData momentCalcData confToPhaseData', use='lib EIGEN SPECTRA MPI', target = 'updater', name = 'updater', vum = '1.0')
     
