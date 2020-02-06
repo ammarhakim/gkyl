@@ -81,12 +81,21 @@ void DiscontPoisson::solve() {
 // Below are some auxiliary functions to probe properties of the
 // left-side matrix, and iteration matrices used by multigrid solver.
 void DiscontPoisson::getEigenvalues() {
-//  VectorXcd eiVals = stiffMatRowMajor.eigenvalues();
-//  EigenSolver<MatrixXd> es(stiffMatRowMajor,false);
-  MatrixXd Atmp = MatrixXd::Random(6,6);
-  EigenSolver<MatrixXd> es(Atmp,false);
-  VectorXcd eiVals = es.eigenvalues();
-//  saveMarketVector(eiVals, "DiscontPoisson_Aeigenvalues.mtx");
+
+  // Construct matrix operation object using wrapper class SparseGenMatProd.
+  SparseGenMatProd<double> op(stiffMat);
+  // Construct eigen solver object, requesting the largest three eigenvalues
+  GenEigsSolver< double, LARGEST_MAGN, SparseGenMatProd<double> > eigs(&op, 3, 6);
+  // Initialize and compute
+  eigs.init();
+  int nconv = eigs.compute();
+  // Retrieve results
+  Eigen::VectorXcd eiValues;
+  if (eigs.info() == SUCCESSFUL)
+    eiValues = eigs.eigenvalues();
+
+  std::cout << "Three largest eigenvalues found:\n" << eiValues << std::endl;
+
 }
 
 

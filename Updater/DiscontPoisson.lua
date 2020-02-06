@@ -270,6 +270,11 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    self._first = false
 end
 
+-- Additional methods to evaluate eigenvalues needed by multigrid solver.
+function DiscontPoisson:calcEigenvalues()
+   ffiC.discontPoisson_getEigenvalues(self.poisson)
+end
+
 function DiscontPoisson:delete()
   ffiC.delete_DiscontPoisson(self.poisson)
 end

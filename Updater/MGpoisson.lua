@@ -237,14 +237,6 @@ function MGpoisson:init(tbl)
          decomposition = decompC,
       }
 
-      if not notAtCoarsest then
-         self.directSolver = DirectDGPoissonSolver {
-            onGrid  = self.mgGrids[self.mgLevels],
-            basis   = basis,
-            bcLower = bcLower,
-            bcUpper = bcUpper,
-         }
-      end
    end
 
    -- Allocate space for the iterate, right-side source field and
@@ -286,6 +278,24 @@ function MGpoisson:init(tbl)
          }
       end
    end
+
+   -- Create two instances of the direct solver. One at the coarsest to use
+   -- as the solver, the other at the finest mesh to evaluate eigenvalues.
+   self.directSolver = DirectDGPoissonSolver {
+      onGrid  = self.mgGrids[self.mgLevels],
+      basis   = basis,
+      bcLower = bcLower,
+      bcUpper = bcUpper,
+   }
+   self.eigenvalueCalc = DirectDGPoissonSolver {
+      onGrid  = self.mgGrids[1],
+      basis   = basis,
+      bcLower = bcLower,
+      bcUpper = bcUpper,
+   }
+   self.eigenvalueCalc:buildStiffMatrix(self.phiPrevAll[1])
+   self.eigenvalueCalc:calcEigenvalues()
+
 
    -- Select restriction and prolongation operator kernels.
    self._restriction  = MGpoissonDecl.selectRestriction(basisID, self.dim, polyOrder)
