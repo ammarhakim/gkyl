@@ -44,11 +44,11 @@ Inputs:
 Outputs:
   a polynomial in terms of qLo and qUp
 */
-calcRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
+calcRecov2CellGen(basisNm, dir, dx, polyOrder, qLo, qUp) := block(
   [numDims, dIdx, basisC, basis1D, baLo1D, baUp1D, N, rExp, recEqList, rSol, rSub, projSubList, basisND, xc, baLoND, baUpND, dimProjLo, dimProjUp],
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
-  basisC : getBasis("basis-precalc/basisSer1x", polyOrder), /* Loading basis functions */
+  basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder), /* Loading basis functions */
   basis1D : subst(x=dir, basisC),
   baLo1D : etaDir(dir, -dx[dIdx]/2, dx[dIdx], basis1D),
   baUp1D : etaDir(dir, dx[dIdx]/2, dx[dIdx], basis1D),
@@ -65,7 +65,7 @@ calcRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
   
   /* Backsubstitute the non-recovered directtions if needed */
   if numDims > 1 then (
-    basisC : getBasis(sconcat("basis-precalc/basisSer", numDims, "x"), polyOrder), /* Loading higher dimensional basis */
+    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder), /* Loading higher dimensional basis */
     basisND : basisC,
     xc : [0, 0, 0],
     xc[dIdx] : -dx[dIdx]/2,
@@ -94,11 +94,11 @@ calcRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := block(
 calcRecov2Cell(dir, numDims, polyOrder, qLo, qUp) := block(
   [dx],
   dx : makelist(2, i, 1, numDims),
-  return(calcRecov2CellGen(dir, dx, polyOrder, qLo, qUp))
+  return(calcRecov2CellGen("Ser", dir, dx, polyOrder, qLo, qUp))
   )$
 
 /* Legacy wrapper */
-getRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := calcRecov2CellGen(dir, dx, polyOrder, qLo, qUp) $
+getRecov2CellGen(dir, dx, polyOrder, qLo, qUp) := calcRecov2CellGen("Ser", dir, dx, polyOrder, qLo, qUp) $
 
 
 /* Returns recovered polynomial across three cells in terms of expansion coefficients in the lower cell (qLo), center (qCe), and the upper cell (qUp). Alternatively, qLo and qUp can be used as prescribed Dirichlet or Neumann boundary conditions when [bc] parameter is set (see bellow).
@@ -115,7 +115,7 @@ Inputs:
 Outputs:
   a polynomial in terms of qLo, qCe, and qUp
 */
-calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
+calcRecov3CellGen(basisNm, dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
   [numDims, dIdx, basisC, basis1D, N, rExp, rLo, rUp, recEqList, rSol, rSub, projSubList, baLo1D, baCe1D, baUp1D, basisND, xc, baLoND, baCND, baUpND, dimProjLo, dimProjCe, dimProjUp, bcLo, bcUp],
   if length(bc) = 0 then (
     bcLo : [0,0],
@@ -135,7 +135,7 @@ calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
     ),
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims),
-  basisC : getBasis("basis-precalc/basisSer1x", polyOrder),
+  basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder),
   basis1D : subst(x=dir, basisC),
   baCe1D : etaDir(dir, 0, dx[dIdx], basis1D),
   
@@ -184,7 +184,7 @@ calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
   if numDims > 1 then (
     baLo1D : etaDir(dir, -dx[dIdx], dx[dIdx], basis1D),
     baUp1D : etaDir(dir, dx[dIdx], dx[dIdx], basis1D),
-    basisC : getBasis(sconcat("basis-precalc/basisSer", numDims, "x"), polyOrder),
+    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
     basisND : basisC,
     xc : [0, 0, 0],
     xc[dIdx] : -dx[dIdx],
@@ -234,23 +234,23 @@ calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
 calcRecov3Cell(dir, numDims, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
   [dx],
   dx : makelist(2, i, 1, numDims),
-  if length(bc) = 0 then return(calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp)),
-  if length(bc) = 1 then return(calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1])),
-  if length(bc) = 2 then return(calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1], bc[2]))
+  if length(bc) = 0 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp)),
+  if length(bc) = 1 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1])),
+  if length(bc) = 2 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1], bc[2]))
   )$
 
 /* Legacy wrapper */
 getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
-  if length(bc) = 0 then return(calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp)),
-  if length(bc) = 1 then return(calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1])),
-  if length(bc) = 2 then return(calcRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1], bc[2]))
+  if length(bc) = 0 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp)),
+  if length(bc) = 1 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1])),
+  if length(bc) = 2 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1], bc[2]))
   )$
 
-calcRecov3CellFullGen(dir, dx, polyOrder, qLo, qCe, qUp) := block(
+calcRecov3CellFullGen(basisNm, dir, dx, polyOrder, qLo, qCe, qUp) := block(
   [numDims, dIdx, basisC, basis1D, baLo1D, baCe1D, baUp1D, N, rExp, recEqList, rSol, rSub, projSubList, basisND, xc, baLoND, baCeND, baUpND, dimProjLo, dimProjCe, dimProjUp],
   numDims : length(dx),
   dIdx : getDirIdx(dir, numDims), /* Converting x, y, or z into 1, 2, or 3 */
-  basisC : getBasis("basis-precalc/basisSer1x", polyOrder), /* Loading basis functions */
+  basisC : getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder), /* Loading basis functions */
   basis1D : subst(x=dir, basisC),
   baLo1D : etaDir(dir, -dx[dIdx], dx[dIdx], basis1D),
   baCe1D : etaDir(dir, 0, dx[dIdx], basis1D),
@@ -269,7 +269,7 @@ calcRecov3CellFullGen(dir, dx, polyOrder, qLo, qCe, qUp) := block(
   
   /* Backsubstitute the non-recovered directtions if needed */
   if numDims > 1 then (
-    basisC : getBasis(sconcat("basis-precalc/basisSer", numDims, "x"), polyOrder), /* Loading higher dimensional basis */
+    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder), /* Loading higher dimensional basis */
     basisND : basisC,
     xc : [0, 0, 0],
     baCeND : eta(xc, dx, basisND),
@@ -300,10 +300,10 @@ calcRecov3CellFullGen(dir, dx, polyOrder, qLo, qCe, qUp) := block(
 calcRecov3CellFull(dir, numDims, polyOrder, qLo, qCe, qUp) := block(
   [dx],
   dx : makelist(2, i, 1, numDims),
-  return(calcRecov3CellFullGen(dir, dx, polyOrder, qLo, qCe, qUp))
+  return(calcRecov3CellFullGen("Ser", dir, dx, polyOrder, qLo, qCe, qUp))
   ) $
 
-calcRecov6CellGen(dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
+calcRecov6CellGen(basisNm, dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
   [perpDir, perpDirIdx, rLo, rCe, rUp, basisC, baC, rLoCoef, rCeCoef, rUpCoef, r],
   if dir = x then perpDir : y else perpDir : x, /* Hard-coded; needs generalization for 3D */
   numDims : length(dx),
@@ -313,7 +313,7 @@ calcRecov6CellGen(dir, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL, qUU) := block(
   rCe : getRecov2CellGen(dir, dx, polyOrder, qCL, qCU),
   rUp : getRecov2CellGen(dir, dx, polyOrder, qUL, qUU),
   
-  basisC : subst(x=perpDir, getBasis("basis-precalc/basisSer1x", polyOrder)),
+  basisC : subst(x=perpDir, getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder)),
   baC : etaDir(perpDir, 0, dx[perpDirIdx], basisC),
   rLoCoef : calcInnerProdListGen([perpDir],
     [[-dx[perpDirIdx]/2, dx[perpDirIdx]/2]],
