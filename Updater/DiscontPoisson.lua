@@ -1,13 +1,16 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Updater to solve Poisson equation in perpendicular directions with FEM scheme
--- Perpendicular directions assumed to be first two configuration-space directions
+-- Updater to (directly) solve Poisson equation 
+--
+--      - Laplacian(phi) = rho
+--
+-- in 1D, 2D or 3D with RDG discretization.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries
+-- Gkyl libraries.
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
@@ -29,13 +32,12 @@ ffi.cdef[[
   void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
 ]]
 
--- FEM Poisson solver updater object
+-- DG Poisson solver updater object.
 local DiscontPoisson = Proto(UpdaterBase)
 
 function DiscontPoisson:init(tbl)
    DiscontPoisson.super.init(self, tbl)
 
-   -- read data from input file
    self.grid = assert(tbl.onGrid, "Updater.DiscontPoisson: Must provide grid object using 'onGrid'")
    self.basis = assert(tbl.basis, "Updater.DiscontPoisson: Must specify basis functions to use using 'basis'")
 
@@ -116,16 +118,102 @@ function DiscontPoisson:init(tbl)
    return self
 end
 
----- advance method
+function DiscontPoisson:buildStiffMatrix(phi)
+   -- Assemble the left-side matrix of the Poisson equation.
+
+   local ndim = self.ndim
+
+   local localRange = phi:localRange()
+   local lower, upper = {}, {}
+   for d = 1,ndim do
+      lower[d] = localRange:lower(d)
+      upper[d] = localRange:upper(d)
+   end
+   lower[ndim+1] = 1
+   upper[ndim+1] = self.nbasis
+   local stiffMatrixRange = Range.Range(lower, upper)
+   local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
+
+   local idxsExtK, idxsExtL = Lin.Vec(ndim+1), Lin.Vec(ndim+1)
+   local cnt, val = 1, 0.0
+   local idxK, idxL = 0, 0
+
+   for idxs in localRange:colMajorIter() do
+      for d = 1,ndim do
+         idxsExtK[d] = idxs[d]
+         idxsExtL[d] = idxs[d]
+      end
+      for k = 1,self.nbasis do
+         idxsExtK[ndim+1] = k
+         idxK = stiffMatrixIndexer(idxsExtK)
+         for l = 1,self.basis:numBasis() do
+            idxsExtL[ndim+1] = l
+            idxL = stiffMatrixIndexer(idxsExtL)
+            
+            -- Diagonal blocks
+            val = 0.0
+            for d = 1,ndim do
+               if idxs[d] == localRange:lower(d) then
+                  val = val + self.stencilMatrixLo[d][2][k][l]
+               elseif idxs[d] == localRange:upper(d) then
+                  val = val + self.stencilMatrixUp[d][2][k][l]
+               else
+                  val = val + self.stencilMatrix[d][2][k][l]
+               end
+            end
+            if val ~= 0 then
+               ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
+            end
+
+            -- Off-diagonal blocks                              
+            for d = 1,ndim do
+               if idxs[d] == localRange:lower(d) then
+                  idxsExtL[d] = idxsExtL[d]+1
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrixLo[d][3][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
+                  end
+                  idxsExtL[d] = idxsExtL[d]-1
+               elseif idxs[d] == localRange:upper(d) then
+                  idxsExtL[d] = idxsExtL[d]-1
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrixUp[d][1][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
+                  end
+                  idxsExtL[d] = idxsExtL[d]+1
+               else
+                  idxsExtL[d] = idxsExtL[d]-1
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrix[d][1][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
+                  end
+                  idxsExtL[d] = idxsExtL[d]+1
+                  
+                  idxsExtL[d] = idxsExtL[d]+1
+                  idxL = stiffMatrixIndexer(idxsExtL)
+                  val = self.stencilMatrix[d][3][k][l]
+                  if val ~= 0 then
+                     ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
+                  end
+                  idxsExtL[d] = idxsExtL[d]-1
+               end
+            end               
+         end
+      end
+   end
+   ffiC.discontPoisson_constructStiffMatrix(self.poisson);
+end
+
+-- Advance method.
 function DiscontPoisson:_advance(tCurr, inFld, outFld)
-   local grid = self.grid
-   local basis = self.basis
    local ndim = self.ndim
 
    local src = assert(inFld[1], "DiscontPoisson.advance: Must specify an input field")
    local sol = assert(outFld[1], "DiscontPoisson.advance: Must specify an output field")
 
-   --local globalRange = src:globalRange()
    local localRange = src:localRange()
    local lower, upper = {}, {}
    for d = 1,ndim do
@@ -137,84 +225,15 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
    local stiffMatrixRange = Range.Range(lower, upper)
    local stiffMatrixIndexer = Range.makeRowMajorGenIndexer(stiffMatrixRange)
 
-   -- construct the stiffness matrix using Eigen
    if self._first then
       self.srcIndexer = src:genIndexer()
       self.solIndexer = sol:genIndexer()
-      local idxsExtK, idxsExtL = Lin.Vec(ndim+1), Lin.Vec(ndim+1)
-      local cnt, val = 1, 0.0
-      local idxK, idxL = 0, 0
 
-      for idxs in localRange:colMajorIter() do
-         for d = 1,ndim do
-            idxsExtK[d] = idxs[d]
-            idxsExtL[d] = idxs[d]
-         end
-         for k = 1,self.nbasis do
-            idxsExtK[ndim+1] = k
-            idxK = stiffMatrixIndexer(idxsExtK)
-            for l = 1,basis:numBasis() do
-               idxsExtL[ndim+1] = l
-               idxL = stiffMatrixIndexer(idxsExtL)
-               
-               -- Diagonal blocks
-               val = 0.0
-               for d = 1,ndim do
-                  if idxs[d] == localRange:lower(d) then
-                     val = val + self.stencilMatrixLo[d][2][k][l]
-                  elseif idxs[d] == localRange:upper(d) then
-                     val = val + self.stencilMatrixUp[d][2][k][l]
-                  else
-                     val = val + self.stencilMatrix[d][2][k][l]
-                  end
-               end
-               if val ~= 0 then
-                  ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
-               end
-
-               -- Off-diagonal blocks                              
-               for d = 1,ndim do
-                  if idxs[d] == localRange:lower(d) then
-                     idxsExtL[d] = idxsExtL[d]+1
-                     idxL = stiffMatrixIndexer(idxsExtL)
-                     val = self.stencilMatrixLo[d][3][k][l]
-                     if val ~= 0 then
-                        ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
-                     end
-                     idxsExtL[d] = idxsExtL[d]-1
-                  elseif idxs[d] == localRange:upper(d) then
-                     idxsExtL[d] = idxsExtL[d]-1
-                     idxL = stiffMatrixIndexer(idxsExtL)
-                     val = self.stencilMatrixUp[d][1][k][l]
-                     if val ~= 0 then
-                        ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
-                     end
-                     idxsExtL[d] = idxsExtL[d]+1
-                  else
-                     idxsExtL[d] = idxsExtL[d]-1
-                     idxL = stiffMatrixIndexer(idxsExtL)
-                     val = self.stencilMatrix[d][1][k][l]
-                     if val ~= 0 then
-                        ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
-                     end
-                     idxsExtL[d] = idxsExtL[d]+1
-                     
-                     idxsExtL[d] = idxsExtL[d]+1
-                     idxL = stiffMatrixIndexer(idxsExtL)
-                     val = self.stencilMatrix[d][3][k][l]
-                     if val ~= 0 then
-                        ffiC.discontPoisson_pushTriplet(self.poisson, idxK-1, idxL-1, val)
-                     end
-                     idxsExtL[d] = idxsExtL[d]-1
-                  end
-               end               
-            end
-         end
-      end
-      ffiC.discontPoisson_constructStiffMatrix(self.poisson);
+      -- Construct the stiffness matrix using Eigen.
+      self:buildStiffMatrix(sol)
    end
 
-   -- Pushing source to the Eigen matrix
+   -- Pushing source to the Eigen matrix.
    local idxsExt = Lin.Vec(ndim+1)
    local srcMod = Lin.Vec(self.nbasis)
    for idxs in localRange:colMajorIter() do
@@ -250,7 +269,7 @@ function DiscontPoisson:_advance(tCurr, inFld, outFld)
 end
 
 function DiscontPoisson:delete()
-  ffiC.delete_DiscontPoisson(self.poisson)
+   ffiC.delete_DiscontPoisson(self.poisson)
 end
 
 return DiscontPoisson

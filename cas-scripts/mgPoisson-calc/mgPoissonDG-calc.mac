@@ -52,24 +52,35 @@ for bInd : 1 thru length(bName) do (
     disp(printf(false,sconcat("Working on MGpoissonRestrict", c, "x", bName[bInd]))),
     calcRestrictionOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
     
-    /* Regular Jacobi smoother. */
+    /* Regular Gauss-Seidel smoother. */
+    funcName : sconcat("MGpoissonGaussSeidel", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonGaussSeidel", c, "x", bName[bInd]))),
+    calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
+    calcGaussSeidelOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
+    
+    /* Damped Gauss-Seidel. */
+    funcName : sconcat("MGpoissonDampedGaussSeidel", c, "x", bName[bInd]),
+    disp(printf(false,sconcat("Working on MGpoissonDampedGaussSeidel", c, "x", bName[bInd]))),
+    calcGaussSeidelOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
+    calcGaussSeidelOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
+
+    /* Jacobi smoother. */
     funcName : sconcat("MGpoissonJacobi", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonJacobi", c, "x", bName[bInd]))),
     calcJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
     calcJacobiOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
     
-    /* Damped Jacobi. */
+    /* Damped Jacobi relaxation kernels. */
     funcName : sconcat("MGpoissonDampedJacobi", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonDampedJacobi", c, "x", bName[bInd]))),
     calcJacobiOp(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
-    /*
     calcJacobiOpBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], true),
-    */
 
     /* Kernel for computing the residue. */
     funcName : sconcat("MGpoissonResidue", c, "x", bName[bInd]),
     disp(printf(false,sconcat("Working on MGpoissonResidue", c, "x", bName[bInd]))),
-    calcResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd], false),
+    calcResidue(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
+    calcResidueBoundary(fh, funcName, c, bName[bInd], maxPolyOrder[bInd]),
 
     close(fh)
   )

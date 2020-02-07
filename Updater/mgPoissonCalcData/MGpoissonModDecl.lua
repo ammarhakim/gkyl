@@ -71,9 +71,10 @@ end
 function _M.selectRelaxation(basisNm, dim, polyOrder, kindOfRelax, bcTypes)
    local relaxKernels = {}
    -- Create a 3^dim hypertable to place lower boundary, interior and upper boundary kernels.
-   relaxStencilStr = getStencilStrs(dim, bcTypes)
+   local relaxStencilStr = getStencilStrs(dim, bcTypes)
    for sI = 1, 3^dim do
-      relaxKernels[sI] = ffi.C[string.format("MGpoisson%s%dx%s_%sP%d", kindOfRelax, dim, basisNmMap[basisNm], relaxStencilStr[sI], polyOrder)]
+      local tmp = ffi.C[string.format("MGpoisson%s%dx%s_%sP%d", kindOfRelax, dim, basisNmMap[basisNm], relaxStencilStr[sI], polyOrder)]
+      relaxKernels[sI] = tmp
    end
    return relaxKernels
 end
@@ -82,9 +83,10 @@ end
 function _M.selectResidueCalc(basisNm, dim, polyOrder, bcTypes)
    local residueKernels = {}
    -- Create a 3^dim hypertable to place lower boundary, interior and upper boundary kernels.
-   resStencilStr = getStencilStrs(dim, bcTypes)
+   local resStencilStr = getStencilStrs(dim, bcTypes)
    for sI = 1, 3^dim do
-      residueKernels[sI] = ffiC[string.format("MGpoissonResidue%dx%s_%sP%d", dim, basisNmMap[basisNm], resStencilStr[sI], polyOrder)]
+      local tmp = ffi.C[string.format("MGpoissonResidue%dx%s_%sP%d", dim, basisNmMap[basisNm], resStencilStr[sI], polyOrder)]
+      residueKernels[sI] = tmp
    end
    return residueKernels
 end

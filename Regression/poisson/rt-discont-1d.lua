@@ -46,15 +46,17 @@ local aD = 2
 local initDistD = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
+   numQuad = 7,
    evaluate = function(t, z)
       local x = z[1]
-      return 1-aD*x^2
+      return -1+aD*x^2
    end,
 }
 local cD = aD/12.0 - 0.5
 local initExactD = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
+   numQuad = 7,
    evaluate = function(t, z)
       local x = z[1]
       return x^2/2-aD*x^4/12+cD*x + 1
@@ -71,15 +73,17 @@ local aN = 5
 local initDistN = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
+   numQuad = 7,
    evaluate = function(t, z)
       local x = z[1]
-      return 1-aN*x^2
+      return -1+aN*x^2
    end,
 }
 local cN = aN/12.0 - 0.5
 local initExactN = Updater.ProjectOnBasis {
    onGrid = grid,
    basis = basis,
+   numQuad = 7,
    evaluate = function(t, z)
       local x = z[1]
       return x^2/2-aN*x^4/12+cN

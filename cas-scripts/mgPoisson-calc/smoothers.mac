@@ -46,8 +46,8 @@ writeCExprs1sub(lhs, rhs, sublist) := block([expr],
   )
 )$
 
-calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
-  /* Jacobi (and damped Jacobi) relaxation on the Poisson equation
+calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
+  /* Gauss-Seidel (and damped GS) relaxation on the Poisson equation
      using an RDG discretization. Other options involve LDG and
      interior penalty methods. */
 
@@ -55,7 +55,7 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
 
   load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
 
-  ones : makelist(1,i,1,dim),
+  twos : makelist(2,i,1,dim),
 
   stencilWidth : 3,
   stencilSize  : (stencilWidth-1)*dim+1,
@@ -87,8 +87,9 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
       remainingSurfVars : delete(surfVar,varsC),
       bCp               : diff(bC,surfVar),
 
-      phiRecL  : getRecov2CellGen(surfVar,ones,polyOrder,phiL_c, phiC_c),
-      phiRecU  : getRecov2CellGen(surfVar,ones,polyOrder,phiC_c, phiU_c),
+      phiRecL : getRecov2CellGen(surfVar,twos,polyOrder,phiL_c, phiC_c),
+      phiRecU : getRecov2CellGen(surfVar,twos,polyOrder,phiC_c, phiU_c),
+
       /* Recovery and its derivative evaluated at the boundary. */
       phiRecL0  : subst(surfVar=0,phiRecL),
       phiRecU0  : subst(surfVar=0,phiRecU),
@@ -97,9 +98,9 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
 
       /* Surface terms. The rdx and 2 factors account for physical cell length. */
       surfTerms : surfTerms + rdxU[dir][surfDir-1]*( calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=1,bC),phiRecUp0)
-                                                    -2*calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=1,bCp),phiRecU0) )
+                                                    -calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=1,bCp),phiRecU0) )
                             - rdxL[dir][surfDir-1]*( calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=-1,bC),phiRecLp0)
-                                                    -2*calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=-1,bCp),phiRecL0) ),
+                                                    -calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=-1,bCp),phiRecL0) ),
 
       /* Volume terms. */
       volTerms : volTerms + rdxCp2[dir-1]*calcInnerProdList(varsC,1,diff(bC,varsC[dir],2),phiC_e)
@@ -112,25 +113,27 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
     /* The right-hand-side of the Poisson equation is
        just a projection of the source on the basis. */
     rho_e     : doExpand1(rho,bC),
-    sourceRHS : 0.5*volFac*calcInnerProdList(varsC,1,bC,rho_e),
+    sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
 
     /* Solve for the coefficients of this cell to get the stencil. */
     stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),
 
     if (isDamped) then (
-      /* Damped Jacobi method. */
+      /* Damped Gauss-Seidel method. */
       jacStencil : (1-omega)*phiC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N)
     ) else (
-      /* Regular Jacobi.*/
+      /* Regular Gauss-Seidel.*/
       jacStencil : makelist(rhs(stencilSolve[i]),i,1,N)
     ),
     jacStencil : fullratsimp(jacStencil),
 
-    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *rho, double **phi) ~%{ ~%", funcNm, polyOrder),
-    printf(fh, "  // omega: relaxation parameter.~%"),
-    printf(fh, "  // dx:    cell lengths of cells pointed to by the stencil.~%"),
-    printf(fh, "  // rho:   right-side source in the current cell.~%"),
-    printf(fh, "  // phi:   iterate cells pointed to by the stencil.~%"),
+    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // omega:   relaxation parameter.~%"),
+    printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
+    printf(fh, "  // bcVals:  values to impose as BCs.~%"),
+    printf(fh, "  // rho:     right-side source in the current cell.~%"),
+    printf(fh, "  // phiPrev: (Jacobi-only) iterate cells pointed to by the stencil (only use neighbor cells).~%"),
+    printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
     printf(fh, "~%"),
 
     /* Pointers to the cell lengths in cells pointed to by the stencil. */
@@ -169,8 +172,8 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
     for dir : 1 thru dim do (
       printf(fh, "  rdxCp2[~a]  = volFac*4.0/(dxC[~a]*dxC[~a]); ~%", dir-1, dir-1, dir-1),
       for d : 1 thru dim do (
-        printf(fh, "  rdxL~a[~a]   = 1.0/dxL~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1),
-        printf(fh, "  rdxU~a[~a]   = 1.0/dxU~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1),
+        printf(fh, "  rdxL~a[~a]   = volFac*4.0/(dxL~a[~a]*dxL~a[~a]); ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+        printf(fh, "  rdxU~a[~a]   = volFac*4.0/(dxU~a[~a]*dxU~a[~a]); ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
         printf(fh, "  rdxL~aSq[~a] = rdxL~a[~a]*rdxL~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
         printf(fh, "  rdxU~aSq[~a] = rdxU~a[~a]*rdxU~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
         if (dim=2) then (
@@ -217,28 +220,20 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
   )
 )$
 
-/*
-getBoundaryKernelList(dim) := block([],
-*/
-  /* This function generates a list of the boundary kernels needed.
-     It follows the logic in getStencilStrs of MGpoissonModDecl.lua. */
 
-/*
-)$
-*/
-
-
-calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
-  /* Boundary kernels for Jacobi (and damped Jacobi) relaxation on the
+calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
+  /* Boundary kernels for Gauss-Seidel (and damped GS) relaxation on the
      Poisson equation using an RDG discretization. */
 
   kill(varsC, varsP, basisC, basisP),
 
   load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
 
+  twos : makelist(2,i,1,dim),
+
   /* This will well with (string) variable selection
      depending on stencil location. */
-  sVarsC : varsC,
+  sVarsC : copylist(varsC),
   for d : 1 thru dim do (
     sVarsC[d] : string(varsC[d])
   ),
@@ -288,14 +283,14 @@ calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
     /* Loop over BC combinations. Will create a separate kernel for each. */
     for bcI : 1 thru length(npBCcombos) do (
 
-      currBCs : npBCcombos[bcI],
-      /* It's easier to work with a list of dim elements indicating
-         the BC in each direction (rather than npBCcombos), even if it's periodic. */
+      currBCs : copylist(npBCcombos[bcI]),
+      /* It's easier to work with a list of dim elements indicating the BC
+         in each direction (rather than npBCcombos), even if it's periodic. */
       nInc : 0,
       for d : 1 thru dim do (
         if (stencilLoc[sI][d] = 0) then (
           currBCs : append(firstn(currBCs,d+nInc-1),[0],lastn(currBCs,length(currBCs)-(d+nInc-1))),
-          nInc : nInc+1
+          nInc    : nInc+1
         )
       ),
 
@@ -309,15 +304,139 @@ calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
       /* Don't forget to loop over polynomial order. */
       for polyOrder : 1 thru pMax do (
 
-        printf(fh, "void ~a_~aP~a(const double omega, double **dx, double *bcVal, const double *rho, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
-        printf(fh, "  // omega: relaxation parameter.~%"),
-        printf(fh, "  // dx:    cell lengths of cells pointed to by the stencil.~%"),
-        printf(fh, "  // bcVal: values to impose as BCs.~%"),
-        printf(fh, "  // rho:   right-side source in the current cell.~%"),
-        printf(fh, "  // phi:   iterate cells pointed to by the stencil.~%"),
+        printf(fh, "void ~a_~aP~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
+        printf(fh, "  // omega:   relaxation parameter.~%"),
+        printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
+        printf(fh, "  // bcVals:  values to impose as BCs.~%"),
+        printf(fh, "  // rho:     right-side source in the current cell.~%"),
+        printf(fh, "  // phiPrev: (Jacobi-only) iterate cells pointed to by the stencil (only use neighbor cells).~%"),
+        printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
         printf(fh, "~%"),
 
+        bC  : basisC[polyOrder],
+        N   : length(bC),
 
+        /* Expansion and coefficients of phi in this (center) cell. */
+        phiC_e : doExpand1(phiC,bC),
+        phiC_c : makelist(phiC[i],i,0,N-1),
+
+        surfTerms : 0,
+        volTerms  : 0,
+        for dir : 1 thru dim do (
+
+          /* Expand the iterate (phi) in this (center) cell and
+             lower/upper cells along dir dimension. Will be replaced
+             by boundary condition values below. */
+          phiL_e : doExpand1(phiL[dir],bC),
+          phiU_e : doExpand1(phiU[dir],bC),
+
+          phiL_c : makelist(phiL[dir][i],i,0,N-1),
+          phiU_c : makelist(phiU[dir][i],i,0,N-1),
+
+          /* Compute recovery coefficients across boundaries. */
+          surfDir           : dir,
+          surfVar           : varsC[surfDir],
+          remainingSurfVars : delete(surfVar,varsC),
+          bCp               : diff(bC,surfVar),
+
+          /* Boundary conditions in this direction. Currently just
+             Dirichlet/Neumann, constant along the boundary. */
+          dirBC   : [0,0],
+          if (stencilLoc[sI][dir] = -1) then (
+            dirBC[1] : currBCs[dir],
+            phiL_c   : bcVals[2*(dir-1)]
+          ) elseif (stencilLoc[sI][dir] = 1) then (
+            dirBC[2] : currBCs[dir],
+            phiU_c   : bcVals[2*(dir-1)+1]
+          ),
+
+          /* Three-cell recovery without integration by parts. */
+          phiRec   : getRecov3CellGen(surfVar, twos, polyOrder, 1, phiL_c, phiC_c, phiU_c, dirBC),
+
+          volTerms : volTerms + rdxCp2[dir-1]*calcInnerProdList(varsC,1,bC,diff(phiRec,varsC[dir],2))
+
+        ),
+
+        /* Left-hand-side of the Poisson equation.*/
+        poissonLHS : fullratsimp(- ( surfTerms + volTerms )),
+
+        /* The right-hand-side of the Poisson equation is
+           just a projection of the source on the basis. */
+        rho_e     : doExpand1(rho,bC),
+        sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
+
+        /* Solve for the coefficients of this cell to get the stencil. */
+        stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),
+
+        if (isDamped) then (
+          /* Damped Gauss-Seidel method. */
+          jacStencil : (1-omega)*phiC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N)
+        ) else (
+          /* Regular Gauss-Seidel.*/
+          jacStencil : makelist(rhs(stencilSolve[i]),i,1,N)
+        ),
+        jacStencil : fullratsimp(jacStencil),
+
+        /* Pointers to the cell lengths in cells pointed to by the stencil. */
+        printf(fh, "  double *dxC  = dx[0]; ~%"),
+        /* This volume factors appears in front of the right-side source term. */
+        volumeFac : (1/2)^dim,
+        for dir : 1 thru dim do (
+          volumeFac : volumeFac*dxC[dir-1] 
+        ),
+        printf(fh, "  double volFac = ~a; ~%", float(volumeFac)),
+        printf(fh, "~%"),
+
+        /* Some factors based on cell lengths. */
+        printf(fh, "  double rdxCp2[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2Sq[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R3[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R4[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R6[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R8[~a]; ~%", dim),
+        for dir : 1 thru dim do (
+          printf(fh, "  rdxCp2[~a]  = volFac*4.0/(dxC[~a]*dxC[~a]); ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2Sq[~a]  = rdxCp2[~a]*rdxCp2[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R3[~a]  = rdxCp2[~a]*rdxCp2Sq[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R4[~a]  = rdxCp2Sq[~a]*rdxCp2Sq[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R6[~a]  = rdxCp2Sq[~a]*rdxCp2R4[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R8[~a]  = rdxCp2R4[~a]*rdxCp2R4[~a]; ~%", dir-1, dir-1, dir-1)
+        ),
+        printf(fh, "~%"),
+
+        /* Pointers to the data in cells pointed to by the stencil. */
+        printf(fh, "  double *phiC = phi[0]; ~%"),
+        i : 1,
+        for d : 1 thru dim do (
+          printf(fh, "  double *phiU~a = phi[~a]; ~%", varsC[d], i),
+          printf(fh, "  double *phiL~a = phi[~a]; ~%", varsC[d], i+1),
+          i : i + 2
+        ),
+        printf(fh, "~%"),
+
+        /* Write the relaxation stencil. */
+        subNum  : dim*dim*12,  /* This is dim^2 times the number of entries in the loops below. */
+        sublist : makelist(0,i,1,subNum),
+        i      : 1,
+        for s : 1 thru dim do (
+          for d : 1 thru dim do (
+            sublist[i]   : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^2"), sconcat("rdxL",string(varsC[d]),"Sq[",string(s-1),"]")],
+            sublist[i+1] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^2"), sconcat("rdxU",string(varsC[d]),"Sq[",string(s-1),"]")],
+            sublist[i+2] : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^3"), sconcat("rdxL",string(varsC[d]),"Cu[",string(s-1),"]")],
+            sublist[i+3] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^3"), sconcat("rdxU",string(varsC[d]),"Cu[",string(s-1),"]")],
+            sublist[i+4] : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^4"), sconcat("rdxL",string(varsC[d]),"R4[",string(s-1),"]")],
+            sublist[i+5] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^4"), sconcat("rdxU",string(varsC[d]),"R4[",string(s-1),"]")],
+            sublist[i+6] : [sconcat("rdxCp2[",string(s-1),"]^2"), sconcat("rdxCp2Sq[",string(s-1),"]")],
+            sublist[i+7] : [sconcat("rdxCp2[",string(s-1),"]^3"), sconcat("rdxCp2R3[",string(s-1),"]")],
+            sublist[i+8] : [sconcat("rdxCp2[",string(s-1),"]^4"), sconcat("rdxCp2R4[",string(s-1),"]")],
+            sublist[i+9] : [sconcat("rdxCp2Sq[",string(s-1),"]^2"), sconcat("rdxCp2R4[",string(s-1),"]")],
+            sublist[i+10] : [sconcat("rdxCp2Sq[",string(s-1),"]^3"), sconcat("rdxCp2R6[",string(s-1),"]")],
+            sublist[i+11] : [sconcat("rdxCp2Sq[",string(s-1),"]^4"), sconcat("rdxCp2R8[",string(s-1),"]")],
+            i : i + 12
+          )
+        ),
+        writeCExprs1sub(phiC,jacStencil,sublist),
+        printf(fh, "~%"),
 
         printf(fh, "}~%"),
         printf(fh, "~%")
@@ -328,3 +447,404 @@ calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
 
 )$
 
+calcJacobiOp(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
+  /* Jacobi (and damped Jacobi) relaxation on the Poisson equation
+     using an RDG discretization. */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  twos : makelist(2,i,1,dim),
+
+  stencilWidth : 3,
+  stencilSize  : (stencilWidth-1)*dim+1,
+
+  for polyOrder : 1 thru pMax do (
+
+    bC  : basisC[polyOrder],
+    N   : length(bC),
+
+    /* Expansion and coefficients of phi in this (center) cell. */
+    phiC_e : doExpand1(phiC,bC),
+    phiC_c : makelist(phiC[i],i,0,N-1),
+    phiPrevC_c : makelist(phiPrevC[i],i,0,N-1),
+
+    surfTerms : 0,
+    volTerms  : 0,
+    for dir : 1 thru dim do (
+
+      /* Expand the iterate (phi) in this (center) cell and
+         lower/upper cells along dir dimension. */
+      phiL_e : doExpand1(phiL[dir],bC),
+      phiU_e : doExpand1(phiU[dir],bC),
+
+      phiL_c : makelist(phiL[dir][i],i,0,N-1),
+      phiU_c : makelist(phiU[dir][i],i,0,N-1),
+
+      /* Compute recovery coefficients across boundaries. */
+      surfDir           : dir,
+      surfVar           : varsC[surfDir],
+      remainingSurfVars : delete(surfVar,varsC),
+      bCp               : diff(bC,surfVar),
+
+      phiRecL : getRecov2CellGen(surfVar,twos,polyOrder,phiL_c, phiC_c),
+      phiRecU : getRecov2CellGen(surfVar,twos,polyOrder,phiC_c, phiU_c),
+
+      /* Recovery and its derivative evaluated at the boundary. */
+      phiRecL0  : subst(surfVar=0,phiRecL),
+      phiRecU0  : subst(surfVar=0,phiRecU),
+      phiRecLp0 : subst(surfVar=0,diff(phiRecL,surfVar)),
+      phiRecUp0 : subst(surfVar=0,diff(phiRecU,surfVar)),
+
+      /* Surface terms. The rdx and 2 factors account for physical cell length. */
+      surfTerms : surfTerms + rdxU[dir][surfDir-1]*( calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=1,bC),phiRecUp0)
+                                                    -calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=1,bCp),phiRecU0) )
+                            - rdxL[dir][surfDir-1]*( calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=-1,bC),phiRecLp0)
+                                                    -calcInnerProdList(remainingSurfVars,1.0,subst(surfVar=-1,bCp),phiRecL0) ),
+
+      /* Volume terms. */
+      volTerms : volTerms + rdxCp2[dir-1]*calcInnerProdList(varsC,1,diff(bC,varsC[dir],2),phiC_e)
+
+    ),
+
+    /* Left-hand-side of the Poisson equation.*/
+    poissonLHS : fullratsimp(- ( surfTerms + volTerms )),
+
+    /* The right-hand-side of the Poisson equation is
+       just a projection of the source on the basis. */
+    rho_e     : doExpand1(rho,bC),
+    sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
+
+    /* Solve for the coefficients of this cell to get the stencil. */
+    stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),
+
+    if (isDamped) then (
+      /* Damped Jacobi method. */
+      jacStencil : (1-omega)*phiPrevC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N)
+    ) else (
+      /* Regular Jacobi.*/
+      jacStencil : makelist(rhs(stencilSolve[i]),i,1,N)
+    ),
+    jacStencil : fullratsimp(jacStencil),
+
+    printf(fh, "void ~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // omega:   relaxation parameter.~%"),
+    printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
+    printf(fh, "  // bcVals:  values to impose as BCs.~%"),
+    printf(fh, "  // rho:     right-side source in the current cell.~%"),
+    printf(fh, "  // phiPrev: (Jacobi-only) iterate cells pointed to by the stencil (only use neighbor cells).~%"),
+    printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
+    printf(fh, "~%"),
+
+    /* Pointers to the cell lengths in cells pointed to by the stencil. */
+    printf(fh, "  double *dxC  = dx[0]; ~%"),
+    sI : 1,
+    for d : 1 thru dim do (
+      printf(fh, "  double *dxU~a = dx[~a]; ~%", varsC[d], sI),
+      printf(fh, "  double *dxL~a = dx[~a]; ~%", varsC[d], sI+1),
+      sI : sI + 2
+    ),
+    printf(fh, "~%"),
+
+    /* This volume factors appears in front of the right-side source term. */
+    volumeFac : (1/2)^dim,
+    for dir : 1 thru dim do (
+      volumeFac : volumeFac*dxC[dir-1] 
+    ),
+    printf(fh, "  double volFac = ~a; ~%", float(volumeFac)),
+    printf(fh, "~%"),
+
+    /* Some factors based on cell lengths. */
+    printf(fh, "  double rdxCp2[~a]; ~%", dim),
+    for d : 1 thru dim do (
+      printf(fh, "  double rdxL~a[~a]; ~%", varsC[d], dim),
+      printf(fh, "  double rdxU~a[~a]; ~%", varsC[d], dim),
+      printf(fh, "  double rdxL~aSq[~a]; ~%", varsC[d], dim),
+      printf(fh, "  double rdxU~aSq[~a]; ~%", varsC[d], dim),
+      if (dim=2) then (
+        printf(fh, "  double rdxL~aCu[~a]; ~%", varsC[d], dim),
+        printf(fh, "  double rdxU~aCu[~a]; ~%", varsC[d], dim),
+        printf(fh, "  double rdxL~aR4[~a]; ~%", varsC[d], dim),
+        printf(fh, "  double rdxU~aR4[~a]; ~%", varsC[d], dim)
+      )
+    ),
+
+    for dir : 1 thru dim do (
+      printf(fh, "  rdxCp2[~a]  = volFac*4.0/(dxC[~a]*dxC[~a]); ~%", dir-1, dir-1, dir-1),
+      for d : 1 thru dim do (
+        printf(fh, "  rdxL~a[~a]   = volFac*4.0/(dxL~a[~a]*dxL~a[~a]); ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+        printf(fh, "  rdxU~a[~a]   = volFac*4.0/(dxU~a[~a]*dxU~a[~a]); ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+        printf(fh, "  rdxL~aSq[~a] = rdxL~a[~a]*rdxL~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+        printf(fh, "  rdxU~aSq[~a] = rdxU~a[~a]*rdxU~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+        if (dim=2) then (
+          printf(fh, "  rdxL~aCu[~a] = rdxL~aSq[~a]*rdxL~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+          printf(fh, "  rdxU~aCu[~a] = rdxU~aSq[~a]*rdxU~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+          printf(fh, "  rdxL~aR4[~a] = rdxL~aCu[~a]*rdxL~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1),
+          printf(fh, "  rdxU~aR4[~a] = rdxU~aCu[~a]*rdxU~a[~a]; ~%", varsC[dir], d-1, varsC[dir], d-1, varsC[dir], d-1)
+        )
+      )
+    ),
+    printf(fh, "~%"),
+
+    /* Pointers to the data in cells pointed to by the stencil. */
+    printf(fh, "  double *phiC = phi[0]; ~%"),
+    printf(fh, "  double *phiPrevC = phiPrev[0]; ~%"),
+    sI : 1,
+    for d : 1 thru dim do (
+      printf(fh, "  double *phiU~a = phiPrev[~a]; ~%", varsC[d], sI),
+      printf(fh, "  double *phiL~a = phiPrev[~a]; ~%", varsC[d], sI+1),
+      sI : sI + 2
+    ),
+    printf(fh, "~%"),
+
+    /* Write the relaxation stencil. */
+    subNum  : dim*dim*6,  /* This 6 corresponds to the number of entries in the loops below. */
+    sublist : makelist(0,i,1,subNum),
+    sI      : 1,
+    for s : 1 thru dim do (
+      for d : 1 thru dim do (
+        sublist[sI]   : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^2"), sconcat("rdxL",string(varsC[d]),"Sq[",string(s-1),"]")],
+        sublist[sI+1] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^2"), sconcat("rdxU",string(varsC[d]),"Sq[",string(s-1),"]")],
+        sublist[sI+2] : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^3"), sconcat("rdxL",string(varsC[d]),"Cu[",string(s-1),"]")],
+        sublist[sI+3] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^3"), sconcat("rdxU",string(varsC[d]),"Cu[",string(s-1),"]")],
+        sublist[sI+4] : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^4"), sconcat("rdxL",string(varsC[d]),"R4[",string(s-1),"]")],
+        sublist[sI+5] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^4"), sconcat("rdxU",string(varsC[d]),"R4[",string(s-1),"]")],
+        sI : sI + 6
+      )
+    ),
+    writeCExprs1sub(phiC,jacStencil,sublist),
+    printf(fh, "~%"),
+
+    printf(fh, "}~%"),
+    printf(fh, "~%")
+
+  )
+)$
+
+calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax, isDamped) := block([],
+  /* Boundary kernels for (damped) Jacobi relaxation on the
+     Poisson equation using an RDG discretization. */
+
+  kill(varsC, varsP, basisC, basisP),
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  twos : makelist(2,i,1,dim),
+
+  /* This will well with (string) variable selection
+     depending on stencil location. */
+  sVarsC : copylist(varsC),
+  for d : 1 thru dim do (
+    sVarsC[d] : string(varsC[d])
+  ),
+  condVarsC : [[-1,sVarsC],[0,makelist("",i,1,dim)],[1,sVarsC]],
+
+  /* Create a list with 3^dim elements. Each element is itself an dim-long
+     list indicating whether the cell has a lower (=-1) or upper (=1)
+     boundary, or no boundary (=0) in that direction. */
+  cD : 1,
+  stencilLoc  : [makelist(0,i,1,dim)],  /* Center stencil, all zeros. */
+
+  for dir : 1 thru dim do (
+    /* Loop through cells already added to stencilLoc. */
+    for acI : 1 thru 3^(dir-1) do (
+      /* Loop over lower and upper. */ 
+      for bI : -1 thru 1 step 2 do (
+        stencilLoc : append(stencilLoc, copylist([stencilLoc[acI]])),
+        stencilLoc[length(stencilLoc)][dir] : bI
+      )
+    )
+  ),
+
+  for sI : 2 thru length(stencilLoc) do (
+
+    /* Count the number of non-periodic boundaries. */
+    npBCs : 0,
+    for d : 1 thru dim do (
+      if (stencilLoc[sI][d] # 0) then (
+        npBCs : npBCs + 1
+      )
+    ),
+
+    /* Given npBCs non-periodic BCs, there are bcN^npBCs possible
+       combinations of that cell's stencil (Assuming there are
+       only bcN types of BCs (e.g. Dirichlet, Neumman). */
+    npBCcombos : makelist([bcTypes[i]],i,2,length(bcTypes)),
+    for l : 2 thru npBCs do (
+      tmp : copylist(npBCcombos),
+      npBCcombos : [],
+      for cI : 1 thru length(tmp) do (
+        for bI : 2 thru length(bcTypes) do (
+          npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypes[bI]]) ])
+        )
+      )
+    ),
+
+    /* Loop over BC combinations. Will create a separate kernel for each. */
+    for bcI : 1 thru length(npBCcombos) do (
+
+      currBCs : copylist(npBCcombos[bcI]),
+      /* It's easier to work with a list of dim elements indicating the BC
+         in each direction (rather than npBCcombos), even if it's periodic. */
+      nInc : 0,
+      for d : 1 thru dim do (
+        if (stencilLoc[sI][d] = 0) then (
+          currBCs : append(firstn(currBCs,d+nInc-1),[0],lastn(currBCs,length(currBCs)-(d+nInc-1))),
+          nInc    : nInc+1
+        )
+      ),
+
+      boundaryStr : "",
+      for d : 1 thru dim do (
+        boundaryStr : sconcat(boundaryStr,assoc(stencilLoc[sI][d],boundStrKey),
+                              assoc(stencilLoc[sI][d],condVarsC)[d],assoc(currBCs[d],bcKey))
+      ),
+      boundaryStr : sconcat(boundaryStr,"_"),
+
+      /* Don't forget to loop over polynomial order. */
+      for polyOrder : 1 thru pMax do (
+
+        printf(fh, "void ~a_~aP~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi) ~%{ ~%", funcNm, boundaryStr, polyOrder),
+        printf(fh, "  // omega:   relaxation parameter.~%"),
+        printf(fh, "  // dx:      cell lengths of cells pointed to by the stencil.~%"),
+        printf(fh, "  // bcVals:  values to impose as BCs.~%"),
+        printf(fh, "  // rho:     right-side source in the current cell.~%"),
+        printf(fh, "  // phiPrev: (Jacobi-only) iterate cells pointed to by the stencil (only use neighbor cells).~%"),
+        printf(fh, "  // phi:     iterate cells pointed to by the stencil (Gauss-Seidel), or cell we are currently updating (Jacobi).~%"),
+        printf(fh, "~%"),
+
+        bC  : basisC[polyOrder],
+        N   : length(bC),
+
+        /* Expansion and coefficients of phi in this (center) cell. */
+        phiC_e : doExpand1(phiC,bC),
+        phiC_c : makelist(phiC[i],i,0,N-1),
+
+        surfTerms : 0,
+        volTerms  : 0,
+        for dir : 1 thru dim do (
+
+          /* Expand the iterate (phi) in this (center) cell and
+             lower/upper cells along dir dimension. Will be replaced
+             by boundary condition values below. */
+          phiL_e : doExpand1(phiL[dir],bC),
+          phiU_e : doExpand1(phiU[dir],bC),
+
+          phiL_c : makelist(phiL[dir][i],i,0,N-1),
+          phiU_c : makelist(phiU[dir][i],i,0,N-1),
+
+          /* Compute recovery coefficients across boundaries. */
+          surfDir           : dir,
+          surfVar           : varsC[surfDir],
+          remainingSurfVars : delete(surfVar,varsC),
+          bCp               : diff(bC,surfVar),
+
+          /* Boundary conditions in this direction. Currently just
+             Dirichlet/Neumann, constant along the boundary. */
+          dirBC   : [0,0],
+          if (stencilLoc[sI][dir] = -1) then (
+            dirBC[1] : currBCs[dir],
+            phiL_c   : bcVals[2*(dir-1)]
+          ) elseif (stencilLoc[sI][dir] = 1) then (
+            dirBC[2] : currBCs[dir],
+            phiU_c   : bcVals[2*(dir-1)+1]
+          ),
+
+          /* Three-cell recovery without integration by parts. */
+          phiRec   : getRecov3CellGen(surfVar, twos, polyOrder, 1, phiL_c, phiC_c, phiU_c, dirBC),
+
+          volTerms : volTerms + rdxCp2[dir-1]*calcInnerProdList(varsC,1,bC,diff(phiRec,varsC[dir],2))
+
+        ),
+
+        /* Left-hand-side of the Poisson equation.*/
+        poissonLHS : fullratsimp(- ( surfTerms + volTerms )),
+
+        /* The right-hand-side of the Poisson equation is
+           just a projection of the source on the basis. */
+        rho_e     : doExpand1(rho,bC),
+        sourceRHS : volFac*calcInnerProdList(varsC,1,bC,rho_e),
+
+        /* Solve for the coefficients of this cell to get the stencil. */
+        stencilSolve : linsolve(makelist(poissonLHS[i]=sourceRHS[i],i,1,N),phiC_c),
+
+        if (isDamped) then (
+          /* Damped Gauss-Seidel method. */
+          jacStencil : (1-omega)*phiPrevC_c + omega*makelist(rhs(stencilSolve[i]),i,1,N)
+        ) else (
+          /* Regular Gauss-Seidel.*/
+          jacStencil : makelist(rhs(stencilSolve[i]),i,1,N)
+        ),
+        jacStencil : fullratsimp(jacStencil),
+
+        /* Pointers to the cell lengths in cells pointed to by the stencil. */
+        printf(fh, "  double *dxC  = dx[0]; ~%"),
+        /* This volume factors appears in front of the right-side source term. */
+        volumeFac : (1/2)^dim,
+        for dir : 1 thru dim do (
+          volumeFac : volumeFac*dxC[dir-1] 
+        ),
+        printf(fh, "  double volFac = ~a; ~%", float(volumeFac)),
+        printf(fh, "~%"),
+
+        /* Some factors based on cell lengths. */
+        printf(fh, "  double rdxCp2[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2Sq[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R3[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R4[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R6[~a]; ~%", dim),
+        printf(fh, "  double rdxCp2R8[~a]; ~%", dim),
+        for dir : 1 thru dim do (
+          printf(fh, "  rdxCp2[~a]  = volFac*4.0/(dxC[~a]*dxC[~a]); ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2Sq[~a]  = rdxCp2[~a]*rdxCp2[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R3[~a]  = rdxCp2[~a]*rdxCp2Sq[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R4[~a]  = rdxCp2Sq[~a]*rdxCp2Sq[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R6[~a]  = rdxCp2Sq[~a]*rdxCp2R4[~a]; ~%", dir-1, dir-1, dir-1),
+          printf(fh, "  rdxCp2R8[~a]  = rdxCp2R4[~a]*rdxCp2R4[~a]; ~%", dir-1, dir-1, dir-1)
+        ),
+        printf(fh, "~%"),
+
+        /* Pointers to the data in cells pointed to by the stencil. */
+        printf(fh, "  double *phiC = phi[0]; ~%"),
+        printf(fh, "  double *phiPrevC = phiPrev[0]; ~%"),
+        i : 1,
+        for d : 1 thru dim do (
+          printf(fh, "  double *phiU~a = phiPrev[~a]; ~%", varsC[d], i),
+          printf(fh, "  double *phiL~a = phiPrev[~a]; ~%", varsC[d], i+1),
+          i : i + 2
+        ),
+        printf(fh, "~%"),
+
+        /* Write the relaxation stencil. */
+        subNum  : dim*dim*12,  /* This is dim^2 times the number of entries in the loops below. */
+        sublist : makelist(0,i,1,subNum),
+        i      : 1,
+        for s : 1 thru dim do (
+          for d : 1 thru dim do (
+            sublist[i]   : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^2"), sconcat("rdxL",string(varsC[d]),"Sq[",string(s-1),"]")],
+            sublist[i+1] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^2"), sconcat("rdxU",string(varsC[d]),"Sq[",string(s-1),"]")],
+            sublist[i+2] : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^3"), sconcat("rdxL",string(varsC[d]),"Cu[",string(s-1),"]")],
+            sublist[i+3] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^3"), sconcat("rdxU",string(varsC[d]),"Cu[",string(s-1),"]")],
+            sublist[i+4] : [sconcat("rdxL",string(varsC[d]),"[",string(s-1),"]^4"), sconcat("rdxL",string(varsC[d]),"R4[",string(s-1),"]")],
+            sublist[i+5] : [sconcat("rdxU",string(varsC[d]),"[",string(s-1),"]^4"), sconcat("rdxU",string(varsC[d]),"R4[",string(s-1),"]")],
+            sublist[i+6] : [sconcat("rdxCp2[",string(s-1),"]^2"), sconcat("rdxCp2Sq[",string(s-1),"]")],
+            sublist[i+7] : [sconcat("rdxCp2[",string(s-1),"]^3"), sconcat("rdxCp2R3[",string(s-1),"]")],
+            sublist[i+8] : [sconcat("rdxCp2[",string(s-1),"]^4"), sconcat("rdxCp2R4[",string(s-1),"]")],
+            sublist[i+9] : [sconcat("rdxCp2Sq[",string(s-1),"]^2"), sconcat("rdxCp2R4[",string(s-1),"]")],
+            sublist[i+10] : [sconcat("rdxCp2Sq[",string(s-1),"]^3"), sconcat("rdxCp2R6[",string(s-1),"]")],
+            sublist[i+11] : [sconcat("rdxCp2Sq[",string(s-1),"]^4"), sconcat("rdxCp2R8[",string(s-1),"]")],
+            i : i + 12
+          )
+        ),
+        writeCExprs1sub(phiC,jacStencil,sublist),
+        printf(fh, "~%"),
+
+        printf(fh, "}~%"),
+        printf(fh, "~%")
+      )
+    )
+
+  )
+
+)$
