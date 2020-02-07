@@ -12,7 +12,7 @@ rm -rf luajit2
 
 git clone https://github.com/openresty/luajit2.git
 cd luajit2
-make PREFIX=$PREFIX CC=$CC
+make PREFIX=$PREFIX CC=$CC CFLAGS=-fPIC
 make XCFLAGS=-DLUAJIT_ENABLE_GC64 install PREFIX=$PREFIX
 
 # softlink to make finding easier
