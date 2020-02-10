@@ -86,7 +86,7 @@ calcRecov2CellGen(basisNm, dir, dx, polyOrder, qLo, qUp) := block(
       )
     ),
 
-  return(subst(projSubList, rSub))
+  return(expand(subst(projSubList, rSub)))
   ) $
 
 
@@ -227,7 +227,7 @@ calcRecov3CellGen(basisNm, dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
       )
     ),
   
-  return(subst(projSubList, rSub))
+  return(expand(subst(projSubList, rSub)))
   ) $
 
 /* Wrapper of calcRecov3CellGen for cells of size of 2 */

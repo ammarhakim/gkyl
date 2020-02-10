@@ -10,7 +10,7 @@
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
--- Gkyl libraries.
+-- Gkyl libraries
 local CartFieldIntegratedQuantCalc = require "Updater.CartFieldIntegratedQuantCalc"
 local Lin = require "Lib.Linalg"
 local Proto = require "Lib.Proto"
@@ -32,7 +32,7 @@ ffi.cdef[[
   void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
 ]]
 
--- DG Poisson solver updater object.
+-- DG Poisson solver updater object
 local DiscontPoisson = Proto(UpdaterBase)
 
 function DiscontPoisson:init(tbl)
@@ -40,8 +40,6 @@ function DiscontPoisson:init(tbl)
 
    self.grid = assert(tbl.onGrid, "Updater.DiscontPoisson: Must provide grid object using 'onGrid'")
    self.basis = assert(tbl.basis, "Updater.DiscontPoisson: Must specify basis functions to use using 'basis'")
-
-   assert(self.basis:id() == "serendipity", "Updater.DiscontPoisson only implemented for modal serendipity basis")
 
    assert(self.grid:ndim() == self.basis:ndim(), "Dimensions of basis and grid must match")
    self.ndim = self.grid:ndim()
@@ -85,12 +83,22 @@ function DiscontPoisson:init(tbl)
       end
    end
 
+   local basisNm = ''
+   if self.ndim > 1 then
+      if self.basis:id() == 'serendipity' then
+         basisNm = 'Ser'
+      elseif self.basis:id() == 'tensor' then
+         basisNm = 'Tensor'
+      end
+   end
+      
+   
    self._first = true
    local dirs = {'x','y','z'}
    self.stencilMatrix = {}
    self.stencilMatrixLo, self.stencilMatrixUp = {}, {}
    for d = 1, self.ndim do
-      local stencilMatrixFn = require(string.format("Updater.discontPoissonData.discontPoissonStencil%dD_%dp_%s", self.ndim, polyOrder, dirs[d]))
+      local stencilMatrixFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%s", basisNm, self.ndim, polyOrder, dirs[d]))
       self.stencilMatrix[d] = stencilMatrixFn(dx)
    end
    self.nnonzero = 0
@@ -104,11 +112,11 @@ function DiscontPoisson:init(tbl)
       end
    end
    for d = 1, self.ndim do
-      local stencilMatrixLoFn = require(string.format("Updater.discontPoissonData.discontPoissonStencil%dD_%dp_%sLo",
-                                                      self.ndim, polyOrder, dirs[d]))
+      local stencilMatrixLoFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sLo",
+                                                      basisNm, self.ndim, polyOrder, dirs[d]))
       self.stencilMatrixLo[d] = stencilMatrixLoFn(dx, bcLower[d][1], bcLower[d][2], bcLower[d][3])
-      local stencilMatrixUpFn = require(string.format("Updater.discontPoissonData.discontPoissonStencil%dD_%dp_%sUp",
-                                                      self.ndim, polyOrder, dirs[d]))
+      local stencilMatrixUpFn = require(string.format("Updater.discontPoissonData.discontPoisson%sStencil%dD_%dp_%sUp",
+                                                      basisNm, self.ndim, polyOrder, dirs[d]))
       self.stencilMatrixUp[d] = stencilMatrixUpFn(dx, bcUpper[d][1], bcUpper[d][2], bcUpper[d][3])
    end
 
