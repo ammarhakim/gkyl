@@ -201,43 +201,26 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          updateVolumeTerm   = false,            -- No volume term.
          clearOut           = false,            -- Continue accumulating into output field.
       }
-      -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.gkEqnStep2 = Gk.GkEqStep2 {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         charge     = self.charge,
-         mass       = self.mass,
-         Bvars      = funcField.bmagVars,
-         positivity = self.positivity,
-      }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep3 = Updater.HyperDisCont {
          onGrid             = self.grid,
          basis              = self.basis,
          cfl                = self.cfl,
-         equation           = self.gkEqnStep2,
+         equation           = self.gkEqn,
+         eqnStep            = 2,  -- use step2 functions from gkEqn
          zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = {self.cdim+1}, -- Only vpar terms.
+         updateSurfaceTerm  = false,
          clearOut           = false,   -- Continue accumulating into output field.
       }
    elseif hasApar and self.basis:polyOrder()>1 then
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.gkEqnStep2 = Gk.GkEqStep2 {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         charge     = self.charge,
-         mass       = self.mass,
-         Bvars      = funcField.bmagVars,
-         positivity = self.positivity,
-      }
       -- Note that the surface update for this term only involves the vpar direction.
       self.solverStep2 = Updater.HyperDisCont {
          onGrid             = self.grid,
          basis              = self.basis,
          cfl                = self.cfl,
-         equation           = self.gkEqnStep2,
+         equation           = self.gkEqn,
+         eqnStep            = 2,  -- use step2 functions from gkEqn
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1},
          clearOut           = false,   -- Continue accumulating into output field.
@@ -643,7 +626,7 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 
    -- solvers specified with clearOut = false, so we need to zero out RHS here
    fRhsOut:clear(0.0)
-   if self.positivityRescaleVolTerm then self.fRhsVol:clear(0.0) end
+   self.gkEqn:clearRhsTerms()
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
@@ -660,12 +643,10 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    end
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      if self.positivityRescaleVolTerm then
-         -- if rescaling vol term, pass second outFld, fRhsVol, to advance 
-         -- so that surface and volume terms are evaluated separately
-         self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut, self.fRhsVol})
-      else
-         self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+      self.solver:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+
+      if self.positivity then
+         self.gkEqn:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
       end
    else
       self.gkEqn:setAuxFields({em, emFunc, dApardtProv})  -- Set auxFields in case they are needed by BCs/collisions.
@@ -681,9 +662,6 @@ end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
-   if self.positivityRescaleVolTerm then
-      fIn = self.fRhsVol
-   end
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
@@ -698,9 +676,23 @@ end
 
 function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
    local fIn = self:rkStepperFields()[inIdx]
-   if self.positivityRescaleVolTerm then
-      fIn = self.fRhsVol
+   local fRhsOut = self:rkStepperFields()[outIdx]
+
+   local em = emIn[1]:rkStepperFields()[inIdx]
+   local dApardtProv = emIn[1].dApardtProv
+   local emFunc = emIn[2]:rkStepperFields()[1]
+
+   if self.evolveCollisionless then
+      self.gkEqn.ohmMod:clear(0.)
+      self.gkEqn.fRhsSurfV:clear(0.)
+ 
+      self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+      self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
    end
+end
+
+function GkSpecies:advanceStep4(tCurr, species, emIn, inIdx, outIdx)
+   local fIn = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
    local em = emIn[1]:rkStepperFields()[inIdx]
@@ -710,6 +702,10 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then
       self.solverStep3:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep3:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
+
+      if self.positivity then
+         self.gkEqn:getPositivityRhsStep2(tCurr, self.dtGlobal[0], fIn, fRhsOut)
+      end
    end
 end
 
@@ -796,6 +792,14 @@ function GkSpecies:createDiagnostics()
       onGhosts   = true,
       positivity = self.positivity,
    }
+   self.weakDivisionPhase = Updater.CartFieldBinOp {
+      onGrid     = self.grid,
+      weakBasis  = self.basis,
+      fieldBasis = self.confBasis,
+      operation  = "Divide",
+      onGhosts   = true,
+   }
+
    -- Sort moments into diagnosticMoments, diagnosticWeakMoments, and diagnosticAuxMoments.
    for i, mom in pairs(self.diagnosticMoments) do
       if isWeakMomentNameGood(mom) then
@@ -1245,17 +1249,27 @@ function GkSpecies:getBackgroundDens()
    return self.n0
 end
 
-function GkSpecies:getMomDensity(rkIdx)
+function GkSpecies:getMomDensity(rkIdx, addVolumeTerm)
    -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
+      if addVolumeTerm and self.gkEqn._isElectromagnetic then
+        fIn:accumulate(1.0, self.gkEqn.fRhsVolV)
+      elseif addVolumeTerm then
+        fIn:accumulate(1.0, self.gkEqn.fRhsVol)
+      end
       if self.deltaF then
         fIn:accumulate(-1.0, self.f0)
       end
       self.momDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
+      if addVolumeTerm and self.gkEqn._isElectromagnetic then
+        fIn:accumulate(-1.0, self.gkEqn.fRhsVolV)
+      elseif addVolumeTerm then
+        fIn:accumulate(-1.0, self.gkEqn.fRhsVol)
+      end
       if self.deltaF then
         fIn:accumulate(1.0, self.f0)
       end
@@ -1266,17 +1280,27 @@ function GkSpecies:getMomDensity(rkIdx)
 end
 
 -- Like getMomDensity, but use GkM1proj instead of GkM1, which uses cell-average v_parallel in moment calculation.
-function GkSpecies:getMomProjDensity(rkIdx)
+function GkSpecies:getMomProjDensity(rkIdx, addVolumeTerm)
    -- If no rkIdx specified, assume momDensity has already been calculated.
    if rkIdx == nil then return self.momDensity end 
    local fIn = self:rkStepperFields()[rkIdx]
  
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
+      if addVolumeTerm and self.gkEqn._isElectromagnetic then
+        fIn:accumulate(1.0, self.gkEqn.fRhsSurfV)
+      elseif addVolumeTerm then
+        fIn:accumulate(1.0, self.gkEqn.fRhsVol)
+      end
       if self.deltaF then
         fIn:accumulate(-1.0, self.f0)
       end
       self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
+      if addVolumeTerm and self.gkEqn._isElectromagnetic then
+        fIn:accumulate(-1.0, self.gkEqn.fRhsSurfV)
+      elseif addVolumeTerm then
+        fIn:accumulate(-1.0, self.gkEqn.fRhsVol)
+      end
       if self.deltaF then
         fIn:accumulate(1.0, self.f0)
       end
@@ -1286,11 +1310,12 @@ function GkSpecies:getMomProjDensity(rkIdx)
    return self.momDensityAux
 end
 
-function GkSpecies:getEmModifier(rkIdx)
+function GkSpecies:getOhmModifier(rkIdx)
    -- For p > 1, this is just numDensity.
    if self.basis:polyOrder() > 1 then return self:getNumDensity(rkIdx) end
 
-   local fIn = self.gkEqn.emMod
+   local fIn = self.gkEqn.ohmMod
+   --self.weakDivisionPhase:advance(0.0, {self.gkEqn.dApardtProv, fIn}, {fIn})
 
    if self.evolve or self._firstMomentCalc then
       local tmStart = Time.clock()
@@ -1304,7 +1329,6 @@ function GkSpecies:getEmModifier(rkIdx)
       self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
    end
    if not self.evolve then self._firstMomentCalc = false end
-   fIn:clear(0.0)
    return self.momDensityAux
 end
 

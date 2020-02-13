@@ -15,14 +15,16 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max" }
 local _M = {}
 
 -- select function to compute volume  terms
-function _M.selectVol(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, Bvars)
+function _M.selectVol(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positivity, Bvars)
    local emString = ""
    if isElectromagnetic then emString = "Em" end
+   local posString = ""
+   if positivity then posString = "Positivity" end
    local bvarString = "_Bvars"
    for k, v in ipairs(Bvars) do
       bvarString = bvarString .. "_" .. v
    end
-   local funcNm = string.format("%sGyrokineticVol%dx%dv%sP%d", emString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+   local funcNm = string.format("%sGyrokineticVol%s%dx%dv%s_P%d", emString, posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm..bvarString]
 end
 
@@ -60,8 +62,10 @@ function _M.selectSurf(basisNm, CDIM, VDIM, polyOrder, isElectromagnetic, positi
    end
 end
 
-function _M.selectStep2Vol(basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("EmGyrokineticStep2Vol%dx%dv%sP%d", CDIM, VDIM, basisNmMap[basisNm], polyOrder)
+function _M.selectStep2Vol(basisNm, CDIM, VDIM, polyOrder, positivity)
+   local posString = ""
+   if positivity then posString = "Positivity" end
+   local funcNm = string.format("EmGyrokineticStep2Vol%s%dx%dv%s_P%d", posString, CDIM, VDIM, basisNmMap[basisNm], polyOrder)
    return ffi.C[funcNm]
 end
 
