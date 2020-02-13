@@ -294,7 +294,8 @@ function MGpoisson:init(tbl)
       bcUpper = bcUpper,
    }
    self.eigenvalueCalc:buildStiffMatrix(self.phiPrevAll[1])
-   self.eigenvalueCalc:calcEigenvalues()
+   --self.eigenvalueCalc:stiffMatEigenvalues()
+   self.eigenvalueCalc:omJacEigenvalues(self.omega)
 
 
    -- Select restriction and prolongation operator kernels.

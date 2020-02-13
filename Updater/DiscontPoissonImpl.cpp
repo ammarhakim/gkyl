@@ -80,7 +80,9 @@ void DiscontPoisson::solve() {
 
 // Below are some auxiliary functions to probe properties of the
 // left-side matrix, and iteration matrices used by multigrid solver.
+
 void DiscontPoisson::getEigenvalues() {
+  // Compute the eigenvalues of the left-side matrix.
 
   // Construct matrix operation object using wrapper class SparseGenMatProd.
   SparseGenMatProd<double> op(stiffMat);
@@ -91,10 +93,45 @@ void DiscontPoisson::getEigenvalues() {
   int nconv = eigs.compute();
   // Retrieve results
   Eigen::VectorXcd eiValues;
-  if (eigs.info() == SUCCESSFUL)
+  if (eigs.info() == SUCCESSFUL) {
     eiValues = eigs.eigenvalues();
+    std::cout << "Three largest eigenvalues of left-side matrix:\n" << eiValues << std::endl;
+  } else {
+    std::cout << "\n" << std::endl;
+    std::cout << "om-Jac eigenvalue calculation FAILED.\n" << std::endl;
+    std::cout << "\n" << std::endl;
+  };
 
-  std::cout << "Three largest eigenvalues found:\n" << eiValues << std::endl;
+
+}
+
+void DiscontPoisson::omJacEigenvalues(const double omega) {
+  // Compute the eigenvalues of the (damped) Jacobi iteration matrix.
+
+  omJacMat = SparseMatrix<double,ColMajor>(stiffMat);
+
+  omJacMat = stiffMat.diagonal().asDiagonal().inverse()
+            *( (1.0-omega)*SparseMatrix<double>(stiffMat.diagonal().asDiagonal())
+              -omega*(stiffMat.triangularView<StrictlyLower>() + stiffMat.triangularView<StrictlyUpper>()) );
+
+  // Construct matrix operation object using wrapper class SparseGenMatProd.
+  SparseGenMatProd<double> op(omJacMat);
+  // Construct eigen solver object, requesting the largest three eigenvalues
+  GenEigsSolver< double, LARGEST_MAGN, SparseGenMatProd<double> > eigs(&op, 30, 32);
+  // Initialize and compute
+  eigs.init();
+  int nconv = eigs.compute();
+  // Retrieve results
+  Eigen::VectorXcd eiValues;
+  if (eigs.info() == SUCCESSFUL) {
+    eiValues = eigs.eigenvalues();
+    std::cout << "Three largest eigenvalues of om-Jac iteration matrix:\n" << eiValues << std::endl;
+  } else {
+    std::cout << "\n" << std::endl;
+    std::cout << "om-Jac eigenvalue calculation FAILED.\n" << std::endl;
+    std::cout << "\n" << std::endl;
+  };
+
 
 }
 
@@ -141,4 +178,9 @@ extern "C" void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* s
 extern "C" void discontPoisson_getEigenvalues(DiscontPoisson* f)
 {
   f->getEigenvalues();
+}
+
+extern "C" void discontPoisson_omJacEigenvalues(DiscontPoisson* f, const double omega)
+{
+  f->omJacEigenvalues(omega);
 }

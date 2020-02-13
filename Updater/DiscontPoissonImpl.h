@@ -41,6 +41,7 @@ extern "C" {
   void discontPoisson_solve(DiscontPoisson* f);
   // Auxiliary functions for analyzing the left-side matrix.
   void discontPoisson_getEigenvalues(DiscontPoisson* f);
+  void discontPoisson_omJacEigenvalues(DiscontPoisson* f, const double omega);
 }
 
 class DiscontPoisson
@@ -58,6 +59,7 @@ class DiscontPoisson
   void solve();
 
   void getEigenvalues();
+  void omJacEigenvalues(const double omega);
   
  private:
   const int ndim, polyOrder, nbasis, nnonzero;
@@ -84,6 +86,10 @@ class DiscontPoisson
   //Eigen::BiCGSTAB<Eigen::SparseMatrix<double> > solver;
   //Eigen::SimplicialLDLT<Eigen::SparseMatrix<double> > solver;
   Eigen::SparseLU<Eigen::SparseMatrix<double> > solver;
+
+  // Additional Eigen objects for auxiliary methods called by multigrid solver.
+  Eigen::SparseMatrix<double,Eigen::ColMajor> minusStiffMat;
+  Eigen::SparseMatrix<double,Eigen::ColMajor> omJacMat;
 };
 
 

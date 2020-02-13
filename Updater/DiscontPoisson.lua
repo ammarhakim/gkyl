@@ -32,6 +32,7 @@ ffi.cdef[[
   void discontPoisson_getSolution(DiscontPoisson* f, int idx, double* sol);
 
   void discontPoisson_getEigenvalues(DiscontPoisson* f);
+  void discontPoisson_omJacEigenvalues(DiscontPoisson* f, const double omega);
 ]]
 
 -- DG Poisson solver updater object.
@@ -275,8 +276,12 @@ function DiscontPoisson:delete()
 end
 
 -- Additional methods to evaluate eigenvalues needed by multigrid solver.
-function DiscontPoisson:calcEigenvalues()
+function DiscontPoisson:stiffMatEigenvalues()
    ffiC.discontPoisson_getEigenvalues(self.poisson)
+end
+
+function DiscontPoisson:omJacEigenvalues(omegaIn)
+   ffiC.discontPoisson_omJacEigenvalues(self.poisson, omegaIn)
 end
 
 return DiscontPoisson
