@@ -6,7 +6,7 @@ source:
   path: ../../
 
 build:
-  number: 20190617
+  number: 20200120
 
 requirements:
   build:
@@ -22,7 +22,7 @@ requirements:
     - postgkyl
 
 about:
-  home: https://bitbucket.org/ammarhakim/gkeyll
+  home: https://gkeyll.readthedocs.io/en/latest/
   license: 'We follow a open-source but closed development model. Even though read access to the code is available to everyone, write access to the source-code repository is restricted to those who need to modify the code. In practice, this means researchers at PPPL and our partner institutions. In particular, this means that for write access you either need to have jointly funded projects or jointly supervised graduate students with Princeton University/PPPL.
-Gkeyll, Postgkyl and this documentation is copyrighted 2016-2018 by Ammar Hakim.'
+Gkeyll, Postgkyl and this documentation is copyrighted 2016-2020 by Ammar Hakim and by the Gkeyll Developers.'
   summary: 'Efficient and robust open-source framework for laboratory, geophysical and astrophysical plasma physics'
