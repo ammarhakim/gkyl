@@ -850,8 +850,6 @@ function KineticSpecies:write(tm, force)
          end
 
          self.cflRateByCell:scale(self.dtGlobal[0])
-         self.cflRateByCell:write(
-             string.format("%s_%s_%d.bp", self.name, "cflByCell", self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
 
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
