@@ -44,14 +44,13 @@ function CollisionlessEmSource:fullInit(appTbl)
    self.linSolType = tbl.linSolType
 
    self.hasStaticField = tbl.hasStaticField
+   self.staticEmFunc = tbl.staticEmFunction
+   self.staticEm = nil
+
    self.hasPressure = tbl.hasPressureField
    self.hasSigmaField = tbl.hasSigmaField
    self.hasAuxSourceFunction = tbl.hasAuxSourceFunction
    self.auxSourceFunction = tbl.auxSourceFunction
-
-   self.hasStaticEm = tbl.hasStaticEm
-   self.staticEmFunc = tbl.staticEmFunction
-   self.staticEm = nil
 end
 
 function CollisionlessEmSource:setName(nm)
@@ -88,8 +87,7 @@ function CollisionlessEmSource:createSolver(species, field)
       end
    end
 
-   local hasStaticEm = false
-   if self.hasStaticEm then
+   if self.hasStaticField then
       local ndim = self.grid:ndim()
       local polyOrder = 0
       self.basis = Basis.CartModalMaxOrder { ndim = ndim, polyOrder = polyOrder }
@@ -105,7 +103,6 @@ function CollisionlessEmSource:createSolver(species, field)
          projectOnGhosts = true,
       }
       project:advance(0.0, {}, {self.staticEm})
-      hasStaticEm = true
    end
 
    if source_type == 5 then
@@ -126,7 +123,6 @@ function CollisionlessEmSource:createSolver(species, field)
          sigmaField = self.sigmaField,
          hasAuxSourceFunction = self.hasAuxSourceFunction,
          auxSourceFunction = self.auxSourceFunction,
-         hasStaticField = hasStaticEm,
       }
    elseif source_type == 10 then
       self.slvr = Updater.TenMomentSrc {
@@ -146,7 +142,6 @@ function CollisionlessEmSource:createSolver(species, field)
          sigmaField = self.sigmaField,
          hasAuxSourceFunction = self.hasAuxSourceFunction,
          auxSourceFunction = self.auxSourceFunction,
-         hasStaticField = hasStaticEm,
       }
    else
       assert(false, string.format("source_type %s not supported.", source_type))
