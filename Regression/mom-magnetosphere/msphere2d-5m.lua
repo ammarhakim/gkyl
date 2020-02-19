@@ -64,6 +64,18 @@ end
                   lower = {xlo, ylo, zlo}
                   upper = {xup, yup, zup}
                   cells = {nx, ny, nz}
+-- nonuniform grid
+-- f_dx is inverse of a two-peak distribution.
+-- x1, wx1, and rx1 are the center, Gaussian width, and max/min ratio
+-- of the first Gaussian-like distribution.
+-- f_dy and f_dz are single-peak distributions.
+-- wy, fwy, ry are the Gaussian-width, flat region width, and max/min
+-- ratio of the distribution.
+      useNonUniformGrid = true
+              wx,fwx,rx =   1.9*Re, 2.25*Re, 50
+              wy,fwy,ry =    2.*Re,   2.*Re, 50
+              wz,fwz,rz =    2.*Re,   2.*Re, 50
+
 -- computational constants
                     cfl = 0.9
                    cflm = 1.1*cfl
@@ -262,6 +274,147 @@ function setInOutField(x, y, z)
 end
 
 
+----------
+-- GRID --
+----------
+
+local coordinateMap = nil
+if useNonUniformGrid then
+
+-- distribution of grid size centered at x0
+   function f_dx5(x, x0, w, r, uniform_width)
+   --[[
+   Args:
+      x    : relative coordinate in the range of [0,1]
+      xx0  : center of dx distribution on [0,1] that is transformed from 
+             physical domain [xlo, xup]
+      width: width of Gaussian distribution
+   Returns:
+   --]]
+      if (math.abs(x-x0) <= uniform_width) then
+         return 1
+      elseif (x-x0 > uniform_width) then
+         local x1 = x0 + uniform_width
+         return (1/r - (1/r-1) * math.exp( -.5 * ((x-x1)/w)^2 ))
+      elseif (x-x0 < -uniform_width) then
+         local x1 = x0 - uniform_width
+         return (1/r - (1/r-1) * math.exp( -.5 * ((x-x1)/w)^2 ))
+      end
+   end
+
+   function gentle_peak1(x, x1, w1, r1)
+      return (1/r1 - (1/r1-1) * math.exp( -0.5 * ((x-x1)/w1)^2 ))
+   end
+
+   function gentle_peak2(x, x1, wl, rl, wr, rr)
+      local w1 = (x>x1) and wr or wl
+      local r1 = (x>x1) and rr or rl
+      return (1/r1 - (1/r1-1) * math.exp( -0.5 * ((x-x1)/w1)^2 ))
+   end
+
+   function calcGrid(f_dx, xlo, xup, nx)
+   --[[
+   Args:
+      xlo, xup: lower and upper bounds of physical domain
+      nx   : number of real cells
+   Returns:
+      xx_nc: node-center compuational domain coordinates; 'ghost' points might
+             go out of [0, 1]
+      x_nc : node-center physical domain coordinates
+   Both xx_nc and x_c have nx+1+2*sw points. xx_nc is uniform and 1-on-1 maps
+   to x_nc.
+   --]]
+      local sw = 2
+      local sw1 = sw + 100 -- wider stencile for xx_nc to include more possible xx values
+      local xx_nc = {}
+      xx_nc[sw1+1] = 0
+      for j=0,nx+sw1-1 do
+         local i = j+sw1+1
+         xx_nc[i+1] = xx_nc[i] + f_dx((j+.5)/nx)
+      end
+      for j=0,-sw1+1,-1 do
+         local i = j+sw1+1
+         xx_nc[i-1] = xx_nc[i] - f_dx((j-.5)/nx)
+      end
+      fac = 1/xx_nc[nx+sw1+1]
+      for j=-sw1,nx+sw1 do
+         local i = j+sw1+1
+         xx_nc[i] = xx_nc[i]*fac
+      end
+      local x_nc = {}
+      for j=-sw1,nx+sw1 do
+         local i = j+sw1+1
+         x_nc[i] = xlo + (xup-xlo) * j/nx
+      end
+      return xx_nc, x_nc
+   end
+   function linearRefine(xx, xx_nc, x_nc, display)
+      local num = table.getn(xx_nc)
+      local x
+      if (xx <= xx_nc[1]) then
+         x = x_nc[1]
+      elseif (xx >= xx_nc[num]) then
+         x = x_nc[num]
+      end
+      for i = 2,num do
+         if (xx == xx_nc[i]) then
+            x = x_nc[i]
+            break
+         elseif (xx < xx_nc[i]) then -- xx is between xx_nc[i-1] and xx_nc[i]
+            x = x_nc[i-1] + (x_nc[i]-x_nc[i-1])*(xx-xx_nc[i-1])/(xx_nc[i]-xx_nc[i-1])
+            break
+         end
+      end
+      if display then
+         log("%g %g", xx, x)
+      end
+      return x
+   end
+
+   --[[
+   function f_dx(x)
+      return gentle_peak2(x, (x1-xlo)/(xup-xlo), wx1l/(xup-xlo), rx1l, wx1r/(xup-xlo), rx1r) 
+           + gentle_peak2(x, (x2-xlo)/(xup-xlo), wx2l/(xup-xlo), rx2l, wx2r/(xup-xlo), rx2r)
+   end
+   --]]
+   x0 = 0
+   function f_dx(x)
+      return f_dx5(x, (x0 - xlo) / (xup - xlo), wx/(xup-xlo),
+         rx, fwx/(xup-xlo))
+   end
+   xx_nc, x_nc = calcGrid(f_dx, xlo, xup, nx)
+
+   y0 = 0 -- minimum dy location
+   function f_dy(y)
+      return f_dx5(y, (y0 - ylo) / (yup - ylo), wy/(yup-ylo),
+         ry, fwy/(yup-ylo))
+   end
+   yy_nc, y_nc = calcGrid(f_dy, ylo, yup, ny)
+
+   z0 = 0 -- minimum dz location
+   function f_dz(z)
+      return f_dx5(z, (z0 - zlo) / (zup - zlo), wz/(zup-zlo),
+         rz, fwz/(zup-zlo))
+   end
+   zz_nc, z_nc = calcGrid(f_dz, zlo, zup, nz)
+
+   coordinateMap = {
+      function (xx)
+         return linearRefine(xx, xx_nc, x_nc)
+      end,                                  
+      function (yy)                         
+         return linearRefine(yy, yy_nc, y_nc)
+      end,                                  
+      function (zz)                         
+         return linearRefine(zz, zz_nc, z_nc)
+      end,
+   }
+
+   lower = {0, 0, 0}
+   upper = {1, 1, 1}
+end
+
+
 momentApp = Moments.App {
    logToFile = true,
 
@@ -270,6 +423,7 @@ momentApp = Moments.App {
    lower = lower,
    upper = upper,
    cells = cells,
+   coordinateMap = coordinateMap,
    timeStepper = "fvDimSplit",
 
    -- electrons
