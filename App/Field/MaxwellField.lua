@@ -655,6 +655,11 @@ function FuncMaxwellField:alloc(nField)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em:elemType(),
       method   = self.ioMethod,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
+
    }   
 end
 
