@@ -417,7 +417,7 @@ if useNonUniformGrid then
 end
 
 
-local function build(self, tbl)
+local function buildApp(tbl)
    local tEnd = tonumber(tbl.tEnd)
 
    local momentApp = Moments.App {
@@ -539,15 +539,5 @@ local function build(self, tbl)
 return momentApp
 end
 
-
-local App = Proto()
-
-function App:init(tbl)
-end
-
-function App:fullInit(tbl)
-   self.app = build(self, tbl)
-end
-
-return App
+return buildApp
 

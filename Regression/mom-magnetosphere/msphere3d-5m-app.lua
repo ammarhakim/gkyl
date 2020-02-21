@@ -1,7 +1,7 @@
-local MSPHERE = require("App.Apps.MSPHERE")
+local buildApp = require("App.Apps.MSPHERE")
 
-MSPHERE:fullInit {
+local app = buildApp {
    tEnd=2700,
 }
 
-MSPHERE.app:run()
+app:run()
