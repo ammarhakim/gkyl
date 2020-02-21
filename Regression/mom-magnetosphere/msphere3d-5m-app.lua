@@ -1,4 +1,4 @@
-local buildApp = require("App.Apps.MSPHERE")
+local buildApp = require("App.Special.Msphere")
 
 local app = buildApp {
    tEnd=2700,
