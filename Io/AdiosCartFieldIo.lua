@@ -254,7 +254,7 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       local ndim                    = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
 
-      if readGhost then
+      if _readGhost then
          localRange  = field:localExtRange() 
          globalRange = field:globalExtRange() 
       end
@@ -319,33 +319,29 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
 
       local fullNm = GKYL_OUT_PREFIX .. "_" .. fName -- Concatenate prefix.
       -- Open file to read data.
-      --local fd = Adios.read_open_file(fullNm, comm)
-      local fd = Adios.open("CartField", fullNm, "r", comm)
+      local fd = Adios.read_open_file(fullNm, comm)
 
-      --Adios.schedule_read(fd, Adios.selBoundingBox, "time", 0, 1, tmStampBuff)
-      --Adios.schedule_read(fd, Adios.selBoundingBox, "frame", 0, 1, frNumBuff)
-      Adios.read(fd, "time", tmStampBuff, sizeof("double"))
-      Adios.read(fd, "frame", frNumBuff, sizeof("int"))
+      Adios.schedule_read(fd, Adios.selBoundingBox, "time", 0, 1, tmStampBuff)
+      Adios.schedule_read(fd, Adios.selBoundingBox, "frame", 0, 1, frNumBuff)
 
       -- ADIOS expects input to be const uint64_t* objects, hence vector
       -- types below)
-      --local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
-      --for d = 1, ndim do
-      --   start[d] = localRange:lower(d)-1
-      --   count[d] = localRange:shape(d)
-      --   if _readGhost then start[d] = start[d] + 1 end
-      --end
-      --count[ndim+1] = field:numComponents()
-      --start[ndim+1] = 0
-      --local sel = Adios.selection_boundingbox(ndim+1, start, count)
+      local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
+      for d = 1, ndim do
+         local s = localRange:lower(d)-1
+         local c = localRange:shape(d)
+         if _readGhost then s = s + 1 end
+         start[d] = s
+         count[d] = c
+      end
+      count[ndim+1] = field:numComponents()
+      start[ndim+1] = 0
+      local sel = Adios.selection_boundingbox(ndim+1, start, count)
 
-      --Adios.schedule_read(fd, sel, "CartGridField", 0, 1, self._outBuff:data())
-      --Adios.perform_reads(fd, 1)
+      Adios.schedule_read(fd, sel, "CartGridField", 0, 1, self._outBuff:data())
+      Adios.perform_reads(fd, 1)
 
-      --Adios.read_close(fd) -- No reads actually happen unless one closes file!
-      local fieldLocalSz = localRange:volume()*field:numComponents()*sizeof("double")
-      Adios.read(fd, "CartGridField", self._outBuff:data(), fieldLocalSz)
-      Adios.close(fd) -- No reads actually happen unless one closes file!
+      Adios.read_close(fd) -- No reads actually happen unless one closes file!
 
       -- Copy output buffer into field.
       field:_copy_to_field_region(localRange, self._outBuff)
