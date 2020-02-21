@@ -153,17 +153,17 @@ log("%30s = %g, %g, %g", "cells", nx, ny, nz)
 -----------------------
 -- INITIAL CONDITION --
 -----------------------
-function calcRho(x,y,z)
+function mirdip_rho(x,y,z)
    local rho = rho_in
    return rho
 end
 
-function calcP(x,y,z)
+function mirdip_pressure(x,y,z)
    local p = p_in
    return p
 end
 
-function calcV(x,y,z)
+function mirdip_v(x,y,z)
    local xx = x > 0 and x/stretch or x
    local r = math.sqrt(xx^2 + y^2 + z^2)
    local s = (r-r_ramp1)/(r_ramp2-r_ramp1)
@@ -189,7 +189,7 @@ function dipoleB(x, y, z, x0, y0, z0, Dx, Dy, Dz, cut)
    return Bx, By, Bz
 end
 
-function staticB(x, y, z)
+function mirdip_staticB(x, y, z)
    local r2 = x^2+y^2+z^2
    if (r2 < r1^2) then
       return 0, 0, 0
@@ -201,7 +201,7 @@ function staticB(x, y, z)
    return Bxs, Bys, Bzs
 end
 
-function totalB(x,y,z)
+function mirdip_totalB(x,y,z)
    local r2 = x^2+y^2+z^2
    if (r2 < r1^2) then
       return 0, 0, 0
@@ -215,10 +215,10 @@ function totalB(x,y,z)
    return Bxt, Byt, Bzt
 end
 
-function init(x,y,z)
-   local rho = calcRho(x,y,z)
-   local vx,vy,vz = calcV(x,y,z)
-   local p = calcP(x,y,z)
+function mirdip_init5m(x,y,z)
+   local rho = mirdip_rho(x,y,z)
+   local vx,vy,vz = mirdip_v(x,y,z)
+   local p = mirdip_pressure(x,y,z)
 
    local rho_e = rho / (1 + mass_ratio)
    local rho_i = rho - rho_e
@@ -248,8 +248,8 @@ function init(x,y,z)
    local Pxz_i = rhovx_i * rhovz_i / rho_i
    local Pyz_i = rhovy_i * rhovz_i / rho_i
 
-   local Bxt, Byt, Bzt = totalB(x, y, z)
-   local Bxs, Bys, Bzs = staticB(x, y, z)
+   local Bxt, Byt, Bzt = mirdip_totalB(x, y, z)
+   local Bxs, Bys, Bzs = mirdip_staticB(x, y, z)
    local Bx, By, Bz = Bxt-Bxs, Byt-Bys, Bzt-Bzs
 
    local Ex = - vy*Bzt + vz*Byt
@@ -263,7 +263,7 @@ end
 
 function setStaticField(x, y, z)
    local Exs, Eys, Ezs = 0, 0, 0
-   local Bxs, Bys, Bzs = staticB(x, y, z)
+   local Bxs, Bys, Bzs = mirdip_staticB(x, y, z)
    return Exs, Eys, Ezs, Bxs, Bys, Bzs, 0, 0
 end
 
@@ -446,7 +446,7 @@ local function buildApp(tbl)
 
          local rho_e, rhovx_e, rhovy_e, rhovz_e, e_e,
                rho_i, rhovx_i, rhovy_i, rhovz_i, e_i,
-               Ex, Ey, Ez, Bx, By, Bz, phiE, phiB = init(x, y, z)
+               Ex, Ey, Ez, Bx, By, Bz, phiE, phiB = mirdip_init5m(x, y, z)
 
          return rho_e, rhovx_e, rhovy_e, rhovz_e, e_e
       end,
@@ -479,7 +479,7 @@ local function buildApp(tbl)
    
          local rho_e, rhovx_e, rhovy_e, rhovz_e, e_e,
                rho_i, rhovx_i, rhovy_i, rhovz_i, e_i,
-               Ex, Ey, Ez, Bx, By, Bz, phiE, phiB = init(x, y, z)
+               Ex, Ey, Ez, Bx, By, Bz, phiE, phiB = mirdip_init5m(x, y, z)
    
          return rho_i, rhovx_i, rhovy_i, rhovz_i, e_i
 
@@ -507,7 +507,7 @@ local function buildApp(tbl)
 
          local rho_e, rhovx_e, rhovy_e, rhovz_e, e_e,
                rho_i, rhovx_i, rhovy_i, rhovz_i, e_i,
-               Ex, Ey, Ez, Bx, By, Bz, phiE, phiB = init(x, y, z)
+               Ex, Ey, Ez, Bx, By, Bz, phiE, phiB = mirdip_init5m(x, y, z)
 
          return Ex, Ey, Ez, Bx, By, Bz, phiE, phiB
       end,
