@@ -1,14 +1,14 @@
 -- Gkyl ------------------------------------------------------------------------
 --
--- Apps for predefined problems.
+-- Predefined problems.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
 --------------------------------------------------------------------------------
 
 -- for accessing any field object
-local MSPHERE = require "App.Apps.MSPHERE"
+local Msphere = require "App.Special.Msphere"
 
 return {
-   MSPHERE = MSPHERE
+   Msphere = Msphere
 }
