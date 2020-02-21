@@ -418,6 +418,8 @@ end
 
 
 local function build(self, tbl)
+   local tEnd = tonumber(tbl.tEnd)
+
    local momentApp = Moments.App {
    logToFile = true,
 
@@ -541,9 +543,11 @@ end
 local App = Proto()
 
 function App:init(tbl)
-   self.tbl = tbl
+end
+
+function App:fullInit(tbl)
    self.app = build(self, tbl)
 end
 
-return App()
+return App
 
