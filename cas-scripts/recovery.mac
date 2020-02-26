@@ -1,43 +1,4 @@
 load("modal-basis") $
-assume(dv[0]>0, dv[1]>0, dv[2]>0) $
-
-etaDir(dir, xc, dx, basis) := block(
-  /* A helper function to shift basis functions in only one direction.
-     Example: etaDir(y, dy/2, dy, basis) */
-  return(subst(td=dir, subst(dir=2*(td-xc)/dx, basis)))
-) $
-
-eta(xc, dx, basis) := block(
-  /* A helper function to shift basis functions in all directions
-     together
-     Example: eta([x, y], [dx/2, -dy/2], [dx, dy], basis) */
-  [out, tx, ty, tz],
-  out : subst(tx=x, subst(x=2*(tx-xc[1])/dx[1], basis)),
-  if length(dx) > 1 then out : subst(ty=y, subst(y=2*(ty-xc[2])/dx[2], out)),
-  if length(dx) > 2 then out : subst(tz=z, subst(z=2*(tz-xc[3])/dx[3], out)),
-  return(out)
-) $
-
-/* A simple helper function to convert x, y, or z to indices 1, 2, or 3 respectively */
-getDirIdx(dir, numDims) := block([],
-  if numDims = 1 then return(1),
-  if dir = x then return(1),
-  if dir = y then return(2),
-  if dir = z then return(3)
-) $
-
-getBasis(name, polyOrder) := block(
-  [varsC, basisC, basisConstant],
-  load(name),
-  if polyOrder > 0 then (
-    return(basisC[polyOrder])
-  )
-  else (
-    return([basisC[1][1]])
-  )
-) $
-
-
 
 /* -- 1-Cell Recovery --------------------------------------------- */
 
@@ -98,7 +59,7 @@ calcRecov1CellGen(basisNm, dir, dx, polyOrder, C, lo, qCe, up, [bc]) := block(
   
   N : polyOrder + 3,
   for i : 1 thru C do (
-    /* Increase the final namuber of degrees of freedom for C_1 continuity */
+    /* Increase the final number of degrees of freedom for C_1 continuity */
     if lo[1]="exp" then N : N + 1,
     if up[1]="exp" then N : N + 1
   ),
@@ -157,7 +118,8 @@ calcRecov1CellGen(basisNm, dir, dx, polyOrder, C, lo, qCe, up, [bc]) := block(
   if numDims > 1 then (
     baLo1D : etaDir(dir, -dx[dIdx], dx[dIdx], basis1D),
     baUp1D : etaDir(dir, dx[dIdx], dx[dIdx], basis1D),
-    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"), polyOrder),
+    basisC : getBasis(sconcat("basis-precalc/basis", basisNm, numDims, "x"),
+                      polyOrder),
     basisND : basisC,
     xc : [0, 0, 0],
     xc[dIdx] : -dx[dIdx],
@@ -198,20 +160,13 @@ calcRecov1CellGen(basisNm, dir, dx, polyOrder, C, lo, qCe, up, [bc]) := block(
   return(expand(subst(projSubList, rSub)))
 ) $
 
-calcRecov3Cell(dir, numDims, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
+calcRecov1Cell(dir, numDims, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
   /* Wrapper of calcRecov3CellGen for cells of size of 2 */
   [dx],
   dx : makelist(2, i, 1, numDims),
-  if length(bc) = 0 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp)),
-  if length(bc) = 1 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1])),
-  if length(bc) = 2 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1], bc[2]))
-)$
-
-getRecov3CellGen(dir, dx, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
-  /* Legacy wrapper */
-  if length(bc) = 0 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp)),
-  if length(bc) = 1 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1])),
-  if length(bc) = 2 then return(calcRecov3CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1], bc[2]))
+  if length(bc) = 0 then return(calcRecov1CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp)),
+  if length(bc) = 1 then return(calcRecov1CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1])),
+  if length(bc) = 2 then return(calcRecov1CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp, bc[1], bc[2]))
 )$
 
 
@@ -448,3 +403,47 @@ calcRecov6CellGen(basisNm, dir, ndiff, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL
 
   return(r)
 ) $
+
+
+
+/* -- Helper Functions -------------------------------------------- */
+
+etaDir(dir, xc, dx, basis) := block(
+  /* A helper function to shift basis functions in only one direction.
+     Example: etaDir(y, dy/2, dy, basis) */
+  return(subst(td=dir, subst(dir=2*(td-xc)/dx, basis)))
+) $
+
+eta(xc, dx, basis) := block(
+  /* A helper function to shift basis functions in all directions
+     together
+     Example: eta([x, y], [dx/2, -dy/2], [dx, dy], basis) */
+  [out, tx, ty, tz],
+  out : subst(tx=x, subst(x=2*(tx-xc[1])/dx[1], basis)),
+  if length(dx) > 1 then out : subst(ty=y, subst(y=2*(ty-xc[2])/dx[2], out)),
+  if length(dx) > 2 then out : subst(tz=z, subst(z=2*(tz-xc[3])/dx[3], out)),
+  return(out)
+) $
+
+/* A simple helper function to convert x, y, or z to indices 1, 2, or 3 respectively */
+getDirIdx(dir, numDims) := block([],
+  if numDims = 1 then return(1),
+  if dir = x then return(1),
+  if dir = y then return(2),
+  if dir = z then return(3)
+) $
+
+getBasis(name, polyOrder) := block(
+  [varsC, basisC, basisConstant],
+  load(name),
+  if polyOrder > 0 then (
+    return(basisC[polyOrder])
+  )
+  else (
+    return([basisC[1][1]])
+  )
+) $
+
+
+
+/* -- Legacy Wrappers --------------------------------------------- */
