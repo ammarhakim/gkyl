@@ -50,7 +50,9 @@ function VlasovSpecies:alloc(nRkDup)
    self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
 
    -- Allocate field for external forces if any.
-   self.vExtForce = self:allocVectorMoment(self.vdim)
+   if self.hasExtForce then 
+      self.vExtForce = self:allocVectorMoment(self.vdim)
+   end
 
    -- Allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii).
    self.flow                 = self:allocVectorMoment(self.vdim)
@@ -65,6 +67,9 @@ function VlasovSpecies:fullInit(appTbl)
    -- If there is an external force, get the force function.
    if tbl.vlasovExtForceFunc then
       self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
+      self.hasExtForce = true
+   else
+      self.hasExtForce = false
    end
 
    local externalBC = tbl.externalBC
@@ -82,6 +87,13 @@ function VlasovSpecies:createSolver(hasE, hasB)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
    VlasovSpecies.super.createSolver(self)
+
+   -- External forces are accumulated to the electric field part of
+   -- totalEmField
+   if self.hasExtForce then
+      hasE = true
+      hasB = true
+   end
 
    -- Create updater to advance solution by one time-step.
    local vlasovEqn = VlasovEq {
@@ -489,7 +501,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
-   if self.vlasovExtForceFunc then
+   if self.hasExtForce then
       local vExtForce = self.vExtForce
       self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
 

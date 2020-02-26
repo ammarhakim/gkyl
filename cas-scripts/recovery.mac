@@ -151,9 +151,9 @@ calcRecov1CellGen(basisNm, dir, dx, polyOrder, C, lo, qCe, up, [bc]) := block(
   )
   else (
     projSubList : append(
-      makelist(qLo1D[i]=lo[2][i], i, 1, length(basis1D)),
+      makelist(qLo1D[i]=lo[2][i], i, 1, if lo[1]="pt" then 3 else length(basis1D)),
       makelist(qCe1D[i]=qCe[i], i, 1, length(basis1D)),
-      makelist(qUp1D[i]=up[2][i], i, 1, length(basis1D))
+      makelist(qUp1D[i]=up[2][i], i, 1, if up[1]="pt" then 3 else length(basis1D))
     )
   ),
   

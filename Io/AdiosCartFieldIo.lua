@@ -254,7 +254,7 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       local ndim                    = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
 
-      if readGhost then
+      if _readGhost then
          localRange  = field:localExtRange() 
          globalRange = field:globalExtRange() 
       end
@@ -328,9 +328,11 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       -- types below)
       local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
       for d = 1, ndim do
-         start[d] = localRange:lower(d)-1
-         count[d] = localRange:shape(d)
-         if _readGhost then start[d] = start[d] + 1 end
+         local s = localRange:lower(d)-1
+         local c = localRange:shape(d)
+         if _readGhost then s = s + 1 end
+         start[d] = s
+         count[d] = c
       end
       count[ndim+1] = field:numComponents()
       start[ndim+1] = 0
