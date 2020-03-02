@@ -25,14 +25,19 @@ load(modNm),
 for p : 1 thru pmax do (
   /* get desired polyOrder of each basis */
   bP : basisP[p],
+  if p=1 then bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)]),
   bC : basisC[p],
   bXY : basisXY[p],
   bVp : basisVp[p],
+  if p=1 then bVp:append(bVp,[3*sqrt(5)/2^(1+(1)/2)*(vx^2-1/3)]),
   bZVp : basisZVp[p],
+  if p=1 then bZVp:append(bZVp,[3*sqrt(5)/2^(1+(2)/2)*(vx^2-1/3)]),
   bMu : basisMu[p],
   bZMu : basisZMu[p],
   bVpMu : basisVpMu[p],
+  if p=1 then bVpMu:append(bVpMu,[3*sqrt(5)/2^(1+(2)/2)*(vx^2-1/3)]),
   bZVpMu : basisZVpMu[p],
+  if p=1 then bZVpMu:append(bZVpMu,[3*sqrt(5)/2^(1+(3)/2)*(vx^2-1/3)]),
 
   /* get name of last config space dimension, which is always assumed to be the direction parallel to the magnetic field (z) */
   zVar : varsC[cdim],

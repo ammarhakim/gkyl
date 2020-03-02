@@ -31,6 +31,10 @@ GkSpecies.bcSheath   = SP_BC_SHEATH      -- Specular reflection.
 GkSpecies.bcZeroFlux = SP_BC_ZEROFLUX    -- Zero flux.
 GkSpecies.bcCopy     = SP_BC_COPY        -- Copy stuff.
 
+function GkSpecies:type()
+  return "GkSpecies"
+end
+
 function GkSpecies:alloc(nRkDup)
    -- Allocate distribution function.
    GkSpecies.super.alloc(self, nRkDup)
@@ -178,7 +182,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    end
    -- Zero flux in vpar and mu.
    table.insert(self.zeroFluxDirections, self.cdim+1)
-   if self.vdim > 1 then table.insert(self.zeroFluxDirections, self.cdim+2) end
+   table.insert(self.zeroFluxDirections, self.cdim+2)
 
    self.solver = Updater.HyperDisCont {
       onGrid             = self.grid,
@@ -189,39 +193,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       updateDirections   = upd,
       clearOut           = false,   -- Continue accumulating into output field.
    }
-   if hasApar and self.basis:polyOrder()==1 then 
-      -- This solver calculates vpar surface terms for Ohm's law. p=1 only!
-      self.solverStep2 = Updater.HyperDisCont {
-         onGrid             = self.grid,
-         basis              = self.basis,
-         cfl                = self.cfl,
-         equation           = self.gkEqn,
-         zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = {self.cdim+1},    -- Only vpar terms.
-         updateVolumeTerm   = false,            -- No volume term.
-         clearOut           = false,            -- Continue accumulating into output field.
-      }
-      -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
-      self.gkEqnStep2 = Gk.GkEqStep2 {
-         onGrid     = self.grid,
-         phaseBasis = self.basis,
-         confBasis  = self.confBasis,
-         charge     = self.charge,
-         mass       = self.mass,
-         Bvars      = funcField.bmagVars,
-         positivity = self.positivity,
-      }
-      -- Note that the surface update for this term only involves the vpar direction.
-      self.solverStep3 = Updater.HyperDisCont {
-         onGrid             = self.grid,
-         basis              = self.basis,
-         cfl                = self.cfl,
-         equation           = self.gkEqnStep2,
-         zeroFluxDirections = self.zeroFluxDirections,
-         updateDirections   = {self.cdim+1}, -- Only vpar terms.
-         clearOut           = false,   -- Continue accumulating into output field.
-      }
-   elseif hasApar and self.basis:polyOrder()>1 then
+   if hasApar then 
       -- Set up solver that adds on volume term involving dApar/dt and the entire vpar surface term.
       self.gkEqnStep2 = Gk.GkEqStep2 {
          onGrid     = self.grid,
@@ -257,13 +229,6 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       phaseBasis = self.basis,
       confBasis  = self.confBasis,
       moment     = "GkM1",
-      gkfacs     = {self.mass, self.bmag},
-   }
-   self.momProjDensityCalc = Updater.DistFuncMomentCalc {
-      onGrid     = self.grid,
-      phaseBasis = self.basis,
-      confBasis  = self.confBasis,
-      moment     = "GkM1proj",
       gkfacs     = {self.mass, self.bmag},
    }
    self.ptclEnergyCalc = Updater.DistFuncMomentCalc {
@@ -687,23 +652,6 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
-   end
-end
-
-function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
-   local fIn = self:rkStepperFields()[inIdx]
-   if self.positivityRescale then
-      fIn = self.fPos
-   end
-   local fRhsOut = self:rkStepperFields()[outIdx]
-
-   local em = emIn[1]:rkStepperFields()[inIdx]
-   local dApardtProv = emIn[1].dApardtProv
-   local emFunc = emIn[2]:rkStepperFields()[1]
-
-   if self.evolveCollisionless then
-      self.solverStep3:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-      self.solverStep3:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
    end
 end
 
@@ -1259,49 +1207,6 @@ function GkSpecies:getMomDensity(rkIdx)
    return self.momDensityAux
 end
 
--- Like getMomDensity, but use GkM1proj instead of GkM1, which uses cell-average v_parallel in moment calculation.
-function GkSpecies:getMomProjDensity(rkIdx)
-   -- If no rkIdx specified, assume momDensity has already been calculated.
-   if rkIdx == nil then return self.momDensity end 
-   local fIn = self:rkStepperFields()[rkIdx]
- 
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
-      if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
-      end
-      self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
-      end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
-   return self.momDensityAux
-end
-
-function GkSpecies:getEmModifier(rkIdx)
-   -- For p > 1, this is just numDensity.
-   if self.basis:polyOrder() > 1 then return self:getNumDensity(rkIdx) end
-
-   local fIn = self.gkEqn.emMod
-
-   if self.evolve or self._firstMomentCalc then
-      local tmStart = Time.clock()
-      if self.deltaF then
-        fIn:accumulate(-1.0, self.f0)
-      end
-      self.momProjDensityCalc:advance(nil, {fIn}, { self.momDensityAux })
-      if self.deltaF then
-        fIn:accumulate(1.0, self.f0)
-      end
-      self.tmCouplingMom = self.tmCouplingMom + Time.clock() - tmStart
-   end
-   if not self.evolve then self._firstMomentCalc = false end
-   fIn:clear(0.0)
-   return self.momDensityAux
-end
-
 function GkSpecies:getPolarizationWeight(linearized)
    if linearized == false then 
      self.polarizationWeight:combine(self.mass/self.B0^2, self.numDensity)
@@ -1329,7 +1234,6 @@ end
 function GkSpecies:totalSolverTime()
    local timer = self.solver.totalTime
    if self.solverStep2 then timer = timer + self.solverStep2.totalTime end
-   if self.solverStep3 then timer = timer + self.solverStep3.totalTime end
    if self.posRescaler then timer = timer + self.posRescaler.totalTime end
    return timer
 end

@@ -10,7 +10,7 @@ load(stringproc)$
 maxPolyOrder_Ser : 1$
 minCdim_Ser : 1$
 minVdim_Ser : 1$
-maxCdim_Ser : 2$
+maxCdim_Ser : 3$
 maxVdim_Ser : 2$
 
 /* Maximal order basis. */
@@ -19,6 +19,8 @@ minCdim_Max : 1$
 minVdim_Max : 1$
 maxCdim_Max : 1$
 maxVdim_Max : 1$
+
+gkVdims      : [[1,2], [2], [2]]$
 
 /* ...... END OF USER INPUTS........ */
 
@@ -32,7 +34,9 @@ maxVdim      : [maxVdim_Ser]$
 
 for bInd : 1 thru length(bName) do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
-    for v : c thru maxVdim[bInd] do (
+    for gkV : 1 thru length(gkVdims[c]) do (
+
+      v : gkVdims[c][gkV],
 
      usePositivity : false,
      disp(printf(false,sconcat("Creating surface GKLBOconstNu",bName[bInd]," ~ax~av"),c,v)),
@@ -57,7 +61,7 @@ for bInd : 1 thru length(bName) do (
      fname : sconcat("~/max-out/GkLBOconstNuSurfPositivity", bName[bInd], c, "x", v, "v", ".cpp"),
      fh : openw(fname),
      funcName : sconcat("GkLBOconstNuSurfPositivity", c, "x", v, "v", bName[bInd]),
-     calcGkLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd], usePositivity),
+     /*calcGkLBOconstNuSurfUpdater(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd], usePositivity),*/
      close(fh)
 
     )

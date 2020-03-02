@@ -2,10 +2,9 @@
  
 using namespace Eigen; 
  
-void GkSelfPrimMoments2x2vSer_P1(binOpData_t *data, const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq) 
+void GkSelfPrimMoments2x2vSer_P1(binOpData_t *data, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq) 
 { 
-  // m0,m1:       moments of the distribution function. 
-  // m0S,m1S,m1S: star moments (only used for piecewise linear). 
+  // m0,m1,m2: moments of the distribution function. 
   // cM, cE:   vtSq*cM and vtSq*cE are corrections to u and vtSq, respectively. 
   // u:        velocity. 
   // vtSq:     squared thermal speed, sqrt(T/m). 
@@ -27,9 +26,7 @@ void GkSelfPrimMoments2x2vSer_P1(binOpData_t *data, const double *m0, const doub
  
   double m0r[4]; 
   double m1r[4]; 
-  double m0Sr[4]; 
-  double m1Sr[4]; 
-  double m2Sr[4]; 
+  double m2r[4]; 
   if (cellAvg) { 
     m0r[0] = m0[0]; 
     m0r[1] = 0.0; 
@@ -39,18 +36,10 @@ void GkSelfPrimMoments2x2vSer_P1(binOpData_t *data, const double *m0, const doub
     m1r[1] = 0.0; 
     m1r[2] = 0.0; 
     m1r[3] = 0.0; 
-    m0Sr[0] = m0S[0]; 
-    m0Sr[1] = 0.0; 
-    m0Sr[2] = 0.0; 
-    m0Sr[3] = 0.0; 
-    m1Sr[0] = m1S[0]; 
-    m1Sr[1] = 0.0; 
-    m1Sr[2] = 0.0; 
-    m1Sr[3] = 0.0; 
-    m2Sr[0] = m2S[0]; 
-    m2Sr[1] = 0.0; 
-    m2Sr[2] = 0.0; 
-    m2Sr[3] = 0.0; 
+    m2r[0] = m2[0]; 
+    m2r[1] = 0.0; 
+    m2r[2] = 0.0; 
+    m2r[3] = 0.0; 
   } else { 
     m0r[0] = m0[0]; 
     m0r[1] = m0[1]; 
@@ -60,18 +49,10 @@ void GkSelfPrimMoments2x2vSer_P1(binOpData_t *data, const double *m0, const doub
     m1r[1] = m1[1]; 
     m1r[2] = m1[2]; 
     m1r[3] = m1[3]; 
-    m0Sr[0] = m0S[0]; 
-    m0Sr[1] = m0S[1]; 
-    m0Sr[2] = m0S[2]; 
-    m0Sr[3] = m0S[3]; 
-    m1Sr[0] = m1S[0]; 
-    m1Sr[1] = m1S[1]; 
-    m1Sr[2] = m1S[2]; 
-    m1Sr[3] = m1S[3]; 
-    m2Sr[0] = m2S[0]; 
-    m2Sr[1] = m2S[1]; 
-    m2Sr[2] = m2S[2]; 
-    m2Sr[3] = m2S[3]; 
+    m2r[0] = m2[0]; 
+    m2r[1] = m2[1]; 
+    m2r[2] = m2[2]; 
+    m2r[3] = m2[3]; 
   } 
  
   // Declare Eigen matrix and vectors for weak division. 
@@ -114,43 +95,43 @@ void GkSelfPrimMoments2x2vSer_P1(binOpData_t *data, const double *m0, const doub
   data->AEM_S(3,7) = -0.5*cM[0]; 
  
   // ....... Block from weak multiply of uX and m1X  .......... // 
-  data->AEM_S(4,0) = 0.5*m1Sr[0]; 
-  data->AEM_S(4,1) = 0.5*m1Sr[1]; 
-  data->AEM_S(4,2) = 0.5*m1Sr[2]; 
-  data->AEM_S(4,3) = 0.5*m1Sr[3]; 
-  data->AEM_S(5,0) = 0.5*m1Sr[1]; 
-  data->AEM_S(5,1) = 0.5*m1Sr[0]; 
-  data->AEM_S(5,2) = 0.5*m1Sr[3]; 
-  data->AEM_S(5,3) = 0.5*m1Sr[2]; 
-  data->AEM_S(6,0) = 0.5*m1Sr[2]; 
-  data->AEM_S(6,1) = 0.5*m1Sr[3]; 
-  data->AEM_S(6,2) = 0.5*m1Sr[0]; 
-  data->AEM_S(6,3) = 0.5*m1Sr[1]; 
-  data->AEM_S(7,0) = 0.5*m1Sr[3]; 
-  data->AEM_S(7,1) = 0.5*m1Sr[2]; 
-  data->AEM_S(7,2) = 0.5*m1Sr[1]; 
-  data->AEM_S(7,3) = 0.5*m1Sr[0]; 
+  data->AEM_S(4,0) = 0.5*m1r[0]; 
+  data->AEM_S(4,1) = 0.5*m1r[1]; 
+  data->AEM_S(4,2) = 0.5*m1r[2]; 
+  data->AEM_S(4,3) = 0.5*m1r[3]; 
+  data->AEM_S(5,0) = 0.5*m1r[1]; 
+  data->AEM_S(5,1) = 0.5*m1r[0]; 
+  data->AEM_S(5,2) = 0.5*m1r[3]; 
+  data->AEM_S(5,3) = 0.5*m1r[2]; 
+  data->AEM_S(6,0) = 0.5*m1r[2]; 
+  data->AEM_S(6,1) = 0.5*m1r[3]; 
+  data->AEM_S(6,2) = 0.5*m1r[0]; 
+  data->AEM_S(6,3) = 0.5*m1r[1]; 
+  data->AEM_S(7,0) = 0.5*m1r[3]; 
+  data->AEM_S(7,1) = 0.5*m1r[2]; 
+  data->AEM_S(7,2) = 0.5*m1r[1]; 
+  data->AEM_S(7,3) = 0.5*m1r[0]; 
  
   // ....... Block from correction to vtSq .......... // 
-  data->AEM_S(4,4) = m0r[0]+0.5*m0Sr[0]-0.5*cE[0]; 
-  data->AEM_S(4,5) = m0r[1]+0.5*m0Sr[1]-0.5*cE[1]; 
-  data->AEM_S(4,6) = m0r[2]+0.5*m0Sr[2]-0.5*cE[2]; 
-  data->AEM_S(4,7) = m0r[3]+0.5*m0Sr[3]-0.5*cE[3]; 
-  data->AEM_S(5,4) = m0r[1]+0.5*m0Sr[1]-0.5*cE[1]; 
-  data->AEM_S(5,5) = m0r[0]+0.5*m0Sr[0]-0.5*cE[0]; 
-  data->AEM_S(5,6) = m0r[3]+0.5*m0Sr[3]-0.5*cE[3]; 
-  data->AEM_S(5,7) = m0r[2]+0.5*m0Sr[2]-0.5*cE[2]; 
-  data->AEM_S(6,4) = m0r[2]+0.5*m0Sr[2]-0.5*cE[2]; 
-  data->AEM_S(6,5) = m0r[3]+0.5*m0Sr[3]-0.5*cE[3]; 
-  data->AEM_S(6,6) = m0r[0]+0.5*m0Sr[0]-0.5*cE[0]; 
-  data->AEM_S(6,7) = m0r[1]+0.5*m0Sr[1]-0.5*cE[1]; 
-  data->AEM_S(7,4) = m0r[3]+0.5*m0Sr[3]-0.5*cE[3]; 
-  data->AEM_S(7,5) = m0r[2]+0.5*m0Sr[2]-0.5*cE[2]; 
-  data->AEM_S(7,6) = m0r[1]+0.5*m0Sr[1]-0.5*cE[1]; 
-  data->AEM_S(7,7) = m0r[0]+0.5*m0Sr[0]-0.5*cE[0]; 
+  data->AEM_S(4,4) = 1.5*m0r[0]-0.5*cE[0]; 
+  data->AEM_S(4,5) = 1.5*m0r[1]-0.5*cE[1]; 
+  data->AEM_S(4,6) = 1.5*m0r[2]-0.5*cE[2]; 
+  data->AEM_S(4,7) = 1.5*m0r[3]-0.5*cE[3]; 
+  data->AEM_S(5,4) = 1.5*m0r[1]-0.5*cE[1]; 
+  data->AEM_S(5,5) = 1.5*m0r[0]-0.5*cE[0]; 
+  data->AEM_S(5,6) = 1.5*m0r[3]-0.5*cE[3]; 
+  data->AEM_S(5,7) = 1.5*m0r[2]-0.5*cE[2]; 
+  data->AEM_S(6,4) = 1.5*m0r[2]-0.5*cE[2]; 
+  data->AEM_S(6,5) = 1.5*m0r[3]-0.5*cE[3]; 
+  data->AEM_S(6,6) = 1.5*m0r[0]-0.5*cE[0]; 
+  data->AEM_S(6,7) = 1.5*m0r[1]-0.5*cE[1]; 
+  data->AEM_S(7,4) = 1.5*m0r[3]-0.5*cE[3]; 
+  data->AEM_S(7,5) = 1.5*m0r[2]-0.5*cE[2]; 
+  data->AEM_S(7,6) = 1.5*m0r[1]-0.5*cE[1]; 
+  data->AEM_S(7,7) = 1.5*m0r[0]-0.5*cE[0]; 
  
   // ....... RHS vector is composed of m1 and m2 .......... // 
-  data->BEV_S << m1r[0],m1r[1],m1r[2],m1r[3],m2Sr[0],m2Sr[1],m2Sr[2],m2Sr[3]; 
+  data->BEV_S << m1r[0],m1r[1],m1r[2],m1r[3],m2r[0],m2r[1],m2r[2],m2r[3]; 
  
   data->u_S = data->AEM_S.colPivHouseholderQr().solve(data->BEV_S); 
  

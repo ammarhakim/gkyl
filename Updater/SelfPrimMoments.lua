@@ -114,7 +114,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
    local m0Star, m0StarItr
    local m1Star, m1StarItr
    local m2Star, m2StarItr
-   if self._polyOrder > 1 then
+   if self._polyOrder > 1 or self._isGkLBO then
       m2         = inFld[3]
       m2Itr      = m2:get(1)
    else
@@ -136,7 +136,7 @@ function SelfPrimMoments:_advance(tCurr, inFld, outFld)
 
    -- polyOrder=1 and >1 each use separate velocity grid loops to
    -- avoid evaluating (if polyOrder==1) at each cell.
-   if self._polyOrder > 1 then
+   if self._polyOrder > 1 or self._isGkLBO then
 
       for cIdx in confRangeDecomp:rowMajorIter(tId) do
          grid:setIndex(cIdx)

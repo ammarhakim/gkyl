@@ -1,0 +1,288 @@
+/* Generate kernels for the updater that computes the primitive
+   moments u_ei and vtSq_ei (or u_ie and vtSq_ie) used in the cross
+   collision term, given the number density and primitive moments
+   of the electrons and ions. Weak division and multiplication
+   are employed. */
+
+/* To avoid the expensive symbolic matrix inversion in
+   Maxima we use Eigen to solve the system. */
+
+/* This string indicates which formulas do we want to use
+   to compute cross species primitive moments. The options are
+     - "HeavyIons": the approach in Eric Shi's PhD thesis (2017).
+     - "Greene": Formulas based on J. Greene's Phys of Fluids 1973
+                 paper, requiring a user-specified beta.
+     - "GreeneSmallAngle": Greene formulas assuming small angle collisions 
+                           dominate. Beta is computed.
+     - "GreeneSmallAngleLimit": GreeneSmallAngle in the limit
+                                m_e*T_i/(m_i*T_e)<<1. */
+CrossPrimMomFormulas : "Greene"$
+
+load("modal-basis");
+load("out-scripts");
+load(stringproc)$
+fpprec : 24$
+
+collTerm: ["12", "21"]$
+
+writeCExprsB(lhs, rhs) := block([expr],
+  expr : float(expand(rhs)),
+  for i : 1 thru length(expr) do (
+    if expr[i] # 0.0 then printf(fh, "  ~a = ~a; ~%", ssubst(")","]",ssubst("(","[",string(lhs[i]))), expr[i])
+  )
+)$
+
+writeEVExprs(lhs, rhs) := block([expr],
+  len   : length(rhs),
+  digs  : slength(string(len)),
+  start : len*2+(len-1)+2*len+1,
+  for k : 1 thru len do (
+    start : start+slength(string(k-1))
+  ),
+  printf(fh, "  ~a << ~a; ~%", lhs, sremove("]",sremovefirst("[",string(rhs)),sequal,start))
+)$
+
+writeCExprs1woUrelSq(lhs,rhs) := block([expr,sexpr],
+  expr : float(expand(rhs)),
+  for i : 1 thru NC do (
+    /* this craziness about sexpr is because maxima can't unfold
+       x^2 into x*x, which is what we need in C++. So instead we
+       search and replace these things in the strings to be
+       printed out. */
+    sexpr : (
+      sexpr : string(expr[i]),
+      for k : 0 thru NC-1 do (
+        if (k=0) then (
+          olds1M2 : "uSMuO[a0]^2",
+          news1M2 : "uSMuO[a0]*uSMuO[a0]"
+        ) else (
+          olds1M2 : ssubst(string(k),"k","uSMuO[a0+k]^2"),
+          news1M2 : ssubst(string(k),"k","uSMuO[a0+k]*uSMuO[a0+k]") ),
+        sexpr : ssubst(news1M2,olds1M2,sexpr)
+      ),
+      sexpr
+    ),
+    printf(fh, "    ~a += ~a; ~%", lhs[i-1], sexpr)
+  )
+)$
+
+calcCrossPrimMomsGreene(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+  
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  /* Physical number of velocity-space dimensions represented by model. */
+  if (sequal(substring(funcNm,1,3),"Vm")) then (
+    physVdim : vdim,
+    species : "Vm"
+  ) else (
+    species : "Gk",
+    if vdim=1 then (
+      physVdim : vdim
+    ) else (
+      physVdim : 3
+    )
+  ),
+
+  for polyOrder : 1 thru pMax do (
+    bC  : basisC[polyOrder],
+    bP  : basisP[polyOrder],
+    if polyOrder=1 and species="Gk" then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)])),
+    NP  : length(bP),
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // mRat:              mass ratio = m_other/m_self. ~%"),
+    printf(fh, "  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. ~%"),
+    printf(fh, "  // uOther, vtSqOther: bulk flow velocity and T/m of other species. ~%"),
+    printf(fh, "  // uCross:            bulk flow velocity for cross-species collision term. ~%"),
+    printf(fh, "  // vtSqCross:         squared thermal speed for cross-species collision term. ~%"),
+    printf(fh, " ~%"),
+
+    /*........... First compute and save uSelf-uOther .............*/
+    uSelf_e    : doExpand1(uSelf,bC),
+    uOther_e   : doExpand1(uOther,bC),
+    uSelf_c    : makelist(uSelf[i],i,0,NC*vdim-1),
+    uOther_c   : makelist(uOther[i],i,0,NC*vdim-1),
+    /* Support multiple components by changing the indices in ui_e and ue_e. */
+    uSelf_e    : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
+    uOther_e   : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
+    /* Expanded relative velocity uSelf-uOther, and its coefficients. */
+    uRel_e : uSelf_e-uOther_e,
+    uRel_c : uSelf_c-uOther_c,
+
+    printf(fh, "  // ..... Compute and save the relative velocity uSelf-uOther ..... // ~%"),
+    printf(fh, "  double uSMuO[~a]; ~%", NC*vdim),
+    writeCExprs1(uSMuO,uRel_c),
+    printf(fh, " ~%"),
+
+    /* ............. Compute (uSelf-uOther)^2 via a weak dot product ........,.... */
+    uSMuO_e : doExpand1(uSMuO,bC),
+    /* Support multiple components by changing the indices in uSMuO_e. */
+    uSMuO_e : psubst(makelist(uSMuO[i]=uSMuO[a0+i],i,0,NC-1),uSMuO_e),
+
+    prod : calcInnerProdList(varsC,uSMuO_e,bC,uSMuO_e),
+
+    printf(fh, "  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // ~%"),
+    printf(fh, "  double uSMuOSq[~a]; ~%", NC),
+    printf(fh, "  for (unsigned short int k=0; k<~a; k++) ~%", NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    uSMuOSq[k] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    writeCExprs1woUrelSq(uSMuOSq,prod),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*.............. Get the relative bulk flow velocity ....................*/
+    uCross_e : calcInnerProdList(varsC,1,bC,0.5*((uSelf_e+uOther_e)-beta*uSMuO_e)),
+
+    printf(fh, "  // ..... Get the cross flow velocity uSelf2 ..... // ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    expr : float(expand(uCross_e)),
+    for i : 1 thru NC do (
+      param : cons(expr[i], [0.5]),
+      e : apply(collectterms, param),
+      printf(fh, "    ~a = ~a; ~%", uCross[a0+i-1], e)
+    ),
+    printf(fh, " ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*....................... Calculate vtSqCross ............................*/
+    /* Expand vtSq function and create a list of expansion coefficients. */
+    vtSqSelf_e    : doExpand1(vtSqSelf,bC),
+    vtSqSelf_c    : makelist(vtSqSelf[i],i,0,NC-1),
+    vtSqOther_e   : doExpand1(vtSqOther,bC),
+    vtSqOther_c   : makelist(vtSqOther[i],i,0,NC-1),
+    uSMuOSq_e     : doExpand1(uSMuOSq,bC),
+
+    printf(fh, "  double mBetaFrac = ~a; ~%", 0.5*(1.0+beta)/(1.0+mRat)),
+    vtSqCross_e: calcInnerProdList(varsC,1,bC,vtSqSelf_e
+      -mBetaFrac*(vtSqSelf_e-mRat*vtSqOther_e-(1./physVdim)*mRat*uSMuOSq_e)),
+
+    printf(fh, "  // ..... Get the cross thermal speed squared vtSqCross ..... // ~%"),
+    writeCExprsCollect1(vtSqCross,vtSqCross_e,[mBetaFrac,mRat]),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+
+calcCrossPrimMomsHeavyIon(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
+
+  kill(varsC, varsP, basisC, basisP),
+  
+  load(sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")),
+
+  /* Physical number of velocity-space dimensions represented by model. */
+  if (sequal(substring(funcNm,1,3),"Vm")) then (
+    physVdim : vdim,
+    species : "Vm"
+  ) else (
+    species : "Gk",
+    if vdim=1 then (
+      physVdim : vdim
+    ) else (
+      physVdim : 3
+    )
+  ),
+
+  for polyOrder : 1 thru pMax do (
+    bC  : basisC[polyOrder],
+    bP  : basisP[polyOrder],
+    if polyOrder=1 and species="Gk" then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vx^2-1/3)])),
+    NP  : length(bP),
+    NC  : length(bC),
+  
+    /* Function declaration with input/output variables. */
+    printf(fh, "void ~a_P~a(const double mRat, const double beta, const double *uSelf, const double *vtSqSelf, const double *uOther, const double *vtSqOther, double *uCross, double *vtSqCross) ~%{ ~%", funcNm, polyOrder),
+    printf(fh, "  // mRat:              mass ratio = m_other/m_self. ~%"),
+    printf(fh, "  // uSelf, vtSqSelf:   bulk flow velocity and T/m of self species. ~%"),
+    printf(fh, "  // uOther, vtSqOther: bulk flow velocity and T/m of other species. ~%"),
+    printf(fh, "  // uCross:            bulk flow velocity for cross-species collision term. ~%"),
+    printf(fh, "  // vtSqCross:         squared thermal speed for cross-species collision term. ~%"),
+    printf(fh, " ~%"),
+
+    /*........... First compute and save uSelf-uOther .............*/
+    uSelf_e    : doExpand1(uSelf,bC),
+    uOther_e   : doExpand1(uOther,bC),
+    uSelf_c    : makelist(uSelf[i],i,0,NC*vdim-1),
+    uOther_c   : makelist(uOther[i],i,0,NC*vdim-1),
+    /* Support multiple components by changing the indices in ui_e and ue_e. */
+    uSelf_e    : psubst(makelist(uSelf[i]=uSelf[a0+i],i,0,NC-1),uSelf_e),
+    uOther_e   : psubst(makelist(uOther[i]=uOther[a0+i],i,0,NC-1),uOther_e),
+    /* Expanded relative velocity uSelf-uOther, and its coefficients. */
+    uRel_e     : uSelf_e-uOther_e,
+    uRel_c     : uSelf_c-uOther_c,
+
+    printf(fh, "  // ..... Compute and save the relative velocity uSelf-uOther ..... // ~%"),
+    printf(fh, "  double uSMuO[~a]; ~%", NC*vdim),
+    writeCExprs1(uSMuO,uRel_c),
+    printf(fh, " ~%"),
+
+    /* ............. Compute (uSelf-uOther)^2 via a weak dot product ........,.... */
+    uSMuO_e : doExpand1(uSMuO,bC),
+    /* Support multiple components by changing the indices in uSMuO_e. */
+    uSMuO_e : psubst(makelist(uSMuO[i]=uSMuO[a0+i],i,0,NC-1),uSMuO_e),
+
+    prod : calcInnerProdList(varsC,uSMuO_e,bC,uSMuO_e),
+
+    printf(fh, "  // ..... Get the relative speed squared (uSelf-uOther)^2 ..... // ~%"),
+    printf(fh, "  double uSMuOSq[~a]; ~%", NC),
+    printf(fh, "  for (unsigned short int k=0; k<~a; k++) ~%", NC),
+    printf(fh, "  { ~%"),
+    printf(fh, "    uSMuOSq[k] = 0.0; ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    writeCExprs1woUrelSq(uSMuOSq,prod),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*.............. Get the cross bulk flow velocity ....................*/
+    uCross_e : calcInnerProdList(varsC,1,bC,uOther_e),
+
+    printf(fh, "  // ..... Get the cross flow velocity uCross ..... // ~%"),
+    printf(fh, "  for (unsigned short int vd=0; vd<~a; vd++) ~%", vdim),
+    printf(fh, "  { ~%"),
+    printf(fh, "    unsigned short int a0 = ~a*vd; ~%", NC),
+    expr : float(expand(uCross_e)),
+    for i : 1 thru NC do (
+      param : cons(expr[i], [0.5]),
+      e : apply(collectterms, param),
+      printf(fh, "    ~a = ~a; ~%", uCross[a0+i-1], e)
+    ),
+    printf(fh, " ~%"),
+    printf(fh, "  } ~%"),
+    printf(fh, " ~%"),
+
+    /*....................... Calculate vtSqCross ............................*/
+    /* Expand vtSq function and create a list of expansion coefficients. */
+    vtSqSelf_e   : doExpand1(vtSqSelf,bC),
+    vtSqSelf_c   : makelist(vtSqSelf[i],i,0,NC-1),
+    vtSqOther_e  : doExpand1(vtSqOther,bC),
+    vtSqOther_c  : makelist(vtSqOther[i],i,0,NC-1),
+    uSMuOSq_e : doExpand1(uSMuOSq,bC),
+
+    vtSqCross_e: calcInnerProdList(varsC,1,bC,vtSqSelf_e+(1./physVdim)*mRat*uSMuOSq_e),
+
+    printf(fh, "  // ..... Get the cross thermal speed squared vtSqCross ..... // ~%"),
+    writeCExprsCollect1(vtSqCross,vtSqCross_e,[mRat]),
+    printf(fh, " ~%"),
+
+    printf(fh, "} ~%"),
+    printf(fh, " ~%")
+  )
+)$
+

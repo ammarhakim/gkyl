@@ -39,6 +39,7 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
 
     /* Polynomial basis and its derivatives. */
     bP : subst(gkvsub, basisP[polyOrder]),
+    if polyOrder=1 then (bP:append(bP,[3*sqrt(5)/2^(1+(cdim+vdim)/2)*(vpar^2-1/3)])),
     bC : basisC[polyOrder],
     NP : length(bP),
     NC : length(bC),
@@ -108,12 +109,10 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
     writeCExprsCollect1(alphaVpar, alphaVpar_c, clst),
     printf(fh, "~%"),
 
-    if polyOrder>1 then (
-      printf(fh, "  double facVpar[~a]; ~%", NC),
-      clst : [rdvSq4[0]],
-      writeCExprsCollect1(facVpar, facVpar_c, clst),
-      printf(fh, "~%")
-    ),
+    printf(fh, "  double facVpar[~a]; ~%", NC),
+    clst : [rdvSq4[0]],
+    writeCExprsCollect1(facVpar, facVpar_c, clst),
+    printf(fh, "~%"),
 
     if vdim = 2 then (
       /* Print mu alpha and factor in diffusive term. */
@@ -141,8 +140,11 @@ calcGkLBOconstNuVolUpdater(fh, funcNm, cdim, vdim, basisFun, pMax) := block([],
       facVparMid   : float(expand(fullratsimp(subst(zr,facVpar_e))))
     ),
     if vdim = 1 then (
-      expr  : float(expand(fullratsimp(((polyOrder+1)**2)*facVparMid/(2*polyOrder+1)))),
-      param : cons(expr, [float(expand(((polyOrder+1)**2)/(2*polyOrder+1))), rdvSq4[1], m_, w[vid[1]]]),
+      /* alter CFL because vpar^2 included */
+      if polyOrder=1 then polyOrderEff:1 /*2*/
+      else polyOrderEff : polyOrder,
+      expr : float(expand(fullratsimp(((polyOrderEff+1)**2)*facVparMid/(2*polyOrderEff+1)))),
+      param : cons(expr, [float(expand(((polyOrderEff+1)**2)/(2*polyOrderEff+1))), rdvSq4[1], m_, w[vid[1]]]),
       eColl : apply(collectterms, param),
       printf(fh, "  return std::abs(~a) + ~a; ~%", alphaVparMid, eColl )
     ),

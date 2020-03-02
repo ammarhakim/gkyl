@@ -1,24 +1,11 @@
-fh : openw("~/max-out/PrimMomentsModDecl.h")$
-
 polyOrderMax : 3$
 
 VarsC : [X, Y, Z]$
 
-printf(fh, "#ifndef PRIM_MOMENTS_MOD_DECL_H ~%")$
-printf(fh, "#define PRIM_MOMENTS_MOD_DECL_H ~%")$
-
-printf(fh, " ~%")$
-printf(fh, "// Eigen include statements. ~%")$
-printf(fh, "#include <Eigen/Dense> ~%")$
-printf(fh, "#include <CartFieldBinOpModDecl.h> ~%")$
-printf(fh, " ~%")$
-
-printf(fh, "extern \"C\" { ~%")$
-
 bName   : ["Ser","Max"]$
 gkVdims : [[1,2], [2], [2]]$
 
-
+printPrototypes() := block([], 
 for bInd : 1 thru length(bName) do (
 
   for pi : 1 thru polyOrderMax do (
@@ -57,19 +44,17 @@ for bInd : 1 thru length(bName) do (
 
         vi : gkVdims[ci][gkV],
 
+        /* Primitive moments for self-collision terms. */
+        printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
+        printf(fh, "~%"),
+
         /* For piecewise linear compute m0Star moment. */
-        if (pi=1) then (
-          /* Primitive moments for self-collision terms with p=1. */
-          printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m0S, const double *m1S, const double *m2S, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
-          printf(fh, "~%"),
+        if (pi=1 and bInd=2) then (
   
           /* Primitive moments for cross-collisions. */
           printf(fh, "void GkLBOCrossPrimMoments~ax~av~a_P~a(binOpData_t *data, binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double *m0SSelf, const double *m1SSelf, const double *m2SSelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, const double *m0SOther, const double *m1SOther, const double *m2SOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther); ~%", ci, vi, bName[bInd], pi),
           printf(fh, "~%")
         ) else (
-          /* Primitive moments for self-collision terms with p>1. */
-          printf(fh, "void GkSelfPrimMoments~ax~av~a_P~a(binOpData_t *data, const double *m0, const double *m1, const double *m2, const double *cM, const double *cE, double *u, double *vtSq); ~%", ci, vi, bName[bInd], pi),
-          printf(fh, "~%"),
   
           /* Primitive moments for cross-collisions. */
           printf(fh, "void GkLBOCrossPrimMoments~ax~av~a_P~a(binOpData_t *data, binOpData_t *dataDiv, const double betaGreenep1, const double mSelf, const double nuSelf, const double *m0Self, const double *m1Self, const double *m2Self, const double *uSelf, const double *vtSqSelf, const double *cMSelf, const double *cESelf, const double mOther, const double nuOther, const double *m0Other, const double *m1Other, const double *m2Other, const double *uOther, const double *vtSqOther, const double *cMOther, const double *cEOther, double *uCrossSelf, double *vtSqCrossSelf, double *uCrossOther, double *vtSqCrossOther); ~%", ci, vi, bName[bInd], pi),
@@ -87,10 +72,26 @@ for bInd : 1 thru length(bName) do (
     printf(fh, "~%")
   )
 
-);
+)
+)$
 
+fh : openw("~/max-out/PrimMomentsModDecl.h")$
+printf(fh, "#ifndef PRIM_MOMENTS_MOD_DECL_H ~%")$
+printf(fh, "#define PRIM_MOMENTS_MOD_DECL_H ~%")$
+printf(fh, " ~%")$
+printf(fh, "// Eigen include statements. ~%")$
+printf(fh, "#include <Eigen/Dense> ~%")$
+printf(fh, "#include <CartFieldBinOpModDecl.h> ~%")$
+printf(fh, " ~%")$
+printf(fh, "extern \"C\" { ~%")$
+printPrototypes()$
 printf(fh, "} ~%")$
-
 printf(fh, "#endif ~%")$
+close(fh)$
 
+fh : openw("~/max-out/_PrimMomentsCdef.lua")$
+printf(fh, "local ffi = require \"ffi\" ~%~%")$
+printf(fh, "ffi.cdef [[~%")$
+printPrototypes()$
+printf(fh, "]]~%")$
 close(fh)$

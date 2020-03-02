@@ -43,6 +43,8 @@ function CartFieldBinOp:init(tbl)
 
    local op = assert(
       tbl.operation, "Updater.CartFieldBinOp: Must provide an operation using 'operation'.")
+ 
+   local inclVx2 = xsys.pickBool(tbl.inclVx2, false)
 
    local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
@@ -70,7 +72,7 @@ function CartFieldBinOp:init(tbl)
    -- Function to compute specified operation.
    if isOpNameGood(op) then
       self._BinOpCalcS = BinOpDecl.selectBinOpCalcS(op, id, self._cDim, polyOrder, applyPositivity)
-      if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder) end
+      if fieldBasis then self._BinOpCalcD = BinOpDecl.selectBinOpCalcD(op, id, self._cDim, self._vDim, polyOrder, inclVx2) end
    else
       assert(false, string.format(
 		"CartFieldBinOp: Operation must be one of Multiply, Divide, DotProduct. Requested %s instead.", op))

@@ -4,14 +4,14 @@ load(stringproc)$
 /* ...... USER INPUTS........ */
 
 /* Serendipity basis. */
-maxPolyOrder_Ser : 3$
+maxPolyOrder_Ser : 2$
 minCdim_Ser : 1$
 minVdim_Ser : 3$    /* but see v loop below. */
-maxCdim_Ser : 1$
+maxCdim_Ser : 3$
 maxVdim_Ser : 3$
 
 /* Maximal order basis. */
-maxPolyOrder_Max : 3$
+maxPolyOrder_Max : 2$
 minCdim_Max : 1$
 minVdim_Max : 3$    /* but see v loop below. */
 maxCdim_Max : 1$
@@ -29,10 +29,11 @@ maxCdim      : [maxCdim_Ser, maxCdim_Max]$
 maxVdim      : [maxVdim_Ser, maxVdim_Max]$
 
 
-for bInd : 1 thru length(bName) do (
+for bInd : 1 thru 1 /*length(bName)*/ do (
   for c : minCdim[bInd] thru maxCdim[bInd] do (
 
     /* Vlasov primitive moments. */
+    /*
     for v : c thru maxVdim[bInd] do (
     
       disp(printf(false,sconcat("Creating VmSelfPrimMoments ~ax~av", bName[bInd]),c,v)),
@@ -50,7 +51,7 @@ for bInd : 1 thru length(bName) do (
       calcSelfPrimMoms(fh, funcName, c, v, bName[bInd], maxPolyOrder[bInd]),
   
       close(fh)
-    ),
+    ),*/
 
     /* For gyrokinetic need 1x1v, 1x2v, 2x2v and 3x2v. However each
        of these effectively solve a weak linear system of 2 equations.

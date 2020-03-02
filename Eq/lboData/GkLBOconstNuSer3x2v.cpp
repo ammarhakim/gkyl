@@ -6,8 +6,8 @@ double GkLBOconstNuVol3x2vSerP1(const double m_, const double *w, const double *
   // nuSum:     collisionalities added (self and cross species collisionalities). 
   // nuUSum:    sum of bulk velocities times their respective collisionalities. 
   // nuVtSqSum: sum of thermal speeds squared time their respective collisionalities. 
-  // f[32]:      Input distribution function. 
-  // out[32]:    Incremented output 
+  // f[33]:      Input distribution function. 
+  // out[33]:    Incremented output 
   double rdv2[2]; 
   double rdvSq4[2]; 
   rdv2[0]   = 2.0/dxv[3]; 
@@ -17,7 +17,7 @@ double GkLBOconstNuVol3x2vSerP1(const double m_, const double *w, const double *
   rdvSq4[1] = rdv2[1]*rdv2[1]; 
   rdv2[1]   = rdv2[1]; 
 
-  double alphaVpar[32]; 
+  double alphaVpar[33]; 
   alphaVpar[0] = rdv2[0]*(2.0*nuUSum[0]-5.656854249492382*w[3]*nuSum); 
   alphaVpar[1] = 2.0*rdv2[0]*nuUSum[1]; 
   alphaVpar[2] = 2.0*rdv2[0]*nuUSum[2]; 
@@ -28,7 +28,17 @@ double GkLBOconstNuVol3x2vSerP1(const double m_, const double *w, const double *
   alphaVpar[8] = 2.0*rdv2[0]*nuUSum[6]; 
   alphaVpar[16] = 2.0*rdv2[0]*nuUSum[7]; 
 
-  double alphaMu[32]; 
+  double facVpar[8]; 
+  facVpar[0] = nuVtSqSum[0]*rdvSq4[0]; 
+  facVpar[1] = rdvSq4[0]*nuVtSqSum[1]; 
+  facVpar[2] = rdvSq4[0]*nuVtSqSum[2]; 
+  facVpar[3] = rdvSq4[0]*nuVtSqSum[3]; 
+  facVpar[4] = rdvSq4[0]*nuVtSqSum[4]; 
+  facVpar[5] = rdvSq4[0]*nuVtSqSum[5]; 
+  facVpar[6] = rdvSq4[0]*nuVtSqSum[6]; 
+  facVpar[7] = rdvSq4[0]*nuVtSqSum[7]; 
+
+  double alphaMu[33]; 
   alphaMu[0] = (-11.31370849898477*rdv2[1]*w[4]*nuSum)+1.414213562373095*rdv2[1]*BmagInv[7]*nuVtSqSum[7]*m_+1.414213562373095*rdv2[1]*BmagInv[6]*nuVtSqSum[6]*m_+1.414213562373095*rdv2[1]*BmagInv[5]*nuVtSqSum[5]*m_+1.414213562373095*rdv2[1]*BmagInv[4]*nuVtSqSum[4]*m_+1.414213562373095*rdv2[1]*BmagInv[3]*nuVtSqSum[3]*m_+1.414213562373095*rdv2[1]*BmagInv[2]*nuVtSqSum[2]*m_+1.414213562373095*BmagInv[1]*nuVtSqSum[1]*rdv2[1]*m_+1.414213562373095*BmagInv[0]*nuVtSqSum[0]*rdv2[1]*m_; 
   alphaMu[1] = 1.414213562373095*rdv2[1]*BmagInv[6]*nuVtSqSum[7]*m_+1.414213562373095*rdv2[1]*nuVtSqSum[6]*BmagInv[7]*m_+1.414213562373095*rdv2[1]*BmagInv[3]*nuVtSqSum[5]*m_+1.414213562373095*rdv2[1]*nuVtSqSum[3]*BmagInv[5]*m_+1.414213562373095*rdv2[1]*BmagInv[2]*nuVtSqSum[4]*m_+1.414213562373095*rdv2[1]*nuVtSqSum[2]*BmagInv[4]*m_+1.414213562373095*BmagInv[0]*nuVtSqSum[1]*rdv2[1]*m_+1.414213562373095*nuVtSqSum[0]*BmagInv[1]*rdv2[1]*m_; 
   alphaMu[2] = 1.414213562373095*rdv2[1]*BmagInv[5]*nuVtSqSum[7]*m_+1.414213562373095*rdv2[1]*nuVtSqSum[5]*BmagInv[7]*m_+1.414213562373095*rdv2[1]*BmagInv[3]*nuVtSqSum[6]*m_+1.414213562373095*rdv2[1]*nuVtSqSum[3]*BmagInv[6]*m_+1.414213562373095*BmagInv[1]*rdv2[1]*nuVtSqSum[4]*m_+1.414213562373095*nuVtSqSum[1]*rdv2[1]*BmagInv[4]*m_+1.414213562373095*BmagInv[0]*rdv2[1]*nuVtSqSum[2]*m_+1.414213562373095*nuVtSqSum[0]*rdv2[1]*BmagInv[2]*m_; 
@@ -63,6 +73,7 @@ double GkLBOconstNuVol3x2vSerP1(const double m_, const double *w, const double *
   out[29] += 0.3061862178478971*((alphaMu[5]+alphaVpar[4])*f[29]+alphaVpar[2]*f[27]+alphaMu[2]*f[26]+alphaVpar[6]*f[22]+alphaVpar[0]*f[21]+alphaVpar[8]*f[20]+alphaMu[6]*f[19]+alphaMu[0]*f[18]+alphaMu[8]*f[17]+f[13]*alphaVpar[16]+f[10]*alphaMu[16]+alphaVpar[1]*f[14]+alphaVpar[3]*f[12]+alphaMu[1]*f[11]+alphaMu[3]*f[9]+f[5]*alphaVpar[7]+f[4]*alphaMu[7]); 
   out[30] += 0.3061862178478971*((alphaMu[5]+alphaVpar[4])*f[30]+alphaVpar[1]*f[27]+alphaMu[1]*f[26]+alphaVpar[0]*f[22]+alphaVpar[6]*f[21]+alphaVpar[7]*f[20]+alphaMu[0]*f[19]+alphaMu[6]*f[18]+alphaMu[7]*f[17]+f[12]*alphaVpar[16]+f[9]*alphaMu[16]+alphaVpar[2]*f[14]+alphaVpar[3]*f[13]+alphaMu[2]*f[11]+alphaMu[3]*f[10]+f[5]*alphaVpar[8]+f[4]*alphaMu[8]); 
   out[31] += 0.3061862178478971*((alphaMu[5]+alphaVpar[4])*f[31]+alphaVpar[0]*f[27]+alphaMu[0]*f[26]+alphaVpar[1]*f[22]+alphaVpar[2]*f[21]+alphaVpar[3]*f[20]+alphaMu[1]*f[19]+alphaMu[2]*f[18]+alphaMu[3]*f[17]+f[5]*alphaVpar[16]+f[4]*alphaMu[16]+alphaVpar[6]*f[14]+alphaVpar[7]*f[13]+alphaVpar[8]*f[12]+alphaMu[6]*f[11]+alphaMu[7]*f[10]+alphaMu[8]*f[9]); 
+  out[32] += 0.6123724356957944*alphaVpar[4]*f[32]+0.6846531968814573*(alphaVpar[16]*f[26]+alphaVpar[8]*f[19]+alphaVpar[7]*f[18]+alphaVpar[6]*f[17])+2.371708245126284*facVpar[7]*f[16]+0.6846531968814573*(alphaVpar[3]*f[11]+alphaVpar[2]*f[10]+alphaVpar[1]*f[9])+2.371708245126284*(facVpar[6]*f[8]+facVpar[5]*f[7]+facVpar[4]*f[6])+0.6846531968814573*(alphaVpar[0]*f[4]+f[0]*alphaVpar[4])+2.371708245126284*(f[3]*facVpar[3]+f[2]*facVpar[2]+f[1]*facVpar[1]+f[0]*facVpar[0]); 
 
   return std::abs(0.1767766952966368*alphaVpar[0]) + 2.0*rdv2[1]*w[4]*nuSum+rdvSq4[1]*w[4]*(0.3333333333333333*BmagInv[7]*nuVtSqSum[7]+0.3333333333333333*BmagInv[6]*nuVtSqSum[6]+0.3333333333333333*BmagInv[5]*nuVtSqSum[5]+0.3333333333333333*BmagInv[4]*nuVtSqSum[4]+0.3333333333333333*BmagInv[3]*nuVtSqSum[3]+0.3333333333333333*BmagInv[2]*nuVtSqSum[2]+0.3333333333333333*BmagInv[1]*nuVtSqSum[1]+0.3333333333333333*BmagInv[0]*nuVtSqSum[0])*m_+0.4714045207910312*nuVtSqSum[0]*rdvSq4[0]; 
 
