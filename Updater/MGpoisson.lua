@@ -74,19 +74,20 @@ function MGpoisson:init(tbl)
    if tbl.relaxType then
       relaxKind = tbl.relaxType
    else
-      relaxKind = "DampedJacobi"
+      relaxKind = "DampedGaussSeidel"
    end
    if self:isRelaxKindGood(relaxKind) then
       if self:isRelaxDamped(relaxKind) then
          if tbl.relaxOmega then
             self.omega = tbl.relaxOmega
          else
-            self.omega = 2.0/3.0   -- Arbitrary. Ideally the user inputs it, or we compute it later.
+            self.omega = 1.8   -- Arbitrary. Ideally the user inputs it, or we compute it later.
          end
       else
-         self.omega = 1.0   -- No damping. Set to 1.
+         self.omega = 1.0                    -- No damping. Set to 1.
+         relaxKind  = "Damped" .. relaxKind  -- All kernels use "Damped".
       end
-      if (relaxKind == "Jacobi") or (relaxKind == "DampedJacobi") then
+      if (relaxKind == "DampedJacobi") then
          -- Need to be Jacobi-aware as this involves an extra field copy.
          self.isJacobiRelax = true
       else
