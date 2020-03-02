@@ -161,7 +161,7 @@ calcRecov1CellGen(basisNm, dir, dx, polyOrder, C, lo, qCe, up, [bc]) := block(
 ) $
 
 calcRecov1Cell(dir, numDims, polyOrder, C, qLo, qCe, qUp, [bc]) := block(
-  /* Wrapper of calcRecov3CellGen for cells of size of 2 */
+  /* Wrapper of calcRecov1CellGen for cells of size of 2 */
   [dx],
   dx : makelist(2, i, 1, numDims),
   if length(bc) = 0 then return(calcRecov1CellGen("Ser", dir, dx, polyOrder, C, qLo, qCe, qUp)),
@@ -382,9 +382,12 @@ calcRecov6CellGen(basisNm, dir, ndiff, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL
   numDims : length(dx),
   perpDirIdx : getDirIdx(perpDir, numDims),
 
-  rLo : diff(getRecov2CellGen(dir, dx, polyOrder, qLL, qLU), dir, ndiff),
-  rCe : diff(getRecov2CellGen(dir, dx, polyOrder, qCL, qCU), dir, ndiff),
-  rUp : diff(getRecov2CellGen(dir, dx, polyOrder, qUL, qUU), dir, ndiff),
+  rLo : diff(calcRecov2CellGen(basisNm, dir, dx, polyOrder, qLL, qLU),
+    dir, ndiff),
+  rCe : diff(calcRecov2CellGen(basisNm, dir, dx, polyOrder, qCL, qCU),
+    dir, ndiff),
+  rUp : diff(calcRecov2CellGen(basisNm, dir, dx, polyOrder, qUL, qUU),
+    dir, ndiff),
   
   basisC : subst(x=perpDir, getBasis(sconcat("basis-precalc/basis", basisNm, "1x"), polyOrder)),
   baC : etaDir(perpDir, 0, dx[perpDirIdx], basisC),
@@ -398,8 +401,8 @@ calcRecov6CellGen(basisNm, dir, ndiff, dx, polyOrder, C, qLL, qLU, qCL, qCU, qUL
     [[-dx[perpDirIdx]/2, dx[perpDirIdx]/2]],
     1, baC, subst(dir=0, rUp)),
   
-  r : getRecov3CellGen(perpDir, [dx[perpDirIdx]], polyOrder, C,
-    rLoCoef, rCeCoef, rUpCoef),  
+  r : calcRecov1CellGen(basisNm, perpDir, [dx[perpDirIdx]], polyOrder, C,
+    ["exp", rLoCoef], rCeCoef, ["exp", rUpCoef]),  
 
   return(r)
 ) $
