@@ -61,6 +61,8 @@ function HyperDisCont:init(tbl)
 
    -- Flag to turn on/off volume term.
    self._updateVolumeTerm = xsys.pickBool(tbl.updateVolumeTerm, true)
+   -- flag to turn on/off surface terms
+   self._updateSurfaceTerm = xsys.pickBool(tbl.updateSurfaceTerm, true)
 
    -- CFL number.
    self._cfl  = assert(tbl.cfl, "Updater.HyperDisCont: Must specify CFL number using 'cfl'")
@@ -79,13 +81,22 @@ function HyperDisCont:init(tbl)
    self._auxFields       = {} -- Auxilliary fields passed to eqn object.
    self._perpRangeDecomp = {} -- Perp ranges in each direction.
 
+   -- set up equation terms
+   self.volTerm = self._equation.volTerm
+   self.surfTerm = self._equation.surfTerm
+   -- for equations that require multiple steps
+   if tbl.eqnStep and tbl.eqnStep > 1 then
+      self.volTerm = self._equation['volTermStep' .. tbl.eqnStep]
+      self.surfTerm = self._equation['surfTermStep' .. tbl.eqnStep]
+   end
+
    return self
 end
 
 -- Advance method.
 function HyperDisCont:_advance(tCurr, inFld, outFld)
    local grid          = self._onGrid
-   local dtApprox      = self._dt
+   local dtApprox      = self._dt   -- This is approximate because it is the dt from previous step.
    local cflRateByCell = self._cflRateByCell
 
    local qIn             = assert(inFld[1], "HyperDisCont.advance: Must specify an input field")
@@ -211,14 +222,14 @@ function HyperDisCont:_advance(tCurr, inFld, outFld)
             cflRateByCell:fill(cflRateByCellIdxr(idxp), cflRateByCellP)
 
 	    if firstDir and i<=dirUpIdx-1 and self._updateVolumeTerm then
-	       cflRate = self._equation:volTerm(xcp, dxp, idxp, qInP, qVolOutP)
+	       cflRate = self.volTerm(self._equation, xcp, dxp, idxp, qInP, qVolOutP)
                cflRateByCellP:data()[0] = cflRateByCellP:data()[0] + cflRate
 	    end
-	    if d>0 and i >= dirLoSurfIdx and i <= dirUpSurfIdx then
-	       local maxs = self._equation:surfTerm(
+	    if d>0 and i >= dirLoSurfIdx and i <= dirUpSurfIdx and self._updateSurfaceTerm then
+	       local maxs = self.surfTerm(self._equation,
 		  dir, dtApprox*1.25, xcm, xcp, dxm, dxp, self._maxsOld[dir], idxm, idxp, qInM, qInP, qRhsOutM, qRhsOutP)
 	       self._maxsLocal[dir] = math.max(self._maxsLocal[dir], maxs)
-            elseif d>0 then
+            elseif d>0 and self._updateSurfaceTerm then
 	       if self._zeroFluxFlags[dir] then
 	          -- Give equations a chance to apply partial surface updates 
 	          -- even when the zeroFlux BCs have been applied.

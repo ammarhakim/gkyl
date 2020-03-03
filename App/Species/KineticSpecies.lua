@@ -518,6 +518,7 @@ function KineticSpecies:alloc(nRkDup)
    self.cflRateIdxr = self.cflRateByCell:genIndexer()
    self.dt          = ffi.new("double[2]")
    self.dtGlobal    = ffi.new("double[2]")
+   self.dtGlobal[0] = 1e-10
 
    self:createBCs()
 
@@ -647,13 +648,13 @@ function KineticSpecies:forwardEuler(tCurr, dt, inIdx, outIdx)
    -- NOTE: order of these arguments matters... outIdx must come before inIdx.
    self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
 
-   if self.positivityRescaleVolTerm then
-      -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
-      -- because volume term is stored separately in self.fRhsVol
-      -- now compute scaling factor for volume term so that all control nodes stay positive. 
-      self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fRhsVol)
-      self:rkStepperFields()[outIdx]:accumulate(dt, self.fRhsVol)
-   end
+   --if self.positivityRescaleVolTerm then
+   --   -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
+   --   -- because volume term is stored separately in self.fRhsVol
+   --   -- now compute scaling factor for volume term so that all control nodes stay positive. 
+   --   self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fRhsVol)
+   --   self:rkStepperFields()[outIdx]:accumulate(dt, self.fRhsVol)
+   --end
 end
 
 function KineticSpecies:suggestDt()

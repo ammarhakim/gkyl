@@ -1,5 +1,9 @@
 #include <GyrokineticModDecl.h> 
-double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+                        const double *Bmag, const double *BmagInv, const double *Gradpar, 
+                        const double *BdriftX, const double *BdriftY, const double *Phi, 
+                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -50,28 +54,32 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
 
   // begin surface update 
  
-  double fluxFracL = 0.3333333333333333, fluxFracR = 0.3333333333333333, flim = 0.;
-  double GhatCtrl[2];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.3333333333333333 : cflRateByDirL[1]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.3333333333333333 : cflRateByDirR[1]/cflRateByDirR[0]; 
+  double fluxFracL, fluxFracR, limfac, flim = 0.;
+  double GhatCtrl[2], GhatLimCtrl[2], ohmModCtrl[2];
+  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[1]/cflRateByDirL[0]; 
+  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[1]/cflRateByDirR[0]; 
   // control node [y] = [-1/3] 
   GhatCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
+  GhatLimCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
   if(GhatCtrl[0] > EPSILON) {
     flim = std::max(0., -0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]-1.0*fl[1])-3.0*fl[0])); 
-    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(fluxFracL*flim/dtApprox/dfac_x)); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[0]/dtApprox/dfac_x)); 
   } else if(GhatCtrl[0] < -EPSILON) {
     flim = std::max(0., -0.1666666666666667*((-1.0*fr[3])+1.732050807568877*(fr[2]+fr[1])-3.0*fr[0])); 
-    GhatCtrl[0] = -std::min(-GhatCtrl[0], std::abs(fluxFracR*flim/dtApprox/dfac_x)); 
-  } else GhatCtrl[0] = 0.; 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[0]/dtApprox/dfac_x)); 
+  } else limfac = 0.; 
+  GhatCtrl[0] *= limfac; 
   // control node [y] = [1/3] 
   GhatCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
+  GhatLimCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
   if(GhatCtrl[1] > EPSILON) {
     flim = std::max(0., 0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0])); 
-    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(fluxFracL*flim/dtApprox/dfac_x)); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[1]/dtApprox/dfac_x)); 
   } else if(GhatCtrl[1] < -EPSILON) {
     flim = std::max(0., 0.1666666666666667*((-1.0*fr[3])+1.732050807568877*(fr[2]-1.0*fr[1])+3.0*fr[0])); 
-    GhatCtrl[1] = -std::min(-GhatCtrl[1], std::abs(fluxFracR*flim/dtApprox/dfac_x)); 
-  } else GhatCtrl[1] = 0.; 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[1]/dtApprox/dfac_x)); 
+  } else limfac = 0.; 
+  GhatCtrl[1] *= limfac; 
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0])*dfac_x; 
   incr[1] = -0.8660254037844386*(GhatCtrl[1]+GhatCtrl[0])*dfac_x; 
@@ -89,7 +97,11 @@ double GyrokineticSurfPositivity2x0vSer_X_P1_Bvars_0(const double q_, const doub
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const double m_, const double *w, const double *dxv, 
+                        const double *Bmag, const double *BmagInv, const double *Gradpar, 
+                        const double *BdriftX, const double *BdriftY, const double *Phi, 
+                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double *fl, const double *fr, double *outl, double *outr) 
 { 
 // w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output 
   double dfac_x = 2.0/dxv[0]; 
@@ -140,28 +152,32 @@ double GyrokineticSurfPositivity2x0vSer_Y_P1_Bvars_0(const double q_, const doub
 
   // begin surface update 
  
-  double fluxFracL = 0.3333333333333333, fluxFracR = 0.3333333333333333, flim = 0.;
-  double GhatCtrl[2];
-  fluxFracL = cflRateByDirL[0] == 0. ? 0.3333333333333333 : cflRateByDirL[2]/cflRateByDirL[0]; 
-  fluxFracR = cflRateByDirR[0] == 0. ? 0.3333333333333333 : cflRateByDirR[2]/cflRateByDirR[0]; 
+  double fluxFracL, fluxFracR, limfac, flim = 0.;
+  double GhatCtrl[2], GhatLimCtrl[2], ohmModCtrl[2];
+  fluxFracL = cflRateByDirL[0] == 0. ? 0.5 : cflRateByDirL[2]/cflRateByDirL[0]; 
+  fluxFracR = cflRateByDirR[0] == 0. ? 0.5 : cflRateByDirR[2]/cflRateByDirR[0]; 
   // control node [x] = [-1/3] 
   GhatCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
+  GhatLimCtrl[0] = alpha[0]*(0.5*fhatAL[0]-0.2886751345948129*fhatAL[1]); 
   if(GhatCtrl[0] > EPSILON) {
     flim = std::max(0., 0.1666666666666667*((-1.0*fl[3])+1.732050807568877*(fl[2]-1.0*fl[1])+3.0*fl[0])); 
-    GhatCtrl[0] = std::min(GhatCtrl[0], std::abs(fluxFracL*flim/dtApprox/dfac_y)); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[0]/dtApprox/dfac_y)); 
   } else if(GhatCtrl[0] < -EPSILON) {
     flim = std::max(0., -0.1666666666666667*((-1.0*fr[3])+1.732050807568877*(fr[2]+fr[1])-3.0*fr[0])); 
-    GhatCtrl[0] = -std::min(-GhatCtrl[0], std::abs(fluxFracR*flim/dtApprox/dfac_y)); 
-  } else GhatCtrl[0] = 0.; 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[0]/dtApprox/dfac_y)); 
+  } else limfac = 0.; 
+  GhatCtrl[0] *= limfac; 
   // control node [x] = [1/3] 
   GhatCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
+  GhatLimCtrl[1] = alpha[0]*(0.2886751345948129*fhatAL[1]+0.5*fhatAL[0]); 
   if(GhatCtrl[1] > EPSILON) {
     flim = std::max(0., 0.1666666666666667*(fl[3]+1.732050807568877*(fl[2]+fl[1])+3.0*fl[0])); 
-    GhatCtrl[1] = std::min(GhatCtrl[1], std::abs(fluxFracL*flim/dtApprox/dfac_y)); 
+    limfac = std::min(1., std::abs(fluxFracL*flim/GhatLimCtrl[1]/dtApprox/dfac_y)); 
   } else if(GhatCtrl[1] < -EPSILON) {
     flim = std::max(0., -0.1666666666666667*(fr[3]+1.732050807568877*(fr[2]-1.0*fr[1])-3.0*fr[0])); 
-    GhatCtrl[1] = -std::min(-GhatCtrl[1], std::abs(fluxFracR*flim/dtApprox/dfac_y)); 
-  } else GhatCtrl[1] = 0.; 
+    limfac = std::min(1., std::abs(fluxFracR*flim/GhatLimCtrl[1]/dtApprox/dfac_y)); 
+  } else limfac = 0.; 
+  GhatCtrl[1] *= limfac; 
 
   incr[0] = 0.5*(GhatCtrl[1]+GhatCtrl[0])*dfac_y; 
   incr[1] = 0.8660254037844386*(GhatCtrl[1]-1.0*GhatCtrl[0])*dfac_y; 

@@ -27,7 +27,7 @@ fgrad(f):= ev(express(grad(f)),diff)*derivfacsC$
 
 gkPB(f,g):=1/m_*Bstar_by_Bmag_expd.(fgrad(f)*dfac_v*diff(g,vpar)-fgrad(g)*dfac_v*diff(f,vpar))-1/q_*BmagInv_expd*dfac_x*dfac_y*(diff(f,x)*diff(g,y)-diff(f,y)*diff(g,x))$
 
-calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, i,emflag, bvarslist, pureUpwind) := block([],
+calcUpdateInDir(surfDir, fh, funcNm, cdim, vdim, basisFun, polyOrder, emflag, bvarslist, pureUpwind) := block([],
 kill(varsC, varsP, basisC, basisP),
 if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
 else modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x"),
@@ -41,9 +41,9 @@ load(modNm),
   if cdim = 3 then (
     label:["x", "y", "z", "v", "m"]
   ),
-  bC : basisC[i],
+  bC : basisC[polyOrder],
   if vdim=0 then bP : bC
-  else bP : subst(gkvsub, basisP[i]),
+  else bP : subst(gkvsub, basisP[polyOrder]),
   if vdim=0 then varsP : varsC
   else varsP : subst(gkvsub, varsP),
   numC : length(bC),
@@ -75,9 +75,41 @@ load(modNm),
   /* remove volume contribution from surface variable, which is not integrated */
   surfac : fullratsimp(volfac*dfacSurf),
 
-  print("Working on ", funcNm, "_", dirlabel, "_P", i, "_Bvars_", simplode(bvarslist,"_")),
-  if emflag then printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double dt, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr, double *emModL, double *emModR) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_"))
-  else printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_")),
+  print("Working on ", funcNm, "_", dirlabel, "_P", polyOrder, "_Bvars_", simplode(bvarslist,"_")),
+  if emflag then (
+    if positivity then 
+      printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, 
+                        const double *Bmag, const double *BmagInv, const double *Gradpar, 
+                        const double *BdriftX, const double *BdriftY, const double *Phi, 
+                        const double *Apar, const double *dApardt, const double *dApardtProv, 
+                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double *fl, const double *fr, double *outl, double *outr, 
+                        double *ohmModL, double *ohmModR) ~%{ ~%",
+                  funcNm, dirlabel, polyOrder, simplode(bvarslist,"_"))
+    else 
+      printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, 
+                        const double *Bmag, const double *BmagInv, const double *Gradpar, 
+                        const double *BdriftX, const double *BdriftY, const double *Phi, 
+                        const double *Apar, const double *dApardt, const double *dApardtProv, 
+                        const double *fl, const double *fr, double *outl, double *outr, 
+                        double *ohmModL, double *ohmModR) ~%{ ~%", 
+                  funcNm, dirlabel, polyOrder, simplode(bvarslist,"_"))
+  )
+  else (
+    if positivity then
+      printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, 
+                        const double *Bmag, const double *BmagInv, const double *Gradpar, 
+                        const double *BdriftX, const double *BdriftY, const double *Phi, 
+                        const double dtApprox, const double *cflRateByDirL, const double *cflRateByDirR, 
+                        const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", 
+                  funcNm, dirlabel, polyOrder, simplode(bvarslist,"_"))
+    else
+      printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, 
+                        const double *Bmag, const double *BmagInv, const double *Gradpar, 
+                        const double *BdriftX, const double *BdriftY, const double *Phi, 
+                        const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", 
+                  funcNm, dirlabel, polyOrder, simplode(bvarslist,"_"))
+  ),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
 
   for dir : 1 thru cdim+vdim do (
@@ -93,7 +125,7 @@ load(modNm),
   ),
   printf(fh, "  double q2 = q_*q_; ~%"),
   printf(fh, "  double incr[~a]; ~%", length(bP)),
-  if emflag and surfVar=vpar and i=1 then printf(fh, "  double incrEmMod[~a]; ~%", length(bP)),
+  if emflag and surfVar=vpar and polyOrder=1 then printf(fh, "  double incrOhmMod[~a]; ~%", length(bP)),
   flush_output(fh),
 
   /* expand background magnetic field Bmag, assuming it only varies in x */
@@ -107,7 +139,7 @@ load(modNm),
     Apar_expd:doExpand1(Apar,bC),
     /* expand dApar/dt */
     dAdt_expd:doExpand1(dApardt,bC),
-    dAdtPrev_expd:doExpand1(dApardtPrev,bC)
+    dAdtProv_expd:doExpand1(dApardtProv,bC)
     /* NOTE: even though Apar and dApar/dt are allowed
        to be discontinuous in the parallel (z) direction,
        the surface term in the z direction does not involve
@@ -117,7 +149,7 @@ load(modNm),
   else (
     Apar_expd : 0,
     dAdt_expd : 0,
-    dAdtPrev_expd : 0
+    dAdtProv_expd : 0
   ),
 
   /* calculate full expansion expression for Hamiltonian */
@@ -160,12 +192,12 @@ load(modNm),
   /* distinguish between alpha and alphaUp, where alphaUp is the one used to determine upwind direction */
   alpha_expd : gkPB(wSurf + surfVar/dfacSurf, H_expd),
   alphaUp_expd : alpha_expd,
-  if surfVar = vpar and i > 1 then (
+  if surfVar = vpar and polyOrder > 1 then (
     alpha_expd : alpha_expd - q_/m_*dAdt_expd,
     alphaUp_expd : alpha_expd
   ) elseif surfVar = vpar then (
-    /* for p=1 EMGK, use dAdtPrev in upwinding alpha */
-    alphaUp_expd : alpha_expd - q_/m_*dAdtPrev_expd
+    /* for p=1 EMGK, use dAdtProv in upwinding alpha */
+    alphaUp_expd : alpha_expd - q_/m_*dAdtProv_expd
   ),
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
   alpha0expr : gcfac(fullratsimp(innerProd(surfIntVars, 1, subst(surfVar=-1,alphaUp_expd), subst(surfVar=-1, bP[1]))*bP[1])),
@@ -185,7 +217,7 @@ load(modNm),
   alphaSurf_expd : doExpandLst(alphaNoZero_k, bSurf),
   flush_output(fh),
 
-  if surfVar=vpar and emflag and i=1 then (
+  if surfVar=vpar and emflag and polyOrder=1 then (
     /* print alphaUp */
     printf(fh, "  double alphaUp[~a]; ~%", length(bSurf)),
     alphaUp_k : fullratsimp(innerProd(surfIntVars, 1, bSurf, subst(surfVar=-1,alphaUp_expd))),
@@ -205,41 +237,79 @@ load(modNm),
     printf(fh, "} ~%"),
     flush_output(fh)
   )
-  else if pureUpwind or i=1 then (
-    if positivity then ( 
+  else if pureUpwind or polyOrder=1 then (
+    if positivity then (
       fhatSurf_expd : subst(gkvsub, fhatALgenUpwindNoLim(subst(gkvsubInv,fL_expd), 
               subst(gkvsubInv,fR_expd), subst(gkvsubInv,alphaUpSurf_expd), 
-              subst(gkvsubInv,surfVar), cflL, cflR, cdim, vdim, i)),
+              subst(gkvsubInv,surfVar), cflL, cflR, cdim, vdim, polyOrder)),
 
       /* compute flux Ghat = < alpha*f > */
       Ghat_k : calcInnerProdList(surfIntVars, alphaSurf_expd, bSurf, fhatSurf_expd),
       Ghat_expd : Ghat_k.bSurf,
 
+      if surfVar=vpar and emflag and polyOrder=1 then (
+        GhatLim_k : calcInnerProdList(surfIntVars, alphaUpSurf_expd, bSurf, fhatSurf_expd),
+        GhatLim_expd : GhatLim_k.bSurf
+      ) else (
+        GhatLim_expd : Ghat_expd
+      ),
+
+      if surfVar=vpar and emflag and polyOrder=1 then (
+        ohmMod_k : calcInnerProdList(surfIntVars, 1, bSurf, fhatSurf_expd),
+        ohmMod_expd : ohmMod_k.bSurf,
+
+        ohmModPos_k : calcInnerProdList(surfIntVars, q_/m_*dAdtProv_expd, bSurf, fhatSurf_expd),
+        ohmModPos_expd : ohmModPos_k.bSurf
+      ),
+
       /* limit flux to preserve positivity of control nodes */
-      cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", i))/3,
+      cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))/3,
       nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
       GhatC : nodesub(Ghat_expd, cSurfNodes),
-      printf(fh, "  double fluxFracL, fluxFracR, flim = 0.;~%"),
-      printf(fh, "  double GhatCtrl[~a];~%", length(cSurfNodes)),
-      printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), surfDir),
-      printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), surfDir),
+      if surfVar=vpar and emflag and polyOrder=1 then (
+        GhatLimC : nodesub(GhatLim_expd, cSurfNodes),
+        ohmModPosC : nodesub(ohmModPos_expd, cSurfNodes)
+      ), 
+      printf(fh, "  double fluxFracL, fluxFracR, limfac, flim = 0.;~%"),
+      printf(fh, "  double GhatCtrl[~a], GhatLimCtrl[~a], ohmModPosCtrl[~a];~%", length(cSurfNodes), length(cSurfNodes), length(cSurfNodes)),
+      printf(fh, "  fluxFracL = cflRateByDirL[0] != -10. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+vdim)), surfDir),
+      printf(fh, "  fluxFracR = cflRateByDirR[0] != -10. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+vdim)), surfDir),
       for c:1 thru length(cSurfNodes) do (
         printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[c]), 
         flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[c])))),
         flimR:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,cSurfNodes)[c])))),
         printf(fh, "  GhatCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatC[c]))),
-        printf(fh, "  if(GhatCtrl[~a] > EPSILON) {~%", c-1),
+        GhatLimCtrl : GhatCtrl,
+        if surfVar=vpar and emflag and polyOrder=1 then (
+          printf(fh, "  GhatLimCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatLimC[c]))),
+          printf(fh, "  ohmModPosCtrl[~a] = ~a; ~%", c-1, gcfac(float(ohmModPosC[c]))),
+          kill(GhatLimCtrl)
+        ),
+        printf(fh, "  if(~a[~a] > EPSILON) {~%", GhatLimCtrl, c-1),
         printf(fh, "    flim = std::max(0., ~a); ~%", flimL),
-        printf(fh, "    GhatCtrl[~a] = std::min(GhatCtrl[~a], std::abs(fluxFracL*flim/dtApprox/~a)); ~%", c-1, c-1, surfac),
-        printf(fh, "  } else if(GhatCtrl[~a] < -EPSILON) {~%", c-1),
+        printf(fh, "    limfac = std::min(1., std::abs(fluxFracL*flim/~a[~a]/dtApprox/~a)); ~%", GhatLimCtrl, c-1, surfac),
+        printf(fh, "  } else if(~a[~a] < -EPSILON) {~%", GhatLimCtrl, c-1),
         printf(fh, "    flim = std::max(0., ~a); ~%", flimR),
-        printf(fh, "    GhatCtrl[~a] = -std::min(-GhatCtrl[~a], std::abs(fluxFracR*flim/dtApprox/~a)); ~%", c-1, c-1, surfac),
-        printf(fh, "  } else GhatCtrl[~a] = 0.; ~%", c-1)
+        printf(fh, "    limfac = std::min(1., std::abs(fluxFracR*flim/~a[~a]/dtApprox/~a)); ~%", GhatLimCtrl, c-1, surfac),
+        printf(fh, "  } else limfac = 0.; ~%"),
+        printf(fh, "  if(limfac != 1.) { ~%"),
+        printf(fh, "    GhatCtrl[~a] = limfac*~a[~a]; ~%", c-1, GhatLimCtrl, c-1),
+        if surfVar=vpar and emflag and polyOrder=1 then (
+          printf(fh, "    GhatCtrl[~a] += ohmModPosCtrl[~a]; ~%", c-1, c-1)
+        ),
+        printf(fh, "  }~%")
       ),
       modToNodC : calcModToNodPhaseWithNodesAndBasis(cSurfNodes, bSurf, surfIntVars),
       Ghat_k:fullratsimp(invert(transpose(modToNodC)).makelist(GhatCtrl[i-1],i,1,length(cSurfNodes))),
       Ghat_k:gcfac(makelist(Ghat_k[i][1],i,1,length(Ghat_k))),
       Ghat_expd : Ghat_k.bSurf,
+      /*
+      if surfVar=vpar and emflag and polyOrder=1 then (
+        ohmMod_k:fullratsimp(invert(transpose(modToNodC)).makelist(ohmModCtrl[i-1],i,1,length(cSurfNodes))),
+        ohmMod_k:gcfac(makelist(ohmMod_k[i][1],i,1,length(ohmMod_k))),
+        ohmMod_expd : ohmMod_k.bSurf
+      ),
+      */
       printf(fh, "~%"),
       /* finished limiting flux */
 
@@ -262,15 +332,15 @@ load(modNm),
       writeCIncrExprsNoExpand1(outl, incr_s),
       flush_output(fh),
 
-      if surfVar=vpar and emflag and i=1 then (
-        tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
+      if surfVar=vpar and emflag and polyOrder=1 then (
+        tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), ohmMod_expd),
         incrMod_r : facsum(fullratsimp(tMod),dxv),
-        writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r)),
+        writeCExprsNoExpand1(incrOhmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r)),
 
-        incrEmMod_s : makelist(incrEmMod[i-1], i, 1, length(bP)),
-        writeCIncrExprsNoExpand1(emModR, incrEmMod_s),  
-        incrEmMod_s : makelist(signs[i]*incrEmMod[i-1], i, 1, length(bP)),
-        writeCIncrExprsNoExpand1(emModL, incrEmMod_s),  
+        incrOhmMod_s : makelist(incrOhmMod[i-1], i, 1, length(bP)),
+        writeCIncrExprsNoExpand1(ohmModR, incrOhmMod_s),  
+        incrOhmMod_s : makelist(signs[i]*incrOhmMod[i-1], i, 1, length(bP)),
+        writeCIncrExprsNoExpand1(ohmModL, incrOhmMod_s),  
         flush_output(fh)
       )
     )
@@ -284,19 +354,19 @@ load(modNm),
       writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
       flush_output(fh),
 
-        if surfVar=vpar and emflag and i=1 then (
+        if surfVar=vpar and emflag and polyOrder=1 then (
            tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
            incrMod_r : facsum(fullratsimp(tMod),dxv),
-           writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
+           writeCExprsNoExpand1(incrOhmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
         ),
 
       printf(fh, "  } else { ~%"),
       fhatSurf_expd : subst(surfVar=-1, fR_expd),
 
-        if surfVar=vpar and emflag and i=1 then (
+        if surfVar=vpar and emflag and polyOrder=1 then (
            tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
            incrMod_r : facsum(fullratsimp(tMod),dxv),
-           writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
+           writeCExprsNoExpand1(incrOhmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
         ),
 
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
@@ -309,9 +379,9 @@ load(modNm),
       printf(fh, "double fupwind[~a];~%", length(bSurf)),
       printf(fh, "double fupwindQuad[~a];~%", length(bSurf)),
       printf(fh, "double alphaQuad;~%"),
-      if i=1 then quad:1/sqrt(3),
-      if i=2 then quad:sqrt(3/5),
-      nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", i))*quad,
+      if polyOrder=1 then quad:1/sqrt(3),
+      if polyOrder=2 then quad:sqrt(3/5),
+      nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))*quad,
       /* function to evaluate expansion g at surface quadrature nodes */
       nodesub(g):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(varsP)-1),g),i,1,length(nodes)),
       /* evaluate fl, fr, and alpha at surface quadrature nodes */
@@ -335,10 +405,10 @@ load(modNm),
       fhatSurf_expd:doExpand1(fupwind,bSurf),
       flush_output(fh),
 
-         if surfVar=vpar and emflag and i=1 then (
+         if surfVar=vpar and emflag and polyOrder=1 then (
             tMod : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), fhatSurf_expd),
             incrMod_r : facsum(fullratsimp(tMod),dxv),
-            writeCExprsNoExpand1(incrEmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
+            writeCExprsNoExpand1(incrOhmMod, subst([wv^2=wv2,q_^2=q2], incrMod_r))
          ),
 
       Ghat_k : calcInnerProdList(surfIntVars, alphaSurf_expd, bSurf, fhatSurf_expd),
@@ -362,11 +432,11 @@ load(modNm),
       writeCIncrExprsNoExpand1(outl, incr_s),
       flush_output(fh),
 
-      if surfVar=vpar and emflag and i=1 then (
-        incrEmMod_s : makelist(incrEmMod[i-1], i, 1, length(bP)),
-        writeCIncrExprsNoExpand1(emModR, incrEmMod_s),  
-        incrEmMod_s : makelist(signs[i]*incrEmMod[i-1], i, 1, length(bP)),
-        writeCIncrExprsNoExpand1(emModL, incrEmMod_s),  
+      if surfVar=vpar and emflag and polyOrder=1 then (
+        incrOhmMod_s : makelist(incrOhmMod[i-1], i, 1, length(bP)),
+        writeCIncrExprsNoExpand1(ohmModR, incrOhmMod_s),  
+        incrOhmMod_s : makelist(signs[i]*incrOhmMod[i-1], i, 1, length(bP)),
+        writeCIncrExprsNoExpand1(ohmModL, incrOhmMod_s),  
         flush_output(fh)
       )
       
@@ -429,7 +499,7 @@ load(modNm),
   )
 )$
 
-calcStep2Update(fh, funcNm, cdim, vdim, basisFun, i,emflag, bvarslist, pureUpwind) := block([],
+calcStep2Update(fh, funcNm, cdim, vdim, basisFun, polyOrder, emflag, bvarslist, pureUpwind) := block([],
 kill(varsC, varsP, basisC, basisP),
 surfDir:cdim+1,
 if vdim > 0 then modNm : sconcat("basis-precalc/basis", basisFun, cdim, "x", vdim, "v")
@@ -444,9 +514,9 @@ load(modNm),
   if cdim = 3 then (
     label:["x", "y", "z", "v", "m"]
   ),
-  bC : basisC[i],
+  bC : basisC[polyOrder],
   if vdim=0 then bP : bC
-  else bP : subst(gkvsub, basisP[i]),
+  else bP : subst(gkvsub, basisP[polyOrder]),
   if vdim=0 then varsP : varsC
   else varsP : subst(gkvsub, varsP),
   numC : length(bC),
@@ -478,8 +548,11 @@ load(modNm),
   /* remove volume contribution from surface variable, which is not integrated */
   surfac : fullratsimp(volfac*dfacSurf),
 
-  if emflag then printf(fh, "double ~aStep2_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *Apar, const double *dApardt, const double *dApardtPrev, const double *fl, const double *fr, double *outl, double *outr, double *emModL, double *emModR) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_"))
-  else printf(fh, "double ~a_~a_P~a_Bvars_~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Bmag, const double *BmagInv, const double *Gradpar, const double *BdriftX, const double *BdriftY, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, i, simplode(bvarslist,"_")),
+  printf(fh, "double ~aStep2_~a_P~a_Bvars_~a(const double q_, const double m_, const double *w, const double *dxv, 
+                    const double *Bmag, const double *BmagInv, const double *Gradpar, 
+                    const double *BdriftX, const double *BdriftY, const double *Phi, 
+                    const double *ohmMod, const double *dApardt, const double *dApardtProv, 
+                    const double *fl, const double *fr, double *outl, double *outr) ~%{ ~%", funcNm, dirlabel, polyOrder, simplode(bvarslist,"_")),
   printf(fh, "// w[NDIM]: Cell-center coordinates. dxv[NDIM]: Cell spacing. H/f: Input Hamiltonian/distribution function. out: Incremented output ~%"),
 
   for dir : 1 thru cdim+vdim do (
@@ -508,7 +581,7 @@ load(modNm),
     Apar_expd:doExpand1(Apar,bC),
     /* expand dApar/dt */
     dAdt_expd:doExpand1(dApardt,bC),
-    dAdtPrev_expd:doExpand1(dApardtPrev,bC)
+    dAdtProv_expd:doExpand1(dApardtProv,bC)
     /* NOTE: even though Apar and dApar/dt are allowed
        to be discontinuous in the parallel (z) direction,
        the surface term in the z direction does not involve
@@ -518,7 +591,7 @@ load(modNm),
   else (
     Apar_expd : 0,
     dAdt_expd : 0,
-    dAdtPrev_expd : 0
+    dAdtProv_expd : 0
   ),
 
   /* calculate full expansion expression for Hamiltonian */
@@ -559,8 +632,9 @@ load(modNm),
   /* calculate phase space velocity alpha in direction of surfVar */
   /* we assume alpha.n is continuous across boundary, although H may not be */
   /* distinguish between alpha and alphaUp, where alphaUp is the one used to determine upwind direction */
-  alphaUp_expd : gkPB(wSurf + surfVar/dfacSurf, H_expd) - q_/m_*dAdtPrev_expd,
+  alphaUp_expd : gkPB(wSurf + surfVar/dfacSurf, H_expd) - q_/m_*dAdtProv_expd,
   alpha_expd : -q_/m_*dAdt_expd,
+  if(positivity) then alpha_expd : alpha_expd + gkPB(wSurf + surfVar/dfacSurf, H_expd),
   /* calculate expression for surface-averaged alpha, and print to c variable alpha0 */
   alpha0expr : gcfac(fullratsimp(innerProd(surfIntVars, 1, subst(surfVar=-1,alphaUp_expd), subst(surfVar=-1, bP[1]))*bP[1])),
   printf(fh, "  // surface-averaged phase velocity in this direction ~%"),
@@ -594,27 +668,73 @@ load(modNm),
     printf(fh, "} ~%"),
     flush_output(fh)
   )
-  else if pureUpwind or i=1 then (
+  else if pureUpwind or polyOrder=1 then (
     if positivity then ( 
-      fhatSurf_expd : subst(gkvsub, fhatALgenUpwind2(subst(gkvsubInv,fL_expd), 
+      fhatSurf_expd : subst(gkvsub, fhatALgenUpwindNoLim(subst(gkvsubInv,fL_expd), 
               subst(gkvsubInv,fR_expd), subst(gkvsubInv,alphaUpSurf_expd), 
-              subst(gkvsubInv,surfVar), cflL, cflR, cdim, vdim, i)),
-      t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
+              subst(gkvsubInv,surfVar), cflL, cflR, cdim, vdim, polyOrder)),
+
+      /* compute flux Ghat = < alpha*f > */
+      Ghat_k : calcInnerProdList(surfIntVars, alphaSurf_expd, bSurf, fhatSurf_expd),
+      Ghat_expd : Ghat_k.bSurf,
+
+      /* limit flux to preserve positivity of control nodes */
+      cSurfNodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))/3,
+      nodesub(f,nodes):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(surfIntVars)),f),i,1,length(nodes)),
+      GhatC : nodesub(Ghat_expd, cSurfNodes),
+      printf(fh, "  double fluxFracL, fluxFracR, flim = 0.;~%"),
+      printf(fh, "  double GhatCtrl[~a];~%", length(cSurfNodes)),
+      printf(fh, "  fluxFracL = cflRateByDirL[0] == 0. ? ~a : cflRateByDirL[~a]/cflRateByDirL[0]; ~%", float(1/(cdim+1)), surfDir),
+      printf(fh, "  fluxFracR = cflRateByDirR[0] == 0. ? ~a : cflRateByDirR[~a]/cflRateByDirR[0]; ~%", float(1/(cdim+1)), surfDir),
+      for c:1 thru length(cSurfNodes) do (
+        printf(fh, "  // control node ~a = ~a ~%", surfIntVars, cSurfNodes[c]), 
+        flimL:gcfac(float(fullratsimp(subst(surfVar=1/3,nodesub(fL_expd,cSurfNodes)[c])))),
+        flimR:gcfac(float(fullratsimp(subst(surfVar=-1/3,nodesub(fR_expd,cSurfNodes)[c])))),
+        printf(fh, "  GhatCtrl[~a] = ~a; ~%", c-1, gcfac(float(GhatC[c]))),
+        printf(fh, "  if(GhatCtrl[~a] > EPSILON) {~%", c-1),
+        printf(fh, "    flim = std::max(0., ~a); ~%", flimL),
+        printf(fh, "    GhatCtrl[~a] = std::min(GhatCtrl[~a], std::abs(fluxFracL*flim/dtApprox/~a)); ~%", c-1, c-1, surfac),
+        printf(fh, "  } else if(GhatCtrl[~a] < -EPSILON) {~%", c-1),
+        printf(fh, "    flim = std::max(0., ~a); ~%", flimR),
+        printf(fh, "    GhatCtrl[~a] = -std::min(-GhatCtrl[~a], std::abs(fluxFracR*flim/dtApprox/~a)); ~%", c-1, c-1, surfac),
+        printf(fh, "  } else GhatCtrl[~a] = 0.; ~%", c-1)
+      ),
+      modToNodC : calcModToNodPhaseWithNodesAndBasis(cSurfNodes, bSurf, surfIntVars),
+      Ghat_k:fullratsimp(invert(transpose(modToNodC)).makelist(GhatCtrl[i-1],i,1,length(cSurfNodes))),
+      Ghat_k:gcfac(makelist(Ghat_k[i][1],i,1,length(Ghat_k))),
+      Ghat_expd : Ghat_k.bSurf,
+      printf(fh, "~%"),
+      /* finished limiting flux */
+
+      /* compute and write increments */
+      t : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=-1, bP), Ghat_expd),
       incr_r : facsum(fullratsimp(t),dxv),
+      t : surfac*calcInnerProdList(surfIntVars, 1, subst(surfVar=1, bP), Ghat_expd),
+      incr_l : -t,
+
+      flush_output(fh),
       writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
       printf(fh, "~%"),
+
+      incr_s : makelist(incr[i-1], i, 1, length(bP)),
+      writeCIncrExprsNoExpand1(outr, incr_s),  
+      printf(fh, "~%"),
+      flush_output(fh),
+      signs : fullratsimp(incr_l/incr_r),
+      incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
+      writeCIncrExprsNoExpand1(outl, incr_s),
       flush_output(fh)
     )
     else (
       printf(fh, "#if upwindType == SURFAVG ~%"),
       printf(fh, "  if (alpha0>0) { ~%"),
-      if positivity then fhatSurf_expd : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, cflL, cdim, vdim, i))
+      if positivity then fhatSurf_expd : subst(gkvsub, fhatAL(fl, subst(gkvsubInv,surfVar), 1, cflL, cdim, vdim, polyOrder))
       else fhatSurf_expd : subst(surfVar=1, fL_expd),
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
       incr_r : facsum(fullratsimp(t),dxv),
       writeCExprsNoExpand1(incr, subst([wv^2=wv2,q_^2=q2], incr_r)),
       printf(fh, "  } else { ~%"),
-      if positivity then fhatSurf_expd : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, cflR, cdim, vdim, i))
+      if positivity then fhatSurf_expd : subst(gkvsub, fhatAL(fr, subst(gkvsubInv,surfVar), -1, cflR, cdim, vdim, polyOrder))
       else fhatSurf_expd : subst(surfVar=-1, fR_expd),
       t : surfac*calcInnerProdList(surfIntVars, alphaSurf_expd, subst(surfVar=-1, bP), fhatSurf_expd),
       incr_r : facsum(fullratsimp(t),dxv),
@@ -626,9 +746,9 @@ load(modNm),
       printf(fh, "double fupwind[~a];~%", length(bSurf)),
       printf(fh, "double fupwindQuad[~a];~%", length(bSurf)),
       printf(fh, "double alphaQuad;~%"),
-      if i=1 then quad:1/sqrt(3),
-      if i=2 then quad:sqrt(3/5),
-      nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", i))*quad,
+      if polyOrder=1 then quad:1/sqrt(3),
+      if polyOrder=2 then quad:sqrt(3/5),
+      nodes : eval_string(sconcat("nodes", cdim+vdim-1, "xp", polyOrder))*quad,
       /* function to evaluate expansion g at surface quadrature nodes */
       nodesub(g):=makelist(subst(makelist(surfIntVars[j]=nodes[i][j],j,1,length(varsP)-1),g),i,1,length(nodes)),
       /* evaluate fl, fr, and alpha at surface quadrature nodes */
@@ -670,6 +790,7 @@ load(modNm),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
     writeCIncrExprsNoExpand1(outl, incr_s),
     flush_output(fh),
+    printf(fh, "~%"),
     
     printf(fh, "  return std::abs(alpha0); ~%"),
     printf(fh, "} ~%"),
@@ -722,6 +843,7 @@ load(modNm),
     signs : fullratsimp(incr_l/incr_r),
     incr_s : makelist(signs[i]*incr[i-1], i, 1, length(bP)),
     writeCIncrExprsNoExpand1(outl, incr_s),
+
     /* return alpha0 so that we can find global value */
     printf(fh, "return std::abs(alpha0); ~%"),
     
@@ -740,13 +862,13 @@ calcGKSurfUpdater(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist) := block
     ) else (
       pureUpwind : false
     ),
-    calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist, pureUpwind),
-    if dir = cdim+1 and p=1 and emflag=true then calcStep2Update(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist, pureUpwind) 
+    calcUpdateInDir(dir, fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist, pureUpwind)
+    /*if dir = cdim+1 and p=1 and emflag=true then calcStep2Update(fh, funcNm, cdim, vdim, basisFun,p,emflag, bvarslist, pureUpwind) */
   )
 )$
 
-em:false$
-for pos: 0 thru 1 do (
+em:true$
+for pos: 1 thru 1 do (
 if pos=0 then positivity:false
 else positivity:true,
 if positivity then posString : "Positivity"

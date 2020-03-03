@@ -16,9 +16,8 @@ local ffiC        = ffi.C
 
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
-  double findMinNodalRatio(const double *fNum, const double *fDenom, double fac, int ndim);
   double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
-  double rescaleVolTerm(const double *fOutSurf, const double dt, double *fVol, int ndim, int numBasis, int *idx);
+  double rescaleVolTerm(const double tCurr, const double dtApprox, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -149,27 +148,38 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
    self.rkIdx = self.rkIdx+1
 end
 
-function PositivityRescale:rescaleVolTerm(tCurr, fOutSurf, dt, fVol)
-   local localRange = fOutSurf:localRange()   
-   local fOutSurfPtr = fOutSurf:get(1)
-   local fVolPtr = fVol:get(1)
-   local fOutSurfIndexer = fOutSurf:genIndexer()
-   local fVolIndexer = fVol:genIndexer()
+function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol)
+   local localRange = fRhsSurf:localRange()   
+   local fIn_ptr = fIn:get(1)
+   local fRhsSurf_ptr = fRhsSurf:get(1)
+   local fRhsVol_ptr = fRhsVol:get(1)
+   local fInIndexer = fIn:genIndexer()
+   local fRhsSurfIndexer = fRhsSurf:genIndexer()
+   local fRhsVolIndexer = fRhsVol:genIndexer()
+
+   local weights_ptr, weightsIndexer
+   if weights then
+      weights_ptr = weights:get(1)
+      weightsIndexer = weights:genIndexer()
+   end
 
    for idx in localRange:rowMajorIter() do
-      fOutSurf:fill(fOutSurfIndexer(idx), fOutSurfPtr)
-      fVol:fill(fVolIndexer(idx), fVolPtr)
+      fIn:fill(fInIndexer(idx), fIn_ptr)
+      fRhsSurf:fill(fRhsSurfIndexer(idx), fRhsSurf_ptr)
+      fRhsVol:fill(fRhsVolIndexer(idx), fRhsVol_ptr)
 
-      local minOutSurf = ffiC.findMinNodalValue(fOutSurfPtr:data(), self.basis:ndim())
-      local f0 = fOutSurfPtr:data()[0]/math.sqrt(2)^self.basis:ndim()
-      if minOutSurf < -GKYL_EPSILON*math.abs(minOutSurf-2*f0)*2 then print("warning: at time ", tCurr, ", surface terms making control node negative, with value = ", minOutSurf, 
-                                                                           " at idx = ", idx[1], idx[2],  idx[3], idx[4], idx[5], "eps = ", GKYL_EPSILON*math.abs(minOutSurf-2*f0)*2) end
-      local scaler = ffiC.rescaleVolTerm(fOutSurfPtr:data(), dt, fVolPtr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
+      local weightfac = 1.0
+      if weights then
+         weightfac = 0.0
+         weights:fill(weightsIndexer(idx), weights_ptr)
+         for i, d in pairs(weightDirs) do
+            weightfac = weightfac + weights_ptr:data()[d]
+         end
+         weightfac = weightfac/weights_ptr:data()[0]
+      end
+      
+      local scaler = ffiC.rescaleVolTerm(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(), fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
    end
-end
-
-function PositivityRescale:findMinNodalRatio(fInPtr, fRhsSurfPtr, fac, ndim, idxPtr)
-   return ffiC.findMinNodalRatio(fInPtr, fRhsSurfPtr, fac, ndim, idxPtr)
 end
 
 function PositivityRescale:write(tm, frame, nm)
