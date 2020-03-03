@@ -1,0 +1,147 @@
+/* Create header file for multigrid Poisson solver. */
+
+fh : openw("~/max-out/MGpoissonModDecl.h")$
+
+polyOrderMax : 1$
+
+bName        : ["Ser"]$
+
+
+VarsC : [X, Y, Z]$
+
+/* This variable obviates some if-statements. */
+boundStrKey : [[-1,"L"],[0,""],[1,"U"]]$
+/* Types of boundary conditions for which to generate kernels.
+     =0 periodic
+     =3 Robin
+   For periodic we'll assume ghost cells are filled accordingly
+   and use an interior stencil. */
+bcTypes  : [0, 3]$
+bcStrs   : ["", "Robin"]$
+bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]]$
+
+printf(fh, "#ifndef MG_POISSON_MOD_DECL_H ~%")$
+printf(fh, "#define MG_POISSON_MOD_DECL_H ~%")$
+
+printf(fh, " ~%")$
+
+printf(fh, "extern \"C\" { ~%")$
+printf(fh, " ~%")$
+
+findBoundaryStrCombo(fhIn, funcNameStr, funcArgsStr, basisFun, dim) := block([],
+  /* Obtain the various string combinations for the names of the
+     kernels used near boundaries. */
+
+  load(sconcat("basis-precalc/basis", basisFun, dim, "x")),
+
+  /* This will well with (string) variable selection
+     depending on stencil location. */
+  sVarsC : copylist(varsC),
+  for d : 1 thru dim do (
+    sVarsC[d] : string(varsC[d])
+  ),
+  condVarsC : [[-1,sVarsC],[0,makelist("",i,1,dim)],[1,sVarsC]],
+  
+  /* Create a list with 3^dim elements. Each element is itself an dim-long
+     list indicating whether the cell has a lower (=-1) or upper (=1)
+     boundary, or no boundary (=0) in that direction. */
+  cD : 1,
+  stencilLoc  : [makelist(0,i,1,dim)],  /* Center stencil, all zeros. */
+  
+  for dir : 1 thru dim do (
+    /* Loop through cells already added to stencilLoc. */
+    for acI : 1 thru 3^(dir-1) do (
+      /* Loop over lower and upper. */
+      for bI : -1 thru 1 step 2 do (
+        stencilLoc : append(stencilLoc, copylist([stencilLoc[acI]])),
+        stencilLoc[length(stencilLoc)][dir] : bI
+      )
+    )
+  ),
+
+  for sI : 2 thru length(stencilLoc) do (
+  
+    /* Count the number of non-periodic boundaries. */
+    npBCs : 0,
+    for d : 1 thru dim do (
+      if (stencilLoc[sI][d] # 0) then (
+        npBCs : npBCs + 1
+      )
+    ),
+  
+    /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
+       of that cell's stencil, assuming there are bcN types of BCs. For now
+       only Robin BCs are supported (also used for Dirichlet/Neumann). */
+    npBCcombos : makelist([bcTypes[i]],i,2,length(bcTypes)),
+    for l : 2 thru npBCs do (
+      tmp : copylist(npBCcombos),
+      npBCcombos : [],
+      for cI : 1 thru length(tmp) do (
+        for bI : 2 thru length(bcTypes) do (
+          npBCcombos : append(npBCcombos,[ append(tmp[cI],[bcTypes[bI]]) ])
+        )
+      )
+    ),
+
+    for bcI : 1 thru length(npBCcombos) do (
+      /* Loop over BC combinations. Will create a separate kernel for each. */
+
+      currBCs : copylist(npBCcombos[bcI]),
+      /* It's easier to work with a list of dim elements indicating the BC
+         in each direction (rather than npBCcombos), even if it's periodic. */
+      nInc : 0,
+      for d : 1 thru dim do (
+        if (stencilLoc[sI][d] = 0) then (
+          currBCs : append(firstn(currBCs,d+nInc-1),[0],lastn(currBCs,length(currBCs)-(d+nInc-1))),
+          nInc    : nInc+1
+        )
+      ),
+
+      boundaryStr : "",
+      for d : 1 thru dim do (
+        boundaryStr : sconcat(boundaryStr,assoc(stencilLoc[sI][d],boundStrKey),
+                              assoc(stencilLoc[sI][d],condVarsC)[d],assoc(currBCs[d],bcKey))
+      ),
+      boundaryStr : sconcat(boundaryStr,"_"),
+
+      printf(fhIn, sconcat("void ",funcNameStr,"~ax~a_~aP~a(",funcArgsStr,");~%"), dim, bName[bInd], boundaryStr, polyOrder)
+    )
+  )
+)$
+
+for bInd : 1 thru length(bName) do (
+
+  for polyOrder : 1 thru polyOrderMax do (
+    for ci : 1 thru 2 do (
+
+      /* DG solver kernels, */
+
+      /* Prolongation and restriction operators. */
+      printf(fh, "void MGpoissonProlong~ax~a_P~a(const double *fldC, double **fldF);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonRestrict~ax~a_P~a(double **fldF, double *fldC);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "~%"),
+
+      /* Smoothers. */
+      printf(fh, "void MGpoissonDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      printf(fh, "void MGpoissonDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
+      /* Boundary smoothers. */
+      findBoundaryStrCombo(fh, "MGpoissonDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      findBoundaryStrCombo(fh, "MGpoissonDampedJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
+      printf(fh, "~%"),
+
+      /* Residue kernels. */
+      printf(fh, "void MGpoissonResidue~ax~a_P~a(double **dx, const double *bcVals, const double *rho, double **phi, double *resOut);~%", ci, bName[bInd], polyOrder),
+      findBoundaryStrCombo(fh, "MGpoissonResidue", "double **dx, const double *bcVals, const double *rho, double **phi, double *resOut", bName[bInd], ci),
+      printf(fh, "~%")
+
+    ),
+    printf(fh, "~%")
+  )
+
+);
+
+printf(fh, "} ~%")$
+
+printf(fh, "#endif ~%")$
+
+close(fh)$

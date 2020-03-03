@@ -7,7 +7,10 @@
 --------------------------------------------------------------------------------
 
 local ffi = require "ffi"
-local _ = require "Updater.momentCalcData._DistFuncCdef"
+local _   = require "Updater.momentCalcData._DistFuncCdef"
+if GKYL_HAVE_CUDA then
+   _ = require "Updater.momentCalcData._DistFuncCdefDevice"
+end
 
 -- map of basis function name -> function encoding
 local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tensor"] = "Tensor" }
@@ -15,8 +18,13 @@ local basisNmMap = { ["serendipity"] = "Ser", ["maximal-order"] = "Max", ["tenso
 local _M = {}
 
 -- select function to compute specified moment
-function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder)
-   local funcNm = string.format("MomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+function _M.selectMomCalc(mom, basisNm, CDIM, VDIM, polyOrder, calcOnDevice)
+   local funcNm = nil
+   if not calcOnDevice then
+      funcNm = string.format("MomentCalc%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+   else
+      funcNm = string.format("calcMom%dx%dv%s_%s_P%d", CDIM, VDIM, basisNmMap[basisNm], mom, polyOrder)
+   end
    return ffi.C[funcNm]
 end
 

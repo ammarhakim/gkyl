@@ -17,6 +17,7 @@ local SpeciesBase      = require "App.Species.SpeciesBase"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
 local xsys             = require "xsys"
+local ffi              = require "ffi"
 
 local FuncVlasovSpecies = Proto(SpeciesBase)
 

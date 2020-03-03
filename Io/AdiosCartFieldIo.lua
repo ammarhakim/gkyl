@@ -75,10 +75,15 @@ function AdiosCartFieldIo:init(tbl)
 
    -- If we have meta-data to write out, store it.
    self._metaData = {
-      -- We always write out input file contents (encoded as base64 string).
+      -- DISABLING OUTPUT FOR INPUT FILE FOR NOW AT THIS BARFS IT THE
+      -- STRING IS TOO LONG
       ["inputfile"] = {
-	 value = GKYL_INP_FILE_CONTENTS, vType = "string"
+      	 value = "inputfile"
       }
+      -- -- We always write out input file contents (encoded as base64 string).
+      -- ["inputfile"] = {
+      -- 	 value = GKYL_INP_FILE_CONTENTS, vType = "string"
+      -- }
    }
    if tbl.metaData then
       -- Store value and its type for each piece of data.
@@ -249,7 +254,7 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       local ndim                    = field:ndim()
       local localRange, globalRange = field:localRange(), field:globalRange()
 
-      if readGhost then
+      if _readGhost then
          localRange  = field:localExtRange() 
          globalRange = field:globalExtRange() 
       end
@@ -323,9 +328,11 @@ function AdiosCartFieldIo:read(field, fName, readGhost) --> time-stamp, frame-nu
       -- types below)
       local start, count = Lin.UInt64Vec(ndim+1), Lin.UInt64Vec(ndim+1)
       for d = 1, ndim do
-         start[d] = localRange:lower(d)-1
-         count[d] = localRange:shape(d)
-         if _readGhost then start[d] = start[d] + 1 end
+         local s = localRange:lower(d)-1
+         local c = localRange:shape(d)
+         if _readGhost then s = s + 1 end
+         start[d] = s
+         count[d] = c
       end
       count[ndim+1] = field:numComponents()
       start[ndim+1] = 0

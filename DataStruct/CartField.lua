@@ -21,6 +21,12 @@ local LinearDecomp = require "Lib.LinearDecomp"
 local Mpi = require "Comm.Mpi"
 local Range = require "Lib.Range"
 
+-- load CUDA allocators (or dummy when CUDA is not found)
+local cuAlloc = require "Cuda.AllocDummy"
+if GKYL_HAVE_CUDA then
+   cuAlloc = require "Cuda.Alloc"
+end
+
 -- C interfaces
 ffi.cdef [[
     // s: start index. nv: number of values
@@ -31,6 +37,18 @@ ffi.cdef [[
     void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
     void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
     void gkylCartFieldAssignAll(unsigned s, unsigned nv, double val, double *out);
+
+    void gkylCartFieldDeviceAccumulate(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceAssign(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, const double *inp, double *out);
+    void gkylCartFieldDeviceScale(int numBlocks, int numThreads, unsigned s, unsigned nv, double fact, double *out);
+    void gkylCartFieldDeviceAbs(int numBlocks, int numThreads, unsigned s, unsigned nv, double *out);
+
+    // copy component data from/to field
+    void gkylCopyFromFieldDevice(int numBlocks, int numThreads, double *data, double *f, unsigned numComponents, unsigned c);
+    void gkylCopyToFieldDevice(int numBlocks, int numThreads, double *f, double *data, unsigned numComponents, unsigned c);
+
+    // assign all elements to specified value
+    void gkylCartFieldDeviceAssignAll(int numBlocks, int numThreads, unsigned s, unsigned nv, double val, double *out);
 ]]
 
 -- Local definitions
@@ -111,6 +129,11 @@ local function Field_meta_ctor(elct)
       local alloc = AllocShared.AllocShared_meta_ctor(elct)
       return alloc(comm, numElem)
    end
+   -- allocator for use in memory duplication on device
+   local function deviceAllocatorFunc(comm, numElem)
+      local alloc = cuAlloc.Alloc_meta_ctor(elct, false) -- don't used managed memory
+      return alloc(numElem)
+   end
 
    -- make constructor for Field
    local Field = {}
@@ -139,6 +162,14 @@ local function Field_meta_ctor(elct)
       local sz = localRange:extend(ghost[1], ghost[2]):volume()*nc -- amount of data in field
       self._allocData = allocator(shmComm, sz) -- store this so it does not vanish under us
       self._data = self._allocData:data() -- pointer to data
+
+      self._devData = nil -- by default no device memory
+      -- create device memory if needed
+      local createDeviceCopy = xsys.pickBool(tbl.createDeviceCopy, false) -- by default, no device mem allocated
+      if createDeviceCopy then
+	 self._devData = deviceAllocatorFunc(shmComm, sz)
+      end
+      if not GKYL_HAVE_CUDA then self._devData = nil end
 
       -- for number types fill it with zeros (for others, the
       -- assumption is that users will initialize themselves)
@@ -307,8 +338,42 @@ local function Field_meta_ctor(elct)
       copy = function (self, fIn)
 	 self:_assign(1.0, fIn)
       end,
+      deviceCopy = function (self, fIn)
+         if self._devData then
+	    self:_deviceAssign(1.0, fIn)
+	 end
+      end,
+      copyHostToDevice = function (self)
+	 if self._devData then
+	    return self._devData:copyHostToDevice(self._allocData)
+	 end
+	 return 0
+      end,
+      copyDeviceToHost = function (self)
+	 if self._devData then
+	    return self._devData:copyDeviceToHost(self._allocData)
+	 end
+	 return 0
+      end,
+      deviceData = function (self)
+	 return self._devData
+      end,
+      deviceDataPointer = function (self)
+	 return self._devData:data()
+      end,
+      dataPointer = function (self)
+	 return self._allocData:data()
+      end,
       clear = function (self, val)
 	 ffiC.gkylCartFieldAssignAll(self:_localLower(), self:_localShape(), val, self._data)
+      end,
+      deviceClear = function (self, val)
+         if self._devData then
+	    local numThreads = GKYL_DEFAULT_NUM_THREADS
+	    local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	    local numBlocks = math.floor(shape/numThreads)+1
+	    ffiC.gkylCartFieldDeviceAssignAll(numBlocks, numThreads, self:_localLower(), self:_localShape(), val, self:deviceDataPointer())
+	 end
       end,
       fill = function (self, k, fc)
 	 local loc = (k-1)*self._numComponents -- (k-1) as k is 1-based index	 
@@ -326,6 +391,15 @@ local function Field_meta_ctor(elct)
 
 	 ffiC.gkylCartFieldAssign(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
       end,
+      _deviceAssign = function(self, fact, fld)
+	 assert(field_compatible(self, fld), "CartField:combine: Can only accumulate compatible fields")
+	 assert(type(fact) == "number", "CartField:combine: Factor not a number")
+
+	 local numThreads = GKYL_DEFAULT_NUM_THREADS
+	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local numBlocks = math.floor(shape/numThreads)+1
+	 ffiC.gkylCartFieldDeviceAssign(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
+      end,
       _accumulateOneFld = function(self, fact, fld)
 	 assert(field_compatible(self, fld),
 		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
@@ -335,6 +409,19 @@ local function Field_meta_ctor(elct)
 		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
 
 	 ffiC.gkylCartFieldAccumulate(self:_localLower(), self:_localShape(), fact, fld._data, self._data)
+      end,
+      _deviceAccumulateOneFld = function(self, fact, fld)
+	 assert(field_compatible(self, fld),
+		"CartField:accumulate/combine: Can only accumulate/combine compatible fields")
+	 assert(type(fact) == "number",
+		"CartField:accumulate/combine: Factor not a number")
+         assert(self:layout() == fld:layout(),
+		"CartField:accumulate/combine: Fields should have same layout for sums to make sense")
+
+	 local numThreads = GKYL_DEFAULT_NUM_THREADS
+	 local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	 local numBlocks = math.floor(shape/numThreads)+1
+	 ffiC.gkylCartFieldDeviceAccumulate(numBlocks, numThreads, self:_localLower(), self:_localShape(), fact, fld:deviceDataPointer(), self:deviceDataPointer())
       end,
       accumulate = isNumberType and
 	 function (self, c1, fld1, ...)
@@ -348,13 +435,41 @@ local function Field_meta_ctor(elct)
 	 function (self, c1, fld1, ...)
 	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
 	 end,
-      combine = isNumberType and
+      deviceAccumulate = isNumberType and
 	 function (self, c1, fld1, ...)
-	    local args = {...} -- package up rest of args as table
-	    local nFlds = #args/2
-	    self:_assign(c1, fld1) -- assign first field
-	    for i = 1, nFlds do -- accumulate rest of the fields
-	       self:_accumulateOneFld(args[2*i-1], args[2*i])
+	    if self._devData then
+	       local args = {...} -- package up rest of args as table
+	       local nFlds = #args/2
+	       self:_deviceAccumulateOneFld(c1, fld1) -- accumulate first field
+	       for i = 1, nFlds do -- accumulate rest of the fields
+	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
+	       end
+	    end
+	 end or
+	 function (self, c1, fld1, ...)
+	    assert(false, "CartField:accumulate: Accumulate only works on numeric fields")
+	 end,
+      combine = isNumberType and
+         function (self, c1, fld1, ...)
+            local args = {...} -- package up rest of args as table
+            local nFlds = #args/2
+            self:_assign(c1, fld1) -- assign first field
+            for i = 1, nFlds do -- accumulate rest of the fields
+               self:_accumulateOneFld(args[2*i-1], args[2*i])
+            end
+         end or
+         function (self, c1, fld1, ...)
+            assert(false, "CartField:combine: Combine only works on numeric fields")
+         end,
+      deviceCombine = isNumberType and
+	 function (self, c1, fld1, ...)
+	    if self._devData then
+	       local args = {...} -- package up rest of args as table
+	       local nFlds = #args/2
+	       self:_deviceAssign(c1, fld1) -- assign first field
+	       for i = 1, nFlds do -- accumulate rest of the fields
+	          self:_deviceAccumulateOneFld(args[2*i-1], args[2*i])
+	       end
 	    end
 	 end or
 	 function (self, c1, fld1, ...)
@@ -366,14 +481,38 @@ local function Field_meta_ctor(elct)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:scale: Scale only works on numeric fields")
-	 end,      
+	 end,
+      deviceScale = isNumberType and
+	 function (self, fact)
+	    if self._devData then
+	       local numThreads = GKYL_DEFAULT_NUM_THREADS
+	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local numBlocks = math.floor(shape/numThreads)+1
+	       ffiC.gkylCartFieldDeviceScale(numBlocks, numThreads,  self:_localLower(), self:_localShape(), fact, self:deviceDataPointer())
+	    end
+	 end or
+	 function (self, fact)
+	    assert(false, "CartField:deviceScale: Scale only works on numeric fields")
+	 end,
       abs = isNumberType and
          function (self)
             ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
 	 end or
 	 function (self, fact)
 	    assert(false, "CartField:abs: Abs only works on numeric fields")
-	 end,      
+	 end,
+      deviceAbs = isNumberType and
+	 function (self)
+	    if self._devData then
+	       local numThreads = GKYL_DEFAULT_NUM_THREADS
+	       local shape = self._localExtRangeDecomp:shape(self._shmIndex)
+	       local numBlocks = math.floor(shape/numThreads)+1
+	       ffiC.gkylCartFieldDeviceAbs(numBlocks, numThreads,  self:_localLower(), self:_localShape(), self:deviceDataPointer())
+	    end
+	 end or
+	 function (self, fact)
+	    assert(false, "CartField:deviceAbs: Abs only works on numeric fields")
+	 end,
       defaultLayout = function (self)
 	 if defaultLayout == rowMajLayout then
 	    return "row-major"

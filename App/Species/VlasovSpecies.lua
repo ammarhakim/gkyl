@@ -50,7 +50,9 @@ function VlasovSpecies:alloc(nRkDup)
    self.totalEmField = self:allocVectorMoment(8)     -- 8 components of EM field.
 
    -- Allocate field for external forces if any.
-   self.vExtForce = self:allocVectorMoment(self.vdim)
+   if self.hasExtForce then 
+      self.vExtForce = self:allocVectorMoment(self.vdim)
+   end
 
    -- Allocate moment array for integrated moments (n, n*u_i, sum_i n*u_i^2, sum_i n*T_ii).
    self.flow                 = self:allocVectorMoment(self.vdim)
@@ -65,6 +67,9 @@ function VlasovSpecies:fullInit(appTbl)
    -- If there is an external force, get the force function.
    if tbl.vlasovExtForceFunc then
       self.vlasovExtForceFunc = tbl.vlasovExtForceFunc
+      self.hasExtForce = true
+   else
+      self.hasExtForce = false
    end
 
    local externalBC = tbl.externalBC
@@ -82,6 +87,13 @@ function VlasovSpecies:createSolver(hasE, hasB)
    -- Run the KineticSpecies 'createSolver()' to initialize the
    -- collisions solver.
    VlasovSpecies.super.createSolver(self)
+
+   -- External forces are accumulated to the electric field part of
+   -- totalEmField
+   if self.hasExtForce then
+      hasE = true
+      hasB = true
+   end
 
    -- Create updater to advance solution by one time-step.
    local vlasovEqn = VlasovEq {
@@ -264,11 +276,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                   local specInd = findInd(species[sN].collisions[collNmN].collidingSpecies, sO)
                   if specInd < (#species[sN].collisions[collNmN].collidingSpecies+1) then
                      -- Collision operator kind.
-                     self.collPairs[sN][sO].kind  = species[sN].collisions[collNmN].collKind
+                     self.collPairs[sN][sO].kind      = species[sN].collisions[collNmN].collKind
                      -- Collision frequency time dependence (e.g. constant, time-varying).
                      self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
                      -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
-                     self.collPairs[sN][sO].varNu = species[sN].collisions[collNmN].varNu
+                     self.collPairs[sN][sO].varNu     = species[sN].collisions[collNmN].varNu
                      if (not self.collPairs[sN][sO].timeDepNu) then
                         -- Constant collisionality. Record it.
                         self.collPairs[sN][sO].nu = species[sN].collisions[collNmN].collFreqs[specInd]
@@ -282,19 +294,21 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                      end
                   end
                elseif self.collPairs[sO][sN].on then
-                  -- This species sN doesn't collide with sO, but sO collides with sN.
+                  -- Species sN doesn't collide with sO, but sO collides with sN.
                   -- For computing cross-primitive moments, species sO may need the sN-sO
                   -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
                   for collNmO, _ in pairs(species[sO].collisions) do
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
                         -- Collision operator kind.
-                        self.collPairs[sO][sN].kind  = species[sO].collisions[collNmO].collKind
+                        self.collPairs[sO][sN].kind      = species[sO].collisions[collNmO].collKind
                         -- Collision frequency time dependence (e.g. constant, time-varying).
-                        self.collPairs[sN][sO].timeDepNu = species[sN].collisions[collNmN].timeDepNu
+                        self.collPairs[sO][sN].timeDepNu = species[sO].collisions[collNmN].timeDepNu
+                        self.collPairs[sN][sO].timeDepNu = species[sO].collisions[collNmN].timeDepNu
                         -- Collision frequency spatial dependence (e.g. homogeneous, spatially varying).
-                        self.collPairs[sO][sN].varNu = species[sO].collisions[collNmO].varNu
-                        if (not self.collPairs[sO][sN].timeDepNu) then
+                        self.collPairs[sO][sN].varNu     = species[sO].collisions[collNmO].varNu
+                        self.collPairs[sN][sO].varNu     = species[sO].collisions[collNmO].varNu
+                        if (not self.collPairs[sN][sO].timeDepNu) then
                            -- Constant collisionality. Record it.
                            if (self.collPairs[sN][sO].varNu) then 
                               -- We will need to first project the nu we do have, and later scale it by the mass ratio.
@@ -316,6 +330,10 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
             end
          end    -- end if next(species[sN].collisions) statement.
       else
+         -- This segment is needed when species sN doesn't have a collision object/table,
+         -- but species sO collides with sN.
+         -- For computing cross-primitive moments, species sO may need the sN-sO
+         -- collision frequency. Set it such that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
          for sO, _ in pairs(species) do
             if species[sO].collisions and next(species[sO].collisions) then 
                for collNmO, _ in pairs(species[sO].collisions) do
@@ -325,8 +343,9 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                      -- that m_sN*nu_{sN sO}=m_sO*nu_{sO sN}.
                      local specInd = findInd(species[sO].collisions[collNmO].collidingSpecies, sN)
                      if specInd < (#species[sO].collisions[collNmO].collidingSpecies+1) then
+                        self.collPairs[sO][sN].varNu = species[sO].collisions[collNmO].varNu
                         self.collPairs[sN][sO].varNu = species[sO].collisions[collNmO].varNu
-                        if (not self.collPairs[sO][sN].timeDepNu) then
+                        if (not self.collPairs[sN][sO].timeDepNu) then
                            -- Constant collisionality. Record it.
                            if (self.collPairs[sN][sO].varNu) then 
                               -- We will need to first project the nu we do have, and later scale it by the mass ratio.
@@ -450,11 +469,11 @@ function VlasovSpecies:initCrossSpeciesCoupling(species)
                otherNm = string.gsub(sO .. sN, self.name, "")
                if self.nuVarXCross[otherNm] == nil then
                   self.nuVarXCross[otherNm] = self:allocMoment()
-                  if ((not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
-                     projectNuX:setFunc(self.collPairs[sN][sO].nu)
+                  if (userInputNuProfile and (not self.collPairs[sN][sO].timeDepNu) or (not self.collPairs[sO][sN].timeDepNu)) then
+                     projectNuX:setFunc(self.collPairs[self.name][otherNm].nu)
                      projectNuX:advance(0.0,{},{self.nuVarXCross[otherNm]})
-                     if (not self.collPairs[sN][sO].on) then
-                        self.nuVarXCross[otherNm]:scale(species[sO]:getMass()/species[sN]:getMass())
+                     if (not self.collPairs[self.name][otherNm].on) then
+                        self.nuVarXCross[otherNm]:scale(species[self.name]:getMass()/species[otherNm]:getMass())
                      end
                      self.nuVarXCross[otherNm]:write(string.format("%s_nu-%s_%d.bp",self.name,otherNm,0),0.0,0,true)
                   end
@@ -482,7 +501,7 @@ function VlasovSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if emFuncField then totalEmField:accumulate(qbym, emFuncField) end
 
    -- If external force present (gravity, body force, etc.) accumulate it to electric field.
-   if self.vlasovExtForceFunc then
+   if self.hasExtForce then
       local vExtForce = self.vExtForce
       self.evalVlasovExtForce:advance(tCurr, {}, {vExtForce})
 

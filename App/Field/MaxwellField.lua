@@ -16,6 +16,7 @@ local PerfMaxwell      = require "Eq.PerfMaxwell"
 local Proto            = require "Lib.Proto"
 local Time             = require "Lib.Time"
 local Updater          = require "Updater"
+local BoundaryCondition = require "Updater.BoundaryCondition"
 local xsys             = require "xsys"
 local ffi              = require "ffi"
 
@@ -574,7 +575,15 @@ function MaxwellField:applyBc(tCurr, emIn)
    emIn:sync()
    self.bcTime = self.bcTime + Time.clock()-tmStart
 end
-   
+ 
+MaxwellField.bcConst = function(Ex, Ey, Ez, Bx, By, Bz, phiE, phiB)
+   local bc = BoundaryCondition.Const {
+      components = {1, 2, 3, 4, 5, 6, 7, 8},
+      values     = {Ex, Ey, Ez, Bx, By, Bz, phiE, phiB}
+   }
+   return { bc }
+end
+  
 function MaxwellField:totalSolverTime()
    local ftm = 0.0
    if self.fieldSlvr then
@@ -651,6 +660,11 @@ function FuncMaxwellField:alloc(nField)
    self.fieldIo = AdiosCartFieldIo {
       elemType = self.em:elemType(),
       method   = self.ioMethod,
+      metaData = {
+	 polyOrder = self.basis:polyOrder(),
+	 basisType = self.basis:id()
+      },
+
    }   
 end
 

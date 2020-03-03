@@ -134,4 +134,12 @@ local bcWallFlip       = BoundaryCondition.Copy { components = {6, 7}, fact = {-
 local bcWallZeroNormal = BoundaryCondition.ZeroNormal { components = {2, 3, 4} }
 TenMoment.bcWall = { bcWallCopy, bcWallFlip, bcWallZeroNormal }
 
+TenMoment.bcConst = function(rho, rhou, rhov, rhow, pxx, pxy, pxz, pyy, pyz, pzz)
+   local bc = BoundaryCondition.Const {
+      components = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+      values     = {rho, rhou, rhov, rhow, pxx, pxy, pxz, pyy, pyz, pzz}
+   }
+   return { bc }
+end
+
 return TenMoment

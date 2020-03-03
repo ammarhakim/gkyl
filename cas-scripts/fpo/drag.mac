@@ -1,9 +1,10 @@
 kill(all) $
 load("modal-basis") $
-load("recovery-calc/recovery") $
+load("recovery") $
 assume(dv[0]>0, dv[1]>0, dv[2]>0) $
 numDims : 2 $
 
+basisNm : "Ser"$
 for polyOrder : 1 thru 2 do (
   fname : sconcat("~/max-out/fpoDragKernelP", polyOrder, ".cpp"),
   fh : openw(fname),
@@ -12,8 +13,7 @@ for polyOrder : 1 thru 2 do (
 
   printf(fh, "void fpoDragKernelP~a(const double dt, const double *dv, const double *fC, const double *fL, const double *fR, const double *fT, const double *fB, const double *hC, const double *hL, const double *hR, const double *hT, const double *hB, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
   
-  load("basis-precalc/basisSer2x"),
-  baC : basisC[polyOrder],
+  baC : getBasis(sconcat("basis-precalc/basis", basisNm, "2x"), polyOrder),
   baL : eta([-1,0], [2,2], baC),
   baR : eta([1,0], [2,2], baC),
   baT : eta([0,1], [2,2], baC),
@@ -47,10 +47,10 @@ for polyOrder : 1 thru 2 do (
 
 
   /* Setting up recoveries of h */
-  hRecL : getRecov2CellGen(x, [2,2], polyOrder, hL, hC),
-  hRecR : getRecov2CellGen(x, [2,2], polyOrder, hC, hR),
-  hRecB : getRecov2CellGen(y, [2,2], polyOrder, hB, hC),
-  hRecT : getRecov2CellGen(y, [2,2], polyOrder, hC, hT),
+  hRecL : calcRecov2CellGen(basisNm, x, [2,2], polyOrder, hL, hC),
+  hRecR : calcRecov2CellGen(basisNm, x, [2,2], polyOrder, hC, hR),
+  hRecB : calcRecov2CellGen(basisNm, y, [2,2], polyOrder, hB, hC),
+  hRecT : calcRecov2CellGen(basisNm, y, [2,2], polyOrder, hC, hT),
   
   
   tmp : calcInnerProdListGen([x, y], [[-2,0], [-1,1]], 1, baL,
@@ -111,10 +111,10 @@ for polyOrder : 1 thru 2 do (
   printf(fh, "~%"),
 
   
-  hxfRecL : getRecov2CellGen(x, [2,2], polyOrder, hxfLp, hxfLm),
-  hxfRecR : getRecov2CellGen(x, [2,2], polyOrder, hxfRm, hxfRp),
-  hyfRecB : getRecov2CellGen(y, [2,2], polyOrder, hyfBp, hyfBm),
-  hyfRecT : getRecov2CellGen(y, [2,2], polyOrder, hyfTm, hyfTp),
+  hxfRecL : calcRecov2CellGen(basisNm, x, [2,2], polyOrder, hxfLp, hxfLm),
+  hxfRecR : calcRecov2CellGen(basisNm, x, [2,2], polyOrder, hxfRm, hxfRp),
+  hyfRecB : calcRecov2CellGen(basisNm, y, [2,2], polyOrder, hyfBp, hyfBm),
+  hyfRecT : calcRecov2CellGen(basisNm, y, [2,2], polyOrder, hyfTm, hyfTp),
 
 
   Jx : (2/dv[1])^2,
