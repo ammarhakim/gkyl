@@ -433,11 +433,10 @@ function MGpoisson:restrict(fFld,cFld)
 end
 
 function MGpoisson:opStencilIndices(idxIn, stencilType)
-   -- MF update: I wish to change the stencil numbering to match kernel IDs.
    -----------------
    -- Given the index of the current cell (idxIn), return
    -- a table of indices of the cells in a stencil of
-   -- type 'stencilType' used in the relaxtion operator.
+   -- type 'stencilType' used in the relaxation and inter-grid operators.
    -- Stencil types are given by [t,w,l]:
    --   t: type of stencil
    --        0 : 'cross'.
@@ -450,11 +449,11 @@ function MGpoisson:opStencilIndices(idxIn, stencilType)
    --        [ 1] = upper boundary cell.
    --
    -- So stencilType=[0,[5,5],[0,0]] corresponds to 
-   --                 8
-   --                 6
-   --         5   3   1   2   4
-   --                 7
    --                 9
+   --                 7
+   --         4   2   1   3   5
+   --                 6
+   --                 8
 
    -- First copy all indicies since (in higher dimensions)
    -- most of the stay the same for each cell.
@@ -467,7 +466,7 @@ function MGpoisson:opStencilIndices(idxIn, stencilType)
       for d = 1, self.dim do
          for pm = 1,self.opStencilWidth-1 do
             sI = sI + 1
-            self.opStencilIdx[sI][d] = idxIn[d]-((-1)^(pm % 2))*((self.opStencilWidth-1)/2)
+            self.opStencilIdx[sI][d] = idxIn[d]+((-1)^(pm % 2))*((self.opStencilWidth-1)/2)
          end
       end
    end
