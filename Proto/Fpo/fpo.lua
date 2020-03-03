@@ -151,25 +151,25 @@ return function(tbl)
       -- lower-left
       idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
       
       -- lower-right
       idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
       
       -- upper-left
       idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
       
       -- upper-right
       idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
    end
 
@@ -221,10 +221,10 @@ return function(tbl)
       out[4] = 0.0
 
       for idxs in localRange:colMajorIter() do
-	 grid:setIndex(idxs)
-	 grid:cellCenter(vc)
+         grid:setIndex(idxs)
+         grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
+         momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
       end
       momVec:appendData(tCurr, out)
       return out
@@ -242,11 +242,11 @@ return function(tbl)
       out[3] = 0.0
 
       for idxs in localRange:colMajorIter() do
-	 grid:setIndex(idxs)
-	 grid:cellCenter(vc)
+         grid:setIndex(idxs)
+         grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
-	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
+         diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
       end
       diagVec:appendData(tCurr, out)
    end
@@ -254,11 +254,11 @@ return function(tbl)
    local function writeData(fr, tm)
       f:write(string.format("f_%d.bp", fr), tm, fr)
       if updatePotentials then
-	 h:write(string.format('h_%d.bp', fr), tm, fr)
-	 g:write(string.format('g_%d.bp', fr), tm, fr)
+         h:write(string.format('h_%d.bp', fr), tm, fr)
+         g:write(string.format('g_%d.bp', fr), tm, fr)
       end
       if writeDiagnostics then
-	 moms:write(string.format("moms_%d.bp", fr), tm, fr)
+         moms:write(string.format("moms_%d.bp", fr), tm, fr)
          diag:write(string.format("diag_%d.bp", fr), tm, fr)
       end
    end
@@ -278,15 +278,15 @@ return function(tbl)
    -- Overwrite the init functions if the the Dougherty potentials are turned on
    if doughertyPotentials then
       initDragFunc = function (t, z)
-	 local ux = momVec[2]/momVec[1]
-	 local uy = momVec[3]/momVec[1]
-	 return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
+         local ux = momVec[2]/momVec[1]
+         local uy = momVec[3]/momVec[1]
+         return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
       end
       initDiffFunc = function (t, z)
-	 local ux = momVec[2]/momVec[1]
-	 local uy = momVec[3]/momVec[1]
-	 local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
-	 return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
+         local ux = momVec[2]/momVec[1]
+         local uy = momVec[3]/momVec[1]
+         local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
+         return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
       end
    end
 
@@ -340,10 +340,10 @@ return function(tbl)
          idxsT[1], idxsT[2] = idxs[1], idxs[2]+1
          idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
 
-	 idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
-	 idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
-	 idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
-	 idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
+         idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
+         idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
+         idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
+         idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
 
          local isTopEdge, isBotEdge = 0, 0
          local isLeftEdge, isRightEdge = 0, 0
@@ -362,10 +362,10 @@ return function(tbl)
          local fT = fIn:get(indexer(idxsT))
          local fB = fIn:get(indexer(idxsB))
 
-	 local fTL = fIn:get(indexer(idxsTL))
-	 local fTR = fIn:get(indexer(idxsTR))
-	 local fBL = fIn:get(indexer(idxsBL))
-	 local fBR = fIn:get(indexer(idxsBR))
+         local fTL = fIn:get(indexer(idxsTL))
+         local fTR = fIn:get(indexer(idxsTR))
+         local fBL = fIn:get(indexer(idxsBL))
+         local fBR = fIn:get(indexer(idxsBR))
 
          local hC = hIn:get(indexer(idxs))
          local hR = hIn:get(indexer(idxsR))
@@ -379,27 +379,27 @@ return function(tbl)
          local gT = gIn:get(indexer(idxsT))
          local gB = gIn:get(indexer(idxsB))
 
-	 local gTL = gIn:get(indexer(idxsTL))
-	 local gTR = gIn:get(indexer(idxsTR))
-	 local gBL = gIn:get(indexer(idxsBL))
-	 local gBR = gIn:get(indexer(idxsBR))
+         local gTL = gIn:get(indexer(idxsTL))
+         local gTR = gIn:get(indexer(idxsTR))
+         local gBL = gIn:get(indexer(idxsBL))
+         local gBR = gIn:get(indexer(idxsBR))
 
          local fOutP = fOut:get(indexer(idxs))
 
          dragKernelFn(dt, dv:data(),
-	 	      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
-	 	      hC:data(), hL:data(), hR:data(), hT:data(), hB:data(),
-	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-	 	      fOutP:data())
+                      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
+                      hC:data(), hL:data(), hR:data(), hT:data(), hB:data(),
+                      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+                      fOutP:data())
          diffKernelFn(dt, dv:data(),
-	 	      fTL:data(), fT:data(), fTR:data(),
-	 	      fL:data(), fC:data(), fR:data(),
-	 	      fBL:data(), fB:data(), fBR:data(),
-	 	      gTL:data(), gT:data(), gTR:data(),
-	 	      gL:data(), gC:data(), gR:data(),
-	 	      gBL:data(), gB:data(), gBR:data(),
-	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-	 	      fOutP:data())
+                      fTL:data(), fT:data(), fTR:data(),
+                      fL:data(), fC:data(), fR:data(),
+                      fBL:data(), fB:data(), fBR:data(),
+                      gTL:data(), gT:data(), gTR:data(),
+                      gL:data(), gC:data(), gR:data(),
+                      gBL:data(), gB:data(), gBR:data(),
+                      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
+                      fOutP:data())
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
@@ -432,7 +432,7 @@ return function(tbl)
       local tCurr = 0.0
       local step = 1
       local dt = cfl*grid:dx(1)
-      dt = 0.001
+      dt = 0.0001
 
       local frameInt = tEnd/nFrames
       local nextFrame = 1
@@ -449,7 +449,7 @@ return function(tbl)
          f:copy(fNew)
 
          if writeDiagnostics then
-	    calcMoms(tCurr+dt, f, moms)
+            calcMoms(tCurr+dt, f, moms)
             updateRosenbluthDrag(f, h)
             calcDiag(tCurr+dt, f, h, diag)
          end
@@ -458,7 +458,7 @@ return function(tbl)
          if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
             writeData(nextFrame, tCurr)
             nextFrame = nextFrame+1
-	 end
+         end
          step = step+1
       end
       local tmTotal = Time.clock()-tmStart

@@ -50,10 +50,10 @@ getSurfTerm(basisNm, dir, edge, polyOrder,
   rec2 : calcRecov2CellGen(basisNm, dir, [2,2], polyOrder, gijfCL, gijfCU),
   gijf : subst(dir=0, rec2),
   
-  /* rec6 : calcRecov6CellGen(basisNm, dir, 0, [2,2], polyOrder, 0, */
-  /*   gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijfUU), */
-  /* gijfj : diff(rec6, perpDir), */
-  gijfj : subst(dir=0, diff(rec2, perpDir)),
+   rec6 : calcRecov6CellGen(basisNm, dir, 0, [2,2], polyOrder, 0,
+     gijfLL, gijfLU, gijfCL, gijfCU, gijfUL, gijfUU),
+  gijfj : diff(rec6, perpDir),
+  /* gijfj : subst(dir=0, diff(rec2, perpDir)), */
   
   Jii : eval_string(sconcat("J", dir, dir)),
   Jij : eval_string(sconcat("J", dir, perpDir)),
