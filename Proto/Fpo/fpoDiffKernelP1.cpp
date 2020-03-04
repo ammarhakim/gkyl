@@ -1,7 +1,7 @@
 #include <math.h>
 #include <fpoKernelsDecl.h>
 
-void fpoDiffKernelP1(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {
+double fpoDiffKernelP1(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {
   double Jxx = 16/(dv[0]*dv[0]*dv[0]*dv[0]);
   double Jyy = 16/(dv[1]*dv[1]*dv[1]*dv[1]);
   double Jxy = 16/(dv[0]*dv[0]*dv[1]*dv[1]);
@@ -15,4 +15,6 @@ void fpoDiffKernelP1(const double dt, const double *dv, const double *fTL, const
   fOut[1] += 0.0;
   fOut[2] += 0.0;
   fOut[3] += 4.5*fC[0]*gC[3]*Jxy*dt;
+
+  return (-0.5074367600299444*gT[2]*Jyy)+0.5074367600299444*gB[2]*Jyy+0.38671875*gT[0]*Jyy-0.7734375*gC[0]*Jyy+0.38671875*gB[0]*Jyy+0.5712890625*gT[3]*Jyx+3.251953125*gC[3]*Jyx+0.5712890625*gB[3]*Jyx-0.4719161868278482*gT[1]*Jyx+0.4719161868278482*gB[1]*Jyx+0.5712890625*gR[3]*Jxy+0.5712890625*gL[3]*Jxy+3.251953125*gC[3]*Jxy-0.4719161868278482*gR[2]*Jxy+0.4719161868278482*gL[2]*Jxy-0.5074367600299444*gR[1]*Jxx+0.5074367600299444*gL[1]*Jxx+0.38671875*gR[0]*Jxx+0.38671875*gL[0]*Jxx-0.7734375*gC[0]*Jxx;
 }

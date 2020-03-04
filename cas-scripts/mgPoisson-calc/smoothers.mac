@@ -23,13 +23,12 @@ rdxUSq : [rdxUxSq, rdxUySq, rdxUzSq]$
 
 /* Types of boundary conditions for which to generate kernels.
      =0 periodic
-     =1 Dirichlet
-     =2 Neumann
+     =3 Robin (also used for Dirichlet and Neumann)
    For periodic we'll assume ghost cells are filled accordingly
    and use an interior stencil. */
-bcTypes  : [0, 1, 2]$
-bcStrs   : ["", "Dirichlet","Neumann"]$
-bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]],[bcTypes[3],bcStrs[3]]]$
+bcTypes  : [0, 3]$
+bcStrs   : ["", "Robin"]$
+bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]]$
 
 writeCExprs1sub(lhs, rhs, sublist) := block([expr],
   /* Perform some substitutions before printing. No expand. */
@@ -161,8 +160,8 @@ calcGaussSeidelOp(fh, funcNm, dim, basisFun, pMax) := block([],
     printf(fh, "  double *phiC = phi[0]; ~%"),
     i : 1,
     for d : 1 thru dim do (
-      printf(fh, "  double *phiU~a = phi[~a]; ~%", varsC[d], i),
-      printf(fh, "  double *phiL~a = phi[~a]; ~%", varsC[d], i+1),
+      printf(fh, "  double *phiL~a = phi[~a]; ~%", varsC[d], i),
+      printf(fh, "  double *phiU~a = phi[~a]; ~%", varsC[d], i+1),
       i : i + 2
     ),
     printf(fh, "~%"),
@@ -228,9 +227,9 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
       )
     ),
 
-    /* Given npBCs non-periodic BCs, there are bcN^npBCs possible
-       combinations of that cell's stencil (Assuming there are
-       only bcN types of BCs (e.g. Dirichlet, Neumman). */
+    /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
+       of that cell's stencil, assuming there are bcN types of BCs. For now
+       only Robin BCs are supported (also used for Dirichlet/Neumann). */
     npBCcombos : makelist([bcTypes[i]],i,2,length(bcTypes)),
     for l : 2 thru npBCs do (
       tmp : copylist(npBCcombos),
@@ -302,13 +301,9 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
           bCp               : diff(bC,surfVar),
 
           /* Boundary conditions in this direction. Currently just
-             Dirichlet/Neumann, constant along the boundary. */
-          dirBC : [0,0,0],
-          if (currBCs[dir] # 0) then (
-            dirBC[currBCs[dir]] : 1
-          ),
+             Robin (also used for Dirichlet/Neumann), constant along the boundary. */
           if (stencilLoc[sI][dir] = -1) then (
-            dirBC[3] : bcVals[2*(dir-1)],
+            dirBC    : [bcVals[6*(dir-1)], bcVals[6*(dir-1)+1], bcVals[6*(dir-1)+2]],
             phiRecL  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiC_c, phiU_c, dirBC, [0,0]),
             phiRecU  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiC_c, phiU_c),
 
@@ -318,7 +313,7 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
             phiRecU0  : subst(surfVar=0,phiRecU),
             phiRecUp0 : subst(surfVar=0,diff(phiRecU,surfVar))
           ) elseif (stencilLoc[sI][dir] = 1) then (
-            dirBC[3] : bcVals[2*(dir-1)+1],
+            dirBC    : [bcVals[6*(dir-1)+3], bcVals[6*(dir-1)+4], bcVals[6*(dir-1)+5]],
             phiRecL  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiL_c, phiC_c),
             phiRecU  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiL_c, phiC_c, [0,0], dirBC),
 
@@ -394,20 +389,30 @@ calcGaussSeidelOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
         ),
         printf(fh, "~%"),
 
+        /* With Robin BCs, bcVals appears squared. */
+        printf(fh, "  double bcValsSq[~a]; ~%", dim*6),
+        for i : 1 thru dim*6 do (
+          printf(fh, "  bcValsSq[~a] = bcVals[~a]*bcVals[~a];~%", i-1, i-1, i-1)
+        ),
+        printf(fh, "~%"),
+
         /* Pointers to the data in cells pointed to by the stencil. */
         printf(fh, "  double *phiC = phi[0]; ~%"),
         i : 1,
         for d : 1 thru dim do (
-          printf(fh, "  double *phiU~a = phi[~a]; ~%", varsC[d], i),
-          printf(fh, "  double *phiL~a = phi[~a]; ~%", varsC[d], i+1),
+          printf(fh, "  double *phiL~a = phi[~a]; ~%", varsC[d], i),
+          printf(fh, "  double *phiU~a = phi[~a]; ~%", varsC[d], i+1),
           i : i + 2
         ),
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        subNum  : 3,    /* Number of lines in for loop below. */
+        subNum  : 3+6,    /* Number of lines in for loop below. */
         sublist : makelist(0,i,1,subNum*dim),
         for s : 1 thru dim do (
+          for i : 1 thru 6 do (
+            sublist[subNum*s-2-i] : [sconcat("bcVals[",string((s-1)*6+i-1),"]^2"), sconcat("bcValsSq[",string((s-1)*6+i-1),"]")]
+          ),
           sublist[subNum*s-2] : [sconcat("rdx2SqVol[",string(s-1),"]^2"), sconcat("rdx2SqVolSq[",string(s-1),"]")],
           sublist[subNum*s-1] : [sconcat("rdx2SqVol[",string(s-1),"]^3"), sconcat("rdx2SqVolCu[",string(s-1),"]")],
           sublist[subNum*s]   : [sconcat("rdx2SqVol[",string(s-1),"]^4"), sconcat("rdx2SqVolR4[",string(s-1),"]")]
@@ -540,8 +545,8 @@ calcJacobiOp(fh, funcNm, dim, basisFun, pMax) := block([],
     printf(fh, "  double *phiPrevC = phiPrev[0]; ~%"),
     i : 1,
     for d : 1 thru dim do (
-      printf(fh, "  double *phiU~a = phiPrev[~a]; ~%", varsC[d], i),
-      printf(fh, "  double *phiL~a = phiPrev[~a]; ~%", varsC[d], i+1),
+      printf(fh, "  double *phiL~a = phiPrev[~a]; ~%", varsC[d], i),
+      printf(fh, "  double *phiU~a = phiPrev[~a]; ~%", varsC[d], i+1),
       i : i + 2
     ),
     printf(fh, "~%"),
@@ -606,9 +611,9 @@ calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
       )
     ),
 
-    /* Given npBCs non-periodic BCs, there are bcN^npBCs possible
-       combinations of that cell's stencil (Assuming there are
-       only bcN types of BCs (e.g. Dirichlet, Neumman). */
+    /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
+       of that cell's stencil, assuming there are bcN types of BCs. For now
+       only Robin BCs are supported (also used for Dirichlet/Neumann). */
     npBCcombos : makelist([bcTypes[i]],i,2,length(bcTypes)),
     for l : 2 thru npBCs do (
       tmp : copylist(npBCcombos),
@@ -680,15 +685,9 @@ calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
           bCp               : diff(bC,surfVar),
 
           /* Boundary conditions in this direction. Currently just
-             Dirichlet/Neumann, constant along the boundary. */
-          dirBC : [0,0,0],
-          for bI : 1 thru length(currBCs) do (
-            if (currBCs[bI] # 0) then (
-              dirBC[currBCs[bI]] : 1
-            )
-          ),
+             Robin (also used for Dirichlet/Neumann), constant along the boundary. */
           if (stencilLoc[sI][dir] = -1) then (
-            dirBC[3] : bcVals[2*(dir-1)],
+            dirBC    : [bcVals[6*(dir-1)], bcVals[6*(dir-1)+1], bcVals[6*(dir-1)+2]],
             phiRecL  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiC_c, phiU_c, dirBC, [0,0]),
             phiRecU  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiC_c, phiU_c),
 
@@ -698,7 +697,7 @@ calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
             phiRecU0  : subst(surfVar=0,phiRecU),
             phiRecUp0 : subst(surfVar=0,diff(phiRecU,surfVar))
           ) elseif (stencilLoc[sI][dir] = 1) then (
-            dirBC[3] : bcVals[2*(dir-1)+1],
+            dirBC    : [bcVals[6*(dir-1)+3], bcVals[6*(dir-1)+4], bcVals[6*(dir-1)+5]],
             phiRecL  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiL_c, phiC_c),
             phiRecU  : calcRecov2CellGen(basisFun,surfVar,twos,polyOrder,phiL_c, phiC_c, [0,0], dirBC),
 
@@ -773,21 +772,31 @@ calcJacobiOpBoundary(fh, funcNm, dim, basisFun, pMax) := block([],
         ),
         printf(fh, "~%"),
 
+        /* With Robin BCs, bcVals appears squared. */
+        printf(fh, "  double bcValsSq[~a]; ~%", dim*6),
+        for i : 1 thru dim*6 do (
+          printf(fh, "  bcValsSq[~a] = bcVals[~a]*bcVals[~a];~%", i-1, i-1, i-1)
+        ),
+        printf(fh, "~%"),
+
         /* Pointers to the data in cells pointed to by the stencil. */
         printf(fh, "  double *phiC = phi[0]; ~%"),
         printf(fh, "  double *phiPrevC = phiPrev[0]; ~%"),
         i : 1,
         for d : 1 thru dim do (
-          printf(fh, "  double *phiU~a = phiPrev[~a]; ~%", varsC[d], i),
-          printf(fh, "  double *phiL~a = phiPrev[~a]; ~%", varsC[d], i+1),
+          printf(fh, "  double *phiL~a = phiPrev[~a]; ~%", varsC[d], i),
+          printf(fh, "  double *phiU~a = phiPrev[~a]; ~%", varsC[d], i+1),
           i : i + 2
         ),
         printf(fh, "~%"),
 
         /* Write the relaxation stencil. */
-        subNum  : 3,    /* Number of lines in for loop below. */
+        subNum  : 3+6,    /* Number of lines in for loop below. */
         sublist : makelist(0,i,1,subNum*dim),
         for s : 1 thru dim do (
+          for i : 1 thru 6 do (
+            sublist[subNum*s-2-i] : [sconcat("bcVals[",string((s-1)*6+i-1),"]^2"), sconcat("bcValsSq[",string((s-1)*6+i-1),"]")]
+          ),
           sublist[subNum*s-2] : [sconcat("rdx2SqVol[",string(s-1),"]^2"), sconcat("rdx2SqVolSq[",string(s-1),"]")],
           sublist[subNum*s-1] : [sconcat("rdx2SqVol[",string(s-1),"]^3"), sconcat("rdx2SqVolCu[",string(s-1),"]")],
           sublist[subNum*s]   : [sconcat("rdx2SqVol[",string(s-1),"]^4"), sconcat("rdx2SqVolR4[",string(s-1),"]")]

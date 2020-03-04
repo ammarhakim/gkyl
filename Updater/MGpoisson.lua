@@ -33,7 +33,7 @@ local IntQuantCalc          = require "Updater.CartFieldIntegratedQuantCalc"
 local BVP_BC_PERIODIC  = 0
 local BVP_BC_DIRICHLET = 1
 local BVP_BC_NEUMANN   = 2
-local BVP_BC_ROBIN     = 3    -- Not supported yet.
+local BVP_BC_ROBIN     = 3
 
 -- Multigrid updater object.
 local MGpoisson = Proto(UpdaterBase)
@@ -147,8 +147,9 @@ function MGpoisson:init(tbl)
       if strIn == "P" then return BVP_BC_PERIODIC
       elseif strIn == "D" then return BVP_BC_DIRICHLET
       elseif strIn == "N" then return BVP_BC_NEUMANN
+      elseif strIn == "R" then return BVP_BC_ROBIN
       else
-         assert(false, "Updater.MGpoisson: BC type (T) must be one of P, D, or N. Used " .. strIn .. " instead.")
+         assert(false, "Updater.MGpoisson: BC type (T) must be one of P, D, N or R. Used " .. strIn .. " instead.")
       end
    end
 
@@ -163,15 +164,29 @@ function MGpoisson:init(tbl)
    for i = 1, self.dim do
       bcTypes[i]  = {bcID(bcLower[i]["T"]), bcID(bcUpper[i]["T"])}
       bcValues[i] = {bcLower[i]["V"], bcUpper[i]["V"]}
+      for j = 1,2 do
+         -- Ensure that for Robin BCs three values are given.
+         if ( (bcTypes[i][j] == BVP_BC_ROBIN) and ((type(bcValues[i][j]) == "number") or 
+              ((type(bcValues[i][j]) == "table") and (#bcValues[i][j] ~= 3))) ) then
+            assert(false, "Updater.MGpoisson: for Robin BC please pass a table with 3 numbers in order to impose: bcValue1*f+bcValue2*df/dx=bcValue3.")
+         end
+         -- Turn BC value into a table if not Robin BC so they all are treated as tables below.
+         if (type(bcValues[i][j]) == "number") then
+            bcValues[i][j] = {bcValues[i][j]}
+         end
+      end
    end
    -- Establish periodic directions.
    local periodicDirs  = {}
    local isDirPeriodic = {}
    for d = 1, self.dim do
-      if (bcTypes[d] == 0) then
+      if ((bcTypes[d][1] == 0) and (bcTypes[d][2] == 0))then
          lume.push(periodicDirs,d)
          isDirPeriodic[d] = true
-         bcValues[d]      = {0.0, 0.0}   -- Not used, but a nil could cause problems.
+         bcValues[d]      = {{0.0}, {0.0}}   -- Not used, but a nil could cause problems.
+      elseif ( ((bcTypes[d][1] == 0) and (bcTypes[d][2] ~= 0)) or 
+               ((bcTypes[d][1] ~= 0) and (bcTypes[d][2] == 0)) ) then
+         assert(false, "Updater.MGpoisson: lower an upper BCs must both be T=\"P\" if periodic is desired.")
       else
          isDirPeriodic[d] = false
       end
@@ -179,10 +194,29 @@ function MGpoisson:init(tbl)
    local isPeriodicDomain = lume.all(isDirPeriodic)
 
    -- Translate bcValues to a vector from which we can pass a pointer.
-   self.bcValue = Lin.Vec(self.dim*2)
+   -- This vector has 3 values for each boundary in order to support a Robin BC like:
+   --     bcValue1*f+bcValue2*df/dx=bcValue3.
+   self.bcValue = Lin.Vec(self.dim*2*3)
    for d = 1,self.dim do 
-     self.bcValue[2*d-1] = bcValues[d][1]
-     self.bcValue[2*d]   = bcValues[d][2]
+      off = (d-1)*6
+      for i = 1, 6 do
+         self.bcValue[off+i] = 1.0
+      end
+      self.bcValue[off + 3 - (bcTypes[d][1] % 3)] = 0.0
+      self.bcValue[off + 3]                       = bcValues[d][1][math.floor(1./3.)*2+1]
+      if bcTypes[d][1] == BVP_BC_ROBIN then
+         -- Robin BCs. First two values multiply boundary value and derivative, respectively.
+         self.bcValue[off + 1] = bcValues[d][1][1]
+         self.bcValue[off + 2] = bcValues[d][1][2]
+      end
+      
+      self.bcValue[off + 6 - (bcTypes[d][2] % 3)] = 0.0
+      self.bcValue[off + 6]                       = bcValues[d][2][math.floor(1./3.)*2+1]
+      if bcTypes[d][2] == BVP_BC_ROBIN then
+         -- Robin BCs. First two values multiply boundary value and derivative, respectively.
+         self.bcValue[off + 4] = bcValues[d][2][1]
+         self.bcValue[off + 5] = bcValues[d][2][2]
+      end
    end
 
 
@@ -399,11 +433,10 @@ function MGpoisson:restrict(fFld,cFld)
 end
 
 function MGpoisson:opStencilIndices(idxIn, stencilType)
-   -- MF update: I wish to change the stencil numbering to match kernel IDs.
    -----------------
    -- Given the index of the current cell (idxIn), return
    -- a table of indices of the cells in a stencil of
-   -- type 'stencilType' used in the relaxtion operator.
+   -- type 'stencilType' used in the relaxation and inter-grid operators.
    -- Stencil types are given by [t,w,l]:
    --   t: type of stencil
    --        0 : 'cross'.
@@ -416,11 +449,11 @@ function MGpoisson:opStencilIndices(idxIn, stencilType)
    --        [ 1] = upper boundary cell.
    --
    -- So stencilType=[0,[5,5],[0,0]] corresponds to 
-   --                 8
-   --                 6
-   --         5   3   1   2   4
-   --                 7
    --                 9
+   --                 7
+   --         4   2   1   3   5
+   --                 6
+   --                 8
 
    -- First copy all indicies since (in higher dimensions)
    -- most of the stay the same for each cell.
@@ -433,7 +466,7 @@ function MGpoisson:opStencilIndices(idxIn, stencilType)
       for d = 1, self.dim do
          for pm = 1,self.opStencilWidth-1 do
             sI = sI + 1
-            self.opStencilIdx[sI][d] = idxIn[d]-((-1)^(pm % 2))*((self.opStencilWidth-1)/2)
+            self.opStencilIdx[sI][d] = idxIn[d]+((-1)^(pm % 2))*((self.opStencilWidth-1)/2)
          end
       end
    end
