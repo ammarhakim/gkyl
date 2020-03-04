@@ -75,7 +75,7 @@ for polyOrder : 1 thru 1 do (
   printf(fh, "#include <math.h>~%"),
   printf(fh, "#include <fpoKernelsDecl.h>~%~%"),
 
-  printf(fh, "void fpoDiffKernelP~a(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
+  printf(fh, "double fpoDiffKernelP~a(const double dt, const double *dv, const double *fTL, const double *fT, const double *fTR, const double *fL, const double *fC, const double *fR, const double *fBL, const double *fB, const double *fBR, const double *gTL, const double *gT, const double *gTR, const double *gL, const double *gC, const double *gR, const double *gBL, const double *gB, const double *gBR, const int isTopEdge, const int isBotEdge, const int isLeftEdge, const int isRightEdge, double *fOut) {~%", polyOrder),
   
   baC : getBasis(sconcat("basis-precalc/basis", basisNm, "2x"), polyOrder),
 
@@ -156,6 +156,17 @@ for polyOrder : 1 thru 1 do (
   tmp : (gxxfPhixxVol + gyyfPhiyyVol + 2*gxyfPhixyVol)/2,
   out : subst(indexSubList, expand(tmp)),
   for i : 1 thru length(baC) do printf(fh, "  fOut[~a] += ~a;~%", i-1, dt*float(out[i])),
+
+  
+  /* Calculating the time step */
+  vxx :  diff(calcRecov1CellGen(basisNm, x, [2,2], polyOrder, 1, ["exp", gL], gC, ["exp", gR]), x, 2)*Jxx/4,
+  vxy :  diff(diff(calcRecov1CellGen(basisNm, x, [2,2], polyOrder, 1, ["exp", gL], gC, ["exp", gR]), x), y)*Jxy/4,
+  vyy :  diff(calcRecov1CellGen(basisNm, y, [2,2], polyOrder, 1, ["exp", gB], gC, ["exp", gT]), y, 2)*Jyy/4,
+  vyx :  diff(diff(calcRecov1CellGen(basisNm, y, [2,2], polyOrder, 1, ["exp", gB], gC, ["exp", gT]), y), x)*Jyx/4,
+  cflFreq : (2*polyOrder+1)*(subst([x=0,y=0], vxx+vxy+vyy+vyx)),
+  out : subst(indexSubList, float(expand(cflFreq))),
+  printf(fh, "~%"),
+  printf(fh, "  return ~a;~%", out),
 
   printf(fh, "}"),
   close(fh) 
