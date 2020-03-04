@@ -111,6 +111,12 @@ local function buildApplication(self, tbl)
    -- Number of fields needed for each stepper type
    local stepperNumFields = { rk1 = 3, rk2 = 3, rk3 = 3, rk3s4 = 4, fvDimSplit = 3 }
 
+   -- Tracker for timestep
+   local dtTracker = DataStruct.DynVector {
+      numComponents = 1,
+   }
+   local dtPtr = Lin.Vec(1)
+
    -- Parallel decomposition stuff.
    local useShared = xsys.pickBool(tbl.useShared, false)   
    local decompCuts = tbl.decompCuts
@@ -312,6 +318,8 @@ local function buildApplication(self, tbl)
    -- Function to read from restart frame.
    local function readRestart() --> Time at which restart was written.
       local rTime = 0.0
+      dtTracker:read(string.format("dt.bp"))
+      local _, dtLast = dtTracker:lastData()
       -- Read fields first, in case needed for species init or BCs.
       field:readRestart()
       funcField:readRestart()
@@ -319,6 +327,7 @@ local function buildApplication(self, tbl)
          -- This is a dummy forwardEuler call because some BCs require 
          -- auxFields to be set, which is controlled by species solver.
          s:advance(0, species, {field, funcField}, 1, 2)
+         s:setDtGlobal(dtLast[1])
 	 rTime = s:readRestart()
       end
       return rTime
@@ -639,11 +648,6 @@ local function buildApplication(self, tbl)
    -- Read some info about restarts (default is to write restarts 1/20 (5%) of sim).
    local restartFrameEvery = tbl.restartFrameEvery and tbl.restartFrameEvery or 1/20.0
    local restartFrameAfter = tbl.restartFrameAfter and tbl.restartFrameAfter or GKYL_MAX_DOUBLE
-
-   local dtTracker = DataStruct.DynVector {
-      numComponents = 1,
-   }
-   local dtPtr = Lin.Vec(1)
 
    -- Return function that runs main simulation loop.
    return function(self)
