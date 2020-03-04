@@ -33,6 +33,7 @@ ffi.cdef [[
     void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp, double *out);
     void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out);
+    void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out);
     void gkylCartFieldAbs(unsigned s, unsigned nv, double *out);
     void gkylCopyFromField(double *data, double *f, unsigned numComponents, unsigned c);
     void gkylCopyToField(double *f, double *data, unsigned numComponents, unsigned c);
@@ -494,6 +495,12 @@ local function Field_meta_ctor(elct)
 	 function (self, fact)
 	    assert(false, "CartField:deviceScale: Scale only works on numeric fields")
 	 end,
+      scaleByCell = function (self, factByCell)
+         assert(factByCell:numComponents() == 1, "CartField:scaleByCell: scalar must be a 1-component field")
+         assert(factByCell:localRange() == self:localRange() and factByCell:layout() == self:layout(), "CartField:scaleByCell: scalar and field must be compatible")
+            
+	 ffiC.gkylCartFieldScaleByCell(self:_localLower(), self:_localShape(), self:numComponents(), factByCell._data, self._data)
+      end,
       abs = isNumberType and
          function (self)
             ffiC.gkylCartFieldAbs(self:_localLower(), self:_localShape(), self._data)
