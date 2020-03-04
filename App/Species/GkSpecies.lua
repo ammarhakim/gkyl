@@ -263,7 +263,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
    }
    if self.needSelfPrimMom then
       -- This is used in calcCouplingMoments to reduce overhead and multiplications.
-      -- If collisions are LBO, the following also computes boundary corrections and, if polyOrder=1, star moments.
+      -- If collisions are LBO, the following also computes boundary corrections
       self.threeMomentsLBOCalc = Updater.DistFuncMomentCalc {
          onGrid     = self.grid,
          phaseBasis = self.basis,
@@ -523,13 +523,6 @@ function GkSpecies:initCrossSpeciesCoupling(species)
       -- Allocate fields for boundary corrections.
       self.m1Correction = self:allocMoment()
       self.m2Correction = self:allocMoment()
-
-      -- Allocate fields for star moments (only used with polyOrder=1).
-      if (self.basis:polyOrder()==1) then
-         self.m0Star = self:allocMoment()
-         self.m1Star = self:allocMoment()
-         self.m2Star = self:allocMoment()
-      end
    end
 
    -- Allocate fieds to store cross-species primitive moments.
