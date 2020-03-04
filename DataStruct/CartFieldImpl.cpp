@@ -6,6 +6,7 @@
 //------------------------------------------------------------------------------
 
 #include <cmath>
+#include <stdio.h>
 #include <CartFieldImpl.h>
 
 void gkylCartFieldAccumulate(unsigned s, unsigned nv, double fact, const double *inp, double *out) {
@@ -21,6 +22,16 @@ void gkylCartFieldAssign(unsigned s, unsigned nv, double fact, const double *inp
 void gkylCartFieldScale(unsigned s, unsigned nv, double fact, double *out) {
   for (unsigned n=s; n<(s+nv); ++n)
     out[n] *= fact;
+}
+
+void gkylCartFieldScaleByCell(unsigned s, unsigned nv, unsigned ncomp, double *fact, double *out) {
+  unsigned icell = 0;
+  for (unsigned n=s; n<(s+nv); n+=ncomp) {
+    for (unsigned c=0; c<ncomp; c++) {
+      out[n+c] *= fact[icell];
+    }
+    icell++;
+  }
 }
 
 void gkylCartFieldAbs(unsigned s, unsigned nv, double *out) {
