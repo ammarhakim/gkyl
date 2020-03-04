@@ -22,7 +22,8 @@ function EqBase:qFluctuations(dir, ql, qr, waves, s, amdq, apdq) end
 -- for DG scheme
 function EqBase:setAuxFields(auxFields) end
 function EqBase:volTerm(w, dx, idx, q, out) end
-function EqBase:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr) end
+function EqBase:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr) end
 function EqBase:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr) end
+function EqBase:sync() end
 
 return EqBase

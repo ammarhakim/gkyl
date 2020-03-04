@@ -17,6 +17,7 @@ local ffiC        = ffi.C
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
   double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
+  double rescaleVolTerm(const double tCurr, const double dtApprox, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
@@ -139,17 +140,49 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
       local del2ChangeCell = ffiC.rescale(self.fInPtr:data(), self.fOutPtr:data(), ndim, numBasis, idx:data(), tCurr)
       if computeDiagnostics then 
          self.del2ChangeByCell:fill(self.del2ChangeIndexer(idx), self.del2ChangePtr)
-         self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell*grid:cellVolume()
+         self.del2ChangePtr:data()[self.rkIdx-1] = del2ChangeCell
          self.del2Change[self.rkIdx] = self.del2Change[self.rkIdx] + del2ChangeCell*grid:cellVolume()
          if del2ChangeCell ~= 0. then self.rescaledCells = self.rescaledCells + 1 end
       end
    end
-
    self.rkIdx = self.rkIdx+1
 end
 
-function PositivityRescale:write(tm, frame, nm)
+function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol)
+   local localRange = fRhsSurf:localRange()   
+   local fIn_ptr = fIn:get(1)
+   local fRhsSurf_ptr = fRhsSurf:get(1)
+   local fRhsVol_ptr = fRhsVol:get(1)
+   local fInIndexer = fIn:genIndexer()
+   local fRhsSurfIndexer = fRhsSurf:genIndexer()
+   local fRhsVolIndexer = fRhsVol:genIndexer()
 
+   local weights_ptr, weightsIndexer
+   if weights then
+      weights_ptr = weights:get(1)
+      weightsIndexer = weights:genIndexer()
+   end
+
+   for idx in localRange:rowMajorIter() do
+      fIn:fill(fInIndexer(idx), fIn_ptr)
+      fRhsSurf:fill(fRhsSurfIndexer(idx), fRhsSurf_ptr)
+      fRhsVol:fill(fRhsVolIndexer(idx), fRhsVol_ptr)
+
+      local weightfac = 1.0
+      if weights then
+         weightfac = 0.0
+         weights:fill(weightsIndexer(idx), weights_ptr)
+         for i, d in pairs(weightDirs) do
+            weightfac = weightfac + weights_ptr:data()[d]
+         end
+         weightfac = weightfac/weights_ptr:data()[0]
+      end
+      
+      local scaler = ffiC.rescaleVolTerm(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(), fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
+   end
+end
+
+function PositivityRescale:write(tm, frame, nm)
    self.del2ChangeByCell:write(string.format("%s_%s_%d.bp", nm, "del2ChangeByCell", frame), tm, frame, false)
 
    Mpi.Allreduce(self.rescaledCellsL:data():data(), self.rescaledCellsG:data():data(), self.rescaledCellsG:size()*2,
@@ -165,13 +198,13 @@ function PositivityRescale:write(tm, frame, nm)
       end
       self.delChangeG:appendData(self.del2ChangeG[1]:timeMesh():data()[j-1], {delChange})
    end
+   
+   self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
+   self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
    for i=1, 4 do
       self.del2ChangeL[i]:clear()
       self.del2ChangeG[i]:clear()
    end
-   
-   self.delChangeG:write(string.format("%s_%s_%d.bp", nm, "delChange", frame), tm, frame, true)
-   self.rescaledCellsG:write(string.format("%s_%s_%d.bp", nm, "rescaledCells", frame), tm, frame, true)
    self.rescaledCellsL:clear()
    self.rescaledCellsG:clear()
    self.delChangeG:clear()

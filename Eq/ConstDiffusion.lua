@@ -84,7 +84,7 @@ function ConstDiffusion:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme.
-function ConstDiffusion:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function ConstDiffusion:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    self._surfTerms[dir](wl:data(), wr:data(), dxl:data(), dxr:data(), self._nu:data(), ql:data(), qr:data(), outl:data(), outr:data())
    return 0
 end

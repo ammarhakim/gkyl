@@ -297,6 +297,11 @@ function GkField:combineRk(outIdx, a, aIdx, ...)
       end	 
    end
 end
+-- Take forwardEuler step for non-elliptic fields (e.g. only apar)
+function GkField:forwardEuler(tCurr, dt, inIdx, outIdx)
+   -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+   self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
+end
 
 function GkField:suggestDt()
    return GKYL_MAX_DOUBLE
@@ -523,6 +528,7 @@ function GkField:write(tm, force)
          if self.isElectromagnetic then 
 	   self.fieldIo:write(self.potentials[1].apar, string.format("apar_%d.bp", self.ioFrame), tm, self.ioFrame)
 	   self.fieldIo:write(self.potentials[1].dApardt, string.format("dApardt_%d.bp", self.ioFrame), tm, self.ioFrame)
+	   self.fieldIo:write(self.dApardtProv, string.format("dApardtProv_%d.bp", self.ioFrame), tm, self.ioFrame)
          end
 	 self.phi2:write(string.format("phi2_%d.bp", self.ioFrame), tm, self.ioFrame)
 	 self.esEnergy:write(string.format("esEnergy_%d.bp", self.ioFrame), tm, self.ioFrame)
@@ -662,7 +668,7 @@ function GkField:advanceStep2(tCurr, species, inIdx, outIdx)
         if s:isEvolving() then 
            self.modifierWeight:accumulate(s:getCharge()*s:getCharge()/s:getMass(), s:getNumDensity())
            -- Taking momDensity at outIdx gives momentum moment of df/dt.
-           self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx))
+           self.currentDens:accumulate(s:getCharge(), s:getMomDensity(outIdx, s.positivity))
         end
       end
       self.dApardtSlvr:setModifierWeight(self.modifierWeight)

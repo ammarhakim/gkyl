@@ -40,6 +40,13 @@ function IncompEuler:init(tbl)
    -- Timers.
    self.totalVolTime  = 0.0
    self.totalSurfTime = 0.0
+
+   self.cflRateByDir = DataStruct.Field {
+      onGrid        = self._grid,
+      numComponents = self._basis:numBasis(),
+      ghost         = {1, 1},
+   }
+   self.cflRateByDirIdxr = self.cflRateByDir:genIndexer()
 end
 
 function IncompEuler:setAuxFields(auxFields)
@@ -56,20 +63,34 @@ end
 function IncompEuler:volTerm(w, dx, idx, f, out)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idx), self.phiPtr)
+
+   local cflRateByDirPtr = self.cflRateByDir:get(1)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), cflRateByDirPtr)
+
    local res
-   res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), self.phiPtr:data(), f:data(), out:data())
+   res = self._volTerm(self.charge, self.mass, w:data(), dx:data(), cflRateByDirPtr:data(), self.phiPtr:data(), f:data(), out:data())
    self.totalVolTime = self.totalVolTime + (Time.clock()-tmStart)
    return res
 end
 
 -- Surface integral term for use in DG scheme.
-function IncompEuler:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
+function IncompEuler:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, fl, fr, outl, outr)
    local tmStart = Time.clock()
    self.phi:fill(self.phiIdxr(idxr), self.phiPtr)
+
+   local cflRateByDirL = self.cflRateByDir:get(1)
+   local cflRateByDirR = self.cflRateByDir:get(1)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), cflRateByDirL)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), cflRateByDirR)
+
    local res
-   res = self._surfTerms[dir](self.charge, self.mass, cfll, cflr, wr:data(), dxr:data(), maxs, self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
+   res = self._surfTerms[dir](self.charge, self.mass, cflRateByDirL:data(), cflRateByDirR:data(), wr:data(), dxr:data(), dtApprox, self.phiPtr:data(), fl:data(), fr:data(), outl:data(), outr:data())
    self.totalSurfTime = self.totalSurfTime + (Time.clock()-tmStart)
    return res
+end
+
+function IncompEuler:sync()
+   self.cflRateByDir:sync()
 end
 
 return IncompEuler

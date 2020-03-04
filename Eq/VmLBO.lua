@@ -164,7 +164,7 @@ function VmLBO:volTerm(w, dx, idx, q, out)
 end
 
 -- Surface integral term for use in DG scheme.
-function VmLBO:surfTerm(dir, cfll, cflr, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function VmLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
    local vMuMidMax = 0.0
    -- Set pointer to u and vthSq fields.
    self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)          -- Get pointer to u field.

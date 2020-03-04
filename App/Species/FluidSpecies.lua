@@ -167,11 +167,15 @@ function FluidSpecies:fullInit(appTbl)
          isSource  = true,
       }
    end
+ 
+   self.first = true
 
    self.useShared         = xsys.pickBool(appTbl.useShared, false)
-   self.positivity        = xsys.pickBool(tbl.applyPositivity, false)
-   self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, self.positivity)
-   self.positivityRescale = xsys.pickBool(tbl.positivityRescale, false)
+   self.positivity        = xsys.pickBool(tbl.positivity or tbl.applyPositivity, false)
+   if self.positivity then 
+     self.positivityDiffuse = xsys.pickBool(tbl.positivityDiffuse, false)
+     self.positivityRescaleVolTerm = xsys.pickBool(tbl.positivityRescaleVolTerm, self.positivity)
+   end
    self.deltaF            = xsys.pickBool(appTbl.deltaF, false)
 
    self.tCurr = 0.0
@@ -400,9 +404,15 @@ function FluidSpecies:alloc(nRkDup)
    }
    self.couplingMoments   = self:allocVectorMoment(self.nMoments)
    self.integratedMoments = DataStruct.DynVector { numComponents = self.nMoments }
+   self.integratedRmsMoments = DataStruct.DynVector { numComponents = self.nMoments }
+   self.intRmsDiff = {
+      DataStruct.DynVector { numComponents = self.nMoments },
+      DataStruct.DynVector { numComponents = self.nMoments },
+      DataStruct.DynVector { numComponents = self.nMoments }
+   }  
 
    if self.positivity then
-      self.fPos = self:allocVectorMoment(self.nMoments)
+      self.fRhsVol = self:allocVectorMoment(self.nMoments)
    end
 
    -- Array with one component per cell to store cflRate in each cell.
@@ -438,7 +448,7 @@ function FluidSpecies:initDist()
             self.mSource = self:allocVectorMoment(self.nMoments)
          end
          self.mSource:accumulate(1.0, self.moments[2])
-         if self.positivityRescale then
+         if self.positivity then
             self.posRescaler:advance(0.0, {self.mSource}, {self.mSource})
          end
       end
@@ -447,7 +457,7 @@ function FluidSpecies:initDist()
           string.format("FluidSpecies: Species '%s' not initialized!", self.name))
    self.moments[2]:clear(0.0)
 
-   if self.positivityRescale or self.positivityDiffuse then
+   if self.positivity then
       self.posRescaler:advance(0.0, {self.moments[1]}, {self.moments[1]}, false)
    end
 end
@@ -467,6 +477,19 @@ function FluidSpecies:combineRk(outIdx, a, aIdx, ...)
    self:rkStepperFields()[outIdx]:combine(a, self:rkStepperFields()[aIdx])
    for i = 1, nFlds do -- Accumulate rest of the fields.
       self:rkStepperFields()[outIdx]:accumulate(args[2*i-1], self:rkStepperFields()[args[2*i]])
+   end
+end
+-- Take forwardEuler step
+function FluidSpecies:forwardEuler(tCurr, dt, inIdx, outIdx)
+   -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+   self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
+
+   if self.positivityRescaleVolTerm then
+      -- if rescaling volume term, then the combineRk above only computed f^n + dt*f^n_surf (stored in outIdx)
+      -- because volume term is stored separately in self.fRhsVol
+      -- now compute scaling factor for volume term so that control nodes stay positive. 
+      self.posRescaler:rescaleVolTerm(tCurr, self:rkStepperFields()[outIdx], dt, self.fRhsVol)
+      self:rkStepperFields()[outIdx]:accumulate(dt, self.fRhsVol)
    end
 end
 
@@ -489,9 +512,10 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    if self.evolveCollisionless then
       self.solver:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       local em = emIn[1]:rkStepperFields()[inIdx]
-      if self.positivityRescale then
-         self.posRescaler:advance(tCurr, {fIn}, {self.fPos}, false)
-         self.solver:advance(tCurr, {self.fPos, em}, {fRhsOut})
+      if self.positivityRescaleVolTerm then
+         -- if rescaling vol term, pass second outFld, fRhsVol, to advance 
+         -- so that surface and volume terms are evaluated separately
+         self.solver:advance(tCurr, {fIn, em}, {fRhsOut, self.fRhsVol})
       else
          self.solver:advance(tCurr, {fIn, em}, {fRhsOut})
       end
@@ -515,6 +539,13 @@ function FluidSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
       Mpi.Barrier(self.grid:commSet().sharedComm)
       fRhsOut:accumulate(self.sourceTimeDependence(tCurr), self.mSource)
    end
+
+   if self.first then
+      self.first = false
+   else
+      if inIdx == 1 then self.rkIdx = 1 else self.rkIdx = self.rkIdx + 1 end
+      self.intMomRmsCalc:advance(tCurr, { fRhsOut, self.dtGlobal[0] }, { self.intRmsDiff[self.rkIdx] })
+   end
 end
 
 function FluidSpecies:checkPositivity(tCurr, idx)
@@ -525,7 +556,7 @@ function FluidSpecies:checkPositivity(tCurr, idx)
   return status
 end
 
-function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk)
+function FluidSpecies:applyBcIdx(tCurr, idx, isFirstRk, inIdx)
   if self.positivityDiffuse then
      self.posRescaler:advance(tCurr, {self:rkStepperFields()[idx]}, {self:rkStepperFields()[idx]}, true, isFirstRk)
   end
@@ -559,18 +590,26 @@ end
 
 function FluidSpecies:createDiagnostics()
    -- Create updater to compute volume-integrated moments.
-   self.intMom2Calc = Updater.CartFieldIntegratedQuantCalc {
+   self.intMomCalc = Updater.CartFieldIntegratedQuantCalc {
       onGrid        = self.grid,
       basis         = self.basis,
       numComponents = self.nMoments,
       quantity      = "V"
+   }
+
+   self.intMomRmsCalc = Updater.CartFieldIntegratedQuantCalc {
+      onGrid        = self.grid,
+      basis         = self.basis,
+      numComponents = self.nMoments,
+      quantity      = "RmsV"
    }
 end
 
 function FluidSpecies:write(tm, force)
    if self.evolve or self.forceWrite then
       -- Compute integrated diagnostics.
-      self.intMom2Calc:advance(tm, { self.moments[1] }, { self.integratedMoments })
+      self.intMomCalc:advance(tm, { self.moments[1] }, { self.integratedMoments })
+      self.intMomRmsCalc:advance(tm, { self.moments[1] }, { self.integratedRmsMoments })
       
       -- Only write stuff if triggered.
       if self.diagIoTrigger(tm) or force then
@@ -578,6 +617,17 @@ function FluidSpecies:write(tm, force)
 	    self.moments[1], string.format("%s_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
          self.integratedMoments:write(
             string.format("%s_intMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+         self.integratedRmsMoments:write(
+            string.format("%s_intRmsMom_%d.bp", self.name, self.diagIoFrame), tm, self.diagIoFrame)
+         for i=1,3 do
+         self.intRmsDiff[i]:write(
+            string.format("%s_intRmsDiff%d_%d.bp", self.name, i, self.diagIoFrame), tm, self.diagIoFrame)
+         end
+
+         -- write local cfl number by cell
+         self.cflRateByCell:scale(self.dtGlobal[0])
+         self.cflRateByCell:write(
+             string.format("%s_%s_%d.bp", self.name, "cflByCell", self.diagIoFrame), tm, self.diagIoFrame, self.writeGhost)
 
          if self.positivityDiffuse then
             self.posRescaler:write(tm, self.diagIoFrame, self.name)
@@ -603,6 +653,8 @@ function FluidSpecies:writeRestart(tm)
       self.moments[1], string.format("%s_restart.bp", self.name), tm, self.diagIoFrame)
    self.integratedMoments:write(
       string.format("%s_intMom_restart.bp", self.name), tm, self.diagIoFrame, false)
+   self.integratedRmsMoments:write(
+      string.format("%s_intRmsMom_restart.bp", self.name), tm, self.diagIoFrame, false)
 end
 
 function FluidSpecies:readRestart()
@@ -635,7 +687,7 @@ function FluidSpecies:momCalcTime()
    return 0
 end
 function FluidSpecies:intMomCalcTime()
-   return self.intMom2Calc.totalTime
+   return self.intMomCalc.totalTime + self.intMomRmsCalc.totalTime
 end
 
 return FluidSpecies

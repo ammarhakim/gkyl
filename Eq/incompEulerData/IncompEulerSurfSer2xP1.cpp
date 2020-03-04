@@ -1,5 +1,5 @@
 #include <IncompEulerModDecl.h> 
-double IncompEulerSurf2xSer_X_P1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double IncompEulerSurf2xSer_X_P1(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -56,7 +56,7 @@ double IncompEulerSurf2xSer_X_P1(const double q_, const double m_, const double 
   outl[3] += incr[3]; 
   return std::abs(alpha0); 
 } 
-double IncompEulerSurf2xSer_Y_P1(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
+double IncompEulerSurf2xSer_Y_P1(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Phi, const double *fl, const double *fr, double *outl, double *outr) 
 { 
   // w[NDIM]: Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.

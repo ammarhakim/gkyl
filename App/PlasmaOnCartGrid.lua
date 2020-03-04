@@ -397,7 +397,7 @@ local function buildApplication(self, tbl)
       end
 
       -- Some systems (e.g. EM GK) require additional step(s) to complete the forward Euler.
-      for istep = 2, nstep do      
+      for _, istep in pairs({2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4}) do      
          -- Update EM field.. step 2 (if necessary). 
          -- Note: no calcCouplingMoments call because field:forwardEulerStep2
          -- either reuses already calculated moments, or other moments are
@@ -418,7 +418,10 @@ local function buildApplication(self, tbl)
          -- get suggested dt from each field and species
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
-            dtSuggested = math.min(dtSuggested, s:suggestDt())
+            dtSuggested = math.min(dtSuggested, s:suggestDt(inIdx, outIdx))
+         end
+         for nm, s in pairs(species) do
+            s.dtGlobal[0] = dtSuggested
          end
          
          -- after deciding global dt, tell species
@@ -432,9 +435,12 @@ local function buildApplication(self, tbl)
          -- the smallest time step, giving us an implicit barrier before we combine RK steps.
          Mpi.Barrier(self._confGrid:commSet().sharedComm)
       end
+
       -- Take forward Euler step in fields and species
-      -- NOTE: order of these arguments matters... outIdx must come before inIdx.
-      combine(outIdx, dtSuggested, outIdx, 1.0, inIdx)
+      for nm, s in pairs(species) do
+         s:forwardEuler(tCurr, dtSuggested, inIdx, outIdx)
+      end
+      field:forwardEuler(tCurr, dtSuggested, inIdx, outIdx)
       applyBc(tCurr, outIdx, calcCflFlag)
 
       return dtSuggested
@@ -922,6 +928,7 @@ return {
    MomentSpecies      = Species.MomentSpecies,
    NoField            = Field.NoField,
    Projection         = Projection,
+   PassiveAdvectionSpecies = Species.PassiveAdvectionSpecies,
    VlasovSpecies      = Species.VlasovSpecies,
    VmBGKCollisions    = Collisions.VmBGKCollisions,   
    VmLBOCollisions    = Collisions.VmLBOCollisions,

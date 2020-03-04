@@ -175,7 +175,7 @@ function GkLBOCollisions:fullInit(speciesTbl)
       self.nuFrac = 1.0
    end
 
-   self.usePositivity = speciesTbl.applyPositivity    -- Use positivity preserving algorithms.
+   self.usePositivity = speciesTbl.positivity    -- Use positivity preserving algorithms.
 
    self.tmEvalMom = 0.0
 end
@@ -218,6 +218,11 @@ function GkLBOCollisions:createSolver(funcField)
 
    -- Intemediate storage for output of collisions.
    self.collOut = DataStruct.Field {
+      onGrid        = self.phaseGrid,
+      numComponents = self.phaseBasis:numBasis(),
+      ghost         = {1, 1},
+   }
+   self.collVol = DataStruct.Field {
       onGrid        = self.phaseGrid,
       numComponents = self.phaseBasis:numBasis(),
       ghost         = {1, 1},
@@ -357,7 +362,7 @@ function GkLBOCollisions:createSolver(funcField)
    }
 end
 
-function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
+function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut, fRhsVol)
 
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
@@ -468,7 +473,7 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    -- Compute increment from collisions and accumulate it into output.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {self.collOut, self.collVol})
 
    self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
    self.primMomLimitCrossingsL:appendData(tCurr, {self.gkLBOconstNuCalcEq.primMomCrossLimit})
@@ -477,6 +482,11 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
    Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
    fRhsOut:accumulate(1.0, self.collOut)
+   if fRhsVol then 
+      fRhsVol:accumulate(1.0, self.collVol) 
+   else
+      fRhsOut:accumulate(1.0, self.collVol)
+   end
 
 end
 

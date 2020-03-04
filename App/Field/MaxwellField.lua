@@ -447,6 +447,11 @@ function MaxwellField:combineRk(outIdx, a, aIdx, ...)
       end	 
    end
 end
+-- Take forwardEuler step 
+function MaxwellField:forwardEuler(tCurr, dt, inIdx, outIdx)
+   -- NOTE: order of these arguments matters... outIdx must come before inIdx.
+   self:combineRk(outIdx, dt, outIdx, 1.0, inIdx)
+end
 
 function MaxwellField:suggestDt()
    -- Loop over local region. 

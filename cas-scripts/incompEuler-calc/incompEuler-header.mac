@@ -1,14 +1,14 @@
 cvars : [X, Y, Z]$
 
 printPrototypes() := block([], 
-  pmax:2,
+  pmax:1,
   for ci : 1 thru 2 do (
     for pi : 1 thru pmax do (
-      printf(fh, "double IncompEulerVol~axSerP~a(const double q_, const double m_, const double *w, const double *dxv, const double *Phi, const double *f, double *out); ~%", ci, pi),
+      printf(fh, "double IncompEulerVol~axSerP~a(const double q_, const double m_, const double *w, const double *dxv, double *cflRateByDir, const double *Phi, const double *f, double *out); ~%", ci, pi),
       for si : 1 thru ci do (
         dirlabel : cvars[si],
-        printf(fh, "double IncompEulerSurf~axSer_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi),
-        printf(fh, "double IncompEulerSurfPositivity~axSer_~a_P~a(const double q_, const double m_, const double cflL, const double cflR, const double *w, const double *dxv, const double amax_in, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi)
+        printf(fh, "double IncompEulerSurf~axSer_~a_P~a(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi),
+        printf(fh, "double IncompEulerSurfPositivity~axSer_~a_P~a(const double q_, const double m_, const double *cflRateByDirL, const double *cflRateByDirR, const double *w, const double *dxv, const double dtApprox, const double *Phi, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi)
       ),
       printf(fh, "~%")
     )
@@ -21,7 +21,6 @@ printf(fh, "#define INCOMPEULER_MOD_DECL_H ~%")$
 printf(fh, "#include <cmath> ~%")$
 printf(fh, "#include <algorithm> ~%")$
 printf(fh, "#include <Positivity.h> ~%")$
-printf(fh, "#include <CartFieldBinOpModDecl.h> ~%")$
 printf(fh, "#define SURFAVG 1 ~%")$
 printf(fh, "#define QUAD 2 ~%")$
 printf(fh, "#define cflType QUAD ~%")$

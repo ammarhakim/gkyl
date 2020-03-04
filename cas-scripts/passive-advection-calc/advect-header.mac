@@ -1,0 +1,40 @@
+cvars : [X1, X2, X3]$
+
+printPrototypes() := block([], 
+pmax:2,
+for ci : 1 thru 3 do (
+  for pi : 1 thru pmax do (
+      printf(fh, "double PassiveAdvectionVol~axSerP~a(const double *w, const double *dxv, double *cfl, const double *f, double *out); ~%", ci, pi),
+      for si : 1 thru ci do (
+        dirlabel : cvars[si],
+        printf(fh, "double PassiveAdvectionSurf~axSer_~a_P~a(const double *cflL, const double *cflR, const double *w, const double *dxv, const double dtApprox, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi),
+        printf(fh, "double PassiveAdvectionSurfPositivity~axSer_~a_P~a(const double *cflL, const double *cflR, const double *w, const double *dxv, const double dt, const double *fl, const double *fr, double *outl, double *outr); ~%", ci, dirlabel, pi)
+      ),
+    printf(fh, "~%")
+))
+)$
+
+fh : openw("~/max-out/PassiveAdvectionModDecl.h")$
+printf(fh, "#ifndef PASSIVE_ADVECTION_MOD_DECL_H ~%")$
+printf(fh, "#define PASSIVE_ADVECTION_MOD_DECL_H ~%")$
+printf(fh, "#include <cmath> ~%")$
+printf(fh, "#include <algorithm> ~%")$
+printf(fh, "#include <Positivity.h> ~%")$
+printf(fh, "#define SURFAVG 1 ~%")$
+printf(fh, "#define QUAD 2 ~%")$
+printf(fh, "#define cflType QUAD ~%")$
+printf(fh, "#define upwindType QUAD ~%")$
+printf(fh, "template <typename T> int sgn(T val) { ~%")$
+printf(fh, "    return (T(0) < val) - (val < T(0)); ~%}~%")$
+printf(fh, "extern \"C\" { ~%")$
+printPrototypes()$
+printf(fh, "} ~%")$
+printf(fh, "#endif ~%")$
+close(fh)$
+
+fh : openw("~/max-out/_PassiveAdvectionCdef.lua")$
+printf(fh, "local ffi = require \"ffi\" ~%~%")$
+printf(fh, "ffi.cdef [[~%")$
+printPrototypes()$
+printf(fh, "]]~%")$
+close(fh)$
