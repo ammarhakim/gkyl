@@ -188,27 +188,6 @@ function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, wei
    end
 end
 
-function PositivityRescale:scaleByCell(volRescale, fIn, fScaledOut)
-   -- Multiply the (1-component) volume term rescale factor by a phase space field (e.g. distribution function).
-   local localRange     = fIn:localRange()
-
-   local volRescale_ptr = volRescale:get(1)
-   local fIn_ptr        = fIn:get(1)
-   local fScaledOut_ptr = fScaledOut:get(1)
-
-   local phaseIndexer   = fIn:genIndexer()
-
-   for idx in localRange:rowMajorIter() do
-      volRescale:fill(phaseIndexer(idx), volRescale_ptr)
-      fIn:fill(phaseIndexer(idx), fIn_ptr)
-      fScaledOut:fill(phaseIndexer(idx), fScaledOut_ptr)
-
-      for k = 1, self.basis:numBasis() do
-         fScaledOut_ptr[k] = volRescale_ptr[1]*fIn_ptr[k]
-      end
-   end
-end
-
 function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol)
    local localRange      = fRhsSurf:localRange()   
    local fIn_ptr         = fIn:get(1)

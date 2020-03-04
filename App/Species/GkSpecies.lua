@@ -696,7 +696,8 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
             -- Recompute uPar and vtSq from a new weak system in which boundary corrections use
             -- the old vtSq, and the other terms are multiplied by the volume rescaling factor.
             if scaleVolTermScale then
-               c.gkLBOconstNuCalcEq.posRescaler:scaleByCell(c.gkLBOconstNuCalcEq.volTermRescale,fIn,self.scaledDistF)
+               self.scaledDistF:copy(fIn)
+               self.scaledDistF:scaleByCell(c.gkLBOconstNuCalcEq.volTermRescale)
                scaleVolTermScale = false
                -- Compute new moments with scaled distribution function. 
                self.threeMomentsLBOCalc:advance(tCurr, {self.scaledDistF}, { self.numDensityAux, self.momDensityAux, self.ptclEnergyAux,
