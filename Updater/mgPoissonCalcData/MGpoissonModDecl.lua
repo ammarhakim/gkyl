@@ -20,7 +20,7 @@ local dirLabelsUC = {'X', 'Y', 'Z'}
 -- Translate the BC ID numbers to a string. For periodic (=0) we
 -- will simply use an interior stencil, assuming that the ghost cells
 -- are filled appropriately.
-local translateBCid = {[0] = "", [1] = "Dirichlet", [2] = "Neumann"}
+local translateBCid = {[0] = "", [1] = "Robin", [2] = "Robin", [3] = "Robin"}
 
 -- Select restriction operator kernel.
 function _M.selectRestriction(basisNm, dim, polyOrder)

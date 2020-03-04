@@ -13,13 +13,12 @@ VarsC : [X, Y, Z]$
 boundStrKey : [[-1,"L"],[0,""],[1,"U"]]$
 /* Types of boundary conditions for which to generate kernels.
      =0 periodic
-     =1 Dirichlet
-     =2 Neumann
+     =3 Robin
    For periodic we'll assume ghost cells are filled accordingly
    and use an interior stencil. */
-bcTypes  : [0, 1, 2]$
-bcStrs   : ["", "Dirichlet","Neumann"]$
-bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]],[bcTypes[3],bcStrs[3]]]$
+bcTypes  : [0, 3]$
+bcStrs   : ["", "Robin"]$
+bcKey    : [[bcTypes[1],bcStrs[1]],[bcTypes[2],bcStrs[2]]]$
 
 printf(fh, "#ifndef MG_POISSON_MOD_DECL_H ~%")$
 printf(fh, "#define MG_POISSON_MOD_DECL_H ~%")$
@@ -70,9 +69,9 @@ findBoundaryStrCombo(fhIn, funcNameStr, funcArgsStr, basisFun, dim) := block([],
       )
     ),
   
-    /* Given npBCs non-periodic BCs, there are bcN^npBCs possible
-       combinations of that cell's stencil (Assuming there are
-       only bcN types of BCs (e.g. Dirichlet, Neumman). */
+    /* Given npBCs non-periodic BCs there are bcN^npBCs possible combinations of
+       of that cell's stencil, assuming there are bcN types of BCs. For now
+       only Robin BCs are supported (also used for Dirichlet/Neumann). */
     npBCcombos : makelist([bcTypes[i]],i,2,length(bcTypes)),
     for l : 2 thru npBCs do (
       tmp : copylist(npBCcombos),
@@ -123,14 +122,10 @@ for bInd : 1 thru length(bName) do (
       printf(fh, "~%"),
 
       /* Smoothers. */
-      printf(fh, "void MGpoissonGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       printf(fh, "void MGpoissonDampedGaussSeidel~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
-      printf(fh, "void MGpoissonJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       printf(fh, "void MGpoissonDampedJacobi~ax~a_P~a(const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi);~%", ci, bName[bInd], polyOrder),
       /* Boundary smoothers. */
-      findBoundaryStrCombo(fh, "MGpoissonGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
       findBoundaryStrCombo(fh, "MGpoissonDampedGaussSeidel", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
-      findBoundaryStrCombo(fh, "MGpoissonJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
       findBoundaryStrCombo(fh, "MGpoissonDampedJacobi", "const double omega, double **dx, const double *bcVals, const double *rho, double **phiPrev, double **phi", bName[bInd], ci),
       printf(fh, "~%"),
 

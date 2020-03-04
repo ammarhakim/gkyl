@@ -28,7 +28,7 @@ return function(tbl)
    local diagKernelFn = ffi.C[diagKernelNm]
 
    local cflFrac = tbl.cflFrac and tbl.cflFrac or 1.0
-   local cfl = cflFrac*0.5/(2*polyOrder+1) -- CFL number
+   local fixedDt = tbl.fixedDt
    local tEnd = tbl.tEnd
    local nFrames = tbl.nFrames
    local updatePotentials = xsys.pickBool(tbl.updatePotentials, true)
@@ -151,25 +151,25 @@ return function(tbl)
       -- lower-left
       idxSkin, idxGhost = fld:get(indexer(xup, yup)), fld:get(indexer(xlo-1, ylo-1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
       
       -- lower-right
       idxSkin, idxGhost = fld:get(indexer(xlo, yup)), fld:get(indexer(xup+1, ylo-1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
       
       -- upper-left
       idxSkin, idxGhost = fld:get(indexer(xup, ylo)), fld:get(indexer(xlo-1, yup+1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
       
       -- upper-right
       idxSkin, idxGhost = fld:get(indexer(xlo, ylo)), fld:get(indexer(xup+1, yup+1))
       for k = 1, fld:numComponents() do
-	 idxGhost[k] = idxSkin[k]
+         idxGhost[k] = idxSkin[k]
       end
    end
 
@@ -221,10 +221,10 @@ return function(tbl)
       out[4] = 0.0
 
       for idxs in localRange:colMajorIter() do
-	 grid:setIndex(idxs)
-	 grid:cellCenter(vc)
+         grid:setIndex(idxs)
+         grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
-	 momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
+         momsKernelFn(dv:data(), vc:data(), fPtr:data(), out:data())
       end
       momVec:appendData(tCurr, out)
       return out
@@ -242,11 +242,11 @@ return function(tbl)
       out[3] = 0.0
 
       for idxs in localRange:colMajorIter() do
-	 grid:setIndex(idxs)
-	 grid:cellCenter(vc)
+         grid:setIndex(idxs)
+         grid:cellCenter(vc)
          local fPtr = fIn:get(indexer(idxs))
          local hPtr = hIn:get(indexer(idxs))
-	 diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
+         diagKernelFn(dv:data(), vc:data(), fPtr:data(), hPtr:data(), out:data())
       end
       diagVec:appendData(tCurr, out)
    end
@@ -254,11 +254,11 @@ return function(tbl)
    local function writeData(fr, tm)
       f:write(string.format("f_%d.bp", fr), tm, fr)
       if updatePotentials then
-	 h:write(string.format('h_%d.bp', fr), tm, fr)
-	 g:write(string.format('g_%d.bp', fr), tm, fr)
+         h:write(string.format('h_%d.bp', fr), tm, fr)
+         g:write(string.format('g_%d.bp', fr), tm, fr)
       end
       if writeDiagnostics then
-	 moms:write(string.format("moms_%d.bp", fr), tm, fr)
+         moms:write(string.format("moms_%d.bp", fr), tm, fr)
          diag:write(string.format("diag_%d.bp", fr), tm, fr)
       end
    end
@@ -278,15 +278,15 @@ return function(tbl)
    -- Overwrite the init functions if the the Dougherty potentials are turned on
    if doughertyPotentials then
       initDragFunc = function (t, z)
-	 local ux = momVec[2]/momVec[1]
-	 local uy = momVec[3]/momVec[1]
-	 return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
+         local ux = momVec[2]/momVec[1]
+         local uy = momVec[3]/momVec[1]
+         return -0.5*((z[1]-ux)^2 + (z[2]-uy)^2)
       end
       initDiffFunc = function (t, z)
-	 local ux = momVec[2]/momVec[1]
-	 local uy = momVec[3]/momVec[1]
-	 local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
-	 return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
+         local ux = momVec[2]/momVec[1]
+         local uy = momVec[3]/momVec[1]
+         local dvth2 = momVec[4]/momVec[1] - (ux^2 + uy^2)
+         return dvth2/2 * (z[1]^2 + z[2]^2) -- /2 is for dimensions
       end
    end
 
@@ -333,6 +333,7 @@ return function(tbl)
       local idxsR, idxsL = {}, {}
       local idxsT, idxsB = {}, {}
       local idxsTL, idxsTR, idxsBL, idxsBR = {}, {}, {}, {}
+      local cflFreq, dragFreq, diffFrq = 0.0, 0.0, 0.0
 
       for idxs in localRange:colMajorIter() do
          idxsR[1], idxsR[2] = idxs[1]+1, idxs[2]
@@ -340,10 +341,10 @@ return function(tbl)
          idxsT[1], idxsT[2] = idxs[1], idxs[2]+1
          idxsB[1], idxsB[2] = idxs[1], idxs[2]-1
 
-	 idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
-	 idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
-	 idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
-	 idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
+         idxsTL[1], idxsTL[2] = idxs[1]-1, idxs[2]+1
+         idxsTR[1], idxsTR[2] = idxs[1]+1, idxs[2]+1
+         idxsBL[1], idxsBL[2] = idxs[1]-1, idxs[2]-1
+         idxsBR[1], idxsBR[2] = idxs[1]+1, idxs[2]-1
 
          local isTopEdge, isBotEdge = 0, 0
          local isLeftEdge, isRightEdge = 0, 0
@@ -362,10 +363,10 @@ return function(tbl)
          local fT = fIn:get(indexer(idxsT))
          local fB = fIn:get(indexer(idxsB))
 
-	 local fTL = fIn:get(indexer(idxsTL))
-	 local fTR = fIn:get(indexer(idxsTR))
-	 local fBL = fIn:get(indexer(idxsBL))
-	 local fBR = fIn:get(indexer(idxsBR))
+         local fTL = fIn:get(indexer(idxsTL))
+         local fTR = fIn:get(indexer(idxsTR))
+         local fBL = fIn:get(indexer(idxsBL))
+         local fBR = fIn:get(indexer(idxsBR))
 
          local hC = hIn:get(indexer(idxs))
          local hR = hIn:get(indexer(idxsR))
@@ -379,60 +380,87 @@ return function(tbl)
          local gT = gIn:get(indexer(idxsT))
          local gB = gIn:get(indexer(idxsB))
 
-	 local gTL = gIn:get(indexer(idxsTL))
-	 local gTR = gIn:get(indexer(idxsTR))
-	 local gBL = gIn:get(indexer(idxsBL))
-	 local gBR = gIn:get(indexer(idxsBR))
+         local gTL = gIn:get(indexer(idxsTL))
+         local gTR = gIn:get(indexer(idxsTR))
+         local gBL = gIn:get(indexer(idxsBL))
+         local gBR = gIn:get(indexer(idxsBR))
 
          local fOutP = fOut:get(indexer(idxs))
 
-         dragKernelFn(dt, dv:data(),
-	 	      fC:data(), fL:data(), fR:data(), fT:data(), fB:data(),
-	 	      hC:data(), hL:data(), hR:data(), hT:data(), hB:data(),
-	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-	 	      fOutP:data())
-         diffKernelFn(dt, dv:data(),
-	 	      fTL:data(), fT:data(), fTR:data(),
-	 	      fL:data(), fC:data(), fR:data(),
-	 	      fBL:data(), fB:data(), fBR:data(),
-	 	      gTL:data(), gT:data(), gTR:data(),
-	 	      gL:data(), gC:data(), gR:data(),
-	 	      gBL:data(), gB:data(), gBR:data(),
-	 	      isTopEdge, isBotEdge, isLeftEdge, isRightEdge,
-	 	      fOutP:data())
+         dragFreq = dragKernelFn(dt, dv:data(),
+				 fC:data(),
+				 fL:data(), fR:data(),
+				 fT:data(), fB:data(),
+				 hC:data(),
+				 hL:data(), hR:data(),
+				 hT:data(), hB:data(),
+				 isTopEdge, isBotEdge,
+				 isLeftEdge, isRightEdge,
+				 fOutP:data())
+         diffFreq = diffKernelFn(dt, dv:data(),
+				 fTL:data(), fT:data(), fTR:data(),
+				 fL:data(), fC:data(), fR:data(),
+				 fBL:data(), fB:data(), fBR:data(),
+				 gTL:data(), gT:data(), gTR:data(),
+				 gL:data(), gC:data(), gR:data(),
+				 gBL:data(), gB:data(), gBR:data(),
+				 isTopEdge, isBotEdge,
+				 isLeftEdge, isRightEdge,
+				 fOutP:data())
+	 cflFreq = math.max(cflFreq, diffFreq, dragFreq)
       end
 
       tmFpo = tmFpo + Time.clock()-tmStart
+      return cflFreq
    end
 
    local function rk3(dt, fIn, fOut)
+      local cflFreq = 0.0
+      local localDt = dt
       -- Stage 1
       updateRosenbluthDrag(fIn, h)
       updateRosenbluthDiffusion(h, g)
-      forwardEuler(dt, fIn, h, g, f1)
+      cflFreq = forwardEuler(dt, fIn, h, g, f1)
+      localDt = cflFrac/cflFreq
+      if localDt < 0.9*dt then
+	 return false, localDt
+      end
       applyBc(f1)
 
       -- Stage 2
       updateRosenbluthDrag(f1, h)
       updateRosenbluthDiffusion(h, g)
-      forwardEuler(dt, f1, h, g, fe)
+      cflFreq = forwardEuler(dt, f1, h, g, fe)
+      localDt = cflFrac/cflFreq
+      if localDt < 0.9*dt then
+	 return false, localDt
+      end
       f2:combine(3.0/4.0, fIn, 1.0/4.0, fe)
       applyBc(f2)
 
       -- Stage 3
       updateRosenbluthDrag(f2, h)
       updateRosenbluthDiffusion(h, g)
-      forwardEuler(dt, f2, h, g, fe)
+      cflFreq = forwardEuler(dt, f2, h, g, fe)
+      localDt = cflFrac/cflFreq
+      if localDt < 0.9*dt then
+	 return false, localDt
+      end
       fOut:combine(1.0/3.0, fIn, 2.0/3.0, fe)
       applyBc(fOut)
+
+      return true, localDt
    end
 
    -- run simulation with RK3
    return function ()
       local tCurr = 0.0
       local step = 1
-      local dt = cfl*grid:dx(1)
-      dt = 0.001
+      local dt = tEnd
+      local dynDt = dt
+      if fixedDt then 
+	 dt = fixedDt
+      end
 
       local frameInt = tEnd/nFrames
       local nextFrame = 1
@@ -440,26 +468,40 @@ return function(tbl)
 
       local tmStart = Time.clock()
       while not isDone do
-         if (tCurr+dt >= tEnd) then
-            isDone = true
-            dt = tEnd-tCurr
+	 if (tCurr+dt >= tEnd) then
+	    isDone = true
+	    dt = tEnd-tCurr
          end
-         print(string.format("Step %d at time %g with dt %g ...", step, tCurr, dt))
-         rk3(dt, f, fNew)
-         f:copy(fNew)
-
-         if writeDiagnostics then
-	    calcMoms(tCurr+dt, f, moms)
-            updateRosenbluthDrag(f, h)
-            calcDiag(tCurr+dt, f, h, diag)
-         end
-
-         tCurr = tCurr+dt
-         if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
-            writeData(nextFrame, tCurr)
-            nextFrame = nextFrame+1
+         print(string.format("Step %d at time %g with dt %g ...",
+			     step, tCurr, dt))
+         status, dynDt = rk3(dt, f, fNew)
+	 if fixedDt then
+	    if dynDt < fixedDt then
+	       print("'fixedDt' is violating the stability condition, exiting")
+	       break
+	    end
+	 else
+	    dt = dynDt
 	 end
-         step = step+1
+	 if status then
+	    f:copy(fNew)
+	    
+	    if writeDiagnostics then
+	       calcMoms(tCurr+dt, f, moms)
+	       updateRosenbluthDrag(f, h)
+	       calcDiag(tCurr+dt, f, h, diag)
+	    end
+	    
+	    tCurr = tCurr+dt
+	    if tCurr >= nextFrame*frameInt or math.abs(tCurr-nextFrame*frameInt) < 1e-10 then
+	       writeData(nextFrame, tCurr)
+	       nextFrame = nextFrame+1
+	    end
+	    step = step+1
+	 else 
+	    isDone = false
+	    print("dt too big, retaking")
+	 end
       end
       local tmTotal = Time.clock()-tmStart
 
