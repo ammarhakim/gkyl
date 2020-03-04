@@ -170,7 +170,7 @@ local function buildApplication(self, tbl)
    -- Configuration space decomp object (eventually, this will be
    -- slaved to the phase-space decomp).
    local decomp = DecompRegionCalc.CartProd {
-      cuts = decompCuts,
+      cuts      = decompCuts,
       useShared = useShared,
    }
 
@@ -181,12 +181,12 @@ local function buildApplication(self, tbl)
    end
    -- Setup configuration space grid.
    local grid = GridConstructor {
-      lower = tbl.lower,
-      upper = tbl.upper,
-      cells = tbl.cells,
-      periodicDirs = periodicDirs,
+      lower         = tbl.lower,
+      upper         = tbl.upper,
+      cells         = tbl.cells,
+      periodicDirs  = periodicDirs,
       decomposition = decomp,
-      mappings = tbl.coordinateMap,
+      mappings      = tbl.coordinateMap,
    }
 
    -- Add grid to app object.
@@ -206,7 +206,7 @@ local function buildApplication(self, tbl)
    local cflMin = GKYL_MAX_DOUBLE
    -- Compute CFL numbers.
    for _, s in pairs(species) do
-      local ndim = s:getNdim()
+      local ndim  = s:getNdim()
       local myCfl = tbl.cfl and tbl.cfl or cflFrac/(2*polyOrder+1)
       cflMin = math.min(cflMin, myCfl)
       s:setCfl(cflMin)
@@ -236,7 +236,7 @@ local function buildApplication(self, tbl)
 
    -- Setup information about fields: if this is not specified, it is
    -- assumed there are no force terms (neutral particles).
-   local field = nil
+   local field   = nil
    local nfields = 0
    for _, val in pairs(tbl) do
       if Field.FieldBase.is(val) then
@@ -406,7 +406,7 @@ local function buildApplication(self, tbl)
          dtSuggested = tbl.tEnd - tCurr + 1e-20
          if tbl.maximumDt then dtSuggested = math.min(dtSuggested, tbl.maximumDt) end
          
-         -- get suggested dt from each field and species
+         -- Get suggested dt from each field and species.
          dtSuggested = math.min(dtSuggested, field:suggestDt())
          for nm, s in pairs(species) do
             dtSuggested = math.min(dtSuggested, s:suggestDt(inIdx, outIdx))
@@ -415,7 +415,7 @@ local function buildApplication(self, tbl)
             s.dtGlobal[0] = dtSuggested
          end
          
-         -- after deciding global dt, tell species
+         -- After deciding global dt, tell species.
          for nm, s in pairs(species) do
             s:setDtGlobal(dtSuggested)
          end
@@ -527,20 +527,20 @@ local function buildApplication(self, tbl)
       local tryInv_next = {}
       -- Update species.
       for nm, s in pairs(species) do
-	 local vars = s:rkStepperFields()
-	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
+	 local vars                              = s:rkStepperFields()
+	 local inp, out                          = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
 	 local myStatus, myDtSuggested, myTryInv = s:updateInDirection(
 	    dir, tCurr, dt, inp, out, tryInv[s])
 	 tryInv_next[s] = myTryInv
-	 status =  status and myStatus
-	 dtSuggested = math.min(dtSuggested, myDtSuggested)
+	 status         =  status and myStatus
+	 dtSuggested    = math.min(dtSuggested, myDtSuggested)
       end
       do
 	 -- Update field.
-	 local vars = field:rkStepperFields()
-	 local inp, out = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
+	 local vars                    = field:rkStepperFields()
+	 local inp, out                = vars[fIdx[dir][1]], vars[fIdx[dir][2]]
 	 local myStatus, myDtSuggested = field:updateInDirection(dir, tCurr, dt, inp, out)
-	 status =  status and myStatus
+	 status      =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
@@ -561,7 +561,7 @@ local function buildApplication(self, tbl)
       -- Update sources.
       for nm, s in pairs(sources) do
 	 local myStatus, myDtSuggested = s:updateSource(tCurr, dt, speciesVar, fieldVar)
-	 status =  status and myStatus
+	 status      =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
@@ -571,7 +571,7 @@ local function buildApplication(self, tbl)
    -- Function to advance solution using FV dimensionally split scheme.
    function timeSteppers.fvDimSplit(tCurr, dt, tryInv)
       local status, dtSuggested = true, GKYL_MAX_DOUBLE
-      local fIdx = { {1,2}, {2,1}, {1,2} } -- For indexing inp/out fields.
+      local fIdx                = { {1,2}, {2,1}, {1,2} } -- For indexing inp/out fields.
 
       -- Copy in case we need to take this step again.
       copy(3, 1)
@@ -579,7 +579,7 @@ local function buildApplication(self, tbl)
       -- Update source by half time-step.
       do
 	 local myStatus, myDtSuggested = updateSource(1, tCurr, dt/2)
-	 status = status and myStatus
+	 status      = status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
       end
 
@@ -587,7 +587,7 @@ local function buildApplication(self, tbl)
       local isInv = true
       for d = 1, cdim do
 	 local myStatus, myDtSuggested, myTryInv = updateInDirection(d, tCurr, dt, tryInv)
-	 status =  status and myStatus
+	 status      =  status and myStatus
 	 dtSuggested = math.min(dtSuggested, myDtSuggested)
 	 if not status then
 	    log(" ** Time step too large! Aborting this step!")
@@ -597,7 +597,7 @@ local function buildApplication(self, tbl)
 	    -- species in the re-taken step.
 	    for nm, s in pairs(species) do
 	       if myTryInv[s] then
-		  isInv = false
+		  isInv     = false
 		  tryInv[s] = true
 		  log(string.format(
 			 "\n ** Invalid values in %s; Will re-update using Lax flux!", nm))
@@ -659,11 +659,11 @@ local function buildApplication(self, tbl)
       -- Sanity check: don't run if not needed.
       if tStart >= tEnd then return end
 
-      local maxDt = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
+      local maxDt  = tbl.maximumDt and tbl.maximumDt or tEnd-tStart -- max time-step
       local initDt =  tbl.suggestedDt and tbl.suggestedDt or maxDt -- initial time-step
-      local step = 1
-      local tCurr = tStart
-      local myDt = initDt
+      local step   = 1
+      local tCurr  = tStart
+      local myDt   = initDt
 
       -- Triggers for 10% and 1% loggers.
       local logTrigger = LinearTrigger(0, tEnd, 10)
@@ -675,7 +675,7 @@ local function buildApplication(self, tbl)
 
       -- Triggers for restarts.
       local restartTrigger = LinearTrigger(0.0, tEnd, math.floor(1/restartFrameEvery))
-      local nRestart = 0
+      local nRestart       = 0
       -- Function to check if restart frame should happen.
       local function checkWriteRestart(t)
 	 if restartTrigger(t) then
@@ -709,9 +709,9 @@ local function buildApplication(self, tbl)
       end
 
       local tmSimStart = Time.clock()
-      local first = true
-      local failcount = 0
-      local stopfile = GKYL_OUT_PREFIX .. ".stop"
+      local first      = true
+      local failcount  = 0
+      local stopfile   = GKYL_OUT_PREFIX .. ".stop"
 
       -- For the fvDimSplit updater, tryInv contains for indicators for each
       -- species whether the domain-invariant equation should be used in the
@@ -729,7 +729,7 @@ local function buildApplication(self, tbl)
 	    status, dtSuggested, isInv = timeSteppers[timeStepperNm](tCurr, myDt, tryInv)
          else
             status, myDt = timeSteppers[timeStepperNm](tCurr)
-            dtSuggested = myDt
+            dtSuggested  = myDt
          end
     
          -- If stopfile exists, break.
@@ -748,7 +748,7 @@ local function buildApplication(self, tbl)
             -- Track dt.
             dtPtr:data()[0] = myDt
             dtTracker:appendData(tCurr+myDt, dtPtr)
-            -- Write log
+            -- Write log.
 	    writeLogMessage(tCurr+myDt)
 	    -- We must write data first before calling writeRestart in
 	    -- order not to mess up numbering of frames on a restart.
@@ -759,8 +759,8 @@ local function buildApplication(self, tbl)
 	    end	    
 	    
 	    tCurr = tCurr + myDt
-	    myDt = math.min(dtSuggested, maxDt)
-	    step = step + 1
+	    myDt  = math.min(dtSuggested, maxDt)
+	    step  = step + 1
 	    if (tCurr >= tEnd) then
 	       break
 	    end
@@ -794,14 +794,14 @@ local function buildApplication(self, tbl)
       end
 
       local tmMom, tmIntMom, tmBc, tmColl = 0.0, 0.0, 0.0, 0.0
-      local tmCollMom = 0.0
+      local tmCollMom                     = 0.0
       for _, s in pairs(species) do
-         tmMom = tmMom + s:momCalcTime()
+         tmMom    = tmMom + s:momCalcTime()
          tmIntMom = tmIntMom + s:intMomCalcTime()
-         tmBc = tmBc + s:totalBcTime()
+         tmBc     = tmBc + s:totalBcTime()
          if s.collisions then
 	    for _, c in pairs(s.collisions) do
-	       tmColl = tmColl + c:slvrTime()
+	       tmColl    = tmColl + c:slvrTime()
                tmCollMom = tmCollMom + c:momTime()
 	    end
          end

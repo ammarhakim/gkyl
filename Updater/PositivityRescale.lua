@@ -17,15 +17,16 @@ local ffiC        = ffi.C
 ffi.cdef[[
   double findMinNodalValue(double *fIn, int ndim); 
   double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx, double tCurr);
+  double calcVolTermRescale(const double tCurr, const double dtApprox, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx);
   double rescaleVolTerm(const double tCurr, const double dtApprox, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx);
 ]]
 
 local PositivityRescale = Proto(UpdaterBase)
 
 function PositivityRescale:init(tbl)
-   PositivityRescale.super.init(self, tbl) -- setup base object
+   PositivityRescale.super.init(self, tbl) -- Setup base object.
 
-   -- grid and basis
+   -- Grid and basis
    self.grid = assert(
       tbl.onGrid, "Updater.PositivityRescale: Must provide grid object using 'onGrid'")
    self.basis = assert(
@@ -33,7 +34,7 @@ function PositivityRescale:init(tbl)
       "Updater.PositivityRescale: Must provide basis object using 'basis'")
    assert(self.basis:polyOrder()==1, "Updater.PositivityRescale only implemented for p=1")
 
-   -- number of components to set
+   -- Number of components to set.
    self.numComponents = tbl.numComponents and tbl.numComponents or 1
    assert(self.numComponents == 1, "Updater.PositivityRescale only implemented for fields with numComponents = 1")
 
@@ -80,31 +81,31 @@ function PositivityRescale:init(tbl)
    self.rescaledCellsG = DataStruct.DynVector {
       numComponents = 1,
    }
-   self.del2Change = {0., 0., 0., 0.}
-   self.delChange = 0.0
+   self.del2Change    = {0., 0., 0., 0.}
+   self.delChange     = 0.0
    self.rescaledCells = 0.0
-   self.tCurrOld = 0.0
-   self.rkIdx = 1
+   self.tCurrOld      = 0.0
+   self.rkIdx         = 1
 
    self._first = true
 end   
 
 -- advance method
 function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zeroOut)
-   local grid = self.grid
+   local grid      = self.grid
    local fIn, fOut = inFld[1], outFld[1]
 
-   local ndim = self.basis:ndim()
+   local ndim     = self.basis:ndim()
    local numBasis = self.basis:numBasis()
 
    if self._first then 
-      self.fInIndexer = fIn:genIndexer()
-      self.fInPtr = fIn:get(1)
-      self.fOutIndexer = fOut:genIndexer()
-      self.fOutPtr = fOut:get(1)
+      self.fInIndexer        = fIn:genIndexer()
+      self.fInPtr            = fIn:get(1)
+      self.fOutIndexer       = fOut:genIndexer()
+      self.fOutPtr           = fOut:get(1)
       self.del2ChangeIndexer = self.del2ChangeByCell:genIndexer()
-      self.del2ChangePtr = self.del2ChangeByCell:get(1)
-      self._first = false
+      self.del2ChangePtr     = self.del2ChangeByCell:get(1)
+      self._first            = false
    end
 
    if computeDiagnostics == nil then computeDiagnostics = true end
@@ -122,10 +123,10 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
          self.rescaledCellsL:appendData(self.tCurrOld, {self.rescaledCells}) 
          self.rescaledCellsG:appendData(self.tCurrOld, {0}) 
       end
-      self.delChange = 0.
+      self.delChange     = 0.
       self.rescaledCells = 0.0
-      self.tCurrOld = tCurr
-      self.rkIdx=1
+      self.tCurrOld      = tCurr
+      self.rkIdx         = 1
    end
  
    local localRange = fIn:localRange()   
@@ -148,18 +149,78 @@ function PositivityRescale:advance(tCurr, inFld, outFld, computeDiagnostics, zer
    self.rkIdx = self.rkIdx+1
 end
 
-function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol)
-   local localRange = fRhsSurf:localRange()   
-   local fIn_ptr = fIn:get(1)
-   local fRhsSurf_ptr = fRhsSurf:get(1)
-   local fRhsVol_ptr = fRhsVol:get(1)
-   local fInIndexer = fIn:genIndexer()
-   local fRhsSurfIndexer = fRhsSurf:genIndexer()
-   local fRhsVolIndexer = fRhsVol:genIndexer()
+function PositivityRescale:calcVolTermRescale(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol, volRescale)
+   -- Compute the rescale factor of the volume term needed to
+   -- preserve positivity and store it in a CartField (volRescale).
+   local localRange     = fRhsSurf:localRange()   
+
+   local fIn_ptr        = fIn:get(1)
+   local fRhsSurf_ptr   = fRhsSurf:get(1)
+   local fRhsVol_ptr    = fRhsVol:get(1)
+   local volRescale_ptr = volRescale:get(1)
+
+   local phaseIndexer   = fIn:genIndexer()
 
    local weights_ptr, weightsIndexer
    if weights then
-      weights_ptr = weights:get(1)
+      weights_ptr    = weights:get(1)
+      weightsIndexer = weights:genIndexer()
+   end
+
+   for idx in localRange:rowMajorIter() do
+      fIn:fill(phaseIndexer(idx), fIn_ptr)
+      fRhsSurf:fill(phaseIndexer(idx), fRhsSurf_ptr)
+      fRhsVol:fill(phaseIndexer(idx), fRhsVol_ptr)
+      volRescale:fill(phaseIndexer(idx), volRescale_ptr)
+
+      local weightfac = 1.0
+      if weights then
+         weightfac = 0.0
+         weights:fill(weightsIndexer(idx), weights_ptr)
+         for i, d in pairs(weightDirs) do
+            weightfac = weightfac + weights_ptr:data()[d]
+         end
+         weightfac = weightfac/weights_ptr:data()[0]
+      end
+      
+      volRescale_ptr[1] = ffiC.calcVolTermRescale(tCurr, dtApprox, fIn_ptr:data(), weightfac, fRhsSurf_ptr:data(),
+                                                  fRhsVol_ptr:data(), self.basis:ndim(), self.basis:numBasis(), idx:data())
+   end
+end
+
+function PositivityRescale:scaleByCell(volRescale, fIn, fScaledOut)
+   -- Multiply the (1-component) volume term rescale factor by a phase space field (e.g. distribution function).
+   local localRange     = fIn:localRange()
+
+   local volRescale_ptr = volRescale:get(1)
+   local fIn_ptr        = fIn:get(1)
+   local fScaledOut_ptr = fScaledOut:get(1)
+
+   local phaseIndexer   = fIn:genIndexer()
+
+   for idx in localRange:rowMajorIter() do
+      volRescale:fill(phaseIndexer(idx), volRescale_ptr)
+      fIn:fill(phaseIndexer(idx), fIn_ptr)
+      fScaledOut:fill(phaseIndexer(idx), fScaledOut_ptr)
+
+      for k = 1, self.basis:numBasis() do
+         fScaledOut_ptr[k] = volRescale_ptr[1]*fIn_ptr[k]
+      end
+   end
+end
+
+function PositivityRescale:rescaleVolTerm(tCurr, dtApprox, fIn, weights, weightDirs, fRhsSurf, fRhsVol)
+   local localRange      = fRhsSurf:localRange()   
+   local fIn_ptr         = fIn:get(1)
+   local fRhsSurf_ptr    = fRhsSurf:get(1)
+   local fRhsVol_ptr     = fRhsVol:get(1)
+   local fInIndexer      = fIn:genIndexer()
+   local fRhsSurfIndexer = fRhsSurf:genIndexer()
+   local fRhsVolIndexer  = fRhsVol:genIndexer()
+
+   local weights_ptr, weightsIndexer
+   if weights then
+      weights_ptr    = weights:get(1)
       weightsIndexer = weights:genIndexer()
    end
 

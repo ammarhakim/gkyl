@@ -10,6 +10,7 @@ local EqBase             = require "Eq.EqBase"
 local GyrokineticModDecl = require "Eq.gkData.GyrokineticModDecl"
 local Proto              = require "Lib.Proto"
 local Time               = require "Lib.Time"
+local Updater            = require "Updater"
 local xsys               = require "xsys"
 local ffi                = require "ffi"
 local ffiC               = ffi.C
@@ -98,62 +99,62 @@ function Gyrokinetic:init(tbl)
    if self._positivity then
       self.posRescaler = Updater.PositivityRescale {
          onGrid = self._grid,
-         basis = self._basis,
+         basis  = self._basis,
       }
 
       if self._isElectromagnetic then 
          self.fRhsVolX = DataStruct.Field {
-               onGrid = self._grid,
-               numComponents = self._basis:numBasis(),
-               ghost = {1, 1}
-            }
+            onGrid        = self._grid,
+            numComponents = self._basis:numBasis(),
+            ghost         = {1, 1}
+         }
          self.fRhsVolX_ptr = self.fRhsVolX:get(1)
 
          self.fRhsVolV = DataStruct.Field {
-               onGrid = self._grid,
-               numComponents = self._basis:numBasis(),
-               ghost = {1, 1}
-            }
+            onGrid        = self._grid,
+            numComponents = self._basis:numBasis(),
+            ghost         = {1, 1}
+         }
          self.fRhsVolV_ptr = self.fRhsVolV:get(1)
 
          self.fRhsSurfX = DataStruct.Field {
-               onGrid = self._grid,
-               numComponents = self._basis:numBasis(),
-               ghost = {1, 1}
-            }
+            onGrid        = self._grid,
+            numComponents = self._basis:numBasis(),
+            ghost         = {1, 1}
+         }
          self.fRhsSurfX_L_ptr = self.fRhsSurfX:get(1)
          self.fRhsSurfX_R_ptr = self.fRhsSurfX:get(1)
 
          self.fRhsSurfV = DataStruct.Field {
-               onGrid = self._grid,
-               numComponents = self._basis:numBasis(),
-               ghost = {1, 1}
-            }
-         self.fRhsSurfV_ptr = self.fRhsSurfV:get(1)
+            onGrid        = self._grid,
+            numComponents = self._basis:numBasis(),
+            ghost         = {1, 1}
+         }
+         self.fRhsSurfV_ptr   = self.fRhsSurfV:get(1)
          self.fRhsSurfV_L_ptr = self.fRhsSurfV:get(1)
          self.fRhsSurfV_R_ptr = self.fRhsSurfV:get(1)
 
          self.fRhsIdxr = self.fRhsVolX:genIndexer()
       else
          self.fRhsVol = DataStruct.Field {
-               onGrid = self._grid,
-               numComponents = self._basis:numBasis(),
-               ghost = {1, 1}
-            }
+            onGrid        = self._grid,
+            numComponents = self._basis:numBasis(),
+            ghost         = {1, 1}
+         }
          self.fRhsVol_ptr = self.fRhsVol:get(1)
 
          self.fRhsIdxr = self.fRhsVol:genIndexer()
       end
 
-      self.cflRateByDir_ptr = self.cflRateByDir:get(1)
+      self.cflRateByDir_ptr   = self.cflRateByDir:get(1)
       self.cflRateByDir_L_ptr = self.cflRateByDir:get(1)
       self.cflRateByDir_R_ptr = self.cflRateByDir:get(1)
    end
 end
 
 function Gyrokinetic:setAuxFields(auxFields)
-   local potentials = auxFields[1] -- First auxField is Field object.
-   local geo        = auxFields[2] -- Second auxField is FuncField object.
+   local potentials = auxFields[1]   -- First auxField is Field object.
+   local geo        = auxFields[2]   -- Second auxField is FuncField object.
 
    -- Get phi.
    self.phi = potentials.phi
@@ -217,11 +218,11 @@ function Gyrokinetic:setAuxFields(auxFields)
       self.bdriftYIdxr = self.bdriftY:genIndexer()
       self.phiWallIdxr = self.phiWall:genIndexer()
 
-      self._isFirst = false -- No longer first time.
+      self._isFirst = false   -- No longer first time.
    end
 end
 
--- Volume integral term for use in DG scheme
+-- Volume integral term for use in DG scheme.
 function Gyrokinetic:volTerm(w, dx, idx, f_ptr, fRhs_ptr)
    local tmStart = Time.clock()
    if self._gyavg then 
@@ -256,7 +257,7 @@ function Gyrokinetic:volTerm(w, dx, idx, f_ptr, fRhs_ptr)
                              self.bdriftX_ptr:data(), self.bdriftY_ptr:data(), self.phi_ptr:data(), self.apar_ptr:data(),
                              f_ptr:data(), fRhs_ptr:data())
       end
-   else  -- electrostatic
+   else  -- Electrostatic.
       if self._positivity then 
          self.fRhsVol:fill(self.fRhsIdxr(idx), self.fRhsVol_ptr)
          self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), self.cflRateByDir_ptr)
@@ -333,7 +334,7 @@ function Gyrokinetic:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr,
                      f_L_ptr:data(), f_R_ptr:data(), fRhs_L_ptr:data(), fRhs_R_ptr:data(), 
                      self.ohmMod_L_ptr:data(), self.ohmMod_R_ptr:data())
       end
-   else -- electrostatic
+   else   -- Electrostatic.
       if self._positivity then
          local cflRateByDir_L_ptr = self.cflRateByDir:get(1)
          local cflRateByDir_R_ptr = self.cflRateByDir:get(1)
@@ -367,7 +368,7 @@ function Gyrokinetic:sync()
    self.cflRateByDir:sync()
 end
 
--- Step2 volume integral term for use in DG scheme (EM only)
+-- Step2 volume integral term for use in DG scheme (EM only).
 function Gyrokinetic:volTermStep2(w, dx, idx, f_ptr, fRhs_ptr)
    local tmStart = Time.clock()
    self.dApardt:fill(self.dApardtIdxr(idx), self.dApardt_ptr)
@@ -437,7 +438,7 @@ function Gyrokinetic:clearRhsTerms()
          self.fRhsVolV:clear(0.0)
          self.fRhsSurfX:clear(0.0)
          self.fRhsSurfV:clear(0.0)
-      else -- electrostatic
+      else    -- Electrostatic.
          self.fRhsVol:clear(0.0)
       end
    end
@@ -459,10 +460,10 @@ function Gyrokinetic:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
 
       fRhs:combine(1.0, self.fRhsSurfX, 1.0, self.fRhsVolX)
    else
-      -- for electrostatic, fRhs already contains surface term
+      -- For electrostatic, fRhs already contains surface term.
       local fRhsSurf = fRhs 
-      -- fIn + fac*dt*fVol + dt*fSurf > 0
-      -- rescale volume term by fac, and add to surface term fRhs = fRhsSurf
+      -- fIn + fac*dt*fVol + dt*fSurf > 0.
+      -- Rescale volume term by fac, and add to surface term fRhs = fRhsSurf.
       if dtApprox > 0 then self.posRescaler:rescaleVolTerm(tCurr, dtApprox, fIn, nil, nil, fRhsSurf, self.fRhsVol) end
 
       fRhs:accumulate(1.0, self.fRhsVol)

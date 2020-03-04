@@ -13,6 +13,7 @@ local ffi          = require "ffi"
 local xsys         = require "xsys"
 local EqBase       = require "Eq.EqBase"
 local DataStruct   = require "DataStruct"
+local Updater      = require "Updater"
 
 -- For incrementing in updater.
 ffi.cdef [[ void vlasovIncr(unsigned n, const double *aIn, double a, double *aOut); ]]
@@ -39,7 +40,7 @@ function GkLBO:init(tbl)
    assert(tbl.mass, "Eq.GkLBO: Must pass mass using 'mass'.")
    self._inMass = tbl.mass
 
-   local applyPositivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
+   self._positivity = xsys.pickBool(tbl.positivity,false)   -- Positivity preserving option.
 
    self._pdim = self._phaseBasis:ndim()
    self._cdim = self._confBasis:ndim()
@@ -70,13 +71,13 @@ function GkLBO:init(tbl)
 
    -- Functions to perform LBO updates.
    if self._cellConstNu then
-      self._volUpdate  = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
-      self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._volUpdate          = GkLBOModDecl.selectConstNuVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfUpdate         = GkLBOModDecl.selectConstNuSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._positivity)
+      self._boundarySurfUpdate = GkLBOModDecl.selectConstNuBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._positivity)
    else
-      self._volUpdate  = GkLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
-      self._surfUpdate = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
-      self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), applyPositivity)
+      self._volUpdate          = GkLBOModDecl.selectVol(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder())
+      self._surfUpdate         = GkLBOModDecl.selectSurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._positivity)
+      self._boundarySurfUpdate = GkLBOModDecl.selectBoundarySurf(self._phaseBasis:id(), self._cdim, self._vdim, self._phaseBasis:polyOrder(), self._positivity)
    end
 
    -- Collisionality and inverse magnetic field amplitude passed as auxiliary fields.
@@ -101,7 +102,33 @@ function GkLBO:init(tbl)
       numComponents = self._phaseBasis:numBasis(),
       ghost         = {1, 1},
    }
-   self.cflRateByDirIdxr = self.cflRateByDir:genIndexer()
+   self.cflRateByDirIdxr  = self.cflRateByDir:genIndexer()
+   self.cflRateByDir_ptr  = self.cflRateByDir:get(1)
+   self.cflRateByDirL_ptr = self.cflRateByDir:get(1)
+   self.cflRateByDirR_ptr = self.cflRateByDir:get(1)
+
+   if self._positivity then
+      self.fRhsVol = DataStruct.Field {
+         onGrid        = self._grid,
+         numComponents = self._phaseBasis:numBasis(),
+         ghost         = {1, 1}
+      }
+      self.fRhsVol_ptr = self.fRhsVol:get(1)
+      self.fRhsVolIdxr = self.fRhsVol:genIndexer()
+
+      self.posRescaler = Updater.PositivityRescale {
+         onGrid = self._grid,
+         basis  = self._phaseBasis,
+      }
+
+      self.volTermRescale = DataStruct.Field {
+         onGrid        = self._grid,
+         numComponents = 1,   -- Only need one number per cell.
+         ghost         = {1, 1}
+      }
+      self.volTermRescale_ptr = self.volTermRescale:get(1)
+      self.volTermRescaleIdxr = self.volTermRescale:genIndexer()
+   end
 end
 
 -- Methods.
@@ -137,13 +164,18 @@ function GkLBO:maxSpeed(dir, w, dx, q)
 end
 
 -- Volume integral term for use in DG scheme.
-function GkLBO:volTerm(w, dx, idx, q, out)
+function GkLBO:volTerm(w, dx, idx, f_ptr, out_ptr)
    self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr)          -- Get pointer to BmagInv field.
    self._nuUSum:fill(self._nuUSumIdxr(idx), self._nuUSumPtr)             -- Get pointer to sum(nu*u) field.
    self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idx), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
 
-   local cflRateByDirPtr = self.cflRateByDir:get(1)
-   self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), cflRateByDirPtr)
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), self.cflRateByDir_ptr)
+   if self._positivity then
+      -- Positivity algorithms write to a volume term cartField stored in GkLBO.
+      self.fRhsVol:fill(self.fRhsVolIdxr(idx), self.fRhsVol_ptr)
+   else
+      self.fRhsVol_ptr = out_ptr
+   end
 
    if self._cellConstNu then
       if self._varNu then
@@ -157,20 +189,20 @@ function GkLBO:volTerm(w, dx, idx, q, out)
       local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
       if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
           (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
-         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), cflRateByDirPtr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
+         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self.cflRateByDir_ptr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
       else
          cflFreq = 0.0
          self.primMomCrossLimit = self.primMomCrossLimit+1
       end
    else
       self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)             -- Get pointer to sum(nu) field.
-      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), cflRateByDirPtr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), q:data(), out:data())
+      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self.cflRateByDir_ptr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), self.fRhsVol_ptr:data())
    end
    return cflFreq
 end
 
 -- Surface integral term for use in DG scheme.
-function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr, outl, outr)
+function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, fL_ptr, fR_ptr, outL_ptr, outR_ptr)
    local vMuMidMax = 0.0
    if dir > self._cdim then
       -- Set pointer to BmagInv, sum(nu*u) and sum(nu*vtSq) fields.
@@ -178,10 +210,8 @@ function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, q
       self._nuUSum:fill(self._nuUSumIdxr(idxl), self._nuUSumPtr)             -- Get pointer to sum(u) field.
       self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idxl), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
 
-      local cflRateByDirL = self.cflRateByDir:get(1)
-      local cflRateByDirR = self.cflRateByDir:get(1)
-      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), cflRateByDirL)
-      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), cflRateByDirR)
+      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxl), self.cflRateByDirL_ptr)
+      self.cflRateByDir:fill(self.cflRateByDirIdxr(idxr), self.cflRateByDirR_ptr)
 
       if self._cellConstNu then
          if self._varNu then
@@ -196,12 +226,12 @@ function GkLBO:surfTerm(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, q
          if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
              (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
             vMuMidMax = self._surfUpdate[dir-self._cdim](
-               self._inMass, cflRateByDirL:data(), cflRateByDirR:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), dtApprox, self._BmagInvPtr:data(), self._inNuSum, dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+               self._inMass, self.cflRateByDirL_ptr:data(), self.cflRateByDirR_ptr:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), dtApprox, self._BmagInvPtr:data(), self._inNuSum, dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), fL_ptr:data(), fR_ptr:data(), outL_ptr:data(), outR_ptr:data())
          end
       else
          self._nuSum:fill(self._nuSumIdxr(idxl), self._nuSumPtr)          -- Get pointer to sum(nu) field.
          vMuMidMax = self._surfUpdate[dir-self._cdim](
-            self._inMass, cflRateByDirL:data(), cflRateByDirR:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
+            self._inMass, self.cflRateByDirL_ptr:data(), self.cflRateByDirR_ptr:data(), wl:data(), wr:data(), dxl:data(), dxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), dtApprox, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), fL_ptr:data(), fR_ptr:data(), outL_ptr:data(), outR_ptr:data())
       end
    end
    return vMuMidMax
@@ -236,6 +266,72 @@ function GkLBO:boundarySurfTerm(dir, wl, wr, dxl, dxr, maxs, idxl, idxr, ql, qr,
             self._inMass, wl:data(), wr:data(), dxl:data(), dxr:data(), idxl:data(), idxr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), maxs, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), ql:data(), qr:data(), outl:data(), outr:data())
       end
    end
+   return vMuMidMax
+end
+
+function GkLBO:clearRhsTerms()
+   if self._positivity then
+      self.fRhsVol:clear(0.0)
+      self.volTermRescale:clear(0.0)
+   end
+end
+
+-- When using positivity-preserving algorithm we:
+--   1) Compute the flux-limited surface terms (in surfTerm), and compute the volume terms (in volTerm).
+--   2) Compute the scaling factor of the volume term (in getPositivity), but don't necessarily scale the volume term.
+--   3) Compute self-prim moments again (in GkSpecies advanceStep2) with slightly different weak problem.
+--   4) Compute the volume term again and apply it with new uPar and vtSq (in volTermStep2).
+--   5) Rescale volume term with scaling factor from (2).
+function GkLBO:getPositivityRhs(tCurr, dtApprox, fIn, fRhs)
+   -- The fRhs field contains the surface term.
+   local fRhsSurf = fRhs
+   -- fIn + fac*dt*fVol + dt*fSurf > 0.
+   -- Compute the volume term by rescaling factor fac.
+   if dtApprox > 0 then self.posRescaler:calcVolTermRescale(tCurr, dtApprox, fIn, nil, nil, fRhsSurf, self.fRhsVol, self.volTermRescale) end
+end
+
+-- Step 2 volume integral term for use in positivity-LBO scheme.
+function GkLBO:volTermStep2(w, dx, idx, f_ptr, out_ptr)
+   self._BmagInv:fill(self._BmagInvIdxr(idx), self._BmagInvPtr)          -- Get pointer to BmagInv field.
+   self._nuUSum:fill(self._nuUSumIdxr(idx), self._nuUSumPtr)             -- Get pointer to sum(nu*u) field.
+   self._nuVtSqSum:fill(self._nuVtSqSumIdxr(idx), self._nuVtSqSumPtr)    -- Get pointer to sum(nu*vtSq) field.
+
+   self.cflRateByDir:fill(self.cflRateByDirIdxr(idx), self.cflRateByDir_ptr)
+
+   if self._cellConstNu then
+      if self._varNu then
+         self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)          -- Get pointer to sum(nu) field.
+         self._inNuSum = self._nuSumPtr[1]*self._cellAvFac
+      end
+      -- If mean flow and thermal speeds are too high or if thermal
+      -- speed is negative turn the LBO off (do not call kernels).
+      -- Cell average values of uPar and vtSq (mind normalization).
+      local nuUParSum0 = self._nuUSumPtr[1]*self._cellAvFac
+      local nuVtSqSum0 = self._nuVtSqSumPtr[1]*self._cellAvFac
+      if ((math.abs(nuUParSum0)<(self._vParMax*self._inNuSum)) and
+          (nuVtSqSum0>0) and (nuVtSqSum0<(self._vParMaxSq*self._inNuSum))) then
+         cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self.cflRateByDir_ptr:data(), self._BmagInvPtr:data(), self._inNuSum, self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), out_ptr:data())
+      else
+         cflFreq = 0.0
+         self.primMomCrossLimit = self.primMomCrossLimit+1
+      end
+   else
+      self._nuSum:fill(self._nuSumIdxr(idx), self._nuSumPtr)             -- Get pointer to sum(nu) field.
+      cflFreq = self._volUpdate(self._inMass, w:data(), dx:data(), self.cflRateByDir_ptr:data(), self._BmagInvPtr:data(), self._nuSumPtr:data(), self._nuUSumPtr:data(), self._nuVtSqSumPtr:data(), f_ptr:data(), out_ptr:data())
+   end
+
+   -- Scale the volume term in order to preserve positivity.
+   self.volTermRescale:fill(self.volTermRescaleIdxr(idx), self.volTermRescale_ptr)
+   for k = 1, self._phaseBasis:numBasis() do
+      out_ptr[k] = out_ptr[k]*self.volTermRescale_ptr[1] 
+   end
+
+   return cflFreq
+end
+
+-- Step 2 surface integral term for use in positivity-LBO scheme.
+function GkLBO:surfTermStep2(dir, dtApprox, wl, wr, dxl, dxr, maxs, idxl, idxr, fL_ptr, fR_ptr, outL_ptr, outR_ptr)
+   local vMuMidMax = 0.0
    return vMuMidMax
 end
 

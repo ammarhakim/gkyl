@@ -472,7 +472,7 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
   double f0 = fIn[0]*std::pow(0.7071067811865475,ndim);
   if (f0 < 0.) return 0.;
 
-  double fmin = findMinNodalValue(fIn, ndim);
+  double fmin                = findMinNodalValue(fIn, ndim);
   double fminOld, del2Change = 0.;
   int j = 0;
 
@@ -500,7 +500,7 @@ double rescale(const double *fIn, double *fOut, int ndim, int numBasis, int *idx
   return del2Change;
 }
 
-double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx)
+double calcVolTermRescale(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx)
 {
   double fOutSurf[32];
   for(int i=0; i<numBasis; i++) {
@@ -508,7 +508,7 @@ double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, co
   }
 
   double minOutSurf = findMinNodalValue(fOutSurf, ndim);
-  double f0 = fOutSurf[0]*pow(0.7071067811865475, ndim);
+  double f0         = fOutSurf[0]*pow(0.7071067811865475, ndim);
  
   if (dt*minOutSurf < -EPSILON*dt*abs(minOutSurf-2*f0)*2) {
     printf("warning: at time %g, surface terms making control node negative, with value = %g, in cell = (%d", tCurr, dt*minOutSurf, idx[0]);
@@ -521,6 +521,15 @@ double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, co
   double scaler = findMinNodalRatio(fOutSurf, fRhsVol, -1.0, ndim);
   if(scaler < 0.) scaler = 0.;
   if(scaler < 1.) scaler *= .95;
+
+  return scaler;
+}
+
+double rescaleVolTerm(const double tCurr, const double dt, const double *fIn, const double weight, const double *fRhsSurf, double *fRhsVol, int ndim, int numBasis, int *idx)
+{
+
+  double scaler = calcVolTermRescale(tCurr, dt, fIn, weight, fRhsSurf, fRhsVol, ndim, numBasis, idx);
+
   for(int i=0; i<numBasis; i++) {
     fRhsVol[i] *= scaler;
   }

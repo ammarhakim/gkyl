@@ -53,15 +53,15 @@ end
 function KineticSpecies:fullInit(appTbl)
    local tbl = self.tbl -- Previously store table.
 
-   self.cfl    =  0.1
-   self.charge = tbl.charge and tbl.charge or 1.0
-   self.mass   = tbl.mass and tbl.mass or 1.0
-   self.n0     = tbl.n0 or n0
-   self.lower, self.upper = tbl.lower, tbl.upper
-   self.cells    = tbl.cells
-   self.vdim     = #self.cells -- Velocity dimensions.
-   self.ioMethod = "MPI"
-   self.evolve   = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
+   self.cfl                 =  0.1
+   self.charge              = tbl.charge and tbl.charge or 1.0
+   self.mass                = tbl.mass and tbl.mass or 1.0
+   self.n0                  = tbl.n0 or n0
+   self.lower, self.upper   = tbl.lower, tbl.upper
+   self.cells               = tbl.cells
+   self.vdim                = #self.cells -- Velocity dimensions.
+   self.ioMethod            = "MPI"
+   self.evolve              = xsys.pickBool(tbl.evolve, true) -- By default, evolve species.
    self.evolveCollisionless = xsys.pickBool(tbl.evolveCollisionless,
 					    self.evolve) 
    self.evolveCollisions = xsys.pickBool(tbl.evolveCollisions, self.evolve) 
@@ -75,7 +75,7 @@ function KineticSpecies:fullInit(appTbl)
    self.useShared = xsys.pickBool(appTbl.useShared, false)
    
    self.decompCuts = {}
-   -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE
+   -- WE DO NOT ALLOW DECOMPOSITION IN VELOCITY SPACE.
    for d = 1, self.vdim do self.decompCuts[d] = 1 end
 
    -- Create triggers to write distribution functions and moments.

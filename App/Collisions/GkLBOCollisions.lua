@@ -314,6 +314,18 @@ function GkLBOCollisions:createSolver(funcField)
       updateDirections   = zfd,    -- Only update velocity directions.
       zeroFluxDirections = zfd,
    }
+   if self.usePositivity then
+      self.collisionSlvrStep2 = Updater.HyperDisCont {
+         onGrid             = self.phaseGrid,
+         basis              = self.phaseBasis,
+         cfl                = self.cfl,
+         equation           = self.gkLBOconstNuCalcEq,
+         eqnStep            = 2,      -- Use step2 functions from gkLBOconstNuCalcEq.
+         updateSurfaceTerm  = false,  -- Step 2 only adds the volume term.
+         updateDirections   = zfd,    -- Only update velocity directions.
+         zeroFluxDirections = zfd,
+      }
+   end
    if self.crossCollisions then
       if self.varNu then
          -- Temporary collisionality fields.
@@ -363,7 +375,7 @@ function GkLBOCollisions:createSolver(funcField)
    }
 end
 
-function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut, fRhsVol)
+function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut)
 
    -- Fetch coupling moments and primitive moments of this species.
    local selfMom     = species[self.speciesName]:fluidMoments()
@@ -473,8 +485,10 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut, fRhsVol)
    end    -- end if self.crossCollisions.
 
    -- Compute increment from collisions and accumulate it into output.
+   -- Note that if positivity=true, self.collOut only has the surface
+   -- terms. Volume terms are stored separately in Eq.GkLBO.
    self.collisionSlvr:advance(
-      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {self.collOut, self.collVol})
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
 
    self.primMomLimitCrossingsG:appendData(tCurr, {0.0})
    self.primMomLimitCrossingsL:appendData(tCurr, {self.gkLBOconstNuCalcEq.primMomCrossLimit})
@@ -483,11 +497,52 @@ function GkLBOCollisions:advance(tCurr, fIn, species, fRhsOut, fRhsVol)
    Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
 
    fRhsOut:accumulate(1.0, self.collOut)
-   if fRhsVol then 
-      fRhsVol:accumulate(1.0, self.collVol) 
+
+end
+
+function GkLBOCollisions:advanceStep2(tCurr, fIn, species, auxPrimMomSelf, fRhsOut)
+
+   -- Fetch coupling moments and primitive moments of this species.
+   local selfMom = species[self.speciesName]:fluidMoments()
+
+   if self.varNu then
+      self.nuSum:clear(0.0)
    else
-      fRhsOut:accumulate(1.0, self.collVol)
+      self.nuSum = 0.0
    end
+   self.nuUParSum:clear(0.0)
+   self.nuVtSqSum:clear(0.0)
+
+   local tmEvalMomStart = Time.clock()
+   if self.selfCollisions then
+      self.tmEvalMom = self.tmEvalMom + Time.clock() - tmEvalMomStart
+
+      self.gkLBOconstNuCalcEq.primMomCrossLimit = 0.0
+
+      if self.varNu then
+         self.confMul:advance(tCurr, {self.nuSum, auxPrimMomSelf[1]}, {self.nuUParSum})
+         self.confMul:advance(tCurr, {self.nuSum, auxPrimMomSelf[2]}, {self.nuVtSqSum})
+      else
+         self.nuSum = self.collFreqSelf
+         self.nuUParSum:combine(self.collFreqSelf, auxPrimMomSelf[1])
+         self.nuVtSqSum:combine(self.collFreqSelf, auxPrimMomSelf[2])
+      end
+   end    -- end if self.selfCollisions.
+
+   --if self.crossCollisions then
+   --
+   --end    -- end if self.crossCollisions.
+
+   -- Compute increment from collisions and accumulate it into output.
+   -- Note that if positivity=true, self.collOut only has the surface
+   -- terms. Volume terms are stored separately in Eq.GkLBO.
+   self.collisionSlvrStep2:advance(
+      tCurr, {fIn, self.bmagInv, self.nuUParSum, self.nuVtSqSum, self.nuSum}, {self.collOut})
+
+   -- Barrier over shared communicator before accumulate
+   Mpi.Barrier(self.phaseGrid:commSet().sharedComm)
+
+   fRhsOut:accumulate(1.0, self.collOut)
 
 end
 

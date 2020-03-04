@@ -60,8 +60,8 @@ function HyperDisCont:init(tbl)
    end
 
    -- Flag to turn on/off volume term.
-   self._updateVolumeTerm = xsys.pickBool(tbl.updateVolumeTerm, true)
-   -- flag to turn on/off surface terms
+   self._updateVolumeTerm  = xsys.pickBool(tbl.updateVolumeTerm, true)
+   -- Flag to turn on/off surface terms.
    self._updateSurfaceTerm = xsys.pickBool(tbl.updateSurfaceTerm, true)
 
    -- CFL number.
@@ -81,12 +81,12 @@ function HyperDisCont:init(tbl)
    self._auxFields       = {} -- Auxilliary fields passed to eqn object.
    self._perpRangeDecomp = {} -- Perp ranges in each direction.
 
-   -- set up equation terms
-   self.volTerm = self._equation.volTerm
+   -- Set up equation terms.
+   self.volTerm  = self._equation.volTerm
    self.surfTerm = self._equation.surfTerm
-   -- for equations that require multiple steps
+   -- For equations that require multiple steps.
    if tbl.eqnStep and tbl.eqnStep > 1 then
-      self.volTerm = self._equation['volTermStep' .. tbl.eqnStep]
+      self.volTerm  = self._equation['volTermStep' .. tbl.eqnStep]
       self.surfTerm = self._equation['surfTermStep' .. tbl.eqnStep]
    end
 

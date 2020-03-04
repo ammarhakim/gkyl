@@ -44,9 +44,11 @@ function GkSpecies:alloc(nRkDup)
    self.ptclEnergy         = self:allocMoment()
    self.ptclEnergyAux      = self:allocMoment()
    if self.positivity then
-      self.numDensityPos      = self:allocMoment()
-      self.momDensityPos      = self:allocMoment()
-      self.ptclEnergyPos      = self:allocMoment()
+      self.numDensityPos   = self:allocMoment()
+      self.momDensityPos   = self:allocMoment()
+      self.ptclEnergyPos   = self:allocMoment()
+      -- To obtain the cell average, divide the zeroth coefficient by this factor.
+      self.cellAvFac       = math.sqrt(2.0^self.ndim)
    end
    self.polarizationWeight = self:allocMoment() -- not used when using linearized poisson solve
 
@@ -207,7 +209,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          basis              = self.basis,
          cfl                = self.cfl,
          equation           = self.gkEqn,
-         eqnStep            = 2,  -- use step2 functions from gkEqn
+         eqnStep            = 2,  -- Use step2 functions from gkEqn.
          zeroFluxDirections = self.zeroFluxDirections,
          updateSurfaceTerm  = false,
          clearOut           = false,   -- Continue accumulating into output field.
@@ -220,7 +222,7 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
          basis              = self.basis,
          cfl                = self.cfl,
          equation           = self.gkEqn,
-         eqnStep            = 2,  -- use step2 functions from gkEqn
+         eqnStep            = 2,  -- Use step2 functions from gkEqn.
          zeroFluxDirections = self.zeroFluxDirections,
          updateDirections   = {self.cdim+1},
          clearOut           = false,   -- Continue accumulating into output field.
@@ -301,17 +303,23 @@ function GkSpecies:createSolver(hasPhi, hasApar, funcField)
       end
       -- Updaters for the primitive moments.
       self.confDiv = Updater.CartFieldBinOp {
-         onGrid = self.confGrid,
          onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Divide",
       }
       self.confMul = Updater.CartFieldBinOp {
          onGrid    = self.confGrid,
-         onGrid    = self.confGrid,
          weakBasis = self.confBasis,
          operation = "Multiply",
       }
+      if self.positivity then
+         self.scaledDistF = self:allocDistf()
+         self.phaseMul    = Updater.CartFieldBinOp {
+            onGrid    = self.grid,
+            weakBasis = self.basis,
+            operation = "Multiply",
+         }
+      end
    end
    
    self._firstMomentCalc = true  -- To avoid re-calculating moments when not evolving.
@@ -548,6 +556,17 @@ function GkSpecies:initCrossSpeciesCoupling(species)
          self.m1Star = self:allocMoment()
          self.m2Star = self:allocMoment()
       end
+
+      if self.positivity then
+         self.uParAux = self:allocMoment()
+         self.vtSqAux = self:allocMoment()
+
+         self.m1CorrectionAux = self:allocMoment()
+         self.m2CorrectionAux = self:allocMoment()
+         if (self.basis:polyOrder()==1) then
+            self.m0StarAux = self:allocMoment()
+         end
+      end
    end
 
    -- Allocate fieds to store cross-species primitive moments.
@@ -617,25 +636,28 @@ end
 
 function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
    self.tCurr = tCurr
-   local fIn = self:rkStepperFields()[inIdx]
+   local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em = emIn[1]:rkStepperFields()[inIdx]
+   local em          = emIn[1]:rkStepperFields()[inIdx]
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc = emIn[2]:rkStepperFields()[1]
+   local emFunc      = emIn[2]:rkStepperFields()[1]
 
-   -- solvers specified with clearOut = false, so we need to zero out RHS here
+   -- Solvers specified with clearOut = false, so we need to zero out RHS here.
    fRhsOut:clear(0.0)
    self.gkEqn:clearRhsTerms()
 
    -- Do collisions first so that collisions contribution to cflRate is included in GK positivity.
    if self.evolveCollisions then
       for _, c in pairs(self.collisions) do
+         if (c.collKind == "GkLBO") then
+            c.gkLBOconstNuCalcEq:clearRhsTerms()
+         end
          c.collisionSlvr:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
-         if self.positivityRescaleVolTerm then
-            c:advance(tCurr, fIn, species, fRhsOut, self.fRhsVol)
-         else
-            c:advance(tCurr, fIn, species, fRhsOut)
+         c:advance(tCurr, fIn, species, fRhsOut)
+
+         if (self.positivity) and (c.collKind == "GkLBO") then
+            c.gkLBOconstNuCalcEq:getPositivityRhs(tCurr, self.dtGlobal[0], fIn, fRhsOut)
          end
       end
    end
@@ -659,13 +681,75 @@ function GkSpecies:advance(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
-   local fIn = self:rkStepperFields()[inIdx]
+   local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em = emIn[1]:rkStepperFields()[inIdx]
+   local em          = emIn[1]:rkStepperFields()[inIdx]
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc = emIn[2]:rkStepperFields()[1]
+   local emFunc      = emIn[2]:rkStepperFields()[1]
 
+   if self.evolveCollisions and self.positivity then
+      local energyEqM0, energyEqM1, energyEqM2 = nil, nil, nil
+      local scaleVolTermScale                  = true
+      for _, c in pairs(self.collisions) do
+         if (c.collKind == "GkLBO") then
+            -- Recompute uPar and vtSq from a new weak system in which boundary corrections use
+            -- the old vtSq, and the other terms are multiplied by the volume rescaling factor.
+            if scaleVolTermScale then
+               c.gkLBOconstNuCalcEq.posRescaler:scaleByCell(c.gkLBOconstNuCalcEq.volTermRescale,fIn,self.scaledDistF)
+               scaleVolTermScale = false
+               -- Compute new moments with scaled distribution function. 
+               self.threeMomentsLBOCalc:advance(tCurr, {self.scaledDistF}, { self.numDensityAux, self.momDensityAux, self.ptclEnergyAux,
+                                                                             self.m1CorrectionAux, self.m2CorrectionAux,
+                                                                             self.m0StarAux, self.m1Star, self.m2Star })
+               energyEqM0, energyEqM1, energyEqM2 = self.numDensityAux, self.momDensityAux, self.ptclEnergyAux
+               if self.basis:polyOrder()==1 then
+                  energyEqM0, energyEqM1, energyEqM2 = self.m0Star, self.m1Star, self.m2Star
+               end
+            end
+
+            if self.needCorrectedSelfPrimMom then
+               self.confMul:advance(tCurr, {self.vtSqSelf, self.m1Correction}, {self.numDensityPos})
+               -- Barrier over shared communicator before accumulate.
+               Mpi.Barrier(self.grid:commSet().sharedComm)
+               self.numDensityPos:accumulate(1.0,self.momDensityAux)
+               self.confDiv:advance(tCurr, {self.numDensityAux, self.numDensityPos}, {self.uParAux})
+
+               self.confMul:advance(tCurr, {self.uParAux, energyEqM1}, {self.momDensityPos})
+               if (self.basis:polyOrder()==1) and (self.vdim > 1) then
+                  -- Barrier over shared communicator before combine.
+                  Mpi.Barrier(self.grid:commSet().sharedComm)
+                  self.m2CorrectionAux:combine(1.0, self.m0Star, -1.0, self.m2Correction)
+                  self.confMul:advance(tCurr, {self.vtSqSelf, self.m2CorrectionAux}, {self.ptclEnergyPos})
+                  -- Barrier over shared communicator before combine.
+                  Mpi.Barrier(self.grid:commSet().sharedComm)
+                  self.numDensityPos:combine( 0.5, energyEqM2,
+                                             -0.5, self.momDensityPos,
+                                             -0.5, self.ptclEnergyPos )
+                  self.confDiv:advance(tCurr, {self.numDensityAux, self.numDensityPos}, {self.vtSqAux})
+               else
+                  self.confMul:advance(tCurr, {self.vtSqSelf, self.m2Correction}, {self.ptclEnergyPos})
+                  -- Barrier over shared communicator before combine.
+                  Mpi.Barrier(self.grid:commSet().sharedComm)
+                  self.numDensityPos:combine( 1.0/self.vDegFreedom, energyEqM2,
+                                             -1.0/self.vDegFreedom, self.momDensityPos,
+                                              1.0/self.vDegFreedom, self.ptclEnergyPos )
+                  self.confDiv:advance(tCurr, {energyEqM0, self.numDensityPos}, {self.vtSqAux})
+               end
+
+            else
+               -- If code gets in here it must mean that self-species LBO is not present,
+               -- but cross-species LBO is. So need to recompute the cross-species primitive
+               -- moments taking into account the rescaling of the cross-species LBO volume term.
+               -- Maybe this needs to take place inside Eq:advanceStep2().
+            end
+
+            -- Recompute the volume term, scale it by the scaling term, and accumulate it 
+            c.collisionSlvrStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
+            c:advanceStep2(tCurr, fIn, species, {self.uParAux,self.vtSqAux}, fRhsOut)
+         end
+      end
+   end
    if self.evolveCollisionless then
       self.solverStep2:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
       self.solverStep2:advance(tCurr, {fIn, em, emFunc, dApardtProv}, {fRhsOut})
@@ -673,12 +757,12 @@ function GkSpecies:advanceStep2(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
-   local fIn = self:rkStepperFields()[inIdx]
+   local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em = emIn[1]:rkStepperFields()[inIdx]
+   local em          = emIn[1]:rkStepperFields()[inIdx]
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc = emIn[2]:rkStepperFields()[1]
+   local emFunc      = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
       self.gkEqn.ohmMod:clear(0.)
@@ -690,12 +774,12 @@ function GkSpecies:advanceStep3(tCurr, species, emIn, inIdx, outIdx)
 end
 
 function GkSpecies:advanceStep4(tCurr, species, emIn, inIdx, outIdx)
-   local fIn = self:rkStepperFields()[inIdx]
+   local fIn     = self:rkStepperFields()[inIdx]
    local fRhsOut = self:rkStepperFields()[outIdx]
 
-   local em = emIn[1]:rkStepperFields()[inIdx]
+   local em          = emIn[1]:rkStepperFields()[inIdx]
    local dApardtProv = emIn[1].dApardtProv
-   local emFunc = emIn[2]:rkStepperFields()[1]
+   local emFunc      = emIn[2]:rkStepperFields()[1]
 
    if self.evolveCollisionless then
       self.solverStep3:setDtAndCflRate(self.dtGlobal[0], self.cflRateByCell)
@@ -1090,7 +1174,7 @@ function GkSpecies:bcSheathFunc(dir, tm, idxIn, fIn, fOut)
    end
    -- Get vpar limits of cell.
    local vpardir = self.cdim+1
-   local gridIn = self.grid
+   local gridIn  = self.grid
    gridIn:setIndex(idxIn)
    local vL = gridIn:cellLowerInDir(vpardir)
    local vR = gridIn:cellUpperInDir(vpardir)
@@ -1127,7 +1211,7 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    
    local vdir = nil
    if dir==self.cdim then 
-      vdir=self.cdim+1 
+      vdir = self.cdim+1 
    end
 
    if bcType == SP_BC_ABSORB then
@@ -1139,8 +1223,8 @@ function GkSpecies:appendBoundaryConditions(dir, edge, bcType)
    elseif bcType == SP_BC_REFLECT and dir==self.cdim then
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcReflectFunc }, "flip"))
    elseif bcType == SP_BC_SHEATH and dir==self.cdim then
-      self.fhatSheath = self:allocDistf()
-      self.fhatSheathPtr = self.fhatSheath:get(1)
+      self.fhatSheath     = self:allocDistf()
+      self.fhatSheathPtr  = self.fhatSheath:get(1)
       self.fhatSheathIdxr = self.fhatSheath:genIndexer()
       table.insert(self.boundaryConditions, self:makeBcUpdater(dir, vdir, edge, { bcSheathFunc }, "flip"))
       self.hasSheathBcs = true
@@ -1363,10 +1447,10 @@ function GkSpecies:totalSolverTime()
 end
 
 function GkSpecies:Maxwellian(xn, n0, T0, vdIn)
-   local vd = vdIn or 0.0
-   local vt2 = T0/self.mass
+   local vd   = vdIn or 0.0
+   local vt2  = T0/self.mass
    local vpar = xn[self.cdim+1]
-   local v2 = (vpar-vd)^2
+   local v2   = (vpar-vd)^2
    if self.vdim > 1 then 
      local mu = xn[self.cdim+2]
      v2 = v2 + 2*math.abs(mu)*self.bmagFunc(0,xn)/self.mass
