@@ -264,10 +264,6 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             mom2:fill(confIndexer(cIdx), mom2Itr)
             mom3:fill(confIndexer(cIdx), mom3Itr)
    
-            if self._isGk then
-               self.bmag:fill(confIndexer(cIdx), self.bmagItr)
-            end
-   
             -- Now loop over velocity space boundary surfaces to compute boundary corrections.
             cMomB:fill(confIndexer(cIdx), cMomBItr)
             cEnergyB:fill(confIndexer(cIdx), cEnergyBItr)
@@ -293,10 +289,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
             m2Star:fill(confIndexer(cIdx), m2StarItr)
    
             for vDir = 1, vDim do
-               if (not self._isGk) or (self._isGk and firstDir) then
-                  StarM0Calc  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim, self.applyPositivity)
-                  uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
-               end
+               StarM0Calc  = MomDecl.selectStarM0Calc(vDir, self._kinSpecies, self._basisID, cDim, vDim, self.applyPositivity)
+               uCorrection = MomDecl.selectBoundaryFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
                vtSqCorrection = MomDecl.selectBoundaryVFintegral(vDir, self._kinSpecies, self._basisID, cDim, vDim, self._polyOrder)
       
                -- Lower/upper bounds in direction 'vDir': edge indices (including outer edges).
@@ -335,23 +329,11 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                      distf:fill(phaseIndexer(self.idxP), distfItrP)
          
                      if i>dirLoIdx and i<dirUpIdx then
-                        if (self._isGk) then
-                           if (firstDir) then
-                              StarM0Calc(self._intFac[1], self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
-                           end
-                        else
-                           StarM0Calc(self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
-                        end
+                        StarM0Calc(self.xcM:data(), self.xcP:data(), self.dxM:data(), self.dxP:data(), distfItrM:data(), distfItrP:data(), m0StarItr:data())
                      end
                      if firstDir and i<dirUpIdx then
-                        if self._isGk then
-                           self._momCalcFun(self.xcP:data(), self.dxP:data(), self.mass, self.bmagItr:data(), distfItrP:data(), 
-                            		 mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-                           self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), self._intFac[1], self.mass, self.bmagItr:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
-                        else
-                           self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItrP:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
-                           self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
-                        end
+                        self._momCalcFun(self.xcP:data(), self.dxP:data(), distfItrP:data(), mom1Itr:data(), mom2Itr:data(), mom3Itr:data())
+                        self._StarM1iM2Calc(self.xcP:data(), self.dxP:data(), distfItrP:data(), m1StarItr:data(), m2StarItr:data())
                      end
    
                      if i==dirLoIdx or i==dirUpIdx-1 then
@@ -362,15 +344,8 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
                         else
                            vBound = grid:cellUpperInDir(cDim + vDir)
                         end
-                        if (self._isGk) then
-                           if (firstDir) then
-                              uCorrection(isLo, self._intFac[1], vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                           end
-                           vtSqCorrection(isLo, self._intFac[vDir], vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
-                        else
-                           uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
-                           vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
-                        end
+                        uCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cMomBItr:data())
+                        vtSqCorrection(isLo, vBound, self.dxP:data(), distfItrP:data(), cEnergyBItr:data())
          
                         isLo = not isLo
                      end    -- i==dirLoIdx or i==dirUpIdx-1.
@@ -383,7 +358,7 @@ function DistFuncMomentCalc:_advance(tCurr, inFld, outFld)
          end    -- Loop over configuration space.
    
    
-      else    -- if not (self._fiveMomentsLBO and self._polyOrder=1 and isGk==false)
+      else    -- if isGk, or not (self._fiveMomentsLBO and self._polyOrder=1)
    
          -- Outer loop is threaded and over configuration space.
          for cIdx in confRangeDecomp:rowMajorIter(tId) do
